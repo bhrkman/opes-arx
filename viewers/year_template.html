@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Year — Opes Arx: The Capital Divide</title>
+<style>
+  :root{--ink:#e9e4dc;--dim:#9a9187;--faint:#6b635a;--bg:#14120f;--panel:#1c1916;--edge:#2e2823;
+        --violet:#9d7cd8;--gold:#d8a657;--red:#d16a5e;--green:#89b482;--blue:#7daea3;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace;padding:28px 20px 70px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  h1 .sub{color:var(--violet)}
+  .lede{color:var(--dim);max-width:80ch;margin:0 0 24px;font-size:13.5px}
+  .lede b{color:var(--ink)}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;padding:16px 18px;margin:0 0 18px}
+  .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
+  .note{color:var(--faint);font-size:12.5px;margin:0 0 14px;max-width:82ch}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+  select,button{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
+                border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
+  button{cursor:pointer;border-color:#43392f}
+  button:hover:not(:disabled){background:#2e2721;border-color:var(--violet)}
+  button:disabled{opacity:.4;cursor:default}
+  label{color:var(--dim);font-size:12.5px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{text-align:left;padding:5px 10px 5px 0;vertical-align:top}
+  th{color:var(--faint);font-weight:400;border-bottom:1px solid var(--edge);font-size:11px;
+     letter-spacing:.07em;text-transform:uppercase}
+  .turns{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 0 16px}
+  .turn{background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:8px;font-size:11px}
+  .turn.now{border-color:var(--violet);background:#2b2333}
+  .turn.done{opacity:.55}
+  .turn b{display:block;color:var(--gold);font-size:12px;margin-bottom:3px}
+  .turn .w{color:var(--blue)}
+  .ap{display:flex;gap:3px;margin-top:5px}
+  .ap i{width:9px;height:9px;border-radius:2px;background:#3a322b;display:block}
+  .ap i.used{background:var(--violet)}
+  .v{color:var(--gold)}.g{color:var(--green)}.r{color:var(--red)}.p{color:var(--violet)}.b{color:var(--blue)}
+  .big{font-size:24px}
+  .foot{color:var(--faint);font-size:12px;margin-top:8px}
+  code{color:var(--dim);font-size:12px}
+  .bar{height:6px;background:#241f1b;border-radius:3px;overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%;background:var(--violet)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The Year <span class="sub">— eleven months that are not the Divide</span></h1>
+<p class="lede">
+  Every figure below comes from the same modules the game runs, inlined and executed in this page:
+  <code>prng · roster · items · ledger · reputation · combat · tactical · negotiate · divide ·
+  season</code>. Stepping a turn calls the real season loop. Nothing here is baked.
+  <b>Until Step 8.6 none of this existed</b> — the whole year happened in one function that aged
+  everybody, healed everybody to full, signed some people and stopped.
+</p>
+
+<div class="panel">
+  <h2>The calendar</h2>
+  <p class="note">
+    Five two-month turns, then the lock, then the Divide. Each turn is <b>five action points</b>
+    against verbs costing two, two, one and two — so a corp cannot treat its wounded, drill its
+    green and survey the planet in the same two months. That competition is the management game.
+  </p>
+  <div class="controls">
+    <label>corp <select id="corp"></select></label>
+    <button id="step">step a turn</button>
+    <button id="year">run the whole year</button>
+    <button id="reset">start over</button>
+    <span id="where" class="foot"></span>
+  </div>
+  <div class="turns" id="turns"></div>
+</div>
+
+<div class="panel">
+  <h2>What the year did to the people</h2>
+  <p class="note">
+    The old offseason subtracted a flat 330 days from every wound in one pass, which cures
+    everything this game can inflict — so <b>no injury had ever survived into a second season</b>
+    and no manager had ever had to decide what to do about one. Mending now runs 61 days a turn,
+    plus whatever treatment gets bought.
+  </p>
+  <div id="roster"></div>
+</div>
+
+<div class="panel">
+  <h2>The events</h2>
+  <p class="note">
+    T3 ends with the <b>Dividend</b> — a non-lethal show-match fought with real stun weapons, not
+    cheap lethal ones. T4 is the <b>Bastille intake</b>, where the corp chooses. T5 is the
+    <b>merc deadline</b>, where the fighter does.
+  </p>
+  <div id="events"></div>
+</div>
+
+<div class="panel">
+  <h2>The lock, M11</h2>
+  <p class="note">
+    Two different questions with two different sources: <b>how many</b> answers the board's funding
+    demand, <b>who</b> answers the corp's own culture.
+  </p>
+  <div id="lock"></div>
+</div>
+
+</div>
+
+<script>
+/*__DATA__*/
+</script>
+<script>
+/*__SIM__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var A = window.ARX_DATA;
+  window.CDITEMS.init(A.items);
+  window.CDROSTER.initRoster({ races: A.races, traits: A.traits,
+                               recruitment: A.recruitment, oa: A.oa_profiles });
+  var P = window.CDPRNG, SEASON = window.CDSEASON;
+  var OA = A.oa_profiles.oa_profiles;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
+
+  OA.forEach(function (p) {
+    var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
+    $('corp').appendChild(o);
+  });
+  $('corp').value = 'alliance_house';
+
+  var TURNS = [
+    { t: 1, m: 'M1\u20132', name: 'season open', w: '' },
+    { t: 2, m: 'M3\u20134', name: 'tryouts', w: 'signing window' },
+    { t: 3, m: 'M5\u20136', name: 'survey drip', w: 'THE DIVIDEND' },
+    { t: 4, m: 'M7\u20138', name: 'Bastille intake', w: 'the corp chooses' },
+    { t: 5, m: 'M9\u201310', name: 'merc deadline', w: 'the merc chooses' },
+    { t: 6, m: 'M11', name: 'the lock', w: 'who goes' },
+    { t: 7, m: 'M12', name: 'THE DIVIDE', w: '' }
+  ];
+
+  /* This page runs WHOLE SEASONS and watches them; `the_desk.html` is the one you play a month
+     at a time. That used to be a limitation rather than a choice — the season loop could not be
+     re-entered from outside at all, and this comment said so. It can now (`beginSeason` /
+     `stepMonth` / `closeSeason`), so the observer view is kept because observing is useful, not
+     because stepping is impossible.
+     The page runs whole
+     careers of increasing length and shows the difference — which is the same information and
+     is honest about how it got it, rather than faking a step by mutating state the loop owns. */
+  var at = 0, career = null;
+
+  function runTo(seasons) {
+    return SEASON.runCareer(P.mulberry32(P.seedFrom('demo-year')), OA, seasons, {});
+  }
+
+  function render() {
+    var id = $('corp').value;
+    $('turns').innerHTML = TURNS.map(function (T, i) {
+      var cls = 'turn' + (i === at ? ' now' : (i < at ? ' done' : ''));
+      var ap = '';
+      if (T.t <= 5 && i < at) {
+        ap = '<div class="ap">' + [0,1,2,3,4].map(function (k) {
+          return '<i class="' + (k < 5 ? 'used' : '') + '"></i>'; }).join('') + '</div>';
+      }
+      return '<div class="' + cls + '"><b>' + (T.t <= 5 ? 'T' + T.t : T.name.toUpperCase()) +
+             '</b>' + T.m + '<br>' + esc(T.name) +
+             (T.w ? '<br><span class="w">' + esc(T.w) + '</span>' : '') + ap + '</div>';
+    }).join('');
+    $('where').textContent = at === 0 ? 'the year has not started'
+      : (at >= TURNS.length ? 'the year is over' : 'through ' + TURNS[at - 1].name);
+
+    if (!career) {
+      $('roster').innerHTML = '<p class="foot">Step a turn to run the year.</p>';
+      $('events').innerHTML = ''; $('lock').innerHTML = '';
+      return;
+    }
+    var last = career.seasons[career.seasons.length - 1];
+    var c = last.corps[id] || {};
+    var live = career.corps[id] || {};
+
+    /* --- people --- */
+    var hurt = 0, bodies = 0, serving = 0, freed = 0;
+    (live.roster || []).forEach(function (f) {
+      if (f.status === 'dead' || f.status === 'retired') return;
+      bodies++;
+      if (((f.condition || {}).injuries || []).length) hurt++;
+      if (f.status === 'prisoner') serving++;
+      if (f.status === 'freed') freed++;
+    });
+    var pr = c.prep || {};
+    $('roster').innerHTML =
+      '<table><tr><th>roster</th><th>still carrying a wound</th><th>mended by time</th>' +
+      '<th>treatment blocks</th><th>drill blocks</th></tr><tr>' +
+      '<td class="big">' + bodies + '</td>' +
+      '<td class="big ' + (hurt ? 'r' : 'g') + '">' + hurt + '</td>' +
+      '<td class="big">' + (pr.mended || 0) + '</td>' +
+      '<td class="big">' + (pr.treated || 0) + '</td>' +
+      '<td class="big">' + (pr.trained || 0) + '</td></tr></table>' +
+      '<p class="foot">Under the old offseason the wounded column was <b>always zero</b>: 330 days ' +
+      'cures anything the game can inflict, so nothing survived to be managed.</p>';
+
+    /* --- events --- */
+    var d = last.dividend || {}, m = last.mercs || {}, b = last.bastille || {};
+    $('events').innerHTML =
+      '<table><tr><th></th><th>ran</th><th>result</th></tr>' +
+      '<tr><td class="p">the Dividend</td><td>' + (d.matches || 0) + ' matches, ' +
+        (d.fought || 0) + ' appearances</td><td class="g">' + (d.conversions || 0) +
+        ' deaths \u2014 the rounds cannot kill</td></tr>' +
+      '<tr><td class="p">Bastille intake</td><td>' + (b.signed || 0) + ' signed of ' +
+        (b.lot || 0) + '</td><td>' + serving + ' serving a term, <span class="g">' + freed +
+        ' went free</span></td></tr>' +
+      '<tr><td class="p">merc deadline</td><td>' + (m.signed || 0) + ' hired on ' +
+        (m.bids || 0) + ' offers</td><td class="b">' + (m.tookLessForSafety || 0) +
+        ' took less than the top bid</td></tr></table>' +
+      '<p class="foot">A merc picks their employer because they can walk. Somebody signing out of ' +
+      'the Bastille has one offer and a sentence behind them \u2014 modelling both the same way ' +
+      'would flatten the thing that makes this setting uncomfortable on purpose.</p>';
+
+    /* --- the lock --- */
+    var lean = c.lockLean || '\u2014';
+    var why = { fittest: 'send the best available and worry later',
+                rested: 'leave the wounded at home, field thinner but healthier',
+                prospect: 'give a green fighter the ground time to reach their ceiling' }[lean] || '';
+    $('lock').innerHTML =
+      '<table><tr><th>fielded</th><th>lean</th><th>intel carried down</th><th>board patience</th></tr><tr>' +
+      '<td class="big">' + (c.dropped || 0) + '</td>' +
+      '<td><span class="big p">' + esc(lean) + '</span><br><span class="foot">' + esc(why) + '</span></td>' +
+      '<td class="big">' + (c.intel || 0).toFixed(2) + '</td>' +
+      '<td class="big">' + Math.round(c.patience || 0) + '</td></tr></table>' +
+      '<p class="foot">Force size answers the board\u2019s funding demand; the lean answers the ' +
+      'corp\u2019s culture. <code>rested</code> only became a real option once the calendar stopped ' +
+      'healing everybody to full \u2014 before that there was nobody hurt to rest.</p>';
+  }
+
+  function step() {
+    if (at >= TURNS.length) return;
+    at++;
+    if (at >= TURNS.length) { career = runTo(2); }
+    else if (!career) { career = runTo(2); }
+    render();
+  }
+  $('step').addEventListener('click', step);
+  $('year').addEventListener('click', function () {
+    at = TURNS.length; career = runTo(2); render();
+  });
+  $('reset').addEventListener('click', function () { at = 0; career = null; render(); });
+  $('corp').addEventListener('change', render);
+  render();
+})();
+</script>
+</body>
+</html>

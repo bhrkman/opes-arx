@@ -1,0 +1,879 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "$id": "schemas.json",
+ "title": "Capital Divide schemas",
+ "description": "Project version 0.10. Two entity schemas in one file: Fighter and Item. Reference as schemas.json#/definitions/fighter and #/definitions/item.",
+ "definitions": {
+  "fighter": {
+   "title": "Fighter",
+   "description": "A combatant on a Capital Divide roster. v0.5: nothing leaves a Divide (DIVIDE_POLICY.md 5) — 'evacuated' redefined as field recovery to your own camp, not extraction. v0.4 added 'captured' status (rare, a negotiation asset per COMBAT.md 5) and pointed injury ids at the COMBAT.md 7 tables. Combat is entirely ranged (DESIGN.md 2.3) so aim is the sole attack aptitude. Note race != origin: any race may be a nattie, merc, or prisoner. v0.5 (Step 8.5b): several scalars were declared `integer` and have been continuous for steps. Nothing had ever validated a live fighter against this file, so the drift was invisible — a schema nobody reads is a comment. `arx.cjs regress` now walks real corps and their rosters against these definitions.",
+   "type": "object",
+   "required": [
+    "id",
+    "name",
+    "race",
+    "origin",
+    "stats",
+    "condition",
+    "contract",
+    "status"
+   ],
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^ftr_[a-z0-9_]+$",
+     "description": "Unique snake_case id with ftr_ prefix, e.g. 'ftr_sczaa_vex'."
+    },
+    "name": {
+     "type": "string"
+    },
+    "callsign": {
+     "type": "string",
+     "description": "Broadcast nickname. Optional; typically earned through fame events."
+    },
+    "race": {
+     "type": "string",
+     "enum": [
+      "human",
+      "attorak",
+      "etu",
+      "gil",
+      "kellis",
+      "thythyn",
+      "svalbard",
+      "mon_wa",
+      "olmac"
+     ],
+     "description": "Race id; canon sheets and naming conventions in RACES.md. The ankoth are a banished, non-playable lore race (canon) and are excluded by design."
+    },
+    "origin": {
+     "type": "string",
+     "enum": [
+      "nattie",
+      "mercenary",
+      "prisoner"
+     ],
+     "description": "Recruitment pool of origin. Immutable — a freed prisoner who re-signs keeps origin 'prisoner'; the arc is their story."
+    },
+    "age": {
+     "type": "integer",
+     "minimum": 16,
+     "description": "Interpreted per-race via races.json (Step 2). Experience grows the mind; age erodes the body late (DESIGN.md 10). Svalbard primes run long."
+    },
+    "stats": {
+     "type": "object",
+     "description": "Seven visible ability scores, 1-20 FM-style. Ratified.",
+     "required": [
+      "aim",
+      "grit",
+      "reflex",
+      "fieldcraft",
+      "tactics",
+      "presence",
+      "resolve"
+     ],
+     "properties": {
+      "aim": {
+       "$ref": "#/definitions/stat",
+       "description": "Ranged weapon proficiency — the game's sole attack aptitude; combat has no close-quarters layer."
+      },
+      "grit": {
+       "$ref": "#/definitions/stat",
+       "description": "Toughness, stamina, wound resistance."
+      },
+      "reflex": {
+       "$ref": "#/definitions/stat",
+       "description": "Initiative, evasion, reaction under fire."
+      },
+      "fieldcraft": {
+       "$ref": "#/definitions/stat",
+       "description": "Stealth, survival, foraging, scouting."
+      },
+      "tactics": {
+       "$ref": "#/definitions/stat",
+       "description": "Battlefield judgment. Primary captain stat."
+      },
+      "presence": {
+       "$ref": "#/definitions/stat",
+       "description": "Charisma and crowd appeal. Secondary captain stat."
+      },
+      "resolve": {
+       "$ref": "#/definitions/stat",
+       "description": "Morale stability under fire and after losses."
+      }
+     },
+     "additionalProperties": false
+    },
+    "potential": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 20,
+     "description": "HIDDEN growth ceiling. Never shown raw to the player; scouts estimate it."
+    },
+    "experience": {
+     "type": "object",
+     "description": "Feeds development (Step 8) and battle composure (COMBAT.md 4.1): experience_bonus = min(18, 5*divides + 1.0*battles + 2*dividends), added to the per-engagement composure seed. Dividends buy nerve without buying risk.",
+     "properties": {
+      "divides": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "Capital Divides dropped into."
+      },
+      "battles": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "dividends": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "Dividend show-match appearances — safe experience (DESIGN.md 4)."
+      }
+     }
+    },
+    "traits": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "Trait ids from traits.json (Step 2). Racial trait pools (Et-y-Bellum devotion, Gil psionics, Svalbard tradition, etc.) per RACES.md."
+    },
+    "condition": {
+     "type": "object",
+     "required": [
+      "health",
+      "fatigue",
+      "morale"
+     ],
+     "properties": {
+      "health": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 100
+      },
+      "fatigue": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 100
+      },
+      "morale": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 100
+      },
+      "injuries": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "type",
+         "severity"
+        ],
+        "properties": {
+         "type": {
+          "type": "string",
+          "description": "Injury id from the COMBAT.md 7 tables: inj_arm, inj_leg, inj_torso, inj_head, inj_internal, inj_burns, inj_chest, inj_spinal, inj_catastrophic; Thythyn wing table inj_wing_tear, inj_wing_strut, inj_wing_spar, inj_wing_loss."
+         },
+         "severity": {
+          "type": "string",
+          "enum": [
+           "minor",
+           "serious",
+           "critical",
+           "permanent"
+          ]
+         },
+         "days_remaining": {
+          "type": "integer",
+          "description": "Recovery days at full treatment."
+         },
+         "untreated": {
+          "type": "boolean",
+          "description": "Untreated injuries degrade one severity step every 3 days during the Divide (COMBAT.md 7.1)."
+         }
+        }
+       }
+      }
+     }
+    },
+    "loyalty": {
+     "type": "number",
+     "minimum": 0,
+     "maximum": 100,
+     "description": "Attachment to the corp/manager. Feeds captain doctrine fidelity and poaching resistance. Racially textured (Kellis high, Olmac low, Gil motive-driven, Thythyn status-coupled) per RACES.md. Declared `integer` and produced as a float since it became continuous; caught at Step 8.5b, the first time anything walked a live fighter against this schema."
+    },
+    "fame": {
+     "type": "number",
+     "minimum": 0,
+     "maximum": 100,
+     "description": "Per-fighter crowd standing. Single scalar stub until Step 7. Declared `integer` and produced as a float since it became continuous; caught at Step 8.5b, the first time anything walked a live fighter against this schema."
+    },
+    "contract": {
+     "type": "object",
+     "required": [
+      "salary",
+      "seasons_remaining"
+     ],
+     "properties": {
+      "salary": {
+       "type": "integer",
+       "description": "Credits per prep month."
+      },
+      "seasons_remaining": {
+       "type": "integer"
+      },
+      "signing_cost": {
+       "type": "integer",
+       "description": "Merc signing bonus, prisoner auction price, or 0 for natties."
+      },
+      "death_benefit": {
+       "type": "integer",
+       "description": "Paid on death. Highest for natties (family pensions on your own ship)."
+      },
+      "freedom": {
+       "type": "object",
+       "description": "Prisoners only. divides_required is set PER CONTRACT (canon). On completion: status becomes 'freed', the Kier Bastille releases the contract, and the fighter may be offered a standard contract to stay (returning to 'active' with origin unchanged).",
+       "required": [
+        "divides_served",
+        "divides_required"
+       ],
+       "properties": {
+        "divides_served": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "divides_required": {
+         "type": "integer",
+         "minimum": 1
+        }
+       }
+      }
+     }
+    },
+    "bond_partner": {
+     "type": "string",
+     "description": "mon_wa only (canon): fighter id of the telepathically bonded half. Mon- is the first half, -Wa the second; the pair shares ONE roster slot and is DISTANCE-TETHERED (cannot be split-tasked beyond miles; forced separation risks collapse). On partner death, roll bond-shock: death (common) / braindead-retired (uncommon) / traumatized survivor (rare: scar traits + rename — widowed Mon takes the Em- prefix; widowed Wa takes the -Em suffix, proposed)."
+    },
+    "history": {
+     "type": "object",
+     "properties": {
+      "kills": {
+       "type": "integer"
+      },
+      "evacs": {
+       "type": "integer",
+       "description": "Times this fighter was carried out of a firefight alive — a near-death counter, and broadcast colour. Not departures from the Divide (v0.5)."
+      },
+      "notable_events": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "Event ids shaping this fighter's public story; feeds broadcast color and grudges."
+      }
+     }
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "active",
+      "injured",
+      "dead",
+      "retired",
+      "freed",
+      "captured",
+      "prisoner"
+     ],
+     "description": "'freed' = completed freedom clause, currently unsigned; re-signing returns them to 'active'. 'captured' (v0.4) = taken alive by another corp mid-Divide — rare, resolved through negotiation (COMBAT.md 5). 'evacuated' (redefined v0.5) = carried out of the field to your OWN camp, alive but out for the remainder of this Divide; there is no extraction from a Divide, so this is field recovery, not departure. 'injured' is the between-Divides roster state. `prisoner` and `freed` were used by the code from Step 2 and missing from this enum until Step 8.6b, when the Bastille intake put enough of them on a roster for the new corp-schema check to notice.",
+     "note": "Step 6 audit: 'evacuated' and 'released' removed. Nothing leaves a Divide (DESIGN.md v0.8 ruling), so 'evacuated' was dead by canon and no code ever assigned it; 'released' was never assigned either — a captive handed back by ransom or by their captor's whim comes home as 'injured', which is the truthful state to be in."
+    },
+    "loadout": {
+     "type": "object",
+     "description": "What this fighter carries, set at the M11 lock (PROCUREMENT.md 3). Five slots and two mod slots on the primary. Empty slots are filled by free Aleas issue kit. `kit` is the resolved stat block the combat resolver reads; the ids beside it are the record of what was actually bought.",
+     "properties": {
+      "primary": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "Item id, slot 'primary'."
+      },
+      "mods": {
+       "type": "array",
+       "maxItems": 2,
+       "items": {
+        "type": "string"
+       },
+       "description": "Item ids, slot 'mod', family-compatible with the primary."
+      },
+      "sidearm": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "Item id, slot 'sidearm'. Fires only when the primary is dry, venting or damaged."
+      },
+      "armor": {
+       "type": [
+        "string",
+        "null"
+       ],
+       "description": "Item id, slot 'armor'."
+      },
+      "consumables": {
+       "type": "array",
+       "maxItems": 2,
+       "items": {
+        "type": "string"
+       },
+       "description": "Item ids, slot 'consumable'. Single use."
+      },
+      "kit": {
+       "type": "object",
+       "description": "Derived, not authored: resolved weapon/armor/sidearm stats, plus value and bulk. Rebuilt by sim/items.js on equip."
+      }
+     }
+    }
+   },
+   "definitions": {
+    "stat": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 20
+    }
+   },
+   "examples": [
+    {
+     "id": "ftr_sczaa_vex",
+     "name": "Sczaa Vex",
+     "callsign": "Stillwater",
+     "race": "etu",
+     "origin": "prisoner",
+     "age": 41,
+     "stats": {
+      "aim": 11,
+      "grit": 16,
+      "reflex": 9,
+      "fieldcraft": 17,
+      "tactics": 12,
+      "presence": 6,
+      "resolve": 15
+     },
+     "potential": 16,
+     "experience": {
+      "divides": 2,
+      "battles": 11,
+      "dividends": 1
+     },
+     "traits": [
+      "patient_hunter",
+      "et_y_bellum_devout",
+      "kier_hardened"
+     ],
+     "condition": {
+      "health": 100,
+      "fatigue": 0,
+      "morale": 55,
+      "injuries": []
+     },
+     "loyalty": 35,
+     "fame": 12,
+     "contract": {
+      "salary": 400,
+      "seasons_remaining": 2,
+      "signing_cost": 2200,
+      "death_benefit": 500,
+      "freedom": {
+       "divides_served": 2,
+       "divides_required": 3
+      }
+     },
+     "history": {
+      "kills": 5,
+      "evacs": 0,
+      "notable_events": [
+       "evt_ambush_kills_d3_s2"
+      ]
+     },
+     "status": "active"
+    }
+   ]
+  },
+  "item": {
+   "title": "Item",
+   "description": "A piece of gear, kit, or supply in the Capital Divide catalog. v0.4 (Step 5): race_locked struck — kit is kit, and the racial texture lives in traits (PROCUREMENT.md P10). Adds slot, family, price_model and the energy resource fields. Combat is entirely ranged (DESIGN.md 2.3); blades exist only as fiction, never as catalog items.",
+   "type": "object",
+   "required": [
+    "id",
+    "name",
+    "category",
+    "cost",
+    "effects"
+   ],
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^itm_[a-z0-9_]+$",
+     "description": "Unique snake_case id with itm_ prefix."
+    },
+    "name": {
+     "type": "string"
+    },
+    "category": {
+     "type": "string",
+     "enum": [
+      "weapon",
+      "armor",
+      "mod",
+      "consumable"
+     ],
+     "description": "All weapons are ranged. Mods fit a primary; consumables are single-use."
+    },
+    "tier": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 5,
+     "description": "Rough quality band for procurement UI and sponsor-drop limits."
+    },
+    "cost": {
+     "type": "integer",
+     "description": "Catalog price in credits."
+    },
+    "bulk": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "Logistics weight. Squad carry capacity and sponsor drops are bulk-capped, per the Aleas' 'reasonable limit' rule."
+    },
+    "effects": {
+     "type": "object",
+     "description": "v0 loose modifier bag. Finalized alongside COMBAT.md (Step 3).",
+     "properties": {
+      "power": {
+       "type": "integer",
+       "description": "Attack contribution."
+      },
+      "protection": {
+       "type": "integer",
+       "description": "Damage mitigation contribution."
+      },
+      "mobility": {
+       "type": "integer",
+       "description": "Positive or negative movement/evasion modifier."
+      },
+      "range": {
+       "type": "string",
+       "enum": [
+        "short",
+        "medium",
+        "long"
+       ],
+       "description": "Weapons only: the band this weapon fights best in."
+      },
+      "tags": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "Quirks, from the PROCUREMENT.md 4.2 vocabulary. Every tag here must exist in items.json's quirks block and be read by the resolver; arx.cjs regress guards both directions."
+      },
+      "heat": {
+       "type": "integer",
+       "description": "Energy weapons: heat per shot."
+      },
+      "heat_cap": {
+       "type": "integer",
+       "description": "Energy weapons: heat at which the weapon vents."
+      },
+      "charge": {
+       "type": "integer",
+       "description": "Energy weapons: shots held by the cell before a night's recharge."
+      }
+     }
+    },
+    "legality": {
+     "type": "string",
+     "enum": [
+      "legal",
+      "restricted",
+      "contraband"
+     ],
+     "default": "legal",
+     "description": "Restricted items need Aleas paperwork (bribable). Contraband enters via smuggling and risks scandal if caught on broadcast."
+    },
+    "uses": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "Consumables only (medical, supply). Omit for durable gear."
+    },
+    "slot": {
+     "type": "string",
+     "enum": [
+      "primary",
+      "sidearm",
+      "armor",
+      "mod",
+      "consumable"
+     ],
+     "description": "Which of the five loadout slots this occupies (PROCUREMENT.md 3)."
+    },
+    "family": {
+     "type": "string",
+     "enum": [
+      "ballistic",
+      "energy",
+      "armor",
+      "any"
+     ],
+     "description": "Resource model. Ballistic spends ammunition; energy spends heat and charge. Mods may be family-locked."
+    },
+    "price_model": {
+     "type": "string",
+     "enum": [
+      "formula",
+      "fixed",
+      "scarcity",
+      "issue",
+      "none"
+     ],
+     "description": "'formula' prices regenerate from constants.pricing and are guarded by arx.cjs regress. 'scarcity' is hand-priced exotica. 'issue' is free Aleas kit. 'none' is contraband with no acquisition path before Step 9."
+    },
+    "exotic": {
+     "type": "boolean",
+     "description": "Tier-5 restricted kit, mostly reached through caches (PROCUREMENT.md 11.1)."
+    },
+    "identity": {
+     "type": "string",
+     "description": "One line of fiction. Flavour only; nothing reads it."
+    },
+    "action": {
+     "type": "string",
+     "enum": [
+      "throw",
+      "screen",
+      "treat",
+      "dose",
+      "deploy",
+      "carry"
+     ],
+     "description": "Consumables only: which exchange-loop action spends it (PROCUREMENT.md 10)."
+    }
+   },
+   "examples": [
+    {
+     "id": "itm_breachgun",
+     "name": "Breachgun",
+     "category": "weapon",
+     "slot": "primary",
+     "family": "ballistic",
+     "tier": 4,
+     "cost": 2980,
+     "bulk": 4,
+     "effects": {
+      "power": 9,
+      "range": "short",
+      "tags": [
+       "pierce_1",
+       "cover_shred"
+      ]
+     },
+     "price_model": "formula",
+     "legality": "legal",
+     "identity": "Doesn't shoot around cover. Shoots the cover."
+    },
+    {
+     "id": "itm_beam_lance",
+     "name": "Beam Lance",
+     "category": "weapon",
+     "slot": "primary",
+     "family": "energy",
+     "tier": 4,
+     "cost": 2300,
+     "bulk": 4,
+     "effects": {
+      "power": 8,
+      "range": "long",
+      "tags": [
+       "pierce_1"
+      ],
+      "heat": 5,
+      "heat_cap": 15,
+      "charge": 28
+     },
+     "price_model": "formula",
+     "legality": "legal",
+     "identity": "A line drawn through the argument."
+    }
+   ]
+  },
+  "corp": {
+   "title": "Corp",
+   "description": "A competing company across a career: its people, its rack, its books, its standing with the boards and crowds, and what it has done. v0.1 (Step 8.5b). Promised since Step 8 and never written, which left the object the ENTIRE season loop is built around as the only major structure in the project with nothing checking its shape. Fields prefixed `_` are per-season working state written and consumed inside one pass of the loop; they are deliberately NOT described here, because a schema that pins working state turns every refactor into a data migration. What is described is the part that PERSISTS across a season boundary — which is exactly the part a save file would have to carry, and exactly the part that must not drift.",
+   "type": "object",
+   "required": [
+    "id",
+    "roster",
+    "armoury",
+    "account",
+    "rep",
+    "doctrineId",
+    "season"
+   ],
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^[a-z0-9_]+$",
+     "description": "Corp id, matching an entry in oa_profiles.json."
+    },
+    "profile": {
+     "type": "object",
+     "description": "The OA profile this corp was opened from. Read-only reference data; the corp does not own it and must not mutate it."
+    },
+    "roster": {
+     "type": "array",
+     "items": {
+      "$ref": "#/definitions/fighter"
+     },
+     "description": "Everyone under contract, alive or not. The dead and retired stay on the roster within a season and are filtered at each use — S2's muster floor counts the living only."
+    },
+    "armoury": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "description": "The rack: item id -> how many are owned. Persists across seasons; grows by purchase and by loot, shrinks by kit left on the ground. PROCUREMENT.md 12."
+    },
+    "account": {
+     "type": "object",
+     "required": [
+      "treasury",
+      "grant",
+      "season",
+      "ledger"
+     ],
+     "properties": {
+      "corpId": {
+       "type": "string"
+      },
+      "treasury": {
+       "type": "number",
+       "description": "May go negative; a corp that cannot pay asks the board (S5)."
+      },
+      "grant": {
+       "type": "number",
+       "minimum": 0,
+       "description": "The board's flat stipend. REPUTATION.md 6.5: it covers wages, the entry fee and arming a full force, and nothing else — which is why it is also the neutral point of the funding spectrum. It does NOT move with results, by ruling."
+      },
+      "season": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "solvent": {
+       "type": "boolean"
+      },
+      "ledger": {
+       "type": "array",
+       "description": "Every posting, in order. The books are the audit trail."
+      },
+      "lastSettlement": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "lastBonus": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "boardCalls": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "patienceSpent": {
+       "type": "number",
+       "minimum": 0
+      }
+     }
+    },
+    "rep": {
+     "type": "object",
+     "required": [
+      "patience",
+      "base",
+      "goal"
+     ],
+     "properties": {
+      "corpId": {
+       "type": "string"
+      },
+      "season": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "base": {
+       "type": "object",
+       "description": "Standing with each audience."
+      },
+      "memory": {
+       "type": [
+        "array",
+        "object"
+       ],
+       "description": "What each audience has not forgotten yet."
+      },
+      "patience": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 100,
+       "description": "The board's remaining tolerance. At zero the manager is dismissed (S5). This is the fail state, and it is the only one — a corp is never struck for poverty (S12)."
+      },
+      "calls": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "holds": {
+       "type": "object",
+       "description": "What the board is stockpiling and how short it is."
+      },
+      "goal": {
+       "type": "object",
+       "description": "This season's card. R25: three or four discrete demands PLUS two standing ones scored on a spectrum. The standing pair is always present.",
+       "properties": {
+        "season": {
+         "type": "integer"
+        },
+        "demands": {
+         "type": "array",
+         "minItems": 1
+        },
+        "priority": {
+         "description": "The one demand that counts double."
+        },
+        "standing": {
+         "type": "array",
+         "minItems": 2,
+         "maxItems": 2,
+         "description": "Exactly two, always: thrift and care. Scored in [-1,+1] and contributing in BOTH directions — a board is annoyed by an expensive year, not merely un-delighted by one.",
+         "items": {
+          "type": "object",
+          "required": [
+           "kind",
+           "weight"
+          ],
+          "properties": {
+           "kind": {
+            "enum": [
+             "thrift",
+             "care"
+            ]
+           },
+           "weight": {
+            "type": "number"
+           },
+           "expected": {
+            "type": "number"
+           }
+          }
+         }
+        },
+        "interest": {
+         "type": "number",
+         "minimum": 0,
+         "maximum": 1,
+         "description": "How much this board wants THIS planet. Drives the thrift weight, and through it how many bodies a corp sends."
+        }
+       }
+      },
+      "casualties": {
+       "type": [
+        "array",
+        "object"
+       ],
+       "description": "Who this corp has spent, as the crowds remember it."
+      },
+      "history": {
+       "type": "array"
+      },
+      "ambition": {
+       "type": "number"
+      },
+      "anchor": {
+       "type": "number"
+      }
+     }
+    },
+    "doctrineId": {
+     "type": "string",
+     "description": "Which doctrine in items.json arms this corp."
+    },
+    "season": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "underwritten": {
+     "type": "boolean",
+     "description": "The board covered a shortfall this corp could not. S5 — a broke corp always gets one more year, at a price in patience."
+    },
+    "dismissed": {
+     "type": [
+      "boolean",
+      "integer"
+     ],
+     "description": "Patience reached zero and the manager was sacked. Written as a COUNT by `season.js` and read as truthy; declared as either rather than pretending it is a flag, because the schema describes what the code does."
+    },
+    "history": {
+     "type": "array",
+     "description": "One record a season, appended at close. This is the career — what the viewers read and what a save file would carry.",
+     "items": {
+      "type": "object",
+      "required": [
+       "season",
+       "dropped",
+       "dead",
+       "treasury",
+       "patience"
+      ],
+      "properties": {
+       "season": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "dropped": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "How many were sent. Between DROP_MIN and DROP_MAX, and a real choice since Step 8.5b — a corp sizes its drop by answering its board's funding demand (S3)."
+       },
+       "dead": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "roster": {
+        "type": "integer",
+        "minimum": 0
+       },
+       "treasury": {
+        "type": "number"
+       },
+       "patience": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+       },
+       "kitValue": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Catalog value fielded. Must not exceed the Aleas ceiling, which is a CORP ceiling and does not shrink with the force (PROCUREMENT.md 2.2)."
+       },
+       "gearKept": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Kit that came home because its owner would never drop it, whoever held the ground."
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

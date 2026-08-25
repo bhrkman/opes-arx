@@ -1,0 +1,638 @@
+# Opes Arx: The Capital Divide
+
+A management sim. You run a corporation that fields a squad of fighters in a lethal annual
+contest for mineral rights. **You never aim a gun.** You sign people, arm them, decide how many
+to send, negotiate with rivals while the fighting happens, and live with who comes back.
+
+**Lives are the currency.** A death costs money, a roster place, the morale of the people who
+were standing next to it, and standing with four different audiences. Only some of that is a
+number, and the game does not pretend the rest is.
+
+---
+
+## How to work on this project
+
+### A guard nobody waits for is a guard nobody runs
+
+The suite reached ten minutes and the standing instruction is to run it before touching anything
+and after every change — an instruction nobody can honour at that price. **Cost is part of
+whether an instrument works.** So there are two gates: `--fast` skips the phases whose cost is
+statistical (thousands of fights, dozens of careers) and keeps everything structural, and the
+full suite runs before anything ships. A green fast run says so out loud, so it is never mistaken
+for a green suite.
+
+Twice the cost was diagnosed by guessing and twice the guess was wrong — the invariant sweep was
+blamed at 47s when it is 19s, and a guard estimated at two thirds of the runtime was a quarter of
+it. `--timings` measures it. Guessing at cost is the same error as guessing at behaviour.
+
+Sample sizes outlive the claims they were sized for: the gear guard ran 3,600 fights a run
+because it once asserted a magnitude band, long after it had been narrowed to a claim about
+direction. And an **unratified observation has no business being a gate** — the kit-allowance
+figure cost 65 seconds a run to produce a number the suite itself declares meaningless.
+
+### Run it before you read about it
+
+```
+cd sim
+node arx.cjs regress --fast   113 checks, ~90s. The edit-loop gate.
+node arx.cjs regress          246 checks, ~5.5min. Before packaging.
+node audit_open.cjs       what is actually built, tested by running the game
+node audit_docs.cjs       does this document still agree with the code
+node audit_cross.cjs      does one step's work reach the next, or just sit there
+```
+
+**`audit_cross` gained two checks and both found live faults the day they were written.** It
+could see a constant declared and never read; it could not see one READ that the reading file
+never declared, which is how a courting delay resolved to `undefined` and every comparison it
+took part in went quietly false. And it could not see a function nobody calls, which is how
+fourteen dead ones survived a resolver cut and how an edit was made to a movement helper that
+does not run, measured at no effect, and the no-effect read as the mechanism not mattering.
+**Suspect the instrument before the game** — its first run of the new constant check reported 92
+faults, of which nearly all were it counting its own explanatory comments.
+
+**The code is the source of truth for every number.** This document holds decisions, not
+descriptions. If you want to know what a constant is, read `sim/`; the constants carry comments
+explaining why they are what they are, next to the mechanism they drive.
+
+This is a change made at Step 8.7. There used to be nine documents and 8,168 lines of prose
+describing the code, and it went wrong in the way caches go wrong: the Kit Allowance figures were
+stale by a constant change for four steps, a built system was described as unbuilt, an unbuilt
+one as built. There was even a check in the suite whose job was to force the prose to quote the
+code correctly — which is the tell. If a machine has to keep your documentation true, your
+documentation is not the source.
+
+### The fault this project keeps producing
+
+**It is not broken code. It is code wired to a condition that never becomes true.** Nothing
+crashes. The tests pass. A number comes out and it is confident and wrong.
+
+Found so far, among many: a squad's gear tier that could only ever rise, so the repair hook
+behind `tier < 3` fired zero times in 1,417 fights · a resupply need-term behind the same dead
+condition · `_droppedGear` written on every rout and read by nothing · `_scouted` accumulated
+every turn and read by nothing, *written in the session that catalogued dead wires* · a
+non-lethal weapon tag wired into the abstract resolver while the event using it ran on the grid ·
+a show-match scored on kills, which its own stun weapons could not produce, so every bout drew
+and the purse never paid · casualties read as `.A`/`.B` while the sides carried corp ids.
+
+**The tools have the same disease.** A guard that had never failed had never been tested: one
+asserted the first fallen banner finishes last and subtracted nothing for a corp disqualified
+*below* last, correct only in samples that happened not to contain one. Another would have thrown
+a ReferenceError instead of reporting a failure. **Suspect the instrument before the game.**
+
+**So: find these by running the thing and measuring it, never by reading it.** Every fault above
+was found by measurement. Not one was found by reading.
+
+### Build the relationship, not the number
+
+The game is not built. Every system still to land will move every measured distribution again, so
+a constant fitted to how the fleet currently behaves is stale before the next step ends.
+
+Twice a constant came loose from the ruling it encoded. A funding-spectrum neutral was fitted to
+the median of a fleet that always fielded 24 — and the next change in the same session made that
+fleet stop existing. A casualty band was written as a headcount, which said the same thing as
+"about a quarter" only while every corp fielded exactly 24. **When a system needs a reference
+point, find one that already exists in the world and measures the same thing.** The funding
+spectrum's neutral is now the board's own stipend.
+
+**Imbalance is not a defect at this stage. A system that cannot run is.**
+
+### Two standing instructions
+
+**1. Raise things in natural language, pointing at the thing itself.** Never open with a section
+number or a tag. Say what the issue *is*: "the crowd penalty charges least for quitting on day
+one, when quitting is most offensive."
+
+**2. Every step ships an interactive HTML demo of what it built.** It is how the designer forms a
+judgement. It must run the real thing — inline the live modules and execute them in the page. A
+demo showing invented numbers is worse than none, and a viewer that has fallen behind the code is
+a lie. Every viewer has a rebuild command; run it.
+
+### Measuring combat honestly
+
+A single engagement is enormously noisy. **Any weapon or doctrine claim needs at least 200 fights
+a matchup, run in both directions with sides swapped, across two independent populations.** A
+number the two populations disagree about is not a number. Sample sizes below that have produced
+confident nonsense repeatedly — an ambush read as a *penalty* at 16 fights and a +0.155 advantage
+at 200.
+
+**Rare branches are proved by construction, never by widening a batch.** If a thing should happen
+once a decade, build the state and assert it fires; do not run more seasons hoping to see it.
+
+---
+
+## The game
+
+### The shape of a year
+
+Twelve months. Eleven of them are not the Divide, and they are most of the game.
+
+**A year is twelve months: eleven of preparation, and the Divide.** The month is the turn — a
+manager sits down eleven times, spends what the month allows, and says they are done; the world
+moves on once *every* manager has said it. M12 is not a turn, because nothing you do in it is a
+decision made at a desk. That last
+clause is why the month is the unit and not the two-month block it used to be — it is the shape a
+second human player slots into with nothing rebuilt.
+
+| | |
+|---|---|
+| **M1–2** | season open — the planet is announced, the board sets funding and its demands |
+| **M3–4** | Nattie tryouts |
+| **M5–6** | survey work, closing with **the Dividend** at the end of M6 |
+| **M7–8** | the **Kier Bastille intake**, at the end of M8 |
+| **M9–10** | the **merc deadline**, at the end of M10 |
+| **M11** | the lock — who goes, and how many |
+| **M12** | **the Capital Divide** |
+
+A fixed date falls at the *close* of its month, after every corp has finished spending, which is
+what makes a deadline a deadline. The month before each is a run-up you can work.
+
+Each month is a budget of action points against verbs that compete: treat the wounded, drill the
+green, survey the planet, work a signing window. **You cannot do all of them in the same month.**
+That competition is the management game.
+
+### The Divide
+
+Up to eight corporations drop onto a planet for up to thirty days and fight over mineral rights
+while the fleet watches. Squads move on a real map, take ground, empty crates, and meet each
+other. The manager is not on the ground: you set stance and standing orders, and you talk to the
+other corps.
+
+A firefight resolves on a grid — real positions, directional cover, line of sight, action points,
+overwatch — and every shot is a real round from a real weapon out of the catalog.
+
+### What the manager actually decides
+
+Who to sign and who to let go · how many to send and who · what they carry · how aggressively
+they fight · and every deal at the table while it happens.
+
+---
+
+## Rulings
+
+**These are decisions, not descriptions.** The code cannot hold them: it says what happens, never
+what was chosen over what. Everything here is settled unless it says otherwise. Anything not here
+is open, and a proposal costs nothing to veto.
+
+### The premise
+
+- **You never aim a gun.** Hands-free with light directives to commanders.
+- **Combat is entirely ranged.** Blades exist in the fiction and never as items.
+- **Permadeath.** Nobody is regenerated, ever. A career that ends is over.
+- **Careers are short.** The most hardened veteran retires by their late thirties at the outside;
+  the average career ends much earlier, and often in a coffin.
+- **Nothing is ever completely unviable.** Half the fun of managing is building a composition,
+  and a build that cannot be fielded was never a choice.
+- **A function is not the same as equal power.** Some items are stronger and should be, or cost
+  would mean nothing. Every weapon is the right *buy* somewhere; not every weapon is a peer.
+
+### Lives, and what they cost
+
+- **A death lands in five ledgers and only some of them are numbers.** What is real is charged;
+  what is not is declared and left unpriced. There is no exchange rate for a life, and there will
+  not be one.
+- **A point of popularity has no price in credits either**, for the same reason.
+- **A death moves the people who were standing next to it, and then it stops.** Grief is local
+  and it fades.
+- **Most corps lose about a quarter of their people permanently each Divide.** Some lose everyone.
+- **Capture is real, rare, and a negotiation asset.**
+- **Somebody goes back for the wounded.** Every squad carries its own out; losing them is a
+  consequence of being overrun, not of stance.
+
+### The year
+
+- **A contract pays for participation, not for existing.** A retainer for being on the books, a
+  purse for going down the well. Nobody draws a purse for a Divide they did not drop into.
+- **A roster is 16 to 40**, and fielding fewer than a full force is legitimate: fewer purses,
+  better-armed people, outnumbered. **The Aleas kit ceiling is a CORP ceiling** and does not
+  shrink with the force, which is what makes quality-against-quantity a real trade.
+- **Nobody opens with a full squad, and no two houses open the same.** Founding size is derived
+  from a house's difficulty — 22 down to 16, against a drop force of 24 and a target of 28 — so
+  the first year is a question about how many to add, who, and what is left for gear.
+- **A broke corp always gets one more year.** The board foots the bill and its patience drains.
+  **Nobody is ever struck from a Divide for poverty**; being carried and then sacked is the
+  mechanic. **Being fired is the only defeat condition.** The board's grant does not move with
+  results — punishing a failing corp with less money makes next year likelier to fail, so the
+  difficulty gradient lives in patience, not credits.
+- **The board speaks in M1, against the rock you are about to be sent to.** The planet announced
+  at the season open and the ground fought over in M12 are the same object, or the board can
+  demand a resource that is not down there.
+- **The wounded are a thing you manage.** Injuries survive the year; mending runs across the prep
+  months and treatment costs points you wanted elsewhere.
+- **A month's action can land later.** A survey reports in three months; a house courted now
+  thinks better of you two months on. Outcomes are plain records dispatched by name, never stored
+  callbacks, and none crosses the turn of the year. **The same point spent in two different
+  months is two different decisions.**
+- **You build the roster; a button does not build it for you.** A lot opens with its window and
+  stays put, so the same named people are in front of you across both months. You offer what you
+  think they are worth, and the fighter chooses — money is one term, how many of your people came
+  home is another. You are told who outbid you and by how much.
+- **Working a signing window is worth something**: a better bid at the deadline, a place in the
+  queue at the Bastille. Spent when its window fires; it neither carries between windows nor
+  banks across seasons.
+- **Somebody is backing you, and they want something.** Sponsors are the same eight houses,
+  backing rivals they approve of — money from someone also trying to beat you. A contract is a
+  retainer, a term, and **an obligation you can fail**; anything else is a subsidy. Obligations
+  score against figures the game already produces. **Exclusivity** pays about double and locks
+  out the other seven. **Courting** is the verb, and it pays into *next* season's offers — a verb
+  that improved the offer in front of you would be a discount button.
+- **A career survives being closed.** Saves are files, not browser storage. The planet, its pot
+  and the open lot are derived from the season and so are *not* stored. The bar is bit-identity:
+  a resumed career must be indistinguishable from one never interrupted.
+- **The lock is a decision, not a sort.** How many answers the board; who answers your culture —
+  send the fittest, rest the walking wounded, or give a prospect the ground time.
+- **M11 is the handover, and it holds three entangled decisions.**
+  - *Where you land.* The ring is cut into sectors, read off the planet the Divide will actually
+    fight on. Contested ground **shares out** rather than being taxed. Without a survey they are
+    names on a ring — this is the second half of the survey verb.
+  - *Who you have an understanding with.* A pact struck here is struck **blind**, which is the
+    whole difference from the in-Divide truces. The chance is shown: a blind bet on a rival's
+    character is a decision, a blind bet on a hidden number is a coin you are not allowed to look
+    at.
+  - *Whether you perform.* Media day pays standing and charges concealment — rivals arrive
+    knowing more about what you brought.
+
+  The entanglement is the point, and **the fleet takes all three too**.
+
+> **DEFERRED — the three recruitment markets each want a step of their own.** They run and can be
+> played, which was the bar for that step and not for the systems. Missing: scouting that reveals
+> a ceiling gradually rather than printing it, contract terms beyond a salary, rival interest you
+> can read before committing, the Bastille's freedom clause as something you weigh, and an AI
+> that bids against a named list rather than off a formula.
+
+
+### The two markets, and why they differ
+
+- **The merc deadline: the mercenary chooses.** A free professional can walk, so corps bid and
+  the fighter picks — weighing the purse against **how many of that corp's people came home**. A
+  corp that burns through people cannot hire, whatever it offers.
+- **The Bastille intake: the corp chooses, and the fighter's power is the exit.** These are
+  volunteers serving a term of Divides for a wage and, at the end of it, their freedom. Cheaper
+  than the open market, and that is the trade.
+- **These must not be modelled the same way.** A merc picks their employer because they can walk;
+  somebody signing out of the Bastille has one offer in front of them and a sentence behind them.
+  *A lot auctioned off to die is an endorsement; a bad bargain taken with open eyes is a story
+  about what people will trade for a way out.* The distance between those two is the setting.
+
+### The Dividend
+
+- **The mid-year show-match is non-lethal, and the WEAPONS are why.** Stun rounds and shock
+  lances that cannot kill and cannot maim — not cheap lethal weapons and a hope. A non-lethal
+  weapon has to survive every death path in the resolver, not the one it fires down.
+- **It is where you blood rookies safely**, build fame, and show off to sponsors. Corps send
+  their greenest.
+
+### The Divide, from the desk
+
+- **The contest ticks in two-hour steps, six of day and six of night, and stops for you on the
+  planet's own cadence** — every two days at first, tightening to every day as the ring closes.
+  A manager's rhythm is the fleet's rhythm; the window is not a fixed number of days.
+- **You set protocols, not orders.** At a window you move your corp's notch between
+  preservationist and death-or-glory, and every squad takes it. You never tell anyone where to
+  stand or who to shoot.
+- **You negotiate for yourself.** Ceding your banner is irreversible and the largest decision in
+  the contest, so *the AI never makes it on your behalf* — your corp is skipped in the fleet's
+  negotiation pass. At a window you can cede to somebody, take somebody under your banner on
+  terms you set, or agree a truce. A human's offer is priced by the same functions that score
+  the AI's, and what the table shows you is which deals are **viable** — where no number exists
+  that both sides would sign, the row says so rather than letting you discover it by trying.
+- **You can watch the fights back.** Every engagement your people stood in comes back to you at
+  the next window with its tick-by-tick log — who shot at whom, with what, at what odds, and what
+  it did to them. The grid was already producing this for *every* firefight in the contest and
+  the day loop was discarding it, which is all of the cost and none of the use; it is switched
+  off for fights you were not in, which is most of them.
+
+**The season splits at the drop.** `closeSeasonToDrop` assembles the contest, `prepareDivide`
+hands it over, `finishSeason` settles what comes back — and `closeSeason` is a wrapper over the
+three with no logic of its own, the same discipline `runSeason` is held to. Sitting through the
+contest in silence settles *bit-identically* to running it off; answering the window changes the
+outcome. Both are guarded, because a stepped path that matched no matter what you said would
+mean the window did nothing.
+
+### The ground, and how long things take
+
+- **A firefight takes hours.** It used to take no time at all: contact was detected on a tick,
+  the whole engagement was fought inside it, and everyone was free to march before the clock
+  moved. Longer fights occupy more of the day, from the turns the grid actually took. Being in
+  one is a place you are — you cannot march, claim, or be pulled into a second — and the ring
+  keeps closing while you are held there.
+- **A withdrawal is fought, not declared.** *Ruled at this step.* The fight used to end the
+  instant somebody called the retreat, so the bounding withdrawal COMBAT.md describes had
+  executed zero times in the project's history: nobody covered anybody, nobody crossed ground
+  under fire, nobody reached their own edge. A side pulling out is on the field until its people
+  are off it. **This is the largest single change to lethality so far** and it is not a defect:
+  every fight in the game used to stop at the moment it became dangerous.
+- **Shooting is heard.** How far depends on what was fired and how long it went on, measured
+  against a day's march rather than against contact range — a sound you cannot reach in time is
+  a rumour, not information. What a corp does about it is temperament: the same dial that
+  decides whether it seeks fights decides whether it walks toward the noise or away.
+- **You run toward gunfire.** Squads close on a fight in progress faster than they march, scaled
+  by that same appetite. Without it, arriving partway through is arithmetically impossible.
+- **A squad can walk into a fight already in progress**, entering on the bearing it approached
+  from — which is why placement had to stop knowing only two edges.
+- **You stage outside contact range or you are not staging.** The flankers' ring sat inside the
+  distance at which squads find each other, so a pincer set itself up inside the bubble it was
+  meant to spring from, and its three prongs were all within one engagement of each other.
+- **Being caught from two arcs costs you the ground you chose.** Cover is directional, so a
+  squad that set up against one threat and was hit from another is behind a wall facing the
+  wrong way. The flag for this had been computed since Step 6 and read by nothing.
+- **Ground is held.** Claiming a site makes you its holder — a value four systems read and
+  nothing wrote, so taking ground off somebody was worth exactly what walking onto empty ground
+  was worth, and standing on a rival's claim never forced a fight.
+
+> **DEFERRED — a fighter will not trade cover for an angle.** Going round the side is now a move
+> the code can propose; it was not, and no scoring could have chosen a tile that was never
+> offered. It rarely wins, because cover is weighted heavily on purpose — it was raised to stop
+> squads walking out of good ground on turn one. Whether a fighter should accept exposure to get
+> an angle is a balance question and waits with the rest of calibration.
+
+### What a hit does
+
+- **The grid is aiming at X-COM 2's shape**, and much of it already matches: two actions a turn,
+  directional cover that flanking strips entirely, overwatch, line of sight, weapons with
+  characteristic behaviour rather than only different numbers, and reinforcements arriving
+  partway through a fight. Turn order is the deliberate divergence — whole-side alternation gave
+  the first mover a 55% edge with identical squads, so this interleaves fighters by initiative.
+- **A HEALTH POOL REPLACES THE SEVERITY BAND.** *Ruled at this step.* A hit currently rolls once
+  and lands in one of five outcomes — graze, light, serious, critical, killed — with no memory
+  between hits, so a single roll can remove somebody and a fight has no middle. A pool gives
+  armour and stats somewhere to live and gives a firefight the "two more hits and he is out"
+  decision the whole genre is built on.
+  **It goes UNDER the existing state machine rather than replacing it.** `ok`/`light`/`down`/
+  `dead` are read in twenty-one places across three modules and nothing in `season.js` touches
+  them at all; a pool that empties into `down`, and overkill into `dead`, leaves every one of
+  those readers alone. What changes is `resolveSeverity` returning a number, `applyHit`
+  subtracting it, and `rollInjury` keying off how somebody went down rather than off a band.
+  Armour's three numbers — protection, resist by damage type, and the type of the incoming
+  round — stay exactly as they are and become damage reduction, which is what they always read
+  like.
+- **Cover must be destructible.** Cover here is permanent terrain, so two squads behind good
+  walls is a genuinely stable position and the movement scorer is correct to tell everybody to
+  stay — which is what "they bunker down and stop moving" is. In X-COM the answer to a stalemate
+  is removing the wall, and the threat of that is why nobody can sit. The `area` tag is inert in
+  the catalogue waiting for precisely this.
+- **Vision and concealment are the largest gap and are not deferred for ever.** Both sides see
+  each other from turn one, so a fight opens as a stand-up exchange rather than as somebody
+  walking into somebody. It is `silent`'s original written purpose, which was given a different
+  job — how far a firefight is heard — because the spotting model was not being built.
+- **The wound pool is BUILT and deciding outcomes.** A body carries about twelve, grit-scaled.
+  A firefight now has a middle: 0.67 dead, 2.77 down and 5.70 hurt-and-still-shooting per fight,
+  over 16.6 turns. It was built inert and proved bit-identical before it was allowed to decide
+  anything, which is how we know it is charged from the severity roll that already happens and
+  draws no random number of its own.
+- **Getting your people off the field is not the same as being wiped out.** A side that
+  completed a fighting withdrawal ends with nobody `ok` or `light` — everybody is `withdrawn` —
+  so it was scored as OVERRUN, and its wounded took the penalty for a field that was never
+  taken. That is the exact fault already recorded against this line, reintroduced the moment
+  withdrawals started actually playing out. Fixing it took sides scored as overrun from 46% to
+  32%, deaths on the recovery roll from 47 a contest to 36, and **the loss rate from 55.1% to
+  50.4%** — the first movement any dial has produced.
+- **THE CONTEST GOT MORE LETHAL, NOT LESS — 42.6% to 55.1%** — from a change that made every
+  individual fight less so. Squads that used to be destroyed now survive to meet somebody again,
+  so fights per contest went from 57 to 80.
+- **HALF THE DEATHS IN THE GAME HAPPEN ON THE RECOVERY ROLL** — 48% of a contest's dead against
+  53% killed outright by a round. That figure read as ZERO for a whole session because
+  `downDeaths` was never initialised in the grid's telemetry: `settleAftermath` raises it with
+  `(tel.x || 0) + 1`, so an engagement where nobody died there left it `undefined`, the contest
+  aggregate went NaN on the first one, and every `|| 0` downstream reported a confident nought.
+  **The same fault, in the same words, as the three counters already recorded above, on a
+  fourth.** A correct change was written, measured against the NaN, and reverted on the strength
+  of it before the counter was fixed. **The suite now plays a contest and asserts that every
+  number it reports is a number**, which found a fifth on its first run — `audit.passedOver`,
+  declared on `stats` and not on `stats.audit` while both are raised on the same line.
+  Looking for the pattern by READING the source was tried first and thrown away: four false
+  positives out of six, and it missed the real one. NaN is a runtime property, so it is checked
+  by running the thing. The lesson this project applies to its game now applies to its tools.
+- **Whether a downed fighter gets up now depends on what put them down** — worn out by grazes
+  and they are carried out, opened up by a critical and it is close to even. It did NOT move the
+  loss rate: recovery deaths fell by five a contest and outright kills rose by six, which is the
+  stream diverging rather than an effect. Kept because a flat survival chance is wrong once a
+  body can be emptied by grazes, and recorded as neutral rather than sold as a fix.
+- **Elevation is CUT, not deferred.** *Ruled at this step.* A deferral list either shrinks or
+  the items get cut, and this is a cut.
+
+### Deals
+
+- **Negotiation is the largest brake on lethality in the game.** It is not a side system.
+- **A deal struck is binding until it is broken, and breaking it is a real act with a price.**
+  Betrayal is available, ruinous, and sometimes correct.
+- **The Aleas rules on treachery**, and its punishment is the largest in the act table — a
+  convicted corp finishes below last.
+- **A stand-down is a legitimate way to survive.** Quitting the field costs standing, and the
+  crowd charges most for quitting late.
+- **Corps fight under each other's banners.** Once joined you cannot break away and cannot join
+  someone else — but a corp with others beneath it may join a third, dragging its whole umbrella
+  along, and those beneath get no say. That asymmetry is the point: you sold your independence.
+- **An umbrella shares its intelligence**; a non-aggression pact does not. A truce is an agreement
+  not to shoot, not a friendship.
+- **Captives are negotiable**, on their own or folded into joining terms. Unransomed, they are
+  left to the whims of their captor, who may kill them, release them, or keep them.
+- **The clock is not an ending.** On the last day the ring closes to a point where there is
+  nothing but conflict, and it runs until one banner is left standing. **The contest does not
+  time out; it ends because everyone else stopped.**
+
+### Who is watching
+
+- **Four audiences on a signed scale**: your own ships, each rival's fanbase, the wider fleet,
+  and the Aleas. **Loathing is a real position, not the absence of fame.**
+- **A rival's fanbase is a spectrum.** Being hated by people who tune in to hate you is worth
+  something.
+- **Fame is attention, not approval.**
+- **The board asks for what its holds are short of**, and spends patience rather than cutting
+  funding.
+- **Funding runs both ways.** A cheap year earns patience and an expensive one burns it, measured
+  against what the board actually put in.
+
+### Kit
+
+- **Kit reaches a fighter as a catalog item or not at all.** No system may substitute a bare
+  `{power, protection}` for a real one. That is what a looted crate used to do, silently deleting
+  every quirk, damage type and resistance of whoever it was rewarding — *while measuring as a
+  reward*.
+- **Nothing is free and nobody deploys unarmed.**
+- **The dead leave their kit on the ground**, and the side holding it recovers some. This is how
+  the armoury drains, and it is attached to the thing the game is about.
+- **There is no gear damage and there is not going to be.** In most games it is a money sink
+  wearing a decision's clothes — you always repair, you always can afford it, you click. This
+  game already drains kit through the channel it is about.
+- **Weapons have characteristic behaviours, not just numbers.** Shotguns throw shrapnel, machine
+  guns spray, and those are mechanical facts rather than flavour.
+- **Each corporation has a gear identity** — a lean, never a stack. One known for its marksmen,
+  another for the flurry of bullets.
+- **Tier-five weapons are largely unavailable.** You win them late, from a sponsor who wants it
+  on camera.
+
+### Calibration
+
+**Deferred, by ruling.** Structural completeness first. Measured imbalances are recorded, not
+chased. The fail state alone moved four times in one step as unrelated things were built.
+
+---
+
+## Unification
+
+**The engine is already unified, and that is the important fact.** Every system lives in one
+module graph, is driven from one season loop, and is guarded by one suite. There are not eight
+implementations to reconcile. What is *not* unified is the surfaces:
+
+| | |
+|---|---|
+| **the game** | `the_desk` — a career, played |
+| **live instruments** | `the_year`, `the_crate`, `the_bench`, `the_table` — run the real engine over one system |
+| **baked reports** | `the_career`, `negotiation_table`, `audience_board`, `armoury` — snapshots, stale by construction |
+
+So unification is an interface job, not an integration job, and the risk of it "falling apart" is
+much smaller than it looks — the parts already share one engine and cannot silently disagree
+about a rule.
+
+**Layer in the order a player meets things in a year.** After each layer you can play a career
+forward from the season open to that point, which means every layer is testable the only way
+this project trusts: by running it. Integrating by system instead — all the kit, then all the
+deals — leaves half-integrated things sitting between working ones with nothing able to reach
+them.
+
+1. **Name what is game and what is instrument.** Free, and it stops anybody building a screen for
+   something that was always a bench. An instrument that stays an instrument is not a failure.
+2. **One shell, one career.** The desk is already it; save/load is already the persistence. Fold
+   observation in — watching a season you are not managing is `the_year`'s job and belongs beside
+   the desk, not in a second page with its own career.
+3. **The prep months, with kit.** The armoury is the first thing a manager wants that the desk
+   cannot show. Kit is chosen in the months and spent at the lock, so it lands here.
+4. **The seam.** Already built and already on the desk; it only needs to stop being a panel and
+   start being the week before the drop.
+5. **The Divide.** Crates, the negotiation table and the fight replay all live inside the
+   contest, and all three already run on the live engine — they are being re-sited, not written.
+6. **The career view, last.** It is the only surface that reads a whole career, so it is the only
+   one that cannot be built until everything before it is producing real history.
+
+**The two things to hold on to while doing it.** `SAVE_VERSION` must be bumped the moment the
+state shape changes, because a save that half-loads is worse than one that refuses. And the
+whole-year playthrough has to be re-run after every layer — not the suite instead of it, both.
+
+## What is deliberately absent
+
+Code is silent about absence, so it is recorded here.
+
+- ~~**The Divide's spectacle.**~~ **Closed.** `the_ground` draws the contest — the terrain field
+  squads actually walk through, the closing wall with next day's circle ghosted inside it, every
+  squad's position and facing and where it is marching to, fights where they happened. And
+  `the_firefight` draws one engagement on the grid, turn by turn. Both run the live engine in the
+  page. The recorder behind them had existed since Step 6 and nothing had ever read it.
+- **Media.** Sponsorship landed at 8.14; the media half — coverage, the press, a reputation you
+  perform for rather than earn — did not, and is deferred on the same grounds sponsorship was.
+- **Aleas corruption, syndicates, scandal.**
+- **Three weapon tags and the systems they wait on**: turrets and grenade scatter on the grid,
+  and time of day. A deferral list either shrinks or the items get cut — the gear-damage tag was
+  cut with gear damage rather than left waiting for ever. `silent` came off this list without the
+  spotting model it was waiting on ever being built: it now decides how far a firefight is heard,
+  which is a different job for the same word and a real one. Four items carry it and every corp
+  that bought one had been paying 1.2 points for nothing.
+
+---
+
+## Open questions
+
+Things that need a decision rather than a programmer.
+
+- ~~**Should a twelve-season career contain a dismissal at all?**~~ **Ruled at 8.8**: dismissal is
+  the player's game-over, and roughly one every couple of years from an AI corp is the shape
+  wanted. Tuning toward it is deferred until every system is in, so the current zero is expected
+  rather than wrong. *(One stale constant still sits underneath and is not a tuning matter: the
+  underwrite triggers on a shortfall larger than any that has ever occurred, and would stay dead
+  at any dismissal rate.)*
+- **Should spending less be able to satisfy a board on its own**, or does thrift need a
+  counterweight — a board that notices you finished eighth with sixteen people?
+- **Whether the Dividend's double edge exists**: performing reveals strength you might have
+  wanted sandbagged.
+- **Is surveying a decision?** It was not: a corp scouted every month of the year or none of it,
+  two values and nothing between, because the weight is board interest and that does not move
+  within a season. *Half-answered at 8.13* — a survey now reports three months later and cannot
+  be bought after M8, so at minimum WHEN differs from WHETHER. Whether that is enough to make it
+  a decision rather than a habit is a question for somebody who has played it.
+- **Permanent losses have drifted well past the ruling.** "Most corps lose about a quarter of
+  their people each Divide" is what this document says; measured it is now **42.6%**, from 28%
+  at the start of the step. Playing out withdrawals is most of it. Recorded rather than chased,
+  because calibration is deferred — but it is the furthest any figure has drifted from a stated
+  ruling, and the dials are the threshold at which a squad calls the retreat, how much of it
+  covers each bound, and how far a bound carries. None have been touched.
+- **Squad shape is not yet a decision.** Ruled: three to six squads, three to eight people each,
+  with a manager choosing who stands with whom and who leads. None of it is reachable today —
+  squad membership falls out of the order of the drop list, captains are whoever has the highest
+  tactics, and how many squads there are is one setting shared by the whole fleet.
+- **Nobody chooses what their people carry.** The manager decides "what they carry" per the
+  premise, and there is no path: the kit hook exists and its only call site passes nothing, so
+  arming is decided from house doctrine, the locker and the money left. This and the line above
+  are what the squads screen is for.
+- **No corp ever asks for a full force.** The bodies are there — 56 of 96 corp-seasons have 24
+  or more fit at the lock — but the AI's appetite never reaches the ceiling, so drops land
+  across 16–23. A human can still ask for 24. Recorded, not chased.
+
+---
+
+## The map
+
+```
+sim/     prng · roster · items · ledger · reputation · combat · tactical · negotiate ·
+         map · divide · season          ~11,500 lines, commented with the reasoning
+         arx.cjs        the suite
+         audit_open.cjs · audit_docs.cjs         what is true, tested by running
+         probe_*.cjs    measurement tools, each answering one question
+         build_*.cjs    viewer builders — run them after changing anything they inline
+data/    items · traits · races · recruitment · planets · oa_profiles · schemas
+viewers/ the_desk — the prep year, played a month at a time
+         the_ground — the contest, drawn: terrain, the closing wall, squads and their intent
+         the_firefight — one engagement on the grid, turn by turn, including a squad walking in
+         the_year · the_crate · the_bench · the_table · the_career · armoury · audience_board
+docs/    this file. The nine documents it replaced are archived outside the tree and are not
+         maintained; nothing here should ever need them.
+```
+
+**`sim/combat.js` is a shared library. `sim/tactical.js` is the engagement model.** The grid is
+where fights happen; combat.js provides stats, aim, severity, injuries and composure to it. They
+should not be rival resolvers, and treating them as such has cost this project real time — for
+three steps the documents called the grid an experiment while nothing in the game called it, so
+every casualty figure of that era answered a question about the wrong resolver.
+
+**But one rival is still in the tree, and it is the suite's.** `combat.js` also exports
+`simulateEngagement`, the older abstract band resolver. Nothing in the game has called it since
+Step 7.5. About nine checks still do, including the ratified gear-and-stats split, the five
+fixed-seed snapshots, the determinism check and the 600-engagement invariant sweep. Asked the
+same question, sides swapped and two populations, the two disagree hard: a tier of gear is 20–40%
+on the abstract resolver and near 80% on the grid. **The certified number describes the game
+nobody plays.**
+
+*Cut at 8.9.* 622 lines gone; `combat.js` remains the shared library the grid calls. *Fourteen
+more functions came out later*, in four layers — each one only kept alive by the layer above it —
+and `combat.js` fell to 934 lines. They were the last of the abstract resolver. **Eight trait
+hooks went inert with them**: their only reader sat inside a function nobody called, so the
+parity guard had been reporting 36 hooks live when 28 actually ran. That is the same failure
+already recorded against that guard, one layer down, and it is why `audit_cross` now looks for
+uncalled functions. Time of day went with it — `night` was read only there — and stays deferred until it is
+built for the resolver that exists. The snapshots adopted new fixed numbers once, deliberately.
+
+**Pointing the sweep at the grid found three faults in its first run, none of them reachable
+while the guard was aimed elsewhere.** The casualty tally had no field for `stable` and had
+never accounted for every body. A duplicated cooling pass shed heat twice an exchange, so no
+weapon could reach a vent and the sidearm swap behind it never fired. And three telemetry
+counters were never initialised, so `undefined += 327` left NaN, which every reader's `|| 0`
+turned into a confident zero — a mechanism firing 327 times reported as inert.
+
+**The guards themselves were leaning on the dead resolver.** Trait-hook parity scanned every
+module except `tactical.js`, and counted only one of the two idioms by which hooks are read. It
+passed because the abstract resolver was fat enough to clear the bar alone. With the grid
+scanned, **seventeen trait hooks were read by no system at all** — named one at a time in the
+suite so the list can only change deliberately.
+
+**Step 8.10 took three of them off it.** Suppression had existed on the grid since Step 5 and
+never read the traits that name it, so Trigger Itch, Ammo Miser and Smothering Fire were flavour
+text. A shooter's output now decides how far from the mark their fire catches people, and a
+defender's resistance is a chance to refuse the pin outright.
+
+*Guarded by what they do to the ground, not by whether the resolver mentions them.* A hook can
+be referenced and still reach nothing: Trigger Itch was first wired to WIDEN a spread, and only
+`suppressive_2` weapons have a spread — the machine gun most of these fighters carry is plain
+`suppressive` and pins one man. The suite measured 4,610 pins against a baseline of 4,720,
+called it noise, and was right. It grants the spread now, which is what shooting at movement and
+shadows means. **Twenty-two hooks remain inert**, most of them clustered on squad cohesion —
+`presence_aura`, `cohesion_morale_bonus_near_squadmates`, `squad_coordination_bonus`,
+`rout_immune` — which is the argument for cohesion being the next step and taking most of them
+at once.

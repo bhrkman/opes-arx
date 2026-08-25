@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Firefight — Opes Arx: The Capital Divide</title>
+<style>
+  :root{
+    --ink:#e9e4dc; --dim:#9a9187; --faint:#6b635a;
+    --bg:#14120f; --panel:#1c1916; --edge:#2e2823;
+    --violet:#9d7cd8; --gold:#d8a657; --red:#d16a5e; --green:#89b482;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace;padding:28px 20px 70px}
+  .wrap{max-width:1240px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:.02em}
+  h1 .sub{color:var(--violet)}
+  .lede{color:var(--dim);max-width:82ch;margin:0 0 22px;font-size:13.5px}
+  .lede b{color:var(--ink);font-weight:600}
+  code{color:var(--dim);font-size:12px}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;
+         padding:16px 18px;margin:0 0 18px}
+  .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+  label{color:var(--dim);font-size:12.5px}
+  select,button,input{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
+                border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
+  button{cursor:pointer;border-color:#43392f}
+  button:hover{background:#2e2721;border-color:var(--violet)}
+  button.go{border-color:var(--violet);color:#cbb4ef}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+  @media(max-width:1040px){.cols{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto;background:#100e0c;
+         border:1px solid var(--edge);border-radius:4px}
+  input[type=range]{width:100%;padding:0;background:none;border:none}
+  .scrub{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .scrub .t{color:var(--gold);white-space:nowrap;font-size:13px}
+  .ev{font-size:12px;color:var(--dim);margin:2px 0}
+  .ev.arrive{color:var(--gold);font-weight:600}
+  .ev.hit{color:#d9a49c} .ev.down{color:var(--red)}
+  .evbox{max-height:340px;overflow:auto}
+  .legend{color:var(--faint);font-size:11.5px;margin-top:10px;line-height:1.85}
+  .legend i{font-style:normal;color:var(--dim)}
+  .foot{color:var(--faint);font-size:12px;margin-top:10px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{text-align:left;padding:4px 8px 4px 0}
+  th{color:var(--faint);font-weight:400;border-bottom:1px solid var(--edge);
+     font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+  .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The Firefight <span class="sub">— one engagement, on the grid</span></h1>
+<p class="lede">
+  The grid has recorded every body's tile, state, composure and ammunition once per acting
+  fighter since it replaced the old band model, and <b>nothing has ever drawn it</b>. This page
+  fights a real engagement with the live <code>tactical.resolve</code> and plays it back.
+  It exists for <b>THE DROP-IN</b>: a squad that walks into a fight already in progress, entering
+  on the bearing it approached from. That is the one thing here you cannot judge from a number —
+  either you watch them come in behind people who set up facing somewhere else, or you are taking
+  somebody's word for it.
+</p>
+
+<div class="panel">
+  <div class="controls">
+    <label>seed</label><input id="seed" value="fight-1" size="9">
+    <label>ground</label>
+    <select id="terrain">
+      <option>ruins</option><option>broken_ground</option><option>open_basin</option>
+      <option>forest</option><option>entrenched</option>
+    </select>
+    <label>a third squad arrives</label>
+    <select id="join">
+      <option value="0">not at all</option>
+      <option value="3">on turn 3</option>
+      <option value="6" selected>on turn 6</option>
+      <option value="10">on turn 10</option>
+    </select>
+    <label>from</label>
+    <select id="bearing">
+      <option value="3.14159">behind the defenders</option>
+      <option value="1.5708">from the south</option>
+      <option value="0">alongside the attackers</option>
+    </select>
+    <label><input type="checkbox" id="flanked"> defenders were caught from two arcs</label>
+    <button id="run" class="go">fight it</button>
+    <button id="play">play</button>
+  </div>
+
+  <div class="cols">
+    <div>
+      <canvas id="grid" width="1300" height="900"></canvas>
+      <div class="scrub">
+        <button id="back">&lsaquo;</button>
+        <input id="fr" type="range" min="0" max="0" value="0">
+        <button id="fwd">&rsaquo;</button>
+        <span class="t" id="frLbl">turn 1</span>
+      </div>
+      <div class="legend">
+        <i>the ground</i> &mdash; darker blocks are cover, and it is directional: a wall protects
+        you from the side it is on, which is the whole reason arriving from behind matters.<br>
+        <i>bodies</i> &mdash; filled circles are on their feet, hollow are down, crossed are dead.
+        A ring means overwatch. <i>The arriving squad flashes gold on the turn it walks in.</i><br>
+        <i>the numbers</i> &mdash; composure, which is what breaks before people do.
+      </div>
+      <div class="foot" id="cost"></div>
+    </div>
+
+    <div>
+      <div class="panel" style="margin:0 0 12px;padding:13px 15px">
+        <h2>the sides</h2>
+        <table id="sides"></table>
+      </div>
+      <div class="panel" style="margin:0;padding:13px 15px">
+        <h2>what happened</h2>
+        <div class="evbox" id="events"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/*__DATA__*/
+</script>
+<script>
+/*__SIM__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var P = window.CDPRNG, ROSTER = window.CDROSTER, ITEMS = window.CDITEMS,
+      C = window.CDCOMBAT, TAC = window.CDTACTICAL;
+
+  var A = window.ARX_DATA;
+  ITEMS.init(A.items);
+  ROSTER.initRoster({ races: A.races, traits: A.traits,
+                      recruitment: A.recruitment, oa: A.oa_profiles });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+
+  var SIDE = ['#d8a657', '#7fb0c8', '#89b482'];
+  var NAME = ['the attackers', 'the defenders', 'the squad that walked in'];
+  var G = { res: null, i: 0, timer: null, arriveTurn: 0 };
+
+  function makeSide(seed, tag, n) {
+    var b = ROSTER.generateSquad(P.mulberry32(P.seedFrom(seed)), n, { corpId: tag }).bodies;
+    ITEMS.equipForce(b, ITEMS.DEFAULT_LOADOUT);
+    return { tag: tag, corpId: tag, policy: 'standard', policyName: 'standard', hasMedkit: true,
+             units: b.map(function (f) {
+               return C.makeCombatant(f, { traitIndex: ROSTER.traitById, day: 1 }); }) };
+  }
+
+  function run() {
+    var seed = $('seed').value || 'fight-1';
+    var joinTurn = parseInt($('join').value, 10);
+    var bearing = parseFloat($('bearing').value);
+    G.arriveTurn = joinTurn;
+
+    var a = makeSide(seed + '-a', 'A', 6);
+    var b = makeSide(seed + '-b', 'B', 6);
+    var ctx = { terrain: $('terrain').value, openingBand: 1, prep: [0.5, 0.5],
+                flanked: [false, !!$('flanked').checked] };
+    if (joinTurn > 0) {
+      /* THE SAME SHAPE `divide.js` BUILDS during a contest: a side, the turn it walks in on,
+         and the bearing it approached from. Nothing here is a mock of the real thing. */
+      ctx.reinforce = [{ side: makeSide(seed + '-c', 'C', 5), atTurn: joinTurn,
+                         bearing: bearing, prep: 0.5 }];
+      ctx.forceBearings = true;
+      ctx.bearings = [0, Math.PI];
+    }
+    var t0 = (window.performance || Date).now();
+    G.res = TAC.resolve(P.mulberry32(P.seedFrom(seed)), a, b, ctx);
+    var ms = Math.round((window.performance || Date).now() - t0);
+    $('fr').max = String(Math.max(0, G.res.frames.length - 1));
+    $('fr').value = '0'; G.i = 0;
+    $('cost').textContent = G.res.frames.length + ' frames over ' + G.res.turns +
+      ' turns in ' + ms + ' ms \u00b7 ' + G.res.result +
+      (G.res.telemetry.arrivals ? ' \u00b7 ' + G.res.telemetry.arrived + ' walked in' : '');
+    draw();
+  }
+
+  function draw() {
+    if (!G.res) return;
+    var cv = $('grid'), g = cv.getContext('2d');
+    var map = G.res.map, F = G.res.frames[G.i];
+    if (!F) return;
+    var s = Math.min(cv.width / map.w, cv.height / map.h);
+    g.clearRect(0, 0, cv.width, cv.height);
+
+    /* the ground: cover is a grade per tile, and it is what people are hiding behind */
+    for (var x = 0; x < map.w; x++) {
+      for (var y = 0; y < map.h; y++) {
+        /* `tiles` IS ROWS, NOT A FLAT ARRAY: `tiles[y][x]`. Indexed flat, every lookup returned
+           a whole row — an object, truthy, never a grade — so the ground painted as one
+           uniform sheet and the cover the entire fight is fought around was invisible. */
+        var v = (map.tiles[y] || [])[x] || 0;
+        g.fillStyle = v > 0 ? 'rgba(157,124,216,' + (0.10 + 0.16 * v) + ')' : '#171410';
+        g.fillRect(x * s + 1, y * s + 1, s - 2, s - 2);
+      }
+    }
+
+    for (var i = 0; i < F.units.length; i++) {
+      var u = F.units[i], cx = u.x * s + s / 2, cy = u.y * s + s / 2;
+      var col = SIDE[u.s % SIDE.length];
+      /* the arriving squad flashes on the turn it walks in */
+      if (u.s === 2 && F.turn === G.arriveTurn) {
+        g.fillStyle = 'rgba(216,166,87,.28)';
+        g.beginPath(); g.arc(cx, cy, s * 1.5, 0, Math.PI * 2); g.fill();
+      }
+      g.lineWidth = 2; g.strokeStyle = col;
+      g.beginPath(); g.arc(cx, cy, s * 0.30, 0, Math.PI * 2);
+      if (u.st === 'ok' || u.st === 'light') { g.fillStyle = col; g.fill(); } else { g.stroke(); }
+      if (u.st === 'dead') {
+        g.strokeStyle = '#d16a5e';
+        g.beginPath();
+        g.moveTo(cx - s * .22, cy - s * .22); g.lineTo(cx + s * .22, cy + s * .22);
+        g.moveTo(cx + s * .22, cy - s * .22); g.lineTo(cx - s * .22, cy + s * .22);
+        g.stroke();
+      }
+      if (u.ow) { g.strokeStyle = '#e9e4dc'; g.lineWidth = 1;
+                  g.beginPath(); g.arc(cx, cy, s * 0.44, 0, Math.PI * 2); g.stroke(); }
+      if (u.st === 'ok' || u.st === 'light') {
+        /* THE WOUND POOL, which is what this pass built. A bar under each body: what is left of
+           it, and how much of it this fight has taken. Before the pool a hit either did nothing
+           visible or removed somebody, and there was nothing here to draw. */
+        if (u.hp != null && u.hpMax) {
+          var frac = Math.max(0, u.hp) / u.hpMax;
+          var bw = s * 0.72, bx = cx - bw / 2, by = cy + s * 0.34;
+          g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(bx, by, bw, s * 0.13);
+          g.fillStyle = frac > 0.6 ? '#89b482' : frac > 0.3 ? '#d8a657' : '#d16a5e';
+          g.fillRect(bx, by, bw * frac, s * 0.13);
+        }
+        g.fillStyle = 'rgba(233,228,220,.55)';
+        g.font = Math.round(s * 0.30) + 'px ui-monospace,monospace';
+        g.textAlign = 'center';
+        g.fillText(String(u.comp), cx, cy - s * 0.42);
+      }
+    }
+    $('frLbl').textContent = 'turn ' + F.turn + ' of ' + G.res.turns;
+    paintSide();
+  }
+
+  function paintSide() {
+    var F = G.res.frames[G.i];
+    var counts = {};
+    for (var i = 0; i < F.units.length; i++) {
+      var u = F.units[i];
+      counts[u.s] = counts[u.s] || { up: 0, down: 0, dead: 0 };
+      if (u.st === 'dead') counts[u.s].dead++;
+      else if (u.st === 'ok' || u.st === 'light') counts[u.s].up++;
+      else counts[u.s].down++;
+    }
+    var rows = '<tr><th>side</th><th>up</th><th>down</th><th>dead</th></tr>';
+    for (var k in counts) {
+      rows += '<tr><td><span class="sw" style="background:' + SIDE[k % SIDE.length] + '"></span>' +
+        esc(NAME[k] || ('side ' + k)) + '</td><td>' + counts[k].up + '</td><td>' +
+        counts[k].down + '</td><td>' + counts[k].dead + '</td></tr>';
+    }
+    $('sides').innerHTML = rows;
+
+    var out = '';
+    for (var e = 0; e < (G.res.log || []).length; e++) {
+      var v = G.res.log[e];
+      if (v.t > F.turn) break;
+      if (v.t < F.turn - 1) continue;
+      var cls = v.kind === 'arrive' ? 'arrive' : (v.down || v.dead ? 'down' : 'hit');
+      out += '<div class="ev ' + cls + '">t' + v.t + ' \u00b7 ' +
+             esc(v.text || v.kind || '') + '</div>';
+    }
+    $('events').innerHTML = out || '<div class="ev">nothing yet</div>';
+  }
+
+  function stop() { if (G.timer) { clearInterval(G.timer); G.timer = null; $('play').textContent = 'play'; } }
+  function goto(i) {
+    if (!G.res) return;
+    G.i = Math.max(0, Math.min(G.res.frames.length - 1, i));
+    $('fr').value = String(G.i); draw();
+  }
+
+  $('run').onclick = function () { stop(); run(); };
+  $('back').onclick = function () { stop(); goto(G.i - 1); };
+  $('fwd').onclick = function () { stop(); goto(G.i + 1); };
+  $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10)); };
+  $('play').onclick = function () {
+    if (G.timer) return stop();
+    if (G.i >= G.res.frames.length - 1) goto(0);
+    $('play').textContent = 'pause';
+    G.timer = setInterval(function () {
+      if (G.i >= G.res.frames.length - 1) return stop();
+      goto(G.i + 1);
+    }, 90);
+  };
+
+  run();
+}());
+</script>
+</body>
+</html>

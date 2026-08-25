@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Table — Capital Divide, Step 6</title>
+<style>
+:root{
+  --void:#14111c; --panel:#1b1826; --panel-2:#221d2f; --rule:#2e2740;
+  --bone:#e8e3d9; --dim:#8b8397; --dimmer:#5f5872;
+  --aleas:#b08d3e; --blood:#8f1d1d; --stable:#5f7a3d; --warn:#e3b330;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--void); color:var(--bone); font-family:var(--mono);
+  font-size:13px; line-height:1.5; font-variant-numeric:tabular-nums;
+  background-image:radial-gradient(ellipse at 50% -10%, #241d33 0%, var(--void) 60%);
+  min-height:100vh;
+}
+.lbl{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 72px}
+header{border-bottom:1px solid var(--rule);padding:20px 0 14px;margin-bottom:20px}
+.mast{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.mark{font-family:var(--ui);font-weight:700;font-size:20px;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:9px}
+.mark b{color:var(--aleas)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--aleas)}
+.thesis{max-width:64ch;margin:10px 0 0;color:var(--dim);font-size:12.5px}
+.thesis em{color:var(--bone);font-style:normal}
+
+.runbar{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 22px}
+button.run{font-family:var(--mono);font-size:11px;letter-spacing:.05em;background:var(--panel);
+  color:var(--dim);border:1px solid var(--rule);padding:6px 11px;cursor:pointer;border-radius:2px}
+button.run:hover{color:var(--bone);border-color:var(--dimmer)}
+button.run[aria-pressed="true"]{background:var(--panel-2);color:var(--aleas);border-color:var(--aleas)}
+button.run:focus-visible{outline:2px solid var(--aleas);outline-offset:2px}
+
+section{margin:0 0 34px}
+h2{font-family:var(--ui);font-size:14px;font-weight:600;letter-spacing:.01em;margin:0 0 3px}
+.sub{color:var(--dim);font-size:12px;margin:0 0 14px;max-width:70ch}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:16px}
+
+/* signature: the convergence chart */
+.conv{position:relative}
+.conv svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px}
+.key{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim)}
+.swatch{width:16px;height:3px;border-radius:2px}
+.readout{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;padding-top:12px;
+  border-top:1px solid var(--rule)}
+.stat b{display:block;font-size:17px;font-weight:600;color:var(--bone);line-height:1.2}
+.stat span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-weight:400;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);padding:0 10px 7px 0;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:7px 10px 7px 0;border-bottom:1px solid rgba(46,39,64,.5);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.num{text-align:right}
+.corp{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.chip{width:3px;height:13px;border-radius:1px;flex:none}
+.muted{color:var(--dim)}
+.gold{color:var(--aleas)}
+.red{color:#c96a6a}
+.green{color:#8fae63}
+
+/* deal cards */
+.deals{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.deal{background:var(--panel-2);border:1px solid var(--rule);border-radius:3px;padding:13px}
+.deal.refused{background:transparent;border-style:dashed}
+.deal h3{font-family:var(--ui);font-size:12.5px;font-weight:600;margin:0 0 2px;line-height:1.35}
+.deal .when{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.bar{height:5px;background:#171320;border-radius:3px;overflow:hidden;display:flex;margin:9px 0 4px}
+.bar i{display:block;height:100%}
+.mathline{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:2px 0;color:var(--dim)}
+.mathline b{color:var(--bone);font-weight:500}
+.verdict{margin-top:9px;padding-top:8px;border-top:1px solid var(--rule);font-size:11px;color:var(--dim)}
+
+/* umbrella */
+.tree{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.node{display:flex;align-items:center;gap:9px;padding:5px 9px;background:var(--panel-2);
+  border:1px solid var(--rule);border-radius:2px}
+.node.win{border-color:var(--aleas)}
+.node .rail{color:var(--dimmer);letter-spacing:-.05em}
+
+.foot{color:var(--dimmer);font-size:11px;border-top:1px solid var(--rule);padding-top:14px;
+  margin-top:8px;max-width:74ch}
+code{background:var(--panel-2);padding:1px 5px;border-radius:2px;color:var(--aleas);font-size:11px}
+@media (prefers-reduced-motion:no-preference){
+  .deal,.node{transition:border-color .18s ease}
+}
+@media (max-width:640px){ .readout{gap:14px} .stat b{font-size:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="mast">
+    <div class="mark"><span class="dot"></span>The <b>Table</b></div>
+    <div class="lbl">Capital Divide · Step 6 · six baked Divides</div>
+  </div>
+  <p class="thesis">Two forces end a Divide, and they work against each other.
+    <em>The ring closes</em> until there is nowhere left to stand, and <em>the banners
+    consolidate</em> as corps sell their claims to whoever looks likeliest to win. Whichever
+    reaches one first is the ending. Every number below is lifted from a run of the sim.</p>
+</header>
+
+<div class="runbar" id="runbar" role="group" aria-label="Choose a Divide"></div>
+
+<section>
+  <h2>The convergence</h2>
+  <p class="sub">The band is the ring, drawn to scale as a share of the planet. The line is how
+    many banners are still holding their own claim. A Divide ends when the line reaches one —
+    by deals, by the grinder, or by both meeting at once.</p>
+  <div class="panel conv">
+    <svg id="conv" viewBox="0 0 900 300" role="img" aria-label="Ring radius and banner count over the days of a Divide"></svg>
+    <div class="legend">
+      <div class="key"><span class="swatch" style="background:#3d3450"></span>Ring, as a share of the planet</div>
+      <div class="key"><span class="swatch" style="background:var(--aleas)"></span>Banners still holding a claim</div>
+      <div class="key"><span class="swatch" style="background:var(--blood)"></span>Fighters still standing</div>
+      <div class="key"><span class="swatch" style="background:#6d5aa8"></span>A claim changes hands</div>
+    </div>
+    <div class="readout" id="readout"></div>
+  </div>
+</section>
+
+<section>
+  <h2>What each side was looking at</h2>
+  <p class="sub">Nobody negotiates against the truth. Both parties read the same public odds
+    board, then price the same three things in credits: what staying is worth, what the crowd
+    will charge for folding, and what fighting on will cost in people. A deal exists where the
+    two ranges overlap.</p>
+  <div class="deals" id="deals"></div>
+</section>
+
+<section>
+  <h2>Refused, and by how much</h2>
+  <p class="sub">The closest misses. A refusal with numbers attached says what was wanted, what
+    was on the table, and which side would have had to move.</p>
+  <div class="deals" id="refused"></div>
+</section>
+
+<section>
+  <h2>Who ended up under whom</h2>
+  <p class="sub">A corp cedes its claim once and cannot take it back. If its principal then
+    joins someone else, it is dragged along with no say — and its share is paid out of a share.</p>
+  <div class="panel"><div class="tree" id="tree"></div></div>
+</section>
+
+<section>
+  <h2>Settlement</h2>
+  <p class="sub">One winner takes the planet. Everyone else is paid strictly what they
+    negotiated, out of what their principal actually received. Assay sites belong to whoever
+    emptied them either way. Losers who joined nobody get nothing.</p>
+  <div class="panel" style="overflow-x:auto"><table id="settle"></table></div>
+</section>
+
+<p class="foot" id="foot"></p>
+
+</div>
+<script>
+const BAKED = /*__DATA__*/null;
+const {runs, K, NAME, TAG, COL, sealed} = BAKED;
+const money = n => (n<0?'−':'') + Math.abs(Math.round(n)).toLocaleString('en-US');
+const kk = n => (n<0?'−':'') + Math.round(Math.abs(n)/1000) + 'k';
+const el = id => document.getElementById(id);
+let cur = 0;
+
+el('runbar').innerHTML = runs.map((r,i)=>
+  `<button class="run" role="button" aria-pressed="${i===0}" data-i="${i}">${r.seed} · ${r.length}d</button>`).join('');
+el('runbar').addEventListener('click', e => {
+  const b = e.target.closest('button.run'); if(!b) return;
+  cur = +b.dataset.i;
+  [...el('runbar').children].forEach((c,i)=>c.setAttribute('aria-pressed', i===cur));
+  draw();
+});
+
+function corpTag(id, extra){
+  return `<span class="corp"><span class="chip" style="background:${COL[id]||'#666'}"></span>${NAME[id]||id}${extra||''}</span>`;
+}
+
+function drawConv(r){
+  const W=900,H=300, L=44, Rr=34, T=16, B=30;
+  const maxDay = r.length;
+  const x = d => L + (d-1)/(Math.max(1,maxDay-1)) * (W-L-Rr);
+  const maxBodies = Math.max(...r.days.map(d=>d.bodies));
+  const yRing = v => T + (1-v) * (H-T-B);          // ring as share of planet radius
+  const yCount = n => T + (1 - n/8) * (H-T-B);      // banners, 0..8
+  const yBodies = n => T + (1 - n/maxBodies) * (H-T-B);
+
+  // banners standing per day: corps not yet joined and still alive
+  const joinedBy = {};
+  r.deals.forEach(d => { joinedBy[d.joiner] = d.day; });
+  const banners = r.days.map(d => {
+    let n = 0;
+    r.corps.forEach(c => {
+      const j = joinedBy[c.id];
+      if (j != null && j <= d.d) return;         // ceded by now
+      n++;
+    });
+    return Math.max(1, n);
+  });
+
+  const ringPts = r.days.map(d => `${x(d.d).toFixed(1)},${yRing(d.r/K.planet).toFixed(1)}`).join(' ');
+  const ringArea = `M${x(1)},${yRing(0)} L` + ringPts.split(' ').join(' L') + ` L${x(maxDay)},${yRing(0)} Z`;
+  const bannerPts = r.days.map((d,i)=>`${x(d.d).toFixed(1)},${yCount(banners[i]).toFixed(1)}`).join(' ');
+  const bodyPts = r.days.map(d=>`${x(d.d).toFixed(1)},${yBodies(d.bodies).toFixed(1)}`).join(' ');
+
+  const grid = [];
+  for(let d=1; d<=maxDay; d+=Math.max(1,Math.round(maxDay/8))){
+    grid.push(`<line x1="${x(d)}" y1="${T}" x2="${x(d)}" y2="${H-B}" stroke="#241f33"/>`+
+      `<text x="${x(d)}" y="${H-B+15}" fill="#5f5872" font-size="10" text-anchor="middle">d${d}</text>`);
+  }
+  const marks = r.deals.map(d=>{
+    const xx = x(Math.min(d.day, maxDay));
+    return `<line x1="${xx}" y1="${T}" x2="${xx}" y2="${H-B}" stroke="#6d5aa8" stroke-width="1" stroke-dasharray="2 3" opacity=".85"/>`+
+           `<circle cx="${xx}" cy="${T+6}" r="3" fill="#6d5aa8"/>`;
+  }).join('');
+
+  el('conv').innerHTML =
+    `<path d="${ringArea}" fill="#3d3450" opacity=".55"/>`+
+    grid.join('')+ marks +
+    `<polyline points="${bodyPts}" fill="none" stroke="var(--blood)" stroke-width="1.5" opacity=".9"/>`+
+    `<polyline points="${bannerPts}" fill="none" stroke="var(--aleas)" stroke-width="2.5"/>`+
+    `<text x="${L}" y="${T-3}" fill="#5f5872" font-size="10">8 banners · full planet</text>`+
+    `<text x="${L}" y="${H-B-4}" fill="#5f5872" font-size="10">1 banner · the last ground</text>`;
+
+  const survivors = r.days[r.days.length-1].bodies;
+  el('readout').innerHTML = [
+    ['Length', r.length + ' days'],
+    ['Claims ceded', r.deals.length],
+    ['Firefights', r.engagements],
+    ['Standing at the end', survivors],
+    ['Lost for good', r.days[r.days.length-1].dead],
+    ['The planet', money(r.pot) + ' cr']
+  ].map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+}
+
+function dealCard(d){
+  const w = d.why || {};
+  const room = Math.max(1, w.principalMax - w.joinerMin);
+  const lo = w.joinerMin, hi = w.principalMax, v = w.value;
+  const pos = Math.max(0, Math.min(1, (v-lo)/room));
+  const terms = [];
+  if (d.share > 0.001) terms.push((d.share*100).toFixed(1) + '% of what they take');
+  if (d.credits > 0) terms.push(money(d.credits) + ' cr up front');
+  if (d.standDown) terms.push('their people stand down');
+  return `<div class="deal">
+    <h3>${NAME[d.joiner]} cedes to ${NAME[d.principal]}</h3>
+    <div class="when">Day ${d.day} · ${terms.join(' · ')}</div>
+    <div class="mathline"><span>Staying is worth</span><b>${money(w.stayValue)}</b></div>
+    <div class="mathline"><span>The crowd will charge</span><b class="red">${money(w.penalty)}</b></div>
+    <div class="mathline"><span>Fighting on costs, in people</span><b class="red">${money(w.stayLosses)}</b></div>
+    <div class="bar">
+      <i style="background:#3a3350;width:${(100*pos).toFixed(1)}%"></i>
+      <i style="background:var(--aleas);width:3px"></i>
+      <i style="background:#2a2438;flex:1"></i>
+    </div>
+    <div class="mathline"><span>They won't take under</span><b>${money(lo)}</b></div>
+    <div class="mathline"><span>Buyer won't pay over</span><b>${money(hi)}</b></div>
+    <div class="verdict">Settled at <b class="gold">${money(v)}</b> — the odds board had them at
+      ${(w.oddsNow*100).toFixed(1)}% alone, ${(w.oddsJoined*100).toFixed(1)}% together.</div>
+  </div>`;
+}
+
+function refusedCard(n){
+  return `<div class="deal refused">
+    <h3>${NAME[n.joiner]} would not cede to ${NAME[n.principal]}</h3>
+    <div class="when">Day ${n.day} · ${money(n.short)} cr apart</div>
+    <div class="mathline"><span>Wanted at least</span><b>${money(n.wanted)}</b></div>
+    <div class="mathline"><span>Was offered at most</span><b>${money(n.offered)}</b></div>
+    <div class="verdict">No overlap, so no deal. Neither side is being robbed — they simply
+      price the same position differently.</div>
+  </div>`;
+}
+
+function drawTree(r){
+  const kids = {};
+  r.deals.forEach(d => (kids[d.principal] = kids[d.principal]||[]).push(d));
+  const joined = new Set(r.deals.map(d=>d.joiner));
+  const roots = r.corps.filter(c => !joined.has(c.id));
+  const out = [];
+  function walk(id, depth, term){
+    const c = r.corps.find(x=>x.id===id) || {};
+    const rail = depth ? '<span class="rail">' + '│&nbsp;'.repeat(depth-1) + '└─</span>' : '';
+    const badge = c.won ? ' <span class="gold">— takes the planet</span>'
+      : (term ? ' <span class="muted">— ' + term + '</span>' : ' <span class="muted">— holds its own claim</span>');
+    out.push(`<div class="node${c.won?' win':''}">${rail}${corpTag(id)}${badge}</div>`);
+    (kids[id]||[]).sort((a,b)=>a.day-b.day).forEach(d=>{
+      const t = [];
+      if (d.share>0.001) t.push((d.share*100).toFixed(1)+'% of their take');
+      if (d.credits>0) t.push(money(d.credits)+' cr');
+      if (d.standDown) t.push('stood down');
+      walk(d.joiner, depth+1, 'day ' + d.day + ', for ' + t.join(' + '));
+    });
+  }
+  roots.forEach(c=>walk(c.id,0,null));
+  el('tree').innerHTML = out.join('');
+}
+
+function drawSettle(r){
+  const rows = r.corps.slice().sort((a,b)=>b.payout-a.payout).map(c=>{
+    const delta = c.treasuryAfter - c.treasuryBefore;
+    const fate = c.won ? '<span class="gold">won the planet</span>'
+      : c.joinedTo ? 'under ' + (NAME[c.joinedTo]||c.joinedTo) + (c.standDown ? ', stood down' : '')
+      : '<span class="muted">held out, lost</span>';
+    return `<tr>
+      <td>${corpTag(c.id)}</td>
+      <td class="muted">${c.policy.replace(/_/g,' ')}${sealed.includes(c.id)?' <span class="red">· will not deal</span>':''}</td>
+      <td>${fate}</td>
+      <td class="num">${c.permanent}</td>
+      <td class="num muted">${c.assay||0}</td>
+      <td class="num ${c.payout>0?'gold':'muted'}">${c.payout?money(c.payout):'—'}</td>
+      <td class="num ${delta>=0?'green':'red'}">${delta>=0?'+':''}${kk(delta)}</td>
+    </tr>`;
+  }).join('');
+  el('settle').innerHTML = `<thead><tr>
+    <th>Corp</th><th>Declared</th><th>How it ended</th><th class="num">Lost</th>
+    <th class="num">Assay</th><th class="num">Paid</th><th class="num">Season</th>
+  </tr></thead><tbody>${rows}</tbody>`;
+}
+
+function draw(){
+  const r = runs[cur];
+  drawConv(r);
+  el('deals').innerHTML = r.deals.length ? r.deals.map(dealCard).join('')
+    : '<div class="deal refused"><h3>No claim changed hands</h3><div class="verdict">Every corp held out and the ring decided it.</div></div>';
+  el('refused').innerHTML = r.near.map(refusedCard).join('');
+  drawTree(r);
+  drawSettle(r);
+  el('foot').innerHTML =
+    `Baked from the sim, not mocked up. The ring closes on days ${K.stepDays.join(' · ')} to `+
+    `${K.steps.map(v=>v).join(' · ')} of the planet radius, then to <code>${K.lastFrac}</code> on day `+
+    `<code>${K.lastDay}</code> — a diameter narrower than the <code>${K.engage}</code> at which squads make `+
+    `contact, so nothing can avoid anything. It stops closing there and the contest runs on until one `+
+    `banner is left. Two figures on this page are placeholders standing in for ledgers that do not exist `+
+    `yet: what a point of reputation is worth in money (<code>${K.crowdRate}</code> of a pot) and what one `+
+    `fighter's loss is worth beyond their death benefit (<code>${money(K.lifeValue)}</code> cr).`;
+}
+draw();
+</script>
+</body>
+</html>

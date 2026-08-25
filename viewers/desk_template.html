@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Desk — Opes Arx: The Capital Divide</title>
+<style>
+  :root{--ink:#e9e4dc;--dim:#9a9187;--faint:#6b635a;--bg:#14120f;--panel:#1c1916;--edge:#2e2823;
+        --violet:#9d7cd8;--gold:#d8a657;--red:#d16a5e;--green:#89b482;--blue:#7daea3;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace;padding:24px 20px 70px}
+  .wrap{max-width:1240px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  h1 .sub{color:var(--violet)}
+  .lede{color:var(--dim);max-width:88ch;margin:0 0 18px;font-size:13.5px}
+  .lede b{color:var(--ink)}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;padding:15px 17px;margin:0 0 16px}
+  .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
+  .note{color:var(--faint);font-size:12.5px;margin:0 0 12px;max-width:86ch}
+  .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:0 0 12px}
+  select,button,input{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
+                border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
+  button{cursor:pointer;border-color:#43392f}
+  button:hover:not(:disabled){background:#2e2721;border-color:var(--violet)}
+  button:disabled{opacity:.35;cursor:default}
+  button.go{border-color:var(--violet);background:#2b2333}
+  button.go:hover:not(:disabled){background:#382c44}
+  label{color:var(--dim);font-size:12.5px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{text-align:left;padding:4px 10px 4px 0;vertical-align:top}
+  th{color:var(--faint);font-weight:400;border-bottom:1px solid var(--edge);font-size:11px;
+     letter-spacing:.07em;text-transform:uppercase}
+  tr.hurt td{color:var(--red)}
+  tr.green td .cap{color:var(--blue)}
+  .cols{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}}
+  .months{display:grid;grid-template-columns:repeat(11,1fr);gap:4px;margin:0 0 14px}
+  .mo{background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:6px 5px;font-size:10.5px;
+      text-align:center;line-height:1.3}
+  .mo b{display:block;color:var(--gold);font-size:11px}
+  .mo.now{border-color:var(--violet);background:#2b2333}
+  .mo.done{opacity:.45}
+  .mo .ev{color:var(--blue);font-size:9.5px;display:block;margin-top:2px}
+  .ap{display:flex;gap:4px;align-items:center;margin:0 0 12px}
+  .ap i{width:15px;height:15px;border-radius:3px;background:#3a322b;display:block;border:1px solid #4a4038}
+  .ap i.used{background:var(--violet);border-color:var(--violet)}
+  .verbs{display:grid;gap:7px;margin:0 0 12px}
+  .verb{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+        background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:8px 11px}
+  .verb.off{opacity:.42}
+  .verb .n{color:var(--ink);font-size:13px}
+  .verb .w{color:var(--faint);font-size:11.5px}
+  .verb .cost{color:var(--gold);font-size:11.5px;white-space:nowrap}
+  .queue{min-height:22px;color:var(--dim);font-size:12.5px;margin:0 0 10px}
+  .queue span{background:#2b2333;border:1px solid var(--violet);border-radius:3px;
+              padding:2px 8px;margin-right:5px;color:var(--ink);font-size:12px}
+  .stat{display:flex;flex-wrap:wrap;gap:18px;margin:0 0 12px;font-size:12.5px}
+  .stat div{color:var(--faint)}
+  .stat b{color:var(--ink);font-weight:400}
+  .stat .up{color:var(--green)} .stat .down{color:var(--red)}
+  .card li{margin:0 0 3px;font-size:12.5px;color:var(--dim)}
+  .card .met{color:var(--green)} .card .miss{color:var(--red)}
+  .card ul{margin:0;padding-left:18px}
+  .log{max-height:270px;overflow:auto;font-size:12px;color:var(--dim)}
+  .log div{padding:2px 0;border-bottom:1px solid #221e1a}
+  .log b{color:var(--gold);font-weight:400}
+  .log .me{color:var(--ink)}
+  .big{font-size:15px;color:var(--ink)}
+  .warn{color:var(--gold);font-size:12.5px}
+  .offer{background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:8px 11px;margin:0 0 7px}
+  .offer.excl{border-color:var(--violet)}
+  .offer .h{color:var(--ink);font-size:13px}
+  .offer .m{color:var(--gold);font-size:12px}
+  .offer .o{color:var(--faint);font-size:11.5px;margin-top:2px}
+  .offer button{margin-top:6px;font-size:12px;padding:3px 10px}
+  .deal{border-left:2px solid var(--green);padding-left:9px;margin:0 0 7px;font-size:12.5px}
+  .deal b{color:var(--green);font-weight:400}
+  .notch{font-size:12px;padding:5px 9px}
+  .notch.on{border-color:var(--violet);background:#2b2333;color:var(--ink)}
+  .fight{background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:7px 10px;margin:0 0 6px;font-size:12px}
+  .fight b{color:var(--gold);font-weight:400}
+  .fight .ln{color:var(--faint);font-size:11.5px;display:block}
+  .fight .ln.kill{color:var(--red)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px;
+       background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:6px 10px;margin:0 0 5px;font-size:12.5px}
+  .row.dead{opacity:.4}
+  tr.picked td{background:#2b2333}
+  tr.picked td:first-child{color:var(--violet)}
+  .pactrow{display:flex;justify-content:space-between;align-items:center;gap:10px;
+           background:#241f1b;border:1px solid var(--edge);border-radius:4px;padding:6px 11px;margin:0 0 6px;font-size:12.5px}
+  .pactrow.yes{border-color:var(--green)} .pactrow.no{border-color:var(--red);opacity:.65}
+  .bid{width:82px;font-size:12px;padding:3px 6px}
+  td.num{text-align:right;color:var(--gold)}
+  tr.bidon td{background:#241d2e}
+  .over{color:var(--green)} .under{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Desk <span class="sub">— the eleven preparation months of a twelve-month year</span></h1>
+  <p class="lede">You run one corporation. <b>Every month is a turn</b>: a budget of action points against
+  verbs that compete, and the world only moves on once the month is ended. The other seven corps take
+  their month at the same time, and the fixed dates — the Dividend, the Bastille intake, the merc
+  deadline — fire at the close of the month that carries them, after everyone has spent.
+  <b>This page runs the real engine.</b> Every figure below comes from the live modules; nothing here
+  is illustrative.</p>
+
+  <div class="panel">
+    <div class="controls">
+      <label>manage</label><select id="corp"></select>
+      <label>seed</label><input id="seed" value="desk-1" size="10">
+      <button id="new" class="go">new career</button>
+      <button id="save">save</button>
+      <button id="loadBtn">load</button>
+      <input id="loadFile" type="file" accept=".json" style="display:none">
+      <span id="who" class="warn"></span>
+    </div>
+    <div class="stat" id="stat"></div>
+    <div class="months" id="months"></div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="panel" id="monthPanel">
+        <h2 id="moTitle">the month</h2>
+        <p class="note" id="moNote"></p>
+        <div class="ap" id="ap"></div>
+        <div class="verbs" id="verbs"></div>
+        <div class="queue" id="queue"></div>
+        <div class="controls">
+          <button id="end" class="go">end the month</button>
+          <button id="clear">clear</button>
+          <button id="auto">let the corp decide</button>
+        </div>
+      </div>
+
+      <div class="panel" id="lotPanel" style="display:none">
+        <h2 id="lotTitle">the lot</h2>
+        <p class="note" id="lotNote"></p>
+        <div style="max-height:340px;overflow:auto"><table id="lot"></table></div>
+        <div class="controls"><span id="lotBudget" class="warn"></span></div>
+      </div>
+
+      <div class="panel" id="seamPanel" style="display:none">
+        <h2>the week of the drop</h2>
+        <p class="note">Three things happen before anyone lands, and they lean on each other.
+        Landing beside a rival is survivable with an understanding and ruinous without one;
+        performing makes you a better partner and a better target.</p>
+
+        <h2 style="margin-top:4px">where you land</h2>
+        <p class="note" id="secNote"></p>
+        <table id="sectors"></table>
+
+        <h2 style="margin-top:14px">understandings</h2>
+        <p class="note">Struck blind — before anyone knows where anyone landed or what they
+        brought. You are betting on their character, so the odds are shown.</p>
+        <div id="pacts"></div>
+
+        <h2 style="margin-top:14px">media day</h2>
+        <p class="note" id="mediaNote"></p>
+        <div class="controls"><button id="media" class="go">turn up and perform</button></div>
+      </div>
+
+      <div class="panel" id="lockPanel" style="display:none">
+        <h2>the lock</h2>
+        <p class="note">How many answers the board's funding demand; <b>who</b> answers your own culture.
+        The Aleas kit ceiling is a corp ceiling and does not shrink with the force — bring fewer and each
+        of them is better armed.</p>
+        <div class="controls">
+          <label>send</label><input id="want" type="number" min="16" max="24" value="24" style="width:70px">
+          <label>lean</label>
+          <select id="lean">
+            <option value="fittest">fittest available</option>
+            <option value="rested">rest the walking wounded</option>
+            <option value="prospect">give a prospect the ground time</option>
+          </select>
+          <button id="drop" class="go">go down the well</button>
+        </div>
+        <div id="lockNote" class="note"></div>
+      </div>
+
+      <div class="panel" id="divPanel" style="display:none">
+        <h2 id="divTitle">the Divide</h2>
+        <p class="note" id="divNote"></p>
+        <div class="stat" id="divStat"></div>
+
+        <h2 style="margin-top:10px">your protocol</h2>
+        <p class="note">You set how your people fight, never where they stand or who they shoot.</p>
+        <div class="controls" id="notches"></div>
+
+        <h2 style="margin-top:10px">the table</h2>
+        <div id="divTable"></div>
+
+        <h2 style="margin-top:10px">since you last spoke</h2>
+        <div id="divFights"></div>
+
+        <div class="controls" style="margin-top:12px">
+          <button id="hold" class="go">hold this line</button>
+          <span class="warn" id="divDay"></span>
+        </div>
+      </div>
+
+      <div class="panel" id="resultPanel" style="display:none">
+        <h2>the year, closed</h2>
+        <div id="result"></div>
+        <div class="controls"><button id="next" class="go">next season</button></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel" id="sponPanel">
+        <h2>your backers</h2>
+        <p class="note" id="sponNote"></p>
+        <div id="sponContracts"></div>
+        <div id="sponOffers"></div>
+      </div>
+
+      <div class="panel">
+        <h2>the board</h2>
+        <p class="note" id="boardNote"></p>
+        <div class="card" id="board"></div>
+      </div>
+      <div class="panel">
+        <h2>the roster</h2>
+        <p class="note" id="rosterNote"></p>
+        <div style="max-height:330px;overflow:auto"><table id="roster"></table></div>
+      </div>
+      <div class="panel">
+        <h2>the year so far</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*__DATA__*/
+</script>
+<script>
+/*__SIM__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var A = window.ARX_DATA;
+  window.CDITEMS.init(A.items);
+  window.CDROSTER.initRoster({ races: A.races, traits: A.traits,
+                               recruitment: A.recruitment, oa: A.oa_profiles });
+  var P = window.CDPRNG, SEASON = window.CDSEASON, REP = window.CDREP, SPON = window.CDSPONSOR;
+  var OA = A.oa_profiles.oa_profiles;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
+  var n0 = function (x) { return Math.round(x).toLocaleString(); };
+
+  OA.forEach(function (p) {
+    var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
+    $('corp').appendChild(o);
+  });
+  $('corp').value = OA[0].id;
+
+  /* ---- the game state. One career, held open, stepped a month at a time. ---- */
+  var G = null;
+
+  function newCareer() {
+    var rng = P.mulberry32(P.seedFrom($('seed').value || 'desk-1'));
+    var corps = SEASON.openFleet(rng, OA, {});
+    G = { rng: rng, corps: corps, me: $('corp').value, state: null,
+          queue: [], log: [], history: [], seasonNo: 0 };
+    openYear();
+  }
+
+  function openYear() {
+    G.state = SEASON.beginSeason(G.rng, G.corps, OA, { want: {}, lean: {}, manual: {}, human: G.me });
+    G.seasonNo = G.state.season;
+    G.queue = [];
+    G.log = [];
+    var pot = G.state.planet.pot;
+    say('<b>Season ' + G.state.season + '</b> — the planet is announced: ' +
+        esc(G.state.planet.archetypeName || G.state.planet.archetype) +
+        ', pot ' + n0(pot.value) + ' credits. The board sets its card.');
+    $('resultPanel').style.display = 'none';
+    $('lockPanel').style.display = 'none';
+    $('monthPanel').style.display = '';
+    render();
+  }
+
+  function say(html, mine) { G.log.unshift({ h: html, mine: !!mine }); }
+  function me() { return G.corps[G.me]; }
+  function alive(c) {
+    return c.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+  }
+
+  /* ---- what the queue has already committed ---- */
+  function spent() {
+    var opts = SEASON.optionsFor(G.state, G.me), by = {}, t = 0;
+    opts.forEach(function (o) { by[o.kind] = o; });
+    G.queue.forEach(function (k) { t += (by[k] || {}).cost || 0; });
+    return t;
+  }
+
+  function render() {
+    if (!G) return;
+    var c = me(), st = G.state, AP = SEASON.CONST.PREP_AP;
+    $('who').textContent = c.profile.name + ' — ' + (c.profile.motto || '');
+
+    /* --- the numbers along the top --- */
+    var live = alive(c);
+    var hurt = live.filter(function (f) { return f.condition && (f.condition.injuries || []).length; });
+    $('stat').innerHTML =
+      row('season', st.season) + row('month', st.month <= 11 ? st.month + ' of 11' : 'the Divide') +
+      row('roster', live.length) + row('carrying an injury', hurt.length, hurt.length ? 'down' : '') +
+      row('treasury', n0(c.account.treasury)) +
+      row('board patience', Math.round(c.rep.patience),
+          c.rep.patience < 25 ? 'down' : c.rep.patience > 60 ? 'up' : '') +
+      row('fleet standing', Math.round(REP.standing(c.rep, 'fleet')));
+
+    /* --- the eleven months --- */
+    var mh = '';
+    for (var m = 1; m <= 11; m++) {
+      var w = SEASON.MONTHS[m];
+      var cls = m === st.month ? 'mo now' : m < st.month ? 'mo done' : 'mo';
+      mh += '<div class="' + cls + '"><b>M' + m + '</b>' + esc(w.name) +
+            (w.event ? '<span class="ev">' + esc(w.event) + '</span>' : '') + '</div>';
+    }
+    $('months').innerHTML = mh;
+
+    /* --- the board's card --- */
+    var g = c.rep.goal;
+    if (!g) { $('board').innerHTML = '<p class="note">nothing said yet</p>'; }
+    else {
+      $('boardNote').innerHTML = 'Interest in this rock: <b>' + g.interest.toFixed(2) +
+        '</b>. A board with little interest weights thrift heavily, which is what makes a small ' +
+        'well-armed force a way to please somebody rather than a way to lose slowly.';
+      var li = g.demands.map(function (d, i) {
+        return '<li>' + (i === g.priority ? '<b>' : '') + esc(demandText(d)) +
+               (i === g.priority ? '</b> — the one it actually cares about' : '') + '</li>';
+      }).join('');
+      li += g.standing.map(function (s) {
+        return '<li>' + esc(s.kind === 'thrift'
+          ? 'thrift — judged on a spectrum, weight ' + s.weight.toFixed(2)
+          : 'care — how many of your people come home, weight ' + s.weight.toFixed(2)) + '</li>';
+      }).join('');
+      $('board').innerHTML = '<ul>' + li + '</ul>';
+    }
+
+    /* --- the month --- */
+    if (st.month <= 11) {
+      var win = SEASON.MONTHS[st.month];
+      $('moTitle').textContent = 'M' + st.month + ' — ' + win.name;
+      $('moNote').innerHTML = win.event
+        ? 'The <b>' + esc(win.event) + '</b> happens at the close of this month, once every corp has spent.'
+        : (win.signing ? 'The <b>' + esc(win.signing) + '</b> window is open.'
+                       : 'No window is open this month.');
+      var used = spent();
+      var ah = '';
+      for (var i = 0; i < AP; i++) ah += '<i class="' + (i < used ? 'used' : '') + '"></i>';
+      $('ap').innerHTML = ah + '<span style="color:var(--faint);font-size:12px;margin-left:8px">' +
+                          (AP - used) + ' of ' + AP + ' left</span>';
+
+      var opts = SEASON.optionsFor(G.state, G.me);
+      $('verbs').innerHTML = opts.map(function (o) {
+        var can = o.available && (AP - used) >= o.cost;
+        return '<div class="verb' + (can ? '' : ' off') + '" data-k="' + o.kind + '">' +
+               '<div><div class="n">' + esc(o.name) + '</div>' +
+               '<div class="w">' + esc(o.why) + '</div></div>' +
+               '<div class="cost">' + o.cost + ' AP' + (can ? ' &nbsp;+' : '') + '</div></div>';
+      }).join('');
+      Array.prototype.forEach.call($('verbs').children, function (el) {
+        el.onclick = function () {
+          var k = el.getAttribute('data-k');
+          var o = SEASON.optionsFor(G.state, G.me).filter(function (x) { return x.kind === k; })[0];
+          if (!o || !o.available || (AP - spent()) < o.cost) return;
+          G.queue.push(k); render();
+        };
+      });
+      var owed = (c._pending || []);
+      if (owed.length) {
+        $('moNote').innerHTML += ' <span class="warn">Owed to you: ' +
+          owed.map(function (o) {
+            var n = o.due - st.month;
+            return esc(o.kind) + (n <= 0 ? ' due this month' : ' in ' + n + 'mo');
+          }).join(', ') + '.</span>';
+      }
+      $('queue').innerHTML = G.queue.length
+        ? G.queue.map(function (k) { return '<span>' + esc(k) + '</span>'; }).join('')
+        : '<span style="background:none;border:none;padding:0;color:var(--faint)">nothing committed — ending the month now spends nothing, which is a legal month</span>';
+    }
+
+    /* --- the roster --- */
+    $('rosterNote').innerHTML = 'A drill block only reaches people more than two points off their ' +
+      'ceiling. Treatment takes the worst-hurt first.';
+    var rows = '<tr><th>name</th><th>age</th><th>state</th><th>ceiling</th><th>divides</th></tr>';
+    live.slice().sort(function (a, b) {
+      return (b.condition.injuries || []).length - (a.condition.injuries || []).length;
+    }).forEach(function (f) {
+      var inj = (f.condition.injuries || []);
+      var cap = typeof f.potential === 'number' ? f.potential : null;
+      var gap = cap == null ? 0 : SEASON.CONST.MIND.filter(function (k) {
+        return f.stats[k] < cap - SEASON.CONST.TRAIN_GREEN_GAP; }).length;
+      rows += '<tr class="' + (inj.length ? 'hurt' : gap ? 'green' : '') + '">' +
+        '<td>' + esc(f.name) + '</td><td>' + f.age + '</td>' +
+        '<td>' + (inj.length ? esc(inj[0].severity + ' ' + inj[0].type.replace('inj_', '') +
+                   ', ' + Math.max(0, Math.round(inj[0].days_remaining)) + 'd')
+                             : 'fit') + '</td>' +
+        '<td><span class="cap">' + (gap ? gap + ' stats short' : '—') + '</span></td>' +
+        '<td>' + (f.divides || 0) + '</td></tr>';
+    });
+    $('roster').innerHTML = rows;
+
+    /* --- the seam, in the month it belongs to --- */
+    if (st.month === SEASON.CONST.PREP_MONTHS && !st.done) {
+      $('seamPanel').style.display = '';
+      var secs = SEASON.sectorsFor(st, G.me);
+      var intel = (c._scouted || 0);
+      $('secNote').innerHTML = intel >= 0.30
+        ? 'Your survey came back. You know the ground and roughly where the prize sits.'
+        : intel >= 0.12
+          ? 'Your survey reported the going, not the prize. You know the terrain and no more.'
+          : '<span class="warn">You did not survey this rock.</span> These are names on a ring — you are choosing blind.';
+      var rows = '<tr><th>sector</th><th>ground</th><th>prize</th><th>others</th><th></th></tr>';
+      secs.forEach(function (x) {
+        rows += '<tr class="' + (x.yours ? 'picked' : '') + '">' +
+          '<td>' + esc(x.name) + '</td>' +
+          '<td>' + (x.terrain ? esc(String(x.terrain).replace(/_/g, ' ')) : '\u2014') + '</td>' +
+          '<td class="num">' + (x.prize != null ? x.prize.toFixed(1) : '\u2014') + '</td>' +
+          '<td>' + (x.rivals == null ? '\u2014' : x.rivals) + '</td>' +
+          '<td><button data-s="' + x.index + '">' + (x.yours ? 'landing here' : 'land here') + '</button></td></tr>';
+      });
+      $('sectors').innerHTML = rows;
+      Array.prototype.forEach.call($('sectors').querySelectorAll('button'), function (b) {
+        b.onclick = function () {
+          SEASON.chooseDropSector(st, G.me, Number(b.getAttribute('data-s')));
+          say('your force will come down in the ' + esc(secs[Number(b.getAttribute('data-s'))].name), true);
+          render();
+        };
+      });
+
+      $('pacts').innerHTML = SEASON.pactTargets(st, G.me).map(function (t) {
+        var done = st.drop.pacts[G.me + '>' + t.corp];
+        var cls = done ? (done.agreed ? ' yes' : ' no') : '';
+        return '<div class="pactrow' + cls + '"><span>' + esc(t.corp) +
+          '<span style="color:var(--faint)"> \u00b7 they would agree ' +
+          Math.round(t.chance * 100) + '% of the time</span></span>' +
+          (done ? '<span>' + (done.agreed ? 'agreed' : 'refused you') + '</span>'
+                : '<button data-p="' + esc(t.corp) + '">put it to them</button>') + '</div>';
+      }).join('');
+      Array.prototype.forEach.call($('pacts').querySelectorAll('button'), function (b) {
+        b.onclick = function () {
+          var r = SEASON.offerPact(st, G.me, b.getAttribute('data-p'));
+          say(r.agreed ? '<b>' + esc(b.getAttribute('data-p')) + '</b> agreed not to shoot first'
+                       : esc(b.getAttribute('data-p')) + ' refused you', true);
+          render();
+        };
+      });
+
+      var went = st.drop.media[G.me];
+      $('mediaNote').innerHTML = went
+        ? 'You performed. The fleet is talking about you \u2014 and the other seven now know roughly what you brought.'
+        : 'Standing with the fleet and with your own ships, paid for in concealment: turn up, and rivals arrive knowing what you are fielding.';
+      $('media').disabled = !!went;
+      $('media').textContent = went ? 'you performed' : 'turn up and perform';
+    } else $('seamPanel').style.display = 'none';
+
+    /* --- backers: what is signed, and what is on the table --- */
+    var S = c.sponsors || { contracts: [], offers: [] };
+    var locked = (S.contracts || []).some(function (x) { return x.exclusive; });
+    $('sponNote').innerHTML = locked
+      ? 'You are <b>exclusive</b>. Nobody else may back you while it runs — that is what the money was for.'
+      : 'A backer pays a retainer and asks for something in return. <b>Break the obligation and you lose the money and their regard.</b> An exclusive deal pays far more and locks out the other seven.';
+    $('sponContracts').innerHTML = (S.contracts || []).length
+      ? (S.contracts || []).map(function (x) {
+          return '<div class="deal"><b>' + esc(x.house) + '</b> \u2014 ' + n0(x.retainer) +
+                 '/season, year ' + (x.seasonsServed + 1) + ' of ' + x.term +
+                 (x.exclusive ? ' \u00b7 exclusive' : '') +
+                 '<div style="color:var(--faint);font-size:11.5px">' + esc(x.obligationText) + '</div></div>';
+        }).join('')
+      : '<p class="note" style="margin:0 0 8px">Nobody is backing you.</p>';
+    $('sponOffers').innerHTML = (S.offers || []).map(function (o) {
+      return '<div class="offer' + (o.exclusive ? ' excl' : '') + '">' +
+        '<div class="h">' + esc(o.house) + (o.exclusive ? ' <span style="color:var(--violet)">wants you alone</span>' : '') + '</div>' +
+        '<div class="m">' + n0(o.retainer) + ' a season for ' + o.term + ' year' + (o.term > 1 ? 's' : '') + '</div>' +
+        '<div class="o">' + esc(o.blurb) + '</div>' +
+        '<div class="o">asks: ' + esc(o.obligationText) + '</div>' +
+        '<button data-h="' + esc(o.house) + '">sign</button></div>';
+    }).join('') || '';
+    Array.prototype.forEach.call($('sponOffers').querySelectorAll('button'), function (b) {
+      b.onclick = function () {
+        var r = SPON.accept(c, b.getAttribute('data-h'));
+        say(r.ok ? 'signed with <b>' + esc(b.getAttribute('data-h')) + '</b> for ' + n0(r.retainer)
+                 : 'cannot sign: ' + esc(r.why), true);
+        render();
+      };
+    });
+
+    /* --- the lot: who is actually available, and what you have offered them --- */
+    var lot = st.month <= 11 ? SEASON.lotFor(st, G.me) : [];
+    if (!lot.length) { $('lotPanel').style.display = 'none'; }
+    else {
+      $('lotPanel').style.display = '';
+      var kind = lot[0].kind;
+      $('lotTitle').textContent = kind === 'tryouts' ? 'the Nattie tryouts'
+                               : kind === 'mercs' ? 'the mercenary market' : 'the Bastille';
+      $('lotNote').innerHTML = kind === 'bastille'
+        ? 'These are volunteers serving a term, and their place is <b>not negotiated</b> — the shortest rosters get first refusal. You can see who is coming.'
+        : 'Offer what you think they are worth. <b>The fighter chooses</b>, and money is only one term — they also weigh how many of your people came home. Offers resolve at the close of the deadline month; until then you can change your mind.';
+      $('lotBudget').textContent = 'you can commit ' + n0(SEASON.signingBudget(c)) +
+        ' · committed so far ' + n0(lot.reduce(function (t, f) { return t + f.yourBid; }, 0));
+      var canBid = kind !== 'bastille';
+      var rows = '<tr><th>name</th><th>age</th><th>ceiling</th><th>asking</th>' +
+                 (canBid ? '<th>your offer</th>' : '') + '</tr>';
+      lot.forEach(function (f) {
+        rows += '<tr class="' + (f.yourBid ? 'bidon' : '') + '">' +
+          '<td>' + esc(f.name) + '</td><td>' + f.age + '</td>' +
+          '<td>' + (f.potential != null ? f.potential : '—') + '</td>' +
+          '<td class="num">' + n0(f.ask) + '</td>' +
+          (canBid ? '<td><input class="bid" type="number" min="0" step="100" data-f="' + f.id +
+                    '" value="' + (f.yourBid || '') + '" placeholder="—"></td>' : '') +
+          '</tr>';
+      });
+      $('lot').innerHTML = rows;
+      Array.prototype.forEach.call($('lot').querySelectorAll('input.bid'), function (el) {
+        el.onchange = function () {
+          SEASON.placeBid(st, G.me, el.getAttribute('data-f'), Number(el.value) || 0);
+          render();
+        };
+      });
+    }
+
+    $('log').innerHTML = G.log.map(function (l) {
+      return '<div class="' + (l.mine ? 'me' : '') + '">' + l.h + '</div>'; }).join('');
+  }
+
+  function row(k, v, cls) {
+    return '<div>' + esc(k) + ' <b class="' + (cls || '') + '">' + esc(v) + '</b></div>';
+  }
+  function demandText(d) {
+    if (d.kind === 'resource') return 'bring back ' + d.resource.replace(/_/g, ' ') + ' (' + d.category + ')';
+    if (d.kind === 'standing') return 'stand above ' + d.above + ' with your own ships';
+    if (d.kind === 'losses') return 'lose no more than ' + d.max + ' people';
+    if (d.kind === 'stipend') return 'do not come asking for money';
+    if (d.kind === 'placement') return 'finish in the top ' + (d.top || 3);
+    if (d.kind === 'win') return 'win it';
+    if (d.kind === 'surplus') return 'end the year in surplus';
+    return d.kind;
+  }
+
+  /* ---- ending a month ---- */
+  function endMonth(auto) {
+    var st = G.state;
+    if (st.month > 11) return;
+    var m = st.month, win = SEASON.MONTHS[m];
+    var choices = {};
+    if (!auto) choices[G.me] = G.queue.slice();
+    var before = alive(me()).length;
+    var r = SEASON.stepMonth(st, choices);
+    var mine = r.spent[G.me] || [];
+    var landedNow = (r.landed && r.landed[G.me]) || [];
+    landedNow.forEach(function (l) { say(esc(l.text), true); });
+    say('<b>M' + m + '</b> ' + esc(win.name) + ' — you ' +
+        (mine.length ? 'spent ' + mine.map(function (a) { return a.kind; }).join(', ')
+                     : 'spent nothing'), true);
+    if (r.event === 'dividend')
+      say('the <b>Dividend</b> — the show-match ran, stun rounds only, rookies blooded');
+    if (r.event === 'bastille')
+      say('the <b>Bastille intake</b> — ' + st.bastille.signed + ' signed out of ' +
+          st.bastille.lot + ', ' + st.bastille.unplaced + ' left unplaced');
+    if (r.event === 'tryouts') reportMarket(st.tryouts, 'the Nattie tryouts');
+    if (r.event === 'mercs') {
+      reportMarket(st.mercs, 'the merc deadline');
+      say(st.mercs.tookLessForSafety + ' took less than the top bid for a corp whose people ' +
+          'come home' + (st.mercs.refused ? ', ' + st.mercs.refused + ' refused everybody' : ''));
+    }
+    G.queue = [];
+    if (st.month > 11) toLock();
+    render();
+  }
+
+  /* Say what happened to every offer. Being outbid has to be VISIBLE — a number that fails to
+     change is indistinguishable from a button that does nothing, which is what this was. */
+  function reportMarket(tally, label) {
+    var mine = (tally.results || []).filter(function (r) { return r.to === G.me; });
+    var lost = (tally.results || []).filter(function (r) {
+      return r.to !== G.me && r.offers.some(function (o) { return o.corp === G.me; });
+    });
+    say('<b>' + esc(label) + '</b> — ' + tally.signed + ' of ' + tally.lot + ' signed across the fleet');
+    mine.forEach(function (r) { say('you signed <b>' + esc(r.name) + '</b> at ' + n0(r.at), true); });
+    lost.forEach(function (r) {
+      var you = r.offers.filter(function (o) { return o.corp === G.me; })[0];
+      say('outbid on ' + esc(r.name) + ' — you offered ' + n0(you.bid) +
+          ', they took ' + n0(r.at) + (r.at < you.bid ? ' <span class="warn">(less than yours)</span>' : ''), true);
+    });
+  }
+
+  function toLock() {
+    $('monthPanel').style.display = 'none';
+    $('seamPanel').style.display = 'none';
+    $('lockPanel').style.display = '';
+    var fit = alive(me()).filter(function (f) {
+      return !(f.condition && (f.condition.injuries || []).length); });
+    $('want').max = Math.min(24, fit.length);
+    $('want').value = Math.min(24, fit.length);
+    $('lockNote').innerHTML = '<b>' + fit.length + '</b> are fit to drop; the muster minimum is 16. ' +
+      (fit.length < 16 ? '<span class="warn">You cannot field a legal force — the board will be asked to carry you.</span>'
+                       : 'Everyone you send draws a purse; nobody who stays behind does.');
+  }
+
+  /* --- the Divide, sat through rather than watched --- */
+  var D = null;   /* { gen, window } while a contest is being fought */
+
+  function goDown() {
+    var st = G.state;
+    st.opts.want[G.me] = parseInt($('want').value, 10);
+    st.opts.lean[G.me] = $('lean').value;
+    SEASON.closeSeasonToDrop(st);
+    var d = SEASON.prepareDivide(st);
+    D = { gen: window.CDDIVIDE.divideCore(d.rng, d.opts), window: null, answer: null };
+    $('lockPanel').style.display = 'none';
+    $('monthPanel').style.display = 'none';
+    advanceDivide();
+  }
+
+  function advanceDivide() {
+    var r = D.answer ? D.gen.next(D.answer) : D.gen.next();
+    D.answer = null;
+    if (r.done) { settle(r.value); return; }
+    D.window = r.value;
+    $('divPanel').style.display = '';
+    renderDivide();
+  }
+
+  function renderDivide() {
+    var w = D.window, you = w.you;
+    $('divNote').innerHTML = 'Comms are up. The ring closes and the window tightens with it \u2014 ' +
+      'you are spoken to every <b>' + w.cadence + ' day' + (w.cadence > 1 ? 's' : '') + '</b> now.' +
+      (w.penned ? ' <span class="warn">The ring has closed to a point. There is nowhere left to be but in it.</span>' : '');
+    $('divDay').textContent = 'day ' + w.day + ' of ' + w.lastDay;
+    var alive = you.allBodies.filter(function (b) { return b.status === 'active'; }).length;
+    $('divStat').innerHTML =
+      row('day', w.day) + row('still standing', alive) +
+      row('your odds', ((w.odds[you.id] || 0) * 100).toFixed(0) + '%') +
+      row('banner', you.joinedTo ? 'under ' + esc(you.joinedTo) : 'your own') +
+      row('engagements', you.engagements);
+
+    var NOTCHES = ['preservationist', 'measured', 'standard', 'unyielding', 'death_or_glory'];
+    $('notches').innerHTML = NOTCHES.map(function (n) {
+      return '<button class="notch' + (you.policy === n ? ' on' : '') + '" data-n="' + n + '">' +
+             esc(n.replace(/_/g, ' ')) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('notches').children, function (b) {
+      b.onclick = function () {
+        D.answer = D.answer || {};
+        D.answer.stance = b.getAttribute('data-n');
+        you.policy = b.getAttribute('data-n');
+        renderDivide();
+      };
+    });
+
+    /* the table: only rows that could actually close */
+    var t = w.table, html = '';
+    t.canJoin.filter(function (x) { return x.viable && x.band; }).forEach(function (x) {
+      html += '<div class="row"><span>cede to <b>' + esc(x.principal) + '</b> \u00b7 they are on ' +
+        ((x.odds || 0) * 100).toFixed(0) + '%</span>' +
+        '<button data-j="' + esc(x.principal) + '" data-s="' +
+        ((x.band.minShare + x.band.maxShare) / 2).toFixed(4) + '">offer ' +
+        Math.round(((x.band.minShare + x.band.maxShare) / 2) * 100) + '%</button></div>';
+    });
+    t.wouldTake.filter(function (x) { return x.viable && x.band; }).forEach(function (x) {
+      html += '<div class="row"><span>take <b>' + esc(x.corp) + '</b> under your banner</span>' +
+        '<button data-t="' + esc(x.corp) + '" data-s="' +
+        ((x.band.minShare + x.band.maxShare) / 2).toFixed(4) + '">offer ' +
+        Math.round(((x.band.minShare + x.band.maxShare) / 2) * 100) + '%</button></div>';
+    });
+    t.pacts.filter(function (x) { return x.viable; }).forEach(function (x) {
+      html += '<div class="row"><span>truce with <b>' + esc(x.corp) + '</b> \u00b7 ' +
+        Math.round((x.chance || 0) * 100) + '% they agree</span>' +
+        '<button data-p="' + esc(x.corp) + '">put it to them</button></div>';
+    });
+    $('divTable').innerHTML = html ||
+      '<p class="note" style="margin:0">Nothing on the table anyone would sign right now.</p>';
+    Array.prototype.forEach.call($('divTable').querySelectorAll('button'), function (b) {
+      b.onclick = function () {
+        D.answer = D.answer || {};
+        if (b.getAttribute('data-j')) D.answer.deal = { kind: 'join', principal: b.getAttribute('data-j'),
+                                                        terms: { share: Number(b.getAttribute('data-s')) } };
+        else if (b.getAttribute('data-t')) D.answer.deal = { kind: 'take', corp: b.getAttribute('data-t'),
+                                                             terms: { share: Number(b.getAttribute('data-s')) } };
+        else D.answer.deal = { kind: 'pact', corp: b.getAttribute('data-p') };
+        b.textContent = 'sent'; b.disabled = true;
+      };
+    });
+
+    /* what happened to your people while you were away */
+    $('divFights').innerHTML = (w.fights || []).length
+      ? w.fights.map(function (f) {
+          var kills = f.log.filter(function (e) { return e.type === 'kill' || e.type === 'down'; });
+          return '<div class="fight"><b>day ' + f.day + '</b> \u00b7 ' +
+            esc(String(f.terrain).replace(/_/g, ' ')) + (f.night ? ', at night' : '') +
+            ' \u00b7 ' + f.exchanges + ' exchanges \u00b7 ' + esc(String(f.result).replace(/_/g, ' ')) +
+            kills.slice(0, 4).map(function (e) {
+              return '<span class="ln' + (e.type === 'kill' ? ' kill' : '') + '">' +
+                     esc(e.by || '?') + ' \u2192 ' + esc(e.at || '?') +
+                     (e.sev ? ' (' + esc(e.sev) + ')' : '') + (e.w ? ' \u00b7 ' + esc(e.w) : '') + '</span>';
+            }).join('') +
+            (kills.length > 4 ? '<span class="ln">\u2026 and ' + (kills.length - 4) + ' more</span>' : '') +
+            '</div>';
+        }).join('')
+      : '<p class="note" style="margin:0">Your people were not in anything since we last spoke.</p>';
+  }
+
+  function settle(res) {
+    var rec = SEASON.finishSeason(G.state, res);
+    D = null;
+    $('divPanel').style.display = 'none';
+    var r = rec.corps[G.me];
+    var lines = (r.card || []).map(function (l) {
+      return '<li class="' + (l.met ? 'met' : 'miss') + '">' + (l.met ? '\u2713 ' : '\u2717 ') +
+             esc(demandText(l.d)) + '</li>'; }).join('');
+    $('result').innerHTML =
+      '<div class="stat">' +
+        row('sent', r.dropped) + row('came back dead', r.dead, r.dead ? 'down' : 'up') +
+        row('lean', r.lockLean) + row('treasury', n0(r.treasury)) +
+        row('board patience', Math.round(r.patience),
+            r.patience < 25 ? 'down' : '') +
+      '</div>' +
+      '<p class="note">The card, scored:</p><div class="card"><ul>' + lines + '</ul></div>' +
+      (r.dismissed ? '<p class="warn big">You have been dismissed. That is the only defeat condition.</p>' : '');
+    $('lockPanel').style.display = 'none';
+    $('resultPanel').style.display = '';
+    say('<b>the Divide</b> — sent ' + r.dropped + ', lost ' + r.dead, true);
+    render();
+  }
+
+  /* SAVE IS A FILE, not browser storage. A career is a thing you should be able to keep, move
+     between machines, and still have after clearing a cache — and browser storage is none of
+     those. The file is the same JSON the engine reads, so a save is inspectable. */
+  $('save').onclick = function () {
+    var blob = JSON.stringify(SEASON.saveCareer(G.state), null, 1);
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([blob], { type: 'application/json' }));
+    a.download = 'opes-arx-' + G.me + '-s' + G.state.season + 'm' + G.state.month + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    say('saved at season ' + G.state.season + ', month ' + G.state.month, true);
+    render();
+  };
+  $('loadBtn').onclick = function () { $('loadFile').click(); };
+  $('loadFile').onchange = function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var back = SEASON.loadCareer(JSON.parse(fr.result), OA);
+        if (!back.state) { alert('That save was taken between seasons and cannot be resumed yet.'); return; }
+        G.corps = back.corps; G.state = back.state; G.queue = []; G.log = [];
+        G.me = $('corp').value in back.corps ? $('corp').value : Object.keys(back.corps)[0];
+        $('corp').value = G.me;
+        $('resultPanel').style.display = 'none';
+        $('lockPanel').style.display = 'none';
+        $('monthPanel').style.display = '';
+        say('loaded — season ' + G.state.season + ', month ' + G.state.month, true);
+        render();
+      } catch (err) { alert('Could not read that save: ' + err.message); }
+    };
+    fr.readAsText(file);
+    e.target.value = '';
+  };
+
+  $('new').onclick = newCareer;
+  $('corp').onchange = newCareer;
+  $('end').onclick = function () { endMonth(false); };
+  $('auto').onclick = function () { endMonth(true); };
+  $('clear').onclick = function () { G.queue = []; render(); };
+  $('media').onclick = function () {
+    var r = SEASON.attendMediaDay(G.state, G.me);
+    say(r.ok ? 'you performed at media day \u2014 standing up ' + Math.round(r.gain)
+             : 'cannot: ' + esc(r.why), true);
+    render();
+  };
+  $('hold').onclick = advanceDivide;
+  $('drop').onclick = goDown;
+  $('next').onclick = openYear;
+
+  newCareer();
+})();
+</script>
+</body>
+</html>

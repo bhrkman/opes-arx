@@ -1,0 +1,522 @@
+{
+  "_meta": {
+    "file": "oa_profiles.json",
+    "version": "0.10",
+    "date": "2026-08-15",
+    "status": "Step 2 ratified; New Line identity canon as of DESIGN.md v0.6",
+    "sources": "DESIGN.md v0.4 \u00a716 (canon five + drafted three) \u00b7 \u00a710 demographics \u00b7 RACES.md cross-race notes",
+    "provenance_notes": [
+      "Canon five: names and lore hints are canon; every dial, number, and demographic weight here is (proposed).",
+      "THE NEW LINE identity is RATIFIED CANON as of DESIGN.md v0.6 (V1, 2026-08-14). The alternate 'Ascension Line' sketch in STEP2_NOTES.md is struck.",
+      "Vantis Deepcore Combine, The Verdant Cradle, and The Mercy Concern remain Claude-drafted placeholders, now fleshed out.",
+      "Dials are 0\u2013100. difficulty is the CK3-style start rating: 1 = easiest manager start, 5 = hardest.",
+      "race_weights multiply races.json pool_weights.nattie for that corp's Nattie tryout pool (ship demographics, per DESIGN.md \u00a710). Unlisted races default to 1.0.",
+      "engagement_lean is the board's preferred declared policy, not a lock \u2014 the manager still chooses.",
+      "finance.treasury_band and funding_base are placeholder scales pending Step 5 economy calibration; they exist so the roller can show contract affordability in context."
+    ]
+  },
+  "oa_profiles": [
+    {
+      "id": "nevlon_collective",
+      "name": "The Nevlon Collective",
+      "canon_status": "canon name and lore hint; profile proposed",
+      "tag": "The Juggernaut",
+      "motto": "Weight of Fire.",
+      "colors": {
+        "primary": "#8f1d1d",
+        "secondary": "#5a5f66"
+      },
+      "archetype": "juggernaut",
+      "lore": "The fleet's militarist colossus. Nevlon squads arrive heavy, shoot heavier, and treat negotiation as a thing that happens to other corps. Attorak and Etu flock to its brute-strength creed, and the Attorak are heavily credited whenever Nevlon dominance is discussed.",
+      "dials": {
+        "aggression": 85,
+        "treachery": 40,
+        "thrift": 30,
+        "showmanship": 60,
+        "tradition": 55,
+        "patience": 35
+      },
+      "engagement_lean": "unyielding",
+      "no_negotiation": true,
+      "no_negotiation_note": "Corp identity, not stance property (Step 6 ruling). Nevlon is the ONE OA in the fleet known for refusing to surrender or to accept a surrender. Its fans adore it and it is terrifying leverage. Any corp may declare death_or_glory and still negotiate; only this one cannot.",
+      "doctrine_flavor": "aggressive_hunt; suppression-weight loadouts; early contact preferred",
+      "race_weights": {
+        "attorak": 2.2,
+        "etu": 2.0,
+        "olmac": 1.3
+      },
+      "finance": {
+        "treasury_band": [
+          270000,
+          390000
+        ],
+        "funding_base": 265000,
+        "board_patience": 55,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 2,
+      "relationships": [
+        {
+          "with": "knights_star",
+          "disposition": "rivalry",
+          "note": "Doctrine contempt in both directions: weight of fire vs the sanctity of the shot."
+        },
+        {
+          "with": "vantis_deepcore",
+          "disposition": "distrust",
+          "note": "Nevlon settles at the muzzle; Vantis settles in the fine print."
+        }
+      ],
+      "sponsor_style": "Sponsors aggression: drops favor ammunition and armor; withdraws visibly from preservationist banners.",
+      "reputation": {
+        "aleas": -15,
+        "fleet": 45,
+        "own": 80
+      },
+      "holds": {
+        "minerals": 0.8,
+        "fuels": 0.75,
+        "luxuries": 0.3,
+        "foods": 0.55
+      }
+    },
+    {
+      "id": "knights_star",
+      "name": "The Knights' Star",
+      "canon_status": "canon name and lore hint; profile proposed",
+      "tag": "The Marksman's House",
+      "motto": "One Shot, Witnessed.",
+      "colors": {
+        "primary": "#dfe3ea",
+        "secondary": "#1e3a5f"
+      },
+      "archetype": "honor_guard",
+      "lore": "Marksman doctrine elevated to institution: fewer guns, better eyes, and a code the crowd can recite. The Kellis lean here is old and mutual \u2014 the battle-dance and the Star's sanctified shot are the same faith in different bodies.",
+      "dials": {
+        "aggression": 55,
+        "treachery": 10,
+        "thrift": 45,
+        "showmanship": 55,
+        "tradition": 70,
+        "patience": 60
+      },
+      "engagement_lean": "measured",
+      "doctrine_flavor": "standard posture, overwatch-heavy; quality over volume; clean-kill broadcast identity",
+      "race_weights": {
+        "kellis": 2.5,
+        "human": 1.1
+      },
+      "finance": {
+        "treasury_band": [
+          210000,
+          300000
+        ],
+        "funding_base": 215000,
+        "board_patience": 65,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 2,
+      "relationships": [
+        {
+          "with": "nevlon_collective",
+          "disposition": "rivalry",
+          "note": "The fleet's favorite stylistic feud."
+        },
+        {
+          "with": "violets_enterprise",
+          "disposition": "respect",
+          "note": "Two old codes nodding across the table."
+        }
+      ],
+      "sponsor_style": "Sponsors precision: optics, marksman rifles, and fighters with clean records; allergic to scandal.",
+      "reputation": {
+        "aleas": 50,
+        "fleet": 60,
+        "own": 45
+      },
+      "holds": {
+        "minerals": 0.6,
+        "fuels": 0.6,
+        "luxuries": 0.55,
+        "foods": 0.65
+      }
+    },
+    {
+      "id": "violets_enterprise",
+      "name": "Violet's Enterprise",
+      "canon_status": "canon name and lore hint; profile proposed",
+      "tag": "The Old House",
+      "motto": "As It Has Been.",
+      "colors": {
+        "primary": "#5b3d8f",
+        "secondary": "#b08d3e"
+      },
+      "archetype": "old_house",
+      "lore": "Old money, old rooms, old ways \u2014 the corp that remembers the decennial Divides and quietly believes annualization cheapened them. Svalbard prides have served Violet's for generations; the name's resonance with the Violet Crux itself remains an unresolved hypothesis the House neither confirms nor discourages.",
+      "dials": {
+        "aggression": 40,
+        "treachery": 30,
+        "thrift": 55,
+        "showmanship": 45,
+        "tradition": 95,
+        "patience": 80
+      },
+      "engagement_lean": "standard",
+      "doctrine_flavor": "fortify-and-outlast; veteran rosters; ceremony in everything",
+      "race_weights": {
+        "svalbard": 3.0,
+        "human": 1.2
+      },
+      "finance": {
+        "treasury_band": [
+          360000,
+          480000
+        ],
+        "funding_base": 290000,
+        "board_patience": 70,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 1,
+      "relationships": [
+        {
+          "with": "alliance_house",
+          "disposition": "disdain",
+          "note": "New money integrating mercenaries is, to Violet's, barely a house at all."
+        },
+        {
+          "with": "knights_star",
+          "disposition": "respect",
+          "note": "Codes recognize codes."
+        }
+      ],
+      "sponsor_style": "Sponsors tradition: long retainers, heirloom-grade gear, and corps that keep their declared policy.",
+      "reputation": {
+        "aleas": 70,
+        "fleet": 20,
+        "own": 55
+      },
+      "holds": {
+        "minerals": 0.7,
+        "fuels": 0.65,
+        "luxuries": 0.85,
+        "foods": 0.6
+      }
+    },
+    {
+      "id": "alliance_house",
+      "name": "The Alliance House",
+      "canon_status": "canon name and lore hint; profile proposed",
+      "tag": "The Integrator",
+      "motto": "Every Banner Has a Price.",
+      "colors": {
+        "primary": "#1f7a72",
+        "secondary": "#2b2f33"
+      },
+      "archetype": "broker",
+      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Thythyn contingent \u2014 ambitious, transactional, excellent \u2014 grows every season.",
+      "dials": {
+        "aggression": 60,
+        "treachery": 55,
+        "thrift": 40,
+        "showmanship": 70,
+        "tradition": 5,
+        "patience": 40
+      },
+      "engagement_lean": "standard",
+      "doctrine_flavor": "flexible postures; merc-heavy rosters; mid-Divide dealmaking as core competency",
+      "race_weights": {
+        "thythyn": 2.2,
+        "gil": 1.3
+      },
+      "finance": {
+        "treasury_band": [
+          240000,
+          345000
+        ],
+        "funding_base": 240000,
+        "board_patience": 45,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 3,
+      "relationships": [
+        {
+          "with": "violets_enterprise",
+          "disposition": "friction",
+          "note": "The old house's disdain is returned as amused indifference."
+        },
+        {
+          "with": "new_line",
+          "disposition": "poaching",
+          "note": "The House keeps offering New Line captains triple. The captains keep declining. The House keeps offering."
+        }
+      ],
+      "sponsor_style": "Sponsors talent wherever it is; exclusivity costs extra and expires quickly.",
+      "reputation": {
+        "aleas": 5,
+        "fleet": 35,
+        "own": 10
+      },
+      "holds": {
+        "minerals": 0.5,
+        "fuels": 0.55,
+        "luxuries": 0.6,
+        "foods": 0.5
+      }
+    },
+    {
+      "id": "new_line",
+      "name": "The New Line",
+      "canon_status": "canon name and identity (V1 ratified, DESIGN.md v0.6)",
+      "tag": "The Workers' Banner",
+      "motto": "Same Ships. New Line.",
+      "colors": {
+        "primary": "#e3b330",
+        "secondary": "#1d2f4a"
+      },
+      "archetype": "workers_banner",
+      "lore": "The fleet's oldest freight and ferry line \u2014 seized by its own crews in the Dockhands' Compact of VC 96, when the annualization boom made Divide seats too valuable for the old board to hold. The name was kept and repurposed: same ships, new line. Its squad exists because the Compact's charter demands the crews hold a seat at the table where planet rights are decided. Poor by great-house standards, beloved by the decks, and quietly the best logistics operation in the Divide: Olmac dockhands, Mon-Wa quartermaster pairs, and the fleet's most careful casualty ledger.",
+      "dials": {
+        "aggression": 45,
+        "treachery": 20,
+        "thrift": 70,
+        "showmanship": 50,
+        "tradition": 35,
+        "patience": 65
+      },
+      "engagement_lean": "preservationist",
+      "doctrine_flavor": "forage-and-fortify; supply mastery; sponsor-drop efficiency; wins long Divides that starve everyone else",
+      "race_weights": {
+        "olmac": 1.6,
+        "mon_wa": 1.8,
+        "human": 1.3
+      },
+      "finance": {
+        "treasury_band": [
+          120000,
+          180000
+        ],
+        "funding_base": 165000,
+        "board_patience": 75,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 4,
+      "relationships": [
+        {
+          "with": "vantis_deepcore",
+          "disposition": "hostility",
+          "note": "Labor and extraction, oldest argument in the fleet. Vantis breaks compacts; the Compact remembers."
+        },
+        {
+          "with": "alliance_house",
+          "disposition": "friction",
+          "note": "The House buys people. The Line grows them. Both are certain the other's model is doomed."
+        },
+        {
+          "with": "mercy_concern",
+          "disposition": "dependence",
+          "note": "The Concern underwrites the Line's famous pensions \u2014 and knows to the credit what its restraint costs."
+        }
+      ],
+      "sponsor_style": "When not competing, sponsors underdogs and clean fights; its bulk-freight drops are the most efficient in the Divide.",
+      "design_note": "RATIFIED. Fills the niches the other seven leave open: the preservationist pole made economically real (DESIGN.md 5.2 requires both poles viable), a logistics/attrition playstyle, a crowd-sympathy underdog, and the labor-populist voice that gives Cradleborn Resentment somewhere to live openly. COMBAT.md 6.3 and acceptance target T14 exist to keep the preservationist pole solvent.",
+      "reputation": {
+        "aleas": -20,
+        "fleet": 75,
+        "own": 65
+      },
+      "holds": {
+        "minerals": 0.4,
+        "fuels": 0.7,
+        "luxuries": 0.2,
+        "foods": 0.45
+      }
+    },
+    {
+      "id": "vantis_deepcore",
+      "name": "Vantis Deepcore Combine",
+      "canon_status": "Claude-drafted placeholder (Step 1), fleshed out; wholly proposed",
+      "tag": "The Combine",
+      "motto": "Everything Yields.",
+      "colors": {
+        "primary": "#b4571e",
+        "secondary": "#17130f"
+      },
+      "archetype": "deal_snake",
+      "lore": "Extraction is the business and extraction is the ethic: ore from rock, concessions from partners, signatures from the exhausted. Vantis fields competent squads and prefers not to need them \u2014 its real weapon is the offer you accept at hour thirty of a bad position. Every corp has been burned by Vantis paper. Every corp keeps signing it.",
+      "dials": {
+        "aggression": 50,
+        "treachery": 90,
+        "thrift": 60,
+        "showmanship": 30,
+        "tradition": 30,
+        "patience": 55
+      },
+      "engagement_lean": "measured",
+      "doctrine_flavor": "position-and-pressure; spends blood only when the ore math says so; betrayal priced, not principled",
+      "race_weights": {
+        "gil": 1.5,
+        "olmac": 1.4
+      },
+      "finance": {
+        "treasury_band": [
+          255000,
+          360000
+        ],
+        "funding_base": 250000,
+        "board_patience": 40,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 4,
+      "relationships": [
+        {
+          "with": "new_line",
+          "disposition": "hostility",
+          "note": "The Compact took a fleet's worth of freight out of Vantis-friendly hands. Unforgiven."
+        },
+        {
+          "with": "nevlon_collective",
+          "disposition": "distrust",
+          "note": "Mutual, professional, occasionally profitable."
+        }
+      ],
+      "sponsor_style": "Sponsors leverage: drops arrive with conditions, and the conditions have conditions.",
+      "design_note": "Playstyle niche: the negotiation-engine villain \u2014 high treachery AI personality that makes Step 6 sing. Difficulty 4 as a manager start: your board expects treachery dividends and your leverage carries a trust discount.",
+      "reputation": {
+        "aleas": -25,
+        "fleet": -40,
+        "own": 35
+      },
+      "holds": {
+        "minerals": 0.85,
+        "fuels": 0.8,
+        "luxuries": 0.25,
+        "foods": 0.35
+      }
+    },
+    {
+      "id": "verdant_cradle",
+      "name": "The Verdant Cradle",
+      "canon_status": "Claude-drafted placeholder (Step 1), fleshed out; wholly proposed",
+      "tag": "The Provider",
+      "motto": "We Feed the Fleet.",
+      "colors": {
+        "primary": "#5f7a3d",
+        "secondary": "#e8e2cf"
+      },
+      "archetype": "quiet_provider",
+      "lore": "Grows the nutrient sludge that keeps forty million alive, and is thanked for it roughly never. The name promises gardens that no longer exist anywhere \u2014 a promise the resentful find either unbearable or perversely honest, since it is Cradle harvest crews that strip the Divide planets' edible delicacies for the luxury trade. Its board funds the squad grudgingly, as the price of a seat.",
+      "dials": {
+        "aggression": 30,
+        "treachery": 35,
+        "thrift": 80,
+        "showmanship": 25,
+        "tradition": 60,
+        "patience": 70
+      },
+      "engagement_lean": "preservationist",
+      "doctrine_flavor": "forage doctrine taken to an art; smallest loadout budgets in the Divide; survives on the land better than anyone",
+      "race_weights": {
+        "kellis": 1.4,
+        "mon_wa": 1.6,
+        "etu": 1.2
+      },
+      "finance": {
+        "treasury_band": [
+          90000,
+          135000
+        ],
+        "funding_base": 130000,
+        "board_patience": 80,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 5,
+      "relationships": [
+        {
+          "with": "mercy_concern",
+          "disposition": "kinship",
+          "note": "The fleet's two unloved essentials compare grievances annually."
+        },
+        {
+          "with": "new_line",
+          "disposition": "sympathy",
+          "note": "The decks and the growers understand each other \u2014 though the Line's people mutter about the delicacy harvests too."
+        }
+      ],
+      "sponsor_style": "Sponsors survival: ration drops, water kit, medical basics \u2014 unglamorous and always welcome.",
+      "design_note": "The hardest start by design: thinnest treasury, modest goals, patient board. The delicacy-harvest friction gives the cradleborn_resentment trait its sharpest in-fiction target (RACES.md cross-note).",
+      "reputation": {
+        "aleas": 10,
+        "fleet": -5,
+        "own": 20
+      },
+      "holds": {
+        "minerals": 0.25,
+        "fuels": 0.3,
+        "luxuries": 0.35,
+        "foods": 0.75
+      }
+    },
+    {
+      "id": "mercy_concern",
+      "name": "The Mercy Concern",
+      "canon_status": "Claude-drafted placeholder (Step 1), fleshed out; wholly proposed",
+      "tag": "The Underwriter",
+      "motto": "We Bring Them Back.",
+      "colors": {
+        "primary": "#e9e4dc",
+        "secondary": "#1f6d6d"
+      },
+      "archetype": "underwriter",
+      "lore": "Biotech, medkits, evac retainers \u2014 and the pension underwriting behind half the fleet's death benefits, which means the Concern knows to the credit what every corp's lives are worth, including yours. Its squads fight politely and evacuate brilliantly, and its true product is the moment, live on air, when a Mercy team brings someone back.",
+      "dials": {
+        "aggression": 35,
+        "treachery": 60,
+        "thrift": 50,
+        "showmanship": 40,
+        "tradition": 40,
+        "patience": 75
+      },
+      "engagement_lean": "preservationist",
+      "doctrine_flavor": "evac mastery; casualty-averse but not passive; leverage built from actuarial omniscience",
+      "race_weights": {
+        "mon_wa": 1.5,
+        "etu": 1.3
+      },
+      "finance": {
+        "treasury_band": [
+          225000,
+          315000
+        ],
+        "funding_base": 230000,
+        "board_patience": 60,
+        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+      },
+      "difficulty": 3,
+      "relationships": [
+        {
+          "with": "verdant_cradle",
+          "disposition": "kinship",
+          "note": "Essential, unloved, and organized about it."
+        },
+        {
+          "with": "new_line",
+          "disposition": "leverage",
+          "note": "Holds the Line's pension book \u2014 a warm relationship with a cold clause in it."
+        }
+      ],
+      "sponsor_style": "Sponsors everyone: medkits and evac retainers flow to all eight banners, because the Concern gets paid either way.",
+      "design_note": "The soft-treachery counterpart to Vantis: never breaks a deal, always knows more than you. Its actuarial knowledge is a Step 6/7 information-game hook.",
+      "reputation": {
+        "aleas": 30,
+        "fleet": 25,
+        "own": 30
+      },
+      "holds": {
+        "minerals": 0.45,
+        "fuels": 0.5,
+        "luxuries": 0.65,
+        "foods": 0.7
+      }
+    }
+  ]
+}

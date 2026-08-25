@@ -1,0 +1,1232 @@
+{
+ "_meta": {
+  "file": "races.json",
+  "version": "0.10",
+  "date": "2026-08-15",
+  "status": "Step 2 ratified (V7, V8, V10, V11, V12, V13, V14); COMBAT.md debts discharged",
+  "sources": "DESIGN.md v0.4 \u00a72/\u00a73/\u00a710/\u00a711 \u00b7 RACES.md v0.2 (ratified sheets)",
+  "provenance_notes": [
+   "Stat leans, naming conventions, and dispositions are ratified canon (Q28); their numeric encodings here are proposed.",
+   "Age curves, pool_weights, market multipliers, loyalty bands, resentment rates, and every fossil_lexicon entry are (proposed) \u2014 veto freely.",
+   "Lean encoding: '++' \u2192 +3, '+' \u2192 +2, human 'mild' \u2192 +1, '\u2212' \u2192 \u22122, '\u2212\u2212' \u2192 \u22123. Balancing offsets beyond RACES.md are flagged in 'lean_notes'.",
+   "The Ankoth are excluded by design (canon, Q24): banished non-playable lore race. Not omission.",
+   "pool_weights are relative fleet-wide base rates per recruitment pool; corp nattie pools multiply these by oa_profiles.json race_weights.",
+   "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and thythyn.special.wing_injury_table now point at the ratified model rather than owing it."
+  ]
+ },
+ "races": [
+  {
+   "id": "human",
+   "name": "Human",
+   "plural": "Humans",
+   "adjective": "human",
+   "absorbed_vc": null,
+   "absorption_note": "Founders of the Opes Arx (pre-VC 08); arrived in the Crux as an outside diaspora, origins out of scope.",
+   "homeworld": null,
+   "cohabitant": null,
+   "lore": "Physically outmatched by every other fleet species; famous instead for will, versatility, and leadership gravity. They study broadly, change tactics when the situation demands it, and disproportionately end up in command.",
+   "physiology_tags": [
+    "baseline"
+   ],
+   "stat_leans": {
+    "tactics": 1,
+    "resolve": 1
+   },
+   "lean_notes": "Mild leans per RACES.md; widest trait variety and captain premium carried in 'special'.",
+   "age": {
+    "recruit_min": 17,
+    "prime": [
+     22,
+     32
+    ],
+    "decline": 34,
+    "venerable": 42,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    35,
+    60
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.0,
+   "pool_weights": {
+    "nattie": 30,
+    "merc": 16,
+    "prisoner": 22
+   },
+   "market": {
+    "cost_mult": 1.0,
+    "salary_mult": 1.0
+   },
+   "oa_lean": [],
+   "oa_lean_note": "Plural everywhere; no single-corp gravity.",
+   "resentment_rate": 0.0,
+   "resentment_note": "Founders \u2014 the Spent Cradles are not theirs to mourn. Cradleborn Resentment does not roll on humans.",
+   "special": {
+    "captain_aptitude_bonus": 1,
+    "trait_variety_bonus": 0.3,
+    "notes": "captain_aptitude_bonus feeds captain fidelity (Step 4+); trait_variety_bonus widens general-pool trait draws."
+   },
+   "naming": {
+    "style": "diaspora_list",
+    "note": "Earth-diaspora names drifted through fleet generations; cross-cultural blends common, occasionally corp-tinged for old company families (ratified).",
+    "givens": [
+     "Ade",
+     "Sana",
+     "Marek",
+     "Petra",
+     "Rue",
+     "Imani",
+     "Joss",
+     "Nadia",
+     "Tomas",
+     "Kae",
+     "Miro",
+     "Anouk",
+     "Dele",
+     "Sofi",
+     "Aran",
+     "Lior",
+     "Nel",
+     "Yusuf",
+     "Greta",
+     "Paz",
+     "Kofi",
+     "Mara",
+     "Bram",
+     "Zia",
+     "Ines",
+     "Callum",
+     "Vera",
+     "Otieno",
+     "Lucia",
+     "Ansel",
+     "Priya",
+     "Cass",
+     "Emeka",
+     "Tilde",
+     "Ravi",
+     "Noor"
+    ],
+    "families": [
+     "Marchetti",
+     "Ilyes",
+     "Osei",
+     "Kohn",
+     "Castellan",
+     "Okafor",
+     "Lindqvist",
+     "Reyes",
+     "Tanaka",
+     "Bhatt",
+     "Sorel",
+     "Adeyemi",
+     "Kovacs",
+     "Duarte",
+     "Anand",
+     "Halloran",
+     "Mensah",
+     "Iwata",
+     "Calder",
+     "Novak",
+     "Ferreira",
+     "Ashworth",
+     "Diallo",
+     "Vance",
+     "Roska",
+     "Whitlock",
+     "Abara",
+     "Sundqvist",
+     "Marin",
+     "Okonkwo",
+     "Teller",
+     "Basara"
+    ],
+    "corp_tinged_families": [
+     "Nevlon",
+     "Vantis",
+     "Violett",
+     "Starling",
+     "Linden"
+    ],
+    "corp_tinged_chance": 0.04
+   },
+   "fossil_lexicon": [
+    {
+     "word": "terra",
+     "gloss": "any solid ground underfoot \u2014 the old word for the lost home; muttered when boots hit planet",
+     "register": "reverent",
+     "provenance": "proposed"
+    },
+    {
+     "word": "godspeed",
+     "gloss": "drop-bay farewell; nobody remembers the god",
+     "register": "ritual",
+     "provenance": "proposed"
+    },
+    {
+     "word": "mayday",
+     "gloss": "any disaster at all, not just the distress call it once was",
+     "register": "casual",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "kellis",
+   "name": "Kellis",
+   "plural": "Kellis",
+   "adjective": "kellis",
+   "absorbed_vc": 8,
+   "homeworld": "Rumia",
+   "cohabitant": "mon_wa",
+   "lore": "Mantis-featured and precise; reputed the most honorable warriors in the Crux, treating the moment of battle as a dance. Loyal, trustworthy, and among the most sought-after recruits in the Divide.",
+   "physiology_tags": [
+    "insectoid",
+    "antennae",
+    "light_frame"
+   ],
+   "stat_leans": {
+    "aim": 3,
+    "reflex": 2
+   },
+   "lean_notes": "++aim / +reflex per RACES.md \u2014 lore precision maps onto the all-ranged canon.",
+   "age": {
+    "recruit_min": 17,
+    "prime": [
+     20,
+     34
+    ],
+    "decline": 36,
+    "venerable": 46,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    55,
+    80
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.0,
+   "pool_weights": {
+    "nattie": 8,
+    "merc": 8,
+    "prisoner": 3
+   },
+   "pool_note": "Rare in the Kier Bastille \u2014 honor culture (proposed).",
+   "market": {
+    "cost_mult": 1.35,
+    "salary_mult": 1.25,
+    "rarity_note": "Premium signings; most sought-after recruits (canon)."
+   },
+   "oa_lean": [
+    "knights_star"
+   ],
+   "resentment_rate": 0.08,
+   "special": {
+    "ceremonial_blades": "Cultural dueling arts hone marksman's discipline; blades are never fielded (canon). Cosmetic kit + broadcast color only.",
+    "pact_reputation": true,
+    "notes": "pact_reputation: kellis-heavy squads strengthen pact-keeping credibility (negotiation hook, Step 6)."
+   },
+   "naming": {
+    "style": "soft_two_word",
+    "note": "Two soft measured words, given + family, ~2 syllables each, open vowels, consonants from k/t/l/sh/n/s/r (ratified; canon anchor: Kintu Elesh).",
+    "heads": [
+     "Ka",
+     "Ke",
+     "Ki",
+     "Ku",
+     "Ta",
+     "Te",
+     "Ti",
+     "Tu",
+     "La",
+     "Le",
+     "Li",
+     "Lu",
+     "Na",
+     "Ne",
+     "Ni",
+     "Sa",
+     "Se",
+     "Si",
+     "Su",
+     "Sha",
+     "She",
+     "Shi",
+     "Shu",
+     "E",
+     "A",
+     "I",
+     "Ra",
+     "Re",
+     "Ri",
+     "Kin"
+    ],
+    "tails": [
+     "lin",
+     "lan",
+     "lith",
+     "leth",
+     "lesh",
+     "nu",
+     "nesh",
+     "na",
+     "nin",
+     "su",
+     "sa",
+     "sil",
+     "shu",
+     "sha",
+     "ru",
+     "ra",
+     "rin",
+     "tu",
+     "ta",
+     "tan",
+     "thi",
+     "tha",
+     "ku",
+     "lu",
+     "li",
+     "les",
+     "an",
+     "in",
+     "un",
+     "esh"
+    ]
+   },
+   "fossil_lexicon": [
+    {
+     "word": "sha-lin",
+     "gloss": "the stillness before the dance begins; said to a squadmate, it means good luck",
+     "register": "ritual",
+     "provenance": "proposed"
+    },
+    {
+     "word": "keth",
+     "gloss": "grace under fire \u2014 the compliment paid to a clean shot",
+     "register": "praise",
+     "provenance": "proposed"
+    },
+    {
+     "word": "surei",
+     "gloss": "a debt of honor that outlives the debtor",
+     "register": "formal",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "mon_wa",
+   "name": "Mon-Wa",
+   "plural": "Mon-Wa",
+   "adjective": "mon-wa",
+   "absorbed_vc": 8,
+   "homeworld": "Rumia",
+   "cohabitant": "kellis",
+   "lore": "Pet-like in appearance and vastly more useful than they look: each Mon-Wa is a pair of telepathically linked symbiotes \u2014 one being in two bodies. Gentle, clever, resourceful; among the least hostile species in the fleet and among the most sought-after recruits.",
+   "physiology_tags": [
+    "paired_symbiote",
+    "small"
+   ],
+   "stat_leans": {
+    "fieldcraft": 2,
+    "tactics": 2,
+    "aim": -1,
+    "grit": -2
+   },
+   "lean_notes": "+fieldcraft/+tactics per RACES.md; the aim/grit offsets encode 'modest combat output for two bodies' (proposed).",
+   "age": {
+    "recruit_min": 16,
+    "prime": [
+     18,
+     32
+    ],
+    "decline": 34,
+    "venerable": 44,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    45,
+    70
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.0,
+   "pool_weights": {
+    "nattie": 5,
+    "merc": 4,
+    "prisoner": 2
+   },
+   "pool_note": "Rare in the Bastille \u2014 least hostile species in the fleet (proposed).",
+   "market": {
+    "cost_mult": 1.2,
+    "salary_mult": 1.1,
+    "rarity_note": "One salary line buys two bodies; priced for the utility, not the firepower."
+   },
+   "oa_lean": [],
+   "resentment_rate": 0.08,
+   "special": {
+    "paired": true,
+    "roster_slots": 1,
+    "tether_miles": {
+     "untrained": 2,
+     "trained": 5
+    },
+    "tether_note": "Canon: cannot be split-tasked beyond miles; forced separation risks collapse. MODEL DELIVERED (COMBAT.md 8.1): day-loop tether enforced at squad assignment; in-engagement the halves must share an engagement and adjacent bands, and separation costs -25 composure/exchange to both plus aim_eff -4.",
+    "partner_death_roll": {
+     "death": 0.6,
+     "braindead_retired": 0.25,
+     "traumatized_survivor": 0.15
+    },
+    "partner_death_note": "Canon outcomes common/uncommon/rare; numbers ratified V13. Roll fires immediately mid-engagement; a traumatized survivor is auto-downed for the remainder, takes scar traits, and is renamed (Em- prefix for a widowed Mon, -Em suffix for a widowed Wa).",
+    "notes": "Disproportionate value in camp, logistics, and intel roles (ratified).",
+    "combat_model": "Two bodies, two shots, ONE composure pool, ONE shared wound track: a serious wound to either body downs the pair (COMBAT.md 8.1, C14a ratified)."
+   },
+   "naming": {
+    "style": "paired_halves",
+    "note": "Each half named separately, 3\u20134 letters, addressed together as {Mon}-{Wa}. Widowed Mon takes Em- prefix; widowed Wa takes -Em suffix (ratified; canon anchors: Bahn-Kal, Ari-Onn, Em-Mak).",
+    "halves": [
+     "Tev",
+     "Sull",
+     "Ori",
+     "Nim",
+     "Brel",
+     "Dann",
+     "Yol",
+     "Ari",
+     "Bahn",
+     "Kal",
+     "Mak",
+     "Onn",
+     "Vet",
+     "Sim",
+     "Rou",
+     "Lan",
+     "Pei",
+     "Tam",
+     "Nol",
+     "Iva",
+     "Ess",
+     "Kiv",
+     "Dol",
+     "Mun",
+     "Ral",
+     "Ott",
+     "Fen",
+     "Ubb",
+     "Sar",
+     "Ilo",
+     "Vek",
+     "Nan",
+     "Tul",
+     "Ren",
+     "Osh",
+     "Bri",
+     "Lom",
+     "Att",
+     "Sev",
+     "Ume"
+    ],
+    "widow_prefix": "Em-",
+    "widow_suffix": "-Em"
+   },
+   "fossil_lexicon": [
+    {
+     "word": "em",
+     "gloss": "severed; alone \u2014 the language's saddest word (surviving grammar: the widow particle, canon)",
+     "register": "grief",
+     "provenance": "canon particle; gloss proposed"
+    },
+    {
+     "word": "tull",
+     "gloss": "the felt hum of a healthy bond; contentment",
+     "register": "warm",
+     "provenance": "proposed"
+    },
+    {
+     "word": "sib",
+     "gloss": "any bonded pair \u2014 extended, as an honor, to trusted squadmates",
+     "register": "warm",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "olmac",
+   "name": "Olmac",
+   "plural": "Olmac",
+   "adjective": "olmac",
+   "absorbed_vc": 24,
+   "homeworld": "Xxuntic",
+   "cohabitant": "thythyn",
+   "lore": "Towering forces of nature with leathery, granite-colored flesh \u2014 outsized only by the banished Ankoth. What they lack in cunning they repay in overwhelming battlefield skill, smothering enemies in firepower. No true loyalty: they take any role that puts them on a battlefield.",
+   "physiology_tags": [
+    "massive",
+    "granite_skin",
+    "leathery"
+   ],
+   "stat_leans": {
+    "grit": 3,
+    "aim": 1,
+    "resolve": 1,
+    "tactics": -2,
+    "fieldcraft": -3
+   },
+   "lean_notes": "++grit / \u2212tactics / \u2212fieldcraft per RACES.md ('nothing that size hides' pushed fieldcraft to \u22123); the aim/resolve nudges encode smothering fire and unsentimental steadiness (proposed).",
+   "age": {
+    "recruit_min": 18,
+    "prime": [
+     20,
+     36
+    ],
+    "decline": 38,
+    "venerable": 48,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    5,
+    30
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.15,
+   "supply_note": "Big bodies eat (proposed).",
+   "pool_weights": {
+    "nattie": 14,
+    "merc": 18,
+    "prisoner": 18
+   },
+   "pool_note": "Demographic ubiquity is canon: present in every corp's pools and the merc market.",
+   "market": {
+    "cost_mult": 0.75,
+    "salary_mult": 0.85,
+    "rarity_note": "Cheap to sign, easy to lose (canon)."
+   },
+   "oa_lean": [],
+   "oa_lean_note": "Everywhere (canon).",
+   "resentment_rate": 0.1,
+   "special": {
+    "carry_bonus": 2,
+    "media_flat": true,
+    "media_note": "Barely speaks \u2014 spends words like they cost blood (canon language ruling). Media statements flat; broadcast novelty when one DOES speak.",
+    "armor_ruling": "The concept art's sealed gold armor is one individual's kit, not racial physiology (canon ruling)."
+   },
+   "naming": {
+    "style": "the_title",
+    "note": "Titles, not names: the definite article + a single evocative noun or adjective (ratified; canon anchors: The Grin, The Pillar, The Heart, The Tame).",
+    "titles": [
+     "Grin",
+     "Pillar",
+     "Heart",
+     "Tame",
+     "Anvil",
+     "Keel",
+     "Hush",
+     "Toll",
+     "Blunt",
+     "Furrow",
+     "Gate",
+     "Patient",
+     "Cairn",
+     "Bellow",
+     "Span",
+     "Wall",
+     "Tide",
+     "Bore",
+     "Loom",
+     "Rust",
+     "Calm",
+     "Ash",
+     "Drum",
+     "Shoal",
+     "Girder",
+     "Slab",
+     "Vice",
+     "Mire",
+     "Wake",
+     "Quiet",
+     "Mast",
+     "Grind",
+     "Ledger",
+     "Weight",
+     "Still",
+     "Breaker",
+     "Ballast",
+     "Hinge",
+     "Maul",
+     "Salt"
+    ]
+   },
+   "fossil_lexicon": [
+    {
+     "word": "hrn",
+     "gloss": "assent \u2014 as much conversation as most Olmac offer",
+     "register": "curt",
+     "provenance": "proposed"
+    },
+    {
+     "word": "dolm",
+     "gloss": "enough; stop \u2014 also their only word for death",
+     "register": "final",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "thythyn",
+   "name": "Thythyn",
+   "plural": "Thythyn",
+   "adjective": "thythyn",
+   "absorbed_vc": 24,
+   "homeworld": "Xxuntic",
+   "cohabitant": "olmac",
+   "lore": "Moth-like, agile, intelligent \u2014 the fleet's only fliers, and skilled at every range of a fight. Between Divides many work as mercenaries; they excel under orders and under pressure, and they are intensely status-focused, always maneuvering up the chain.",
+   "physiology_tags": [
+    "winged",
+    "flier",
+    "light_frame"
+   ],
+   "stat_leans": {
+    "reflex": 2,
+    "aim": 2,
+    "fieldcraft": 2,
+    "grit": -2
+   },
+   "lean_notes": "+reflex/+aim/+fieldcraft per RACES.md; the grit offset encodes light frames and fragile wings (proposed).",
+   "age": {
+    "recruit_min": 16,
+    "prime": [
+     18,
+     30
+    ],
+    "decline": 32,
+    "venerable": 40,
+    "provenance": "proposed \u2014 short bright careers feed the status urgency"
+   },
+   "loyalty_base": [
+    30,
+    55
+   ],
+   "loyalty_texture": "status_coupled",
+   "loyalty_texture_note": "Canon: morale and loyalty track fame, rank, and captaincy prospects; a passed-over Thythyn sours.",
+   "supply_mult": 0.95,
+   "pool_weights": {
+    "nattie": 10,
+    "merc": 20,
+    "prisoner": 8
+   },
+   "pool_note": "Overrepresented in the merc pool (canon).",
+   "market": {
+    "cost_mult": 1.1,
+    "salary_mult": 1.1
+   },
+   "oa_lean": [
+    "alliance_house"
+   ],
+   "oa_lean_note": "Historically spread evenly; Alliance House numbers rising (canon).",
+   "resentment_rate": 0.1,
+   "special": {
+    "flier": true,
+    "no_range_band_penalty": true,
+    "range_note": "'Equally skilled at all ranges' renders as no range-band penalties in the all-ranged canon (ratified).",
+    "wing_injury_table": "DELIVERED (COMBAT.md 7.2): inj_wing_tear 01-40 minor / inj_wing_strut 41-72 serious, grounded for the Divide / inj_wing_spar 73-92 critical / inj_wing_loss 93-00 permanent. Substituted for general-table rolls 01-36; brittle_wings widens to 01-48, updraft_ace narrows to 01-28.",
+    "flight_note": "NOT a flying unit (C14b ratified). Wings buy fast reposition (two exchanges become one) and a brief hover: one exchange of elevated firing that ignores one step of the target's cover at motion_mult 1.35 against themselves. Rigs and updraft_ace reduce that exposure."
+   },
+   "naming": {
+    "style": "vowel_starved",
+    "note": "Given: one airy vowel-starved y-heavy syllable. Family: two syllables with a doubled consonant (ratified; canon anchor: Lyv Kallik).",
+    "given_onsets": [
+     "V",
+     "K",
+     "Kr",
+     "S",
+     "Sk",
+     "Sl",
+     "N",
+     "M",
+     "L",
+     "H",
+     "R",
+     "T"
+    ],
+    "given_codas": [
+     "s",
+     "l",
+     "lk",
+     "rr",
+     "n",
+     "v",
+     "k",
+     "rl",
+     "m",
+     "x"
+    ],
+    "family_starts": [
+     "Ka",
+     "So",
+     "My",
+     "Ty",
+     "Ve",
+     "Hy",
+     "Ko",
+     "Sy",
+     "Va",
+     "Ny",
+     "Te",
+     "Ho"
+    ],
+    "family_doubles": [
+     "ll",
+     "rr",
+     "ss",
+     "tt",
+     "nn",
+     "kk"
+    ],
+    "family_endings": [
+     "ik",
+     "in",
+     "is",
+     "im",
+     "it",
+     "ir"
+    ]
+   },
+   "fossil_lexicon": [
+    {
+     "word": "yss",
+     "gloss": "an updraft; any opening worth taking",
+     "register": "sharp",
+     "provenance": "proposed"
+    },
+    {
+     "word": "kryv",
+     "gloss": "a superior worth following \u2014 from a Thythyn, high praise",
+     "register": "praise",
+     "provenance": "proposed"
+    },
+    {
+     "word": "vyl",
+     "gloss": "a bad landing; disgrace",
+     "register": "insult",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "svalbard",
+   "name": "Svalbard",
+   "plural": "Svalbard",
+   "adjective": "svalbard",
+   "absorbed_vc": 36,
+   "homeworld": "Kranoia",
+   "cohabitant": null,
+   "cohabitant_note": "Unknowing cohabitants of Kranoia beside the Ankoth (banished).",
+   "lore": "Imposing feline figures \u2014 massive upper bodies carried on four legs. Known for wisdom, long tradition, and training years that include the killing of their own young; the surviving adults are elite hybrids of speed, strength, and intellect, famous for long military careers.",
+   "physiology_tags": [
+    "six_limbed",
+    "centauroid",
+    "massive"
+   ],
+   "stat_leans": {
+    "grit": 2,
+    "reflex": 2,
+    "tactics": 2,
+    "presence": 2
+   },
+   "lean_notes": "Strong across grit/reflex/tactics/presence with high floors (ratified) \u2014 the culls mean weak Svalbard mostly don't exist.",
+   "stat_floor": 7,
+   "age": {
+    "recruit_min": 20,
+    "prime": [
+     26,
+     52
+    ],
+    "decline": 56,
+    "venerable": 72,
+    "provenance": "long primes are canon-vibe; numbers proposed"
+   },
+   "loyalty_base": [
+    45,
+    70
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.2,
+   "supply_note": "Six limbs to feed (proposed).",
+   "pool_weights": {
+    "nattie": 3,
+    "merc": 4,
+    "prisoner": 2
+   },
+   "pool_note": "The pool skews elite, rare, and expensive (ratified).",
+   "market": {
+    "cost_mult": 1.6,
+    "salary_mult": 1.45
+   },
+   "oa_lean": [
+    "violets_enterprise"
+   ],
+   "resentment_rate": 0.1,
+   "special": {
+    "carry_bonus": 2,
+    "long_prime": true,
+    "tradition_bound": true,
+    "tradition_note": "Resistant to doctrine changes and mid-Divide policy whiplash \u2014 they signed for a banner, not a mood (ratified).",
+    "notes": "Whispered about as a cause of the fleet's slow decline (lore)."
+   },
+   "naming": {
+    "style": "pride_classical",
+    "note": "Melodic given names of 2\u20133 syllables with a classical ring + short hard pride names, shared and heavy with tradition (ratified; canon anchors: Alyrion Vonn, Lanthas Vonn, Armas Jannik).",
+    "given_stems": [
+     "Alyr",
+     "Lanth",
+     "Arm",
+     "Vel",
+     "Ilar",
+     "Torm",
+     "Casth",
+     "Orth",
+     "Edr",
+     "Kal",
+     "Malv",
+     "Sarth",
+     "Vand",
+     "Ber",
+     "Halv",
+     "Ondr",
+     "Selv",
+     "Tir"
+    ],
+    "given_endings": [
+     "ion",
+     "as",
+     "es",
+     "ias",
+     "ios"
+    ],
+    "prides": [
+     "Vonn",
+     "Jannik",
+     "Skov",
+     "Halde",
+     "Yorn",
+     "Brekke",
+     "Storr",
+     "Kald",
+     "Munn",
+     "Rykke",
+     "Fenn",
+     "Ulve"
+    ],
+    "pride_note": "Prides are a finite list on purpose \u2014 repeats across fighters are kin, not collisions."
+   },
+   "fossil_lexicon": [
+    {
+     "word": "aion",
+     "gloss": "the pride's unbroken line; spoken as a toast",
+     "register": "ritual",
+     "provenance": "proposed"
+    },
+    {
+     "word": "vasska",
+     "gloss": "an unculled cub \u2014 a stinging insult to any adult",
+     "register": "insult",
+     "provenance": "proposed"
+    },
+    {
+     "word": "jorr",
+     "gloss": "a winter endured; hard times survived",
+     "register": "stoic",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "etu",
+   "name": "Etu",
+   "plural": "Etu",
+   "adjective": "etu",
+   "absorbed_vc": 40,
+   "homeworld": "Etuic",
+   "cohabitant": null,
+   "lore": "Reptilian, tough, endlessly adaptive \u2014 and the fleet's mystics. Nearly all Etu follow Et-y-Bellum, the faith that their people were made as instruments of battle: healing, scouting, or pulling the trigger, every role is worship, and battle is the spectacle their lives were purposed for.",
+   "physiology_tags": [
+    "crocodilian",
+    "tough_hide",
+    "cold_blooded"
+   ],
+   "stat_leans": {
+    "grit": 2,
+    "fieldcraft": 2,
+    "resolve": 2,
+    "presence": -1
+   },
+   "lean_notes": "+grit/+fieldcraft/+resolve per RACES.md (faith under fire); the presence offset encodes stoicism (proposed).",
+   "age": {
+    "recruit_min": 17,
+    "prime": [
+     20,
+     40
+    ],
+    "decline": 43,
+    "venerable": 55,
+    "provenance": "proposed \u2014 cold-blooded slow burn"
+   },
+   "loyalty_base": [
+    40,
+    65
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 0.75,
+   "supply_note": "Cold-blooded low metabolism \u2192 reduced field supply consumption (canon management hook).",
+   "pool_weights": {
+    "nattie": 12,
+    "merc": 9,
+    "prisoner": 10
+   },
+   "market": {
+    "cost_mult": 1.0,
+    "salary_mult": 1.0
+   },
+   "oa_lean": [
+    "nevlon_collective"
+   ],
+   "resentment_rate": 0.12,
+   "special": {
+    "devotion_lines": {
+     "et_y_bellum_devout": 0.35,
+     "et_y_bellum_zealot": 0.08
+    },
+    "devotion_note": "Nearly all Etu hold the faith; the traits mark the visibly devout and the zealous. Zealots and war-priests take the Et- honorific prefix (ratified).",
+    "cede_friction": "Devout Etu take loyalty/morale hits when their corp cedes \u2014 the sacrament abandoned (ratified, spicier variant)."
+   },
+   "naming": {
+    "style": "doubled_mononym",
+    "note": "Mononyms, 1\u20132 syllables, hard consonants, mandatory doubled letter \u2014 vowel or consonant. Et- honorific for clergy and zealots (ratified; canon anchors: Stokk, Koruuth, Mazzk, Oort, Gurrim).",
+    "heads": [
+     "Sto",
+     "Ko",
+     "Ma",
+     "Gu",
+     "Ve",
+     "O",
+     "Ta",
+     "Bra",
+     "U",
+     "E",
+     "Ur",
+     "Za",
+     "Mo",
+     "Gri",
+     "Ka",
+     "Ru",
+     "Dra",
+     "Vo",
+     "Kor",
+     "Tar",
+     "Maz",
+     "Gur",
+     "Ost"
+    ],
+    "doubles": [
+     "kk",
+     "tt",
+     "rr",
+     "zz",
+     "gg",
+     "mm",
+     "nn",
+     "ll",
+     "ss",
+     "uu",
+     "oo"
+    ],
+    "tails": [
+     "",
+     "",
+     "um",
+     "uth",
+     "ik",
+     "ek",
+     "im",
+     "ar",
+     "or",
+     "a"
+    ],
+    "honorific_prefix": "Et-"
+   },
+   "fossil_lexicon": [
+    {
+     "word": "bellum",
+     "gloss": "battle as sacrament \u2014 from Et-y-Bellum, the surviving phrase",
+     "register": "sacred",
+     "provenance": "canon phrase; gloss proposed"
+    },
+    {
+     "word": "et",
+     "gloss": "a made thing; an instrument \u2014 also the honorific particle for the devout",
+     "register": "sacred",
+     "provenance": "canon particle; gloss proposed"
+    },
+    {
+     "word": "y'kess",
+     "gloss": "a wasted death \u2014 dying far from battle; their bitterest word",
+     "register": "grief",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "attorak",
+   "name": "Attorak",
+   "plural": "Attorak",
+   "adjective": "attorak",
+   "absorbed_vc": 48,
+   "homeworld": "Keshu",
+   "cohabitant": "gil",
+   "lore": "Gnoll-like and fierce, discovered mid-war against the Gil for the water planet Keshu; the Opes Arx brokered the peace and embraced both. Attorak thrive in combat, flock to the Nevlon Collective's militarist creed, and are heavily credited whenever Nevlon's dominance is discussed.",
+   "physiology_tags": [
+    "hyena_build",
+    "powerful_jaws"
+   ],
+   "stat_leans": {
+    "grit": 2,
+    "resolve": 2,
+    "presence": 1
+   },
+   "lean_notes": "+grit/+resolve per RACES.md (fearless in the fight); the presence nudge encodes crowd-legible savagery (proposed).",
+   "age": {
+    "recruit_min": 16,
+    "prime": [
+     18,
+     31
+    ],
+    "decline": 33,
+    "venerable": 42,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    30,
+    55
+   ],
+   "loyalty_texture": null,
+   "supply_mult": 1.05,
+   "pool_weights": {
+    "nattie": 12,
+    "merc": 12,
+    "prisoner": 16
+   },
+   "pool_note": "Overrepresented in the Bastille \u2014 battle-joy finds trouble between Divides (proposed).",
+   "market": {
+    "cost_mult": 0.95,
+    "salary_mult": 0.95
+   },
+   "oa_lean": [
+    "nevlon_collective"
+   ],
+   "resentment_rate": 0.14,
+   "resentment_note": "Keshu died recently, as cradles go \u2014 the memory is fresh (proposed recency weighting).",
+   "special": {
+    "english_loose": true,
+    "language_note": "Their grasp of English stays loose (canon) \u2014 broadcast color, mangled idioms, subtitle jokes.",
+    "mimicry": "Named for vocal mimics produced in their youth (canon) \u2014 comms/decoy utility surfaces as a trait."
+   },
+   "naming": {
+    "style": "onomatopoeia",
+    "note": "A sound from their youth they associate with themselves and verbalize constantly: mangled sound-effect words, 1\u20132 percussive syllables, reduplication welcome (canon convention; anchors: Bonq, Hikkup, Boum).",
+    "bases": [
+     "Bonq",
+     "Hikkup",
+     "Boum",
+     "Kraq",
+     "Thudd",
+     "Wumf",
+     "Blatt",
+     "Yipp",
+     "Gouf",
+     "Snapp",
+     "Takk",
+     "Womp",
+     "Klonk",
+     "Brakk",
+     "Dakk",
+     "Ponk",
+     "Zupp",
+     "Bamm",
+     "Tonq",
+     "Hupp",
+     "Fwoom",
+     "Grakk",
+     "Vroum",
+     "Pakow",
+     "Dunt",
+     "Skraw",
+     "Blomp",
+     "Krrsh"
+    ],
+    "reduplication_chance": 0.15
+   },
+   "fossil_lexicon": [
+    {
+     "word": "rrak",
+     "gloss": "an excited yes \u2014 barked, often several times",
+     "register": "joyous",
+     "provenance": "proposed"
+    },
+    {
+     "word": "vuff",
+     "gloss": "disappointment; a fight called off",
+     "register": "deflated",
+     "provenance": "proposed"
+    },
+    {
+     "word": "keshhh",
+     "gloss": "water \u2014 and grief; both, ever since Keshu",
+     "register": "grief",
+     "provenance": "proposed"
+    }
+   ]
+  },
+  {
+   "id": "gil",
+   "name": "Gil",
+   "plural": "Gil",
+   "adjective": "gil",
+   "absorbed_vc": 48,
+   "homeworld": "Keshu",
+   "cohabitant": "attorak",
+   "lore": "Short-statured, blue-skinned, trunk-horned \u2014 and nearly blind, famous for the goggles that give them back the world. Magnificently agile masters of ambush who held their own against the Attorak through the War for Keshu. Culturally individualist: each Gil enlists wherever best serves their own goals. Some are born psionic.",
+   "physiology_tags": [
+    "small",
+    "agile",
+    "trunk_horned",
+    "impaired_vision_corrected"
+   ],
+   "stat_leans": {
+    "fieldcraft": 3,
+    "reflex": 3,
+    "grit": -2
+   },
+   "lean_notes": "++fieldcraft / ++reflex per RACES.md; the grit offset encodes small frames (proposed).",
+   "age": {
+    "recruit_min": 17,
+    "prime": [
+     19,
+     33
+    ],
+    "decline": 35,
+    "venerable": 45,
+    "provenance": "proposed"
+   },
+   "loyalty_base": [
+    25,
+    50
+   ],
+   "loyalty_texture": "motive_driven",
+   "loyalty_texture_note": "Canon: they stay while you serve their goals.",
+   "supply_mult": 0.9,
+   "pool_weights": {
+    "nattie": 8,
+    "merc": 9,
+    "prisoner": 12
+   },
+   "pool_note": "Bastille lean: patient hunters get caught holding other people's property (proposed).",
+   "market": {
+    "cost_mult": 1.0,
+    "salary_mult": 1.0
+   },
+   "oa_lean": [],
+   "oa_lean_note": "Scattered by individual motive (canon).",
+   "resentment_rate": 0.14,
+   "resentment_note": "Keshu recency, as with the Attorak (proposed).",
+   "special": {
+    "vision": "Racially impaired vision \u2014 goggles are corrective equipment on every Gil, not kit (canon ruling). Optional damaged-goggles quirk lands with COMBAT.md gear rules.",
+    "psionics": {
+     "latent_rate": 0.05,
+     "expressions": {
+      "psion_battle_sense": 0.4,
+      "psion_squad_link": 0.35,
+      "psion_pressure_read": 0.25
+     },
+     "note": "Scope defined here per RACES.md: rare trait line, one expression per psion. Rates proposed."
+    }
+   },
+   "naming": {
+    "style": "latinate_nickname",
+    "note": "Long exuberant Latinate given (4\u20135 syllables, -us/-ius) shortened to a 3-letter nickname + short family-house name; houses repeat (ratified; canon anchors: Elioysus (Eli) Bentu, Uriosirus (Uri) Bentu, Onimirius (Oni) Fynn, Anamagdrius (Ana) Tahl).",
+    "given_heads": [
+     "Eli",
+     "Uri",
+     "Oni",
+     "Ana",
+     "Ovi",
+     "Ira",
+     "Uxo",
+     "Amb",
+     "Avo",
+     "Oro",
+     "Ulu",
+     "Ibi",
+     "Adi",
+     "Emi"
+    ],
+    "given_mids": [
+     "oys",
+     "osi",
+     "mand",
+     "magd",
+     "mir",
+     "los",
+     "vand",
+     "bel",
+     "dor",
+     "lor",
+     "san",
+     "mor",
+     "gan",
+     "phal"
+    ],
+    "given_endings": [
+     "us",
+     "ius",
+     "rus",
+     "rius"
+    ],
+    "houses": [
+     "Bentu",
+     "Fynn",
+     "Tahl",
+     "Vosk",
+     "Drell",
+     "Kabe",
+     "Nasq",
+     "Rull",
+     "Wott",
+     "Hibb",
+     "Ostra",
+     "Merl"
+    ],
+    "house_note": "Finite house list on purpose \u2014 Bentu repeats in canon; family houses ratified with the v0.1 sheet."
+   },
+   "fossil_lexicon": [
+    {
+     "word": "veya",
+     "gloss": "the world seen clearly; truth \u2014 what the goggles restore",
+     "register": "earnest",
+     "provenance": "proposed"
+    },
+    {
+     "word": "brill",
+     "gloss": "the perfect moment to strike; whispered, never shouted",
+     "register": "sharp",
+     "provenance": "proposed"
+    },
+    {
+     "word": "osk",
+     "gloss": "a favor owed \u2014 the true currency of Gil society",
+     "register": "transactional",
+     "provenance": "proposed"
+    }
+   ]
+  }
+ ]
+}

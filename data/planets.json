@@ -1,0 +1,49 @@
+{
+  "_note": "REPUTATION.md §7 — what a planet is made of. `value` is per unit banked, relative to a middling mineral at 1.0, which is what ledger.js and negotiate.js price against so the money does not move. `leans` weight which categories appear at all; a category absent from an archetype's leans cannot appear there.",
+  "categories": ["minerals", "fuels", "luxuries", "foods"],
+  "resources": [
+    { "id": "ferrite",           "name": "Ferrite",           "category": "minerals", "value": 0.70 },
+    { "id": "bauxite",           "name": "Bauxite",           "category": "minerals", "value": 0.75 },
+    { "id": "copper_ore",        "name": "Copper Ore",        "category": "minerals", "value": 0.90 },
+    { "id": "tungsten",          "name": "Tungsten",          "category": "minerals", "value": 1.15 },
+    { "id": "chromite",          "name": "Chromite",          "category": "minerals", "value": 1.00 },
+    { "id": "rare_earth_suite",  "name": "Rare-Earth Suite",  "category": "minerals", "value": 1.60 },
+    { "id": "platinum_group",    "name": "Platinum Group",    "category": "minerals", "value": 1.90 },
+    { "id": "silicate_sand",     "name": "Silicate Sand",     "category": "minerals", "value": 0.50 },
+    { "id": "reclaimed_alloy",   "name": "Reclaimed Alloy",   "category": "minerals", "value": 1.05,
+      "salvage": true, "_note": "not ore — what is left of whoever was here before" },
+
+    { "id": "helium3",           "name": "Helium-3",          "category": "fuels", "value": 1.70 },
+    { "id": "deuterium_ice",     "name": "Deuterium Ice",     "category": "fuels", "value": 1.30 },
+    { "id": "hydrocarbon_tar",   "name": "Hydrocarbon Tar",   "category": "fuels", "value": 0.80 },
+    { "id": "uranite",           "name": "Uranite",           "category": "fuels", "value": 1.50 },
+    { "id": "thorite",           "name": "Thorite",           "category": "fuels", "value": 1.35 },
+    { "id": "methane_clathrate", "name": "Methane Clathrate", "category": "fuels", "value": 0.85 },
+    { "id": "pitchblende",       "name": "Pitchblende",       "category": "fuels", "value": 1.45 },
+
+    { "id": "gemstone_rough",    "name": "Gemstone Rough",    "category": "luxuries", "value": 1.80 },
+    { "id": "native_gold",       "name": "Native Gold",       "category": "luxuries", "value": 1.70 },
+    { "id": "iridescent_nacre",  "name": "Iridescent Nacre",  "category": "luxuries", "value": 1.50 },
+    { "id": "aromatic_resin",    "name": "Aromatic Resin",    "category": "luxuries", "value": 1.10 },
+    { "id": "pigment_salt",      "name": "Pigment Salt",      "category": "luxuries", "value": 0.95 },
+    { "id": "songcoral",         "name": "Songcoral",         "category": "luxuries", "value": 2.00 },
+    { "id": "aurora_amber",      "name": "Aurora Amber",      "category": "luxuries", "value": 1.75 },
+
+    { "id": "protein_algae",     "name": "Protein Algae",     "category": "foods", "value": 0.60 },
+    { "id": "grain_analogue",    "name": "Grain Analogue",    "category": "foods", "value": 0.70 },
+    { "id": "fungal_mass",       "name": "Fungal Mass",       "category": "foods", "value": 0.55 },
+    { "id": "edible_tuber",      "name": "Edible Tuber",      "category": "foods", "value": 0.65 },
+    { "id": "potable_water",     "name": "Potable Water",     "category": "foods", "value": 0.80 },
+    { "id": "spice_lichen",      "name": "Spice Lichen",      "category": "foods", "value": 1.40 },
+    { "id": "game_biomass",      "name": "Game Biomass",      "category": "foods", "value": 0.90 },
+    { "id": "nectar_sap",        "name": "Nectar Sap",        "category": "foods", "value": 1.20 }
+  ],
+  "leans": {
+    "ice_shelf":       { "depth": 0.30, "minerals": 0.60, "fuels": 3.00, "luxuries": 0.40, "foods": 1.00 },
+    "jungle_cradle":   { "depth": 0.58, "minerals": 0.40, "fuels": 0.50, "luxuries": 2.00, "foods": 3.00 },
+    "desert_pan":      { "depth": 0.24, "minerals": 2.00, "fuels": 0.80, "luxuries": 0.60, "foods": 0.20 },
+    "volcanic_waste":  { "depth": 0.66, "minerals": 3.00, "fuels": 2.00, "luxuries": 0.70, "foods": 0.15 },
+    "drowned_world":   { "depth": 0.48, "minerals": 0.50, "fuels": 1.60, "luxuries": 0.80, "foods": 2.50 },
+    "dead_industrial": { "depth": 0.72, "minerals": 3.00, "fuels": 1.20, "luxuries": 0.50, "foods": 0.30 }
+  }
+}

@@ -1,0 +1,1712 @@
+{
+ "_meta": {
+  "file": "traits.json",
+  "version": "0.10",
+  "date": "2026-08-15",
+  "status": "Step 2 ratified (V15); combat-facing hooks now numeric in COMBAT.md 11",
+  "sources": "DESIGN.md v0.4 §2.18/§10/§11 · RACES.md v0.2 mechanical hooks (ratified) · fighter.schema.json example ids",
+  "provenance_notes": [
+   "Trait ids follow the bare snake_case style of the schema example (patient_hunter, et_y_bellum_devout, kier_hardened).",
+   "Effects are v0 loose modifier bags in the item.schema.json style. As of COMBAT.md v0.2 (ratified), the 55 combat-facing hooks have numeric conversions in COMBAT.md 11.1; the remainder are explicitly deferred to their own steps in COMBAT.md 11.3. No trait entry in this file changed.",
+   "draw: 'pool' traits are rolled from weighted pools by recruitgen; draw: 'special' traits are rolled by their own rules (race rates in races.json, line constants in recruitment.json) and never appear in ordinary pool draws.",
+   "rarity → weight mapping lives in recruitment.json. race_weight / origin_weight multiply a trait's base weight for matching fighters.",
+   "Everything in this file is (proposed) unless tagged canon in its notes.",
+   "Step 5 (PROCUREMENT.md P10): race-locked ITEMS are struck from the design, so `wing_rig_synergy` lost the thermal rig it hooked into and is retired from updraft_ace. The trait is unchanged in effect — `flight_mobility_bonus` already pays the 1.35 -> 1.20 hover exposure. race_locked on TRAITS is untouched."
+  ]
+ },
+ "traits": [
+  {
+   "id": "marksman_eye",
+   "name": "Marksman's Eye",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Sees the shot before the scope does.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "stat_mods": {
+     "aim": 1
+    },
+    "hooks": [
+     "accuracy_bonus"
+    ]
+   }
+  },
+  {
+   "id": "steady_hands",
+   "name": "Steady Hands",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The one you want holding the clamp when the shelling starts.",
+   "tags": [
+    "support",
+    "medical",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "field_treatment_bonus",
+     "evac_stabilize_bonus"
+    ]
+   }
+  },
+  {
+   "id": "quick_study",
+   "name": "Quick Study",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Learns in one Divide what others need three to absorb.",
+   "tags": [
+    "development",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "development_rate_up"
+    ]
+   },
+   "sim_note": "Development multiplier lands with Step 8."
+  },
+  {
+   "id": "crowd_darling",
+   "name": "Crowd Darling",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The cameras find them. They pretend not to notice.",
+   "tags": [
+    "media",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "fame_gain_up"
+    ]
+   },
+   "conflicts": [
+    "camera_shy"
+   ]
+  },
+  {
+   "id": "camera_shy",
+   "name": "Camera-Shy",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "The cameras never learn their name, and they prefer it that way.",
+   "tags": [
+    "media",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "fame_gain_down"
+    ]
+   },
+   "conflicts": [
+    "crowd_darling"
+   ]
+  },
+  {
+   "id": "scrounger",
+   "name": "Scrounger",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Comes back from a ruined field kitchen with dinner and spare parts.",
+   "tags": [
+    "logistics",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "supply_consumption_down",
+     "forage_bonus"
+    ]
+   }
+  },
+  {
+   "id": "night_stalker",
+   "name": "Night Stalker",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Prefers the hours when the locator flares are stale.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "night_encounter_bonus"
+    ]
+   }
+  },
+  {
+   "id": "pack_mule",
+   "name": "Pack Mule",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Carries their kit, your kit, and the tripod nobody claimed.",
+   "tags": [
+    "logistics",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "carry_bulk_up_2"
+    ]
+   }
+  },
+  {
+   "id": "gallows_humor",
+   "name": "Gallows Humor",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "The joke lands ten seconds after the shooting stops. Somehow it helps.",
+   "tags": [
+    "morale",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "squad_morale_support_after_losses"
+    ]
+   }
+  },
+  {
+   "id": "grudge_holder",
+   "name": "Grudge Holder",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Keeps a private ledger. It only has one column.",
+   "tags": [
+    "personality",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "remembers_grudges",
+     "refuses_grudged_corps",
+     "morale_up_vs_grudge_target"
+    ]
+   },
+   "sim_note": "Feeds corp.relationships and notable_events chemistry."
+  },
+  {
+   "id": "pact_keeper",
+   "name": "Pact Keeper",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "A deal signed is a deal kept — even when the manager wishes otherwise.",
+   "tags": [
+    "personality",
+    "negotiation",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "betrayal_resistance",
+     "pact_reputation_up"
+    ]
+   }
+  },
+  {
+   "id": "hot_headed",
+   "name": "Hot-Headed",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Burns bright, swings hard — both ways.",
+   "tags": [
+    "personality",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "morale_swings_amplified",
+     "aggression_event_seed"
+    ]
+   },
+   "conflicts": [
+    "stoic"
+   ]
+  },
+  {
+   "id": "stoic",
+   "name": "Stoic",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "The needle barely moves. In either direction.",
+   "tags": [
+    "personality",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "morale_swings_damped"
+    ]
+   },
+   "conflicts": [
+    "hot_headed"
+   ]
+  },
+  {
+   "id": "superstitious",
+   "name": "Superstitious",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Has a ritual for the dawn flares and a word against the Aleas' drones.",
+   "tags": [
+    "personality",
+    "flavor"
+   ],
+   "effects": {
+    "hooks": [
+     "omen_event_seed",
+     "ritual_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "insomniac",
+   "name": "Insomniac",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Watches the camp perimeter because sleep won't have them.",
+   "tags": [
+    "condition",
+    "negative"
+   ],
+   "effects": {
+    "hooks": [
+     "fatigue_recovery_down"
+    ]
+   }
+  },
+  {
+   "id": "fast_healer",
+   "name": "Fast Healer",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Knits back together like the schedule depends on it.",
+   "tags": [
+    "condition",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "injury_recovery_time_down"
+    ]
+   }
+  },
+  {
+   "id": "bleeder",
+   "name": "Bleeder",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Every wound runs one grade worse than it should.",
+   "tags": [
+    "condition",
+    "negative"
+   ],
+   "effects": {
+    "hooks": [
+     "injury_severity_risk_up"
+    ]
+   }
+  },
+  {
+   "id": "mentor",
+   "name": "Mentor",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Rookies orbit them. The nerves settle; the habits stick.",
+   "tags": [
+    "development",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "young_squadmate_development_up",
+     "rookie_composure_support"
+    ]
+   }
+  },
+  {
+   "id": "born_captain",
+   "name": "Born Captain",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Reads a battlefield the way others read a face.",
+   "tags": [
+    "leadership",
+    "positive"
+   ],
+   "race_weight": {
+    "human": 3
+   },
+   "effects": {
+    "hooks": [
+     "captain_fidelity_up",
+     "succession_candidate_priority"
+    ]
+   },
+   "sim_note": "Human captain-aptitude premium (RACES.md, ratified) expressed as draw weight, not a lock."
+  },
+  {
+   "id": "cool_hand",
+   "name": "Cool Hand",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "First drop or fiftieth, the breathing never changes.",
+   "tags": [
+    "composure",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "composure_bonus"
+    ]
+   },
+   "sim_note": "Composure model (rookie nerves vs veteran calm) lands with COMBAT.md."
+  },
+  {
+   "id": "angle_cutter",
+   "name": "Angle Cutter",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Crosses between cover like the ground was drawn for them.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "reposition_speed_up"
+    ]
+   }
+  },
+  {
+   "id": "shell_counter",
+   "name": "Shell Counter",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Hears the tube cough and knows the landing to the meter.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "bombardment_evasion_bonus"
+    ]
+   }
+  },
+  {
+   "id": "ammo_miser",
+   "name": "Ammo Miser",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Every round accounted for. The quartermasters send holiday cards.",
+   "tags": [
+    "combat",
+    "logistics",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "ammo_consumption_down",
+     "suppression_output_down_slight"
+    ]
+   },
+   "conflicts": [
+    "trigger_itch"
+   ]
+  },
+  {
+   "id": "trigger_itch",
+   "name": "Trigger Itch",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Shoots at movement, shadows, and once, famously, a flare.",
+   "tags": [
+    "combat",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "suppression_output_up",
+     "ammo_consumption_up"
+    ]
+   },
+   "conflicts": [
+    "ammo_miser"
+   ]
+  },
+  {
+   "id": "soft_boots",
+   "name": "Soft Boots",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Arrives places without the courtesy of being heard first.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "unspotted_movement_bonus"
+    ]
+   }
+  },
+  {
+   "id": "range_finder",
+   "name": "Eye for Distance",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Calls yardage without the optics and is rarely off by much.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "first_shot_long_range_bonus"
+    ]
+   }
+  },
+  {
+   "id": "doorway_nerve",
+   "name": "Doorway Nerve",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Steadiest exactly where the fight gets closest and ugliest.",
+   "tags": [
+    "combat",
+    "composure",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "short_band_composure_bonus"
+    ]
+   }
+  },
+  {
+   "id": "long_watch",
+   "name": "Long Watch",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Can hold a sightline through a night and a day and stay honest about what crossed it.",
+   "tags": [
+    "combat",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "overwatch_fatigue_immune"
+    ]
+   }
+  },
+  {
+   "id": "camp_cook",
+   "name": "Field Kitchen",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Turns forage and ration paste into something a squad lines up for.",
+   "tags": [
+    "logistics",
+    "morale",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "camp_morale_bonus_meals",
+     "forage_value_up"
+    ]
+   }
+  },
+  {
+   "id": "jury_rigger",
+   "name": "Jury-Rigger",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Keeps broken kit lying convincingly about its condition.",
+   "tags": [
+    "logistics",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "squad_supply_efficiency_up"
+    ]
+   }
+  },
+  {
+   "id": "map_mind",
+   "name": "Map Mind",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Saw the survey packet once. Navigates it like a home ship corridor.",
+   "tags": [
+    "fieldwork",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "navigation_bonus",
+     "march_efficiency_up"
+    ]
+   }
+  },
+  {
+   "id": "iron_stomach",
+   "name": "Iron Stomach",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Has eaten worse than anything this planet grows, and said thank you.",
+   "tags": [
+    "fieldwork",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "forage_penalty_immune"
+    ]
+   }
+  },
+  {
+   "id": "light_sleeper",
+   "name": "Light Sleeper",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Half-awake is their deepest setting. Ambushers hate it; so do they.",
+   "tags": [
+    "condition",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "night_ambush_warning_bonus",
+     "fatigue_recovery_down_slight"
+    ]
+   }
+  },
+  {
+   "id": "sky_reader",
+   "name": "Sky Reader",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Smells the weather turning a watch before the Aleas posts it.",
+   "tags": [
+    "fieldwork",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "hazard_forecast_bonus"
+    ]
+   }
+  },
+  {
+   "id": "quotable",
+   "name": "Soundbite Machine",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Everything they say fits a chyron. For better and for worse.",
+   "tags": [
+    "media",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "media_statement_impact_amplified"
+    ]
+   }
+  },
+  {
+   "id": "storyline_bait",
+   "name": "Storyline Bait",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The broadcast keeps finding arcs for them: feuds, redemptions, curses.",
+   "tags": [
+    "media",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "fame_volatility_up",
+     "rivalry_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "logo_ready",
+   "name": "Logo-Ready",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Sponsors request them by name. Squadmates have opinions about that.",
+   "tags": [
+    "media",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "sponsor_income_up",
+     "squad_envy_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "villain_edit",
+   "name": "Villain Edit",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The crowd loves to hate them, and tunes in to do it.",
+   "tags": [
+    "media",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "heel_fame_gain",
+     "sportsmanship_penalty_amplified"
+    ]
+   }
+  },
+  {
+   "id": "clause_reader",
+   "name": "Clause Reader",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Knows their contract, your precedent, and the fleet's going rate to the credit.",
+   "tags": [
+    "personality",
+    "negotiation",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "renegotiation_demand_seed",
+     "salary_anchoring_up"
+    ]
+   }
+  },
+  {
+   "id": "loyal_to_a_fault",
+   "name": "Loyal to a Fault",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Will follow the banner anywhere. Including the places it shouldn't go.",
+   "tags": [
+    "personality",
+    "loyalty",
+    "mixed"
+   ],
+   "effects": {
+    "loyalty_mod": 12,
+    "hooks": [
+     "follows_bad_orders",
+     "poach_resistant"
+    ]
+   }
+  },
+  {
+   "id": "union_tongue",
+   "name": "Union Tongue",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Knows every grievance in camp and how to say it out loud.",
+   "tags": [
+    "personality",
+    "morale",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "camp_morale_contagion_both_ways",
+     "collective_demand_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "thrill_seeker",
+   "name": "Thrill Seeker",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "First hand up for the bad jobs. The medics keep a file open.",
+   "tags": [
+    "personality",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "volunteers_for_risk",
+     "injury_exposure_up"
+    ]
+   }
+  },
+  {
+   "id": "second_guesser",
+   "name": "Second-Guesser",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Sees every way it could go wrong, and occasionally leaves before it does.",
+   "tags": [
+    "personality",
+    "composure",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "early_disengage_bias",
+     "ambush_avoidance_slight"
+    ]
+   }
+  },
+  {
+   "id": "cold_arithmetic",
+   "name": "Cold Arithmetic",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Counts the fallen the way others count ammunition. Unshaken. Unwarm.",
+   "tags": [
+    "personality",
+    "composure",
+    "mixed"
+   ],
+   "effects": {
+    "stat_mods": {
+     "presence": -1
+    },
+    "hooks": [
+     "death_morale_immune"
+    ]
+   }
+  },
+  {
+   "id": "homesick",
+   "name": "Homesick",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Carries the ship in their chest. Long Divides wear a hole in it.",
+   "tags": [
+    "condition",
+    "morale",
+    "negative"
+   ],
+   "effects": {
+    "hooks": [
+     "morale_decay_long_divide"
+    ]
+   }
+  },
+  {
+   "id": "slow_starter",
+   "name": "Slow Starter",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Terrible first week, every time. Then something clicks shut.",
+   "tags": [
+    "condition",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "early_divide_penalty",
+     "late_divide_bonus"
+    ]
+   }
+  },
+  {
+   "id": "adrenal_surge",
+   "name": "Adrenal Surge",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "First contact turns them briefly magnificent. The crash comes due after.",
+   "tags": [
+    "condition",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "first_engagement_surge",
+     "post_engagement_fatigue_spike"
+    ]
+   }
+  },
+  {
+   "id": "white_knuckles",
+   "name": "White Knuckles",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Has never dropped a weapon, a stretcher, or a grudge. Not even shot.",
+   "tags": [
+    "condition",
+    "composure",
+    "positive"
+   ],
+   "effects": {
+    "hooks": [
+     "wounded_composure_bonus",
+     "never_drops_gear"
+    ]
+   }
+  },
+  {
+   "id": "aleas_favorite",
+   "name": "Aleas' Favorite",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Zone closures miss them. Drops land beside them. Nobody can prove anything.",
+   "tags": [
+    "flavor",
+    "mixed"
+   ],
+   "effects": {
+    "hooks": [
+     "luck_event_bias_positive",
+     "superstition_magnet"
+    ]
+   }
+  },
+  {
+   "id": "bad_omen",
+   "name": "Bad Omen",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "When things go wrong, the camp remembers who they went wrong near.",
+   "tags": [
+    "flavor",
+    "morale",
+    "negative"
+   ],
+   "effects": {
+    "hooks": [
+     "blame_magnet",
+     "squad_superstition_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "kier_hardened",
+   "name": "Kier-Hardened",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "The Bastille taught them exactly how bad it can get. The Divide rarely manages worse.",
+   "tags": [
+    "origin",
+    "composure",
+    "mixed"
+   ],
+   "origin_weight": {
+    "prisoner": 8
+   },
+   "effects": {
+    "stat_mods": {
+     "grit": 1,
+     "resolve": 1
+    },
+    "loyalty_mod": -5,
+    "hooks": [
+     "seen_worse_composure"
+    ]
+   },
+   "notes": "Canon id — appears in the fighter.schema.json example."
+  },
+  {
+   "id": "freedom_counter",
+   "name": "Counting the Divides",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Keeps the clause tally scratched inside their armor. Fights differently as it shrinks.",
+   "tags": [
+    "origin",
+    "morale",
+    "mixed"
+   ],
+   "race_locked": [],
+   "origin_locked": [
+    "prisoner"
+   ],
+   "effects": {
+    "hooks": [
+     "morale_up_as_freedom_nears",
+     "desperation_event_seed_final_divide"
+    ]
+   }
+  },
+  {
+   "id": "company_family",
+   "name": "Company Family",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Third generation on the same ship. The corp's name is practically theirs.",
+   "tags": [
+    "origin",
+    "loyalty",
+    "mixed"
+   ],
+   "origin_locked": [
+    "nattie"
+   ],
+   "effects": {
+    "loyalty_mod": 10,
+    "hooks": [
+     "pension_story",
+     "death_pr_event_amplified"
+    ]
+   }
+  },
+  {
+   "id": "deck_raised",
+   "name": "Deck-Raised",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Grew up in these corridors. Fights better beside people who did too.",
+   "tags": [
+    "origin",
+    "morale",
+    "positive"
+   ],
+   "origin_weight": {
+    "nattie": 4
+   },
+   "effects": {
+    "hooks": [
+     "cohesion_morale_bonus_near_squadmates"
+    ]
+   }
+  },
+  {
+   "id": "war_debt",
+   "name": "War Debt",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Owes someone. The someone has bookkeepers, and the bookkeepers have friends.",
+   "tags": [
+    "origin",
+    "scandal",
+    "negative"
+   ],
+   "origin_weight": {
+    "mercenary": 6
+   },
+   "effects": {
+    "hooks": [
+     "salary_demand_pressure",
+     "syndicate_contact_seed"
+    ]
+   },
+   "sim_note": "Syndicate/scandal systems land at Step 9; until then this is flavor + salary texture."
+  },
+  {
+   "id": "odds_watcher",
+   "name": "Odds Watcher",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Checks the board before breakfast. Plays up when the fleet doubts them.",
+   "tags": [
+    "origin",
+    "morale",
+    "flavor"
+   ],
+   "origin_weight": {
+    "mercenary": 5
+   },
+   "effects": {
+    "hooks": [
+     "performance_tracks_odds_board"
+    ]
+   }
+  },
+  {
+   "id": "battle_dancer",
+   "name": "Battle Dancer",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Carries the dueling forms into the firefight — every reposition a step, every shot a beat.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "kellis"
+   ],
+   "effects": {
+    "hooks": [
+     "aim_bonus_under_pressure",
+     "crowd_pleaser_movement"
+    ]
+   },
+   "notes": "Ceremonial blades stay ceremonial (canon); the dance is how the discipline shows."
+  },
+  {
+   "id": "honor_bound",
+   "name": "Honor-Bound",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Will not fire on a flag of parley, will not strike a signed partner — whatever the order says.",
+   "tags": [
+    "racial",
+    "personality",
+    "mixed"
+   ],
+   "race_locked": [
+    "kellis"
+   ],
+   "effects": {
+    "loyalty_mod": 10,
+    "hooks": [
+     "refuses_betrayal_orders",
+     "pact_reputation_up"
+    ]
+   }
+  },
+  {
+   "id": "den_keeper",
+   "name": "Den Keeper",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Wherever they bed down becomes, briefly, somewhere worth defending.",
+   "tags": [
+    "racial",
+    "morale",
+    "positive"
+   ],
+   "race_locked": [
+    "mon_wa"
+   ],
+   "effects": {
+    "hooks": [
+     "camp_morale_aura"
+    ]
+   }
+  },
+  {
+   "id": "quartermasters_knack",
+   "name": "Quartermaster's Knack",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Two bodies, four hands, one flawless inventory.",
+   "tags": [
+    "racial",
+    "logistics",
+    "positive"
+   ],
+   "race_locked": [
+    "mon_wa"
+   ],
+   "effects": {
+    "hooks": [
+     "squad_supply_efficiency_up",
+     "sponsor_drop_handling_bonus"
+    ]
+   }
+  },
+  {
+   "id": "tether_trained",
+   "name": "Tether-Trained",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Years of drills stretched the link further than the physicians thought wise.",
+   "tags": [
+    "racial",
+    "positive"
+   ],
+   "race_locked": [
+    "mon_wa"
+   ],
+   "effects": {
+    "hooks": [
+     "tether_range_extended"
+    ]
+   },
+   "sim_note": "Extends races.json tether_miles.trained; hard numbers with COMBAT.md."
+  },
+  {
+   "id": "smothering_fire",
+   "name": "Smothering Fire",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Doesn't aim at you so much as at everywhere you might be.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "olmac"
+   ],
+   "effects": {
+    "hooks": [
+     "suppression_bonus",
+     "ammo_consumption_up"
+    ]
+   }
+  },
+  {
+   "id": "walking_bulwark",
+   "name": "Walking Bulwark",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The squad advances behind them the way infantry once advanced behind vehicles.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "olmac"
+   ],
+   "effects": {
+    "hooks": [
+     "mobile_cover_provider",
+     "carry_bulk_up_2"
+    ]
+   }
+  },
+  {
+   "id": "war_born",
+   "name": "War-Born",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Has seen everything a battlefield can do to a body. Registers none of it.",
+   "tags": [
+    "racial",
+    "morale",
+    "positive"
+   ],
+   "race_locked": [
+    "olmac"
+   ],
+   "effects": {
+    "hooks": [
+     "gore_morale_immune"
+    ]
+   }
+  },
+  {
+   "id": "few_words",
+   "name": "Few Words",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Has spoken on broadcast twice. Both clips are famous.",
+   "tags": [
+    "racial",
+    "media",
+    "flavor"
+   ],
+   "race_locked": [
+    "olmac"
+   ],
+   "effects": {
+    "hooks": [
+     "media_statements_flat",
+     "rare_quote_fame_spike"
+    ]
+   }
+  },
+  {
+   "id": "updraft_ace",
+   "name": "Updraft Ace",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Reads thermals the way others read terrain. The sky is cover too.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "thythyn"
+   ],
+   "effects": {
+    "hooks": [
+     "flight_mobility_bonus"
+    ]
+   }
+  },
+  {
+   "id": "rank_climber",
+   "name": "Rank Climber",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Every roster posting is read twice: once for the squad, once for their own name's position in it.",
+   "tags": [
+    "racial",
+    "personality",
+    "mixed"
+   ],
+   "race_locked": [
+    "thythyn"
+   ],
+   "effects": {
+    "hooks": [
+     "status_coupling_amplified",
+     "captaincy_snub_morale_risk",
+     "promotion_morale_surge"
+    ]
+   },
+   "notes": "Amplifies the canon status coupling in both directions."
+  },
+  {
+   "id": "brittle_wings",
+   "name": "Brittle Wings",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "One bad landing away from a grounded season.",
+   "tags": [
+    "racial",
+    "condition",
+    "negative"
+   ],
+   "race_locked": [
+    "thythyn"
+   ],
+   "effects": {
+    "hooks": [
+     "wing_injury_susceptibility_up"
+    ]
+   },
+   "sim_note": "Wing injury table owed by COMBAT.md."
+  },
+  {
+   "id": "pride_bearer",
+   "name": "Pride Bearer",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Carries the pride name like a standard; squadmates straighten when they pass.",
+   "tags": [
+    "racial",
+    "morale",
+    "positive"
+   ],
+   "race_locked": [
+    "svalbard"
+   ],
+   "effects": {
+    "hooks": [
+     "presence_aura",
+     "pride_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "tradition_keeper",
+   "name": "Tradition Keeper",
+   "draw": "pool",
+   "rarity": "common",
+   "description": "Signed for a banner, not a mood. Mid-stream cleverness is met with granite patience.",
+   "tags": [
+    "racial",
+    "personality",
+    "mixed"
+   ],
+   "race_locked": [
+    "svalbard"
+   ],
+   "effects": {
+    "hooks": [
+     "doctrine_change_resistance",
+     "policy_whiplash_morale_penalty_up"
+    ]
+   },
+   "notes": "Ratified vibe from RACES.md — resents mid-Divide policy whiplash."
+  },
+  {
+   "id": "cull_tempered",
+   "name": "Cull-Tempered",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Survived the training years. Panic was culled out with the weak.",
+   "tags": [
+    "racial",
+    "composure",
+    "positive"
+   ],
+   "race_locked": [
+    "svalbard"
+   ],
+   "effects": {
+    "hooks": [
+     "rout_immune",
+     "composure_bonus"
+    ]
+   }
+  },
+  {
+   "id": "war_priest",
+   "name": "War-Priest",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Tends wounds and doubts alike. Every bandage a blessing of Et-y-Bellum.",
+   "tags": [
+    "racial",
+    "medical",
+    "morale",
+    "positive"
+   ],
+   "race_locked": [
+    "etu"
+   ],
+   "effects": {
+    "hooks": [
+     "field_treatment_bonus",
+     "faith_morale_aura",
+     "honorific_et_prefix"
+    ]
+   },
+   "notes": "Clergy take the Et- honorific (ratified)."
+  },
+  {
+   "id": "battle_augur",
+   "name": "Battle Augur",
+   "draw": "pool",
+   "rarity": "rare",
+   "description": "Reads omens in flare patterns and drone drift — and is right unsettlingly often.",
+   "tags": [
+    "racial",
+    "intel",
+    "positive"
+   ],
+   "race_locked": [
+    "etu"
+   ],
+   "effects": {
+    "hooks": [
+     "pre_battle_intel_bonus",
+     "omen_event_seed"
+    ]
+   }
+  },
+  {
+   "id": "et_y_bellum_devout",
+   "name": "Et-y-Bellum Devout",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Holds the faith openly: battle is the sacrament their people were made for.",
+   "tags": [
+    "racial",
+    "faith",
+    "morale",
+    "mixed"
+   ],
+   "race_locked": [
+    "etu"
+   ],
+   "effects": {
+    "hooks": [
+     "divide_start_morale_surge",
+     "cede_loyalty_morale_penalty",
+     "death_or_glory_affinity"
+    ]
+   },
+   "conflicts": [
+    "et_y_bellum_zealot"
+   ],
+   "notes": "Canon id (schema example). Rolled per races.json devotion_lines, not the pool. Cede friction is the ratified spicier variant."
+  },
+  {
+   "id": "et_y_bellum_zealot",
+   "name": "Et-y-Bellum Zealot",
+   "draw": "special",
+   "rarity": "special",
+   "description": "The sacrament is everything. Evacuation is apostasy; a quiet death, heresy.",
+   "tags": [
+    "racial",
+    "faith",
+    "morale",
+    "mixed"
+   ],
+   "race_locked": [
+    "etu"
+   ],
+   "effects": {
+    "hooks": [
+     "divide_start_morale_surge_major",
+     "cede_loyalty_morale_penalty_major",
+     "resists_medical_evac",
+     "death_or_glory_affinity",
+     "honorific_et_prefix"
+    ]
+   },
+   "conflicts": [
+    "et_y_bellum_devout"
+   ],
+   "notes": "Zealots take the Et- honorific (ratified). Rolled per races.json devotion_lines."
+  },
+  {
+   "id": "battle_joy",
+   "name": "Battle-Joy",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Grins wider as the fight gets worse. Steadies, where others shake.",
+   "tags": [
+    "racial",
+    "composure",
+    "positive"
+   ],
+   "race_locked": [
+    "attorak"
+   ],
+   "effects": {
+    "hooks": [
+     "composure_up_as_intensity_rises"
+    ]
+   },
+   "notes": "The disciplined rendering of the withdrawn frenzy idea (ratified)."
+  },
+  {
+   "id": "mimic_call",
+   "name": "Mimic Call",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Can throw a rival captain's voice fifty meters into the wrong ravine.",
+   "tags": [
+    "racial",
+    "utility",
+    "positive"
+   ],
+   "race_locked": [
+    "attorak"
+   ],
+   "effects": {
+    "hooks": [
+     "comms_decoy_utility",
+     "broadcast_color"
+    ]
+   },
+   "notes": "From the canon naming lore — vocal mimics produced in youth."
+  },
+  {
+   "id": "broadcast_savage",
+   "name": "Broadcast Savage",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Fights like the cameras are the audience they were born for. The cameras agree.",
+   "tags": [
+    "racial",
+    "media",
+    "positive"
+   ],
+   "race_locked": [
+    "attorak"
+   ],
+   "effects": {
+    "hooks": [
+     "fame_gain_up_on_aggression",
+     "crowd_legible_savagery"
+    ]
+   }
+  },
+  {
+   "id": "patient_hunter",
+   "name": "Patient Hunter",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Will hold a sightline for a day and a night, and call the wait pleasant.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "overwatch_bonus",
+     "stakeout_fatigue_reduced"
+    ]
+   },
+   "notes": "Canon id — appears in the fighter.schema.json example."
+  },
+  {
+   "id": "ambush_instinct",
+   "name": "Ambush Instinct",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "The first volley is theirs. It usually decides the rest.",
+   "tags": [
+    "racial",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "first_strike_bonus",
+     "unspotted_open_fire_bonus"
+    ]
+   }
+  },
+  {
+   "id": "goggle_tinkerer",
+   "name": "Goggle Tinkerer",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Never stops adjusting the optics — theirs, yours, the squad's, the drone they caught.",
+   "tags": [
+    "racial",
+    "utility",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "optics_gear_synergy"
+    ]
+   }
+  },
+  {
+   "id": "psion_battle_sense",
+   "name": "Psion: Battle-Sense",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Feels the shot a heartbeat before the trigger. Moves first.",
+   "tags": [
+    "racial",
+    "psionic",
+    "combat",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "evasion_surge",
+     "psionic_broadcast_sensation"
+    ]
+   },
+   "conflicts": [
+    "psion_squad_link",
+    "psion_pressure_read"
+   ],
+   "notes": "Psionics scope per RACES.md: rare line, one expression per psion. Rolled per races.json psionics rates."
+  },
+  {
+   "id": "psion_squad_link",
+   "name": "Psion: Squad-Link",
+   "draw": "special",
+   "rarity": "special",
+   "description": "A whisper of the Mon-Wa gift: the squad simply knows where they are.",
+   "tags": [
+    "racial",
+    "psionic",
+    "support",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "squad_coordination_bonus",
+     "psionic_broadcast_sensation"
+    ]
+   },
+   "conflicts": [
+    "psion_battle_sense",
+    "psion_pressure_read"
+   ]
+  },
+  {
+   "id": "psion_pressure_read",
+   "name": "Psion: Pressure-Read",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Sits in on negotiations. Tells you, afterward, which offers were bluffs.",
+   "tags": [
+    "racial",
+    "psionic",
+    "negotiation",
+    "positive"
+   ],
+   "race_locked": [
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "negotiation_bluff_detection",
+     "manager_facing_utility"
+    ]
+   },
+   "conflicts": [
+    "psion_battle_sense",
+    "psion_squad_link"
+   ],
+   "notes": "The manager-facing expression — feeds the Step 6 negotiation engine."
+  },
+  {
+   "id": "cradleborn_resentment",
+   "name": "Cradleborn Resentment",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Serves the fleet that spent their homeworld, and never once forgets it did.",
+   "tags": [
+    "line",
+    "loyalty",
+    "mixed"
+   ],
+   "effects": {
+    "loyalty_mod": -8,
+    "hooks": [
+     "loyalty_cap_reduced",
+     "delicacy_harvest_friction",
+     "cradle_camp_event_seed",
+     "ankoth_sympathy_chemistry"
+    ]
+   },
+   "notes": "Canon thread (DESIGN.md §2.18, §3.3). Never rolls on humans — the Spent Cradles are not theirs to mourn. Rates per races.json resentment_rate."
+  },
+  {
+   "id": "ankoth_sympathizer",
+   "name": "Ankoth Sympathizer",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Has read the pamphlets. Privately thinks the banished had a point about the Divide.",
+   "tags": [
+    "line",
+    "scandal",
+    "hidden"
+   ],
+   "effects": {
+    "hooks": [
+     "abolitionist_event_seed",
+     "scandal_seed_step9",
+     "hidden_leaning"
+    ]
+   },
+   "notes": "Quiet undercurrent per §3.5 — any race, humans included; far likelier alongside cradleborn_resentment. Rates in recruitment.json. Scandal system lands at Step 9."
+  },
+  {
+   "id": "keshu_grudge",
+   "name": "Keshu Grudge",
+   "draw": "special",
+   "rarity": "special",
+   "description": "The War for Keshu ended fifty-five years ago. Some households never signed the peace.",
+   "tags": [
+    "line",
+    "personality",
+    "mixed"
+   ],
+   "race_locked": [
+    "attorak",
+    "gil"
+   ],
+   "effects": {
+    "hooks": [
+     "friction_with_keshu_rival_race",
+     "unlikely_friendship_arc_seed"
+    ]
+   },
+   "notes": "Ratified spice from RACES.md — friction with the other Keshu race, or the long road to an unlikely friendship. Rates in recruitment.json."
+  }
+ ]
+}

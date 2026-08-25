@@ -1,0 +1,199 @@
+{
+ "_meta": {
+  "file": "recruitment.json",
+  "version": "0.10",
+  "date": "2026-08-15",
+  "status": "Step 2 ratified (V3-V6, V15-V17); batch defaults rescaled for COMBAT.md squads",
+  "sources": "DESIGN.md v0.4 \u00a74 (calendar windows) \u00b7 \u00a710 (pools) \u00b7 fighter.schema.json contract block + example (pricing calibration anchor)",
+  "provenance_notes": [
+   "Everything here is (proposed) tuning data. The pricing model is calibrated so the schema's example fighter (Sczaa Vex: quality ~84 QP, prisoner, salary 400, auctioned ~2200) reproduces naturally.",
+   "quality_shift is the per-fighter talent offset added to every stat roll's mean; each pool samples it differently.",
+   "Prisoner contracts: freedom.divides_required is set PER CONTRACT (canon) \u2014 sampled from freedom_divides_weights at auction; divides_served starts at 0 for new lots.",
+   "Salary unit: credits per prep month (schema). death_benefit multiplies salary; Nattie pensions highest (canon, \u00a79).",
+   "v0.2: batch_defaults 12 -> 8 to match the ratified squad size (COMBAT.md 2.1: 24-fighter drop force in three squads of eight). generateBatch(rng, {pool, count: 8}) now yields exactly one legal squad.",
+   "qp_weights re-tune from combat telemetry is [OPEN-C4], deferred to Step 3b/10 per COMBAT.md C11 \u2014 combat is designed clean and pricing follows it, not the reverse."
+  ],
+  "balance_note": "All constants are batch-telemetry targets for Step 10; the roller exists so flavor can be judged before math is sacred."
+ },
+ "stat_model": {
+  "base_mean": 8.5,
+  "base_sd": 2.8,
+  "clamp": [
+   1,
+   20
+  ],
+  "note": "Per stat: round(normal(base_mean + quality_shift, base_sd)) + race lean, clamped; race stat_floor applied after."
+ },
+ "potential_model": {
+  "gap_by_age": "Gap above current max stat shrinks with age: mean gap 5.0 at recruit_min, ~0.5 by prime end, floor 0.",
+  "gap_start_mean": 5.0,
+  "gap_end_mean": 0.5,
+  "gap_sd": 1.6,
+  "note": "potential = clamp(maxCurrentStat + gap, maxCurrentStat, 20). HIDDEN \u2014 the roller's X-ray view shows truth; the broadcast view shows the scout estimate."
+ },
+ "scout_model": {
+  "estimate_sd": 2.0,
+  "star_divisor": 4,
+  "note": "Scout estimate = potential + normal(0, estimate_sd); shown as a \u00b11 star band (stars = round(est/star_divisor), 1\u20135)."
+ },
+ "pools": {
+  "nattie": {
+   "label": "Nattie Tryouts",
+   "window": "T2 (M3\u20134)",
+   "age_band": "recruit_min .. recruit_min+8, skewed young",
+   "quality_shift": {
+    "mean": -0.5,
+    "sd": 1.2
+   },
+   "loyalty_mod": 15,
+   "fame_range": [
+    0,
+    5
+   ],
+   "salary_mult": 0.8,
+   "signing_cost": 0,
+   "death_benefit_mult": 10,
+   "death_benefit_note": "Family pensions on your own ship \u2014 highest in the fleet (canon).",
+   "seasons_range": [
+    3,
+    4
+   ],
+   "experience": "green: 0 Divides; 0\u20131 Dividends",
+   "corp_weighted": true,
+   "corp_note": "Ship populations weight Nattie pools \u2014 races.json pool_weights \u00d7 oa_profiles race_weights."
+  },
+  "mercenary": {
+   "label": "Merc Market",
+   "window": "T5 deadline (M9\u201310)",
+   "age_band": "prime-centered, wide",
+   "quality_shift": {
+    "mean": 1.3,
+    "sd": 1.2
+   },
+   "loyalty_mod": -10,
+   "fame_range": [
+    0,
+    45
+   ],
+   "salary_mult": 1.35,
+   "signing_bonus_formula": "salary \u00d7 (2 + 0.8 \u00d7 seasons + 0.02 \u00d7 fame)",
+   "death_benefit_mult": 4,
+   "seasons_range": [
+    1,
+    3
+   ],
+   "experience": "veteran: divides \u2248 0.45 \u00d7 years past prime start (cap 12); battles 2\u20135\u00d7 divides; dividends 0\u20136",
+   "corp_weighted": false
+  },
+  "prisoner": {
+   "label": "Kier Bastille Auction",
+   "window": "T4 (M7\u20138)",
+   "age_band": "recruit_min+3 .. decline+4, wide",
+   "quality_shift": {
+    "mean": 0.3,
+    "sd": 2.0
+   },
+   "quality_note": "High variance \u2014 the Bastille sells busts and diamonds in the same lot sheet.",
+   "loyalty_mod": -20,
+   "fame_range": [
+    0,
+    25
+   ],
+   "fame_note": "Notoriety counts as fame. Fame measures how much attention is on a person, not whether the fleet is glad or sorry \u2014 see REPUTATION.md R11. A prisoner is not a category of heel.",
+   "salary_mult": 0.55,
+   "auction_price_formula": "prisoner_salary \u00d7 (2.5 + 1.2 \u00d7 divides_required) \u00d7 potential_premium",
+   "potential_premium": "1 + 0.06 \u00d7 max(0, scout_estimate \u2212 12), young lots only",
+   "death_benefit_mult": 1.25,
+   "death_benefit_note": "A Kier formality, not a pension.",
+   "seasons_range": [
+    2,
+    4
+   ],
+   "freedom_divides_weights": {
+    "1": 1,
+    "2": 3,
+    "3": 4,
+    "4": 2,
+    "5": 1
+   },
+   "arrival_injury_chance": 0.15,
+   "arrival_injury_note": "Lots sell as-is: 15% arrive with a lingering minor injury (proposed).",
+   "experience": "checkered: some arrive green, some with prior Divides served under other banners",
+   "corp_weighted": false
+  }
+ },
+ "pricing": {
+  "salary_base": 400,
+  "qp_norm": 64,
+  "qp_exponent": 2.2,
+  "qp_weights": {
+   "aim": 1.25,
+   "grit": 1.0,
+   "reflex": 1.0,
+   "fieldcraft": 1.0,
+   "tactics": 1.0,
+   "presence": 0.6,
+   "resolve": 0.85
+  },
+  "prime_factor": {
+   "pre_prime": 0.85,
+   "in_prime": 1.0,
+   "declining": 0.8
+  },
+  "round_to": 10,
+  "note": "salary = round(salary_base \u00d7 (QP/qp_norm)^qp_exponent \u00d7 race salary_mult \u00d7 pool salary_mult \u00d7 prime_factor). Aim weighted highest \u2014 the sole attack aptitude."
+ },
+ "trait_model": {
+  "count_weights": {
+   "1": 4,
+   "2": 5,
+   "3": 2
+  },
+  "rarity_weights": {
+   "common": 10,
+   "uncommon": 5,
+   "rare": 2
+  },
+  "human_variety_note": "races.json trait_variety_bonus adds +30% chance of one extra pool trait for humans.",
+  "special_lines": {
+   "ankoth_sympathizer_base": 0.015,
+   "ankoth_sympathizer_with_resentment_mult": 3.0,
+   "keshu_grudge_rate": 0.1,
+   "note": "cradleborn_resentment rates live per-race in races.json; devotion in races.json etu.special; psionics in races.json gil.special."
+  },
+  "batch_repeat_decay": 0.35,
+  "batch_repeat_note": "Within one recruitment batch, each prior appearance of a trait multiplies its draw weight by this decay (shuffle-bag style anti-repetition). Deterministic; per-fighter distributions unchanged in isolation. (proposed)"
+ },
+ "callsigns": {
+  "chance_at_fame": 35,
+  "note": "Broadcast nicknames are typically earned through fame events (schema); market veterans at fame \u2265 35 may arrive already carrying one.",
+  "bank": [
+   "Lowlight",
+   "Halfday",
+   "Redletter",
+   "Longwait",
+   "Driftfire",
+   "Palegate",
+   "Lastcall",
+   "Overcast",
+   "Byword",
+   "Splitshot",
+   "Coldopen",
+   "Farside",
+   "Nearmiss",
+   "Undertow",
+   "Bellwether",
+   "Whiteout",
+   "Sundog",
+   "Quietus",
+   "Backdraft",
+   "Evenkeel"
+  ]
+ },
+ "batch_defaults": {
+  "nattie": 8,
+  "mercenary": 8,
+  "prisoner": 8,
+  "note": "One squad per batch (COMBAT.md 2.1). A full drop force is three batches; a roster is 28-34."
+ }
+}

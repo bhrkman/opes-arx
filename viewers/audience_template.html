@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Audience Board — three seasons of standing</title>
+<style>
+:root{
+  --void:#14111c; --panel:#1b1826; --panel-2:#221d2f; --rule:#2e2740;
+  --bone:#e8e3d9; --dim:#8b8397; --dimmer:#5f5872;
+  --aleas:#b08d3e; --blood:#8f1d1d; --stable:#5f7a3d; --warm:#c96a3a;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--void);color:var(--bone);font-family:var(--mono);font-size:13px;
+  line-height:1.5;font-variant-numeric:tabular-nums;min-height:100vh;
+  background-image:radial-gradient(ellipse at 50% -10%,#241d33 0%,var(--void) 60%)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 90px}
+.lbl{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+header{border-bottom:1px solid var(--rule);padding:20px 0 14px;margin-bottom:18px}
+.mark{font-family:var(--ui);font-weight:700;font-size:20px;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:9px}
+.mark b{color:var(--aleas)} .dot{width:7px;height:7px;border-radius:50%;background:var(--aleas)}
+.thesis{max-width:70ch;margin:10px 0 0;color:var(--dim);font-size:12.5px}
+.thesis em{color:var(--bone);font-style:normal}
+
+.tabs{display:flex;gap:6px;margin:16px 0 20px;flex-wrap:wrap}
+.tab{background:var(--panel);border:1px solid var(--rule);color:var(--dim);
+  padding:8px 14px;border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:12px}
+.tab:hover{border-color:var(--dimmer);color:var(--bone)}
+.tab.on{background:var(--panel-2);border-color:var(--aleas);color:var(--bone)}
+
+.planet{background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+  padding:14px;margin-bottom:18px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.planet .col{min-width:130px}
+.big{font-size:19px;font-family:var(--ui);font-weight:600;letter-spacing:-.01em}
+.res{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;max-width:600px}
+.chip{border:1px solid var(--rule);border-radius:2px;padding:2px 7px;font-size:11px;
+  background:var(--panel-2)}
+.chip i{font-style:normal;color:var(--dim)}
+.cat-minerals{border-left:2px solid #7f8c9b} .cat-fuels{border-left:2px solid var(--warm)}
+.cat-luxuries{border-left:2px solid var(--aleas)} .cat-foods{border-left:2px solid var(--stable)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.card h3{margin:0;padding:11px 13px;font-family:var(--ui);font-size:14px;font-weight:600;
+  border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:8px;
+  background:var(--panel-2)}
+.swatch{width:9px;height:9px;border-radius:2px;flex:none}
+.place{margin-left:auto;font-size:11px;color:var(--dim);font-family:var(--mono)}
+.place b{color:var(--bone);font-size:13px}
+.card .body{padding:11px 13px}
+
+.meter{margin:9px 0}
+.meter .top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;cursor:pointer}
+.meter .top:hover .nm{color:var(--bone)}
+.nm{color:var(--dim)} .vl{font-variant-numeric:tabular-nums}
+.bar{position:relative;height:7px;background:#191524;border:1px solid var(--rule);border-radius:2px}
+.mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--dimmer)}
+.fill{position:absolute;top:0;bottom:0;border-radius:1px}
+.fill.pos{background:var(--stable)} .fill.neg{background:var(--blood)}
+.ghost{position:absolute;top:0;bottom:0;border:1px dashed var(--dimmer);border-radius:1px;opacity:.65}
+.delta{font-size:10px;color:var(--dim);margin-left:6px}
+.delta.up{color:var(--stable)} .delta.dn{color:var(--warm)}
+
+.why{display:none;margin:4px 0 10px;padding:8px 9px;background:#181423;
+  border:1px solid var(--rule);border-radius:2px}
+.why.on{display:block}
+.why table{width:100%;border-collapse:collapse;font-size:11px}
+.why td{padding:2px 0;vertical-align:top}
+.why td.n{text-align:right;white-space:nowrap;padding-left:8px}
+.why .hl{color:var(--aleas)}
+.why .none{color:var(--dimmer);font-size:11px}
+.pos{color:var(--stable)} .neg{color:var(--warm)}
+
+.sec{border-top:1px solid var(--rule);margin-top:11px;padding-top:10px}
+.demands{list-style:none;margin:5px 0 0;padding:0;font-size:11.5px}
+.demands li{display:flex;gap:7px;padding:2px 0;align-items:baseline}
+.demands .tick{width:12px;flex:none;text-align:center}
+.met{color:var(--stable)} .missed{color:var(--warm)}
+.prio{border-left:2px solid var(--aleas);padding-left:6px;margin-left:-8px}
+.pat{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:11.5px}
+.band{font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.quote{font-size:11.5px;color:var(--dim);margin:6px 0 0;font-style:italic}
+.quote b{color:var(--bone);font-style:normal}
+.saidline{font-size:11px;margin-top:5px}
+.rivals{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px;margin-top:6px}
+.rv{font-size:10.5px;border:1px solid var(--rule);border-radius:2px;padding:3px 5px;
+  display:flex;justify-content:space-between;background:#181423;cursor:pointer}
+.rv:hover{border-color:var(--dimmer)}
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--rule);color:var(--dimmer);
+  font-size:11.5px;max-width:78ch}
+.foot b{color:var(--dim)}
+code{background:#181423;border:1px solid var(--rule);border-radius:2px;padding:0 4px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="mark"><span class="dot"></span>The Audience <b>Board</b></div>
+  <p class="thesis">Three seasons, run through the real modules with the reputation records handed
+  forward. <em>Every number here moved because of something that happened</em> — click any meter to
+  see what the audience is remembering and how much of it has faded. Standing is never stored;
+  it is computed from a list of acts, each decaying toward a residue that never washes off.</p>
+</header>
+
+<div class="tabs" id="tabs"></div>
+<div id="planet"></div>
+<div class="grid" id="grid"></div>
+
+<div class="foot" id="foot"></div>
+</div>
+
+<script>window.AUD = /*__DATA__*/null;</script>
+<script>
+(function(){
+  const D = window.AUD, K = D.K;
+  let sel = 0;
+
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const sgn = v => (v > 0 ? '+' : '') + v.toFixed(1);
+  const ACTNAME = {
+    won_planet:'took the planet', finished:'where they finished', ceded:'ceded the claim',
+    stood_down:'stood down', bought_win:'bought the win', refused_all:'refused every offer',
+    kept_truce:'kept a truce', broke_truce:'broke a truce', betrayed:'betrayed a banner',
+    betrayed_covered:'a shot the camera missed', ransomed_home:'bought their people back',
+    abandoned_ours:'left their people', released_captives:'released captives',
+    killed_captives:'killed captives', kept_captive:'kept a captive', our_dead:'their own dead',
+    their_dead:'the dead they made', worthy_fight:'fought somebody worth beating',
+    hid:'was not seen fighting', last_ground:'still standing at the finish',
+    said_gracious:'was gracious about it', said_defiant:'was defiant about it',
+    said_humble:'took it on themselves', said_deflecting:'blamed the rulings',
+    said_candid:'said the quiet part', said_evasive:'said nothing, at length'
+  };
+  const DEMAND = d => ({
+    resource: 'Bring back ' + (d.resource||'').replace(/_/g,' ') + ' (' + d.category + ')',
+    placement: 'Finish ' + d.at + ' or better',
+    win: 'Take the planet',
+    surplus: 'End ' + (d.amount||0).toLocaleString('en-US') + ' up',
+    losses: 'No more than ' + d.max + ' of ours',
+    stipend: 'Do it on the stipend',
+    standing: 'Above ' + d.above + ' with the fleet'
+  })[d.kind] || d.kind;
+
+  function meter(label, key, before, after, id, corpId){
+    const w = v => Math.abs(v) / K.ceil * 50;
+    const cls = after >= 0 ? 'pos' : 'neg';
+    const left = after >= 0 ? 50 : 50 - w(after);
+    const dl = after - before;
+    const dcls = dl > 0.05 ? 'up' : dl < -0.05 ? 'dn' : '';
+    const darr = Math.abs(dl) < 0.05 ? '' : (dl > 0 ? '▲' : '▼') + Math.abs(dl).toFixed(1);
+    return '<div class="meter">' +
+      '<div class="top" data-why="'+id+'" data-corp="'+corpId+'">' +
+        '<span class="nm">' + label + '</span>' +
+        '<span class="vl">' + sgn(after) + '<span class="delta ' + dcls + '">' + darr + '</span></span>' +
+      '</div>' +
+      '<div class="bar"><div class="mid"></div>' +
+        '<div class="fill ' + cls + '" style="left:' + left + '%;width:' + w(after) + '%"></div>' +
+      '</div></div>' +
+      '<div class="why" id="why-' + corpId + '-' + id + '"></div>';
+  }
+
+  function whyTable(acts){
+    if (!acts || !acts.length) return '<div class="none">Nothing remembered yet.</div>';
+    return '<table>' + acts.map(a =>
+      '<tr><td class="' + (a.headline ? 'hl' : '') + '">' +
+      (a.headline ? '★ ' : '') + esc(ACTNAME[a.act] || a.act) +
+      ' <span style="color:var(--dimmer)">s' + a.season + '</span></td>' +
+      '<td class="n ' + (a.now >= 0 ? 'pos' : 'neg') + '">' + sgn(a.now) + '</td>' +
+      '<td class="n" style="color:var(--dimmer)">was ' + sgn(a.at) + '</td></tr>').join('') +
+      '</table>';
+  }
+
+  function render(){
+    const S = D.seasons[sel];
+    document.getElementById('tabs').innerHTML = D.seasons.map((s,i) =>
+      '<div class="tab' + (i===sel?' on':'') + '" data-i="'+i+'">Season ' + s.season +
+      ' <span style="color:var(--dimmer)">· ' + esc(D.NAME[s.winner]||'—') + '</span></div>').join('');
+
+    const p = S.planet;
+    document.getElementById('planet').innerHTML =
+      '<div class="planet">' +
+        '<div class="col"><div class="lbl">The planet</div><div class="big">' + esc(p.name) + '</div>' +
+          '<div style="color:var(--dim);font-size:11.5px">richness ' + p.richness.toFixed(3) +
+          ' · pot ' + p.pot.toLocaleString('en-US') + '</div></div>' +
+        '<div class="col" style="flex:1"><div class="lbl">What is down there — the survey the board writes its card against</div>' +
+          '<div class="res">' + p.composition.map(r =>
+            '<span class="chip cat-' + r.category + '">' + esc(r.name) +
+            ' <i>d' + r.density.toFixed(2) + '</i></span>').join('') + '</div></div>' +
+        '<div class="col"><div class="lbl">Ran</div><div class="big">' + S.days + ' days</div>' +
+          '<div style="color:var(--dim);font-size:11.5px">' +
+          S.fallen.length + ' banners down</div></div>' +
+      '</div>';
+
+    const order = S.corps.slice().sort((a,b) => a.placement - b.placement);
+    document.getElementById('grid').innerHTML = order.map(c => {
+      const b = c.before, a = c.after;
+      const rivalCells = c.rivalWhy.map(r =>
+        '<div class="rv" data-why="rv-'+r.id+'" data-corp="'+c.id+'">' +
+        '<span style="color:var(--dim)">' + esc(D.TAG[r.id]||r.id) + '</span>' +
+        '<span class="' + (r.now>=0?'pos':'neg') + '">' + sgn(r.now) + '</span></div>' +
+        '<div class="why" id="why-'+c.id+'-rv-'+r.id+'" style="grid-column:1/-1">' +
+        whyTable(r.acts) + '</div>').join('');
+      return '<div class="card">' +
+        '<h3><span class="swatch" style="background:' + (D.COL[c.id]||'#888') + '"></span>' +
+          esc(D.NAME[c.id]) +
+          '<span class="place">' + (c.won ? 'WON' : '') + ' <b>' + c.placement + '</b>/8 · d' + D.DIFF[c.id] + '</span></h3>' +
+        '<div class="body">' +
+          meter('Their own ships', 'own', b.own, a.own, 'own', c.id) +
+          '<div style="margin-top:-6px">' + '</div>' +
+          meter('The wider fleet', 'fleet', b.fleet, a.fleet, 'fleet', c.id) +
+          meter('The Aleas', 'aleas', b.aleas, a.aleas, 'aleas', c.id) +
+
+          '<div class="sec"><div class="lbl">Rival supporters — click any</div>' +
+            '<div class="rivals">' + rivalCells + '</div></div>' +
+
+          '<div class="sec"><div class="lbl">The board asked for</div>' +
+            '<ul class="demands">' + c.goal.lines.map((l,i) =>
+              '<li class="' + (l.priority ? 'prio' : '') + '">' +
+              '<span class="tick ' + (l.met?'met':'missed') + '">' + (l.met?'✓':'✗') + '</span>' +
+              '<span>' + esc(DEMAND(l.demand)) + (l.priority ? ' <span style="color:var(--aleas);font-size:10px">PRIORITY</span>' : '') +
+              '</span></li>').join('') + '</ul>' +
+            '<div class="pat"><span>Board patience ' +
+              '<b>' + c.board.patience.toFixed(0) + '</b>' +
+              '<span class="delta ' + (c.board.delta>=0?'up':'dn') + '">' +
+              (c.board.delta>=0?'▲':'▼') + Math.abs(c.board.delta).toFixed(1) + '</span></span>' +
+              '<span class="band" style="color:' + (c.board.delta>=0?'var(--stable)':'var(--warm)') + '">' +
+              esc(c.board.band) + '</span></div>' +
+            (c.call > 0 ? '<div style="font-size:11px;color:var(--warm);margin-top:3px">' +
+              'Called on the board for ' + c.call.toLocaleString('en-US') +
+              ' — cost ' + c.patienceCost.toFixed(2) + ' patience</div>' : '') +
+          '</div>' +
+
+          '<div class="sec"><div class="lbl">Afterwards, on air</div>' +
+            '<p class="quote">“' + esc(c.question) + '”</p>' +
+            '<div class="saidline">They answered <b style="color:var(--aleas)">' + c.register + '</b>' +
+            (c.speaker ? ' — through ' + esc(c.speaker.name) + ' <span style="color:var(--dimmer)">(fame ' + c.speaker.fame + ')</span>' : '') +
+            '</div>' +
+            '<div class="saidline">' + c.said.map(m =>
+              '<span class="chip">' + m.audience + ' <i class="' + (m.by>=0?'pos':'neg') + '">' +
+              sgn(m.by) + '</i></span>').join(' ') + '</div>' +
+          '</div>' +
+        '</div></div>';
+    }).join('');
+
+    /* the memory panels, filled after the cards exist */
+    for (const c of S.corps) {
+      for (const k of ['own','fleet','aleas']) {
+        const el = document.getElementById('why-' + c.id + '-' + k);
+        if (el) el.innerHTML = whyTable(c.why[k]);
+      }
+    }
+
+    document.getElementById('foot').innerHTML =
+      '<b>How to read it.</b> The dashed edge on nothing is deliberate — the bar shows where a corp ' +
+      'stands now, and the small ▲▼ is how far this season moved it. A ★ is a headline: an act above ' +
+      K.headline + ' points, which gets a long memory and its full residue. “was” is what the act was ' +
+      'worth on the day; the number beside it is what is still being felt after decay, at a half-life of ' +
+      K.halflife + ' seasons toward a residue of ' + K.residue + '. Ordinary conduct fades to about a ' +
+      'fifth of itself; a betrayal does not fade in any way that matters.<br><br>' +
+      '<b>Nothing here is scored.</b> Placement pays no credits — one OA takes the planet and the losers ' +
+      'get the bill for their dead. What a finish buys is standing and a line on the board’s card. ' +
+      'And the board never cuts a failing corp’s money: a manager who needs more may always have it, at ' +
+      K.callRate + ' patience per ten thousand credits, escalating. That is where difficulty lives now — ' +
+      'not in who ends the year poorest, but in who ends it closest to being fired.';
+  }
+
+  document.addEventListener('click', function(e){
+    const tab = e.target.closest('.tab');
+    if (tab) { sel = +tab.dataset.i; render(); window.scrollTo(0,0); return; }
+    const t = e.target.closest('[data-why]');
+    if (t) {
+      const el = document.getElementById('why-' + t.dataset.corp + '-' + t.dataset.why);
+      if (el) el.classList.toggle('on');
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

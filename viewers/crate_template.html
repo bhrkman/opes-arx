@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Crate — Opes Arx: The Capital Divide</title>
+<style>
+  :root{
+    --ink:#e9e4dc; --dim:#9a9187; --faint:#6b635a;
+    --bg:#14120f; --panel:#1c1916; --edge:#2e2823;
+    --violet:#9d7cd8; --gold:#d8a657; --red:#d16a5e; --green:#89b482;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace;padding:28px 20px 70px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:.02em}
+  h1 .sub{color:var(--violet)}
+  .lede{color:var(--dim);max-width:78ch;margin:0 0 26px;font-size:13.5px}
+  .lede b{color:var(--ink);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;
+         padding:16px 18px;margin:0 0 18px}
+  .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
+  .panel .note{color:var(--faint);font-size:12.5px;margin:0 0 14px;max-width:80ch}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+  label{color:var(--dim);font-size:12.5px}
+  select,button{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
+                border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
+  button{cursor:pointer;border-color:#43392f}
+  button:hover{background:#2e2721;border-color:var(--violet)}
+  button:disabled{opacity:.45;cursor:default}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{text-align:left;padding:5px 9px 5px 0;vertical-align:top}
+  th{color:var(--faint);font-weight:400;border-bottom:1px solid var(--edge);
+     font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+  tr.got td{background:rgba(157,124,216,.10)}
+  .tags span{display:inline-block;background:#2a2420;border:1px solid #3a322b;color:var(--dim);
+             border-radius:3px;padding:0 5px;margin:1px 3px 1px 0;font-size:11px}
+  .gone{text-decoration:line-through;opacity:.45}
+  .lost span{background:rgba(209,106,94,.13);border-color:rgba(209,106,94,.35);color:#c9857c}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.cols{grid-template-columns:1fr}}
+  .v{color:var(--gold)} .g{color:var(--green)} .r{color:var(--red)} .p{color:var(--violet)}
+  .big{font-size:26px;letter-spacing:-.01em}
+  .foot{color:var(--faint);font-size:12px;margin-top:6px}
+  .bar{height:5px;background:#241f1b;border-radius:3px;overflow:hidden;margin-top:5px}
+  .bar i{display:block;height:100%;background:var(--violet)}
+  code{color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The Crate <span class="sub">— what a sponsor's cache hands over</span></h1>
+<p class="lede">
+  Every number and every item on this page is produced by the same modules the game runs:
+  <code>prng · roster · items · combat · tactical · divide</code>, inlined below and executed here.
+  The crate is opened by <b>the real <code>openCrate</code></b> exported from <code>divide.js</code>,
+  not by a copy of it — so this page cannot drift away from the engine the way a hand-written
+  mirror would. Reload for a different squad.
+</p>
+
+<div class="panel">
+  <h2>The squad, as mustered</h2>
+  <p class="note">
+    Eight bodies off the real generator, armed from the catalog the way a mid-table corp arms one.
+    What each weapon <i>is</i> — its quirks, its damage type, the armour resistances behind it — is
+    the whole of what Step 7.5 built.
+  </p>
+  <div class="controls">
+    <label>squad seed <select id="seed"></select></label>
+    <button id="reroll">new squad</button>
+  </div>
+  <table id="muster"></table>
+</div>
+
+<div class="panel">
+  <h2>What the old scalar did to it</h2>
+  <p class="note">
+    Until Step 8.5 a looted cache set a squad-wide <code>gearTier</code>, and the resolver read that
+    tier by <b>replacing every fighter's weapon object</b> with a bare
+    <code>{power, range, tier}</code> and their armour with a bare <code>{protection}</code>.
+    Struck through below is exactly what was discarded, for the rest of the Divide, from the squad
+    that had just been <i>rewarded</i>. Measured across six Divides: 64 firings, 291 fighter-fights,
+    339 tags thrown away. This panel is an illustration of deleted behaviour — it is the one thing
+    here that is not live, because the code no longer exists to run.
+  </p>
+  <table id="old"></table>
+</div>
+
+<div class="panel">
+  <h2>What it hands over now</h2>
+  <p class="note">
+    One primary or armour piece at the best ordinary grade at or below the crate's tier, to whoever
+    gains most by it, and only if it genuinely upgrades them — so an early tier-2 crate holds
+    nothing a fielded squad wants and passes. Plus supplies. On a tier-5 crate, an exotic
+    sometimes. Everything is a real catalog item, so it keeps its identity and is carried home into
+    the armoury by whoever survives.
+  </p>
+  <div class="controls">
+    <label>crate tier
+      <select id="tier">
+        <option value="2">2 — day 1 wave</option>
+        <option value="3">3 — day 7</option>
+        <option value="4">4 — day 13</option>
+        <option value="5" selected>5 — day 19 and later</option>
+      </select>
+    </label>
+    <label>quartermaster in the squad
+      <select id="knack"><option value="0">no</option><option value="1">yes (Mon-Wa)</option></select>
+    </label>
+    <label>crate seed <select id="cseed"></select></label>
+    <button id="open">open the crate</button>
+  </div>
+  <div id="result"></div>
+</div>
+
+<div class="panel">
+  <h2>Is it worth walking to?</h2>
+  <p class="note">
+    The squad that opened the crate against the same squad that did not, resolved on the grid, both
+    directions with sides swapped, across five grounds. Positive means the crate helped. The
+    project's own rule is that a number needs 200 fights a matchup across two agreeing populations
+    — this runs live and small, so treat it as a demonstration of the machinery and read
+    <code>probe_crate.cjs</code> for the real figure.
+  </p>
+  <div class="controls">
+    <button id="fight">run the fights</button>
+    <span id="progress" class="foot"></span>
+  </div>
+  <div id="duel"></div>
+</div>
+
+<div class="panel">
+  <h2>Measured, at full power</h2>
+  <p class="note">
+    From <code>node probe_crate.cjs 20</code> — 200 fights a matchup a population, both directions,
+    two independent fighter populations. One body upgraded, which is what a crate actually gives.
+  </p>
+  <table>
+    <tr><th>the crate held</th><th>pop A</th><th>pop B</th><th>mean</th><th>populations agree?</th></tr>
+    <tr><td>a tier-3 piece</td><td>+0.090</td><td>−0.010</td><td>+0.040</td><td class="r">no — not a number</td></tr>
+    <tr><td>a tier-4 piece</td><td>−0.015</td><td>−0.005</td><td>−0.010</td><td class="g">yes</td></tr>
+    <tr><td><b>an exotic</b></td><td>+0.245</td><td>+0.155</td><td class="p"><b>+0.200</b></td><td class="g">yes</td></tr>
+  </table>
+  <p class="foot">
+    <b>An ordinary piece to one body is worth nothing measurable, and the exotic is worth a great
+    deal.</b> That is a finding rather than a gap: a crate's value is the 12% chance at something
+    you could never buy, plus supplies, plus a rifle that goes home into the armoury and matters
+    across seasons rather than in this fight. Recorded, not chased — calibration is deferred by
+    ruling.
+  </p>
+</div>
+
+</div>
+
+<script>
+/*__DATA__*/
+</script>
+<script>
+/*__SIM__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var P = window.CDPRNG, ROSTER = window.CDROSTER, ITEMS = window.CDITEMS,
+      C = window.CDCOMBAT, T = window.CDTACTICAL, DIV = window.CDDIVIDE;
+
+  /* In Node these modules bootstrap off the filesystem; in a browser there is none, so the
+     catalogs are handed over explicitly, items first. Same order as bench_template.html. */
+  var A = window.ARX_DATA;
+  ITEMS.init(A.items);
+  ROSTER.initRoster({ races: A.races, traits: A.traits,
+                      recruitment: A.recruitment, oa: A.oa_profiles });
+
+  var MIX = ['itm_carbine','itm_carbine','itm_surplus_rifle','itm_surplus_rifle',
+             'itm_drum_shotgun','itm_battle_rifle','itm_machine_gun','itm_carbine'];
+  var TIER_OLD = {1:{p:2,a:1},2:{p:3,a:2},3:{p:5,a:3},4:{p:7,a:4},5:{p:9,a:5}};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
+
+  for (var i = 1; i <= 12; i++) {
+    var o = document.createElement('option'); o.value = 'sq' + i; o.textContent = 'squad ' + i;
+    $('seed').appendChild(o);
+    var o2 = document.createElement('option'); o2.value = 'cr' + i; o2.textContent = 'crate ' + i;
+    $('cseed').appendChild(o2);
+  }
+
+  function build(seed) {
+    var bodies = ROSTER.generateSquad(P.mulberry32(P.seedFrom(seed)), 8,
+                                      { corpId: 'alliance_house' }).bodies;
+    bodies.forEach(function (b, i) {
+      ITEMS.equip(b, { primary: MIX[i], armor: 'itm_plate_carrier',
+                       sidearm: 'itm_service_pistol', consumables: [] });
+    });
+    return bodies;
+  }
+
+  var squad = null;
+
+  function tagChips(tags, lost) {
+    if (!tags || !tags.length) return '<span style="opacity:.4">no quirks</span>';
+    return tags.map(function (t) {
+      return '<span class="' + (lost ? 'gone' : '') + '">' + esc(t) + '</span>';
+    }).join('');
+  }
+
+  function renderMuster() {
+    var h = '<tr><th>fighter</th><th>weapon</th><th>quirks</th><th>damage</th>' +
+            '<th>armour resists</th></tr>';
+    squad.forEach(function (b) {
+      var w = ITEMS.byId(b.loadout.primary) || {};
+      var a = ITEMS.byId(b.loadout.armor) || {};
+      var e = w.effects || {}, ae = a.effects || {};
+      var r = ae.resist || {};
+      h += '<tr><td>' + esc(b.name) + '</td>' +
+           '<td class="v">' + esc(w.name || '—') + '</td>' +
+           '<td class="tags">' + tagChips(e.tags) + '</td>' +
+           '<td>' + esc(e.damage || '—') + '</td>' +
+           '<td><code>bal ' + (r.ballistic || 0) + ' · en ' + (r.energy || 0) +
+               ' · ex ' + (r.explosive || 0) + '</code></td></tr>';
+    });
+    $('muster').innerHTML = h;
+  }
+
+  function renderOld() {
+    var t = TIER_OLD[4];
+    var h = '<tr><th>fighter</th><th>weapon becomes</th><th>quirks</th><th>damage</th>' +
+            '<th>armour resists</th></tr>';
+    var lostTags = 0;
+    squad.forEach(function (b) {
+      var w = ITEMS.byId(b.loadout.primary) || {};
+      var a = ITEMS.byId(b.loadout.armor) || {};
+      var e = w.effects || {}, ae = a.effects || {}, r = ae.resist || {};
+      lostTags += (e.tags || []).length;
+      h += '<tr><td>' + esc(b.name) + '</td>' +
+           '<td><span class="gone">' + esc(w.name || '—') + '</span> → ' +
+               '<span class="r">generic tier 4, power ' + t.p + '</span></td>' +
+           '<td class="tags lost">' + tagChips(e.tags, true) + '</td>' +
+           '<td><span class="gone">' + esc(e.damage || '—') + '</span> ' +
+               '<span class="r">→ ballistic</span></td>' +
+           '<td><span class="gone">bal ' + (r.ballistic || 0) + ' · en ' + (r.energy || 0) +
+               ' · ex ' + (r.explosive || 0) + '</span> <span class="r">→ none</span></td></tr>';
+    });
+    h += '<tr><td colspan="5" style="padding-top:10px;border-top:1px solid var(--edge)">' +
+         '<span class="r">' + lostTags + ' quirks, 8 damage types and 8 sets of resistances ' +
+         'discarded from this squad</span> — and rate of fire with them, so tempo fell to default ' +
+         'and ammunition was issued against that default.</td></tr>';
+    $('old').innerHTML = h;
+  }
+
+  var opened = null;
+
+  function openCrate() {
+    var tier = parseInt($('tier').value, 10);
+    var knack = $('knack').value === '1';
+    var seed = $('cseed').value;
+
+    /* a fresh copy of the squad, so the panel above stays the "before" */
+    opened = build($('seed').value);
+    var before = opened.map(function (b) {
+      return { primary: b.loadout.primary, armor: b.loadout.armor,
+               cons: (b.loadout.consumables || []).slice() };
+    });
+
+    /* the REAL squad shape openCrate expects. `_hooks` is how this page fakes a
+       quartermaster without inventing a fighter: the trait would grant the hook. */
+    var sq = { bodies: opened, crates: 0, medkits: 0, hasMedkit: false };
+    if (knack) {
+      opened[0].traits = (opened[0].traits || []).concat(['quartermasters_knack']);
+    }
+    var stats = { audit: {} };
+    var gave = DIV.openCrate(P.mulberry32(P.seedFrom(seed + tier + (knack ? 'k' : ''))),
+                             sq, { type: 'sponsor_cache', tier: tier }, stats);
+
+    var rows = '', changed = 0;
+    opened.forEach(function (b, i) {
+      var bw = ITEMS.byId(before[i].primary) || {};
+      var aw = ITEMS.byId(b.loadout.primary) || {};
+      var ba = ITEMS.byId(before[i].armor) || {};
+      var aa = ITEMS.byId(b.loadout.armor) || {};
+      var newCons = (b.loadout.consumables || []).filter(function (c) {
+        var idx = before[i].cons.indexOf(c);
+        if (idx >= 0) { before[i].cons.splice(idx, 1); return false; }
+        return true;
+      });
+      var gotPiece = bw.id !== aw.id || ba.id !== aa.id;
+      if (gotPiece || newCons.length) changed++;
+      var what = [];
+      if (bw.id !== aw.id) {
+        what.push('<span class="p">' + esc(aw.name) + '</span> <span class="foot">(tier ' +
+                  aw.tier + (aw.exotic ? ', <b class="v">EXOTIC</b>' : '') +
+                  ', ' + aw.cost.toLocaleString() + ' cr)</span> replacing ' +
+                  '<span class="gone">' + esc(bw.name) + '</span>');
+      }
+      if (ba.id !== aa.id) {
+        what.push('<span class="p">' + esc(aa.name) + '</span> replacing ' +
+                  '<span class="gone">' + esc(ba.name) + '</span>');
+      }
+      newCons.forEach(function (c) {
+        var it = ITEMS.byId(c) || {};
+        what.push('<span class="g">' + esc(it.name || c) + '</span>');
+      });
+      var keptTags = (aw.effects || {}).tags || [];
+      rows += '<tr class="' + (what.length ? 'got' : '') + '"><td>' + esc(b.name) + '</td>' +
+              '<td>' + (what.length ? what.join('<br>') : '<span style="opacity:.35">—</span>') + '</td>' +
+              '<td class="tags">' + tagChips(keptTags) + '</td></tr>';
+    });
+
+    var a = stats.audit;
+    var head = '<p style="margin:0 0 12px">' +
+      (gave
+        ? '<span class="big g">' + (a.cachePieces || 0) + '</span> piece' +
+          ((a.cachePieces || 0) === 1 ? '' : 's') +
+          ' &nbsp; <span class="big g">' + (a.cacheSupplies || 0) + '</span> supplies' +
+          ((a.cacheExotics ? ' &nbsp; <span class="big v">an exotic</span>' : ''))
+        : '<span class="big r">nothing this squad wanted</span>') +
+      '</p>';
+    if (!gave) {
+      head += '<p class="foot">A tier-' + tier + ' crate holds nothing better than what these ' +
+              'people already carry, so they take the supplies and move on. That is the ' +
+              'escalating waves doing their job: early crates are supplies, late crates are ' +
+              'weapons.</p>';
+    }
+    $('result').innerHTML = head +
+      '<table><tr><th>fighter</th><th>took from the crate</th>' +
+      '<th>quirks they now carry</th></tr>' + rows + '</table>' +
+      '<p class="foot">Every item above is a catalog item, so its quirks, damage type and ' +
+      'resistances came with it — and it goes home into the armoury if its owner survives.</p>';
+  }
+
+  /* ---- the duel ---- */
+  var GROUNDS = ['open_basin', 'broken_ground', 'ruins', 'forest', 'entrenched'];
+
+  function combatants(bodies) {
+    var cap = bodies[0];
+    bodies.forEach(function (b) { if (b.stats.tactics > cap.stats.tactics) cap = b; });
+    return bodies.map(function (f) {
+      return C.makeCombatant(f, { traitIndex: ROSTER.traitById,
+                                  isCaptain: f.id === cap.id, day: 12 });
+    });
+  }
+  function side(tag, units) {
+    return { tag: tag, corpId: tag, policy: 'standard', policyName: 'standard',
+             hasMedkit: true, units: units };
+  }
+
+  function runDuel() {
+    if (!opened) { openCrate(); }
+    $('fight').disabled = true;
+    var withC = 0, without = 0, n = 0, t = 0;
+    var TRIALS = 6;
+
+    function step() {
+      for (var g = 0; g < GROUNDS.length; g++) {
+        for (var s = 0; s < 2; s++) {
+          var swap = s === 1;
+          var crated = combatants(build($('seed').value + t + 'x').map(function (b, i) {
+            /* mirror the crate onto a fresh body set by copying the resolved loadout */
+            b.loadout = JSON.parse(JSON.stringify(opened[i].loadout));
+            return b;
+          }));
+          var bare = combatants(build($('seed').value + t + 'x'));
+          var A = side('A', swap ? bare : crated);
+          var B = side('B', swap ? crated : bare);
+          var r = T.resolve(P.mulberry32(P.seedFrom('demo' + t + g)), A, B,
+                            { terrain: GROUNDS[g], openingBand: (t + g) % 3,
+                              prep: [0.73, 0.73], log: false });
+          var cas = function (x) { return (x.dead || 0) + (x.down || 0); };
+          withC += swap ? cas(r.casualties.B) : cas(r.casualties.A);
+          without += swap ? cas(r.casualties.A) : cas(r.casualties.B);
+          n++;
+        }
+      }
+      t++;
+      $('progress').textContent = (n) + ' fights';
+      if (t < TRIALS) { setTimeout(step, 0); return; }
+      var net = (without - withC) / n;
+      $('duel').innerHTML =
+        '<p style="margin:0"><span class="big ' + (net >= 0 ? 'g' : 'r') + '">' +
+        (net >= 0 ? '+' : '') + net.toFixed(3) + '</span> ' +
+        'net casualties a fight to the squad that opened the crate</p>' +
+        '<p class="foot">' + n + ' fights, sides swapped, five grounds. ' +
+        'Casualties taken: <b>' + withC.toFixed(0) + '</b> with the crate against <b>' +
+        without.toFixed(0) + '</b> without. At this sample size the honest reading of anything ' +
+        'inside about ±0.3 is <i>indistinguishable</i>.</p>';
+      $('fight').disabled = false;
+    }
+    step();
+  }
+
+  function reroll() {
+    squad = build($('seed').value);
+    renderMuster(); renderOld();
+    $('result').innerHTML = '<p class="foot">Open a crate to see what it holds.</p>';
+    $('duel').innerHTML = ''; $('progress').textContent = '';
+    opened = null;
+  }
+
+  $('reroll').addEventListener('click', function () {
+    var sel = $('seed');
+    sel.selectedIndex = (sel.selectedIndex + 1) % sel.options.length;
+    reroll();
+  });
+  $('seed').addEventListener('change', reroll);
+  $('open').addEventListener('click', openCrate);
+  $('fight').addEventListener('click', runDuel);
+
+  reroll();
+})();
+</script>
+</body>
+</html>

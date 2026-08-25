@@ -1,0 +1,2567 @@
+{
+ "_meta": {
+  "file": "items.json",
+  "version": "0.10",
+  "date": "2026-08-15",
+  "status": "Step 5b-1 (plumbing). Catalog per PROCUREMENT.md 4-11; all (proposed).",
+  "sources": "PROCUREMENT.md 4.2 quirk vocabulary, 4.3 price formulae, 5-11 catalog",
+  "provenance_notes": [
+   "Armour carries three resistances — ballistic, energy, explosive — added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
+   "Energy weapons overheat in two or three shots and hold a day's charge, not a fight's: you cannot swap a cell mid-firefight the way you swap a magazine. Their damage runs a point below their ballistic equivalents. The trade is that they never need resupplying (PROCUREMENT.md 6).",
+   "There is NO free kit. Nothing in this catalog costs zero: a corp fields what it owns (its armoury) and buys the rest with treasury credits. A founding armoury carries a corp into season one; losing it is a management failure, not a case for charity (PROCUREMENT.md 3, ruled).",
+   "picks_for names the stat a corp selects that role by: the marksman rifle goes to the best shot in the squad, the scout kit to the best fieldcraft. Deterministic, (proposed), and it is what stops a 5-aim fighter carrying the Whisper.",
+   "roles[] is the baseline squad composition every corp fields (PROCUREMENT.md 15.1). Six roles, a spread of bands, and a candidate list per role. Nobody fields two unit types.",
+   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns — the allowance is free, so preferring cheap would be incoherent.",
+   "doctrines[] are LEANS on that baseline, not replacements for it: a composition bias of a few bodies, an ordered taste in quirks, a mod wishlist, and the order in which the allowance gets spent. ONE source: the armoury page, the document's table and Step 5b-2's AI procurement all read this block.",
+   "Prices with price_model 'formula' are DERIVED from constants.pricing and are regenerated and diffed by `arx.cjs regress`. Editing a formula cost by hand will fail the suite.",
+   "price_model 'scarcity' = exotica, hand-priced; guarded only by the 3x floor against the dearest formula item.",
+   "price_model 'fixed' = mods and consumables, hand-priced; too small and too varied for a formula to price honestly.",
+   "Contraband exists as data with no acquisition path until Step 9 (PROCUREMENT.md 11.2).",
+   "Identity is the weapon, refinement is the mod, tier is only a shelf: no model appears at more than one tier (PROCUREMENT.md 4.1)."
+  ]
+ },
+ "constants": {
+  "pricing": {
+   "WEAPON_BASE": 490,
+   "POWER_COST": 100,
+   "QUIRK_COST": 180,
+   "BULK_REBATE": 30,
+   "SIDEARM_BASE": 120,
+   "SIDEARM_POWER": 45,
+   "SIDEARM_QUIRK": 70,
+   "ARMOR_BASE": 230,
+   "PROTECTION_COST": 130,
+   "ROUND_TO": 10
+  },
+  "TIER_MULT": {
+   "1": 0.45,
+   "2": 0.7,
+   "3": 1,
+   "4": 1.75,
+   "5": 3.6
+  }
+ },
+ "quirks": [
+  {
+   "id": "pierce_1",
+   "effect": "Ignores 1 of the target's protection in the severity roll.",
+   "points": 0.8
+  },
+  {
+   "id": "pierce_2",
+   "effect": "Ignores 2 of the target's protection in the severity roll.",
+   "points": 1.5
+  },
+  {
+   "id": "pierce_3",
+   "effect": "Ignores 3 of the target's protection in the severity roll.",
+   "points": 2.2
+  },
+  {
+   "id": "spread",
+   "effect": "At short band the target's cover counts one grade worse; at long, aim_eff -3.",
+   "points": 1.5
+  },
+  {
+   "id": "suppressive",
+   "effect": "Every shot suppresses its target, hit or miss. A suppressed fighter cannot cross ground.",
+   "points": 1.6
+  },
+  {
+   "id": "suppressive_2",
+   "effect": "Every shot suppresses its target and one neighbour, hit or miss.",
+   "points": 2.6
+  },
+  {
+   "id": "silent",
+   "effect": "First shot does not break unspotted status.",
+   "points": 1.2
+  },
+  {
+   "id": "incendiary",
+   "effect": "+8 severity, burn-injury bias, sportsmanship risk.",
+   "points": 1
+  },
+  {
+   "id": "area",
+   "effect": "Resolves against up to 3 enemies in band.",
+   "points": 1.8
+  },
+  {
+   "id": "burst",
+   "effect": "Fires twice per exchange. Ammunition drains twice as fast.",
+   "points": 1.4
+  },
+  {
+   "id": "stabilized",
+   "effect": "No motion penalty when firing while repositioning.",
+   "points": 0.9
+  },
+  {
+   "id": "sustained",
+   "effect": "Aim improves while you keep firing at the same person, to a maximum of +2. Switching marks resets it.",
+   "points": 1.4
+  },
+  {
+   "id": "smart_link",
+   "effect": "Waives band_mismatch_penalty entirely.",
+   "points": 1.3
+  },
+  {
+   "id": "arc_chain",
+   "effect": "A second enemy in band takes half severity.",
+   "points": 1.4
+  },
+  {
+   "id": "disorient",
+   "effect": "A hit costs the target 8 composure beyond the wound.",
+   "points": 0.9
+  },
+  {
+   "id": "chill",
+   "effect": "A hit costs the target their next reposition.",
+   "points": 1
+  },
+  {
+   "id": "emp",
+   "effect": "Severity x2 against turrets, drones and assault frames, and disables them.",
+   "points": 0.8
+  },
+  {
+   "id": "cover_shred",
+   "effect": "A miss still chips the target's position one grade.",
+   "points": 1.6
+  },
+  {
+   "id": "ricochet",
+   "effect": "A miss has a 25% chance to hit another enemy in band.",
+   "points": 0.7
+  },
+  {
+   "id": "flechette",
+   "effect": "Severity +6 against protection <=1, -6 against protection >=4.",
+   "points": 0.6
+  },
+  {
+   "id": "daylight",
+   "effect": "Charge regenerates x2 by day, x0.5 by night.",
+   "points": 0.5
+  },
+  {
+   "id": "mobile_cover",
+   "effect": "Grants mobile_cover_provider to same-band squadmates while stationary.",
+   "points": 2.5
+  },
+  {
+   "id": "crowd_pleaser",
+   "effect": "Fame on kills.",
+   "points": 0.3
+  },
+  {
+   "id": "single_shot",
+   "effect": "Fires every other exchange, and aims far better for it: +1.7 aim and one point of the target's protection defeated.",
+   "points": -0.2
+  },
+  {
+   "id": "spool",
+   "effect": "Cannot fire on the first exchange of contact.",
+   "points": -0.4
+  },
+  {
+   "id": "recoil_heavy",
+   "effect": "aim_eff -2 in the exchange after repositioning.",
+   "points": -0.5
+  },
+  {
+   "id": "min_band_medium",
+   "effect": "Cannot fire at short band at all.",
+   "points": -0.6
+  },
+  {
+   "id": "vent_2",
+   "effect": "Vents for two exchanges instead of one.",
+   "points": -0.5
+  },
+  {
+   "id": "heavy_draw",
+   "effect": "2 charge per shot.",
+   "points": -0.4
+  },
+  {
+   "id": "mob_up",
+   "effect": "+1 mobility.",
+   "points": 0.3
+  },
+  {
+   "id": "mob_down",
+   "effect": "-1 mobility.",
+   "points": -0.4
+  },
+  {
+   "id": "nonlethal",
+   "effect": "Cannot kill and cannot maim. A fatal hit puts the target down instead, and nothing it does leaves a permanent wound.",
+   "points": -1.4
+  }
+ ],
+ "items": [
+  {
+   "id": "itm_surplus_rifle",
+   "name": "Surplus Long Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 360,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Someone's grandfather carried it. Still works."
+  },
+  {
+   "id": "itm_hunting_rifle",
+   "name": "Hollowpoint Hunting Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 530,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "long",
+    "tags": [
+     "single_shot"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A civilian gun that reaches. Everything else about it is a compromise."
+  },
+  {
+   "id": "itm_pdw",
+   "name": "Sidewinder PDW",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 760,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Two rounds where one was asked for."
+  },
+  {
+   "id": "itm_riot_autogun",
+   "name": "Riot Autogun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 820,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "short",
+    "tags": [
+     "suppressive",
+     "recoil_heavy"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Crowd-control kit that found a war."
+  },
+  {
+   "id": "itm_scattergun",
+   "name": "Ninefold Scattergun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1030,
+   "bulk": 3,
+   "effects": {
+    "power": 8,
+    "range": "short",
+    "tags": [
+     "spread"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Ends rooms."
+  },
+  {
+   "id": "itm_carbine",
+   "name": "Pattern Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 900,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The standard. Everything else is measured against it."
+  },
+  {
+   "id": "itm_bullpup",
+   "name": "Bullpup Pattern-9",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1090,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Short enough to fight while moving."
+  },
+  {
+   "id": "itm_battle_rifle",
+   "name": "Service Battle Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1180,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "sustained",
+     "mob_down"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Full power, full weight. You will feel every metre you carry it."
+  },
+  {
+   "id": "itm_marksman_rifle",
+   "name": "Marksman Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 960,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "long",
+    "tags": [
+     "single_shot"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for."
+  },
+  {
+   "id": "itm_machine_gun",
+   "name": "Belt Machine Gun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1030,
+   "bulk": 5,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "suppressive"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them."
+  },
+  {
+   "id": "itm_drum_shotgun",
+   "name": "Drum Shotgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1590,
+   "bulk": 4,
+   "effects": {
+    "power": 7,
+    "range": "short",
+    "tags": [
+     "spread",
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first."
+  },
+  {
+   "id": "itm_needler",
+   "name": "Flechette Needler",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1040,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "flechette"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Devastating on the unarmoured, a rumour against plate."
+  },
+  {
+   "id": "itm_gyrojet",
+   "name": "Gyrojet Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1130,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "smart_link",
+     "min_band_medium"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Rounds that accelerate - useless until they have flown."
+  },
+  {
+   "id": "itm_caroms",
+   "name": "Caroms Ricochet Gun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 1800,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "ricochet"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Fired at the wall, on purpose."
+  },
+  {
+   "id": "itm_whisper",
+   "name": "Whisper Marksman Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 1950,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "long",
+    "tags": [
+     "silent"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The shot nobody attributes."
+  },
+  {
+   "id": "itm_hardpoint",
+   "name": "Hardpoint Autocannon",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2300,
+   "bulk": 6,
+   "effects": {
+    "power": 7,
+    "range": "medium",
+    "tags": [
+     "suppressive_2",
+     "spool",
+     "recoil_heavy"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A machine gun that stopped apologising."
+  },
+  {
+   "id": "itm_grenade_carbine",
+   "name": "Underslung Grenade Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2260,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "area"
+    ],
+    "damage": "explosive"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Two weapons, one awkward weight."
+  },
+  {
+   "id": "itm_coilgun",
+   "name": "Coil Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2390,
+   "bulk": 4,
+   "effects": {
+    "power": 8,
+    "range": "long",
+    "tags": [
+     "pierce_2",
+     "spool"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Magnetic acceleration. Wait for it."
+  },
+  {
+   "id": "itm_amr",
+   "name": "Anti-Materiel Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2580,
+   "bulk": 5,
+   "effects": {
+    "power": 9,
+    "range": "long",
+    "tags": [
+     "pierce_2",
+     "single_shot"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Built for vehicles. Fielded against people."
+  },
+  {
+   "id": "itm_breachgun",
+   "name": "Breachgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2980,
+   "bulk": 4,
+   "effects": {
+    "power": 9,
+    "range": "short",
+    "tags": [
+     "pierce_1",
+     "cover_shred"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Doesn't shoot around cover. Shoots the cover."
+  },
+  {
+   "id": "itm_las_surplus",
+   "name": "Surplus Las-Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 1,
+   "cost": 360,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [],
+    "damage": "energy",
+    "heat": 4,
+    "heat_cap": 8,
+    "charge": 12
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Cheap, patient, and slow to answer."
+  },
+  {
+   "id": "itm_pulse_carbine",
+   "name": "Pulse Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 980,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "heavy_draw"
+    ],
+    "damage": "energy",
+    "heat": 4,
+    "heat_cap": 8,
+    "charge": 14
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it."
+  },
+  {
+   "id": "itm_las_repeater",
+   "name": "Las-Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 960,
+   "bulk": 5,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "suppressive",
+     "heavy_draw"
+    ],
+    "damage": "energy",
+    "heat": 3,
+    "heat_cap": 9,
+    "charge": 18
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The only energy weapon that can hold an arc, and it hates doing it."
+  },
+  {
+   "id": "itm_ion_carbine",
+   "name": "Ion Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 1110,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "emp",
+     "disorient"
+    ],
+    "damage": "energy",
+    "heat": 4,
+    "heat_cap": 8,
+    "charge": 14
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Terrible against people. Ruinous against machines."
+  },
+  {
+   "id": "itm_accumulator",
+   "name": "Solar Accumulator Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 1060,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "long",
+    "tags": [
+     "daylight"
+    ],
+    "damage": "energy",
+    "heat": 5,
+    "heat_cap": 10,
+    "charge": 10
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Drinks the day. Dreads the night."
+  },
+  {
+   "id": "itm_arc_projector",
+   "name": "Arc Projector",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 1220,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "short",
+    "tags": [
+     "arc_chain"
+    ],
+    "damage": "energy",
+    "heat": 5,
+    "heat_cap": 10,
+    "charge": 12
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Finds the second man without being asked."
+  },
+  {
+   "id": "itm_cryo_lance",
+   "name": "Cryo Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 1910,
+   "bulk": 4,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "chill",
+     "pierce_1"
+    ],
+    "damage": "energy",
+    "heat": 5,
+    "heat_cap": 10,
+    "charge": 12
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Doesn't kill them. Stops them."
+  },
+  {
+   "id": "itm_fusion_repeater",
+   "name": "Micro-Fusion Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 1960,
+   "bulk": 4,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "sustained"
+    ],
+    "damage": "energy",
+    "heat": 4,
+    "heat_cap": 12,
+    "charge": 16
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Gets hotter and better at once."
+  },
+  {
+   "id": "itm_photon_marksman",
+   "name": "Sunline Photon Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 1950,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "long",
+    "tags": [
+     "silent"
+    ],
+    "damage": "energy",
+    "heat": 5,
+    "heat_cap": 10,
+    "charge": 10
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "No report, no flash, no witness."
+  },
+  {
+   "id": "itm_resonance",
+   "name": "Resonance Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2190,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "disorient",
+     "cover_shred"
+    ],
+    "damage": "energy",
+    "heat": 4,
+    "heat_cap": 10,
+    "charge": 14
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Sound goes where the bullet won't."
+  },
+  {
+   "id": "itm_beam_lance",
+   "name": "Beam Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2120,
+   "bulk": 4,
+   "effects": {
+    "power": 7,
+    "range": "long",
+    "tags": [
+     "pierce_1"
+    ],
+    "damage": "energy",
+    "heat": 6,
+    "heat_cap": 12,
+    "charge": 10
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A line drawn through the argument. Once, then twice, then nothing."
+  },
+  {
+   "id": "itm_disintegrator",
+   "name": "Ablation Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2340,
+   "bulk": 5,
+   "effects": {
+    "power": 8,
+    "range": "short",
+    "tags": [
+     "cover_shred",
+     "vent_2"
+    ],
+    "damage": "energy",
+    "heat": 8,
+    "heat_cap": 12,
+    "charge": 8
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Removes the argument and the furniture."
+  },
+  {
+   "id": "itm_plasma_caster",
+   "name": "Plasma Caster",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2540,
+   "bulk": 5,
+   "effects": {
+    "power": 7,
+    "range": "medium",
+    "tags": [
+     "incendiary",
+     "area",
+     "vent_2"
+    ],
+    "damage": "explosive",
+    "heat": 7,
+    "heat_cap": 12,
+    "charge": 8
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The crowd's favourite, the Aleas' paperwork."
+  },
+  {
+   "id": "itm_plasma_thrower",
+   "name": "Plasma Thrower",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2780,
+   "bulk": 5,
+   "effects": {
+    "power": 8,
+    "range": "short",
+    "tags": [
+     "incendiary",
+     "spread"
+    ],
+    "damage": "energy",
+    "heat": 6,
+    "heat_cap": 12,
+    "charge": 10
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Short range, long memory."
+  },
+  {
+   "id": "itm_holdout",
+   "name": "Holdout Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 90,
+   "bulk": 1,
+   "effects": {
+    "power": 2,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Better than a harsh word."
+  },
+  {
+   "id": "itm_flare_pistol",
+   "name": "Flare Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 210,
+   "bulk": 1,
+   "effects": {
+    "power": 2,
+    "range": "short",
+    "tags": [
+     "incendiary",
+     "crowd_pleaser"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Signal kit. Used badly, on camera."
+  },
+  {
+   "id": "itm_service_pistol",
+   "name": "Service Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 260,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Issued, forgotten, occasionally decisive."
+  },
+  {
+   "id": "itm_las_sidearm",
+   "name": "Laser Sidearm",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "energy",
+   "tier": 3,
+   "cost": 260,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "medium",
+    "tags": [],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Fails on a different resource than your rifle."
+  },
+  {
+   "id": "itm_heavy_revolver",
+   "name": "Heavy Revolver",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 250,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "single_shot",
+     "recoil_heavy"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Six chances to be right."
+  },
+  {
+   "id": "itm_machine_pistol",
+   "name": "Machine Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 350,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Empties fast, which is the point."
+  },
+  {
+   "id": "itm_gyro_pistol",
+   "name": "Gyrojet Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 300,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "medium",
+    "tags": [
+     "smart_link",
+     "min_band_medium"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A sidearm with opinions about distance."
+  },
+  {
+   "id": "itm_arc_pistol",
+   "name": "Arc Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "energy",
+   "tier": 3,
+   "cost": 320,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "short",
+    "tags": [
+     "disorient"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Leaves them standing and useless."
+  },
+  {
+   "id": "itm_needle_derringer",
+   "name": "Needle Derringer",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 380,
+   "bulk": 1,
+   "effects": {
+    "power": 3,
+    "range": "short",
+    "tags": [
+     "flechette",
+     "silent"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Two shots, no noise, nothing that troubles plate."
+  },
+  {
+   "id": "itm_compact_plasma",
+   "name": "Compact Plasma",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "energy",
+   "tier": 4,
+   "cost": 650,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "incendiary"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Feels wildly illegal. Entirely legal."
+  },
+  {
+   "id": "itm_scout_weave",
+   "name": "Scout Weave",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 380,
+   "bulk": 1,
+   "effects": {
+    "protection": 1,
+    "mobility": 1,
+    "tags": [
+     "mob_up"
+    ],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": -1
+    }
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Trades the plate for the ground."
+  },
+  {
+   "id": "itm_flak_vest",
+   "name": "Flak Vest",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 460,
+   "bulk": 1,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 2
+    }
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Built for fragments, ordinary against everything else."
+  },
+  {
+   "id": "itm_plate_carrier",
+   "name": "Plate Carrier",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 560,
+   "bulk": 2,
+   "effects": {
+    "protection": 3,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    }
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The honest answer to most of what gets shot at you."
+  },
+  {
+   "id": "itm_ablative_harness",
+   "name": "Ablative Harness",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1210,
+   "bulk": 2,
+   "effects": {
+    "protection": 4,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": -2,
+     "energy": 3,
+     "explosive": 0
+    }
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Boils a beam away and cracks under a rifle."
+  },
+  {
+   "id": "itm_sealed_hardplate",
+   "name": "Sealed Hardplate",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1260,
+   "bulk": 3,
+   "effects": {
+    "protection": 5,
+    "mobility": -1,
+    "tags": [
+     "mob_down"
+    ],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 1
+    }
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Slow, sealed, and hard to finish by any means."
+  },
+  {
+   "id": "itm_mod_optic",
+   "name": "Optic",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 380,
+   "bulk": 0,
+   "effects": {
+    "gear_accuracy": 1,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Lights optics_gear_synergy."
+  },
+  {
+   "id": "itm_mod_bipod",
+   "name": "Bipod",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 220,
+   "bulk": 1,
+   "effects": {
+    "aim_holding": 2,
+    "aim_moving": -2,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Steady, and only steady."
+  },
+  {
+   "id": "itm_mod_target_link",
+   "name": "Target Link",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 320,
+   "bulk": 0,
+   "effects": {
+    "overwatch_mult": 1.6,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Waits better than you do."
+  },
+  {
+   "id": "itm_mod_light_frame",
+   "name": "Lightweight Frame",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 200,
+   "bulk": 0,
+   "effects": {
+    "bulk": -1,
+    "power": -1,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Lighter, and it shows."
+  },
+  {
+   "id": "itm_mod_grip",
+   "name": "Stabilising Grip",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 340,
+   "bulk": 0,
+   "effects": {
+    "grants": "stabilized",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Fire and move."
+  },
+  {
+   "id": "itm_mod_rangefinder",
+   "name": "Rangefinder",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 300,
+   "bulk": 0,
+   "effects": {
+    "band_mismatch_mult": 0.5,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Halves the argument about distance."
+  },
+  {
+   "id": "itm_mod_field_kit",
+   "name": "Armourer's Field Kit",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 260,
+   "bulk": 1,
+   "effects": {
+    "gear_damage_mult": 0.5,
+    "cancels": "fragile",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Keeps it honest."
+  },
+  {
+   "id": "itm_mod_broadcast_tag",
+   "name": "Broadcast Tag",
+   "category": "mod",
+   "slot": "mod",
+   "family": "any",
+   "tier": 3,
+   "cost": 150,
+   "bulk": 0,
+   "effects": {
+    "grants": "crowd_pleaser",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Purely for the cameras."
+  },
+  {
+   "id": "itm_mod_extended_mag",
+   "name": "Extended Magazine",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 260,
+   "bulk": 1,
+   "effects": {
+    "ammo": 6,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Six more chances."
+  },
+  {
+   "id": "itm_mod_recoil_comp",
+   "name": "Recoil Compensator",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 240,
+   "bulk": 0,
+   "effects": {
+    "suppress_drain": -8,
+    "cancels": "recoil_heavy",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Holds the line down."
+  },
+  {
+   "id": "itm_mod_suppressor",
+   "name": "Suppressor",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 400,
+   "bulk": 0,
+   "effects": {
+    "grants": "silent",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Nobody attributes the first one."
+  },
+  {
+   "id": "itm_mod_ap_rounds",
+   "name": "AP Rounds",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 340,
+   "bulk": 0,
+   "effects": {
+    "grants": "pierce_1",
+    "power": -1,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Through, not into."
+  },
+  {
+   "id": "itm_mod_incendiary",
+   "name": "Incendiary Loads",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 360,
+   "bulk": 0,
+   "effects": {
+    "grants": "incendiary",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "The crowd notices."
+  },
+  {
+   "id": "itm_mod_hollowpoint",
+   "name": "Hollowpoint Loads",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 280,
+   "bulk": 0,
+   "effects": {
+    "grants": "flechette",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Terrible against plate."
+  },
+  {
+   "id": "itm_mod_heat_sink",
+   "name": "Heat Sink",
+   "category": "mod",
+   "slot": "mod",
+   "family": "energy",
+   "tier": 3,
+   "cost": 300,
+   "bulk": 1,
+   "effects": {
+    "heat_shed": 4,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Buys you the fourth shot."
+  },
+  {
+   "id": "itm_mod_capacitor",
+   "name": "Capacitor Bank",
+   "category": "mod",
+   "slot": "mod",
+   "family": "energy",
+   "tier": 3,
+   "cost": 290,
+   "bulk": 1,
+   "effects": {
+    "charge": 12,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "A longer day."
+  },
+  {
+   "id": "itm_mod_focusing_array",
+   "name": "Focusing Array",
+   "category": "mod",
+   "slot": "mod",
+   "family": "energy",
+   "tier": 3,
+   "cost": 420,
+   "bulk": 0,
+   "effects": {
+    "power": 1,
+    "heat": 1,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Hotter, harder."
+  },
+  {
+   "id": "itm_mod_diffuser",
+   "name": "Beam Diffuser",
+   "category": "mod",
+   "slot": "mod",
+   "family": "energy",
+   "tier": 3,
+   "cost": 310,
+   "bulk": 0,
+   "effects": {
+    "grants": "spread",
+    "power": -1,
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Wider, weaker, closer."
+  },
+  {
+   "id": "itm_frag_grenade",
+   "name": "Frag Grenade",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 120,
+   "bulk": 1,
+   "uses": 1,
+   "action": "throw",
+   "effects": {
+    "tags": [
+     "area"
+    ]
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower."
+  },
+  {
+   "id": "itm_smoke_canister",
+   "name": "Smoke Canister",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 90,
+   "bulk": 1,
+   "uses": 1,
+   "action": "screen",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways."
+  },
+  {
+   "id": "itm_incendiary_charge",
+   "name": "Incendiary Charge",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 180,
+   "bulk": 1,
+   "uses": 1,
+   "action": "throw",
+   "effects": {
+    "tags": [
+     "area",
+     "incendiary"
+    ]
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "As frag, incendiary, +8 severity; crowd-divisive."
+  },
+  {
+   "id": "itm_medkit",
+   "name": "Field Medkit",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 140,
+   "bulk": 1,
+   "uses": 1,
+   "action": "treat",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "P(stabilize) +0.15, consumed on use."
+  },
+  {
+   "id": "itm_stim_shot",
+   "name": "Stim Shot",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 110,
+   "bulk": 1,
+   "uses": 1,
+   "action": "dose",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night."
+  },
+  {
+   "id": "itm_spotter_drone",
+   "name": "Spotter Drone",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 260,
+   "bulk": 1,
+   "uses": 1,
+   "action": "deploy",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day."
+  },
+  {
+   "id": "itm_auto_turret",
+   "name": "Auto-Turret",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 380,
+   "bulk": 2,
+   "uses": 1,
+   "action": "deploy",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout."
+  },
+  {
+   "id": "itm_ammo_satchel",
+   "name": "Ammunition Satchel",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 100,
+   "bulk": 2,
+   "uses": 1,
+   "action": "carry",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "+8 rounds at drop. Quota: 1 per body."
+  },
+  {
+   "id": "itm_power_cell",
+   "name": "Spare Power Cell",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 130,
+   "bulk": 1,
+   "uses": 1,
+   "action": "carry",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "+20 charge. Quota: 1 per body."
+  },
+  {
+   "id": "itm_missile_launcher",
+   "name": "Missile Launcher",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9800,
+   "bulk": 5,
+   "effects": {
+    "tags": [
+     "area",
+     "incendiary"
+    ],
+    "power": 10,
+    "range": "medium",
+    "damage": "explosive"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "Sponsor theatre with a blast radius."
+  },
+  {
+   "id": "itm_rotary_cannon",
+   "name": "Rotary Cannon",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 10800,
+   "bulk": 7,
+   "effects": {
+    "tags": [
+     "suppressive_2",
+     "spool"
+    ],
+    "power": 8,
+    "range": "medium",
+    "damage": "ballistic"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "Ammunition x3. Nothing about it is reasonable."
+  },
+  {
+   "id": "itm_railgun",
+   "name": "Railgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 11500,
+   "bulk": 6,
+   "effects": {
+    "tags": [
+     "pierce_3",
+     "spool"
+    ],
+    "power": 12,
+    "range": "long",
+    "damage": "ballistic"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "One hole, all the way through."
+  },
+  {
+   "id": "itm_kinetic_driver",
+   "name": "Kinetic Driver",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 12600,
+   "bulk": 6,
+   "effects": {
+    "tags": [
+     "area",
+     "cover_shred"
+    ],
+    "power": 10,
+    "range": "medium",
+    "damage": "explosive"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "Removes the position and the argument."
+  },
+  {
+   "id": "itm_phase_lance",
+   "name": "Phase Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 5,
+   "cost": 13400,
+   "bulk": 5,
+   "effects": {
+    "tags": [
+     "pierce_3",
+     "single_shot"
+    ],
+    "power": 13,
+    "range": "long",
+    "damage": "energy",
+    "heat": 6,
+    "heat_cap": 18,
+    "charge": 12
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "One shot per three exchanges. It is enough."
+  },
+  {
+   "id": "itm_assault_frame",
+   "name": "Assault Frame",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 5,
+   "cost": 16500,
+   "bulk": 8,
+   "effects": {
+    "tags": [
+     "mobile_cover",
+     "crowd_pleaser"
+    ],
+    "protection": 8,
+    "mobility": -3,
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 1
+    }
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "exotic": true,
+   "identity": "A walking cover position that eats an allowance."
+  },
+  {
+   "id": "itm_chem_rounds",
+   "name": "Toxin Loads",
+   "category": "mod",
+   "slot": "mod",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 0,
+   "bulk": 0,
+   "effects": {
+    "tags": [
+     "pierce_1"
+    ]
+   },
+   "price_model": "none",
+   "legality": "contraband",
+   "acquisition": "step9",
+   "identity": "Severity +14, internal-injury bias. Banned outright."
+  },
+  {
+   "id": "itm_thermobaric_charge",
+   "name": "Thermobaric Charge",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 5,
+   "cost": 0,
+   "bulk": 1,
+   "effects": {
+    "tags": [
+     "area",
+     "incendiary"
+    ]
+   },
+   "price_model": "none",
+   "legality": "contraband",
+   "acquisition": "step9",
+   "identity": "Destroys a cover pool outright. Banned outright."
+  },
+  {
+   "id": "itm_cortical_scrambler",
+   "name": "Cortical Scrambler",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 5,
+   "cost": 0,
+   "bulk": 1,
+   "effects": {
+    "tags": [
+     "disorient"
+    ]
+   },
+   "price_model": "none",
+   "legality": "contraband",
+   "acquisition": "step9",
+   "identity": "Forces Mon-Wa tether strain at range. Built to break one species."
+  },
+  {
+   "id": "itm_drone_jammer",
+   "name": "Broadcast Jammer",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 5,
+   "cost": 0,
+   "bulk": 2,
+   "effects": {
+    "tags": []
+   },
+   "price_model": "none",
+   "legality": "contraband",
+   "acquisition": "step9",
+   "identity": "The engagement does not air. The Aleas' first commandment, broken."
+  },
+  {
+   "id": "itm_stun_carbine",
+   "name": "Kestrel Stun-Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 2,
+   "cost": 560,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "nonlethal",
+     "burst"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Drops a man where he stands and he gets up angry. Dividend issue."
+  },
+  {
+   "id": "itm_shock_lance",
+   "name": "Arclight Shock Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 880,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "short",
+    "tags": [
+     "nonlethal",
+     "disorient"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The crowd can hear it from the stands. So can the man on the end of it."
+  },
+  {
+   "id": "itm_dazzler",
+   "name": "Halo Dazzler",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 2,
+   "cost": 540,
+   "bulk": 2,
+   "effects": {
+    "power": 3,
+    "range": "medium",
+    "tags": [
+     "nonlethal",
+     "suppressive"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Blinds a firing line without leaving a mark on any of them."
+  }
+ ],
+ "roles": [
+  {
+   "id": "point",
+   "label": "Point",
+   "band": "short",
+   "share_per_8": 1,
+   "band_note": "short",
+   "primaries": [
+    "itm_scattergun",
+    "itm_drum_shotgun",
+    "itm_riot_autogun",
+    "itm_arc_projector",
+    "itm_breachgun",
+    "itm_plasma_thrower",
+    "itm_pdw",
+    "itm_rotary_cannon"
+   ],
+   "armors": [
+    "itm_plate_carrier",
+    "itm_sealed_hardplate",
+    "itm_flak_vest",
+    "itm_assault_frame"
+   ],
+   "sidearms": [
+    "itm_machine_pistol",
+    "itm_service_pistol"
+   ],
+   "consumables": [
+    "itm_frag_grenade",
+    "itm_smoke_canister",
+    "itm_incendiary_charge",
+    "itm_thermobaric_charge"
+   ],
+   "note": "First through the gap. Short band, high power, armoured.",
+   "picks_for": "grit"
+  },
+  {
+   "id": "line",
+   "label": "Line",
+   "band": "medium",
+   "share_per_8": 3,
+   "band_note": "medium",
+   "primaries": [
+    "itm_carbine",
+    "itm_bullpup",
+    "itm_battle_rifle",
+    "itm_pulse_carbine",
+    "itm_needler",
+    "itm_gyrojet",
+    "itm_fusion_repeater",
+    "itm_caroms",
+    "itm_riot_autogun",
+    "itm_scattergun",
+    "itm_las_surplus",
+    "itm_disintegrator",
+    "itm_phase_lance"
+   ],
+   "armors": [
+    "itm_plate_carrier",
+    "itm_flak_vest",
+    "itm_ablative_harness",
+    "itm_scout_weave"
+   ],
+   "sidearms": [
+    "itm_service_pistol",
+    "itm_las_sidearm",
+    "itm_compact_plasma"
+   ],
+   "consumables": [
+    "itm_frag_grenade",
+    "itm_medkit"
+   ],
+   "note": "The body of the squad. Medium band, unremarkable, everywhere.",
+   "picks_for": null
+  },
+  {
+   "id": "marksman",
+   "label": "Marksman",
+   "band": "long",
+   "share_per_8": 1,
+   "band_note": "long",
+   "primaries": [
+    "itm_marksman_rifle",
+    "itm_whisper",
+    "itm_coilgun",
+    "itm_amr",
+    "itm_beam_lance",
+    "itm_photon_marksman",
+    "itm_accumulator",
+    "itm_hunting_rifle",
+    "itm_surplus_rifle",
+    "itm_railgun",
+    "itm_kinetic_driver"
+   ],
+   "armors": [
+    "itm_flak_vest",
+    "itm_scout_weave",
+    "itm_plate_carrier"
+   ],
+   "sidearms": [
+    "itm_service_pistol",
+    "itm_las_sidearm"
+   ],
+   "consumables": [
+    "itm_smoke_canister",
+    "itm_medkit"
+   ],
+   "note": "Holds the long band and punishes the open ground.",
+   "picks_for": "aim"
+  },
+  {
+   "id": "support",
+   "label": "Support",
+   "band": "medium",
+   "share_per_8": 1,
+   "band_note": "medium",
+   "primaries": [
+    "itm_machine_gun",
+    "itm_hardpoint",
+    "itm_las_repeater",
+    "itm_drum_shotgun",
+    "itm_grenade_carbine",
+    "itm_plasma_caster",
+    "itm_missile_launcher",
+    "itm_rotary_cannon"
+   ],
+   "armors": [
+    "itm_plate_carrier",
+    "itm_sealed_hardplate",
+    "itm_flak_vest"
+   ],
+   "sidearms": [
+    "itm_heavy_revolver",
+    "itm_machine_pistol"
+   ],
+   "consumables": [
+    "itm_ammo_satchel",
+    "itm_power_cell",
+    "itm_auto_turret",
+    "itm_drone_jammer"
+   ],
+   "note": "Buys the ground for everyone else. Heavy, suppressive, hungry.",
+   "picks_for": "grit"
+  },
+  {
+   "id": "medic",
+   "label": "Medic",
+   "band": "medium",
+   "share_per_8": 1,
+   "band_note": "medium",
+   "primaries": [
+    "itm_bullpup",
+    "itm_carbine",
+    "itm_pulse_carbine",
+    "itm_pdw"
+   ],
+   "armors": [
+    "itm_scout_weave",
+    "itm_flak_vest",
+    "itm_plate_carrier"
+   ],
+   "sidearms": [
+    "itm_service_pistol",
+    "itm_holdout"
+   ],
+   "consumables": [
+    "itm_medkit",
+    "itm_stim_shot"
+   ],
+   "note": "Carries the kit that decides whether the downed get up.",
+   "picks_for": "resolve"
+  },
+  {
+   "id": "scout",
+   "label": "Scout",
+   "band": "flex",
+   "share_per_8": 1,
+   "band_note": "flex",
+   "primaries": [
+    "itm_needler",
+    "itm_whisper",
+    "itm_bullpup",
+    "itm_gyrojet",
+    "itm_resonance",
+    "itm_cryo_lance",
+    "itm_ion_carbine",
+    "itm_las_surplus",
+    "itm_pdw",
+    "itm_hunting_rifle"
+   ],
+   "armors": [
+    "itm_scout_weave",
+    "itm_flak_vest"
+   ],
+   "sidearms": [
+    "itm_needle_derringer",
+    "itm_holdout",
+    "itm_arc_pistol",
+    "itm_flare_pistol",
+    "itm_gyro_pistol"
+   ],
+   "consumables": [
+    "itm_smoke_canister",
+    "itm_spotter_drone",
+    "itm_cortical_scrambler"
+   ],
+   "note": "Finds them first. Light, quiet, and not meant to be shot at.",
+   "picks_for": "fieldcraft"
+  }
+ ],
+ "doctrines": [
+  {
+   "id": "std_issue",
+   "corp": "Aleas Standard",
+   "flavor": "—",
+   "note": "No lean at all: the baseline every other doctrine is measured against.",
+   "corp_id": null,
+   "composition": {},
+   "taste": [],
+   "mod_wishlist": [
+    "itm_mod_optic",
+    "itm_mod_grip",
+    "itm_mod_extended_mag",
+    "itm_mod_suppressor"
+   ],
+   "spend_priority": [
+    "line",
+    "marksman",
+    "point",
+    "support",
+    "medic",
+    "scout"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "nevlon",
+   "corp": "Nevlon Collective",
+   "flavor": "suppression-weight loadouts",
+   "note": "Closes the distance and fills it with noise.",
+   "corp_id": "nevlon_collective",
+   "composition": {
+    "point": 2,
+    "support": 2,
+    "marksman": -2,
+    "scout": -2
+   },
+   "taste": [
+    "spread",
+    "suppressive",
+    "suppressive_2",
+    "incendiary",
+    "ballistic"
+   ],
+   "mod_wishlist": [
+    "itm_mod_recoil_comp",
+    "itm_mod_incendiary",
+    "itm_mod_optic",
+    "itm_mod_ap_rounds",
+    "itm_chem_rounds"
+   ],
+   "spend_priority": [
+    "point",
+    "support",
+    "line",
+    "medic",
+    "marksman",
+    "scout"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "knights",
+   "corp": "Knights' Star",
+   "flavor": "overwatch-heavy; quality over volume",
+   "note": "Buys the shot, not the volume.",
+   "corp_id": "knights_star",
+   "composition": {
+    "marksman": 2,
+    "scout": 1,
+    "point": -2,
+    "support": -1
+   },
+   "taste": [
+    "silent",
+    "pierce_2",
+    "pierce_1",
+    "sustained"
+   ],
+   "mod_wishlist": [
+    "itm_mod_optic",
+    "itm_mod_target_link",
+    "itm_mod_bipod",
+    "itm_mod_hollowpoint"
+   ],
+   "spend_priority": [
+    "marksman",
+    "scout",
+    "line",
+    "support",
+    "medic",
+    "point"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "violets",
+   "corp": "Violet's Enterprise",
+   "flavor": "fortify-and-outlast; veteran rosters",
+   "note": "Slow, sealed, and still there on day 30.",
+   "corp_id": "violets_enterprise",
+   "composition": {
+    "support": 2,
+    "line": 1,
+    "scout": -2,
+    "point": -1
+   },
+   "taste": [
+    "mob_down",
+    "suppressive",
+    "stabilized",
+    "sustained"
+   ],
+   "mod_wishlist": [
+    "itm_mod_bipod",
+    "itm_mod_optic",
+    "itm_mod_field_kit",
+    "itm_mod_broadcast_tag"
+   ],
+   "spend_priority": [
+    "support",
+    "line",
+    "point",
+    "marksman",
+    "medic",
+    "scout"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "new_line",
+   "corp": "The New Line",
+   "flavor": "supply mastery; sponsor-drop efficiency",
+   "note": "No ammunition, no supply line, no argument about rations.",
+   "corp_id": "new_line",
+   "composition": {
+    "scout": 1,
+    "medic": 1,
+    "support": -1,
+    "point": -1
+   },
+   "taste": [
+    "energy",
+    "daylight",
+    "chill",
+    "emp"
+   ],
+   "mod_wishlist": [
+    "itm_mod_capacitor",
+    "itm_mod_heat_sink",
+    "itm_mod_light_frame"
+   ],
+   "spend_priority": [
+    "line",
+    "scout",
+    "medic",
+    "marksman",
+    "support",
+    "point"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "verdant",
+   "corp": "Verdant Cradle",
+   "flavor": "smallest loadout budgets in the fleet",
+   "note": "Cheap iron, one good optic, and nothing spare.",
+   "corp_id": "verdant_cradle",
+   "composition": {
+    "medic": 1,
+    "scout": 1,
+    "point": -1,
+    "support": -1
+   },
+   "taste": [
+    "ballistic",
+    "sustained",
+    "stabilized"
+   ],
+   "mod_wishlist": [
+    "itm_mod_optic",
+    "itm_mod_extended_mag",
+    "itm_mod_focusing_array"
+   ],
+   "spend_priority": [
+    "medic",
+    "line",
+    "marksman",
+    "scout",
+    "point",
+    "support"
+   ],
+   "armoury_max_tier": 3
+  },
+  {
+   "id": "mercy",
+   "corp": "Mercy Concern",
+   "flavor": "evac mastery",
+   "note": "Reaches the downed and gets them back up.",
+   "corp_id": "mercy_concern",
+   "composition": {
+    "medic": 3,
+    "scout": 1,
+    "support": -2,
+    "point": -2
+   },
+   "taste": [
+    "mob_up",
+    "stabilized",
+    "silent"
+   ],
+   "mod_wishlist": [
+    "itm_mod_grip",
+    "itm_mod_optic",
+    "itm_mod_field_kit"
+   ],
+   "spend_priority": [
+    "medic",
+    "scout",
+    "line",
+    "marksman",
+    "point",
+    "support"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "vantis",
+   "corp": "Vantis Deepcore",
+   "flavor": "position-and-pressure",
+   "note": "Sees you first, then makes the ground expensive.",
+   "corp_id": "vantis_deepcore",
+   "composition": {
+    "scout": 2,
+    "marksman": 1,
+    "point": -2,
+    "medic": -1
+   },
+   "taste": [
+    "cover_shred",
+    "disorient",
+    "pierce_1",
+    "ricochet"
+   ],
+   "mod_wishlist": [
+    "itm_mod_optic",
+    "itm_mod_rangefinder",
+    "itm_mod_target_link",
+    "itm_mod_diffuser"
+   ],
+   "spend_priority": [
+    "scout",
+    "marksman",
+    "line",
+    "support",
+    "medic",
+    "point"
+   ],
+   "armoury_max_tier": 5
+  },
+  {
+   "id": "alliance",
+   "corp": "Alliance House",
+   "flavor": "flexible postures; merc-heavy",
+   "note": "Whatever was on the shelf, fitted properly.",
+   "corp_id": "alliance_house",
+   "composition": {},
+   "taste": [
+    "stabilized",
+    "smart_link",
+    "burst"
+   ],
+   "mod_wishlist": [
+    "itm_mod_optic",
+    "itm_mod_grip",
+    "itm_mod_rangefinder"
+   ],
+   "spend_priority": [
+    "line",
+    "point",
+    "marksman",
+    "support",
+    "scout",
+    "medic"
+   ],
+   "armoury_max_tier": 5
+  }
+ ]
+}
