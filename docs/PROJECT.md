@@ -118,6 +118,28 @@ at 200.
 **Rare branches are proved by construction, never by widening a batch.** If a thing should happen
 once a decade, build the state and assert it fires; do not run more seasons hoping to see it.
 
+**Nothing is dead until you have made it live.** Before reporting that a mechanism, hook, flag or
+branch never fires, build a case on purpose and show the counter move. If you cannot build one,
+the finding is *"I could not construct a case where this fires"* — which is a weaker and different
+claim from *"this never fires"*, and only the first is yours to make without the positive control.
+A zero has three causes and the number alone distinguishes none of them: the branch is genuinely
+unreachable, the counter was never a number, or **the world you built to look at it was too
+simple to contain the thing**. The third is the one that keeps winning. One session reported four
+absences — flanking invisible to the movement scorer, a live cover penalty for treating a downed
+man, five state flags never set, and suppression never firing in 21,386 shots. Three were wrong.
+Flanking is perceived through directional cover and the flag is inert by construction; the
+treating penalty is dead but for a different reason than the one given; and suppression fires
+4,705 times in two contests, because the probes had armed all twelve fighters with the same
+carbine and no carbine suppresses. Every one of those would have been caught in a minute by trying
+to make the thing happen before announcing that it could not.
+
+**The instrument is the first suspect, not the last.** Two harnesses disagreeing about the same
+configuration is a gift; chase it rather than picking the answer you prefer. In the same session
+that produced the three false absences, a fourth error — a decision rewritten so that a body with
+nobody in sight stopped watching, which silently removed a quarter of all shots — surfaced only
+because two probes disagreed by fourteen points and the discrepancy was followed instead of
+explained away.
+
 ---
 
 ## The game
@@ -335,9 +357,119 @@ mean the window did nothing.
 - **Being caught from two arcs costs you the ground you chose.** Cover is directional, so a
   squad that set up against one threat and was hit from another is behind a wall facing the
   wrong way. The flag for this had been computed since Step 6 and read by nothing.
+- **Being caught in the open is a windfall, not the absence of a problem.** *Ruled at this step.*
+  The open-ground case was the ceiling — cover only ever subtracted from it, so there was no
+  reward for catching a body exposed, only a penalty for one being covered, and the very best a
+  flank could do was claw back to ordinary. Flanking bought about **twelve points** of hit
+  chance for a whole action, so the movement scorer's preference for standing still was not a
+  fault in the scorer: it was a correct reading of a game in which moving did not pay. The open
+  multiplier is now 1.60. Through **ten full contests**, where corporations buy their own kit:
+  clock-outs **down 57%**, hit rate **up 34%**, fights **19% shorter**, and permanent losses up
+  **3.7%** — fights end sooner, and the shots saved pay for the shots that land. Those are the
+  numbers to trust.
+- **1.60 IS NOT YET A VERIFIED CHOICE.** The value was picked off a 500-fight matched-seed sweep
+  that reported clock-outs 64 → 28 and movement 42.6% → 49.0%. That harness armed all twelve
+  fighters with `DEFAULT_LOADOUT`, which is a fallback and not what a squad carries — a field
+  with no machine guns in it and therefore no suppression, which is true on a third of all shot
+  evaluations in real play. The contest figures above are sound because they ran the contest.
+  The **comparison between candidate values** is not, and 1.60 should be re-picked against
+  contests before anyone treats it as settled. The one part that survives is arithmetic rather
+  than measurement: 1.85 puts a body caught in the open at close range at 93% with nothing left
+  to do about it, and 1.60 puts that worst case at 80%.
 - **Ground is held.** Claiming a site makes you its holder — a value four systems read and
   nothing wrote, so taking ground off somebody was worth exactly what walking onto empty ground
   was worth, and standing on a rival's claim never forced a fight.
+- **You have to find them first.** *Ruled at this step.* Both sides used to deploy in full view
+  of each other and stay there. A `spotted` flag was set true when a body was built and never
+  written again anywhere in the tree, so the two things reading it were unreachable: the halving
+  of your hit chance against a body whose position you do not have, and half of Ambush Instinct.
+  Measured before the work: **6,533,361 shot evaluations across three contests, none of them at
+  an unspotted target.** A body is now in one of three states, and the middle one is the
+  interesting one — **seen**, **heard** (you fired, so they know roughly where, and can shoot
+  back badly), or neither, in which case you are not a target at all.
+- **Sight is squad-wide.** *Ruled by the designer at this step.* What one of us can see, all of
+  us can act on; you still need your own line of fire to shoot, and what the squad shares is
+  where they are. This is what makes a scout worth a place — they need not be the one who takes
+  the shot. Through six contests it carries **a third of every shot fired**.
+- **How far you can see is the distance at which range becomes long.** Not a fitted number: the
+  band table already said what "far" means on this grid, and past the point where a rifle is
+  working at its limit a body is a shape in the rocks. Long-range meetings genuinely open blind
+  — the nearest pair starts about sixteen tiles apart against a sight of fourteen — and about a
+  quarter of contest fights are not in contact on turn one.
+- **The opening distance is unchanged.** Fog hides people across the gap rather than widening
+  it; the planet's terrain still decides how close two squads meet, which is work already done.
+- **Shooting from concealment is steadier, and firing gives you away.** Sized against the
+  first-strike bonus that already existed rather than picked to hit a casualty figure. `silent`
+  exempts the first shot, which is the quirk's written job and what it had been waiting for —
+  it keeps its other job of deciding how far a firefight carries across the world map.
+- **Overwatch will not fire at somebody nobody has found.** Line of sight alone used to be the
+  whole test, which was right when everybody could see everybody; leaving it there would have
+  quietly cancelled most of fog, because overwatch is the commonest second action on the field.
+
+> **PARTLY DONE — bunkering is better, and it was not fog that did it.** Fog was the stated hope
+> and it did nothing for this: with fog alone the share of body-turns containing a move was flat
+> and fights got no shorter. What moved it was making exposure expensive. On identical seeds the
+> move rate goes 42.6% → 49.0% and clock-outs 64 → 28; through ten contests clock-outs fall 57%.
+> It is better, not solved: fights that still stall show the same flat shuffle at about a
+> quarter of bodies moving, there are simply far fewer of them.
+
+> **WATCH — three second-order effects, none of them chosen.** A fifth fewer engagements happen
+> per season (778 → 640), because fights end decisively and wrecked squads cannot field again.
+> Fighting withdrawals fire 23% less often — people are put down before they can break off.
+> And going to a downed man is now much more dangerous: stabilisations fall 13% and deaths on the
+> recovery roll rise 20%. **The reason first given here was wrong** and is corrected: it said the
+> `treating` flag already zeroed the medic's cover. It does not — nothing in the tree ever writes
+> that flag, so §3.7's penalty for rescuing a man under fire has never once applied. The effect is
+> real by a different route: the medic's cover is set to zero directly when they go, and zero
+> cover is exactly what just got 60% worse. So rescues are more dangerous than they were AND
+> still less dangerous than the document specifies.
+
+> **TRIED AND REMOVED — making overwatch cost something.** The idea was sound and the diagnosis
+> behind it was right: overwatch is not chosen, it is what a leftover action point turns into
+> ("shoot, and if there is a spare action, watch"), so it ended **99.8%** of body-turns and was a
+> quarter of all shots fired. It was built — a body holding an arc became easier to hit, and the
+> decision was made a real weighing of gain against risk. It did exactly what it promised:
+> watching fell to 37% of body-turns. **It did nothing for bunkering.** Across exposure costs
+> from 1.15 to 3.00 the share of body-turns containing a move stayed flat at about 49% and fights
+> got marginally longer. Reverted, and the tree measured back onto the baseline exactly.
+>
+> The reason is the part worth keeping, because it kills a whole family of ideas: **the movement
+> scorer has never known overwatch exists.** It weighs incoming fire from anyone with line of
+> sight and has no term for whether they are holding an arc. So reaction fire was never
+> deterring movement — it was damage arriving after the decision, not a cost being weighed.
+> Removing a tax nobody was paying attention to changes nothing. Any future attempt to unstick
+> movement by adjusting what reaction fire *costs* will measure as no change for the same reason;
+> the thing to change first is what the mover **knows**.
+
+> **FOUND DEAD — five of the shot calculation's nine situational modifiers are never written.**
+> Verified two ways: a grep of every file, and 1,753,465 live shot evaluations through a real
+> contest. `treating` (§3.7, "the most dangerous thing in a firefight" — the multiplier exists and
+> has never applied), `_crossed` (the 1.30 penalty for sprinting across open ground), `repositioning`
+> (the 1.15 penalty for having just moved), `hovering`, and `_bulwarked` (the Olmac walking-bulwark
+> trait). All read by `hitChance`; none written by anything. `flanked` is written 6.5% of the time
+> and is inert by construction — see the note in `incoming`.
+>
+> **Two of those cut against the obvious reading.** Crossing open ground and repositioning are
+> currently FREE. The game specifies penalties for both and applies neither, so movement is at
+> present under-punished rather than over-punished. Fixing them as obvious bugs would make
+> bunkering *worse*. Whoever picks them up should decide that deliberately.
+
+> **NOT DONE — overwatch is still a subsidy for standing still.** A reaction shot lands at 17.6%
+> against 19.1% for an aimed one, and it is bought with an action point that had no other use.
+> Nerfing its cost has been tried and does not help (above). Untouched.
+
+> **DEFERRED — nothing destroys cover.** The tile grid is written once, at generation, and never
+> again. A good position is therefore permanent, and a stalemate has no solvent. The area tag on
+> weapons is still read by nothing.
+
+> **DEFERRED — time of day still has no reader.** Fog is not night. `night_ambush_warning_bonus`
+> stays on the inert list and the grid still has no clock; pointing that hook at a spotting model
+> because a spotting model happens to exist is exactly how Ambush Instinct got wired to the wrong
+> flag in the first place.
+
+> **DEFERRED — how much fog there is.** Sight distance, what concealment is worth, and how long a
+> muzzle flash gives you away are three dials with defensible anchors and no tuning. They belong
+> with the rest of calibration and were deliberately not fitted to an outcome.
 
 > **DEFERRED — a fighter will not trade cover for an angle.** Going round the side is now a move
 > the code can propose; it was not, and no scoring could have chosen a tile that was never

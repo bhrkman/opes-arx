@@ -125,6 +125,37 @@
     FLANKED_COVER_MULT: 0.33,
     PREP_COVER_BIAS: 0.75,           // [C] a prepared squad starts on cover this often
     AMBUSH_GAP: 0.30,                // [C] preparedness difference that counts as an ambush
+    /* ---- FOG OF WAR ---------------------------------------------------------------------
+       Both sides used to deploy in full view of each other and stay there. `spotted` was set
+       to true when a combatant was built and never written again anywhere in the tree, so the
+       two things in `combat.js` that read it were unreachable: the halving of your hit chance
+       against a body whose position you do not have, and Ambush Instinct's open-fire bonus.
+       Measured before this was built: 6,533,361 shot evaluations across three contests, ZERO
+       at an unspotted target. Not a balance problem — a condition that never became true.
+
+       SIGHT IS SQUAD-WIDE. What one of us can see, all of us can act on, which is what makes
+       a scout worth a place: they need not be the one who takes the shot. You still need your
+       own line of fire to shoot. What the squad shares is WHERE THEY ARE.
+
+       There are three states a body can be in, not two, and the middle one is the interesting
+       one. Seen — somebody has eyes on you. Heard — you fired and gave your position away
+       roughly, so people can shoot back at you badly. Neither — you are not a target at all. */
+    SIGHT_TILES: 14,                 // [C] NOT a fitted number: it is `BAND_TILE[0]`, the
+                                     //     distance at which this grid already says range has
+                                     //     become "long". Past the point where a rifle is
+                                     //     working at its limit, a body is a shape in the
+                                     //     rocks. The reference point already existed.
+    SIGHT_FIELDCRAFT: 0.30,          // [C] tiles per point of fieldcraft over 10. Fieldcraft
+                                     //     is already the choosing-ground stat the contest
+                                     //     reads for readiness; seeing first is the same skill.
+    SIGHT_MIN: 4,                    // [S] nobody is blind
+    /* How long a muzzle flash gives you away for. You fired, so they know roughly where you
+       are — for now. This is what `silent` exempts you from, which is the quirk's original
+       written job and the thing it has been waiting on. */
+    REVEAL_TURNS: 1,                 // [C] this turn and the next
+    /* UNSPOTTED_AIM lives in `combat.js`, where `aimEff` reads it. It was briefly declared
+       here, which would have resolved it to `undefined` at the only site that uses it. */
+    SOFT_BOOTS_TILES: 1.5,           // [H] extra ground covered while nobody has eyes on you
     /* Two ways a side stops fighting, and they should not look the same.
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
        falls back by bounds — half moving while the other half fires to cover them.
@@ -287,10 +318,20 @@
   /** How likely is `shooter` to hit `victim` if the victim stands at `spot`? */
   function incoming(shooter, victim, spot, map) {
     const cov = coverAgainst(map, spot, shooter);
-    /* `flanked` is FALSE here and the victim is moved to the spot, neither of which the shot
-       memo models — an "exact" cache that is exact for one caller and not the other is just a
-       bug with a comment on it. This one stays uncached and the profiler says it does not
-       matter: the cost is in `coverAgainst` and `hasLOS`, not here. */
+    /* `flanked` IS FALSE HERE AND THAT IS CORRECT, which took a wrong turn to establish.
+       It looks like a blindness: the one number the movement decision rests on, apparently
+       unable to tell a rock between you from a rock beside you. It is not. `cov` is already
+       DIRECTIONAL — `coverAgainstRaw` counts only cover lying within an arc facing the shooter,
+       so a body whose wall does not face this shooter already gets `cov = 0` and is already
+       valued as standing in the open. Angles are perceived, through cover, exactly as they
+       should be.
+       The flag would be a SECOND application of the same fact, and it is inert by construction
+       everywhere it appears: it is assigned `cov === 0 && own > 0`, and its only effect is to
+       knock a grade off cover — which is already zero whenever the flag is true. Computing it
+       here properly was tried and measured byte-for-byte identical across 500 fights: 52,481
+       body-turns, 25,702 moves, 3,005 flanking shots, every integer unchanged, despite the new
+       term being true 18% of the time. Reverted under the rule that anything measuring as no
+       change comes back out. Do not "fix" this again. */
     const sc = victim.cover, sf = victim.flanked, sx = victim.x, sy = victim.y;
     victim.cover = cov; victim.flanked = false; victim.x = spot.x; victim.y = spot.y;
     const p = C.hitChance(shooter, victim, bandOf(Math.hypot(shooter.x - spot.x, shooter.y - spot.y)), {}, false)
@@ -301,6 +342,107 @@
 
   function bandOf(d) {
     return d > CONST.BAND_TILE[0] ? 0 : d > CONST.BAND_TILE[1] ? 1 : 2;   // long / medium / short
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* what anybody actually knows                                       */
+  /* ---------------------------------------------------------------- */
+
+  /** How far this fighter can pick a body out of the ground. */
+  function sightRange(u) {
+    const fc = (u.stats && u.stats.fieldcraft) || 10;
+    return Math.max(CONST.SIGHT_MIN, CONST.SIGHT_TILES + (fc - 10) * CONST.SIGHT_FIELDCRAFT);
+  }
+
+  /**
+   * SQUAD SIGHT, recomputed whenever the ground has changed under it.
+   *
+   * For each side, two sets: who they have EYES ON, and who they merely know is out there
+   * because a shot came from somewhere. The second set is the reason the halved hit chance in
+   * `combat.js` has something to describe — you can fire back at a muzzle flash, and you will
+   * mostly miss.
+   *
+   * Recomputed rather than accumulated. A fighter who breaks contact behind a ridge is not
+   * spotted any more, and that has to be true or there is no reason to ever break contact.
+   * `_spotDirty` is set by anything that moves a body or removes one; nothing else needs to
+   * know when to call this.
+   */
+  function ensureSpot(S) {
+    if (!S._fog) return;
+    const F = S._fog;
+    /* THE DIRTY FLAG LIVES ON THE SHARED STATE, NOT ON EACH SIDE. It was per-side for one
+       draft: `ensureSpot` recomputed every side's knowledge but cleared only the flag of the
+       side it was handed, so the other sides stayed permanently dirty and the whole model
+       recomputed on every single call. Cheap to write, invisible, and it would have made the
+       cost of fog look like the cost of spotting. */
+    if (!F.dirty) return;
+    F.dirty = false;
+    const { sides, map, turn } = F;
+    for (const side of sides) {
+      const eyes = alive(side.units);
+      const seen = new Set(), heard = new Set();
+      for (const other of sides) {
+        if (other === side) continue;
+        for (const f of other.units) {
+          if (f.state !== 'ok' && f.state !== 'light') continue;
+          let have = false;
+          for (const u of eyes) {
+            if (dist(u, f) > sightRange(u)) continue;
+            if (!hasLOS(map, u, f)) continue;
+            have = true; break;
+          }
+          if (have) seen.add(f.id);
+          /* fired recently: they know roughly where, not exactly where */
+          else if ((f._revealedUntil || -1) >= turn) heard.add(f.id);
+        }
+      }
+      side._seen = seen;
+      side._heard = heard;
+      /* where to walk when you know of nobody. A squad with no contact is not paralysed and
+         it is not omniscient: it goes to the last place anybody was, and failing that it goes
+         to the middle, because that is where the fight is. */
+      if (seen.size || heard.size) {
+        let sx = 0, sy = 0, n = 0;
+        for (const other of sides) {
+          if (other === side) continue;
+          for (const f of other.units) {
+            if (!seen.has(f.id) && !heard.has(f.id)) continue;
+            sx += f.x; sy += f.y; n++;
+          }
+        }
+        if (n) side._lastContact = { x: sx / n, y: sy / n };
+      }
+    }
+  }
+
+  /** Does this side have this body's position? Eyes on it, or a shot to fire back at. */
+  const sideKnows = (side, f) =>
+    !side._seen ? true : (side._seen.has(f.id) || side._heard.has(f.id));
+  /** Eyes on, as opposed to merely knowing somebody is out there. */
+  const sideSees = (side, f) => !side._seen ? true : side._seen.has(f.id);
+
+  /** Everyone on `E` this side can do anything about. Empty is a real and common answer. */
+  function knownFoes(side, foes) {
+    if (!side._seen) return foes;
+    return foes.filter(f => sideKnows(side, f));
+  }
+
+  /**
+   * Where a fighter with no contact at all should head. Reuses the band-pull the movement
+   * scorer already applies toward the nearest enemy, so a squad with nobody in sight advances
+   * to the range its weapons want from the last place anyone was seen — rather than standing
+   * still, which is what an empty enemy list would otherwise produce.
+   */
+  function searchPoint(side, map) {
+    return side._lastContact || { x: (map.w - 1) / 2, y: (map.h - 1) / 2 };
+  }
+
+  /** You fired. Unless you are carrying something quiet, that is a place people now look. */
+  function revealByFiring(u, turn) {
+    if (C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
+    u._firedOnce = true;
+    u._revealedUntil = turn + CONST.REVEAL_TURNS;
+    return true;
   }
 
   /* ---------------------------------------------------------------- */
@@ -453,6 +595,13 @@
       for (const w of alive(S.units)) {
         if (!w.overwatch || w.side === mover.side) continue;
         if (!hasLOS(map, w, mover)) continue;
+        /* YOU CANNOT REACT TO SOMEBODY YOU HAVE NOT SEEN. Line of sight alone used to be the
+           whole test, which was right when everybody could see everybody. Under fog it would
+           mean a watcher firing at a man crossing ground in the dark two hundred metres out
+           whose existence nobody had established — and it would have quietly cancelled most of
+           what fog is for, because overwatch is the commonest second action on the field.
+           Squad knowledge, not personal: if a scout has him, the watcher may take the shot. */
+        if (w._fog) { ensureSpot(S); if (!sideKnows(S, mover)) continue; }
         w.overwatch = false;
         w._reacting = true;
         tel.overwatchShots++;
@@ -544,10 +693,15 @@
       They were dead on the resolver that runs, and the reachability guard passed them because
       it looked for the tag anywhere in `combat.js` rather than anywhere the grid can reach.
       On a grid the honest meaning of mobility is simply how much ground you cover. */
-  function moveTilesFor(u) {
+  function moveTilesFor(u, unseen) {
     let mp = CONST.MOVE_TILES + ((u.weapon && u.weapon.mobility) || 0) * 0.5;
     if (C.hasQuirk(u, 'mob_down')) mp -= CONST.MOB_TILES;
     if (C.hasQuirk(u, 'mob_up')) mp += CONST.MOB_TILES;
+    /* SOFT BOOTS — "arrives places without the courtesy of being heard first". Named on the
+       suite's own list of hooks read by no system at all, waiting for a spotting model. It
+       pays while nobody has eyes on you, which is the only time moving quietly is worth
+       anything: once you are seen, the ground you cover is ground people watch you cross. */
+    if (unseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) mp += CONST.SOFT_BOOTS_TILES;
     return Math.max(2, mp);
   }
 
@@ -628,7 +782,36 @@
       else shooter._sustain = 0;
       shooter._lastMark = target.id;
     }
-    const p = C.hitChance(shooter, target, band, {}, !!react) * (react ? CONST.OVERWATCH_REACT : 1)
+    /* ---- WHAT EACH OF THEM KNOWS ABOUT THE OTHER ---------------------------------------
+       Two independent facts, and they are not symmetrical.
+       Do I have this target's POSITION, or only the rough direction a shot came from?
+         `combat.js` halves the hit chance against a body that is not spotted, and that line
+         had never once executed because nothing ever wrote the field it reads. Firing back at
+         a muzzle flash is what it was written for.
+       Do THEY know where I am? If not, I am shooting from concealment and I am steadier for
+       it — the designer's ruling, and the shape Ambush Instinct was always described as.
+       Set around the call and restored after, which is the idiom this function already uses
+       for cover and flanking rather than a second convention. */
+    const fogOn = !!(S && S._seen);
+    const saveSpotted = target.spotted, saveUnseen = shooter._unseen;
+    let unseen = false;
+    if (fogOn) {
+      const eyesOn = sideSees(S, target);
+      target.spotted = eyesOn;
+      if (eyesOn) tel.spotShots++; else tel.blindShots++;
+      /* squad sight, counted: could this shooter personally see the body he just fired at? */
+      if (eyesOn && dist(shooter, target) > sightRange(shooter)) tel.squadSightShots++;
+      /* am I concealed from the people I am shooting at? */
+      unseen = !!(E && E._seen) && !sideKnows(E, shooter);
+      shooter._unseen = unseen;
+      if (unseen) {
+        tel.unseenShots++;
+        if (shooter.hooks && shooter.hooks.has('unspotted_open_fire_bonus')) tel.ambushInstinct++;
+      }
+    }
+    const p = C.hitChance(shooter, target, band,
+                          unseen ? { unseen: true } : {}, !!react)
+              * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
     /* which range fights actually happen at — the grid derives band from distance, so unlike
@@ -714,7 +897,21 @@
         if (h && h.onMiss) h.onMiss(rng, shooter, target, E);
       }
     }
+    /* ---- AND NOW THEY KNOW WHERE YOU ARE -------------------------------------------------
+       `silent` reads "first shot does not break unspotted status" and that sentence has been
+       sitting in the catalogue waiting for a spotting model to exist. It was given a different
+       job in the meantime — how far a firefight carries across the world map — and that job is
+       real and stays. This is the second one, and it is the written one.
+       Called once per aimed action rather than once per round: a burst is one decision to
+       fire, and charging a man his concealment three times for one trigger pull would make the
+       quirk depend on rate of fire, which is not what it says. */
+    if (fogOn) {
+      if (revealByFiring(shooter, tel.turn)) tel.reveals++;
+      else tel.silentShots++;
+      if (S._fog) S._fog.dirty = true;
+    }
     target.cover = saveCover; target.flanked = saveFlank;
+    target.spotted = saveSpotted; shooter._unseen = saveUnseen;
     return hit;
   }
 
@@ -986,15 +1183,63 @@
                      weapons were inert. A counter that is never initialised does not announce
                      itself; it launders itself through the first `|| 0` it meets. */
                   vents: 0, chargeOut: 0, energyShots: 0,
+                  /* FOG COUNTERS, INITIALISED HERE AND NOT LATER. Every one of these is raised
+                     with `+= 1` somewhere below, and this project has lost five counters to
+                     `undefined += n` laundering itself through the first `|| 0` downstream into
+                     a confident nought. A fog counter reading zero has to mean the branch did
+                     not run, not that the counter was never a number. */
+                  blindBodyTurns: 0,    /* acting with no idea where anybody is */
+                  contactTurn: 0,       /* the turn the first side got eyes on anybody */
+                  spotShots: 0,         /* fired at a body somebody had eyes on */
+                  blindShots: 0,        /* fired at a muzzle flash — the halved-chance path */
+                  unseenShots: 0,       /* fired before they knew where the shooter was */
+                  squadSightShots: 0,   /* fired at a body the shooter could not personally see */
+                  reveals: 0,           /* shots that gave the shooter's position away */
+                  silentShots: 0,       /* shots that did not, because the weapon is quiet */
+                  softBootsMoves: 0,    /* Soft Boots crossing ground unseen */
+                  ambushInstinct: 0,    /* Ambush Instinct opening fire unseen */
                   endedBy: 'clock' };
+    /* FOG IS ON UNLESS THE CALLER TURNS IT OFF. `ctx.fog === false` exists so the same tree
+       can be measured with it and without it — a before/after that compares two different
+       trees is comparing two instruments, which is the failure this project keeps hitting. */
+    const fog = ctx.fog !== false;
+    if (fog) {
+      const fogState = { sides, map, turn: 0, dirty: true };
+      for (const S of sides) { S._fog = fogState; S._seen = new Set(); S._heard = new Set(); }
+      /* NOBODY IS SPOTTED UNTIL SOMEBODY LOOKS. Deployment does not confer knowledge: the
+         first spotting pass happens at the top of turn one, against the ground people actually
+         deployed onto. At a short opening band that pass will see everybody and fog will have
+         done nothing, which is correct — walking into somebody at nine metres is not stealth.
+         At a long one it will not, and that is where this earns its place. */
+      tel.fogOn = 1;
+    } else {
+      tel.fogOn = 0;
+    }
     const frames = [];
+
+    /* WHAT THE OTHER SIDE HAS ON YOU, per body, recorded into the replay. Without this the
+       viewer can draw the fight but not the fog: every body would look equally visible, which
+       is the one thing this pass changed and the one thing a number cannot show you.
+       0 nobody has you · 1 they know roughly where you are · 2 they have eyes on you */
+    const knownOf = (u, si) => {
+      if (!fog) return 2;
+      let best = 0;
+      for (let k = 0; k < sides.length; k++) {
+        if (k === si) continue;
+        const O = sides[k];
+        if (!O._seen) continue;
+        if (O._seen.has(u.id)) return 2;
+        if (O._heard.has(u.id)) best = 1;
+      }
+      return best;
+    };
 
     const snap = () => frames.push({
       turn: tel.turn,
       units: sides.flatMap((S, si) => S.units.map(u => ({
-        id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch,
+        id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch, sup: !!u.suppressed,
         comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
-        hp: u.hp, hpMax: u.hpMax,
+        hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
         name: u.ref && u.ref.name
       })))
     });
@@ -1011,6 +1256,12 @@
 
     for (tel.turn = 1; tel.turn <= CONST.MAX_TURNS; tel.turn++) {
       _geo = new Map();           /* the map does not move; positions do, once a turn */
+      if (fog) {
+        sides[0]._fog.turn = tel.turn;
+        sides[0]._fog.dirty = true;
+        ensureSpot(sides[0]);
+        if (!tel.contactTurn && sides.some(S => S._seen && S._seen.size)) tel.contactTurn = tel.turn;
+      }
       for (let i = screens.length - 1; i >= 0; i--) {
         if (--screens[i].left <= 0) screens.splice(i, 1);
       }
@@ -1034,6 +1285,30 @@
                  { taken: taken, bearing: R.bearing, flanked: false, edgeOnly: true });
           tel.arrived = (tel.arrived || 0) + R.side.units.length;
           tel.arrivals = (tel.arrivals || 0) + 1;
+          /* THEY WALK IN UNSEEN, and unlike everything else about fog this needs no special
+             case: they enter at the edge, on their own bearing, which is a long way from a
+             fight that has been drifting toward the middle for nine turns. The spotting pass
+             at the top of the next turn decides it on the geometry, exactly as it does for
+             anybody else. What is worth having is the COUNT — a squad arriving behind people
+             who set up facing somewhere else is the one thing here a number cannot show, and
+             an arrival that everybody sees coming is a different event from one nobody does. */
+          /* An arriving squad needs its knowledge wired up before it can act, or `sideKnows`
+             takes the no-model path and hands them the whole field for free. That part is
+             load-bearing. What is NOT here any more is a count of arrivals that nobody
+             noticed: it read zero through six contests, and building the case deliberately
+             across 160 fights on every bearing it fired once in 666 bodies. Arrivals enter at
+             a map edge, and on 26x18 tiles nearly everywhere is within sight of the fighting,
+             so they are seen almost every time. The behaviour is right and needs no special
+             case — the geometry decides it, the same as for anybody else. The counter measured
+             nothing, so it is gone rather than left to look like a feature. */
+          if (fog) {
+            const F = sides[0]._fog;
+            F.dirty = true; F.turn = tel.turn;
+            R.side._fog = F;
+            R.side._seen = R.side._seen || new Set();
+            R.side._heard = R.side._heard || new Set();
+            ensureSpot(sides[0]);
+          }
           /* where they actually came in, recorded. Verifying this by reading positions at the
              end of the fight proved nothing at all: they had spent ten turns moving. */
           if (log) log.push({ t: tel.turn, kind: 'arrive', side: R.side.tag,
@@ -1064,8 +1339,20 @@
           u.ap = CONST.AP; u.dashed = false; u.overwatch = false;
           if (ambush && tel.turn === 1 && si !== first) { u.ap = 1; tel.ambushed++; }
           const taken = occupancy(sides);
-          const foes = alive(E.units);
-          if (!foes.length) break;
+          const allFoes = alive(E.units);
+          if (!allFoes.length) break;
+          /* WHAT THIS SQUAD KNOWS, which is not the same as who is on the field. Everything
+             below this line that makes a DECISION reads `foes`; the raw list stays as
+             `allFoes` for the things that are not decisions — whether the other side still
+             exists, and who counts as the enemy banner.
+             This is the line that changes what a turn is for. It is not enough to filter what
+             a fighter may shoot at: the movement scorer weighs threat from everyone with line
+             of sight, so a fighter who could only SHOOT at what he knew about would still have
+             been dodging people he had no idea were there, and fog would have been a cosmetic
+             restriction on target choice. */
+          if (fog) ensureSpot(S);
+          const foes = fog ? knownFoes(S, allFoes) : allFoes;
+          if (fog && !foes.length) tel.blindBodyTurns++;
 
           const homeX = si === 0 ? 0 : map.w - 1;
           /* Panicked: no shooting, no thinking, straight for the edge and off the field. */
@@ -1119,6 +1406,7 @@
                 }
                 if (!moved) break;
               }
+              if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
               triggerOverwatch(rng, u, sides, map, tel, log);
               if (u.state !== 'ok' && u.state !== 'light') continue;
               if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
@@ -1256,7 +1544,7 @@
                the ground between you and them, it covers whoever is standing in it whichever
                side they are on, and it drifts away after a couple of turns. Thrown when your
                own people are caught in the open, which is when anybody would. */
-            if (u.ap > 0 && u.carried.indexOf('itm_smoke_canister') >= 0) {
+            if (u.ap > 0 && u.carried.indexOf('itm_smoke_canister') >= 0 && foes.length) {
               const bare = alive(S.units).filter(m => coverAgainst(map, m, foes[0]) === 0);
               if (bare.length >= CONST.SMOKE_MIN_EXPOSED && rng() < CONST.SMOKE_WEIGHT) {
                 u.carried.splice(u.carried.indexOf('itm_smoke_canister'), 1);
@@ -1339,10 +1627,25 @@
 
           /* What is the best shot I could have if I moved instead? Cover for me, no cover
              for them, and close enough that the band is not doing all the work. */
-          const near = foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y);
+          /* WHAT YOU WALK TOWARD WHEN YOU KNOW OF NOBODY. `reduce` on an empty list throws,
+             and under fog an empty list is not an edge case — it is most of the opening of a
+             long-band fight. A squad with no contact is neither paralysed nor omniscient: it
+             heads for the last place anybody was seen, and failing that for the middle, which
+             is where the fight is. The band pull the scorer already applies then does the rest,
+             so a shotgun closes on the last contact and a marksman holds off it, using the
+             machinery that is already there rather than a second search behaviour. */
+          const near = foes.length
+            ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
+            : searchPoint(S, map);
           let move = null;
+          /* am I currently unseen? decides Soft Boots. Declared out here rather than inside
+             the scoring block because the dash below is a second movement decision in the same
+             turn and needs the same answer — scoped tight, it threw a ReferenceError at the
+             dash on the first fight run, which is the cheap version of this mistake. */
+          const meUnseen = fog && !!(E._seen) && !sideKnows(E, u);
+          if (meUnseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) tel.softBootsMoves++;
           {
-            const spots = candidates(map, taken, u, moveTilesFor(u), near);
+            const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near);
             tel.candidates = (tel.candidates || 0) + spots.length;
             tel.candidateCalls = (tel.candidateCalls || 0) + 1;
             for (const cand of spots) {
@@ -1385,6 +1688,11 @@
           if (move && move.val > stayVal + moveGate && (move.x !== u.x || move.y !== u.y)) {
             const strippedCover = target ? coverAgainst(map, target, u) : 0;
             u.x = move.x; u.y = move.y; u.ap--; tel.moves++;
+            /* CROSSING GROUND IS HOW YOU GET SEEN, so knowledge is stale the moment anybody
+               steps. Marked before overwatch is offered the shot rather than after, because
+               the whole question overwatch asks is whether this mover has just walked into
+               somebody's view. */
+            if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
             triggerOverwatch(rng, u, sides, map, tel, log);      /* crossing ground is dangerous */
             if (u.state !== 'ok' && u.state !== 'light') continue;
             if (move.tgt && strippedCover > 0 && coverAgainst(map, move.tgt, u) === 0) tel.flankShots++;
@@ -1402,7 +1710,7 @@
                second time. It is a commitment, not a free sprint — but it makes the far side
                of a rock reachable inside one turn instead of three. */
             if (u.ap > 0 && !u.suppressed && !u._noMove) {
-              const far = candidates(map, occupancy(sides), u, moveTilesFor(u), near);
+              const far = candidates(map, occupancy(sides), u, moveTilesFor(u, meUnseen), near);
               let rush = null;
               for (const cand of far) {
                 if (cand.x === u.x && cand.y === u.y) continue;
@@ -1428,6 +1736,7 @@
                 u.x = rush.x; u.y = rush.y; u.ap--; u.dashed = true;
                 tel.dashes = (tel.dashes || 0) + 1;
                 if (CONST.DASH_EXPOSE) u.cover = 0;
+                if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
                 triggerOverwatch(rng, u, sides, map, tel, log);
                 if (u.state !== 'ok' && u.state !== 'light') continue;
                 if (log) log.push({ t: tel.turn, type: 'dash', by: u.id,
@@ -1458,7 +1767,7 @@
               units: sides.flatMap((SS, ssi) => SS.units.map(x => ({
                 id: x.id, s: ssi, x: x.x, y: x.y, st: x.state, ow: !!x.overwatch,
                 comp: Math.round(x.comp || 0), ammo: x.ammo || 0, sid: !!x.onSidearm,
-                hp: x.hp, hpMax: x.hpMax,
+                hp: x.hp, hpMax: x.hpMax, kn: knownOf(x, ssi),
                 sup: !!x.suppressed, name: x.ref && x.ref.name
               })))
             });

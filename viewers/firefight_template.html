@@ -86,6 +86,21 @@
       <option value="0">alongside the attackers</option>
     </select>
     <label><input type="checkbox" id="flanked"> defenders were caught from two arcs</label>
+    <label>they met at
+      <select id="band">
+        <option value="0">long range</option>
+        <option value="1" selected>medium range</option>
+        <option value="2">close range</option>
+      </select>
+    </label>
+    <label>show the field
+      <select id="pov">
+        <option value="-1" selected>as it really is</option>
+        <option value="0">as the attackers know it</option>
+        <option value="1">as the defenders know it</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="nofog"> switch spotting off</label>
     <button id="run" class="go">fight it</button>
     <button id="play">play</button>
   </div>
@@ -104,6 +119,12 @@
         you from the side it is on, which is the whole reason arriving from behind matters.<br>
         <i>bodies</i> &mdash; filled circles are on their feet, hollow are down, crossed are dead.
         A ring means overwatch. <i>The arriving squad flashes gold on the turn it walks in.</i><br>
+        <i>who is hidden</i> &mdash; a body nobody has found sits in a dark pocket with a dashed
+        edge. A body known only by the sound of its own shooting gets a broken white ring: they
+        can be fired at, badly. Everyone else has been seen.<br>
+        <i>point of view</i> &mdash; set it to one side and the field is drawn as that side knows
+        it. Enemies they have not found are simply not there. That gap between the two views is
+        the whole of this change, and it is the one thing the numbers cannot show you.<br>
         <i>the numbers</i> &mdash; composure, which is what breaks before people do.
       </div>
       <div class="foot" id="cost"></div>
@@ -165,8 +186,12 @@
 
     var a = makeSide(seed + '-a', 'A', 6);
     var b = makeSide(seed + '-b', 'B', 6);
-    var ctx = { terrain: $('terrain').value, openingBand: 1, prep: [0.5, 0.5],
+    var ctx = { terrain: $('terrain').value,
+                openingBand: parseInt($('band').value, 10), prep: [0.5, 0.5],
                 flanked: [false, !!$('flanked').checked] };
+    /* the same switch the measurement harness uses, so what you watch here and what was
+       measured through six contests are the same code on the same flag */
+    if ($('nofog').checked) ctx.fog = false;
     if (joinTurn > 0) {
       /* THE SAME SHAPE `divide.js` BUILDS during a contest: a side, the turn it walks in on,
          and the bearing it approached from. Nothing here is a mock of the real thing. */
@@ -182,7 +207,12 @@
     $('fr').value = '0'; G.i = 0;
     $('cost').textContent = G.res.frames.length + ' frames over ' + G.res.turns +
       ' turns in ' + ms + ' ms \u00b7 ' + G.res.result +
-      (G.res.telemetry.arrivals ? ' \u00b7 ' + G.res.telemetry.arrived + ' walked in' : '');
+      (G.res.telemetry.arrivals ? ' \u00b7 ' + G.res.telemetry.arrived + ' walked in' : '') +
+      (G.res.telemetry.fogOn
+        ? ' \u00b7 first contact turn ' + (G.res.telemetry.contactTurn || '\u2014') +
+          ' \u00b7 ' + (G.res.telemetry.blindShots || 0) + ' of ' +
+          (G.res.telemetry.shots || 0) + ' shots were at a muzzle flash'
+        : ' \u00b7 spotting off');
     draw();
   }
 
@@ -206,9 +236,42 @@
       }
     }
 
+    /* POINT OF VIEW. -1 draws the field as it really is. Set to a side and every enemy that
+       side has not found is simply not drawn — which is the honest picture of what that squad
+       is deciding on, and the only way to see that the gap exists at all. Their own people are
+       always drawn: you know where your own squad is. */
+    var pov = parseInt($('pov').value, 10);
+
     for (var i = 0; i < F.units.length; i++) {
       var u = F.units[i], cx = u.x * s + s / 2, cy = u.y * s + s / 2;
       var col = SIDE[u.s % SIDE.length];
+      var kn = (u.kn == null) ? 2 : u.kn;      /* 0 hidden · 1 heard · 2 seen */
+      if (pov >= 0 && u.s !== pov && kn === 0) continue;
+      if (pov >= 0 && u.s !== pov && kn === 1) {
+        /* a shot came from about here. Draw the guess, not the man. */
+        g.strokeStyle = 'rgba(233,228,220,.30)'; g.lineWidth = 1;
+        g.setLineDash([3, 4]);
+        g.beginPath(); g.arc(cx, cy, s * 0.52, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
+        g.fillStyle = 'rgba(233,228,220,.22)';
+        g.font = Math.round(s * 0.42) + 'px ui-monospace,monospace';
+        g.textAlign = 'center'; g.fillText('?', cx, cy + s * 0.15);
+        continue;
+      }
+      /* in the true view, show what each body's own concealment is worth */
+      if (pov < 0 && kn === 0 && (u.st === 'ok' || u.st === 'light')) {
+        g.fillStyle = 'rgba(10,8,6,.55)';
+        g.beginPath(); g.arc(cx, cy, s * 0.60, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(233,228,220,.22)'; g.lineWidth = 1;
+        g.setLineDash([2, 3]);
+        g.beginPath(); g.arc(cx, cy, s * 0.56, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
+      } else if (pov < 0 && kn === 1 && (u.st === 'ok' || u.st === 'light')) {
+        g.strokeStyle = 'rgba(233,228,220,.34)'; g.lineWidth = 1.5;
+        g.setLineDash([4, 4]);
+        g.beginPath(); g.arc(cx, cy, s * 0.56, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
+      }
       /* the arriving squad flashes on the turn it walks in */
       if (u.s === 2 && F.turn === G.arriveTurn) {
         g.fillStyle = 'rgba(216,166,87,.28)';
@@ -285,6 +348,14 @@
   }
 
   $('run').onclick = function () { stop(); run(); };
+  /* POINT OF VIEW REDRAWS, IT DOES NOT REFIGHT. Switching between what the attackers know and
+     what the defenders know has to be the same fight seen twice, or you are comparing two
+     different battles and the comparison means nothing. The fight is in `G.res`; this only
+     changes what gets painted from it. The band and the spotting switch DO refight, because
+     they change the engagement itself. */
+  $('pov').onchange = function () { draw(); };
+  $('band').onchange = function () { stop(); run(); };
+  $('nofog').onchange = function () { stop(); run(); };
   $('back').onclick = function () { stop(); goto(G.i - 1); };
   $('fwd').onclick = function () { stop(); goto(G.i + 1); };
   $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10)); };

@@ -117,64 +117,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_A",
-    "exchanges": 10,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 3,
-    "bDead": 0,
-    "bDown": 0,
-    "shots": 199,
-    "hits": 36,
-    "downs": 3
-  },
-  "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 11,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 2,
-    "shots": 117,
-    "hits": 26,
-    "downs": 4
-  },
-  "long band, both cautious": {
-    "result": "disengage_B",
-    "exchanges": 5,
+    "result": "disengage_both",
+    "exchanges": 9,
     "band": "medium",
     "aDead": 1,
-    "aDown": 0,
+    "aDown": 1,
     "bDead": 1,
     "bDown": 4,
-    "shots": 72,
-    "hits": 24,
-    "downs": 6
+    "shots": 160,
+    "hits": 30,
+    "downs": 7
   },
-  "forest, standard v unyielding": {
+  "short band, both aggressive": {
     "result": "disengage_B",
-    "exchanges": 18,
+    "exchanges": 11,
     "band": "medium",
     "aDead": 0,
     "aDown": 1,
     "bDead": 0,
+    "bDown": 4,
+    "shots": 118,
+    "hits": 35,
+    "downs": 5
+  },
+  "long band, both cautious": {
+    "result": "disengage_B",
+    "exchanges": 7,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 3,
+    "bDead": 2,
+    "bDown": 4,
+    "shots": 123,
+    "hits": 43,
+    "downs": 9
+  },
+  "forest, standard v unyielding": {
+    "result": "disengage_B",
+    "exchanges": 10,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 0,
+    "bDead": 3,
     "bDown": 2,
-    "shots": 171,
-    "hits": 29,
-    "downs": 3
+    "shots": 96,
+    "hits": 30,
+    "downs": 5
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
-    "exchanges": 8,
+    "exchanges": 10,
     "band": "medium",
-    "aDead": 1,
-    "aDown": 2,
+    "aDead": 3,
+    "aDown": 3,
     "bDead": 0,
     "bDown": 0,
-    "shots": 107,
-    "hits": 28,
-    "downs": 3
+    "shots": 118,
+    "hits": 29,
+    "downs": 6
   }
 };
 
@@ -3200,7 +3200,14 @@ function negotiationRules() {
     /* only ever read by code that did not run */
     'gore_morale_immune', 'death_morale_immune', 'wounded_composure_bonus',
     'short_band_composure_bonus', 'morale_swings_amplified', 'morale_swings_damped',
-    'reposition_speed_up', 'unspotted_movement_bonus'];
+    'reposition_speed_up'];
+  /* `unspotted_movement_bonus` CAME OFF THIS LIST, which is what the list is for. Soft Boots —
+     "arrives places without the courtesy of being heard first" — had nothing to be unspotted
+     FROM until the grid got a spotting model, and now pays a fighter extra ground while nobody
+     has eyes on them. Measured through six contests: 143 moves. The list is now 21.
+     `night_ambush_warning_bonus` stays on it. Fog is not night, the grid still has no time of
+     day, and wiring that hook to a spotting model would be the second time this project pointed
+     a trait at the nearest condition that happened to be true. */
   const stillUnread = [...new Set(unreadNow)].sort();
   const surprises = stillUnread.filter(h => !INERT.includes(h));
   const fixed = INERT.filter(h => !stillUnread.includes(h));

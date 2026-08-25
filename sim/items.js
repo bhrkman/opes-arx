@@ -85,7 +85,22 @@
   };
 
   /* The default loadout. Chosen so a fielded force is numerically identical to the
-     pre-catalog field: carbine power 5 / medium / tier 3, plate carrier protection 3. */
+     pre-catalog field: carbine power 5 / medium / tier 3, plate carrier protection 3.
+
+     THIS IS A FALLBACK, NOT WHAT A FIELDED SQUAD CARRIES. It is what bodies get when a corp
+     fails to muster, or when there are more bodies than planned kits. Real kit comes from
+     `planForce`, and it is various: six of the catalog's weapons carry `suppressive` or
+     `suppressive_2`, and none of them is a carbine.
+
+     So a squad equipped this way is a squad with no machine guns in it, and any mechanism that
+     hangs off a weapon tag will read as dead when measured on one. Three probes did exactly
+     that and reported that suppression NEVER FIRES — 0 pins across 21,386 shots. Through two
+     real contests, where corporations buy their own kit, it is 4,705 pins, and suppression is
+     true on 31.85% of all shot evaluations: the most-used modifier in the game. The finding was
+     entirely an artifact of arming everybody the same way.
+
+     If you are measuring whether something works, equip the way the contest does, or run the
+     contest. This constant is for filling a gap, not for building a world to measure. */
   const DEFAULT_LOADOUT = {
     primary: "itm_carbine",
     mods: [],

@@ -47,7 +47,19 @@ const CONST = {
   HIT_SLOPE: 0.04,                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
   HIT_MIN: 0.04, HIT_MAX: 0.72,           // [C]
-  COVER_MULT: [1.00, 0.70, 0.45, 0.28],   // [S] open / light / heavy / hard
+  /* WHAT YOUR EXPOSURE DOES TO A SHOT AT YOU. The open case used to be 1.00, which made it the
+     CEILING: cover only ever subtracted, so catching a body in the open was worth nothing in
+     itself and the very best a flank could do was claw back to ordinary. That is backwards. A
+     man with nothing in front of him should be a windfall, and it is the reason to spend an
+     action going somewhere — the movement scorer was not malfunctioning, it was correctly
+     reading a game in which moving bought about six points of hit chance for a whole action.
+     Measured across 500 fights on identical seeds, walking this from 1.00 to 1.60: fights that
+     ran out the clock 64 -> 28, body-turns containing a move 42.6% -> 49.0%, mid-fight movement
+     up about a quarter, and the season's permanent losses flat, because fights end sooner and
+     the shots saved pay for the shots that land. This is a chosen number, not a derived one:
+     1.85 was better on every measure and was rejected because a body caught in the open at
+     close range reached 93% and had no answer left. At 1.60 that worst case is 80%. */
+  COVER_MULT: [1.60, 0.70, 0.45, 0.28],   // [S] open / light / heavy / hard
   /* §3.2 cover is a SCARCE POSITIONAL RESOURCE, not a per-fighter attribute. The ground
      offers a fixed set of firing positions by grade; fieldcraft decides who gets the good
      ones. Profiles give the share of positions at each grade. [S] */
@@ -63,6 +75,21 @@ const CONST = {
   COVER_SUPPRESSED_DEGRADE_P: 0.12,       // [C] sustained fire chips a position down a grade
   MOTION_HOLD: 1.00, MOTION_REPOS: 1.15, MOTION_HOVER: 1.35,   // [S]
   SPOT_UNSPOTTED: 0.50, SPOT_OVERWATCH: 1.40,                  // [S]
+  /* TRIED AND REMOVED: making a body on overwatch easier to hit, so that holding an arc cost
+     something. It did what it said — watching fell from 99.8% of body-turns to 37% — and it did
+     NOT reduce bunkering. Across a range of 1.15 to 3.00 the share of body-turns containing a
+     move stayed flat at about 49%, and fights got marginally longer. The reason is worth
+     keeping: the movement scorer never knew overwatch existed, so reaction fire was never
+     deterring anybody. It was damage arriving, not a tax being weighed. Removing a tax nobody
+     was paying attention to changes nothing. See PROJECT.md. */
+  /* Aim for a shot taken before the other side knows where you are. DECLARED HERE, WHERE IT
+     IS READ. It was first written into `tactical.js`'s constants beside the rest of the fog
+     work, which reads well and is wrong: `aimEff` lives in this file and would have resolved
+     it to `undefined`, so `a += undefined` makes the whole hit chance NaN and `rng() < NaN`
+     is false every time. Every concealed shot would have missed, silently, and fog would have
+     measured as a penalty — the project has already lost a courting delay to exactly this and
+     `audit_cross` was given a check for undeclared reads because of it. */
+  UNSPOTTED_AIM: 3,                                            // [H]
   BAND_HIT_MULT: [0.80, 1.00, 1.32],      // [C] §3.2 long / medium / short
   BAND_SEV_BONUS: [-7, 0, 6],             // [C] §3.2 lethality by band
   BAND_COMP_DRAIN: [0, -1, -2],           // [C] §3.2 "composure collapses fast" at short
@@ -641,6 +668,11 @@ function aimEff(c, bandIdx, ctx) {
   if (c.hooks.has('accuracy_bonus')) a += 2;
   if (ctx.squadLink) a += 1;                                          // Gil psion_squad_link
   if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += 3;
+  /* Shooting before they know where you are. The grid sets this when the target's side has
+     neither eyes on the shooter nor a recent shot to look toward; nothing else passes it, so
+     an abstract-model caller is unaffected. Sized against `first_strike_bonus` above, which
+     is +3 for a closely related reason, rather than picked to hit a casualty figure. */
+  if (ctx.unseen) a += CONST.UNSPOTTED_AIM;
   if (c.hooks.has('first_shot_long_range_bonus') && ctx.exchange === 1 && bandIdx === 0) a += 4;
   a += Math.round(CONST.GEAR_TIER_ACCURACY * ((c.weapon.tier || 3) - 3) * 10) / 10;
   if (c.hooks.has('optics_gear_synergy')) a += 1;
@@ -720,7 +752,15 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
-  if (shooter.hooks.has('unspotted_open_fire_bonus') && !target.spotted) roll += 12;
+  /* AMBUSH INSTINCT — "The first volley is theirs. It usually decides the rest."
+     This read `!target.spotted`, which is a fact about whether the SHOOTER has found the
+     target — so as written it paid out for firing blindly at somebody whose position you did
+     not have, which is the opposite of what the trait says and the worse shot of the two. It
+     never paid out at all, because nothing wrote `spotted`; but had the flag ever started
+     moving it would have rewarded the wrong thing. The same miswiring already recorded against
+     Trigger Itch, which was hooked to widen a spread that the guns carrying it do not have.
+     `_unseen` is set by the grid around the shot: the shooter is the one nobody has placed. */
+  if (shooter.hooks.has('unspotted_open_fire_bonus') && shooter._unseen) roll += 12;
   const qs = quirkSev(shooter, target, bandIdx)                         /* §4.2 */
            + tempoPierce(shooter, target);                             /* COMPOSITION.md §4 */
   roll += qs;
