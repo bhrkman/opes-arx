@@ -44,7 +44,12 @@ const out = tpl.replace('/*__DATA__*/', data).replace('/*__SIM__*/', js);
 
 /* The build message is not evidence — a template patch that threw partway through once left
    this script rebuilding the previous page and reporting success. */
-const MUST_CONTAIN = ['THE DROP-IN', 'ctx.reinforce', 'frames', 'CDTACTICAL', 'tiles[y]', 'THE WOUND POOL'];
+/* MARKERS FOR FEATURES, NOT FOR PROSE. This list had 'THE DROP-IN' in it, which was a phrase in
+   an explanatory paragraph rather than anything the page DOES — so when the paragraph was cut the
+   guard failed even though every feature it was standing for still worked. A guard anchored to
+   wording fires on an edit to the wording; anchor it to the code that has to be there. */
+const MUST_CONTAIN = ['ctx.reinforce', 'frames', 'CDTACTICAL', 'tiles[y]', 'THE WOUND POOL',
+                      'buildShots', 'planForce', 'G.tween'];
 const missing = MUST_CONTAIN.filter(t => out.indexOf(t) < 0);
 if (missing.length) {
   console.error('the built page is not the page this template describes.\n  missing: ' + missing.join(', '));

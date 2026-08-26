@@ -22,7 +22,11 @@
   .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;
          padding:16px 18px;margin:0 0 18px}
   .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
-  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+  /* SETUP is scaffolding and reads that way; VIEW is the part a commander would touch. */
+  .grp{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+       border-left:2px solid var(--line);padding-left:8px;margin-left:4px}
+  .grp:first-child{margin-left:0;border-left:none;padding-left:0}
   label{color:var(--dim);font-size:12.5px}
   select,button,input{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
                 border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
@@ -53,55 +57,41 @@
 <body>
 <div class="wrap">
 
-<h1>The Firefight <span class="sub">— one engagement, on the grid</span></h1>
-<p class="lede">
-  The grid has recorded every body's tile, state, composure and ammunition once per acting
-  fighter since it replaced the old band model, and <b>nothing has ever drawn it</b>. This page
-  fights a real engagement with the live <code>tactical.resolve</code> and plays it back.
-  It exists for <b>THE DROP-IN</b>: a squad that walks into a fight already in progress, entering
-  on the bearing it approached from. That is the one thing here you cannot judge from a number —
-  either you watch them come in behind people who set up facing somewhere else, or you are taking
-  somebody's word for it.
-</p>
+<h1>The Firefight</h1>
 
 <div class="panel">
   <div class="controls">
-    <label>seed</label><input id="seed" value="fight-1" size="9">
-    <label>ground</label>
+    <!-- SETUP is scaffolding: until a season feeds engagements in, a fight has to be
+         conjured from somewhere. These are not things a player will ever set. -->
+    <span class="grp">setup</span>
+    <input id="seed" value="fight-1" size="8" title="seed">
     <select id="terrain">
       <option>ruins</option><option>broken_ground</option><option>open_basin</option>
       <option>forest</option><option>entrenched</option>
     </select>
-    <label>a third squad arrives</label>
+    <select id="band">
+      <option value="0">met at long range</option>
+      <option value="1" selected>met at medium range</option>
+      <option value="2">met at close range</option>
+    </select>
     <select id="join">
-      <option value="0">not at all</option>
-      <option value="3">on turn 3</option>
-      <option value="6" selected>on turn 6</option>
-      <option value="10">on turn 10</option>
+      <option value="0">no third squad</option>
+      <option value="3">a third squad on turn 3</option>
+      <option value="6" selected>a third squad on turn 6</option>
+      <option value="10">a third squad on turn 10</option>
     </select>
-    <label>from</label>
     <select id="bearing">
-      <option value="3.14159">behind the defenders</option>
-      <option value="1.5708">from the south</option>
-      <option value="0">alongside the attackers</option>
+      <option value="3.14159">arriving behind the defenders</option>
+      <option value="1.5708">arriving from the south</option>
+      <option value="0">arriving alongside the attackers</option>
     </select>
-    <label><input type="checkbox" id="flanked"> defenders were caught from two arcs</label>
-    <label>they met at
-      <select id="band">
-        <option value="0">long range</option>
-        <option value="1" selected>medium range</option>
-        <option value="2">close range</option>
-      </select>
-    </label>
-    <label>show the field
-      <select id="pov">
-        <option value="-1" selected>as it really is</option>
-        <option value="0">as the attackers know it</option>
-        <option value="1">as the defenders know it</option>
-      </select>
-    </label>
-    <label><input type="checkbox" id="nofog"> switch spotting off</label>
+    <label><input type="checkbox" id="flanked"> defenders caught from two arcs</label>
     <button id="run" class="go">fight it</button>
+
+    <!-- VIEW is the part that survives into the game. A commander sees what their own side has
+         found, not the field as it really is. -->
+    <span class="grp">view</span>
+    <label><input type="checkbox" id="noanim"> no movement</label>
     <button id="play">play</button>
   </div>
 
@@ -113,19 +103,6 @@
         <input id="fr" type="range" min="0" max="0" value="0">
         <button id="fwd">&rsaquo;</button>
         <span class="t" id="frLbl">turn 1</span>
-      </div>
-      <div class="legend">
-        <i>the ground</i> &mdash; darker blocks are cover, and it is directional: a wall protects
-        you from the side it is on, which is the whole reason arriving from behind matters.<br>
-        <i>bodies</i> &mdash; filled circles are on their feet, hollow are down, crossed are dead.
-        A ring means overwatch. <i>The arriving squad flashes gold on the turn it walks in.</i><br>
-        <i>who is hidden</i> &mdash; a body nobody has found sits in a dark pocket with a dashed
-        edge. A body known only by the sound of its own shooting gets a broken white ring: they
-        can be fired at, badly. Everyone else has been seen.<br>
-        <i>point of view</i> &mdash; set it to one side and the field is drawn as that side knows
-        it. Enemies they have not found are simply not there. That gap between the two views is
-        the whole of this change, and it is the one thing the numbers cannot show you.<br>
-        <i>the numbers</i> &mdash; composure, which is what breaks before people do.
       </div>
       <div class="foot" id="cost"></div>
     </div>
@@ -7560,7 +7537,22 @@ window.ARX_DATA = {
   };
 
   /* The default loadout. Chosen so a fielded force is numerically identical to the
-     pre-catalog field: carbine power 5 / medium / tier 3, plate carrier protection 3. */
+     pre-catalog field: carbine power 5 / medium / tier 3, plate carrier protection 3.
+
+     THIS IS A FALLBACK, NOT WHAT A FIELDED SQUAD CARRIES. It is what bodies get when a corp
+     fails to muster, or when there are more bodies than planned kits. Real kit comes from
+     `planForce`, and it is various: six of the catalog's weapons carry `suppressive` or
+     `suppressive_2`, and none of them is a carbine.
+
+     So a squad equipped this way is a squad with no machine guns in it, and any mechanism that
+     hangs off a weapon tag will read as dead when measured on one. Three probes did exactly
+     that and reported that suppression NEVER FIRES — 0 pins across 21,386 shots. Through two
+     real contests, where corporations buy their own kit, it is 4,705 pins, and suppression is
+     true on 31.85% of all shot evaluations: the most-used modifier in the game. The finding was
+     entirely an artifact of arming everybody the same way.
+
+     If you are measuring whether something works, equip the way the contest does, or run the
+     contest. This constant is for filling a gap, not for building a world to measure. */
   const DEFAULT_LOADOUT = {
     primary: "itm_carbine",
     mods: [],
@@ -7661,8 +7653,17 @@ window.ARX_DATA = {
                 mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
+      /* THE SAME FIELDS AS THE PRIMARY, which it did not have. The note three lines above says
+         `id` and `name` are carried so a viewer can say WHICH gun fired — and the sidearm built
+         directly beneath it carried neither, nor `mobility`. When a fighter runs dry,
+         `useSidearm` copies this object over `weapon`, so from that moment the body has a
+         weapon with no name: every shot it fires afterwards is logged nameless and the event
+         panel prints the sentence with the gun missing off the end. It also has no `mobility`,
+         which the movement code reads to work out how far it can walk. */
       sidearm: s ? { power: (s.effects || {}).power || 0, range: (s.effects || {}).range || "short",
-                     tier: s.tier, damage: (s.effects || {}).damage || s.family,
+                     tier: s.tier, id: s.id, name: s.name,
+                     mobility: (s.effects || {}).mobility || 0,
+                     damage: (s.effects || {}).damage || s.family,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
       heat: pe.heat || 0, heatCap: pe.heat_cap || 0, charge: pe.charge || 0,
@@ -9852,7 +9853,19 @@ const CONST = {
   HIT_SLOPE: 0.04,                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
   HIT_MIN: 0.04, HIT_MAX: 0.72,           // [C]
-  COVER_MULT: [1.00, 0.70, 0.45, 0.28],   // [S] open / light / heavy / hard
+  /* WHAT YOUR EXPOSURE DOES TO A SHOT AT YOU. The open case used to be 1.00, which made it the
+     CEILING: cover only ever subtracted, so catching a body in the open was worth nothing in
+     itself and the very best a flank could do was claw back to ordinary. That is backwards. A
+     man with nothing in front of him should be a windfall, and it is the reason to spend an
+     action going somewhere — the movement scorer was not malfunctioning, it was correctly
+     reading a game in which moving bought about six points of hit chance for a whole action.
+     Measured across 500 fights on identical seeds, walking this from 1.00 to 1.60: fights that
+     ran out the clock 64 -> 28, body-turns containing a move 42.6% -> 49.0%, mid-fight movement
+     up about a quarter, and the season's permanent losses flat, because fights end sooner and
+     the shots saved pay for the shots that land. This is a chosen number, not a derived one:
+     1.85 was better on every measure and was rejected because a body caught in the open at
+     close range reached 93% and had no answer left. At 1.60 that worst case is 80%. */
+  COVER_MULT: [1.60, 0.70, 0.45, 0.28],   // [S] open / light / heavy / hard
   /* §3.2 cover is a SCARCE POSITIONAL RESOURCE, not a per-fighter attribute. The ground
      offers a fixed set of firing positions by grade; fieldcraft decides who gets the good
      ones. Profiles give the share of positions at each grade. [S] */
@@ -9868,6 +9881,13 @@ const CONST = {
   COVER_SUPPRESSED_DEGRADE_P: 0.12,       // [C] sustained fire chips a position down a grade
   MOTION_HOLD: 1.00, MOTION_REPOS: 1.15, MOTION_HOVER: 1.35,   // [S]
   SPOT_UNSPOTTED: 0.50, SPOT_OVERWATCH: 1.40,                  // [S]
+  /* TRIED AND REMOVED: making a body on overwatch easier to hit, so that holding an arc cost
+     something. It did what it said — watching fell from 99.8% of body-turns to 37% — and it did
+     NOT reduce bunkering. Across a range of 1.15 to 3.00 the share of body-turns containing a
+     move stayed flat at about 49%, and fights got marginally longer. The reason is worth
+     keeping: the movement scorer never knew overwatch existed, so reaction fire was never
+     deterring anybody. It was damage arriving, not a tax being weighed. Removing a tax nobody
+     was paying attention to changes nothing. See PROJECT.md. */
   /* Aim for a shot taken before the other side knows where you are. DECLARED HERE, WHERE IT
      IS READ. It was first written into `tactical.js`'s constants beside the rest of the fog
      work, which reads well and is wrong: `aimEff` lives in this file and would have resolved
@@ -10914,6 +10934,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      * was too small to move any decision. It cuts both ways: a marksman backs off from a
      * shotgun for the same reason the shotgun runs at him. */
     BAND_PULL: 0.050,                // [C] per tile of distance from the range you want
+    /* FINISH THE WOUNDED. Added to a body's hit chance when picking who to shoot, and the only
+       thing besides raw chance that decides it. It lived as a bare 0.05 inline in the target
+       loop with no name and no entry here, which is why nothing had ever audited it — a static
+       census of the constants cannot inventory a number that has no name, so it was invisible
+       to exactly the pass built to find numbers like this.
+       Measured by ablation across one contest and 5,348 aimed shots: remove it and 929 shots go
+       to a different body — 17.4% of aimed shots, 20.5% of the shots where there was more than
+       one body to choose between. Somebody visibly wounded was available on 2,451 shots and was
+       the one shot on 1,930 of them, so this literal is the whole reason squads concentrate on
+       the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
+       Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
+    FINISH_WOUNDED: 0.05,            // [C]
+    DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
+                                     //     Not 1.0 on purpose: a dash that is as cautious as a
+                                     //     walk is not a dash, and the mechanism exists to get
+                                     //     short-range squads across ground they never crossed.
     MOB_TILES: 1.5,                  // [C] ground a mob_up / mob_down weapon gains or costs
     COVERING_FIRE_MIN: 2,            // [C] bodies it must put down to be worth an action
     SMOKE_RADIUS: 2,                 // [C] tiles a screen covers
@@ -11135,19 +11171,54 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return best;
   }
 
+  /* MODULE-SCOPED BECAUSE `incoming` IS. The motion switch lives on the ctx of a single fight,
+     and `incoming` is a free function that never sees it — so the first version of this modelled
+     the cost of having moved even when motion exposure was switched OFF. The "off" control was
+     therefore not off: all five snapshot fights moved with the flag down, which read as an
+     incidental regression and was really the control being broken. Set once per fight below. */
+  let _motionOn = true;
+
   /** How likely is `shooter` to hit `victim` if the victim stands at `spot`? */
   function incoming(shooter, victim, spot, map) {
     const cov = coverAgainst(map, spot, shooter);
-    /* `flanked` is FALSE here and the victim is moved to the spot, neither of which the shot
-       memo models — an "exact" cache that is exact for one caller and not the other is just a
-       bug with a comment on it. This one stays uncached and the profiler says it does not
-       matter: the cost is in `coverAgainst` and `hasLOS`, not here. */
-    const sc = victim.cover, sf = victim.flanked, sx = victim.x, sy = victim.y;
+    /* `flanked` IS FALSE HERE AND THAT IS CORRECT, which took a wrong turn to establish.
+       It looks like a blindness: the one number the movement decision rests on, apparently
+       unable to tell a rock between you from a rock beside you. It is not. `cov` is already
+       DIRECTIONAL — `coverAgainstRaw` counts only cover lying within an arc facing the shooter,
+       so a body whose wall does not face this shooter already gets `cov = 0` and is already
+       valued as standing in the open. Angles are perceived, through cover, exactly as they
+       should be.
+       The flag would be a SECOND application of the same fact, and it is inert by construction
+       everywhere it appears: it is assigned `cov === 0 && own > 0`, and its only effect is to
+       knock a grade off cover — which is already zero whenever the flag is true. Computing it
+       here properly was tried and measured byte-for-byte identical across 500 fights: 52,481
+       body-turns, 25,702 moves, 3,005 flanking shots, every integer unchanged, despite the new
+       term being true 18% of the time. Reverted under the rule that anything measuring as no
+       change comes back out. Do not "fix" this again. */
+    /* AND THE COST OF HAVING MOVED THERE, WHICH THE SCORER MUST BE ABLE TO SEE.
+       This is the whole difference between a mechanism and a tax. Wiring `repositioning` at the
+       move site alone would make a body easier to hit without anything weighing that when it
+       decides — so nobody would move any less, they would only die more, which is precisely what
+       happened when overwatch was made dangerous without making it a decision. A candidate tile
+       that is not the one you are standing on can only be reached by moving, so evaluating it
+       means evaluating it as a body that has just moved. */
+    const sc = victim.cover, sf = victim.flanked, sx = victim.x, sy = victim.y,
+          sr = victim.repositioning;
+    const movingThere = (spot.x !== victim.x || spot.y !== victim.y);
     victim.cover = cov; victim.flanked = false; victim.x = spot.x; victim.y = spot.y;
+    if (movingThere && _motionOn) victim.repositioning = true;
     const p = C.hitChance(shooter, victim, bandOf(Math.hypot(shooter.x - spot.x, shooter.y - spot.y)), {}, false)
               * CONST.SHOT_HIT_MULT;
     victim.cover = sc; victim.flanked = sf; victim.x = sx; victim.y = sy;
+    victim.repositioning = sr;
     return p;
+  }
+
+  /** Can this body do anything to anyone, at any range? Declared here with the other small
+      predicates: `shotAt` reads it and threw on the opening shot when it lived further down. */
+  function canHurt(c) {
+    const w = c.weapon;
+    return !!(w && (w.power || 0) > 0);
   }
 
   function bandOf(d) {
@@ -11624,6 +11695,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
+    /* THE THIRD COUNTER OF THAT SET, FINALLY RAISED. The note beside the declaration records
+       that `vents`, `chargeOut` and `energyShots` were once missing from the telemetry object
+       and were added back. Two of them were also given somewhere to be INCREMENTED; this one
+       was not, so it sat declared, initialised and permanently zero — reporting a clean nought
+       while 585 weapons vented and 57 ran out of charge in a single contest. Not NaN, not
+       unreachable: never raised, which is the third way a zero lies and the hardest to notice,
+       because the counter looks perfectly healthy where it is declared.
+       On a sidearm you are firing a conventional weapon, whatever your primary is. */
+    if (C.isEnergy(shooter) && !shooter.onSidearm) tel.energyShots++;
     /* which range fights actually happen at — the grid derives band from distance, so unlike
        the abstract model this is an OUTCOME rather than a setting, and it is the only honest
        way to ask whether a short-range weapon ever gets to be a short-range weapon */
@@ -11669,7 +11749,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     shooter._rateBank = (shooter._rateBank || 0) - extra;
     while (extra-- > 0 && C.spendShot(shooter, 'shot')) {
       tel.shots++; tel.tempoShots = (tel.tempoShots || 0) + 1;
-      if (rng() < p) {
+      if (C.isEnergy(shooter) && !shooter.onSidearm) tel.energyShots++;   /* extra rounds count */
+      /* EXTRA ROUNDS WERE COUNTED AND NEVER RECORDED. This loop raised `tel.shots` and resolved
+         the hit, but wrote no log entry — so a Belt Machine Gun that put four rounds downrange
+         appeared in the replay as one, and 366 shots in twenty-five fights existed in the
+         telemetry and nowhere a reader could see them. The counter and the record disagreed
+         about the same event, and only the counter was ever checked. */
+      const tHit = rng() < p;
+      if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id,
+                          p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
+                          ammo: shooter.ammo, react: !!react, tempo: true });
+      if (tHit) {
         tel.hits++;
         applyHit(rng, target, C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn),
                  tel, log, shooter, E);
@@ -11760,6 +11850,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** The distance, in tiles, at which this fighter's weapon is doing what it is for. */
   function wantTiles(c) {
+    /* A BODY WITH NOTHING TO FIGHT WITH WANTS TO BE ELSEWHERE. `UNARMED` is a real weapon
+       profile — power 0, range MEDIUM — so a fighter carrying nothing inherited a medium
+       preferred range and the band pull walked it TOWARD a squad shooting at it, to reach a
+       firing distance for its fists. Closing a range gap you have no weapon to close is not a
+       thing anybody does. Ruled: a body that cannot hurt anyone wants maximum distance, and the
+       same pull that walked it in now walks it out. */
+    if (!canHurt(c)) return CONST.BAND_TILE[0] + 8;
     const r = (c.weapon && c.weapon.range) || 'medium';
     if (r === 'long') return CONST.BAND_TILE[0] + 2;
     if (r === 'short') return Math.max(1, Math.round(CONST.BAND_TILE[1] * 0.5));
@@ -12013,6 +12110,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        can be measured with it and without it — a before/after that compares two different
        trees is comparing two instruments, which is the failure this project keeps hitting. */
     const fog = ctx.fog !== false;
+    /* MOTION EXPOSURE, on unless the caller turns it off — the same shape as the fog switch, so
+       a before and after compares one tree against itself rather than two checkouts. */
+    const motion = ctx.motion !== false;
+    _motionOn = motion;
     if (fog) {
       const fogState = { sides, map, turn: 0, dirty: true };
       for (const S of sides) { S._fog = fogState; S._seen = new Set(); S._heard = new Set(); }
@@ -12044,14 +12145,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return best;
     };
 
+    /* ONE PLACE THAT DESCRIBES A BODY, because there are two places that record one.
+       These were two separate object literals, and every field added to the replay since has
+       been added to whichever one was in front of me: `race` and `mv` reached the turn snapshot
+       and never reached the per-body frames, which are the ones you actually watch. The result
+       was an Olmac rendering as a large grey body on the frame at the top of a turn and as a
+       small pale one on every frame after it, because a missing `race` falls back to human.
+       It flickered rather than failing, so nothing threw and the page checks passed.
+       Two copies of a record drift. One function cannot. */
+    const unitRec = (u, si) => ({
+      id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch, sup: !!u.suppressed,
+      mv: u._crossed ? 2 : u.repositioning ? 1 : 0, race: u.race || 'human',
+      comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
+      hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
+      name: u.ref && u.ref.name
+    });
     const snap = () => frames.push({
       turn: tel.turn,
-      units: sides.flatMap((S, si) => S.units.map(u => ({
-        id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch,
-        comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
-        hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
-        name: u.ref && u.ref.name
-      })))
+      units: sides.flatMap((S, si) => S.units.map(u => unitRec(u, si)))
     });
     tel.first = first;
     tel.openingBand = openingBand;
@@ -12139,6 +12250,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            acted and carrying whatever they logged while doing it. Verbose-only. */
         const logMark = log ? log.length : 0;
         const beforeXY = { x: u.x, y: u.y };
+        let midXY = null;
         /* whoever is not us: the nearest live enemy decides which banner we treat as THE
            enemy this turn, so a three-cornered fight is fought against whoever is on you */
         const E = pickEnemy(sides, si, u);
@@ -12147,6 +12259,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (!alive(E.units).length) break;
         try {
           u.ap = CONST.AP; u.dashed = false; u.overwatch = false;
+          /* MOTION WEARS OFF WHEN YOUR TURN COMES ROUND. Being caught mid-move only means
+             anything while the other side is shooting, which is exactly the window between
+             your move and your next activation. Cleared here alongside the other per-turn
+             flags rather than at end of turn, so it lasts the whole of the enemy's turn —
+             which is the mistake `suppressed` makes, clearing for everyone simultaneously and
+             expiring on half the people it was applied to before they ever act. */
+          u.repositioning = false; u._crossed = false;
           if (ambush && tel.turn === 1 && si !== first) { u.ap = 1; tel.ambushed++; }
           const taken = occupancy(sides);
           const allFoes = alive(E.units);
@@ -12243,6 +12362,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              exactly that and produced one move in fifteen turns. */
           const seen = foes.filter(f => hasLOS(map, u, f));
           const shotAt = (from, f) => {
+            /* A SWING THAT CANNOT HURT ANYBODY IS NOT WORTH WALKING TOWARD. `hitChance` asks how
+               likely you are to connect and never asks what connecting would do, so a power-0
+               body scored a 48% "shot" and the movement scorer weighed it exactly like a rifle
+               round — which is half of what drew an unarmed fighter toward a squad shooting at
+               it. The other half was its preferred range; see `wantTiles`. */
+            if (!canHurt(u)) return 0;
             const cov = coverAgainst(map, f, from);
             const sc = f.cover, sf = f.flanked;
             f.cover = cov; f.flanked = cov === 0 && sc > 0;
@@ -12429,11 +12554,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             }
           }
 
+          /* DECLARED HERE, above the first thing that uses it. It was first declared beside the
+             movement block, which reads naturally and is forty lines too late: target selection
+             happens before movement, so the tap threw a ReferenceError on the opening shot of
+             the first fight. Caught by running it, not by reading it. */
+          const tap = ctx._scoreTap || null;
           let target = null, pNow = 0;
+          const pickRows = tap ? [] : null;
           for (const f of seen) {
-            const p = shotAt(u, f) + (f.state === 'light' ? 0.05 : 0);
+            const raw = shotAt(u, f);
+            const p = raw + (f.state === 'light' ? CONST.FINISH_WOUNDED : 0);
+            if (pickRows) pickRows.push({ id: f.id, raw: raw, light: f.state === 'light' });
             if (p > pNow) { pNow = p; target = f; }
           }
+          if (tap && tap.pick && pickRows && pickRows.length)
+            tap.pick(pickRows, target ? target.id : null);
 
           /* What is the best shot I could have if I moved instead? Cover for me, no cover
              for them, and close enough that the band is not doing all the work. */
@@ -12447,6 +12582,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const near = foes.length
             ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
             : searchPoint(S, map);
+          if (tap) tap.rows = [];
           let move = null;
           /* am I currently unseen? decides Soft Boots. Declared out here rather than inside
              the scoring block because the dash below is a second movement decision in the same
@@ -12477,17 +12613,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                 if (!hasLOS(map, f, spot)) continue;
                 threat += incoming(f, u, spot, map);
               }
+              const bandOff = Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u));
               const val = bestP * CONST.SHOT_WEIGHT - threat * CONST.THREAT_WEIGHT
-                        - Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u))
-                          * CONST.BAND_PULL;
+                        - bandOff * CONST.BAND_PULL;
+              /* SCORE TAP — inert unless a caller supplies one, and no caller in the game does.
+                 It exists so an audit can ask whether a term in this decision actually CHANGES
+                 the decision: drop the term, recompute the ranking, see if the same tile still
+                 wins. A term that fires constantly and flips nothing is decorative, which is
+                 what `overwatch` turned out to be. Recomputing outside the engine would mean
+                 reimplementing this formula and measuring the reimplementation. */
+              if (tap) {
+                /* enough to ask the flanking question afterwards: what cover would I have
+                   standing here, and would my best shot from here be round the side of theirs? */
+                let ownCov = 0;
+                for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                  const cc = at(map, x + ox, y + oy);
+                  if (cc > ownCov) ownCov = cc;
+                }
+                tap.rows.push({ x, y, p: bestP, threat, bandOff, ownCov: ownCov,
+                                flanks: !!(tgt && tgt.cover > 0 &&
+                                           coverAgainst(map, tgt, { x: x, y: y }) === 0) });
+              }
               if (!move || val > move.val) move = { x, y, val, p: bestP, tgt, threat };
             }
           }
 
           let stayThreat = 0;
           for (const f of foes) { if (hasLOS(map, f, u)) stayThreat += incoming(f, u, u, map); }
+          const stayBandOff = Math.abs(dist(u, near) - wantTiles(u));
           const stayVal = pNow * CONST.SHOT_WEIGHT - stayThreat * CONST.THREAT_WEIGHT
-                        - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
+                        - stayBandOff * CONST.BAND_PULL;
           /* moving is not free: you are up and crossing ground while people are shooting */
           /* PINNED. Somebody is putting rounds on this position, so the cost of standing up
              and crossing is not the ordinary cost of crossing. This is the line that makes a
@@ -12495,9 +12650,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const moveGate = u._noMove ? Infinity
                          : u.suppressed ? CONST.MOVE_COST + CONST.SUPPRESSED_MOVE_COST
                          : CONST.MOVE_COST;
+          if (tap) {
+            tap.emit(tap.rows, { p: pNow, threat: stayThreat, bandOff: stayBandOff },
+                     moveGate, move, u);
+            tap.rows = [];
+          }
           if (move && move.val > stayVal + moveGate && (move.x !== u.x || move.y !== u.y)) {
             const strippedCover = target ? coverAgainst(map, target, u) : 0;
             u.x = move.x; u.y = move.y; u.ap--; tel.moves++;
+            /* WHERE IT GOT TO BEFORE ANY DASH. A frame carried only `from` and the final tile,
+               so a body that moved and then dashed was recorded as one small hop — the Bellow
+               crossed 4.5 tiles into cover and 4.2 back out, and the replay drew a 1.4-tile
+               shuffle. Two decisions fighting each other looked like one inexplicable step
+               because the path between them was thrown away. */
+            midXY = { x: u.x, y: u.y };
+            /* YOU ARE EASIER TO HIT HAVING JUST MOVED. `repositioning` was read by `hitChance`
+               and written by nothing, so crossing ground was free — the game specified a
+               penalty and applied none. */
+            if (motion) u.repositioning = true;
             /* CROSSING GROUND IS HOW YOU GET SEEN, so knowledge is stale the moment anybody
                steps. Marked before overwatch is offered the shot rather than after, because
                the whole question overwatch asks is whether this mover has just walked into
@@ -12534,16 +12704,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   f.cover = sc; f.flanked = sf;
                   if (p > best) best = p;
                 }
-                /* what this ground is worth NEXT turn, when the shot actually gets taken */
+                /* WHAT THIS GROUND COSTS, which this decision could not previously represent.
+                   The dash scored `shot - band` and had no threat term at all, while the move
+                   decision that runs a second earlier weighs threat as the heaviest thing it
+                   has — 47% of all movement decisions turn on it. So a body took good cover on
+                   its first action and was then moved by a rule blind to the thing it had just
+                   optimised for: measured across one contest, a quarter of all dashes ended
+                   with no cover having started in cover, and 6% finished within two tiles of
+                   where they began, having gone somewhere and come most of the way back.
+                   Weighted at a FRACTION of the move scorer's. The dash exists so a short-range
+                   squad can cross ground it otherwise never crosses; at full weight it would
+                   become as cautious as an ordinary move and stop being a dash at all. */
+                let dThreat = 0;
+                for (const f of foes) {
+                  if (!hasLOS(map, f, { x: cand.x, y: cand.y })) continue;
+                  dThreat += incoming(f, u, { x: cand.x, y: cand.y }, map);
+                }
                 const val = best * CONST.SHOT_WEIGHT
+                          - dThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                           - Math.abs(Math.hypot(cand.x - near.x, cand.y - near.y) - wantTiles(u))
                             * CONST.BAND_PULL;
                 if (!rush || val > rush.val) rush = { x: cand.x, y: cand.y, val: val, p: best };
               }
+              let hereThreat = 0;
+              for (const f of foes) { if (hasLOS(map, f, u)) hereThreat += incoming(f, u, u, map); }
               const here = pNow * CONST.SHOT_WEIGHT
+                         - hereThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                          - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
               if (rush && rush.val > here + CONST.DASH_COST) {
                 u.x = rush.x; u.y = rush.y; u.ap--; u.dashed = true;
+                /* A DASH IS THE CROSSING CASE. Both actions spent on ground, no shot, cover
+                   dropped — `_crossed` is the heavier of the two motion penalties and this is
+                   the heavier kind of move. Uses the state the grid already tracks rather than
+                   inventing a second notion of what crossing means. */
+                if (motion) { u._crossed = true; u.repositioning = false; }
                 tel.dashes = (tel.dashes || 0) + 1;
                 if (CONST.DASH_EXPOSE) u.cover = 0;
                 if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
@@ -12573,13 +12767,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               turn: tel.turn, actor: u.id, side: si,
               moved: (u.x !== beforeXY.x || u.y !== beforeXY.y),
               from: beforeXY,
+              via: (midXY && (midXY.x !== u.x || midXY.y !== u.y)) ? midXY : null,
               did: log.slice(logMark),
-              units: sides.flatMap((SS, ssi) => SS.units.map(x => ({
-                id: x.id, s: ssi, x: x.x, y: x.y, st: x.state, ow: !!x.overwatch,
-                comp: Math.round(x.comp || 0), ammo: x.ammo || 0, sid: !!x.onSidearm,
-                hp: x.hp, hpMax: x.hpMax, kn: knownOf(x, ssi),
-                sup: !!x.suppressed, name: x.ref && x.ref.name
-              })))
+              units: sides.flatMap((SS, ssi) => SS.units.map(x => unitRec(x, ssi)))
             });
           }
         }
@@ -17142,7 +17332,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   function makeSide(seed, tag, n) {
     var b = ROSTER.generateSquad(P.mulberry32(P.seedFrom(seed)), n, { corpId: tag }).bodies;
-    ITEMS.equipForce(b, ITEMS.DEFAULT_LOADOUT);
+    /* KIT IS ALWAYS WHAT A CORPORATION BUYS. The uniform-carbine option is gone: it existed to
+       show what the demo used to do wrong, and a field with no machine guns in it has no place
+       in something meant to look like the game. `planForce` is the call `divide.js` makes. */
+    var oaList = (A.oa_profiles && A.oa_profiles.oa_profiles) || A.oa_profiles || null;
+    var prof = oaList ? oaList[(tag === 'A' ? 1 : tag === 'B' ? 4 : 2) % oaList.length] : null;
+    var doc = prof && ITEMS.doctrineForCorp(prof.id);
+    var plan = doc && ITEMS.planForce(doc.id, b.length, { season: 1, budget: 1e9 });
+    if (plan && plan.bodies && plan.bodies.length) {
+      for (var bi = 0; bi < b.length; bi++) {
+        ITEMS.equip(b[bi], plan.bodies[bi % plan.bodies.length].loadout);
+      }
+    } else {
+      ITEMS.equipForce(b, ITEMS.DEFAULT_LOADOUT);   /* never silently field nothing */
+    }
     return { tag: tag, corpId: tag, policy: 'standard', policyName: 'standard', hasMedkit: true,
              units: b.map(function (f) {
                return C.makeCombatant(f, { traitIndex: ROSTER.traitById, day: 1 }); }) };
@@ -17159,9 +17362,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var ctx = { terrain: $('terrain').value,
                 openingBand: parseInt($('band').value, 10), prep: [0.5, 0.5],
                 flanked: [false, !!$('flanked').checked] };
-    /* the same switch the measurement harness uses, so what you watch here and what was
-       measured through six contests are the same code on the same flag */
-    if ($('nofog').checked) ctx.fog = false;
     if (joinTurn > 0) {
       /* THE SAME SHAPE `divide.js` BUILDS during a contest: a side, the turn it walks in on,
          and the bearing it approached from. Nothing here is a mock of the real thing. */
@@ -17178,6 +17378,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     $('cost').textContent = G.res.frames.length + ' frames over ' + G.res.turns +
       ' turns in ' + ms + ' ms \u00b7 ' + G.res.result +
       (G.res.telemetry.arrivals ? ' \u00b7 ' + G.res.telemetry.arrived + ' walked in' : '') +
+      ' \u00b7 ' + (G.res.telemetry.flankShots || 0) + ' shots round the side' +
+      ' \u00b7 ' + (G.res.telemetry.pins || 0) + ' pinned' +
+      ((G.res.telemetry.energyShots || 0) ? ' \u00b7 ' + G.res.telemetry.energyShots + ' energy shots' : '') +
       (G.res.telemetry.fogOn
         ? ' \u00b7 first contact turn ' + (G.res.telemetry.contactTurn || '\u2014') +
           ' \u00b7 ' + (G.res.telemetry.blindShots || 0) + ' of ' +
@@ -17210,11 +17413,57 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        side has not found is simply not drawn — which is the honest picture of what that squad
        is deciding on, and the only way to see that the gap exists at all. Their own people are
        always drawn: you know where your own squad is. */
-    var pov = parseInt($('pov').value, 10);
+    /* THE REPLAY IS ALWAYS THE TRUTH. Ruled: a commander watches this up to two days after the
+       fact and has full vision of it; seeing the field through one side's eyes is only of use
+       to the bodies standing in it, and that is where fog now lives — in their decisions, not
+       in this picture. The concealment MARKINGS stay, because who had been found and who had
+       not is exactly what you are watching for. */
+    var pov = -1;
+    var labels = [];
+
+    /* RACE IS DRAWN FROM PHYSIOLOGY, NOT INVENTED. Every race in `races.json` carries
+       physiology tags — olmac "massive, granite_skin", mon_wa "paired_symbiote, small",
+       thythyn "winged, light_frame" — so size and colour follow the data rather than a
+       preference. A Mon-Wa reads as two small bodies because that is what it IS: the roster
+       generates a bonded pair, "one being, two bodies", and each half is its own combatant.
+       TEAM COLOUR IS THE RING. Race is the fill, so you can read species and side at once. */
+    /* NINE SPECIES BY SIZE AND COLOUR. Silhouettes were tried and taken back out: they read as
+       clutter, and worse, they made SIDE hard to see, which is the thing you most need at a
+       glance. The shapes were never the fix — the fault was that every fill was a variation on
+       the same tan.
+       THESE FILLS ARE DELIBERATELY DESATURATED. The side ring is gold, blue or green, all three
+       saturated; the first attempt at a palette gave races teal, slate-blue and ochre, which are
+       those same three hues, so fill and ring competed and you could no longer tell who was on
+       what team. Species is a muted body colour, side is the one saturated thing on the field.
+       Size runs in four tiers from massive to small, straight off the physiology tags, and
+       within a tier the hues are pushed well apart so the pairs never read as each other. */
+    var RACE = {
+      olmac:    { r: 0.46, fill: '#6f6f69' },   /* massive, granite_skin — dark stone */
+      svalbard: { r: 0.42, fill: '#566b7a' },   /* six_limbed, centauroid — dark slate */
+      etu:      { r: 0.38, fill: '#6e8560' },   /* crocodilian, tough_hide — olive */
+      attorak:  { r: 0.36, fill: '#8f7256' },   /* hyena_build — brown */
+      human:    { r: 0.32, fill: '#bcae96' },   /* baseline — tan */
+      kellis:   { r: 0.30, fill: '#a291b5' },   /* insectoid, light_frame — mauve */
+      thythyn:  { r: 0.285, fill: '#8fabab' },  /* winged, light_frame — pale grey-teal */
+      gil:      { r: 0.26, fill: '#c98a80' },   /* small, agile — muted rose-rust */
+      mon_wa:   { r: 0.235, fill: '#f0ece4' }   /* paired_symbiote, small — near white */
+    };
 
     for (var i = 0; i < F.units.length; i++) {
-      var u = F.units[i], cx = u.x * s + s / 2, cy = u.y * s + s / 2;
+      var u = F.units[i];
+      /* MOVEMENT IS DRAWN BETWEEN TILES, not snapped onto them. The per-body frames already
+         carried `from` — where that body stood before it acted — and nothing had ever used it,
+         so a fighter teleported a full tile at a time and you could not see who had crossed
+         what. Only the ACTING body is interpolated: everyone else is exactly where the frame
+         says they are, so nothing here invents a position the simulation did not produce. */
+      var ux = u.x, uy = u.y;
+      if (G.tween && G.tween.id === u.id) {
+        ux = G.tween.fx + (u.x - G.tween.fx) * G.tween.a;
+        uy = G.tween.fy + (u.y - G.tween.fy) * G.tween.a;
+      }
+      var cx = ux * s + s / 2, cy = uy * s + s / 2;
       var col = SIDE[u.s % SIDE.length];
+      var rc = RACE[u.race] || RACE.human;
       var kn = (u.kn == null) ? 2 : u.kn;      /* 0 hidden · 1 heard · 2 seen */
       if (pov >= 0 && u.s !== pov && kn === 0) continue;
       if (pov >= 0 && u.s !== pov && kn === 1) {
@@ -17247,9 +17496,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         g.fillStyle = 'rgba(216,166,87,.28)';
         g.beginPath(); g.arc(cx, cy, s * 1.5, 0, Math.PI * 2); g.fill();
       }
-      g.lineWidth = 2; g.strokeStyle = col;
-      g.beginPath(); g.arc(cx, cy, s * 0.30, 0, Math.PI * 2);
-      if (u.st === 'ok' || u.st === 'light') { g.fillStyle = col; g.fill(); } else { g.stroke(); }
+      /* species is the size and the fill; side is the ring, and the ring is the loud one */
+      g.beginPath(); g.arc(cx, cy, s * rc.r, 0, Math.PI * 2);
+      if (u.st === 'ok' || u.st === 'light') { g.fillStyle = rc.fill; g.fill(); }
+      g.lineWidth = 3; g.strokeStyle = col; g.stroke();
       if (u.st === 'dead') {
         g.strokeStyle = '#d16a5e';
         g.beginPath();
@@ -17258,7 +17508,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         g.stroke();
       }
       if (u.ow) { g.strokeStyle = '#e9e4dc'; g.lineWidth = 1;
-                  g.beginPath(); g.arc(cx, cy, s * 0.44, 0, Math.PI * 2); g.stroke(); }
+                  g.beginPath(); g.arc(cx, cy, s * (rc.r + 0.14), 0, Math.PI * 2); g.stroke(); }
+      /* PINNED. Suppression is true on about a third of every shot evaluation in a real contest
+         — the most-used modifier in the game — and until now the replay had no way to show it.
+         A pinned body needs a move to beat standing still by eight times the usual margin, so
+         these are the people who are about to not move, and that is worth being able to see. */
+      /* CAUGHT MID-MOVE. A body that has just crossed ground is easier to hit until its own
+         turn comes round — 1.15 for a normal move, 1.30 for a dash. Both were read by the shot
+         calculation and written by nothing until this pass, so movement was specified as costly
+         and was in fact free. Drawn as a short trail behind the body. */
+      if (u.mv && (u.st === 'ok' || u.st === 'light')) {
+        g.strokeStyle = u.mv === 2 ? 'rgba(209,106,94,.75)' : 'rgba(216,166,87,.55)';
+        g.lineWidth = u.mv === 2 ? 2 : 1.5;
+        g.beginPath(); g.arc(cx, cy, s * (rc.r + 0.02), 0.6, 2.6); g.stroke();
+      }
+      if (u.sup && (u.st === 'ok' || u.st === 'light')) {
+        g.strokeStyle = '#d8a657'; g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(cx - s * .30, cy + s * .30); g.lineTo(cx + s * .30, cy + s * .30);
+        g.stroke();
+      }
       if (u.st === 'ok' || u.st === 'light') {
         /* THE WOUND POOL, which is what this pass built. A bar under each body: what is left of
            it, and how much of it this fight has taken. Before the pool a hit either did nothing
@@ -17270,12 +17539,73 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           g.fillStyle = frac > 0.6 ? '#89b482' : frac > 0.3 ? '#d8a657' : '#d16a5e';
           g.fillRect(bx, by, bw * frac, s * 0.13);
         }
-        g.fillStyle = 'rgba(233,228,220,.55)';
-        g.font = Math.round(s * 0.30) + 'px ui-monospace,monospace';
+        g.fillStyle = 'rgba(233,228,220,.45)';
+        g.font = Math.round(s * 0.28) + 'px ui-monospace,monospace';
         g.textAlign = 'center';
-        g.fillText(String(u.comp), cx, cy - s * 0.42);
+        g.fillText(String(u.comp), cx + s * 0.52, cy - s * 0.30);
+        /* THE NAME, WHICH IS THE POINT OF HAVING NAMES. Collected rather than drawn here:
+           bodies bunch up, and twelve labels painted blind would overlap into mush exactly
+           when the fight is most interesting. Laid out after the field, below. */
+        labels.push({ x: cx, y: cy - s * (rc.r + 0.18), text: u.name || '', col: col });
       }
     }
+    /* NAME LAYOUT — nudge upward until a label clears the ones already placed. Cheap, stable,
+       and it degrades honestly: if a body cannot find room within four steps its name is
+       dropped rather than drawn on top of somebody else's. A label you cannot read is worse
+       than no label, because it damages the two either side of it as well. */
+    g.font = Math.round(s * 0.26) + 'px ui-monospace,monospace';
+    g.textAlign = 'center';
+    var placed = [];
+    for (var L = 0; L < labels.length; L++) {
+      var lb = labels[L];
+      if (!lb.text) continue;
+      var w = g.measureText(lb.text).width + 4, h = s * 0.30, ly = lb.y, ok = false;
+      for (var tryN = 0; tryN < 5; tryN++) {
+        ok = true;
+        for (var q3 = 0; q3 < placed.length; q3++) {
+          var pl = placed[q3];
+          if (Math.abs(pl.x - lb.x) < (pl.w + w) / 2 && Math.abs(pl.y - ly) < h) { ok = false; break; }
+        }
+        if (ok) break;
+        ly -= h;
+      }
+      if (!ok) continue;
+      placed.push({ x: lb.x, y: ly, w: w });
+      g.fillStyle = 'rgba(10,8,6,.72)';
+      g.fillRect(lb.x - w / 2, ly - s * 0.22, w, s * 0.28);
+      g.fillStyle = lb.col;
+      g.fillText(lb.text, lb.x, ly);
+    }
+    /* PROJECTILES, drawn last so they sit over the bodies. A miss carries past the target and
+       fades; a hit stops on it and flashes. Reaction fire is drawn paler, because a shot taken
+       on overwatch is somebody else's turn intruding on this one. */
+    if (G.fx) {
+      for (var fx = 0; fx < G.fx.length; fx++) {
+        var sh = G.fx[fx];
+        var pr = (G.el - sh.delay) / sh.dur;
+        if (pr < 0) continue;
+        var ax = sh.ax * s + s / 2, ay = sh.ay * s + s / 2;
+        var tx = sh.tx * s + s / 2, ty = sh.ty * s + s / 2;
+        if (pr > 1) {
+          /* the hit flash, for a few frames after the round lands */
+          if (sh.hit && pr < 1.9) {
+            g.strokeStyle = 'rgba(233,228,220,' + (1 - (pr - 1) / 0.9).toFixed(2) + ')';
+            g.lineWidth = 2;
+            g.beginPath(); g.arc(tx, ty, s * (0.30 + (pr - 1) * 0.35), 0, Math.PI * 2); g.stroke();
+          }
+          continue;
+        }
+        /* a miss keeps going past them rather than stopping in mid-air */
+        var end = sh.hit ? 1 : 1.35;
+        var px = ax + (tx - ax) * pr * end, py = ay + (ty - ay) * pr * end;
+        var back = Math.max(0, pr - 0.18) * end;
+        var qx = ax + (tx - ax) * back, qy = ay + (ty - ay) * back;
+        g.strokeStyle = sh.react ? 'rgba(233,228,220,.40)' : 'rgba(255,240,200,.85)';
+        g.lineWidth = sh.react ? 1.5 : 2;
+        g.beginPath(); g.moveTo(qx, qy); g.lineTo(px, py); g.stroke();
+      }
+    }
+
     $('frLbl').textContent = 'turn ' + F.turn + ' of ' + G.res.turns;
     paintSide();
   }
@@ -17298,23 +17628,107 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     $('sides').innerHTML = rows;
 
+    /* THIS PANEL SAID NOTHING FOR EVERY EVENT IT EVER DREW. It read `v.kind`, `v.text`,
+       `v.down` and `v.dead`; the engine writes `type`, `by`, `at` and a payload. None of the
+       four fields it looked for exists, so `v.text || v.kind || ''` was always the empty
+       string and every line rendered as a turn number followed by nothing. It failed silently
+       because an empty string is a perfectly good thing to put in a div. */
     var out = '';
+    var nameOf = {};
+    for (var q = 0; q < F.units.length; q++) nameOf[F.units[q].id] = F.units[q].name || '?';
+    var sideOf = {};
+    for (var q2 = 0; q2 < F.units.length; q2++) sideOf[F.units[q2].id] = F.units[q2].s;
+    var VERB = { miss: 'misses', hit: 'hits', graze: 'grazes', light: 'wounds',
+                 down: 'puts down', killed: 'kills', arrive: 'walks in' };
     for (var e = 0; e < (G.res.log || []).length; e++) {
       var v = G.res.log[e];
       if (v.t > F.turn) break;
       if (v.t < F.turn - 1) continue;
-      var cls = v.kind === 'arrive' ? 'arrive' : (v.down || v.dead ? 'down' : 'hit');
+      var cls = v.type === 'killed' || v.type === 'down' ? 'down'
+              : v.type === 'miss' ? '' : 'hit';
+      var who = nameOf[v.by] || v.by || '?';
+      var whom = nameOf[v.at] || v.at || '';
+      var verb = VERB[v.type] || v.type || '';
+      var tail = '';
+      if (v.w) tail += ' \u00b7 ' + esc(v.w);
+      if (v.react) tail += ' \u00b7 on overwatch';
+      if (v.sev) tail += ' \u00b7 ' + esc(v.sev);
+      if (v.type === 'miss' && v.p != null) tail += ' \u00b7 ' + Math.round(v.p * 100) + '% shot';
+      var col = SIDE[(sideOf[v.by] || 0) % SIDE.length];
       out += '<div class="ev ' + cls + '">t' + v.t + ' \u00b7 ' +
-             esc(v.text || v.kind || '') + '</div>';
+             '<span style="color:' + col + '">' + esc(who) + '</span> ' + esc(verb) +
+             (whom ? ' ' + esc(whom) : '') + tail + '</div>';
     }
     $('events').innerHTML = out || '<div class="ev">nothing yet</div>';
   }
 
   function stop() { if (G.timer) { clearInterval(G.timer); G.timer = null; $('play').textContent = 'play'; } }
-  function goto(i) {
+  function clearTween() {
+    if (G.tw) { clearInterval(G.tw); G.tw = null; }
+    G.tween = null; G.fx = null; G.el = 0;
+  }
+
+  /**
+   * One projectile per trigger pull, read off the log entries the frame already carries.
+   * ROUND COUNT NEEDS NO SPECIAL CASE: a burst weapon writes several `hit`/`miss` entries in one
+   * activation and a marksman rifle writes one, so a Belt Machine Gun throws four and a Whisper
+   * throws one because that is what happened, not because the viewer was told to. (Until this
+   * pass the extra rounds were counted in telemetry and never written to the log, so every
+   * weapon looked single-shot in the replay.)
+   */
+  function buildShots(F, delayBase) {
+    if (!F || !F.did || !F.did.length) return null;
+    var at = {};
+    for (var i = 0; i < F.units.length; i++) at[F.units[i].id] = F.units[i];
+    var out = [], n = 0;
+    for (var e = 0; e < F.did.length; e++) {
+      var v = F.did[e];
+      if (v.type !== 'hit' && v.type !== 'miss') continue;
+      var a = at[v.by], t = at[v.at];
+      if (!a || !t) continue;
+      out.push({ ax: a.x, ay: a.y, tx: t.x, ty: t.y, hit: v.type === 'hit',
+                 react: !!v.react, delay: delayBase + n * 45, dur: 110 });
+      n++;
+      if (n > 12) break;                 /* a turn cannot usefully show more than this */
+    }
+    return out.length ? out : null;
+  }
+
+  /**
+   * `animate` is opt-in per call, and dragging the slider passes false. A scrub is somebody
+   * looking for a moment, not watching a fight, and tweening every frame they drag through
+   * would fight the drag and lag behind the handle.
+   */
+  function goto(i, animate) {
     if (!G.res) return;
+    clearTween();
     G.i = Math.max(0, Math.min(G.res.frames.length - 1, i));
-    $('fr').value = String(G.i); draw();
+    $('fr').value = String(G.i);
+    var F = G.res.frames[G.i];
+    if (animate && F && !$('noanim').checked) {
+      var moving = F.moved && F.from && F.actor != null && F.from.x !== undefined;
+      var moveMs = moving ? (G.timer ? 80 : 150) * (F.via ? 1.8 : 1) : 0;  /* two legs need more time */
+      var shots = buildShots(F, moveMs);          /* shots start once the body has arrived */
+      if (moving || shots) {
+        var t0 = Date.now(), last = moveMs;
+        if (shots) for (var q = 0; q < shots.length; q++)
+          last = Math.max(last, shots[q].delay + shots[q].dur);
+        G.tween = moving ? { id: F.actor, fx: F.from.x, fy: F.from.y, a: 0 } : null;
+        G.fx = shots; G.el = 0;
+        draw();
+        G.tw = setInterval(function () {
+          G.el = Date.now() - t0;
+          if (G.el >= last) { clearTween(); draw(); return; }
+          if (G.tween) {
+            var a = Math.min(1, G.el / moveMs);
+            G.tween.a = 1 - (1 - a) * (1 - a);   /* ease out, so the step lands */
+          }
+          draw();
+        }, 16);
+        return;
+      }
+    }
+    draw();
   }
 
   $('run').onclick = function () { stop(); run(); };
@@ -17323,20 +17737,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      different battles and the comparison means nothing. The fight is in `G.res`; this only
      changes what gets painted from it. The band and the spotting switch DO refight, because
      they change the engagement itself. */
-  $('pov').onchange = function () { draw(); };
   $('band').onchange = function () { stop(); run(); };
-  $('nofog').onchange = function () { stop(); run(); };
-  $('back').onclick = function () { stop(); goto(G.i - 1); };
-  $('fwd').onclick = function () { stop(); goto(G.i + 1); };
-  $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10)); };
+  $('noanim').onchange = function () { clearTween(); draw(); };
+  $('back').onclick = function () { stop(); goto(G.i - 1, true); };
+  $('fwd').onclick = function () { stop(); goto(G.i + 1, true); };
+  $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10), false); };
   $('play').onclick = function () {
     if (G.timer) return stop();
     if (G.i >= G.res.frames.length - 1) goto(0);
     $('play').textContent = 'pause';
     G.timer = setInterval(function () {
       if (G.i >= G.res.frames.length - 1) return stop();
-      goto(G.i + 1);
-    }, 90);
+      goto(G.i + 1, true);
+    }, 110);
   };
 
   run();

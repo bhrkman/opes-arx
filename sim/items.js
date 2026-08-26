@@ -201,8 +201,17 @@
                 mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
+      /* THE SAME FIELDS AS THE PRIMARY, which it did not have. The note three lines above says
+         `id` and `name` are carried so a viewer can say WHICH gun fired — and the sidearm built
+         directly beneath it carried neither, nor `mobility`. When a fighter runs dry,
+         `useSidearm` copies this object over `weapon`, so from that moment the body has a
+         weapon with no name: every shot it fires afterwards is logged nameless and the event
+         panel prints the sentence with the gun missing off the end. It also has no `mobility`,
+         which the movement code reads to work out how far it can walk. */
       sidearm: s ? { power: (s.effects || {}).power || 0, range: (s.effects || {}).range || "short",
-                     tier: s.tier, damage: (s.effects || {}).damage || s.family,
+                     tier: s.tier, id: s.id, name: s.name,
+                     mobility: (s.effects || {}).mobility || 0,
+                     damage: (s.effects || {}).damage || s.family,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
       heat: pe.heat || 0, heatCap: pe.heat_cap || 0, charge: pe.charge || 0,

@@ -60,6 +60,7 @@ TAC.resolve = function (rng, A, B, ctx) {
   const c = (Array.isArray(A) ? B : ctx) || {};
   if (c.log === false) c.log = undefined;
   c.fog = FOG;
+  if (process.argv[5] === 'nomotion') c.motion = false;
   const res = realResolve.apply(this, arguments);
   const t = (res && res.telemetry) || {};
   fights++;

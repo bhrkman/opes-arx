@@ -117,64 +117,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_both",
-    "exchanges": 9,
-    "band": "medium",
-    "aDead": 1,
-    "aDown": 1,
-    "bDead": 1,
-    "bDown": 4,
-    "shots": 160,
-    "hits": 30,
-    "downs": 7
-  },
-  "short band, both aggressive": {
-    "result": "disengage_B",
-    "exchanges": 11,
+    "result": "disengage_A",
+    "exchanges": 12,
     "band": "medium",
     "aDead": 0,
-    "aDown": 1,
+    "aDown": 3,
     "bDead": 0,
-    "bDown": 4,
-    "shots": 118,
-    "hits": 35,
+    "bDown": 3,
+    "shots": 218,
+    "hits": 29,
+    "downs": 6
+  },
+  "short band, both aggressive": {
+    "result": "disengage_A",
+    "exchanges": 8,
+    "band": "medium",
+    "aDead": 1,
+    "aDown": 3,
+    "bDead": 0,
+    "bDown": 1,
+    "shots": 84,
+    "hits": 26,
     "downs": 5
   },
   "long band, both cautious": {
     "result": "disengage_B",
-    "exchanges": 7,
+    "exchanges": 6,
     "band": "medium",
     "aDead": 0,
-    "aDown": 3,
-    "bDead": 2,
+    "aDown": 1,
+    "bDead": 1,
     "bDown": 4,
-    "shots": 123,
-    "hits": 43,
-    "downs": 9
+    "shots": 121,
+    "hits": 35,
+    "downs": 6
   },
   "forest, standard v unyielding": {
-    "result": "disengage_B",
-    "exchanges": 10,
+    "result": "disengage_A",
+    "exchanges": 13,
     "band": "medium",
-    "aDead": 0,
-    "aDown": 0,
-    "bDead": 3,
+    "aDead": 2,
+    "aDown": 2,
+    "bDead": 0,
     "bDown": 2,
-    "shots": 96,
-    "hits": 30,
-    "downs": 5
+    "shots": 147,
+    "hits": 42,
+    "downs": 6
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
     "exchanges": 10,
     "band": "medium",
-    "aDead": 3,
-    "aDown": 3,
+    "aDead": 0,
+    "aDown": 2,
     "bDead": 0,
     "bDown": 0,
-    "shots": 118,
-    "hits": 29,
-    "downs": 6
+    "shots": 138,
+    "hits": 22,
+    "downs": 2
   }
 };
 

@@ -22,7 +22,11 @@
   .panel{background:var(--panel);border:1px solid var(--edge);border-radius:5px;
          padding:16px 18px;margin:0 0 18px}
   .panel h2{font-size:13px;margin:0 0 3px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
-  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+  /* SETUP is scaffolding and reads that way; VIEW is the part a commander would touch. */
+  .grp{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+       border-left:2px solid var(--line);padding-left:8px;margin-left:4px}
+  .grp:first-child{margin-left:0;border-left:none;padding-left:0}
   label{color:var(--dim);font-size:12.5px}
   select,button,input{font:inherit;font-size:13px;background:#241f1b;color:var(--ink);
                 border:1px solid var(--edge);border-radius:4px;padding:6px 11px}
@@ -53,55 +57,41 @@
 <body>
 <div class="wrap">
 
-<h1>The Firefight <span class="sub">— one engagement, on the grid</span></h1>
-<p class="lede">
-  The grid has recorded every body's tile, state, composure and ammunition once per acting
-  fighter since it replaced the old band model, and <b>nothing has ever drawn it</b>. This page
-  fights a real engagement with the live <code>tactical.resolve</code> and plays it back.
-  It exists for <b>THE DROP-IN</b>: a squad that walks into a fight already in progress, entering
-  on the bearing it approached from. That is the one thing here you cannot judge from a number —
-  either you watch them come in behind people who set up facing somewhere else, or you are taking
-  somebody's word for it.
-</p>
+<h1>The Firefight</h1>
 
 <div class="panel">
   <div class="controls">
-    <label>seed</label><input id="seed" value="fight-1" size="9">
-    <label>ground</label>
+    <!-- SETUP is scaffolding: until a season feeds engagements in, a fight has to be
+         conjured from somewhere. These are not things a player will ever set. -->
+    <span class="grp">setup</span>
+    <input id="seed" value="fight-1" size="8" title="seed">
     <select id="terrain">
       <option>ruins</option><option>broken_ground</option><option>open_basin</option>
       <option>forest</option><option>entrenched</option>
     </select>
-    <label>a third squad arrives</label>
+    <select id="band">
+      <option value="0">met at long range</option>
+      <option value="1" selected>met at medium range</option>
+      <option value="2">met at close range</option>
+    </select>
     <select id="join">
-      <option value="0">not at all</option>
-      <option value="3">on turn 3</option>
-      <option value="6" selected>on turn 6</option>
-      <option value="10">on turn 10</option>
+      <option value="0">no third squad</option>
+      <option value="3">a third squad on turn 3</option>
+      <option value="6" selected>a third squad on turn 6</option>
+      <option value="10">a third squad on turn 10</option>
     </select>
-    <label>from</label>
     <select id="bearing">
-      <option value="3.14159">behind the defenders</option>
-      <option value="1.5708">from the south</option>
-      <option value="0">alongside the attackers</option>
+      <option value="3.14159">arriving behind the defenders</option>
+      <option value="1.5708">arriving from the south</option>
+      <option value="0">arriving alongside the attackers</option>
     </select>
-    <label><input type="checkbox" id="flanked"> defenders were caught from two arcs</label>
-    <label>they met at
-      <select id="band">
-        <option value="0">long range</option>
-        <option value="1" selected>medium range</option>
-        <option value="2">close range</option>
-      </select>
-    </label>
-    <label>show the field
-      <select id="pov">
-        <option value="-1" selected>as it really is</option>
-        <option value="0">as the attackers know it</option>
-        <option value="1">as the defenders know it</option>
-      </select>
-    </label>
-    <label><input type="checkbox" id="nofog"> switch spotting off</label>
+    <label><input type="checkbox" id="flanked"> defenders caught from two arcs</label>
     <button id="run" class="go">fight it</button>
+
+    <!-- VIEW is the part that survives into the game. A commander sees what their own side has
+         found, not the field as it really is. -->
+    <span class="grp">view</span>
+    <label><input type="checkbox" id="noanim"> no movement</label>
     <button id="play">play</button>
   </div>
 
@@ -113,19 +103,6 @@
         <input id="fr" type="range" min="0" max="0" value="0">
         <button id="fwd">&rsaquo;</button>
         <span class="t" id="frLbl">turn 1</span>
-      </div>
-      <div class="legend">
-        <i>the ground</i> &mdash; darker blocks are cover, and it is directional: a wall protects
-        you from the side it is on, which is the whole reason arriving from behind matters.<br>
-        <i>bodies</i> &mdash; filled circles are on their feet, hollow are down, crossed are dead.
-        A ring means overwatch. <i>The arriving squad flashes gold on the turn it walks in.</i><br>
-        <i>who is hidden</i> &mdash; a body nobody has found sits in a dark pocket with a dashed
-        edge. A body known only by the sound of its own shooting gets a broken white ring: they
-        can be fired at, badly. Everyone else has been seen.<br>
-        <i>point of view</i> &mdash; set it to one side and the field is drawn as that side knows
-        it. Enemies they have not found are simply not there. That gap between the two views is
-        the whole of this change, and it is the one thing the numbers cannot show you.<br>
-        <i>the numbers</i> &mdash; composure, which is what breaks before people do.
       </div>
       <div class="foot" id="cost"></div>
     </div>
@@ -172,7 +149,20 @@
 
   function makeSide(seed, tag, n) {
     var b = ROSTER.generateSquad(P.mulberry32(P.seedFrom(seed)), n, { corpId: tag }).bodies;
-    ITEMS.equipForce(b, ITEMS.DEFAULT_LOADOUT);
+    /* KIT IS ALWAYS WHAT A CORPORATION BUYS. The uniform-carbine option is gone: it existed to
+       show what the demo used to do wrong, and a field with no machine guns in it has no place
+       in something meant to look like the game. `planForce` is the call `divide.js` makes. */
+    var oaList = (A.oa_profiles && A.oa_profiles.oa_profiles) || A.oa_profiles || null;
+    var prof = oaList ? oaList[(tag === 'A' ? 1 : tag === 'B' ? 4 : 2) % oaList.length] : null;
+    var doc = prof && ITEMS.doctrineForCorp(prof.id);
+    var plan = doc && ITEMS.planForce(doc.id, b.length, { season: 1, budget: 1e9 });
+    if (plan && plan.bodies && plan.bodies.length) {
+      for (var bi = 0; bi < b.length; bi++) {
+        ITEMS.equip(b[bi], plan.bodies[bi % plan.bodies.length].loadout);
+      }
+    } else {
+      ITEMS.equipForce(b, ITEMS.DEFAULT_LOADOUT);   /* never silently field nothing */
+    }
     return { tag: tag, corpId: tag, policy: 'standard', policyName: 'standard', hasMedkit: true,
              units: b.map(function (f) {
                return C.makeCombatant(f, { traitIndex: ROSTER.traitById, day: 1 }); }) };
@@ -189,9 +179,6 @@
     var ctx = { terrain: $('terrain').value,
                 openingBand: parseInt($('band').value, 10), prep: [0.5, 0.5],
                 flanked: [false, !!$('flanked').checked] };
-    /* the same switch the measurement harness uses, so what you watch here and what was
-       measured through six contests are the same code on the same flag */
-    if ($('nofog').checked) ctx.fog = false;
     if (joinTurn > 0) {
       /* THE SAME SHAPE `divide.js` BUILDS during a contest: a side, the turn it walks in on,
          and the bearing it approached from. Nothing here is a mock of the real thing. */
@@ -208,6 +195,9 @@
     $('cost').textContent = G.res.frames.length + ' frames over ' + G.res.turns +
       ' turns in ' + ms + ' ms \u00b7 ' + G.res.result +
       (G.res.telemetry.arrivals ? ' \u00b7 ' + G.res.telemetry.arrived + ' walked in' : '') +
+      ' \u00b7 ' + (G.res.telemetry.flankShots || 0) + ' shots round the side' +
+      ' \u00b7 ' + (G.res.telemetry.pins || 0) + ' pinned' +
+      ((G.res.telemetry.energyShots || 0) ? ' \u00b7 ' + G.res.telemetry.energyShots + ' energy shots' : '') +
       (G.res.telemetry.fogOn
         ? ' \u00b7 first contact turn ' + (G.res.telemetry.contactTurn || '\u2014') +
           ' \u00b7 ' + (G.res.telemetry.blindShots || 0) + ' of ' +
@@ -240,11 +230,57 @@
        side has not found is simply not drawn — which is the honest picture of what that squad
        is deciding on, and the only way to see that the gap exists at all. Their own people are
        always drawn: you know where your own squad is. */
-    var pov = parseInt($('pov').value, 10);
+    /* THE REPLAY IS ALWAYS THE TRUTH. Ruled: a commander watches this up to two days after the
+       fact and has full vision of it; seeing the field through one side's eyes is only of use
+       to the bodies standing in it, and that is where fog now lives — in their decisions, not
+       in this picture. The concealment MARKINGS stay, because who had been found and who had
+       not is exactly what you are watching for. */
+    var pov = -1;
+    var labels = [];
+
+    /* RACE IS DRAWN FROM PHYSIOLOGY, NOT INVENTED. Every race in `races.json` carries
+       physiology tags — olmac "massive, granite_skin", mon_wa "paired_symbiote, small",
+       thythyn "winged, light_frame" — so size and colour follow the data rather than a
+       preference. A Mon-Wa reads as two small bodies because that is what it IS: the roster
+       generates a bonded pair, "one being, two bodies", and each half is its own combatant.
+       TEAM COLOUR IS THE RING. Race is the fill, so you can read species and side at once. */
+    /* NINE SPECIES BY SIZE AND COLOUR. Silhouettes were tried and taken back out: they read as
+       clutter, and worse, they made SIDE hard to see, which is the thing you most need at a
+       glance. The shapes were never the fix — the fault was that every fill was a variation on
+       the same tan.
+       THESE FILLS ARE DELIBERATELY DESATURATED. The side ring is gold, blue or green, all three
+       saturated; the first attempt at a palette gave races teal, slate-blue and ochre, which are
+       those same three hues, so fill and ring competed and you could no longer tell who was on
+       what team. Species is a muted body colour, side is the one saturated thing on the field.
+       Size runs in four tiers from massive to small, straight off the physiology tags, and
+       within a tier the hues are pushed well apart so the pairs never read as each other. */
+    var RACE = {
+      olmac:    { r: 0.46, fill: '#6f6f69' },   /* massive, granite_skin — dark stone */
+      svalbard: { r: 0.42, fill: '#566b7a' },   /* six_limbed, centauroid — dark slate */
+      etu:      { r: 0.38, fill: '#6e8560' },   /* crocodilian, tough_hide — olive */
+      attorak:  { r: 0.36, fill: '#8f7256' },   /* hyena_build — brown */
+      human:    { r: 0.32, fill: '#bcae96' },   /* baseline — tan */
+      kellis:   { r: 0.30, fill: '#a291b5' },   /* insectoid, light_frame — mauve */
+      thythyn:  { r: 0.285, fill: '#8fabab' },  /* winged, light_frame — pale grey-teal */
+      gil:      { r: 0.26, fill: '#c98a80' },   /* small, agile — muted rose-rust */
+      mon_wa:   { r: 0.235, fill: '#f0ece4' }   /* paired_symbiote, small — near white */
+    };
 
     for (var i = 0; i < F.units.length; i++) {
-      var u = F.units[i], cx = u.x * s + s / 2, cy = u.y * s + s / 2;
+      var u = F.units[i];
+      /* MOVEMENT IS DRAWN BETWEEN TILES, not snapped onto them. The per-body frames already
+         carried `from` — where that body stood before it acted — and nothing had ever used it,
+         so a fighter teleported a full tile at a time and you could not see who had crossed
+         what. Only the ACTING body is interpolated: everyone else is exactly where the frame
+         says they are, so nothing here invents a position the simulation did not produce. */
+      var ux = u.x, uy = u.y;
+      if (G.tween && G.tween.id === u.id) {
+        ux = G.tween.fx + (u.x - G.tween.fx) * G.tween.a;
+        uy = G.tween.fy + (u.y - G.tween.fy) * G.tween.a;
+      }
+      var cx = ux * s + s / 2, cy = uy * s + s / 2;
       var col = SIDE[u.s % SIDE.length];
+      var rc = RACE[u.race] || RACE.human;
       var kn = (u.kn == null) ? 2 : u.kn;      /* 0 hidden · 1 heard · 2 seen */
       if (pov >= 0 && u.s !== pov && kn === 0) continue;
       if (pov >= 0 && u.s !== pov && kn === 1) {
@@ -277,9 +313,10 @@
         g.fillStyle = 'rgba(216,166,87,.28)';
         g.beginPath(); g.arc(cx, cy, s * 1.5, 0, Math.PI * 2); g.fill();
       }
-      g.lineWidth = 2; g.strokeStyle = col;
-      g.beginPath(); g.arc(cx, cy, s * 0.30, 0, Math.PI * 2);
-      if (u.st === 'ok' || u.st === 'light') { g.fillStyle = col; g.fill(); } else { g.stroke(); }
+      /* species is the size and the fill; side is the ring, and the ring is the loud one */
+      g.beginPath(); g.arc(cx, cy, s * rc.r, 0, Math.PI * 2);
+      if (u.st === 'ok' || u.st === 'light') { g.fillStyle = rc.fill; g.fill(); }
+      g.lineWidth = 3; g.strokeStyle = col; g.stroke();
       if (u.st === 'dead') {
         g.strokeStyle = '#d16a5e';
         g.beginPath();
@@ -288,7 +325,26 @@
         g.stroke();
       }
       if (u.ow) { g.strokeStyle = '#e9e4dc'; g.lineWidth = 1;
-                  g.beginPath(); g.arc(cx, cy, s * 0.44, 0, Math.PI * 2); g.stroke(); }
+                  g.beginPath(); g.arc(cx, cy, s * (rc.r + 0.14), 0, Math.PI * 2); g.stroke(); }
+      /* PINNED. Suppression is true on about a third of every shot evaluation in a real contest
+         — the most-used modifier in the game — and until now the replay had no way to show it.
+         A pinned body needs a move to beat standing still by eight times the usual margin, so
+         these are the people who are about to not move, and that is worth being able to see. */
+      /* CAUGHT MID-MOVE. A body that has just crossed ground is easier to hit until its own
+         turn comes round — 1.15 for a normal move, 1.30 for a dash. Both were read by the shot
+         calculation and written by nothing until this pass, so movement was specified as costly
+         and was in fact free. Drawn as a short trail behind the body. */
+      if (u.mv && (u.st === 'ok' || u.st === 'light')) {
+        g.strokeStyle = u.mv === 2 ? 'rgba(209,106,94,.75)' : 'rgba(216,166,87,.55)';
+        g.lineWidth = u.mv === 2 ? 2 : 1.5;
+        g.beginPath(); g.arc(cx, cy, s * (rc.r + 0.02), 0.6, 2.6); g.stroke();
+      }
+      if (u.sup && (u.st === 'ok' || u.st === 'light')) {
+        g.strokeStyle = '#d8a657'; g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(cx - s * .30, cy + s * .30); g.lineTo(cx + s * .30, cy + s * .30);
+        g.stroke();
+      }
       if (u.st === 'ok' || u.st === 'light') {
         /* THE WOUND POOL, which is what this pass built. A bar under each body: what is left of
            it, and how much of it this fight has taken. Before the pool a hit either did nothing
@@ -300,12 +356,73 @@
           g.fillStyle = frac > 0.6 ? '#89b482' : frac > 0.3 ? '#d8a657' : '#d16a5e';
           g.fillRect(bx, by, bw * frac, s * 0.13);
         }
-        g.fillStyle = 'rgba(233,228,220,.55)';
-        g.font = Math.round(s * 0.30) + 'px ui-monospace,monospace';
+        g.fillStyle = 'rgba(233,228,220,.45)';
+        g.font = Math.round(s * 0.28) + 'px ui-monospace,monospace';
         g.textAlign = 'center';
-        g.fillText(String(u.comp), cx, cy - s * 0.42);
+        g.fillText(String(u.comp), cx + s * 0.52, cy - s * 0.30);
+        /* THE NAME, WHICH IS THE POINT OF HAVING NAMES. Collected rather than drawn here:
+           bodies bunch up, and twelve labels painted blind would overlap into mush exactly
+           when the fight is most interesting. Laid out after the field, below. */
+        labels.push({ x: cx, y: cy - s * (rc.r + 0.18), text: u.name || '', col: col });
       }
     }
+    /* NAME LAYOUT — nudge upward until a label clears the ones already placed. Cheap, stable,
+       and it degrades honestly: if a body cannot find room within four steps its name is
+       dropped rather than drawn on top of somebody else's. A label you cannot read is worse
+       than no label, because it damages the two either side of it as well. */
+    g.font = Math.round(s * 0.26) + 'px ui-monospace,monospace';
+    g.textAlign = 'center';
+    var placed = [];
+    for (var L = 0; L < labels.length; L++) {
+      var lb = labels[L];
+      if (!lb.text) continue;
+      var w = g.measureText(lb.text).width + 4, h = s * 0.30, ly = lb.y, ok = false;
+      for (var tryN = 0; tryN < 5; tryN++) {
+        ok = true;
+        for (var q3 = 0; q3 < placed.length; q3++) {
+          var pl = placed[q3];
+          if (Math.abs(pl.x - lb.x) < (pl.w + w) / 2 && Math.abs(pl.y - ly) < h) { ok = false; break; }
+        }
+        if (ok) break;
+        ly -= h;
+      }
+      if (!ok) continue;
+      placed.push({ x: lb.x, y: ly, w: w });
+      g.fillStyle = 'rgba(10,8,6,.72)';
+      g.fillRect(lb.x - w / 2, ly - s * 0.22, w, s * 0.28);
+      g.fillStyle = lb.col;
+      g.fillText(lb.text, lb.x, ly);
+    }
+    /* PROJECTILES, drawn last so they sit over the bodies. A miss carries past the target and
+       fades; a hit stops on it and flashes. Reaction fire is drawn paler, because a shot taken
+       on overwatch is somebody else's turn intruding on this one. */
+    if (G.fx) {
+      for (var fx = 0; fx < G.fx.length; fx++) {
+        var sh = G.fx[fx];
+        var pr = (G.el - sh.delay) / sh.dur;
+        if (pr < 0) continue;
+        var ax = sh.ax * s + s / 2, ay = sh.ay * s + s / 2;
+        var tx = sh.tx * s + s / 2, ty = sh.ty * s + s / 2;
+        if (pr > 1) {
+          /* the hit flash, for a few frames after the round lands */
+          if (sh.hit && pr < 1.9) {
+            g.strokeStyle = 'rgba(233,228,220,' + (1 - (pr - 1) / 0.9).toFixed(2) + ')';
+            g.lineWidth = 2;
+            g.beginPath(); g.arc(tx, ty, s * (0.30 + (pr - 1) * 0.35), 0, Math.PI * 2); g.stroke();
+          }
+          continue;
+        }
+        /* a miss keeps going past them rather than stopping in mid-air */
+        var end = sh.hit ? 1 : 1.35;
+        var px = ax + (tx - ax) * pr * end, py = ay + (ty - ay) * pr * end;
+        var back = Math.max(0, pr - 0.18) * end;
+        var qx = ax + (tx - ax) * back, qy = ay + (ty - ay) * back;
+        g.strokeStyle = sh.react ? 'rgba(233,228,220,.40)' : 'rgba(255,240,200,.85)';
+        g.lineWidth = sh.react ? 1.5 : 2;
+        g.beginPath(); g.moveTo(qx, qy); g.lineTo(px, py); g.stroke();
+      }
+    }
+
     $('frLbl').textContent = 'turn ' + F.turn + ' of ' + G.res.turns;
     paintSide();
   }
@@ -328,23 +445,107 @@
     }
     $('sides').innerHTML = rows;
 
+    /* THIS PANEL SAID NOTHING FOR EVERY EVENT IT EVER DREW. It read `v.kind`, `v.text`,
+       `v.down` and `v.dead`; the engine writes `type`, `by`, `at` and a payload. None of the
+       four fields it looked for exists, so `v.text || v.kind || ''` was always the empty
+       string and every line rendered as a turn number followed by nothing. It failed silently
+       because an empty string is a perfectly good thing to put in a div. */
     var out = '';
+    var nameOf = {};
+    for (var q = 0; q < F.units.length; q++) nameOf[F.units[q].id] = F.units[q].name || '?';
+    var sideOf = {};
+    for (var q2 = 0; q2 < F.units.length; q2++) sideOf[F.units[q2].id] = F.units[q2].s;
+    var VERB = { miss: 'misses', hit: 'hits', graze: 'grazes', light: 'wounds',
+                 down: 'puts down', killed: 'kills', arrive: 'walks in' };
     for (var e = 0; e < (G.res.log || []).length; e++) {
       var v = G.res.log[e];
       if (v.t > F.turn) break;
       if (v.t < F.turn - 1) continue;
-      var cls = v.kind === 'arrive' ? 'arrive' : (v.down || v.dead ? 'down' : 'hit');
+      var cls = v.type === 'killed' || v.type === 'down' ? 'down'
+              : v.type === 'miss' ? '' : 'hit';
+      var who = nameOf[v.by] || v.by || '?';
+      var whom = nameOf[v.at] || v.at || '';
+      var verb = VERB[v.type] || v.type || '';
+      var tail = '';
+      if (v.w) tail += ' \u00b7 ' + esc(v.w);
+      if (v.react) tail += ' \u00b7 on overwatch';
+      if (v.sev) tail += ' \u00b7 ' + esc(v.sev);
+      if (v.type === 'miss' && v.p != null) tail += ' \u00b7 ' + Math.round(v.p * 100) + '% shot';
+      var col = SIDE[(sideOf[v.by] || 0) % SIDE.length];
       out += '<div class="ev ' + cls + '">t' + v.t + ' \u00b7 ' +
-             esc(v.text || v.kind || '') + '</div>';
+             '<span style="color:' + col + '">' + esc(who) + '</span> ' + esc(verb) +
+             (whom ? ' ' + esc(whom) : '') + tail + '</div>';
     }
     $('events').innerHTML = out || '<div class="ev">nothing yet</div>';
   }
 
   function stop() { if (G.timer) { clearInterval(G.timer); G.timer = null; $('play').textContent = 'play'; } }
-  function goto(i) {
+  function clearTween() {
+    if (G.tw) { clearInterval(G.tw); G.tw = null; }
+    G.tween = null; G.fx = null; G.el = 0;
+  }
+
+  /**
+   * One projectile per trigger pull, read off the log entries the frame already carries.
+   * ROUND COUNT NEEDS NO SPECIAL CASE: a burst weapon writes several `hit`/`miss` entries in one
+   * activation and a marksman rifle writes one, so a Belt Machine Gun throws four and a Whisper
+   * throws one because that is what happened, not because the viewer was told to. (Until this
+   * pass the extra rounds were counted in telemetry and never written to the log, so every
+   * weapon looked single-shot in the replay.)
+   */
+  function buildShots(F, delayBase) {
+    if (!F || !F.did || !F.did.length) return null;
+    var at = {};
+    for (var i = 0; i < F.units.length; i++) at[F.units[i].id] = F.units[i];
+    var out = [], n = 0;
+    for (var e = 0; e < F.did.length; e++) {
+      var v = F.did[e];
+      if (v.type !== 'hit' && v.type !== 'miss') continue;
+      var a = at[v.by], t = at[v.at];
+      if (!a || !t) continue;
+      out.push({ ax: a.x, ay: a.y, tx: t.x, ty: t.y, hit: v.type === 'hit',
+                 react: !!v.react, delay: delayBase + n * 45, dur: 110 });
+      n++;
+      if (n > 12) break;                 /* a turn cannot usefully show more than this */
+    }
+    return out.length ? out : null;
+  }
+
+  /**
+   * `animate` is opt-in per call, and dragging the slider passes false. A scrub is somebody
+   * looking for a moment, not watching a fight, and tweening every frame they drag through
+   * would fight the drag and lag behind the handle.
+   */
+  function goto(i, animate) {
     if (!G.res) return;
+    clearTween();
     G.i = Math.max(0, Math.min(G.res.frames.length - 1, i));
-    $('fr').value = String(G.i); draw();
+    $('fr').value = String(G.i);
+    var F = G.res.frames[G.i];
+    if (animate && F && !$('noanim').checked) {
+      var moving = F.moved && F.from && F.actor != null && F.from.x !== undefined;
+      var moveMs = moving ? (G.timer ? 80 : 150) * (F.via ? 1.8 : 1) : 0;  /* two legs need more time */
+      var shots = buildShots(F, moveMs);          /* shots start once the body has arrived */
+      if (moving || shots) {
+        var t0 = Date.now(), last = moveMs;
+        if (shots) for (var q = 0; q < shots.length; q++)
+          last = Math.max(last, shots[q].delay + shots[q].dur);
+        G.tween = moving ? { id: F.actor, fx: F.from.x, fy: F.from.y, a: 0 } : null;
+        G.fx = shots; G.el = 0;
+        draw();
+        G.tw = setInterval(function () {
+          G.el = Date.now() - t0;
+          if (G.el >= last) { clearTween(); draw(); return; }
+          if (G.tween) {
+            var a = Math.min(1, G.el / moveMs);
+            G.tween.a = 1 - (1 - a) * (1 - a);   /* ease out, so the step lands */
+          }
+          draw();
+        }, 16);
+        return;
+      }
+    }
+    draw();
   }
 
   $('run').onclick = function () { stop(); run(); };
@@ -353,20 +554,19 @@
      different battles and the comparison means nothing. The fight is in `G.res`; this only
      changes what gets painted from it. The band and the spotting switch DO refight, because
      they change the engagement itself. */
-  $('pov').onchange = function () { draw(); };
   $('band').onchange = function () { stop(); run(); };
-  $('nofog').onchange = function () { stop(); run(); };
-  $('back').onclick = function () { stop(); goto(G.i - 1); };
-  $('fwd').onclick = function () { stop(); goto(G.i + 1); };
-  $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10)); };
+  $('noanim').onchange = function () { clearTween(); draw(); };
+  $('back').onclick = function () { stop(); goto(G.i - 1, true); };
+  $('fwd').onclick = function () { stop(); goto(G.i + 1, true); };
+  $('fr').oninput = function () { stop(); goto(parseInt($('fr').value, 10), false); };
   $('play').onclick = function () {
     if (G.timer) return stop();
     if (G.i >= G.res.frames.length - 1) goto(0);
     $('play').textContent = 'pause';
     G.timer = setInterval(function () {
       if (G.i >= G.res.frames.length - 1) return stop();
-      goto(G.i + 1);
-    }, 90);
+      goto(G.i + 1, true);
+    }, 110);
   };
 
   run();

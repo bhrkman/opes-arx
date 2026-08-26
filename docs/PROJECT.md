@@ -413,6 +413,26 @@ mean the window did nothing.
 > It is better, not solved: fights that still stall show the same flat shuffle at about a
 > quarter of bodies moving, there are simply far fewer of them.
 
+- **Having just moved leaves you easier to hit, and crossing on a dash more so.** *Ruled at this
+  step.* `repositioning` (1.15) and `_crossed` (1.30) were read by the shot calculation and
+  written by nothing, so movement was specified as costly and was in fact free. A normal move now
+  sets the first, a dash sets the second, and both wear off when your own turn comes round —
+  deliberately not at end of turn, which is the mistake `suppressed` makes, expiring on half the
+  people it was applied to before they ever act.
+- **The scorer had to be able to SEE it, and that is most of the work.** A candidate tile that is
+  not the one you are standing on can only be reached by moving, so the threat function now
+  evaluates it as a body that has just moved. Wiring the flags at the move site alone would have
+  made everyone easier to hit with nothing weighing that when it decides: nobody would move any
+  less and they would only die more, which is exactly what happened when overwatch was made
+  dangerous without being made a decision.
+- **The prediction was wrong and the measurement is the record.** This was flagged repeatedly as
+  something that would make bunkering worse. Through six contests each way with real kit:
+  movement per body-turn **39.5% → 41.5%**, fights hitting the turn cap **12 → 12**, turns per
+  fight **−0.7%**, permanent losses **−0.5%**, deaths on the grid **−7.1%**. Bunkering does not
+  return. Absolute movement falls 6.4%, but the number of body-turns falls 12%, so the drop is
+  fewer and shorter fights rather than a more timid field. Second-order: **7% fewer engagements
+  per contest** — decisive fights wreck squads that then cannot field.
+
 > **WATCH — three second-order effects, none of them chosen.** A fifth fewer engagements happen
 > per season (778 → 640), because fights end decisively and wrecked squads cannot field again.
 > Fighting withdrawals fire 23% less often — people are put down before they can break off.

@@ -94,6 +94,22 @@
      * was too small to move any decision. It cuts both ways: a marksman backs off from a
      * shotgun for the same reason the shotgun runs at him. */
     BAND_PULL: 0.050,                // [C] per tile of distance from the range you want
+    /* FINISH THE WOUNDED. Added to a body's hit chance when picking who to shoot, and the only
+       thing besides raw chance that decides it. It lived as a bare 0.05 inline in the target
+       loop with no name and no entry here, which is why nothing had ever audited it — a static
+       census of the constants cannot inventory a number that has no name, so it was invisible
+       to exactly the pass built to find numbers like this.
+       Measured by ablation across one contest and 5,348 aimed shots: remove it and 929 shots go
+       to a different body — 17.4% of aimed shots, 20.5% of the shots where there was more than
+       one body to choose between. Somebody visibly wounded was available on 2,451 shots and was
+       the one shot on 1,930 of them, so this literal is the whole reason squads concentrate on
+       the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
+       Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
+    FINISH_WOUNDED: 0.05,            // [C]
+    DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
+                                     //     Not 1.0 on purpose: a dash that is as cautious as a
+                                     //     walk is not a dash, and the mechanism exists to get
+                                     //     short-range squads across ground they never crossed.
     MOB_TILES: 1.5,                  // [C] ground a mob_up / mob_down weapon gains or costs
     COVERING_FIRE_MIN: 2,            // [C] bodies it must put down to be worth an action
     SMOKE_RADIUS: 2,                 // [C] tiles a screen covers
@@ -315,6 +331,13 @@
     return best;
   }
 
+  /* MODULE-SCOPED BECAUSE `incoming` IS. The motion switch lives on the ctx of a single fight,
+     and `incoming` is a free function that never sees it — so the first version of this modelled
+     the cost of having moved even when motion exposure was switched OFF. The "off" control was
+     therefore not off: all five snapshot fights moved with the flag down, which read as an
+     incidental regression and was really the control being broken. Set once per fight below. */
+  let _motionOn = true;
+
   /** How likely is `shooter` to hit `victim` if the victim stands at `spot`? */
   function incoming(shooter, victim, spot, map) {
     const cov = coverAgainst(map, spot, shooter);
@@ -332,12 +355,30 @@
        body-turns, 25,702 moves, 3,005 flanking shots, every integer unchanged, despite the new
        term being true 18% of the time. Reverted under the rule that anything measuring as no
        change comes back out. Do not "fix" this again. */
-    const sc = victim.cover, sf = victim.flanked, sx = victim.x, sy = victim.y;
+    /* AND THE COST OF HAVING MOVED THERE, WHICH THE SCORER MUST BE ABLE TO SEE.
+       This is the whole difference between a mechanism and a tax. Wiring `repositioning` at the
+       move site alone would make a body easier to hit without anything weighing that when it
+       decides — so nobody would move any less, they would only die more, which is precisely what
+       happened when overwatch was made dangerous without making it a decision. A candidate tile
+       that is not the one you are standing on can only be reached by moving, so evaluating it
+       means evaluating it as a body that has just moved. */
+    const sc = victim.cover, sf = victim.flanked, sx = victim.x, sy = victim.y,
+          sr = victim.repositioning;
+    const movingThere = (spot.x !== victim.x || spot.y !== victim.y);
     victim.cover = cov; victim.flanked = false; victim.x = spot.x; victim.y = spot.y;
+    if (movingThere && _motionOn) victim.repositioning = true;
     const p = C.hitChance(shooter, victim, bandOf(Math.hypot(shooter.x - spot.x, shooter.y - spot.y)), {}, false)
               * CONST.SHOT_HIT_MULT;
     victim.cover = sc; victim.flanked = sf; victim.x = sx; victim.y = sy;
+    victim.repositioning = sr;
     return p;
+  }
+
+  /** Can this body do anything to anyone, at any range? Declared here with the other small
+      predicates: `shotAt` reads it and threw on the opening shot when it lived further down. */
+  function canHurt(c) {
+    const w = c.weapon;
+    return !!(w && (w.power || 0) > 0);
   }
 
   function bandOf(d) {
@@ -814,6 +855,15 @@
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
+    /* THE THIRD COUNTER OF THAT SET, FINALLY RAISED. The note beside the declaration records
+       that `vents`, `chargeOut` and `energyShots` were once missing from the telemetry object
+       and were added back. Two of them were also given somewhere to be INCREMENTED; this one
+       was not, so it sat declared, initialised and permanently zero — reporting a clean nought
+       while 585 weapons vented and 57 ran out of charge in a single contest. Not NaN, not
+       unreachable: never raised, which is the third way a zero lies and the hardest to notice,
+       because the counter looks perfectly healthy where it is declared.
+       On a sidearm you are firing a conventional weapon, whatever your primary is. */
+    if (C.isEnergy(shooter) && !shooter.onSidearm) tel.energyShots++;
     /* which range fights actually happen at — the grid derives band from distance, so unlike
        the abstract model this is an OUTCOME rather than a setting, and it is the only honest
        way to ask whether a short-range weapon ever gets to be a short-range weapon */
@@ -859,7 +909,17 @@
     shooter._rateBank = (shooter._rateBank || 0) - extra;
     while (extra-- > 0 && C.spendShot(shooter, 'shot')) {
       tel.shots++; tel.tempoShots = (tel.tempoShots || 0) + 1;
-      if (rng() < p) {
+      if (C.isEnergy(shooter) && !shooter.onSidearm) tel.energyShots++;   /* extra rounds count */
+      /* EXTRA ROUNDS WERE COUNTED AND NEVER RECORDED. This loop raised `tel.shots` and resolved
+         the hit, but wrote no log entry — so a Belt Machine Gun that put four rounds downrange
+         appeared in the replay as one, and 366 shots in twenty-five fights existed in the
+         telemetry and nowhere a reader could see them. The counter and the record disagreed
+         about the same event, and only the counter was ever checked. */
+      const tHit = rng() < p;
+      if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id,
+                          p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
+                          ammo: shooter.ammo, react: !!react, tempo: true });
+      if (tHit) {
         tel.hits++;
         applyHit(rng, target, C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn),
                  tel, log, shooter, E);
@@ -950,6 +1010,13 @@
 
   /** The distance, in tiles, at which this fighter's weapon is doing what it is for. */
   function wantTiles(c) {
+    /* A BODY WITH NOTHING TO FIGHT WITH WANTS TO BE ELSEWHERE. `UNARMED` is a real weapon
+       profile — power 0, range MEDIUM — so a fighter carrying nothing inherited a medium
+       preferred range and the band pull walked it TOWARD a squad shooting at it, to reach a
+       firing distance for its fists. Closing a range gap you have no weapon to close is not a
+       thing anybody does. Ruled: a body that cannot hurt anyone wants maximum distance, and the
+       same pull that walked it in now walks it out. */
+    if (!canHurt(c)) return CONST.BAND_TILE[0] + 8;
     const r = (c.weapon && c.weapon.range) || 'medium';
     if (r === 'long') return CONST.BAND_TILE[0] + 2;
     if (r === 'short') return Math.max(1, Math.round(CONST.BAND_TILE[1] * 0.5));
@@ -1203,6 +1270,10 @@
        can be measured with it and without it — a before/after that compares two different
        trees is comparing two instruments, which is the failure this project keeps hitting. */
     const fog = ctx.fog !== false;
+    /* MOTION EXPOSURE, on unless the caller turns it off — the same shape as the fog switch, so
+       a before and after compares one tree against itself rather than two checkouts. */
+    const motion = ctx.motion !== false;
+    _motionOn = motion;
     if (fog) {
       const fogState = { sides, map, turn: 0, dirty: true };
       for (const S of sides) { S._fog = fogState; S._seen = new Set(); S._heard = new Set(); }
@@ -1234,14 +1305,24 @@
       return best;
     };
 
+    /* ONE PLACE THAT DESCRIBES A BODY, because there are two places that record one.
+       These were two separate object literals, and every field added to the replay since has
+       been added to whichever one was in front of me: `race` and `mv` reached the turn snapshot
+       and never reached the per-body frames, which are the ones you actually watch. The result
+       was an Olmac rendering as a large grey body on the frame at the top of a turn and as a
+       small pale one on every frame after it, because a missing `race` falls back to human.
+       It flickered rather than failing, so nothing threw and the page checks passed.
+       Two copies of a record drift. One function cannot. */
+    const unitRec = (u, si) => ({
+      id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch, sup: !!u.suppressed,
+      mv: u._crossed ? 2 : u.repositioning ? 1 : 0, race: u.race || 'human',
+      comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
+      hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
+      name: u.ref && u.ref.name
+    });
     const snap = () => frames.push({
       turn: tel.turn,
-      units: sides.flatMap((S, si) => S.units.map(u => ({
-        id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch, sup: !!u.suppressed,
-        comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
-        hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
-        name: u.ref && u.ref.name
-      })))
+      units: sides.flatMap((S, si) => S.units.map(u => unitRec(u, si)))
     });
     tel.first = first;
     tel.openingBand = openingBand;
@@ -1329,6 +1410,7 @@
            acted and carrying whatever they logged while doing it. Verbose-only. */
         const logMark = log ? log.length : 0;
         const beforeXY = { x: u.x, y: u.y };
+        let midXY = null;
         /* whoever is not us: the nearest live enemy decides which banner we treat as THE
            enemy this turn, so a three-cornered fight is fought against whoever is on you */
         const E = pickEnemy(sides, si, u);
@@ -1337,6 +1419,13 @@
         if (!alive(E.units).length) break;
         try {
           u.ap = CONST.AP; u.dashed = false; u.overwatch = false;
+          /* MOTION WEARS OFF WHEN YOUR TURN COMES ROUND. Being caught mid-move only means
+             anything while the other side is shooting, which is exactly the window between
+             your move and your next activation. Cleared here alongside the other per-turn
+             flags rather than at end of turn, so it lasts the whole of the enemy's turn —
+             which is the mistake `suppressed` makes, clearing for everyone simultaneously and
+             expiring on half the people it was applied to before they ever act. */
+          u.repositioning = false; u._crossed = false;
           if (ambush && tel.turn === 1 && si !== first) { u.ap = 1; tel.ambushed++; }
           const taken = occupancy(sides);
           const allFoes = alive(E.units);
@@ -1433,6 +1522,12 @@
              exactly that and produced one move in fifteen turns. */
           const seen = foes.filter(f => hasLOS(map, u, f));
           const shotAt = (from, f) => {
+            /* A SWING THAT CANNOT HURT ANYBODY IS NOT WORTH WALKING TOWARD. `hitChance` asks how
+               likely you are to connect and never asks what connecting would do, so a power-0
+               body scored a 48% "shot" and the movement scorer weighed it exactly like a rifle
+               round — which is half of what drew an unarmed fighter toward a squad shooting at
+               it. The other half was its preferred range; see `wantTiles`. */
+            if (!canHurt(u)) return 0;
             const cov = coverAgainst(map, f, from);
             const sc = f.cover, sf = f.flanked;
             f.cover = cov; f.flanked = cov === 0 && sc > 0;
@@ -1619,11 +1714,21 @@
             }
           }
 
+          /* DECLARED HERE, above the first thing that uses it. It was first declared beside the
+             movement block, which reads naturally and is forty lines too late: target selection
+             happens before movement, so the tap threw a ReferenceError on the opening shot of
+             the first fight. Caught by running it, not by reading it. */
+          const tap = ctx._scoreTap || null;
           let target = null, pNow = 0;
+          const pickRows = tap ? [] : null;
           for (const f of seen) {
-            const p = shotAt(u, f) + (f.state === 'light' ? 0.05 : 0);
+            const raw = shotAt(u, f);
+            const p = raw + (f.state === 'light' ? CONST.FINISH_WOUNDED : 0);
+            if (pickRows) pickRows.push({ id: f.id, raw: raw, light: f.state === 'light' });
             if (p > pNow) { pNow = p; target = f; }
           }
+          if (tap && tap.pick && pickRows && pickRows.length)
+            tap.pick(pickRows, target ? target.id : null);
 
           /* What is the best shot I could have if I moved instead? Cover for me, no cover
              for them, and close enough that the band is not doing all the work. */
@@ -1637,6 +1742,7 @@
           const near = foes.length
             ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
             : searchPoint(S, map);
+          if (tap) tap.rows = [];
           let move = null;
           /* am I currently unseen? decides Soft Boots. Declared out here rather than inside
              the scoring block because the dash below is a second movement decision in the same
@@ -1667,17 +1773,36 @@
                 if (!hasLOS(map, f, spot)) continue;
                 threat += incoming(f, u, spot, map);
               }
+              const bandOff = Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u));
               const val = bestP * CONST.SHOT_WEIGHT - threat * CONST.THREAT_WEIGHT
-                        - Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u))
-                          * CONST.BAND_PULL;
+                        - bandOff * CONST.BAND_PULL;
+              /* SCORE TAP — inert unless a caller supplies one, and no caller in the game does.
+                 It exists so an audit can ask whether a term in this decision actually CHANGES
+                 the decision: drop the term, recompute the ranking, see if the same tile still
+                 wins. A term that fires constantly and flips nothing is decorative, which is
+                 what `overwatch` turned out to be. Recomputing outside the engine would mean
+                 reimplementing this formula and measuring the reimplementation. */
+              if (tap) {
+                /* enough to ask the flanking question afterwards: what cover would I have
+                   standing here, and would my best shot from here be round the side of theirs? */
+                let ownCov = 0;
+                for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                  const cc = at(map, x + ox, y + oy);
+                  if (cc > ownCov) ownCov = cc;
+                }
+                tap.rows.push({ x, y, p: bestP, threat, bandOff, ownCov: ownCov,
+                                flanks: !!(tgt && tgt.cover > 0 &&
+                                           coverAgainst(map, tgt, { x: x, y: y }) === 0) });
+              }
               if (!move || val > move.val) move = { x, y, val, p: bestP, tgt, threat };
             }
           }
 
           let stayThreat = 0;
           for (const f of foes) { if (hasLOS(map, f, u)) stayThreat += incoming(f, u, u, map); }
+          const stayBandOff = Math.abs(dist(u, near) - wantTiles(u));
           const stayVal = pNow * CONST.SHOT_WEIGHT - stayThreat * CONST.THREAT_WEIGHT
-                        - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
+                        - stayBandOff * CONST.BAND_PULL;
           /* moving is not free: you are up and crossing ground while people are shooting */
           /* PINNED. Somebody is putting rounds on this position, so the cost of standing up
              and crossing is not the ordinary cost of crossing. This is the line that makes a
@@ -1685,9 +1810,24 @@
           const moveGate = u._noMove ? Infinity
                          : u.suppressed ? CONST.MOVE_COST + CONST.SUPPRESSED_MOVE_COST
                          : CONST.MOVE_COST;
+          if (tap) {
+            tap.emit(tap.rows, { p: pNow, threat: stayThreat, bandOff: stayBandOff },
+                     moveGate, move, u);
+            tap.rows = [];
+          }
           if (move && move.val > stayVal + moveGate && (move.x !== u.x || move.y !== u.y)) {
             const strippedCover = target ? coverAgainst(map, target, u) : 0;
             u.x = move.x; u.y = move.y; u.ap--; tel.moves++;
+            /* WHERE IT GOT TO BEFORE ANY DASH. A frame carried only `from` and the final tile,
+               so a body that moved and then dashed was recorded as one small hop — the Bellow
+               crossed 4.5 tiles into cover and 4.2 back out, and the replay drew a 1.4-tile
+               shuffle. Two decisions fighting each other looked like one inexplicable step
+               because the path between them was thrown away. */
+            midXY = { x: u.x, y: u.y };
+            /* YOU ARE EASIER TO HIT HAVING JUST MOVED. `repositioning` was read by `hitChance`
+               and written by nothing, so crossing ground was free — the game specified a
+               penalty and applied none. */
+            if (motion) u.repositioning = true;
             /* CROSSING GROUND IS HOW YOU GET SEEN, so knowledge is stale the moment anybody
                steps. Marked before overwatch is offered the shot rather than after, because
                the whole question overwatch asks is whether this mover has just walked into
@@ -1724,16 +1864,40 @@
                   f.cover = sc; f.flanked = sf;
                   if (p > best) best = p;
                 }
-                /* what this ground is worth NEXT turn, when the shot actually gets taken */
+                /* WHAT THIS GROUND COSTS, which this decision could not previously represent.
+                   The dash scored `shot - band` and had no threat term at all, while the move
+                   decision that runs a second earlier weighs threat as the heaviest thing it
+                   has — 47% of all movement decisions turn on it. So a body took good cover on
+                   its first action and was then moved by a rule blind to the thing it had just
+                   optimised for: measured across one contest, a quarter of all dashes ended
+                   with no cover having started in cover, and 6% finished within two tiles of
+                   where they began, having gone somewhere and come most of the way back.
+                   Weighted at a FRACTION of the move scorer's. The dash exists so a short-range
+                   squad can cross ground it otherwise never crosses; at full weight it would
+                   become as cautious as an ordinary move and stop being a dash at all. */
+                let dThreat = 0;
+                for (const f of foes) {
+                  if (!hasLOS(map, f, { x: cand.x, y: cand.y })) continue;
+                  dThreat += incoming(f, u, { x: cand.x, y: cand.y }, map);
+                }
                 const val = best * CONST.SHOT_WEIGHT
+                          - dThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                           - Math.abs(Math.hypot(cand.x - near.x, cand.y - near.y) - wantTiles(u))
                             * CONST.BAND_PULL;
                 if (!rush || val > rush.val) rush = { x: cand.x, y: cand.y, val: val, p: best };
               }
+              let hereThreat = 0;
+              for (const f of foes) { if (hasLOS(map, f, u)) hereThreat += incoming(f, u, u, map); }
               const here = pNow * CONST.SHOT_WEIGHT
+                         - hereThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                          - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
               if (rush && rush.val > here + CONST.DASH_COST) {
                 u.x = rush.x; u.y = rush.y; u.ap--; u.dashed = true;
+                /* A DASH IS THE CROSSING CASE. Both actions spent on ground, no shot, cover
+                   dropped — `_crossed` is the heavier of the two motion penalties and this is
+                   the heavier kind of move. Uses the state the grid already tracks rather than
+                   inventing a second notion of what crossing means. */
+                if (motion) { u._crossed = true; u.repositioning = false; }
                 tel.dashes = (tel.dashes || 0) + 1;
                 if (CONST.DASH_EXPOSE) u.cover = 0;
                 if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
@@ -1763,13 +1927,9 @@
               turn: tel.turn, actor: u.id, side: si,
               moved: (u.x !== beforeXY.x || u.y !== beforeXY.y),
               from: beforeXY,
+              via: (midXY && (midXY.x !== u.x || midXY.y !== u.y)) ? midXY : null,
               did: log.slice(logMark),
-              units: sides.flatMap((SS, ssi) => SS.units.map(x => ({
-                id: x.id, s: ssi, x: x.x, y: x.y, st: x.state, ow: !!x.overwatch,
-                comp: Math.round(x.comp || 0), ammo: x.ammo || 0, sid: !!x.onSidearm,
-                hp: x.hp, hpMax: x.hpMax, kn: knownOf(x, ssi),
-                sup: !!x.suppressed, name: x.ref && x.ref.name
-              })))
+              units: sides.flatMap((SS, ssi) => SS.units.map(x => unitRec(x, ssi)))
             });
           }
         }
