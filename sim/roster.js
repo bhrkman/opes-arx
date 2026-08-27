@@ -343,13 +343,21 @@
 
     // 1) Pool draws.
     let count = parseInt(P.weightedPick(rng, tm.count_weights), 10);
+    /* the Bastille does not sell finishing-school graduates: its pool carries a chance of
+       one extra draw taken from the NEGATIVE-tagged traits only, on top of the normal
+       rolls — a lean, not a sentence, and the dial lives in recruitment.json */
+    const poolBias = ((this.rec.pools || {})[origin] || {}).negative_trait_bias || 0;
+    const biasDraw = poolBias && P.chance(rng, poolBias);
+    if (biasDraw) count = Math.min(4, count + 1);
     const variety = (race.special && race.special.trait_variety_bonus) || 0;
     if (variety && P.chance(rng, variety)) count = Math.min(4, count + 1);
 
     for (let i = 0; i < count; i++) {
       const entries = [];
+      const negOnly = biasDraw && i === count - 1;   /* the lean's draw is the extra one */
       for (const t of this.traits) {
         if (t.draw !== "pool") continue;
+        if (negOnly && !(t.tags || []).includes("negative")) continue;
         if (chosen.includes(t.id) || blocked.has(t.id)) continue;
         if (t.race_locked && t.race_locked.length && !t.race_locked.includes(race.id)) continue;
         if (t.origin_locked && t.origin_locked.length && !t.origin_locked.includes(origin)) continue;
@@ -475,16 +483,26 @@
     // Contract.
     const salary = this.salaryFor(race, pool, stats, age);
     const seasons = P.int(rng, poolCfg.seasons_range[0], poolCfg.seasons_range[1]);
-    const contract = { salary, seasons_remaining: seasons };
+    /* THE CONTRACT KNOWS WHAT KIND IT IS, because the three kinds are three different
+       deals: a nattie is a flat multi-year wage with the fleet's best family pension and a
+       bonus for every Divide actually dropped into; a merc is ONE Divide at the top price,
+       paid whether or not they drop, extension a fresh handshake; a prisoner serves a
+       freedom clause. The clause lives FLAT on the contract (divides_served / _required)
+       because that is the shape the season reads and increments — the old nested
+       `contract.freedom` object was a second shape that nothing downstream ever read. */
+    const contract = { kind: pool, salary, seasons_remaining: seasons };
     contract.death_benefit = P.roundTo(salary * poolCfg.death_benefit_mult, 10);
 
     if (pool === "nattie") {
       contract.signing_cost = 0;
+      if (poolCfg.divide_bonus_mult)
+        contract.divide_bonus = P.roundTo(salary * poolCfg.divide_bonus_mult, 10);
     } else if (pool === "mercenary") {
       contract.signing_cost = P.roundTo(salary * (2 + 0.8 * seasons + 0.02 * fame), 10);
     } else {
       const req = parseInt(P.weightedPick(rng, poolCfg.freedom_divides_weights), 10);
-      contract.freedom = { divides_served: 0, divides_required: req };
+      contract.divides_served = 0;
+      contract.divides_required = req;
       const young = age <= race.age.prime[0] + 4;
       const premium = young ? 1 + 0.06 * Math.max(0, scout.estimate - 12) : 1;
       contract.signing_cost = P.roundTo(salary * (2.5 + 1.2 * req) * premium, 10);
@@ -676,11 +694,11 @@
       when: c => c.rec.kind === "pair",
       text: c => `${c.name} move like a rumor — you spot one half, and the other half has been watching you the whole time!` },
     { key: "freedom_one", tier: 3, register: "hype",
-      when: c => c.pool === "prisoner" && c.f.contract.freedom && c.f.contract.freedom.divides_required === 1,
+      when: c => c.pool === "prisoner" && c.f.contract.divides_required === 1,
       text: c => `One Divide between ${c.name} and the open door. Fleet, fighters like that FINISH things.` },
     { key: "freedom_long", tier: 3, register: "dry",
-      when: c => c.pool === "prisoner" && c.f.contract.freedom && c.f.contract.freedom.divides_required >= 4,
-      text: c => `${c.f.contract.freedom.divides_required} Divides on the clause. Whoever buys ${c.name} is buying years — and years, in this sport, are the expensive part.` },
+      when: c => c.pool === "prisoner" && c.f.contract.divides_required >= 4,
+      text: c => `${c.f.contract.divides_required} Divides on the clause. Whoever buys ${c.name} is buying years — and years, in this sport, are the expensive part.` },
     { key: "lot_as_is", tier: 3, register: "dry",
       when: c => c.pool === "prisoner" && c.f.condition.injuries.length > 0,
       text: c => `Sold as-is — the Bastille's polite phrase for "ask no questions about the ${c.f.condition.injuries[0].type.replace(/_/g, " ")}."` },

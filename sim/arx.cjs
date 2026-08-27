@@ -118,62 +118,62 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_A",
-    "exchanges": 12,
+    "exchanges": 8,
     "band": "medium",
     "aDead": 0,
-    "aDown": 3,
+    "aDown": 2,
     "bDead": 0,
-    "bDown": 3,
-    "shots": 218,
-    "hits": 29,
-    "downs": 6
+    "bDown": 1,
+    "shots": 112,
+    "hits": 19,
+    "downs": 3
   },
   "short band, both aggressive": {
     "result": "disengage_A",
     "exchanges": 8,
     "band": "medium",
-    "aDead": 1,
-    "aDown": 3,
-    "bDead": 0,
-    "bDown": 1,
-    "shots": 84,
-    "hits": 26,
-    "downs": 5
-  },
-  "long band, both cautious": {
-    "result": "disengage_B",
-    "exchanges": 6,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 1,
-    "bDead": 1,
-    "bDown": 4,
-    "shots": 121,
-    "hits": 35,
-    "downs": 6
-  },
-  "forest, standard v unyielding": {
-    "result": "disengage_A",
-    "exchanges": 13,
-    "band": "medium",
     "aDead": 2,
     "aDown": 2,
     "bDead": 0,
-    "bDown": 2,
-    "shots": 147,
-    "hits": 42,
-    "downs": 6
+    "bDown": 0,
+    "shots": 103,
+    "hits": 25,
+    "downs": 4
   },
-  "entrenched, cautious v hunter": {
-    "result": "disengage_A",
-    "exchanges": 10,
+  "long band, both cautious": {
+    "result": "disengage_both",
+    "exchanges": 8,
     "band": "medium",
     "aDead": 0,
     "aDown": 2,
     "bDead": 0,
-    "bDown": 0,
-    "shots": 138,
-    "hits": 22,
+    "bDown": 2,
+    "shots": 140,
+    "hits": 24,
+    "downs": 4
+  },
+  "forest, standard v unyielding": {
+    "result": "disengage_B",
+    "exchanges": 12,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 0,
+    "bDead": 2,
+    "bDown": 2,
+    "shots": 192,
+    "hits": 28,
+    "downs": 4
+  },
+  "entrenched, cautious v hunter": {
+    "result": "disengage_A",
+    "exchanges": 20,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 1,
+    "bDead": 0,
+    "bDown": 1,
+    "shots": 218,
+    "hits": 21,
     "downs": 2
   }
 };

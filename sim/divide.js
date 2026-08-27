@@ -101,6 +101,14 @@
 
     /* §5.1 movement — open ground, so distance not adjacency */
     DAY_MARCH: DAY_MARCH,               // [C] map units per day at full effort
+    /* RULED — SIZE READS ON THE GROUND. Three walk faster than eight and are harder to
+       notice; that is the entire argument for fielding a small squad, and until now the
+       map charged size nothing. Pivot six is the centre of gravity of a dealt drop, both
+       terms read LIVE headcount so attrition lightens a squad, and both are kept gentle:
+       stance, fieldcraft and the closing line still decide the day — size leans it. */
+    SIZE_PIVOT: 6,                      // [S] the squad size that reads as neutral
+    SIZE_MARCH_PER_BODY: 0.03,          // [C] ±3% march per body off the pivot: 3 walk ~9% over, 8 ~6% under
+    SIZE_DETECT_PER_BODY: 0.045,        // [C] ±4.5% noticeability per body off the pivot, per squad in the pair
     NIGHT_MARCH_P: 0.18,                // [C]
     NIGHT_MARCH_FATIGUE: 6,             // [C]
     ARRIVE_SLACK: 0.012,                // [C] close enough to have arrived
@@ -181,7 +189,12 @@
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
     DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
-    SQUAD_MAX: 8, SQUAD_MIN: 5,         // [S] a drop deals into squads inside these bounds
+    SQUAD_MAX: 8, SQUAD_MIN: 3,         // [S] squads live inside these bounds. RULED: the
+                                        // floor is THREE — it binds the manager's own squad
+                                        // page, which reads it from here. The auto-deal's
+                                        // arithmetic (two-squad minimum against an eight cap)
+                                        // cannot produce a squad under five regardless, so
+                                        // the old floor of five never actually bound anything.
     SPENT_SQUAD_CAUTION: 0.80,          // [C] barely flinches; they play on
     REFORM_AT: 3,                       // [C] below this the survivors are redistributed
     CONSOLIDATE_RANGE: 0.16,            // [C] if one is close enough to reach
@@ -402,9 +415,27 @@
     for (const b of plan.bodies) (byRole[b.role] = byRole[b.role] || []).push(b.loadout);
     const nSq = corp.squads.length;
     const deal = corp.squads.map(() => []);
+    /* CAPACITY-BOUNDED, because the old role-wise round-robin ignored squad sizes. Squads
+       are dealt 7/7/6 while every role pool round-robins from squad 0, so an uneven force
+       handed one squad more kits than people — and the `break` below dropped the extras on
+       the floor, drawn from the rack or bought with cash and carried by NOBODY, gone from
+       the world since no body returns them — while another squad ran out of kits and armed
+       its last body from DEFAULT_LOADOUT, kit nobody drew and nobody paid for. Both halves
+       of the conservation fault `probe_plan_stock.cjs` counts, and the standing re-buy bill
+       it measured: the vanished item is re-bought next plan and can vanish again. The
+       cursor runs on across roles so every role still spreads evenly; it just skips squads
+       that are already full. */
+    const room = corp.squads.map(sq => sq.bodies.length);
+    let cursor = 0;
     for (const role of ITEMS.roles) {
       const pool = byRole[role.id] || [];
-      for (let i = 0; i < pool.length; i++) deal[i % nSq].push({ role: role.id, loadout: pool[i] });
+      for (let i = 0; i < pool.length; i++) {
+        let hops = 0;
+        while (deal[cursor % nSq].length >= room[cursor % nSq] && hops++ < nSq) cursor++;
+        if (hops > nSq) break;             /* every squad full: the plan outnumbers the drop */
+        deal[cursor % nSq].push({ role: role.id, loadout: pool[i] });
+        cursor++;
+      }
     }
     /* Any remainder (Mon-Wa second halves inflate the body count) rides as line. */
     let spare = [];
@@ -472,7 +503,20 @@
        people outlive the Divide; the squads, positions and banner do not. Without a Corp
        the roster is generated as it always was, so a one-off Divide is unchanged. */
     const drop = persist && persist.drop && persist.drop.length ? persist.drop.slice() : null;
-    const sizes = drop ? dealSizes(drop.length, split)
+    /* THE MANAGER'S OWN SQUADS. A persistent Corp may hand in `persist.groups` — arrays of
+       body ids partitioning the drop — and `persist.leaders`, one id per group (or null to
+       let tactics decide, which is the rule below and always was). This is only who stands
+       with whom and who they look to: everything squads DO still belongs to the Divide, and
+       succession still runs when the named leader goes down. Groups are the manager's
+       authority and are taken as given — they are validated where the manager works, not
+       re-judged here. Absent groups, the deal is exactly what it was. */
+    const groups = drop && persist.groups && persist.groups.length
+                 ? persist.groups.filter(g => g && g.length) : null;
+    const leaders = (groups && persist.leaders) || null;
+    const dropById = {};
+    if (groups) for (const b of drop) dropById[b.id] = b;
+    const sizes = groups ? groups.map(g => g.length)
+                : drop ? dealSizes(drop.length, split)
                 : split === '2x12' ? [12, 12] : split === '4x6' ? [6, 6, 6, 6] : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance, declaredAt: stance,
@@ -489,16 +533,23 @@
     };
     let taken = 0;
     for (let i = 0; i < sizes.length; i++) {
-      const bodies = drop ? drop.slice(taken, taken + sizes[i])
-                          : ROSTER.generateSquad(rng, sizes[i], { corpId: profile.id }).bodies;
+      const bodies = groups ? groups[i].map(id => dropById[id]).filter(Boolean)
+                   : drop ? drop.slice(taken, taken + sizes[i])
+                   : ROSTER.generateSquad(rng, sizes[i], { corpId: profile.id }).bodies;
       taken += sizes[i];
+      if (!bodies.length) continue;          /* a named group whose bodies all fell unfit */
       let cap = bodies[0];
       for (const b of bodies) if (b.stats.tactics > cap.stats.tactics) cap = b;
+      const led = leaders && leaders[i] && bodies.some(b => b.id === leaders[i])
+                ? leaders[i] : cap.id;
+      /* the squad's index is its place in the LIST — a skipped empty group must not leave
+         a gap that `_squadIdx` lookups fall into — and rations feed the bodies that stand */
+      const si = corp.squads.length;
       corp.squads.push({
-        corpId: profile.id, corp, policy: stance, bodies, captainId: cap.id, sIdx: i, known: {},
+        corpId: profile.id, corp, policy: stance, bodies, captainId: led, sIdx: si, known: {},
         hasMedkit: false,        // set by equipCorp from what the squad actually carries (§10)
         x: 0.5, y: 0.5, hx: 0.5, hy: 0.5,           // position, and where they came from
-        rations: CONST.RATION_DROP_DAYS * sizes[i], rationDry: false,
+        rations: CONST.RATION_DROP_DAYS * bodies.length, rationDry: false,
         stress: 0, crates: 0, ammoResupplied: 0, intelUntil: 0,
         /* S20 — the prep year's scouting, the same for every squad this corp drops */
         _intel: (persist && persist.intel) || 0,
@@ -507,7 +558,7 @@
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
          read a field that no code anywhere ever set. */
-      for (const b of bodies) b._squadIdx = i;
+      for (const b of bodies) b._squadIdx = si;
       corp.allBodies.push(...bodies);
     }
     /* PROCUREMENT.md §15 — kit the force. Planning draws no RNG, so it cannot shift the
@@ -1422,7 +1473,9 @@
           const stage = CONST.STAGE_RADIUS * (0.85 + rng() * 0.3);
           const sx = best.x + Math.cos(a) * stage;
           const sy = best.y + Math.sin(a) * stage;
-          const budget = CONST.DAY_MARCH * dials.ground;
+          const budget = CONST.DAY_MARCH * dials.ground * sizeMarchMult(sq);
+          /* the leader's travel ESTIMATE must include the size term the real march uses,
+             or every mixed-size pincer is mistimed by design */
           travel.push(Math.ceil(MAP.dist(sq.x, sq.y, sx, sy) / Math.max(1e-6, budget)));
           sq._plan = { sx, sy, a };
         }
@@ -1661,6 +1714,14 @@
     return 1 + (CONST.DETECT_COMPRESSION_MAX - 1) * t;
   }
 
+  /* the two ways size reads on the ground — see the RULED comment on the constants */
+  function sizeMarchMult(sq) {
+    return 1 + (CONST.SIZE_PIVOT - squadHead(sq).length) * CONST.SIZE_MARCH_PER_BODY;
+  }
+  function sizeDetectMult(sq) {
+    return 1 + (squadHead(sq).length - CONST.SIZE_PIVOT) * CONST.SIZE_DETECT_PER_BODY;
+  }
+
   function detectChance(rng, sqA, sqB, planet, day, night, mx, my, sep) {
     const dA = STANCE_DIALS[sqA.corp.policy], dB = STANCE_DIALS[sqB.corp.policy];
     /* The seekers ARE the term, not a bonus on top of a flat base. With `1 + seekA + seekB`
@@ -1668,6 +1729,8 @@
        swamped it — so the six dials never produced the ladder. This spans ~9x. */
     let p = CONST.DETECT_BASE * (dA.seek + dB.seek);
     p *= planet.concealAt(mx, my);
+    /* eight leave a trail that three do not: size reads on both squads in the pair */
+    p *= sizeDetectMult(sqA) * sizeDetectMult(sqB);
     /* closer is easier to notice: full weight at contact, tailing off to nothing at range */
     p *= 1.35 - 0.9 * Math.min(1, sep / CONST.ENGAGE_RANGE);
     if (night) p *= CONST.DETECT_NIGHT;
@@ -2492,7 +2555,8 @@
         if (tick === 0) { sq.hx = sq.x; sq.hy = sq.y; }   /* bearing is where they started the day */
 
         const terrainSpeed = planet.speedAt(sq.x, sq.y);
-        let budget = (CONST.DAY_MARCH / CONST.DAY_TICKS) * terrainSpeed * dials.ground;
+        let budget = (CONST.DAY_MARCH / CONST.DAY_TICKS) * terrainSpeed * dials.ground
+                   * sizeMarchMult(sq);   /* three walk faster than eight */
         if (posture === 'fortify') budget *= 0.45;
         if (hooks.has('march_efficiency_up')) budget *= 1.12;
         if (sq._lostDay) budget *= 0.3;
@@ -2860,6 +2924,19 @@
                 band: res.band, result: res.result, exchanges: res.exchanges,
                 casualties: res.casualties, log: res.log
               });
+            }
+            /* THE GROUND HANDS THE FIGHT TO THE FIREFIGHT. A caller holding the generator
+               gets the WHOLE resolution for fights its own corp stood in — the frames, the
+               sides, the ground it happened on. This is the same resolution the contest just
+               settled, handed over rather than re-fought, so the tactical replay a manager
+               watches is the truth and not a reconstruction. Guarded to the human corp the
+               same way the log is: seven rivals' skirmishes are not what anybody sits down
+               to watch, and their frames are not worth carrying. */
+            if (opts.onBattle && opts.human &&
+                groups.some(g => g.some(sq => sq.corpId === opts.human))) {
+              opts.onBattle({ day: day, night: !!night, terrain: terrain, x: mx, y: my,
+                              corps: groups.map(g => principalOf(g[0].corp).id),
+                              sides: built, res: res });
             }
 
             engagementsRun++;
@@ -3526,7 +3603,13 @@
     return step.value;
   }
 
-  const api = { CONST, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed };
+  /* `applyOutcome` is exported for the unified viewer: a fight it stages settles back to the
+     roster through the same function the Divide uses, because a second settler would drift the
+     way the replay's two frame builders drifted. */
+  const api = { CONST, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
+    /* the size reads on the ground, exported so the probe that keeps them honest can
+       measure them and any surface can show a manager the cost of the squad they shaped */
+    sizeMarchMult, sizeDetectMult };
   if (isNode) module.exports = api;
   global.CDDIVIDE = api;
 })(typeof window !== "undefined" ? window : globalThis);

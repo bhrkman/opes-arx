@@ -299,6 +299,21 @@
       else { counts[k]++; assigned++; }
       i++;
     }
+    /* A drop can be smaller than one-of-every-role-per-squad — a spent corp fields five.
+       The floor above then jams the loop against its bail-out and the plan arms MORE
+       bodies than exist, which no deal downstream can conserve: the extra kit is drawn,
+       paid for, and carried by nobody. When the floor is infeasible it gives: trim below
+       it, rarest roles first, because a scratch force is riflemen before it is a marksman
+       section. Found by probe_plan_stock.cjs counting, not by reading. */
+    if (assigned > bodyCount) {
+      const trim = order.slice().reverse();
+      let j = 0;
+      while (assigned > bodyCount && j < 400) {
+        const k = trim[j % trim.length];
+        if (counts[k] > 0) { counts[k]--; assigned--; }
+        j++;
+      }
+    }
     return counts;
   }
 

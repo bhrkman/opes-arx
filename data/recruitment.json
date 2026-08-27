@@ -4,14 +4,14 @@
   "version": "0.10",
   "date": "2026-08-15",
   "status": "Step 2 ratified (V3-V6, V15-V17); batch defaults rescaled for COMBAT.md squads",
-  "sources": "DESIGN.md v0.4 \u00a74 (calendar windows) \u00b7 \u00a710 (pools) \u00b7 fighter.schema.json contract block + example (pricing calibration anchor)",
+  "sources": "DESIGN.md v0.4 §4 (calendar windows) · §10 (pools) · fighter.schema.json contract block + example (pricing calibration anchor)",
   "provenance_notes": [
    "Everything here is (proposed) tuning data. The pricing model is calibrated so the schema's example fighter (Sczaa Vex: quality ~84 QP, prisoner, salary 400, auctioned ~2200) reproduces naturally.",
    "quality_shift is the per-fighter talent offset added to every stat roll's mean; each pool samples it differently.",
-   "Prisoner contracts: freedom.divides_required is set PER CONTRACT (canon) \u2014 sampled from freedom_divides_weights at auction; divides_served starts at 0 for new lots.",
-   "Salary unit: credits per prep month (schema). death_benefit multiplies salary; Nattie pensions highest (canon, \u00a79).",
+   "Prisoner contracts: freedom.divides_required is set PER CONTRACT (canon) — sampled from freedom_divides_weights at auction; divides_served starts at 0 for new lots.",
+   "Salary unit: credits per prep month (schema). death_benefit multiplies salary; Nattie pensions highest (canon, §9).",
    "v0.2: batch_defaults 12 -> 8 to match the ratified squad size (COMBAT.md 2.1: 24-fighter drop force in three squads of eight). generateBatch(rng, {pool, count: 8}) now yields exactly one legal squad.",
-   "qp_weights re-tune from combat telemetry is [OPEN-C4], deferred to Step 3b/10 per COMBAT.md C11 \u2014 combat is designed clean and pricing follows it, not the reverse."
+   "qp_weights re-tune from combat telemetry is [OPEN-C4], deferred to Step 3b/10 per COMBAT.md C11 — combat is designed clean and pricing follows it, not the reverse."
   ],
   "balance_note": "All constants are batch-telemetry targets for Step 10; the roller exists so flavor can be judged before math is sacred."
  },
@@ -29,17 +29,17 @@
   "gap_start_mean": 5.0,
   "gap_end_mean": 0.5,
   "gap_sd": 1.6,
-  "note": "potential = clamp(maxCurrentStat + gap, maxCurrentStat, 20). HIDDEN \u2014 the roller's X-ray view shows truth; the broadcast view shows the scout estimate."
+  "note": "potential = clamp(maxCurrentStat + gap, maxCurrentStat, 20). HIDDEN — the roller's X-ray view shows truth; the broadcast view shows the scout estimate."
  },
  "scout_model": {
   "estimate_sd": 2.0,
   "star_divisor": 4,
-  "note": "Scout estimate = potential + normal(0, estimate_sd); shown as a \u00b11 star band (stars = round(est/star_divisor), 1\u20135)."
+  "note": "Scout estimate = potential + normal(0, estimate_sd); shown as a ±1 star band (stars = round(est/star_divisor), 1–5)."
  },
  "pools": {
   "nattie": {
    "label": "Nattie Tryouts",
-   "window": "T2 (M3\u20134)",
+   "window": "T2 (M3–4)",
    "age_band": "recruit_min .. recruit_min+8, skewed young",
    "quality_shift": {
     "mean": -0.5,
@@ -53,18 +53,20 @@
    "salary_mult": 0.8,
    "signing_cost": 0,
    "death_benefit_mult": 10,
-   "death_benefit_note": "Family pensions on your own ship \u2014 highest in the fleet (canon).",
+   "death_benefit_note": "Family pensions on your own ship — highest in the fleet (canon).",
    "seasons_range": [
     3,
     4
    ],
-   "experience": "green: 0 Divides; 0\u20131 Dividends",
+   "experience": "green: 0 Divides; 0–1 Dividends",
    "corp_weighted": true,
-   "corp_note": "Ship populations weight Nattie pools \u2014 races.json pool_weights \u00d7 oa_profiles race_weights."
+   "corp_note": "Ship populations weight Nattie pools — races.json pool_weights × oa_profiles race_weights.",
+   "divide_bonus_mult": 2.0,
+   "divide_bonus_note": "Months of salary paid as a bonus for each Divide actually dropped into — the participation clause a merc's flat price conspicuously lacks. (proposed dial)"
   },
   "mercenary": {
    "label": "Merc Market",
-   "window": "T5 deadline (M9\u201310)",
+   "window": "T5 deadline (M9–10)",
    "age_band": "prime-centered, wide",
    "quality_shift": {
     "mean": 1.3,
@@ -76,33 +78,34 @@
     45
    ],
    "salary_mult": 1.35,
-   "signing_bonus_formula": "salary \u00d7 (2 + 0.8 \u00d7 seasons + 0.02 \u00d7 fame)",
+   "signing_bonus_formula": "salary × (2 + 0.8 × seasons + 0.02 × fame)",
    "death_benefit_mult": 4,
    "seasons_range": [
     1,
-    3
+    1
    ],
-   "experience": "veteran: divides \u2248 0.45 \u00d7 years past prime start (cap 12); battles 2\u20135\u00d7 divides; dividends 0\u20136",
-   "corp_weighted": false
+   "experience": "veteran: divides ≈ 0.45 × years past prime start (cap 12); battles 2–5× divides; dividends 0–6",
+   "corp_weighted": false,
+   "seasons_note": "RULED: a merc contract is ONE Divide. Extension is a fresh agreement at next year's market, by mutual consent — never a multi-year term. They are paid in full whether or not they drop; that is what the price buys."
   },
   "prisoner": {
    "label": "Kier Bastille Auction",
-   "window": "T4 (M7\u20138)",
+   "window": "T4 (M7–8)",
    "age_band": "recruit_min+3 .. decline+4, wide",
    "quality_shift": {
     "mean": 0.3,
     "sd": 2.0
    },
-   "quality_note": "High variance \u2014 the Bastille sells busts and diamonds in the same lot sheet.",
+   "quality_note": "High variance — the Bastille sells busts and diamonds in the same lot sheet.",
    "loyalty_mod": -20,
    "fame_range": [
     0,
     25
    ],
-   "fame_note": "Notoriety counts as fame. Fame measures how much attention is on a person, not whether the fleet is glad or sorry \u2014 see REPUTATION.md R11. A prisoner is not a category of heel.",
+   "fame_note": "Notoriety counts as fame. Fame measures how much attention is on a person, not whether the fleet is glad or sorry — see REPUTATION.md R11. A prisoner is not a category of heel.",
    "salary_mult": 0.55,
-   "auction_price_formula": "prisoner_salary \u00d7 (2.5 + 1.2 \u00d7 divides_required) \u00d7 potential_premium",
-   "potential_premium": "1 + 0.06 \u00d7 max(0, scout_estimate \u2212 12), young lots only",
+   "auction_price_formula": "prisoner_salary × (2.5 + 1.2 × divides_required) × potential_premium",
+   "potential_premium": "1 + 0.06 × max(0, scout_estimate − 12), young lots only",
    "death_benefit_mult": 1.25,
    "death_benefit_note": "A Kier formality, not a pension.",
    "seasons_range": [
@@ -119,7 +122,9 @@
    "arrival_injury_chance": 0.15,
    "arrival_injury_note": "Lots sell as-is: 15% arrive with a lingering minor injury (proposed).",
    "experience": "checkered: some arrive green, some with prior Divides served under other banners",
-   "corp_weighted": false
+   "corp_weighted": false,
+   "negative_trait_bias": 0.35,
+   "negative_trait_note": "Chance of one extra negative-tagged trait on top of the normal rolls: the Bastille does not sell finishing-school graduates. (proposed dial)"
   }
  },
  "pricing": {
@@ -141,7 +146,7 @@
    "declining": 0.8
   },
   "round_to": 10,
-  "note": "salary = round(salary_base \u00d7 (QP/qp_norm)^qp_exponent \u00d7 race salary_mult \u00d7 pool salary_mult \u00d7 prime_factor). Aim weighted highest \u2014 the sole attack aptitude."
+  "note": "salary = round(salary_base × (QP/qp_norm)^qp_exponent × race salary_mult × pool salary_mult × prime_factor). Aim weighted highest — the sole attack aptitude."
  },
  "trait_model": {
   "count_weights": {
@@ -166,7 +171,7 @@
  },
  "callsigns": {
   "chance_at_fame": 35,
-  "note": "Broadcast nicknames are typically earned through fame events (schema); market veterans at fame \u2265 35 may arrive already carrying one.",
+  "note": "Broadcast nicknames are typically earned through fame events (schema); market veterans at fame ≥ 35 may arrive already carrying one.",
   "bank": [
    "Lowlight",
    "Halfday",

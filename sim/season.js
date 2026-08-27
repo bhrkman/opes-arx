@@ -397,13 +397,14 @@
    * A lot is now opened at the START of its window and hangs on the season, so every month of
    * the run-up shows the same faces, and an offer is made against a NAMED fighter.
    */
-  function openLot(rng, kind) {
+  function openLot(rng, kind, corpId) {
     const spec = {
       tryouts:  { n: CONST.TRYOUT_LOT,   mix: [['nattie', 1]] },
       mercs:    { n: CONST.MERC_LOT,     mix: [['mercenary', 1]] },
       bastille: { n: CONST.BASTILLE_LOT, mix: [['prisoner', 1]] }
     }[kind];
-    const lot = ROSTER.generateSquad(rng, spec.n, { corpId: null, poolMix: spec.mix }).bodies;
+    /* a tryout lot belongs to ONE ship — corpId weights the races to that ship's people */
+    const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
     return lot;
   }
@@ -498,8 +499,36 @@
       read it, because there was no tryouts event of any kind. Two of the six window-months in
       the year were guaranteed to do nothing. Prospects rather than professionals — younger,
       cheaper, further from their ceiling. */
-  function runTryouts(rng, corps, ids, lot, tally, bids) {
-    return runOfferMarket(rng, corps, ids, lot, tally, bids, 'tryouts');
+  function runTryouts(rng, corps, ids, lots, tally, bids) {
+    /* Natties sign FLAT: the listed salary for the listed years, the pension for the
+       family, the Divide bonus on top — no premium, because there is no other bidder.
+       The manager marks who they want from their own sheet; every other house signs from
+       its own by the same budget test the Bastille uses, best ceiling first, capped at
+       two a year (a provisional dial until a roster-target ruling exists). */
+    for (const id of ids) {
+      const corp = corps[id];
+      const lot = (lots || {})[id] || [];
+      tally.lot += lot.length;
+      const marked = bids && bids[id] ? Object.keys(bids[id]) : null;
+      /* working the tryout window runs a longer bench trial: a corp that spent its points
+         here signs deeper from its own sheet. Without this the verb bought nothing at the
+         very window it names — the fault the old market comment mocked, reborn. */
+      const worked = ((corp._worked || {}).tryouts || 0);
+      const depth = 2 + Math.min(2, worked);
+      const want = marked
+        ? lot.filter(f => marked.indexOf(f.id) >= 0)
+        : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
+      let took = 0;
+      for (const f of want) {
+        if (signingBudget(corp) < askingPrice(f)) { tally.refused++; continue; }
+        f.divides = 0; f.seasonsHere = 0; f.retired = false;
+        f._fameAtSigning = f.fame || 0;
+        corp.roster.push(f);
+        lots[id] = lots[id].filter(x => x !== f);
+        tally.signed++; took++;
+      }
+      tally.bids += want.length;
+    }
   }
 
   /* ------------------------------------------------------------------ the Bastille intake */
@@ -558,7 +587,10 @@
         if (Math.max(0, spare * CONST.SIGNING_SHARE) < year) continue;
         f.contract = f.contract || {};
         f.contract.salary = salary;                       /* cheaper, and that is the trade */
-        f.contract.divides_required = CONST.BASTILLE_TERM;
+        /* the clause was sampled per contract at generation (canon: freedom_divides_weights);
+           the intake used to flatten every lot to the same term, erasing the variance the
+           lot sheet is priced on. It now respects what the paper says. */
+        f.contract.divides_required = f.contract.divides_required || CONST.BASTILLE_TERM;
         f.contract.divides_served = 0;
         f.status = 'prisoner';                            /* until the term is served */
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
@@ -988,16 +1020,23 @@
         if (f.condition.morale != null) f.condition.morale = Math.min(100, f.condition.morale + 12);
       }
 
-      /* --- the contract clock, which has never ticked --- */
+      /* --- the freedom clause first: a term served outranks a clock still running.
+             RULED: the freed WALK — they may retire or hire back out as mercs, and either
+             way they are no longer this corp's to field. (Feeding the freed into next
+             year's merc lots is follow-up plumbing; today they leave.) --- */
+      if (f.contract && f.contract.divides_required != null &&
+          (f.contract.divides_served || 0) >= f.contract.divides_required &&
+          f.status === 'prisoner') {
+        f.status = 'freed'; out.freed.push(f);
+        continue;
+      }
+      /* --- the contract clock, which has never ticked — and whose expiries, once it did,
+             stayed on the roster anyway: an expired contract now means what it says. A merc
+             signed for one Divide walks after it; extension is a fresh handshake at the
+             next market, not an assumption. --- */
       if (f.contract && f.contract.seasons_remaining != null) {
         f.contract.seasons_remaining--;
-        if (f.contract.seasons_remaining <= 0) { out.expired.push(f); }
-      }
-      /* --- the freedom clause: served, not merely present --- */
-      if (f.contract && f.contract.divides_required != null) {
-        if ((f.contract.divides_served || 0) >= f.contract.divides_required && f.status === 'prisoner') {
-          f.status = 'freed'; out.freed.push(f);
-        }
+        if (f.contract.seasons_remaining <= 0) { out.expired.push(f); continue; }
       }
       f.seasonsHere = (f.seasonsHere || 0) + 1;
       f._droppedLastSeason = false;
@@ -1473,6 +1512,15 @@
   function ensureLot(state) {
     const kind = (MONTHS[state.month] || {}).signing;
     if (!kind || state.lots[kind]) return;
+    if (kind === 'tryouts') {
+      /* RULED: YOUR OWN SHIP DOES NOT AUCTION ITS CHILDREN. Every corp gets its own lot,
+         drawn from its own ship's people — nobody else is at the table. */
+      const byCorp = {};
+      for (const id of state.ids)
+        byCorp[id] = openLot(P.mulberry32(P.seedFrom('lot' + kind + state.season + id)), kind, id);
+      state.lots[kind] = byCorp;
+      return;
+    }
     state.lots[kind] = openLot(P.mulberry32(P.seedFrom('lot' + kind + state.season)), kind);
   }
 
@@ -1480,13 +1528,21 @@
       corp has already offered. Empty outside a signing window. */
   function lotFor(state, corpId) {
     const kind = (MONTHS[state.month] || {}).signing;
-    const lot = kind && state.lots[kind];
+    let lot = kind && state.lots[kind];
+    if (kind === 'tryouts' && lot) lot = lot[corpId];   /* your own ship's sheet */
     if (!lot) return [];
     const mine = (state.bids[kind] || {})[corpId] || {};
     return lot.map(f => ({
       id: f.id, name: f.name, age: f.age, race: f.race,
       potential: f.potential, stats: f.stats, fame: f.fame || 0,
-      ask: askingPrice(f), yourBid: mine[f.id] || 0, kind: kind
+      ask: askingPrice(f), yourBid: mine[f.id] || 0, kind: kind,
+      /* the paper's terms, so a display never has to guess them */
+      contractKind: (f.contract && f.contract.kind) || kind,
+      seasons: f.contract && f.contract.seasons_remaining,
+      pension: f.contract && f.contract.death_benefit,
+      bonus: f.contract && f.contract.divide_bonus,
+      freedomReq: f.contract && f.contract.divides_required,
+      record: f.experience || null
     }));
   }
 
@@ -1811,11 +1867,23 @@
       const c = corps[id];
       const dropped = c._drop;
       const dead = dropped.filter(f => f.status === 'dead');
+      let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
-        if (f.contract && f.contract.divides_required != null)
+        if (f.contract && f.contract.divides_required != null) {
           f.contract.divides_served = (f.contract.divides_served || 0) + 1;
+          /* RULED: "after playing X Divides OR WINNING A SINGLE ONE, they earn their
+             freedom" — a win satisfies the clause outright, however long the paper said */
+          if (res.winner === c.id)
+            f.contract.divides_served = Math.max(f.contract.divides_served,
+                                                 f.contract.divides_required);
+        }
+        /* a nattie's contract pays a bonus for every Divide actually dropped into — the
+           participation clause a merc's flat price conspicuously lacks */
+        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus)
+          bonuses += f.contract.divide_bonus;
       }
+      if (bonuses) LED.post(c.account, 'expense', 'Divide bonuses', -bonuses);
       /* what the corp actually put into kit this year is an expense like any other */
       /* Charge what was BOUGHT, not what was carried. `plan.total` is the catalog value of
          everything fielded, most of which the corp already owned — billing it every season
@@ -1902,6 +1970,14 @@
         engagements: dc.engagements || 0
       });
       c._close = close;
+      /* THE FAMILIES ARE PAID. Every contract has carried a death benefit since the pools
+         were ratified, and the negotiation layer has been pricing RANSOMS off that number
+         all along — while no family ever saw a credit, because nothing posted it. It posts
+         here, at the one place the dead leave the books. Nattie pensions are the fleet's
+         highest by canon, which is part of what a corp owes its own ship. */
+      const pensions = c.roster.filter(f => f.status === 'dead')
+                        .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
+      if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
