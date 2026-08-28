@@ -1324,9 +1324,9 @@ function monotonic() {
   ok('severity bands ordered', B.graze < B.light && B.light < B.serious && B.serious < B.critical);
 
   /* composure seed responds to resolve and experience */
-  const green = { id:'g', race:'human', stats:{aim:10,grit:10,reflex:10,fieldcraft:10,tactics:10,presence:10,resolve:8},
+  const green = { id:'g', race:'human', stats:{aim:100,grit:100,reflex:100,fieldcraft:100,tactics:100,presence:100,resolve:80},  /* ×10 scale */
                   traits:[], condition:{morale:60}, experience:{divides:0,battles:0,dividends:0} };
-  const vet = JSON.parse(JSON.stringify(green)); vet.stats.resolve = 14; vet.experience = {divides:3,battles:14,dividends:2};
+  const vet = JSON.parse(JSON.stringify(green)); vet.stats.resolve = 140;  /* ×10 scale */ vet.experience = {divides:3,battles:14,dividends:2};
   const gc = C.makeCombatant(green,{traitIndex:gen.traitById}).comp;
   const vc = C.makeCombatant(vet,{traitIndex:gen.traitById}).comp;
   ok('veterans start steadier than rookies', vc > gc, gc + ' → ' + vc);

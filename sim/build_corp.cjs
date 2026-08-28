@@ -59,7 +59,18 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       /* the ground and the firefight, tied: the season closed to the drop,
                          the Divide stepped window to window, encounters handed over with
                          their frames, and the season settling its own contest */
-                      'closeSeasonToDrop(', 'divideCore(', 'onBattle', 'finishSeason('];
+                      'closeSeasonToDrop(', 'divideCore(', 'onBattle', 'finishSeason(',
+                      /* the Table: the window's answer composed and sent, the stance
+                         ladder, and the verdict echo read back with its numbers */
+                      'G.div.answer', 'NOTCHES', 'canJoin', 'techo',
+                      /* the Dividend's lights: the season keeps every match whole and
+                         the firefight replays them all year */
+                      'dividend.watch', 'data-watchl',
+                      /* the manager's hand: named kit drawn from the rack, honored whole */
+                      'per.hand', 'handRefused', 'bySlot(',
+                      /* the shell: menu, founding, the blank-slate house, and saves that
+                         continue identically through the engine's own career serializer */
+                      'saveCareer(', 'loadCareer(', 'blankSlate', 'data-oa', 'opesarx_saves'];
 const missing = MUST_CONTAIN.filter(t => out.indexOf(t) < 0);
 if (missing.length) {
   console.error('the built page is not the page this template describes.\n  missing: ' + missing.join(', '));

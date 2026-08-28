@@ -25,6 +25,11 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
     next.state = function () { return a >>> 0; };
+    /* the stream's position, exposed because `saveCareer` has read `rng.state()` since the
+       day it was written — while nothing here ever provided it, so every loaded career
+       silently reset its stream to zero. A value read by a name nothing writes, living in
+       the save system itself. */
+    next.state = function () { return a >>> 0; };
     return next;
   }
 

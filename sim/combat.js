@@ -325,7 +325,7 @@ function seedComposure(f, hooks, opts) {
   );
   let c = CONST.COMP_BASE
     + CONST.COMP_MORALE * ((f.condition && f.condition.morale) || 50)
-    + CONST.COMP_RESOLVE * f.stats.resolve
+    + CONST.COMP_RESOLVE * (f.stats.resolve / 10)   /* roster-scale caller */
     + experienceBonus;
 
   /* §11.1 composure hooks */
@@ -354,7 +354,15 @@ function makeCombatant(fighter, opts) {
                      : (fighter.loadout && fighter.loadout.weapon) || CONST.DEFAULT_WEAPON;
   const armor = kit ? kit.armor : (fighter.loadout && fighter.loadout.armor) || CONST.DEFAULT_ARMOR;
   return {
-    ref: fighter, id: fighter.id, race: fighter.race, stats: fighter.stats, hooks,
+    ref: fighter, id: fighter.id, race: fighter.race,
+    /* ×10 migration: roster stats live at ten times the founding scale; combat's whole
+       formula body was written for the old one, so the unit takes a DIVIDED COPY at this
+       one boundary — one seam instead of thirty swept constants, and float-exact while
+       births are multiples of ten. The roster object is never touched. */
+    stats: { aim: fighter.stats.aim / 10, grit: fighter.stats.grit / 10,
+             reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
+             tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
+             resolve: fighter.stats.resolve / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
     weapon, armor,
@@ -722,7 +730,10 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
 
 /** How much punishment this body can take before it goes down. */
 function hpFor(fighter) {
-  const grit = (fighter.stats && fighter.stats.grit) || 10;
+  /* ×10 migration: called with the ROSTER fighter, before the unit's divided copy exists,
+     so grit normalizes here. This was the reader the gate's slowness named: tenfold grit
+     made tenfold hit points, and every fight in the world ran to the turn cap. */
+  const grit = ((fighter.stats && fighter.stats.grit) || 100) / 10;
   return Math.round(CONST.HP_BASE + CONST.HP_PER_GRIT * grit);
 }
 
@@ -1013,7 +1024,8 @@ function rollInjury(rng, u, worst) {
 function captainFidelity(fighter, traitIndex) {
   if (!fighter) return 0.8;
   const hooks = hooksOf(fighter, traitIndex);
-  let f = 0.030 * fighter.stats.tactics + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
+  /* ×10 migration: roster-called (the captain is a roster body), so tactics normalizes */
+  let f = 0.030 * (fighter.stats.tactics / 10) + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
   if (hooks.has('captain_fidelity_up')) f += 0.15;
   if (fighter.race === 'human') f += 0.05;
   f -= 0.006 * (fighter._stress || 0);

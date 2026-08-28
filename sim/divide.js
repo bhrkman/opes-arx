@@ -363,18 +363,70 @@
     corp.kitBudget = LED.procurementBudget(acct, corp.allBodies);
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
     corp.kitIntent = intent;
-    let plan = ITEMS.planForce(doc.id, total, {
+    /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the
+       hand OUTRANKS the quartermaster: it draws from the rack first, buys what the rack
+       lacks with the same procurement money, and counts against the same Aleas ceiling —
+       no private channel around either constraint. A plan is honored WHOLE or refused
+       whole per body: one that names no working primary or armor, or that the wallet and
+       ceiling cannot cover, goes back to the quartermaster (no cripples, ruled), and the
+       refusals are counted where a surface can show them. */
+    for (const f of corp.allBodies) f._handKitted = false;   /* bodies persist across locks */
+    const handSrc = (corp.persist && corp.persist.hand) || null;
+    const baseArmoury = (corp.persist && corp.persist.armoury)
+          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock;
+    const handStock = {};
+    for (const k in baseArmoury) handStock[k] = baseArmoury[k];
+    let handSpend = 0, handValue = 0, handed = 0;
+    corp.handRefused = 0;
+    if (handSrc) {
+      const maxTier = (ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5;
+      const slotOk = (id, slot) => {
+        const it = id ? ITEMS.byId(id) : null;
+        return it && it.slot === slot && it.tier <= maxTier ? it : null;
+      };
+      for (const f of corp.allBodies) {
+        const h = handSrc[f.id];
+        if (!h) continue;
+        const prim = slotOk(h.primary, 'primary');
+        const arm = slotOk(h.armor, 'armor');
+        if (!prim || !arm) { corp.handRefused++; continue; }
+        const items = [prim, arm];
+        const side = slotOk(h.sidearm, 'sidearm');
+        if (side) items.push(side);
+        const mods = (h.mods || []).map(m => slotOk(m, 'mod')).filter(Boolean);
+        const cons = (h.consumables || []).map(c => slotOk(c, 'consumable')).filter(Boolean);
+        items.push.apply(items, mods); items.push.apply(items, cons);
+        /* priced against a trial of the rack, the wallet, and the ceiling before a single
+           item moves, so a refusal leaves no half-drawn kit behind */
+        let buy = 0, val = 0;
+        const trial = {};
+        for (const it of items) {
+          val += it.cost;
+          if ((handStock[it.id] || 0) - (trial[it.id] || 0) > 0)
+            trial[it.id] = (trial[it.id] || 0) + 1;
+          else buy += it.cost;
+        }
+        if (buy > (corp.kitBudget || 0) - handSpend ||
+            handValue + val > intent.allowance) { corp.handRefused++; continue; }
+        for (const k in trial) handStock[k] -= trial[k];
+        handSpend += buy; handValue += val; handed++;
+        ITEMS.equip(f, { primary: prim.id, armor: arm.id, sidearm: side ? side.id : null,
+                         mods: mods.map(it => it.id), consumables: cons.map(it => it.id) });
+        f._handKitted = true; f._role = 'line';
+      }
+    }
+    let plan = ITEMS.planForce(doc.id, total - handed, {
       /* SEASONS.md — the locker is OWNED. foundingArmoury is called once at fleet creation
          and never again; only a corp without one falls back to a fresh founding stock. */
-      armoury: (corp.persist && corp.persist.armoury)
-            || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock,
+      armoury: handStock,   /* the hand drew first; the quartermaster plans from what is left */
       /* SEASONS.md S8 — REAL MONEY. This was `budget: 0`, which was right while the locker
          was rebuilt free every Divide: a corp's wealth reached the ground through the DEPTH
          of that founding stock, not through cash. Now the locker persists and
          `foundingArmoury` runs once, so that channel is gone and a rich corp had no way to
          restock at all — every locker could only ever thin. Cash buys kit again, and what it
          buys stays in the rack. */
-      allowance: intent.allowance, budget: corp.kitBudget || 0
+      allowance: Math.max(0, intent.allowance - handValue),
+      budget: Math.max(0, (corp.kitBudget || 0) - handSpend)
     });
     /* SEASONS.md [OPEN-S11] — THE MUSTER IS DECIDED HERE, BECAUSE THIS IS WHERE IT IS KNOWN.
        The season loop used to test the treasury going negative and call that the muster, which
@@ -386,10 +438,10 @@
       const raised = corp.persist.onMuster(plan.shortfall, corp) || 0;
       if (raised > 0) {
         corp.kitBudget = (corp.kitBudget || 0) + raised;
-        plan = ITEMS.planForce(doc.id, total, {
-          armoury: (corp.persist && corp.persist.armoury)
-                || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock,
-          allowance: intent.allowance, budget: corp.kitBudget
+        plan = ITEMS.planForce(doc.id, total - handed, {
+          armoury: handStock,
+          allowance: Math.max(0, intent.allowance - handValue),
+          budget: Math.max(0, corp.kitBudget - handSpend)
         });
       }
     }
@@ -403,8 +455,9 @@
       ITEMS.equipForce(corp.allBodies, ITEMS.DEFAULT_LOADOUT);
       return corp;
     }
-    corp.kitValue = plan.total;          /* catalog value FIELDED — what they carry */
-    corp.kitSpend = plan.spentCash || 0; /* CASH SPENT — what the ledger should be charged */
+    corp.kitValue = plan.total + handValue;              /* catalog value FIELDED */
+    corp.kitSpend = (plan.spentCash || 0) + handSpend;   /* CASH SPENT — the ledger's charge */
+    corp.handKitted = handed;
 
     /* Deal the force plan across the squads role by role, so each squad gets an even share
        of every role and the counts match the plan exactly. Recomputing composition per
@@ -425,7 +478,7 @@
        it measured: the vanished item is re-bought next plan and can vanish again. The
        cursor runs on across roles so every role still spreads evenly; it just skips squads
        that are already full. */
-    const room = corp.squads.map(sq => sq.bodies.length);
+    const room = corp.squads.map(sq => sq.bodies.filter(b => !b._handKitted).length);
     let cursor = 0;
     for (const role of ITEMS.roles) {
       const pool = byRole[role.id] || [];
@@ -443,7 +496,7 @@
 
     for (let si = 0; si < nSq; si++) {
       const sq = corp.squads[si];
-      const left = sq.bodies.slice();
+      const left = sq.bodies.filter(b => !b._handKitted);
       const want = deal[si].slice();
       /* Fill the picky roles first: whoever is left over becomes line, which is what line is. */
       want.sort((x, y) => {
@@ -1049,7 +1102,9 @@
   function squadStat(sq, stat) {
     const a = squadHead(sq);
     if (!a.length) return 8;
-    return a.reduce((s, b) => s + b.stats[stat], 0) / a.length;
+    /* ×10 migration: roster stats are tenfold; every consumer of this mean was written
+       for the founding scale, so the mean is served at it */
+    return a.reduce((s, b) => s + b.stats[stat], 0) / a.length / 10;
   }
 
   /* Build the live combat squad from surviving bodies. */
@@ -1358,9 +1413,9 @@
     if (!caps.length) return 0.1;
     const leader = caps.reduce((a, b) => a.c.stats.tactics > b.c.stats.tactics ? a : b);
     let meanT = 0, meanL = 0, meanS = 0;
-    for (const k of caps) { meanT += k.c.stats.tactics; meanL += k.c.loyalty == null ? 50 : k.c.loyalty; meanS += k.sq.stress; }
+    for (const k of caps) { meanT += k.c.stats.tactics / 10; meanL += k.c.loyalty == null ? 50 : k.c.loyalty; meanS += k.sq.stress; }
     meanT /= caps.length; meanL /= caps.length; meanS /= caps.length;
-    const v = CONST.COORD_LEADER * leader.c.stats.tactics
+    const v = CONST.COORD_LEADER * (leader.c.stats.tactics / 10)
             + CONST.COORD_CAPTAINS * meanT
             + CONST.COORD_LOYALTY * meanL
             - CONST.COORD_STRESS * meanS;
@@ -1988,7 +2043,7 @@
     if (opts.sawFirst) p += 0.15;               /* you watched them walk into it */
     const head = squadHead(sq);
     if (head.length) {
-      const fc = head.reduce((s, b) => s + b.stats.fieldcraft, 0) / head.length;
+      const fc = head.reduce((s, b) => s + b.stats.fieldcraft, 0) / head.length / 10;
       p += (fc - 10) * 0.012;                   /* fieldcraft is the choosing-ground stat */
     }
     if (sq._resting) p += 0.10;
@@ -3261,12 +3316,19 @@
           const since = stats._fights || [];
           stats._fights = [];
 
+          /* THE ANSWER'S VERDICT COMES BACK. evaluateOffer's whole design is a refusal
+             with numbers — which side was short, and by how much — and for the human that
+             verdict was computed and dropped: only an audit counter survived. The echo of
+             the LAST window's answer rides out with this one, so a manager's "no" arrives
+             with its number the same way the engine promised itself it would. */
+          const echo = stats._answerEcho || null;
+          stats._answerEcho = null;
           const answer = yield {
             kind: 'window', day: day, lastDay: MAP.CONST.LAST_GROUND_DAY,
             fights: since,
             cadence: MAP.windowCadence(planet, day),
             odds: board, penned: penned, zone: zNow, table: table,
-            corps: corps, stats: stats, planet: planet, you: you
+            corps: corps, stats: stats, planet: planet, you: you, echo: echo
           };
           /* what came back: a stance, and any deals the manager chose to answer */
           if (answer && answer.stance) {
@@ -3303,6 +3365,11 @@
               const principal = corps.filter(c => c.id === d.principal)[0];
               if (principal && !sealed(principal) && principalOf(principal).id !== principalOf(you2).id) {
                 const verdict = NEG.evaluateOffer(you2, principal, d.terms || {}, nctx2);
+                stats._answerEcho = { kind: 'join', corp: d.principal,
+                                      accepted: !!(verdict && verdict.accepted),
+                                      reason: verdict && verdict.reason, note: verdict && verdict.note,
+                                      value: verdict && verdict.value,
+                                      short: verdict && verdict.short, over: verdict && verdict.over };
                 if (verdict && verdict.accepted) {
                   const deal = verdict.deal;
                   you2.joinedTo = principalOf(principal).id;
@@ -3318,6 +3385,11 @@
               const joiner = corps.filter(c => c.id === d.corp)[0];
               if (joiner && !joiner.joinedTo && !sealed(joiner)) {
                 const verdict = NEG.evaluateOffer(joiner, you2, d.terms || {}, nctx2);
+                stats._answerEcho = { kind: 'take', corp: d.corp,
+                                      accepted: !!(verdict && verdict.accepted),
+                                      reason: verdict && verdict.reason, note: verdict && verdict.note,
+                                      value: verdict && verdict.value,
+                                      short: verdict && verdict.short, over: verdict && verdict.over };
                 if (verdict && verdict.accepted) {
                   const deal = verdict.deal;
                   joiner.joinedTo = principalOf(you2).id;
@@ -3332,6 +3404,7 @@
               const other = corps.filter(c => c.id === d.corp)[0];
               if (other && !sealed(other)) {
                 const pact = NEG.considerPact(rng, you2, other, nctx2);
+                stats._answerEcho = { kind: 'pact', corp: d.corp, accepted: !!pact };
                 if (pact) {
                   you2._pacts = you2._pacts || {}; other._pacts = other._pacts || {};
                   const until = day + NEG.CONST.PACT_DAYS[1];

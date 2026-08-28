@@ -35,6 +35,19 @@
   nav .tab.live{color:var(--dim);cursor:pointer}
   nav .tab.live:hover{color:var(--ink)}
   nav .tab.on{color:var(--a);background:var(--panel);border-bottom:2px solid var(--a)}
+  .overlay{position:fixed;inset:0;background:rgba(12,11,9,.97);z-index:40;display:flex;
+    gap:40px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .menucol{display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:420px}
+  .menutitle{font-size:34px;letter-spacing:.35em;color:var(--a);text-align:center}
+  .menusub{color:#8a8577;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
+  .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
+  .menubtn:disabled{opacity:.35}
+  .oacard{border:1px solid var(--line);border-radius:3px;padding:8px 10px;margin:4px 0;
+    cursor:pointer;background:var(--panel)}
+  .oacard:hover{border-color:var(--a)}
+  .oacard .m{display:block}
+  #saveio{width:100%;background:#171511;color:var(--fg);border:1px solid var(--line);font-size:10px}
+  #savelist .poolrow{margin:3px 0}
   .verbrow{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid #1f1e1b;font-size:11.5px}
   .verbrow.na{opacity:.45}
   .page{display:none;padding:14px 20px}
@@ -82,11 +95,53 @@
   <div class="bar">
     <span class="gold" id="clock" style="letter-spacing:.08em"></span>
     <button id="nextyear" style="display:none">Begin the next year</button>
-    <input id="seed" value="corp-1" style="width:110px" title="seed">
-    <select id="corp" style="width:auto" title="your corporation"></select>
-    <button id="found">Found</button>
+    <button id="savebtn" class="tiny">Save</button>
+    <button id="menubtn" class="tiny">Menu</button>
   </div>
 </header>
+
+<!-- ================================ THE MENU ================================ -->
+<div id="menu" class="overlay">
+  <div class="menucol">
+    <div class="menutitle">OPES ARX</div>
+    <div class="menusub">eight houses &middot; eleven months &middot; one Divide</div>
+    <button class="menubtn" id="mNew">New Game</button>
+    <button class="menubtn" id="mLoad">Load Game</button>
+    <button class="menubtn" id="mResume" style="display:none">Resume</button>
+    <button class="menubtn" disabled title="not yet">Multiplayer</button>
+    <button class="menubtn" disabled title="not yet">Options</button>
+    <button class="menubtn" id="mExit">Exit Game</button>
+    <div class="m" id="mNote"></div>
+  </div>
+  <div class="menucol" id="loadpanel" style="display:none">
+    <div class="menusub">saved games</div>
+    <div id="savelist"></div>
+    <textarea id="saveio" rows="4" placeholder="a save's code can be pasted here"></textarea>
+    <div class="bar"><button class="tiny" id="importbtn">Import the pasted save</button></div>
+  </div>
+</div>
+
+<!-- ================================ THE SETUP ================================ -->
+<div id="setup" class="overlay" style="display:none">
+  <div class="menucol" style="max-width:760px">
+    <div class="menusub">the seed names the world &middot; the house is yours to choose</div>
+    <div class="bar" style="justify-content:center"><input id="seed" value="corp-1" style="width:150px" title="seed"></div>
+    <div id="oacards"></div>
+    <div id="customform" style="display:none">
+      <div class="bar" style="justify-content:center;margin-top:10px">
+        <input id="cname" value="" placeholder="your house's name" style="width:220px">
+        <select id="creplace" class="tiny" title="whose berth your house takes"></select>
+        <button id="cfound">Found the house</button>
+      </div>
+      <div class="m" style="margin-top:6px">a blank slate: the numeric average of the fleet,
+        no cultural quirks, no seal on the table &mdash; the balance baseline, and one day
+        the multiplayer face</div>
+    </div>
+    <div class="bar" style="justify-content:center;margin-top:10px">
+      <button class="tiny" id="setupback">back</button>
+    </div>
+  </div>
+</div>
 
 <nav id="rail"></nav>
 
@@ -145,6 +200,27 @@
     <div>
       <h2>The squads</h2>
       <div id="sqboxes"></div>
+      <h2 style="margin-top:14px">The manager's hand</h2>
+      <div class="box">
+        <div class="bar">
+          <select id="hbody" class="tiny"></select>
+          <button class="tiny" id="hset">Set the hand</button>
+          <button class="tiny" id="hclear">Release</button>
+        </div>
+        <div class="bar" style="margin-top:6px">
+          <select id="hprim" class="tiny"></select>
+          <select id="harm" class="tiny"></select>
+          <select id="hside" class="tiny"></select>
+        </div>
+        <div class="bar" style="margin-top:6px">
+          <select id="hcon1" class="tiny"></select>
+          <select id="hcon2" class="tiny"></select>
+          <select id="hcon3" class="tiny"></select>
+        </div>
+        <div class="m" id="hstate" style="margin-top:6px">the quartermaster kits everyone you
+          do not name. A hand draws from the rack first, buys what the rack lacks with the
+          same money, and is honored whole or refused whole &mdash; never a half-kit.</div>
+      </div>
     </div>
   </div>
   <h2 style="margin-top:14px">As locked</h2>
@@ -232,6 +308,29 @@
   </div>
 </div>
 
+<!-- ================================ THE TABLE ================================ -->
+<div class="page" data-tab="table">
+  <div class="bar" style="margin-bottom:10px"><span class="m" id="tstate"></span></div>
+  <div class="grid2">
+    <div>
+      <h2>Your stance</h2>
+      <div class="box" id="tstance"><span class="m">&mdash;</span></div>
+      <h2>Your word this window</h2>
+      <div class="box" id="tword"><span class="m">nothing composed</span></div>
+      <h2>The last word's answer</h2>
+      <div class="box" id="techo"><span class="m">&mdash;</span></div>
+    </div>
+    <div>
+      <h2>Joining a banner</h2>
+      <div class="box" id="tjoin"><span class="m">&mdash;</span></div>
+      <h2>Taking a joiner</h2>
+      <div class="box" id="ttake"><span class="m">&mdash;</span></div>
+      <h2>Pacts</h2>
+      <div class="box" id="tpact"><span class="m">&mdash;</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- a surface not yet joined says what it is and does not pretend -->
 <div class="page" data-tab="stub">
   <div class="box"><b id="stubname"></b><div class="sub" id="stubwhat" style="margin-top:6px"></div>
@@ -279,8 +378,7 @@
       what: 'Dealing between corporations across the year: player trades, and the plain-sense swaps that happen outside a Divide \u2014 people or gear for what a corp runs short of. A new system, still to come.' },
     board:  { name: 'The Board',
       what: 'Report: four audiences and the standing they hold you in.' },
-    table:  { name: 'The Table',
-      what: 'The parley: a live Divide halted at a comms window, argued in person. Its seam is open \u2014 the ground already pauses and offers the table; this tab answers it next.' },
+    table:  { name: 'The Table',  live: true },
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true }
   };
@@ -297,10 +395,16 @@
     rail.innerHTML = '';
     TAB = {};
     var lay = RAILS[phase];
+    var tabs = lay.tabs.slice();
+    /* once the Dividend has been fought, its footage is watchable all year: the firefight
+       joins the preparation's rail as the room where the lights replay */
+    if (phase === 'prep' && G && G.state && G.state.dividend &&
+        (G.state.dividend.watch || []).length && tabs.indexOf('fight') < 0)
+      tabs.push('fight');
     var hd = document.createElement('div');
     hd.className = 'railhead'; hd.textContent = lay.head;
     rail.appendChild(hd);
-    lay.tabs.forEach(function (id) {
+    tabs.forEach(function (id) {
       var sdef = SURFACES[id];
       var t = document.createElement('div');
       t.className = 'tab' + (sdef.live ? ' live' : '');
@@ -337,30 +441,28 @@
     });
   }
 
-  OA.forEach(function (p) {
-    var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
-    $('corp').appendChild(o);
-  });
-  $('corp').value = OA[0].id;
-
-  /* ---- ONE corporation in memory (one fleet around it, so the market is contested) ---- */
+  /* ---- ONE corporation in memory (one fleet around it, so the market is contested).
+     G.oa is THIS GAME'S profile list — the stock eight, or seven of them plus the
+     player's own blank-slate house standing in a chosen berth. ---- */
   var G = null;
 
-  function found() {
+  function startGame(seedStr, meId, oaList, customDef) {
     if (G) { stop(); clearTween(); }   /* an orphaned timer would keep drawing a dead world */
-    var rng = P.mulberry32(P.seedFrom($('seed').value || 'corp-1'));
-    G = { rng: rng, corps: SEASON.openFleet(rng, OA, {}), me: $('corp').value,
+    var rng = P.mulberry32(P.seedFrom(seedStr || 'corp-1'));
+    G = { rng: rng, oa: oaList, corps: SEASON.openFleet(rng, oaList, {}), me: meId,
+          seedStr: seedStr || 'corp-1', custom: customDef || null,
           lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
-          plan: { at: {}, leaders: [null, null, null, null, null, null] },
+          plan: { at: {}, leaders: [null, null, null, null, null, null], hand: {} },
           div: null, gcache: null, gday: 1 };
     /* THE YEAR OPENS. The engine's own seam: the planet is announced, the board sets its
        card, sponsors put offers on the table, and every house in the fleet — this one
        included — takes the same twelve months through the same verbs. */
-    G.state = SEASON.beginSeason(G.rng, G.corps, OA, { human: G.me });
+    G.state = SEASON.beginSeason(G.rng, G.corps, oaList, { human: G.me });
+    G.rng = G.state.rng;               /* one stream: the page and the season share it */
     var rv = $('rival'); rv.innerHTML = '';
-    OA.forEach(function (p) {
+    oaList.forEach(function (p) {
       if (p.id === G.me) return;
       var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
       rv.appendChild(o);
@@ -369,6 +471,7 @@
     $('desklog').innerHTML = '<div class="m">the year is young</div>';
     G._railPhase = null;
     renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderEncounters();
     applyPhase();
   }
 
@@ -629,8 +732,9 @@
     }
     dlog('<b>month ' + res.month + ' \u2014 ' + esc(res.name) + '</b><br>' +
          (lines.length ? lines.join('<br>') : '<span class="m">a quiet month</span>'));
+    if (res.event === 'dividend') G._railPhase = null;   /* the lights add a room */
     if (G.locked) G.stale = true;              /* a month of healing changes who is fit */
-    renderBench(); renderSquads(); renderLock(); renderDesk();
+    renderBench(); renderSquads(); renderLock(); renderDesk(); renderEncounters();
     applyPhase();
     if (G.state.month >= 12)
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
@@ -641,14 +745,16 @@
     stop(); clearTween();
     /* the year turns: the engine's own offseason ages, heals, expires and retires; then a
        new season opens with a new planet, a new card, and new offers on the table */
-    G.state = SEASON.beginSeason(G.rng, G.corps, OA, { human: G.me });
+    G.state = SEASON.beginSeason(G.rng, G.corps, G.oa, { human: G.me });
+    G.rng = G.state.rng;
     G.locked = null; G.stale = false; G.fought = {};
     G.div = null; G.gcache = null;
     $('begindiv').style.display = ''; $('advwin').style.display = 'none';
     $('gscrub').style.display = 'none'; $('divstate').textContent = '';
     $('gplanet').innerHTML = '<span class="m">no contest on the ground</span>';
     $('gboard').innerHTML = ''; $('gevents').innerHTML = '<div class="m">\u2014</div>';
-    $('encounters').innerHTML = '<span class="m">no Divide on the ground \u2014 the scrim below stands in until one begins</span>';
+    renderEncounters();
+    renderTable();
     var off = G.corps[G.me]._off || {};
     dlog('<b>Year ' + G.state.season + ' opens</b> \u2014 ' +
          ((off.retired || []).length ? (off.retired.length + ' retired \u00b7 ') : '') +
@@ -656,6 +762,7 @@
          'the planet is announced and the board has set its card');
     G._railPhase = null;
     renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderEncounters();
     applyPhase();
   };
 
@@ -718,6 +825,8 @@
     if (!drop || !drop.length) return null;
     var per = { drop: drop, account: fleetCorp.account, armoury: fleetCorp.armoury, intel: 0 };
     if (groups && groups.length) { per.groups = groups; per.leaders = leaders; }
+    if (fleetCorp.id === G.me && G.plan.hand && Object.keys(G.plan.hand).length)
+      per.hand = G.plan.hand;
     var c = DIVIDE.buildCorp(G.rng, fleetCorp.profile, 'standard', undefined, null, null, null, per, 1);
     c.rep = fleetCorp.rep;
     if (c.kitSpend) LED.post(fleetCorp.account, 'expense', 'procurement', -c.kitSpend);
@@ -739,6 +848,11 @@
     if (G.div) {
       $('lockinfo').innerHTML = '<span class="warn">the Divide has the floor</span> ' +
         '<span class="m">\u2014 encounters arrive from the ground; the scrim returns next year</span>';
+      return;
+    }
+    if (G.state && G.state.month < 12) {
+      $('lockinfo').innerHTML = '<span class="warn">the lock is month twelve\u2019s business</span> ' +
+        '<span class="m">\u2014 the lights above are what this room shows during the year</span>';
       return;
     }
     returnKit(G.locked && G.locked.mine);
@@ -817,6 +931,7 @@
         mem.forEach(function (b) {
           sh += '<div class="poolrow"><span>' +
                 (G.plan.leaders[si] === b.id ? '<span class="gold">\u2605</span> ' : '') +
+                (G.plan.hand[b.id] ? '<span class="gold" title="hand-kitted">\u2726</span> ' : '') +
                 esc(b.name) + ' <span class="m">' + statLine(b) + '</span></span>' +
                 '<button class="tiny" data-un="' + b.id + '">\u2715</button></div>';
         });
@@ -850,11 +965,74 @@
       };
     });
     renderSqLocked();
+    renderHand();
   }
+
+  /* ---- THE MANAGER'S HAND: name a body's kit; the engine honors it whole or not at all.
+     The selects read the RACK live — an item shows its shelf count or its catalog price,
+     which is exactly the draw-first-buy-second arithmetic the engine applies. ---- */
+  function itemOpts(slot, chosen, blank) {
+    var rack = G.corps[G.me].armoury;
+    var h = '<option value="">' + blank + '</option>';
+    ITEMS.bySlot(slot).forEach(function (it) {
+      var n = rack[it.id] || 0;
+      h += '<option value="' + it.id + '"' + (chosen === it.id ? ' selected' : '') + '>' +
+           esc(it.name) + ' \u2014 ' + (n > 0 ? 'rack ' + n : 'buy ' + n0(it.cost)) + '</option>';
+    });
+    return h;
+  }
+  function renderHand() {
+    if (!G) return;
+    var fit = G.corps[G.me].roster.filter(function (f) { return f.status === 'active'; });
+    var cur = $('hbody').value;
+    var hb = '';
+    fit.forEach(function (f) {
+      hb += '<option value="' + f.id + '"' + (cur === f.id ? ' selected' : '') + '>' +
+            (G.plan.hand[f.id] ? '\u2726 ' : '') + esc(f.name) + '</option>';
+    });
+    $('hbody').innerHTML = hb;
+    loadHandSel();
+  }
+  function loadHandSel() {
+    if (!G) return;
+    var h = G.plan.hand[$('hbody').value] || {};
+    $('hprim').innerHTML = itemOpts('primary', h.primary, '(primary \u2014 a hand must name one)');
+    $('harm').innerHTML = itemOpts('armor', h.armor, '(armor \u2014 a hand must name one)');
+    $('hside').innerHTML = itemOpts('sidearm', h.sidearm, '(no sidearm)');
+    ['hcon1', 'hcon2', 'hcon3'].forEach(function (id, i) {
+      $(id).innerHTML = itemOpts('consumable', (h.consumables || [])[i], '(no store)');
+    });
+  }
+  $('hbody').onchange = loadHandSel;
+  $('hset').onclick = function () {
+    if (!G) return;
+    var id = $('hbody').value;
+    if (!id) return;
+    var f = G.corps[G.me].roster.filter(function (x) { return x.id === id; })[0];
+    G.plan.hand[id] = {
+      primary: $('hprim').value || null, armor: $('harm').value || null,
+      sidearm: $('hside').value || null,
+      consumables: ['hcon1', 'hcon2', 'hcon3'].map(function (x) { return $(x).value; })
+        .filter(function (v) { return v; })
+    };
+    $('hstate').innerHTML = '<span class="gold">\u2726 ' + esc(f ? f.name : id) +
+      '</span> will carry the named kit \u2014 honored at the lock, whole or not at all';
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderSquads();
+  };
+  $('hclear').onclick = function () {
+    if (!G) return;
+    delete G.plan.hand[$('hbody').value];
+    $('hstate').textContent = 'released to the quartermaster';
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderSquads();
+  };
 
   $('autodeal').onclick = function () {
     if (!G) return;
-    G.plan = { at: {}, leaders: [null, null, null, null, null, null] };
+    /* the deal goes back to the engine; the HAND stands — it names bodies, not squads */
+    G.plan = { at: {}, leaders: [null, null, null, null, null, null],
+               hand: (G.plan && G.plan.hand) || {} };
     if (G.locked) { G.stale = true; renderLock(); }
     renderSquads();
   };
@@ -892,7 +1070,10 @@
             m.allBodies.length + ' in ' + m.squads.length + ' squads' +
             (m.muster != null ? ' <span class="warn">— could not arm the drop, short ' +
               n0(m.muster) + '; they carry the fallback stores</span>'
-             : ' <span class="m">— kit spend ' + n0(m.kitSpend || 0) + '</span>') +
+             : ' <span class="m">— kit spend ' + n0(m.kitSpend || 0) +
+               (m.handKitted ? ' \u00b7 hand-kitted ' + m.handKitted : '') + '</span>' +
+               (m.handRefused ? ' <span class="warn">\u00b7 ' + m.handRefused +
+                 ' hand plan(s) refused back to the quartermaster</span>' : '')) +
             '<div class="m">' + kitMix(m) + '</div>' +
             '<div style="margin-top:6px"><b class="blue">' + esc(G.corps[G.locked.rival.fleetId].profile.name) +
             '</b> drop ' + r.allBodies.length + ' in ' + r.squads.length + ' squads' +
@@ -927,6 +1108,10 @@
     if (G.div) {
       $('settle').innerHTML = '<span class="warn">the Divide has the floor</span> ' +
         '<span class="m">\u2014 watch its encounters from the list above</span>';
+      return;
+    }
+    if (G.state && G.state.month < 12) {
+      $('settle').innerHTML = '<span class="warn">the lock is month twelve\u2019s business</span>';
       return;
     }
     if (!G.locked) { $('settle').innerHTML = '<span class="warn">lock the drop first</span>'; return; }
@@ -1290,7 +1475,10 @@
                 '#7fb0c8', '#c9a3c4', '#b8b06a', '#c98a5e'];
   var TERRAIN = { open_basin: '#241f19', broken_ground: '#1f1b16', ruins: '#1b1815',
                   entrenched: '#191713', forest: '#151a14' };
-  var bannerName = function (ci) { return (OA[ci % OA.length] || {}).name || ('corp ' + ci); };
+  var bannerName = function (ci) {
+    var L = (G && G.oa) || OA;
+    return (L[ci % L.length] || {}).name || ('corp ' + ci);
+  };
 
   function onBattle(b) {
     G.div.battles.unshift(b);
@@ -1305,8 +1493,10 @@
     SEASON.closeSeasonToDrop(G.state);
     /* the manager's squads ride into the real Divide exactly as they ride into a scrim */
     var planned = plannedGroups();
+    var perMe = G.state._divideOpts.corps[G.me];
+    if (perMe && G.plan.hand && Object.keys(G.plan.hand).length) perMe.hand = G.plan.hand;
     if (planned) {
-      var per = G.state._divideOpts.corps[G.me];
+      var per = perMe;
       if (per) {
         var ids = [];
         planned.groups.forEach(function (g) { ids.push.apply(ids, g); });
@@ -1325,7 +1515,7 @@
     G.div = { gen: DIVIDE.divideCore(pd.rng,
                 Object.assign({}, pd.opts, { replay: true, onBattle: onBattle })),
               planet: pd.opts.groundTruth, win: null, windows: 0,
-              battles: [], done: false, final: null };
+              battles: [], done: false, final: null, answer: null };
     G.gcache = null;
     $('begindiv').style.display = 'none';
     advanceDivide();
@@ -1335,7 +1525,9 @@
 
   function advanceDivide() {
     if (!G.div || G.div.done) return;
-    var step = G.div.gen.next();       /* no answer yet: the stance stands — the Table's turn is next */
+    var word = G.div.answer || undefined;   /* the Table's composed word rides the advance */
+    G.div.answer = null;
+    var step = G.div.gen.next(word);
     if (step.done) {
       G.div.done = true;
       G.div.final = step.value;
@@ -1361,7 +1553,7 @@
       $('divstate').textContent = 'day ' + step.value.day + ' of ' + step.value.lastDay +
         ' \u00b7 comms window ' + G.div.windows + ' \u2014 the ground waits on you';
     }
-    renderGround(); renderEncounters();
+    renderGround(); renderEncounters(); renderTable();
     renderBench(); renderSquads(); renderLock();
   }
 
@@ -1542,27 +1734,44 @@
     else $('gdayLbl').textContent = 'day ' + D.d;
   }
 
-  /* ---- the encounters, handed over by the ground, replayed by the firefight ---- */
+  /* ---- one list, two sources: the Dividend's lights and the Divide's ground ---- */
   function renderEncounters() {
-    if (!G.div || !G.div.battles.length) return;
+    if (!G) return;
     var h = '';
-    G.div.battles.forEach(function (b, i) {
-      var nm = b.corps.map(function (id) {
-        return esc((G.corps[id] && G.corps[id].profile.name) || id); }).join(' met ');
+    var lights = (G.state && G.state.dividend && G.state.dividend.watch) || [];
+    lights.forEach(function (m, i) {
+      var nm = m.corps.map(function (id) { return esc(tName(id)); }).join(' vs ');
+      h += '<div class="poolrow"><span><span class="gold">the Dividend</span> \u00b7 ' + nm +
+           ' <span class="m">\u2014 ' + m.score.join('\u2013') +
+           (m.winnerId ? ', ' + esc(tName(m.winnerId)) + ' took the purse' : ', drawn') +
+           '</span></span><button class="tiny" data-watchl="' + i + '">Watch</button></div>';
+    });
+    var battles = (G.div && G.div.battles) || [];
+    battles.forEach(function (b, i) {
+      var nm = b.corps.map(function (id) { return esc(tName(id)); }).join(' met ');
       h += '<div class="poolrow"><span>day ' + b.day + (b.night ? ' (night)' : '') +
            ' \u00b7 ' + esc(b.terrain.replace('_', ' ')) + ' \u00b7 ' + nm +
            ' <span class="m">\u2014 ' + esc(b.res.result) + '</span></span>' +
            '<button class="tiny" data-watch="' + i + '">Watch</button></div>';
     });
-    $('encounters').innerHTML = h;
+    $('encounters').innerHTML = h ||
+      '<span class="m">nothing to watch yet \u2014 the Dividend lights up at month six</span>';
     Array.prototype.forEach.call(document.querySelectorAll('[data-watch]'), function (btn) {
       btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); };
     });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-watchl]'), function (btn) {
+      btn.onclick = function () {
+        var m = lights[+btn.getAttribute('data-watchl')];
+        loadRec({ res: m.res, sides: m.sides, corps: m.corps },
+          '<b>the Dividend</b><div class="m">' + esc(tName(m.corps[0])) + ' ' + m.score[0] +
+          ' \u2013 ' + m.score[1] + ' ' + esc(tName(m.corps[1])) +
+          (m.winnerId ? '<br>' + esc(tName(m.winnerId)) + ' took the purse' : '<br>drawn') +
+          '<br>stun-grade kit \u00b7 every blow the medics can catch, they catch</div>');
+      };
+    });
   }
 
-  function loadBattle(i) {
-    var b = G.div && G.div.battles[i];
-    if (!b) return;
+  function loadRec(b, resultHtml) {
     stop(); clearTween();
     var weap = {};
     b.sides.forEach(function (S) { S.units.forEach(function (u) {
@@ -1573,6 +1782,20 @@
                   return (G.corps[id] && G.corps[id].profile.name) || id || ('side ' + (si + 1)); }) };
     $('fr').max = String(Math.max(0, b.res.frames.length - 1));
     $('fr').value = '0';
+    if (resultHtml) {
+      $('result').innerHTML = resultHtml;
+      $('settle').innerHTML = '<span class="m">an exhibition settles nothing \u2014 fame and the purse were paid at the whistle</span>';
+      goto(0, false);
+      TAB.fight.click();
+      return;
+    }
+    /* no resultHtml: the caller writes its own result and settle after this returns */
+  }
+
+  function loadBattle(i) {
+    var b = G.div && G.div.battles[i];
+    if (!b) return;
+    loadRec(b, null);
     var t = b.res.telemetry || {};
     var cas = function (tag) {
       var x = (b.res.casualties || {})[tag] || {};
@@ -1589,8 +1812,365 @@
     TAB.fight.click();
   }
 
-  $('found').onclick = found;
-  found();
+  /* ================================ THE TABLE ================================
+     The comms window IS the seam: the ground pauses, hands over the table, and the answer
+     goes back with the advance. One stance and at most ONE deal per window — that is the
+     engine's vocabulary, and the page speaks exactly it. Every offer is scored by the
+     negotiation layer's own judgment: the other side can refuse, and the refusal comes
+     back on the next window with its numbers. A sealed house does not negotiate — a
+     cultural fact, not a stance — so its deal sections say so and its ladder stays. */
+  function tName(id) { return (G.corps[id] && G.corps[id].profile.name) || id; }
+
+  function renderTable() {
+    if (!G) return;
+    if (!G.div || !G.div.win || G.div.done) {
+      $('tstate').textContent = !G.div
+        ? 'no Divide on the ground \u2014 the table waits on the contest'
+        : G.div.done ? 'the contest is over \u2014 the table is cleared' : '';
+      ['tstance', 'tword', 'techo', 'tjoin', 'ttake', 'tpact'].forEach(function (id) {
+        $(id).innerHTML = '<span class="m">&mdash;</span>';
+      });
+      return;
+    }
+    var w = G.div.win, you = w.you, ans = G.div.answer || {};
+    $('tstate').textContent = 'day ' + w.day +
+      ' \u2014 the ground is paused at the window; your word goes with the advance';
+
+    /* the stance ladder — always yours, sealed or not (culture is not a stance) */
+    var sh = '';
+    DIVIDE.NOTCHES.forEach(function (n) {
+      sh += '<button class="tiny" data-notch="' + n + '">' +
+            (you.policy === n ? '\u25cf ' : ans.stance === n ? '\u25cb ' : '') +
+            esc(n.replace(/_/g, ' ')) + '</button> ';
+    });
+    sh += '<div class="m" style="margin-top:6px">worn now: ' + esc(you.policy.replace(/_/g, ' ')) +
+          (ans.stance && ans.stance !== you.policy
+            ? ' \u00b7 <span class="gold">declaring: ' + esc(ans.stance.replace(/_/g, ' ')) + '</span>' : '') +
+          '</div>';
+    $('tstance').innerHTML = sh;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-notch]'), function (b) {
+      b.onclick = function () {
+        G.div.answer = G.div.answer || {};
+        G.div.answer.stance = b.getAttribute('data-notch');
+        renderTable();
+      };
+    });
+
+    /* the composed word */
+    var d = ans.deal;
+    $('tword').innerHTML = !d
+      ? '<span class="m">nothing composed \u2014 one word per window; composing replaces it</span>'
+      : ('<b>' + (d.kind === 'join' ? 'join ' + esc(tName(d.principal)) + '\u2019s banner'
+                : d.kind === 'take' ? 'take ' + esc(tName(d.corp)) + ' under yours'
+                : 'seek a pact with ' + esc(tName(d.corp))) + '</b>' +
+         (d.terms ? '<div class="m">' + Math.round((d.terms.share || 0) * 100) + '% of the take' +
+           (d.terms.credits ? ' + ' + n0(d.terms.credits) : '') +
+           (d.terms.standDown ? ' \u00b7 standing down' : '') + '</div>' : '') +
+         ' <button class="tiny" id="twithdraw">withdraw</button>');
+    if ($('twithdraw')) $('twithdraw').onclick = function () {
+      if (G.div.answer) delete G.div.answer.deal;
+      renderTable();
+    };
+
+    /* the echo of the last word */
+    var e = w.echo;
+    $('techo').innerHTML = !e ? '<span class="m">&mdash;</span>'
+      : e.accepted
+      ? '<span class="good">' + (e.kind === 'pact' ? 'the pact formed' : 'the deal was struck') +
+        '</span> <span class="m">with ' + esc(tName(e.corp)) + '</span>'
+      : '<span class="warn">refused</span> <span class="m">by ' + esc(tName(e.corp)) +
+        (e.note ? ' \u2014 ' + esc(e.note) : '') +
+        (e.short ? ' \u00b7 short by ' + n0(e.short) : '') +
+        (e.over ? ' \u00b7 over by ' + n0(e.over) : '') +
+        (e.kind === 'pact' ? ' \u2014 they said no' : '') + '</span>';
+
+    /* the deal sections */
+    var sealedMe = DIVIDE.sealedCorp(G.corps[G.me]);
+    var sealNote = '<span class="m">your house does not negotiate \u2014 a cultural fact, not a stance</span>';
+    if (sealedMe) {
+      $('tjoin').innerHTML = sealNote; $('ttake').innerHTML = sealNote; $('tpact').innerHTML = sealNote;
+      return;
+    }
+    if (you.joinedTo) {
+      var under = '<span class="m">you fight under ' + esc(tName(you.joinedTo)) +
+                  ' \u2014 the banner question is settled</span>';
+      $('tjoin').innerHTML = under; $('ttake').innerHTML = under;
+    } else {
+      var jh = '';
+      (w.table.canJoin || []).forEach(function (r, i) {
+        jh += '<div class="poolrow"><span>' + esc(tName(r.principal)) +
+              ' <span class="m">' + Math.round((r.odds || 0) * 100) + '% on the board</span></span>';
+        if (r.viable && r.band) {
+          var mid = Math.round((r.band.minShare + r.band.maxShare) / 2 * 100);
+          jh += '<span><input class="bid" style="width:52px" data-jshare="' + i + '" value="' + mid +
+                '">% <button class="tiny" data-join="' + i + '">Offer to join</button></span>';
+        } else {
+          jh += '<span class="m">no number both sides would sign</span>';
+        }
+        jh += '</div>';
+      });
+      $('tjoin').innerHTML = jh || '<span class="m">no banner is worth joining today</span>';
+      var th = '';
+      (w.table.wouldTake || []).forEach(function (r, i) {
+        th += '<div class="poolrow"><span>' + esc(tName(r.corp)) +
+              ' <span class="m">' + Math.round((r.odds || 0) * 100) + '% on the board</span></span>';
+        if (r.viable && r.band) {
+          var mid2 = Math.round((r.band.minShare + r.band.maxShare) / 2 * 100);
+          th += '<span><input class="bid" style="width:52px" data-tshare="' + i + '" value="' + mid2 +
+                '">% <button class="tiny" data-take="' + i + '">Offer terms</button></span>';
+        } else {
+          th += '<span class="m">no number both sides would sign</span>';
+        }
+        th += '</div>';
+      });
+      $('ttake').innerHTML = th || '<span class="m">nobody would come under your banner today</span>';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-join]'), function (b) {
+        b.onclick = function () {
+          var i = +b.getAttribute('data-join'), r = w.table.canJoin[i];
+          var pct = Math.max(0, +document.querySelector('[data-jshare="' + i + '"]').value || 0);
+          G.div.answer = G.div.answer || {};
+          G.div.answer.deal = { kind: 'join', principal: r.principal, terms: { share: pct / 100 } };
+          renderTable();
+        };
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-take]'), function (b) {
+        b.onclick = function () {
+          var i = +b.getAttribute('data-take'), r = w.table.wouldTake[i];
+          var pct = Math.max(0, +document.querySelector('[data-tshare="' + i + '"]').value || 0);
+          G.div.answer = G.div.answer || {};
+          G.div.answer.deal = { kind: 'take', corp: r.corp, terms: { share: pct / 100 } };
+          renderTable();
+        };
+      });
+    }
+    var ph = '';
+    (w.table.pacts || []).forEach(function (r, i) {
+      ph += '<div class="poolrow"><span>' + esc(tName(r.corp)) + '</span>';
+      if (r.viable) ph += '<span><span class="m">' + Math.round((r.chance || 0) * 100) +
+                          '% they say yes</span> <button class="tiny" data-pact="' + i +
+                          '">Seek a pact</button></span>';
+      else ph += '<span class="m">' + esc(r.why || 'no ground for one') + '</span>';
+      ph += '</div>';
+    });
+    $('tpact').innerHTML = ph || '<span class="m">&mdash;</span>';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pact]'), function (b) {
+      b.onclick = function () {
+        var r = w.table.pacts[+b.getAttribute('data-pact')];
+        G.div.answer = G.div.answer || {};
+        G.div.answer.deal = { kind: 'pact', corp: r.corp };
+        renderTable();
+      };
+    });
+  }
+
+  /* ============================== THE MENU & SAVES ==============================
+     The engine owns the serialization (`saveCareer`/`loadCareer`, proven to continue a
+     game IDENTICALLY to one that never stopped). The page wraps it with what the engine
+     cannot know: the seed's name, whose house you are, the manager's plan, and the
+     blank-slate custom profile. Storage is localStorage when the browser allows it and a
+     session shelf when it does not; either way a save exports as pasteable code. */
+  var STORE = (function () {
+    var mem = {}, live = false;
+    try { localStorage.setItem('_t', '1'); localStorage.removeItem('_t'); live = true; } catch (e) {}
+    var all = function () {
+      if (!live) return mem;
+      try { return JSON.parse(localStorage.getItem('opesarx_saves') || '{}'); } catch (e) { return {}; }
+    };
+    return {
+      all: all,
+      put: function (name, data) {
+        if (!live) { mem[name] = data; return; }
+        var a = all(); a[name] = data;
+        localStorage.setItem('opesarx_saves', JSON.stringify(a));
+      },
+      del: function (name) {
+        if (!live) { delete mem[name]; return; }
+        var a = all(); delete a[name];
+        localStorage.setItem('opesarx_saves', JSON.stringify(a));
+      }
+    };
+  })();
+
+  /* THE BLANK SLATE: the numeric average of the fleet, leaf by leaf — numbers averaged,
+     strings by majority, race weights uniform, no seal on the table, no relationships
+     carried in. The balance baseline, and one day the multiplayer face. */
+  function blankSlate(name) {
+    var avg = function (vals) {
+      var nums = vals.filter(function (v) { return typeof v === 'number' && isFinite(v); });
+      if (nums.length === vals.length && nums.length)
+        return Math.round(nums.reduce(function (a, b) { return a + b; }, 0) / nums.length * 1000) / 1000;
+      if (vals.every(function (v) { return typeof v === 'object' && v && !Array.isArray(v); })) {
+        var keys = {}, out = {};
+        vals.forEach(function (v) { Object.keys(v).forEach(function (k) { keys[k] = 1; }); });
+        Object.keys(keys).forEach(function (k) {
+          out[k] = avg(vals.filter(function (v) { return k in v; }).map(function (v) { return v[k]; }));
+        });
+        return out;
+      }
+      var tally = {};
+      vals.forEach(function (v) { var k = JSON.stringify(v); tally[k] = (tally[k] || 0) + 1; });
+      var best = Object.keys(tally).sort(function (a, b) { return tally[b] - tally[a]; })[0];
+      return best !== undefined ? JSON.parse(best) : null;
+    };
+    var p = {};
+    ['dials', 'engagement_lean', 'finance', 'reputation', 'sponsor_style', 'difficulty', 'holds']
+      .forEach(function (k) { p[k] = avg(OA.map(function (o) { return o[k]; })); });
+    var races = {};
+    OA.forEach(function (o) { Object.keys(o.race_weights || {}).forEach(function (r) { races[r] = 1; }); });
+    p.race_weights = {};
+    Object.keys(races).forEach(function (r) { p.race_weights[r] = 1; });
+    p.id = 'custom_house';
+    p.name = name;
+    p.tag = 'The Founder';
+    p.motto = 'Unwritten.';
+    p.archetype = 'founder';
+    p.colors = { primary: '#d8a657', secondary: '#5a5f66' };
+    p.lore = 'A house with no history: the fleet average in every number, and nothing on its banner yet.';
+    p.no_negotiation = false;
+    p.relationships = [];
+    p.canon_status = 'player-founded';
+    return p;
+  }
+
+  function gameOa(customDef, replaceId) {
+    if (!customDef) return OA;
+    return OA.map(function (p) { return p.id === replaceId ? customDef : p; });
+  }
+
+  function saveGame() {
+    if (!G || !G.state) return;
+    if (G.div && !G.div.done) {
+      $('clock').textContent = 'the ground cannot be left mid-contest — the save waits on the settlement';
+      return;
+    }
+    var name = 'Y' + G.state.season + ' M' + Math.min(12, G.state.month) + ' — ' +
+               (G.corps[G.me].profile.name) + ' — ' + new Date().toISOString().slice(0, 16).replace('T', ' ');
+    STORE.put(name, { v: 1, seed: G.seedStr, me: G.me,
+                      custom: G.custom ? G.custom.profile : null,
+                      replaced: G.custom ? G.custom.replaced : null,
+                      plan: G.plan,
+                      career: SEASON.saveCareer(G.state) });
+    $('clock').textContent = 'saved: ' + name;
+    setTimeout(applyPhase, 1200);
+  }
+
+  function loadGame(save) {
+    if (G) { stop(); clearTween(); }
+    var oaList = gameOa(save.custom, save.replaced);
+    var L = SEASON.loadCareer(JSON.parse(JSON.stringify(save.career)), oaList);
+    G = { rng: L.state.rng, oa: oaList, corps: L.corps, state: L.state, me: save.me,
+          seedStr: save.seed,
+          custom: save.custom ? { profile: save.custom, replaced: save.replaced } : null,
+          lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
+          timer: null, tw: null, tween: null, fx: null, el: 0,
+          plan: save.plan || { at: {}, leaders: [null, null, null, null, null, null], hand: {} },
+          div: null, gcache: null, gday: 1 };
+    G.state.opts.human = G.me;
+    var rv = $('rival'); rv.innerHTML = '';
+    oaList.forEach(function (p) {
+      if (p.id === G.me) return;
+      var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
+      rv.appendChild(o);
+    });
+    $('mlog').innerHTML = '<div class="m">a loaded year — the market\u2019s past is in the books</div>';
+    $('desklog').innerHTML = '<div class="m">the year resumes at month ' + G.state.month + '</div>';
+    G._railPhase = null;
+    renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderEncounters(); renderTable();
+    applyPhase();
+    $('menu').style.display = 'none';
+    $('setup').style.display = 'none';
+  }
+
+  function renderSaves() {
+    var saves = STORE.all();
+    var names = Object.keys(saves).sort().reverse();
+    var h = '';
+    names.forEach(function (n) {
+      h += '<div class="poolrow"><span class="m">' + esc(n) + '</span><span>' +
+           '<button class="tiny" data-load="' + esc(n) + '">Load</button>' +
+           '<button class="tiny" data-export="' + esc(n) + '">Export</button>' +
+           '<button class="tiny" data-delsave="' + esc(n) + '">\u2715</button></span></div>';
+    });
+    $('savelist').innerHTML = h || '<div class="m">no saved games</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-load]'), function (b) {
+      b.onclick = function () { loadGame(STORE.all()[b.getAttribute('data-load')]); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-export]'), function (b) {
+      b.onclick = function () {
+        $('saveio').value = JSON.stringify(STORE.all()[b.getAttribute('data-export')]);
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-delsave]'), function (b) {
+      b.onclick = function () { STORE.del(b.getAttribute('data-delsave')); renderSaves(); };
+    });
+  }
+
+  /* ---- wiring: menu, setup, cards ---- */
+  $('menubtn').onclick = function () {
+    $('mResume').style.display = G ? '' : 'none';
+    $('menu').style.display = 'flex';
+  };
+  $('savebtn').onclick = saveGame;
+  $('mResume').onclick = function () { $('menu').style.display = 'none'; };
+  $('mExit').onclick = function () {
+    window.close();
+    $('mNote').textContent = 'the browser holds this door — close the tab to leave';
+  };
+  $('mLoad').onclick = function () {
+    var lp = $('loadpanel');
+    lp.style.display = lp.style.display === 'none' ? '' : 'none';
+    renderSaves();
+  };
+  $('importbtn').onclick = function () {
+    try {
+      var save = JSON.parse($('saveio').value);
+      if (!save || !save.career) throw new Error('not a save');
+      loadGame(save);
+    } catch (e) { $('mNote').textContent = 'that code is not a save'; }
+  };
+  $('mNew').onclick = function () {
+    $('menu').style.display = 'none';
+    $('setup').style.display = 'flex';
+    var h = '';
+    OA.forEach(function (p) {
+      h += '<div class="oacard" data-oa="' + p.id + '"><b>' + esc(p.name) + '</b>' +
+           ' <span class="m">' + esc(p.tag || '') + '</span>' +
+           '<span class="m">' + esc(p.motto || '') +
+           (p.no_negotiation ? ' \u00b7 a sealed house: it does not come to the table' : '') +
+           '</span></div>';
+    });
+    h += '<div class="oacard" data-oa="__custom"><b>Found your own house</b>' +
+         '<span class="m">a blank slate \u2014 the fleet\u2019s numeric average, no quirks, no seal</span></div>';
+    $('oacards').innerHTML = h;
+    var cr = $('creplace'); cr.innerHTML = '';
+    OA.forEach(function (p) {
+      var o = document.createElement('option'); o.value = p.id;
+      o.textContent = 'in place of ' + p.name;
+      cr.appendChild(o);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-oa]'), function (card) {
+      card.onclick = function () {
+        var id = card.getAttribute('data-oa');
+        if (id === '__custom') { $('customform').style.display = ''; return; }
+        $('setup').style.display = 'none';
+        startGame($('seed').value, id, OA, null);
+      };
+    });
+  };
+  $('cfound').onclick = function () {
+    var nm = $('cname').value.trim() || 'The Unnamed House';
+    var rep = $('creplace').value;
+    var prof = blankSlate(nm);
+    $('setup').style.display = 'none';
+    startGame($('seed').value, 'custom_house', gameOa(prof, rep),
+              { profile: prof, replaced: rep });
+  };
+  $('setupback').onclick = function () {
+    $('setup').style.display = 'none';
+    $('menu').style.display = 'flex';
+  };
+  /* no auto-boot: the menu is the front door now — the world begins when a house is chosen */
 })();
 </script>
 </body>

@@ -50,11 +50,11 @@
     AP_COURT: 1,                 // [H] what getting in front of a backer costs a month
     AP_RECRUIT: 2,               // [H] work a signing window
     TREAT_DAYS: 45,              // [C] days of healing bought by one treatment block
-    TRAIN_GAIN: 0.30,            // [C] stat movement toward potential per drill block
+    TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [H] `[OPEN-S2]` — how hard each lock lean pulls against raw quality */
     LOCK_PROSPECT_W: 0.9,
     LOCK_RESTED_W: 2.5,
-    TRAIN_GREEN_GAP: 2,          // [S] a drill block only reaches people this far off their
+    TRAIN_GREEN_GAP: 20,         // [S] (×10 scale) a drill block only reaches people this far off their
                                  //     ceiling — the same population chooseActions counts
     SCOUT_INTEL: 0.12,           // [C] preparedness each scouting block is worth at the drop
     /* [H] months between sending a survey party out and hearing back. The number is not the
@@ -132,10 +132,10 @@
     FOUNDING_FLOOR: 16,          // [H] = ROSTER_MIN; the legal minimum to field at all
 
     /* --- careers (S4) --- */
-    DEVELOP_BASE: 0.55,          // [C] movement toward potential, per Divide survived
+    DEVELOP_BASE: 5.5,           // [C] movement toward potential, per Divide survived (×10 scale)
     DEVELOP_GREEN_MULT: 1.7,     // [C] before prime opens
     DEVELOP_BENCH_FRAC: 0.35,    // [C] a season on the bench against one on the ground
-    DECLINE_RATE: 0.65,          // [C] body-stat loss per year past `decline`
+    DECLINE_RATE: 6.5,           // [C] body-stat loss per year past `decline` (×10 scale)
     RETIRE_AT_DECLINE: 0.10,     // [C] chance of hanging them up in the first year past it
     RETIRE_SPAN: 4,              // [S] years past decline by which retirement is certain
     MIND: ['tactics', 'presence', 'resolve', 'fieldcraft'],
@@ -268,7 +268,9 @@
   /** The eight greenest fit bodies — this is a place to blood people, not to win with veterans. */
   function dividendSquad(corp) {
     return corp.roster
-      .filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'prisoner' &&
+      .filter(f => f.status !== 'dead' && f.status !== 'retired' &&
+                   !(f.contract && f.contract.divides_required != null &&
+                     (f.contract.divides_served || 0) < f.contract.divides_required) &&
                    !((f.condition || {}).injuries || []).length)
       .sort((a, b) => ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0))
       .slice(0, 8);
@@ -294,9 +296,15 @@
                  units: bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
                                                              isCaptain: f.id === cap.id, day: 1 })) };
       };
+      /* THE DIVIDEND IS TELEVISION. Every match is kept whole — sides, frames, and now the
+         log the old `log: false` threw away — riding the season's own dividend tally, so
+         any surface can replay the lights all year and the record dies with the season the
+         way everything in state does. The resolve keeps its own seeded stream, so keeping
+         the footage costs the world no rolls. */
+      const sA = side(A, bodiesA), sB = side(B, bodiesB);
       const res = TAC.resolve(P.mulberry32(P.seedFrom('dividend' + season + A.id)),
-                              side(A, bodiesA), side(B, bodiesB),
-                              { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5], log: false });
+                              sA, sB,
+                              { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5] });
 
       /* --- what the crowd saw, and what it cost ---
          SCORED ON POINTS, because it is an exhibition. The first version totalled dead and
@@ -317,6 +325,9 @@
                           (c.calledWithdrawal ? CONST.DIVIDEND_WITHDRAWAL_POINTS : 0);
       const scoreA = points(casB), scoreB = points(casA);   /* what each side did to the other */
       const winner = scoreA === scoreB ? null : (scoreA > scoreB ? A : B);
+      (tally.watch = tally.watch || []).push({
+        corps: [A.id, B.id], sides: [sA, sB], res: res,
+        score: [scoreA, scoreB], winnerId: winner ? winner.id : null });
       tally.matches++;
       tally.draws += winner ? 0 : 1;
       tally.conversions += (casA.dead || 0) + (casB.dead || 0);
@@ -512,9 +523,16 @@
       const marked = bids && bids[id] ? Object.keys(bids[id]) : null;
       /* working the tryout window runs a longer bench trial: a corp that spent its points
          here signs deeper from its own sheet. Without this the verb bought nothing at the
-         very window it names — the fault the old market comment mocked, reborn. */
+         very window it names — the fault the old market comment mocked, reborn.
+         AND THE DEPTH IS NEED-DRIVEN, ruled by measurement: probe_years.cjs played six
+         fleet-years and found rosters troughing to twelve against a drop floor of sixteen,
+         because the shared markets are scarcity-capped while departures are not. The
+         tryouts are the one supply a corp owns outright — its own ship — so a house bled
+         below the floor calls up more of its own, to two above the floor, budget willing. */
       const worked = ((corp._worked || {}).tryouts || 0);
-      const depth = 2 + Math.min(2, worked);
+      const aliveNow = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
+      const shortfall = Math.max(0, (CONST.DROP_MIN + 2) - aliveNow);
+      const depth = 2 + Math.min(2, worked) + shortfall;
       const want = marked
         ? lot.filter(f => marked.indexOf(f.id) >= 0)
         : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
@@ -592,7 +610,11 @@
            lot sheet is priced on. It now respects what the paper says. */
         f.contract.divides_required = f.contract.divides_required || CONST.BASTILLE_TERM;
         f.contract.divides_served = 0;
-        f.status = 'prisoner';                            /* until the term is served */
+        /* STATUS IS A BODY'S STATE; the prison term is the CONTRACT'S. Signing with
+           status 'prisoner' meant the squads' active-filter never fielded a single one:
+           the Bastille's people were dropped, equipped, and served out their clauses as
+           phantoms who never stood in a fight. They stand now. */
+        f.status = 'active';
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         c.roster.push(f);
@@ -658,7 +680,7 @@
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
       const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 2);
+      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 20);
     });
     let left = ap;
     const take = (kind, cost, weight) => {
@@ -977,7 +999,7 @@
       }
       /* --- decline: the body goes late, and then quickly --- */
       if (f.age > a.decline) {
-        for (const k of CONST.BODY) f.stats[k] = Math.max(1, f.stats[k] - CONST.DECLINE_RATE);
+        for (const k of CONST.BODY) f.stats[k] = Math.max(10, f.stats[k] - CONST.DECLINE_RATE);
         out.declined++;
       }
 
@@ -1011,7 +1033,7 @@
         out.injured += f.condition.injuries.length ? 1 : 0;
         if (careerEnding) { f.retired = true; f.status = 'retired'; out.retired.push(f); continue; }
         /* a permanent wound is carried, not cured, and costs the body a little for good */
-        if (permanent) for (const k of CONST.BODY) f.stats[k] = Math.max(1, f.stats[k] - 0.4 * permanent);
+        if (permanent) for (const k of CONST.BODY) f.stats[k] = Math.max(10, f.stats[k] - 4 * permanent);
         if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
         if (f._griefUntil != null) {
           f._griefUntil--;
@@ -1025,8 +1047,7 @@
              way they are no longer this corp's to field. (Feeding the freed into next
              year's merc lots is follow-up plumbing; today they leave.) --- */
       if (f.contract && f.contract.divides_required != null &&
-          (f.contract.divides_served || 0) >= f.contract.divides_required &&
-          f.status === 'prisoner') {
+          (f.contract.divides_served || 0) >= f.contract.divides_required) {
         f.status = 'freed'; out.freed.push(f);
         continue;
       }
@@ -1136,7 +1157,7 @@
       let budget = Math.max(0, corp.account.treasury + corp.account.grant
                              - LED.CONST.ALEAS_ENTRY - LED.CONST.RESERVE_FLOOR
                              - LED.wageBill(staying));
-      const worth = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.fieldcraft) / 4
+      const worth = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.fieldcraft) / 40
                        + Math.min(3, f.divides || 0) * 0.4;
       /* A corp cannot release its way below the muster minimum. If letting somebody go would
          leave it unable to field a force, it re-signs them at whatever they are asking and
@@ -1237,7 +1258,7 @@
     /* `[OPEN-S2]` — THE LEAN. This was a single sort by quality and is now the three-way call
        the ruling describes, made by culture through `lockLean`. */
     const lean = opts.lean || lockLean(corp);
-    const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 4;
+    const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
     const score = f => {
       let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4;
       if (lean === 'prospect') {
@@ -1388,7 +1409,7 @@
         hit += CONST.GRIEF_MORALE * (close ? CONST.GRIEF_CLOSE_MULT : 1);
       }
       if (!hit) continue;
-      const res = f.stats.resolve || 10;
+      const res = (f.stats.resolve || 100) / 10;
       /* `personality.aggression` does not exist on a fighter and never has — this branch read
          a field off an object that is not there, so it defaulted to 50 and frenzy could never
          fire. Aggression in this project is carried by TRAITS, which do exist. */
@@ -1870,14 +1891,10 @@
       let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
-        if (f.contract && f.contract.divides_required != null) {
+        if (f.contract && f.contract.divides_required != null)
           f.contract.divides_served = (f.contract.divides_served || 0) + 1;
-          /* RULED: "after playing X Divides OR WINNING A SINGLE ONE, they earn their
-             freedom" — a win satisfies the clause outright, however long the paper said */
-          if (res.winner === c.id)
-            f.contract.divides_served = Math.max(f.contract.divides_served,
-                                                 f.contract.divides_required);
-        }
+        /* the OR-A-WIN half of the freedom clause lives in the winner's settlement
+           (negotiate.js N14, "the winner pays its own people") — one rule, one home */
         /* a nattie's contract pays a bonus for every Divide actually dropped into — the
            participation clause a merc's flat price conspicuously lacks */
         if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus)
@@ -2170,10 +2187,15 @@
       out.open = {
         season: state.season, month: state.month, done: !!state.done,
         rngState: state.rng && state.rng.state ? state.rng.state() : null,
-        dividend: state.dividend, mercs: state.mercs, tryouts: state.tryouts,
+        /* the broadcast is live, not archived: the Dividend's footage (frames, sides,
+           body refs) does not ride a save — a loaded year re-lists an empty card */
+        dividend: state.dividend
+          ? Object.assign({}, state.dividend, { watch: undefined }) : state.dividend,
+        mercs: state.mercs, tryouts: state.tryouts,
         bastille: state.bastille, bids: state.bids, rec: state.rec, drop: state.drop,
+        /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
-                manual: (state.opts || {}).manual },
+                manual: (state.opts || {}).manual, human: (state.opts || {}).human },
         lotSpent: !state.lots[(MONTHS[state.month] || {}).signing]
       };
     }

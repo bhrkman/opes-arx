@@ -425,7 +425,7 @@
   Generator.prototype.qualityPoints = function (stats) {
     const w = this.rec.pricing.qp_weights;
     let qp = 0;
-    for (const k of STATS) qp += stats[k] * w[k];
+    for (const k of STATS) qp += (stats[k] / 10) * w[k];   /* pricing was written for 1–20 */
     return qp;
   };
 
@@ -455,8 +455,18 @@
     const qualityShift = P.normal(rng, poolCfg.quality_shift.mean, poolCfg.quality_shift.sd);
     const age = opts.age !== undefined ? opts.age : this.rollAge(rng, race, pool);
     const stats = this.rollStats(rng, race, qualityShift);
-    const potential = this.rollPotential(rng, race, age, stats);
+    let potential = this.rollPotential(rng, race, age, stats);
     const scout = this.scoutView(rng, potential);
+    /* ×10 — THE SCALE MIGRATION (ruled). Everything ABOVE this line computes at the
+       founding 1–20 scale, so every draw, clamp and rounding is bit-identical to the old
+       world; here the three player-facing numbers scale together, exactly. Births are
+       therefore always multiples of ten — the fine grain between them belongs to TRAINING,
+       which is the entire point of the scale. Every consumer below and in every other
+       module was swept to match, and the proof is the untouched snapshot gate: the same
+       seeds fight the same fights to the same frame. */
+    for (const k of STATS) stats[k] *= 10;
+    potential *= 10;
+    scout.estimate *= 10;
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
 
     // Name (Et- honorific for etu clergy/zealots — ratified).
@@ -504,7 +514,7 @@
       contract.divides_served = 0;
       contract.divides_required = req;
       const young = age <= race.age.prime[0] + 4;
-      const premium = young ? 1 + 0.06 * Math.max(0, scout.estimate - 12) : 1;
+      const premium = young ? 1 + 0.006 * Math.max(0, scout.estimate - 120) : 1;
       contract.signing_cost = P.roundTo(salary * (2.5 + 1.2 * req) * premium, 10);
     }
 
@@ -521,7 +531,7 @@
     }
 
     // History.
-    const kills = Math.max(0, Math.round(exp.battles * (0.12 + stats.aim / 120 + P.normal(rng, 0, 0.04))));
+    const kills = Math.max(0, Math.round(exp.battles * (0.12 + stats.aim / 1200 + P.normal(rng, 0, 0.04))));
     const evacs = exp.divides > 0 && P.chance(rng, 0.3) ? P.int(rng, 1, 2) : 0;
 
     const idBase = named.parts.mononym || named.parts.title && ("the_" + named.parts.title) ||
@@ -709,28 +719,28 @@
       when: c => c.pool === "nattie" && c.f.age <= c.race.age.recruit_min + 1,
       text: c => `${c.f.age} years old. The tryout rules say eligible. The tape says give it a season.` },
     { key: "spike_aim", tier: 3, register: "hype",
-      when: c => c.f.stats.aim >= 15,
+      when: c => c.f.stats.aim >= 150,
       text: c => `AIM ${c.f.stats.aim}! You don't coach that — you just point it at whatever the corp wants gone!` },
     { key: "spike_reflex", tier: 3, register: "hype",
       when: c => c.f.stats.reflex >= 15,
       text: c => `Blink and ${c.name} is already behind different cover. Reflex ${c.f.stats.reflex} moves odds boards.` },
     { key: "spike_tactics", tier: 3, register: "dry",
-      when: c => c.f.stats.tactics >= 15,
+      when: c => c.f.stats.tactics >= 150,
       text: c => `Tactics ${c.f.stats.tactics}. Somebody will hand ${c.name} a captaincy and look clever for a decade.` },
     { key: "spike_presence", tier: 3, register: "hype",
       when: c => c.f.stats.presence >= 15,
       text: c => `Rooms reorganize when ${c.name} walks in. Presence ${c.f.stats.presence} — and yes, the cameras have noticed.` },
     { key: "spike_grit", tier: 3, register: "hype",
-      when: c => c.f.stats.grit >= 15,
+      when: c => c.f.stats.grit >= 150,
       text: c => `Grit ${c.f.stats.grit}. ${c.name} has been shot before. ${c.name} was extremely fine about it.` },
     { key: "spike_fieldcraft", tier: 3, register: "dry",
-      when: c => c.f.stats.fieldcraft >= 15,
+      when: c => c.f.stats.fieldcraft >= 150,
       text: c => `Fieldcraft ${c.f.stats.fieldcraft} — the quiet kind of number that eats an enemy's supply plan without firing a round.` },
     { key: "spike_resolve", tier: 3, register: "dry",
-      when: c => c.f.stats.resolve >= 15,
+      when: c => c.f.stats.resolve >= 150,
       text: c => `Resolve ${c.f.stats.resolve}. The panic checks other people fail are, to ${c.name}, weather.` },
     { key: "sheet_hole", tier: 3, register: "dry",
-      when: c => c.f.stats[lowStat(c.f)] <= 4,
+      when: c => c.f.stats[lowStat(c.f)] <= 40,
       text: c => { const k = lowStat(c.f); return `The sheet has a hole at ${STAT_FULL[k]} ${c.f.stats[k]}. Holes can be schemed around — ask whoever does your scheming.`; } },
     { key: "callsign", tier: 3, register: "hype",
       when: c => !!c.f.callsign,
@@ -739,10 +749,10 @@
       when: c => c.f.fame >= 35 && !c.f.callsign,
       text: c => `Fame ${c.f.fame} before signing day — the chants come pre-installed with this one.` },
     { key: "bargain", tier: 3, register: "dry",
-      when: c => c.rec.meta.scout.estimate >= 15 && c.f.contract.salary <= 300,
+      when: c => c.rec.meta.scout.estimate >= 150 && c.f.contract.salary <= 300,
       text: c => `Priced like filler, scouted like a find. Someone in a back office can't do arithmetic, and it isn't yours.` },
     { key: "rich_ask", tier: 3, register: "dry",
-      when: c => c.f.contract.salary >= 900 && c.rec.meta.scout.estimate <= 11,
+      when: c => c.f.contract.salary >= 900 && c.rec.meta.scout.estimate <= 110,
       text: c => `That salary asks for a ceiling the scouts can't see. The broadcast loves a gamble. Treasuries don't.` },
     { key: "veteran_count", tier: 3, register: "dry",
       when: c => c.f.experience.divides >= 6,

@@ -125,6 +125,67 @@ console.log('a real engagement settled (' + drop.filter(b => b.status !== 'activ
             ' of ours off the roster); partial return made; planning the post-fight drop —');
 measure('re-plan after casualties', drop3, true);
 
+/* ===== phase 4: THE MANAGER'S HAND stays inside the same arithmetic =====
+   A hand-picked kit draws from the rack first, bills only what the rack lacks, is refused
+   WHOLE when it names nonsense, and — the loop that matters — a STANDING hand across a
+   full return re-draws its own returned items free instead of re-billing them. */
+console.log('\nphase 4: the manager\'s hand —');
+{
+  const rngH = P.mulberry32(P.seedFrom('hand-probe'));
+  const corpsH = SEASON.openFleet(rngH, OA, {});
+  const meH = corpsH[OA[2].id];
+  const lockH = (hand) => {
+    const drop = SEASON.selectDrop(meH, {});
+    const per = { drop, account: meH.account, armoury: meH.armoury, intel: 0, hand: hand || null };
+    const c = DIVIDE.buildCorp(rngH, meH.profile, 'standard', undefined, null, null, null, per, 1);
+    if (per.stockLeft) meH.armoury = per.stockLeft;
+    return { c, drop, per };
+  };
+  const rackOf = (slot) => Object.keys(meH.armoury).map(ITEMS.byId)
+    .filter(i => i && i.slot === slot && meH.armoury[i.id] > 0)[0];
+  const unowned = ITEMS.bySlot('consumable').filter(i => !(meH.armoury[i.id] > 0))[0];
+  const prim = rackOf('primary'), arm = rackOf('armor');
+  const probeDrop = SEASON.selectDrop(meH, {});
+  const hand = {};
+  hand[probeDrop[0].id] = { primary: prim.id, armor: arm.id, consumables: [unowned.id] };
+  hand[probeDrop[1].id] = { primary: 'itm_bogus', armor: arm.id };
+  const pre = Object.assign({}, meH.armoury);
+  const L = lockH(hand);
+  check(L.c.handKitted === 1 && L.c.handRefused === 1,
+        'one hand honored, one nonsense plan refused whole (' + L.c.handKitted + '/' + L.c.handRefused + ')');
+  const f = L.drop.filter(b => hand[b.id] && b._handKitted)[0];
+  check(!!f && f.loadout.primary === prim.id && f.loadout.consumables.indexOf(unowned.id) >= 0,
+        'the honored body carries exactly the named kit');
+  let billed = 0, bad = 0;
+  const carried = {};
+  L.drop.forEach(b => { const add = id => { if (id) carried[id] = (carried[id] || 0) + 1; };
+    ['primary', 'armor', 'sidearm'].forEach(sl => add(b.loadout && b.loadout[sl]));
+    ((b.loadout && b.loadout.mods) || []).forEach(add);
+    ((b.loadout && b.loadout.consumables) || []).forEach(add); });
+  const allK = new Set([...Object.keys(pre), ...Object.keys(carried), ...Object.keys(meH.armoury)]);
+  for (const k of allK) {
+    const drawn = (pre[k] || 0) - (meH.armoury[k] || 0);
+    if (drawn < 0 || drawn > (carried[k] || 0)) bad++;
+    const bought = (carried[k] || 0) - drawn;
+    if (bought > 0) billed += bought * ((ITEMS.byId(k) || {}).cost || 0);
+  }
+  check(bad === 0 && billed === L.c.kitSpend,
+        'the oath holds with a hand in play (billed ' + billed + ' === spend ' + L.c.kitSpend + ')');
+  /* the standing-hand loop: full return, same hand, re-lock — the hand re-draws free */
+  L.drop.forEach(b => {
+    const give = id => { if (id) meH.armoury[id] = (meH.armoury[id] || 0) + 1; };
+    ['primary', 'armor', 'sidearm'].forEach(sl => give(b.loadout && b.loadout[sl]));
+    ((b.loadout && b.loadout.mods) || []).forEach(give);
+    ((b.loadout && b.loadout.consumables) || []).forEach(give);
+  });
+  const pre2 = Object.assign({}, meH.armoury);
+  const L2 = lockH(hand);
+  const handItems = [prim.id, arm.id, unowned.id];
+  const reDrawn = handItems.every(id => (pre2[id] || 0) - (meH.armoury[id] || 0) >= 1);
+  check(L2.c.handKitted === 1 && reDrawn,
+        'a standing hand across a full return re-draws its own items from the rack, free');
+}
+
 console.log(failed
   ? '\n' + failed + ' CONSERVATION CLAIM(S) FAILED — the deal or the reconciler has regressed'
   : '\nevery plan balances — the quartermaster\'s arithmetic conserves');

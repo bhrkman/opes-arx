@@ -813,9 +813,18 @@
     if (winner) {
       for (const f of winner.allBodies) {
         if (f.status === 'dead' || f.status === 'retired') continue;
-        const origin = f.origin || (f.contract && f.contract.freedom ? 'prisoner' : 'nattie');
-        if (origin === 'prisoner' || (f.contract && f.contract.freedom)) {
-          f.status = f.status === 'captured' ? f.status : 'freed';
+        const clause = f.contract && f.contract.divides_required != null;
+        const origin = f.origin || (clause ? 'prisoner' : 'nattie');
+        if (origin === 'prisoner' || clause) {
+          /* THE WIN-CLAUSE HAS ONE HOME, AND IT IS HERE — N14: the winner pays its own
+             people, and a prisoner's pay is the clause satisfied outright. It is written
+             on the CONTRACT in the flat shape the season reads, never on status: status
+             is a body's state, and freeing-by-status stranded every winning prisoner as
+             an un-fieldable ghost the offseason could not match. The offseason reads the
+             satisfied clause and frees and walks them through the single path. */
+          if (clause)
+            f.contract.divides_served = Math.max(f.contract.divides_served || 0,
+                                                 f.contract.divides_required);
           bonuses.freed++;
         } else if (origin === 'mercenary') {
           const b = Math.round(((f.contract && f.contract.salary) || 0) * CONST.WIN_BONUS_MERC);
