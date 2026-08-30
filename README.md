@@ -5,7 +5,8 @@ mineral rights, and **you never aim a gun**. You choose who to hire, who to send
 carry and what deals you'll take — then you watch.
 
 **Demos:** every page in `viewers/` runs the live engine in the browser rather than replaying a
-recording. Start with `the_desk.html` to play a year, `the_ground.html` to watch a contest, or
+recording. Start with `the_corp.html` — the full management surface (Desk, Roster, Squads,
+Negotiation, the Board) for playing a year — then `the_ground.html` to watch a contest or
 `the_firefight.html` to watch one engagement turn by turn.
 
 ## Where to start reading
@@ -21,7 +22,7 @@ recording. Start with `the_desk.html` to play a year, `the_ground.html` to watch
 
 ```
 cd sim
-node arx.cjs regress --fast     114 checks · the edit loop
+node arx.cjs regress --fast     111 checks · the edit loop
 node arx.cjs regress            the full suite · before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code

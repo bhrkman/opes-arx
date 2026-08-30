@@ -529,7 +529,7 @@
        freedom clause. The clause lives FLAT on the contract (divides_served / _required)
        because that is the shape the season reads and increments — the old nested
        `contract.freedom` object was a second shape that nothing downstream ever read. */
-    const contract = { kind: pool, salary, seasons_remaining: seasons };
+    const contract = { kind: pool, salary, seasons_remaining: seasons, seasons_total: seasons };
     contract.death_benefit = P.roundTo(salary * poolCfg.death_benefit_mult, 10);
 
     if (pool === "nattie") {

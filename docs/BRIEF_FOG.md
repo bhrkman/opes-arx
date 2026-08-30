@@ -39,7 +39,7 @@ that had **never executed once** in the project's history.
 
 ```
 cd sim
-node arx.cjs regress --fast     112 checks, ~3 min here. Live in it.
+node arx.cjs regress --fast     111 checks, ~3 min here. Live in it.
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node audit_cross.cjs            dead constants, undeclared reads, uncalled functions, dead wires

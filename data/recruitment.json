@@ -206,11 +206,13 @@
     "prisoner": {
       "ballistic_close": 2,
       "energy_close": 1,
+      "ballistic_medium": 1,
       "ballistic_long": -1,
       "energy_long": -1
     },
     "mercenary": {
       "ballistic_long": 2,
+      "ballistic_medium": 1,
       "ballistic_close": 1,
       "energy_long": 1
     },

@@ -34,7 +34,7 @@ figure cost 65 seconds a run to produce a number the suite itself declares meani
 
 ```
 cd sim
-node arx.cjs regress --fast   112 checks, ~90s. The edit-loop gate.
+node arx.cjs regress --fast   111 checks, ~90s. The edit-loop gate.
 node arx.cjs regress          246 checks, ~5.5min. Before packaging.
 node audit_open.cjs       what is actually built, tested by running the game
 node audit_docs.cjs       does this document still agree with the code
@@ -537,6 +537,23 @@ mean the window did nothing.
   over 16.6 turns. It was built inert and proved bit-identical before it was allowed to decide
   anything, which is how we know it is charged from the severity roll that already happens and
   draws no random number of its own.
+- **DURABILITY IS GRIT, AND `condition.health` IS INERT.** *Established by experiment this step,
+  after several wrong reads from the source.* The pool size is `hpFor` = `HP_BASE`(7) +
+  `HP_PER_GRIT`(0.35) × grit, i.e. about 9–13 for ordinary hands — grit does double duty, sizing
+  the pool AND softening every severity roll (the grit divisor). The `condition.health` field the
+  roster used to display is a recovery meter (heals +30/month to a cap of 100, drops on a
+  prisoner's arrival knock) and touches combat NOWHERE: forcing it to 1 or to 500 across every
+  fighter changed deaths by exactly zero on every canon seed. The roster's "Health" now reads
+  `hpFor` instead, so the sheet shows the number that actually decides survival. Race toughness
+  therefore already exists, implicitly, through grit's race leans (Olmac +3, the light-frame
+  races negative) — which is why a separate race-health stat was NOT added. A dedicated race
+  durability term remains open (queued in the hub) but would be a balance project of its own.
+- **The talent system has a MEDIUM tier.** *Ruled this step.* The catalog has three weapon
+  ranges (long/medium/short, medium the most common) but talents folded medium into "close," so
+  the most-used range had no trade of its own. There are now six families —
+  long/medium/close × ballistic/energy; `skillFamilyOf` maps a medium weapon to its own trade
+  and short still folds to close. Added balance-neutral (deaths held at ~93/Divide over 20 canon
+  seeds by keeping the medium origin-leans conservative). Sworn by `probe_stat_scale.cjs`.
 - **Getting your people off the field is not the same as being wiped out.** A side that
   completed a fighting withdrawal ends with nobody `ok` or `light` — everybody is `withdrawn` —
   so it was scored as OVERRUN, and its wounded took the penalty for a field that was never
@@ -708,11 +725,11 @@ Things that need a decision rather than a programmer.
   counterweight — a board that notices you finished eighth with sixteen people?
 - **Whether the Dividend's double edge exists**: performing reveals strength you might have
   wanted sandbagged.
-- **Is surveying a decision?** It was not: a corp scouted every month of the year or none of it,
-  two values and nothing between, because the weight is board interest and that does not move
-  within a season. *Half-answered at 8.13* — a survey now reports three months later and cannot
-  be bought after M8, so at minimum WHEN differs from WHETHER. Whether that is enough to make it
-  a decision rather than a habit is a question for somebody who has played it.
+- ~~**Is surveying a decision?**~~ **Answered.** The Gather Intel rework made it one: you paint
+  an eight-focus budget across specific rivals and the coming planet, buying frozen intel
+  snapshots that decay over three years, and rival preparedness now feeds the Divide fight
+  (`opts.rivalEdge`). WHO you study and HOW deeply are now real choices, not a season-long
+  on/off habit. Sworn by `probe_intel.cjs`.
 - **Permanent losses have drifted well past the ruling.** "Most corps lose about a quarter of
   their people each Divide" is what this document says; measured it is now **42.6%**, from 28%
   at the start of the step. Playing out withdrawals is most of it. Recorded rather than chased,
@@ -726,10 +743,9 @@ Things that need a decision rather than a programmer.
   edited per hand through a shared detail panel. What remains open is only tuning (how many
   squads a corp *should* field, and whether the game should push toward a shape), not the
   mechanism.
-- **Nobody chooses what their people carry.** The manager decides "what they carry" per the
-  premise, and there is no path: the kit hook exists and its only call site passes nothing, so
-  arming is decided from house doctrine, the locker and the money left. This and the line above
-  are what the squads screen is for.
+- ~~**Nobody chooses what their people carry.**~~ **Answered.** The squads screen's shared
+  detail panel has an equip picker wired to `plan.hand`, so the manager now arms each hand
+  directly rather than leaving it to house doctrine, the locker and the money left.
 - **No corp ever asks for a full force.** The bodies are there — 56 of 96 corp-seasons have 24
   or more fit at the lock — but the AI's appetite never reaches the ceiling, so drops land
   across 16–23. A human can still ask for 24. Recorded, not chased.

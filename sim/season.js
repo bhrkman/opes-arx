@@ -1416,6 +1416,7 @@
         f.contract = f.contract || {};
         f.contract.divides_required = null;          /* the clause is served; it is not re-armed */
         f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
+        f.contract.seasons_total = CONST.RENEWAL_SEASONS;
         f._fameAtSigning = f.fame || 0;
         out.resigned++;
       } else { gone.push(f); out.walked++; }
@@ -1444,6 +1445,7 @@
           budget -= year;
           f.contract.salary = ask;
           f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
+        f.contract.seasons_total = CONST.RENEWAL_SEASONS;
           f._fameAtSigning = f.fame || 0;
           out.renewed++; out.cost += year;
           if (year > budget + year) out.forced = (out.forced || 0) + 1;

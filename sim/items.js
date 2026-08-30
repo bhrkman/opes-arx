@@ -680,14 +680,20 @@
      trained in — this function is the single home of that fold; roster births skills by
      it and combat reads effective aim through it. */
   const SKILL_FAMILIES = [
-    { id: 'ballistic_long', name: 'long ballistics' },
-    { id: 'ballistic_close', name: 'close ballistics' },
-    { id: 'energy_long', name: 'long energy' },
-    { id: 'energy_close', name: 'close energy' }
+    { id: 'ballistic_long',   name: 'long ballistics' },
+    { id: 'ballistic_medium', name: 'medium ballistics' },
+    { id: 'ballistic_close',  name: 'close ballistics' },
+    { id: 'energy_long',   name: 'long energy' },
+    { id: 'energy_medium', name: 'medium energy' },
+    { id: 'energy_close',  name: 'close energy' }
   ];
   function skillFamilyOf(item) {
     if (!item || !item.family) return null;
-    const range = ((item.effects || {}).range) === 'long' ? 'long' : 'close';
+    /* three ranges, three trades: a long gun, a workhorse at medium, and close-in work.
+       Anything not long or medium (i.e. short) reads as close — the same fold as before, now
+       with the middle band given its own trade instead of being swept into close. */
+    var r = (item.effects || {}).range;
+    var range = r === 'long' ? 'long' : r === 'medium' ? 'medium' : 'close';
     return item.family + '_' + range;
   }
 

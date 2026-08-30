@@ -63,7 +63,13 @@ console.log('\nthe weapon trades —');
   const fams = ITEMS.SKILL_FAMILIES.map(x => x.id);
   check(all.every(f => f.skills && fams.every(k =>
         f.skills[k] >= 10 && f.skills[k] <= 200)),
-        'every body is born with all four trades, in range');
+        'every body is born with all six trades, in range');
+  /* three ranges, three trades per damage type: a medium weapon reads its own tier, and short
+     still folds to close — the middle band is no longer swept into close */
+  check(ITEMS.skillFamilyOf({ family: 'ballistic', effects: { range: 'medium' } }) === 'ballistic_medium' &&
+        ITEMS.skillFamilyOf({ family: 'energy',    effects: { range: 'medium' } }) === 'energy_medium' &&
+        ITEMS.skillFamilyOf({ family: 'ballistic', effects: { range: 'short'  } }) === 'ballistic_close',
+        'the medium band has its own trade; short still folds to close');
   /* the fold has one home: every resolved weapon agrees with skillFamilyOf */
   const arms = ITEMS.bySlot('primary').concat(ITEMS.bySlot('sidearm'));
   check(arms.every(w => {

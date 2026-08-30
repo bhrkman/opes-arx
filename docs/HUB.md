@@ -35,7 +35,7 @@ A brief is **one step, not one subsystem**. "Build fog of war" can finish. "Fix 
 
 ```
 cd sim
-node arx.cjs regress --fast     112 checks · the gate
+node arx.cjs regress --fast     111 checks · the gate
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node audit_cross.cjs            does one step's work reach the next, or just sit there
@@ -70,34 +70,66 @@ per Divide sit well above the ruling of about a quarter — the last two figures
 42.6% and 50.4% at different points, and the number has not been re-measured recently because
 calibration stays deferred until every system is in. Recorded, not chased.
 
-**Since the last hub pass, a run of interface and economy work has landed** and is not yet
-reflected below the fold of this document's older sections:
+**Since the last hub pass, a long run of verb, interface, and combat work has landed:**
 
-- **The squads screen is built.** All three things it was waiting on now exist: who stands with
-  whom (a drag-and-drop board, `plan.at`), who leads (per-squad, `plan.leaderOf`), and what they
-  carry (a shared detail panel with an equip picker, `plan.hand`). It came off the queue.
-- **The Roster and Hiring pages were unified** into one contract-management surface: a sortable
-  ledger keyed on salary, the origin of every hand made visible (Natural-Born / Mercenary /
-  Conscript, the rename of "prisoner" for who they are now), and the signing windows folded into
-  a shared rail that shows the market when idle and a hand's detail when one is inspected.
-- **Training was rebuilt into a focus grid.** The old two-dropdown "aim the drill" menu is gone;
-  focus is now painted onto stats at four breadth tiers that stack — corner, column, row, cell —
-  under an inverse-breadth rule (the narrower the target, the more each pip is worth), sworn by
-  `probe_train.cjs`.
-- **"Work the signing window" was removed entirely.** It was one write and zero reads in its
-  original form, and a bidding-advantage wrinkle layered on later that nobody had asked for.
-  Signing now runs on need alone; two regress checks retired with it, which is why the gate went
-  from 114 to 112.
-- **The palette was rethemed** to a night-ops cyan-and-magenta scheme, CSS only.
+- **The squads screen is built.** Who stands with whom (a drag-and-drop board, `plan.at`), who
+  leads (per-squad, `plan.leaderOf`), and what they carry (a shared detail panel with an equip
+  picker, `plan.hand`).
+- **Gather Intel (Survey) was reworked** into a targeted focus verb: a desk section where you
+  paint an eight-focus budget across rivals and the coming planet, buying frozen intel snapshots
+  that decay over three years. Tier-1 payoff is informational (multiplayer-safe); rival
+  preparedness now feeds the Divide fight via `opts.rivalEdge`. Sworn by `probe_intel.cjs`.
+- **Courting Sponsors was reworked** from a dead button into a full conditional-income system
+  alongside the Board. Sponsors are a separate supplier roster (`spn_*` ids, NOT the competing
+  corps): each backs at most one corp/year, paying a modest advance on signing and a large
+  completion reward (cash or in-kind kit) on meeting a condition in one of three flavours —
+  limitation, prerequisite, outcome. Acquired by spending focus (cost falls gently as contracts
+  are taken fleet-wide; regard discounts it); contention resolved by standing (cross-year regard
+  + this-year courting effort). Courting is a focus verb mirroring intel. The desk shows live
+  falling cost, regard bands, per-contract live status, and a season-close "Backers' Verdict."
+  Sworn by `probe_sponsor.cjs`.
+- **The Roster was rebuilt from a spreadsheet into a barracks-style card grid.** Each hand is a
+  card: squad as a coloured left edge with a matching label, origin in its own muted hue, salary
+  and fame, and tags that lead with "N/N Seasons" (turning red when ending). A sort bar replaced
+  the column headers. The right rail now holds the selected hand AND the acquisition window at
+  once — neither disappears (the old click-to-toggle bug is gone at its source). The window shows
+  each signing state (Nattie Tryouts / Merc Market / Kier Bastille) in its origin colour, with
+  full prospect cards: all seven stats plus Ceiling (potential), terms, and a reworded freedom
+  clause ("Serves N Divides to earn release").
+- **Health on the roster now shows the real wound pool** (`CDCOMBAT.hpFor`, grit-sized), not the
+  inert `condition.health` meter. Investigation proved `condition.health` changes nothing in a
+  fight; durability lives in grit, which sizes the live wound pool and softens every severity
+  roll. No combat change — the sheet just stopped lying.
+- **A medium weapon-talent tier was added.** The catalog has three ranges (long/medium/short,
+  medium being the most common) but the talent system folded medium into "close." There are now
+  six families (long/medium/close × ballistic/energy); `skillFamilyOf` maps medium to its own
+  trade, short still folds to close. Tuned balance-neutral (deaths held at ~93/Divide across 20
+  canon seeds). Sworn by the extended `probe_stat_scale.cjs`.
+- **Training was rebuilt into a focus grid** — four breadth tiers that stack (corner, column,
+  row, cell) under an inverse-breadth rule, sworn by `probe_train.cjs`.
+- **"Work the signing window" was removed** (one write, zero reads); signing runs on need alone.
+- **UI housekeeping:** night-ops cyan/magenta palette; tab names shortened (Desk, Roster, Squads,
+  Negotiation; "The Board" kept); "End the Month" moved to the top line for universal access;
+  the per-month "what the year said" desklog removed; explanatory tail-text stripped from the
+  focus verbs; chunky rectangular pips; shared game-wide stat/squad/origin colour tokens in
+  `:root` (`--s-aim` etc., `--sqA`..`--sqF`, `--o-nat/mer/con`).
+
+The gate went 114 → 112 (signing-window retirement) → 111 (sponsor phase rewrite).
+
+Losses per Divide still sit above the ruling of about a quarter; calibration stays deferred
+until every system is in. Recorded, not chased.
 
 Branches queued, in order:
 
 1. **Fog of war.** The largest remaining piece, and the one most likely to fix squads bunching
-   up — both sides currently start in full view of each other, so there is no reason to move
-   except to improve a firing position, and once you are behind cover there is not a better one.
+   up — both sides currently start in full view of each other. See `docs/BRIEF_FOG.md`.
 2. **Destructible cover.** The other half of that answer: bunkering stops being safe when a wall
    can be taken away. Gives the inert `area` tag its job.
-3. **Survey and Court reworks.** Both verbs get their own grid-style section matching Training,
-   with focus split across all four verbs. Survey aims to turn an invisible intel buff into
-   information gameplay; Court lets the player choose a courting target. These overlap the
-   deferred recruitment-market depth (gradual scouting, readable rival interest).
+3. **Sponsor cost-curve / payout tuning and multi-year regard texture** — deferred play-and-feel
+   work now that the system is in and playable.
+4. **A dedicated race-durability term** (health/pool or a severity term), if wanted — currently
+   race toughness rides on grit's leans, which is real but implicit. Would be a balance project
+   with its own measure/gate pass.
+5. **Deferred smaller items:** Rest-verb "amping"; weapon-trade columns and a boost button in
+   the training grid; the full 246-check gate before packaging.
+
