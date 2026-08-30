@@ -18,6 +18,8 @@
   if (isNodeRoot) require("./prng.js");
   function __req(which) {
     const g = typeof window !== "undefined" ? window : globalThis;
+    if (which === "items")
+      return g.CDITEMS || (typeof require === "function" ? require("./items.js") : null);
     return which === "prng" ? g.CDPRNG : which === "namegen" ? g.CDNAMEGEN : g.CDRECRUIT;
   }
 
@@ -468,6 +470,33 @@
     potential *= 10;
     scout.estimate *= 10;
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
+    /* STEP D — TWO BIRTHS, ZERO NEW DRAWS (the stream must not move):
+       TRAIT STAT_MODS MADE LIVE. The data has carried them since the traits were written
+       and nothing ever read them — marksman's eye worked only through its hook. They apply
+       here, ×10 for the scale, and a gift can raise the ceiling: potential follows the
+       best stat up.
+       WEAPON-FAMILY SKILLS, born from origin. A hand's skill in a trade starts at the
+       fighter's aim, leaned by where they learned to shoot — the leans live in
+       recruitment.json beside the rest of the generation's numbers. Effective aim with a
+       carried weapon is (aim + trade) / 2, read at combat's boundary. */
+    for (const tid of traitIds) {
+      const tdef = this.traitById[tid];
+      const tm = tdef && tdef.effects && tdef.effects.stat_mods;
+      if (tm) for (const k in tm)
+        if (stats[k] != null)
+          stats[k] = Math.max(10, Math.min(200, stats[k] + tm[k] * 10));
+    }
+    potential = Math.max(potential,
+                         Math.max.apply(null, STATS.map(k => stats[k])));
+    const leans = ((this.rec.origin_family_leans || {})[pool]) || {};
+    /* items resolved lazily: by the first birth, every module is loaded in both worlds */
+    const IT = typeof ITEMS !== 'undefined' && ITEMS ? ITEMS
+             : (typeof __req === 'function' ? __req('items')
+                : (typeof window !== 'undefined' ? window : globalThis).CDITEMS);
+    const skills = {};
+    for (const fam of IT.SKILL_FAMILIES)
+      skills[fam.id] = Math.max(10, Math.min(200,
+                                             stats.aim + (leans[fam.id] || 0) * 10));
 
     // Name (Et- honorific for etu clergy/zealots — ratified).
     let named = opts.named || NG.generateName(rng, race);
@@ -519,7 +548,8 @@
     }
 
     // Condition (prisoner lots may sell as-is with a lingering knock).
-    const condition = { health: 100, fatigue: 0, morale: P.int(rng, 45, 65), injuries: [] };
+    const condition = { health: 100, fatigue: 0, morale: P.int(rng, 45, 65), injuries: [],
+                        stress: 0 };   /* the ONE stress store — see divide.js squadStress */
     if (pool === "prisoner" && P.chance(rng, poolCfg.arrival_injury_chance)) {
       condition.injuries.push({
         type: P.pick(rng, ["inj_arm", "inj_leg", "inj_torso"]),  // COMBAT.md §7.1 ids
@@ -544,6 +574,7 @@
       origin: pool === "mercenary" ? "mercenary" : pool,
       age,
       stats,
+      skills,                    /* the four trades — see the step-d birth above */
       potential,
       experience: exp,
       traits: traitIds,

@@ -217,11 +217,12 @@ claim('CEDED', 'PROJECT.md', 'ceded claims are not exposed on the Divide result'
 claim('OPEN-R3', 'PROJECT.md', 'the prep months do not exist', () => {
   /* CLOSED at Step 8.6 — kept as a check that it stays closed, not as an open item. The turns
      exist, so this now asks whether they are TAKEN, which is the thing that could quietly stop
-     being true. */
-  const turns = /function prepMonth/.test(CODE) && /PREP_AP/.test(CODE);
-  const spent = corpSeasons.reduce((n, c) => n + ((c.prep || {}).ap || 0), 0);
+     being true. Action points became FOCUS points in the verb overhaul, so this reads the
+     focus the prep months spend, not the retired `ap`. */
+  const turns = /function prepMonth/.test(CODE) && /FOCUS_POINTS/.test(CODE);
+  const spent = corpSeasons.reduce((n, c) => n + ((c.prep || {}).focus || 0), 0);
   return (turns && spent > 0)
-    ? stands('CLOSED at Step 8.6 and still running: ' + spent + ' action points spent across ' +
+    ? stands('CLOSED at Step 8.6 and still running: ' + spent + ' focus spent across ' +
              corpSeasons.length + ' corp-seasons. Still absent from the turns: sponsorship and ' +
              'media, and pre-Divide pacts')
     : stale('the prep calendar is in the code but nothing spends a turn in it');

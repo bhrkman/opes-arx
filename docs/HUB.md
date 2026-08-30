@@ -35,7 +35,7 @@ A brief is **one step, not one subsystem**. "Build fog of war" can finish. "Fix 
 
 ```
 cd sim
-node arx.cjs regress --fast     114 checks · the gate
+node arx.cjs regress --fast     112 checks · the gate
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node audit_cross.cjs            does one step's work reach the next, or just sit there
@@ -65,8 +65,30 @@ Every one of these cost real time. They go at the top of every brief.
 ## Where things stand
 
 The wound pool is in and a firefight has a middle. Withdrawals are fought rather than declared,
-for the first time in the project's history. Two viewers draw the ground and the grid. Losses sit
-at 50.4% against a ruling of about a quarter.
+for the first time in the project's history. Two viewers draw the ground and the grid. Losses
+per Divide sit well above the ruling of about a quarter — the last two figures recorded were
+42.6% and 50.4% at different points, and the number has not been re-measured recently because
+calibration stays deferred until every system is in. Recorded, not chased.
+
+**Since the last hub pass, a run of interface and economy work has landed** and is not yet
+reflected below the fold of this document's older sections:
+
+- **The squads screen is built.** All three things it was waiting on now exist: who stands with
+  whom (a drag-and-drop board, `plan.at`), who leads (per-squad, `plan.leaderOf`), and what they
+  carry (a shared detail panel with an equip picker, `plan.hand`). It came off the queue.
+- **The Roster and Hiring pages were unified** into one contract-management surface: a sortable
+  ledger keyed on salary, the origin of every hand made visible (Natural-Born / Mercenary /
+  Conscript, the rename of "prisoner" for who they are now), and the signing windows folded into
+  a shared rail that shows the market when idle and a hand's detail when one is inspected.
+- **Training was rebuilt into a focus grid.** The old two-dropdown "aim the drill" menu is gone;
+  focus is now painted onto stats at four breadth tiers that stack — corner, column, row, cell —
+  under an inverse-breadth rule (the narrower the target, the more each pip is worth), sworn by
+  `probe_train.cjs`.
+- **"Work the signing window" was removed entirely.** It was one write and zero reads in its
+  original form, and a bidding-advantage wrinkle layered on later that nobody had asked for.
+  Signing now runs on need alone; two regress checks retired with it, which is why the gate went
+  from 114 to 112.
+- **The palette was rethemed** to a night-ops cyan-and-magenta scheme, CSS only.
 
 Branches queued, in order:
 
@@ -75,5 +97,7 @@ Branches queued, in order:
    except to improve a firing position, and once you are behind cover there is not a better one.
 2. **Destructible cover.** The other half of that answer: bunkering stops being safe when a wall
    can be taken away. Gives the inert `area` tag its job.
-3. **The squads screen.** Needs three things built underneath it that do not exist: who stands
-   with whom, who leads, and what they carry.
+3. **Survey and Court reworks.** Both verbs get their own grid-style section matching Training,
+   with focus split across all four verbs. Survey aims to turn an invisible intel buff into
+   information gameplay; Court lets the player choose a courting target. These overlap the
+   deferred recruitment-market depth (gradual scouting, readable rival interest).

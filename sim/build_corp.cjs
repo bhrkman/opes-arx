@@ -55,7 +55,13 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       'G.plan', 'persist.groups', 'captainId',
                       /* time: the year opened, months stepped, and the calendar's own
                          signing windows bid into and closed */
-                      'beginSeason(', 'stepMonth(', 'lotFor(', 'placeBid(', 'monthOptions(',
+                      'beginSeason(', 'stepMonth(', 'lotFor(', 'placeBid(',
+                      /* the focus chassis: tracks, the cap, and the corp's own prefill */
+                      'monthTracks(', 'chooseFocus(', 'data-focus',
+                      /* the training menu: the drill can be aimed */
+                      'trainTarget', 'SKILL_FAMILIES',
+                      /* boost: pay to double the focus on a track */
+                      '_boost', 'BOOST_PER_POINT', 'data-boost',
                       /* the ground and the firefight, tied: the season closed to the drop,
                          the Divide stepped window to window, encounters handed over with
                          their frames, and the season settling its own contest */
@@ -68,6 +74,8 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       'dividend.watch', 'data-watchl',
                       /* the manager's hand: named kit drawn from the rack, honored whole */
                       'per.hand', 'handRefused', 'bySlot(',
+                      /* the squads board: drag-drop, paper-doll, equip picker */
+                      'data-slot', 'openPicker', 'leaderOf', 'renameSquad',
                       /* the shell: menu, founding, the blank-slate house, and saves that
                          continue identically through the engine's own career serializer */
                       'saveCareer(', 'loadCareer(', 'blankSlate', 'data-oa', 'opesarx_saves'];

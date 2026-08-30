@@ -43,20 +43,66 @@
        evidence of anything; the structure is what is being changed. */
     PREP_MONTHS: 11,             // [S] M1-M11. M12 is the Divide.
     PREP_MONTH_DAYS: 30,         // [S] healing and recovery run at this rate, per month
-    PREP_AP: 3,                  // [H] action points a corp gets each month
-    AP_TREAT: 2,                 // [H] surgery and rehab for the worst-hurt
-    AP_TRAIN: 2,                 // [H] a drill block, moving the mind toward its ceiling
-    AP_SCOUT: 1,                 // [H] read the planet before the lock
-    AP_COURT: 1,                 // [H] what getting in front of a backer costs a month
-    AP_RECRUIT: 2,               // [H] work a signing window
+    /* RULED — THE FOCUS SYSTEM replaces action points. Everything happens every month;
+       focus STRENGTHENS it. Eight points, at most three on any one track, and the
+       calibration that kept the fleet's year recognizable: THREE FOCUS EQUALS ONE OLD
+       ACT, so effects scale linearly by thirds — except the signing window, where every
+       point is another pass over the lot (an act of attention, not a scaled block). */
+    FOCUS_POINTS: 8,             // [H] focus a corp gets each month
+    FOCUS_CAP: 3,                // [H] the most focus any one track accepts
+    TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
+                                 //     drill block toward their ceiling monthly, unfocused —
+                                 //     nobody stagnates because a manager looked away. Kept
+                                 //     small and green-gated so S-T5 still holds: potential
+                                 //     is a thing most people never reach.
+    /* RULED — STRESS SOURCES AND RELIEF (dials provisional, probe_years is the referee):
+       drastically during Divides (the divide's own event table, now persistent on bodies),
+       moderately under focused training, minimally under the baseline drift, relieved by
+       rest — which is for EVERYONE, not just the wounded. STRESS_CAP mirrors divide.js
+       STRESS_MAX: one store, one ceiling. */
+    STRESS_CAP: 100,             // [S] the store's ceiling, everywhere
+    REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
+    REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
+    TRAIN_STRESS_FOCUS: 4,       // [C] drilling hard wears on the drilled, scaled by thirds
+    /* RULED — BOOST. The verbs cost nothing inherent (they never did: the census at step e
+       confirmed every prep credit is a purchase). Instead a manager may pay to DOUBLE the
+       value of the focus already spent on a track. Priced PER FOCUS POINT boosted, not flat,
+       so a three-point hammer costs three times a one-point tap — wealth cannot buy a sixth
+       effective point cheaply. The purchase tracks are their own economy and take no boost:
+       you cannot pay to sign two of one recruit. */
+    BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
+    TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
+    DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
     TREAT_DAYS: 45,              // [C] days of healing bought by one treatment block
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
+    /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
+       pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four
+       tiers STACK: a fighter's stat grows by the sum of every tier that covers it. Ruled by the
+       readout the grid shows — marginal < solid < rounded < sharp — and sworn by probe_train. */
+    TRAIN_W_ALL:  0.30,          // corner: whole roster, every stat — the thinnest spread
+    TRAIN_W_COL:  0.80,          // a column: one stat across the roster — solid, shared
+    TRAIN_W_ROW:  1.20,          // a row: one hand, all stats — a rounded push
+    TRAIN_W_CELL: 2.50,          // a cell: one hand, one stat — the scalpel
     /* [H] `[OPEN-S2]` — how hard each lock lean pulls against raw quality */
     LOCK_PROSPECT_W: 0.9,
     LOCK_RESTED_W: 2.5,
     TRAIN_GREEN_GAP: 20,         // [S] (×10 scale) a drill block only reaches people this far off their
-                                 //     ceiling — the same population chooseActions counts
-    SCOUT_INTEL: 0.12,           // [C] preparedness each scouting block is worth at the drop
+                                 //     ceiling — the same population chooseFocus counts
+    /* --- GATHER INTEL (the Survey rework). Focus painted onto a target — the planet or a
+       rival — sends scouts, who fill a dossier of rows. A pip grants INTEL_PER_PIP points
+       (INTEL_PER_PIP_BOOST if the effort is boosted); points are spent blank-and-thinnest
+       first, each depth level of a row costing INTEL_LEVEL_COST. A rival's rows decay a level
+       each year and read by freshness; the planet's rows never age within a year, read by
+       completeness, and reset when the next planet is announced. Payoff is preparedness at the
+       Divide: a rival sheet buys readiness against THAT house scaled by freshness; the planet
+       sheet buys readiness on the ground scaled by completeness. Informational-only by ruling:
+       intel never reaches into resolution, only into what the manager can see and decide. */
+    INTEL_PER_PIP: 2,            // [C] LEVELS one pip of focus buys
+    INTEL_PER_PIP_BOOST: 3,      // [C] levels a boosted pip buys — breadth, not quality
+    INTEL_MAX_DEPTH: 3,          // [H] blank/sparse/moderate/full
+    INTEL_RIVAL_PREP: 0.20,      // [C] readiness a full, fresh rival sheet buys against them
+    INTEL_PLANET_PREP: 0.15,     // [C] readiness a complete planet sheet buys on the ground
+    INTEL_DECAY_YEARS: 3,        // [H] years a rival row takes to fade from full to blank
     /* [H] months between sending a survey party out and hearing back. The number is not the
        point and nobody has played with it yet; what it buys is that WHEN you spend a point is
        a different question from whether you spend it. A survey sent too late to report before
@@ -87,9 +133,6 @@
        which is what the cap is for. Not fitted to anything — nobody has played a full career
        yet — but the SHAPE is the point: preparation shows up as money at the moment of the
        signing, and a manager who ignored the window still gets to bid. */
-    WINDOW_EDGE: 0.12,
-    WINDOW_EDGE_CAP: 0.30,
-    WINDOW_QUEUE_CAP: 3,         // [H] places you can jump at the Bastille by doing the legwork
     MERC_FAME_SPAN: 120,      // [C] the span of fleet standing a free agent reads across, from
                               //     loathed at -120 to famous at +120. Not fitted to anything:
                               //     it exists so the term VARIES, which it never did.
@@ -325,6 +368,9 @@
                           (c.calledWithdrawal ? CONST.DIVIDEND_WITHDRAWAL_POINTS : 0);
       const scoreA = points(casB), scoreB = points(casA);   /* what each side did to the other */
       const winner = scoreA === scoreB ? null : (scoreA > scoreB ? A : B);
+      for (const f of bodiesA.concat(bodiesB))
+        if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP,
+          (f.condition.stress || 0) + CONST.DIVIDEND_STRESS);
       (tally.watch = tally.watch || []).push({
         corps: [A.id, B.id], sides: [sA, sB], res: res,
         score: [scoreA, scoreB], winnerId: winner ? winner.id : null });
@@ -463,12 +509,9 @@
 
         if (alive.length >= CONST.ROSTER_TARGET) continue;           /* full, not interested */
         if (budget < ask) continue;                                  /* cannot cover the year */
-        /* a corp short of bodies bids harder */
+        /* a corp short of bodies bids harder — need is the only lever now */
         const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
-        /* and a corp that WORKED THE WINDOW bids like somebody who has read the room */
-        const worked = ((c._worked || {})[kind] || 0);
-        const edge = Math.min(CONST.WINDOW_EDGE_CAP, worked * CONST.WINDOW_EDGE);
-        offers.push({ corp: c, bid: Math.round(ask * (1 + hunger * CONST.MERC_HUNGER + edge)) });
+        offers.push({ corp: c, bid: Math.round(ask * (1 + hunger * CONST.MERC_HUNGER)) });
       }
       if (!offers.length) { tally.unbid++; continue; }
       tally.bids += offers.length;
@@ -529,10 +572,9 @@
          because the shared markets are scarcity-capped while departures are not. The
          tryouts are the one supply a corp owns outright — its own ship — so a house bled
          below the floor calls up more of its own, to two above the floor, budget willing. */
-      const worked = ((corp._worked || {}).tryouts || 0);
       const aliveNow = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
       const shortfall = Math.max(0, (CONST.DROP_MIN + 2) - aliveNow);
-      const depth = 2 + Math.min(2, worked) + shortfall;
+      const depth = 2 + shortfall;
       const want = marked
         ? lot.filter(f => marked.indexOf(f.id) >= 0)
         : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
@@ -587,8 +629,7 @@
        player's, got nothing whatever it did. "The shortest rosters get first refusal" is a rule
        about who is hungriest AT THAT MOMENT, and signing somebody makes you less hungry. */
     const queue = () => ids.slice().sort((a, b) => {
-      const n = c => corps[c].roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length
-                   - Math.min(CONST.WINDOW_QUEUE_CAP, ((corps[c]._worked || {}).bastille || 0));
+      const n = c => corps[c].roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
       return n(a) - n(b);
     });
     for (const f of lot) {
@@ -646,7 +687,7 @@
    * A turn is a budget. Five action points against verbs that cost two, two, one and two means
    * a corp cannot treat its wounded, drill its green and scout the planet in the same two
    * months — and THAT is the management game. The AI spends them by need through
-   * `chooseActions`, which is the same function a human manager's interface would call, per S1.
+   * `chooseFocus`, which is the same function a human manager's interface would call, per S1.
    */
   /* The eleven months. `signing` is the window open that month; `event` is the fleet-wide thing
      that happens at the END of it, after every corp has finished spending.
@@ -656,17 +697,17 @@
      than a spend, but the month still carries a budget: patching somebody up in the last four
      weeks so they can stand at the drop is a real call, and it was not available before. */
   const MONTHS = {
-    1:  { name: 'season open',      signing: null,       event: null },
-    2:  { name: 'season open',      signing: null,       event: null },
-    3:  { name: 'Nattie tryouts',   signing: 'tryouts',  event: null },
-    4:  { name: 'Nattie tryouts',   signing: 'tryouts',  event: 'tryouts' },
-    5:  { name: 'survey drip',      signing: null,       event: null },
-    6:  { name: 'the Dividend',     signing: null,       event: 'dividend' },
-    7:  { name: 'Bastille run-up',  signing: 'bastille', event: null },
-    8:  { name: 'Bastille intake',  signing: 'bastille', event: 'bastille' },
-    9:  { name: 'merc run-up',      signing: 'mercs',    event: null },
-    10: { name: 'merc deadline',    signing: 'mercs',    event: 'mercs' },
-    11: { name: 'the lock',         signing: null,       event: null }
+    1:  { name: 'Season Open',      signing: null,       event: null },
+    2:  { name: 'Season Open',      signing: null,       event: null },
+    3:  { name: 'Nattie Tryouts',   signing: 'tryouts',  event: null },
+    4:  { name: 'Nattie Tryouts',   signing: 'tryouts',  event: 'tryouts' },
+    5:  { name: 'Survey Drip',      signing: null,       event: null },
+    6:  { name: 'The Dividend',     signing: null,       event: 'dividend' },
+    7:  { name: 'Bastille Run-Up',  signing: 'bastille', event: null },
+    8:  { name: 'Bastille Intake',  signing: 'bastille', event: 'bastille' },
+    9:  { name: 'Merc Run-Up',      signing: 'mercs',    event: null },
+    10: { name: 'Merc Deadline',    signing: 'mercs',    event: 'mercs' },
+    11: { name: 'The Lock',         signing: null,       event: null }
   };
 
   /**
@@ -674,41 +715,42 @@
    * capped by what the turn's window allows — you cannot sign in a month with no window open.
    * Returns the verbs in the order they will be paid for.
    */
-  function chooseActions(corp, month, ap) {
-    const acts = [];
+  function chooseFocus(corp, month) {
+    /* the same need signals the old chooser read, now sizing an allocation: the heaviest
+       needs take the cap, the rest take what is left. SCOUTING IS NOT A FILLER (ruled):
+       its weight is the board's interest, so an indifferent board still buys no surveys. */
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
       const cap = typeof f.potential === 'number' ? f.potential : null;
       return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 20);
     });
-    let left = ap;
-    const take = (kind, cost, weight) => {
-      if (left >= cost && weight > 0) { acts.push({ kind: kind, cost: cost, weight: weight }); left -= cost; return true; }
-      return false;
-    };
-    /* the wounded first, and repeatedly — a corp with half its people hurt spends the year on it */
-    while (hurt.length > acts.filter(a => a.kind === 'treat').length * 3 &&
-           take('treat', CONST.AP_TREAT, hurt.length)) { /* spends until it cannot */ }
-    /* a signing window is only open in the months DESIGN.md §4 says it is */
-    const win = MONTHS[month];
-    if (win && win.signing && alive.length < CONST.ROSTER_TARGET) {
-      take('recruit', CONST.AP_RECRUIT, CONST.ROSTER_TARGET - alive.length);
-    }
-    take('train', CONST.AP_TRAIN, green.length);
-    /* SCOUTING IS NOT A FILLER. This took `scout` on a fixed weight of 1, which is always
-       greater than zero — so with a five-point budget and costs of 2, 2 and 1 it fired in every
-       turn of every season, and every corp in the fleet arrived at the planet with an identical
-       0.60 of intel. A verb that always fires is not a choice, and a value identical across the
-       fleet differentiates nobody.
-       A corp scouts a rock its BOARD CARES ABOUT — the same interest signal that sizes the drop
-       (S3). A board indifferent to this planet is not paying for surveys of it. */
     const interest = ((corp.rep || {}).goal || {}).interest;
-    take('scout', CONST.AP_SCOUT, interest == null ? 0.5 : interest - CONST.SCOUT_APATHY);
-    /* a corp with nobody backing it wants a backer more than one already carrying two */
-    take('court', CONST.AP_COURT,
-         0.55 - 0.2 * (((corp.sponsors || {}).contracts || []).length));
-    return acts;
+    const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
+    const win = MONTHS[month];
+    const stressed = alive.filter(f => ((f.condition && f.condition.stress) || 0) >= 50).length;
+    const weights = [
+      ['rest', hurt.length + stressed * 0.3],
+      ['train', green.length * 0.5],
+      ['scout', interest == null ? 0.5 : interest - CONST.SCOUT_APATHY],
+      ['court', 0.55 - 0.2 * (((corp.sponsors || {}).contracts || []).length)]
+    ].filter(w => w[1] > 0 && open[w[0]]).sort((a, b) => b[1] - a[1]);
+    const focus = {};
+    let left = CONST.FOCUS_POINTS;
+    for (const [kind] of weights) {
+      if (!left) break;
+      const f = Math.min(CONST.FOCUS_CAP, left);
+      focus[kind] = f; left -= f;
+    }
+    /* COURTING PICKS A HOUSE. If the AI spent focus on courting, aim it at the sponsor it fits
+       best (weighted by any standing regard) — the same targeted courting a person paints on the
+       desk, so the fleet and the player build sponsor standing through one path. */
+    if (focus.court) {
+      const best = SPON.prospects(corp)[0];
+      if (best) focus.courtTarget = { [best.house]: focus.court };
+      else delete focus.court;
+    }
+    return focus;
   }
 
   /**
@@ -722,7 +764,7 @@
    * hurt to treat — never for reasons of taste. Cost is checked by the caller against what is
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
-  function monthOptions(corp, month) {
+  function monthTracks(corp, month) {
     const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
@@ -732,52 +774,38 @@
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     return [
-      { kind: 'treat', cost: CONST.AP_TREAT, name: 'treat the wounded',
-        available: hurt.length > 0, subject: hurt.length,
-        why: hurt.length ? hurt.length + ' carrying an injury' : 'nobody is hurt' },
-      { kind: 'train', cost: CONST.AP_TRAIN, name: 'drill the green',
+      { kind: 'rest', cap: CONST.FOCUS_CAP, name: 'Rest and Recovery',
+        available: true, subject: hurt.length,
+        why: hurt.length + ' Carrying an Injury \u00b7 Mean Stress ' +
+             Math.round(alive.reduce(function (a, f) {
+               return a + ((f.condition && f.condition.stress) || 0); }, 0) /
+               Math.max(1, alive.length)) },
+      { kind: 'train', cap: CONST.FOCUS_CAP, name: 'Drill the Green',
         available: green.length > 0, subject: green.length,
-        why: green.length ? green.length + ' short of their ceiling' : 'nobody has room to grow' },
+        why: green.length ? green.length + ' Short of Their Ceiling' : 'Nobody Has Room to Grow' },
       /* A survey party sent this late cannot get back before the drop, so the verb is shut —
          a fact about the world, which is the only thing `available` is allowed to mean. The AI
          reads this same list, so it stops buying reports that arrive after the lock rather than
          having to be told separately not to; one path, one set of reasons. */
-      { kind: 'scout', cost: CONST.AP_SCOUT, name: 'survey the planet',
+      { kind: 'scout', cap: CONST.FOCUS_CAP, name: 'Gather Intel',
         available: month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS,
-        subject: corp._scouted || 0,
+        subject: 0,
         why: month + CONST.SURVEY_MONTHS > CONST.PREP_MONTHS
-               ? 'a party sent now could not report before the lock'
-               : 'reports in ' + CONST.SURVEY_MONTHS + ' months' +
-                 (interest == null ? '' : ' \u00b7 board interest ' + interest.toFixed(2)) },
-      /* COURT A SPONSOR. The allocation verb the deferral asked for, and the second user of
-         scheduled outcomes: a house courted this month thinks better of you two months later,
-         so it pays into NEXT season's offers rather than this one's. That is deliberate — a
-         verb that improved the offer sitting in front of you would just be a discount button. */
-      { kind: 'court', cost: CONST.AP_COURT, name: 'court a sponsor',
-        /* Shut for two reasons, and both are facts about the world rather than preferences.
-           An exclusive contract means nobody else may talk to you — the cost of exclusivity
-           made visible: the money is better and the verb goes away. And a fixer sent out this
-           late cannot get in front of anybody before the year turns, exactly as a survey party
-           sent after M8 cannot report before the lock. That second clause was missing while the
-           delay itself was NaN, so no comparison involving it could ever be true; with the
-           delay real, the verb was offered in M10 and M11 and bought nothing. `schedule`
-           already refused it — silently, and after the point had been spent. */
-        available: !((corp.sponsors || {}).contracts || []).some(c => c.exclusive)
-                && month + SPON.CONST.COURT_MONTHS <= CONST.PREP_MONTHS,
+               ? 'Scouts Sent Now Cannot Report Before the Lock'
+               : 'Reports in ' + CONST.SURVEY_MONTHS + ' Months' +
+                 (interest == null ? '' : ' \u00b7 Board Interest ' + interest.toFixed(2)) },
+      /* COURT SPONSORS. Spend focus to court houses; each sponsor backs one OA a year and signs
+         the highest-standing courter at the lock, so courting builds toward THIS year's board.
+         Shut only when a fixer sent this late could not build any standing before the year turns
+         — a fact about the world, the only thing `available` is allowed to mean. */
+      { kind: 'court', cap: CONST.FOCUS_CAP, name: 'Court a Sponsor',
+        available: month + SPON.CONST.COURT_MONTHS <= CONST.PREP_MONTHS,
         subject: ((corp.sponsors || {}).contracts || []).length,
-        why: ((corp.sponsors || {}).contracts || []).some(c => c.exclusive)
-               ? 'your exclusive backer locks out every other banner'
-               : month + SPON.CONST.COURT_MONTHS > CONST.PREP_MONTHS
-               ? 'a fixer sent now could not get in front of anybody before the year turns'
+        why: month + SPON.CONST.COURT_MONTHS > CONST.PREP_MONTHS
+               ? 'Sponsors Commit at the Lock \\u2014 Too Late to Build Standing Now'
                : (((corp.sponsors || {}).contracts || []).length
-                   ? 'backed by ' + corp.sponsors.contracts.map(c => c.house).join(', ')
-                   : 'nobody is backing you') },
-      { kind: 'recruit', cost: CONST.AP_RECRUIT, name: 'work the ' + (win.signing || 'signing') + ' window',
-        available: !!win.signing && alive.length < CONST.ROSTER_TARGET,
-        subject: CONST.ROSTER_TARGET - alive.length,
-        why: !win.signing ? 'no window is open this month'
-             : alive.length >= CONST.ROSTER_TARGET ? 'the roster is already full'
-             : (CONST.ROSTER_TARGET - alive.length) + ' short of a full roster' }
+                   ? 'Backed by ' + corp.sponsors.contracts.map(c => c.house).join(', ')
+                   : 'Court a Backer for the Year') }
     ];
   }
 
@@ -786,16 +814,32 @@
    * is dropped rather than silently costing nothing, and what survives is returned in the order
    * asked for. A manager who spends nothing spends nothing; that is a legal month.
    */
-  function validateActions(corp, month, wanted, ap) {
-    const opts = {}; for (const o of monthOptions(corp, month)) opts[o.kind] = o;
-    const acts = []; let left = ap == null ? CONST.PREP_AP : ap;
-    for (const kind of (wanted || [])) {
-      const o = opts[kind];
-      if (!o || !o.available || left < o.cost) continue;
-      acts.push({ kind: kind, cost: o.cost, weight: 1 });
-      left -= o.cost;
+  function validateFocus(corp, month, wanted) {
+    /* ONE PATH: a human's allocation passes the same availability and the same budget the
+       AI obeys. Unknown and shut tracks are dropped; each track clamps to the cap; the
+       total clamps to the budget in the order given. */
+    const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
+    const focus = {};
+    let left = CONST.FOCUS_POINTS;
+    for (const kind in (wanted || {})) {
+      if (kind === '_boost' || kind === 'trainTarget') continue;
+      if (!open[kind] || !left) continue;
+      const f = Math.min(CONST.FOCUS_CAP, Math.max(0, Math.floor(wanted[kind] || 0)), left);
+      if (f) { focus[kind] = f; left -= f; }
     }
-    return acts;
+    /* a boost only survives for a track that actually took focus — no paying to double
+       an effort you did not make */
+    if (wanted && wanted._boost) {
+      focus._boost = {};
+      for (const k in wanted._boost)
+        if (focus[k]) focus._boost[k] = true;
+    }
+    if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
+    /* courting's per-house map is a rider like trainTarget — carried through so the player's
+       painted houses reach the spend, and clamped to nothing exotic (it is read as data). */
+    if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
+      focus.courtTarget = wanted.courtTarget;
+    return focus;
   }
 
   /* --------------------------------------------------------- consequences that land later */
@@ -827,7 +871,7 @@
   }
 
   /** Everything due this month, applied. Returns what landed, so an interface can say so. */
-  function resolvePending(corp, month, tally) {
+  function resolvePending(corp, month, tally, season, CORPS) {
     if (!corp._pending || !corp._pending.length) return [];
     const landed = [], keep = [];
     for (const item of corp._pending) {
@@ -835,14 +879,22 @@
       /* DISPATCH BY STRING, not by stored function — see above. An unknown kind is dropped and
          reported rather than thrown: a save from a build that knew a verb this one does not
          should degrade, not die. */
-      if (item.kind === 'survey') {
-        corp._scouted = (corp._scouted || 0) + (item.payload.intel || 0);
-        landed.push({ kind: 'survey', text: 'the survey party reported back' });
+      if (item.kind === 'intel') {
+        /* the scouts report. Spend the points onto the dossier, blank-and-thinnest first; for a
+           rival, freeze a characterized reading of exactly the rows touched, stamped this month,
+           so it is honestly dated and never silently updates. */
+        const intel = ensureIntel(corp, season || 0);
+        const p = item.payload;
+        const absMonth = (season || 0) * 100 + month;   /* absolute stamp: freshness decodes season from /100 */
+        if (p.target === 'rival' && p.oaId && CORPS && CORPS[p.oaId]) {
+          const them = CORPS[p.oaId];
+          gatherIntel(corp, 'rival', p.oaId, p.levels || 0, absMonth,
+                      (rowKey, depth) => snapshotRival(them, rowKey, depth));
+        } else {
+          gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
+        }
+        landed.push({ kind: 'intel', text: 'the scouts reported back' });
         if (tally) tally.surveysLanded = (tally.surveysLanded || 0) + 1;
-      } else if (item.kind === 'court') {
-        SPON.court(corp, item.payload.house);
-        landed.push({ kind: 'court', text: 'your fixer got in front of ' + item.payload.house });
-        if (tally) tally.courtLanded = (tally.courtLanded || 0) + 1;
       } else {
         landed.push({ kind: item.kind, text: 'an outcome this build does not know arrived', unknown: true });
       }
@@ -851,14 +903,168 @@
     return landed;
   }
 
-  /** Run one month for one corp. `wanted` is a human's list; absent it, the corp decides. */
-  function prepMonth(rng, corp, month, season, tally, wanted, landedOut) {
+  /* ======================= GATHER INTEL — the dossier model =======================
+     A corp keeps `_intel = { season, planet:{rows}, rivals:{ oaId:{rows} } }`. Every row is
+     { depth, gathered, snapshot? } — depth 0..3, `gathered` the absolute month it was last
+     filled (rival age), `snapshot` the frozen characterized reading (rivals only; the planet
+     is read live because it does not change). The row LISTS below are the schema; the reading
+     functions that turn a row into words live on the page and the divide, not here — this
+     module owns the economy (points in, depth out) and the two aging axes. */
+  const INTEL_RIVAL_ROWS = ['roster', 'finances', 'kit', 'training', 'moves', 'board'];
+  /* the planet's fat row costs more to fill; everything else is an ordinary two-per-level row */
+  const INTEL_PLANET_ROWS = ['archetype', 'prize', 'demand', 'terrain', 'hazards', 'supply', 'sectors'];
+  const INTEL_FAT_ROWS = { sectors: 2 };   /* sectors costs 2 level-units per level — 6 to fill,
+                                              making the planet a 24-level sheet (6×3 + 6) */
+
+  function ensureIntel(corp, season) {
+    if (!corp._intel || corp._intel.season !== season) {
+      /* a new planet each year: the planet sheet resets, rival sheets persist and decay */
+      const prior = corp._intel && corp._intel.rivals ? corp._intel.rivals : {};
+      corp._intel = { season: season, planet: { rows: {} }, rivals: prior };
+    }
+    return corp._intel;
+  }
+  function intelRow(sheet, key) {
+    if (!sheet.rows[key]) sheet.rows[key] = { depth: 0, gathered: 0 };
+    return sheet.rows[key];
+  }
+  /* the level-units it costs to raise a row one depth. Ordinary rows cost 1; the planet's fat
+     sectors row costs 2, so filling it eats 6 of a pip's levels rather than 3. */
+  function levelCost(target, key) {
+    return target === 'planet' ? (INTEL_FAT_ROWS[key] || 1) : 1;
+  }
+
+  /* SPEND LEVELS, blank-and-thinnest first. A pip grants INTEL_PER_PIP levels; each level
+     raises the thinnest affordable row one depth. Deterministic order among equally-thin rows
+     (schema order) so the gate can read it. Returns the rows touched for snapshot freezing. */
+  function gatherIntel(corp, target, oaId, levels, month, snapFor) {
+    const intel = corp._intel;
+    const sheet = target === 'planet' ? intel.planet
+                                      : (intel.rivals[oaId] = intel.rivals[oaId] || { rows: {} });
+    const rowKeys = target === 'planet' ? INTEL_PLANET_ROWS : INTEL_RIVAL_ROWS;
+    const touched = {};
+    let left = levels, guard = 0;
+    while (left > 0 && guard++ < 100) {
+      let pick = null, pickDepth = 99;
+      for (const k of rowKeys) {
+        const r = intelRow(sheet, k);
+        if (r.depth >= CONST.INTEL_MAX_DEPTH) continue;
+        if (levelCost(target, k) > left) continue;
+        if (r.depth < pickDepth) { pick = k; pickDepth = r.depth; }
+      }
+      if (!pick) break;
+      const r = intelRow(sheet, pick);
+      r.depth += 1;
+      r.gathered = month;
+      left -= levelCost(target, pick);
+      touched[pick] = r.depth;
+      if (target === 'rival' && snapFor) r.snapshot = snapFor(pick, r.depth);
+    }
+    return touched;
+  }
+
+  /* freshness of a rival row: 1.0 at the month gathered, falling to 0 over INTEL_DECAY_YEARS.
+     Drives both how the row reads (page's problem) and the preparedness it still buys. */
+  function rowFreshness(row, season) {
+    if (!row || !row.depth) return 0;
+    const yearsOld = Math.max(0, season - Math.floor((row.gathered || 0) / 100));
+    return Math.max(0, 1 - yearsOld / CONST.INTEL_DECAY_YEARS);
+  }
+
+  /* the preparedness a RIVAL sheet buys against that house: depth × freshness, averaged over
+     the rows, scaled to the cap. A blank or wholly-stale sheet buys nothing. */
+  function rivalPreparedness(corp, oaId, season) {
+    const sheet = corp._intel && corp._intel.rivals && corp._intel.rivals[oaId];
+    if (!sheet) return 0;
+    let sum = 0;
+    for (const k of INTEL_RIVAL_ROWS) {
+      const r = sheet.rows[k];
+      if (r && r.depth) sum += (r.depth / CONST.INTEL_MAX_DEPTH) * rowFreshness(r, season);
+    }
+    return CONST.INTEL_RIVAL_PREP * (sum / INTEL_RIVAL_ROWS.length);
+  }
+
+  /* the preparedness the PLANET sheet buys on the ground: pure completeness, no aging. */
+  function planetPreparedness(corp) {
+    const sheet = corp._intel && corp._intel.planet;
+    if (!sheet) return 0;
+    let filled = 0, total = 0;
+    for (const k of INTEL_PLANET_ROWS) {
+      total += CONST.INTEL_MAX_DEPTH;
+      const r = sheet.rows[k];
+      if (r) filled += r.depth;
+    }
+    return total ? CONST.INTEL_PLANET_PREP * (filled / total) : 0;
+  }
+
+  /* CHARACTERIZE a rival's live state into a frozen reading for one row, at a given depth.
+     Depth sharpens the read: 1 = a vague characterization, 3 = specifics. Read from real
+     fields — roster, treasury, armoury, the training grid's focus, recent signings, the board
+     demand — so the dossier is honest. Frozen by the caller and stamped with the month. */
+  function snapshotRival(them, rowKey, depth) {
+    const nf = x => Math.round(x || 0).toLocaleString('en-US');
+    const alive = (them.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const acct = them.account || {};
+    const vague = depth <= 1, full = depth >= 3;
+    switch (rowKey) {
+      case 'roster': {
+        const n = alive.length;
+        if (vague) return n >= 20 ? 'A deep roster' : n >= 14 ? 'A working roster' : 'A thin roster';
+        const mix = { nattie: 0, mercenary: 0, prisoner: 0 };
+        alive.forEach(f => { const k = (f.contract || {}).kind; if (mix[k] != null) mix[k]++; });
+        const label = { nattie: 'Natural-Born', mercenary: 'Mercenary', prisoner: 'Conscript' };
+        const parts = Object.keys(mix).filter(k => mix[k])
+          .sort((a, b) => mix[b] - mix[a]).map(k => mix[k] + ' ' + label[k]);
+        return n + ' hands' + (full ? ' \u00b7 ' + parts.join(', ') : ' \u00b7 mostly ' + (parts[0] || '\u2014'));
+      }
+      case 'finances': {
+        const t = acct.treasury || 0;
+        if (vague) return t >= 150000 ? 'Cash-rich' : t >= 50000 ? 'Solvent' : 'Stretched thin';
+        const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
+        return full ? 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) + ' \u00b7 grant ' + nf(acct.grant || 0)
+                    : 'Treasury ' + nf(t) + ', season wage ' + nf(wage);
+      }
+      case 'kit': {
+        const arm = them.armoury || {};
+        const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
+        if (vague) return held >= 20 ? 'Well-stocked armoury' : held ? 'A modest armoury' : 'Bare shelves';
+        return full ? held + ' pieces in the armoury' : 'Roughly ' + (held >= 20 ? 'a full' : 'a partial') + ' armoury';
+      }
+      case 'training': {
+        const t = them.plan && them.plan.trainFocus;
+        if (!t) return vague ? 'Drilling unknown' : 'No drilling seen';
+        const cols = Object.keys(t.col || {});
+        if (vague) return cols.length ? 'Drilling a discipline hard' : 'Drilling broadly';
+        return full && cols.length ? 'Drilling ' + cols.join(', ') + ' across the roster'
+                                   : (cols[0] ? 'Focused on ' + cols[0] : 'Spread thin across the roster');
+      }
+      case 'moves': {
+        const signed = (them._recruit && them._recruit.signed) || 0;
+        if (vague) return signed ? 'Active in the windows' : 'Quiet in the windows';
+        return full ? signed + ' signed recently \u00b7 ' +
+                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting')
+                    : signed + ' signed of late';
+      }
+      case 'board': {
+        const goal = (them.rep || {}).goal || {};
+        if (vague) return 'Their board wants a finish';
+        return full ? 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
+                      (goal.interest != null ? goal.interest.toFixed(2) : '\u2014')
+                    : 'Board wants ' + (goal.text || 'a strong Divide');
+      }
+    }
+    return '\u2014';
+  }
+
+
+  function prepMonth(rng, corp, month, season, tally, wanted, landedOut, corps) {
     const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
     /* --- time passes whether or not anybody spends anything --- */
     let mended = 0;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE);
       f.condition.health = Math.min(100, (f.condition.health || 0) + 30);
       if (f.condition.morale != null) f.condition.morale = Math.min(100, f.condition.morale + 3);
       const inj = f.condition.injuries || [];
@@ -873,103 +1079,168 @@
       }
     }
     tally.mended += mended;
+    /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
+       block toward their ceiling whether or not anybody watches. Green-gated like the
+       drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
+    for (const f of corp.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      const cap = typeof f.potential === 'number' ? f.potential : null;
+      if (cap == null) continue;
+      let drifted = false;
+      for (const k of CONST.MIND)
+        if (f.stats[k] < cap - CONST.TRAIN_GREEN_GAP) {
+          f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN * CONST.TRAIN_BASELINE);
+          drifted = true;
+        }
+      if (drifted && f.condition)
+        f.condition.stress = Math.min(CONST.STRESS_CAP,
+                                      (f.condition.stress || 0) + CONST.TRAIN_STRESS_BASE);
+    }
 
     /* --- and then the corp spends what it has --- */
     /* WHAT THE LAST FEW MONTHS BOUGHT, before anybody spends this one. */
     corp._month = month;
-    const landed = resolvePending(corp, month, tally);
+    const landed = resolvePending(corp, month, tally, season, corps);
     if (landedOut) for (const l of landed) landedOut.push(l);
 
     /* ONE PATH. A human's list is filtered by the same availability and the same budget the AI
        obeys, and then both arrive here as the same thing. S1 asks that the AI make its call
        through the function a human would use; this is the other half of that bargain. */
-    const acts = wanted ? validateActions(corp, month, wanted, CONST.PREP_AP)
-                        : chooseActions(corp, month, CONST.PREP_AP);
-    for (const a of acts) {
-      tally.ap += a.cost;
-      tally.acts[a.kind] = (tally.acts[a.kind] || 0) + 1;
-      if (a.kind === 'treat') {
-        /* the worst-hurt first: surgery buys days nobody else can */
-        const hurt = corp.roster.filter(f => f.condition && (f.condition.injuries || []).length)
-          .sort((x, y) => worstWound(y) - worstWound(x)).slice(0, 3);
-        for (const f of hurt) {
-          f.condition.injuries = (f.condition.injuries || []).filter(w => {
-            if (w.careerEnding || w.permanent) return true;
-            w.days_remaining -= CONST.TREAT_DAYS;
-            return w.days_remaining > 0;
-          });
-          if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
-          tally.treated++;
+    const focus = wanted ? validateFocus(corp, month, wanted)
+                         : chooseFocus(corp, month);
+    for (const kind in focus) {
+      if (kind === '_boost' || kind === 'trainTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
+      const fpts = focus[kind];
+      if (!fpts) continue;
+      /* BOOST rides the focus map as `_boost: { track: true }`. Where set on a non-purchase
+         track the effect doubles and the corp pays per point — billed HERE, once, against
+         the same treasury the AI obeys, and only if it can afford the whole boost (a
+         half-paid boost is the kind of split-state this project refuses). The window is a
+         purchase-adjacent attention verb and takes no boost. */
+      const boosts = (focus._boost) || {};
+      let mult = 1;
+      if (boosts[kind]) {
+        const bill = fpts * CONST.BOOST_PER_POINT;
+        if ((corp.account.treasury || 0) >= bill) {
+          LED.post(corp.account, 'expense', kind + ' boost', -bill);
+          mult = 2;
+          tally.boosted = (tally.boosted || 0) + fpts;
+          tally.boostSpend = (tally.boostSpend || 0) + bill;
+        }
+      }
+      const third = fpts / 3 * mult;     /* three focus = one old act, ruled; boost doubles it */
+      tally.focus += fpts;
+      tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
+      const a = { kind: kind };
+      if (a.kind === 'rest') {
+        /* RULED: rest is for EVERYONE. The wounded mend faster by thirds — every wounded
+           body, not the worst three — and everyone's stress comes down with them. */
+        for (const f of corp.roster) {
+          if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
+          f.condition.stress = Math.max(0, (f.condition.stress || 0) -
+                                           CONST.REST_STRESS_FOCUS * third);
+          if ((f.condition.injuries || []).length) {
+            f.condition.injuries = f.condition.injuries.filter(w => {
+              if (w.careerEnding || w.permanent) return true;
+              w.days_remaining -= CONST.TREAT_DAYS * third;
+              return w.days_remaining > 0;
+            });
+            if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+            tally.treated++;
+          }
         }
       } else if (a.kind === 'train') {
-        /* THE DRILL BLOCK IS FOR THE GREEN, and `chooseActions` picks it on that basis — it
-           counts people more than two points off their ceiling. The effect then applied to the
-           WHOLE ROSTER including veterans a hair under theirs, so five turns of drilling walked
-           48 of 181 people onto their ceiling and broke S-T5, which says potential is a thing
-           most people never reach. A verb has to do what it was chosen for; deciding on one
-           population and acting on another is how a target dies quietly. */
+        /* THE FOUR-TIER DRILL. Focus is painted onto stats at four breadth tiers that STACK:
+           the corner (all.every), a column (one stat, everyone), a row (one hand, all stats),
+           a cell (one hand, one stat). A fighter's stat grows by the SUM of every tier that
+           covers it, each tier weighted by the inverse-breadth rule — narrower pays more per
+           pip. Still green-gated against the ceiling: the last yards are never free (S-T5).
+           `mult` (the boost rider) still doubles the whole effort. */
+        const tgt = (wanted && wanted.trainTarget) || null;
+        const map = tgt && (tgt.all != null || tgt.col || tgt.row || tgt.cell)
+          ? { all: tgt.all || 0, col: tgt.col || {}, row: tgt.row || {}, cell: tgt.cell || {} }
+          : { all: fpts, col: {}, row: {}, cell: {} };   /* a bare train scalar = a corner paint */
+        const STATS = CONST.MIND.concat(CONST.BODY || ['grit', 'reflex']);
+        const isFam = id => CONST.MIND.indexOf(id) < 0 && (CONST.BODY || []).indexOf(id) < 0;
+        /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
+        const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
           const cap = typeof f.potential === 'number' ? f.potential : null;
           if (cap == null) continue;
-          for (const k of CONST.MIND) {
-            if (f.stats[k] < cap - CONST.TRAIN_GREEN_GAP) {
-              f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN); tally.trained++;
-            }
+          let drilled = false;
+          /* the stats this hand can be drilled on: the seven core stats, plus any weapon
+             family that appears as a cell target for this fighter (aim is a talent, untrained) */
+          const fams = {};
+          for (const key in map.cell) { const p = key.split(':');
+            if (p[0] === f.id && isFam(p[1])) fams[p[1]] = true; }
+          const targets = STATS.filter(k => k !== 'aim').concat(Object.keys(fams));
+          for (const k of targets) {
+            const fam = isFam(k);
+            const store = fam ? (f.skills = f.skills || {}) : f.stats;
+            const cur = store[k] != null ? store[k] : (fam ? f.stats.aim : null);
+            if (cur == null || cur >= cap - CONST.TRAIN_GREEN_GAP) continue;
+            /* stack every tier that covers this (fighter, stat) */
+            let gain = 0;
+            if (!fam) gain += w(map.all, CONST.TRAIN_W_ALL);
+            gain += w(map.col[k] || 0, CONST.TRAIN_W_COL);
+            if (!fam) gain += w(map.row[f.id] || 0, CONST.TRAIN_W_ROW);
+            gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
+            if (gain <= 0) continue;
+            store[k] = Math.min(cap, cur + gain);
+            tally.trained++;
+            drilled = true;
           }
+          if (drilled && f.condition)
+            f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) +
+                                          CONST.TRAIN_STRESS_FOCUS * third);
         }
       } else if (a.kind === 'scout') {
-        /* THE SURVEY REPORTS LATER. It used to land the instant it was bought, which made it
-           the safe thing to spend a spare point on and is half the reason a corp either
-           surveyed every month of the year or none of it. Sending a party out in M9 now buys
-           you nothing at the lock, and a party sent in M2 is intel you have before the
-           tryouts — the same point spent in two months is two different decisions. */
-        const item = schedule(corp, 'survey', CONST.SURVEY_MONTHS, { intel: CONST.SCOUT_INTEL });
-        if (item) tally.scouted++;
+        /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the ride
+           is a map, `wanted.intelTarget = { planet:pips, <oaId>:pips }`, and each painted
+           target schedules its own dossier gather carrying the levels its pips bought. It still
+           reports LATER: intel gathered in M2 is yours before the tryouts; scouts sent too late
+           to report before the lock buy nothing. Absent a map, a bare scout falls to the planet
+           with all its focus — the safe default. */
+        const perPip = (focus._boost && focus._boost.scout)
+          ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
+        const map = (wanted && wanted.intelTarget && typeof wanted.intelTarget === 'object'
+                     && !wanted.intelTarget.target)
+          ? wanted.intelTarget : { planet: fpts };   /* legacy/bare scout → all on the planet */
+        let anyScheduled = false;
+        for (const key in map) {
+          const pips = map[key] || 0;
+          if (pips <= 0) continue;
+          const isPlanet = key === 'planet';
+          const item = schedule(corp, 'intel', CONST.SURVEY_MONTHS,
+            { target: isPlanet ? 'planet' : 'rival', oaId: isPlanet ? null : key,
+              levels: pips * perPip });
+          if (item) anyScheduled = true;
+        }
+        if (anyScheduled) tally.scouted++;
         else tally.surveysTooLate = (tally.surveysTooLate || 0) + 1;
       } else if (a.kind === 'court') {
-        /* courted BLIND this month, landing on a named house in two — the fixer needs time to
-           get in front of somebody, and who they reach is the fixer's business */
-        const pool = (corp._fleet || []).filter(h => h !== corp.id);
-        const pick = pool.length ? pool[Math.floor(rng() * pool.length)] : null;
-        /* COURT_MONTHS lives in sponsors.js, beside the courting it paces, and is read from
-           its owner. It was read as `CONST.COURT_MONTHS` off THIS file's CONST, which has never
-           declared it — so the delay was `undefined`, `due` was NaN, and both comparisons NaN
-           takes part in are false: the "it would land after the lock" refusal never fired, and
-           `resolvePending` landed the outcome at the top of the very next month instead of two
-           months on. Measured over a played year: every court landed one month early and an M11
-           court was accepted. The desk showed it as "court in NaNmo". */
-        /* counted only if it was actually taken on, the same way a survey is. The tally used to
-           rise whether or not `schedule` accepted it, so a point spent too late to reach
-           anybody was reported as a courting that happened. */
-        if (pick) {
-          const item = schedule(corp, 'court', SPON.CONST.COURT_MONTHS, { house: pick });
-          if (item) tally.courted = (tally.courted || 0) + 1;
-          else tally.courtsTooLate = (tally.courtsTooLate || 0) + 1;
+        /* COURT SPONSORS. Focus is painted PER HOUSE, `courtTarget = { <houseId>:pips }`, and
+           each painted house is courted NOW — the effort accumulates on the corp toward the
+           lock, where each sponsor signs the highest-standing courter. No delay: courting is a
+           relationship built across the year, read at its end. The map rides `focus` (the AI's
+           chooser and the player's validated allocation both put it there), so one path. */
+        const map = (focus.courtTarget && typeof focus.courtTarget === 'object')
+          ? focus.courtTarget : null;
+        if (map) {
+          for (const house in map) {
+            const pips = map[house] || 0;
+            if (pips <= 0) continue;
+            SPON.court(corp, house, pips);
+            tally.courted = (tally.courted || 0) + 1;
+          }
         }
-      } else if (a.kind === 'recruit') {
-        /* `corp._window` WAS THE ONLY THING THIS DID, and nothing in the tree ever read it —
-           one write, zero reads, across every module and both viewers. So a manager could spend
-           an action point a month on working a signing window for a whole career and change
-           nothing whatsoever. The intake and the market ran on their own at the close of M8 and
-           M10 regardless of whether anybody had done the work.
-           Working a window now means you have SEEN THE LOT: you know who is worth paying for
-           before the room does, and you bid accordingly. It is spent when the window it belongs
-           to fires, so scouting the tryouts does not help you at the merc deadline. */
-        corp._window = win.signing;
-        corp._worked = corp._worked || {};
-        corp._worked[win.signing] = (corp._worked[win.signing] || 0) + 1;
-        tally.windows[win.signing] = (tally.windows[win.signing] || 0) + 1;
       }
     }
-    return acts;
+    return focus;
   }
 
-  function worstWound(f) {
-    let d = 0;
-    for (const w of ((f.condition || {}).injuries || [])) d = Math.max(d, w.days_remaining || 0);
-    return d;
-  }
+  /* worstWound() died with the treat verb: rest does not triage — it is for everyone */
 
   /* A per-corp `runPrep` was written first and deleted the same session: the calendar has to be
      stepped a TURN at a time across the whole fleet, not a year at a time per corp, because T3
@@ -1446,6 +1717,8 @@
     for (const id of ids) {
       const c = corps[id];
       c.season = season;
+      ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
+                                      if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
                                : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
       c._off = off;
@@ -1462,26 +1735,35 @@
        the season a player is most likely to be looking at. It runs every year now. */
     for (const id of ids) {
       const c = corps[id];
-      c._prep = { ap: 0, acts: {}, mended: 0, treated: 0, trained: 0, scouted: 0, windows: {} };
-      c._scouted = 0;
+      c._prep = { focus: 0, acts: {}, mended: 0, treated: 0, trained: 0, scouted: 0, windows: {} };
       /* NO OUTCOME CROSSES THE TURN OF THE YEAR. `schedule` already refuses anything that would
          land after M11, so this cannot normally be non-empty — it is cleared anyway, because
          the one thing that could carry a stale outcome in is a save file written by a build
          with different rules, and inheriting somebody else's promise is worse than losing it. */
       c._pending = [];
       c._month = 1;
-      /* SPONSORS PUT SOMETHING ON THE TABLE AT THE SEASON OPEN and it stands for the year, so a
-         manager can weigh an exclusive against three ordinary ones for as long as they like and
-         then be wrong about it. Retainers on contracts already running are paid here too. */
-      c.sponsors = c.sponsors || { regard: {}, contracts: [], offers: [], courted: {} };
-      c.sponsors.offers = SPON.makeOffers(P.mulberry32(P.seedFrom('spon' + season + id)), c, ids);
-      c.sponsors.courted = {};
-      c._sponsorPaid = SPON.payRetainers(c);
-      c._fleet = ids.slice();          /* who else is out there, for the courting verb */
-      /* THE FLEET SIGNS TOO. `opts.human` names the corp a person is holding; every other house
-         takes its own deals, because a subsidy only the player receives would tilt every
-         measured distribution in the game and there would be nothing to compare against. */
-      if (id !== (opts || {}).human) SPON.autoSign(c);
+      /* NOTHING FROM LAST YEAR'S DIVIDE CROSSES INTO THIS ONE. These are all scratch state a
+         contest writes and the same contest reads; carried across the turn of the year they
+         quietly corrupt the new season — a resource "already banked" that was last year's, kill
+         and worthy-fight tallies double-counted into reputation, last year's pacts seen as still
+         standing, a hook cache answering for last year's roster, a media reveal inflating a
+         negotiation nobody attended. Each is a "loads fine, behaves differently" fault. Cleared
+         here, beside `_pending`, for the same reason. */
+      c._banked = {};
+      c._killsBy = {};
+      c._worthyFights = 0;
+      c._pactsSigned = {};
+      c._pactBrokeWith = null;
+      c._hookCache = {};
+      c._mediaReveal = 0;
+      /* SPONSORS: the year's board opens. Each house backs at most one OA; you court with focus
+         through the year and sponsors commit at the lock (Pass C wires the player's courting).
+         The board's falling cost is a fleet-wide fact, so it lives on the season state, built
+         once below after this per-corp loop. Here we only ensure the sponsor bag exists and
+         clear last year's courting effort — regard persists, effort does not. */
+      c.sponsors = c.sponsors || { regard: {}, contracts: [], offers: [], courted: {}, courting: {} };
+      c.sponsors.contracts = [];       /* one-season terms: the board is fresh every year */
+      c.sponsors.courting = {};        /* this year's effort starts empty; regard carries */
     }
     /* ---- M1: THE PLANET IS ANNOUNCED AND THE BOARD SETS ITS CARD ----
        This used to happen ELEVEN MONTHS LATER, inside `runDivide`. The consequence was not a
@@ -1516,7 +1798,9 @@
       dividend: { matches: 0, fought: 0, purses: 0, conversions: 0, draws: 0 },
       mercs: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
       tryouts: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
-      bastille: { lot: 0, signed: 0, unplaced: 0 }
+      bastille: { lot: 0, signed: 0, unplaced: 0 },
+      /* the year's sponsor board — one commitment per house, cost falls as it fills (Courting) */
+      sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
     return state;
@@ -1600,11 +1884,18 @@
       const pick = (state.drop.sectors || {})[id];
       if (pick != null && id !== corpId) taken[pick] = (taken[pick] || 0) + 1;
     }
+    /* the planet dossier's `sectors` row is what buys ground detail now: its depth maps onto
+       the reader's thresholds — 1 = the ground (terrain), 2+ = the prize, and it also unlocks
+       seeing which rivals chose where. (Gather Intel replaced the old flat `_scouted` scalar.) */
+    const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
+    const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1
+                   : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE
+                   : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
     return secs.map(sec => {
-      const seen = PRE.readSector(sec, c._scouted || 0);
-      /* who ELSE you know is going there. You only see a rival's choice if you surveyed —
-         otherwise the first you know of it is on the ground. */
-      seen.rivals = (c._scouted || 0) >= PRE.CONST.INTEL_TERRAIN ? (taken[sec.index] || 0) : null;
+      const seen = PRE.readSector(sec, secIntel);
+      /* who ELSE you know is going there. You only see a rival's choice if you scouted the
+         sectors — otherwise the first you know of it is on the ground. */
+      seen.rivals = secIntel >= PRE.CONST.INTEL_TERRAIN ? (taken[sec.index] || 0) : null;
       seen.yours = (state.drop.sectors || {})[corpId] === sec.index;
       return seen;
     });
@@ -1653,7 +1944,7 @@
 
   /** What a given corp could do in the month the season is currently sitting on. */
   function optionsFor(state, corpId) {
-    return monthOptions(state.corps[corpId], state.month);
+    return monthTracks(state.corps[corpId], state.month);
   }
 
   /**
@@ -1670,13 +1961,11 @@
       landed[id] = [];
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
-                            choices && choices[id], landed[id]);
+                            choices && choices[id], landed[id], state.corps);
     }
     /* the work is SPENT when its window fires: scouting the tryouts does not help you at the
        merc deadline, and it does not bank across seasons either. A credit that never clears is
        how a small edge becomes an untouchable one by season nine. */
-    const spend = (kind) => { for (const id of state.ids) {
-      const w = state.corps[id]._worked; if (w) w[kind] = 0; } };
 
 
     if (win.event === 'dividend')
@@ -1684,17 +1973,17 @@
     if (win.event === 'tryouts') {
       runTryouts(P.mulberry32(P.seedFrom('try' + state.season)), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts);
-      state.lots.tryouts = null; state.bids.tryouts = {}; spend('tryouts');
+      state.lots.tryouts = null; state.bids.tryouts = {};
     }
     if (win.event === 'bastille') {
       bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season)), state.corps, state.ids,
                      state.season, state.bastille, state.lots.bastille);
-      state.lots.bastille = null; spend('bastille');
+      state.lots.bastille = null;
     }
     if (win.event === 'mercs') {
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season)), state.corps, state.ids,
                     state.lots.mercs || [], state.mercs, state.bids.mercs);
-      state.lots.mercs = null; state.bids.mercs = {}; spend('mercs');
+      state.lots.mercs = null; state.bids.mercs = {};
     }
     state.month++;
     ensureLot(state);
@@ -1741,6 +2030,11 @@
     const corps = state.corps, profiles = state.profiles, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     state.done = true;
+    /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
+       the highest standing (regard plus this year's effort) and pays its advance. Conditions
+       are judged after the Divide, in finishSeason. One commitment per house. The result lives
+       on each corp's `sponsors.contracts` — the page and the record read it from there. */
+    SPON.resolveBoard(state.sponsorBoard, corps, ids);
     /* the fleet's seam decisions are taken here, at the close, so a human has had all of M11 to
        make theirs first and the AI is reacting to a board that already has their pick on it */
     fleetTakesTheSeam(state);
@@ -1817,8 +2111,18 @@
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
-        /* S20 — what this corp spent its prep turns looking at, carried to the ground */
-        intel: c._scouted || 0,
+        /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
+        intel: planetPreparedness(c),
+        /* per-rival readiness: what this corp knows about each other house, freshness-scaled,
+           so a squad that faces a house it scouted fights a little readier against THEM. */
+        rivalIntel: (function () {
+          const out = {};
+          if (c._intel && c._intel.rivals) for (const oaId in c._intel.rivals) {
+            const v = rivalPreparedness(c, oaId, c.season || 0);
+            if (v > 0) out[oaId] = v;
+          }
+          return out;
+        })(),
         /* the rack, not the wallet. Called from inside the lock, where the real number is. */
         onMuster: function (shortfall) {
           const got = raise(c, shortfall, REP, rec.log, 'cannot arm the drop');
@@ -2027,7 +2331,7 @@
                           and then not reported is one step from a year built and not read. */
                        prep: c._prep || null,
                        lockLean: c._lockLean || null,
-                       intel: c._scouted || 0 });
+                       intel: planetPreparedness(c) });
       rec.corps[id] = c.history[c.history.length - 1];
 
       /* ---- WHAT THE SPONSORS SAW ----
@@ -2036,18 +2340,43 @@
          would be a contract with the bookkeeping rather than with the game. */
       const h = c.history[c.history.length - 1];
       const best = (c.roster || []).reduce((m, f) => Math.max(m, f.fame || 0), 0);
+      /* the drop's loadout composition, for limitation-flavour conditions (e.g. mostly energy).
+         Each fighter's kit already resolves its weapon family, so no catalogue lookup is needed. */
+      const drop = c._drop || [];
+      let energyGuns = 0, armedGuns = 0;
+      for (const f of drop) {
+        const fam = f.loadout && f.loadout.kit && f.loadout.kit.family;
+        if (!fam || fam === 'none') continue;
+        armedGuns++;
+        if (fam === 'energy') energyGuns++;
+      }
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
         calledWithdrawal: !!c._calledWithdrawal,
         policyChanged: !!c._policyChanged,
         bestFame: best,
-        treasury: c.account.treasury
+        treasury: c.account.treasury,
+        energyFraction: armedGuns ? energyGuns / armedGuns : 0,
+        dropSize: drop.length
       });
       rec.corps[id].sponsors = {
-        paid: c._sponsorPaid || 0, kept: verdict.kept.length,
-        broken: verdict.broken.map(b => b.house), lostToBreach: verdict.lost,
-        running: ((c.sponsors || {}).contracts || []).length
+        advance: verdict.advance || 0, paid: verdict.paid || 0,
+        kept: verdict.kept.length, broken: verdict.broken.map(b => b.house),
+        rewards: verdict.rewards || []
       };
+      /* IN-KIND REWARDS land in the armoury. The sponsor module names a tag (it must not know
+         item ids); the mapping to a concrete piece lives here, beside the armoury it fills. A
+         kept energy contract arms you a little further toward being the corp that fits them. */
+      const KIT_FOR_TAG = { energy: 'itm_pulse_carbine', medical: 'itm_medkit' };
+      for (const r of (verdict.rewards || [])) {
+        const rw = r.reward || {};
+        if (rw.kind !== 'kit') continue;
+        const itemId = KIT_FOR_TAG[rw.tag];
+        if (!itemId) continue;
+        c.armoury = c.armoury || {};
+        c.armoury[itemId] = (c.armoury[itemId] || 0) + (rw.count || 1);
+        rec.corps[id].sponsors.rewards = rec.corps[id].sponsors.rewards || [];
+      }
       /* ---- DISMISSAL ----
          S5 is explicit and I had built only half of it: the board pays the whole bill ONCE,
          and if the manager does not deliver in a huge way the following season, they are
@@ -2263,6 +2592,10 @@
     state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season)), {});
     state.planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + o.season)),
                                    state.planet.archetype, state.planet.richness);
+    /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
+       (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
+       lock can resolve it from the restored courting. */
+    state.sponsorBoard = SPON.openBoard(SPON.houseIds());
     if (!o.lotSpent) ensureLot(state);
     return { corps: corps, state: state };
   }
@@ -2283,9 +2616,15 @@
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
-           finishSeason, monthOptions, optionsFor, validateActions,
+           finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
            schedule, resolvePending, sectorsFor, chooseDropSector, pactTargets,
            offerPact, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid, bidsFor,
-           chooseActions, lockLean, wantedDropSize };
+           chooseFocus, lockLean, wantedDropSize,
+           /* Gather Intel — the dossier model, its readers, and its schema */
+           ensureIntel, gatherIntel, snapshotRival, rowFreshness,
+           rivalPreparedness, planetPreparedness,
+           INTEL_RIVAL_ROWS, INTEL_PLANET_ROWS,
+           /* Courting Sponsors — the module, for the desk to read costs, regard, and the roster */
+           SPON };
 }));

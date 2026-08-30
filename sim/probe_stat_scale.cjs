@@ -55,6 +55,37 @@ const lot = SEASON.openLot(P.mulberry32(P.seedFrom('scale-lot')), 'mercs');
 check(lot.every(f => STATS.every(k => f.stats[k] >= 10 && f.stats[k] <= 200)),
       'every market lot is priced and shown at the same scale');
 
+/* ===== step d: the trades ===== */
+console.log('\nthe weapon trades —');
+{
+  const all = [];
+  for (const id in corps) all.push.apply(all, corps[id].roster);
+  const fams = ITEMS.SKILL_FAMILIES.map(x => x.id);
+  check(all.every(f => f.skills && fams.every(k =>
+        f.skills[k] >= 10 && f.skills[k] <= 200)),
+        'every body is born with all four trades, in range');
+  /* the fold has one home: every resolved weapon agrees with skillFamilyOf */
+  const arms = ITEMS.bySlot('primary').concat(ITEMS.bySlot('sidearm'));
+  check(arms.every(w => {
+    const probeF = { id: 'probe', race: 'human', stats: { aim: 100, grit: 100, reflex: 100,
+      fieldcraft: 100, tactics: 100, presence: 100, resolve: 100 }, skills: {}, condition: {} };
+    ITEMS.equip(probeF, { primary: w.slot === 'primary' ? w.id : arms[0].id, armor: 'itm_flak_vest' });
+    return probeF.loadout.kit.weapon.skillFamily ===
+           ITEMS.skillFamilyOf(ITEMS.byId(probeF.loadout.primary));
+  }), 'the fold agrees with itself: every resolved weapon carries skillFamilyOf\'s answer');
+  /* effective aim at the boundary: hand and trade averaged, exactly */
+  const f0b = all[0];
+  ITEMS.equip(f0b, { primary: 'itm_surplus_rifle', armor: 'itm_flak_vest' });
+  const u2 = C.makeCombatant(f0b, { day: 1 });
+  check(u2.stats.aim === (f0b.stats.aim + f0b.skills.ballistic_long) / 2 / 10,
+        'the unit aims with hand and trade averaged (' + u2.stats.aim + ')');
+  /* origin carries fiction: a prisoner lot leans close and dirty */
+  const plot = SEASON.openLot(P.mulberry32(P.seedFrom('scale-prison')), 'bastille');
+  check(plot.length > 0 && plot.every(f =>
+        f.skills.ballistic_close - f.stats.aim === 20),
+        'prisoners learned close and dirty: ballistic_close = aim + 20, every one');
+}
+
 console.log(failed ? '\n' + failed + ' SCALE CLAIM(S) FAILED'
                    : '\nthe scale holds at every boundary — ×10 stored, founding-scale fought');
 process.exit(failed ? 1 : 0);

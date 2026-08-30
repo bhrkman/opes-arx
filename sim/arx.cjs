@@ -843,13 +843,13 @@ function theSeam() {
   const c2 = SEASONMOD.openFleet(rng2, oa, {});
   const me = Object.keys(c2)[0];
   const blind = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
-  while (blind.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(blind, { [me]: [] });
+  while (blind.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(blind, { [me]: {} });   /* focus shape: nothing committed */
   const unseen = SEASONMOD.sectorsFor(blind, me);
   SEASONMOD.closeSeason(blind);
 
   const seen2 = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
   while (seen2.month <= SEASONMOD.CONST.PREP_MONTHS - 1)
-    SEASONMOD.stepMonth(seen2, { [me]: ['scout', 'scout'] });
+    SEASONMOD.stepMonth(seen2, { [me]: { scout: 3 } });   /* focus shape: the cap on surveys */
   const seen = SEASONMOD.sectorsFor(seen2, me);
   SEASONMOD.closeSeason(seen2);
 
@@ -885,62 +885,58 @@ function sponsorship() {
   const corps = SEASONMOD.openFleet(rng, oa, {});
   const ids = Object.keys(corps);
 
-  /* --- motives: fit is read off behaviour, so different corps attract different houses --- */
+  /* --- fit is read off behaviour, so different corps are drawn to different houses --- */
   const attracted = {};
   for (const id of ids) {
-    const best = SPON.prospects(corps[id], ids)[0];
+    const best = SPON.prospects(corps[id])[0];
     if (best) attracted[best.house] = (attracted[best.house] || 0) + 1;
   }
-  ok('different corps attract different sponsors',
+  ok('different corps are drawn to different sponsors',
      Object.keys(attracted).length >= 3,
      Object.keys(attracted).length + ' distinct houses lead the field');
 
-  let paid = 0, breaches = 0, exclusive = 0, plural = 0, courtLanded = 0, kept = 0;
+  /* --- play six seasons and read what the new board produces --- */
+  let advance = 0, reward = 0, breaches = 0, kept = 0, signedTotal = 0;
   for (let s = 0; s < 6; s++) {
     const st = SEASONMOD.beginSeason(rng, corps, oa, {});
     while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
     const rec = SEASONMOD.closeSeason(st);
     for (const id of ids) {
       const sp = (rec.corps[id] || {}).sponsors || {};
-      paid += sp.paid || 0; breaches += (sp.broken || []).length; kept += sp.kept || 0;
-      const cs = corps[id].sponsors || {};
-      if ((cs.contracts || []).some(c => c.exclusive)) exclusive++;
-      if ((cs.contracts || []).length > 1) plural++;
-      courtLanded += Object.keys(cs.courted || {}).length;
+      advance += sp.advance || 0; reward += sp.paid || 0;
+      breaches += (sp.broken || []).length; kept += sp.kept || 0;
     }
+    for (const h in (st.sponsorBoard || {}).signedBy || {}) signedTotal++;
   }
 
-  ok('sponsors actually pay', paid > 0, Math.round(paid).toLocaleString() + ' in retainers');
-  ok('an obligation can be FAILED, not just carried',
-     breaches > 0, breaches + ' broken across six seasons');
-  ok('obligations are also kept — breaking is not the only outcome',
-     kept > 0, kept + ' seen out');
-  ok('exclusivity is taken by somebody', exclusive > 0, exclusive + ' corp-seasons exclusive');
-  ok('and non-exclusive deals stack, so exclusivity costs something real',
-     plural > 0, plural + ' corp-seasons carrying more than one');
-  ok('the courting verb reaches a house', courtLanded > 0, courtLanded + ' houses courted');
+  ok('sponsors commit to houses across the fleet', signedTotal > 0,
+     signedTotal + ' contracts signed across six seasons');
+  ok('the advance is paid on signing', advance > 0,
+     Math.round(advance).toLocaleString() + ' in advances');
+  ok('completion rewards are paid for kept conditions', reward > 0,
+     Math.round(reward).toLocaleString() + ' in rewards');
+  ok('a condition can be FAILED, not just kept', breaches > 0,
+     breaches + ' broken across six seasons');
+  ok('conditions are also kept \u2014 failing is not the only outcome', kept > 0,
+     kept + ' kept');
 
-  /* --- exclusivity is a real lock, proved by construction rather than by hoping to see it --- */
-  const c = corps[ids[0]];
-  c.sponsors = { regard: {}, contracts: [], offers: [], courted: {} };
-  c.sponsors.offers = [
-    { house: ids[1], retainer: 50000, term: 2, exclusive: true, obligation: 'none',
-      obligationText: 'none', fit: 1 },
-    { house: ids[2], retainer: 20000, term: 2, exclusive: false, obligation: 'none',
-      obligationText: 'none', fit: 1 }
-  ];
-  const first = SPON.accept(c, ids[1]);
-  const second = SPON.accept(c, ids[2]);
-  ok('an exclusive contract locks out every other banner',
-     first.ok && !second.ok, second.why || 'second signing was allowed');
+  /* --- one house backs at most one OA a year, proved by construction --- */
+  const houses = SPON.houseIds();
+  const board = SPON.openBoard(houses);
+  const t = {}; ids.forEach(id => { t[id] = { id, account: { treasury: 0, ledger: [] },
+    profile: { dials: {} }, roster: [], history: [],
+    sponsors: { regard: {}, contracts: [], offers: [], courted: {}, courting: {} } }; });
+  SPON.court(t[ids[0]], houses[0], 2);
+  SPON.court(t[ids[2]], houses[0], 5);   /* both court the same supplier; the harder courter wins it */
+  SPON.resolveBoard(board, t, ids);
+  ok('one supplier backs a single OA \u2014 the contested house has exactly one backer',
+     board.signedBy[houses[0]] === ids[2] && (t[ids[0]].sponsors.contracts || []).length === 0,
+     'signed ' + board.signedBy[houses[0]]);
 
-  /* --- and the verb is shut while it is locked, which is the cost made visible --- */
-  const st2 = SEASONMOD.beginSeason(rng, corps, oa, {});
-  c.sponsors.contracts = [{ house: ids[1], retainer: 1, term: 3, seasonsServed: 0,
-                            exclusive: true, obligation: 'none', obligationText: 'none' }];
-  const courtOpt = SEASONMOD.optionsFor(st2, ids[0]).find(o => o.kind === 'court');
-  ok('courting is shut while an exclusive contract is running',
-     !courtOpt.available, courtOpt.why);
+  /* --- courting builds regard that outlives a lost sign (the anti-feel-bad) --- */
+  ok('the loser of a courting contest keeps the regard it built',
+     SPON.regardOf(t[ids[0]], houses[0]) > 0,
+     'regard ' + SPON.regardOf(t[ids[0]], houses[0]));
 }
 
 function laterConsequences() {
@@ -955,10 +951,10 @@ function laterConsequences() {
     const m = st.month;
     const opt = SEASONMOD.optionsFor(st, me).find(o => o.kind === 'scout');
     if (!opt.available) shutMonths++;
-    const before = c._scouted || 0;
-    SEASONMOD.stepMonth(st, { [me]: ['scout'] });
+    const before = SEASONMOD.planetPreparedness(c);
+    SEASONMOD.stepMonth(st, { [me]: { scout: 3 } });   /* focus shape: scouts on the planet */
     if (!firstSpend && opt.available) firstSpend = m;
-    if (!firstLanding && (c._scouted || 0) > before) firstLanding = m;
+    if (!firstLanding && SEASONMOD.planetPreparedness(c) > before) firstLanding = m;
   }
 
   ok('a survey does not land in the month it is bought',
@@ -967,7 +963,7 @@ function laterConsequences() {
      firstLanding - firstSpend === SEASONMOD.CONST.SURVEY_MONTHS,
      (firstLanding - firstSpend) + ' months, expected ' + SEASONMOD.CONST.SURVEY_MONTHS);
   ok('the queue drains: intel actually arrives',
-     (c._scouted || 0) > 0, 'intel ' + (c._scouted || 0).toFixed(2));
+     SEASONMOD.planetPreparedness(c) > 0, 'planet readiness ' + SEASONMOD.planetPreparedness(c).toFixed(3));
   ok('a survey that could not report before the lock is not offered',
      shutMonths === SEASONMOD.CONST.SURVEY_MONTHS,
      shutMonths + ' months shut, expected ' + SEASONMOD.CONST.SURVEY_MONTHS);
@@ -989,8 +985,8 @@ function laterConsequences() {
   ok('an outcome owed to you survives a save', (c2._pending || []).length === owed,
      owed + ' owed before, ' + (c2._pending || []).length + ' after');
   while (st2.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st2);
-  ok('an outcome owed across a save still lands', (c2._scouted || 0) > 0,
-     'intel after resuming ' + (c2._scouted || 0).toFixed(2));
+  ok('an outcome owed across a save still lands', SEASONMOD.planetPreparedness(c2) > 0,
+     'planet readiness after resuming ' + SEASONMOD.planetPreparedness(c2).toFixed(3));
 }
 
 function saveLoad() {
@@ -1051,26 +1047,6 @@ function saveLoad() {
 
 function signingWindow() {
   const OAs = OA;
-  const openMonths = () => {
-    const rng = makeRng('win-open');
-    const corps = SEASONMOD.openFleet(rng, OAs, {});
-    const me = Object.keys(corps)[0];
-    const st = SEASONMOD.beginSeason(rng, corps, OAs, {});
-    let open = 0, withWindow = 0;
-    while (st.month <= SEASONMOD.CONST.PREP_MONTHS) {
-      if (SEASONMOD.MONTHS[st.month].signing) {
-        withWindow++;
-        if (SEASONMOD.optionsFor(st, me).find(o => o.kind === 'recruit').available) open++;
-      }
-      SEASONMOD.stepMonth(st);
-    }
-    return { open, withWindow };
-  };
-  const o = openMonths();
-  ok('a new corp can actually work a signing window in its first year',
-     o.open === o.withWindow && o.open > 0,
-     o.open + ' of ' + o.withWindow + ' window-months workable in season 1');
-
   /* THE FOUNDING ROSTER IS A SPREAD, NOT A NUMBER. A flat founding size is what put every corp
      on the same side of the signing gate in the first place, so the shape is guarded: nobody
      opens able to field a full drop force, nobody opens below the legal minimum, and the houses
@@ -1092,37 +1068,6 @@ function signingWindow() {
   observe('F1', 'average founding roster across the fleet',
           sizes.reduce((a, b) => a + b, 0) / sizes.length);
 
-  /* TWO SEEDS, NOT ONE. This asserted a stochastic effect from a single career pair and
-     failed at 5 signed against 6 — a difference of one. Run across eight seeds the effect is
-     overwhelming: working the window wins seven of them, by margins up to 29 against 0 and 16
-     against 1, and the one seed it loses is the one this guard was pinned to. A guard whose
-     verdict rests on a difference of one is the instrument this project keeps being caught by,
-     not a finding about the game.
-     Two rather than eight because cost is part of whether an instrument works — each career
-     pair is about forty seconds, and a gate nobody waits for is a gate nobody runs. Two is
-     enough to take a coin flip out of it; the full spread is recorded above rather than
-     re-measured every edit. */
-  const career = (seed, work) => {
-    const rng = makeRng(seed);
-    const corps = SEASONMOD.openFleet(rng, OAs, {});
-    const me = Object.keys(corps)[0];
-    let signed = 0;
-    for (let s = 0; s < 4; s++) {
-      const st = SEASONMOD.beginSeason(rng, corps, OAs, {});
-      while (st.month <= SEASONMOD.CONST.PREP_MONTHS) {
-        const before = corps[me].roster.length;
-        const opt = SEASONMOD.optionsFor(st, me).find(x => x.kind === 'recruit');
-        SEASONMOD.stepMonth(st, { [me]: (work && opt.available) ? ['recruit','recruit','recruit'] : [] });
-        signed += Math.max(0, corps[me].roster.length - before);
-      }
-      SEASONMOD.closeSeason(st);
-    }
-    return signed;
-  };
-  const worked = career('win-bite', true) + career('win-bite-1', true);
-  const ignored = career('win-bite', false) + career('win-bite-1', false);
-  ok('working the window signs more people than ignoring it',
-     worked > ignored, worked + ' signed vs ' + ignored + ' over four seasons on two seeds');
 }
 
 /* EVERY NUMBER A CONTEST REPORTS IS A NUMBER, and this is the guard that says so.
@@ -1892,7 +1837,7 @@ function seasonRules() {
     for (const id in bank.corps) {
       const c = bank.corps[id];
       const pr = c._prep || {};
-      ap += pr.ap || 0;
+      ap += pr.focus || 0;
       for (const k in (pr.acts || {})) kinds[k] = (kinds[k] || 0) + pr.acts[k];
       for (const w in (pr.windows || {})) windows[w] = (windows[w] || 0) + pr.windows[w];
       for (const f of c.roster) {

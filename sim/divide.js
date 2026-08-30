@@ -603,9 +603,11 @@
         hasMedkit: false,        // set by equipCorp from what the squad actually carries (§10)
         x: 0.5, y: 0.5, hx: 0.5, hy: 0.5,           // position, and where they came from
         rations: CONST.RATION_DROP_DAYS * bodies.length, rationDry: false,
-        stress: 0, crates: 0, ammoResupplied: 0, intelUntil: 0,
+        crates: 0, ammoResupplied: 0, intelUntil: 0,
         /* S20 — the prep year's scouting, the same for every squad this corp drops */
         _intel: (persist && persist.intel) || 0,
+        /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
+        _rivalIntel: (persist && persist.rivalIntel) || null,
         claiming: null, movedToday: false, foughtToday: false, engagements: 0
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
@@ -1092,8 +1094,8 @@
     })[0];
     if (heir && sq.captainId !== heir.id) {
       sq.captainId = heir.id;
-      sq.stress = Math.min(CONST.STRESS_MAX, sq.stress + CONST.STRESS.succession);
-      heir._stress = sq.stress;
+      addStress(sq, CONST.STRESS.succession);
+      heir._stress = squadStress(sq);
       sq._successions = (sq._successions || 0) + 1;
     }
     return heir;
@@ -1390,12 +1392,32 @@
   /* §8.2 captain stress                                                 */
   /* ------------------------------------------------------------------ */
 
+  /* RULED — ONE STORE, THREE READERS. Stress lives on the BODY (`condition.stress`),
+     persists past the Divide, and everything else derives: the squad's stress is the live
+     mean of its people, the settlement aggregates the same truth, and combat's composure
+     reads the same number. The old squad-level counter died with the squad each season, so
+     a Divide's terror evaporated at the settlement; now it comes home in the people it
+     happened to, and the year's rest is what works it back down. */
+  function squadStress(sq) {
+    let n = 0, sum = 0;
+    for (const b of sq.bodies) {
+      if (b.status === 'dead') continue;
+      sum += (b.condition && b.condition.stress) || 0; n++;
+    }
+    return n ? sum / n : 0;
+  }
+
   function addStress(sq, amount, stats) {
-    sq.stress = Math.max(0, Math.min(CONST.STRESS_MAX, sq.stress + amount));
+    for (const b of sq.bodies) {
+      if (b.status === 'dead') continue;
+      if (!b.condition) b.condition = {};
+      b.condition.stress = Math.max(0, Math.min(CONST.STRESS_MAX,
+                                                (b.condition.stress || 0) + amount));
+    }
     /* combat.js reads `fighter._stress`; this is the bridge. Without it captain fidelity
        ran at stress 0 for the whole Divide and §8.2 was decorative. */
     const cap = squadCaptain(sq);
-    if (cap) cap._stress = sq.stress;
+    if (cap) cap._stress = squadStress(sq);
     if (stats) stats.audit.stressApplied++;
   }
 
@@ -1413,7 +1435,7 @@
     if (!caps.length) return 0.1;
     const leader = caps.reduce((a, b) => a.c.stats.tactics > b.c.stats.tactics ? a : b);
     let meanT = 0, meanL = 0, meanS = 0;
-    for (const k of caps) { meanT += k.c.stats.tactics / 10; meanL += k.c.loyalty == null ? 50 : k.c.loyalty; meanS += k.sq.stress; }
+    for (const k of caps) { meanT += k.c.stats.tactics / 10; meanL += k.c.loyalty == null ? 50 : k.c.loyalty; meanS += squadStress(k.sq); }
     meanT /= caps.length; meanL /= caps.length; meanS /= caps.length;
     const v = CONST.COORD_LEADER * (leader.c.stats.tactics / 10)
             + CONST.COORD_CAPTAINS * meanT
@@ -2041,21 +2063,19 @@
     if (!sq.movedToday) p += 0.15;              /* you had time to look at the ground */
     if (sq._hunted) p -= 0.10;                  /* you came looking: you take what is there */
     if (opts.sawFirst) p += 0.15;               /* you watched them walk into it */
+    if (opts.rivalEdge) p += opts.rivalEdge;    /* Gather Intel: you studied this house's game */
     const head = squadHead(sq);
     if (head.length) {
       const fc = head.reduce((s, b) => s + b.stats.fieldcraft, 0) / head.length / 10;
       p += (fc - 10) * 0.012;                   /* fieldcraft is the choosing-ground stat */
     }
     if (sq._resting) p += 0.10;
-    /* INTEL OPS (S20). What a corp spent its prep turns looking at. `season.js` accumulates
-       `SCOUT_INTEL` a block onto the corp and passes it down with the drop, and it buys
-       readiness on the ground for the whole Divide — you have seen this rock before, and the
-       people who have not are finding out.
-
-       The scout verb was written at Step 8.6 and this was the other end of it, which did not
-       exist: `_scouted` was incremented every turn a corp chose to look at the planet and read
-       by NOTHING, for a whole step, in the session that catalogued dead wires for a living. It
-       is capped, because ten turns of staring does not make you psychic. */
+    /* INTEL OPS. What a corp spent its prep turns looking at. Gather Intel keeps a per-corp
+       dossier on the planet; `season.js` reads its completeness into `planetPreparedness` and
+       passes that down with the drop as `_intel`, and it buys readiness on the ground for the
+       whole Divide — you have seen this rock before, and the people who have not are finding
+       out. (This replaced a flat `_scouted` scalar that was accumulated but, for a whole step,
+       read by nothing.) It is capped, because ten turns of staring does not make you psychic. */
     if (sq._intel) p += Math.min(CONST.INTEL_CAP, sq._intel);
     return Math.max(0.05, Math.min(0.95, p));
   }
@@ -2882,10 +2902,19 @@
               log: !!(opts.human && groups.some(g => g.some(sq => sq.corpId === opts.human)))
                      ? undefined : false,
               /* one figure per side, in the same order as `built` (§14 → tactical) */
-              prep: groups.map(g => {
+              prep: groups.map((g, gi) => {
                 const lead = g[0];
                 const theyKnewUs = g.some(s => Object.keys(s.known || {}).length > 0);
-                return preparedness(lead, { sawFirst: theyKnewUs });
+                /* Gather Intel: if this side scouted the house it now faces, that dossier's
+                   freshness-scaled readiness applies against THEM specifically. With more than
+                   two sides, credit the best-known opponent present. */
+                let rivalEdge = 0;
+                const ri = lead && lead._rivalIntel;
+                if (ri) groups.forEach((og, oi) => {
+                  if (oi === gi) return;
+                  og.forEach(os => { if (os.corpId && ri[os.corpId] > rivalEdge) rivalEdge = ri[os.corpId]; });
+                });
+                return preparedness(lead, { sawFirst: theyKnewUs, rivalEdge: rivalEdge });
               })
             };
             /* [E10] THE GRID. This line called `C.simulateEngagement` — the abstract band
@@ -3225,8 +3254,7 @@
             const share = q.rations / Math.max(1, hosts.length);
             movers.forEach((b, i) => {
               const host = hosts[i % hosts.length];
-              host.bodies.push(b);
-              host.stress = Math.max(host.stress, q.stress);
+              host.bodies.push(b);   /* their stress rides with them — it is theirs */
             });
             for (const h of hosts) h.rations += share;
             q.bodies = []; q.rations = 0; q.intent = null;
@@ -3434,7 +3462,7 @@
                       ax: q._aim ? Math.round(q._aim.x * 1000) / 1000 : null,
                       ay: q._aim ? Math.round(q._aim.y * 1000) / 1000 : null,
                       w: q._why || 'drift', n: alive,
-                      st: Math.round(q.stress),
+                      st: Math.round(squadStress(q)),
                       rat: Math.round(Math.min(30, q.rations / demand)),
                       g: q.crates, cl: q.claiming ? 1 : 0,
                       hb: q._heldToday || 0,        /* two-hour blocks spent in a firefight */
@@ -3645,7 +3673,7 @@
       pc.policy = c.policy;
       pc.oreCredit = c.oreCredit;
       pc.sitesClaimed = c.sitesClaimed;
-      pc.stress = c.squads.reduce((s, q) => s + q.stress, 0) / c.squads.length;
+      pc.stress = c.squads.reduce((s, q) => s + squadStress(q), 0) / c.squads.length;
       pc.captured = c.allBodies.filter(b => b.status === 'captured').length;
       /* Step 6 — what the Divide was worth to them. */
       pc.payout = stats.settlement.take[c.id] || 0;
@@ -3682,7 +3710,7 @@
   const api = { CONST, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
     /* the size reads on the ground, exported so the probe that keeps them honest can
        measure them and any surface can show a manager the cost of the squad they shaped */
-    sizeMarchMult, sizeDetectMult };
+    sizeMarchMult, sizeDetectMult, squadStress };
   if (isNode) module.exports = api;
   global.CDDIVIDE = api;
 })(typeof window !== "undefined" ? window : globalThis);

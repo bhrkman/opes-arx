@@ -198,6 +198,9 @@
          judging weapons. */
       weapon: { power: pe.power || 0, range: pe.range || "medium", tier: p ? p.tier : 1,
                 id: p ? p.id : null, name: p ? p.name : "unarmed",
+                /* the trade this weapon belongs to — combat reads effective aim through it,
+                   and the fold has ONE home: skillFamilyOf, above */
+                skillFamily: skillFamilyOf(p),
                 mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
@@ -671,7 +674,24 @@
     throw new Error("items: cannot find items.json");
   }
 
-  const api = {
+  /* ------------------------------------------------------------------ */
+  /* WEAPON SKILL FAMILIES (step d). The catalog's own vocabulary, folded once: family
+     crossed with reach, long guns against everything nearer. Four trades a hand can be
+     trained in — this function is the single home of that fold; roster births skills by
+     it and combat reads effective aim through it. */
+  const SKILL_FAMILIES = [
+    { id: 'ballistic_long', name: 'long ballistics' },
+    { id: 'ballistic_close', name: 'close ballistics' },
+    { id: 'energy_long', name: 'long energy' },
+    { id: 'energy_close', name: 'close energy' }
+  ];
+  function skillFamilyOf(item) {
+    if (!item || !item.family) return null;
+    const range = ((item.effects || {}).range) === 'long' ? 'long' : 'close';
+    return item.family + '_' + range;
+  }
+
+  const api = { SKILL_FAMILIES, skillFamilyOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
     normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, musterCost,

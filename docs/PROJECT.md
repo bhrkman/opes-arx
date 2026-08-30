@@ -34,7 +34,7 @@ figure cost 65 seconds a run to produce a number the suite itself declares meani
 
 ```
 cd sim
-node arx.cjs regress --fast   113 checks, ~90s. The edit-loop gate.
+node arx.cjs regress --fast   112 checks, ~90s. The edit-loop gate.
 node arx.cjs regress          246 checks, ~5.5min. Before packaging.
 node audit_open.cjs       what is actually built, tested by running the game
 node audit_docs.cjs       does this document still agree with the code
@@ -275,11 +275,17 @@ is open, and a proposal costs nothing to veto.
 
   The entanglement is the point, and **the fleet takes all three too**.
 
-> **DEFERRED — the three recruitment markets each want a step of their own.** They run and can be
-> played, which was the bar for that step and not for the systems. Missing: scouting that reveals
-> a ceiling gradually rather than printing it, contract terms beyond a salary, rival interest you
-> can read before committing, the Bastille's freedom clause as something you weigh, and an AI
-> that bids against a named list rather than off a formula.
+> **DEFERRED (partly closed) — the three recruitment markets each want a step of their own.** They
+> run and can be played, which was the bar for that step and not for the systems. Since this was
+> written, the contract and origin work closed part of it: a hand's origin is now visible and
+> load-bearing everywhere (Natural-Born / Mercenary / Conscript), contract terms beyond a bare
+> salary are shown and weighable (a nattie's pension and per-Divide bonus, a merc's one-Divide
+> deal, a Conscript's freedom countdown), and the "work the signing window" pseudo-mechanic was
+> removed so signing runs on need alone. Still missing: scouting that reveals a ceiling gradually
+> rather than printing it, rival interest you can read before committing, the Bastille's freedom
+> clause as something you actively weigh at intake, and an AI that bids against a named list
+> rather than off a formula. The Survey rework is the natural home for the gradual-reveal and
+> readable-interest pieces.
 
 
 ### The two markets, and why they differ
@@ -642,6 +648,13 @@ this project trusts: by running it. Integrating by system instead — all the ki
 deals — leaves half-integrated things sitting between working ones with nothing able to reach
 them.
 
+> **DONE — this integration plan has been carried out.** All six layers below were built, and
+> the surfaces described above were unified into one page (`the_corp.html`) with tabs: the Desk,
+> the Roster (now folding in Hiring), the Squads board, and the Divide's Firefight, Table, and
+> Board. The prep months exist and are playable end to end; the armoury and kit are chosen in
+> the months and spent at the lock; the Divide's three surfaces run the live engine in the page.
+> The list is kept below as the record of the order it was done in, not as outstanding work.
+
 1. **Name what is game and what is instrument.** Free, and it stops anybody building a screen for
    something that was always a bench. An instrument that stays an instrument is not a failure.
 2. **One shell, one career.** The desk is already it; save/load is already the persistence. Fold
@@ -706,10 +719,13 @@ Things that need a decision rather than a programmer.
   because calibration is deferred — but it is the furthest any figure has drifted from a stated
   ruling, and the dials are the threshold at which a squad calls the retreat, how much of it
   covers each bound, and how far a bound carries. None have been touched.
-- **Squad shape is not yet a decision.** Ruled: three to six squads, three to eight people each,
-  with a manager choosing who stands with whom and who leads. None of it is reachable today —
-  squad membership falls out of the order of the drop list, captains are whoever has the highest
-  tactics, and how many squads there are is one setting shared by the whole fleet.
+- **Squad shape is now a decision.** *Built since this was written.* Ruled: three to six squads,
+  three to eight people each, with a manager choosing who stands with whom and who leads. The
+  Squads board delivers exactly that — membership is dragged, not derived from the drop list;
+  leaders are chosen per squad rather than being whoever has the highest tactics; and loadout is
+  edited per hand through a shared detail panel. What remains open is only tuning (how many
+  squads a corp *should* field, and whether the game should push toward a shape), not the
+  mechanism.
 - **Nobody chooses what their people carry.** The manager decides "what they carry" per the
   premise, and there is no path: the kit hook exists and its only call site passes nothing, so
   arming is decided from house doctrine, the locker and the money left. This and the line above

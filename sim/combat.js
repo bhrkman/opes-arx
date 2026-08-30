@@ -197,6 +197,9 @@ const CONST = {
 
   /* §4 composure */
   COMP_BASE: 30, COMP_MORALE: 0.20, COMP_RESOLVE: 2.0,          // [C]
+  COMP_STRESS: 0.20,   // [C] persistent stress costs composure: at the cap of 100 it costs
+                       //     what a serious wound costs (-20) — the fought-out break sooner.
+                       //     Zero at zero, so a fresh world's fights are untouched.
   XP_CAP: 18, XP_DIVIDE: 5, XP_BATTLE: 1.0, XP_DIVIDEND: 2,     // [C]
   COMP: {                                                        // [C] §4.2
     suppressed: -6, mateDown: -8, bondDown: -25, captainDown: -12,
@@ -326,7 +329,10 @@ function seedComposure(f, hooks, opts) {
   let c = CONST.COMP_BASE
     + CONST.COMP_MORALE * ((f.condition && f.condition.morale) || 50)
     + CONST.COMP_RESOLVE * (f.stats.resolve / 10)   /* roster-scale caller */
-    + experienceBonus;
+    + experienceBonus
+    /* the third reader of the one store: what a career of Divides has left in a person
+       walks into every fight with them */
+    - CONST.COMP_STRESS * ((f.condition && f.condition.stress) || 0);
 
   /* §11.1 composure hooks */
   if (hooks.has('composure_bonus')) c += 10;
@@ -359,7 +365,15 @@ function makeCombatant(fighter, opts) {
        formula body was written for the old one, so the unit takes a DIVIDED COPY at this
        one boundary — one seam instead of thirty swept constants, and float-exact while
        births are multiples of ten. The roster object is never touched. */
-    stats: { aim: fighter.stats.aim / 10, grit: fighter.stats.grit / 10,
+    /* STEP D — EFFECTIVE AIM: the hand and the trade, averaged. The weapon carries its
+       skillFamily (stamped at resolve, one home in items.js); a fighter without skills, or
+       a weapon without a trade, reads as pure aim — so fixtures and defaults are
+       untouched. */
+    stats: { aim: (fighter.stats.aim +
+                   (weapon.skillFamily && fighter.skills &&
+                    fighter.skills[weapon.skillFamily] != null
+                      ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
+             grit: fighter.stats.grit / 10,
              reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
              tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
              resolve: fighter.stats.resolve / 10 }, hooks,

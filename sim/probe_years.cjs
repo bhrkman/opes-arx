@@ -31,6 +31,7 @@ const floor = SEASON.CONST.DROP_MIN;
 
 let minAlive = Infinity, minTreasury = Infinity, worstDepth = null, worstPurse = null;
 let y1Expired = 0, lockFloorWorst = { n: Infinity, at: null }, woundedFills = 0, fillBy = {};
+let stressAtLocks = [], worstLockStress = 0, boostMonths = 0, boostSpend = 0;
 console.log('season · fleet alive (min..max) · treasury min..max · deaths · signed · walked (expired/freed/retired)');
 for (let s = 1; s <= SEASONS; s++) {
   const state = SEASON.beginSeason(rng, corps, OA, {});
@@ -42,14 +43,33 @@ for (let s = 1; s <= SEASONS; s++) {
     walked.retired += (off.retired || []).length;
     if (s === 2) y1Expired += (off.expired || []).length;
   }
+  /* STEP E — a boost-spending fleet, so the new money sink is measured. A house flush past
+     a comfort line doubles the focus on its own heaviest track that month; every house does
+     it, so the drain is fleet-wide and the treasury claim below covers a real spender. */
+  while (state.month < SEASON.CONST.PREP_MONTHS && state.month < 12) {
+    const choices = {};
+    for (const id of ids) {
+      const corp = corps[id];
+      const focus = SEASON.chooseFocus(corp, state.month);
+      if ((corp.account.treasury || 0) > 120000) {
+        let top = null, best = 0;
+        for (const k in focus) if (k !== 'recruit' && focus[k] > best) { best = focus[k]; top = k; }
+        if (top) { focus._boost = {}; focus._boost[top] = true; boostMonths++; }
+      }
+      choices[id] = focus;
+    }
+    if (!SEASON.stepMonth(state, choices)) break;
+  }
   while (SEASON.stepMonth(state, {})) {}
   SEASON.closeSeasonToDrop(state);
   /* THE FLOOR MATTERS AT THE LOCK — a corp may end a contest at twelve so long as it
      stands sixteen FIT when the drop is chosen. And fit means fit: a drop padded with
      walking wounded who cannot stand in a squad is the old seam disagreement wearing a
      roster number as a disguise. */
+  let lockStress = 0, lockBodies = 0;
   for (const id of ids) {
     const drop = (state._persist[id] || {}).drop || [];
+    drop.forEach(f => { lockStress += (f.condition && f.condition.stress) || 0; lockBodies++; });
     const standing = drop.filter(f => f.status === 'active').length;
     if (drop.length < lockFloorWorst.n) lockFloorWorst = { n: drop.length, at: id + ' year ' + s };
     if (standing < drop.length) {
@@ -58,6 +78,9 @@ for (let s = 1; s <= SEASONS; s++) {
         fillBy[f.status] = (fillBy[f.status] || 0) + 1; });
     }
   }
+  const meanLockStress = lockBodies ? lockStress / lockBodies : 0;
+  stressAtLocks.push(Math.round(meanLockStress));
+  worstLockStress = Math.max(worstLockStress, meanLockStress);
   const pd = SEASON.prepareDivide(state);
   const res = DIVIDE.runDivide(pd.rng, pd.opts);
   SEASON.finishSeason(state, res);
@@ -70,6 +93,7 @@ for (let s = 1; s <= SEASONS; s++) {
     tMin = Math.min(tMin, c.account.treasury); tMax = Math.max(tMax, c.account.treasury);
     const h = c.history[c.history.length - 1] || {};
     deaths += h.dead || 0;
+    boostSpend += (c._prep && c._prep.boostSpend) || 0;
     if (a < minAlive) { minAlive = a; worstDepth = id + ' year ' + s; }
     if (c.account.treasury < minTreasury) { minTreasury = c.account.treasury; worstPurse = id + ' year ' + s; }
   }
@@ -83,8 +107,20 @@ for (let s = 1; s <= SEASONS; s++) {
 console.log('\nfounding merc-paper wave: ' + y1Expired + ' contracts expired into year 2 across the fleet');
 console.log('worst roster depth anywhere: ' + minAlive + ' alive (' + worstDepth + ')');
 console.log('worst treasury anywhere: ' + Math.round(minTreasury / 1000) + 'k (' + worstPurse + ')');
+console.log('boost as a money sink: ' + boostMonths + ' boosted track-months across the fleet, last year ' +
+            Math.round(boostSpend / 1000) + 'k spent doubling focus');
+check(boostMonths > 0, 'the boost economy was actually exercised (' + boostMonths + ' boosted months)');
 
 /* the claims a playable economy must keep, in the design's own numbers */
+console.log('mean stress at each lock: ' + stressAtLocks.join(' -> ') +
+            ' (the Divide presses it up; eleven months of rest work it down)');
+/* THE SPIRAL REFEREE. Stress must breathe: the Divide drives it up drastically and the
+   preparation must be able to bring a fleet back down, or a mauled corp compounds into a
+   corp that can never fight again. The claim: the fleet never ARRIVES at a lock already
+   worn past the middle of the scale. */
+check(worstLockStress < 50,
+      'the year\'s rest outruns the Divide\'s wear: worst lock-time mean stress ' +
+      Math.round(worstLockStress) + ' of 100');
 console.log('post-Divide depth is informational: lean survivors are the sport, so long as the lock is whole');
 check(lockFloorWorst.n >= floor,
       'every LOCK fills the drop floor of ' + floor + ' (worst drop: ' + lockFloorWorst.n +

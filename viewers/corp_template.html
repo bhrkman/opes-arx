@@ -6,9 +6,14 @@
 <title>Opes Arx — One Corporation</title>
 <style>
   :root{
-    --ink:#e8e4dc; --dim:#8d887e; --faint:#57534c;
-    --bg:#12110f; --panel:#1a1917; --line:#2c2a26;
-    --a:#c8a45c; --b:#6f9bc4; --hit:#7fb069; --bad:#c05c4a;
+    /* ---- NIGHT-OPS: a holographic tactical display. Cyan is the command colour,
+       magenta the accent that marks danger, leaders, and the boost. Everything sits on a
+       near-black navy. One theme block: every token below feeds the whole game. ---- */
+    --ink:#c4d4e8; --dim:#5f7a9c; --faint:#3a556f;
+    --bg:#0a0e16; --panel:#0d1420; --line:#1c2c44;
+    --a:#3ad8e0; --b:#6f9bc4; --hit:#4fd6a0; --bad:#e0a848;
+    --a-dim:#22354e; --a-deep:#111c2e; --line2:#2a4460; --panel2:#111827;
+    --mag:#e84393; --edge:#22354e; --warn:#e0a848;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -39,7 +44,7 @@
     gap:40px;align-items:center;justify-content:center;flex-wrap:wrap}
   .menucol{display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:420px}
   .menutitle{font-size:34px;letter-spacing:.35em;color:var(--a);text-align:center}
-  .menusub{color:#8a8577;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
+  .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
   .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
   .menubtn:disabled{opacity:.35}
   .oacard{border:1px solid var(--line);border-radius:3px;padding:8px 10px;margin:4px 0;
@@ -48,21 +53,95 @@
   .oacard .m{display:block}
   #saveio{width:100%;background:#171511;color:var(--fg);border:1px solid var(--line);font-size:10px}
   #savelist .poolrow{margin:3px 0}
-  .verbrow{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid #1f1e1b;font-size:11.5px}
+  .verbrow{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid #16233a;font-size:11.5px}
   .verbrow.na{opacity:.45}
+  .fbtn{min-width:22px}
+  .fbtn.on{background:var(--a);color:#0a0e16;border-color:var(--a)}
+
+  /* ---- the Training grid: paint focus onto stats, four tiers, star-rating pips ---- */
+  .tgwrap{border:1px solid var(--line2);border-radius:8px;padding:10px;margin-top:10px;background:var(--panel)}
+  .tghead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
+  .tgtitle{color:var(--a);font-size:14px;letter-spacing:.04em}
+  .tgbudget{color:var(--dim);font-size:11px}
+  .tgbudget.full{color:var(--warn)}
+  table.tgrid{width:100%;border-collapse:collapse;font-size:10.5px}
+  table.tgrid th{font-weight:400;padding:4px 3px;text-align:center;border-bottom:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+  table.tgrid th.rn{text-align:left}
+  table.tgrid td{padding:2px 3px;text-align:center;border-bottom:1px solid #131f30;border-radius:3px}
+  table.tgrid td.rn{text-align:left;white-space:nowrap;padding-left:5px}
+  table.tgrid .lit{background:#193044}
+  table.tgrid .lith{background:var(--a-dim)}
+  .tgnum{color:var(--ink)}
+  .tgnum.on{color:var(--a)}
+  .tglabel{color:var(--dim)}
+  .tglabel.on{color:var(--a)}
+  .piptrack{display:inline-flex;gap:2px;vertical-align:middle;margin-top:2px}
+  .pip{display:inline-flex;cursor:pointer}
+  .pip i{display:inline-block;width:12px;height:16px;border-radius:2px;background:var(--a-deep);border:1px solid var(--line2);transition:background .08s}
+  .pip i.f{background:var(--a);border-color:var(--a)}
+  .pip:hover i{border-color:var(--a)}
+  .tgread{margin-top:8px;padding:7px 9px;background:var(--a-deep);border:1px solid var(--line2);border-radius:6px;color:#8fa8c4;font-size:10.5px;line-height:1.55;min-height:15px}
+  .itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  .itbl tr{border-bottom:1px solid #131f30}
+  .itbl tr.lit{background:var(--a-deep)}
+  .itbl tr.iplanet{border-bottom:2px solid var(--line2)}
+  .itbl td{padding:5px 6px;vertical-align:middle}
+  .itbl .iname{white-space:nowrap}
+  .itbl .iname span.on{color:var(--a)}
+  .itbl .isub{color:var(--dim);font-size:9.5px}
+  .itbl .ipips{width:70px}
+  .itbl .istat{text-align:right;font-size:10.5px;white-space:nowrap}
+  .itbl .idoss{cursor:pointer;border-bottom:1px dotted var(--faint)}
+  .itbl .idoss:hover{color:var(--a)}
+  /* --- courting desk --- */
+  .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  .ctbl tr{border-bottom:1px solid #131f30}
+  .ctbl tr.lit{background:var(--a-deep)}
+  .ctbl tr.signed{opacity:.6}
+  .ctbl td{padding:6px 6px;vertical-align:top}
+  .ctbl .cname{color:var(--b);font-weight:bold;white-space:nowrap}
+  .ctbl .cflavor{display:inline-block;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
+  .ctbl .cflavor.limitation{color:var(--mag);border:1px solid var(--mag)}
+  .ctbl .cflavor.prerequisite{color:var(--bad);border:1px solid var(--bad)}
+  .ctbl .cflavor.outcome{color:var(--hit);border:1px solid var(--hit)}
+  .ctbl .ccond{color:var(--dim);font-size:10px;margin-top:3px}
+  .ctbl .cpay{color:var(--dim);font-size:9.5px;margin-top:3px}
+  .ctbl .cpay b{color:var(--ink)} .ctbl .cpay .kit{color:var(--mag)}
+  .ctbl .cpips{width:70px;white-space:nowrap;text-align:right}
+  .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
+  .ctbl .ccost{color:var(--dim);font-size:10px} .ctbl .ccost b{color:var(--ink)} .ctbl .ccost .drop{color:var(--hit)}
+  .ctbl .cregard{font-size:10px;margin-top:2px}
+  .ctbl .cregard .warm{color:var(--hit)} .ctbl .cregard .cold{color:var(--bad)} .ctbl .cregard .neutral{color:var(--dim)}
+  .ctbl .csigned{color:var(--warn);font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+  .ctbl .csigned.you{color:var(--hit)}
+  .ctbl .cstatus{font-size:10px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line2)}
+  .ctbl .cstatus.holding{color:var(--hit);border-color:var(--hit)}
+  .ctbl .cstatus.met{color:var(--hit);border-color:var(--hit)}
+  .ctbl .cstatus.atrisk{color:var(--bad);border-color:var(--bad)}
+  .ctbl .cstatus.pending{color:var(--dim);border-color:var(--line2)}
+  .dtbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
+  .dtbl tr{border-bottom:1px solid #131f30}
+  .dtbl tr.dblank{opacity:.45}
+  .dtbl td{padding:6px 4px;vertical-align:top}
+  .dtbl .dlab{color:var(--dim);font-size:9.5px;letter-spacing:.05em;white-space:nowrap;width:74px}
+  .dtbl .dval{color:var(--ink)}
+  .dtbl .dage{text-align:right;font-size:9px;white-space:nowrap;width:60px}
+  .bbtn{color:var(--mag);border-color:var(--a-dim)}
+  .bbtn.on{background:var(--mag);color:var(--bg);border-color:var(--mag)}
   .page{display:none;padding:14px 20px}
   .page.on{display:block}
   table{border-collapse:collapse;width:100%;font-size:11.5px}
   th{color:var(--faint);font-weight:600;text-align:left;padding:3px 8px 3px 0;
      border-bottom:1px solid var(--line);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
-  td{padding:3px 8px 3px 0;border-bottom:1px solid #1f1e1b;vertical-align:top}
+  td{padding:3px 8px 3px 0;border-bottom:1px solid #16233a;vertical-align:top}
   tr.gone td{opacity:.35;text-decoration:line-through}
   tr.hurt td{color:var(--dim)}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
   .grid3{display:grid;grid-template-columns:262px 1fr 296px;gap:14px}
-  .box{background:#151412;border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
+  .box{background:#0d1420;border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
   .m{color:var(--faint);font-size:10.5px}
   .good{color:var(--hit)} .warn{color:var(--bad)} .gold{color:var(--a)} .blue{color:var(--b)}
+  .lead{color:var(--mag)} .mag{color:var(--mag)}
   #field{width:100%;height:auto;display:block;background:#141310;
          border:1px solid var(--line);border-radius:3px}
   .scrub{display:flex;gap:8px;align-items:center;margin:8px 0}
@@ -73,17 +152,90 @@
   .evbox{max-height:220px;overflow:auto}
   .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .unit{display:flex;justify-content:space-between;gap:6px;padding:3px 0;
-        border-bottom:1px solid #1f1e1b;font-size:11.5px}
+        border-bottom:1px solid #16233a;font-size:11.5px}
   .unit.gone{opacity:.32;text-decoration:line-through}
-  .unit.act{background:#241f16;margin:0 -6px;padding:3px 6px;border-radius:2px}
+  .unit.act{background:#111c2e;margin:0 -6px;padding:3px 6px;border-radius:2px}
   .log{max-height:180px;overflow:auto}
-  .log div{padding:2px 0;border-bottom:1px solid #1f1e1b}
-  .sqbox{background:#151412;border:1px solid var(--line);border-radius:3px;
+  .log div{padding:2px 0;border-bottom:1px solid #16233a}
+  .sqbox{background:#0d1420;border:1px solid var(--line);border-radius:3px;
          padding:8px 10px;margin-bottom:8px}
   .sqbox.badct{border-color:var(--bad)}
   .tiny{padding:1px 5px;font-size:10px;margin-left:3px}
   .poolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
-           padding:2px 0;border-bottom:1px solid #1f1e1b;font-size:11.5px}
+           padding:2px 0;border-bottom:1px solid #16233a;font-size:11.5px}
+
+  /* ---- the squads board (drag-and-drop) ---- */
+  .sqcols{display:flex;gap:14px;align-items:flex-start}
+  .poolcol{width:210px;flex-shrink:0}
+  .collabel{color:var(--dim);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .dropzone{border:1px dashed var(--line);border-radius:6px;padding:6px;
+            display:flex;flex-direction:column;gap:4px}
+  #pool{min-height:120px;max-height:520px;overflow-y:auto}
+  .dropzone.over{border-color:var(--a);background:var(--a-deep)}
+  .sqgrid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .sqcard{border:1px solid var(--line);border-radius:6px;padding:7px;min-height:96px;background:#0b111c}
+  .sqcard.filled{background:#0d1420;border-color:#22354e}
+  .sqcard.badct{border-color:var(--bad)}
+  .sqcard.over{background:#16233a;border-color:var(--a)}
+  .sqhead{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:5px}
+  .sqname{color:var(--a);letter-spacing:.06em;cursor:text}
+  .sqname.empty{color:var(--dim)}
+  .sqname input{background:#0a0e16;border:1px solid var(--a);color:var(--ink);
+                font:inherit;width:96px;padding:1px 4px;border-radius:3px}
+  .ucard{background:#111c2e;border:1px solid #22354e;border-radius:5px;padding:5px 7px;
+         display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer}
+  .ucard:hover{border-color:#2a4460}
+  .ucard.dragging{opacity:.4}
+  .ucard.sel{border-color:var(--a);background:#111c2e}
+  .ucard .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ucard .st{color:var(--faint);font-size:10px;white-space:nowrap}
+  .drophint{color:#3a556f;text-align:center;font-size:10.5px;padding:20px 0}
+
+  /* ---- the shared unit detail panel + paper-doll ---- */
+  .unitpanel{margin-top:12px;background:#0d1420;border:1px solid #22354e;border-radius:8px;padding:12px}
+  .updoll{width:130px;flex-shrink:0}
+  .slot{background:#111c2e;border:1px solid #2a4460;border-radius:4px;padding:5px;
+        text-align:center;cursor:pointer;margin-bottom:5px}
+  .slot.empty{border-style:dashed;border-color:#2a4460}
+  .slot:hover{border-color:var(--a)}
+  .slot .sl{color:var(--dim);font-size:9px;letter-spacing:.06em}
+  .slot .it{color:var(--b)}
+  .slot.empty .it{color:var(--faint)}
+  .picker{border:1px solid var(--a);border-radius:6px;background:#0b111c;margin-top:5px;
+          max-height:220px;overflow-y:auto}
+  .prow{padding:6px 9px;display:flex;justify-content:space-between;align-items:center;gap:8px;
+        cursor:pointer;border-top:1px solid #16233a}
+  .prow:first-child{border-top:none}
+  .prow:hover{background:#111c2e}
+  .prow.on{border-left:2px solid var(--a)}
+  .prow .pd{color:var(--dim);font-size:10px}
+  .rack{color:var(--hit);font-size:10.5px;white-space:nowrap}
+  .buy{color:var(--a);font-size:10.5px;white-space:nowrap}
+
+  /* ---- the unified Roster: books left, a shared rail right ---- */
+  .rostcols{display:flex;gap:14px;align-items:flex-start}
+  .rostbooks{flex:1;min-width:0}
+  .rostrail{width:260px;flex-shrink:0}
+  #roster table{width:100%;border-collapse:collapse;font-size:11.5px}
+  #roster th{color:var(--a);text-align:left;font-weight:400;padding:5px 7px;cursor:pointer;
+             user-select:none;border-bottom:1px solid var(--line2);white-space:nowrap}
+  #roster th.num{text-align:right}
+  #roster td{padding:5px 7px;border-bottom:1px solid #131f30}
+  #roster td.num{text-align:right}
+  #roster tr.hand{cursor:pointer}
+  #roster tr.hand:hover td{background:#111c2e}
+  #roster tr.sel td{background:#16233a}
+  #roster tr.gone td{color:var(--faint)}
+  #roster tr.hurt td{color:#b8b06a}
+  /* origin tags — a neutral steel family, distinct from leader-magenta and good-green */
+  .orig{border-radius:3px;padding:0 6px;font-size:10px;white-space:nowrap;border:1px solid}
+  .orig.nat{background:#0f2438;color:#6fb4d8;border-color:#1d4e6e}
+  .orig.mer{background:#2a1c30;color:#b899cc;border-color:#4a3358}
+  .orig.con{background:#2c2416;color:#c8a86a;border-color:#544428}
+  .rostmkt{border:1px solid var(--line2);border-radius:8px;padding:10px;background:var(--panel)}
+  .mktrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
+          padding:4px 0;border-bottom:1px solid #131f30;font-size:11px}
+  .mktrow:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -94,7 +246,8 @@
   </div>
   <div class="bar">
     <span class="gold" id="clock" style="letter-spacing:.08em"></span>
-    <button id="nextyear" style="display:none">Begin the next year</button>
+    <button id="endmonth" style="display:none">End the Month</button>
+    <button id="nextyear" style="display:none">Begin the Next Year</button>
     <button id="savebtn" class="tiny">Save</button>
     <button id="menubtn" class="tiny">Menu</button>
   </div>
@@ -104,7 +257,7 @@
 <div id="menu" class="overlay">
   <div class="menucol">
     <div class="menutitle">OPES ARX</div>
-    <div class="menusub">eight houses &middot; eleven months &middot; one Divide</div>
+    <div class="menusub">Eight Houses &middot; Eleven Months &middot; One Divide</div>
     <button class="menubtn" id="mNew">New Game</button>
     <button class="menubtn" id="mLoad">Load Game</button>
     <button class="menubtn" id="mResume" style="display:none">Resume</button>
@@ -114,31 +267,29 @@
     <div class="m" id="mNote"></div>
   </div>
   <div class="menucol" id="loadpanel" style="display:none">
-    <div class="menusub">saved games</div>
+    <div class="menusub">Saved Games</div>
     <div id="savelist"></div>
-    <textarea id="saveio" rows="4" placeholder="a save's code can be pasted here"></textarea>
-    <div class="bar"><button class="tiny" id="importbtn">Import the pasted save</button></div>
+    <textarea id="saveio" rows="4" placeholder="Paste a Save's Code Here"></textarea>
+    <div class="bar"><button class="tiny" id="importbtn">Import Pasted Save</button></div>
   </div>
 </div>
 
 <!-- ================================ THE SETUP ================================ -->
 <div id="setup" class="overlay" style="display:none">
   <div class="menucol" style="max-width:760px">
-    <div class="menusub">the seed names the world &middot; the house is yours to choose</div>
+    <div class="menusub">Choose Your Seed and House</div>
     <div class="bar" style="justify-content:center"><input id="seed" value="corp-1" style="width:150px" title="seed"></div>
     <div id="oacards"></div>
     <div id="customform" style="display:none">
       <div class="bar" style="justify-content:center;margin-top:10px">
-        <input id="cname" value="" placeholder="your house's name" style="width:220px">
+        <input id="cname" value="" placeholder="Your House's Name" style="width:220px">
         <select id="creplace" class="tiny" title="whose berth your house takes"></select>
-        <button id="cfound">Found the house</button>
+        <button id="cfound">Found the House</button>
       </div>
-      <div class="m" style="margin-top:6px">a blank slate: the numeric average of the fleet,
-        no cultural quirks, no seal on the table &mdash; the balance baseline, and one day
-        the multiplayer face</div>
+      <div class="m" style="margin-top:6px">A Blank Slate &mdash; The Fleet Average</div>
     </div>
     <div class="bar" style="justify-content:center;margin-top:10px">
-      <button class="tiny" id="setupback">back</button>
+      <button class="tiny" id="setupback">Back</button>
     </div>
   </div>
 </div>
@@ -152,78 +303,61 @@
     <div>
       <h2>The month's verbs</h2>
       <div id="verbs"></div>
+      <div id="traingrid"></div>
       <div class="bar" style="margin-top:8px">
-        <button id="endmonth">End the month</button>
+        <button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock" style="opacity:.7;font-size:10px">&raquo; Skip to the Lock</button>
         <span class="m" id="apline"></span>
       </div>
     </div>
     <div>
-      <h2>What the year has said</h2>
-      <div class="box log" id="desklog"><div class="m">the year is young</div></div>
+      <h2>Gather Intel and Court Sponsors</h2>
+      <div id="intelgrid"></div>
+      <div id="dossier"></div>
+      <div id="courtgrid"></div>
     </div>
   </div>
 </div>
 
 <!-- ================================ THE ROSTER ================================ -->
+<!-- contract and money management, with hiring folded in. Left: your books, sortable.
+     Right rail: the open signing window when idle, the shared detail panel when a hand is
+     inspected — the same convention the Squads board uses. -->
 <div class="page" data-tab="roster">
   <div class="box" id="money"></div>
-  <div id="roster"></div>
-</div>
-
-<!-- ================================ THE HIRING ================================ -->
-<div class="page" data-tab="hiring">
-  <div class="grid2">
-    <div>
-      <h2>The window <span class="m" id="lotname"></span></h2>
-      <div id="lot"></div>
+  <div class="rostcols">
+    <div class="rostbooks">
+      <div id="roster"></div>
     </div>
-    <div>
-      <h2>The market spoke</h2>
-      <div class="box log" id="mlog"><div class="m">no window has closed yet</div></div>
+    <div class="rostrail">
+      <div id="rostmarket"></div>
+      <div id="rostpanel" class="unitpanel" style="display:none"></div>
     </div>
   </div>
+  <div id="mlog" style="display:none"></div>
 </div>
 
 <!-- ================================ THE SQUADS ================================ -->
 <div class="page" data-tab="squads">
   <div class="m" style="margin:0 0 10px">up to six squads of <span id="sqbounds">&mdash;</span>
-  &middot; the drop takes at most <span id="dropcap">&mdash;</span> &middot; the unassigned stay home</div>
+  &middot; The Drop Takes at Most <span id="dropcap">&mdash;</span></div>
   <div class="bar" style="margin-bottom:10px">
-    <button id="autodeal">Clear the plan — let the engine deal</button>
+    <button id="autodeal">Clear the Plan</button>
     <span class="m" id="planstate"></span>
   </div>
   <div class="grid2">
-    <div>
-      <h2>Unassigned — they stay home</h2>
-      <div id="pool"></div>
-    </div>
-    <div>
-      <h2>The squads</h2>
-      <div id="sqboxes"></div>
-      <h2 style="margin-top:14px">The manager's hand</h2>
-      <div class="box">
-        <div class="bar">
-          <select id="hbody" class="tiny"></select>
-          <button class="tiny" id="hset">Set the hand</button>
-          <button class="tiny" id="hclear">Release</button>
+    <div id="squadwrap">
+      <div class="sqcols">
+        <div class="poolcol">
+          <div class="collabel" id="poollabel">Unassigned</div>
+          <div id="pool" class="dropzone"></div>
+          <div class="m" style="margin-top:6px;font-size:10.5px">Drag a card onto a squad. Drag back here to bench. Click a card to inspect and equip.</div>
         </div>
-        <div class="bar" style="margin-top:6px">
-          <select id="hprim" class="tiny"></select>
-          <select id="harm" class="tiny"></select>
-          <select id="hside" class="tiny"></select>
-        </div>
-        <div class="bar" style="margin-top:6px">
-          <select id="hcon1" class="tiny"></select>
-          <select id="hcon2" class="tiny"></select>
-          <select id="hcon3" class="tiny"></select>
-        </div>
-        <div class="m" id="hstate" style="margin-top:6px">the quartermaster kits everyone you
-          do not name. A hand draws from the rack first, buys what the rack lacks with the
-          same money, and is honored whole or refused whole &mdash; never a half-kit.</div>
+        <div class="sqgrid" id="sqboxes"></div>
       </div>
     </div>
+    <div id="unitpanel" class="unitpanel" style="display:none"></div>
   </div>
-  <h2 style="margin-top:14px">As locked</h2>
+  <h2 style="margin-top:14px">As Locked</h2>
   <div class="box" id="sqlocked"><span class="m">no drop locked yet &mdash; lock it from The Firefight</span></div>
 </div>
 
@@ -237,7 +371,7 @@
       <h2>The lock</h2>
       <div class="bar" style="margin-bottom:8px">
         <select id="rival" style="width:auto" title="rival corporation"></select>
-        <button id="lock">Lock the drop</button>
+        <button id="lock">Lock the Drop</button>
       </div>
       <div class="box" id="lockinfo"><span class="m">no drop locked yet</span></div>
       <h2>The engagement</h2>
@@ -260,7 +394,7 @@
         <option value="0.48,0.87">They better prepared</option>
         <option value="0.95,0.20">You ambush them</option>
       </select>
-      <div class="bar"><button id="run">Run engagement</button></div>
+      <div class="bar"><button id="run">Run Engagement</button></div>
       <div class="box" id="settle" style="margin-top:10px"><span class="m">nothing settled yet</span></div>
     </div>
     <div>
@@ -270,7 +404,7 @@
         <input id="fr" type="range" min="0" max="0" value="0">
         <button id="fwd">&rsaquo;</button>
         <span class="t" id="frLbl">&mdash;</span>
-        <button id="play">play</button>
+        <button id="play">Play</button>
         <label class="m"><input type="checkbox" id="noanim"> no movement</label>
       </div>
       <div class="box evbox" id="events"><span class="m">no engagement run yet</span></div>
@@ -288,9 +422,10 @@
 <div class="page" data-tab="ground">
   <div class="bar" style="margin-bottom:10px">
     <button id="begindiv">Begin the Divide</button>
-    <button id="advwin" style="display:none">Advance to the next comms window</button>
+    <button id="advwin" style="display:none">Next Comms Window</button>
     <span class="m" id="divstate"></span>
   </div>
+  <div id="sponsorverdict"></div>
   <div class="scrub" id="gscrub" style="display:none">
     <input id="gday" type="range" min="1" max="1" value="1">
     <span class="t" id="gdayLbl">&mdash;</span>
@@ -372,7 +507,6 @@
   var SURFACES = {
     desk:   { name: 'The Desk',      live: true },
     roster: { name: 'The Roster',    live: true },
-    hiring: { name: 'The Hiring',    live: true },
     squads: { name: 'The Squads',    live: true },
     talks:  { name: 'The Negotiation',
       what: 'Dealing between corporations across the year: player trades, and the plain-sense swaps that happen outside a Divide \u2014 people or gear for what a corp runs short of. A new system, still to come.' },
@@ -384,7 +518,7 @@
   };
   var RAILS = {
     prep:   { head: 'Months 1\u201311 \u00b7 The Preparation', home: 'desk',
-              tabs: ['desk', 'roster', 'hiring', 'squads', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'ground',
               tabs: ['ground', 'fight', 'table', 'roster', 'board'] }
   };
@@ -429,6 +563,9 @@
       TAB[RAILS[phase].home].click();
     }
     $('nextyear').style.display = m >= 12 ? '' : 'none';
+    /* End Month lives on the top line so it is reachable from any page; it stands during the
+       preparation months and steps aside once the Divide has the floor. */
+    $('endmonth').style.display = (G && G.state && m < 12) ? '' : 'none';
     $('clock').textContent = G && G.state
       ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 the Divide'
           : 'Month ' + m + ' \u2014 ' + ((SEASON.MONTHS[m] || {}).name || ''))
@@ -439,6 +576,11 @@
     Array.prototype.forEach.call(document.querySelectorAll('.page'), function (p) {
       p.classList.toggle('on', p.getAttribute('data-tab') === tab);
     });
+    /* refresh the tab's live view on open, so the board and roster always tell the truth */
+    if (G) {
+      if (tab === 'squads') renderSquads();
+      else if (tab === 'roster') renderRoster();
+    }
   }
 
   /* ---- ONE corporation in memory (one fleet around it, so the market is contested).
@@ -454,7 +596,7 @@
           lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
-          plan: { at: {}, leaders: [null, null, null, null, null, null], hand: {} },
+          plan: { at: {}, leaderOf: {}, names: ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: {} },
           div: null, gcache: null, gday: 1 };
     /* THE YEAR OPENS. The engine's own seam: the planet is announced, the board sets its
        card, sponsors put offers on the table, and every house in the fleet — this one
@@ -468,7 +610,7 @@
       rv.appendChild(o);
     });
     $('mlog').innerHTML = '<div class="m">no window has closed yet</div>';
-    $('desklog').innerHTML = '<div class="m">the year is young</div>';
+    /* desk log panel removed */
     G._railPhase = null;
     renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
     renderEncounters();
@@ -481,54 +623,227 @@
     return 'A' + f.stats.aim + ' T' + f.stats.tactics + ' R' + f.stats.resolve + ' G' + f.stats.grit;
   }
 
-  function renderBench() { renderRoster(); renderHiring(); }
+  function renderBench() { renderRoster(); }
+
+  /* ---- the Roster's shared rail: market when idle, detail when a hand is inspected ---- */
+  function inspectRoster(id) {
+    G._rinspect = (G._rinspect === id) ? null : id;
+    G._pickSlot = null;
+    renderRoster();
+  }
+
+  function renderRosterPanel() {
+    var b = bodyById(G._rinspect);
+    var panel = $('rostpanel'), market = $('rostmarket');
+    if (!b) { panel.style.display = 'none'; market.style.display = ''; G._rinspect = null; return; }
+    market.style.display = 'none';
+    panel.style.display = '';
+
+    var kit = currentKit(b), s = b.stats, skills = b.skills || {};
+    var quirks = (b.traits || []).map(function (t) {
+      return (ROSTER.traitById && ROSTER.traitById[t] ? ROSTER.traitById[t].name : t); });
+    var stress = (b.condition && b.condition.stress) || 0;
+    var org = originOf(b), ct = b.contract || {};
+    var lead = !!G.plan.leaderOf[b.id];
+
+    var doll =
+      '<div class="updoll">' +
+      '<div class="collabel" style="text-align:center;margin-bottom:6px">Loadout</div>' +
+      slotHtml('primary', 'Primary', kit.primary) +
+      slotHtml('armor', 'Armor', kit.armor) +
+      '<div style="display:flex;gap:5px">' +
+      '<div style="flex:1">' + slotHtml('sidearm', 'Sidearm', kit.sidearm) + '</div>' +
+      '<div style="flex:1">' + slotHtml('consumable', 'Store', (kit.consumables || [])[0] || null) + '</div>' +
+      '</div></div>';
+
+    var trades = ITEMS.SKILL_FAMILIES.map(function (f) {
+      return esc(f.name) + ' ' + (skills[f.id] != null ? skills[f.id] : s.aim);
+    }).join(' \u00b7 ');
+
+    /* the paper, per origin — the money facts that make this hand's contract what it is */
+    var paper = '<div class="collabel">The Paper</div><div style="line-height:1.7;margin-bottom:8px">' +
+      'Salary ' + n0(ct.salary || 0) + ' / season';
+    if (ct.seasons_remaining != null) paper += ' \u00b7 ' + termOf(b).txt + ' left';
+    paper += '<br>';
+    if (ct.divides_required != null)
+      paper += '<span class="good">Freedom after ' + ct.divides_required + ' Divides (' +
+               (ct.divides_served || 0) + ' served)</span>';
+    else if (ct.kind === 'mercenary')
+      paper += 'One Divide, paid in full whether or not they drop';
+    else {
+      var bits = [];
+      if (ct.death_benefit) bits.push('Pension ' + n0(ct.death_benefit) + ' if lost');
+      if (ct.divide_bonus) bits.push('+' + n0(ct.divide_bonus) + ' a Divide');
+      paper += bits.join(' \u00b7 ') || 'Standard terms';
+    }
+    paper += '</div>';
+
+    var info =
+      '<div style="flex:1">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px">' +
+      '<div><span class="gold" style="font-size:14px">' + (lead ? '\u2605 ' : '') + esc(b.name) +
+      '</span> <span class="orig ' + org.cls + '">' + org.label + '</span></div>' +
+      '<span class="m" style="font-size:10px;cursor:pointer" id="rpclose">\u2715 close</span>' +
+      '</div>' +
+      '<div class="m" style="margin-bottom:8px">' + esc(b.race) + ' \u00b7 ' +
+      (b.age != null ? 'age ' + b.age : 'age \u2014') + ' \u00b7 ' + (b.divides || 0) + ' divides</div>' +
+      paper +
+      '<div class="collabel">Stats</div>' +
+      '<div style="line-height:1.7;margin-bottom:8px">' +
+      'Aim ' + s.aim + ' \u00b7 Tactics ' + s.tactics + ' \u00b7 Reflex ' + s.reflex + ' \u00b7 Fieldcraft ' +
+      s.fieldcraft + '<br>Presence ' + s.presence + ' \u00b7 Resolve ' + s.resolve + ' \u00b7 Grit ' + s.grit +
+      (stress >= 30 ? ' <span class="warn">\u00b7 stress ' + Math.round(stress) + '</span>' : '') + '</div>' +
+      '<div class="collabel">Trades</div>' +
+      '<div style="color:#8fa8c4;line-height:1.6;margin-bottom:8px">' + trades + '</div>' +
+      (quirks.length
+        ? '<div class="collabel">Quirks</div><div style="color:#8fa8c4">' + esc(quirks.join(' \u00b7 ')) + '</div>'
+        : '') +
+      '</div>';
+
+    panel.innerHTML = '<div style="display:flex;gap:12px">' + doll + info + '</div>' +
+                      '<div id="pickerhost"></div>';
+
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-slot]'), function (el) {
+      el.onclick = function () { openPicker(el.getAttribute('data-slot')); };
+    });
+    var cl = $('rpclose');
+    if (cl) cl.onclick = function () { inspectRoster(G._rinspect); };
+    if (G._pickSlot) openPicker(G._pickSlot);
+  }
+
+
+
+  /* THE ORIGIN of a hand — the pool they came from, which sets their whole economic
+     relationship. contract.kind is the data key ('nattie'|'mercenary'|'prisoner'); the
+     player sees the official term. A prisoner working off a sentence is a Conscript now. */
+  var ORIGIN = {
+    nattie:    { label: 'Natural-Born', cls: 'nat', ord: 0 },
+    mercenary: { label: 'Mercenary',    cls: 'mer', ord: 1 },
+    prisoner:  { label: 'Conscript',    cls: 'con', ord: 2 }
+  };
+  function originOf(f) { return ORIGIN[(f.contract || {}).kind] || ORIGIN.nattie; }
+
+  /* what a hand's paper says, per origin — the obligation that outlives the salary line */
+  function obligationOf(f) {
+    var ct = f.contract || {};
+    if (ct.divides_required != null)
+      return { txt: 'Freedom ' + (ct.divides_served || 0) + '/' + ct.divides_required, cls: 'good' };
+    if (ct.kind === 'mercenary') return { txt: '\u2014', cls: 'm' };
+    if (ct.death_benefit) return { txt: 'Pension ' + n0(ct.death_benefit), cls: 'm' };
+    return { txt: '\u2014', cls: 'm' };
+  }
+  function termOf(f) {
+    var ct = f.contract || {};
+    var s = ct.seasons_remaining;
+    if (s == null) return { txt: '\u2014', ending: false, ord: 99 };
+    return { txt: s + ' Season' + (s === 1 ? '' : 's'), ending: s <= 1, ord: s };
+  }
+  function statusOf(f) {
+    if (f.status === 'dead') return { txt: 'Lost', warn: false, gone: true };
+    if (f.status === 'retired') return { txt: 'Retired', warn: false, gone: true };
+    var st = '', warn = false;
+    if (f.status === 'injured' && f._recovery > 0) { st = 'Injured ' + Math.ceil(f._recovery) + 'd'; warn = true; }
+    var hurtDays = 0;
+    ((f.condition && f.condition.injuries) || []).forEach(function (w) {
+      if (!w.careerEnding && !w.permanent) hurtDays = Math.max(hurtDays, w.days_remaining || 0);
+    });
+    if (hurtDays) { st = 'Mending ' + Math.ceil(hurtDays) + 'd'; warn = true; }
+    var strj = (f.condition && f.condition.stress) || 0;
+    if (strj >= 30) { st = (st ? st + ' \u00b7 ' : '') + 'Stress ' + Math.round(strj); warn = true; }
+    return { txt: st || 'Active', warn: warn, gone: false };
+  }
+
+  /* THE BOOKS. Name, origin, salary, term, obligation, status — sortable by any column,
+     salary the default. Clicking a hand opens the shared detail panel in the rail. */
+  var ROSTER_SORT = { key: 'salary', asc: false };
+  var ROSTER_COLS = [
+    { k: 'name',    lbl: 'Name',        num: false },
+    { k: 'origin',  lbl: 'Origin',      num: false },
+    { k: 'salary',  lbl: 'Salary',      num: true  },
+    { k: 'term',    lbl: 'Term',        num: false },
+    { k: 'oblig',   lbl: 'Obligation',  num: false },
+    { k: 'status',  lbl: 'Status',      num: false }
+  ];
+  function rosterSortVal(f, key) {
+    var ct = f.contract || {};
+    if (key === 'name')   return f.name.toLowerCase();
+    if (key === 'origin') return originOf(f).ord;
+    if (key === 'salary') return ct.salary || 0;
+    if (key === 'term')   return termOf(f).ord;
+    if (key === 'oblig')  return obligationOf(f).txt.toLowerCase();
+    if (key === 'status') return statusOf(f).gone ? 2 : statusOf(f).warn ? 1 : 0;
+    return 0;
+  }
 
   function renderRoster() {
     if (!G) return;
     var me = G.corps[G.me];
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+    var wage = alive.reduce(function (a, f) { return a + ((f.contract || {}).salary || 0); }, 0);
     $('money').innerHTML =
-      '<b>' + esc(me.profile.name) + '</b>' +
-      '<div class="m">treasury ' + n0(me.account.treasury) +
-      ' &middot; board grant ' + n0(me.account.grant) +
-      ' &middot; signing budget ' + n0(SEASON.signingBudget(me)) +
+      '<b class="gold">' + esc(me.profile.name) + '</b>' +
+      '<div class="m">Treasury ' + n0(me.account.treasury) +
+      ' &middot; Board grant ' + n0(me.account.grant) +
+      ' &middot; Season wage ' + n0(wage) +
       ' &middot; ' + alive.length + ' on the books</div>';
-    var h = '<table><tr><th>name</th><th>race</th><th>age</th><th>stats</th>' +
-            '<th>divides</th><th>year</th><th>contract</th><th>status</th></tr>';
-    me.roster.forEach(function (f) {
-      var cls = f.status === 'dead' || f.status === 'retired' ? ' class="gone"'
-              : f.status !== 'active' ? ' class="hurt"' : '';
-      var st = f.status;
-      if (f.status === 'injured' && f._recovery > 0) st += ' (' + Math.ceil(f._recovery) + 'd)';
-      var hurtDays = 0;
-      ((f.condition && f.condition.injuries) || []).forEach(function (w) {
-        if (!w.careerEnding && !w.permanent) hurtDays = Math.max(hurtDays, w.days_remaining || 0);
-      });
-      if (hurtDays) st += ' \u00b7 mending ' + Math.ceil(hurtDays) + 'd';
-      var ct = f.contract || {};
-      var paper = ct.divides_required != null
-        ? 'freedom ' + (ct.divides_served || 0) + '/' + ct.divides_required
-        : ct.kind === 'mercenary' ? '1 Divide \u00b7 full price'
-        : ct.kind === 'nattie'
-        ? (ct.seasons_remaining != null ? ct.seasons_remaining + 'yr' : '') +
-          (ct.death_benefit ? ' \u00b7 pension ' + n0(ct.death_benefit) : '')
-        : ct.seasons_remaining != null ? ct.seasons_remaining + 'yr' : '\u2014';
-      h += '<tr' + cls + '><td>' + esc(f.name) + '</td><td>' + esc(f.race) + '</td><td>' +
-           (f.age != null ? f.age : '\u2014') + '</td><td class="m">' + statLine(f) + '</td><td>' +
-           (f.divides || 0) + '</td><td>' + n0(SEASON.askingPrice(f)) + '</td><td class="m">' +
-           paper + '</td><td>' + esc(st) + '</td></tr>';
+
+    var rows = me.roster.slice().sort(function (a, b) {
+      var x = rosterSortVal(a, ROSTER_SORT.key), y = rosterSortVal(b, ROSTER_SORT.key);
+      var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
+      return ROSTER_SORT.asc ? c : -c;
+    });
+
+    var h = '<table><tr>';
+    ROSTER_COLS.forEach(function (c) {
+      var arrow = ROSTER_SORT.key === c.k ? (ROSTER_SORT.asc ? ' \u25b4' : ' \u25be') : '';
+      h += '<th class="' + (c.num ? 'num' : '') + '" data-sort="' + c.k + '">' + c.lbl + arrow + '</th>';
+    });
+    h += '</tr>';
+    rows.forEach(function (f) {
+      var org = originOf(f), term = termOf(f), ob = obligationOf(f), stt = statusOf(f);
+      var cls = 'hand' + (stt.gone ? ' gone' : (stt.warn ? ' hurt' : '')) +
+                (G._rinspect === f.id ? ' sel' : '');
+      h += '<tr class="' + cls + '" data-hand="' + f.id + '">' +
+           '<td>' + (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</td>' +
+           '<td><span class="orig ' + org.cls + '">' + org.label + '</span></td>' +
+           '<td class="num">' + n0((f.contract || {}).salary || 0) + '</td>' +
+           '<td' + (term.ending ? ' class="warn"' : '') + '>' + term.txt +
+             (term.ending ? ' \u00b7 Ending' : '') + '</td>' +
+           '<td class="' + ob.cls + '">' + ob.txt + '</td>' +
+           '<td class="' + (stt.warn ? 'warn' : 'm') + '">' + stt.txt + '</td></tr>';
     });
     $('roster').innerHTML = h + '</table>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('#roster th[data-sort]'), function (th) {
+      th.onclick = function () {
+        var k = th.getAttribute('data-sort');
+        if (ROSTER_SORT.key === k) ROSTER_SORT.asc = !ROSTER_SORT.asc;
+        else { ROSTER_SORT.key = k; ROSTER_SORT.asc = (k === 'name' || k === 'origin'); }
+        renderRoster();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#roster tr[data-hand]'), function (tr) {
+      tr.onclick = function () { inspectRoster(tr.getAttribute('data-hand')); };
+    });
+
+    renderMarket();
+    if (G._rinspect) renderRosterPanel();
   }
 
   /* THE WINDOW IS THE CALENDAR'S. A bid stands through the run-up and the signings land at
      the deadline inside the month step, every house bidding through the same seam. */
-  function renderHiring() {
-    if (!G || !G.state) return;
+  /* ---- THE OPEN WINDOW, in the Roster's rail. Three signings, three origins:
+     tryouts sign your own Natural-Born prospects free; the merc window is an auction you
+     bid in; the Bastille places Conscripts by need. Idle when no window is open. ---- */
+  function renderMarket() {
+    var mkt = $('rostmarket');
+    if (G._rinspect) { mkt.style.display = 'none'; return; }   /* the detail owns the rail */
+    mkt.style.display = '';
+    if (!G || !G.state) { mkt.innerHTML = ''; return; }
     var m = G.state.month;
     if (m >= 12) {
-      $('lotname').textContent = '';
-      $('lot').innerHTML = '<div class="m">the year\u2019s windows are closed \u2014 the Divide has the floor</div>';
+      mkt.innerHTML = '<div class="rostmkt"><div class="collabel">The Window</div>' +
+        '<div class="m">The year\u2019s windows are closed \u2014 the Divide has the floor.</div></div>';
       return;
     }
     var win = SEASON.MONTHS[m] || {};
@@ -536,98 +851,85 @@
       var next = null;
       for (var mm = m + 1; mm <= 11 && !next; mm++)
         if ((SEASON.MONTHS[mm] || {}).signing) next = { m: mm, kind: SEASON.MONTHS[mm].signing };
-      $('lotname').textContent = '\u2014 no window open';
-      $('lot').innerHTML = '<div class="m">' + esc(win.name || 'this month') +
-        ' opens no signing window' +
-        (next ? ' \u00b7 next: the ' + esc(next.kind) + ' window, month ' + next.m : '') + '</div>';
+      var nextName = next ? ({ tryouts: 'Nattie Tryouts', mercs: 'Merc Market', bastille: 'Bastille Intake' }[next.kind] || next.kind) : null;
+      mkt.innerHTML = '<div class="rostmkt"><div class="collabel">The Window</div>' +
+        '<div class="m">No signing window is open this month.' +
+        (next ? ' Next: ' + esc(nextName) + ', month ' + next.m + '.' : '') + '</div></div>';
       return;
     }
     var deadline = null;
     for (var dm = m; dm <= 11; dm++)
       if ((SEASON.MONTHS[dm] || {}).event === win.signing) { deadline = dm; break; }
+
     if (win.signing === 'bastille') {
-      $('lotname').textContent = '\u2014 the Kier Bastille';
       var lotB = G.state.lots.bastille || [];
-      var hb = '<div class="m" style="margin-bottom:6px">' + lotB.length +
-        ' prisoners stand for intake. A prisoner\u2019s place is not bid for: the intake places' +
-        ' them by need and wage at month ' + deadline +
-        '. Work the window at the desk to stand nearer the front.</div>';
+      var hb = '<div class="rostmkt"><div class="collabel">The Kier Bastille \u00b7 Conscripts</div>' +
+        '<div class="m" style="margin-bottom:6px">' + lotB.length +
+        ' stand for intake at month ' + deadline + '. A Conscript\u2019s place is not bid for \u2014 the ' +
+        'intake places them by need and wage. Work the window at The Desk to stand nearer the front.</div>';
       lotB.forEach(function (f) {
         var req = f.contract && f.contract.divides_required;
-        hb += '<div class="poolrow"><span>' + esc(f.name) + ' <span class="m">' + esc(f.race) +
-              ' \u00b7 ' + statLine(f) + ' \u00b7 ' + n0(SEASON.askingPrice(f)) + '/yr</span></span>' +
-              '<span class="m">free after ' + (req || '?') + ' Divide' + (req === 1 ? '' : 's') +
-              ' \u2014 or one win</span></div>';
+        hb += '<div class="mktrow"><span>' + esc(f.name) + ' <span class="m">' + statLine(f) +
+              '</span></span><span class="good" style="font-size:10px">Free after ' + (req || '?') +
+              ' Divide' + (req === 1 ? '' : 's') + '</span></div>';
       });
-      $('lot').innerHTML = hb;
+      mkt.innerHTML = hb + '</div>';
       return;
     }
+
     var lot = SEASON.lotFor(G.state, G.me);
     if (!lot.length) {
-      $('lotname').textContent = '\u2014 the ' + win.signing + ' window';
-      $('lot').innerHTML = '<div class="m">the sheet is empty</div>';
+      mkt.innerHTML = '<div class="rostmkt"><div class="collabel">The Window</div>' +
+        '<div class="m">The sheet is empty.</div></div>';
       return;
     }
+
     if (win.signing === 'tryouts') {
-      /* YOUR OWN SHIP. Nobody else is at the table: mark who you want and the signing is
-         the listed salary for the listed years, pension and Divide bonus on the paper. */
-      $('lotname').textContent = '\u2014 your own ship\u2019s prospects \u00b7 they sign at month ' + deadline +
-                                 ' \u00b7 no auction, no rivals';
-      var lt = '<table><tr><th>name</th><th>race</th><th>age</th><th>stats</th>' +
-               '<th>year</th><th>the paper</th><th></th></tr>';
+      var lt = '<div class="rostmkt"><div class="collabel">Nattie Tryouts \u00b7 Natural-Born</div>' +
+        '<div class="m" style="margin-bottom:6px">Your own ship\u2019s prospects. No auction, no rivals \u2014 ' +
+        'mark who you want and they sign at month ' + deadline + ' at the listed salary.</div>';
       lot.forEach(function (f) {
-        lt += '<tr><td>' + esc(f.name) + '</td><td>' + esc(f.race) + '</td><td>' +
-              (f.age != null ? f.age : '\u2014') + '</td><td class="m">' +
-              'A' + f.stats.aim + ' T' + f.stats.tactics + ' R' + f.stats.resolve + ' G' + f.stats.grit +
-              '</td><td>' + n0(f.ask) + '</td><td class="m">' + (f.seasons || '?') + 'yr \u00b7 pension ' +
-              n0(f.pension || 0) + ' \u00b7 +' + n0(f.bonus || 0) + ' a Divide</td><td>' +
-              (f.yourBid ? '<span class="good">marked to sign</span> <button class="tiny" data-unsign="' +
-                 f.id + '">\u2715</button>'
-               : '<button data-sign="' + f.id + '">Sign</button>') + '</td></tr>';
+        lt += '<div class="mktrow"><span>' + esc(f.name) + ' <span class="m">' +
+              'A' + f.stats.aim + ' T' + f.stats.tactics + ' \u00b7 ' + n0(f.ask) + '/yr</span></span>' +
+              (f.yourBid
+                ? '<span><span class="good" style="font-size:10px">signing</span> ' +
+                  '<button class="tiny" data-unsign="' + f.id + '">\u2715</button></span>'
+                : '<button class="tiny" data-sign="' + f.id + '">Sign</button>') + '</div>';
       });
-      $('lot').innerHTML = lt + '</table>';
-      Array.prototype.forEach.call(document.querySelectorAll('[data-sign]'), function (b) {
-        b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-sign'), 1); renderHiring(); };
+      mkt.innerHTML = lt + '</div>';
+      Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-sign]'), function (b) {
+        b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-sign'), 1); renderRoster(); };
       });
-      Array.prototype.forEach.call(document.querySelectorAll('[data-unsign]'), function (b) {
-        b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-unsign'), 0); renderHiring(); };
+      Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-unsign]'), function (b) {
+        b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-unsign'), 0); renderRoster(); };
       });
       return;
     }
-    /* THE MERC MARKET: they auction themselves. One Divide at the top price, paid whether
-       or not they drop; extension is a fresh handshake next year. The fighter chooses. */
-    $('lotname').textContent = '\u2014 the merc window \u00b7 they choose at month ' + deadline +
-                               ' \u00b7 one Divide, paid in full regardless';
-    var l = '<table><tr><th>name</th><th>race</th><th>age</th><th>stats</th>' +
-            '<th>record</th><th>asking</th><th>your bid</th><th></th></tr>';
+
+    /* the merc market: an auction. Bid a price; the fighter chooses at the deadline. */
+    var l = '<div class="rostmkt"><div class="collabel">Merc Market \u00b7 Mercenary</div>' +
+      '<div class="m" style="margin-bottom:6px">They auction themselves and choose at month ' + deadline +
+      '. One Divide, paid in full whether or not they drop.</div>';
     lot.forEach(function (f) {
-      var rec = f.record || {};
-      l += '<tr><td>' + esc(f.name) + '</td><td>' + esc(f.race) + '</td><td>' +
-           (f.age != null ? f.age : '\u2014') + '</td><td class="m">' +
-           'A' + f.stats.aim + ' T' + f.stats.tactics + ' R' + f.stats.resolve + ' G' + f.stats.grit +
-           '</td><td class="m">' + (rec.divides || 0) + ' Div \u00b7 ' + (rec.battles || 0) + ' btl' +
-           ((f.fame || 0) >= 20 ? ' \u00b7 fame ' + f.fame : '') +
-           '</td><td>' + n0(f.ask) + '</td><td><input class="bid" data-f="' + f.id +
-           '" value="' + (f.yourBid || f.ask) + '">' +
-           (f.yourBid ? ' <span class="good">standing</span>' : '') +
-           '</td><td><button data-bid="' + f.id + '">' + (f.yourBid ? 'Change' : 'Set bid') +
-           '</button>' + (f.yourBid ? '<button class="tiny" data-nobid="' + f.id + '">\u2715</button>' : '') +
-           '</td></tr>';
+      l += '<div class="mktrow"><span>' + esc(f.name) + ' <span class="m">' +
+           'A' + f.stats.aim + ' T' + f.stats.tactics + ' \u00b7 ask ' + n0(f.ask) + '</span></span>' +
+           '<span><input class="bid" data-f="' + f.id + '" value="' + (f.yourBid || f.ask) +
+           '" style="width:56px">' +
+           '<button class="tiny" data-bid="' + f.id + '">' + (f.yourBid ? 'Change' : 'Bid') + '</button>' +
+           (f.yourBid ? '<button class="tiny" data-nobid="' + f.id + '">\u2715</button>' : '') +
+           '</span></div>';
     });
-    $('lot').innerHTML = l + '</table>';
-    Array.prototype.forEach.call(document.querySelectorAll('[data-bid]'), function (b) {
+    mkt.innerHTML = l + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-bid]'), function (b) {
       b.onclick = function () {
         var fid = b.getAttribute('data-bid');
-        var amt = Math.round(+document.querySelector('input.bid[data-f="' + fid + '"]').value || 0);
+        var amt = Math.round(+document.querySelector('#rostmarket input.bid[data-f="' + fid + '"]').value || 0);
         SEASON.placeBid(G.state, G.me, fid, amt);
-        renderHiring();
+        renderRoster();
       };
     });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-nobid]'), function (b) {
-      b.onclick = function () {
-        SEASON.placeBid(G.state, G.me, b.getAttribute('data-nobid'), 0);
-        renderHiring();
-      };
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-nobid]'), function (b) {
+      b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-nobid'), 0); renderRoster(); };
     });
   }
 
@@ -647,41 +949,592 @@
     var me = G.corps[G.me];
     var win = SEASON.MONTHS[m] || { name: 'month ' + m };
     $('monthhead').innerHTML = '<b class="gold">Month ' + m + ' \u2014 ' + esc(win.name) + '</b>' +
-      '<span class="m"> \u00b7 ' + SEASON.CONST.PREP_AP + ' action points' +
-      (win.event ? ' \u00b7 the ' + esc(win.event) + ' window closes when this month ends' : '') +
+      '<span class="m"> \u00b7 ' + SEASON.CONST.FOCUS_POINTS + ' Focus' +
+      (win.event ? ' \u00b7 ' + esc(win.event) + ' Window Closes This Month' : '') +
       '</span>';
-    var opts = SEASON.monthOptions(me, m);
-    var picks = {};
-    SEASON.chooseActions(me, m, SEASON.CONST.PREP_AP).forEach(function (a) { picks[a.kind] = true; });
+    /* THE FOCUS BOARD. Everything on it happens every month regardless; focus strengthens
+       it. The corp's own judgement prefills the allocation; every point is yours to move. */
+    var tracks = SEASON.monthTracks(me, m);
+    if (!G._focusSel || G._focusSel._m !== m) {
+      G._focusSel = SEASON.chooseFocus(me, m);
+      G._focusSel._m = m;
+      G._boostSel = {};                 /* a new month's boosts are chosen fresh */
+      /* the grid owns training now, and the corner is the weakest possible paint — so we do
+         NOT greet the player with an auto-filled corner. Training starts empty; the points the
+         AI would have spent drilling stay free for the player to paint deliberately. */
+      G.plan.trainFocus = { all: 0, col: {}, row: {}, cell: {} };
+      G._focusSel.train = 0;
+      /* courting is the desk section below, painted per supplier — start it empty and drop the
+         AI's prefilled target so the player's board opens uncommitted, like intel and training */
+      G._focusSel.court = 0;
+      delete G._focusSel.courtTarget;
+      G._courtSel = {};
+    }
     var h = '';
-    opts.forEach(function (o) {
-      h += '<div class="verbrow' + (o.available ? '' : ' na') + '">' +
-           '<input type="checkbox" data-verb="' + o.kind + '"' +
-           (o.available ? '' : ' disabled') + (o.available && picks[o.kind] ? ' checked' : '') +
-           '> <b>' + esc(o.name) + '</b> <span class="m">costs ' + o.cost +
-           ' \u00b7 ' + esc(o.why) + '</span></div>';
+    tracks.forEach(function (o) {
+      if (o.kind === 'train') return;   /* training is the grid below, not a button row */
+      if (o.kind === 'scout') return;   /* gathering intel is its own section below */
+      if (o.kind === 'court') return;   /* courting sponsors is its own section below */
+      var cur = G._focusSel[o.kind] || 0;
+      h += '<div class="verbrow' + (o.available ? '' : ' na') + '"><span>';
+      for (var p = 0; p <= SEASON.CONST.FOCUS_CAP; p++) {
+        h += '<button class="tiny fbtn' + (cur === p ? ' on' : '') + '" data-focus="' +
+             o.kind + ':' + p + '"' + (o.available ? '' : ' disabled') + '>' + p + '</button>';
+      }
+      h += '</span> <b>' + esc(o.name) + '</b> ';
+      var canBoost = o.available && o.kind !== 'recruit';
+      if (canBoost && cur > 0) {
+        var on = G._boostSel && G._boostSel[o.kind];
+        h += '<button class="tiny bbtn' + (on ? ' on' : '') + '" data-boost="' + o.kind +
+             '" title="pay ' + n0(cur * SEASON.CONST.BOOST_PER_POINT) +
+             ' to double this focus">\u26a1 ' + n0(cur * SEASON.CONST.BOOST_PER_POINT) + '</button> ';
+      }
+      h += '<span class="m">' + esc(o.why) + '</span></div>';
     });
     $('verbs').innerHTML = h;
-    var apline = function () {
-      var spent = 0;
-      Array.prototype.forEach.call(document.querySelectorAll('[data-verb]:checked'), function (c) {
-        var o = opts.filter(function (x) { return x.kind === c.getAttribute('data-verb'); })[0];
-        if (o) spent += o.cost;
-      });
-      $('apline').textContent = spent + ' of ' + SEASON.CONST.PREP_AP + ' points spoken for' +
-        (spent > SEASON.CONST.PREP_AP ? ' \u2014 over budget: taken top to bottom until they run out' : '') +
-        ' \u00b7 ticked by the corp\u2019s own judgement; change what you like';
-    };
-    Array.prototype.forEach.call(document.querySelectorAll('[data-verb]'), function (c) { c.onchange = apline; });
-    apline();
+    renderTrainGrid();
+    renderIntelGrid();
+    renderCourtGrid();
+    renderDossier();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-focus]'), function (b2) {
+      b2.onclick = function () {
+        var kv = b2.getAttribute('data-focus').split(':');
+        var others = 0;
+        for (var k in G._focusSel)
+          if (k !== '_m' && k !== kv[0] && typeof G._focusSel[k] === 'number') others += G._focusSel[k];
+        G._focusSel[kv[0]] = Math.max(0, Math.min(+kv[1], SEASON.CONST.FOCUS_POINTS - others));
+        renderDesk();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-boost]'), function (b3) {
+      b3.onclick = function () {
+        var k = b3.getAttribute('data-boost');
+        G._boostSel = G._boostSel || {};
+        if (G._boostSel[k]) delete G._boostSel[k]; else G._boostSel[k] = true;
+        renderDesk();
+      };
+    });
+    var spent = 0;
+    for (var k2 in G._focusSel) if (k2 !== '_m' && typeof G._focusSel[k2] === 'number') spent += G._focusSel[k2];
+    var boostCost = 0;
+    if (G._boostSel) for (var bk in G._boostSel)
+      if (G._focusSel[bk]) boostCost += G._focusSel[bk] * SEASON.CONST.BOOST_PER_POINT;
+    $('apline').innerHTML = spent + ' of ' + SEASON.CONST.FOCUS_POINTS + ' Focus Committed' +
+      (boostCost ? ' <span class="gold">\u00b7 \u26a1 ' + n0(boostCost) + '</span>' : '');
   }
 
-  function dlog(html) {
-    var d = document.createElement('div'); d.innerHTML = html;
-    var box = $('desklog');
-    if (box.firstChild && box.firstChild.className === 'm') box.innerHTML = '';
-    box.insertBefore(d, box.firstChild);
+  /* ============================ THE TRAINING GRID ============================
+     Focus is painted directly onto stats at four breadth tiers that STACK: the corner
+     (whole roster, every stat), a column (one stat across the roster), a row (one hand,
+     all stats), and a cell (the scalpel). Pips are star-rating: click a pip to set that
+     level, click the top filled pip to step down. Increases are gated by the shared focus
+     budget; decreases never are. The sum of all pips IS training's draw on the 8. */
+  var TG_STATS = null;   /* [{id,label,abbr,fam}] built once from CONST + SKILL_FAMILIES */
+  function tgStats() {
+    if (TG_STATS) return TG_STATS;
+    var abbr = { tactics:'Tac', presence:'Pre', resolve:'Res', fieldcraft:'Fld' };
+    TG_STATS = [{ id:'aim', label:'Aim', abbr:'Aim', fam:false }];
+    SEASON.CONST.MIND.forEach(function (k) {
+      TG_STATS.push({ id:k, label: k.charAt(0).toUpperCase()+k.slice(1), abbr: abbr[k] || k.slice(0,3), fam:false });
+    });
+    (SEASON.CONST.BODY || ['grit','reflex']).forEach(function (k) {
+      TG_STATS.push({ id:k, label: k.charAt(0).toUpperCase()+k.slice(1), abbr: k.charAt(0).toUpperCase()+k.slice(1,3), fam:false });
+    });
+    return TG_STATS;
   }
+  function tgRoster() {
+    return G.corps[G.me].roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+  }
+  function normTrainFocus() {
+    if (!G.plan.trainFocus) G.plan.trainFocus = { all:0, col:{}, row:{}, cell:{} };
+    var t = G.plan.trainFocus;
+    if (t.all == null) t.all = 0;
+    if (!t.col) t.col = {}; if (!t.row) t.row = {}; if (!t.cell) t.cell = {};
+    return t;
+  }
+  function trainPips() {
+    var t = normTrainFocus(), s = t.all;
+    for (var c in t.col) s += t.col[c];
+    for (var r in t.row) s += t.row[r];
+    for (var k in t.cell) s += t.cell[k];
+    return s;
+  }
+  /* focus spent on the OTHER verbs (everything on the board that isn't training) */
+  function otherFocus() {
+    var s = 0;
+    for (var k in G._focusSel) if (k !== '_m' && k !== 'train' && typeof G._focusSel[k] === 'number') s += G._focusSel[k] || 0;
+    return s;
+  }
+  function tgGet(tier, key) {
+    var t = normTrainFocus();
+    if (tier === 'all') return t.all;
+    return (tier === 'col' ? t.col : tier === 'row' ? t.row : t.cell)[key] || 0;
+  }
+  function tgSet(tier, key, v) {
+    var t = normTrainFocus();
+    if (tier === 'all') { t.all = v; return; }
+    var st = tier === 'col' ? t.col : tier === 'row' ? t.row : t.cell;
+    if (v <= 0) delete st[key]; else st[key] = v;
+  }
+  function tgPip(tier, key, i, filled) {
+    return '<span class="pip" data-tier="' + tier + '" data-key="' + key + '" data-i="' + i +
+           '"><i class="' + (filled ? 'f' : '') + '"></i></span>';
+  }
+  function tgTrack(tier, key, n) {
+    var s = '<span class="piptrack">';
+    for (var i = 0; i < SEASON.CONST.FOCUS_CAP; i++) s += tgPip(tier, key, i, i < n);
+    return s + '</span>';
+  }
+  function renderTrainGrid() {
+    var host = $('traingrid');
+    var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
+    var trainOpen = tracks.some(function (o) { return o.kind === 'train' && o.available; });
+    if (!trainOpen) { host.innerHTML = ''; return; }
+    normTrainFocus();
+    G._focusSel.train = trainPips();           /* board value tracks the painted grid */
+    var roster = tgRoster(), stats = tgStats();
+    var pips = G._focusSel.train, budgetSpent = pips + otherFocus(), full = budgetSpent >= SEASON.CONST.FOCUS_POINTS;
+
+    var h = '<div class="tgwrap"><div class="tghead">' +
+      '<span class="tgtitle">Training</span>' +
+      '<span class="tgbudget' + (full ? ' full' : '') + '">focus spent ' + budgetSpent + ' of ' +
+      SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span></div>';
+    h += '<table class="tgrid"><tr>' +
+         '<th class="rn ' + (normTrainFocus().all > 0 ? 'lith' : '') + '">' +
+         '<div class="tglabel' + (normTrainFocus().all > 0 ? ' on' : '') + '">Whole roster</div>' +
+         tgTrack('all', '', normTrainFocus().all) + '</th>';
+    stats.forEach(function (st) {
+      var n = tgGet('col', st.id);
+      h += '<th class="' + (n > 0 ? 'lith' : '') + '"><div class="tglabel' + (n > 0 ? ' on' : '') + '">' +
+           st.abbr + '</div>' + tgTrack('col', st.id, n) + '</th>';
+    });
+    h += '</tr>';
+    roster.forEach(function (f) {
+      var rn = tgGet('row', f.id);
+      var skills = f.skills || {};
+      h += '<tr><td class="rn ' + (rn > 0 ? 'lit' : '') + '">' +
+           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '">' +
+           (G.plan.leaderOf[f.id] ? '<span class="lead">\\u2605</span> ' : '') + esc(f.name) + '</span> ' +
+           tgTrack('row', f.id, rn) + '</td>';
+      stats.forEach(function (st) {
+        var key = f.id + ':' + st.id, cn = tgGet('cell', key);
+        var val = st.fam ? (skills[st.id] != null ? skills[st.id] : f.stats.aim) : f.stats[st.id];
+        h += '<td class="' + (cn > 0 ? 'lit' : '') + '">' +
+             '<div class="tgnum' + (cn > 0 ? ' on' : '') + '">' + val + '</div>' +
+             tgTrack('cell', key, cn) + '</td>';
+      });
+      h += '</tr>';
+    });
+    h += '</table></div>';
+    host.innerHTML = h;
+  }
+
+  /* ===================== GATHER INTEL — the desk section ===================== */
+  /* intel focus is chosen per target and summed into the 'scout' board value, the way the
+     grid sums into 'train'. G._intelSel maps target -> pips: { planet:N, <oaId>:N }. */
+  function intelSel() {
+    if (!G._intelSel) G._intelSel = {};
+    return G._intelSel;
+  }
+  function intelPips() {
+    var s = 0, sel = intelSel();
+    for (var k in sel) s += sel[k] || 0;
+    return s;
+  }
+  function otherFocusIntel() {   /* everything except scout */
+    var s = 0;
+    for (var k in G._focusSel) if (k !== '_m' && k !== 'scout' && typeof G._focusSel[k] === 'number') s += G._focusSel[k] || 0;
+    return s;
+  }
+  function intelTargets() {
+    var out = [{ id: 'planet', planet: true, name: 'The Planet', sub: planetArchetype() }];
+    G.state.ids.forEach(function (id) {
+      if (id === G.me) return;                 /* you cannot scout yourself */
+      out.push({ id: id, planet: false, name: G.corps[id].profile.name,
+                 sub: archLabel(G.corps[id].profile.archetype) });
+    });
+    return out;
+  }
+  function planetArchetype() {
+    /* the one thing you always know: the planet's headline (the rumour you start with). */
+    return G.state.planet ? esc(G.state.planet.archetypeName || G.state.planet.archetype) : 'Announced soon';
+  }
+  var ARCHW = { juggernaut: 'Juggernaut', honor_guard: 'Honour Guard', old_house: 'Old House',
+                broker: 'Broker', workers_banner: "Workers' Banner", deal_snake: 'Deal-Snake',
+                quiet_provider: 'Quiet Provider', underwriter: 'Underwriter' };
+  function archLabel(a) { return ARCHW[a] || (a ? a.replace(/_/g, ' ') : 'Unknown'); }
+
+  /* a rival target reads by FRESHNESS (oldest non-blank row); the planet by COMPLETENESS. */
+  function intelStatus(t) {
+    var me = G.corps[G.me], intel = me._intel;
+    if (t.planet) {
+      var sheet = intel && intel.planet, known = 0, total = SEASON.INTEL_PLANET_ROWS.length;
+      if (sheet) SEASON.INTEL_PLANET_ROWS.forEach(function (k) {
+        if (sheet.rows[k] && sheet.rows[k].depth) known++;
+      });
+      if (!known) return { word: 'Blank', color: '#5f7a9c' };
+      if (known >= total) return { word: 'Complete', color: '#4fd6a0' };
+      return { word: known + ' of ' + total + ' known', color: '#8fa8c4' };
+    }
+    var rs = intel && intel.rivals && intel.rivals[t.id];
+    if (!rs) return { word: 'Blank', color: '#5f7a9c' };
+    var oldest = 99, any = false;
+    SEASON.INTEL_RIVAL_ROWS.forEach(function (k) {
+      var r = rs.rows[k];
+      if (r && r.depth) { any = true; var f = SEASON.rowFreshness(r, G.state.season); if (f < oldest) oldest = f; }
+    });
+    if (!any) return { word: 'Blank', color: '#5f7a9c' };
+    if (oldest >= 0.8) return { word: 'Fresh', color: '#4fd6a0' };
+    if (oldest >= 0.45) return { word: 'Aging', color: '#e0a848' };
+    return { word: 'Stale', color: '#c0754a' };
+  }
+
+  function intelPipTrack(id, n) {
+    var s = '<span class="piptrack">';
+    for (var i = 0; i < SEASON.CONST.FOCUS_CAP; i++)
+      s += '<span class="pip" data-intel="' + id + '" data-i="' + i + '"><i class="' +
+           (i < n ? 'f' : '') + '"></i></span>';
+    return s + '</span>';
+  }
+
+  function renderIntelGrid() {
+    var host = $('intelgrid');
+    var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
+    var canGather = tracks.some(function (o) { return o.kind === 'scout' && o.available; });
+    /* after M8 the scouts can no longer report before the lock, so gathering closes — but the
+       dossiers you already paid for stay READABLE: the list shows, names still open a dossier,
+       only the pip tracks and budget line drop away. */
+    var me = G.corps[G.me], hasAny = me._intel && ((me._intel.planet &&
+      SEASON.INTEL_PLANET_ROWS.some(function (k) { return me._intel.planet.rows[k] && me._intel.planet.rows[k].depth; })) ||
+      (me._intel.rivals && Object.keys(me._intel.rivals).some(function (id) {
+        return SEASON.INTEL_RIVAL_ROWS.some(function (k) { return me._intel.rivals[id].rows[k] && me._intel.rivals[id].rows[k].depth; });
+      })));
+    if (!canGather && !hasAny) { host.innerHTML = ''; return; }   /* nothing to gather or read */
+
+    var sel = intelSel();
+    if (canGather) G._focusSel.scout = intelPips();   /* board value tracks painted targets */
+    var spent = intelPips() + otherFocusIntel(), full = spent >= SEASON.CONST.FOCUS_POINTS;
+
+    var h = '<div class="tgwrap"><div class="tghead">' +
+      '<span class="tgtitle">Gather Intel</span>' +
+      (canGather
+        ? '<span class="tgbudget' + (full ? ' full' : '') + '">Focus spent ' + spent + ' of ' +
+          SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span>'
+        : '<span class="m">The scouts can no longer report before the Lock \\u2014 read what you have</span>') +
+      '</div>';
+    h += '<table class="itbl">';
+    intelTargets().forEach(function (t) {
+      var n = sel[t.id] || 0, st = intelStatus(t);
+      h += '<tr class="' + (t.planet ? 'iplanet' : '') + (n > 0 ? ' lit' : '') + '">' +
+        '<td class="iname"><span class="idoss ' + (n > 0 ? 'on' : '') + '" data-doss="' + t.id + '">' +
+        (t.planet ? '\u25c8 ' : '') + esc(t.name) + '</span>' +
+        ' <span class="isub">' + t.sub + '</span></td>' +
+        '<td class="ipips">' + (canGather ? intelPipTrack(t.id, n) : '') + '</td>' +
+        '<td class="istat" style="color:' + st.color + '">' + st.word + '</td></tr>';
+    });
+    h += '</table></div>';
+    host.innerHTML = h;
+  }
+
+  /* ======================= COURTING SPONSORS (the desk) =======================
+     A supplier backs at most one corp a year; you court with focus, and each sponsor signs the
+     highest-standing courter at the Lock. Painted per-supplier, mirroring the intel grid:
+     G._courtSel maps { <houseId>: pips }. */
+  function courtSel() { if (!G._courtSel) G._courtSel = {}; return G._courtSel; }
+  function courtPips() { var s = 0, sel = courtSel(); for (var k in sel) s += sel[k] || 0; return s; }
+  function otherFocusCourt() {   /* everything except court */
+    var s = 0;
+    for (var k in G._focusSel) if (k !== '_m' && k !== 'court' && typeof G._focusSel[k] === 'number') s += G._focusSel[k] || 0;
+    return s;
+  }
+  /* the supplier's live courting cost: base, less a drop per contract taken fleet-wide, less a
+     regard discount, floored — read straight from the engine so the desk and the sim agree. */
+  function courtCostFor(house) {
+    var me = G.corps[G.me], board = G.state.sponsorBoard;
+    if (!board) return SEASON.SPON.CONST.COURT_COST_BASE;
+    return SEASON.SPON.courtCost(board, me, house);
+  }
+  /* regard as a number with a worded band beside it, e.g. "56 (Warm)". Bands split the span. */
+  function regardBand(v) {
+    var span = SEASON.SPON.CONST.REGARD_SPAN;               /* runs -span..+span */
+    if (v <= -span * 0.6) return 'Cold';
+    if (v < -span * 0.2) return 'Wary';
+    if (v <= span * 0.2) return 'Neutral';
+    if (v < span * 0.6) return 'Warm';
+    return 'Trusted';
+  }
+  function regardClass(v) {
+    var span = SEASON.SPON.CONST.REGARD_SPAN;
+    if (v < -span * 0.2) return 'cold';
+    if (v <= span * 0.2) return 'neutral';
+    return 'warm';
+  }
+  function courtTargets() {
+    return SEASON.SPON.houseIds().map(function (h) {
+      var cond = SEASON.SPON.CONDITIONS[h];
+      return { id: h, name: SEASON.SPON.houseName(h), flavor: cond.flavor,
+               text: cond.text, reward: cond.reward };
+    });
+  }
+  function rewardWords(rw) {
+    if (!rw || rw.kind === 'cash')
+      return 'reward <b>' + SEASON.SPON.CONST.SPONSOR_REWARD.toLocaleString() + '</b> on completion';
+    var tag = rw.tag === 'energy' ? 'energy kit' : rw.tag === 'medical' ? 'medical kit' : rw.tag + ' kit';
+    return 'reward <span class="kit">' + (rw.count || 1) + '&times; ' + tag + '</span> on completion';
+  }
+  function courtPipTrack(house, n) {
+    var s = '<span class="piptrack">';
+    for (var i = 0; i < SEASON.CONST.FOCUS_CAP; i++)
+      s += '<span class="pip" data-court="' + house + '" data-i="' + i + '"><i class="' +
+           (i < n ? 'f' : '') + '"></i></span>';
+    return s + '</span>';
+  }
+  /* who a supplier is backing this year, if the board has resolved (post-Lock). */
+  function backedBy(house) {
+    var board = G.state.sponsorBoard;
+    return board && board.signedBy ? (board.signedBy[house] || null) : null;
+  }
+  function myContract(house) {
+    var cs = ((G.corps[G.me].sponsors || {}).contracts) || [];
+    for (var i = 0; i < cs.length; i++) if (cs[i].house === house) return cs[i];
+    return null;
+  }
+
+  function renderCourtGrid() {
+    var host = $('courtgrid');
+    var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
+    var canCourt = tracks.some(function (o) { return o.kind === 'court' && o.available; });
+    var me = G.corps[G.me];
+    var hasContract = (((me.sponsors || {}).contracts) || []).length > 0;
+    var hasRegard = me.sponsors && me.sponsors.regard &&
+                    Object.keys(me.sponsors.regard).some(function (k) { return me.sponsors.regard[k]; });
+    if (!canCourt && !hasContract && !hasRegard) { host.innerHTML = ''; return; }
+
+    var sel = courtSel();
+    if (canCourt) G._focusSel.court = courtPips();
+    var spent = courtPips() + otherFocusCourt(), full = spent >= SEASON.CONST.FOCUS_POINTS;
+
+    var h = '<div class="tgwrap"><div class="tghead">' +
+      '<span class="tgtitle">Court Sponsors</span>' +
+      (canCourt
+        ? '<span class="tgbudget' + (full ? ' full' : '') + '">Focus spent ' + spent + ' of ' +
+          SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span>'
+        : '<span class="m">The backers have committed for the year</span>') +
+      '</div><table class="ctbl">';
+
+    courtTargets().forEach(function (t) {
+      var n = sel[t.id] || 0;
+      var backer = backedBy(t.id), mine = myContract(t.id);
+      var regard = SEASON.SPON.regardOf(me, t.id);
+      var taken = backer && backer !== G.me;
+      var signedTag = mine ? '<span class="csigned you">&mdash; backing you</span>'
+                   : (taken ? '<span class="csigned">&mdash; backing ' + esc(nameOfCorp(backer)) + '</span>' : '');
+
+      h += '<tr class="' + (n > 0 ? 'lit' : '') + (taken ? ' signed' : '') + '">';
+      /* left: name, flavour tag, condition, pay line */
+      h += '<td><span class="cname">' + esc(t.name) + '</span>' +
+           '<span class="cflavor ' + t.flavor + '">' + (t.flavor.charAt(0).toUpperCase() + t.flavor.slice(1)) + '</span>' + signedTag +
+           '<div class="ccond">' + esc(t.text) + '</div>';
+      if (!taken || mine)
+        h += '<div class="cpay">advance <b>' + SEASON.SPON.CONST.SPONSOR_ADVANCE.toLocaleString() +
+             '</b> ' + (mine ? 'paid' : 'now') + ' &middot; ' + rewardWords(t.reward) + '</div>';
+      /* the contract you hold shows a live read of how it is tracking (Pass D) */
+      if (mine) {
+        var stt = SEASON.SPON.contractStatus(me, mine);
+        h += '<div class="cstatus ' + stt.state + '">' + esc(stt.word) + '</div>';
+      }
+      h += '</td>';
+      /* middle: pip track, only while courting is open and the house is untaken */
+      h += '<td class="cpips">' + (canCourt && !taken ? courtPipTrack(t.id, n) : '') + '</td>';
+      /* right: live cost while open, and your regard */
+      h += '<td class="cright">';
+      if (canCourt && !taken) {
+        var cost = courtCostFor(t.id), base = SEASON.SPON.CONST.COURT_COST_BASE;
+        h += '<div class="ccost">costs <b>' + cost.toFixed(cost % 1 ? 1 : 0) + '</b>' +
+             (cost < base - 0.01 ? ' <span class="drop">&darr;</span>' : '') + '</div>';
+      }
+      h += '<div class="cregard"><span class="' + regardClass(regard) + '">regard ' +
+           Math.round(regard) + ' (' + regardBand(regard) + ')</span></div>';
+      h += '</td></tr>';
+    });
+    h += '</table></div>';
+    host.innerHTML = h;
+  }
+
+  function nameOfCorp(id) { return (G.corps[id] && G.corps[id].profile && G.corps[id].profile.name) || id; }
+
+  /* THE SEASON-CLOSE VERDICT. After the Divide is judged, show what your backers made of the
+     year: which conditions you kept, which you broke, what the rewards paid (cash or kit), and
+     the advances already banked. Read straight from the season record the engine wrote. */
+  function renderSponsorVerdict(rec) {
+    var host = $('sponsorverdict');
+    if (!host) return;
+    var sp = rec && rec.corps && rec.corps[G.me] && rec.corps[G.me].sponsors;
+    if (!sp || (!sp.kept && !(sp.broken || []).length && !(sp.rewards || []).length)) {
+      host.innerHTML = ''; return;
+    }
+    var h = '<div class="tgwrap"><div class="tghead"><span class="tgtitle">Your Backers\u2019 Verdict</span>' +
+      '<span class="tgbudget">advances banked ' + n0(sp.advance || 0) + '</span></div>';
+    h += '<table class="ctbl">';
+    /* kept — reward paid */
+    (sp.rewards || []).forEach(function (r) {
+      var rw = r.reward || {};
+      var paidWord = rw.kind === 'kit'
+        ? '<span class="kit">' + (rw.count || 1) + '&times; ' + (rw.tag === 'energy' ? 'energy kit'
+            : rw.tag === 'medical' ? 'medical kit' : rw.tag + ' kit') + '</span> delivered'
+        : '<b>' + n0(SEASON.SPON.CONST.SPONSOR_REWARD) + '</b> paid';
+      h += '<tr><td><span class="cname">' + esc(SEASON.SPON.houseName(r.house)) + '</span>' +
+           '<span class="csigned you">&mdash; kept</span>' +
+           '<div class="cpay">reward ' + paidWord + '</div></td></tr>';
+    });
+    /* broken — nothing paid, regard soured */
+    (sp.broken || []).forEach(function (house) {
+      h += '<tr class="signed"><td><span class="cname">' + esc(SEASON.SPON.houseName(house)) + '</span>' +
+           '<span class="csigned">&mdash; broken</span>' +
+           '<div class="ccond">condition missed \u2014 no reward, and their regard for you has cooled</div></td></tr>';
+    });
+    h += '</table></div>';
+    host.innerHTML = h;
+  }
+
+
+
+
+  /* ---- the dossier: what you actually learned about the target you clicked ---- */
+  var IROWLABEL = { roster: 'Roster', finances: 'Finances', kit: 'Kit', training: 'Training',
+                    moves: 'Moves', board: 'Board',
+                    archetype: 'Archetype', prize: 'The Prize', demand: 'The Demand',
+                    terrain: 'Terrain', hazards: 'Hazards', supply: 'Supply', sectors: 'The Sectors' };
+  function ageWord(months) {
+    if (months <= 0) return 'This month';
+    return months + ' mo';
+  }
+  function renderDossier() {
+    var host = $('dossier'); if (!host) return;
+    var open = G._dossier;
+    if (!open) { host.innerHTML = ''; return; }
+    var me = G.corps[G.me], intel = me._intel;
+    var isPlanet = open === 'planet';
+    var rows = isPlanet ? SEASON.INTEL_PLANET_ROWS : SEASON.INTEL_RIVAL_ROWS;
+    var sheet = isPlanet ? (intel && intel.planet)
+                         : (intel && intel.rivals && intel.rivals[open]);
+    var title = isPlanet ? 'The Planet'
+                         : (G.corps[open] ? esc(G.corps[open].profile.name) : open);
+    var prep = isPlanet ? SEASON.planetPreparedness(me)
+                        : SEASON.rivalPreparedness(me, open, G.state.season);
+    var h = '<div class="tgwrap"><div class="tghead">' +
+      '<span class="tgtitle">' + (isPlanet ? '\u25c8 ' : '') + title + '</span>' +
+      '<span class="m" style="color:var(--hit)">Readiness +' + prep.toFixed(2) + '</span></div>';
+    h += '<table class="dtbl">';
+    rows.forEach(function (k) {
+      var r = sheet && sheet.rows[k], depth = r ? r.depth : 0;
+      var label = IROWLABEL[k] || k;
+      var val, ageCol, ageColor;
+      if (!depth) {
+        val = '<span class="m">Not yet scouted</span>'; ageCol = 'Blank'; ageColor = 'var(--faint)';
+      } else if (isPlanet) {
+        val = planetRowText(k, depth);
+        ageCol = depth >= 3 ? 'Full' : 'Partial';
+        ageColor = depth >= 3 ? 'var(--hit)' : 'var(--warn)';
+      } else {
+        val = esc(r.snapshot || '\u2014') + (depth < 3 ? ' <span class="m">(partial)</span>' : '');
+        var f = SEASON.rowFreshness(r, G.state.season);
+        var gSeason = Math.floor((r.gathered || 0) / 100), gMonth = (r.gathered || 0) % 100;
+        var monthsOld = (G.state.season * 11 + G.state.month) - (gSeason * 11 + gMonth);
+        ageCol = ageWord(Math.max(0, monthsOld));
+        ageColor = f >= 0.8 ? 'var(--hit)' : f >= 0.45 ? 'var(--warn)' : '#c0754a';
+      }
+      h += '<tr' + (depth ? '' : ' class="dblank"') + '>' +
+        '<td class="dlab">' + label + '</td>' +
+        '<td class="dval">' + val + '</td>' +
+        '<td class="dage" style="color:' + ageColor + '">' + ageCol + '</td></tr>';
+    });
+    h += '</table></div>';
+    host.innerHTML = h;
+  }
+  /* the planet is read LIVE (it does not change within a year); depth just gates how much shows */
+  function planetRowText(k, depth) {
+    var pl = G.state.planet; if (!pl) return '\u2014';
+    switch (k) {
+      case 'archetype': return esc(pl.archetypeName || pl.archetype);
+      case 'prize': return depth >= 2 ? 'Rich \u2014 ' + planetComposition(pl) : (pl.richness >= 1 ? 'A rich pot' : 'A lean pot');
+      case 'demand': return 'The board wants ' + esc(planetDemand(pl));
+      case 'terrain': return depth >= 2 ? planetTerrain(pl) : 'Mixed ground';
+      case 'hazards': return depth >= 2 ? planetHazards(pl) : 'Some hazards';
+      case 'supply': return pl.supplyStrain > 1.05 ? 'Hard to keep fed' : pl.supplyStrain < 0.95 ? 'Forgiving on supply' : 'Ordinary supply';
+      case 'sectors': return depth >= 3 ? 'Full sector map read' : depth >= 2 ? 'Most sectors mapped' : 'A few sectors mapped';
+    }
+    return '\u2014';
+  }
+  function planetComposition(pl) {
+    var c = pl.composition || []; if (!c.length) return 'unknown veins';
+    return c.slice(0, 2).map(function (r) { return esc(r.id || r.label || 'ore'); }).join(', ');
+  }
+  function planetDemand(pl) {
+    return (pl.composition && pl.composition[0] && (pl.composition[0].id || pl.composition[0].label)) ||
+           pl.archetypeName || 'a haul';
+  }
+  function planetTerrain(pl) {
+    var t = pl.terrain || []; if (!t.length) return 'mixed ground';
+    return t.slice(0, 2).map(function (x) { return esc((x[0] || '').replace(/_/g, ' ')); }).join(', ');
+  }
+  function planetHazards(pl) {
+    var hz = pl.hazards || []; if (!hz.length) return 'few hazards';
+    return hz.slice(0, 2).map(function (x) { return esc(x[0] || ''); }).join(', ');
+  }
+
+  /* clicking a target's name opens (or closes) its dossier below the section */
+  document.addEventListener('click', function (e) {
+    var d = e.target.closest ? e.target.closest('#intelgrid .idoss') : null;
+    if (!d) return;
+    var id = d.getAttribute('data-doss');
+    G._dossier = (G._dossier === id) ? null : id;
+    renderDossier();
+  });
+
+  /* the intel section's pips — one delegated handler, survives redraws like the grid's */
+  document.addEventListener('click', function (e) {
+    var pip = e.target.closest ? e.target.closest('#intelgrid .pip') : null;
+    if (!pip) return;
+    var id = pip.getAttribute('data-intel'), i = +pip.getAttribute('data-i');
+    var sel = intelSel(), cur = sel[id] || 0, target = i + 1,
+        newVal = (cur === target) ? i : target, delta = newVal - cur;
+    if (delta > 0 && intelPips() + otherFocusIntel() + delta > SEASON.CONST.FOCUS_POINTS) return;
+    if (newVal <= 0) delete sel[id]; else sel[id] = newVal;
+    G._focusSel.scout = intelPips();
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderDesk();
+  });
+
+  /* the courting desk's pips — one delegated handler, survives redraws */
+  document.addEventListener('click', function (e) {
+    var pip = e.target.closest ? e.target.closest('#courtgrid .pip') : null;
+    if (!pip) return;
+    var id = pip.getAttribute('data-court'), i = +pip.getAttribute('data-i');
+    var sel = courtSel(), cur = sel[id] || 0, target = i + 1,
+        newVal = (cur === target) ? i : target, delta = newVal - cur;
+    if (delta > 0 && courtPips() + otherFocusCourt() + delta > SEASON.CONST.FOCUS_POINTS) return;
+    if (newVal <= 0) delete sel[id]; else sel[id] = newVal;
+    G._focusSel.court = courtPips();
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderDesk();
+  });
+
+  document.addEventListener('click', function (e) {
+    var pip = e.target.closest ? e.target.closest('#traingrid .pip') : null;
+    if (!pip) return;
+    var tier = pip.getAttribute('data-tier'), key = pip.getAttribute('data-key'),
+        i = +pip.getAttribute('data-i');
+    var cur = tgGet(tier, key), target = i + 1, newVal = (cur === target) ? i : target,
+        delta = newVal - cur;
+    if (delta > 0 && trainPips() + otherFocus() + delta > SEASON.CONST.FOCUS_POINTS) return;
+    tgSet(tier, key, newVal);
+    G._focusSel.train = trainPips();          /* training's board value is the sum of pips */
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderDesk();
+  });
+
+  function dlog() { /* the month-by-month desk log was removed; narration lives in the sections */ }
 
   $('endmonth').onclick = function () {
     if (!G || !G.state || G.state.month >= 12) return;
@@ -690,17 +1543,28 @@
     me.roster.forEach(function (b) { before[b.id] = true; });
     var divsBefore = me.roster.reduce(function (n, b) {
       return n + ((b.experience || {}).dividends || 0); }, 0);
-    var wanted = [];
-    Array.prototype.forEach.call(document.querySelectorAll('[data-verb]:checked'), function (c) {
-      wanted.push(c.getAttribute('data-verb'));
-    });
+    var wanted = {};
+    for (var wk in (G._focusSel || {})) if (wk !== '_m' && typeof G._focusSel[wk] === 'number') wanted[wk] = G._focusSel[wk];
+    wanted.train = trainPips();               /* the grid is the source of truth for training */
+    if (wanted.train > 0) wanted.trainTarget = normTrainFocus();
+    else delete wanted.train;
+    /* gathering intel: the painted per-target map ({ planet:pips, oaId:pips }) is the truth */
+    if (intelPips() > 0) { wanted.scout = intelPips(); wanted.intelTarget = intelSel(); }
+    else { delete wanted.scout; delete wanted.intelTarget; }
+    /* courting: the painted per-supplier map ({ <houseId>:pips }) is the truth */
+    if (courtPips() > 0) { wanted.court = courtPips(); wanted.courtTarget = courtSel(); }
+    else { delete wanted.court; delete wanted.courtTarget; }
+    if (G._boostSel && Object.keys(G._boostSel).length) wanted._boost = G._boostSel;
     var choices = {}; choices[G.me] = wanted;
     var res = SEASON.stepMonth(G.state, choices);
     if (!res) return;
     var lines = [];
-    ((res.spent || {})[G.me] || []).forEach(function (a) { lines.push('spent: ' + a.kind); });
+    var sp = (res.spent || {})[G.me] || {};
+    var spWords = [];
+    for (var sk in sp) if (sp[sk] && typeof sp[sk] === 'number') spWords.push(sp[sk] + ' on ' + sk);
+    if (spWords.length) lines.push('focus: ' + spWords.join(', '));
     ((res.landed || {})[G.me] || []).forEach(function (x) {
-      lines.push('<span class="gold">landed:</span> ' + esc(typeof x === 'string' ? x : JSON.stringify(x)));
+      lines.push('<span class="gold">landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
     });
     var joined = me.roster.filter(function (b) { return !before[b.id]; });
     if (joined.length)
@@ -740,6 +1604,16 @@
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
   };
 
+  $('skiptolock').onclick = function () {
+    if (!G || !G.state) return;
+    /* a dev shortcut: resolve each remaining month exactly as End-the-Month would — the AI
+       plays, windows fire, focus lands — just without stopping. Nothing is faked; it only
+       fast-forwards to the Lock so the Divide's pages are quick to reach. */
+    var guard = 0;
+    while (G.state.month < 12 && guard++ < 24) $('endmonth').onclick();
+    dlog('<span class="m">\\u00bb skipped to the Lock (dev)</span>');
+  };
+
   $('nextyear').onclick = function () {
     if (!G || !G.state || G.state.month < 12) return;
     stop(); clearTween();
@@ -751,6 +1625,7 @@
     G.div = null; G.gcache = null;
     $('begindiv').style.display = ''; $('advwin').style.display = 'none';
     $('gscrub').style.display = 'none'; $('divstate').textContent = '';
+    if ($('sponsorverdict')) $('sponsorverdict').innerHTML = '';
     $('gplanet').innerHTML = '<span class="m">no contest on the ground</span>';
     $('gboard').innerHTML = ''; $('gevents').innerHTML = '<div class="m">\u2014</div>';
     renderEncounters();
@@ -872,166 +1747,372 @@
   };
 
   /* ---- the manager's squad plan: who stands with whom, and who they look to ---- */
+  /* leadership follows the PERSON: G.plan.leaderOf[bodyId] means that body leads its squad.
+     The engine wants one leader id per group, so we derive that array at the lock. */
   function plannedGroups() {
     if (!G || !G.plan) return null;
     var groups = [[], [], [], [], [], []];
+    var leaders = [null, null, null, null, null, null];
     var any = false;
     G.corps[G.me].roster.forEach(function (b) {
       var si = G.plan.at[b.id];
-      if (si != null && si >= 0 && si < 6) { groups[si].push(b.id); any = true; }
+      if (si != null && si >= 0 && si < 6) {
+        groups[si].push(b.id);
+        if (G.plan.leaderOf[b.id]) leaders[si] = b.id;
+        any = true;
+      }
     });
-    return any ? { groups: groups, leaders: G.plan.leaders.slice() } : null;
+    return any ? { groups: groups, leaders: leaders } : null;
+  }
+
+  /* a plan from an older save, or a fresh one, brought to the current shape */
+  function normPlan(p) {
+    p = p || {};
+    var np = { at: p.at || {}, leaderOf: p.leaderOf || {},
+               names: p.names || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: p.hand || {} };
+    /* migrate a legacy leaders[] array (index -> id) into the person-keyed map */
+    if (!p.leaderOf && Array.isArray(p.leaders))
+      p.leaders.forEach(function (id) { if (id) np.leaderOf[id] = true; });
+    return np;
+  }
+
+  /* ================= THE SQUADS BOARD ================= drag-and-drop, six squads,
+     phonetic names, person-based leadership, a shared detail panel with a paper-doll
+     loadout and an Option-2 equip picker. The plan model: G.plan.at (bodyId -> squad
+     index), G.plan.leaderOf (bodyId -> true), G.plan.names (six labels), G.plan.hand
+     (the manual kit, honored at the lock exactly as before). */
+  var DRAG = null;   /* body id being dragged */
+
+  function fitBodies() {
+    var me = G.corps[G.me];
+    return me.roster.filter(function (b) {
+      return b.status !== 'dead' && b.status !== 'retired'
+          && !(b.condition && (b.condition.injuries || []).length);
+    });
+  }
+
+  function unitCard(b, inSquad) {
+    var lead = !!G.plan.leaderOf[b.id];
+    var kit = !!G.plan.hand[b.id];
+    var sel = G._inspect === b.id;
+    var d = document.createElement('div');
+    d.className = 'ucard' + (sel ? ' sel' : '');
+    d.setAttribute('draggable', 'true');
+    d.dataset.id = b.id;
+    var marks = (lead ? '<span class="lead" title="leader">\u2605</span> ' : '') +
+                (kit ? '<span class="lead" title="hand-kitted">\u2726</span> ' : '');
+    d.innerHTML = '<span class="nm">' + marks + esc(b.name) + '</span>' +
+                  '<span class="st">' + statLine(b) + '</span>';
+    d.addEventListener('dragstart', function () { DRAG = b.id; d.classList.add('dragging'); });
+    d.addEventListener('dragend', function () { DRAG = null; d.classList.remove('dragging'); });
+    d.addEventListener('click', function () { inspect(b.id); });
+    return d;
+  }
+
+  function moveTo(id, si) {         /* si null = bench */
+    if (si == null) { delete G.plan.at[id]; delete G.plan.leaderOf[id]; }
+    else G.plan.at[id] = si;
+    if (G.locked) { G.stale = true; renderLock(); }
+    renderSquads();
   }
 
   function renderSquads() {
     if (!G) return;
-    var me = G.corps[G.me];
-    var fit = me.roster.filter(function (b) {
-      return b.status !== 'dead' && b.status !== 'retired'
-          && !(b.condition && (b.condition.injuries || []).length);
-    });
-    /* prune the plan of the fallen and the recovering, so the counts tell the truth */
+    var fit = fitBodies();
     var fitIds = {};
     fit.forEach(function (b) { fitIds[b.id] = true; });
+    /* prune the fallen and recovering from the plan so the counts tell the truth */
     Object.keys(G.plan.at).forEach(function (id) { if (!fitIds[id]) delete G.plan.at[id]; });
-    var assigned = {};
+    Object.keys(G.plan.leaderOf).forEach(function (id) { if (!fitIds[id]) delete G.plan.leaderOf[id]; });
+
+    var pool = fit.filter(function (b) { return G.plan.at[b.id] == null; });
+    var poolEl = $('pool');
+    poolEl.innerHTML = '';
+    pool.forEach(function (b) { poolEl.appendChild(unitCard(b, false)); });
+    if (!pool.length) poolEl.innerHTML = '<div class="drophint">everyone fit is assigned</div>';
+    $('poollabel').textContent = 'Unassigned \u00b7 ' + pool.length;
+
+    var assigned = {}, total = 0, used = 0;
     fit.forEach(function (b) {
       var si = G.plan.at[b.id];
-      if (si != null) (assigned[si] = assigned[si] || []).push(b);
+      if (si != null) { (assigned[si] = assigned[si] || []).push(b); }
     });
-    var pool = fit.filter(function (b) { return G.plan.at[b.id] == null; });
-    var ph = '';
-    pool.forEach(function (b) {
-      ph += '<div class="poolrow"><span>' + esc(b.name) + ' <span class="m">' + statLine(b) +
-            '</span></span><span>';
-      for (var s = 0; s < 6; s++)
-        ph += '<button class="tiny" data-as="' + s + '" data-b="' + b.id + '">' + (s + 1) + '</button>';
-      ph += '</span></div>';
-    });
-    $('pool').innerHTML = ph || '<div class="m">everyone fit is assigned</div>';
-    var total = 0, used = 0, sh = '';
+
+    var wrap = $('sqboxes');
+    wrap.innerHTML = '';
     for (var si = 0; si < 6; si++) {
       var mem = assigned[si] || [];
       total += mem.length;
       if (mem.length) used++;
       var bad = mem.length > 0 && (mem.length < DIVIDE.CONST.SQUAD_MIN ||
-                                     mem.length > DIVIDE.CONST.SQUAD_MAX);
-      sh += '<div class="sqbox' + (bad ? ' badct' : '') + '"><b>Squad ' + (si + 1) + '</b> ' +
-            '<span class="' + (bad ? 'warn' : 'm') + '">' + mem.length +
-            (bad ? ' — outside the ' + DIVIDE.CONST.SQUAD_MIN + '\u2013' +
-                     DIVIDE.CONST.SQUAD_MAX + ' shape' : '') + '</span>';
-      if (mem.length) {
-        sh += ' <select class="tiny" data-lead="' + si + '">' +
-              '<option value="">(leader by tactics)</option>';
-        mem.forEach(function (b) {
-          sh += '<option value="' + b.id + '"' +
-                (G.plan.leaders[si] === b.id ? ' selected' : '') + '>\u2605 ' + esc(b.name) + '</option>';
-        });
-        sh += '</select>';
-        mem.forEach(function (b) {
-          sh += '<div class="poolrow"><span>' +
-                (G.plan.leaders[si] === b.id ? '<span class="gold">\u2605</span> ' : '') +
-                (G.plan.hand[b.id] ? '<span class="gold" title="hand-kitted">\u2726</span> ' : '') +
-                esc(b.name) + ' <span class="m">' + statLine(b) + '</span></span>' +
-                '<button class="tiny" data-un="' + b.id + '">\u2715</button></div>';
-        });
+                                   mem.length > DIVIDE.CONST.SQUAD_MAX);
+      var box = document.createElement('div');
+      box.className = 'sqcard' + (mem.length ? ' filled' : '') + (bad ? ' badct' : '');
+      box.dataset.si = si;
+      var head = document.createElement('div');
+      head.className = 'sqhead';
+      head.innerHTML =
+        '<span class="sqname' + (mem.length ? '' : ' empty') + '" data-rename="' + si + '">' +
+        esc(G.plan.names[si]) + '</span>' +
+        '<span class="' + (bad ? 'warn' : 'm') + '" style="font-size:10.5px">' + mem.length +
+        (bad ? ' \u00b7 needs ' + DIVIDE.CONST.SQUAD_MIN + '\u2013' + DIVIDE.CONST.SQUAD_MAX : '') +
+        '</span>';
+      box.appendChild(head);
+      mem.forEach(function (b) { box.appendChild(unitCard(b, true)); });
+      if (!mem.length) {
+        var hint = document.createElement('div');
+        hint.className = 'drophint'; hint.textContent = 'drop here';
+        box.appendChild(hint);
       }
-      sh += '</div>';
+      box.addEventListener('dragover', function (e) { e.preventDefault(); this.classList.add('over'); });
+      box.addEventListener('dragleave', function () { this.classList.remove('over'); });
+      box.addEventListener('drop', function (e) {
+        e.preventDefault(); this.classList.remove('over');
+        if (DRAG != null) moveTo(DRAG, +this.dataset.si);
+      });
+      wrap.appendChild(box);
     }
-    $('sqboxes').innerHTML = sh;
+
+    poolEl.parentNode.classList.remove('over');
+    poolEl.ondragover = function (e) { e.preventDefault(); poolEl.classList.add('over'); };
+    poolEl.ondragleave = function () { poolEl.classList.remove('over'); };
+    poolEl.ondrop = function (e) {
+      e.preventDefault(); poolEl.classList.remove('over');
+      if (DRAG != null) moveTo(DRAG, null);
+    };
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rename]'), function (el) {
+      el.onclick = function () { renameSquad(+el.getAttribute('data-rename'), el); };
+    });
+
     $('planstate').textContent = total
       ? total + ' assigned across ' + used + ' squad(s) \u00b7 ' + pool.length + ' stay home' +
         (total > SEASON.CONST.DROP_MAX
-          ? ' \u00b7 over the drop cap of ' + SEASON.CONST.DROP_MAX + ' — the lock takes the first ' +
-            SEASON.CONST.DROP_MAX : '')
+          ? ' \u00b7 over the drop cap of ' + SEASON.CONST.DROP_MAX : '')
       : 'no plan — the engine deals the drop itself';
-    var mark = function () { if (G.locked) { G.stale = true; renderLock(); } };
-    Array.prototype.forEach.call(document.querySelectorAll('#pool [data-as]'), function (btn) {
-      btn.onclick = function () {
-        G.plan.at[btn.getAttribute('data-b')] = +btn.getAttribute('data-as');
-        mark(); renderSquads();
-      };
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('#sqboxes [data-un]'), function (btn) {
-      btn.onclick = function () {
-        delete G.plan.at[btn.getAttribute('data-un')];
-        mark(); renderSquads();
-      };
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('#sqboxes [data-lead]'), function (sel) {
-      sel.onchange = function () {
-        G.plan.leaders[+sel.getAttribute('data-lead')] = sel.value || null;
-        mark(); renderSquads();
-      };
-    });
+
+    if (G._inspect && !fitIds[G._inspect]) { G._inspect = null; $('unitpanel').style.display = 'none'; }
+    else if (G._inspect) renderPanel();
+
     renderSqLocked();
-    renderHand();
   }
 
-  /* ---- THE MANAGER'S HAND: name a body's kit; the engine honors it whole or not at all.
-     The selects read the RACK live — an item shows its shelf count or its catalog price,
-     which is exactly the draw-first-buy-second arithmetic the engine applies. ---- */
-  function itemOpts(slot, chosen, blank) {
-    var rack = G.corps[G.me].armoury;
-    var h = '<option value="">' + blank + '</option>';
-    ITEMS.bySlot(slot).forEach(function (it) {
-      var n = rack[it.id] || 0;
-      h += '<option value="' + it.id + '"' + (chosen === it.id ? ' selected' : '') + '>' +
-           esc(it.name) + ' \u2014 ' + (n > 0 ? 'rack ' + n : 'buy ' + n0(it.cost)) + '</option>';
-    });
-    return h;
-  }
-  function renderHand() {
-    if (!G) return;
-    var fit = G.corps[G.me].roster.filter(function (f) { return f.status === 'active'; });
-    var cur = $('hbody').value;
-    var hb = '';
-    fit.forEach(function (f) {
-      hb += '<option value="' + f.id + '"' + (cur === f.id ? ' selected' : '') + '>' +
-            (G.plan.hand[f.id] ? '\u2726 ' : '') + esc(f.name) + '</option>';
-    });
-    $('hbody').innerHTML = hb;
-    loadHandSel();
-  }
-  function loadHandSel() {
-    if (!G) return;
-    var h = G.plan.hand[$('hbody').value] || {};
-    $('hprim').innerHTML = itemOpts('primary', h.primary, '(primary \u2014 a hand must name one)');
-    $('harm').innerHTML = itemOpts('armor', h.armor, '(armor \u2014 a hand must name one)');
-    $('hside').innerHTML = itemOpts('sidearm', h.sidearm, '(no sidearm)');
-    ['hcon1', 'hcon2', 'hcon3'].forEach(function (id, i) {
-      $(id).innerHTML = itemOpts('consumable', (h.consumables || [])[i], '(no store)');
-    });
-  }
-  $('hbody').onchange = loadHandSel;
-  $('hset').onclick = function () {
-    if (!G) return;
-    var id = $('hbody').value;
-    if (!id) return;
-    var f = G.corps[G.me].roster.filter(function (x) { return x.id === id; })[0];
-    G.plan.hand[id] = {
-      primary: $('hprim').value || null, armor: $('harm').value || null,
-      sidearm: $('hside').value || null,
-      consumables: ['hcon1', 'hcon2', 'hcon3'].map(function (x) { return $(x).value; })
-        .filter(function (v) { return v; })
+  function renameSquad(si, el) {
+    var cur = G.plan.names[si];
+    el.innerHTML = '<input value="' + esc(cur) + '" maxlength="14">';
+    var inp = el.querySelector('input');
+    inp.focus(); inp.select();
+    var commit = function () {
+      var v = inp.value.trim();
+      G.plan.names[si] = v ? v.slice(0, 14) : cur;
+      renderSquads();
     };
-    $('hstate').innerHTML = '<span class="gold">\u2726 ' + esc(f ? f.name : id) +
-      '</span> will carry the named kit \u2014 honored at the lock, whole or not at all';
-    if (G.locked) { G.stale = true; renderLock(); }
+    inp.onblur = commit;
+    inp.onkeydown = function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { inp.value = cur; inp.blur(); }
+    };
+  }
+
+  /* ================= THE SHARED UNIT DETAIL PANEL ================= */
+  function inspect(id) {
+    G._inspect = (G._inspect === id) ? null : id;
+    G._pickSlot = null;
+    if (!G._inspect) { $('unitpanel').style.display = 'none'; renderSquads(); return; }
     renderSquads();
-  };
-  $('hclear').onclick = function () {
-    if (!G) return;
-    delete G.plan.hand[$('hbody').value];
-    $('hstate').textContent = 'released to the quartermaster';
+  }
+
+  function bodyById(id) {
+    return G.corps[G.me].roster.filter(function (b) { return b.id === id; })[0];
+  }
+
+  /* what a body currently carries: prefer a set hand, else its live loadout */
+  function currentKit(b) {
+    var h = G.plan.hand[b.id];
+    if (h) return { primary: h.primary || null, armor: h.armor || null,
+                    sidearm: h.sidearm || null, consumables: (h.consumables || []).slice() };
+    var lo = b.loadout || {};
+    return { primary: lo.primary || null, armor: lo.armor || null,
+             sidearm: lo.sidearm || null, consumables: (lo.consumables || []).slice() };
+  }
+
+  function renderPanel() {
+    var b = bodyById(G._inspect);
+    if (!b) { $('unitpanel').style.display = 'none'; return; }
+    var lead = !!G.plan.leaderOf[b.id];
+    var inSquad = G.plan.at[b.id] != null;
+    var kit = currentKit(b);
+    var s = b.stats;
+    var skills = b.skills || {};
+    var quirks = (b.traits || []).map(function (t) {
+      return (ROSTER.traitById && ROSTER.traitById[t] ? ROSTER.traitById[t].name : t); });
+    var stress = (b.condition && b.condition.stress) || 0;
+
+    var doll =
+      '<div class="updoll">' +
+      '<div class="collabel" style="text-align:center;margin-bottom:6px">Loadout</div>' +
+      slotHtml('primary', 'Primary', kit.primary) +
+      slotHtml('armor', 'Armor', kit.armor) +
+      '<div style="display:flex;gap:5px">' +
+      '<div style="flex:1">' + slotHtml('sidearm', 'Sidearm', kit.sidearm) + '</div>' +
+      '<div style="flex:1">' + slotHtml('consumable', 'Store', (kit.consumables || [])[0] || null) + '</div>' +
+      '</div>' +
+      (G.plan.hand[b.id]
+        ? '<div class="m" style="text-align:center;font-size:10px;margin-top:2px">hand-kitted \u2726 <a href="#" id="pclear" style="color:var(--a)">release</a></div>'
+        : '<div class="m" style="text-align:center;font-size:10px;margin-top:2px">quartermaster\u2019s kit</div>') +
+      '</div>';
+
+    var trades = ITEMS.SKILL_FAMILIES.map(function (f) {
+      return esc(f.name) + ' ' + (skills[f.id] != null ? skills[f.id] : s.aim);
+    }).join(' \u00b7 ');
+
+    var info =
+      '<div style="flex:1">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px">' +
+      '<div><span class="gold" style="font-size:14px">' + (lead ? '\u2605 ' : '') + esc(b.name) +
+      '</span> <span class="m">\u00b7 ' + esc(b.race) + ' \u00b7 ' + (b.age != null ? b.age : '\u2014') +
+      ' \u00b7 ' + (b.divides || 0) + ' divides</span></div>' +
+      (inSquad
+        ? '<button class="tiny" id="pmakelead">' + (lead ? 'unset leader' : 'make leader') + '</button>'
+        : '<span class="m" style="font-size:10px">benched</span>') +
+      '</div>' +
+      '<div class="collabel">Stats</div>' +
+      '<div style="line-height:1.7;margin-bottom:8px">' +
+      'Aim ' + s.aim + ' \u00b7 Tactics ' + s.tactics + ' \u00b7 Reflex ' + s.reflex + ' \u00b7 Fieldcraft ' +
+      s.fieldcraft + '<br>Presence ' + s.presence + ' \u00b7 Resolve ' + s.resolve + ' \u00b7 Grit ' + s.grit +
+      (stress >= 30 ? ' <span class="warn">\u00b7 stress ' + Math.round(stress) + '</span>' : '') + '</div>' +
+      '<div class="collabel">Trades</div>' +
+      '<div style="color:#8fa8c4;line-height:1.6;margin-bottom:8px">' + trades + '</div>' +
+      (quirks.length
+        ? '<div class="collabel">Quirks</div><div style="color:#8fa8c4">' + esc(quirks.join(' \u00b7 ')) + '</div>'
+        : '') +
+      '</div>';
+
+    var panel = $('unitpanel');
+    panel.style.display = '';
+    panel.innerHTML = '<div style="display:flex;gap:14px">' + doll + info + '</div>' +
+                      '<div id="pickerhost"></div>';
+
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-slot]'), function (el) {
+      el.onclick = function () { openPicker(el.getAttribute('data-slot')); };
+    });
+    var ml = $('pmakelead');
+    if (ml) ml.onclick = function () {
+      if (G.plan.leaderOf[b.id]) delete G.plan.leaderOf[b.id];
+      else {
+        /* one leader per squad: clear any current leader of this squad first */
+        var si = G.plan.at[b.id];
+        Object.keys(G.plan.leaderOf).forEach(function (oid) {
+          if (G.plan.at[oid] === si) delete G.plan.leaderOf[oid];
+        });
+        G.plan.leaderOf[b.id] = true;
+      }
+      if (G.locked) { G.stale = true; renderLock(); }
+      renderSquads();
+    };
+    var pc = $('pclear');
+    if (pc) pc.onclick = function (e) {
+      e.preventDefault(); delete G.plan.hand[b.id];
+      if (G.locked) { G.stale = true; renderLock(); }
+      renderSquads();
+    };
+    if (G._pickSlot) openPicker(G._pickSlot);
+  }
+
+  function slotHtml(slot, label, id) {
+    var empty = !id;
+    return '<div class="slot' + (empty ? ' empty' : '') + '" data-slot="' + slot + '">' +
+           '<div class="sl">' + label + '</div>' +
+           '<div class="it">' + (empty ? '\u2014' : esc(itemName(id))) + '</div></div>';
+  }
+
+  /* which panel is inspecting right now — the Squads board or the Roster rail. The picker
+     and pick-write serve whichever is live, so one equip flow covers both tabs. */
+  function activeInspect() {
+    if (G._rinspect) return { id: G._rinspect, host: $('rostpanel').querySelector('#pickerhost'),
+                              rerender: renderRoster };
+    return { id: G._inspect, host: $('unitpanel').querySelector('#pickerhost'),
+             rerender: renderSquads };
+  }
+
+  /* ================= THE EQUIP PICKER (Option 2 — comparison) ================= */
+  function openPicker(slot) {
+    G._pickSlot = slot;
+    var ctx = activeInspect();
+    var b = bodyById(ctx.id);
+    if (!b) return;
+    var host = ctx.host;
+    var rack = G.corps[G.me].armoury || {};
+    var doc = ITEMS.doctrineForCorp(G.me) || {};
+    var maxTier = doc.armoury_max_tier || 5;
+    var kit = currentKit(b);
+    var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
+
+    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier; });
+    /* rack first (green), then buyable (gold), each by descending power */
+    var pow = function (it) { return (it.effects && it.effects.power) || 0; };
+    items.sort(function (x, y) {
+      var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
+      if (rx !== ry) return rx ? -1 : 1;
+      return pow(y) - pow(x);
+    });
+
+    var rows = '<div class="prow' + (!chosen ? ' on' : '') + '" data-pick="">' +
+               '<div><span>\u2014 empty</span></div><span class="m">bench this slot</span></div>';
+    items.forEach(function (it) {
+      var have = (rack[it.id] || 0) > 0;
+      var e = it.effects || {};
+      var fam = ITEMS.skillFamilyOf ? ITEMS.skillFamilyOf(it) : null;
+      var famName = fam ? (ITEMS.SKILL_FAMILIES.filter(function (f) { return f.id === fam; })[0] || {}).name : null;
+      var desc = [];
+      if (e.power != null) desc.push('power ' + e.power);
+      if (e.range) desc.push(e.range);
+      if (e.protection != null) desc.push('protect ' + e.protection);
+      if (e.damage) desc.push(e.damage);
+      if (famName) desc.push(famName + ' trade');
+      rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + '" data-pick="' + it.id + '">' +
+              '<div><span>' + (chosen === it.id ? '\u2713 ' : '') + esc(it.name) + '</span>' +
+              (desc.length ? '<div class="pd">' + esc(desc.join(' \u00b7 ')) + '</div>' : '') + '</div>' +
+              (have ? '<span class="rack">rack ' + rack[it.id] + '</span>'
+                    : '<span class="buy">buy ' + n0(it.cost) + '</span>') + '</div>';
+    });
+
+    host.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 4px">' +
+      '<span class="gold">Choose a ' + slot + ' \u00b7 ' + esc(b.name) + '</span>' +
+      '<span style="cursor:pointer;color:var(--dim)" id="pickclose">\u2715</span></div>' +
+      '<div class="picker">' + rows + '</div>';
+
+    Array.prototype.forEach.call(host.querySelectorAll('[data-pick]'), function (el) {
+      el.onclick = function () { pickItem(slot, el.getAttribute('data-pick')); };
+    });
+    $('pickclose').onclick = function () { G._pickSlot = null; activeInspect().rerender(); };
+  }
+
+  /* choosing an item writes the body's HAND — the manual kit the engine already honors
+     whole-or-refused at the lock. Setting any slot promotes the body to a named hand, seeded
+     from whatever it carries now so the other slots are preserved. */
+  function pickItem(slot, id) {
+    var ctx = activeInspect();
+    var b = bodyById(ctx.id);
+    if (!b) return;
+    var h = G.plan.hand[b.id] ? G.plan.hand[b.id] : (function () {
+      var k = currentKit(b);
+      return { primary: k.primary, armor: k.armor, sidearm: k.sidearm,
+               mods: [], consumables: (k.consumables || []).slice() };
+    })();
+    if (slot === 'consumable') h.consumables = id ? [id] : [];
+    else h[slot] = id || null;
+    G.plan.hand[b.id] = h;
+    G._pickSlot = null;
     if (G.locked) { G.stale = true; renderLock(); }
-    renderSquads();
-  };
+    ctx.rerender();
+  }
 
   $('autodeal').onclick = function () {
     if (!G) return;
     /* the deal goes back to the engine; the HAND stands — it names bodies, not squads */
-    G.plan = { at: {}, leaders: [null, null, null, null, null, null],
+    G.plan = { at: {}, leaderOf: {}, names: (G.plan && G.plan.names) || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'],
                hand: (G.plan && G.plan.hand) || {} };
     if (G.locked) { G.stale = true; renderLock(); }
     renderSquads();
@@ -1045,7 +2126,8 @@
     }
     var c = G.locked.mine.corp, h = '';
     c.squads.forEach(function (sq, i) {
-      h += '<div style="margin-bottom:6px"><b class="gold">Squad ' + (i + 1) + '</b> ' +
+      var snm = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
+      h += '<div style="margin-bottom:6px"><b class="gold">' + esc(snm) + '</b> ' +
            '<span class="m">' + sq.bodies.length + ' bodies</span><br>';
       sq.bodies.forEach(function (b) {
         var stores = (b.loadout && b.loadout.consumables || []).length;
@@ -1083,7 +2165,8 @@
     var sel = $('squad'); sel.innerHTML = '';
     G.locked.mine.corp.squads.forEach(function (sq, i) {
       var o = document.createElement('option'); o.value = String(i);
-      o.textContent = 'Squad ' + (i + 1) + ' — ' + actives(sq).length + ' standing';
+      var snm2 = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
+      o.textContent = snm2 + ' — ' + actives(sq).length + ' standing';
       sel.appendChild(o);
     });
   }
@@ -1180,7 +2263,7 @@
      body, knowledge markings for the unfound and the merely heard, and names laid out so
      they never overprint. Dragging the slider scrubs without animating: a scrub is
      somebody looking for a moment, not watching a fight. */
-  var SIDE = ['#c8a45c', '#6f9bc4', '#89b482'];
+  var SIDE = ['#3ad8e0', '#6f9bc4', '#89b482'];
   var RACE = {
     olmac:    { r: 0.46, fill: '#6f6f69' },   /* massive, granite_skin — dark stone */
     svalbard: { r: 0.42, fill: '#566b7a' },   /* six_limbed, centauroid — dark slate */
@@ -1190,7 +2273,7 @@
     kellis:   { r: 0.30, fill: '#a291b5' },   /* insectoid, light_frame — mauve */
     thythyn:  { r: 0.285, fill: '#8fabab' },  /* winged, light_frame — pale grey-teal */
     gil:      { r: 0.26, fill: '#c98a80' },   /* small, agile — muted rose-rust */
-    mon_wa:   { r: 0.235, fill: '#f0ece4' }   /* paired_symbiote, small — near white */
+    mon_wa:   { r: 0.235, fill: '#dce8f8' }   /* paired_symbiote, small — near white */
   };
 
   function draw() {
@@ -1247,7 +2330,7 @@
           g.moveTo(cx + s * .22, cy - s * .22); g.lineTo(cx - s * .22, cy + s * .22);
           g.stroke();
         }
-        if (u.ow) { g.strokeStyle = '#e9e4dc'; g.lineWidth = 1;
+        if (u.ow) { g.strokeStyle = '#c4d4e8'; g.lineWidth = 1;
                     g.beginPath(); g.arc(cx, cy, s * (rc.r + 0.14), 0, Math.PI * 2); g.stroke(); }
         /* caught mid-move: a short trail, red for a dash, since crossing ground costs */
         if (u.mv && (u.st === 'ok' || u.st === 'light')) {
@@ -1257,7 +2340,7 @@
         }
         /* pinned: the people who are about to not move */
         if (u.sup && (u.st === 'ok' || u.st === 'light')) {
-          g.strokeStyle = '#c8a45c'; g.lineWidth = 2;
+          g.strokeStyle = '#3ad8e0'; g.lineWidth = 2;
           g.beginPath();
           g.moveTo(cx - s * .30, cy + s * .30); g.lineTo(cx + s * .30, cy + s * .30);
           g.stroke();
@@ -1268,7 +2351,7 @@
             var frac = Math.max(0, u.hp) / u.hpMax;
             var bw = s * 0.72, bx = cx - bw / 2, by = cy + s * 0.34;
             g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(bx, by, bw, s * 0.13);
-            g.fillStyle = frac > 0.6 ? '#7fb069' : frac > 0.3 ? '#c8a45c' : '#c05c4a';
+            g.fillStyle = frac > 0.6 ? '#7fb069' : frac > 0.3 ? '#3ad8e0' : '#c05c4a';
             g.fillRect(bx, by, bw * frac, s * 0.13);
           }
           g.fillStyle = 'rgba(233,228,220,.45)';
@@ -1471,7 +2554,7 @@
      same day shape the recording uses, and once the contest ends the whole recording scrubs
      day by day. Every encounter the manager's people stood in is handed over by the engine
      with its frames and replays in The Firefight. */
-  var BANNER = ['#d8a657', '#9d7cd8', '#89b482', '#d16a5e',
+  var BANNER = ['#3ad8e0', '#9d7cd8', '#89b482', '#d16a5e',
                 '#7fb0c8', '#c9a3c4', '#b8b06a', '#c98a5e'];
   var TERRAIN = { open_basin: '#241f19', broken_ground: '#1f1b16', ruins: '#1b1815',
                   entrenched: '#191713', forest: '#151a14' };
@@ -1532,13 +2615,14 @@
       G.div.done = true;
       G.div.final = step.value;
       /* THE SEASON SETTLES ITS OWN CONTEST: purses, ransoms, reputation, the record */
-      SEASON.finishSeason(G.state, step.value);
+      var seasonRec = SEASON.finishSeason(G.state, step.value);
       var mine = (step.value.perCorp || []).filter(function (p) { return p.id === G.me; })[0] || {};
       $('advwin').style.display = 'none';
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
         ' days \u00b7 winner ' + esc(step.value.winner || 'nobody') +
         (mine.payout ? ' \u00b7 <span class="good">your take ' + n0(mine.payout) + '</span>' : '') +
         ' \u00b7 settled to the books';
+      renderSponsorVerdict(seasonRec);
       var days = (step.value.replay && step.value.replay.days) || [];
       if (days.length) {
         $('gscrub').style.display = '';
@@ -1653,7 +2737,7 @@
       for (var i = 0; i < (D.obj || []).length; i++) {
         var o = D.obj[i], p = gproj(cv, o.x, o.y), w2 = 13;
         g.lineWidth = 2;
-        g.strokeStyle = o.h ? '#d8a657' : '#6b635a';
+        g.strokeStyle = o.h ? '#3ad8e0' : '#6b635a';
         g.fillStyle = o.h ? 'rgba(216,166,87,.55)' : 'transparent';
         g.beginPath(); g.rect(p[0] - w2 / 2, p[1] - w2 / 2, w2, w2);
         if (o.h) g.fill();
@@ -1700,11 +2784,11 @@
           g.globalAlpha = 1;
         }
         if (sq2.jn) {
-          g.strokeStyle = '#d8a657'; g.lineWidth = 2.5; g.setLineDash([4, 4]);
+          g.strokeStyle = '#3ad8e0'; g.lineWidth = 2.5; g.setLineDash([4, 4]);
           g.beginPath(); g.arc(sp[0], sp[1], r + 9, 0, Math.PI * 2); g.stroke();
           g.setLineDash([]);
         }
-        if (sq2.cl) { g.strokeStyle = '#d8a657'; g.lineWidth = 2;
+        if (sq2.cl) { g.strokeStyle = '#3ad8e0'; g.lineWidth = 2;
                       g.beginPath(); g.arc(sp[0], sp[1], r + 5, 0, Math.PI * 2); g.stroke(); }
       }
     }
@@ -2024,7 +3108,7 @@
     p.tag = 'The Founder';
     p.motto = 'Unwritten.';
     p.archetype = 'founder';
-    p.colors = { primary: '#d8a657', secondary: '#5a5f66' };
+    p.colors = { primary: '#3ad8e0', secondary: '#5a5f66' };
     p.lore = 'A house with no history: the fleet average in every number, and nothing on its banner yet.';
     p.no_negotiation = false;
     p.relationships = [];
@@ -2063,7 +3147,7 @@
           custom: save.custom ? { profile: save.custom, replaced: save.replaced } : null,
           lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
           timer: null, tw: null, tween: null, fx: null, el: 0,
-          plan: save.plan || { at: {}, leaders: [null, null, null, null, null, null], hand: {} },
+          plan: normPlan(save.plan),
           div: null, gcache: null, gday: 1 };
     G.state.opts.human = G.me;
     var rv = $('rival'); rv.innerHTML = '';
@@ -2073,7 +3157,7 @@
       rv.appendChild(o);
     });
     $('mlog').innerHTML = '<div class="m">a loaded year — the market\u2019s past is in the books</div>';
-    $('desklog').innerHTML = '<div class="m">the year resumes at month ' + G.state.month + '</div>';
+    /* desk log panel removed */
     G._railPhase = null;
     renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
     renderEncounters(); renderTable();
@@ -2141,7 +3225,7 @@
            '</span></div>';
     });
     h += '<div class="oacard" data-oa="__custom"><b>Found your own house</b>' +
-         '<span class="m">a blank slate \u2014 the fleet\u2019s numeric average, no quirks, no seal</span></div>';
+         '<span class="m">A Blank Slate</span></div>';
     $('oacards').innerHTML = h;
     var cr = $('creplace'); cr.innerHTML = '';
     OA.forEach(function (p) {
