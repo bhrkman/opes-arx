@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Opes Arx — demos</title>
+<title>Opes Arx — The Capital Divide</title>
 <style>
   :root{--ink:#c4d4e8;--dim:#5f7a9c;--faint:#3a556f;--bg:#0a0e16;--panel:#0d1420;--line:#1c2c44;
         --a:#3ad8e0;--b:#6f9bc4;--hit:#4fd6a0;--bad:#e0a848;--mag:#e84393}
   body{margin:0;background:var(--bg);color:var(--ink);padding:44px 20px 90px;
        font:15px/1.6 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
   .w{max-width:780px;margin:0 auto}
-  h1{font-size:24px;margin:0 0 6px;letter-spacing:.02em}h1 span{color:var(--a)}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:.02em}
+  h1 span{color:var(--a)}
   p.l{color:var(--dim);font-size:13.5px;max-width:76ch}
-  h2{color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:30px 0 10px;font-weight:400}
+  h2{color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+     margin:30px 0 10px;font-weight:400}
   a.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px;
          padding:15px 17px;margin:10px 0;text-decoration:none;color:inherit;transition:border-color .1s}
   a.card:hover{border-color:var(--a)}
@@ -21,28 +23,37 @@
        border:1px solid var(--line);border-radius:3px;padding:1px 6px;margin-left:8px;color:var(--dim);vertical-align:middle}
   .tag.now{color:var(--hit);border-color:var(--hit)}
   .n{color:var(--faint);font-size:12px;margin-top:30px}
+  .n a{color:var(--b)}
 </style></head><body><div class="w">
 
 <h1>Opes Arx <span>— The Capital Divide</span></h1>
-<p class="l">Every page here runs the <b>live engine</b> in your browser — the same modules the
-suite gates — rather than replaying a recording. Nothing is baked.</p>
+<p class="l">You run a corporation that fields fighters in the Capital Divide. You hire them, arm
+them, train them, court backers, and read your rivals — you never aim a gun. Every page here runs
+the <b>live engine</b> in your browser, the same modules the test suite gates. Nothing is baked.</p>
 
 <h2>Start here</h2>
-<a class="card lead" href="the_corp.html"><b>THE CORPORATION<span class="tag now">current build</span></b>
+<a class="card lead" href="viewers/the_corp.html"><b>THE CORPORATION<span class="tag now">current build</span></b>
 <span>The full management surface — Desk, Roster, Squads, Negotiation, and the Board. Play a
-preparation year a month at a time, then run the Divide.</span></a>
+preparation year a month at a time: paint focus across training, gathering intel, and courting
+sponsors; work the signing windows; build your squads; then run the Divide.</span></a>
 
 <h2>Single-surface views <span class="tag">older engine</span></h2>
-<a class="card" href="the_ground.html"><b>THE GROUND</b>
+<p class="l" style="margin-top:-2px">These predate the current build and show one slice each on
+an earlier engine. Kept as focused demos of a single system.</p>
+
+<a class="card" href="viewers/the_ground.html"><b>THE GROUND</b>
 <span>The contest drawn — terrain, the closing wall and where it moves, every squad's facing and
 march, and the fights that held them there.</span></a>
-<a class="card" href="the_firefight.html"><b>THE FIREFIGHT</b>
+
+<a class="card" href="viewers/the_firefight.html"><b>THE FIREFIGHT</b>
 <span>One engagement on the grid, turn by turn, with wound pools and a third squad walking in
 partway through on the bearing it approached from.</span></a>
-<a class="card" href="the_year.html"><b>THE YEAR</b><span>A season watched rather than played.</span></a>
-<a class="card" href="the_crate.html"><b>THE CRATE</b><span>What is in the ground and what it is worth.</span></a>
-<a class="card" href="the_table.html"><b>THE TABLE</b><span>The negotiating table between corporations.</span></a>
-<a class="card" href="the_bench.html"><b>THE BENCH</b><span>A fighter, inspected.</span></a>
 
-<p class="n">You run a corporation. You never aim a gun.</p>
+<a class="card" href="viewers/the_year.html"><b>THE YEAR</b><span>A season watched rather than played.</span></a>
+<a class="card" href="viewers/the_crate.html"><b>THE CRATE</b><span>What is in the ground and what it is worth.</span></a>
+<a class="card" href="viewers/the_table.html"><b>THE TABLE</b><span>The negotiating table between corporations.</span></a>
+<a class="card" href="viewers/the_bench.html"><b>THE BENCH</b><span>A fighter, inspected.</span></a>
+
+<p class="n">You run a corporation. You never aim a gun. &middot;
+<a href="https://github.com/bhrkman/opes-arx">source on GitHub</a></p>
 </div></body></html>
