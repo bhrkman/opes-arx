@@ -1,0 +1,62 @@
+{
+  "file": "oa_display.json",
+  "derivedFrom": "oa_profiles.json",
+  "rule": "primary unless refused, then secondary, then recorded nudge; bars ΔE hard 12 / ui 10 / L* 30",
+  "founderChoices": [
+    "#ca7272",
+    "#41c841",
+    "#4141c8",
+    "#29aeae",
+    "#c8ad41",
+    "#7284ca",
+    "#c841ad",
+    "#a3c28e",
+    "#ae295e",
+    "#29ae78",
+    "#c28eb8",
+    "#c87741"
+  ],
+  "closestPair": "nevlon_collective / vantis_deepcore Δ27.0",
+  "colors": {
+    "nevlon_collective": {
+      "color": "#8f1d1d",
+      "source": "primary",
+      "closest": "soft:s_health Δ13.3"
+    },
+    "knights_star": {
+      "color": "#8e9db4",
+      "source": "primary",
+      "closest": "ui:side_blue Δ12.8"
+    },
+    "violets_enterprise": {
+      "color": "#5b3d8f",
+      "source": "primary",
+      "closest": "soft:s_tactics Δ16.5"
+    },
+    "alliance_house": {
+      "color": "#1f7a72",
+      "source": "primary",
+      "closest": "soft:s_resolve Δ11.7"
+    },
+    "new_line": {
+      "color": "#e3b330",
+      "source": "primary",
+      "closest": "ui:warn_amber Δ13.9"
+    },
+    "vantis_deepcore": {
+      "color": "#b4571e",
+      "source": "primary",
+      "closest": "soft:s_grit Δ26.7"
+    },
+    "verdant_cradle": {
+      "color": "#5f7a3d",
+      "source": "primary",
+      "closest": "race:etu Δ14.7"
+    },
+    "mercy_concern": {
+      "color": "#e9e4dc",
+      "source": "primary",
+      "closest": "race:mon_wa Δ13.7"
+    }
+  }
+}

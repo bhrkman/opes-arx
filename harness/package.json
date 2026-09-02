@@ -1,0 +1,15 @@
+{
+  "name": "opes-arx-harness",
+  "version": "1.0.0",
+  "description": "Drives the built the_corp.html headlessly and lives a full year in it, the way a manager would: found a house, spend the prep months, lock, fight the Divide, watch the ground. Part of the verification ladder.",
+  "main": "drive.cjs",
+  "scripts": {
+    "test": "node drive.cjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "jsdom": "^30.0.1"
+  },
+  "private": true
+}

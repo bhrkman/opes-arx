@@ -6,8 +6,8 @@ carry and what deals you'll take — then you watch.
 
 **Demos:** every page in `viewers/` runs the live engine in the browser rather than replaying a
 recording. Start with `the_corp.html` — the full management surface (Desk, Roster, Squads,
-Negotiation, the Board) for playing a year — then `the_ground.html` to watch a contest or
-`the_firefight.html` to watch one engagement turn by turn.
+Negotiation, the Board) for playing a year. The contest and the firefight are drawn inside it,
+as tabs of the Divide.
 
 ## Where to start reading
 
@@ -22,11 +22,15 @@ Negotiation, the Board) for playing a year — then `the_ground.html` to watch a
 
 ```
 cd sim
-node arx.cjs regress --fast     111 checks · the edit loop
-node arx.cjs regress            the full suite · before packaging
+node arx.cjs regress --fast     114 checks · the edit loop
+node arx.cjs regress            246 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node audit_cross.cjs            does one step's work reach the next, or just sit there
+
+cd ../harness
+npm install                     once, for jsdom (node_modules is gitignored)
+node drive.cjs                  93 checks · drives the BUILT page through a whole year
 ```
 
 If the code and the document ever disagree, **the code is right** and the document is stale.

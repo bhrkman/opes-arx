@@ -129,6 +129,20 @@
     CLUSTER_SPREAD: 2,               // [C] how far a bunch scatters from its anchor
     CLUSTER_SIZE: [2, 5],            // [C] tiles per bunch
     MAX_RUN: 2,                      // [S] no unbroken line longer than this
+
+    /* --- COVER COMES DOWN (PROJECT.md: "Cover must be destructible") ---------------
+       The tile grid used to be written once at generation and never again, so a good
+       position was permanent, a stalemate had no solvent, and the movement scorer was
+       right to tell everybody to sit still. A wall that can be taken away is what makes
+       sitting still a gamble — and it is the job the `area` tag has been waiting for
+       since the catalogue was written.
+
+       Grades are 3 (hard, blocks sight), 2, 1, then gone. A piece loses a grade at a
+       time: rubble is still worth something, which is why this degrades rather than
+       deletes. */
+    COVER_CHIP_P: 0.06,              // [C] chance a shot that strikes cover knocks a grade off it
+    COVER_BLAST_P: 0.55,             // [C] the same for an `area` weapon, which is the point of one
+    COVER_BLAST_RADIUS: 1,           // [C] tiles around the burst that take the same chance
     DEPLOY_DEPTH: 5,                 // [C] how deep a deployment zone is
     ARRIVE_EDGE_BAND: 2,             // [H] how far in somebody arriving mid-fight may appear
     /* [C] What being caught from two arcs does to the ground you chose. Cover is directional
@@ -243,6 +257,58 @@
   }
 
   const at = (map, x, y) => (x < 0 || y < 0 || x >= map.w || y >= map.h) ? 0 : map.tiles[y][x];
+
+  /** Knock a grade off the piece on this tile. Rubble still counts, so this degrades. */
+  function chipTile(map, x, y, tel) {
+    if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
+    const g = map.tiles[y][x];
+    if (!g) return false;
+    map.tiles[y][x] = g - 1;
+    if (tel) { tel.coverChipped = (tel.coverChipped || 0) + 1;
+               if (g === 1) tel.coverFlattened = (tel.coverFlattened || 0) + 1; }
+    return true;
+  }
+
+  /** A round that arrives works on whatever is between the two of them. Ordinary fire
+      chips slowly — rubble a grade at a time — and an `area` weapon is the tool for
+      the job, which is the whole reason the tag exists. */
+  function chipCoverFrom(rng, map, shooter, target, tel, log) {
+    if (!map) return;
+    const spot = coverTileFor(map, shooter, target);
+    if (!spot) return;
+    const blast = C.hasQuirk(shooter, 'area');
+    const p = blast ? CONST.COVER_BLAST_P : CONST.COVER_CHIP_P;
+    if (rng() >= p) return;
+    const before = at(map, spot.x, spot.y);
+    if (!chipTile(map, spot.x, spot.y, tel)) return;
+    if (blast) {
+      const r = CONST.COVER_BLAST_RADIUS;
+      for (let oy = -r; oy <= r; oy++) for (let ox = -r; ox <= r; ox++) {
+        if (!ox && !oy) continue;
+        if (rng() < CONST.COVER_BLAST_P * 0.5) chipTile(map, spot.x + ox, spot.y + oy, tel);
+      }
+    }
+    if (log) log.push({ t: tel.turn, type: 'cover', by: shooter.id,
+                        x: spot.x, y: spot.y, from: before, to: before - 1,
+                        blast: !!blast });
+  }
+
+  /** The piece a shot from `by` runs into on its way to `t` — the last blocking tile
+      before the target, which is the one they are actually hiding behind. */
+  function coverTileFor(map, by, t) {
+    let bx = null, by2 = null;
+    let x = by.x, y = by.y;
+    const dx = t.x - by.x, dy = t.y - by.y;
+    const n = Math.max(Math.abs(dx), Math.abs(dy));
+    if (!n) return null;
+    for (let i = 1; i <= n; i++) {
+      x = Math.round(by.x + (dx * i) / n);
+      y = Math.round(by.y + (dy * i) / n);
+      if (x === t.x && y === t.y) break;
+      if (at(map, x, y) > 0) { bx = x; by2 = y; }
+    }
+    return bx == null ? null : { x: bx, y: by2 };
+  }
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   /** Bresenham-ish: hard cover between two tiles blocks the shot entirely. */
@@ -900,6 +966,7 @@
       if (log) log.push({ t: tel.turn, type: 'hit', by: shooter.id, at: target.id,
                           p: +p.toFixed(3), band, cover: cov,
                           w: (shooter.weapon || {}).name, ammo: shooter.ammo, react: !!react });
+      chipCoverFrom(rng, map, shooter, target, tel, log);
       applyHit(rng, target, C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn),
                tel, log, shooter, E);
     }
@@ -916,6 +983,7 @@
          telemetry and nowhere a reader could see them. The counter and the record disagreed
          about the same event, and only the counter was ever checked. */
       const tHit = rng() < p;
+      chipCoverFrom(rng, map, shooter, target, tel, log);
       if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id,
                           p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
                           ammo: shooter.ammo, react: !!react, tempo: true });
@@ -1116,6 +1184,16 @@
     }
     /* the pool is out. Whether they are down or gone is how far past empty the round carried,
        and a round the bands called outright fatal still is. */
+    /* `nonlethal` FIRES HERE, BEFORE the fatal branch — it was written below a `return`
+       further down this function, where it could never run: a stun round emptied a pool
+       and the grid called it a death anyway, so the Dividend killed 39 people across 32
+       matches while a counter reported the safety net firing. Step 7.5's lesson twice
+       over: the tag reached the grid, the grid never reached the tag. */
+    if (C.hasQuirk(by, 'nonlethal')) {
+      if (sev === 'killed') { sev = 'critical'; tel.stunned = (tel.stunned || 0) + 1; }
+      t._stunnedDown = true;
+      t.hp = Math.max(t.hp, -C.CONST.HP_OVERKILL + 1);   /* stunned, not overkilled */
+    }
     if (sev !== 'killed' && t.hp > -C.CONST.HP_OVERKILL) {
       t.state = 'down';
       t._killedBy = by;
@@ -1133,19 +1211,7 @@
     if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, dmg: dmg,
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
     return;
-    /* `nonlethal` — a stun round, a shock lance, a dazzler (COMBAT.md §9.3). A fatal hit puts
-       the target on the ground instead, and `rollInjury` is told, so nothing it does leaves a
-       permanent wound.
-
-       THIS IS THE GRID, AND THE GRID IS THE ENGAGEMENT MODEL. The tag was first wired into
-       `combat.js`'s own `applyWound`, which is the abstract resolver's path — the Dividend runs
-       on `tactical.js`, so the conversion never fired once and the show-match went on killing
-       nineteen people across six seasons while a counter cheerfully reported it. Step 7.5's
-       whole lesson, walked into by someone who had quoted it earlier the same session. */
-    if (C.hasQuirk(by, 'nonlethal')) {
-      if (sev === 'killed') { sev = 'critical'; tel.stunned = (tel.stunned || 0) + 1; }
-      t._stunnedDown = true;
-    }
+    /* the `nonlethal` conversion MOVED UP, above the fatal branch, where it can run. */
     if (sev === 'graze') { tel.grazes++; comp(rng, t, K.graze); if (log) log.push({ t: tel.turn, type: 'graze', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo }); return; }
     if (sev === 'light') { t.state = 'light'; tel.light++; comp(rng, t, K.light);
       if (log) log.push({ t: tel.turn, type: 'light', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo }); return; }
@@ -1624,6 +1690,11 @@
                   g.cover = sc;
                   caught++;
                 }
+                /* AND THE GROUND IT LANDED ON. A grenade is the answer to a wall, so
+                   it works the tiles around the burst regardless of who it caught. */
+                for (let oy = -CONST.COVER_BLAST_RADIUS; oy <= CONST.COVER_BLAST_RADIUS; oy++)
+                  for (let ox = -CONST.COVER_BLAST_RADIUS; ox <= CONST.COVER_BLAST_RADIUS; ox++)
+                    if (rng() < CONST.COVER_BLAST_P) chipTile(map, mark.x + ox, mark.y + oy, tel);
                 u.ap--; u.cover = 0;                    /* you stood up to throw it */
                 tel.consumables = (tel.consumables || 0) + 1;
                 tel.grenades = (tel.grenades || 0) + 1;

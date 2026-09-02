@@ -844,15 +844,10 @@ function captainReadsFight(S, E, ctx) {
   return threat > hold;
 }
 
-function makeSide(squad) {
-  return {
-    corpId: squad.corpId, policyName: squad.policy,
-    stance: STANCE[squad.policy] || STANCE.standard,
-    policy: STANCE[squad.policy] || STANCE.standard,     // alias; callers still say .policy
-    units: squad.units, squadRef: squad,
-    routed: 0, disengaging: false, hasMedkit: squad.hasMedkit
-  };
-}
+/* `makeSide` WAS HERE — the abstract resolver's side-builder, the last function of that
+   family. It survived the Step 8.9 cut because two page templates still called it (the
+   weapons bench and the standalone firefight); when those pages were retired it lost its
+   last caller and came out, per the rule that anything measuring as no change comes out. */
 
 /* `simulateEngagement` WAS HERE — 622 lines, the abstract band resolver, cut at Step 8.9.
    The Divide stopped calling it at Step 7.5 and nothing in the game has called it since. The

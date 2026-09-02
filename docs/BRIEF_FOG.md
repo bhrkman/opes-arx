@@ -1,5 +1,14 @@
 # Branch: fog of war
 
+> **STATUS: BUILT.** This brief is kept for its design context, but the work it describes is
+> DONE — the three-state spotting model (seen / heard / neither), squad-wide sight, and
+> firing-gives-you-away all shipped and are measured through contests (see the "You have to find
+> them first" and "Sight is squad-wide" rulings in `docs/PROJECT.md`). Do NOT rebuild it. What
+> remains is smaller: fog's three tuning dials were deliberately not fitted (parked with
+> calibration), and the bunkering problem it was hoped to solve is "better, not solved" — the
+> genuine next branch for that is **destructible cover**, which gives the inert `area` tag its
+> job. See the queue in `docs/HUB.md`.
+
 **One step. Build a spotting model for the combat grid, and nothing else.**
 
 ## Why this one
@@ -26,8 +35,8 @@ before doing anything.
 ## Play it before touching it
 
 ```
-viewers/the_firefight.html   one engagement on the grid, turn by turn, live engine in the page
-viewers/the_ground.html      the whole contest drawn: terrain, the closing wall, squads
+viewers/the_corp.html        the Divide's tabs draw the contest and one engagement turn by turn
+                             (the standalone the_firefight / the_ground pages have been retired)
 ```
 
 The fault this project keeps producing is not broken code — it is code wired to a condition that

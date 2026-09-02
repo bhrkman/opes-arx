@@ -17,7 +17,7 @@ const D = __dirname + '/';
 const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
                  'divide.js', 'season.js'];
-const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'recruitment.json', 'items.json'];
+const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'oa_display.json', 'oa_marks.json', 'recruitment.json', 'items.json'];
 
 let js = '';
 for (const m of MODULES) js += '\n/* ==== ' + m + ' ==== */\n' + fs.readFileSync(D + m, 'utf8');
@@ -46,13 +46,18 @@ const out = tpl.replace('/*__DATA__*/', data).replace('/*__SIM__*/', js);
    locker, and the grid drawn rows-first. */
 const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(',
                       'liveSquad(', 'applyOutcome(', 'stressApplied', 'stockLeft',
-                      'returnKit', 'tiles[y]', 'CDTACTICAL',
+                      /* 'returnKit' and  left this list with the scrim —
+                         the replay room keeps applyOutcome and liveSquad above, which
+                         are the Divide's own */
+                      'tiles[y]', 'CDTACTICAL',
                       /* the restored firefight presentation: tweened movement, tracers
                          per trigger pull, and the events feed read off the fight's log */
                       'G.tween', 'buildShots(', 'res.log',
                       /* the manager's squads: the plan on the page, the groups honored by
                          the lock, and the named leader honored by the fielding */
                       'G.plan', 'persist.groups', 'captainId',
+                      /* identity: every house wears its own derived colour */
+                      'colFor(', 'markFor(',
                       /* time: the year opened, months stepped, and the calendar's own
                          signing windows bid into and closed */
                       'beginSeason(', 'stepMonth(', 'lotFor(', 'placeBid(',
@@ -73,7 +78,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                          the firefight replays them all year */
                       'dividend.watch', 'data-watchl',
                       /* the manager's hand: named kit drawn from the rack, honored whole */
-                      'per.hand', 'handRefused', 'bySlot(',
+                      'handRefused', 'bySlot(',
                       /* the squads board: drag-drop, paper-doll, equip picker */
                       'data-slot', 'openPicker', 'leaderOf', 'renameSquad',
                       /* the shell: menu, founding, the blank-slate house, and saves that

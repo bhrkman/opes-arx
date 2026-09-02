@@ -150,6 +150,10 @@
   .box{background:#0d1420;border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
   .m{color:var(--faint);font-size:10.5px}
   .good{color:var(--hit)} .warn{color:var(--bad)} .gold{color:var(--a)} .blue{color:var(--b)}
+  .merow td{border-left:2px solid var(--a);background:rgba(58,216,224,.05)}
+  .youtag{color:var(--a);font-size:11px;letter-spacing:.05em}
+  .oasw{display:inline-block;width:22px;height:22px;border-radius:3px;margin:3px;cursor:pointer;border:2px solid transparent}
+  .oasw.on{border-color:var(--a)}
   .lead{color:var(--mag)} .mag{color:var(--mag)}
   #field{width:100%;height:auto;display:block;background:#141310;
          border:1px solid var(--line);border-radius:3px}
@@ -350,6 +354,9 @@
       <div class="bar" style="justify-content:center;margin-top:10px">
         <input id="cname" value="" placeholder="Your House's Name" style="width:220px">
         <select id="creplace" class="tiny" title="whose berth your house takes"></select>
+      </div>
+      <div class="bar" style="justify-content:center;margin-top:6px" id="cswatches" title="Your House's Colour"></div>
+      <div class="bar" style="justify-content:center;margin-top:6px">
         <button id="cfound">Found the House</button>
       </div>
       <div class="m" style="margin-top:6px">A Blank Slate &mdash; The Fleet Average</div>
@@ -380,6 +387,8 @@
       <div id="intelgrid"></div>
       <div id="dossier"></div>
       <div id="courtgrid"></div>
+      <div id="deskligwrap" style="display:none"><h2>The Dividend's Lights</h2>
+        <div class="box log" id="desklights"></div></div>
     </div>
   </div>
 </div>
@@ -389,6 +398,10 @@
      Right rail: the open signing window when idle, the shared detail panel when a hand is
      inspected — the same convention the Squads board uses. -->
 <div class="page" data-tab="roster">
+  <div class="bar" style="margin-bottom:10px">
+    <button class="advwin2" style="display:none">Next Comms Window</button>
+    <span class="m advwin2state"></span>
+  </div>
   <div class="box" id="money"></div>
   <div class="rostcols">
     <div class="rostbooks">
@@ -404,6 +417,10 @@
 
 <!-- ================================ THE SQUADS ================================ -->
 <div class="page" data-tab="squads">
+  <div class="bar" style="margin-bottom:10px">
+    <button class="advwin2" style="display:none">Next Comms Window</button>
+    <span class="m advwin2state"></span>
+  </div>
   <div class="m" style="margin:0 0 10px">up to six squads of <span id="sqbounds">&mdash;</span>
   &middot; The Drop Takes at Most <span id="dropcap">&mdash;</span></div>
   <div class="bar" style="margin-bottom:10px">
@@ -423,45 +440,14 @@
     </div>
     <div id="unitpanel" class="unitpanel" style="display:none"></div>
   </div>
-  <h2 style="margin-top:14px">As Locked</h2>
-  <div class="box" id="sqlocked"><span class="m">no drop locked yet &mdash; lock it from The Firefight</span></div>
 </div>
 
 <!-- ============================== THE FIREFIGHT ============================== -->
 <div class="page" data-tab="fight">
   <div class="grid3">
     <div>
-      <h2>From the ground</h2>
-      <div class="box log" id="encounters"><span class="m">no Divide on the ground &mdash;
-        the scrim below stands in until one begins</span></div>
-      <h2>The lock</h2>
-      <div class="bar" style="margin-bottom:8px">
-        <select id="rival" style="width:auto" title="rival corporation"></select>
-        <button id="lock">Lock the Drop</button>
-      </div>
-      <div class="box" id="lockinfo"><span class="m">no drop locked yet</span></div>
-      <h2>The engagement</h2>
-      <select id="squad" style="margin-bottom:4px"></select>
-      <select id="terrain" style="margin-bottom:4px">
-        <option value="open_basin">Open basin</option>
-        <option value="broken_ground" selected>Broken ground</option>
-        <option value="ruins">Ruins</option>
-        <option value="forest">Forest</option>
-        <option value="entrenched">Entrenched</option>
-      </select>
-      <select id="band" style="margin-bottom:4px">
-        <option value="0">Contact at long range</option>
-        <option value="1" selected>Contact at medium</option>
-        <option value="2">Contact at short</option>
-      </select>
-      <select id="prep" style="margin-bottom:8px">
-        <option value="0.73,0.73">Both equally ready</option>
-        <option value="0.87,0.48">You better prepared</option>
-        <option value="0.48,0.87">They better prepared</option>
-        <option value="0.95,0.20">You ambush them</option>
-      </select>
-      <div class="bar"><button id="run">Run Engagement</button></div>
-      <div class="box" id="settle" style="margin-top:10px"><span class="m">nothing settled yet</span></div>
+<div class="bar" style="margin-bottom:8px"><button id="fightback">Back</button></div>
+      <div class="box" id="settle" style="margin-top:10px"><span class="m">&mdash;</span></div>
     </div>
     <div>
       <canvas id="field" width="1300" height="900"></canvas>
@@ -487,14 +473,19 @@
 <!-- ================================ THE GROUND ================================ -->
 <div class="page" data-tab="ground">
   <div class="bar" style="margin-bottom:10px">
-    <button id="begindiv">Begin the Divide</button>
-    <button id="advwin" style="display:none">Next Comms Window</button>
-    <span class="m" id="divstate"></span>
+    <button class="advwin2" style="display:none">Next Comms Window</button>
+    <span class="m advwin2state"></span>
   </div>
   <div id="sponsorverdict"></div>
   <div class="scrub" id="gscrub" style="display:none">
+    <button id="gback">&lsaquo;</button>
     <input id="gday" type="range" min="1" max="1" value="1">
+    <button id="gfwd">&rsaquo;</button>
     <span class="t" id="gdayLbl">&mdash;</span>
+    <button id="gplay">Play</button>
+    <label class="m"><input type="checkbox" id="gbysquad"> By squad</label>
+    <label class="m"><input type="checkbox" id="greach"> Show reach</label>
+    <label class="m"><input type="checkbox" id="gnoanim"> No movement</label>
   </div>
   <div class="grid2">
     <div><canvas id="gmap" width="900" height="900"
@@ -511,9 +502,15 @@
 
 <!-- ================================ THE TABLE ================================ -->
 <div class="page" data-tab="table">
-  <div class="bar" style="margin-bottom:10px"><span class="m" id="tstate"></span></div>
+  <div class="bar" style="margin-bottom:10px">
+    <button id="begindiv">Begin the Divide</button>
+    <button id="advwin" style="display:none">Next Comms Window</button>
+    <span class="m" id="divstate"></span>
+    <span class="m" id="tstate"></span></div>
   <div class="grid2">
     <div>
+      <h2>Since the Last Window</h2>
+      <div class="box log" id="encounters"><span class="m">the ground is quiet</span></div>
       <h2>Your stance</h2>
       <div class="box" id="tstance"><span class="m">&mdash;</span></div>
       <h2>Your word this window</h2>
@@ -565,6 +562,17 @@
   var OA = A.oa_profiles.oa_profiles;
 
   var $ = function (id) { return document.getElementById(id); };
+  /* A SKILL IS A NUMBER SOMEBODY SAYS OUT LOUD. Training moves these by fractions and the
+     raw float leaked to the page as "50.599999999999994". One decimal, and a whole number
+     stays whole — the fractions keep accruing underneath either way. It lives beside
+     `esc` because every block that prints a stat needs it; declaring it inside one of them
+     is what took the desk down on the first cut. */
+  var fmtStat = function (v) {
+    if (typeof v !== 'number' || !isFinite(v)) return v;
+    var r = Math.round(v * 10) / 10;
+    return (r === Math.round(r)) ? String(Math.round(r)) : r.toFixed(1);
+  };
+
   var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
   var n0 = function (x) { return Math.round(x).toLocaleString(); };
@@ -596,8 +604,8 @@
   var RAILS = {
     prep:   { head: 'Months 1\u201311 \u00b7 The Preparation', home: 'desk',
               tabs: ['desk', 'roster', 'squads', 'talks', 'board'] },
-    divide: { head: 'Month 12 \u00b7 The Divide', home: 'ground',
-              tabs: ['ground', 'fight', 'table', 'roster', 'board'] }
+    divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
+              tabs: ['table', 'ground', 'roster', 'board'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -607,11 +615,6 @@
     TAB = {};
     var lay = RAILS[phase];
     var tabs = lay.tabs.slice();
-    /* once the Dividend has been fought, its footage is watchable all year: the firefight
-       joins the preparation's rail as the room where the lights replay */
-    if (phase === 'prep' && G && G.state && G.state.dividend &&
-        (G.state.dividend.watch || []).length && tabs.indexOf('fight') < 0)
-      tabs.push('fight');
     var hd = document.createElement('div');
     hd.className = 'railhead'; hd.textContent = lay.head;
     rail.appendChild(hd);
@@ -670,26 +673,23 @@
     var rng = P.mulberry32(P.seedFrom(seedStr || 'corp-1'));
     G = { rng: rng, oa: oaList, corps: SEASON.openFleet(rng, oaList, {}), me: meId,
           seedStr: seedStr || 'corp-1', custom: customDef || null,
-          lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
+          lot: null, lotNo: 1, log: [], fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
           plan: { at: {}, leaderOf: {}, names: ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: {} },
-          div: null, gcache: null, gday: 1 };
+          div: null, gcache: null, gday: 1,
+          /* the day being watched, and how far into it: 'morning' | 'stepping' |
+             'complete'. Proven in the mock — no state is reachable by rewind. */
+          gstage: 'complete', gmi: 0, gtween: null, gtw: null, gtimer: null, gpulse: null };
     /* THE YEAR OPENS. The engine's own seam: the planet is announced, the board sets its
        card, sponsors put offers on the table, and every house in the fleet — this one
        included — takes the same twelve months through the same verbs. */
     G.state = SEASON.beginSeason(G.rng, G.corps, oaList, { human: G.me });
     G.rng = G.state.rng;               /* one stream: the page and the season share it */
-    var rv = $('rival'); rv.innerHTML = '';
-    oaList.forEach(function (p) {
-      if (p.id === G.me) return;
-      var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
-      rv.appendChild(o);
-    });
     $('mlog').innerHTML = '<div class="m">no window has closed yet</div>';
     /* desk log panel removed */
     G._railPhase = null;
-    renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderBench(); renderSquads(); renderDesk(); clearFight(); renderEncounters();
     renderEncounters();
     applyPhase();
   }
@@ -697,7 +697,8 @@
   /* =============================== THE BENCH =============================== */
 
   function statLine(f) {
-    return 'A' + f.stats.aim + ' T' + f.stats.tactics + ' R' + f.stats.resolve + ' G' + f.stats.grit;
+    return 'A' + fmtStat(f.stats.aim) + ' T' + fmtStat(f.stats.tactics) +
+           ' R' + fmtStat(f.stats.resolve) + ' G' + fmtStat(f.stats.grit);
   }
 
   function renderBench() { renderRoster(); }
@@ -739,7 +740,7 @@
     var TAL = [['ballistic_long','Ballistic, Long'],['ballistic_medium','Ballistic, Medium'],['ballistic_close','Ballistic, Close'],
                ['energy_long','Energy, Long'],['energy_medium','Energy, Medium'],['energy_close','Energy, Close']];
     var talCells = TAL.map(function (p) {
-      var v = skills[p[0]] != null ? skills[p[0]] : (s.aim != null ? s.aim : '\u2014');
+      var v = fmtStat(skills[p[0]] != null ? skills[p[0]] : (s.aim != null ? s.aim : '\u2014'));
       return '<span class="st"><span class="k">' + p[1] + '</span><span class="v">' + v + '</span></span>';
     }).join('');
 
@@ -1040,8 +1041,12 @@
        it. The corp's own judgement prefills the allocation; every point is yours to move. */
     var tracks = SEASON.monthTracks(me, m);
     if (!G._focusSel || G._focusSel._m !== m) {
-      G._focusSel = SEASON.chooseFocus(me, m);
-      G._focusSel._m = m;
+      /* A NEW MONTH OPENS UNCOMMITTED. This used to seed the board with the AI's own
+         picks, so a month began with focus already spent on choices the manager never
+         made — and the two sections that had been fixed (training, courting) were being
+         zeroed one at a time below, which only hid it. Everything starts at nothing. */
+      G._focusSel = { _m: m };
+      SEASON.monthTracks(me, m).forEach(function (t) { G._focusSel[t.kind] = 0; });
       G._boostSel = {};                 /* a new month's boosts are chosen fresh */
       /* the grid owns training now, and the corner is the weakest possible paint — so we do
          NOT greet the player with an auto-filled corner. Training starts empty; the points the
@@ -1053,6 +1058,8 @@
       G._focusSel.court = 0;
       delete G._focusSel.courtTarget;
       G._courtSel = {};
+      /* the painted intel map is per month too — it used to survive into the next one */
+      G._intelSel = {};
     }
     var h = '';
     tracks.forEach(function (o) {
@@ -1202,7 +1209,7 @@
            tgTrack('row', f.id, rn) + '</td>';
       stats.forEach(function (st) {
         var key = f.id + ':' + st.id, cn = tgGet('cell', key);
-        var val = st.fam ? (skills[st.id] != null ? skills[st.id] : f.stats.aim) : f.stats[st.id];
+        var val = fmtStat(st.fam ? (skills[st.id] != null ? skills[st.id] : f.stats.aim) : f.stats[st.id]);
         h += '<td class="' + (cn > 0 ? 'lit' : '') + '">' +
              '<div class="tgnum' + (cn > 0 ? ' on' : '') + '">' + val + '</div>' +
              tgTrack('cell', key, cn) + '</td>';
@@ -1247,6 +1254,10 @@
                 broker: 'Broker', workers_banner: "Workers' Banner", deal_snake: 'Deal-Snake',
                 quiet_provider: 'Quiet Provider', underwriter: 'Underwriter' };
   function archLabel(a) { return ARCHW[a] || (a ? a.replace(/_/g, ' ') : 'Unknown'); }
+
+  /* THE WAIT IS GONE (ruled): a gather resolves in the month it is bought, so there is
+     never an outstanding survey to report on. The "scouts out, reports in M4" line that
+     briefly lived here was scaffolding for a delay that should not have existed. */
 
   /* a rival target reads by FRESHNESS (oldest non-blank row); the planet by COMPLETENESS. */
   function intelStatus(t) {
@@ -1309,9 +1320,13 @@
     h += '<table class="itbl">';
     intelTargets().forEach(function (t) {
       var n = sel[t.id] || 0, st = intelStatus(t);
+      /* an intel row is an IDENTITY row: it names a house, so it wears that house's
+         colour and mark like every other place a house is named. The planet keeps its
+         own lozenge \u2014 it is not a house. */
       h += '<tr class="' + (t.planet ? 'iplanet' : '') + (n > 0 ? ' lit' : '') + '">' +
-        '<td class="iname"><span class="idoss ' + (n > 0 ? 'on' : '') + '" data-doss="' + t.id + '">' +
-        (t.planet ? '\u25c8 ' : '') + esc(t.name) + '</span>' +
+        '<td class="iname"><span class="idoss ' + (n > 0 ? 'on' : '') + '" data-doss="' + t.id + '"' +
+        (t.planet ? '' : ' style="color:' + colFor(t.id) + '"') + '>' +
+        (t.planet ? '\u25c8 ' : markFor(t.id, 13) + ' ') + esc(t.name) + '</span>' +
         ' <span class="isub">' + t.sub + '</span></td>' +
         '<td class="ipips">' + (canGather ? intelPipTrack(t.id, n) : '') + '</td>' +
         '<td class="istat" style="color:' + st.color + '">' + st.word + '</td></tr>';
@@ -1412,7 +1427,7 @@
       var regard = SEASON.SPON.regardOf(me, t.id);
       var taken = backer && backer !== G.me;
       var signedTag = mine ? '<span class="csigned you">&mdash; backing you</span>'
-                   : (taken ? '<span class="csigned">&mdash; backing ' + esc(nameOfCorp(backer)) + '</span>' : '');
+                   : (taken ? '<span class="csigned">&mdash; backing <span style="color:' + colFor(backer) + '">' + esc(nameOfCorp(backer)) + '</span></span>' : '');
 
       h += '<tr class="' + (n > 0 ? 'lit' : '') + (taken ? ' signed' : '') + '">';
       /* left: name, flavour tag, condition, pay line */
@@ -1586,7 +1601,6 @@
     if (delta > 0 && intelPips() + otherFocusIntel() + delta > SEASON.CONST.FOCUS_POINTS) return;
     if (newVal <= 0) delete sel[id]; else sel[id] = newVal;
     G._focusSel.scout = intelPips();
-    if (G.locked) { G.stale = true; renderLock(); }
     renderDesk();
   });
 
@@ -1600,7 +1614,6 @@
     if (delta > 0 && courtPips() + otherFocusCourt() + delta > SEASON.CONST.FOCUS_POINTS) return;
     if (newVal <= 0) delete sel[id]; else sel[id] = newVal;
     G._focusSel.court = courtPips();
-    if (G.locked) { G.stale = true; renderLock(); }
     renderDesk();
   });
 
@@ -1614,7 +1627,6 @@
     if (delta > 0 && trainPips() + otherFocus() + delta > SEASON.CONST.FOCUS_POINTS) return;
     tgSet(tier, key, newVal);
     G._focusSel.train = trainPips();          /* training's board value is the sum of pips */
-    if (G.locked) { G.stale = true; renderLock(); }
     renderDesk();
   });
 
@@ -1680,9 +1692,7 @@
     }
     dlog('<b>month ' + res.month + ' \u2014 ' + esc(res.name) + '</b><br>' +
          (lines.length ? lines.join('<br>') : '<span class="m">a quiet month</span>'));
-    if (res.event === 'dividend') G._railPhase = null;   /* the lights add a room */
-    if (G.locked) G.stale = true;              /* a month of healing changes who is fit */
-    renderBench(); renderSquads(); renderLock(); renderDesk(); renderEncounters();
+    renderBench(); renderSquads(); renderDesk(); renderEncounters();
     applyPhase();
     if (G.state.month >= 12)
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
@@ -1705,9 +1715,9 @@
        new season opens with a new planet, a new card, and new offers on the table */
     G.state = SEASON.beginSeason(G.rng, G.corps, G.oa, { human: G.me });
     G.rng = G.state.rng;
-    G.locked = null; G.stale = false; G.fought = {};
     G.div = null; G.gcache = null;
     $('begindiv').style.display = ''; $('advwin').style.display = 'none';
+    if (window.syncWindowBtns) syncWindowBtns();
     $('gscrub').style.display = 'none'; $('divstate').textContent = '';
     if ($('sponsorverdict')) $('sponsorverdict').innerHTML = '';
     $('gplanet').innerHTML = '<span class="m">no contest on the ground</span>';
@@ -1720,7 +1730,7 @@
          ((off.expired || []).length ? (off.expired.length + ' contracts expired \u00b7 ') : '') +
          'the planet is announced and the board has set its card');
     G._railPhase = null;
-    renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderBench(); renderSquads(); renderDesk(); clearFight(); renderEncounters();
     renderEncounters();
     applyPhase();
   };
@@ -1743,92 +1753,12 @@
      same rifles again, which is the charging-rent-on-your-own-kit fault by another road.
      STORES are the other half: a body that never fought hands its medkits and grenades
      back too, and a body that fought has them counted as spent — conservative, never free */
-  function returnKit(side) {
-    if (!side) return;
-    var rack = G.corps[side.fleetId].armoury;
-    side.per.drop.forEach(function (b) {
-      if (b.status === 'dead' || b.status === 'captured') return;
-      ['primary', 'armor', 'sidearm'].forEach(function (slot) {
-        var id = b.loadout && b.loadout[slot];
-        if (id) rack[id] = (rack[id] || 0) + 1;
-      });
-      ((b.loadout && b.loadout.mods) || []).forEach(function (id) {
-        if (id) rack[id] = (rack[id] || 0) + 1;   /* a scope comes home with the rifle */
-      });
-      if (!G.fought[b.id]) {
-        ((b.loadout && b.loadout.consumables) || []).forEach(function (id) {
-          if (id) rack[id] = (rack[id] || 0) + 1;
-        });
-      }
-    });
-  }
 
-  function lockSide(fleetCorp, planIn) {
-    var drop, groups = null, leaders = null;
-    if (planIn) {
-      /* the manager's arrangement: the engine's own drop rules still apply — the unfit are
-         filtered and the cap holds — and the groups follow whoever survived that filter */
-      var ids = [];
-      planIn.groups.forEach(function (g) { ids.push.apply(ids, g); });
-      drop = SEASON.selectDrop(fleetCorp, { manual: ids });
-      var kept = {};
-      drop.forEach(function (b) { kept[b.id] = true; });
-      groups = []; leaders = [];
-      for (var i = 0; i < planIn.groups.length; i++) {
-        var g = planIn.groups[i].filter(function (id) { return kept[id]; });
-        if (g.length) { groups.push(g); leaders.push(planIn.leaders[i] || null); }
-      }
-    } else {
-      drop = SEASON.selectDrop(fleetCorp, {});
-    }
-    if (!drop || !drop.length) return null;
-    var per = { drop: drop, account: fleetCorp.account, armoury: fleetCorp.armoury, intel: 0 };
-    if (groups && groups.length) { per.groups = groups; per.leaders = leaders; }
-    if (fleetCorp.id === G.me && G.plan.hand && Object.keys(G.plan.hand).length)
-      per.hand = G.plan.hand;
-    var c = DIVIDE.buildCorp(G.rng, fleetCorp.profile, 'standard', undefined, null, null, null, per, 1);
-    c.rep = fleetCorp.rep;
-    if (c.kitSpend) LED.post(fleetCorp.account, 'expense', 'procurement', -c.kitSpend);
-    if (per.stockLeft) fleetCorp.armoury = per.stockLeft;
-    return { corp: c, per: per, fleetId: fleetCorp.id };
-  }
 
-  function kitMix(c) {
-    var mix = {};
-    c.squads.forEach(function (sq) { sq.bodies.forEach(function (b) {
-      var id = b.loadout && b.loadout.primary;
-      mix[itemName(id)] = (mix[itemName(id)] || 0) + 1;
-    }); });
-    return Object.keys(mix).sort().map(function (k) { return k + ' ×' + mix[k]; }).join(', ');
-  }
 
-  $('lock').onclick = function () {
-    if (!G) return;
-    if (G.div) {
-      $('lockinfo').innerHTML = '<span class="warn">the Divide has the floor</span> ' +
-        '<span class="m">\u2014 encounters arrive from the ground; the scrim returns next year</span>';
-      return;
-    }
-    if (G.state && G.state.month < 12) {
-      $('lockinfo').innerHTML = '<span class="warn">the lock is month twelve\u2019s business</span> ' +
-        '<span class="m">\u2014 the lights above are what this room shows during the year</span>';
-      return;
-    }
-    returnKit(G.locked && G.locked.mine);
-    returnKit(G.locked && G.locked.rival);
-    G.fought = {};                    /* a fresh lock starts a fresh account of who stood */
-    var mine = lockSide(G.corps[G.me], plannedGroups());
-    var rv = lockSide(G.corps[$('rival').value], null);
-    if (!mine || !rv) {
-      $('lockinfo').innerHTML = '<span class="warn">' +
-        (!mine ? 'you have nobody fit to drop' : 'the rival has nobody fit to drop') +
-        '</span> <span class="m">— the roster carries its damage; hire, or pick another rival</span>';
-      G.locked = null; renderSquads(); return;
-    }
-    G.locked = { mine: mine, rival: rv };
-    G.stale = false;
-    renderLock(); renderSquads();
-  };
+  /* THE SCRIM WAS HERE — the lock, the rival pick, terrain/range/readiness and Run
+     Engagement: a practice room that predated the live Divide. Retired at the Divide-UI
+     pass; the Firefight is a replay room now, reached from the Table's window recap. */
 
   /* ---- the manager's squad plan: who stands with whom, and who they look to ---- */
   /* leadership follows the PERSON: G.plan.leaderOf[bodyId] means that body leads its squad.
@@ -1896,7 +1826,6 @@
   function moveTo(id, si) {         /* si null = bench */
     if (si == null) { delete G.plan.at[id]; delete G.plan.leaderOf[id]; }
     else G.plan.at[id] = si;
-    if (G.locked) { G.stale = true; renderLock(); }
     renderSquads();
   }
 
@@ -1978,7 +1907,6 @@
     if (G._inspect && !fitIds[G._inspect]) { G._inspect = null; $('unitpanel').style.display = 'none'; }
     else if (G._inspect) renderPanel();
 
-    renderSqLocked();
   }
 
   function renameSquad(si, el) {
@@ -2047,7 +1975,7 @@
       '</div>';
 
     var trades = ITEMS.SKILL_FAMILIES.map(function (f) {
-      return esc(f.name) + ' ' + (skills[f.id] != null ? skills[f.id] : s.aim);
+      return esc(f.name) + ' ' + fmtStat(skills[f.id] != null ? skills[f.id] : s.aim);
     }).join(' \u00b7 ');
 
     var info =
@@ -2062,8 +1990,9 @@
       '</div>' +
       '<div class="collabel">Stats</div>' +
       '<div style="line-height:1.7;margin-bottom:8px">' +
-      'Aim ' + s.aim + ' \u00b7 Tactics ' + s.tactics + ' \u00b7 Reflex ' + s.reflex + ' \u00b7 Fieldcraft ' +
-      s.fieldcraft + '<br>Presence ' + s.presence + ' \u00b7 Resolve ' + s.resolve + ' \u00b7 Grit ' + s.grit +
+      'Aim ' + fmtStat(s.aim) + ' \u00b7 Tactics ' + fmtStat(s.tactics) + ' \u00b7 Reflex ' + fmtStat(s.reflex) +
+      ' \u00b7 Fieldcraft ' + fmtStat(s.fieldcraft) + '<br>Presence ' + fmtStat(s.presence) +
+      ' \u00b7 Resolve ' + fmtStat(s.resolve) + ' \u00b7 Grit ' + fmtStat(s.grit) +
       (stress >= 30 ? ' <span class="warn">\u00b7 stress ' + Math.round(stress) + '</span>' : '') + '</div>' +
       '<div class="collabel">Trades</div>' +
       '<div style="color:#8fa8c4;line-height:1.6;margin-bottom:8px">' + trades + '</div>' +
@@ -2091,14 +2020,12 @@
         });
         G.plan.leaderOf[b.id] = true;
       }
-      if (G.locked) { G.stale = true; renderLock(); }
-      renderSquads();
+        renderSquads();
     };
     var pc = $('pclear');
     if (pc) pc.onclick = function (e) {
       e.preventDefault(); delete G.plan.hand[b.id];
-      if (G.locked) { G.stale = true; renderLock(); }
-      renderSquads();
+        renderSquads();
     };
     if (G._pickSlot) openPicker(G._pickSlot);
   }
@@ -2189,7 +2116,6 @@
     else h[slot] = id || null;
     G.plan.hand[b.id] = h;
     G._pickSlot = null;
-    if (G.locked) { G.stale = true; renderLock(); }
     ctx.rerender();
   }
 
@@ -2198,62 +2124,10 @@
     /* the deal goes back to the engine; the HAND stands — it names bodies, not squads */
     G.plan = { at: {}, leaderOf: {}, names: (G.plan && G.plan.names) || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'],
                hand: (G.plan && G.plan.hand) || {} };
-    if (G.locked) { G.stale = true; renderLock(); }
     renderSquads();
   };
 
-  function renderSqLocked() {
-    if (!G || !G.locked) {
-      $('sqlocked').innerHTML =
-        '<span class="m">no drop locked yet \u2014 lock it from The Firefight</span>';
-      return;
-    }
-    var c = G.locked.mine.corp, h = '';
-    c.squads.forEach(function (sq, i) {
-      var snm = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
-      h += '<div style="margin-bottom:6px"><b class="gold">' + esc(snm) + '</b> ' +
-           '<span class="m">' + sq.bodies.length + ' bodies</span><br>';
-      sq.bodies.forEach(function (b) {
-        var stores = (b.loadout && b.loadout.consumables || []).length;
-        h += '<span class="m">' +
-             (b.id === sq.captainId ? '<span class="gold">\u2605</span> ' : '') + esc(b.name) +
-             ' \u2014 ' + esc(itemName(b.loadout && b.loadout.primary)) + ', ' +
-             esc(itemName(b.loadout && b.loadout.armor)) +
-             (stores ? ', ' + stores + ' stores' : '') + '</span><br>';
-      });
-      h += '</div>';
-    });
-    $('sqlocked').innerHTML = h +
-      (G.stale ? '<div class="warn">the plan or the roster changed since this lock \u2014 re-lock</div>' : '');
-  }
 
-  function renderLock() {
-    if (!G) return;
-    var el = $('lockinfo');
-    if (!G.locked) { el.innerHTML = '<span class="m">no drop locked yet</span>'; return; }
-    var m = G.locked.mine.corp, r = G.locked.rival.corp;
-    var h = '<b class="gold">' + esc(G.corps[G.me].profile.name) + '</b> drop ' +
-            m.allBodies.length + ' in ' + m.squads.length + ' squads' +
-            (m.muster != null ? ' <span class="warn">— could not arm the drop, short ' +
-              n0(m.muster) + '; they carry the fallback stores</span>'
-             : ' <span class="m">— kit spend ' + n0(m.kitSpend || 0) +
-               (m.handKitted ? ' \u00b7 hand-kitted ' + m.handKitted : '') + '</span>' +
-               (m.handRefused ? ' <span class="warn">\u00b7 ' + m.handRefused +
-                 ' hand plan(s) refused back to the quartermaster</span>' : '')) +
-            '<div class="m">' + kitMix(m) + '</div>' +
-            '<div style="margin-top:6px"><b class="blue">' + esc(G.corps[G.locked.rival.fleetId].profile.name) +
-            '</b> drop ' + r.allBodies.length + ' in ' + r.squads.length + ' squads' +
-            (r.muster != null ? ' <span class="warn">— short ' + n0(r.muster) + '</span>' : '') + '</div>' +
-            (G.stale ? '<div class="warn" style="margin-top:6px">the roster changed since this lock — re-lock</div>' : '');
-    el.innerHTML = h;
-    var sel = $('squad'); sel.innerHTML = '';
-    G.locked.mine.corp.squads.forEach(function (sq, i) {
-      var o = document.createElement('option'); o.value = String(i);
-      var snm2 = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
-      o.textContent = snm2 + ' — ' + actives(sq).length + ' standing';
-      sel.appendChild(o);
-    });
-  }
 
   function clearFight() {
     stop(); clearTween();
@@ -2265,80 +2139,12 @@
     $('frLbl').textContent = '\u2014';
     $('events').innerHTML = '<span class="m">no engagement run yet</span>';
     $('result').innerHTML = '<span class="m">&mdash;</span>';
-    $('settle').innerHTML = '<span class="m">nothing settled yet</span>';
+    $('settle').innerHTML = '<span class="m">&mdash;</span>';
     $('rosterA').innerHTML = ''; $('rosterB').innerHTML = '';
   }
 
-  $('run').onclick = function () {
-    if (!G) return;
-    stop();
-    if (G.div) {
-      $('settle').innerHTML = '<span class="warn">the Divide has the floor</span> ' +
-        '<span class="m">\u2014 watch its encounters from the list above</span>';
-      return;
-    }
-    if (G.state && G.state.month < 12) {
-      $('settle').innerHTML = '<span class="warn">the lock is month twelve\u2019s business</span>';
-      return;
-    }
-    if (!G.locked) { $('settle').innerHTML = '<span class="warn">lock the drop first</span>'; return; }
-    if (G.stale) { $('settle').innerHTML = '<span class="warn">the roster changed since the lock — re-lock first</span>'; return; }
-    var mySq = G.locked.mine.corp.squads[+$('squad').value || 0];
-    var rSqs = G.locked.rival.corp.squads.filter(function (sq) { return actives(sq).length > 0; });
-    var rSq = rSqs[0];
-    var sideA = mySq && DIVIDE.liveSquad(G.rng, G.locked.mine.corp, mySq, 1,
-                                         mySq.engagements, ROSTER.traitById);
-    var sideB = rSq && DIVIDE.liveSquad(G.rng, G.locked.rival.corp, rSq, 1,
-                                        rSq.engagements, ROSTER.traitById);
-    if (!sideA || !sideB) {
-      $('settle').innerHTML = '<span class="warn">' + (!sideA
-        ? 'nobody in that squad is still standing — pick another, or re-lock'
-        : 'the rival cannot field a squad — they are spent; re-lock or pick another rival') + '</span>';
-      return;
-    }
-    var pp = $('prep').value.split(',').map(Number);
-    var res = TAC.resolve(G.rng, sideA, sideB, {
-      terrain: $('terrain').value, openingBand: +$('band').value, prep: pp, log: []
-    });
-    /* settle it the way the contest settles it — victors read before either side's books move */
-    var vsA = { corp: G.locked.rival.corp, bodies: actives(rSq) };
-    var vsB = { corp: G.locked.mine.corp, bodies: actives(mySq) };
-    var sA = statsBag(), sB = statsBag();
-    DIVIDE.applyOutcome(mySq, sideA, sA, G.locked.rival.corp.id, vsA);
-    DIVIDE.applyOutcome(rSq, sideB, sB, G.locked.mine.corp.id, vsB);
-    mySq.engagements++; rSq.engagements++;
-    mySq.bodies.concat(rSq.bodies).forEach(function (b) { G.fought[b.id] = true; });
-
-    var weap = {};
-    [sideA, sideB].forEach(function (S) { S.units.forEach(function (u) {
-      weap[u.id] = (u.weapon && u.weapon.name) || ''; }); });
-    G.fight = { res: res, i: 0, weap: weap };
-    $('fr').max = String(Math.max(0, res.frames.length - 1));
-    $('fr').value = '0';
-    var t = res.telemetry;
-    var cas = function (tag) {
-      var x = res.casualties[tag] || {};
-      return (x.dead || 0) + (x.down || 0) + (x.stable || 0) + (x.captured || 0);
-    };
-    $('result').innerHTML =
-      '<b>' + esc(res.result) + '</b><div class="m">' + res.turns + ' turns &middot; ' +
-      t.shots + ' shots, ' + t.hits + ' hits<br>you lost ' + cas(sideA.tag) +
-      ' &middot; they lost ' + cas(sideB.tag) + '<br>pins ' + (t.pins || 0) +
-      ' &middot; overwatch shots ' + (t.overwatchShots || 0) +
-      ((t.flankShots || 0) ? ' &middot; ' + t.flankShots + ' shots round the side' : '') +
-      ((t.energyShots || 0) ? ' &middot; energy shots ' + t.energyShots : '') + '</div>';
-    var word = function (s) {
-      var bits = [];
-      if (s.dead) bits.push(s.dead + ' dead');
-      if (s.injured) bits.push(s.injured + ' injured');
-      if (s.captured) bits.push(s.captured + ' captured');
-      if (s.careerEnded) bits.push(s.careerEnded + ' career-ended');
-      return bits.length ? bits.join(', ') : 'everybody walks';
-    };
-    $('settle').innerHTML = '<b>settled to the roster</b><div class="m">you: ' + word(sA) +
-      '<br>them: ' + word(sB) + '<br>look at the bench — it already says so</div>';
-    goto(0, false); renderBench(); renderSquads(); renderLock();
-  };
+  /* THE SCRIM'S RUN WAS HERE — the practice resolver and its settle-to-the-roster
+     consequences. Retired with the scrim at the Divide-UI pass. */
 
   /* ---- the replay: the firefight page's animation layer, joined here whole ----
      Tweened movement for the acting body (ease-out, so the step lands), one tracer per
@@ -2347,7 +2153,8 @@
      body, knowledge markings for the unfound and the merely heard, and names laid out so
      they never overprint. Dragging the slider scrubs without animating: a scrub is
      somebody looking for a moment, not watching a fight. */
-  var SIDE = ['#3ad8e0', '#6f9bc4', '#89b482'];
+  /* SIDE WAS HERE — three colours by seat, cyan for whoever sat first. Retired with
+     BANNER at the colour pass; fights colour by house now. */
   var RACE = {
     olmac:    { r: 0.46, fill: '#6f6f69' },   /* massive, granite_skin — dark stone */
     svalbard: { r: 0.42, fill: '#566b7a' },   /* six_limbed, centauroid — dark slate */
@@ -2387,7 +2194,7 @@
           uy = G.tween.fy + (u.y - G.tween.fy) * G.tween.a;
         }
         var cx = ux * s + s / 2, cy = uy * s + s / 2;
-        var col = SIDE[u.s % SIDE.length];
+        var col = colFor(fCid(u.s));
         var rc = RACE[u.race] || RACE.human;
         var kn = (u.kn == null) ? 2 : u.kn;   /* 0 unfound · 1 heard · 2 seen */
         if (kn === 0 && (u.st === 'ok' || u.st === 'light')) {
@@ -2506,9 +2313,9 @@
     var F0 = G.fight;
     var nmA = (F0.names && F0.names[0]) || G.corps[G.me].profile.name;
     var nmB = (F0.names && F0.names[1]) ||
-              (G.locked ? G.corps[G.locked.rival.fleetId].profile.name : 'the rival');
-    [['rosterA', 0, 'gold', nmA], ['rosterB', 1, 'blue', nmB]].forEach(function (row) {
-      var h = '<h2 class="' + row[2] + '">' + esc(row[3]) + '</h2>';
+              (fCid(1) ? tName(fCid(1)) : 'the rival');
+    [['rosterA', 0, nmA], ['rosterB', 1, nmB]].forEach(function (row) {
+      var h = '<h2 style="color:' + colFor(fCid(row[1])) + '">' + markFor(fCid(row[1]), 14) + ' ' + esc(row[2]) + '</h2>';
       F.units.filter(function (u) { return u.s === row[1]; }).forEach(function (u) {
         var out = u.st === 'dead' || u.st === 'fled' || u.st === 'down' ||
                   u.st === 'stable' || u.st === 'captured';
@@ -2542,7 +2349,7 @@
       if (v2.react) tail += ' \u00b7 on overwatch';
       if (v2.sev) tail += ' \u00b7 ' + esc(v2.sev);
       if (v2.type === 'miss' && v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '% shot';
-      var col2 = SIDE[(sideOf[v2.by] || 0) % SIDE.length];
+      var col2 = colFor(fCid(sideOf[v2.by] || 0));
       out2 += '<div class="ev ' + cls + '">t' + v2.t + ' \u00b7 ' +
               '<span style="color:' + col2 + '">' + esc(who) + '</span> ' + esc(verb) +
               (whom ? ' ' + esc(whom) : '') + tail + '</div>';
@@ -2638,8 +2445,27 @@
      same day shape the recording uses, and once the contest ends the whole recording scrubs
      day by day. Every encounter the manager's people stood in is handed over by the engine
      with its frames and replays in The Firefight. */
-  var BANNER = ['#3ad8e0', '#9d7cd8', '#89b482', '#d16a5e',
-                '#7fb0c8', '#c9a3c4', '#b8b06a', '#c98a5e'];
+  /* BANNER WAS HERE — eight arbitrary hexes keyed by seat. Retired at the colour pass:
+     every house now wears its own derived colour from data/oa_display.json, and the
+     founded house the one it picked at founding. */
+  var OA_DISP = (window.ARX_DATA && ARX_DATA.oa_display && ARX_DATA.oa_display.colors) || {};
+  function colFor(id) {
+    var c = G && G.corps && G.corps[id];
+    if (c && c.profile && c.profile.displayColor) return c.profile.displayColor;
+    return (OA_DISP[id] && OA_DISP[id].color) || '#6f9bc4';
+  }
+  function cSpan(id) { return '<span style="color:' + colFor(id) + '">' + esc(tName(id)) + '</span>'; }
+  /* the house's mark, at chip size, in whatever colour surrounds it. The founded house
+     (and only it — every fleet house has a mark) falls back to the empty pennant. */
+  var OA_MARKS = (window.ARX_DATA && ARX_DATA.oa_marks && ARX_DATA.oa_marks.marks) || {};
+  function markFor(id, px) {
+    var body = OA_MARKS[id] || OA_MARKS.__founder || '';
+    return body ? '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px +
+      '" style="vertical-align:-2px">' + body + '</svg>' : '';
+  }
+  function mSpan(id) { return '<span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>'; }
+  function oaIdOf(ci) { var L = (G && G.oa) || OA; return (L[ci % L.length] || {}).id; }
+  function fCid(s) { return G.fight && G.fight.cids ? G.fight.cids[s] : null; }
   var TERRAIN = { open_basin: '#241f19', broken_ground: '#1f1b16', ruins: '#1b1815',
                   entrenched: '#191713', forest: '#151a14' };
   var bannerName = function (ci) {
@@ -2655,7 +2481,7 @@
   $('begindiv').onclick = function () {
     if (!G || !G.state || G.state.month < 12 || G.div) return;
     stop(); clearTween();
-    G.locked = null; G.stale = false; clearFight();
+    clearFight();
     /* the season's own close: the muster, the board calls, the lock, the seam */
     SEASON.closeSeasonToDrop(G.state);
     /* the manager's squads ride into the real Divide exactly as they ride into a scrim */
@@ -2689,11 +2515,30 @@
   };
 
   $('advwin').onclick = function () { advanceDivide(); };
+  /* THE WINDOW IS THE CONTEST'S CLOCK, so it belongs on every screen the contest owns —
+     walking back to the Table to move the ground forward was a tax on watching. One
+     handler, mirrored onto each rail page; `syncWindowBtns` keeps them honest. */
+  Array.prototype.forEach.call(document.querySelectorAll('.advwin2'), function (b) {
+    b.onclick = function () { advanceDivide(); };
+  });
+  window.syncWindowBtns = syncWindowBtns;
+  function syncWindowBtns() {
+    var on = $('advwin').style.display !== 'none';
+    var label = $('advwin').textContent;
+    var state = $('divstate') ? $('divstate').textContent : '';
+    Array.prototype.forEach.call(document.querySelectorAll('.advwin2'), function (b) {
+      b.style.display = on ? '' : 'none'; b.textContent = label;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.advwin2state'), function (s) {
+      s.textContent = on ? state : '';
+    });
+  }
 
   function advanceDivide() {
     if (!G.div || G.div.done) return;
     var word = G.div.answer || undefined;   /* the Table's composed word rides the advance */
     G.div.answer = null;
+    G.div.prevDay = G.div.win ? G.div.win.day : 0;   /* the recap divides at the last window */
     var step = G.div.gen.next(word);
     if (step.done) {
       G.div.done = true;
@@ -2702,6 +2547,7 @@
       var seasonRec = SEASON.finishSeason(G.state, step.value);
       var mine = (step.value.perCorp || []).filter(function (p) { return p.id === G.me; })[0] || {};
       $('advwin').style.display = 'none';
+      syncWindowBtns();
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
         ' days \u00b7 winner ' + esc(step.value.winner || 'nobody') +
         (mine.payout ? ' \u00b7 <span class="good">your take ' + n0(mine.payout) + '</span>' : '') +
@@ -2712,20 +2558,52 @@
         $('gscrub').style.display = '';
         $('gday').max = String(days.length);
         $('gday').value = String(days.length);
-        G.gday = days.length;
+        /* a finished contest opens where it started — the drop — so the whole thing
+           can be watched forward; the slider still reaches the end at a drag. The line
+           that set this to the LAST day lived here and quietly won, because it ran
+           after: the page opened on the aftermath every time. */
+        G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
+        $('gday').value = '1';
       }
     } else {
       G.div.win = step.value;
       G.div.windows++;
       $('advwin').style.display = '';
+      syncWindowBtns();
       $('divstate').textContent = 'day ' + step.value.day + ' of ' + step.value.lastDay +
         ' \u00b7 comms window ' + G.div.windows + ' \u2014 the ground waits on you';
     }
     renderGround(); renderEncounters(); renderTable();
-    renderBench(); renderSquads(); renderLock();
+    renderBench(); renderSquads();
   }
 
-  $('gday').oninput = function () { G.gday = parseInt($('gday').value, 10) || 1; renderGround(); };
+  /* scrubbing lands on a finished day and never animates — a scrub is somebody
+     looking for a moment, not watching a contest */
+  $('gday').oninput = function () {
+    gStopPlay(); gClearTween();
+    G.gday = parseInt($('gday').value, 10) || 1;
+    G.gstage = 'complete'; G.gmi = 0;
+    gLabel(); renderGround();
+  };
+  $('gfwd').onclick = function () { gStopPlay(); gFwd(true); };
+  $('gback').onclick = function () { gStopPlay(); gBack(); };
+  $('gplay').onclick = function () {
+    var days = gDays(); if (!days) return;
+    if (G.gtimer) return gStopPlay();
+    $('gplay').textContent = 'Pause';
+    G.gtimer = setInterval(function () {
+      if (G.gday >= days.length && G.gstage === 'complete') return gStopPlay();
+      gFwd(true);
+    }, $('gbysquad').checked ? 560 : 980);
+  };
+  /* toggling mid-day settles the day rather than rewinding it */
+  $('gbysquad').onchange = function () {
+    gStopPlay(); gClearTween();
+    if (G.gstage === 'stepping') { G.gstage = 'complete'; G.gmi = 0; }
+    gLabel(); renderGround();
+  };
+  $('greach').onchange = function () { renderGround(); };
+  $('gnoanim').onchange = function () { gClearTween(); renderGround(); };
 
   /* one day shape for both modes: live windows synthesise it, the recording already has it */
   function groundDay() {
@@ -2787,6 +2665,193 @@
     return off;
   }
 
+  /* ---- THE GROUND, ANIMATED (the animation pass; grammar proved in the mock) -------
+     Squads walk their TRUE recorded tracks, paced by arc length so an engine relocation
+     reads as a fast dash rather than a blink. A day is watched in three states — its
+     morning, stepping through it, and complete — and nothing is ever reached by rewind,
+     which is what made the first cut relocate the whole map on the first press. Live
+     comms-window days carry no tracks, so they simply draw complete. */
+  function gDays() {
+    return (G.div && G.div.done && G.div.final && G.div.final.replay)
+      ? G.div.final.replay.days : null;
+  }
+  function gPathOf(q, dayIdx) {
+    var days = gDays(); if (!days) return null;
+    var pts = [], prev = days[dayIdx - 1];
+    if (prev) {
+      var p = null;
+      for (var i = 0; i < prev.sq.length; i++)
+        if (prev.sq[i].c === q.c && prev.sq[i].s === q.s) { p = prev.sq[i]; break; }
+      if (p && q.tr && q.tr.length >= 2 &&
+          Math.hypot(q.tr[0] - p.x, q.tr[1] - p.y) > 0.004) pts.push([p.x, p.y, 1]);
+    }
+    if (q.tr) for (var j = 0; j + 1 < q.tr.length; j += 2) pts.push([q.tr[j], q.tr[j + 1], 0]);
+    if (pts.length < 2) return null;
+    var cum = [0];
+    for (var k = 1; k < pts.length; k++)
+      cum.push(cum[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    if (cum[cum.length - 1] <= 0) return null;
+    return { pts: pts, cum: cum, total: cum[cum.length - 1] };
+  }
+  function gPathPoint(path, a) {
+    if (!path) return null;
+    var d = a * path.total, k = 1;
+    while (k < path.cum.length - 1 && path.cum[k] < d) k++;
+    var seg = path.cum[k] - path.cum[k - 1] || 1e-9, t = (d - path.cum[k - 1]) / seg;
+    return [path.pts[k - 1][0] + (path.pts[k][0] - path.pts[k - 1][0]) * t,
+            path.pts[k - 1][1] + (path.pts[k][1] - path.pts[k - 1][1]) * t,
+            path.pts[k][2]];
+  }
+  function gMovers(dayN) {
+    var days = gDays(); if (!days || !days[dayN - 1]) return [];
+    var out = [];
+    days[dayN - 1].sq.forEach(function (q, qi) { if (gPathOf(q, dayN - 1)) out.push(qi); });
+    return out;
+  }
+  function gClearTween() {
+    if (G.gtw) clearInterval(G.gtw);
+    G.gtw = null; G.gtween = null; G.gpulse = null;
+  }
+  function gStopPlay() {
+    if (G.gtimer) clearInterval(G.gtimer);
+    G.gtimer = null;
+    if ($('gplay')) $('gplay').textContent = 'Play';
+  }
+  function gAnimateDay() {
+    gClearTween();
+    G.gstage = 'complete';
+    var longest = 0, days = gDays();
+    if (days && days[G.gday - 1])
+      days[G.gday - 1].sq.forEach(function (q) {
+        var ph = gPathOf(q, G.gday - 1); if (ph) longest = Math.max(longest, ph.total); });
+    var ms = Math.max(450, Math.min(1100, 620 * (longest / 0.06))), t0 = Date.now();
+    G.gtween = { mode: 'day', a: 0 };
+    G.gtw = setInterval(function () {
+      var el = (Date.now() - t0) / ms, a = Math.min(1, el);
+      G.gtween.a = 1 - (1 - a) * (1 - a);
+      if (el >= 1) {
+        gClearTween();
+        G.gpulse = 0;
+        var p0 = Date.now(), pw = setInterval(function () {
+          G.gpulse = (Date.now() - p0) / 500;
+          if (G.gpulse >= 1) { clearInterval(pw); G.gpulse = null; }
+          renderGround();
+        }, 16);
+      }
+      renderGround();
+    }, 16);
+  }
+  function gAnimateSquad(qi) {
+    gClearTween();
+    var ms = 430, t0 = Date.now();
+    G.gtween = { mode: 'squad', qi: qi, a: 0, mi: G.gmi };
+    G.gtw = setInterval(function () {
+      var a = Math.min(1, (Date.now() - t0) / ms);
+      G.gtween.a = 1 - (1 - a) * (1 - a);
+      if (a >= 1) {
+        gClearTween();
+        if (G.gstage === 'stepping' && G.gmi >= gMovers(G.gday).length) {
+          G.gstage = 'complete'; G.gmi = 0; gLabel();
+        }
+      }
+      renderGround();
+    }, 16);
+  }
+  function gStepInto(animate) {
+    /* BY SQUAD and NO MOVEMENT are orthogonal: the first decides how much happens per
+       press, the second only whether it tweens. Gating the mode on the tween — which
+       the mock did — silently reverted to whole-day jumps whenever somebody turned
+       animation off, which is the one thing stepping exists to avoid. */
+    var by = $('gbysquad') && $('gbysquad').checked;
+    animate = animate && !(($('gnoanim') || {}).checked);
+    if (by) {
+      var m = gMovers(G.gday);
+      if (!m.length) { G.gstage = 'complete'; gLabel(); gClearTween(); renderGround(); return; }
+      G.gstage = 'stepping'; G.gmi = 1; gLabel();
+      if (animate) gAnimateSquad(m[0]); else { gClearTween(); renderGround(); }
+    } else {
+      G.gstage = 'complete'; G.gmi = 0; gLabel();
+      if (animate && !(($('gnoanim') || {}).checked)) gAnimateDay();
+      else { gClearTween(); renderGround(); }
+    }
+  }
+  function gFwd(animate) {
+    var days = gDays();
+    if (!days) return;
+    animate = animate && !(($('gnoanim') || {}).checked);
+    if (G.gstage === 'morning') { gStepInto(animate); return; }
+    if (G.gstage === 'stepping') {
+      var m = gMovers(G.gday);
+      if (G.gmi < m.length) {
+        G.gmi++; gLabel();
+        if (animate) gAnimateSquad(m[G.gmi - 1]); else { gClearTween(); renderGround(); }
+        return;
+      }
+      G.gstage = 'complete'; G.gmi = 0; gLabel(); gClearTween(); renderGround(); return;
+    }
+    if (G.gday >= days.length) return;
+    G.gday++; G.gstage = 'morning'; G.gmi = 0;
+    gStepInto(animate);
+  }
+  function gBack() {
+    gClearTween();
+    var days = gDays(); if (!days) return;
+    if (G.gstage === 'stepping') {
+      G.gmi--;
+      if (G.gmi <= 0) { G.gstage = 'morning'; G.gmi = 0; }
+      gLabel(); renderGround(); return;
+    }
+    if (G.gstage === 'complete') {
+      if ($('gbysquad') && $('gbysquad').checked) {
+        var m = gMovers(G.gday);
+        if (m.length) {
+          G.gstage = 'stepping'; G.gmi = m.length - 1;
+          if (G.gmi <= 0) { G.gstage = 'morning'; G.gmi = 0; }
+          gLabel(); renderGround(); return;
+        }
+      }
+      G.gstage = 'morning'; G.gmi = 0; gLabel(); renderGround(); return;
+    }
+    if (G.gday <= 1) { gLabel(); renderGround(); return; }
+    G.gday--; G.gstage = 'complete'; G.gmi = 0; gLabel(); renderGround();
+  }
+  function gLabel() {
+    var D = groundDay(); if (!D) return;
+    var extra = '';
+    if (G.gstage === 'morning') extra = G.gday === 1 ? ' \u00b7 the drop' : ' \u00b7 morning';
+    else if (G.gstage === 'stepping')
+      extra = ' \u00b7 move ' + G.gmi + ' of ' + gMovers(G.gday).length;
+    var days = gDays();
+    $('gdayLbl').textContent = 'day ' + D.d + (days ? ' of ' + days.length : '') + extra;
+    $('gday').value = String(G.gday);
+  }
+  /* where a squad is being DRAWN this frame: held at its morning, mid-walk, or landed */
+  function gDisp(q, qi) {
+    var pos = [q.x, q.y], moving = false, night = 0;
+    var days = gDays();
+    if (!days) return { pos: pos, moving: false, night: 0, path: null, order: -1 };
+    var held = G.gstage !== 'complete';
+    var path = (G.gtween || held) ? gPathOf(q, G.gday - 1) : null;
+    var movers = ((G.gtween && G.gtween.mode === 'squad') || held) ? gMovers(G.gday) : null;
+    var order = movers ? movers.indexOf(qi) : -1;
+    if (G.gtween) {
+      var use = G.gtween.mode === 'day' || (G.gtween.mode === 'squad' && qi === G.gtween.qi);
+      if (use && path) {
+        var tp = gPathPoint(path, G.gtween.a);
+        if (tp) { pos = [tp[0], tp[1]]; moving = true; night = tp[2]; }
+      } else if (G.gtween.mode === 'squad' && order >= (G.gtween.mi || 0) && path) {
+        pos = [path.pts[0][0], path.pts[0][1]];
+      }
+    } else if (held && path && (order < 0 || order >= G.gmi)) {
+      pos = [path.pts[0][0], path.pts[0][1]];
+    }
+    return { pos: pos, moving: moving, night: night, path: path, order: order };
+  }
+
+  /* the harness reads display positions directly — the only honest way to prove that a
+     step moves one squad and not the map */
+  window.__gDisp = gDisp;
+
   function renderGround() {
     if (!G.div) return;
     var D = groundDay();
@@ -2818,6 +2883,21 @@
       }
       g.strokeStyle = '#9d7cd8'; g.lineWidth = 3;
       g.beginPath(); g.arc(zc[0], zc[1], zr, 0, Math.PI * 2); g.stroke();
+      /* every layer reads the same display positions, so the reach rings walk with
+         their squads instead of standing where the record left them */
+      var DISP = D.sq.map(function (q, qi) { return gDisp(q, qi); });
+      if ($('greach') && $('greach').checked) {
+        for (var rq = 0; rq < D.sq.length; rq++) {
+          if (D.sq[rq].w === 'down' && G.gstage === 'complete') continue;
+          var rp = gproj(cv, DISP[rq].pos[0], DISP[rq].pos[1]);
+          g.strokeStyle = colFor(oaIdOf(D.sq[rq].c));
+          g.globalAlpha = .13; g.lineWidth = 1;
+          g.beginPath(); g.arc(rp[0], rp[1], 0.068 * sc, 0, Math.PI * 2); g.stroke();
+          g.globalAlpha = .06; g.setLineDash([2, 5]);
+          g.beginPath(); g.arc(rp[0], rp[1], 0.105 * sc, 0, Math.PI * 2); g.stroke();
+          g.setLineDash([]); g.globalAlpha = 1;
+        }
+      }
       for (var i = 0; i < (D.obj || []).length; i++) {
         var o = D.obj[i], p = gproj(cv, o.x, o.y), w2 = 13;
         g.lineWidth = 2;
@@ -2827,19 +2907,87 @@
         if (o.h) g.fill();
         g.stroke();
       }
+      if (G.gstage === 'complete' || G.gpulse != null)
       for (var e = 0; e < (D.ev || []).length; e++) {
         var v = D.ev[e];
-        if (v.t !== 'fight') continue;
         var fp = gproj(cv, v.x, v.y);
-        g.strokeStyle = 'rgba(209,106,94,.7)'; g.lineWidth = 2;
-        g.beginPath(); g.arc(fp[0], fp[1], 22, 0, Math.PI * 2); g.stroke();
+        if (v.t === 'wall') {                     /* the dome took somebody here */
+          g.strokeStyle = '#8f4a3e'; g.lineWidth = 2.5;
+          g.beginPath();
+          g.moveTo(fp[0] - 7, fp[1] - 7); g.lineTo(fp[0] + 7, fp[1] + 7);
+          g.moveTo(fp[0] + 7, fp[1] - 7); g.lineTo(fp[0] - 7, fp[1] + 7);
+          g.stroke();
+          continue;
+        }
+        if (v.t !== 'fight') continue;
+        /* who this fight belongs to — the nearest held squad of each named house */
+        for (var vc = 0; vc < (v.corps || []).length; vc++) {
+          var vci = -1;
+          for (var oi = 0; oi < D.corp.length; oi++)
+            if (oaIdOf(oi) === v.corps[vc]) vci = oi;
+          var bestT = null;
+          for (var tq = 0; tq < D.sq.length; tq++) {
+            var tqs = D.sq[tq];
+            if (tqs.c !== vci || !tqs.hb) continue;
+            var dd = Math.hypot(tqs.x - v.x, tqs.y - v.y);
+            if (dd < 0.03 && (!bestT || dd < bestT.dd)) bestT = { q: tq, dd: dd };
+          }
+          if (bestT) {
+            var tp2 = gproj(cv, DISP[bestT.q].pos[0], DISP[bestT.q].pos[1]);
+            g.strokeStyle = 'rgba(209,106,94,.5)'; g.lineWidth = 1.2;
+            g.beginPath(); g.moveTo(fp[0], fp[1]); g.lineTo(tp2[0], tp2[1]); g.stroke();
+          }
+        }
+        var pu = G.gpulse ? Math.max(0, 1 - G.gpulse) : 0;
+        g.fillStyle = 'rgba(209,106,94,' + (G.gpulse != null ? (0.5 + 0.5 * pu) : 0.8) + ')';
+        var w4 = 6 + (G.gpulse != null ? 9 * G.gpulse : 0);
+        g.beginPath();
+        g.moveTo(fp[0], fp[1] - w4); g.lineTo(fp[0] + w4, fp[1]);
+        g.lineTo(fp[0], fp[1] + w4); g.lineTo(fp[0] - w4, fp[1]);
+        g.closePath(); g.fill();
       }
       for (var q2 = 0; q2 < D.sq.length; q2++) {
-        var sq2 = D.sq[q2], col = BANNER[sq2.c % BANNER.length];
-        var sp = gproj(cv, sq2.x, sq2.y);
+        var sq2 = D.sq[q2], col = colFor(oaIdOf(sq2.c));
+        var DQ = DISP[q2];
+        var sp = gproj(cv, DQ.pos[0], DQ.pos[1]);
         var r = 5 + Math.min(9, sq2.n) * 1.1;
+        /* squads locked in one fight stand on one point: nudge them apart on screen
+           only, never in the data, so both parties stay countable */
+        for (var zz = 0; zz < q2; zz++)
+          if (Math.abs(D.sq[zz].x - DQ.pos[0]) < 0.004 &&
+              Math.abs(D.sq[zz].y - DQ.pos[1]) < 0.004) {
+            var ang = (q2 * 2.4) % (Math.PI * 2);
+            sp = [sp[0] + Math.cos(ang) * 11, sp[1] + Math.sin(ang) * 11];
+            break;
+          }
+        /* a squad with nobody left is a remnant, frozen where it went down */
+        if (sq2.w === 'down' && !DQ.moving) {
+          g.globalAlpha = .35; g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+          g.beginPath(); g.arc(sp[0], sp[1], 6, 0, Math.PI * 2); g.stroke();
+          g.setLineDash([]); g.globalAlpha = 1;
+          continue;
+        }
+        /* the walk so far, drawn by distance — an overnight leg dashed, because a deal
+           or the dome moved them rather than their own legs */
+        if (DQ.moving && DQ.path) {
+          g.strokeStyle = col; g.globalAlpha = .5; g.lineWidth = 1.5;
+          var dT = G.gtween.a * DQ.path.total;
+          for (var i2 = 1; i2 < DQ.path.pts.length && DQ.path.cum[i2 - 1] < dT; i2++) {
+            var endD = Math.min(dT, DQ.path.cum[i2]);
+            var segLen = DQ.path.cum[i2] - DQ.path.cum[i2 - 1] || 1e-9;
+            var tt = (endD - DQ.path.cum[i2 - 1]) / segLen;
+            var a2 = gproj(cv, DQ.path.pts[i2 - 1][0], DQ.path.pts[i2 - 1][1]);
+            var b2 = gproj(cv,
+              DQ.path.pts[i2 - 1][0] + (DQ.path.pts[i2][0] - DQ.path.pts[i2 - 1][0]) * tt,
+              DQ.path.pts[i2 - 1][1] + (DQ.path.pts[i2][1] - DQ.path.pts[i2 - 1][1]) * tt);
+            if (DQ.path.pts[i2][2]) g.setLineDash([4, 4]);
+            g.beginPath(); g.moveTo(a2[0], a2[1]); g.lineTo(b2[0], b2[1]); g.stroke();
+            g.setLineDash([]);
+          }
+          g.globalAlpha = 1;
+        }
         var face = null;
-        if (sq2.ax != null && sq2.ay != null) {
+        if (sq2.ax != null && sq2.ay != null && !DQ.moving) {
           var ap = gproj(cv, sq2.ax, sq2.ay);
           var dx = ap[0] - sp[0], dy = ap[1] - sp[1], len = Math.sqrt(dx * dx + dy * dy);
           if (len > 1) {
@@ -2861,11 +3009,18 @@
           g.closePath(); g.fill();
         }
         if (sq2.hb) {
-          g.strokeStyle = '#d16a5e'; g.lineWidth = 1.6; g.globalAlpha = .85;
-          for (var b2 = 0; b2 < Math.min(6, sq2.hb); b2++) {
-            g.beginPath(); g.arc(sp[0], sp[1], r + 4 + b2 * 3.5, 0, Math.PI * 2); g.stroke();
-          }
-          g.globalAlpha = 1;
+          /* ONE ARC, NOT A STACK: the share of the day this squad spent pinned, a full
+             circle being a whole day held. The old ring stack compounded wherever two
+             squads of one fight stood together and read as nine rings on one marker. */
+          g.strokeStyle = '#d16a5e'; g.lineWidth = 2.4; g.globalAlpha = .9;
+          g.beginPath();
+          g.arc(sp[0], sp[1], r + 5, -Math.PI / 2,
+                -Math.PI / 2 + (Math.min(12, sq2.hb) / 12) * Math.PI * 2);
+          g.stroke(); g.globalAlpha = 1;
+        }
+        if (DQ.moving) {
+          g.strokeStyle = '#3ad8e0'; g.lineWidth = 1.6;
+          g.beginPath(); g.arc(sp[0], sp[1], r + 8, 0, Math.PI * 2); g.stroke();
         }
         if (sq2.jn) {
           g.strokeStyle = '#3ad8e0'; g.lineWidth = 2.5; g.setLineDash([4, 4]);
@@ -2884,8 +3039,11 @@
     var rows = '<tr><th>banner</th><th>up</th><th>hurt</th><th>lost</th><th>sites</th></tr>';
     for (var bi = 0; bi < (D.corp || []).length; bi++) {
       var cc = D.corp[bi];
-      rows += '<tr' + (cc.a ? '' : ' class="gone"') + '><td><span class="sw" style="background:' +
-        BANNER[bi % BANNER.length] + '"></span>' + esc(bannerName(bi)) + '</td><td>' + cc.a +
+      var bid = oaIdOf(bi), mine = bid === G.me;
+      rows += '<tr class="' + (cc.a ? '' : 'gone ') + (mine ? 'merow' : '') +
+        '"><td><span class="sw" style="background:' + colFor(bid) + '"></span>' +
+        '<span style="color:' + colFor(bid) + '">' + markFor(bid, 13) + ' ' + esc(bannerName(bi)) + '</span>' +
+        (mine ? ' <span class="youtag">you</span>' : '') + '</td><td>' + cc.a +
         '</td><td>' + cc.w + '</td><td>' + cc.p + '</td><td>' + (cc.si || 0) + '</td></tr>';
     }
     $('gboard').innerHTML = rows;
@@ -2893,58 +3051,85 @@
     (D.ev || []).forEach(function (v) {
       if (v.t !== 'fight') return;
       out += '<div class="ev fight">day ' + D.d + ' \u00b7 <b>' +
-             (v.corps || []).map(function (id) { return esc(String(id)); }).join(' met ') +
+             (v.corps || []).map(cSpan).join(' met ') +
              '</b>' + (v.result ? ' \u2014 ' + esc(v.result) : '') +
              (v.ex != null ? ' \u00b7 ' + v.ex + ' exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
     });
     $('gevents').innerHTML = out || '<div class="ev">quiet since the last window \u2014 nobody found your people</div>';
+    /* the label is gLabel's job now — it says which day AND how far into it — so this
+       only speaks for a live contest that has not dropped yet */
     if (G.gday === 1 && !G.div.done) $('gdayLbl').textContent = '\u2014';
-    else $('gdayLbl').textContent = 'day ' + D.d;
+    else gLabel();
   }
 
-  /* ---- one list, two sources: the Dividend's lights and the Divide's ground ---- */
+  /* ---- TWO LISTS, TWO PLACES. The Dividend's show-matches belong on the Desk's shelf,
+     where the year's lights live; "Since the Last Window" is the CONTEST's recap and had
+     been carrying the summer's exhibition into it, so the Divide opened with a list of
+     fights that had nothing to do with the ground. ---- */
   function renderEncounters() {
     if (!G) return;
     var h = '';
     var lights = (G.state && G.state.dividend && G.state.dividend.watch) || [];
     lights.forEach(function (m, i) {
-      var nm = m.corps.map(function (id) { return esc(tName(id)); }).join(' vs ');
+      var nm = m.corps.map(mSpan).join(' vs ');
       h += '<div class="poolrow"><span><span class="gold">the Dividend</span> \u00b7 ' + nm +
            ' <span class="m">\u2014 ' + m.score.join('\u2013') +
-           (m.winnerId ? ', ' + esc(tName(m.winnerId)) + ' took the purse' : ', drawn') +
+           (m.winnerId ? ', ' + cSpan(m.winnerId) + ' took the purse' : ', drawn') +
            '</span></span><button class="tiny" data-watchl="' + i + '">Watch</button></div>';
     });
+    /* the lights also stand on the Desk's shelf through the year, watchable from there */
+    var wrap = $('deskligwrap');
+    if (wrap) { wrap.style.display = lights.length ? '' : 'none'; $('desklights').innerHTML = h.replace(/data-watchl=/g, 'data-watchd='); }
+    /* the shelf has taken the lights; the contest's recap starts empty and carries only
+       what happened on the ground */
+    h = '';
     var battles = (G.div && G.div.battles) || [];
+    var prevDay = (G.div && G.div.prevDay) || 0, divided = false;
     battles.forEach(function (b, i) {
-      var nm = b.corps.map(function (id) { return esc(tName(id)); }).join(' met ');
+      if (!divided && b.day <= prevDay && prevDay > 0) {
+        divided = true;
+        h += '<div class="m" style="margin:8px 0 2px">earlier days</div>';
+      }
+      var nm = b.corps.map(mSpan).join(' met ');
       h += '<div class="poolrow"><span>day ' + b.day + (b.night ? ' (night)' : '') +
            ' \u00b7 ' + esc(b.terrain.replace('_', ' ')) + ' \u00b7 ' + nm +
            ' <span class="m">\u2014 ' + esc(b.res.result) + '</span></span>' +
            '<button class="tiny" data-watch="' + i + '">Watch</button></div>';
     });
     $('encounters').innerHTML = h ||
-      '<span class="m">nothing to watch yet \u2014 the Dividend lights up at month six</span>';
+      '<span class="m">the ground is quiet \u2014 nobody has met anybody since the last window</span>';
     Array.prototype.forEach.call(document.querySelectorAll('[data-watch]'), function (btn) {
-      btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); };
+      btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); openFight('table'); };
     });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-watchl]'), function (btn) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-watchl],[data-watchd]'), function (btn) {
       btn.onclick = function () {
-        var m = lights[+btn.getAttribute('data-watchl')];
+        var m = lights[+(btn.getAttribute('data-watchl') || btn.getAttribute('data-watchd'))];
         loadRec({ res: m.res, sides: m.sides, corps: m.corps },
-          '<b>the Dividend</b><div class="m">' + esc(tName(m.corps[0])) + ' ' + m.score[0] +
-          ' \u2013 ' + m.score[1] + ' ' + esc(tName(m.corps[1])) +
-          (m.winnerId ? '<br>' + esc(tName(m.winnerId)) + ' took the purse' : '<br>drawn') +
+          '<b>the Dividend</b><div class="m">' + cSpan(m.corps[0]) + ' ' + m.score[0] +
+          ' \u2013 ' + m.score[1] + ' ' + cSpan(m.corps[1]) +
+          (m.winnerId ? '<br>' + cSpan(m.winnerId) + ' took the purse' : '<br>drawn') +
           '<br>stun-grade kit \u00b7 every blow the medics can catch, they catch</div>');
+        openFight(G.div ? 'table' : 'desk');
       };
     });
   }
+
+  function openFight(backTo) {
+    G._fightBack = backTo;
+    show('fight');
+  }
+  $('fightback').onclick = function () {
+    var t = (G && G._fightBack) || 'table';
+    show(t);
+    if (t === 'desk') renderDesk(); else if (t === 'table') renderTable();
+  };
 
   function loadRec(b, resultHtml) {
     stop(); clearTween();
     var weap = {};
     b.sides.forEach(function (S) { S.units.forEach(function (u) {
       weap[u.id] = (u.weapon && u.weapon.name) || ''; }); });
-    G.fight = { res: b.res, i: 0, weap: weap,
+    G.fight = { res: b.res, i: 0, weap: weap, cids: b.corps,
                 names: b.sides.map(function (S, si) {
                   var id = b.corps[si];
                   return (G.corps[id] && G.corps[id].profile.name) || id || ('side ' + (si + 1)); }) };
@@ -2954,7 +3139,6 @@
       $('result').innerHTML = resultHtml;
       $('settle').innerHTML = '<span class="m">an exhibition settles nothing \u2014 fame and the purse were paid at the whistle</span>';
       goto(0, false);
-      TAB.fight.click();
       return;
     }
     /* no resultHtml: the caller writes its own result and settle after this returns */
@@ -2972,12 +3156,11 @@
     $('result').innerHTML = '<b>' + esc(b.res.result) + '</b><div class="m">day ' + b.day +
       ' on ' + esc(b.terrain.replace('_', ' ')) + ' \u00b7 ' + b.res.turns + ' turns \u00b7 ' +
       (t.shots || 0) + ' shots, ' + (t.hits || 0) + ' hits<br>' +
-      esc(G.fight.names[0]) + ' lost ' + cas(b.sides[0].tag) + ' \u00b7 ' +
-      esc(G.fight.names[1] || '') + ' lost ' + cas((b.sides[1] || {}).tag) + '</div>';
+      cSpan(b.corps[0]) + ' lost ' + cas(b.sides[0].tag) + ' \u00b7 ' +
+      (b.corps[1] != null ? cSpan(b.corps[1]) : '') + ' lost ' + cas((b.sides[1] || {}).tag) + '</div>';
     $('settle').innerHTML = '<b>settled where it happened</b><div class="m">the ground\u2019s own ' +
       'settlement already wrote this to the rosters \u2014 the roster page says so</div>';
     goto(0, false);
-    TAB.fight.click();
   }
 
   /* ================================ THE TABLE ================================
@@ -3028,9 +3211,9 @@
     var d = ans.deal;
     $('tword').innerHTML = !d
       ? '<span class="m">nothing composed \u2014 one word per window; composing replaces it</span>'
-      : ('<b>' + (d.kind === 'join' ? 'join ' + esc(tName(d.principal)) + '\u2019s banner'
-                : d.kind === 'take' ? 'take ' + esc(tName(d.corp)) + ' under yours'
-                : 'seek a pact with ' + esc(tName(d.corp))) + '</b>' +
+      : ('<b>' + (d.kind === 'join' ? 'join ' + cSpan(d.principal) + '\u2019s banner'
+                : d.kind === 'take' ? 'take ' + cSpan(d.corp) + ' under yours'
+                : 'seek a pact with ' + cSpan(d.corp)) + '</b>' +
          (d.terms ? '<div class="m">' + Math.round((d.terms.share || 0) * 100) + '% of the take' +
            (d.terms.credits ? ' + ' + n0(d.terms.credits) : '') +
            (d.terms.standDown ? ' \u00b7 standing down' : '') + '</div>' : '') +
@@ -3045,8 +3228,8 @@
     $('techo').innerHTML = !e ? '<span class="m">&mdash;</span>'
       : e.accepted
       ? '<span class="good">' + (e.kind === 'pact' ? 'the pact formed' : 'the deal was struck') +
-        '</span> <span class="m">with ' + esc(tName(e.corp)) + '</span>'
-      : '<span class="warn">refused</span> <span class="m">by ' + esc(tName(e.corp)) +
+        '</span> <span class="m">with ' + cSpan(e.corp) + '</span>'
+      : '<span class="warn">refused</span> <span class="m">by ' + cSpan(e.corp) +
         (e.note ? ' \u2014 ' + esc(e.note) : '') +
         (e.short ? ' \u00b7 short by ' + n0(e.short) : '') +
         (e.over ? ' \u00b7 over by ' + n0(e.over) : '') +
@@ -3060,13 +3243,13 @@
       return;
     }
     if (you.joinedTo) {
-      var under = '<span class="m">you fight under ' + esc(tName(you.joinedTo)) +
+      var under = '<span class="m">you fight under ' + cSpan(you.joinedTo) +
                   ' \u2014 the banner question is settled</span>';
       $('tjoin').innerHTML = under; $('ttake').innerHTML = under;
     } else {
       var jh = '';
       (w.table.canJoin || []).forEach(function (r, i) {
-        jh += '<div class="poolrow"><span>' + esc(tName(r.principal)) +
+        jh += '<div class="poolrow"><span>' + cSpan(r.principal) +
               ' <span class="m">' + Math.round((r.odds || 0) * 100) + '% on the board</span></span>';
         if (r.viable && r.band) {
           var mid = Math.round((r.band.minShare + r.band.maxShare) / 2 * 100);
@@ -3080,7 +3263,7 @@
       $('tjoin').innerHTML = jh || '<span class="m">no banner is worth joining today</span>';
       var th = '';
       (w.table.wouldTake || []).forEach(function (r, i) {
-        th += '<div class="poolrow"><span>' + esc(tName(r.corp)) +
+        th += '<div class="poolrow"><span>' + cSpan(r.corp) +
               ' <span class="m">' + Math.round((r.odds || 0) * 100) + '% on the board</span></span>';
         if (r.viable && r.band) {
           var mid2 = Math.round((r.band.minShare + r.band.maxShare) / 2 * 100);
@@ -3113,7 +3296,7 @@
     }
     var ph = '';
     (w.table.pacts || []).forEach(function (r, i) {
-      ph += '<div class="poolrow"><span>' + esc(tName(r.corp)) + '</span>';
+      ph += '<div class="poolrow"><span>' + cSpan(r.corp) + '</span>';
       if (r.viable) ph += '<span><span class="m">' + Math.round((r.chance || 0) * 100) +
                           '% they say yes</span> <button class="tiny" data-pact="' + i +
                           '">Seek a pact</button></span>';
@@ -3229,21 +3412,18 @@
     G = { rng: L.state.rng, oa: oaList, corps: L.corps, state: L.state, me: save.me,
           seedStr: save.seed,
           custom: save.custom ? { profile: save.custom, replaced: save.replaced } : null,
-          lot: null, lotNo: 1, locked: null, stale: false, log: [], fight: null, fought: {},
+          lot: null, lotNo: 1, log: [], fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           plan: normPlan(save.plan),
-          div: null, gcache: null, gday: 1 };
+          div: null, gcache: null, gday: 1,
+          /* the day being watched, and how far into it: 'morning' | 'stepping' |
+             'complete'. Proven in the mock — no state is reachable by rewind. */
+          gstage: 'complete', gmi: 0, gtween: null, gtw: null, gtimer: null, gpulse: null };
     G.state.opts.human = G.me;
-    var rv = $('rival'); rv.innerHTML = '';
-    oaList.forEach(function (p) {
-      if (p.id === G.me) return;
-      var o = document.createElement('option'); o.value = p.id; o.textContent = p.name;
-      rv.appendChild(o);
-    });
     $('mlog').innerHTML = '<div class="m">a loaded year — the market\u2019s past is in the books</div>';
     /* desk log panel removed */
     G._railPhase = null;
-    renderBench(); renderSquads(); renderLock(); renderDesk(); clearFight();
+    renderBench(); renderSquads(); renderDesk(); clearFight(); renderEncounters();
     renderEncounters(); renderTable();
     applyPhase();
     $('menu').style.display = 'none';
@@ -3326,10 +3506,25 @@
       };
     });
   };
+  /* the founder's colour: swatches pre-vetted by the palette instrument, so any pick
+     is already separable from every house, race, ground and interface voice */
+  var FOUNDER_SW = (window.ARX_DATA && ARX_DATA.oa_display && ARX_DATA.oa_display.founderChoices) || [];
+  var cpick = FOUNDER_SW[0] || '#6f9bc4';
+  FOUNDER_SW.forEach(function (hex, i) {
+    var b = document.createElement('span');
+    b.className = 'oasw' + (i === 0 ? ' on' : ''); b.style.background = hex;
+    b.onclick = function () {
+      cpick = hex;
+      Array.prototype.forEach.call(document.querySelectorAll('.oasw'), function (x) {
+        x.className = 'oasw' + (x === b ? ' on' : ''); });
+    };
+    $('cswatches').appendChild(b);
+  });
   $('cfound').onclick = function () {
     var nm = $('cname').value.trim() || 'The Unnamed House';
     var rep = $('creplace').value;
     var prof = blankSlate(nm);
+    prof.displayColor = cpick;
     $('setup').style.display = 'none';
     startGame($('seed').value, 'custom_house', gameOa(prof, rep),
               { profile: prof, replaced: rep });

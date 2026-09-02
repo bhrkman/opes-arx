@@ -4,14 +4,14 @@
     "version": "0.10",
     "date": "2026-08-15",
     "status": "Step 2 ratified; New Line identity canon as of DESIGN.md v0.6",
-    "sources": "DESIGN.md v0.4 \u00a716 (canon five + drafted three) \u00b7 \u00a710 demographics \u00b7 RACES.md cross-race notes",
+    "sources": "DESIGN.md v0.4 §16 (canon five + drafted three) · §10 demographics · RACES.md cross-race notes",
     "provenance_notes": [
       "Canon five: names and lore hints are canon; every dial, number, and demographic weight here is (proposed).",
       "THE NEW LINE identity is RATIFIED CANON as of DESIGN.md v0.6 (V1, 2026-08-14). The alternate 'Ascension Line' sketch in STEP2_NOTES.md is struck.",
       "Vantis Deepcore Combine, The Verdant Cradle, and The Mercy Concern remain Claude-drafted placeholders, now fleshed out.",
-      "Dials are 0\u2013100. difficulty is the CK3-style start rating: 1 = easiest manager start, 5 = hardest.",
-      "race_weights multiply races.json pool_weights.nattie for that corp's Nattie tryout pool (ship demographics, per DESIGN.md \u00a710). Unlisted races default to 1.0.",
-      "engagement_lean is the board's preferred declared policy, not a lock \u2014 the manager still chooses.",
+      "Dials are 0–100. difficulty is the CK3-style start rating: 1 = easiest manager start, 5 = hardest.",
+      "race_weights multiply races.json pool_weights.nattie for that corp's Nattie tryout pool (ship demographics, per DESIGN.md §10). Unlisted races default to 1.0.",
+      "engagement_lean is the board's preferred declared policy, not a lock — the manager still chooses.",
       "finance.treasury_band and funding_base are placeholder scales pending Step 5 economy calibration; they exist so the roller can show contract affordability in context."
     ]
   },
@@ -87,11 +87,11 @@
       "tag": "The Marksman's House",
       "motto": "One Shot, Witnessed.",
       "colors": {
-        "primary": "#dfe3ea",
+        "primary": "#8e9db4",
         "secondary": "#1e3a5f"
       },
       "archetype": "honor_guard",
-      "lore": "Marksman doctrine elevated to institution: fewer guns, better eyes, and a code the crowd can recite. The Kellis lean here is old and mutual \u2014 the battle-dance and the Star's sanctified shot are the same faith in different bodies.",
+      "lore": "Marksman doctrine elevated to institution: fewer guns, better eyes, and a code the crowd can recite. The Kellis lean here is old and mutual — the battle-dance and the Star's sanctified shot are the same faith in different bodies.",
       "dials": {
         "aggression": 55,
         "treachery": 10,
@@ -139,7 +139,8 @@
         "fuels": 0.6,
         "luxuries": 0.55,
         "foods": 0.65
-      }
+      },
+      "colors_note": "primary re-ruled #dfe3ea → #8e9db4 at the colour pass: two near-white houses could not hold apart on any surface, the medics keep the white, and the Marksman’s House takes gunmetal steel — grown toward its own navy secondary"
     },
     {
       "id": "violets_enterprise",
@@ -152,7 +153,7 @@
         "secondary": "#b08d3e"
       },
       "archetype": "old_house",
-      "lore": "Old money, old rooms, old ways \u2014 the corp that remembers the decennial Divides and quietly believes annualization cheapened them. Svalbard prides have served Violet's for generations; the name's resonance with the Violet Crux itself remains an unresolved hypothesis the House neither confirms nor discourages.",
+      "lore": "Old money, old rooms, old ways — the corp that remembers the decennial Divides and quietly believes annualization cheapened them. Svalbard prides have served Violet's for generations; the name's resonance with the Violet Crux itself remains an unresolved hypothesis the House neither confirms nor discourages.",
       "dials": {
         "aggression": 40,
         "treachery": 30,
@@ -213,7 +214,7 @@
         "secondary": "#2b2f33"
       },
       "archetype": "broker",
-      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Thythyn contingent \u2014 ambitious, transactional, excellent \u2014 grows every season.",
+      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Thythyn contingent — ambitious, transactional, excellent — grows every season.",
       "dials": {
         "aggression": 60,
         "treachery": 55,
@@ -274,7 +275,7 @@
         "secondary": "#1d2f4a"
       },
       "archetype": "workers_banner",
-      "lore": "The fleet's oldest freight and ferry line \u2014 seized by its own crews in the Dockhands' Compact of VC 96, when the annualization boom made Divide seats too valuable for the old board to hold. The name was kept and repurposed: same ships, new line. Its squad exists because the Compact's charter demands the crews hold a seat at the table where planet rights are decided. Poor by great-house standards, beloved by the decks, and quietly the best logistics operation in the Divide: Olmac dockhands, Mon-Wa quartermaster pairs, and the fleet's most careful casualty ledger.",
+      "lore": "The fleet's oldest freight and ferry line — seized by its own crews in the Dockhands' Compact of VC 96, when the annualization boom made Divide seats too valuable for the old board to hold. The name was kept and repurposed: same ships, new line. Its squad exists because the Compact's charter demands the crews hold a seat at the table where planet rights are decided. Poor by great-house standards, beloved by the decks, and quietly the best logistics operation in the Divide: Olmac dockhands, Mon-Wa quartermaster pairs, and the fleet's most careful casualty ledger.",
       "dials": {
         "aggression": 45,
         "treachery": 20,
@@ -314,7 +315,7 @@
         {
           "with": "mercy_concern",
           "disposition": "dependence",
-          "note": "The Concern underwrites the Line's famous pensions \u2014 and knows to the credit what its restraint costs."
+          "note": "The Concern underwrites the Line's famous pensions — and knows to the credit what its restraint costs."
         }
       ],
       "sponsor_style": "When not competing, sponsors underdogs and clean fights; its bulk-freight drops are the most efficient in the Divide.",
@@ -342,7 +343,7 @@
         "secondary": "#17130f"
       },
       "archetype": "deal_snake",
-      "lore": "Extraction is the business and extraction is the ethic: ore from rock, concessions from partners, signatures from the exhausted. Vantis fields competent squads and prefers not to need them \u2014 its real weapon is the offer you accept at hour thirty of a bad position. Every corp has been burned by Vantis paper. Every corp keeps signing it.",
+      "lore": "Extraction is the business and extraction is the ethic: ore from rock, concessions from partners, signatures from the exhausted. Vantis fields competent squads and prefers not to need them — its real weapon is the offer you accept at hour thirty of a bad position. Every corp has been burned by Vantis paper. Every corp keeps signing it.",
       "dials": {
         "aggression": 50,
         "treachery": 90,
@@ -380,7 +381,7 @@
         }
       ],
       "sponsor_style": "Sponsors leverage: drops arrive with conditions, and the conditions have conditions.",
-      "design_note": "Playstyle niche: the negotiation-engine villain \u2014 high treachery AI personality that makes Step 6 sing. Difficulty 4 as a manager start: your board expects treachery dividends and your leverage carries a trust discount.",
+      "design_note": "Playstyle niche: the negotiation-engine villain — high treachery AI personality that makes Step 6 sing. Difficulty 4 as a manager start: your board expects treachery dividends and your leverage carries a trust discount.",
       "reputation": {
         "aleas": -25,
         "fleet": -40,
@@ -404,7 +405,7 @@
         "secondary": "#e8e2cf"
       },
       "archetype": "quiet_provider",
-      "lore": "Grows the nutrient sludge that keeps forty million alive, and is thanked for it roughly never. The name promises gardens that no longer exist anywhere \u2014 a promise the resentful find either unbearable or perversely honest, since it is Cradle harvest crews that strip the Divide planets' edible delicacies for the luxury trade. Its board funds the squad grudgingly, as the price of a seat.",
+      "lore": "Grows the nutrient sludge that keeps forty million alive, and is thanked for it roughly never. The name promises gardens that no longer exist anywhere — a promise the resentful find either unbearable or perversely honest, since it is Cradle harvest crews that strip the Divide planets' edible delicacies for the luxury trade. Its board funds the squad grudgingly, as the price of a seat.",
       "dials": {
         "aggression": 30,
         "treachery": 35,
@@ -439,10 +440,10 @@
         {
           "with": "new_line",
           "disposition": "sympathy",
-          "note": "The decks and the growers understand each other \u2014 though the Line's people mutter about the delicacy harvests too."
+          "note": "The decks and the growers understand each other — though the Line's people mutter about the delicacy harvests too."
         }
       ],
-      "sponsor_style": "Sponsors survival: ration drops, water kit, medical basics \u2014 unglamorous and always welcome.",
+      "sponsor_style": "Sponsors survival: ration drops, water kit, medical basics — unglamorous and always welcome.",
       "design_note": "The hardest start by design: thinnest treasury, modest goals, patient board. The delicacy-harvest friction gives the cradleborn_resentment trait its sharpest in-fiction target (RACES.md cross-note).",
       "reputation": {
         "aleas": 10,
@@ -467,7 +468,7 @@
         "secondary": "#1f6d6d"
       },
       "archetype": "underwriter",
-      "lore": "Biotech, medkits, evac retainers \u2014 and the pension underwriting behind half the fleet's death benefits, which means the Concern knows to the credit what every corp's lives are worth, including yours. Its squads fight politely and evacuate brilliantly, and its true product is the moment, live on air, when a Mercy team brings someone back.",
+      "lore": "Biotech, medkits, evac retainers — and the pension underwriting behind half the fleet's death benefits, which means the Concern knows to the credit what every corp's lives are worth, including yours. Its squads fight politely and evacuate brilliantly, and its true product is the moment, live on air, when a Mercy team brings someone back.",
       "dials": {
         "aggression": 35,
         "treachery": 60,
@@ -501,7 +502,7 @@
         {
           "with": "new_line",
           "disposition": "leverage",
-          "note": "Holds the Line's pension book \u2014 a warm relationship with a cold clause in it."
+          "note": "Holds the Line's pension book — a warm relationship with a cold clause in it."
         }
       ],
       "sponsor_style": "Sponsors everyone: medkits and evac retainers flow to all eight banners, because the Concern gets paid either way.",

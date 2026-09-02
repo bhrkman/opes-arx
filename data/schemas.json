@@ -107,7 +107,7 @@
     "potential": {
      "type": "integer",
      "minimum": 1,
-     "maximum": 20,
+     "maximum": 200,
      "description": "HIDDEN growth ceiling. Never shown raw to the player; scouts estimate it."
     },
     "experience": {
@@ -336,9 +336,9 @@
    },
    "definitions": {
     "stat": {
-     "type": "integer",
+     "type": "number",
      "minimum": 1,
-     "maximum": 20
+     "maximum": 200
     }
    },
    "examples": [

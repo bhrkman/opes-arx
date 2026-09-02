@@ -65,7 +65,8 @@ Every one of these cost real time. They go at the top of every brief.
 ## Where things stand
 
 The wound pool is in and a firefight has a middle. Withdrawals are fought rather than declared,
-for the first time in the project's history. Two viewers draw the ground and the grid. Losses
+for the first time in the project's history. The ground and the grid are drawn in the unified
+page's Divide tabs. Losses
 per Divide sit well above the ruling of about a quarter — the last two figures recorded were
 42.6% and 50.4% at different points, and the number has not been re-measured recently because
 calibration stays deferred until every system is in. Recorded, not chased.
@@ -116,15 +117,101 @@ calibration stays deferred until every system is in. Recorded, not chased.
 
 The gate went 114 → 112 (signing-window retirement) → 111 (sponsor phase rewrite).
 
+**The full gate is red, and was red before this commit.** Run without `--fast` for the first
+time in a while: 234 passed, 10 failed, 244 checks at the time (the count has moved since: 243 after the signing-window check was retired, 246 once the dossier-window guards were added). The
+same run on the untouched commit-11 tree fails the same ten, same numbers — none of this is
+the viewer retirement, which measures as changing nothing. All ten live in the statistical
+phases the fast gate skips, which means they have been failing silently for at least one
+commit. The list, verbatim: only-your-own-fights-kept (14 of 16), corp schema (roster
+potentials far above maximum 20), fighter status `freed` never assigned, S-T5 veteran
+improvement out of band, G19 win bonuses banked negative over six seasons, G26 no signing
+window worked, G30 deaths at the Dividend (38 across 32 matches), G33 Bastille terms signed
+but never served, C7 permanent losses at 48% of the drop force against the ratified quarter-
+to-a-third, and README quoting only the fast count. C7 and G19 smell like fog's exposure
+multiplier landing with only the fast gate run. This is the next work after (or before)
+destructible cover: the heavy phases need re-ratifying against the game as it now is.
+
+**Partial intel now brackets the truth instead of describing it** (PROJECT.md, "Partial
+intelligence is a window, not an adjective"): 16-25 hands at a glance, 19-21 with work, 20 when
+known. Two invariants are guarded - the window always contains the truth, and a deeper look
+never widens it. The training row also got a source: it had been reading a field only the
+human's own corp carries, so for every AI rival it was empty by construction and said
+"Drilling unknown".
+
+**Six interface faults fixed, and one rule reversed.** A month now opens with nothing spent
+(it used to seed the board with the AI's own picks, and the painted intel map survived into
+the next month); skills read to one decimal instead of leaking raw floats; the Gather Intel
+screen wears the houses' colours and marks like every other place a house is named; the
+contest's recap carries only the ground, with the summer's show-matches left on the Desk's
+shelf where they live; and the comms window can be advanced from any contest screen instead
+of only the Table. THE INTEL DELAY IS GONE by ruling — see PROJECT.md, "You focus on the
+intel, you get the intel".
+
+**The Ground now animates on the page, and destructible cover is in.** The animation's
+grammar came off the approved mock unchanged and is guarded by six new harness checks — the
+decisive one proves that stepping by squad moves ONE squad and not the map, which is the fault
+the whole pass existed to kill. Cover comes down under fire: ordinary rounds chip a grade at a
+time, an `area` weapon takes it apart across a small radius, and a grenade works the ground
+where it lands. The entrenched stalemate transcript fell from twenty exchanges to eight; the
+five recorded fight transcripts were re-recorded deliberately, because the model changed.
+
+**Nine red checks went to two.** Seven were faults, not tuning: the show-match's stun
+conversion sat below an unconditional return in the grid resolver and had never once run (32
+matches, 39 deaths, now zero); the Divide-payout check was grading the expense line instead of
+the income line; the prison-term check and the status audit were both stale against later
+rulings (the freed leave the roster, so a roster snapshot can never see one; the module that
+frees them was missing from the audit's file list); one check demanded a verb the prep calendar
+had deliberately retired; and the schema was stale against the ruled 10-200 stat scale. Terms
+now also complete more often, because a corp that buys a prison clause has a reason to field it.
+
+**The two that remain are the fatality thermometer, and they stay red BY STANDING RULING**
+(PROJECT.md, "How lethal the Divide is, is not decided yet"). Do not ratify them, do not tune
+them, do not raise the question again until the game's systems are all in place.
+
+**The Ground's animation pass became an engine excavation** (ruling block in PROJECT.md:
+"The Ground moves — and the dome closes"). The recorder now tells the truth; the wall is a
+continuously-closing dome that never moves anyone; the wounded are carried, captured or
+rescued by the world's own logic and the old displacement's secret ambulance job is retired;
+march speed obeys all four rules (size, people — pace rides reflex, the emptiest stat —
+wounds, terrain) and the terrain field draws on maps at last; own squads keep spacing. Across
+six measured contests the dome takes nobody. FULL-GATE VERDICT, diffed against the recorded ten: 235 passed, 9 failed — one old red HEALED (“only your own fights are kept” now passes), the other nine are the same pre-existing families with figures essentially unmoved (C7 still 48%, Dividend deaths 38→39), and nothing new is red. One latent crash was found and fixed on the way: a living joiner whose principal died under the dome dangled off the odds board (guarded in oddsWithJoin).
+
+**The colour pass (Divide UI passes 1–2) is in.** Every house wears one display colour derived
+from canon by `sim/palette_oa.cjs` (ruling in PROJECT.md); the positional `SIDE`/`BANNER`
+palettes are retired; fights, rosters, the ground map, the banners, the encounters, the Table's
+deal lines and the talks all name houses in their colours; your row is edged in command cyan;
+the founder picks from twelve pre-vetted swatches at founding. The ground's fight lines printed
+raw corp ids before — they name houses properly now. Full gate re-run after the wiring: the
+same ten pre-existing failures, none new, nothing moved. Pass 3 is in: every house wears its mark
+(picked from the mock — A everywhere, the witnessed star for the Knights), stored as proposed
+art in `data/oa_marks.json` for a human artist to succeed. Pass 4 is in: the Table leads the Divide's rail and holds the window recap, the Firefight is a replay room reached from recaps with a way back, the Dividend's lights stand on the Desk's shelf, and the scrim is deleted whole (ruling in PROJECT.md). The harness walked the new structure and honestly shrank, 104 → 85 checks — the retired checks audited the deleted scrim itself. One ledger correction: the_desk never named rival houses (its backing lines are sponsors), so the promised colour tidy there dissolved rather than completed.
+
+**The six retired single-surface viewers are deleted**, with their templates and builders —
+`the_ground`, `the_firefight`, `the_year`, `the_crate`, `the_table`, `the_bench` (18 files).
+They predated the unified page and existed only as archives; the contest and the firefight are
+drawn inside `the_corp.html`'s Divide tabs. The suite's viewer-rot and build-script checks now
+cover only the surfaces that exist.
+
 Losses per Divide still sit above the ruling of about a quarter; calibration stays deferred
 until every system is in. Recorded, not chased.
 
 Branches queued, in order:
 
-1. **Fog of war.** The largest remaining piece, and the one most likely to fix squads bunching
-   up — both sides currently start in full view of each other. See `docs/BRIEF_FOG.md`.
-2. **Destructible cover.** The other half of that answer: bunkering stops being safe when a wall
-   can be taken away. Gives the inert `area` tag its job.
+1. ~~**Destructible cover.**~~ **BUILT.** Rounds now work on the wall as well as the body:
+   ordinary fire chips a grade at a time, an `area` weapon takes it down fast across a small
+   radius, and a grenade works the ground where it lands. The entrenched stalemate snapshot
+   fell from twenty exchanges to eight, which is the bunkering answer the ruling was after.
+   The old note follows, for the reasoning: The genuine next piece. Fog of war is already BUILT and measured —
+   the three-state spotting model (seen / heard / neither), squad-wide sight carrying a third of
+   every shot, firing that gives your position away — see the "You have to find them first" and
+   "Sight is squad-wide" rulings in PROJECT.md. What fog was *hoped* to fix, bunkering, is "better,
+   not solved" (PROJECT.md records this plainly). Destructible cover is the other half of that
+   answer: bunkering stops being safe when a wall can be taken away, and it finally gives the
+   inert `area` weapon tag its job.
+2. **Fog's three tuning dials**, deliberately not fitted to an outcome and parked with the rest of
+   calibration: how far a body can be seen, how much steadier a shot from concealment is, and how
+   far a muzzle flash carries. Each has a defensible anchor and no tuning yet (PROJECT.md, the fog
+   ruling's close). Fold into the calibration pass, not chased piecemeal.
 3. **Sponsor cost-curve / payout tuning and multi-year regard texture** — deferred play-and-feel
    work now that the system is in and playable.
 4. **A dedicated race-durability term** (health/pool or a severity term), if wanted — currently

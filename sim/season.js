@@ -103,11 +103,13 @@
     INTEL_RIVAL_PREP: 0.20,      // [C] readiness a full, fresh rival sheet buys against them
     INTEL_PLANET_PREP: 0.15,     // [C] readiness a complete planet sheet buys on the ground
     INTEL_DECAY_YEARS: 3,        // [H] years a rival row takes to fade from full to blank
-    /* [H] months between sending a survey party out and hearing back. The number is not the
-       point and nobody has played with it yet; what it buys is that WHEN you spend a point is
-       a different question from whether you spend it. A survey sent too late to report before
-       the lock is money spent on nothing, and that has to be a mistake a manager can make. */
-    SURVEY_MONTHS: 3,
+    /* [C] INTEL ARRIVES WHEN YOU LOOK FOR IT. Ruled: you focus on the intel, you get the
+       intel — no delay. This was three months, which nobody ever asked for, and it made
+       the verb incoherent: a report landing three months on is old news about a rival who
+       has since moved, it cannot be acted on in the month you paid for it, and it fought
+       the ruling that intel can be gathered repeatedly across a year. Zero means the
+       gather resolves in the same month it is bought, every month, all year. */
+    SURVEY_MONTHS: 0,
     SCOUT_APATHY: 0.45,          // [H] board interest below which a corp does not survey at all
     /* --- the Dividend (S17), the mid-year show-match at T3 --- */
     /* --- the merc deadline (S18), T5. A free professional picks their employer. --- */
@@ -201,6 +203,13 @@
        drifted in silence. There is one number and `settleArmoury` reads it from its owner. */
     RENEWAL_FAME_PULL: 0.4,
     FREED_RESIGN_BASE: 0.35,     // [C] a freed prisoner's appetite to re-sign with their captor
+    /* [C] A TERM ONLY RUNS DOWN ON THE GROUND. The Bastille's people are cheaper than
+       the market and that is the trade (PROJECT.md) — but a corp that signs a term and
+       then benches it has bought nothing, and the fighter's one road out never moves.
+       Measured: 14 of 22 conscripts across an eight-season career had served ZERO
+       Divides, because the lock sorted on quality alone and they sit a little under
+       the market. This is the weight of an unserved clause at the lock. */
+    LOCK_TERM_W: 0.5,
     RENEWAL_SEASONS: 2           // [H] how long a renewed contract runs
 
     /* `SEASON_MONTHS: 13` WAS DECLARED HERE and is gone. A year is twelve months — eleven of
@@ -787,12 +796,14 @@
          a fact about the world, which is the only thing `available` is allowed to mean. The AI
          reads this same list, so it stops buying reports that arrive after the lock rather than
          having to be told separately not to; one path, one set of reasons. */
+      /* the scouts report the month they are sent, so this track is open all year and
+         never has to explain a wait it no longer imposes */
       { kind: 'scout', cap: CONST.FOCUS_CAP, name: 'Gather Intel',
         available: month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS,
         subject: 0,
         why: month + CONST.SURVEY_MONTHS > CONST.PREP_MONTHS
                ? 'Scouts Sent Now Cannot Report Before the Lock'
-               : 'Reports in ' + CONST.SURVEY_MONTHS + ' Months' +
+               : 'Reports This Month' +
                  (interest == null ? '' : ' \u00b7 Board Interest ' + interest.toFixed(2)) },
       /* COURT SPONSORS. Spend focus to court houses; each sponsor backs one OA a year and signs
          the highest-standing courter at the lock, so courting builds toward THIS year's board.
@@ -889,7 +900,7 @@
         if (p.target === 'rival' && p.oaId && CORPS && CORPS[p.oaId]) {
           const them = CORPS[p.oaId];
           gatherIntel(corp, 'rival', p.oaId, p.levels || 0, absMonth,
-                      (rowKey, depth) => snapshotRival(them, rowKey, depth));
+                      (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
         } else {
           gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
         }
@@ -1001,56 +1012,131 @@
      Depth sharpens the read: 1 = a vague characterization, 3 = specifics. Read from real
      fields — roster, treasury, armoury, the training grid's focus, recent signings, the board
      demand — so the dossier is honest. Frozen by the caller and stamped with the month. */
-  function snapshotRival(them, rowKey, depth) {
+  /* --- WHAT PARTIAL INTELLIGENCE IS (ruled) -------------------------------------------
+     A thin dossier row is a WINDOW AROUND THE TRUTH, not an adjective. "A deep roster
+     (partial)" told a manager nothing they could act on, and "Drilling unknown" was
+     literally nothing at all — a row that had been paid for and said less than silence.
+     Every row now brackets the real figure and the bracket tightens as the dossier
+     deepens: 12–30 hands at a glance, 22–27 with work, 23 when it is known.
+
+     The bracket is deterministic per rival, row and season, so looking twice at the same
+     depth does not walk the window around — scouting harder narrows it, it never
+     re-rolls it. And the window ALWAYS contains the truth: intel here is incomplete, not
+     wrong. Lying to the manager is a different mechanic and it is not this one. */
+  function intelWindow(them, rowKey, season, value, depth, opts) {
+    const o = opts || {};
+    /* a stable per-(rival, row, season) offset so the window sits honestly off-centre
+       rather than always straddling the truth exactly */
+    let h = 2166136261;
+    const key = (them.id || '') + '|' + rowKey + '|' + (season || 0);
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const jitter = ((h >>> 8) % 1000) / 1000;               /* 0..1, stable */
+    const spanFrac = depth >= 3 ? 0 : depth === 2 ? (o.mid != null ? o.mid : 0.12)
+                                                  : (o.wide != null ? o.wide : 0.45);
+    /* the floor keeps small numbers honest, but it has to tighten with depth too, or a
+       deep look on a small figure reads no better than a glance */
+    const floorAt = (o.floor || 1) * (depth === 2 ? 0.34 : 1);
+    if (spanFrac <= 0) return null;                          /* known exactly */
+    const span = Math.max(floorAt, Math.abs(value) * spanFrac);
+    const below = span * (0.35 + jitter * 0.3);              /* how much of the window sits under */
+    let lo = value - below, hi = lo + span;
+    if (o.min != null && lo < o.min) { hi += (o.min - lo); lo = o.min; }
+    if (o.max != null && hi > o.max) { lo -= (hi - o.max); hi = o.max; }
+    if (o.min != null) lo = Math.max(o.min, lo);
+    if (lo > value) lo = value;                              /* the truth never leaves the window */
+    if (hi < value) hi = value;
+    return { lo: lo, hi: hi };
+  }
+
+  function snapshotRival(them, rowKey, depth, season) {
     const nf = x => Math.round(x || 0).toLocaleString('en-US');
+    const rng2 = null;
+    /* a number, bracketed to what this depth can honestly claim */
+    const band = (rowKey2, value, opts) => {
+      const w = intelWindow(them, rowKey2, season, value, depth, opts);
+      const f = (opts && opts.fmt) || (x => String(Math.round(x)));
+      if (!w) return f(value);
+      const lo = f(w.lo), hi = f(w.hi);
+      /* a window that has closed to a single figure SAYS the figure — "3\u20133 points"
+         reads like a bug, and after formatting a tight range often is one number */
+      return lo === hi ? lo : lo + '\u2013' + hi;
+    };
+    void rng2;
     const alive = (them.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
     const acct = them.account || {};
     const vague = depth <= 1, full = depth >= 3;
     switch (rowKey) {
       case 'roster': {
         const n = alive.length;
-        if (vague) return n >= 20 ? 'A deep roster' : n >= 14 ? 'A working roster' : 'A thin roster';
         const mix = { nattie: 0, mercenary: 0, prisoner: 0 };
         alive.forEach(f => { const k = (f.contract || {}).kind; if (mix[k] != null) mix[k]++; });
         const label = { nattie: 'Natural-Born', mercenary: 'Mercenary', prisoner: 'Conscript' };
         const parts = Object.keys(mix).filter(k => mix[k])
           .sort((a, b) => mix[b] - mix[a]).map(k => mix[k] + ' ' + label[k]);
-        return n + ' hands' + (full ? ' \u00b7 ' + parts.join(', ') : ' \u00b7 mostly ' + (parts[0] || '\u2014'));
+        const hands = band('roster', n, { min: 0, floor: 3 }) + ' hands';
+        if (vague) return hands;
+        if (!full) return hands + ' \u00b7 mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
+        return n + ' hands \u00b7 ' + parts.join(', ');
       }
       case 'finances': {
         const t = acct.treasury || 0;
-        if (vague) return t >= 150000 ? 'Cash-rich' : t >= 50000 ? 'Solvent' : 'Stretched thin';
         const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
-        return full ? 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) + ' \u00b7 grant ' + nf(acct.grant || 0)
-                    : 'Treasury ' + nf(t) + ', season wage ' + nf(wage);
+        const money = { fmt: nf, min: 0, floor: 1000 };
+        if (vague) return 'Treasury ' + band('finances', t, money);
+        if (!full) return 'Treasury ' + band('finances', t, money) +
+                          ' \u00b7 season wage ' + band('finances_wage', wage, money);
+        return 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) +
+               ' \u00b7 grant ' + nf(acct.grant || 0);
       }
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (vague) return held >= 20 ? 'Well-stocked armoury' : held ? 'A modest armoury' : 'Bare shelves';
-        return full ? held + ' pieces in the armoury' : 'Roughly ' + (held >= 20 ? 'a full' : 'a partial') + ' armoury';
+        if (full) return held + ' pieces in the armoury';
+        return band('kit', held, { min: 0, floor: 4 }) + ' pieces in the armoury';
       }
       case 'training': {
+        /* "Drilling unknown" was a paid-for row that said less than silence. Training is
+           reported as WHAT THEY ARE DRILLING and HOW HARD, in points of focus a manager
+           can compare against their own board — bracketed like every other row. */
+        /* the rival's own recorded drill (every corp, AI or human, writes this when it
+           spends on the track); the human's painted board is the fallback */
+        const dr = them._drill;
         const t = them.plan && them.plan.trainFocus;
-        if (!t) return vague ? 'Drilling unknown' : 'No drilling seen';
-        const cols = Object.keys(t.col || {});
-        if (vague) return cols.length ? 'Drilling a discipline hard' : 'Drilling broadly';
-        return full && cols.length ? 'Drilling ' + cols.join(', ') + ' across the roster'
-                                   : (cols[0] ? 'Focused on ' + cols[0] : 'Spread thin across the roster');
+        const col = (dr && dr.col) || (t && t.col) || {};
+        const cols = Object.keys(col).filter(k => col[k] > 0)
+                           .sort((a, b) => (col[b] || 0) - (col[a] || 0));
+        const spent = dr ? (dr.points || 0)
+          : ((t ? (t.all || 0) : 0) +
+             Object.keys(col).reduce((s, k) => s + (col[k] || 0), 0) +
+             Object.keys((t && t.cell) || {}).reduce((s, k) => s + (t.cell[k] || 0), 0));
+        if (!spent) return full ? 'No drilling this month' : 'Little or no drilling \u00b7 0\u20131 points';
+        const pts = band('training', spent, { min: 0, floor: 2 }) + ' points of drill';
+        if (vague) return pts;
+        if (!full) return pts + (cols[0] ? ' \u00b7 mostly ' + cols[0] : ' \u00b7 spread wide');
+        return spent + ' points of drill \u00b7 ' +
+               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'spread across the roster');
       }
       case 'moves': {
         const signed = (them._recruit && them._recruit.signed) || 0;
-        if (vague) return signed ? 'Active in the windows' : 'Quiet in the windows';
-        return full ? signed + ' signed recently \u00b7 ' +
-                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting')
-                    : signed + ' signed of late';
+        if (full) return signed + ' signed recently \u00b7 ' +
+                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting');
+        /* a small count needs a wider floor to stay a window at all: 0\u20131 is a real
+           statement, but it collapses to a certainty the moment the floor rounds away */
+        return band('moves', signed, { min: 0, floor: 2 }) + ' signed of late';
       }
       case 'board': {
+        /* the demand itself is a sentence, not a quantity — but board INTEREST is a
+           number, and it is the one a manager acts on, so it brackets like the rest */
         const goal = (them.rep || {}).goal || {};
-        if (vague) return 'Their board wants a finish';
-        return full ? 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
-                      (goal.interest != null ? goal.interest.toFixed(2) : '\u2014')
-                    : 'Board wants ' + (goal.text || 'a strong Divide');
+        const it = goal.interest;
+        const pct = { fmt: x => Math.round(x * 100) + '%', min: 0, max: 100, floor: 0.08 };
+        if (vague) return it != null
+          ? 'Board interest ' + band('board', it, pct)
+          : 'Board interest unread';
+        if (!full) return 'Board wants ' + (goal.text || 'a strong Divide') +
+                          (it != null ? ' \u00b7 interest ' + band('board', it, pct) : '');
+        return 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
+               (it != null ? Math.round(it * 100) + '%' : '\u2014');
       }
     }
     return '\u2014';
@@ -1160,6 +1246,13 @@
         const map = tgt && (tgt.all != null || tgt.col || tgt.row || tgt.cell)
           ? { all: tgt.all || 0, col: tgt.col || {}, row: tgt.row || {}, cell: tgt.cell || {} }
           : { all: fpts, col: {}, row: {}, cell: {} };   /* a bare train scalar = a corner paint */
+        /* WHAT A DRILL LOOKS LIKE FROM OUTSIDE. The dossier's training row used to read
+           `plan.trainFocus`, which only the human's own corp ever carries — so for every
+           AI rival the row was empty and reported "Drilling unknown", a paid-for line that
+           said less than silence. The spend is recorded here, where it actually happens,
+           so a scout has something true to find. */
+        corp._drill = { month: month, points: fpts,
+                        col: Object.assign({}, map.col || {}) };
         const STATS = CONST.MIND.concat(CONST.BODY || ['grit', 'reflex']);
         const isFam = id => CONST.MIND.indexOf(id) < 0 && (CONST.BODY || []).indexOf(id) < 0;
         /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
@@ -1196,29 +1289,46 @@
                                           CONST.TRAIN_STRESS_FOCUS * third);
         }
       } else if (a.kind === 'scout') {
-        /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the ride
-           is a map, `wanted.intelTarget = { planet:pips, <oaId>:pips }`, and each painted
-           target schedules its own dossier gather carrying the levels its pips bought. It still
-           reports LATER: intel gathered in M2 is yours before the tryouts; scouts sent too late
-           to report before the lock buy nothing. Absent a map, a bare scout falls to the planet
-           with all its focus — the safe default. */
+        /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the
+           ride is a map, `wanted.intelTarget = { planet:pips, <oaId>:pips }`, and each
+           painted target fills its own dossier with the levels its pips bought.
+
+           YOU FOCUS ON THE INTEL, YOU GET THE INTEL. Ruled. This used to SCHEDULE the
+           gather three months out, which nobody asked for and which made the verb
+           incoherent: what came back was old news about a rival who had moved on, it
+           could not be acted on in the month it was paid for, and it fought the ruling
+           that a manager may look again and again across a year. It resolves inline now,
+           in the month it is bought, against the rival as they stand TODAY — which is
+           also what makes a second look later in the year worth buying.
+
+           Absent a map, a bare scout falls to the planet with all its focus. */
         const perPip = (focus._boost && focus._boost.scout)
           ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
         const map = (wanted && wanted.intelTarget && typeof wanted.intelTarget === 'object'
                      && !wanted.intelTarget.target)
           ? wanted.intelTarget : { planet: fpts };   /* legacy/bare scout → all on the planet */
-        let anyScheduled = false;
+        const intelNow = ensureIntel(corp, season || 0);
+        const absMonth = (season || 0) * 100 + month;
+        let anyGathered = false;
         for (const key in map) {
           const pips = map[key] || 0;
           if (pips <= 0) continue;
-          const isPlanet = key === 'planet';
-          const item = schedule(corp, 'intel', CONST.SURVEY_MONTHS,
-            { target: isPlanet ? 'planet' : 'rival', oaId: isPlanet ? null : key,
-              levels: pips * perPip });
-          if (item) anyScheduled = true;
+          const levels = pips * perPip;
+          if (key !== 'planet' && corps && corps[key]) {
+            const them = corps[key];
+            gatherIntel(corp, 'rival', key, levels, absMonth,
+                        (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+          } else {
+            gatherIntel(corp, 'planet', null, levels, absMonth, null);
+          }
+          anyGathered = true;
         }
-        if (anyScheduled) tally.scouted++;
-        else tally.surveysTooLate = (tally.surveysTooLate || 0) + 1;
+        if (anyGathered) {
+          tally.scouted++;
+          tally.surveysLanded = (tally.surveysLanded || 0) + 1;
+          if (landedOut) landedOut.push({ kind: 'intel', text: 'the scouts reported' });
+        }
+        void intelNow;
       } else if (a.kind === 'court') {
         /* COURT SPONSORS. Focus is painted PER HOUSE, `courtTarget = { <houseId>:pips }`, and
            each painted house is courted NOW — the effort accumulates on the corp toward the
@@ -1534,6 +1644,12 @@
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
     const score = f => {
       let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4;
+      /* an unserved term pulls its holder toward the drop — the corp bought the clause
+         and the clause only advances on the ground; a served-out term stops pulling */
+      if (f.contract && f.contract.divides_required != null) {
+        const left = f.contract.divides_required - (f.contract.divides_served || 0);
+        if (left > 0) v += CONST.LOCK_TERM_W;
+      }
       if (lean === 'prospect') {
         /* room to grow, and the ground time is what closes it */
         const cap = typeof f.potential === 'number' ? f.potential : quality(f);
@@ -2318,6 +2434,12 @@
                        renewed: (c._renew && c._renew.renewed) || 0,
                        released: (c._renew && c._renew.released) || 0,
                        resigned: (c._renew && c._renew.resigned) || 0,
+                       /* A TERM COMPLETING IS AN EVENT, and it was invisible: the freed
+                          leave the roster, so nothing that reads a roster snapshot can
+                          see one. `freed` is how many clauses ran out this year;
+                          `walked` is how many of those did not re-sign. */
+                       freed: (c._off && c._off.freed) ? c._off.freed.length : 0,
+                       walked: (c._renew && c._renew.walked) || 0,
                        payout: c._payout || 0, bonus: c._bonus || 0,
                        kitValue: kit, kitSpend: spend,
                        locker: c._armoury ? c._armoury.depth : null,

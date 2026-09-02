@@ -313,18 +313,31 @@
   }
 
   function zoneOn(planet, day) {
-    let z = planet.zone[0];
-    for (const s of planet.zone) if (day >= s.fromDay) z = s;
-    return z;
+    /* THE DOME CLOSES CONTINUOUSLY. The schedule's entries are anchors now, not steps:
+       between one and the next, centre and radius interpolate day by day, so the daily
+       shrink is a fraction of anyone's march and out-walking the line is a matter of
+       ordinary planning rather than luck. The old rule — flat for days, then an
+       overnight jump bigger than a day's march, with whoever it caught displaced onto
+       the new edge — guaranteed somebody got thrown, and the throw read as teleporting
+       on any map honest enough to draw it. Ruled at the animation pass: the dome never
+       moves anyone. It closes; the caught are simply gone. */
+    let a = planet.zone[0], b = null;
+    for (const s of planet.zone) { if (day >= s.fromDay) a = s; else { b = s; break; } }
+    if (!b || day <= a.fromDay) return a;
+    const t = (day - a.fromDay) / (b.fromDay - a.fromDay);
+    return { cx: a.cx + (b.cx - a.cx) * t, cy: a.cy + (b.cy - a.cy) * t,
+             r: a.r + (b.r - a.r) * t, fromDay: a.fromDay };
   }
   function zoneNext(planet, day) {
-    for (const s of planet.zone) if (s.fromDay > day) return s;
-    return null;
+    /* tomorrow's circle — under continuous closing it is always a little smaller */
+    const z = zoneOn(planet, day + 1);
+    return { cx: z.cx, cy: z.cy, r: z.r, fromDay: day + 1 };
   }
   /** The Aleas announces a tightening a day ahead, so leaving is a decision. */
   function tighteningTomorrow(planet, day) {
-    const n = zoneNext(planet, day);
-    return !!(n && n.fromDay === day + 1);
+    /* under continuous closing the dome tightens every day; the Aleas announces the
+       BEATS — the schedule's anchor days, where the closing rate changes */
+    return planet.zone.some(z => z.fromDay === day + 1);
   }
   function inZone(planet, day, x, y) {
     const z = zoneOn(planet, day);

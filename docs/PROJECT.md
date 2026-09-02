@@ -35,7 +35,9 @@ figure cost 65 seconds a run to produce a number the suite itself declares meani
 ```
 cd sim
 node arx.cjs regress --fast   111 checks, ~90s. The edit-loop gate.
-node arx.cjs regress          246 checks, ~5.5min. Before packaging.
+node arx.cjs regress          246 checks, ~5.5min (slower machines ~12min). Before packaging.
+cd ../harness && node drive.cjs   93 checks: drives the BUILT page through a whole year
+                              (one-time `npm install` for jsdom; node_modules is ignored)
 node audit_open.cjs       what is actually built, tested by running the game
 node audit_docs.cjs       does this document still agree with the code
 node audit_cross.cjs      does one step's work reach the next, or just sit there
@@ -132,6 +134,11 @@ treating penalty is dead but for a different reason than the one given; and supp
 4,705 times in two contests, because the probes had armed all twelve fighters with the same
 carbine and no carbine suppresses. Every one of those would have been caught in a minute by trying
 to make the thing happen before announcing that it could not.
+
+**Speak plainly.** Checks, constants and rulings carry codes so the code can find them; a
+person should never have to decode one. In conversation, name the thing: "the check that a
+fighter who survives four contests should be better than a rookie finds eight where it wants
+ten", not the code. The codes belong in the source and the commit.
 
 **The instrument is the first suspect, not the last.** Two harnesses disagreeing about the same
 configuration is a gift; chase it rather than picking the answer you prefer. In the same session
@@ -484,9 +491,15 @@ mean the window did nothing.
 > against 19.1% for an aimed one, and it is bought with an action point that had no other use.
 > Nerfing its cost has been tried and does not help (above). Untouched.
 
-> **DEFERRED — nothing destroys cover.** The tile grid is written once, at generation, and never
-> again. A good position is therefore permanent, and a stalemate has no solvent. The area tag on
-> weapons is still read by nothing.
+> **DONE — cover comes down.** Rounds work on whatever the target is hiding behind: ordinary
+> fire chips a grade at a time (rubble still counts, so pieces degrade rather than vanish), and
+> an `area` weapon does it at nearly ten times the rate across a small radius — which is the
+> job that tag was written for and had never once been read. A grenade takes the ground apart
+> where it lands whether or not it caught anybody. Measured across three contests: about two
+> and a half grades knocked off per fight and roughly one piece flattened. The effect the
+> ruling wanted shows up in the snapshots — the entrenched stalemate that used to grind for
+> twenty exchanges now resolves in eight — and the five recorded fight transcripts were
+> re-recorded, deliberately, because the model changed.
 
 > **DEFERRED — time of day still has no reader.** Fog is not night. `night_ambush_warning_bonus`
 > stays on the inert list and the grid still has no clock; pointing that hook at a spotting model
@@ -523,7 +536,7 @@ mean the window did nothing.
   Armour's three numbers — protection, resist by damage type, and the type of the incoming
   round — stay exactly as they are and become damage reduction, which is what they always read
   like.
-- **Cover must be destructible.** Cover here is permanent terrain, so two squads behind good
+- **Cover must be destructible.** *(BUILT — see "cover comes down" above.)* Cover here was permanent terrain, so two squads behind good
   walls is a genuinely stable position and the movement scorer is correct to tell everybody to
   stay — which is what "they bunker down and stop moving" is. In X-COM the answer to a stalemate
   is removing the wall, and the threat of that is why nobody can sit. The `area` tag is inert in
@@ -652,7 +665,7 @@ implementations to reconcile. What is *not* unified is the surfaces:
 | | |
 |---|---|
 | **the game** | `the_desk` — a career, played |
-| **live instruments** | `the_year`, `the_crate`, `the_bench`, `the_table` — run the real engine over one system |
+| **live instruments** | ~~`the_year`, `the_crate`, `the_bench`, `the_table`~~ — retired once the unified page landed; single-surface pages on the old engine, deleted with their templates and builders rather than left to drift |
 | **baked reports** | `the_career`, `negotiation_table`, `audience_board`, `armoury` — snapshots, stale by construction |
 
 So unification is an interface job, not an integration job, and the risk of it "falling apart" is
@@ -698,7 +711,9 @@ Code is silent about absence, so it is recorded here.
   squads actually walk through, the closing wall with next day's circle ghosted inside it, every
   squad's position and facing and where it is marching to, fights where they happened. And
   `the_firefight` draws one engagement on the grid, turn by turn. Both run the live engine in the
-  page. The recorder behind them had existed since Step 6 and nothing had ever read it.
+  page. The recorder behind them had existed since Step 6 and nothing had ever read it. *Both
+  drawings now live as tabs of the Divide inside `the_corp.html`; the standalone pages were
+  retired with the rest of the single-surface views.*
 - **Media.** Sponsorship landed at 8.14; the media half — coverage, the press, a reputation you
   perform for rather than earn — did not, and is deferred on the same grounds sponsorship was.
 - **Aleas corruption, syndicates, scandal.**
@@ -762,10 +777,10 @@ sim/     prng · roster · items · ledger · reputation · combat · tactical �
          probe_*.cjs    measurement tools, each answering one question
          build_*.cjs    viewer builders — run them after changing anything they inline
 data/    items · traits · races · recruitment · planets · oa_profiles · schemas
-viewers/ the_desk — the prep year, played a month at a time
-         the_ground — the contest, drawn: terrain, the closing wall, squads and their intent
-         the_firefight — one engagement on the grid, turn by turn, including a squad walking in
-         the_year · the_crate · the_bench · the_table · the_career · armoury · audience_board
+viewers/ the_corp — the game, one page with tabs: Desk, Roster, Squads, Negotiation, the Board,
+         and the Divide (which draws the contest and the firefight)
+         the_desk — the prep year alone, played a month at a time
+         the_career · armoury · audience_board · negotiation_table — baked reports
 docs/    this file. The nine documents it replaced are archived outside the tree and are not
          maintained; nothing here should ever need them.
 ```
@@ -820,3 +835,166 @@ shadows means. **Twenty-two hooks remain inert**, most of them clustered on squa
 `presence_aura`, `cohesion_morale_bonus_near_squadmates`, `squad_coordination_bonus`,
 `rout_immune` — which is the argument for cohesion being the next step and taking most of them
 at once.
+
+## The colour pass — houses wear their own colours. *Ruled at this step.*
+
+Every OA shows ONE display colour, derived from its canon pair in `oa_profiles.json` by
+`sim/palette_oa.cjs` and written to `data/oa_display.json` with its reasoning beside it. The
+rule: the canon primary unless the measurements refuse it, then the secondary, then a recorded
+nudge — bars of ΔE 12 against every other house, the nine race fills and the grounds they share
+a canvas with, ΔE 10 against the interface's semantic voices, and L* 30 so nothing sinks into
+the night. `--check` mode verifies the written table still derives from canon. One canon colour
+was re-ruled on the way: two near-white houses could not hold apart on any surface, the medics
+kept the white, and the Marksman's House took gunmetal `#8e9db4` — the reason recorded in the
+canon file itself.
+
+The positional palettes died here: `SIDE` (three colours by seat) and `BANNER` (eight hexes by
+berth) are retired with WAS-HERE notes, replaced by `colFor(corpId)` on every surface that
+names or draws a house. **Cyan stays the interface's voice and no house may own it** — "you"
+are marked structurally (the edged row, the you-tag), never by hue. The founded house picks
+its colour at founding from twelve swatches the instrument pre-vets against everything above,
+so a confusing pick is impossible rather than validated away; the pick rides on the profile
+and every surface honours it through the same `colFor`.
+
+**The marks.** *Ruled at the same pass.* One mark per house, drawn from its own tag, motto and
+lore — the weight, the witnessed star, the nested years, the assembled frames, the new line,
+the drill in the seam, the sprout in the cradle, the open ring — stored as proposed art in
+`data/oa_marks.json` (24×24, `currentColor` so the house colour carries it) awaiting a human
+artist. Dosage: marks live where identity is the point — the banners, the encounter lines, the
+roster heads, the lock — and stay out of flowing prose, which keeps its colour-only names. The
+founded house flies the empty pennant: a house too new for a device.
+
+## The Divide's shape — the Table leads, the Firefight is a room. *Ruled at this pass.*
+
+The Divide's rail runs Table, Ground, Roster, Board — **the Table first and home**, because it
+is where the manager acts: the contest begins there, the window advances there, and the
+window's word already rode the advance. Its recap, **Since the Last Window**, lists the
+window's fights above a divider and earlier days beneath it; the Dividend's lights stand on
+the Desk's own shelf through the year. **The Firefight is a room, not a rail stop**: it opens
+when a fight is watched from a recap and its Back control returns to wherever the watcher came
+from. Nothing else opens it.
+
+**The scrim is dead** — the lock, the rival pick, terrain/range/readiness, Run Engagement, and
+the locker's whole conserving-books mechanism (`lockSide`, `returnKit`, `G.locked`, `G.stale`,
+`G.fought`), with WAS-HERE notes at the graves. It was a practice room that predated the live
+Divide and held demo-grade controls over a shipped system. What its checks proved now proves
+through the real Divide: composition in the replay's side panels, the manager's hand verified
+in the Divide's options at begindiv, casualties on the shared roster after the contest. The
+page harness changed in step and honestly shrank, 104 → 85 checks — the retired checks audited
+the deleted mechanism itself, and padding the count back up would be counting for its own sake.
+
+## The Ground is animated on the page. *The build pass.*
+
+The grammar the mock proved is now the game's own map. Squads walk their true recorded
+tracks, paced by arc length so an engine relocation reads as a fast dash instead of a blink.
+A day is watched in three states — its morning, stepping through it, complete — and no
+state is reachable by rewind, which is what stops a press from relocating the whole map.
+Stepping by squad and turning animation off are ORTHOGONAL: the first says how much happens
+per press, the second only whether it tweens. Gating one on the other (which the mock did)
+silently reverts to whole-day jumps for anybody who turns animation off, which is the one
+thing stepping exists to prevent — the harness caught it.
+
+Every layer reads one set of display positions, so reach circles walk with their squads.
+Held time is one arc, a full circle being a whole day pinned. A fight is a diamond tethered
+to the squads it held. The dome's takings are a rust X. Wiped squads are faded remnants,
+frozen where they fell. Squads standing on one point are nudged apart on screen only, never
+in the data. A finished contest opens at the drop so it can be watched forward — the line
+that opened it on the aftermath had been quietly winning because it ran last.
+
+Live comms-window days carry no tracks, so they simply draw complete: the animation is for
+the recording, and the live view is unharmed.
+
+## Partial intelligence is a window, not an adjective. *Ruled.*
+
+A half-filled dossier row used to read "A deep roster (partial)" — and the training row read
+"Drilling unknown", a line the manager had PAID FOR that said less than silence. None of it
+could be acted on. Every numeric row now brackets the real figure, and the bracket tightens as
+the dossier deepens: 16–25 hands at a glance, 19–21 with work, 20 when it is known.
+
+Two invariants, both guarded in the suite: the window ALWAYS contains the truth — intel here
+is incomplete, never wrong, because lying to the manager is a different mechanic and it is not
+this one — and scouting harder never widens a window. The bracket is deterministic per rival,
+row and season, so a second look at the same depth does not walk the window around; more work
+narrows it rather than re-rolling it. A window that closes to a single figure says the figure
+rather than printing "3–3".
+
+Training also needed a source: it had been reading `plan.trainFocus`, which only the human's
+own corp carries, so for every AI rival the row was empty by construction. A corp now records
+what it drills when it spends on the track, and the row reports points of drill and which
+discipline — numbers a manager can hold against their own board.
+
+## You focus on the intel, you get the intel. *Ruled.*
+
+A gather resolves in the month it is bought, against the rival as they stand that month.
+It had been scheduled three months out — a rule nobody asked for, which made the verb
+incoherent three ways: what came back was old news about a rival who had since moved, it
+could not be acted on in the month it was paid for, and it fought the ruling that a manager
+may look again and again across a year. `SURVEY_MONTHS` is 0 and the gather runs inline at
+the moment focus is spent, so nothing is ever in flight and no screen has to explain a wait.
+
+Two consequences worth keeping: a look late in the year is still worth buying, and a second
+look at the same rival is worth buying because it re-reads them as they are now.
+
+## How lethal the Divide is, is not decided yet. *Standing ruling. Do not re-litigate.*
+
+Every casualty number in this project — how many people die, how many survive four contests,
+how big the loss band should be — is **deferred until the game's systems are all in place**.
+The numbers swing enormously on a single addition or subtraction, as they have repeatedly:
+the dome ruling alone moved deaths by a third in a day, in both directions, before settling.
+Balancing them now is raking leaves in the wind.
+
+So: the two checks that grade fatality — the veteran-survival one and the permanent-loss band
+— **stay red on purpose**. Do not widen their bands to make them pass. Do not tune the injury
+or overkill dials to make them pass. Do not offer the choice between those two again. They are
+a thermometer to read while other work happens, not a fault to fix, and they get their ruling
+once there is a whole game to balance against.
+
+## The Ground moves — and the dome closes. *Ruled across the animation pass.*
+
+Animating the contest map surfaced, in order: a recorder that disagreed with itself, a wall
+that teleported, and a casualty system that only worked because of the teleport. Each was
+measured before it was touched.
+
+**The record tells the truth now.** Tracks are seeded at dawn where the squad stands, closed
+at assembly on the position the record claims (fight arrivals, reforms — everything that moves
+bodies between samples), a squad's dying day keeps its last march (closed on the wipe site),
+and the days after death are empty: `down`, frozen where they fell. The per-tick-label trap
+(`_why` overwritten by later ticks) is documented at `hb` and was hit twice more here; flags
+that must survive to the snapshot get their own field.
+
+**The dome.** The wall no longer steps overnight further than a day's march and it NEVER
+moves anyone — `zoneOn` interpolates the schedule's anchors so the line closes a little every
+day, the Aleas announces the beats, and the line is answered by the squads' own logic: any
+able squad dawn finds outside walks in (aimed deep enough that ARRIVE_SLACK cannot rule it
+"arrived" on a small circle — the fault that killed obedient squads standing still, inches
+out); a fight the line reaches breaks off, both sides, at stress cost; nobody starts a fight
+on ground that will be dead by dusk. Whoever is still outside at dusk is gone — and after all
+of the above, across six measured contests, that is nobody. The suite's wall check re-ruled to
+match: nobody LIVING ends a Divide outside; the dead lie where they fell.
+
+**The wounded are somebody's job.** The old displacement was secretly the ambulance: it
+carried every immobilised squad inward to be scooped at contest's end. Under the dome, the
+standing carry their own (at `CARRY_SLOW_PER_BODY` march cost — which also fixes rule 3's
+inversion, where the wounded used to vanish from the size count and speed a squad up), the
+victors take a wiped squad's wounded captive — and captives now physically march off the
+field, so the dome cannot eat the winner's own prisoners — and a corp sends its nearest free
+squad up to `RESCUE_RANGE` to bring immobilised friends home, reasserted every dawn because
+planners retask.
+
+**The march follows the people.** Pace rides REFLEX — the emptiest stat in the game (one
+reader: grid initiative) — as the average over the squad's standing bodies, trainable like
+anything else; race flavour arrives through race stat spreads, never a race multiplier. With
+`sizeMarchMult` (three walk faster than eight), `carryMult` (stretchers cost), `paceMult`
+(the quick cover ground) and `speedAt` (the terrain field, wired all along and drawn on maps
+for the first time), all four movement rules stand.
+
+**Own lines do not stack.** `OWN_SPACING` (0.016, half of it under ARRIVE_SLACK so arrival
+and spacing never fight) pushes own-corp pairs a body's-breadth apart after each tick's
+marches; fights are exempt; formations read as formations.
+
+**The map's grammar, ruled at the mock:** motion is arc-length paced along the true recorded
+tracks (a relocation is a visible dash, never a blink); the view opens at the morning of day
+one and no state is reachable by rewind — proven by an every-press snap check across a whole
+contest, worst residue 0px; held time is one arc (a full circle is a whole day pinned); a
+fight is a small diamond tethered to its parties; the reach toggle draws the contact and
+sight circles the detection ladder plays in; the dome's rare takings are a rust X.

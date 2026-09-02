@@ -117,6 +117,28 @@
     SIGHT_RANGE: 0.105,                 // [C] how far a squad can be noticed at all
     ENGAGE_RANGE: ENGAGE_RANGE,         // [C] inside this, contact is possible
     JOIN_RANGE: 0.072,                  // [C] a third corp close enough to pile in
+    /* [C] OWN LINES DO NOT STACK. Two squads of one corp sent to the same point used to
+       finish the walk standing inside each other — visually one marker, tactically one
+       grenade, and it rewarded piling onto a single coordinate over holding a shape.
+       The binding constraint is HALF this value under ARRIVE_SLACK (0.012): a pair pushed
+       apart around a shared target each stand half the spacing from it, and both must
+       still count as arrived, or arrival and spacing oscillate. 0.016 leaves that margin
+       (0.008 < 0.012) and clears the largest map marker, so a formation reads as a
+       formation. First cut was 0.010 — spaced the data, still overlapped the drawing. */
+    OWN_SPACING: 0.016,
+    /* [C] rule 3 of the march, and its inversion fixed: wounded bodies used to VANISH
+       from the size count and speed their squad up. Somebody carries them. Four
+       stretchers cost roughly a fifth of the day's march. */
+    CARRY_SLOW_PER_BODY: 0.07,
+    /* [C] how far a corp will send a squad to bring its immobilised wounded home —
+       about two days' march. Beyond it, nobody is coming, and the dome decides. */
+    RESCUE_RANGE: 0.12,
+    /* [C] rule 2 of the march: pace follows the people. Reflex — the quick cover
+       ground — was the emptiest stat in the game (one reader: grid initiative), so
+       the march rides it rather than crowning an already-loaded one. Squad pace is
+       the AVERAGE over its standing bodies, trainable like anything else; race
+       flavour arrives through race stat spreads, never through a race multiplier. */
+    PACE_PER_REFLEX: 0.012,
     /* --- SHOOTING IS HEARD ---
        Until now the only way a squad learned where anybody was, was `flares`: every live
        squad's exact position handed to every corp's planner. Perfect knowledge, gated by
@@ -868,10 +890,14 @@
        both sides compute it the same way. */
     function oddsWithJoin(joiner, principal) {
       const jP = principalOf(joiner), pP = principalOf(principal);
+      /* Under the dome a whole corp can die, and joinedTo is irreversible (Step 6) —
+         so a living joiner can point at a principal with no umbrella left on the
+         board. Then the joiner brings itself; there is no banner left to bring. */
+      const jU = umbrellas.find(x => x.principal.id === jP.id);
       const merged = umbrellas
         .filter(u => u.principal.id !== jP.id)
         .map(u => u.principal.id === pP.id
-          ? { principal: u.principal, members: u.members.concat(umbrellas.find(x => x.principal.id === jP.id).members) }
+          ? { principal: u.principal, members: u.members.concat(jU ? jU.members : [joiner]) }
           : u);
       const o = NEG.oddsBoard(merged, { meanEngagements: meanEng });
       return o[pP.id] || 0;
@@ -1550,7 +1576,7 @@
           const stage = CONST.STAGE_RADIUS * (0.85 + rng() * 0.3);
           const sx = best.x + Math.cos(a) * stage;
           const sy = best.y + Math.sin(a) * stage;
-          const budget = CONST.DAY_MARCH * dials.ground * sizeMarchMult(sq);
+          const budget = CONST.DAY_MARCH * dials.ground * sizeMarchMult(sq) * carryMult(sq) * paceMult(sq);
           /* the leader's travel ESTIMATE must include the size term the real march uses,
              or every mixed-size pincer is mistimed by design */
           travel.push(Math.ceil(MAP.dist(sq.x, sq.y, sx, sy) / Math.max(1e-6, budget)));
@@ -1794,6 +1820,17 @@
   /* the two ways size reads on the ground — see the RULED comment on the constants */
   function sizeMarchMult(sq) {
     return 1 + (CONST.SIZE_PIVOT - squadHead(sq).length) * CONST.SIZE_MARCH_PER_BODY;
+  }
+  function carryMult(sq) {
+    const burden = sq.bodies.filter(b => b.status === 'injured').length;
+    return 1 / (1 + burden * CONST.CARRY_SLOW_PER_BODY);
+  }
+  function paceMult(sq) {
+    const head = squadHead(sq);
+    if (!head.length) return 1;
+    let sum = 0;
+    for (const b of head) sum += (b.stats && b.stats.reflex) || 10;
+    return 1 + (sum / head.length - 10) * CONST.PACE_PER_REFLEX;
   }
   function sizeDetectMult(sq) {
     return 1 + (squadHead(sq).length - CONST.SIZE_PIVOT) * CONST.SIZE_DETECT_PER_BODY;
@@ -2445,7 +2482,7 @@
       archetype: planet.archetype, offersBy: {}, escapesBy: {}, colocDays: {}, passedOver: 0,
       audit: {
         preDividePacts: preDeals,
-        forageEvents: 0, forageYield: 0, closurePush: 0, zoneRiskVeto: 0, nightMarch: 0,
+        forageEvents: 0, forageYield: 0, domeDeaths: 0, lineEvade: 0, carriedOut: 0, zoneRiskVeto: 0, nightMarch: 0,
         /* `stats.passedOver` is declared and `stats.audit.passedOver` was not, while both are
            raised on the same line — so one counted and the other was NaN from the first
            increment. Found by running a contest and looking for NaN, not by reading. */
@@ -2559,22 +2596,37 @@
       stats.audit.lateReveals += shown.length;
       for (const o of shown) rec({ t: 'reveal', x: o.x, y: o.y, lbl: o.label, place: o.place });
 
-      /* The wall closed. Nobody is left outside it, because outside it does not exist: the
-         field displaces whatever it reaches. It moves the wounded and the spent as readily
-         as the walking, so a squad that is all stretcher cases is carried in too — anything
-         less leaves stale bodies stranded on ground that no longer exists. */
+      /* THE DISPLACEMENT WAS HERE — the wall used to step overnight further than a day's
+         march and throw whoever it caught onto the new edge. Ruled out at the animation
+         pass: the dome closes continuously (see map.js zoneOn), it NEVER moves anyone,
+         and its line is answered by the squads' own logic. Any able squad that dawn
+         finds outside today's line drops what it was doing and walks in — its own legs,
+         on the record. The dome takes whoever is still outside at dusk. */
       for (const c of corps) for (const sq of c.squads) {
-        if (!sq.bodies.length) continue;
-        const push = MAP.clampInside(planet, day, sq.x, sq.y);
-        if (push.pushed <= 0) continue;
-        sq.x = push.x; sq.y = push.y;
         if (!squadHead(sq).length) continue;
-        stats.audit.closurePush++;
-        sq.intent = null; sq._why = 'zone';
-        for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.FATIGUE_MARCH);
-        addStress(sq, 3, stats);
-        rec({ t: 'pushed', x: sq.x, y: sq.y, c: sq.corpId });
+        const dz = MAP.dist(sq.x, sq.y, zNow.cx, zNow.cy);
+        if (dz <= zNow.r) continue;
+        if ((sq._busyUntil || 0) > (day - 1) * CONST.TICKS_PER_DAY) {
+          /* NOBODY ARGUES WITH THE DOME. A fight it reaches breaks off — both sides,
+             each the moment its own dawn finds it outside the line — because staying
+             is not a stance, it is a death. Breaking under fire costs composure. */
+          sq._busyUntil = 0;
+          addStress(sq, 4, stats);
+          stats.audit.lineBrokeFight = (stats.audit.lineBrokeFight || 0) + 1;
+        }
+        /* AIM DEEP ENOUGH THAT ARRIVAL CANNOT PRE-EMPT THE WALK. The first cut aimed
+           at 0.9·r; on the late contest's small circles that point sits inside
+           ARRIVE_SLACK of a rim squad, movement ruled them “arrived”, and they stood
+           obediently still — millimetres outside — while the line passed through
+           them. The target now sits a real margin inside, whatever the circle's size. */
+        const inR = Math.max(zNow.r * 0.5, zNow.r - Math.max(0.03, zNow.r * 0.2));
+        const k = inR / Math.max(1e-9, dz);
+        sq.intent = { type: 'withdraw',
+                      tx: zNow.cx + (sq.x - zNow.cx) * k,
+                      ty: zNow.cy + (sq.y - zNow.cy) * k };
+        stats.audit.lineEvade = (stats.audit.lineEvade || 0) + 1;
       }
+
 
       for (const c of corps) for (const sq of c.squads) {
         if (!squadHead(sq).length) continue;
@@ -2593,6 +2645,38 @@
         sq: s, corpId: s.corpId, x: s.x, y: s.y, prestige: prestigeOf(s), n: squadHead(s).length
       }));
       for (const c of corps) planCorp(rng, c, planet, day, flares, stats, noises);
+
+      /* --- AFTER THE PLAN: SOMEBODY GOES BACK FOR THEM. Assigned after the drop
+         leader plans, so the plan cannot stomp it the same morning. A squad with nobody standing cannot
+         march, and under the dome that is a death sentence unless its corp's own
+         logic answers — so it does: the nearest standing squad within RESCUE_RANGE
+         drops its intent and walks to carry them out. One rescuer per casualty;
+         the walk records as 'rescue' and the pickup happens at dusk, by proximity,
+         so a squad that merely passes its fallen also gathers them. --- */
+      for (const c of corps) for (const sq of c.squads) {
+        if (squadHead(sq).length) continue;
+        if (!sq.bodies.some(b => b.status === 'injured')) continue;
+        /* the guard checks the rescuer is still actually rescuing — a planner or a
+           window can retask anyone, so the assignment reasserts every dawn */
+        if (sq._rescueBy && squadHead(sq._rescueBy).length &&
+            (sq._rescueBy._busyUntil || 0) <= (day - 1) * CONST.TICKS_PER_DAY &&
+            sq._rescueBy.intent && sq._rescueBy.intent.type === 'rescue') continue;
+        sq._rescueBy = null;
+        let best = null;
+        for (const s2 of c.squads) {
+          if (s2 === sq || !squadHead(s2).length) continue;
+          if ((s2._busyUntil || 0) > (day - 1) * CONST.TICKS_PER_DAY) continue;
+          if (s2.intent && s2.intent.type === 'rescue') continue;
+          const dd2 = MAP.dist(s2.x, s2.y, sq.x, sq.y);
+          if (dd2 > CONST.RESCUE_RANGE) continue;
+          if (!best || dd2 < best.dd2) best = { s2, dd2 };
+        }
+        if (!best) continue;
+        best.s2.intent = { type: 'rescue', tx: sq.x, ty: sq.y };
+        sq._rescueBy = best.s2;
+        stats.audit.rescuesSent = (stats.audit.rescuesSent || 0) + 1;
+        rec({ t: 'rescue', x: sq.x, y: sq.y, c: sq.corpId });
+      }
 
       /* --- DAY: supply --- */
       for (const sq of liveSquads()) {
@@ -2614,7 +2698,10 @@
       /* a sound is worth walking to for a day and then it is just a place something happened */
       for (let i = noises.length - 1; i >= 0; i--)
         if (day - noises[i].day > CONST.NOISE_DAYS) noises.splice(i, 1);
-      if (REC) for (const q of liveSquads()) q._track = [];
+      /* the track opens at dawn where the squad actually stands — which is where
+         yesterday's record left it — so a replay's step starts from the step before */
+      if (REC) for (const q of liveSquads())
+        q._track = [Math.round(q.x * 1000) / 1000, Math.round(q.y * 1000) / 1000];
       for (let tick = 0; tick < CONST.TICKS_PER_DAY; tick++) {
         const night = tick >= CONST.DAY_TICKS;
         /* One clock for the whole contest. `busyUntil` has to outlive the day boundary — a
@@ -2631,7 +2718,9 @@
 
         const terrainSpeed = planet.speedAt(sq.x, sq.y);
         let budget = (CONST.DAY_MARCH / CONST.DAY_TICKS) * terrainSpeed * dials.ground
-                   * sizeMarchMult(sq);   /* three walk faster than eight */
+                   * sizeMarchMult(sq)    /* three walk faster than eight */
+                   * carryMult(sq)        /* and stretchers slow everyone */
+                   * paceMult(sq);        /* and the quick cover ground */
         if (posture === 'fortify') budget *= 0.45;
         if (hooks.has('march_efficiency_up')) budget *= 1.12;
         if (sq._lostDay) budget *= 0.3;
@@ -2723,6 +2812,31 @@
         }
       }
 
+      /* --- OWN LINES DO NOT STACK (§6.1 OWN_SPACING) ---
+         After the tick's marches, own-corp pairs standing inside a body's-breadth of each
+         other are pushed apart symmetrically, then held inside the wall. Squads held in a
+         fight are exempt — a fight is a place you are — and opposing squads still
+         converge: contact geometry is untouched. Two relaxation passes settle chains. */
+      for (let rp = 0; rp < 2; rp++) {
+        for (const c of corps) {
+          for (let i = 0; i < c.squads.length; i++) for (let j = i + 1; j < c.squads.length; j++) {
+            const a = c.squads[i], b = c.squads[j];
+            if (!squadHead(a).length || !squadHead(b).length) continue;
+            if ((a._busyUntil || 0) > absTick || (b._busyUntil || 0) > absTick) continue;
+            const sep = MAP.dist(a.x, a.y, b.x, b.y);
+            if (sep >= CONST.OWN_SPACING) continue;
+            let ux, uy;
+            if (sep > 1e-6) { ux = (b.x - a.x) / sep; uy = (b.y - a.y) / sep; }
+            else { const ang = (i * 2.4 + j) % (Math.PI * 2); ux = Math.cos(ang); uy = Math.sin(ang); }
+            const half = (CONST.OWN_SPACING - sep) / 2;
+            const pa = MAP.clampInside(planet, day, a.x - ux * half, a.y - uy * half);
+            const pb = MAP.clampInside(planet, day, b.x + ux * half, b.y + uy * half);
+            a.x = pa.x; a.y = pa.y; b.x = pb.x; b.y = pb.y;
+            stats.audit.ownSpacingPush = (stats.audit.ownSpacingPush || 0) + 1;
+          }
+        }
+      }
+
 
         }
       /* --- DAY + NIGHT: contact (§6) --- */
@@ -2755,6 +2869,12 @@
 
             const sep = MAP.dist(sqA.x, sqA.y, sqB.x, sqB.y);
             if (sep > CONST.ENGAGE_RANGE) continue;
+            /* NOBODY STARTS A FIGHT IN THE DOME'S PATH. Ground outside today's line is
+               dead ground by dusk; hunter and prey both know it, and a squad walking in
+               off it is walking, not fighting. Without this, evaders were intercepted on
+               the doomed ground, pinned past dusk, and eaten — whole squads at a time. */
+            if (!MAP.inZone(planet, day, sqA.x, sqA.y) ||
+                !MAP.inZone(planet, day, sqB.x, sqB.y)) continue;
 
             const mx = (sqA.x + sqB.x) / 2, my = (sqA.y + sqB.y) / 2;
             if (rng() >= detectChance(rng, sqA, sqB, planet, day, night, mx, my, sep)) continue;
@@ -3044,6 +3164,11 @@
             stats.sidesEngaged += t.sidesEngaged || 0;
             stats.sidearmDraws += t.sidearmDraws || 0;
             stats.vents += t.vents || 0;
+            /* the ground itself coming apart — grades knocked off cover, and pieces
+               taken down to nothing. A contest should be able to say how much of the
+               scenery it removed, or destructible cover is unmeasurable from out here. */
+            stats.audit.coverChipped = (stats.audit.coverChipped || 0) + (t.coverChipped || 0);
+            stats.audit.coverFlattened = (stats.audit.coverFlattened || 0) + (t.coverFlattened || 0);
             if (res.result === 'cap') stats.capExits++;
 
             const before = { d: stats.dead, i: stats.injured, c: stats.careerEnded };
@@ -3116,6 +3241,57 @@
                    readers, exactly the fault this project keeps producing, committed by the
                    person who had just been complaining about it. State earns its place when
                    something reads it. The arrival step can add it then. */
+              }
+            }
+            /* --- THE STANDING CARRY THE FALLEN (the dome ruling, part two). A squad
+               whose every body is down cannot leave, and the dome does not wait. Its
+               wounded transfer to a standing squad of its own corp in this same fight,
+               who walk them out on their own legs and pay for it in march speed. Wounded
+               with no standing friend here are left where they fell — and the dome's
+               edge is what makes that a real loss rather than a bookkeeping one. --- */
+            for (let gi2 = 0; gi2 < groups.length; gi2++) {
+              for (const sq of groups[gi2]) {
+                if (squadHead(sq).length) continue;
+                const carriers = groups[gi2].filter(s2 =>
+                  s2 !== sq && s2.corpId === sq.corpId && squadHead(s2).length);
+                if (carriers.length) {
+                  const wounded = sq.bodies.filter(b => b.status === 'injured');
+                  for (const b of wounded) {
+                    carriers[0].bodies.push(b);
+                    sq.bodies.splice(sq.bodies.indexOf(b), 1);
+                  }
+                  if (wounded.length)
+                    stats.audit.carriedOut = (stats.audit.carriedOut || 0) + wounded.length;
+                  continue;
+                }
+                /* no friend standing: the wounded fall to whoever won — taken captive,
+                   which is what winning the fight means. Only a fight that leaves NO side
+                   standing strands its wounded for the dome, and that is a tragedy the
+                   ledger should show, not a bookkeeping accident. */
+                let victorSide = -1, most = 0;
+                for (let hi = 0; hi < groups.length; hi++) {
+                  if (hi === gi2) continue;
+                  const n2 = groups[hi].reduce((a2, q2) => a2 + squadHead(q2).length, 0);
+                  if (n2 > most) { most = n2; victorSide = hi; }
+                }
+                if (victorSide < 0) continue;
+                const takerId = groups[victorSide][0].corpId;
+                for (const b of sq.bodies) {
+                  if (b.status !== 'injured') continue;
+                  b.status = 'captured'; b._capturedBy = takerId;
+                  stats.captured++; stats.audit.capturedAlive++;
+                  stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1;
+                }
+              }
+            }
+            /* CAPTIVES MARCH OFF THE FIELD. Their fate is already on the books
+               (_capturedBy, resolved at the end); their bodies leaving the map is what
+               keeps the dome from eating the victor's own prisoners where they lay. */
+            for (const g2 of groups) for (const sq of g2) {
+              for (let bi2 = sq.bodies.length - 1; bi2 >= 0; bi2--) {
+                if (sq.bodies[bi2].status !== 'captured') continue;
+                sq.bodies.splice(bi2, 1);
+                stats.audit.captivesMarchedOff = (stats.audit.captivesMarchedOff || 0) + 1;
               }
             }
             /* The contest resolves. Whoever broke contact runs — a real distance, not a
@@ -3210,13 +3386,42 @@
         }
       }
 
-      /* The wall again, at dusk. Reforms, consolidations and deaths all move bodies around
-         during a day; the ruling is that outside the line does not exist, so it is enforced
-         at both ends rather than nearly-enforced at one. */
+      /* --- DUSK: THE PICKUP. Before the dome speaks, any standing squad beside an
+         immobilised squad of its own corp gathers the wounded onto its own backs —
+         whether it marched here to do it or merely passed by. --- */
+      for (const c of corps) for (const sq of c.squads) {
+        if (squadHead(sq).length) continue;
+        if (!sq.bodies.some(b => b.status === 'injured')) continue;
+        for (const s2 of c.squads) {
+          if (s2 === sq || !squadHead(s2).length) continue;
+          if (MAP.dist(s2.x, s2.y, sq.x, sq.y) > CONST.ARRIVE_SLACK * 1.5) continue;
+          for (let bi3 = sq.bodies.length - 1; bi3 >= 0; bi3--) {
+            const b3 = sq.bodies[bi3];
+            if (b3.status !== 'injured') continue;
+            s2.bodies.push(b3); sq.bodies.splice(bi3, 1);
+            stats.audit.carriedOut = (stats.audit.carriedOut || 0) + 1;
+          }
+          if (s2.intent && s2.intent.type === 'rescue') s2.intent = null;
+          sq._rescueBy = null;
+          break;
+        }
+      }
+
+      /* --- DUSK: THE DOME. Impenetrable and indifferent. It never displaces — it
+         closes, and whoever it reaches is gone: the pinned, the resting and the
+         stretcher cases alike. Being caught is the failure the whole day's logic
+         exists to avoid, which is what makes the rim worth anything. */
       for (const c of corps) for (const sq of c.squads) {
         if (!sq.bodies.length) continue;
-        const p = MAP.clampInside(planet, day, sq.x, sq.y);
-        sq.x = p.x; sq.y = p.y;
+        if (MAP.inZone(planet, day, sq.x, sq.y)) continue;
+        let took = 0;
+        for (const b of sq.bodies)
+          if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
+        if (took) {
+          stats.audit.domeDeaths = (stats.audit.domeDeaths || 0) + took;
+          rec({ t: 'wall', x: Math.round(sq.x * 1000) / 1000,
+                y: Math.round(sq.y * 1000) / 1000, c: sq.corpId, n: took });
+        }
       }
 
       /* --- NIGHT: camp --- */
@@ -3452,22 +3657,52 @@
           for (let si = 0; si < c.squads.length; si++) {
             const q = c.squads[si];
             const alive = squadHead(q).length;
+            /* A WIPED SQUAD IS NOT A SQUAD DOING THINGS. Without this, a squad whose
+               last body went down kept its final per-tick label ('fighting'), re-emitted
+               its dead men's march as a live track, and — because the dusk enforcement
+               moves every marker inside the line — its corpse-marker crawled inward day
+               after day. The animation mock made the ghost visible in minutes. The record
+               now freezes a downed squad where it went down: no label, no aim, no track.
+               Recorder-only bookkeeping; the engine's own state is untouched. */
+            if (alive) q._downAt = null;   /* a revived squad may go down again, elsewhere */
+            const justDown = !alive && !q._downAt;
+            if (justDown) {
+              q._downAt = { x: Math.round(q.x * 1000) / 1000,
+                            y: Math.round(q.y * 1000) / 1000 };
+              /* the dying day's walk is kept — they marched into the fight that took
+                 them, and a record that forgets the march teleports them to the grave.
+                 The track closes on the wipe site; every later day of theirs is empty. */
+              if (!q._track || !q._track.length) q._track = [q._downAt.x, q._downAt.y];
+              else if (q._track[q._track.length - 2] !== q._downAt.x ||
+                       q._track[q._track.length - 1] !== q._downAt.y)
+                q._track.push(q._downAt.x, q._downAt.y);
+            }
+            if (alive) {
+              /* the day's true end: fight arrivals, reforms and the dusk clamp move
+                 bodies after the last daylight sample, so the track closes on the
+                 position the record itself is about to claim */
+              const ex = Math.round(q.x * 1000) / 1000, ey = Math.round(q.y * 1000) / 1000;
+              if (!q._track || !q._track.length) q._track = [ex, ey];
+              else if (q._track[q._track.length - 2] !== ex ||
+                       q._track[q._track.length - 1] !== ey) q._track.push(ex, ey);
+            }
             const demand = Math.max(0.001, rationDemand(q, raceById) * planet.supplyStrain);
             /* `ax`,`ay` — where this squad is heading, which is also what it is facing.
                `tr`, the route already walked, is kept because the replay guard compares
                whole recordings, but a viewer should draw the aim: where somebody has been is
                a straight line between two points they are no longer at. */
             sq.push({ c: ci, s: si,
-                      x: Math.round(q.x * 1000) / 1000, y: Math.round(q.y * 1000) / 1000,
-                      ax: q._aim ? Math.round(q._aim.x * 1000) / 1000 : null,
-                      ay: q._aim ? Math.round(q._aim.y * 1000) / 1000 : null,
-                      w: q._why || 'drift', n: alive,
+                      x: alive ? Math.round(q.x * 1000) / 1000 : q._downAt.x,
+                      y: alive ? Math.round(q.y * 1000) / 1000 : q._downAt.y,
+                      ax: alive && q._aim ? Math.round(q._aim.x * 1000) / 1000 : null,
+                      ay: alive && q._aim ? Math.round(q._aim.y * 1000) / 1000 : null,
+                      w: alive ? (q._why || 'drift') : 'down', n: alive,
                       st: Math.round(squadStress(q)),
                       rat: Math.round(Math.min(30, q.rations / demand)),
                       g: q.crates, cl: q.claiming ? 1 : 0,
                       hb: q._heldToday || 0,        /* two-hour blocks spent in a firefight */
                       jn: q._joinedToday ? 1 : 0,   /* walked into one already in progress */
-                      tr: q._track || [] });
+                      tr: alive || justDown ? (q._track || []) : [] });
           }
         }
         REC.days.push({

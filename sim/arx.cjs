@@ -8,7 +8,6 @@
  *   node arx.cjs build                   rebuild ui/combat_theater.html
  *   node arx.cjs armoury                 rebuild armoury.html (catalog + bench + allowance)
  *   node arx.cjs table                   rebuild negotiation_table.html (6 baked Divides)
- *   node arx.cjs bench                   rebuild the_table.html (live engine, playable)
  *   node arx.cjs lab [days] [seed]       3 corps x 3 squads, small arena, tick-by-tick trace
  *   node arx.cjs all                     regress + test, the pre-commit pair
  *
@@ -117,64 +116,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_A",
+    "result": "disengage_B",
     "exchanges": 8,
     "band": "medium",
     "aDead": 0,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 1,
-    "shots": 112,
-    "hits": 19,
-    "downs": 3
+    "aDown": 0,
+    "bDead": 1,
+    "bDown": 3,
+    "shots": 129,
+    "hits": 31,
+    "downs": 4
   },
   "short band, both aggressive": {
     "result": "disengage_A",
-    "exchanges": 8,
+    "exchanges": 12,
+    "band": "medium",
+    "aDead": 2,
+    "aDown": 2,
+    "bDead": 0,
+    "bDown": 1,
+    "shots": 122,
+    "hits": 42,
+    "downs": 5
+  },
+  "long band, both cautious": {
+    "result": "disengage_A",
+    "exchanges": 12,
     "band": "medium",
     "aDead": 2,
     "aDown": 2,
     "bDead": 0,
     "bDown": 0,
-    "shots": 103,
-    "hits": 25,
-    "downs": 4
-  },
-  "long band, both cautious": {
-    "result": "disengage_both",
-    "exchanges": 8,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 2,
-    "shots": 140,
-    "hits": 24,
+    "shots": 164,
+    "hits": 27,
     "downs": 4
   },
   "forest, standard v unyielding": {
     "result": "disengage_B",
-    "exchanges": 12,
+    "exchanges": 14,
     "band": "medium",
     "aDead": 0,
     "aDown": 0,
-    "bDead": 2,
-    "bDown": 2,
-    "shots": 192,
+    "bDead": 1,
+    "bDown": 1,
+    "shots": 200,
     "hits": 28,
-    "downs": 4
+    "downs": 2
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
-    "exchanges": 20,
+    "exchanges": 8,
     "band": "medium",
-    "aDead": 0,
-    "aDown": 1,
+    "aDead": 1,
+    "aDown": 3,
     "bDead": 0,
     "bDown": 1,
-    "shots": 218,
-    "hits": 21,
-    "downs": 2
+    "shots": 103,
+    "hits": 24,
+    "downs": 5
   }
 };
 
@@ -957,14 +956,64 @@ function laterConsequences() {
     if (!firstLanding && SEASONMOD.planetPreparedness(c) > before) firstLanding = m;
   }
 
-  ok('a survey does not land in the month it is bought',
-     firstLanding > firstSpend, 'bought M' + firstSpend + ', landed M' + firstLanding);
-  ok('a survey lands exactly when it says it will',
-     firstLanding - firstSpend === SEASONMOD.CONST.SURVEY_MONTHS,
-     (firstLanding - firstSpend) + ' months, expected ' + SEASONMOD.CONST.SURVEY_MONTHS);
+  /* RE-RULED: you focus on the intel, you get the intel (PROJECT.md). These two checks
+     were the old three-month delay written as an invariant — one demanded that a survey
+     NOT land in the month it was bought, the other that it land exactly SURVEY_MONTHS
+     later. The rule they guarded is gone, so they guard its replacement: a gather lands
+     the month it is paid for, and nothing is left in flight behind it. */
+  /* --- PARTIAL INTELLIGENCE IS A WINDOW, NOT AN ADJECTIVE (ruled) ------------------
+     A thin row used to say "A deep roster (partial)" — or, for training, "Drilling
+     unknown", a paid-for line that said less than silence. Rows bracket the real figure
+     now and the bracket tightens with the dossier. Two things must hold, or the mechanic
+     is worse than the adjectives were: the window must always CONTAIN the truth (intel
+     is incomplete, never wrong), and a deeper look must never widen it. */
+  {
+    const rngW = P.mulberry32(P.seedFrom('intel-window'));
+    const stW = SEASONMOD.beginSeason(rngW, SEASONMOD.openFleet(rngW, oa, {}), oa, {});
+    for (let m = 0; m < 4; m++) SEASONMOD.stepMonth(stW, {});
+    const parse = str => {
+      const m2 = String(str).replace(/,/g, '').match(/(\d+)(?:\u2013(\d+))?/);
+      return m2 ? [+m2[1], m2[2] != null ? +m2[2] : +m2[1]] : null;
+    };
+    let readings = 0, outside = 0, widened = 0;
+    for (const id of stW.ids) {
+      const them = stW.corps[id];
+      const arm = them.armoury || {};
+      const truth = {
+        roster: them.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length,
+        kit: Object.keys(arm).reduce((s2, k) => s2 + (arm[k] || 0), 0),
+        finances: Math.round((them.account || {}).treasury || 0)
+      };
+      for (const row of ['roster', 'kit', 'finances']) {
+        const glance = parse(SEASONMOD.snapshotRival(them, row, 1, stW.season));
+        const look = parse(SEASONMOD.snapshotRival(them, row, 2, stW.season));
+        if (!glance || !look) continue;
+        readings++;
+        if (truth[row] < glance[0] || truth[row] > glance[1]) outside++;
+        if (truth[row] < look[0] || truth[row] > look[1]) outside++;
+        if ((look[1] - look[0]) > (glance[1] - glance[0])) widened++;
+      }
+    }
+    ok('a partial dossier brackets the truth rather than describing it',
+       readings > 0 && outside === 0,
+       readings + ' bracketed readings, ' + outside + ' with the truth outside the window');
+    ok('scouting harder narrows the window, never widens it',
+       widened === 0, widened + ' of ' + readings + ' rows got vaguer with more work');
+    const trainRow = SEASONMOD.snapshotRival(stW.corps[stW.ids[1]], 'training', 1, stW.season);
+    ok('the training row reports a rival\'s drilling, not a shrug',
+       !/unknown/i.test(trainRow) && /\d/.test(trainRow), 'reads: ' + trainRow);
+  }
+
+  ok('a survey lands in the month it is bought',
+     firstLanding === firstSpend && firstSpend > 0,
+     'bought M' + firstSpend + ', landed M' + firstLanding);
+  ok('a survey leaves nothing in flight behind it',
+     !(c._pending || []).some(p2 => p2.kind === 'intel'),
+     (c._pending || []).filter(p2 => p2.kind === 'intel').length + ' gathers still pending');
   ok('the queue drains: intel actually arrives',
      SEASONMOD.planetPreparedness(c) > 0, 'planet readiness ' + SEASONMOD.planetPreparedness(c).toFixed(3));
-  ok('a survey that could not report before the lock is not offered',
+  /* with no delay there is no month too late to look: the track stays open all year */
+  ok('the intel track is open every month of the prep year',
      shutMonths === SEASONMOD.CONST.SURVEY_MONTHS,
      shutMonths + ' months shut, expected ' + SEASONMOD.CONST.SURVEY_MONTHS);
   ok('nothing is left owed at the lock', (c._pending || []).length === 0,
@@ -1102,14 +1151,18 @@ function zoneWall() {
     const rng = makeRng('zone-wall-' + i);
     const s = DIV.runDivide(rng, { oaProfiles: OA });
     for (const c of s.corps || []) for (const sq of c.squads || []) {
-      if (!(sq.bodies || []).length) continue;
+      /* RE-RULED with the dome (see divide.js): the wall never displaces, so the dead
+         and the taken now lie where they fell, and ground the dome swept past keeps its
+         fallen. The invariant that must hold is about the LIVING: no squad with anyone
+         left alive ends a Divide outside the line. */
+      if (!(sq.bodies || []).some(b => b.status === 'active' || b.status === 'injured')) continue;
       squadDays++;
       const o = MAPMOD.outsideBy(s.planet, s.days, sq.x, sq.y);
       if (o > 1e-9) { outside++; worst = Math.max(worst, o); }
     }
   }
-  ok('the line is a wall: no squad ends a Divide outside it', outside === 0,
-     outside + ' of ' + squadDays + ' squads, worst overshoot ' + worst.toFixed(4));
+  ok('the line is a wall: nobody living ends a Divide outside it', outside === 0,
+     outside + ' of ' + squadDays + ' living squads, worst overshoot ' + worst.toFixed(4));
 }
 
 function energyInvariants(n) {
@@ -1763,10 +1816,16 @@ function seasonRules() {
      the umbrella's cut, what a ceded claim sold for, ransoms both ways — was computed and
      never banked. A career ran on the board's grant alone and nothing done on a planet moved
      a treasury by one credit. */
-  const bonusLine = Object.keys(lines).find(k => /^Divide bonus/.test(k));
+  /* /^Divide bonus/ also matched 'Divide bonuses' — the EXPENSE line season.js posts
+     when a winner pays its own people — and Object.keys order handed the check that
+     one: it graded the payout ledger's wrong side and called a healthy mechanic broken
+     (+4.5M banked against −537k paid out, and the check read the −537k). The exact
+     income label, nothing else. */
+  const bonusLabel = 'Divide bonus (the OA takes the rights)';
   ok('G19 winning a Divide actually pays a corp',
-     bonusLine && lines[bonusLine] > 0,
-     'win bonuses banked over six seasons: ' + Math.round((lines[bonusLine] || 0)));
+     lines[bonusLabel] > 0,
+     'win bonuses banked over the career: ' + Math.round((lines[bonusLabel] || 0)) +
+     ' · bonuses paid out: ' + Math.round(lines['Divide bonuses'] || 0));
 
   /* S13 — and only a SHARE of it. Banked whole, one Divide paid for seven years of existing
      and the difficulty ladder inverted inside three seasons: the hardest start in the fleet
@@ -1850,9 +1909,10 @@ function seasonRules() {
        ap > 0 && Object.keys(kinds).length >= 3,
        ap + ' AP spent across ' + Object.keys(kinds).length + ' verbs: ' +
        Object.keys(kinds).map(k => k + ' ' + kinds[k]).join(', '));
-    ok('G26 a signing window is worked in the months DESIGN.md places one',
-       Object.keys(windows).length >= 2,
-       'windows worked: ' + (Object.keys(windows).join(', ') || 'none'));
+    /* G26 WAS HERE — it demanded the 'work the signing window' verb, which the prep
+       calendar retired by ruling (HUB: one write, zero reads; signing runs on need
+       alone). A check that requires a deliberately-removed mechanic is not a guard,
+       it is a haunting. The calendar's coverage lives in G25's verb spread. */
     ok('G27 a wound can still be on the books when the year ends',
        bodies > 0 && hurtAtEnd > 0,
        hurtAtEnd + ' of ' + bodies + ' still carrying — zero means the calendar healed ' +
@@ -1914,10 +1974,21 @@ function seasonRules() {
       safety += m.tookLessForSafety || 0; refused += m.refused || 0; unbid += m.unbid || 0;
       bLot += b.lot || 0; bSigned += b.signed || 0; bUnplaced += b.unplaced || 0;
     }
-    let serving = 0, freed = 0;
+    /* RE-RULED. This counted status 'prisoner' on the roster for "serving" and status
+       'freed' for "went free", and both were unfindable by construction: signees carry
+       status 'active' (STATUS IS A BODY'S STATE; the term is the CONTRACT'S), and the
+       freed WALK — they are off the roster the moment the clause completes. The check
+       was reading snapshots for two populations that never appear in one. Serving is
+       now an unfinished clause on a live contract; completions are counted as the events
+       they are, from the season record. */
+    let serving = 0, freed = 0, walked = 0;
     for (const id in bank.corps) for (const f of bank.corps[id].roster) {
-      if (f.status === 'prisoner') serving++;
-      if (f.status === 'freed') freed++;
+      if (f.contract && f.contract.divides_required != null &&
+          (f.contract.divides_served || 0) < f.contract.divides_required) serving++;
+    }
+    for (const s of bank.seasons || []) for (const id in (s.corps || {})) {
+      freed += (s.corps[id].freed || 0);
+      walked += (s.corps[id].walked || 0);
     }
     ok('G31 the merc market runs and professionals are hired through it',
        lot > 0 && signed > 0, lot + ' on the market, ' + bids + ' offers, ' + signed + ' hired');
@@ -1925,8 +1996,9 @@ function seasonRules() {
        signed > 0 && safety > 0,
        safety + ' of ' + signed + ' took less than the top bid');
     ok('G33 the Bastille intake runs, and a term is served rather than merely signed',
-       bLot > 0 && bSigned > 0 && freed > 0,
-       bSigned + ' signed out of ' + bLot + '; ' + serving + ' serving, ' + freed + ' went free');
+       bLot > 0 && bSigned > 0 && serving > 0 && freed > 0,
+       bSigned + ' signed out of ' + bLot + '; ' + serving + ' serving a clause, ' +
+       freed + ' terms completed (' + walked + ' walked)');
     observe('G18a', 'offers a head at the merc deadline \u2014 refusals ' + refused +
             ', unbid ' + unbid, lot ? bids / lot : 0);
 
@@ -2265,8 +2337,10 @@ function seasonRules() {
      `the_table.html` could not be rebuilt at any point during Step 7.5 and still showed a game
      running the abstract resolver. A viewer that has fallen behind the code is a lie, and a
      build script that cannot run makes the lie invisible. */
-  const buildSrc = ['build_table.cjs', 'build_bench.cjs', 'build_seasons.cjs',
-                    'build_audiences.cjs', 'build_bench_weapons.cjs'];
+  const buildSrc = ['build_table.cjs', 'build_seasons.cjs', 'build_audiences.cjs'];
+  /* build_bench.cjs and build_bench_weapons.cjs left this list when the_table.html and
+     the_bench.html were retired — superseded single-surface pages, removed with their
+     templates and builders rather than left to drift. */
   const badPath = [];
   for (const f of buildSrc) {
     let src;
@@ -3193,7 +3267,11 @@ function negotiationRules() {
      recorded. A schema that lists states the game cannot reach misleads anyone reading it. */
   const schema = JSON.parse(fs.readFileSync(findFile('schemas.json'), 'utf8'));
   const statusEnum = ((((schema.definitions || {}).fighter || {}).properties || {}).status || {}).enum || [];
-  const allCode = ['divide.js', 'combat.js', 'roster.js', 'negotiate.js', 'ledger.js', 'items.js']
+  /* season.js belongs here: it owns the prep year, and 'freed' — the Bastille clause
+     completing — is assigned there and nowhere else. Without it the audit reported a
+     live status as unreachable, which is the audit lying, not the code. */
+  const allCode = ['divide.js', 'combat.js', 'roster.js', 'negotiate.js', 'ledger.js',
+                   'items.js', 'season.js']
     .map(f => fs.readFileSync(findFile(f), 'utf8')).join('\n');
   const unassignable = statusEnum.filter(st => allCode.indexOf("'" + st + "'") < 0);
   /* --- THE CORP SCHEMA, CHECKED AGAINST LIVE CORPS -----------------------------------
@@ -3345,7 +3423,7 @@ function negotiationRules() {
      a hand-written mirror of the squad AI, so it could not be regenerated and had already
      drifted once, drawing the weekly ring schedule for a whole phase after it was replaced.
      A frozen duplicate of logic that keeps changing is a lie with a delay on it. */
-  const VIEWS = ['armoury.html', 'the_table.html', 'the_bench.html', 'the_career.html'];
+  const VIEWS = ['armoury.html', 'the_career.html'];
   const DELETED = ['ZONE_WEEKS', 'ZONE_FINAL_FRAC', 'OBJECTIVES_AT_DROP', 'LATE_REVEAL_DAY',
                    'RIGIDITY_BLOCK', 'DESPERATION_LOSS_FRACTION', 'WITHDRAW_TRIGGER_FRAC'];
   const viewerRot = [];
@@ -4064,12 +4142,6 @@ function buildSurvey() {
     replays.length + ' replays');
 }
 
-function buildBench() {
-  /* the_table.html — the manager's side. Inlines the live engine; see build_bench.cjs. */
-  const { execFileSync } = require('child_process');
-  execFileSync(process.execPath, [findFile('build_bench.cjs')], { stdio: 'inherit' });
-}
-
 function buildTable() {
   /* The negotiation viewer. Bakes real runs — see build_table.cjs, which owns the shape. */
   const { execFileSync } = require('child_process');
@@ -4101,7 +4173,6 @@ else if (cmd === 'build') buildTheater();
 else if (cmd === 'survey') buildSurvey();
 else if (cmd === 'armoury') buildArmoury();
 else if (cmd === 'table') buildTable();
-else if (cmd === 'bench') buildBench();
 else if (cmd === 'lab') runLab(Number(process.argv[3]) || 6, process.argv[4]);
 else if (cmd === 'all') { runRegression(); console.log(''); runAcceptance(); }
 else usage();
