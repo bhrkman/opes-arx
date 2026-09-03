@@ -116,64 +116,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_B",
+    "result": "disengage_both",
     "exchanges": 8,
     "band": "medium",
     "aDead": 0,
+    "aDown": 3,
+    "bDead": 0,
+    "bDown": 3,
+    "shots": 143,
+    "hits": 30,
+    "downs": 6
+  },
+  "short band, both aggressive": {
+    "result": "disengage_B",
+    "exchanges": 13,
+    "band": "medium",
+    "aDead": 1,
     "aDown": 0,
     "bDead": 1,
     "bDown": 3,
-    "shots": 129,
-    "hits": 31,
-    "downs": 4
-  },
-  "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 12,
-    "band": "medium",
-    "aDead": 2,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 1,
-    "shots": 122,
-    "hits": 42,
-    "downs": 5
+    "shots": 160,
+    "hits": 46,
+    "downs": 6
   },
   "long band, both cautious": {
-    "result": "disengage_A",
-    "exchanges": 12,
-    "band": "medium",
-    "aDead": 2,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 0,
-    "shots": 164,
-    "hits": 27,
-    "downs": 4
-  },
-  "forest, standard v unyielding": {
     "result": "disengage_B",
-    "exchanges": 14,
+    "exchanges": 11,
     "band": "medium",
     "aDead": 0,
-    "aDown": 0,
-    "bDead": 1,
-    "bDown": 1,
-    "shots": 200,
-    "hits": 28,
-    "downs": 2
+    "aDown": 2,
+    "bDead": 0,
+    "bDown": 4,
+    "shots": 188,
+    "hits": 27,
+    "downs": 6
   },
-  "entrenched, cautious v hunter": {
+  "forest, standard v unyielding": {
     "result": "disengage_A",
     "exchanges": 8,
     "band": "medium",
     "aDead": 1,
     "aDown": 3,
     "bDead": 0,
-    "bDown": 1,
-    "shots": 103,
-    "hits": 24,
-    "downs": 5
+    "bDown": 0,
+    "shots": 120,
+    "hits": 40,
+    "downs": 4
+  },
+  "entrenched, cautious v hunter": {
+    "result": "disengage_A",
+    "exchanges": 6,
+    "band": "medium",
+    "aDead": 1,
+    "aDown": 3,
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 67,
+    "hits": 21,
+    "downs": 4
   }
 };
 
@@ -674,7 +674,7 @@ function decisionWindow() {
   const run = (policy, seed, me) => {
     const g = DIV.divideCore(P.mulberry32(P.seedFrom(seed)),
                              { oaProfiles: oa, raceById: gen.raceById, human: me });
-    let r = g.next(), offered = 0, windows = 0, cadences = {};
+    let r = g.next(), offered = 0, windows = 0, cadences = {}, takeRows = 0, takeViable = 0;
     while (!r.done) {
       const w = r.value; windows++; cadences[w.cadence] = 1;
       const ans = { stance: 'standard' };
@@ -683,6 +683,8 @@ function decisionWindow() {
         if (t) { ans.deal = { kind: 'join', principal: t.principal, terms: mid(t.band) }; offered++; }
       }
       if (policy === 'take') {
+        takeRows += (w.table.wouldTake || []).length;
+        takeViable += (w.table.wouldTake || []).filter(x => x.viable).length;
         const t = w.table.wouldTake.filter(x => x.viable && x.band)[0];
         if (t) { ans.deal = { kind: 'take', corp: t.corp, terms: mid(t.band) }; offered++; }
       }
@@ -702,13 +704,13 @@ function decisionWindow() {
       if (policy !== 'none' && !r.done) {
         const a = (r.value.stats || {}).audit || {};
         if ((a.humanJoins || 0) + (a.humanTakes || 0) + (a.humanPacts || 0) > 0) {
-          return { offered, windows, cadences: Object.keys(cadences),
+          return { offered, windows, cadences: Object.keys(cadences), takeRows, takeViable,
                    joins: a.humanJoins || 0, takes: a.humanTakes || 0, pacts: a.humanPacts || 0 };
         }
       }
     }
     const a = (r.value || {}).audit || {};
-    return { offered, windows, cadences: Object.keys(cadences),
+    return { offered, windows, cadences: Object.keys(cadences), takeRows, takeViable,
              joins: a.humanJoins || 0, takes: a.humanTakes || 0, pacts: a.humanPacts || 0 };
   };
 
@@ -723,15 +725,25 @@ function decisionWindow() {
      which is what guards against a branch that only works for one profile — and the cost is a
      quarter of what it was. If a branch stops firing at this size that is a finding, not noise:
      these are the two houses that deal most freely. */
-  let joins = 0, takes = 0, pacts = 0, offered = 0;
-  for (const seed of ['w1', 'w2'])
+  /* TAKING SOMEBODY IS ALMOST NEVER SIGNABLE, and this check was green by luck rather than
+     by coverage. Measured across the same runs: of 112 priced take rows, exactly ONE had a
+     number both sides would sign (joinerMin <= principalMax). A two-seed sample of a
+     one-in-a-hundred event is a coin toss, and the next change to the economy — here, a
+     re-priced gun catalogue — flipped it to zero and read as a broken branch.
+     The sample is widened until the branch can fire reliably. The RATE is a separate
+     question, recorded in the docs for a ruling: an OA will hand over its banner far more
+     readily than it will accept somebody else's. */
+  let joins = 0, takes = 0, pacts = 0, offered = 0, takeRows = 0, takeViable = 0;
+  for (const seed of ['w1', 'w2', 'w3', 'w4'])
     for (const me of ['vantis_deepcore', 'mercy_concern'])
       for (const pol of ['join', 'take', 'pact']) {
         const r = run(pol, seed, me);
         joins += r.joins; takes += r.takes; pacts += r.pacts; offered += r.offered;
+        takeRows += r.takeRows || 0; takeViable += r.takeViable || 0;
       }
   ok('a manager can cede their banner to somebody', joins > 0, joins + ' joins');
-  ok('a manager can take somebody under theirs', takes > 0, takes + ' takes');
+  ok('a manager can take somebody under theirs', takes > 0,
+     takes + ' takes \u00b7 ' + takeViable + ' signable of ' + takeRows + ' priced rows');
   ok('a manager can agree a truce mid-contest', pacts > 0, pacts + ' pacts');
   ok('and offers are made that do not all succeed',
      offered > joins + takes + pacts, offered + ' offered, ' + (joins + takes + pacts) + ' struck');
@@ -971,8 +983,18 @@ function laterConsequences() {
     const rngW = P.mulberry32(P.seedFrom('intel-window'));
     const stW = SEASONMOD.beginSeason(rngW, SEASONMOD.openFleet(rngW, oa, {}), oa, {});
     for (let m = 0; m < 4; m++) SEASONMOD.stepMonth(stW, {});
+    /* Money wears the credit mark now, so a range reads ₡205,000–₡330,000 and a pattern
+       expecting digits either side of the dash matched the low bound twice — the check then
+       reported a window that excluded its own truth. Strip everything that is not a digit,
+       a dash or a separator, and read the two numbers that remain. */
+    /* Read the FIRST figure on the row and nothing else. Two traps here, both met: money
+       wears the credit mark, so a pattern expecting digits either side of the dash matched
+       the low bound twice; and stripping every non-digit glued the row's second range onto
+       its first, so ₡240,000–₡275,000 · Wage ₡8,550–₡9,700 read as a high bound of
+       2,750,008,550. Split on the separator, then read one range. */
     const parse = str => {
-      const m2 = String(str).replace(/,/g, '').match(/(\d+)(?:\u2013(\d+))?/);
+      const head = String(str).split('\u00b7')[0].replace(/[^0-9\u2013-]/g, '');
+      const m2 = head.match(/^(\d+)(?:[\u2013-](\d+))?/);
       return m2 ? [+m2[1], m2[2] != null ? +m2[2] : +m2[1]] : null;
     };
     let readings = 0, outside = 0, widened = 0;
@@ -3469,15 +3491,25 @@ function negotiationRules() {
      budgetSeen > 0 && budgetSane === budgetSeen, budgetSane + ' of ' + budgetSeen);
 
   {
-    const s = corpus()[2];
-    for (const c of s.corps) {
-      if (!c.crowdHit) continue;
-      const before = c.crowdHit; c.crowdHit = 0;
-      const clean = DIV.standing(c); c.crowdHit = before;
-      if (DIV.standing(c) < clean) { standingMoved = true; break; }
+    /* ASK THE CORPUS, NOT ONE CONTEST OF IT. This read `corpus()[2]` and needed that single
+       contest to contain a crowd charge — which it did, until a re-priced gun catalogue
+       shifted who dealt with whom and left that one contest with none. The claim being
+       guarded is "a charge moves standing", not "the third contest has one", so every
+       contest in the corpus is searched and the tally is reported. */
+    let charged = 0;
+    for (const s of corpus()) {
+      for (const c of s.corps) {
+        if (!c.crowdHit) continue;
+        charged++;
+        const before = c.crowdHit; c.crowdHit = 0;
+        const clean = DIV.standing(c); c.crowdHit = before;
+        if (DIV.standing(c) < clean) standingMoved = true;
+      }
     }
     ok('cross-step: what negotiation charges the crowd actually moves standing',
-       standingMoved, 'crowdHit must reduce the number the day loop reads');
+       standingMoved,
+       charged ? charged + ' charged corps seen, none of whose standing moved'
+               : 'no corp in the whole corpus was charged \u2014 nothing to measure');
   }
 
   /* --- the replay path runs, and agrees with the live run ---------------------------
@@ -3562,7 +3594,9 @@ function negotiationRules() {
      Every entry in the act table is content: if nothing can emit it, it is decoration, and
      if something emits a name the table lacks, it throws. Both directions, per §14. */
   const emitted = new Set();
-  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js']
+  /* trade.js belongs here: the transfer market emits its own acts, and a file list that
+     predates a module reports live content as dead */
+  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js']
     .map(f => fs.readFileSync(findFile(f), 'utf8')).join('\n');
   for (const m of srcAll.matchAll(/(?:REP\.act|act)\([^,]+,\s*'([a-z_]+)'/g)) emitted.add(m[1]);
   for (const m of srcAll.matchAll(/seenDoing\([^,]+,\s*(?:[^,]*\?\s*)?'([a-z_]+)'/g)) emitted.add(m[1]);
@@ -3607,7 +3641,51 @@ function negotiationRules() {
     REPMOD.act(rareRep, rare, { targetId: OA[1].id, count: 1, scale: 0.5 });
     actsSeen.add(rare);
   }
-  /* `media_day` is produced at the SEAM rather than on the ground, so a batch of Divides can
+  /* THE FLEET CHOOSES ITS OWN CARD. Every corp used to send its greenest eight, which made
+     the Dividend the same night every year and handed a manager who fielded names a free win
+     over rookies. Each OA leans by its own situation now \u2014 blood the green, drill the
+     unblooded, show the famous, or spare everybody \u2014 and the guard is that the fleet does
+     not converge on one answer. */
+  {
+    const oaD = readJSON('oa_profiles.json').oa_profiles;
+    const dRng = P.mulberry32(P.seedFrom('dividend-leans'));
+    const dSt = SEASONMOD.beginSeason(dRng, SEASONMOD.openFleet(dRng, oaD, {}), oaD, {});
+    while (dSt.month <= 6) SEASONMOD.stepMonth(dSt);
+    const leans = {};
+    for (const id of dSt.ids) {
+      const l = dSt.corps[id]._dividendLean;
+      if (l) leans[l] = (leans[l] || 0) + 1;
+    }
+    const kinds = Object.keys(leans);
+    ok('the fleet does not all bring the same card to the Dividend',
+       kinds.length >= 2,
+       kinds.map(k => k + ' ' + leans[k]).join(', ') || 'nobody made a card');
+    ok('the Dividend still makes matches to watch',
+       (dSt.dividend.matches || 0) > 0 && (dSt.dividend.watch || []).length > 0,
+       (dSt.dividend.matches || 0) + ' matches, ' + (dSt.dividend.watch || []).length + ' kept whole');
+  }
+
+  /* The two TRANSFER acts are produced in the prep year, not on the ground, so a corpus of
+     Divides can never contain one however wide it is — the same shape as `media_day` below,
+     and proved the same way: through the real path. A season is run and the fleet's own
+     transfer market is left to do what it does, which proves the market reaches the
+     reputation system rather than merely that the table has two more rows in it. */
+  {
+    const oaT = readJSON('oa_profiles.json').oa_profiles;
+    const tRng = P.mulberry32(P.seedFrom('act-transfer'));
+    const tCorps = SEASONMOD.openFleet(tRng, oaT, {});
+    const tSt = SEASONMOD.beginSeason(tRng, tCorps, oaT, {});
+    while (tSt.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(tSt);
+    let sawSale = false;
+    for (const id of tSt.ids)
+      for (const m of ((tCorps[id].rep || {}).memory || []))
+        if (m.t === 'sold_away' || m.t === 'sold_anyone') { actsSeen.add(m.t); sawSale = true; }
+    ok('the fleet\'s own transfer market reaches the stands',
+       sawSale, sawSale ? 'a season of fleet trading was seen by the audiences'
+                        : 'no transfer was recorded in a whole prep year');
+  }
+
+  /* `media_day` is produced at the SEAM rather than on the ground, so a batch of Divides can  /* `media_day` is produced at the SEAM rather than on the ground, so a batch of Divides can
      never contain one however wide it is. It is exercised through the real path — a season run
      to M11 with a corp that performs — rather than being poked into the table directly or added
      to the rare list above, because what needs proving is that the seam reaches the reputation

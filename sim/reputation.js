@@ -157,6 +157,21 @@
        The price is not here, because it is not a reputation price: turning up tells the other
        seven what you brought. */
     media_day:         { own: 3, rival: -1, fleet: 6, residue: 0.15 },
+    /* --- THE TRANSFER MARKET, seen from the stands (ruled at the trade pass).
+       Selling somebody is not just paperwork: your own supporters mind, and how much they
+       mind is who you sold. `ctx.count` carries the fighter's FAME, so an unknown moving on
+       is a shrug and a famous one leaving is a wound — the same {per} shape `our_dead`
+       uses. The wider fleet barely looks up; the Aleas do not care at all about who is on
+       whose books.
+
+       And the mirror, which is the part that makes a transfer market feel like one: the
+       SELLING side's supporters warm to whoever took their star. That is `buyer`, the same
+       hook ceding already uses to pay the corp that bought a claim — a rival fanbase can
+       think better of you for giving one of their own a place to be. */
+    sold_away:         { own: { per: -0.22 }, fleet: { per: -0.02 }, buyer: { per: 0.18 },
+                         residue: 0.20 },
+    /* a small flat knock for the fact of it, so trading a nobody is not entirely free */
+    sold_anyone:       { own: -1.5, residue: 0.15 },
     /* §8.2 the address. One entry per register, so a guard can assert that every register
        moves at least one audience and none of them is a dead option. */
     said_gracious:     { rival: 7, fleet: 3, residue: 0.15 },

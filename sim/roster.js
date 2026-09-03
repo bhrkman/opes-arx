@@ -469,6 +469,29 @@
     for (const k of STATS) stats[k] *= 10;
     potential *= 10;
     scout.estimate *= 10;
+    /* AND THEN THE GRAIN BETWEEN THE TENS. The migration left every birth on a multiple of
+       ten — 80/90/120/40 — which reads as a rounded-off number rather than a person. Each
+       stat is nudged within its own decade and the nudges are then BALANCED to sum to zero,
+       so the roll's shape is untouched: the same pools produce the same average fighter,
+       and nobody is quietly stronger than the draw intended. Only the texture changes. */
+    {
+      /* the clamp is written on the FOUNDING 1-20 scale, so it has to be lifted with the
+         stats it guards — applied raw it crushed every birth to twenty */
+      const jitter = {}, floor = this.rec.stat_model.clamp[0] * 10,
+            ceil = this.rec.stat_model.clamp[1] * 10;
+      let sum = 0;
+      for (const k of STATS) { jitter[k] = P.int(rng, -9, 9); sum += jitter[k]; }
+      /* hand the rounding remainder back, one point at a time, to whoever can take it */
+      const keys = STATS.slice();
+      while (sum !== 0) {
+        const k = keys[P.int(rng, 0, keys.length - 1)];
+        const step = sum > 0 ? -1 : 1;
+        if (Math.abs(jitter[k] + step) > 9) continue;
+        jitter[k] += step; sum += step;
+      }
+      for (const k of STATS)
+        stats[k] = P.clamp(stats[k] + jitter[k], floor, ceil);
+    }
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
     /* STEP D — TWO BIRTHS, ZERO NEW DRAWS (the stream must not move):
        TRAIT STAT_MODS MADE LIVE. The data has carried them since the traits were written

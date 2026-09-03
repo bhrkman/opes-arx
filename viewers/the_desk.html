@@ -3933,19 +3933,20 @@ window.ARX_DATA = {
   "status": "Step 5b-1 (plumbing). Catalog per PROCUREMENT.md 4-11; all (proposed).",
   "sources": "PROCUREMENT.md 4.2 quirk vocabulary, 4.3 price formulae, 5-11 catalog",
   "provenance_notes": [
-   "Armour carries three resistances — ballistic, energy, explosive — added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
+   "Armour carries three resistances \u2014 ballistic, energy, explosive \u2014 added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
    "Energy weapons overheat in two or three shots and hold a day's charge, not a fight's: you cannot swap a cell mid-firefight the way you swap a magazine. Their damage runs a point below their ballistic equivalents. The trade is that they never need resupplying (PROCUREMENT.md 6).",
    "There is NO free kit. Nothing in this catalog costs zero: a corp fields what it owns (its armoury) and buys the rest with treasury credits. A founding armoury carries a corp into season one; losing it is a management failure, not a case for charity (PROCUREMENT.md 3, ruled).",
    "picks_for names the stat a corp selects that role by: the marksman rifle goes to the best shot in the squad, the scout kit to the best fieldcraft. Deterministic, (proposed), and it is what stops a 5-aim fighter carrying the Whisper.",
    "roles[] is the baseline squad composition every corp fields (PROCUREMENT.md 15.1). Six roles, a spread of bands, and a candidate list per role. Nobody fields two unit types.",
-   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns — the allowance is free, so preferring cheap would be incoherent.",
+   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns \u2014 the allowance is free, so preferring cheap would be incoherent.",
    "doctrines[] are LEANS on that baseline, not replacements for it: a composition bias of a few bodies, an ordered taste in quirks, a mod wishlist, and the order in which the allowance gets spent. ONE source: the armoury page, the document's table and Step 5b-2's AI procurement all read this block.",
    "Prices with price_model 'formula' are DERIVED from constants.pricing and are regenerated and diffed by `arx.cjs regress`. Editing a formula cost by hand will fail the suite.",
    "price_model 'scarcity' = exotica, hand-priced; guarded only by the 3x floor against the dearest formula item.",
    "price_model 'fixed' = mods and consumables, hand-priced; too small and too varied for a formula to price honestly.",
    "Contraband exists as data with no acquisition path until Step 9 (PROCUREMENT.md 11.2).",
    "Identity is the weapon, refinement is the mod, tier is only a shelf: no model appears at more than one tier (PROCUREMENT.md 4.1)."
-  ]
+  ],
+  "type_note": "What a piece IS, as a shelf would file it. Derived once from what each weapon does (its traits and its band) and then written down, because a market that guesses its own sections from tags will disagree with itself the moment a tag changes. Edit this field, not the derivation."
  },
  "constants": {
   "pricing": {
@@ -4148,7 +4149,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Someone's grandfather carried it. Still works."
+   "identity": "Someone's grandfather carried it. Still works.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_hunting_rifle",
@@ -4169,7 +4171,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A civilian gun that reaches. Everything else about it is a compromise."
+   "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_pdw",
@@ -4190,7 +4193,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two rounds where one was asked for."
+   "identity": "Two rounds where one was asked for.",
+   "type": "Submachine Guns"
   },
   {
    "id": "itm_riot_autogun",
@@ -4212,7 +4216,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Crowd-control kit that found a war."
+   "identity": "Crowd-control kit that found a war.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_scattergun",
@@ -4233,7 +4238,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Ends rooms."
+   "identity": "Ends rooms.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_carbine",
@@ -4242,17 +4248,20 @@ window.ARX_DATA = {
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 900,
+   "cost": 1150,
    "bulk": 3,
    "effects": {
     "power": 5,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The standard. Everything else is measured against it."
+   "identity": "The standard. Everything else is measured against it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_bullpup",
@@ -4261,19 +4270,21 @@ window.ARX_DATA = {
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1090,
+   "cost": 1340,
    "bulk": 2,
    "effects": {
     "power": 5,
     "range": "medium",
     "tags": [
-     "stabilized"
+     "stabilized",
+     "burst"
     ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short enough to fight while moving."
+   "identity": "Short enough to fight while moving.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_battle_rifle",
@@ -4295,7 +4306,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Full power, full weight. You will feel every metre you carry it."
+   "identity": "Full power, full weight. You will feel every metre you carry it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_marksman_rifle",
@@ -4316,7 +4328,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for."
+   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_machine_gun",
@@ -4337,7 +4350,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them."
+   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_drum_shotgun",
@@ -4359,7 +4373,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first."
+   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_needler",
@@ -4380,7 +4395,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Devastating on the unarmoured, a rumour against plate."
+   "identity": "Devastating on the unarmoured, a rumour against plate.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_gyrojet",
@@ -4402,7 +4418,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Rounds that accelerate - useless until they have flown."
+   "identity": "Rounds that accelerate - useless until they have flown.",
+   "type": "Carbines"
   },
   {
    "id": "itm_caroms",
@@ -4423,7 +4440,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fired at the wall, on purpose."
+   "identity": "Fired at the wall, on purpose.",
+   "type": "Carbines"
   },
   {
    "id": "itm_whisper",
@@ -4444,7 +4462,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The shot nobody attributes."
+   "identity": "The shot nobody attributes.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_hardpoint",
@@ -4467,7 +4486,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A machine gun that stopped apologising."
+   "identity": "A machine gun that stopped apologising.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_grenade_carbine",
@@ -4488,7 +4508,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two weapons, one awkward weight."
+   "identity": "Two weapons, one awkward weight.",
+   "type": "Launchers"
   },
   {
    "id": "itm_coilgun",
@@ -4510,7 +4531,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Magnetic acceleration. Wait for it."
+   "identity": "Magnetic acceleration. Wait for it.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_amr",
@@ -4532,7 +4554,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for vehicles. Fielded against people."
+   "identity": "Built for vehicles. Fielded against people.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_breachgun",
@@ -4554,7 +4577,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't shoot around cover. Shoots the cover."
+   "identity": "Doesn't shoot around cover. Shoots the cover.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_las_surplus",
@@ -4563,12 +4587,14 @@ window.ARX_DATA = {
    "slot": "primary",
    "family": "energy",
    "tier": 1,
-   "cost": 360,
+   "cost": 470,
    "bulk": 3,
    "effects": {
     "power": 4,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "energy",
     "heat": 4,
     "heat_cap": 8,
@@ -4576,7 +4602,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Cheap, patient, and slow to answer."
+   "identity": "Cheap, patient, and slow to answer.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_pulse_carbine",
@@ -4601,7 +4628,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it."
+   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_las_repeater",
@@ -4626,7 +4654,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The only energy weapon that can hold an arc, and it hates doing it."
+   "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_ion_carbine",
@@ -4651,7 +4680,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Terrible against people. Ruinous against machines."
+   "identity": "Terrible against people. Ruinous against machines.",
+   "type": "Carbines"
   },
   {
    "id": "itm_accumulator",
@@ -4675,7 +4705,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drinks the day. Dreads the night."
+   "identity": "Drinks the day. Dreads the night.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_arc_projector",
@@ -4699,7 +4730,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Finds the second man without being asked."
+   "identity": "Finds the second man without being asked.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_cryo_lance",
@@ -4724,7 +4756,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't kill them. Stops them."
+   "identity": "Doesn't kill them. Stops them.",
+   "type": "Carbines"
   },
   {
    "id": "itm_fusion_repeater",
@@ -4748,7 +4781,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Gets hotter and better at once."
+   "identity": "Gets hotter and better at once.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_photon_marksman",
@@ -4772,7 +4806,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "No report, no flash, no witness."
+   "identity": "No report, no flash, no witness.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_resonance",
@@ -4797,7 +4832,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Sound goes where the bullet won't."
+   "identity": "Sound goes where the bullet won't.",
+   "type": "Carbines"
   },
   {
    "id": "itm_beam_lance",
@@ -4821,7 +4857,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A line drawn through the argument. Once, then twice, then nothing."
+   "identity": "A line drawn through the argument. Once, then twice, then nothing.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_disintegrator",
@@ -4846,7 +4883,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Removes the argument and the furniture."
+   "identity": "Removes the argument and the furniture.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_plasma_caster",
@@ -4872,7 +4910,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd's favourite, the Aleas' paperwork."
+   "identity": "The crowd's favourite, the Aleas' paperwork.",
+   "type": "Launchers"
   },
   {
    "id": "itm_plasma_thrower",
@@ -4897,7 +4936,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short range, long memory."
+   "identity": "Short range, long memory.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_holdout",
@@ -4916,7 +4956,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Better than a harsh word."
+   "identity": "Better than a harsh word.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_flare_pistol",
@@ -4938,7 +4979,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Signal kit. Used badly, on camera."
+   "identity": "Signal kit. Used badly, on camera.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_service_pistol",
@@ -4957,7 +4999,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Issued, forgotten, occasionally decisive."
+   "identity": "Issued, forgotten, occasionally decisive.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_las_sidearm",
@@ -4976,7 +5019,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fails on a different resource than your rifle."
+   "identity": "Fails on a different resource than your rifle.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_heavy_revolver",
@@ -4998,7 +5042,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Six chances to be right."
+   "identity": "Six chances to be right.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_machine_pistol",
@@ -5019,7 +5064,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties fast, which is the point."
+   "identity": "Empties fast, which is the point.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_gyro_pistol",
@@ -5041,7 +5087,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A sidearm with opinions about distance."
+   "identity": "A sidearm with opinions about distance.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_arc_pistol",
@@ -5062,7 +5109,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Leaves them standing and useless."
+   "identity": "Leaves them standing and useless.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_needle_derringer",
@@ -5084,7 +5132,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two shots, no noise, nothing that troubles plate."
+   "identity": "Two shots, no noise, nothing that troubles plate.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_compact_plasma",
@@ -5105,7 +5154,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Feels wildly illegal. Entirely legal."
+   "identity": "Feels wildly illegal. Entirely legal.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_scout_weave",
@@ -5130,7 +5180,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Trades the plate for the ground."
+   "identity": "Trades the plate for the ground.",
+   "type": "Armour"
   },
   {
    "id": "itm_flak_vest",
@@ -5153,7 +5204,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for fragments, ordinary against everything else."
+   "identity": "Built for fragments, ordinary against everything else.",
+   "type": "Armour"
   },
   {
    "id": "itm_plate_carrier",
@@ -5176,7 +5228,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The honest answer to most of what gets shot at you."
+   "identity": "The honest answer to most of what gets shot at you.",
+   "type": "Armour"
   },
   {
    "id": "itm_ablative_harness",
@@ -5199,7 +5252,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Boils a beam away and cracks under a rifle."
+   "identity": "Boils a beam away and cracks under a rifle.",
+   "type": "Armour"
   },
   {
    "id": "itm_sealed_hardplate",
@@ -5224,7 +5278,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Slow, sealed, and hard to finish by any means."
+   "identity": "Slow, sealed, and hard to finish by any means.",
+   "type": "Armour"
   },
   {
    "id": "itm_mod_optic",
@@ -5241,7 +5296,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lights optics_gear_synergy."
+   "identity": "Lights optics_gear_synergy.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_bipod",
@@ -5259,7 +5315,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Steady, and only steady."
+   "identity": "Steady, and only steady.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_target_link",
@@ -5276,7 +5333,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Waits better than you do."
+   "identity": "Waits better than you do.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_light_frame",
@@ -5294,7 +5352,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lighter, and it shows."
+   "identity": "Lighter, and it shows.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_grip",
@@ -5311,7 +5370,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fire and move."
+   "identity": "Fire and move.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_rangefinder",
@@ -5328,7 +5388,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Halves the argument about distance."
+   "identity": "Halves the argument about distance.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_field_kit",
@@ -5346,7 +5407,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Keeps it honest."
+   "identity": "Keeps it honest.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_broadcast_tag",
@@ -5363,7 +5425,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Purely for the cameras."
+   "identity": "Purely for the cameras.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_extended_mag",
@@ -5380,7 +5443,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Six more chances."
+   "identity": "Six more chances.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_recoil_comp",
@@ -5398,7 +5462,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Holds the line down."
+   "identity": "Holds the line down.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_suppressor",
@@ -5415,7 +5480,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Nobody attributes the first one."
+   "identity": "Nobody attributes the first one.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_ap_rounds",
@@ -5433,7 +5499,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Through, not into."
+   "identity": "Through, not into.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_incendiary",
@@ -5450,7 +5517,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "The crowd notices."
+   "identity": "The crowd notices.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_hollowpoint",
@@ -5467,7 +5535,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Terrible against plate."
+   "identity": "Terrible against plate.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_heat_sink",
@@ -5484,7 +5553,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Buys you the fourth shot."
+   "identity": "Buys you the fourth shot.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_capacitor",
@@ -5501,7 +5571,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "A longer day."
+   "identity": "A longer day.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_focusing_array",
@@ -5519,7 +5590,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Hotter, harder."
+   "identity": "Hotter, harder.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_diffuser",
@@ -5537,7 +5609,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Wider, weaker, closer."
+   "identity": "Wider, weaker, closer.",
+   "type": "Mods"
   },
   {
    "id": "itm_frag_grenade",
@@ -5557,7 +5630,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower."
+   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
+   "type": "Consumables"
   },
   {
    "id": "itm_smoke_canister",
@@ -5575,7 +5649,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways."
+   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways.",
+   "type": "Consumables"
   },
   {
    "id": "itm_incendiary_charge",
@@ -5596,7 +5671,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "As frag, incendiary, +8 severity; crowd-divisive."
+   "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
+   "type": "Consumables"
   },
   {
    "id": "itm_medkit",
@@ -5614,7 +5690,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "P(stabilize) +0.15, consumed on use."
+   "identity": "P(stabilize) +0.15, consumed on use.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stim_shot",
@@ -5632,7 +5709,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night."
+   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
+   "type": "Consumables"
   },
   {
    "id": "itm_spotter_drone",
@@ -5650,7 +5728,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day."
+   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day.",
+   "type": "Consumables"
   },
   {
    "id": "itm_auto_turret",
@@ -5668,7 +5747,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout."
+   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout.",
+   "type": "Consumables"
   },
   {
    "id": "itm_ammo_satchel",
@@ -5686,7 +5766,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+8 rounds at drop. Quota: 1 per body."
+   "identity": "+8 rounds at drop. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_power_cell",
@@ -5704,7 +5785,8 @@ window.ARX_DATA = {
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+20 charge. Quota: 1 per body."
+   "identity": "+20 charge. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_missile_launcher",
@@ -5727,7 +5809,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Sponsor theatre with a blast radius."
+   "identity": "Sponsor theatre with a blast radius.",
+   "type": "Launchers"
   },
   {
    "id": "itm_rotary_cannon",
@@ -5750,7 +5833,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Ammunition x3. Nothing about it is reasonable."
+   "identity": "Ammunition x3. Nothing about it is reasonable.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_railgun",
@@ -5773,7 +5857,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One hole, all the way through."
+   "identity": "One hole, all the way through.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_kinetic_driver",
@@ -5796,7 +5881,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Removes the position and the argument."
+   "identity": "Removes the position and the argument.",
+   "type": "Launchers"
   },
   {
    "id": "itm_phase_lance",
@@ -5822,7 +5908,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One shot per three exchanges. It is enough."
+   "identity": "One shot per three exchanges. It is enough.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_assault_frame",
@@ -5849,7 +5936,8 @@ window.ARX_DATA = {
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "A walking cover position that eats an allowance."
+   "identity": "A walking cover position that eats an allowance.",
+   "type": "Armour"
   },
   {
    "id": "itm_chem_rounds",
@@ -5868,7 +5956,8 @@ window.ARX_DATA = {
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Severity +14, internal-injury bias. Banned outright."
+   "identity": "Severity +14, internal-injury bias. Banned outright.",
+   "type": "Mods"
   },
   {
    "id": "itm_thermobaric_charge",
@@ -5888,7 +5977,8 @@ window.ARX_DATA = {
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Destroys a cover pool outright. Banned outright."
+   "identity": "Destroys a cover pool outright. Banned outright.",
+   "type": "Consumables"
   },
   {
    "id": "itm_cortical_scrambler",
@@ -5907,7 +5997,8 @@ window.ARX_DATA = {
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Forces Mon-Wa tether strain at range. Built to break one species."
+   "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
+   "type": "Consumables"
   },
   {
    "id": "itm_drone_jammer",
@@ -5924,7 +6015,8 @@ window.ARX_DATA = {
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "The engagement does not air. The Aleas' first commandment, broken."
+   "identity": "The engagement does not air. The Aleas' first commandment, broken.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stun_carbine",
@@ -5946,7 +6038,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drops a man where he stands and he gets up angry. Dividend issue."
+   "identity": "Drops a man where he stands and he gets up angry. Dividend issue.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_shock_lance",
@@ -5968,7 +6061,8 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd can hear it from the stands. So can the man on the end of it."
+   "identity": "The crowd can hear it from the stands. So can the man on the end of it.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_dazzler",
@@ -5990,7 +6084,235 @@ window.ARX_DATA = {
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Blinds a firing line without leaving a mark on any of them."
+   "identity": "Blinds a firing line without leaving a mark on any of them.",
+   "type": "Stun-Grade"
+  },
+  {
+   "id": "itm_militia_autorifle",
+   "name": "Militia Autorifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 470,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_pattern_auto",
+   "name": "Pattern Automatic",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 740,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_vanguard_rifle",
+   "name": "Vanguard Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1310,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Holds its line while you walk. The rest is practice.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_stormline_rifle",
+   "name": "Stormline Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2390,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Heavier than it looks, and it goes through more than it should.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_ardent_rifle",
+   "name": "Ardent Pulse Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2070,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "heavy_draw"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Three flashes a second and a battery that resents it.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_sovereign_auto",
+   "name": "Sovereign Battle Auto",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 10900,
+   "bulk": 4,
+   "effects": {
+    "power": 8,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "What an OA buys when it has stopped counting.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_scrapgun_smg",
+   "name": "Scrapgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 490,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Loud, light, and honest about what it is.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_alley_smg",
+   "name": "Alley Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 760,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Made for corridors and the people who fight in them.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_whipcord_smg",
+   "name": "Whipcord SMG",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1420,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "smart_link"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Points where you are already looking.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_seraph_smg",
+   "name": "Seraph Las-Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2450,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "silent"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "No report, no muzzle flash, no warning at all.",
+   "type": "Submachine Guns"
   }
  ],
  "roles": [
@@ -6008,7 +6330,11 @@ window.ARX_DATA = {
     "itm_breachgun",
     "itm_plasma_thrower",
     "itm_pdw",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_scrapgun_smg",
+    "itm_alley_smg",
+    "itm_whipcord_smg",
+    "itm_seraph_smg"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6048,7 +6374,13 @@ window.ARX_DATA = {
     "itm_scattergun",
     "itm_las_surplus",
     "itm_disintegrator",
-    "itm_phase_lance"
+    "itm_phase_lance",
+    "itm_militia_autorifle",
+    "itm_pattern_auto",
+    "itm_vanguard_rifle",
+    "itm_stormline_rifle",
+    "itm_ardent_rifle",
+    "itm_sovereign_auto"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6117,7 +6449,8 @@ window.ARX_DATA = {
     "itm_grenade_carbine",
     "itm_plasma_caster",
     "itm_missile_launcher",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_stormline_rifle"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6147,7 +6480,10 @@ window.ARX_DATA = {
     "itm_bullpup",
     "itm_carbine",
     "itm_pulse_carbine",
-    "itm_pdw"
+    "itm_pdw",
+    "itm_alley_smg",
+    "itm_militia_autorifle",
+    "itm_pattern_auto"
    ],
    "armors": [
     "itm_scout_weave",
@@ -6181,7 +6517,10 @@ window.ARX_DATA = {
     "itm_ion_carbine",
     "itm_las_surplus",
     "itm_pdw",
-    "itm_hunting_rifle"
+    "itm_hunting_rifle",
+    "itm_whipcord_smg",
+    "itm_seraph_smg",
+    "itm_scrapgun_smg"
    ],
    "armors": [
     "itm_scout_weave",
@@ -6207,7 +6546,7 @@ window.ARX_DATA = {
   {
    "id": "std_issue",
    "corp": "Aleas Standard",
-   "flavor": "—",
+   "flavor": "\u2014",
    "note": "No lean at all: the baseline every other doctrine is measured against.",
    "corp_id": null,
    "composition": {},
@@ -6491,8 +6830,7 @@ window.ARX_DATA = {
    "armoury_max_tier": 5
   }
  ]
-}
-,
+},
 };
 
 </script>
@@ -7075,6 +7413,29 @@ window.ARX_DATA = {
     for (const k of STATS) stats[k] *= 10;
     potential *= 10;
     scout.estimate *= 10;
+    /* AND THEN THE GRAIN BETWEEN THE TENS. The migration left every birth on a multiple of
+       ten — 80/90/120/40 — which reads as a rounded-off number rather than a person. Each
+       stat is nudged within its own decade and the nudges are then BALANCED to sum to zero,
+       so the roll's shape is untouched: the same pools produce the same average fighter,
+       and nobody is quietly stronger than the draw intended. Only the texture changes. */
+    {
+      /* the clamp is written on the FOUNDING 1-20 scale, so it has to be lifted with the
+         stats it guards — applied raw it crushed every birth to twenty */
+      const jitter = {}, floor = this.rec.stat_model.clamp[0] * 10,
+            ceil = this.rec.stat_model.clamp[1] * 10;
+      let sum = 0;
+      for (const k of STATS) { jitter[k] = P.int(rng, -9, 9); sum += jitter[k]; }
+      /* hand the rounding remainder back, one point at a time, to whoever can take it */
+      const keys = STATS.slice();
+      while (sum !== 0) {
+        const k = keys[P.int(rng, 0, keys.length - 1)];
+        const step = sum > 0 ? -1 : 1;
+        if (Math.abs(jitter[k] + step) > 9) continue;
+        jitter[k] += step; sum += step;
+      }
+      for (const k of STATS)
+        stats[k] = P.clamp(stats[k] + jitter[k], floor, ceil);
+    }
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
     /* STEP D — TWO BIRTHS, ZERO NEW DRAWS (the stream must not move):
        TRAIT STAT_MODS MADE LIVE. The data has carried them since the traits were written
@@ -9300,6 +9661,21 @@ window.ARX_DATA = {
        The price is not here, because it is not a reputation price: turning up tells the other
        seven what you brought. */
     media_day:         { own: 3, rival: -1, fleet: 6, residue: 0.15 },
+    /* --- THE TRANSFER MARKET, seen from the stands (ruled at the trade pass).
+       Selling somebody is not just paperwork: your own supporters mind, and how much they
+       mind is who you sold. `ctx.count` carries the fighter's FAME, so an unknown moving on
+       is a shrug and a famous one leaving is a wound — the same {per} shape `our_dead`
+       uses. The wider fleet barely looks up; the Aleas do not care at all about who is on
+       whose books.
+
+       And the mirror, which is the part that makes a transfer market feel like one: the
+       SELLING side's supporters warm to whoever took their star. That is `buyer`, the same
+       hook ceding already uses to pay the corp that bought a claim — a rival fanbase can
+       think better of you for giving one of their own a place to be. */
+    sold_away:         { own: { per: -0.22 }, fleet: { per: -0.02 }, buyer: { per: 0.18 },
+                         residue: 0.20 },
+    /* a small flat knock for the fact of it, so trading a nobody is not entirely free */
+    sold_anyone:       { own: -1.5, residue: 0.15 },
     /* §8.2 the address. One entry per register, so a guard can assert that every register
        moves at least one audience and none of them is a dead option. */
     said_gracious:     { rival: 7, fleet: 3, residue: 0.15 },
@@ -10430,10 +10806,13 @@ function makeCombatant(fighter, opts) {
                    (weapon.skillFamily && fighter.skills &&
                     fighter.skills[weapon.skillFamily] != null
                       ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
-             grit: fighter.stats.grit / 10,
+             /* a rested body walks on harder, and a settled one steadier — both spent here */
+             grit: (fighter.stats.grit +
+                    ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
              reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
              tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
-             resolve: fighter.stats.resolve / 10 }, hooks,
+             resolve: (fighter.stats.resolve +
+                       ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
     weapon, armor,
@@ -10803,8 +11182,11 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
 function hpFor(fighter) {
   /* ×10 migration: called with the ROSTER fighter, before the unit's divided copy exists,
      so grit normalizes here. This was the reader the gate's slowness named: tenfold grit
-     made tenfold hit points, and every fight in the world ran to the turn cap. */
-  const grit = ((fighter.stats && fighter.stats.grit) || 100) / 10;
+     made tenfold hit points, and every fight in the world ran to the turn cap.
+     `_conditioned` is a month's rest spent on somebody with nothing to mend — it rides
+     beside the stats rather than in them, and it is spent in this Divide. */
+  const cond = (fighter._conditioned && fighter._conditioned.grit) || 0;
+  const grit = (((fighter.stats && fighter.stats.grit) || 100) + cond) / 10;
   return Math.round(CONST.HP_BASE + CONST.HP_PER_GRIT * grit);
 }
 
@@ -14220,19 +14602,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                       blurb: 'optics and targeting; backs whoever fields the year’s standout, wherever the talent is' },
     spn_ferrous:    { wants: 'constancy',  obligation: 'keep_policy',
                       blurb: 'an old armour guild; long money and heirloom gear for corps that keep their declared policy' },
-    spn_almsdesk:   { wants: 'anyone',     obligation: 'none',
+    spn_almsdesk:   { wants: 'anyone',     obligation: 'blood_the_green',
                       blurb: 'a relief charter; medkits and evac to any banner, and it is paid either way' }
   };
 
+  /* Shown to a manager, so it reads like the rest of the interface: an obligation opens with
+     a capital. The CONDITIONS table beside it always did; this one was written earlier and
+     never brought into line. */
   const OBLIGATION_TEXT = {
-    aggressive:      'field at least 20 and do not call an early withdrawal',
-    no_scandal:      'lose no more than a third of who you send',
-    keep_policy:     'do not change your declared engagement policy',
-    field_talent:    'field somebody who finishes the year among the fleet\u2019s best',
-    stay_lean:       'field no more than 20 \u2014 they back underdogs, not juggernauts',
-    accept_terms:    'end the season in surplus; the Combine audits',
-    bring_them_home: 'bring back at least four in five of who you send',
-    none:            'none \u2014 the Concern gets paid either way'
+    aggressive:      'Field at Least 20 Fighters and Call No Early Withdrawal',
+    no_scandal:      'Bury No More Than a Third of the Fighters You Field',
+    keep_policy:     'Keep Your Declared Engagement Policy All Year',
+    field_talent:    'Field a Fighter Who Ends the Year at Fame 25 or Better',
+    stay_lean:       'Field No More Than 20 Fighters',
+    accept_terms:    'End the Year With a Treasury Above Zero',
+    bring_them_home: 'Lose No More Than a Fifth to Death or Capture',
+    blood_the_green: 'Field a Drop That Is a Third Unproven Fighters'
   };
 
   /* THE NEW-MODEL CONDITIONS. Each house offers one condition, in one of three flavours:
@@ -14246,28 +14631,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      shape is here so the model is whole. */
   const CONDITIONS = {
     spn_helion:      { flavor: 'limitation',   key: 'mostly_energy',
-                          text: 'Field a drop that is mostly energy weapons',
+                          text: 'Field a Drop of 75% Energy Weapons or More',
                           reward: { kind: 'kit', tag: 'energy', count: 2 } },
     spn_castellan:        { flavor: 'outcome',      key: 'no_scandal',
-                          text: 'Lose no more than a third of who you send',
+                          text: 'Bury No More Than a Third of the Fighters You Field',
                           reward: { kind: 'cash' } },
     spn_ferrous:    { flavor: 'prerequisite', key: 'keep_policy',
-                          text: 'Keep your declared engagement policy all year',
+                          text: 'Keep Your Declared Engagement Policy All Year',
                           reward: { kind: 'cash' } },
     spn_meridian:       { flavor: 'outcome',      key: 'field_talent',
-                          text: 'Field someone who finishes among the fleet\u2019s best',
+                          text: 'Field a Fighter Who Ends the Year at Fame 25 or Better',
                           reward: { kind: 'cash' } },
     spn_arrowline:            { flavor: 'limitation',   key: 'stay_lean',
-                          text: 'Field no more than 20 \u2014 they back underdogs',
+                          text: 'Field No More Than 20 Fighters',
                           reward: { kind: 'cash' } },
     spn_greywater:     { flavor: 'outcome',      key: 'accept_terms',
-                          text: 'End the season in surplus; the combine audits',
+                          text: 'End the Year With a Treasury Above Zero',
                           reward: { kind: 'cash' } },
     spn_thorne:         { flavor: 'outcome',      key: 'bring_them_home',
-                          text: 'Bring back at least four in five of who you send',
+                          text: 'Lose No More Than a Fifth to Death or Capture',
                           reward: { kind: 'kit', tag: 'medical', count: 2 } },
-    spn_almsdesk:        { flavor: 'outcome',      key: 'none',
-                          text: 'None \u2014 the Desk is paid either way',
+    spn_almsdesk:        { flavor: 'limitation',   key: 'blood_the_green',
+                          text: 'Field a Drop That Is a Third Unproven Fighters',
                           reward: { kind: 'cash' } }
   };
 
@@ -14412,11 +14797,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* --- prerequisite flavour: a standing gate that must hold all year --- */
         case 'keep_policy':     ok = !record.policyChanged; break;
         /* --- outcome flavour: judged against the season's figures --- */
+        /* BURIALS. The graves you dig, and nothing else. */
         case 'no_scandal':      ok = sent === 0 || dead / sent <= 1 / 3; break;
         case 'field_talent':    ok = (record.bestFame || 0) >= 25; break;
         case 'accept_terms':    ok = (record.treasury || 0) > 0; break;
-        case 'bring_them_home': ok = came >= 0.8; break;
-        case 'none':            ok = true; break;
+        /* WHO DID NOT COME HOME, for any reason. This read `came`, which is one minus the
+           DEATH rate — the same quantity `no_scandal` reads, so the two conditions were one
+           requirement at two strictnesses and a corp could satisfy both by the same act.
+           Taken prisoners are not home either, and now they count. */
+        case 'bring_them_home': {
+          const taken = record.captured || 0;
+          ok = sent === 0 || (sent - dead - taken) / sent >= 0.8;
+          break;
+        }
+        /* THERE IS NO SUCH THING AS A FREE BACKER, and "field sixteen" was no better than
+           none: sixteen is the floor the board fills for you if you fail to reach it, so the
+           condition could not be failed on purpose or by accident. The Almsdesk backs the
+           unproven — it wants a third of your drop to be people who have not fought a
+           Divide before, which is a real cost: green fighters lose more often, and a corp
+           chasing a finish would rather field its veterans. */
+        case 'blood_the_green': {
+          const green = record.greenDropped || 0;
+          ok = sent > 0 && green / sent >= 1 / 3;
+          break;
+        }
         default:                ok = true; break;
       }
       c.seasonsServed++;
@@ -14467,30 +14871,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     switch (contract.key) {
       case 'keep_policy':
         return corp._policyChanged
-          ? { state: 'atrisk', word: 'Policy changed \u2014 broken' }
-          : { state: 'holding', word: 'Policy held so far' };
+          ? { state: 'atrisk', word: 'Policy Changed \u00b7 Broken' }
+          : { state: 'holding', word: 'Policy Held So Far' };
       case 'accept_terms':
         return (corp.account.treasury || 0) > 0
           ? { state: 'holding', word: 'In surplus' }
-          : { state: 'atrisk', word: 'In the red \u2014 must end in surplus' };
+          : { state: 'atrisk', word: 'In the Red \u00b7 Treasury Must End Above Zero' };
       case 'field_talent':
         return bestFame >= 25
-          ? { state: 'met', word: 'A standout is already fielded' }
-          : { state: 'holding', word: 'Best on the books: fame ' + Math.round(bestFame) };
+          ? { state: 'met', word: 'A Standout Is Already Fielded' }
+          : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
         return alive.length <= 20
-          ? { state: 'holding', word: 'Roster at ' + alive.length + ' \u2014 lean enough' }
-          : { state: 'atrisk', word: 'Roster at ' + alive.length + ' \u2014 must drop 20 or fewer' };
+          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
+          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
       case 'none':
-        return { state: 'met', word: 'No condition \u2014 paid either way' };
+        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the drop \u2014 field mostly energy weapons' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
       case 'no_scandal':
-        return { state: 'pending', word: 'Judged at the drop \u2014 keep losses under a third' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':
-        return { state: 'pending', word: 'Judged at the drop \u2014 bring back four in five' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Four Fifths Home, Alive and Free' };
       default:
-        return { state: 'pending', word: 'Judged at the season close' };
+        return { state: 'pending', word: 'Judged at the Season Close' };
     }
   }
 
@@ -18628,6 +19032,360 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   global.CDDIVIDE = api;
 })(typeof window !== "undefined" ? window : globalThis);
 
+/* ==== trade.js ==== */
+/* ============================================================================
+ * trade.js — DEALING BETWEEN CORPORATIONS, ACROSS THE PREP YEAR.
+ *
+ * The Divide's own dealing (joining under a banner, ceding, ransoms, pacts) lives in
+ * negotiate.js and happens inside a contest. This is the other thing: two OAs sitting
+ * down between contests and swapping what one has for what the other needs — gear,
+ * people, credits, and what you know about somebody else.
+ *
+ * WHAT A THING IS WORTH. Nothing here invents a currency. Every price is anchored to a
+ * number the game already uses somewhere else:
+ *
+ *   gear     the catalogue cost, which is what it costs to buy one.
+ *   credits  face value.
+ *   intel    the game already sells focus: BOOST_PER_POINT credits doubles one point for a
+ *            month, and a pip of focus buys INTEL_PER_PIP dossier rows. So a row has a
+ *            price the manager already pays, plus a premium for the preparedness edge the
+ *            dossier carries into the Divide.
+ *   a body   WORTH MINUS WAGE, because a contract travels with the person (ruled). Worth is
+ *            quality × CREDITS_PER_QUALITY per remaining season, lifted by fame, plus a
+ *            slice of unrealised potential. The wage is salary × SALARY_MONTHS × seasons
+ *            remaining. CREDITS_PER_QUALITY is not a taste number: it is what the fleet's
+ *            own wage bill already pays for a point of quality (median salary × 12 ÷ median
+ *            quality, measured at 33). Which means a median fighter trades near zero, a
+ *            star on a cheap long deal is treasure, and a passenger on a fat four-season
+ *            deal is worth LESS THAN NOTHING — you pay somebody to take them. Measured on a
+ *            real fleet: 48 of 139 contracts are negative. Salary dumping is a real move,
+ *            and that is the point.
+ *
+ * NO FLOOR (ruled). Nothing here stops a corp trading itself down to nobody. A roster of
+ * zero in M6 filled with sixteen mercenaries in M11 is a plan a manager is allowed to have.
+ *
+ * WHAT IT COSTS A PERSON. Being sold is something that happens TO somebody: a traded
+ * fighter's loyalty takes a hit (ruled). Their stress does not — this is paperwork, not a
+ * firefight.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
+  const isNode = typeof module !== "undefined" && module.exports;
+  const ITEMS = isNode ? require('./items.js') : global.CDITEMS;
+  const REP = isNode ? require('./reputation.js') : global.CDREP;
+
+  const CONST = {
+    /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
+       fleet's own wage bill pays about this much for a point of quality (median salary ×
+       12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
+       break-even instead of every body being a bargain or a burden. */
+    CREDITS_PER_QUALITY: 33,
+    POTENTIAL_SLICE: 0.35,        // [H] of the gap between what they are and what they could be
+    FAME_LIFT: 0.01,              // [H] per point of fame, on worth
+    SALARY_MONTHS: 12,            // [S] a season of wages, matching the ledger
+    INTEL_PREMIUM: 1.35,          // [H] over the raw focus price, for the edge it carries
+    /* [C] regard moves the PRICE, it does not gate the deal — the same rule the Divide's
+       own dealing already follows. A quarter either way at the extremes. */
+    REGARD_SWING: 400,
+    LAST_TRADE_MONTH: 10,         // [C] ruled: the table closes after M10
+    /* [C] an AI proposes rarely and only when it wants something real. The every-turn
+       nuisance offer is how a player learns to stop reading their messages. */
+    OFFER_COOLDOWN: 4,            // months before the SAME OA writes again
+    /* [C] and a floor on how often the manager hears from ANYBODY. Seven OAs each politely
+       waiting their own four months still produced fifteen proposals a year — which is the
+       every-turn nuisance the ruling exists to prevent, arrived at by seven well-behaved
+       parties at once. The fleet as a whole gets to interrupt about this often. */
+    OFFER_QUIET_MONTHS: 3,
+    OFFER_CHANCE: 0.14,           // and even then, not every time
+    OFFER_MIN_APPETITE: 1.05,     // they only ask for deals that are good for them
+    OFFER_MIN_FAIR: 0.75,         // [C] and never so lopsided it trains you to ignore the box
+    LOYALTY_ON_SALE: 14,          // [C] what being sold costs a person's loyalty
+    /* [C] and a small knock to everybody left behind. Watching somebody get sold is a
+       reminder that you are also property; it is a fraction of what it costs the person
+       actually sold, and it does not scale with fame — the crew minds the FACT of it. */
+    LOYALTY_CREW_WATCHING: 2,
+    /* [C] how often the other seven strike a deal among themselves in a month, and how
+       thin a roster has to get before a corp stops selling. Modest: a fleet that
+       reshuffles constantly is noise, not a market. */
+    FLEET_TRADE_CHANCE: 0.22,
+    FLEET_TRADE_KEEP: 18
+  };
+
+  const qualityOf = f => {
+    const s = f.stats || {};
+    const keys = ['aim', 'tactics', 'resolve', 'grit', 'reflex', 'fieldcraft'];
+    let sum = 0, n = 0;
+    for (const k of keys) if (typeof s[k] === 'number') { sum += s[k]; n++; }
+    return n ? sum / n : 0;
+  };
+
+  /** What a body is worth over the life of the contract that travels with them. */
+  function worthOf(f) {
+    const q = qualityOf(f);
+    const pot = typeof f.potential === 'number' ? f.potential : q;
+    const seasons = Math.max(1, (f.contract && f.contract.seasons_remaining) || 1);
+    const per = q * CONST.CREDITS_PER_QUALITY * (1 + CONST.FAME_LIFT * (f.fame || 0))
+              + Math.max(0, pot - q) * CONST.CREDITS_PER_QUALITY * CONST.POTENTIAL_SLICE;
+    return Math.round(per * seasons);
+  }
+  /** What the receiving corp takes on: the rest of the contract. */
+  function wageOf(f) {
+    const c = f.contract || {};
+    const seasons = Math.max(1, c.seasons_remaining || 1);
+    return Math.round((c.salary || 0) * CONST.SALARY_MONTHS * seasons);
+  }
+  /** The number that actually changes hands. Negative means they are doing you a favour. */
+  function netOf(f) { return worthOf(f) - wageOf(f); }
+
+  function gearPrice(itemId) {
+    const it = ITEMS.byId(itemId);
+    return it ? (it.cost || 0) : 0;
+  }
+  /** Priced off the focus market the game already runs. */
+  function intelPrice(rows, focusPointPrice, rowsPerPip) {
+    const perRow = (focusPointPrice || 4000) / Math.max(1, rowsPerPip || 2);
+    return Math.round((rows || 0) * perRow * CONST.INTEL_PREMIUM);
+  }
+
+  /** Everything on one side of the table, in credits. */
+  function valueBundle(corp, bundle, opts) {
+    opts = opts || {};
+    let v = 0;
+    const b = bundle || {};
+    v += (b.credits || 0);
+    for (const g of (b.gear || [])) v += gearPrice(g.id) * (g.n || 1);
+    for (const id of (b.units || [])) {
+      const f = (corp.roster || []).find(x => x.id === id);
+      if (f) v += netOf(f);
+    }
+    for (const t of (b.intel || []))
+      v += intelPrice(t.rows || 6, opts.focusPointPrice, opts.rowsPerPip);
+    return Math.round(v);
+  }
+
+  /**
+   * WHAT THEY MAKE OF IT. `mine` is what the proposer puts up, `theirs` what they are asked
+   * for. Regard moves the price. Returns the ratio and a word, so an interface can show the
+   * beam and a test can assert on the number.
+   */
+  function appetite(me, them, mine, theirs, opts) {
+    opts = opts || {};
+    const give = valueBundle(me, mine, opts);
+    const ask = valueBundle(them, theirs, opts);
+    const regard = typeof opts.regard === 'number' ? opts.regard
+      : (them.rep && REP ? REP.standing(them.rep, 'rival', me.id) : 0);
+    /* what they need to see, softened or hardened by what they think of you */
+    const need = ask * (1 - regard / CONST.REGARD_SWING);
+    let ratio;
+    if (Math.abs(need) < 1) ratio = give >= 0 ? 2 : 0;
+    else if (need < 0) ratio = (give - need) > 0 ? 1.25 : 0.75;  /* they are being paid to take it */
+    else ratio = give / need;
+    return {
+      give: give, ask: ask, need: Math.round(need), regard: regard, ratio: ratio,
+      accept: ratio >= 1,
+      word: ratio >= 1.15 ? 'gladly' : ratio >= 1 ? 'accepted'
+          : ratio >= 0.9 ? 'close' : ratio >= 0.65 ? 'short' : 'refused'
+    };
+  }
+
+  function tradingOpen(month) { return month <= CONST.LAST_TRADE_MONTH; }
+
+  /**
+   * THE DEAL ITSELF. Moves bodies, gear, credits and dossier rows between two corps.
+   * No floor is enforced on either roster — ruled: fluidity until the Divide.
+   * Returns a plain record of what moved, which is what the books and the page both read.
+   */
+  function execute(a, b, fromA, fromB, opts) {
+    opts = opts || {};
+    const moved = { units: [], gear: [], credits: 0, intel: [] };
+
+    const shift = (src, dst, bundle, dir) => {
+      /* credits */
+      if (bundle.credits) {
+        src.account.treasury -= bundle.credits;
+        dst.account.treasury += bundle.credits;
+        moved.credits += dir * bundle.credits;
+        if (opts.post) {
+          opts.post(src.account, 'expense', 'Trade with ' + dst.id, -bundle.credits);
+          opts.post(dst.account, 'income', 'Trade with ' + src.id, bundle.credits);
+        }
+      }
+      /* gear, off one armoury and onto the other */
+      for (const g of (bundle.gear || [])) {
+        const n = Math.min(g.n || 1, (src.armoury && src.armoury[g.id]) || 0);
+        if (n <= 0) continue;
+        src.armoury[g.id] -= n;
+        if (src.armoury[g.id] <= 0) delete src.armoury[g.id];
+        dst.armoury = dst.armoury || {};
+        dst.armoury[g.id] = (dst.armoury[g.id] || 0) + n;
+        moved.gear.push({ id: g.id, n: n, to: dst.id });
+      }
+      /* people, WITH THEIR CONTRACTS (ruled) — and being sold costs them something */
+      for (const id of (bundle.units || [])) {
+        const i = (src.roster || []).findIndex(x => x.id === id);
+        if (i < 0) continue;
+        const f = src.roster[i];
+        src.roster.splice(i, 1);
+        f.corpId = dst.id;
+        /* the contract travels untouched: same salary, same seasons, same benefit */
+        if (f.loyalty != null) f.loyalty = Math.max(0, f.loyalty - CONST.LOYALTY_ON_SALE);
+        /* everybody left behind watches it happen */
+        for (const mate of (src.roster || []))
+          if (mate.loyalty != null && mate.status !== 'dead' && mate.status !== 'retired')
+            mate.loyalty = Math.max(0, mate.loyalty - CONST.LOYALTY_CREW_WATCHING);
+        dst.roster.push(f);
+        /* who sold them rides on the RECORD, not on the body: a field written onto a
+           fighter that nothing reads is dead state, and the cross-audit is right to say so */
+        moved.units.push({ id: id, from: src.id, to: dst.id, name: f.name,
+                          fame: Math.round(f.fame || 0) });
+      }
+      /* what you know, copied — a dossier is not consumed by being handed over */
+      for (const t of (bundle.intel || [])) {
+        if (!src._intel || !src._intel.rivals || !src._intel.rivals[t.about]) continue;
+        dst._intel = dst._intel || { planet: null, rivals: {} };
+        dst._intel.rivals = dst._intel.rivals || {};
+        const copy = JSON.parse(JSON.stringify(src._intel.rivals[t.about]));
+        const have = dst._intel.rivals[t.about];
+        if (!have) dst._intel.rivals[t.about] = copy;
+        else for (const row in copy.rows)
+          if (!have.rows[row] || (have.rows[row].depth || 0) < (copy.rows[row].depth || 0))
+            have.rows[row] = copy.rows[row];
+        moved.intel.push({ about: t.about, to: dst.id });
+      }
+    };
+
+    shift(a, b, fromA || {}, 1);
+    shift(b, a, fromB || {}, -1);
+
+    /* THE STANDS SEE IT (ruled). Your own supporters mind losing somebody, and mind in
+       proportion to who it was — fame carries the weight. The buying corp's supporters warm
+       to you for the same reason, which is what makes this a transfer market rather than a
+       spreadsheet: a rival's fanbase can come round to the OA that gave their favourite a
+       place to play. */
+    if (REP && opts.seen !== false) {
+      for (const m of moved.units) {
+        const seller = m.from === a.id ? a : b;
+        const buyer = m.to === a.id ? a : b;
+        const fame = (m.fame || 0);
+        if (seller.rep) {
+          REP.act(seller.rep, 'sold_away', { count: fame, buyerId: buyer.id });
+          REP.act(seller.rep, 'sold_anyone', {});
+        }
+      }
+    }
+    return moved;
+  }
+
+  /**
+   * AN OA COMES TO YOU — rarely, and only when it wants something it can actually use.
+   * Returns null far more often than not, which is the design: the every-month proposal is
+   * how a manager learns to stop reading. Cooldown per OA, a die roll on top, and the deal
+   * must be good for the proposer before they will bother asking.
+   */
+  function proposeFrom(rng, them, me, month, opts) {
+    opts = opts || {};
+    if (!tradingOpen(month)) return null;
+    const last = them._lastTradeOffer || -99;
+    if (month - last < CONST.OFFER_COOLDOWN) return null;
+    const lastAny = me._lastOfferHeard || -99;
+    if (month - lastAny < CONST.OFFER_QUIET_MONTHS) return null;
+    if (rng() > CONST.OFFER_CHANCE) return null;
+
+    /* what they want: the best body on your roster they could actually field */
+    const want = (me.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired')
+      .slice().sort((x, y) => netOf(y) - netOf(x))[0];
+    if (!want) return null;
+    const price = netOf(want);
+    if (price <= 0) return null;                    /* they do not ask for liabilities */
+
+    /* WHAT THEY PUT UP. They aim a little UNDER the asking price — nobody opens a
+       negotiation by overpaying — and they fill with gear that FITS rather than rounding
+       up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
+       a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
+    const target = price * 0.95;
+    const gear = [];
+    let raised = 0;
+    const shelf = Object.keys(them.armoury || {})
+      .filter(k => them.armoury[k] > 0)
+      .sort((x, y) => gearPrice(y) - gearPrice(x));
+    for (const id of shelf) {
+      const each = gearPrice(id);
+      if (each <= 0 || raised >= target) continue;
+      const room = Math.floor((target - raised) / each);
+      const n = Math.min(them.armoury[id], room);
+      if (n <= 0) continue;
+      gear.push({ id: id, n: n });
+      raised += each * n;
+    }
+    const short = Math.max(0, target - raised);
+    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), short);
+    const offer = { gear: gear, credits: Math.round(credits) };
+    const ask = { units: [want.id] };
+    /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
+       the receiver's lights, which is the opposite of why anybody proposes anything: an OA
+       asks because the deal suits THEM. So — do they get more than they give? And is the
+       offer still worth a manager's time to read, rather than an insult that trains the
+       player to dismiss the box unopened? */
+    const putUp = valueBundle(them, offer, opts);
+    if (putUp <= 0) return null;
+    const forThem = price / Math.max(1, putUp);
+    if (forThem < CONST.OFFER_MIN_APPETITE) return null;      /* no gain in it for them */
+    if (putUp < price * CONST.OFFER_MIN_FAIR) return null;    /* an insult; they know better */
+    const view = appetite(me, them, ask, offer, opts);
+
+    them._lastTradeOffer = month;
+    me._lastOfferHeard = month;
+    return { from: them.id, to: me.id, offer: offer, ask: ask, view: view, month: month };
+  }
+
+  /**
+   * THE FLEET DEALS WITH ITSELF. Seven other corporations do not sit still for eleven months
+   * waiting to hear from one manager: they trade with each other, and the stands watch those
+   * transfers exactly as they watch yours. Without this the whole market existed only where
+   * the player was looking — and the suite caught it, because two acts in the reputation
+   * table could never be produced by a game nobody was playing.
+   *
+   * Rare on purpose, and only where BOTH sides want it: a corp short of bodies buys from a
+   * corp with a surplus, at a price the buyer's own appetite accepts.
+   */
+  function fleetTrades(rng, corps, ids, month, opts) {
+    opts = opts || {};
+    if (!tradingOpen(month)) return [];
+    const done = [];
+    const attempts = opts.attempts || 2;
+    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    for (let n = 0; n < attempts; n++) {
+      if (rng() > (opts.chance != null ? opts.chance : CONST.FLEET_TRADE_CHANCE)) continue;
+      /* the thinnest roster shops; the deepest sells */
+      const pool = ids.filter(id => corps[id] && !corps[id].disqualified);
+      if (pool.length < 2) continue;
+      const sorted = pool.slice().sort((x, y) => alive(corps[x]).length - alive(corps[y]).length);
+      const buyer = corps[sorted[0]], seller = corps[sorted[sorted.length - 1]];
+      if (!buyer || !seller || buyer === seller) continue;
+      if (alive(seller).length <= CONST.FLEET_TRADE_KEEP) continue;
+      /* the seller parts with the best paper they can spare: positive net, lowest quality */
+      const spare = alive(seller).filter(f => netOf(f) > 0)
+        .sort((a, b) => qualityOf(a) - qualityOf(b))[0];
+      if (!spare) continue;
+      const price = netOf(spare);
+      if (buyer.account.treasury < price) continue;
+      const offer = { credits: Math.round(price) }, ask = { units: [spare.id] };
+      const view = appetite(buyer, seller, offer, ask, opts);
+      if (!view.accept) continue;
+      execute(buyer, seller, offer, ask, opts);
+      done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price) });
+    }
+    return done;
+  }
+
+  const api = {
+    CONST, qualityOf, worthOf, wageOf, netOf, gearPrice, intelPrice,
+    valueBundle, appetite, tradingOpen, execute, proposeFrom, fleetTrades
+  };
+  if (isNode) module.exports = api;
+  global.CDTRADE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
 /* ==== season.js ==== */
 /* SEASONS.md — the persistent Corp and the season loop.
  *
@@ -18643,12 +19401,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     require('./prng.js'), require('./roster.js'), require('./items.js'),
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
-    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'));
+    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
+    require('./trade.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE) {
+                               root.CDPREDIVIDE, root.CDTRADE);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE) {
   'use strict';
 
   const CONST = {
@@ -18694,6 +19453,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRESS_CAP: 100,             // [S] the store's ceiling, everywhere
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
+    /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
+       STRESS. Both come down on their own every month; focus speeds either up sharply, and
+       it is painted at the same four breadth tiers the drill grid uses, so the two verbs
+       read the same way and a manager learns one grammar rather than two. The tier weights
+       are the drill's own — the inverse-breadth rule does not change because the subject
+       does. */
+    /* [C] AND FOCUS IS NEVER WASTED. Pour physical recovery onto somebody with nothing to
+       mend and it becomes CONDITIONING: they walk onto the ground harder than they left it.
+       Stress focus on somebody already calm steadies them the same way. Both are temporary
+       by construction — they last exactly one Divide and are spent there, because a
+       permanent gain from resting would be a second training verb wearing a bandage. */
+    REST_CONDITION_PER_BLOCK: 5, // [C] raw stat points (×10 scale) a full block of overflow buys
+    REST_CONDITION_CAP: 15,      // [C] and the most any one body can carry into a Divide
     TRAIN_STRESS_FOCUS: 4,       // [C] drilling hard wears on the drilled, scaled by thirds
     /* RULED — BOOST. The verbs cost nothing inherent (they never did: the census at step e
        confirmed every prep credit is a purchase). Instead a manager may pay to DOUBLE the
@@ -18704,7 +19476,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
-    TREAT_DAYS: 45,              // [C] days of healing bought by one treatment block
+    TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
        pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four
@@ -18808,7 +19580,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     FOUNDING_FLOOR: 16,          // [H] = ROSTER_MIN; the legal minimum to field at all
 
     /* --- careers (S4) --- */
-    DEVELOP_BASE: 5.5,           // [C] movement toward potential, per Divide survived (×10 scale)
+    DEVELOP_BASE: 5.5,           // [C] movement toward the ceiling, per Divide survived (×10 scale)
+    /* [C] THE HIDDEN CEILING IS GONE (ruled). `potential` was a per-person cap that stopped
+       growth and nobody could see: with careers this short and growth this slow almost
+       nobody ever reached theirs, so all it could do was quietly forbid specialisation in
+       the rare case somebody did. Growth now runs to the SCALE's ceiling, the same for
+       everyone. Potential survives as what it honestly is — what a scout thinks of somebody
+       at signing — and decides who a corp is interested in, not who they may become. */
+    STAT_CEIL: 200,
     DEVELOP_GREEN_MULT: 1.7,     // [C] before prime opens
     DEVELOP_BENCH_FRAC: 0.35,    // [C] a season on the bench against one on the ground
     DECLINE_RATE: 6.5,           // [C] body-stat loss per year past `decline` (×10 scale)
@@ -18825,6 +19604,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     /* --- the board (S5, S12) --- */
     UNDERWRITE_PATIENCE_FLOOR: 8,
+    /* [C] THE SCRAPE. Ruled with the trade table: a corp may run its roster down to nothing
+       all year — fluidity until the Divide — but somebody has to walk onto the ground. So
+       the floor is enforced at the LAST possible moment, when the merc window shuts in M10:
+       whatever is missing is bought at the cheapest asking price on the board, and the
+       board's patience takes a beating for having to do it. This is not a service, it is
+       an intervention. */
+    SCRAPE_PATIENCE: 22,         // [C] patience burned for having to fill your roster for you
     UNDERWRITE_DEMANDS: 5,
 
     /* --- contracts ---
@@ -18949,14 +19735,77 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /** The eight greenest fit bodies — this is a place to blood people, not to win with veterans. */
+  /* WHO YOU SEND TO THE LIGHTS. The fleet's own rule is the greenest fit bodies — an
+     exhibition is where you blood people who have not seen a Divide. A manager may name
+     their own eight instead (`corp._dividendPick`), which is the whole decision the format
+     offers: blood the green, or put your names in front of a crowd that pays in fame. Only
+     fit, unpledged bodies can take the floor either way, so the pick cannot smuggle a
+     wounded fighter or a conscript owed to a term onto the card. */
+  function dividendEligible(corp) {
+    return corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' &&
+      !(f.contract && f.contract.divides_required != null &&
+        (f.contract.divides_served || 0) < f.contract.divides_required) &&
+      !((f.condition || {}).injuries || []).length);
+  }
   function dividendSquad(corp) {
-    return corp.roster
-      .filter(f => f.status !== 'dead' && f.status !== 'retired' &&
-                   !(f.contract && f.contract.divides_required != null &&
-                     (f.contract.divides_served || 0) < f.contract.divides_required) &&
-                   !((f.condition || {}).injuries || []).length)
-      .sort((a, b) => ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0))
-      .slice(0, 8);
+    const pick = corp._dividendPick;
+    if (pick && pick.length) {
+      const ok = dividendEligible(corp);
+      const named = pick.map(id => ok.find(f => f.id === id)).filter(Boolean).slice(0, 8);
+      if (named.length >= 4) return named;
+      /* too few of the named are fit to show: fall through to the fleet's own rule rather
+         than field a card that cannot legally take the floor */
+    }
+    /* THE FLEET HAS TASTE TOO (ruled). Every corp sending its greenest eight made the card
+       the same every year and gave a manager who fielded names a free win over rookies.
+       Each OA picks by its own lights instead, and which lights depends on what the corp is
+       and how its year is going:
+
+         BLOOD   the greenest — an exhibition nobody dies in is where you season people;
+         SHOW    the famous — a paying crowd, and fame is worth more to some boards;
+         DRILL   the best of the unblooded — the ones a corp is trying to bring on;
+         SPARE   whoever is idlest — rest the people who matter, treat the night as noise.
+
+       The lean is the corp's own: a board hungry for standing shows off, a corp deep in
+       green hands bloods them, a corp with a thin roster spares it. Deterministic per corp
+       and season, because a card that reshuffles on a re-run is not a decision. */
+    const eligible = dividendEligible(corp);
+    if (!eligible.length) return [];
+    const seasonN = (corp._season || corp.season || 0);
+    let h = 2166136261;
+    const key = corp.id + '|dividend|' + seasonN;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const roll = ((h >>> 8) % 1000) / 1000;
+
+    const green = eligible.filter(f => ((f.experience || {}).divides || 0) === 0).length;
+    const patience = (corp.rep && corp.rep.patience != null) ? corp.rep.patience : 50;
+    const thin = eligible.length <= CONST.ROSTER_MIN;
+    /* WEIGHTS, NOT A LADDER OF GATES. The first cut stacked conditions in order and the
+       first one that matched won — which in season one, when nearly every corp is deep in
+       green hands, meant four fifths of the fleet chose BLOOD and the other two leans never
+       appeared at all. Each corp now draws from a distribution that its own situation
+       tilts, so the card varies from the first year on. */
+    let w;
+    if (thin) w = { spare: 0.55, blood: 0.20, drill: 0.15, show: 0.10 };
+    else if (patience < 35) w = { show: 0.50, drill: 0.20, blood: 0.20, spare: 0.10 };
+    else if (green >= 6) w = { blood: 0.40, drill: 0.30, show: 0.20, spare: 0.10 };
+    else w = { drill: 0.30, show: 0.30, blood: 0.25, spare: 0.15 };
+    let lean = 'blood', acc = 0;
+    for (const k of ['blood', 'drill', 'show', 'spare']) {
+      acc += w[k] || 0;
+      if (roll < acc) { lean = k; break; }
+    }
+
+    const divides = f => ((f.experience || {}).divides || 0);
+    const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 4;
+    const sorters = {
+      blood: (a, b) => divides(a) - divides(b),
+      show:  (a, b) => (b.fame || 0) - (a.fame || 0),
+      drill: (a, b) => (divides(a) - divides(b)) || (quality(b) - quality(a)),
+      spare: (a, b) => (b.condition && b.condition.stress || 0) - (a.condition && a.condition.stress || 0)
+    };
+    corp._dividendLean = lean;
+    return eligible.slice().sort(sorters[lean]).slice(0, 8);
   }
 
   function runDividend(rng, corps, ids, season, tally) {
@@ -19362,8 +20211,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 20);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - 20);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
@@ -19405,12 +20254,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
   function monthTracks(corp, month) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     return [
@@ -19535,10 +20384,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         } else {
           gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
         }
-        landed.push({ kind: 'intel', text: 'the scouts reported back' });
+        landed.push({ kind: 'intel', text: 'The Scouts Reported Back' });
         if (tally) tally.surveysLanded = (tally.surveysLanded || 0) + 1;
       } else {
-        landed.push({ kind: item.kind, text: 'an outcome this build does not know arrived', unknown: true });
+        landed.push({ kind: item.kind, text: 'An Outcome This Build Does Not Know Arrived', unknown: true });
       }
     }
     corp._pending = keep;
@@ -19680,13 +20529,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function snapshotRival(them, rowKey, depth, season) {
-    const nf = x => Math.round(x || 0).toLocaleString('en-US');
+    /* money wears the credit mark here too, so a dossier reads like every other surface */
+    const nf = x => '\u20a1' + Math.round(x || 0).toLocaleString('en-US');
     const rng2 = null;
     /* a number, bracketed to what this depth can honestly claim */
+    /* A GUESS SHOULD LOOK LIKE A GUESS. ₡199,725–₡314,475 is preposterously precise about
+       being imprecise — nobody's scouts come back with the last seven credits of a range.
+       Big figures round to a legible step, and they round OUTWARD (low down, high up) so the
+       window can only ever grow: the truth stays inside it, which is the one thing about
+       partial intelligence that must never break. Small counts — hands, drill points — are
+       already legible and are left alone. */
+    const niceStep = v => {
+      const a = Math.abs(v);
+      if (a >= 100000) return 5000;
+      if (a >= 10000) return 500;
+      if (a >= 1000) return 50;
+      return 0;
+    };
     const band = (rowKey2, value, opts) => {
       const w = intelWindow(them, rowKey2, season, value, depth, opts);
       const f = (opts && opts.fmt) || (x => String(Math.round(x)));
       if (!w) return f(value);
+      const step = (opts && opts.round === false) ? 0 : niceStep(value);
+      if (step) {
+        w.lo = Math.floor(w.lo / step) * step;
+        w.hi = Math.ceil(w.hi / step) * step;
+        if (opts && opts.min != null) w.lo = Math.max(opts.min, w.lo);
+        if (opts && opts.max != null) w.hi = Math.min(opts.max, w.hi);
+      }
       const lo = f(w.lo), hi = f(w.hi);
       /* a window that has closed to a single figure SAYS the figure — "3\u20133 points"
          reads like a bug, and after formatting a tight range often is one number */
@@ -19704,26 +20574,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const label = { nattie: 'Natural-Born', mercenary: 'Mercenary', prisoner: 'Conscript' };
         const parts = Object.keys(mix).filter(k => mix[k])
           .sort((a, b) => mix[b] - mix[a]).map(k => mix[k] + ' ' + label[k]);
-        const hands = band('roster', n, { min: 0, floor: 3 }) + ' hands';
+        const hands = band('roster', n, { min: 0, floor: 3 }) + ' Fighters';
         if (vague) return hands;
-        if (!full) return hands + ' \u00b7 mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
-        return n + ' hands \u00b7 ' + parts.join(', ');
+        if (!full) return hands + ' \u00b7 Mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
+        return n + ' Fighters \u00b7 ' + parts.join(', ');
       }
       case 'finances': {
         const t = acct.treasury || 0;
         const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
         const money = { fmt: nf, min: 0, floor: 1000 };
-        if (vague) return 'Treasury ' + band('finances', t, money);
-        if (!full) return 'Treasury ' + band('finances', t, money) +
-                          ' \u00b7 season wage ' + band('finances_wage', wage, money);
-        return 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) +
-               ' \u00b7 grant ' + nf(acct.grant || 0);
+        if (vague) return band('finances', t, money);
+        if (!full) return band('finances', t, money) +
+                          ' \u00b7 Wage ' + band('finances_wage', wage, money);
+        return nf(t) + ' \u00b7 Wage ' + nf(wage) + ' \u00b7 Grant ' + nf(acct.grant || 0);
       }
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' pieces in the armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' pieces in the armoury';
+        if (full) return held + ' Pieces in the Armoury';
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -19740,20 +20609,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           : ((t ? (t.all || 0) : 0) +
              Object.keys(col).reduce((s, k) => s + (col[k] || 0), 0) +
              Object.keys((t && t.cell) || {}).reduce((s, k) => s + (t.cell[k] || 0), 0));
-        if (!spent) return full ? 'No drilling this month' : 'Little or no drilling \u00b7 0\u20131 points';
-        const pts = band('training', spent, { min: 0, floor: 2 }) + ' points of drill';
+        if (!spent) return full ? 'No Drilling This Month' : 'Little or No Drilling \u00b7 0\u20131 Points';
+        const pts = band('training', spent, { min: 0, floor: 2 }) + ' Points of Drill';
         if (vague) return pts;
-        if (!full) return pts + (cols[0] ? ' \u00b7 mostly ' + cols[0] : ' \u00b7 spread wide');
-        return spent + ' points of drill \u00b7 ' +
-               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'spread across the roster');
+        if (!full) return pts + (cols[0] ? ' \u00b7 Mostly ' + cols[0] : ' \u00b7 Spread Wide');
+        return spent + ' Points of Drill \u00b7 ' +
+               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'Spread Across the Roster');
       }
       case 'moves': {
         const signed = (them._recruit && them._recruit.signed) || 0;
-        if (full) return signed + ' signed recently \u00b7 ' +
-                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting');
+        if (full) return signed + ' Signed Recently \u00b7 ' +
+                      (((them.sponsors || {}).contracts || []).length ? 'Courting Sponsors' : 'No Courting');
         /* a small count needs a wider floor to stay a window at all: 0\u20131 is a real
            statement, but it collapses to a certainty the moment the floor rounds away */
-        return band('moves', signed, { min: 0, floor: 2 }) + ' signed of late';
+        return band('moves', signed, { min: 0, floor: 2 }) + ' Signed of Late';
       }
       case 'board': {
         /* the demand itself is a sentence, not a quantity — but board INTEREST is a
@@ -19762,11 +20631,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const it = goal.interest;
         const pct = { fmt: x => Math.round(x * 100) + '%', min: 0, max: 100, floor: 0.08 };
         if (vague) return it != null
-          ? 'Board interest ' + band('board', it, pct)
-          : 'Board interest unread';
-        if (!full) return 'Board wants ' + (goal.text || 'a strong Divide') +
-                          (it != null ? ' \u00b7 interest ' + band('board', it, pct) : '');
-        return 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
+          ? 'Board Interest ' + band('board', it, pct)
+          : 'Board Interest Unread';
+        if (!full) return 'Board Wants ' + (goal.text || 'a strong Divide') +
+                          (it != null ? ' \u00b7 Interest ' + band('board', it, pct) : '');
+        return 'Board Demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 Interest ' +
                (it != null ? Math.round(it * 100) + '%' : '\u2014');
       }
     }
@@ -19774,8 +20643,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
 
+  /* A TEMPORARY EDGE, SPENT IN THE NEXT DIVIDE. Conditioning is not training: it does not
+     touch a fighter's stats, it rides beside them in `_conditioned`, combat reads it when a
+     body becomes a combatant, and the settlement clears it. A permanent gain bought by
+     resting would just be a second drill verb wearing a bandage. */
+  function condition(f, stat, blocks) {
+    if (!(blocks > 0)) return;
+    f._conditioned = f._conditioned || {};
+    const add = CONST.REST_CONDITION_PER_BLOCK * blocks;
+    f._conditioned[stat] = Math.min(CONST.REST_CONDITION_CAP,
+                                    (f._conditioned[stat] || 0) + add);
+  }
+
   function prepMonth(rng, corp, month, season, tally, wanted, landedOut, corps) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     /* --- time passes whether or not anybody spends anything --- */
     let mended = 0;
     for (const f of corp.roster) {
@@ -19801,7 +20682,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
-      const cap = typeof f.potential === 'number' ? f.potential : null;
+      const cap = CONST.STAT_CEIL;
       if (cap == null) continue;
       let drifted = false;
       for (const k of CONST.MIND)
@@ -19850,20 +20731,62 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
       const a = { kind: kind };
       if (a.kind === 'rest') {
-        /* RULED: rest is for EVERYONE. The wounded mend faster by thirds — every wounded
-           body, not the worst three — and everyone's stress comes down with them. */
+        /* --- THE RECOVERY GRID. Two tracks per body — `wounds` and `stress` — painted at
+           the drill's four tiers, which STACK: the corner (everyone, both tracks), a column
+           (one track, everyone), a row (one body, both tracks), a cell (one body, one
+           track). A bare `rest` scalar with no map is a corner paint, which is what the
+           old whole-roster rest was, so nothing that used to call this changes its meaning.
+
+           Focus is never wasted: physical effort with nothing to mend becomes conditioning
+           (grit), calm-side effort on somebody already steady becomes composure (resolve),
+           and both are spent in the next Divide. */
+        const rt = (wanted && wanted.restTarget) || null;
+        const rmap = rt && (rt.all != null || rt.col || rt.row || rt.cell)
+          ? { all: rt.all || 0, col: rt.col || {}, row: rt.row || {}, cell: rt.cell || {} }
+          : { all: fpts, col: {}, row: {}, cell: {} };
+        const TRACKS = ['wounds', 'stress'];
+        const blocks = (fighterId, track) => {
+          /* the share of a full block this body gets on this track, summed over every tier
+             that covers it — the drill's own arithmetic, subject changed */
+          let b = 0;
+          b += (rmap.all || 0) / 3 * CONST.TRAIN_W_ALL;
+          b += ((rmap.col || {})[track] || 0) / 3 * CONST.TRAIN_W_COL;
+          b += ((rmap.row || {})[fighterId] || 0) / 3 * CONST.TRAIN_W_ROW;
+          b += ((rmap.cell || {})[fighterId + '|' + track] || 0) / 3 * CONST.TRAIN_W_CELL;
+          return b * mult;
+        };
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
-          f.condition.stress = Math.max(0, (f.condition.stress || 0) -
-                                           CONST.REST_STRESS_FOCUS * third);
-          if ((f.condition.injuries || []).length) {
-            f.condition.injuries = f.condition.injuries.filter(w => {
-              if (w.careerEnding || w.permanent) return true;
-              w.days_remaining -= CONST.TREAT_DAYS * third;
-              return w.days_remaining > 0;
-            });
-            if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
-            tally.treated++;
+          const wB = blocks(f.id, 'wounds'), sB = blocks(f.id, 'stress');
+
+          /* the calm side */
+          if (sB > 0) {
+            const before = f.condition.stress || 0;
+            const after = Math.max(0, before - CONST.REST_STRESS_FOCUS * sB);
+            f.condition.stress = after;
+            const spent = before - after;
+            /* whatever the effort could have taken off but found nothing to take */
+            const spare = CONST.REST_STRESS_FOCUS * sB - spent;
+            if (spare > 0) condition(f, 'resolve', spare / CONST.REST_STRESS_FOCUS);
+          }
+          /* the physical side */
+          if (wB > 0) {
+            const inj = f.condition.injuries || [];
+            if (inj.length) {
+              let budget = CONST.TREAT_DAYS * wB, used = 0;
+              f.condition.injuries = inj.filter(w => {
+                if (w.careerEnding || w.permanent) return true;
+                const take = Math.min(w.days_remaining, budget - used);
+                if (take > 0) { w.days_remaining -= take; used += take; }
+                return w.days_remaining > 0;
+              });
+              if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+              tally.treated++;
+              const spare = CONST.TREAT_DAYS * wB - used;
+              if (spare > 0) condition(f, 'grit', spare / CONST.TREAT_DAYS);
+            } else {
+              condition(f, 'grit', wB);          /* nothing to mend: all of it is conditioning */
+            }
           }
         }
       } else if (a.kind === 'train') {
@@ -19890,7 +20813,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
-          const cap = typeof f.potential === 'number' ? f.potential : null;
+          const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
           /* the stats this hand can be drilled on: the seven core stats, plus any weapon
@@ -19957,7 +20880,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (anyGathered) {
           tally.scouted++;
           tally.surveysLanded = (tally.surveysLanded || 0) + 1;
-          if (landedOut) landedOut.push({ kind: 'intel', text: 'the scouts reported' });
+          if (landedOut) landedOut.push({ kind: 'intel', text: 'The Scouts Reported' });
         }
         void intelNow;
       } else if (a.kind === 'court') {
@@ -20003,11 +20926,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* `potential` is a single ceiling, not a map — the highest this person could ever be
          at anything. It has been rolled and hidden since Step 2 and nothing has ever
          approached it, because nobody has ever had a second season. */
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      if (cap != null) {
-        for (const k of CONST.MIND) {
-          if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
-        }
+      const cap = CONST.STAT_CEIL;
+      for (const k of CONST.MIND) {
+        if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
       }
       /* --- decline: the body goes late, and then quickly --- */
       if (f.age > a.decline) {
@@ -20651,7 +21572,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function chooseDropSector(state, corpId, index) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'the drop is called at the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
     state.drop.sectors[corpId] = index;
     return { ok: true };
@@ -20671,10 +21592,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function offerPact(state, corpId, toId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'nobody talks terms before the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Nobody Talks Terms Before the Lock' };
     state.drop.pacts = state.drop.pacts || {};
     const key = corpId + '>' + toId;
-    if (state.drop.pacts[key]) return { ok: false, why: 'already spoken to them' };
+    if (state.drop.pacts[key]) return { ok: false, why: 'Already Spoken to Them' };
     const r = PRE.proposePact(P.mulberry32(P.seedFrom('pact' + state.season + key)),
                               state.corps[corpId], state.corps[toId]);
     state.drop.pacts[key] = r;
@@ -20683,9 +21604,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** Perform, or don't. Paid in standing, charged in concealment. */
   function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'media day is the week of the drop' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
     state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'you have already been' };
+    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
     const r = PRE.mediaDay(state.corps[corpId]);
     state.drop.media[corpId] = r;
     return { ok: true, gain: r.gain, reveal: r.reveal };
@@ -20704,7 +21625,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    */
   function stepMonth(state, choices) {
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
-    const m = state.month, win = MONTHS[m] || { name: 'month ' + m, event: null };
+    const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {};
     for (const id of state.ids) {
       landed[id] = [];
@@ -20732,8 +21653,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (win.event === 'mercs') {
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season)), state.corps, state.ids,
                     state.lots.mercs || [], state.mercs, state.bids.mercs);
+      /* --- THE SCRAPE, at the last door out. The merc window is the final chance to put
+         bodies on a roster, so this is where the floor lives now: anybody still short is
+         filled to ROSTER_MIN with the cheapest paper on offer, charged for it, and made to
+         feel it with the board. Deliberately AFTER the market, so a manager who bought
+         their own way to sixteen never meets this at all. --- */
+      for (const id of state.ids) {
+        const corp = state.corps[id];
+        const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
+        const short = CONST.ROSTER_MIN - alive.length;
+        if (short <= 0) continue;
+        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
+          .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
+        let bill = 0;
+        for (const f of filled) {
+          bill += ((f.contract && f.contract.signing_cost) || 0)
+                + ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
+          corp.roster.push(f);
+        }
+        LED.post(corp.account, 'expense', 'the board fills your roster', -bill);
+        if (corp.rep)
+          corp.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR,
+                                       (corp.rep.patience != null ? corp.rep.patience : 50)
+                                       - CONST.SCRAPE_PATIENCE);
+        state.mercs.scraped = (state.mercs.scraped || 0) + short;
+      }
       state.lots.mercs = null; state.bids.mercs = {};
     }
+    /* the other seven deal with each other too — see trade.js fleetTrades */
+    if (TRADE && TRADE.tradingOpen(m))
+      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+                        state.corps, state.ids, m, {});
     state.month++;
     ensureLot(state);
     return { month: m, name: win.name, event: win.event || null, spent, landed };
@@ -20929,6 +21880,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
   function finishSeason(state, res) {
+    /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
+       it walks onto the ground, does its work, and is gone at the settlement. Cleared here
+       rather than at the drop so a replayed or halted contest still sees it. */
+    for (const id of state.ids)
+      for (const f of state.corps[id].roster) if (f._conditioned) delete f._conditioned;
     const corps = state.corps, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     /* built by `closeSeasonToDrop` and carried on the state rather than in a closure, because
@@ -21112,7 +22068,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
-        dropSize: drop.length
+        dropSize: drop.length,
+        /* how much of the drop had never seen a Divide before this one — what the Almsdesk
+           is actually buying: somewhere for the unproven to be proven */
+        greenDropped: drop.filter(f => (((f.experience || {}).divides || 0) <= 1)).length
       });
       rec.corps[id].sponsors = {
         advance: verdict.advance || 0, paid: verdict.paid || 0,

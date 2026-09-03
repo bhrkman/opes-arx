@@ -373,10 +373,13 @@ function makeCombatant(fighter, opts) {
                    (weapon.skillFamily && fighter.skills &&
                     fighter.skills[weapon.skillFamily] != null
                       ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
-             grit: fighter.stats.grit / 10,
+             /* a rested body walks on harder, and a settled one steadier — both spent here */
+             grit: (fighter.stats.grit +
+                    ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
              reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
              tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
-             resolve: fighter.stats.resolve / 10 }, hooks,
+             resolve: (fighter.stats.resolve +
+                       ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
     weapon, armor,
@@ -746,8 +749,11 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
 function hpFor(fighter) {
   /* ×10 migration: called with the ROSTER fighter, before the unit's divided copy exists,
      so grit normalizes here. This was the reader the gate's slowness named: tenfold grit
-     made tenfold hit points, and every fight in the world ran to the turn cap. */
-  const grit = ((fighter.stats && fighter.stats.grit) || 100) / 10;
+     made tenfold hit points, and every fight in the world ran to the turn cap.
+     `_conditioned` is a month's rest spent on somebody with nothing to mend — it rides
+     beside the stats rather than in them, and it is spent in this Divide. */
+  const cond = (fighter._conditioned && fighter._conditioned.grit) || 0;
+  const grit = (((fighter.stats && fighter.stats.grit) || 100) + cond) / 10;
   return Math.round(CONST.HP_BASE + CONST.HP_PER_GRIT * grit);
 }
 

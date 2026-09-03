@@ -1,3 +1,45 @@
+# HUB — where the work is
+
+## Starting a session from the repository
+
+Everything needed is in this repo; nothing has to be uploaded. From a fresh session:
+
+```
+git clone https://github.com/<owner>/<repo>.git    # github.com is reachable from the sandbox
+cd <repo>/sim && node arx.cjs regress --fast       # 114 checks, the edit loop
+cd ../harness && npm install && node drive.cjs     # 143 checks, drives the built page for a year
+```
+
+Read `docs/PROJECT.md` first — it holds every ruling and the house rules that govern how work is
+done here. This file holds status and the queue. If the two ever disagree with the code, THE
+CODE IS RIGHT and the document is stale.
+
+**FIRST THING IN THE NEXT SESSION — two reds that are not the deferred pair.** The final gate
+of the last session read **245 passed, 4 failed**. Two are the fatality thermometer as always.
+The other two appeared after the hidden-ceiling removal and the birth-jitter change, and are
+NOT yet understood:
+
+- `G7 corps rise and fall independently, not all one way` — needs at least one corp improving
+  and one declining across a career, and found none of one kind. Growth running to a shared
+  ceiling instead of per-person ones plausibly flattens divergence, which would be a real
+  finding about the ceiling ruling rather than a bug.
+- `and answering the window changes what happens` — asserts a contest answered LOUD settles
+  differently from one sat through in silence. It compares whole corp objects with
+  JSON.stringify, so it is sensitive to anything that makes the two runs converge.
+
+Both were green before those two changes. Establish for each whether the MECHANISM changed or
+the sample moved before touching either — four guards in the previous pass turned out to be
+measuring dice, and the same trap is likely here. Do not tune the ceiling back in to make a
+check pass; if divergence genuinely needs a per-person ceiling, that is a ruling for the
+manager.
+
+**Standing rulings that block work, so nobody re-opens them:**
+- All fatality and loss-rate balancing is deferred until the systems are in place. The two red
+  checks (veteran survival, permanent-loss band) are a thermometer, not a fault.
+- The take-rate (an OA accepting somebody under its banner) is far too low and the direction of
+  the fix is known, but the number stays untouched until the economy settles.
+- Calibration generally waits on the same reasoning.
+
 # The hub
 
 This chat holds the project and decides what happens to it. **It does not implement anything.**
@@ -118,7 +160,7 @@ calibration stays deferred until every system is in. Recorded, not chased.
 The gate went 114 → 112 (signing-window retirement) → 111 (sponsor phase rewrite).
 
 **The full gate is red, and was red before this commit.** Run without `--fast` for the first
-time in a while: 234 passed, 10 failed, 244 checks at the time (the count has moved since: 243 after the signing-window check was retired, 246 once the dossier-window guards were added). The
+time in a while: 234 passed, 10 failed, 244 checks at the time (the count has moved since: 243 after the signing-window check was retired, 246 with the dossier-window guards, 247 with the transfer-market guard, 249 with the Dividend card guards). The
 same run on the untouched commit-11 tree fails the same ten, same numbers — none of this is
 the viewer retirement, which measures as changing nothing. All ten live in the statistical
 phases the fast gate skips, which means they have been failing silently for at least one
@@ -130,6 +172,30 @@ but never served, C7 permanent losses at 48% of the drop force against the ratif
 to-a-third, and README quoting only the fast count. C7 and G19 smell like fog's exposure
 multiplier landing with only the fast gate run. This is the next work after (or before)
 destructible cover: the heavy phases need re-ratifying against the game as it now is.
+
+**The Market is built and the automatics exist.** Kit is bought on its own tab for credits and
+no focus, sectioned by what a piece IS (now a real `type` field on every item) and running
+everyday-first. The missing rapid-fire class is in: ten new automatics across assault rifles and
+submachine guns, plus the three blank carbines given the burst trait they always should have had,
+all wired into the roles. TWO GUARDS WERE FOUND SAMPLING DICE RATHER THAN MECHANICS and widened
+(the take branch, the crowd charge) - see PROJECT.md. STANDING RULING: an OA almost never accepts
+somebody under its banner (one signable offer in a hundred); this is FAR too low, the direction of
+the eventual fix is known, and the number stays untouched until the economy settles.
+
+**The Dividend takes the floor** (PROJECT.md, "The Dividend takes the floor"). It was simulated
+and invisible: the year walked through month six and left a shelf. Now the year stops, the
+Dividend gets its own rail phase with the grid beside it, the manager names who goes out, and
+every match replays. The fleet picks by its own lights too — blood, drill, show or spare — so
+the card is not the same night every year. Nine harness checks and two suite checks guard it.
+
+**The Negotiation table is built and joined** (PROJECT.md, "The Negotiation table"): two pans
+and a beam, contracts travelling with the body so a person is worth minus wage, and a third of
+the fleet's paper worth less than nothing. A transfer is watched — your own supporters mind in
+proportion to who you sold, and the selling side's fans warm to whoever took their star. The
+roster floor moved to the last door: fail to reach sixteen by the merc deadline and the board
+fills you with the cheapest paper and takes twenty-two points of patience for it. The fleet now
+trades with itself too, which the suite forced: two acts in the reputation table could never be
+produced by a game where only the player could deal.
 
 **Partial intel now brackets the truth instead of describing it** (PROJECT.md, "Partial
 intelligence is a window, not an adjective"): 16-25 hands at a glance, 19-21 with work, 20 when
@@ -197,6 +263,49 @@ until every system is in. Recorded, not chased.
 
 Branches queued, in order:
 
+0. ~~**The Board.**~~ **JOINED** — four audiences, every rival in colour and mark, the year's
+   card, the memory behind each number, and the board's question after a Divide answered in one
+   of six registers. Eight harness checks guard it. A measurement worth keeping: own-people
+   standing saturates at the ceiling within a few seasons, so it stops saying anything — a
+   calibration question, deferred with the rest.
+
+0a. ~~**The Negotiation surface.**~~ **BUILT** — `trade.js`, the table on the rail, seven
+   harness checks. See PROJECT.md, "The Negotiation table". Two questions were left for the
+   manager rather than guessed: what the crew thinks when you sell one of them, and whether the
+   offseason's forced-signing floor survives the new no-floor ruling.
+
+0a-old. **The Negotiation surface WAS thought to be a wiring job — it was a new system.** Corrected on
+   inspection: the dealing that exists (joining, ceding, ransoms, pacts) is DIVIDE-WINDOW
+   dealing and is already reachable from the Table during a contest; `negotiation_table.html`
+   is a forensic viewer of exactly that. What the rail tab promises is trading between
+   corporations across the PREP YEAR — people or gear for what a corp runs short of — and
+   nothing of it exists in `negotiate.js` or `season.js`. Needs a scope ruling before any
+   code: what a rival will give up and why, whether trades are offered to the manager or
+   negotiated by them, whether contract and loyalty travel with a traded fighter, and how an
+   AI values a body it does not need against one it does.
+
+0z. **The two systems that exist but are not wired into the corporation.** Both say so on the
+   page in as many words — "Not yet joined. Its standalone page still runs; folding it onto
+   this corporation is a later link of the same step." They are the biggest open gaps:
+   - **The Negotiation table.** Runs as its own page (`negotiation_table.html`, 268 deals over
+     six baked Divides). Comms-window dealing is a whole system the manager cannot reach from
+     inside their own corporation.
+   - **The Board.** Runs as its own page (`audience_board.html`). Four audiences and the
+     standing they hold you in, unreachable from the corporation that earns it.
+
+0b. ~~**The Rest and Recovery verb.**~~ **BUILT** — a two-track grid (wounds and stress) on the
+   drill's own four tiers, with overflow becoming a small, capped, one-Divide edge so focus is
+   never wasted. The drill grid now folds per hand, keeping the corner and columns in place,
+   and its numbers run on a red-grey-green gradient cut against the roster's own spread. See
+   PROJECT.md, "Rest and Recovery is a grid".
+
+0b-old. **The old note:** Training became a
+   four-tier grid, intel and courting became painted per-target boards; rest is still a single
+   0/1/2/3 line. SPEC PENDING from the manager — do not invent one.
+
+0c. **The Squads board still needs work.** Noted by the manager; specifics to come.
+
+
 1. ~~**Destructible cover.**~~ **BUILT.** Rounds now work on the wall as well as the body:
    ordinary fire chips a grade at a time, an `area` weapon takes it down fast across a small
    radius, and a grenade works the ground where it lands. The entrenched stalemate snapshot
@@ -218,5 +327,5 @@ Branches queued, in order:
    race toughness rides on grit's leans, which is real but implicit. Would be a balance project
    with its own measure/gate pass.
 5. **Deferred smaller items:** Rest-verb "amping"; weapon-trade columns and a boost button in
-   the training grid; the full 246-check gate before packaging.
+   the training grid; the full 249-check gate before packaging.
 

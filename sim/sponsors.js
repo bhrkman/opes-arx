@@ -89,19 +89,22 @@
                       blurb: 'optics and targeting; backs whoever fields the year’s standout, wherever the talent is' },
     spn_ferrous:    { wants: 'constancy',  obligation: 'keep_policy',
                       blurb: 'an old armour guild; long money and heirloom gear for corps that keep their declared policy' },
-    spn_almsdesk:   { wants: 'anyone',     obligation: 'none',
+    spn_almsdesk:   { wants: 'anyone',     obligation: 'blood_the_green',
                       blurb: 'a relief charter; medkits and evac to any banner, and it is paid either way' }
   };
 
+  /* Shown to a manager, so it reads like the rest of the interface: an obligation opens with
+     a capital. The CONDITIONS table beside it always did; this one was written earlier and
+     never brought into line. */
   const OBLIGATION_TEXT = {
-    aggressive:      'field at least 20 and do not call an early withdrawal',
-    no_scandal:      'lose no more than a third of who you send',
-    keep_policy:     'do not change your declared engagement policy',
-    field_talent:    'field somebody who finishes the year among the fleet\u2019s best',
-    stay_lean:       'field no more than 20 \u2014 they back underdogs, not juggernauts',
-    accept_terms:    'end the season in surplus; the Combine audits',
-    bring_them_home: 'bring back at least four in five of who you send',
-    none:            'none \u2014 the Concern gets paid either way'
+    aggressive:      'Field at Least 20 Fighters and Call No Early Withdrawal',
+    no_scandal:      'Bury No More Than a Third of the Fighters You Field',
+    keep_policy:     'Keep Your Declared Engagement Policy All Year',
+    field_talent:    'Field a Fighter Who Ends the Year at Fame 25 or Better',
+    stay_lean:       'Field No More Than 20 Fighters',
+    accept_terms:    'End the Year With a Treasury Above Zero',
+    bring_them_home: 'Lose No More Than a Fifth to Death or Capture',
+    blood_the_green: 'Field a Drop That Is a Third Unproven Fighters'
   };
 
   /* THE NEW-MODEL CONDITIONS. Each house offers one condition, in one of three flavours:
@@ -115,28 +118,28 @@
      shape is here so the model is whole. */
   const CONDITIONS = {
     spn_helion:      { flavor: 'limitation',   key: 'mostly_energy',
-                          text: 'Field a drop that is mostly energy weapons',
+                          text: 'Field a Drop of 75% Energy Weapons or More',
                           reward: { kind: 'kit', tag: 'energy', count: 2 } },
     spn_castellan:        { flavor: 'outcome',      key: 'no_scandal',
-                          text: 'Lose no more than a third of who you send',
+                          text: 'Bury No More Than a Third of the Fighters You Field',
                           reward: { kind: 'cash' } },
     spn_ferrous:    { flavor: 'prerequisite', key: 'keep_policy',
-                          text: 'Keep your declared engagement policy all year',
+                          text: 'Keep Your Declared Engagement Policy All Year',
                           reward: { kind: 'cash' } },
     spn_meridian:       { flavor: 'outcome',      key: 'field_talent',
-                          text: 'Field someone who finishes among the fleet\u2019s best',
+                          text: 'Field a Fighter Who Ends the Year at Fame 25 or Better',
                           reward: { kind: 'cash' } },
     spn_arrowline:            { flavor: 'limitation',   key: 'stay_lean',
-                          text: 'Field no more than 20 \u2014 they back underdogs',
+                          text: 'Field No More Than 20 Fighters',
                           reward: { kind: 'cash' } },
     spn_greywater:     { flavor: 'outcome',      key: 'accept_terms',
-                          text: 'End the season in surplus; the combine audits',
+                          text: 'End the Year With a Treasury Above Zero',
                           reward: { kind: 'cash' } },
     spn_thorne:         { flavor: 'outcome',      key: 'bring_them_home',
-                          text: 'Bring back at least four in five of who you send',
+                          text: 'Lose No More Than a Fifth to Death or Capture',
                           reward: { kind: 'kit', tag: 'medical', count: 2 } },
-    spn_almsdesk:        { flavor: 'outcome',      key: 'none',
-                          text: 'None \u2014 the Desk is paid either way',
+    spn_almsdesk:        { flavor: 'limitation',   key: 'blood_the_green',
+                          text: 'Field a Drop That Is a Third Unproven Fighters',
                           reward: { kind: 'cash' } }
   };
 
@@ -281,11 +284,30 @@
         /* --- prerequisite flavour: a standing gate that must hold all year --- */
         case 'keep_policy':     ok = !record.policyChanged; break;
         /* --- outcome flavour: judged against the season's figures --- */
+        /* BURIALS. The graves you dig, and nothing else. */
         case 'no_scandal':      ok = sent === 0 || dead / sent <= 1 / 3; break;
         case 'field_talent':    ok = (record.bestFame || 0) >= 25; break;
         case 'accept_terms':    ok = (record.treasury || 0) > 0; break;
-        case 'bring_them_home': ok = came >= 0.8; break;
-        case 'none':            ok = true; break;
+        /* WHO DID NOT COME HOME, for any reason. This read `came`, which is one minus the
+           DEATH rate — the same quantity `no_scandal` reads, so the two conditions were one
+           requirement at two strictnesses and a corp could satisfy both by the same act.
+           Taken prisoners are not home either, and now they count. */
+        case 'bring_them_home': {
+          const taken = record.captured || 0;
+          ok = sent === 0 || (sent - dead - taken) / sent >= 0.8;
+          break;
+        }
+        /* THERE IS NO SUCH THING AS A FREE BACKER, and "field sixteen" was no better than
+           none: sixteen is the floor the board fills for you if you fail to reach it, so the
+           condition could not be failed on purpose or by accident. The Almsdesk backs the
+           unproven — it wants a third of your drop to be people who have not fought a
+           Divide before, which is a real cost: green fighters lose more often, and a corp
+           chasing a finish would rather field its veterans. */
+        case 'blood_the_green': {
+          const green = record.greenDropped || 0;
+          ok = sent > 0 && green / sent >= 1 / 3;
+          break;
+        }
         default:                ok = true; break;
       }
       c.seasonsServed++;
@@ -336,30 +358,30 @@
     switch (contract.key) {
       case 'keep_policy':
         return corp._policyChanged
-          ? { state: 'atrisk', word: 'Policy changed \u2014 broken' }
-          : { state: 'holding', word: 'Policy held so far' };
+          ? { state: 'atrisk', word: 'Policy Changed \u00b7 Broken' }
+          : { state: 'holding', word: 'Policy Held So Far' };
       case 'accept_terms':
         return (corp.account.treasury || 0) > 0
           ? { state: 'holding', word: 'In surplus' }
-          : { state: 'atrisk', word: 'In the red \u2014 must end in surplus' };
+          : { state: 'atrisk', word: 'In the Red \u00b7 Treasury Must End Above Zero' };
       case 'field_talent':
         return bestFame >= 25
-          ? { state: 'met', word: 'A standout is already fielded' }
-          : { state: 'holding', word: 'Best on the books: fame ' + Math.round(bestFame) };
+          ? { state: 'met', word: 'A Standout Is Already Fielded' }
+          : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
         return alive.length <= 20
-          ? { state: 'holding', word: 'Roster at ' + alive.length + ' \u2014 lean enough' }
-          : { state: 'atrisk', word: 'Roster at ' + alive.length + ' \u2014 must drop 20 or fewer' };
+          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
+          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
       case 'none':
-        return { state: 'met', word: 'No condition \u2014 paid either way' };
+        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the drop \u2014 field mostly energy weapons' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
       case 'no_scandal':
-        return { state: 'pending', word: 'Judged at the drop \u2014 keep losses under a third' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':
-        return { state: 'pending', word: 'Judged at the drop \u2014 bring back four in five' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Four Fifths Home, Alive and Free' };
       default:
-        return { state: 'pending', word: 'Judged at the season close' };
+        return { state: 'pending', word: 'Judged at the Season Close' };
     }
   }
 

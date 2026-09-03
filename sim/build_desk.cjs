@@ -15,7 +15,7 @@ const D = __dirname + '/';
    inlined after its dependent is `undefined` for ever. `season.js` now reaches for `map.js` and
    `negotiate.js` as well, because the planet and its pot are announced at the season open. */
 const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js',
-                 'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js', 'divide.js', 'season.js'];
+                 'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js', 'divide.js', 'trade.js', 'season.js'];
 const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'recruitment.json', 'items.json'];
 
 let js = '';

@@ -12,12 +12,13 @@
     require('./prng.js'), require('./roster.js'), require('./items.js'),
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
-    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'));
+    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
+    require('./trade.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE) {
+                               root.CDPREDIVIDE, root.CDTRADE);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE) {
   'use strict';
 
   const CONST = {
@@ -63,6 +64,19 @@
     STRESS_CAP: 100,             // [S] the store's ceiling, everywhere
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
+    /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
+       STRESS. Both come down on their own every month; focus speeds either up sharply, and
+       it is painted at the same four breadth tiers the drill grid uses, so the two verbs
+       read the same way and a manager learns one grammar rather than two. The tier weights
+       are the drill's own — the inverse-breadth rule does not change because the subject
+       does. */
+    /* [C] AND FOCUS IS NEVER WASTED. Pour physical recovery onto somebody with nothing to
+       mend and it becomes CONDITIONING: they walk onto the ground harder than they left it.
+       Stress focus on somebody already calm steadies them the same way. Both are temporary
+       by construction — they last exactly one Divide and are spent there, because a
+       permanent gain from resting would be a second training verb wearing a bandage. */
+    REST_CONDITION_PER_BLOCK: 5, // [C] raw stat points (×10 scale) a full block of overflow buys
+    REST_CONDITION_CAP: 15,      // [C] and the most any one body can carry into a Divide
     TRAIN_STRESS_FOCUS: 4,       // [C] drilling hard wears on the drilled, scaled by thirds
     /* RULED — BOOST. The verbs cost nothing inherent (they never did: the census at step e
        confirmed every prep credit is a purchase). Instead a manager may pay to DOUBLE the
@@ -73,7 +87,7 @@
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
-    TREAT_DAYS: 45,              // [C] days of healing bought by one treatment block
+    TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
        pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four
@@ -177,7 +191,14 @@
     FOUNDING_FLOOR: 16,          // [H] = ROSTER_MIN; the legal minimum to field at all
 
     /* --- careers (S4) --- */
-    DEVELOP_BASE: 5.5,           // [C] movement toward potential, per Divide survived (×10 scale)
+    DEVELOP_BASE: 5.5,           // [C] movement toward the ceiling, per Divide survived (×10 scale)
+    /* [C] THE HIDDEN CEILING IS GONE (ruled). `potential` was a per-person cap that stopped
+       growth and nobody could see: with careers this short and growth this slow almost
+       nobody ever reached theirs, so all it could do was quietly forbid specialisation in
+       the rare case somebody did. Growth now runs to the SCALE's ceiling, the same for
+       everyone. Potential survives as what it honestly is — what a scout thinks of somebody
+       at signing — and decides who a corp is interested in, not who they may become. */
+    STAT_CEIL: 200,
     DEVELOP_GREEN_MULT: 1.7,     // [C] before prime opens
     DEVELOP_BENCH_FRAC: 0.35,    // [C] a season on the bench against one on the ground
     DECLINE_RATE: 6.5,           // [C] body-stat loss per year past `decline` (×10 scale)
@@ -194,6 +215,13 @@
 
     /* --- the board (S5, S12) --- */
     UNDERWRITE_PATIENCE_FLOOR: 8,
+    /* [C] THE SCRAPE. Ruled with the trade table: a corp may run its roster down to nothing
+       all year — fluidity until the Divide — but somebody has to walk onto the ground. So
+       the floor is enforced at the LAST possible moment, when the merc window shuts in M10:
+       whatever is missing is bought at the cheapest asking price on the board, and the
+       board's patience takes a beating for having to do it. This is not a service, it is
+       an intervention. */
+    SCRAPE_PATIENCE: 22,         // [C] patience burned for having to fill your roster for you
     UNDERWRITE_DEMANDS: 5,
 
     /* --- contracts ---
@@ -318,14 +346,77 @@
   }
 
   /** The eight greenest fit bodies — this is a place to blood people, not to win with veterans. */
+  /* WHO YOU SEND TO THE LIGHTS. The fleet's own rule is the greenest fit bodies — an
+     exhibition is where you blood people who have not seen a Divide. A manager may name
+     their own eight instead (`corp._dividendPick`), which is the whole decision the format
+     offers: blood the green, or put your names in front of a crowd that pays in fame. Only
+     fit, unpledged bodies can take the floor either way, so the pick cannot smuggle a
+     wounded fighter or a conscript owed to a term onto the card. */
+  function dividendEligible(corp) {
+    return corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' &&
+      !(f.contract && f.contract.divides_required != null &&
+        (f.contract.divides_served || 0) < f.contract.divides_required) &&
+      !((f.condition || {}).injuries || []).length);
+  }
   function dividendSquad(corp) {
-    return corp.roster
-      .filter(f => f.status !== 'dead' && f.status !== 'retired' &&
-                   !(f.contract && f.contract.divides_required != null &&
-                     (f.contract.divides_served || 0) < f.contract.divides_required) &&
-                   !((f.condition || {}).injuries || []).length)
-      .sort((a, b) => ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0))
-      .slice(0, 8);
+    const pick = corp._dividendPick;
+    if (pick && pick.length) {
+      const ok = dividendEligible(corp);
+      const named = pick.map(id => ok.find(f => f.id === id)).filter(Boolean).slice(0, 8);
+      if (named.length >= 4) return named;
+      /* too few of the named are fit to show: fall through to the fleet's own rule rather
+         than field a card that cannot legally take the floor */
+    }
+    /* THE FLEET HAS TASTE TOO (ruled). Every corp sending its greenest eight made the card
+       the same every year and gave a manager who fielded names a free win over rookies.
+       Each OA picks by its own lights instead, and which lights depends on what the corp is
+       and how its year is going:
+
+         BLOOD   the greenest — an exhibition nobody dies in is where you season people;
+         SHOW    the famous — a paying crowd, and fame is worth more to some boards;
+         DRILL   the best of the unblooded — the ones a corp is trying to bring on;
+         SPARE   whoever is idlest — rest the people who matter, treat the night as noise.
+
+       The lean is the corp's own: a board hungry for standing shows off, a corp deep in
+       green hands bloods them, a corp with a thin roster spares it. Deterministic per corp
+       and season, because a card that reshuffles on a re-run is not a decision. */
+    const eligible = dividendEligible(corp);
+    if (!eligible.length) return [];
+    const seasonN = (corp._season || corp.season || 0);
+    let h = 2166136261;
+    const key = corp.id + '|dividend|' + seasonN;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const roll = ((h >>> 8) % 1000) / 1000;
+
+    const green = eligible.filter(f => ((f.experience || {}).divides || 0) === 0).length;
+    const patience = (corp.rep && corp.rep.patience != null) ? corp.rep.patience : 50;
+    const thin = eligible.length <= CONST.ROSTER_MIN;
+    /* WEIGHTS, NOT A LADDER OF GATES. The first cut stacked conditions in order and the
+       first one that matched won — which in season one, when nearly every corp is deep in
+       green hands, meant four fifths of the fleet chose BLOOD and the other two leans never
+       appeared at all. Each corp now draws from a distribution that its own situation
+       tilts, so the card varies from the first year on. */
+    let w;
+    if (thin) w = { spare: 0.55, blood: 0.20, drill: 0.15, show: 0.10 };
+    else if (patience < 35) w = { show: 0.50, drill: 0.20, blood: 0.20, spare: 0.10 };
+    else if (green >= 6) w = { blood: 0.40, drill: 0.30, show: 0.20, spare: 0.10 };
+    else w = { drill: 0.30, show: 0.30, blood: 0.25, spare: 0.15 };
+    let lean = 'blood', acc = 0;
+    for (const k of ['blood', 'drill', 'show', 'spare']) {
+      acc += w[k] || 0;
+      if (roll < acc) { lean = k; break; }
+    }
+
+    const divides = f => ((f.experience || {}).divides || 0);
+    const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 4;
+    const sorters = {
+      blood: (a, b) => divides(a) - divides(b),
+      show:  (a, b) => (b.fame || 0) - (a.fame || 0),
+      drill: (a, b) => (divides(a) - divides(b)) || (quality(b) - quality(a)),
+      spare: (a, b) => (b.condition && b.condition.stress || 0) - (a.condition && a.condition.stress || 0)
+    };
+    corp._dividendLean = lean;
+    return eligible.slice().sort(sorters[lean]).slice(0, 8);
   }
 
   function runDividend(rng, corps, ids, season, tally) {
@@ -731,8 +822,8 @@
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 20);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - 20);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
@@ -774,12 +865,12 @@
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
   function monthTracks(corp, month) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     return [
@@ -904,10 +995,10 @@
         } else {
           gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
         }
-        landed.push({ kind: 'intel', text: 'the scouts reported back' });
+        landed.push({ kind: 'intel', text: 'The Scouts Reported Back' });
         if (tally) tally.surveysLanded = (tally.surveysLanded || 0) + 1;
       } else {
-        landed.push({ kind: item.kind, text: 'an outcome this build does not know arrived', unknown: true });
+        landed.push({ kind: item.kind, text: 'An Outcome This Build Does Not Know Arrived', unknown: true });
       }
     }
     corp._pending = keep;
@@ -1049,13 +1140,34 @@
   }
 
   function snapshotRival(them, rowKey, depth, season) {
-    const nf = x => Math.round(x || 0).toLocaleString('en-US');
+    /* money wears the credit mark here too, so a dossier reads like every other surface */
+    const nf = x => '\u20a1' + Math.round(x || 0).toLocaleString('en-US');
     const rng2 = null;
     /* a number, bracketed to what this depth can honestly claim */
+    /* A GUESS SHOULD LOOK LIKE A GUESS. ₡199,725–₡314,475 is preposterously precise about
+       being imprecise — nobody's scouts come back with the last seven credits of a range.
+       Big figures round to a legible step, and they round OUTWARD (low down, high up) so the
+       window can only ever grow: the truth stays inside it, which is the one thing about
+       partial intelligence that must never break. Small counts — hands, drill points — are
+       already legible and are left alone. */
+    const niceStep = v => {
+      const a = Math.abs(v);
+      if (a >= 100000) return 5000;
+      if (a >= 10000) return 500;
+      if (a >= 1000) return 50;
+      return 0;
+    };
     const band = (rowKey2, value, opts) => {
       const w = intelWindow(them, rowKey2, season, value, depth, opts);
       const f = (opts && opts.fmt) || (x => String(Math.round(x)));
       if (!w) return f(value);
+      const step = (opts && opts.round === false) ? 0 : niceStep(value);
+      if (step) {
+        w.lo = Math.floor(w.lo / step) * step;
+        w.hi = Math.ceil(w.hi / step) * step;
+        if (opts && opts.min != null) w.lo = Math.max(opts.min, w.lo);
+        if (opts && opts.max != null) w.hi = Math.min(opts.max, w.hi);
+      }
       const lo = f(w.lo), hi = f(w.hi);
       /* a window that has closed to a single figure SAYS the figure — "3\u20133 points"
          reads like a bug, and after formatting a tight range often is one number */
@@ -1073,26 +1185,25 @@
         const label = { nattie: 'Natural-Born', mercenary: 'Mercenary', prisoner: 'Conscript' };
         const parts = Object.keys(mix).filter(k => mix[k])
           .sort((a, b) => mix[b] - mix[a]).map(k => mix[k] + ' ' + label[k]);
-        const hands = band('roster', n, { min: 0, floor: 3 }) + ' hands';
+        const hands = band('roster', n, { min: 0, floor: 3 }) + ' Fighters';
         if (vague) return hands;
-        if (!full) return hands + ' \u00b7 mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
-        return n + ' hands \u00b7 ' + parts.join(', ');
+        if (!full) return hands + ' \u00b7 Mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
+        return n + ' Fighters \u00b7 ' + parts.join(', ');
       }
       case 'finances': {
         const t = acct.treasury || 0;
         const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
         const money = { fmt: nf, min: 0, floor: 1000 };
-        if (vague) return 'Treasury ' + band('finances', t, money);
-        if (!full) return 'Treasury ' + band('finances', t, money) +
-                          ' \u00b7 season wage ' + band('finances_wage', wage, money);
-        return 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) +
-               ' \u00b7 grant ' + nf(acct.grant || 0);
+        if (vague) return band('finances', t, money);
+        if (!full) return band('finances', t, money) +
+                          ' \u00b7 Wage ' + band('finances_wage', wage, money);
+        return nf(t) + ' \u00b7 Wage ' + nf(wage) + ' \u00b7 Grant ' + nf(acct.grant || 0);
       }
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' pieces in the armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' pieces in the armoury';
+        if (full) return held + ' Pieces in the Armoury';
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -1109,20 +1220,20 @@
           : ((t ? (t.all || 0) : 0) +
              Object.keys(col).reduce((s, k) => s + (col[k] || 0), 0) +
              Object.keys((t && t.cell) || {}).reduce((s, k) => s + (t.cell[k] || 0), 0));
-        if (!spent) return full ? 'No drilling this month' : 'Little or no drilling \u00b7 0\u20131 points';
-        const pts = band('training', spent, { min: 0, floor: 2 }) + ' points of drill';
+        if (!spent) return full ? 'No Drilling This Month' : 'Little or No Drilling \u00b7 0\u20131 Points';
+        const pts = band('training', spent, { min: 0, floor: 2 }) + ' Points of Drill';
         if (vague) return pts;
-        if (!full) return pts + (cols[0] ? ' \u00b7 mostly ' + cols[0] : ' \u00b7 spread wide');
-        return spent + ' points of drill \u00b7 ' +
-               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'spread across the roster');
+        if (!full) return pts + (cols[0] ? ' \u00b7 Mostly ' + cols[0] : ' \u00b7 Spread Wide');
+        return spent + ' Points of Drill \u00b7 ' +
+               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'Spread Across the Roster');
       }
       case 'moves': {
         const signed = (them._recruit && them._recruit.signed) || 0;
-        if (full) return signed + ' signed recently \u00b7 ' +
-                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting');
+        if (full) return signed + ' Signed Recently \u00b7 ' +
+                      (((them.sponsors || {}).contracts || []).length ? 'Courting Sponsors' : 'No Courting');
         /* a small count needs a wider floor to stay a window at all: 0\u20131 is a real
            statement, but it collapses to a certainty the moment the floor rounds away */
-        return band('moves', signed, { min: 0, floor: 2 }) + ' signed of late';
+        return band('moves', signed, { min: 0, floor: 2 }) + ' Signed of Late';
       }
       case 'board': {
         /* the demand itself is a sentence, not a quantity — but board INTEREST is a
@@ -1131,11 +1242,11 @@
         const it = goal.interest;
         const pct = { fmt: x => Math.round(x * 100) + '%', min: 0, max: 100, floor: 0.08 };
         if (vague) return it != null
-          ? 'Board interest ' + band('board', it, pct)
-          : 'Board interest unread';
-        if (!full) return 'Board wants ' + (goal.text || 'a strong Divide') +
-                          (it != null ? ' \u00b7 interest ' + band('board', it, pct) : '');
-        return 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
+          ? 'Board Interest ' + band('board', it, pct)
+          : 'Board Interest Unread';
+        if (!full) return 'Board Wants ' + (goal.text || 'a strong Divide') +
+                          (it != null ? ' \u00b7 Interest ' + band('board', it, pct) : '');
+        return 'Board Demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 Interest ' +
                (it != null ? Math.round(it * 100) + '%' : '\u2014');
       }
     }
@@ -1143,8 +1254,20 @@
   }
 
 
+  /* A TEMPORARY EDGE, SPENT IN THE NEXT DIVIDE. Conditioning is not training: it does not
+     touch a fighter's stats, it rides beside them in `_conditioned`, combat reads it when a
+     body becomes a combatant, and the settlement clears it. A permanent gain bought by
+     resting would just be a second drill verb wearing a bandage. */
+  function condition(f, stat, blocks) {
+    if (!(blocks > 0)) return;
+    f._conditioned = f._conditioned || {};
+    const add = CONST.REST_CONDITION_PER_BLOCK * blocks;
+    f._conditioned[stat] = Math.min(CONST.REST_CONDITION_CAP,
+                                    (f._conditioned[stat] || 0) + add);
+  }
+
   function prepMonth(rng, corp, month, season, tally, wanted, landedOut, corps) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     /* --- time passes whether or not anybody spends anything --- */
     let mended = 0;
     for (const f of corp.roster) {
@@ -1170,7 +1293,7 @@
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
-      const cap = typeof f.potential === 'number' ? f.potential : null;
+      const cap = CONST.STAT_CEIL;
       if (cap == null) continue;
       let drifted = false;
       for (const k of CONST.MIND)
@@ -1219,20 +1342,62 @@
       tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
       const a = { kind: kind };
       if (a.kind === 'rest') {
-        /* RULED: rest is for EVERYONE. The wounded mend faster by thirds — every wounded
-           body, not the worst three — and everyone's stress comes down with them. */
+        /* --- THE RECOVERY GRID. Two tracks per body — `wounds` and `stress` — painted at
+           the drill's four tiers, which STACK: the corner (everyone, both tracks), a column
+           (one track, everyone), a row (one body, both tracks), a cell (one body, one
+           track). A bare `rest` scalar with no map is a corner paint, which is what the
+           old whole-roster rest was, so nothing that used to call this changes its meaning.
+
+           Focus is never wasted: physical effort with nothing to mend becomes conditioning
+           (grit), calm-side effort on somebody already steady becomes composure (resolve),
+           and both are spent in the next Divide. */
+        const rt = (wanted && wanted.restTarget) || null;
+        const rmap = rt && (rt.all != null || rt.col || rt.row || rt.cell)
+          ? { all: rt.all || 0, col: rt.col || {}, row: rt.row || {}, cell: rt.cell || {} }
+          : { all: fpts, col: {}, row: {}, cell: {} };
+        const TRACKS = ['wounds', 'stress'];
+        const blocks = (fighterId, track) => {
+          /* the share of a full block this body gets on this track, summed over every tier
+             that covers it — the drill's own arithmetic, subject changed */
+          let b = 0;
+          b += (rmap.all || 0) / 3 * CONST.TRAIN_W_ALL;
+          b += ((rmap.col || {})[track] || 0) / 3 * CONST.TRAIN_W_COL;
+          b += ((rmap.row || {})[fighterId] || 0) / 3 * CONST.TRAIN_W_ROW;
+          b += ((rmap.cell || {})[fighterId + '|' + track] || 0) / 3 * CONST.TRAIN_W_CELL;
+          return b * mult;
+        };
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
-          f.condition.stress = Math.max(0, (f.condition.stress || 0) -
-                                           CONST.REST_STRESS_FOCUS * third);
-          if ((f.condition.injuries || []).length) {
-            f.condition.injuries = f.condition.injuries.filter(w => {
-              if (w.careerEnding || w.permanent) return true;
-              w.days_remaining -= CONST.TREAT_DAYS * third;
-              return w.days_remaining > 0;
-            });
-            if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
-            tally.treated++;
+          const wB = blocks(f.id, 'wounds'), sB = blocks(f.id, 'stress');
+
+          /* the calm side */
+          if (sB > 0) {
+            const before = f.condition.stress || 0;
+            const after = Math.max(0, before - CONST.REST_STRESS_FOCUS * sB);
+            f.condition.stress = after;
+            const spent = before - after;
+            /* whatever the effort could have taken off but found nothing to take */
+            const spare = CONST.REST_STRESS_FOCUS * sB - spent;
+            if (spare > 0) condition(f, 'resolve', spare / CONST.REST_STRESS_FOCUS);
+          }
+          /* the physical side */
+          if (wB > 0) {
+            const inj = f.condition.injuries || [];
+            if (inj.length) {
+              let budget = CONST.TREAT_DAYS * wB, used = 0;
+              f.condition.injuries = inj.filter(w => {
+                if (w.careerEnding || w.permanent) return true;
+                const take = Math.min(w.days_remaining, budget - used);
+                if (take > 0) { w.days_remaining -= take; used += take; }
+                return w.days_remaining > 0;
+              });
+              if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+              tally.treated++;
+              const spare = CONST.TREAT_DAYS * wB - used;
+              if (spare > 0) condition(f, 'grit', spare / CONST.TREAT_DAYS);
+            } else {
+              condition(f, 'grit', wB);          /* nothing to mend: all of it is conditioning */
+            }
           }
         }
       } else if (a.kind === 'train') {
@@ -1259,7 +1424,7 @@
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
-          const cap = typeof f.potential === 'number' ? f.potential : null;
+          const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
           /* the stats this hand can be drilled on: the seven core stats, plus any weapon
@@ -1326,7 +1491,7 @@
         if (anyGathered) {
           tally.scouted++;
           tally.surveysLanded = (tally.surveysLanded || 0) + 1;
-          if (landedOut) landedOut.push({ kind: 'intel', text: 'the scouts reported' });
+          if (landedOut) landedOut.push({ kind: 'intel', text: 'The Scouts Reported' });
         }
         void intelNow;
       } else if (a.kind === 'court') {
@@ -1372,11 +1537,9 @@
       /* `potential` is a single ceiling, not a map — the highest this person could ever be
          at anything. It has been rolled and hidden since Step 2 and nothing has ever
          approached it, because nobody has ever had a second season. */
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      if (cap != null) {
-        for (const k of CONST.MIND) {
-          if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
-        }
+      const cap = CONST.STAT_CEIL;
+      for (const k of CONST.MIND) {
+        if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
       }
       /* --- decline: the body goes late, and then quickly --- */
       if (f.age > a.decline) {
@@ -2020,7 +2183,7 @@
   }
 
   function chooseDropSector(state, corpId, index) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'the drop is called at the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
     state.drop.sectors[corpId] = index;
     return { ok: true };
@@ -2040,10 +2203,10 @@
   }
 
   function offerPact(state, corpId, toId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'nobody talks terms before the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Nobody Talks Terms Before the Lock' };
     state.drop.pacts = state.drop.pacts || {};
     const key = corpId + '>' + toId;
-    if (state.drop.pacts[key]) return { ok: false, why: 'already spoken to them' };
+    if (state.drop.pacts[key]) return { ok: false, why: 'Already Spoken to Them' };
     const r = PRE.proposePact(P.mulberry32(P.seedFrom('pact' + state.season + key)),
                               state.corps[corpId], state.corps[toId]);
     state.drop.pacts[key] = r;
@@ -2052,9 +2215,9 @@
 
   /** Perform, or don't. Paid in standing, charged in concealment. */
   function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'media day is the week of the drop' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
     state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'you have already been' };
+    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
     const r = PRE.mediaDay(state.corps[corpId]);
     state.drop.media[corpId] = r;
     return { ok: true, gain: r.gain, reveal: r.reveal };
@@ -2073,7 +2236,7 @@
    */
   function stepMonth(state, choices) {
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
-    const m = state.month, win = MONTHS[m] || { name: 'month ' + m, event: null };
+    const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {};
     for (const id of state.ids) {
       landed[id] = [];
@@ -2101,8 +2264,38 @@
     if (win.event === 'mercs') {
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season)), state.corps, state.ids,
                     state.lots.mercs || [], state.mercs, state.bids.mercs);
+      /* --- THE SCRAPE, at the last door out. The merc window is the final chance to put
+         bodies on a roster, so this is where the floor lives now: anybody still short is
+         filled to ROSTER_MIN with the cheapest paper on offer, charged for it, and made to
+         feel it with the board. Deliberately AFTER the market, so a manager who bought
+         their own way to sixteen never meets this at all. --- */
+      for (const id of state.ids) {
+        const corp = state.corps[id];
+        const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
+        const short = CONST.ROSTER_MIN - alive.length;
+        if (short <= 0) continue;
+        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
+          .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
+        let bill = 0;
+        for (const f of filled) {
+          bill += ((f.contract && f.contract.signing_cost) || 0)
+                + ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
+          corp.roster.push(f);
+        }
+        LED.post(corp.account, 'expense', 'the board fills your roster', -bill);
+        if (corp.rep)
+          corp.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR,
+                                       (corp.rep.patience != null ? corp.rep.patience : 50)
+                                       - CONST.SCRAPE_PATIENCE);
+        state.mercs.scraped = (state.mercs.scraped || 0) + short;
+      }
       state.lots.mercs = null; state.bids.mercs = {};
     }
+    /* the other seven deal with each other too — see trade.js fleetTrades */
+    if (TRADE && TRADE.tradingOpen(m))
+      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+                        state.corps, state.ids, m, {});
     state.month++;
     ensureLot(state);
     return { month: m, name: win.name, event: win.event || null, spent, landed };
@@ -2298,6 +2491,11 @@
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
   function finishSeason(state, res) {
+    /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
+       it walks onto the ground, does its work, and is gone at the settlement. Cleared here
+       rather than at the drop so a replayed or halted contest still sees it. */
+    for (const id of state.ids)
+      for (const f of state.corps[id].roster) if (f._conditioned) delete f._conditioned;
     const corps = state.corps, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     /* built by `closeSeasonToDrop` and carried on the state rather than in a closure, because
@@ -2481,7 +2679,10 @@
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
-        dropSize: drop.length
+        dropSize: drop.length,
+        /* how much of the drop had never seen a Divide before this one — what the Almsdesk
+           is actually buying: somewhere for the unproven to be proven */
+        greenDropped: drop.filter(f => (((f.experience || {}).divides || 0) <= 1)).length
       });
       rec.corps[id].sponsors = {
         advance: verdict.advance || 0, paid: verdict.paid || 0,

@@ -16,7 +16,7 @@ const D = __dirname + '/';
    sponsor and pre-Divide modules too; the desk's list is the precedent. */
 const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
-                 'divide.js', 'season.js'];
+                 'divide.js', 'trade.js', 'season.js'];
 const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'oa_display.json', 'oa_marks.json', 'recruitment.json', 'items.json'];
 
 let js = '';

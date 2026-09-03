@@ -6,19 +6,20 @@
   "status": "Step 5b-1 (plumbing). Catalog per PROCUREMENT.md 4-11; all (proposed).",
   "sources": "PROCUREMENT.md 4.2 quirk vocabulary, 4.3 price formulae, 5-11 catalog",
   "provenance_notes": [
-   "Armour carries three resistances — ballistic, energy, explosive — added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
+   "Armour carries three resistances \u2014 ballistic, energy, explosive \u2014 added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
    "Energy weapons overheat in two or three shots and hold a day's charge, not a fight's: you cannot swap a cell mid-firefight the way you swap a magazine. Their damage runs a point below their ballistic equivalents. The trade is that they never need resupplying (PROCUREMENT.md 6).",
    "There is NO free kit. Nothing in this catalog costs zero: a corp fields what it owns (its armoury) and buys the rest with treasury credits. A founding armoury carries a corp into season one; losing it is a management failure, not a case for charity (PROCUREMENT.md 3, ruled).",
    "picks_for names the stat a corp selects that role by: the marksman rifle goes to the best shot in the squad, the scout kit to the best fieldcraft. Deterministic, (proposed), and it is what stops a 5-aim fighter carrying the Whisper.",
    "roles[] is the baseline squad composition every corp fields (PROCUREMENT.md 15.1). Six roles, a spread of bands, and a candidate list per role. Nobody fields two unit types.",
-   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns — the allowance is free, so preferring cheap would be incoherent.",
+   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns \u2014 the allowance is free, so preferring cheap would be incoherent.",
    "doctrines[] are LEANS on that baseline, not replacements for it: a composition bias of a few bodies, an ordered taste in quirks, a mod wishlist, and the order in which the allowance gets spent. ONE source: the armoury page, the document's table and Step 5b-2's AI procurement all read this block.",
    "Prices with price_model 'formula' are DERIVED from constants.pricing and are regenerated and diffed by `arx.cjs regress`. Editing a formula cost by hand will fail the suite.",
    "price_model 'scarcity' = exotica, hand-priced; guarded only by the 3x floor against the dearest formula item.",
    "price_model 'fixed' = mods and consumables, hand-priced; too small and too varied for a formula to price honestly.",
    "Contraband exists as data with no acquisition path until Step 9 (PROCUREMENT.md 11.2).",
    "Identity is the weapon, refinement is the mod, tier is only a shelf: no model appears at more than one tier (PROCUREMENT.md 4.1)."
-  ]
+  ],
+  "type_note": "What a piece IS, as a shelf would file it. Derived once from what each weapon does (its traits and its band) and then written down, because a market that guesses its own sections from tags will disagree with itself the moment a tag changes. Edit this field, not the derivation."
  },
  "constants": {
   "pricing": {
@@ -221,7 +222,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Someone's grandfather carried it. Still works."
+   "identity": "Someone's grandfather carried it. Still works.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_hunting_rifle",
@@ -242,7 +244,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A civilian gun that reaches. Everything else about it is a compromise."
+   "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_pdw",
@@ -263,7 +266,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two rounds where one was asked for."
+   "identity": "Two rounds where one was asked for.",
+   "type": "Submachine Guns"
   },
   {
    "id": "itm_riot_autogun",
@@ -285,7 +289,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Crowd-control kit that found a war."
+   "identity": "Crowd-control kit that found a war.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_scattergun",
@@ -306,7 +311,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Ends rooms."
+   "identity": "Ends rooms.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_carbine",
@@ -315,17 +321,20 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 900,
+   "cost": 1150,
    "bulk": 3,
    "effects": {
     "power": 5,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The standard. Everything else is measured against it."
+   "identity": "The standard. Everything else is measured against it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_bullpup",
@@ -334,19 +343,21 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1090,
+   "cost": 1340,
    "bulk": 2,
    "effects": {
     "power": 5,
     "range": "medium",
     "tags": [
-     "stabilized"
+     "stabilized",
+     "burst"
     ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short enough to fight while moving."
+   "identity": "Short enough to fight while moving.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_battle_rifle",
@@ -368,7 +379,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Full power, full weight. You will feel every metre you carry it."
+   "identity": "Full power, full weight. You will feel every metre you carry it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_marksman_rifle",
@@ -389,7 +401,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for."
+   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_machine_gun",
@@ -410,7 +423,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them."
+   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_drum_shotgun",
@@ -432,7 +446,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first."
+   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_needler",
@@ -453,7 +468,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Devastating on the unarmoured, a rumour against plate."
+   "identity": "Devastating on the unarmoured, a rumour against plate.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_gyrojet",
@@ -475,7 +491,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Rounds that accelerate - useless until they have flown."
+   "identity": "Rounds that accelerate - useless until they have flown.",
+   "type": "Carbines"
   },
   {
    "id": "itm_caroms",
@@ -496,7 +513,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fired at the wall, on purpose."
+   "identity": "Fired at the wall, on purpose.",
+   "type": "Carbines"
   },
   {
    "id": "itm_whisper",
@@ -517,7 +535,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The shot nobody attributes."
+   "identity": "The shot nobody attributes.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_hardpoint",
@@ -540,7 +559,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A machine gun that stopped apologising."
+   "identity": "A machine gun that stopped apologising.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_grenade_carbine",
@@ -561,7 +581,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two weapons, one awkward weight."
+   "identity": "Two weapons, one awkward weight.",
+   "type": "Launchers"
   },
   {
    "id": "itm_coilgun",
@@ -583,7 +604,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Magnetic acceleration. Wait for it."
+   "identity": "Magnetic acceleration. Wait for it.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_amr",
@@ -605,7 +627,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for vehicles. Fielded against people."
+   "identity": "Built for vehicles. Fielded against people.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_breachgun",
@@ -627,7 +650,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't shoot around cover. Shoots the cover."
+   "identity": "Doesn't shoot around cover. Shoots the cover.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_las_surplus",
@@ -636,12 +660,14 @@
    "slot": "primary",
    "family": "energy",
    "tier": 1,
-   "cost": 360,
+   "cost": 470,
    "bulk": 3,
    "effects": {
     "power": 4,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "energy",
     "heat": 4,
     "heat_cap": 8,
@@ -649,7 +675,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Cheap, patient, and slow to answer."
+   "identity": "Cheap, patient, and slow to answer.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_pulse_carbine",
@@ -674,7 +701,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it."
+   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_las_repeater",
@@ -699,7 +727,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The only energy weapon that can hold an arc, and it hates doing it."
+   "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_ion_carbine",
@@ -724,7 +753,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Terrible against people. Ruinous against machines."
+   "identity": "Terrible against people. Ruinous against machines.",
+   "type": "Carbines"
   },
   {
    "id": "itm_accumulator",
@@ -748,7 +778,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drinks the day. Dreads the night."
+   "identity": "Drinks the day. Dreads the night.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_arc_projector",
@@ -772,7 +803,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Finds the second man without being asked."
+   "identity": "Finds the second man without being asked.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_cryo_lance",
@@ -797,7 +829,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't kill them. Stops them."
+   "identity": "Doesn't kill them. Stops them.",
+   "type": "Carbines"
   },
   {
    "id": "itm_fusion_repeater",
@@ -821,7 +854,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Gets hotter and better at once."
+   "identity": "Gets hotter and better at once.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_photon_marksman",
@@ -845,7 +879,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "No report, no flash, no witness."
+   "identity": "No report, no flash, no witness.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_resonance",
@@ -870,7 +905,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Sound goes where the bullet won't."
+   "identity": "Sound goes where the bullet won't.",
+   "type": "Carbines"
   },
   {
    "id": "itm_beam_lance",
@@ -894,7 +930,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A line drawn through the argument. Once, then twice, then nothing."
+   "identity": "A line drawn through the argument. Once, then twice, then nothing.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_disintegrator",
@@ -919,7 +956,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Removes the argument and the furniture."
+   "identity": "Removes the argument and the furniture.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_plasma_caster",
@@ -945,7 +983,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd's favourite, the Aleas' paperwork."
+   "identity": "The crowd's favourite, the Aleas' paperwork.",
+   "type": "Launchers"
   },
   {
    "id": "itm_plasma_thrower",
@@ -970,7 +1009,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short range, long memory."
+   "identity": "Short range, long memory.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_holdout",
@@ -989,7 +1029,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Better than a harsh word."
+   "identity": "Better than a harsh word.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_flare_pistol",
@@ -1011,7 +1052,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Signal kit. Used badly, on camera."
+   "identity": "Signal kit. Used badly, on camera.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_service_pistol",
@@ -1030,7 +1072,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Issued, forgotten, occasionally decisive."
+   "identity": "Issued, forgotten, occasionally decisive.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_las_sidearm",
@@ -1049,7 +1092,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fails on a different resource than your rifle."
+   "identity": "Fails on a different resource than your rifle.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_heavy_revolver",
@@ -1071,7 +1115,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Six chances to be right."
+   "identity": "Six chances to be right.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_machine_pistol",
@@ -1092,7 +1137,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties fast, which is the point."
+   "identity": "Empties fast, which is the point.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_gyro_pistol",
@@ -1114,7 +1160,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A sidearm with opinions about distance."
+   "identity": "A sidearm with opinions about distance.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_arc_pistol",
@@ -1135,7 +1182,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Leaves them standing and useless."
+   "identity": "Leaves them standing and useless.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_needle_derringer",
@@ -1157,7 +1205,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two shots, no noise, nothing that troubles plate."
+   "identity": "Two shots, no noise, nothing that troubles plate.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_compact_plasma",
@@ -1178,7 +1227,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Feels wildly illegal. Entirely legal."
+   "identity": "Feels wildly illegal. Entirely legal.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_scout_weave",
@@ -1203,7 +1253,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Trades the plate for the ground."
+   "identity": "Trades the plate for the ground.",
+   "type": "Armour"
   },
   {
    "id": "itm_flak_vest",
@@ -1226,7 +1277,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for fragments, ordinary against everything else."
+   "identity": "Built for fragments, ordinary against everything else.",
+   "type": "Armour"
   },
   {
    "id": "itm_plate_carrier",
@@ -1249,7 +1301,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The honest answer to most of what gets shot at you."
+   "identity": "The honest answer to most of what gets shot at you.",
+   "type": "Armour"
   },
   {
    "id": "itm_ablative_harness",
@@ -1272,7 +1325,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Boils a beam away and cracks under a rifle."
+   "identity": "Boils a beam away and cracks under a rifle.",
+   "type": "Armour"
   },
   {
    "id": "itm_sealed_hardplate",
@@ -1297,7 +1351,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Slow, sealed, and hard to finish by any means."
+   "identity": "Slow, sealed, and hard to finish by any means.",
+   "type": "Armour"
   },
   {
    "id": "itm_mod_optic",
@@ -1314,7 +1369,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lights optics_gear_synergy."
+   "identity": "Lights optics_gear_synergy.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_bipod",
@@ -1332,7 +1388,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Steady, and only steady."
+   "identity": "Steady, and only steady.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_target_link",
@@ -1349,7 +1406,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Waits better than you do."
+   "identity": "Waits better than you do.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_light_frame",
@@ -1367,7 +1425,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lighter, and it shows."
+   "identity": "Lighter, and it shows.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_grip",
@@ -1384,7 +1443,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fire and move."
+   "identity": "Fire and move.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_rangefinder",
@@ -1401,7 +1461,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Halves the argument about distance."
+   "identity": "Halves the argument about distance.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_field_kit",
@@ -1419,7 +1480,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Keeps it honest."
+   "identity": "Keeps it honest.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_broadcast_tag",
@@ -1436,7 +1498,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Purely for the cameras."
+   "identity": "Purely for the cameras.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_extended_mag",
@@ -1453,7 +1516,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Six more chances."
+   "identity": "Six more chances.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_recoil_comp",
@@ -1471,7 +1535,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Holds the line down."
+   "identity": "Holds the line down.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_suppressor",
@@ -1488,7 +1553,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Nobody attributes the first one."
+   "identity": "Nobody attributes the first one.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_ap_rounds",
@@ -1506,7 +1572,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Through, not into."
+   "identity": "Through, not into.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_incendiary",
@@ -1523,7 +1590,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "The crowd notices."
+   "identity": "The crowd notices.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_hollowpoint",
@@ -1540,7 +1608,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Terrible against plate."
+   "identity": "Terrible against plate.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_heat_sink",
@@ -1557,7 +1626,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Buys you the fourth shot."
+   "identity": "Buys you the fourth shot.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_capacitor",
@@ -1574,7 +1644,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "A longer day."
+   "identity": "A longer day.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_focusing_array",
@@ -1592,7 +1663,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Hotter, harder."
+   "identity": "Hotter, harder.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_diffuser",
@@ -1610,7 +1682,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Wider, weaker, closer."
+   "identity": "Wider, weaker, closer.",
+   "type": "Mods"
   },
   {
    "id": "itm_frag_grenade",
@@ -1630,7 +1703,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower."
+   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
+   "type": "Consumables"
   },
   {
    "id": "itm_smoke_canister",
@@ -1648,7 +1722,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways."
+   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways.",
+   "type": "Consumables"
   },
   {
    "id": "itm_incendiary_charge",
@@ -1669,7 +1744,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "As frag, incendiary, +8 severity; crowd-divisive."
+   "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
+   "type": "Consumables"
   },
   {
    "id": "itm_medkit",
@@ -1687,7 +1763,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "P(stabilize) +0.15, consumed on use."
+   "identity": "P(stabilize) +0.15, consumed on use.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stim_shot",
@@ -1705,7 +1782,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night."
+   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
+   "type": "Consumables"
   },
   {
    "id": "itm_spotter_drone",
@@ -1723,7 +1801,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day."
+   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day.",
+   "type": "Consumables"
   },
   {
    "id": "itm_auto_turret",
@@ -1741,7 +1820,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout."
+   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout.",
+   "type": "Consumables"
   },
   {
    "id": "itm_ammo_satchel",
@@ -1759,7 +1839,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+8 rounds at drop. Quota: 1 per body."
+   "identity": "+8 rounds at drop. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_power_cell",
@@ -1777,7 +1858,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+20 charge. Quota: 1 per body."
+   "identity": "+20 charge. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_missile_launcher",
@@ -1800,7 +1882,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Sponsor theatre with a blast radius."
+   "identity": "Sponsor theatre with a blast radius.",
+   "type": "Launchers"
   },
   {
    "id": "itm_rotary_cannon",
@@ -1823,7 +1906,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Ammunition x3. Nothing about it is reasonable."
+   "identity": "Ammunition x3. Nothing about it is reasonable.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_railgun",
@@ -1846,7 +1930,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One hole, all the way through."
+   "identity": "One hole, all the way through.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_kinetic_driver",
@@ -1869,7 +1954,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Removes the position and the argument."
+   "identity": "Removes the position and the argument.",
+   "type": "Launchers"
   },
   {
    "id": "itm_phase_lance",
@@ -1895,7 +1981,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One shot per three exchanges. It is enough."
+   "identity": "One shot per three exchanges. It is enough.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_assault_frame",
@@ -1922,7 +2009,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "A walking cover position that eats an allowance."
+   "identity": "A walking cover position that eats an allowance.",
+   "type": "Armour"
   },
   {
    "id": "itm_chem_rounds",
@@ -1941,7 +2029,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Severity +14, internal-injury bias. Banned outright."
+   "identity": "Severity +14, internal-injury bias. Banned outright.",
+   "type": "Mods"
   },
   {
    "id": "itm_thermobaric_charge",
@@ -1961,7 +2050,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Destroys a cover pool outright. Banned outright."
+   "identity": "Destroys a cover pool outright. Banned outright.",
+   "type": "Consumables"
   },
   {
    "id": "itm_cortical_scrambler",
@@ -1980,7 +2070,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Forces Mon-Wa tether strain at range. Built to break one species."
+   "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
+   "type": "Consumables"
   },
   {
    "id": "itm_drone_jammer",
@@ -1997,7 +2088,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "The engagement does not air. The Aleas' first commandment, broken."
+   "identity": "The engagement does not air. The Aleas' first commandment, broken.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stun_carbine",
@@ -2019,7 +2111,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drops a man where he stands and he gets up angry. Dividend issue."
+   "identity": "Drops a man where he stands and he gets up angry. Dividend issue.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_shock_lance",
@@ -2041,7 +2134,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd can hear it from the stands. So can the man on the end of it."
+   "identity": "The crowd can hear it from the stands. So can the man on the end of it.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_dazzler",
@@ -2063,7 +2157,235 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Blinds a firing line without leaving a mark on any of them."
+   "identity": "Blinds a firing line without leaving a mark on any of them.",
+   "type": "Stun-Grade"
+  },
+  {
+   "id": "itm_militia_autorifle",
+   "name": "Militia Autorifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 470,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_pattern_auto",
+   "name": "Pattern Automatic",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 740,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_vanguard_rifle",
+   "name": "Vanguard Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1310,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Holds its line while you walk. The rest is practice.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_stormline_rifle",
+   "name": "Stormline Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2390,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Heavier than it looks, and it goes through more than it should.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_ardent_rifle",
+   "name": "Ardent Pulse Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2070,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "heavy_draw"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Three flashes a second and a battery that resents it.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_sovereign_auto",
+   "name": "Sovereign Battle Auto",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 10900,
+   "bulk": 4,
+   "effects": {
+    "power": 8,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "What an OA buys when it has stopped counting.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_scrapgun_smg",
+   "name": "Scrapgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 490,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Loud, light, and honest about what it is.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_alley_smg",
+   "name": "Alley Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 760,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Made for corridors and the people who fight in them.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_whipcord_smg",
+   "name": "Whipcord SMG",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1420,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "smart_link"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Points where you are already looking.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_seraph_smg",
+   "name": "Seraph Las-Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2450,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "silent"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "No report, no muzzle flash, no warning at all.",
+   "type": "Submachine Guns"
   }
  ],
  "roles": [
@@ -2081,7 +2403,11 @@
     "itm_breachgun",
     "itm_plasma_thrower",
     "itm_pdw",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_scrapgun_smg",
+    "itm_alley_smg",
+    "itm_whipcord_smg",
+    "itm_seraph_smg"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -2121,7 +2447,13 @@
     "itm_scattergun",
     "itm_las_surplus",
     "itm_disintegrator",
-    "itm_phase_lance"
+    "itm_phase_lance",
+    "itm_militia_autorifle",
+    "itm_pattern_auto",
+    "itm_vanguard_rifle",
+    "itm_stormline_rifle",
+    "itm_ardent_rifle",
+    "itm_sovereign_auto"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -2190,7 +2522,8 @@
     "itm_grenade_carbine",
     "itm_plasma_caster",
     "itm_missile_launcher",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_stormline_rifle"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -2220,7 +2553,10 @@
     "itm_bullpup",
     "itm_carbine",
     "itm_pulse_carbine",
-    "itm_pdw"
+    "itm_pdw",
+    "itm_alley_smg",
+    "itm_militia_autorifle",
+    "itm_pattern_auto"
    ],
    "armors": [
     "itm_scout_weave",
@@ -2254,7 +2590,10 @@
     "itm_ion_carbine",
     "itm_las_surplus",
     "itm_pdw",
-    "itm_hunting_rifle"
+    "itm_hunting_rifle",
+    "itm_whipcord_smg",
+    "itm_seraph_smg",
+    "itm_scrapgun_smg"
    ],
    "armors": [
     "itm_scout_weave",
@@ -2280,7 +2619,7 @@
   {
    "id": "std_issue",
    "corp": "Aleas Standard",
-   "flavor": "—",
+   "flavor": "\u2014",
    "note": "No lean at all: the baseline every other doctrine is measured against.",
    "corp_id": null,
    "composition": {},

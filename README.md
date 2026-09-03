@@ -23,7 +23,7 @@ as tabs of the Divide.
 ```
 cd sim
 node arx.cjs regress --fast     114 checks · the edit loop
-node arx.cjs regress            246 checks · the full shipping gate, before packaging
+node arx.cjs regress            249 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node audit_cross.cjs            does one step's work reach the next, or just sit there

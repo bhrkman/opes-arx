@@ -35,7 +35,7 @@ figure cost 65 seconds a run to produce a number the suite itself declares meani
 ```
 cd sim
 node arx.cjs regress --fast   111 checks, ~90s. The edit-loop gate.
-node arx.cjs regress          246 checks, ~5.5min (slower machines ~12min). Before packaging.
+node arx.cjs regress          249 checks, ~5.5min (slower machines ~12min). Before packaging.
 cd ../harness && node drive.cjs   93 checks: drives the BUILT page through a whole year
                               (one-time `npm install` for jsdom; node_modules is ignored)
 node audit_open.cjs       what is actually built, tested by running the game
@@ -134,6 +134,18 @@ treating penalty is dead but for a different reason than the one given; and supp
 4,705 times in two contests, because the probes had armed all twelve fighters with the same
 carbine and no carbine suppresses. Every one of those would have been caught in a minute by trying
 to make the thing happen before announcing that it could not.
+
+**Interface text is Title Case, and there is only ever one copy of a sentence.** Every line a
+manager reads — a sponsor's condition, an obligation, a verb's reason, a status — is written
+Title Case, small words excepted. Two tables carried the same sponsor sentence in different
+cases for a long time and the interface happened to show the lowercase one, which is the real
+lesson: a string that exists twice will drift, and the copy on screen will be the wrong one.
+
+**Interface text is Title Case, and there is only ever one copy of a sentence.** Every line a
+manager reads — a sponsor's condition, an obligation, a verb's reason, a status — is written
+Title Case, small words excepted. Two tables carried the same sponsor sentence in different
+cases for a long time and the interface happened to show the lowercase one, which is the real
+lesson: a string that exists twice will drift, and the copy on screen will be the wrong one.
 
 **Speak plainly.** Checks, constants and rulings carry codes so the code can find them; a
 person should never have to decode one. In conversation, name the thing: "the check that a
@@ -903,6 +915,240 @@ that opened it on the aftermath had been quietly winning because it ran last.
 
 Live comms-window days carry no tracks, so they simply draw complete: the animation is for
 the recording, and the live view is unharmed.
+
+## An OA will give up its banner far sooner than it will take somebody else's. *Measured.*
+
+Found while a re-priced gun catalogue turned a green check red. Of 112 priced "would they come
+in under you" rows across the deal sample, exactly ONE had a number both sides would sign —
+`joinerMin` above `principalMax` in every other case. Ceding fires readily; TAKING is a
+one-in-a-hundred event, and the check that proved a manager can take somebody was passing on a
+two-seed sample of it. Any change to the economy flips that coin.
+
+The check now runs a wider sample and reports what it saw ("2 takes · 3 signable of 190 priced
+rows"), so a future failure says whether the branch broke or the dice moved.
+
+**A FOURTH guard, and the pattern is now the finding.** The stress check asserted that a Divide
+leaves marks by reading the highest stress on the whole roster — but the harness fields ONE
+squad of six and leaves everyone else at home, so when a re-priced catalogue shifted who met
+whom and that lone squad had a quiet contest, a working mechanic reported itself broken. It now
+asks whoever came back carrying something rather than the books at large. (It cannot ask by
+name: the year turns over before the check runs, and the offseason rebuilds the roster.)
+
+Four guards in one pass — the take branch, the crowd charge, a recovery guard that quietly
+spent a month the calendar checks were counting, and this — were all measuring circumstance
+rather than mechanism. **A check that samples one outcome of one contest is measuring the
+contest.** When a guard goes red after an economic change, find out whether the mechanism broke
+or the dice moved before touching either.
+
+**A second check had the same disease and the same cure.** "What negotiation charges the crowd
+actually moves standing" read ONE contest out of the corpus and needed that contest to contain a
+crowd charge. It did, until the same re-pricing shifted who dealt with whom and left it with
+none — whereupon a working mechanic reported itself broken. It searches the whole corpus now.
+The lesson generalises: a guard that samples a rare event on one seed is not measuring the
+mechanic, it is measuring the dice.
+
+**RULED: the rate is far too low, and the fix is DEFERRED.** One signable offer in a hundred is
+wrong — corporations coming in under one another should be a common sight, not a freak event.
+But the number is not to be moved yet, for the same reason fatality is not: the economy under it
+is still changing, and a dial tuned against today's prices would be tuned against nothing. The
+direction is on the record so the eventual pass knows which way to push — taking somebody must
+become far easier to make signable — and until the systems settle, nobody tunes it.
+
+## They are FIGHTERS. *Ruled.*
+
+One word, everywhere, for the people who go down to the Divide. Not hands (which suggests
+shipboard labour), not units, not players, not soldiers — soldiers implies an army, and these
+are contracted people. Interface copy says **fighter** and **fighters**; the code's own
+`bodies` and `roster` are identifiers, not copy, and stay as they are.
+
+## The hidden ceiling is gone. *Ruled and measured.*
+
+`potential` was a per-person cap on growth that nobody could see. With careers this short and
+growth this slow almost nobody ever reached theirs, so all it could do was quietly forbid
+specialisation in the rare case somebody did. Growth now runs to the SCALE's ceiling, the same
+for everyone. Measured after removal: across six seasons the median stat is 100, p90 is 148,
+and TWO stats in 1,099 reach the ceiling — nothing runs away, so no diminishing-returns rule
+is needed. Potential survives as what it honestly is: what a scout thinks of somebody at
+signing, deciding who a corp is interested in, not who they may become.
+
+## Births carry the grain between the tens.
+
+The ×10 migration left every new fighter on multiples of ten — 80/90/120/40 reads as a rounded
+number rather than a person. Each stat is now nudged within its own decade and the nudges are
+BALANCED to sum to zero, so the roll's shape is untouched: same pools, same average fighter
+(mean 92.4 either way), only the texture changes. A fighter reads 61/96/83/101/107/85/67.
+
+## A sponsor's condition says the number it enforces. *Ruled.*
+
+Every backer's condition is written in the figure the engine actually checks, with no
+explanatory tail: *Field a Drop of 75% Energy Weapons or More*, *Bury No More Than a Third of
+the Fighters You Field*, *Field a Fighter Who Ends the Year at Fame 25 or Better*, *End the
+Year With a Treasury Above Zero*.
+
+Two faults were found in the writing of them. **The survival condition and the burial condition
+were the same requirement**: `came` was literally one minus the death rate, the exact quantity
+the burial condition read, so a corp satisfied both by the same act at two strictnesses. They
+now ask different questions — graves, versus everyone who did not come home, prisoners
+included. And **the Almsdesk contract paid an advance and a reward for no condition at all**,
+which is a gift rather than a sponsorship; the first replacement ("field at least 16") was no
+better, since sixteen is the floor the board fills for you if you fail to reach it and so could
+not be failed. It now asks for a drop that is a third unproven fighters — a real price, because
+green fighters lose more often and a corp chasing a finish would rather field veterans.
+
+## The Dividend takes the floor. *Ruled and built.*## The Dividend takes the floor. *Ruled and built.*
+
+The mid-year show-match was fully simulated and completely invisible: it resolved inside the
+month step, the year walked straight through month six, and the only trace was a shelf that
+appeared on the Desk afterwards. A manager felt nothing happen on the one night the crowd turns
+up for.
+
+**The year stops when the lights come up.** Arriving at month six raises a Dividend phase on the
+rail — the floor, the grid, the roster — the same shape the Divide gets. End Month does nothing
+while the lights are up, so the show cannot be resolved from the desk with nobody named.
+
+**The manager names who takes the floor.** Every fit, unpledged body is listed and the fleet's
+own choice is pre-named, so touching nothing still fields a sensible card. That is the decision
+the format offers: blood the green where nobody can die, or put famous names in front of a
+paying crowd. A named card that cannot legally show falls back to the fleet's rule rather than
+fielding four people.
+
+**And the fleet chooses too (ruled).** Every OA sending its greenest made the card identical
+every year and handed a manager who fielded names a free win over rookies. Each corp now leans
+by its own situation — BLOOD the green, DRILL the best of the unblooded, SHOW the famous, SPARE
+everybody and treat the night as noise — drawn from weights its circumstances tilt: a board
+short of patience shows off, a corp deep in green hands bloods them, a thin roster spares
+itself. Deterministic per corp and season, because a card that reshuffles on a re-run is not a
+decision. The first cut stacked these as a ladder of gates and season one, when nearly every
+corp is green, sent four fifths of the fleet down the same branch; as weights, all four leans
+appear from the first year. Measured across eight fleets: drill 36%, spare 31%, blood 19%,
+show 14% — and the cards differ visibly, a showing corp fielding average fame 19 against a
+drilling corp's 3.5.
+
+Afterwards the whole card is on the page, your match first, and any match replays on the same
+grid the Divide uses — because it is the same grid, and always was.
+
+## Rest and Recovery is a grid, and nothing spent on it is wasted. *Ruled and built.*
+
+A body has two sides that mend: **wounds** and **stress**. Both come down on their own every
+month; focus speeds either up sharply, painted at the drill's own four tiers — corner, column,
+row, cell — which stack on the same inverse-breadth weights. Two verbs, one grammar, so a
+manager learns it once. Each cell says what that body has to work on — "38d", "Healthy",
+"Settled", "55" — so the effort can be aimed before it is spent.
+
+**Focus is never wasted (ruled).** Physical recovery poured on somebody with nothing to mend
+becomes CONDITIONING — grit, which raises their wound pool through the game's real path. The
+calm side mirrors it: settling somebody already settled becomes composure. Partial overflow
+works the same way, so twenty days of wound against a hundred days of effort mends the twenty
+and conditions the rest. Both are temporary BY CONSTRUCTION: they ride beside the stats in
+`_conditioned`, combat reads them when a body becomes a combatant, and the settlement clears
+them. A permanent gain bought by resting would be a second drill verb wearing a bandage.
+
+**And the edge is small on purpose.** Capped per body per year at three blocks and cleared
+every settlement, it is worth about one point of wound pool. It exists so that resting a whole
+squad when only half of them need it is not a waste — not as a way to load a roster up for the
+year. The cap is not a tuning dial waiting to be turned.
+
+**The drill grid folds, and the fold has to pay for itself.** Every hand stays listed — anybody
+can need drilling, so nothing is ever filtered out — and the corner and columns stay on top
+where they never fold, since the broad paints are what a manager reaches for most. A CLOSED
+HAND IS ONE THIN LINE: chevron, name, a count of what you have painted on them, their
+whole-body pips. The first version put a best/weakest/ceiling read beside the name and cost
+exactly the room the fold saved, which makes a fold into a click that buys nothing. The panel
+under an open hand carries the stat names in their colours over the numbers — a bare row of
+figures gives a manager nothing to aim at. Column heads wear each stat's
+colour so a column stays legible however far down the eye is; the numbers themselves run red
+through grey to green, cut against the roster's own spread so grey means average HERE.
+
+**Measured, not changed:** stress already runs 0–100 like everything else. Low numbers early in
+a year are a rested roster, not a compressed scale — across two full seasons including
+contests the median is 8 but p75 is 33, p90 is 44, and the worst-hit body reached 66.
+
+## The Negotiation table. *Ruled and built.*
+
+Dealing between corporations across the prep year — gear, people, credits, and what you know
+about somebody else. Two pans and a beam: what you offer on the left, what you ask for on the
+right, and what they make of it in the middle.
+
+**A contract travels with the body.** This is the ruling that shapes everything else. A person
+is worth what they bring MINUS what they are owed — quality × 33 credits a season, lifted by
+fame, plus a slice of unrealised potential, less salary × 12 × seasons remaining. The 33 is not
+a taste number: it is what the fleet's own wage bill already pays for a point of quality. So a
+star on a cheap long deal is treasure, a median contract trades near break-even, and a
+passenger on a fat four-season deal is **worth less than nothing** — measured, 48 of 139
+contracts across a real fleet. Salary dumping is a real move, and that is the point.
+
+Everything else is priced off a number the game already uses: gear at catalogue cost, credits
+at face value, and intel off the focus market — BOOST_PER_POINT a point, INTEL_PER_PIP rows a
+pip, plus a premium for the edge a dossier carries into the Divide.
+
+**Ruled at the mock:** intel is never offered about the OA across the table (they know what
+they are); trading runs every month and the table closes after M10; **no roster floor** — a
+corp may trade itself down to nobody and fill up in M11 if that is the plan; being sold costs a
+fighter loyalty but not stress, because this is paperwork, not a firefight; and regard moves
+the price by up to a quarter either way rather than gating the deal.
+
+**An OA may write to you, rarely.** Each waits months before asking again AND the fleet keeps a
+quiet period on top — seven OAs each politely observing their own cooldown still produced
+fifteen proposals a year, which is exactly the every-turn nuisance the ruling exists to
+prevent. Measured after: about three a year. They only ask for deals that suit them, and never
+so lopsided that a manager learns to dismiss the box unopened.
+
+**A transfer is watched (ruled).** Selling somebody costs you with your own supporters in
+proportion to WHO you sold — fame carries the weight, so an unknown moving on is a shrug and a
+famous one leaving is a wound. The mirror is what makes it a transfer market rather than a
+spreadsheet: the selling side's fanbase warms to the OA that took their star, on the same hook
+ceding already uses to pay whoever bought a claim. The wider fleet barely looks up and the Aleas
+do not care who is on whose books. Everyone left behind loses a little loyalty — a flat knock,
+not a famous one, because the crew minds the FACT of it: watching a sale is a reminder that you
+are also property.
+
+**The fleet deals with itself.** Seven other corporations do not sit still for eleven months
+waiting to hear from one manager. A thin roster shops, a deep one sells, and the stands watch
+those transfers exactly as they watch yours. This was not planned — the suite caught it: two
+acts in the reputation table could never be produced, because the only trading in the game
+happened where the player was looking.
+
+**The floor is a last door, not a fence (ruled).** A corp may run itself down to nobody all year.
+But somebody has to walk onto the ground, so when the merc window shuts in M10 — the last chance
+to put bodies on a roster — anyone still short of ROSTER_MIN has it filled with the cheapest
+paper on the board, is charged for it, and loses SCRAPE_PATIENCE with their own board for having
+to be rescued. It runs AFTER the market, so a manager who bought their own way to sixteen never
+meets it. Measured: a roster of four at the deadline came out at sixteen, 33,630 poorer and
+twenty-two points of patience down.
+
+## The Board is joined to the corporation.
+
+Reputation had run inside the corporation page since the corporation existed — every cession,
+every purse, every famous name spent was landing in it — while the only surface that could
+read it was a separate baked page. The manager paid the price of being seen and never saw it.
+Now: the four audiences with the standing each holds, every rival in its own colour and mark,
+the card the manager's own board has put up for the year, and the memory behind each number,
+biggest first, because a standing with no story behind it cannot be acted on.
+
+After a Divide the board asks its question and the manager answers in one of six registers.
+The engine's own rule is kept exactly: nothing is scored, each register is right somewhere and
+wrong somewhere else, and the answer MOVES the audiences rather than grading the manager. The
+tab marks itself when a question is waiting.
+
+**One word does not fit four audiences.** A single set of thresholds read every corporation as
+adored. Measured over six seasons: your own people start at 80 and drift to the ceiling; the
+fleet runs 5 to 100 around a median of 66; the Aleas runs -74 to 78 around 20; a rival runs the
+whole scale around a median of -9. Each audience's words are cut against where it actually
+sits, and the bar shows the true position on the shared scale.
+
+**Noted while measuring, not fixed:** own-people standing saturates at the ceiling within a few
+seasons for every corp in the fleet, so it stops carrying information. That is a reputation
+calibration question, and calibration is deferred.
+
+## They are OAs, never Houses. *Ruled.*
+
+An Opes Arx is a megacorporation. "House" was never established anywhere in the lore — it
+crept in through interface text and code shorthand and then read as canon. Interface copy says
+**OA**, or the OA's name, or megacorporation; never "house", singular or plural.
+
+Two things keep their own words and must not be swept up in this: the SUPPLIERS on the
+sponsorship board are suppliers or backers (the code's `houseName`/`houseIds` is internal
+shorthand for those, not for OAs), and a `race`'s lineage language is its own.
 
 ## Partial intelligence is a window, not an adjective. *Ruled.*
 

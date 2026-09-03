@@ -13,7 +13,7 @@
     --bg:#0a0e16; --panel:#0d1420; --line:#1c2c44;
     --a:#3ad8e0; --b:#6f9bc4; --hit:#4fd6a0; --bad:#e0a848;
     --a-dim:#22354e; --a-deep:#111c2e; --line2:#2a4460; --panel2:#111827;
-    --mag:#e84393; --edge:#22354e; --warn:#e0a848;
+    --mag:#e84393; --edge:#22354e; --warn:#e0a848; --cred:#f0c04a;
     --red:#e05a5a;
     /* STAT HUES — gritty, saturated-but-dim; shared across every page that shows a stat */
     --s-aim:#b5484a; --s-grit:#b8862c; --s-reflex:#3f9e6b; --s-fieldcraft:#3d82a6;
@@ -56,10 +56,57 @@
   .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
   .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
   .menubtn:disabled{opacity:.35}
-  .oacard{border:1px solid var(--line);border-radius:3px;padding:8px 10px;margin:4px 0;
-    cursor:pointer;background:var(--panel)}
+  /* the founding cards: an OA is picked by its colour and mark as much as its name, so the
+     card carries both, and the set reads as a grid of choices rather than a column of text */
+  #oacards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;
+    margin-top:8px}
+  .oacard{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0;
+    cursor:pointer;background:var(--panel);text-align:center;
+    border-left:3px solid var(--line)}
   .oacard:hover{border-color:var(--a)}
   .oacard .m{display:block}
+  .oacard .oaname{display:flex;align-items:center;justify-content:center;gap:6px;
+    font-weight:600;margin-bottom:3px}
+  .oacard .oaname svg{flex:0 0 auto}
+  /* the Board: a standing is a position between two directions, so it reads as a bar with
+     a centre, not a bare number */
+  .audrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #16233a}
+  .audname{flex:1 1 auto;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .audname .m{flex:1 0 100%;font-size:10.5px}
+  .audbar{flex:0 0 210px;display:flex;align-items:center;gap:8px;justify-content:flex-end}
+  .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
+    background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
+  /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
+  .sbar.onesided{background:linear-gradient(90deg,#5a2f2a,#2c5a3a)}
+  .sbar i{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);
+    transform:translateX(-1px)}
+  .swrd{font-size:11px;min-width:120px;text-align:right}
+  .audhead{margin-top:12px;margin-bottom:2px;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--dim)}
+  .regs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-top:8px}
+  .regbtn{text-align:left;padding:7px 9px;line-height:1.35}
+  .regbtn .m{display:block;font-size:10.5px;margin-top:2px}
+  /* the negotiation table: two pans and a beam */
+  .tcols{display:grid;grid-template-columns:1fr 210px 1fr;gap:10px;align-items:start;margin-top:10px}
+  .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
+  .trow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid #16233a;
+    cursor:pointer;font-size:11.5px}
+  .trow:hover{background:#132033}
+  .trow.dead{opacity:.45;cursor:default}
+  .trow .nm{flex:1 1 auto}
+  .trow .val{text-align:right;white-space:nowrap;font-size:11px}
+  .trow .val b{display:block;font-size:12px}
+  .tscale{height:8px;border-radius:4px;position:relative;margin:8px 0;
+    background:linear-gradient(90deg,#8f4a3e,#1c2c44 50%,#3f7a55)}
+  .tscale i{position:absolute;top:-4px;width:2px;height:16px;background:var(--fg);transform:translateX(-1px)}
+  .oastrip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .oachip2{border:1px solid var(--line);border-left:3px solid;border-radius:3px;padding:5px 9px;
+    cursor:pointer;display:flex;align-items:center;gap:6px;font-size:11.5px;background:var(--panel)}
+  .oachip2:hover{border-color:var(--a)}
+  .oachip2.on{background:#132033}
+  /* a tab with something waiting on the manager says so */
+  .tab.urgent{color:var(--warn);font-weight:600}
+  .tab.urgent:after{content:' \2022'}
   #saveio{width:100%;background:#171511;color:var(--fg);border:1px solid var(--line);font-size:10px}
   #savelist .poolrow{margin:3px 0}
   .verbrow{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid #16233a;font-size:11.5px}
@@ -69,6 +116,68 @@
 
   /* ---- the Training grid: paint focus onto stats, four tiers, star-rating pips ---- */
   .tgwrap{border:1px solid var(--line2);border-radius:8px;padding:10px;margin-top:10px;background:var(--panel)}
+  /* THE TIER COLOURS, one standard wherever a tier is named: 1 grey, 2 green, 3 blue,
+     4 orange, 5 red — the reading every player already knows from every other game. */
+  .tierb{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;
+    border-radius:3px;font-size:10px;font-weight:700;margin-right:2px}
+  .tierb.t1{background:#2a2f38;color:#8a94a4} .tierb.t2{background:#1e3327;color:#6cc08b}
+  .tierb.t3{background:#1b2c46;color:#5aa0f0} .tierb.t4{background:#3a2716;color:#e08a3c}
+  .tierb.t5{background:#3a1c1a;color:#e0524a}
+  /* money is gold, and red when it is money leaving */
+  .cr{color:var(--cred);font-weight:600}
+  .cr.neg{color:var(--bad)}
+  .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
+    border:1px solid var(--line);border-radius:4px;background:#0b111b;margin-bottom:8px}
+  /* the market's shelf */
+  .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
+    border-top:1px solid var(--line)}
+  .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
+  .mrow{display:flex;align-items:center;gap:8px;padding:3px 6px;border-bottom:1px solid #16233a;
+    font-size:11.5px;cursor:pointer}
+  .mrow:hover{background:#132033}
+  .mrow.open{background:#101b2b}
+  .mrow .nm{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mrow .held{color:var(--dim);font-size:10.5px;white-space:nowrap}
+  .mrow .pr{white-space:nowrap;min-width:76px;text-align:right;margin-right:10px}
+  .mpanel{padding:5px 8px 9px 26px;background:#0b111b;border-bottom:1px solid #16233a;font-size:11.5px}
+  .mpanel .st{display:inline-block;margin-right:14px}
+  .mpanel .flav{color:var(--dim);font-style:italic;margin-top:4px}
+  /* a stepper whose buttons never move or vanish */
+  .step{display:inline-flex;align-items:center;flex:0 0 auto}
+  .stepbtn{width:24px;padding:1px 0;text-align:center;border-radius:0;font-size:12px}
+  .stepbtn:first-child{border-radius:3px 0 0 3px}
+  .stepbtn:last-child{border-radius:0 3px 3px 0}
+  .stepbtn:disabled{opacity:.35;cursor:default;border-color:var(--line)}
+  .stepn{width:26px;text-align:center;font-size:11.5px;color:var(--dim);padding:1px 0;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .stepn.on{color:var(--cred);font-weight:600}
+  .tgchev{cursor:pointer;color:var(--dim);user-select:none;width:12px;display:inline-block}
+  .tgchev:hover{color:var(--a)}
+  /* a closed hand is one thin line; the panel under an open one carries the stat names */
+  .tghdr{width:100%;margin-bottom:2px}
+  .tghands{border-top:1px solid var(--line2)}
+  .tghand{display:flex;align-items:center;gap:8px;padding:3px 6px;font-size:11.5px;
+    border-bottom:1px solid #16233a;cursor:pointer}
+  .tghand:hover{background:#132033}
+  .tghand:hover .tgchev{color:var(--a)}
+  /* a dead strip between the name and the pips, so the two targets never share an edge */
+  .tgguard{width:18px;flex:0 0 18px}
+  .tgpips{cursor:default;padding:2px 2px}
+  .tghand.open{background:#101b2b}
+  .tgname{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tgcount{color:var(--gold);font-size:10.5px}
+  .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
+  .tgpanel table{border-collapse:collapse}
+  .tgpanel th,.tgpanel td{padding:2px 7px;text-align:center}
+  /* the Dividend's card-naming list */
+  .dvlist{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:3px;margin-top:6px}
+  .dvrow{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;cursor:pointer;
+    border-bottom:1px solid #16233a;font-size:11.5px}
+  .dvrow:hover{background:#132033}
+  .dvrow.on{background:#132a33;box-shadow:inset 3px 0 0 var(--a)}
+  #dvcard .ev.you{box-shadow:inset 3px 0 0 var(--a);padding-left:6px}
+  .tgchev:hover{color:var(--a)}
+  .tgread{text-align:left;font-size:11px;color:var(--dim)}
   .tghead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
   .tgtitle{color:var(--a);font-size:14px;letter-spacing:.04em}
   .tgbudget{color:var(--dim);font-size:11px}
@@ -316,6 +425,7 @@
   </div>
   <div class="bar">
     <span class="gold" id="clock" style="letter-spacing:.08em"></span>
+    <span class="m" id="focusline"></span>
     <button id="endmonth" style="display:none">End the Month</button>
     <button id="nextyear" style="display:none">Begin the Next Year</button>
     <button id="savebtn" class="tiny">Save</button>
@@ -347,17 +457,23 @@
 <!-- ================================ THE SETUP ================================ -->
 <div id="setup" class="overlay" style="display:none">
   <div class="menucol" style="max-width:760px">
-    <div class="menusub">Choose Your Seed and House</div>
-    <div class="bar" style="justify-content:center"><input id="seed" value="corp-1" style="width:150px" title="seed"></div>
+    <div class="menusub">Choose Your OA</div>
+    <!-- the seed decides the world, and almost nobody wants to type one: it is shown for
+         the curious and for reproducing a run, not offered as a decision -->
+    <div class="bar" style="justify-content:center">
+      <span class="m" id="seedline" title="the world this run is generated from">Seed <b id="seedval">corp-1</b>
+        <button class="tiny" id="seededit">Change</button></span>
+      <input id="seed" value="corp-1" style="width:150px;display:none" title="seed">
+    </div>
     <div id="oacards"></div>
     <div id="customform" style="display:none">
       <div class="bar" style="justify-content:center;margin-top:10px">
-        <input id="cname" value="" placeholder="Your House's Name" style="width:220px">
-        <select id="creplace" class="tiny" title="whose berth your house takes"></select>
+        <input id="cname" value="" placeholder="Your OA's Name" style="width:220px">
+        <select id="creplace" class="tiny" title="whose berth your OA takes"></select>
       </div>
-      <div class="bar" style="justify-content:center;margin-top:6px" id="cswatches" title="Your House's Colour"></div>
+      <div class="bar" style="justify-content:center;margin-top:6px" id="cswatches" title="Your OA's Colour"></div>
       <div class="bar" style="justify-content:center;margin-top:6px">
-        <button id="cfound">Found the House</button>
+        <button id="cfound">Found the OA</button>
       </div>
       <div class="m" style="margin-top:6px">A Blank Slate &mdash; The Fleet Average</div>
     </div>
@@ -374,16 +490,18 @@
   <div class="box" id="monthhead"></div>
   <div class="grid2">
     <div>
-      <h2>The month's verbs</h2>
+      <!-- "The month's verbs" said nothing a manager would say, and the section beneath it
+           already names each verb; "Gather Intel and Court Sponsors" simply listed the two
+           boxes under it. Both removed rather than reworded. -->
       <div id="verbs"></div>
       <div id="traingrid"></div>
+      <div id="restgrid"></div>
       <div class="bar" style="margin-top:8px">
         <button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock" style="opacity:.7;font-size:10px">&raquo; Skip to the Lock</button>
         <span class="m" id="apline"></span>
       </div>
     </div>
     <div>
-      <h2>Gather Intel and Court Sponsors</h2>
       <div id="intelgrid"></div>
       <div id="dossier"></div>
       <div id="courtgrid"></div>
@@ -525,6 +643,98 @@
       <div class="box" id="ttake"><span class="m">&mdash;</span></div>
       <h2>Pacts</h2>
       <div class="box" id="tpact"><span class="m">&mdash;</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ THE MARKET ================================= -->
+<div class="page" data-tab="market">
+  <div class="summary" id="mktsum"></div>
+  <div class="bar">
+    <span class="m">Sections:</span>
+    <button class="mgrp on" data-mgrp="type">By Type</button>
+    <button class="mgrp" data-mgrp="tier">By Tier</button>
+    <span class="m">&middot; Slot:</span>
+    <span id="mktslots"></span>
+  </div>
+  <div class="box"><div id="mktledger"></div></div>
+  <div class="bar">
+    <button id="mktbuy">Place the Order</button>
+    <button id="mktclear" class="tiny">Clear the Order</button>
+    <span class="m" id="mktnote"></span>
+  </div>
+</div>
+
+<!-- =============================== THE DIVIDEND ================================ -->
+<div class="page" data-tab="lights">
+  <div class="box" id="dvhead"></div>
+  <div class="grid2">
+    <div>
+      <h2>Who Takes the Floor</h2>
+      <div class="box" id="dvpick"></div>
+    </div>
+    <div>
+      <h2>The Card</h2>
+      <div class="box log" id="dvcard"></div>
+    </div>
+  </div>
+  <div class="bar" style="margin-top:10px">
+    <button id="dvgo">Take the Floor</button>
+    <button id="dvdone" style="display:none">Back to the Desk</button>
+    <span class="m" id="dvstate"></span>
+  </div>
+</div>
+
+<!-- ============================== THE NEGOTIATION ============================== -->
+<div class="page" data-tab="talks">
+  <div class="box" id="tradehead"></div>
+  <div class="box" id="tradeinbox" style="display:none;border-left:3px solid var(--warn)"></div>
+  <div class="oastrip" id="tradestrip"></div>
+  <div class="tcols">
+    <div class="box">
+      <h2 style="margin-top:0">You Offer</h2>
+      <div class="tabs" id="ttabs-give"></div>
+      <div class="tpool" id="tpool-give"></div>
+      <div class="chips" id="tchips-give"></div>
+      <div style="margin-top:6px" class="m">On your side: <b id="ttot-give">0</b></div>
+    </div>
+    <div class="box">
+      <h2 style="margin-top:0;text-align:center">The Beam</h2>
+      <div class="tscale"><i id="tneedle" style="left:50%"></i></div>
+      <div id="tverd" class="m">&mdash;</div>
+      <button id="tput" style="margin-top:8px;width:100%">Put It to Them</button>
+      <div class="m" id="tregard" style="margin-top:8px"></div>
+      <div class="m" id="tlog" style="margin-top:8px"></div>
+    </div>
+    <div class="box">
+      <h2 style="margin-top:0">You Ask For</h2>
+      <div class="tabs" id="ttabs-get"></div>
+      <div class="tpool" id="tpool-get"></div>
+      <div class="chips" id="tchips-get"></div>
+      <div style="margin-top:6px" class="m">On their side: <b id="ttot-get">0</b></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================= THE BOARD ================================= -->
+<div class="page" data-tab="board">
+  <div class="bar" style="margin-bottom:10px">
+    <button class="advwin2" style="display:none">Next Comms Window</button>
+    <span class="m advwin2state"></span>
+  </div>
+  <div class="box" id="boarddemand"></div>
+  <div class="grid2">
+    <div>
+      <h2>Who Is Watching</h2>
+      <div id="audiences"></div>
+    </div>
+    <div>
+      <h2>What They Remember</h2>
+      <div class="box log" id="boardwhy"></div>
+      <div id="boardask" style="display:none">
+        <h2>They Are Asking</h2>
+        <div class="box" id="boardq"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -4313,19 +4523,20 @@
   "status": "Step 5b-1 (plumbing). Catalog per PROCUREMENT.md 4-11; all (proposed).",
   "sources": "PROCUREMENT.md 4.2 quirk vocabulary, 4.3 price formulae, 5-11 catalog",
   "provenance_notes": [
-   "Armour carries three resistances — ballistic, energy, explosive — added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
+   "Armour carries three resistances \u2014 ballistic, energy, explosive \u2014 added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
    "Energy weapons overheat in two or three shots and hold a day's charge, not a fight's: you cannot swap a cell mid-firefight the way you swap a magazine. Their damage runs a point below their ballistic equivalents. The trade is that they never need resupplying (PROCUREMENT.md 6).",
    "There is NO free kit. Nothing in this catalog costs zero: a corp fields what it owns (its armoury) and buys the rest with treasury credits. A founding armoury carries a corp into season one; losing it is a management failure, not a case for charity (PROCUREMENT.md 3, ruled).",
    "picks_for names the stat a corp selects that role by: the marksman rifle goes to the best shot in the squad, the scout kit to the best fieldcraft. Deterministic, (proposed), and it is what stops a 5-aim fighter carrying the Whisper.",
    "roles[] is the baseline squad composition every corp fields (PROCUREMENT.md 15.1). Six roles, a spread of bands, and a candidate list per role. Nobody fields two unit types.",
-   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns — the allowance is free, so preferring cheap would be incoherent.",
+   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns \u2014 the allowance is free, so preferring cheap would be incoherent.",
    "doctrines[] are LEANS on that baseline, not replacements for it: a composition bias of a few bodies, an ordered taste in quirks, a mod wishlist, and the order in which the allowance gets spent. ONE source: the armoury page, the document's table and Step 5b-2's AI procurement all read this block.",
    "Prices with price_model 'formula' are DERIVED from constants.pricing and are regenerated and diffed by `arx.cjs regress`. Editing a formula cost by hand will fail the suite.",
    "price_model 'scarcity' = exotica, hand-priced; guarded only by the 3x floor against the dearest formula item.",
    "price_model 'fixed' = mods and consumables, hand-priced; too small and too varied for a formula to price honestly.",
    "Contraband exists as data with no acquisition path until Step 9 (PROCUREMENT.md 11.2).",
    "Identity is the weapon, refinement is the mod, tier is only a shelf: no model appears at more than one tier (PROCUREMENT.md 4.1)."
-  ]
+  ],
+  "type_note": "What a piece IS, as a shelf would file it. Derived once from what each weapon does (its traits and its band) and then written down, because a market that guesses its own sections from tags will disagree with itself the moment a tag changes. Edit this field, not the derivation."
  },
  "constants": {
   "pricing": {
@@ -4528,7 +4739,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Someone's grandfather carried it. Still works."
+   "identity": "Someone's grandfather carried it. Still works.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_hunting_rifle",
@@ -4549,7 +4761,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A civilian gun that reaches. Everything else about it is a compromise."
+   "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_pdw",
@@ -4570,7 +4783,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two rounds where one was asked for."
+   "identity": "Two rounds where one was asked for.",
+   "type": "Submachine Guns"
   },
   {
    "id": "itm_riot_autogun",
@@ -4592,7 +4806,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Crowd-control kit that found a war."
+   "identity": "Crowd-control kit that found a war.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_scattergun",
@@ -4613,7 +4828,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Ends rooms."
+   "identity": "Ends rooms.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_carbine",
@@ -4622,17 +4838,20 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 900,
+   "cost": 1150,
    "bulk": 3,
    "effects": {
     "power": 5,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The standard. Everything else is measured against it."
+   "identity": "The standard. Everything else is measured against it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_bullpup",
@@ -4641,19 +4860,21 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1090,
+   "cost": 1340,
    "bulk": 2,
    "effects": {
     "power": 5,
     "range": "medium",
     "tags": [
-     "stabilized"
+     "stabilized",
+     "burst"
     ],
     "damage": "ballistic"
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short enough to fight while moving."
+   "identity": "Short enough to fight while moving.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_battle_rifle",
@@ -4675,7 +4896,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Full power, full weight. You will feel every metre you carry it."
+   "identity": "Full power, full weight. You will feel every metre you carry it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_marksman_rifle",
@@ -4696,7 +4918,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for."
+   "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_machine_gun",
@@ -4717,7 +4940,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them."
+   "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_drum_shotgun",
@@ -4739,7 +4963,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first."
+   "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_needler",
@@ -4760,7 +4985,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Devastating on the unarmoured, a rumour against plate."
+   "identity": "Devastating on the unarmoured, a rumour against plate.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_gyrojet",
@@ -4782,7 +5008,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Rounds that accelerate - useless until they have flown."
+   "identity": "Rounds that accelerate - useless until they have flown.",
+   "type": "Carbines"
   },
   {
    "id": "itm_caroms",
@@ -4803,7 +5030,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fired at the wall, on purpose."
+   "identity": "Fired at the wall, on purpose.",
+   "type": "Carbines"
   },
   {
    "id": "itm_whisper",
@@ -4824,7 +5052,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The shot nobody attributes."
+   "identity": "The shot nobody attributes.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_hardpoint",
@@ -4847,7 +5076,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A machine gun that stopped apologising."
+   "identity": "A machine gun that stopped apologising.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_grenade_carbine",
@@ -4868,7 +5098,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two weapons, one awkward weight."
+   "identity": "Two weapons, one awkward weight.",
+   "type": "Launchers"
   },
   {
    "id": "itm_coilgun",
@@ -4890,7 +5121,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Magnetic acceleration. Wait for it."
+   "identity": "Magnetic acceleration. Wait for it.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_amr",
@@ -4912,7 +5144,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for vehicles. Fielded against people."
+   "identity": "Built for vehicles. Fielded against people.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_breachgun",
@@ -4934,7 +5167,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't shoot around cover. Shoots the cover."
+   "identity": "Doesn't shoot around cover. Shoots the cover.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_las_surplus",
@@ -4943,12 +5177,14 @@
    "slot": "primary",
    "family": "energy",
    "tier": 1,
-   "cost": 360,
+   "cost": 470,
    "bulk": 3,
    "effects": {
     "power": 4,
     "range": "medium",
-    "tags": [],
+    "tags": [
+     "burst"
+    ],
     "damage": "energy",
     "heat": 4,
     "heat_cap": 8,
@@ -4956,7 +5192,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Cheap, patient, and slow to answer."
+   "identity": "Cheap, patient, and slow to answer.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_pulse_carbine",
@@ -4981,7 +5218,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it."
+   "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
+   "type": "Assault Rifles"
   },
   {
    "id": "itm_las_repeater",
@@ -5006,7 +5244,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The only energy weapon that can hold an arc, and it hates doing it."
+   "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_ion_carbine",
@@ -5031,7 +5270,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Terrible against people. Ruinous against machines."
+   "identity": "Terrible against people. Ruinous against machines.",
+   "type": "Carbines"
   },
   {
    "id": "itm_accumulator",
@@ -5055,7 +5295,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drinks the day. Dreads the night."
+   "identity": "Drinks the day. Dreads the night.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_arc_projector",
@@ -5079,7 +5320,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Finds the second man without being asked."
+   "identity": "Finds the second man without being asked.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_cryo_lance",
@@ -5104,7 +5346,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Doesn't kill them. Stops them."
+   "identity": "Doesn't kill them. Stops them.",
+   "type": "Carbines"
   },
   {
    "id": "itm_fusion_repeater",
@@ -5128,7 +5371,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Gets hotter and better at once."
+   "identity": "Gets hotter and better at once.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_photon_marksman",
@@ -5152,7 +5396,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "No report, no flash, no witness."
+   "identity": "No report, no flash, no witness.",
+   "type": "Marksman Rifles"
   },
   {
    "id": "itm_resonance",
@@ -5177,7 +5422,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Sound goes where the bullet won't."
+   "identity": "Sound goes where the bullet won't.",
+   "type": "Carbines"
   },
   {
    "id": "itm_beam_lance",
@@ -5201,7 +5447,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A line drawn through the argument. Once, then twice, then nothing."
+   "identity": "A line drawn through the argument. Once, then twice, then nothing.",
+   "type": "Long Rifles"
   },
   {
    "id": "itm_disintegrator",
@@ -5226,7 +5473,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Removes the argument and the furniture."
+   "identity": "Removes the argument and the furniture.",
+   "type": "Close-Quarters"
   },
   {
    "id": "itm_plasma_caster",
@@ -5252,7 +5500,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd's favourite, the Aleas' paperwork."
+   "identity": "The crowd's favourite, the Aleas' paperwork.",
+   "type": "Launchers"
   },
   {
    "id": "itm_plasma_thrower",
@@ -5277,7 +5526,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Short range, long memory."
+   "identity": "Short range, long memory.",
+   "type": "Scatterguns"
   },
   {
    "id": "itm_holdout",
@@ -5296,7 +5546,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Better than a harsh word."
+   "identity": "Better than a harsh word.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_flare_pistol",
@@ -5318,7 +5569,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Signal kit. Used badly, on camera."
+   "identity": "Signal kit. Used badly, on camera.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_service_pistol",
@@ -5337,7 +5589,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Issued, forgotten, occasionally decisive."
+   "identity": "Issued, forgotten, occasionally decisive.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_las_sidearm",
@@ -5356,7 +5609,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Fails on a different resource than your rifle."
+   "identity": "Fails on a different resource than your rifle.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_heavy_revolver",
@@ -5378,7 +5632,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Six chances to be right."
+   "identity": "Six chances to be right.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_machine_pistol",
@@ -5399,7 +5654,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Empties fast, which is the point."
+   "identity": "Empties fast, which is the point.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_gyro_pistol",
@@ -5421,7 +5677,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "A sidearm with opinions about distance."
+   "identity": "A sidearm with opinions about distance.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_arc_pistol",
@@ -5442,7 +5699,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Leaves them standing and useless."
+   "identity": "Leaves them standing and useless.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_needle_derringer",
@@ -5464,7 +5722,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Two shots, no noise, nothing that troubles plate."
+   "identity": "Two shots, no noise, nothing that troubles plate.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_compact_plasma",
@@ -5485,7 +5744,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Feels wildly illegal. Entirely legal."
+   "identity": "Feels wildly illegal. Entirely legal.",
+   "type": "Sidearms"
   },
   {
    "id": "itm_scout_weave",
@@ -5510,7 +5770,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Trades the plate for the ground."
+   "identity": "Trades the plate for the ground.",
+   "type": "Armour"
   },
   {
    "id": "itm_flak_vest",
@@ -5533,7 +5794,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Built for fragments, ordinary against everything else."
+   "identity": "Built for fragments, ordinary against everything else.",
+   "type": "Armour"
   },
   {
    "id": "itm_plate_carrier",
@@ -5556,7 +5818,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The honest answer to most of what gets shot at you."
+   "identity": "The honest answer to most of what gets shot at you.",
+   "type": "Armour"
   },
   {
    "id": "itm_ablative_harness",
@@ -5579,7 +5842,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Boils a beam away and cracks under a rifle."
+   "identity": "Boils a beam away and cracks under a rifle.",
+   "type": "Armour"
   },
   {
    "id": "itm_sealed_hardplate",
@@ -5604,7 +5868,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Slow, sealed, and hard to finish by any means."
+   "identity": "Slow, sealed, and hard to finish by any means.",
+   "type": "Armour"
   },
   {
    "id": "itm_mod_optic",
@@ -5621,7 +5886,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lights optics_gear_synergy."
+   "identity": "Lights optics_gear_synergy.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_bipod",
@@ -5639,7 +5905,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Steady, and only steady."
+   "identity": "Steady, and only steady.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_target_link",
@@ -5656,7 +5923,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Waits better than you do."
+   "identity": "Waits better than you do.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_light_frame",
@@ -5674,7 +5942,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Lighter, and it shows."
+   "identity": "Lighter, and it shows.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_grip",
@@ -5691,7 +5960,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fire and move."
+   "identity": "Fire and move.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_rangefinder",
@@ -5708,7 +5978,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Halves the argument about distance."
+   "identity": "Halves the argument about distance.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_field_kit",
@@ -5726,7 +5997,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Keeps it honest."
+   "identity": "Keeps it honest.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_broadcast_tag",
@@ -5743,7 +6015,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Purely for the cameras."
+   "identity": "Purely for the cameras.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_extended_mag",
@@ -5760,7 +6033,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Six more chances."
+   "identity": "Six more chances.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_recoil_comp",
@@ -5778,7 +6052,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Holds the line down."
+   "identity": "Holds the line down.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_suppressor",
@@ -5795,7 +6070,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Nobody attributes the first one."
+   "identity": "Nobody attributes the first one.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_ap_rounds",
@@ -5813,7 +6089,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Through, not into."
+   "identity": "Through, not into.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_incendiary",
@@ -5830,7 +6107,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "The crowd notices."
+   "identity": "The crowd notices.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_hollowpoint",
@@ -5847,7 +6125,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Terrible against plate."
+   "identity": "Terrible against plate.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_heat_sink",
@@ -5864,7 +6143,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Buys you the fourth shot."
+   "identity": "Buys you the fourth shot.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_capacitor",
@@ -5881,7 +6161,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "A longer day."
+   "identity": "A longer day.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_focusing_array",
@@ -5899,7 +6180,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Hotter, harder."
+   "identity": "Hotter, harder.",
+   "type": "Mods"
   },
   {
    "id": "itm_mod_diffuser",
@@ -5917,7 +6199,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Wider, weaker, closer."
+   "identity": "Wider, weaker, closer.",
+   "type": "Mods"
   },
   {
    "id": "itm_frag_grenade",
@@ -5937,7 +6220,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower."
+   "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
+   "type": "Consumables"
   },
   {
    "id": "itm_smoke_canister",
@@ -5955,7 +6239,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways."
+   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways.",
+   "type": "Consumables"
   },
   {
    "id": "itm_incendiary_charge",
@@ -5976,7 +6261,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "As frag, incendiary, +8 severity; crowd-divisive."
+   "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
+   "type": "Consumables"
   },
   {
    "id": "itm_medkit",
@@ -5994,7 +6280,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "P(stabilize) +0.15, consumed on use."
+   "identity": "P(stabilize) +0.15, consumed on use.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stim_shot",
@@ -6012,7 +6299,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night."
+   "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
+   "type": "Consumables"
   },
   {
    "id": "itm_spotter_drone",
@@ -6030,7 +6318,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day."
+   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day.",
+   "type": "Consumables"
   },
   {
    "id": "itm_auto_turret",
@@ -6048,7 +6337,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout."
+   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout.",
+   "type": "Consumables"
   },
   {
    "id": "itm_ammo_satchel",
@@ -6066,7 +6356,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+8 rounds at drop. Quota: 1 per body."
+   "identity": "+8 rounds at drop. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_power_cell",
@@ -6084,7 +6375,8 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+20 charge. Quota: 1 per body."
+   "identity": "+20 charge. Quota: 1 per body.",
+   "type": "Consumables"
   },
   {
    "id": "itm_missile_launcher",
@@ -6107,7 +6399,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Sponsor theatre with a blast radius."
+   "identity": "Sponsor theatre with a blast radius.",
+   "type": "Launchers"
   },
   {
    "id": "itm_rotary_cannon",
@@ -6130,7 +6423,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Ammunition x3. Nothing about it is reasonable."
+   "identity": "Ammunition x3. Nothing about it is reasonable.",
+   "type": "Support Guns"
   },
   {
    "id": "itm_railgun",
@@ -6153,7 +6447,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One hole, all the way through."
+   "identity": "One hole, all the way through.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_kinetic_driver",
@@ -6176,7 +6471,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "Removes the position and the argument."
+   "identity": "Removes the position and the argument.",
+   "type": "Launchers"
   },
   {
    "id": "itm_phase_lance",
@@ -6202,7 +6498,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "One shot per three exchanges. It is enough."
+   "identity": "One shot per three exchanges. It is enough.",
+   "type": "Anti-Materiel"
   },
   {
    "id": "itm_assault_frame",
@@ -6229,7 +6526,8 @@
    "price_model": "scarcity",
    "legality": "legal",
    "exotic": true,
-   "identity": "A walking cover position that eats an allowance."
+   "identity": "A walking cover position that eats an allowance.",
+   "type": "Armour"
   },
   {
    "id": "itm_chem_rounds",
@@ -6248,7 +6546,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Severity +14, internal-injury bias. Banned outright."
+   "identity": "Severity +14, internal-injury bias. Banned outright.",
+   "type": "Mods"
   },
   {
    "id": "itm_thermobaric_charge",
@@ -6268,7 +6567,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Destroys a cover pool outright. Banned outright."
+   "identity": "Destroys a cover pool outright. Banned outright.",
+   "type": "Consumables"
   },
   {
    "id": "itm_cortical_scrambler",
@@ -6287,7 +6587,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "Forces Mon-Wa tether strain at range. Built to break one species."
+   "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
+   "type": "Consumables"
   },
   {
    "id": "itm_drone_jammer",
@@ -6304,7 +6605,8 @@
    "price_model": "none",
    "legality": "contraband",
    "acquisition": "step9",
-   "identity": "The engagement does not air. The Aleas' first commandment, broken."
+   "identity": "The engagement does not air. The Aleas' first commandment, broken.",
+   "type": "Consumables"
   },
   {
    "id": "itm_stun_carbine",
@@ -6326,7 +6628,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Drops a man where he stands and he gets up angry. Dividend issue."
+   "identity": "Drops a man where he stands and he gets up angry. Dividend issue.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_shock_lance",
@@ -6348,7 +6651,8 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "The crowd can hear it from the stands. So can the man on the end of it."
+   "identity": "The crowd can hear it from the stands. So can the man on the end of it.",
+   "type": "Stun-Grade"
   },
   {
    "id": "itm_dazzler",
@@ -6370,7 +6674,235 @@
    },
    "price_model": "formula",
    "legality": "legal",
-   "identity": "Blinds a firing line without leaving a mark on any of them."
+   "identity": "Blinds a firing line without leaving a mark on any of them.",
+   "type": "Stun-Grade"
+  },
+  {
+   "id": "itm_militia_autorifle",
+   "name": "Militia Autorifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 470,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_pattern_auto",
+   "name": "Pattern Automatic",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 740,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_vanguard_rifle",
+   "name": "Vanguard Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1310,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Holds its line while you walk. The rest is practice.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_stormline_rifle",
+   "name": "Stormline Assault Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 2390,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Heavier than it looks, and it goes through more than it should.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_ardent_rifle",
+   "name": "Ardent Pulse Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2070,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "heavy_draw"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Three flashes a second and a battery that resents it.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_sovereign_auto",
+   "name": "Sovereign Battle Auto",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 10900,
+   "bulk": 4,
+   "effects": {
+    "power": 8,
+    "range": "medium",
+    "tags": [
+     "burst",
+     "pierce_1",
+     "stabilized"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "What an OA buys when it has stopped counting.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_scrapgun_smg",
+   "name": "Scrapgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 490,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Loud, light, and honest about what it is.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_alley_smg",
+   "name": "Alley Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 760,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Made for corridors and the people who fight in them.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_whipcord_smg",
+   "name": "Whipcord SMG",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 1420,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "smart_link"
+    ],
+    "damage": "ballistic"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Points where you are already looking.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_seraph_smg",
+   "name": "Seraph Las-Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 2450,
+   "bulk": 2,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [
+     "burst",
+     "silent"
+    ],
+    "damage": "energy"
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "No report, no muzzle flash, no warning at all.",
+   "type": "Submachine Guns"
   }
  ],
  "roles": [
@@ -6388,7 +6920,11 @@
     "itm_breachgun",
     "itm_plasma_thrower",
     "itm_pdw",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_scrapgun_smg",
+    "itm_alley_smg",
+    "itm_whipcord_smg",
+    "itm_seraph_smg"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6428,7 +6964,13 @@
     "itm_scattergun",
     "itm_las_surplus",
     "itm_disintegrator",
-    "itm_phase_lance"
+    "itm_phase_lance",
+    "itm_militia_autorifle",
+    "itm_pattern_auto",
+    "itm_vanguard_rifle",
+    "itm_stormline_rifle",
+    "itm_ardent_rifle",
+    "itm_sovereign_auto"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6497,7 +7039,8 @@
     "itm_grenade_carbine",
     "itm_plasma_caster",
     "itm_missile_launcher",
-    "itm_rotary_cannon"
+    "itm_rotary_cannon",
+    "itm_stormline_rifle"
    ],
    "armors": [
     "itm_plate_carrier",
@@ -6527,7 +7070,10 @@
     "itm_bullpup",
     "itm_carbine",
     "itm_pulse_carbine",
-    "itm_pdw"
+    "itm_pdw",
+    "itm_alley_smg",
+    "itm_militia_autorifle",
+    "itm_pattern_auto"
    ],
    "armors": [
     "itm_scout_weave",
@@ -6561,7 +7107,10 @@
     "itm_ion_carbine",
     "itm_las_surplus",
     "itm_pdw",
-    "itm_hunting_rifle"
+    "itm_hunting_rifle",
+    "itm_whipcord_smg",
+    "itm_seraph_smg",
+    "itm_scrapgun_smg"
    ],
    "armors": [
     "itm_scout_weave",
@@ -6587,7 +7136,7 @@
   {
    "id": "std_issue",
    "corp": "Aleas Standard",
-   "flavor": "—",
+   "flavor": "\u2014",
    "note": "No lean at all: the baseline every other doctrine is measured against.",
    "corp_id": null,
    "composition": {},
@@ -6871,8 +7420,7 @@
    "armoury_max_tier": 5
   }
  ]
-}
-,
+},
 };
 </script>
 <script>
@@ -7453,6 +8001,29 @@
     for (const k of STATS) stats[k] *= 10;
     potential *= 10;
     scout.estimate *= 10;
+    /* AND THEN THE GRAIN BETWEEN THE TENS. The migration left every birth on a multiple of
+       ten — 80/90/120/40 — which reads as a rounded-off number rather than a person. Each
+       stat is nudged within its own decade and the nudges are then BALANCED to sum to zero,
+       so the roll's shape is untouched: the same pools produce the same average fighter,
+       and nobody is quietly stronger than the draw intended. Only the texture changes. */
+    {
+      /* the clamp is written on the FOUNDING 1-20 scale, so it has to be lifted with the
+         stats it guards — applied raw it crushed every birth to twenty */
+      const jitter = {}, floor = this.rec.stat_model.clamp[0] * 10,
+            ceil = this.rec.stat_model.clamp[1] * 10;
+      let sum = 0;
+      for (const k of STATS) { jitter[k] = P.int(rng, -9, 9); sum += jitter[k]; }
+      /* hand the rounding remainder back, one point at a time, to whoever can take it */
+      const keys = STATS.slice();
+      while (sum !== 0) {
+        const k = keys[P.int(rng, 0, keys.length - 1)];
+        const step = sum > 0 ? -1 : 1;
+        if (Math.abs(jitter[k] + step) > 9) continue;
+        jitter[k] += step; sum += step;
+      }
+      for (const k of STATS)
+        stats[k] = P.clamp(stats[k] + jitter[k], floor, ceil);
+    }
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
     /* STEP D — TWO BIRTHS, ZERO NEW DRAWS (the stream must not move):
        TRAIT STAT_MODS MADE LIVE. The data has carried them since the traits were written
@@ -9678,6 +10249,21 @@
        The price is not here, because it is not a reputation price: turning up tells the other
        seven what you brought. */
     media_day:         { own: 3, rival: -1, fleet: 6, residue: 0.15 },
+    /* --- THE TRANSFER MARKET, seen from the stands (ruled at the trade pass).
+       Selling somebody is not just paperwork: your own supporters mind, and how much they
+       mind is who you sold. `ctx.count` carries the fighter's FAME, so an unknown moving on
+       is a shrug and a famous one leaving is a wound — the same {per} shape `our_dead`
+       uses. The wider fleet barely looks up; the Aleas do not care at all about who is on
+       whose books.
+
+       And the mirror, which is the part that makes a transfer market feel like one: the
+       SELLING side's supporters warm to whoever took their star. That is `buyer`, the same
+       hook ceding already uses to pay the corp that bought a claim — a rival fanbase can
+       think better of you for giving one of their own a place to be. */
+    sold_away:         { own: { per: -0.22 }, fleet: { per: -0.02 }, buyer: { per: 0.18 },
+                         residue: 0.20 },
+    /* a small flat knock for the fact of it, so trading a nobody is not entirely free */
+    sold_anyone:       { own: -1.5, residue: 0.15 },
     /* §8.2 the address. One entry per register, so a guard can assert that every register
        moves at least one audience and none of them is a dead option. */
     said_gracious:     { rival: 7, fleet: 3, residue: 0.15 },
@@ -10808,10 +11394,13 @@ function makeCombatant(fighter, opts) {
                    (weapon.skillFamily && fighter.skills &&
                     fighter.skills[weapon.skillFamily] != null
                       ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
-             grit: fighter.stats.grit / 10,
+             /* a rested body walks on harder, and a settled one steadier — both spent here */
+             grit: (fighter.stats.grit +
+                    ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
              reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
              tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
-             resolve: fighter.stats.resolve / 10 }, hooks,
+             resolve: (fighter.stats.resolve +
+                       ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
     weapon, armor,
@@ -11181,8 +11770,11 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
 function hpFor(fighter) {
   /* ×10 migration: called with the ROSTER fighter, before the unit's divided copy exists,
      so grit normalizes here. This was the reader the gate's slowness named: tenfold grit
-     made tenfold hit points, and every fight in the world ran to the turn cap. */
-  const grit = ((fighter.stats && fighter.stats.grit) || 100) / 10;
+     made tenfold hit points, and every fight in the world ran to the turn cap.
+     `_conditioned` is a month's rest spent on somebody with nothing to mend — it rides
+     beside the stats rather than in them, and it is spent in this Divide. */
+  const cond = (fighter._conditioned && fighter._conditioned.grit) || 0;
+  const grit = (((fighter.stats && fighter.stats.grit) || 100) + cond) / 10;
   return Math.round(CONST.HP_BASE + CONST.HP_PER_GRIT * grit);
 }
 
@@ -14598,19 +15190,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                       blurb: 'optics and targeting; backs whoever fields the year’s standout, wherever the talent is' },
     spn_ferrous:    { wants: 'constancy',  obligation: 'keep_policy',
                       blurb: 'an old armour guild; long money and heirloom gear for corps that keep their declared policy' },
-    spn_almsdesk:   { wants: 'anyone',     obligation: 'none',
+    spn_almsdesk:   { wants: 'anyone',     obligation: 'blood_the_green',
                       blurb: 'a relief charter; medkits and evac to any banner, and it is paid either way' }
   };
 
+  /* Shown to a manager, so it reads like the rest of the interface: an obligation opens with
+     a capital. The CONDITIONS table beside it always did; this one was written earlier and
+     never brought into line. */
   const OBLIGATION_TEXT = {
-    aggressive:      'field at least 20 and do not call an early withdrawal',
-    no_scandal:      'lose no more than a third of who you send',
-    keep_policy:     'do not change your declared engagement policy',
-    field_talent:    'field somebody who finishes the year among the fleet\u2019s best',
-    stay_lean:       'field no more than 20 \u2014 they back underdogs, not juggernauts',
-    accept_terms:    'end the season in surplus; the Combine audits',
-    bring_them_home: 'bring back at least four in five of who you send',
-    none:            'none \u2014 the Concern gets paid either way'
+    aggressive:      'Field at Least 20 Fighters and Call No Early Withdrawal',
+    no_scandal:      'Bury No More Than a Third of the Fighters You Field',
+    keep_policy:     'Keep Your Declared Engagement Policy All Year',
+    field_talent:    'Field a Fighter Who Ends the Year at Fame 25 or Better',
+    stay_lean:       'Field No More Than 20 Fighters',
+    accept_terms:    'End the Year With a Treasury Above Zero',
+    bring_them_home: 'Lose No More Than a Fifth to Death or Capture',
+    blood_the_green: 'Field a Drop That Is a Third Unproven Fighters'
   };
 
   /* THE NEW-MODEL CONDITIONS. Each house offers one condition, in one of three flavours:
@@ -14624,28 +15219,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      shape is here so the model is whole. */
   const CONDITIONS = {
     spn_helion:      { flavor: 'limitation',   key: 'mostly_energy',
-                          text: 'Field a drop that is mostly energy weapons',
+                          text: 'Field a Drop of 75% Energy Weapons or More',
                           reward: { kind: 'kit', tag: 'energy', count: 2 } },
     spn_castellan:        { flavor: 'outcome',      key: 'no_scandal',
-                          text: 'Lose no more than a third of who you send',
+                          text: 'Bury No More Than a Third of the Fighters You Field',
                           reward: { kind: 'cash' } },
     spn_ferrous:    { flavor: 'prerequisite', key: 'keep_policy',
-                          text: 'Keep your declared engagement policy all year',
+                          text: 'Keep Your Declared Engagement Policy All Year',
                           reward: { kind: 'cash' } },
     spn_meridian:       { flavor: 'outcome',      key: 'field_talent',
-                          text: 'Field someone who finishes among the fleet\u2019s best',
+                          text: 'Field a Fighter Who Ends the Year at Fame 25 or Better',
                           reward: { kind: 'cash' } },
     spn_arrowline:            { flavor: 'limitation',   key: 'stay_lean',
-                          text: 'Field no more than 20 \u2014 they back underdogs',
+                          text: 'Field No More Than 20 Fighters',
                           reward: { kind: 'cash' } },
     spn_greywater:     { flavor: 'outcome',      key: 'accept_terms',
-                          text: 'End the season in surplus; the combine audits',
+                          text: 'End the Year With a Treasury Above Zero',
                           reward: { kind: 'cash' } },
     spn_thorne:         { flavor: 'outcome',      key: 'bring_them_home',
-                          text: 'Bring back at least four in five of who you send',
+                          text: 'Lose No More Than a Fifth to Death or Capture',
                           reward: { kind: 'kit', tag: 'medical', count: 2 } },
-    spn_almsdesk:        { flavor: 'outcome',      key: 'none',
-                          text: 'None \u2014 the Desk is paid either way',
+    spn_almsdesk:        { flavor: 'limitation',   key: 'blood_the_green',
+                          text: 'Field a Drop That Is a Third Unproven Fighters',
                           reward: { kind: 'cash' } }
   };
 
@@ -14790,11 +15385,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* --- prerequisite flavour: a standing gate that must hold all year --- */
         case 'keep_policy':     ok = !record.policyChanged; break;
         /* --- outcome flavour: judged against the season's figures --- */
+        /* BURIALS. The graves you dig, and nothing else. */
         case 'no_scandal':      ok = sent === 0 || dead / sent <= 1 / 3; break;
         case 'field_talent':    ok = (record.bestFame || 0) >= 25; break;
         case 'accept_terms':    ok = (record.treasury || 0) > 0; break;
-        case 'bring_them_home': ok = came >= 0.8; break;
-        case 'none':            ok = true; break;
+        /* WHO DID NOT COME HOME, for any reason. This read `came`, which is one minus the
+           DEATH rate — the same quantity `no_scandal` reads, so the two conditions were one
+           requirement at two strictnesses and a corp could satisfy both by the same act.
+           Taken prisoners are not home either, and now they count. */
+        case 'bring_them_home': {
+          const taken = record.captured || 0;
+          ok = sent === 0 || (sent - dead - taken) / sent >= 0.8;
+          break;
+        }
+        /* THERE IS NO SUCH THING AS A FREE BACKER, and "field sixteen" was no better than
+           none: sixteen is the floor the board fills for you if you fail to reach it, so the
+           condition could not be failed on purpose or by accident. The Almsdesk backs the
+           unproven — it wants a third of your drop to be people who have not fought a
+           Divide before, which is a real cost: green fighters lose more often, and a corp
+           chasing a finish would rather field its veterans. */
+        case 'blood_the_green': {
+          const green = record.greenDropped || 0;
+          ok = sent > 0 && green / sent >= 1 / 3;
+          break;
+        }
         default:                ok = true; break;
       }
       c.seasonsServed++;
@@ -14845,30 +15459,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     switch (contract.key) {
       case 'keep_policy':
         return corp._policyChanged
-          ? { state: 'atrisk', word: 'Policy changed \u2014 broken' }
-          : { state: 'holding', word: 'Policy held so far' };
+          ? { state: 'atrisk', word: 'Policy Changed \u00b7 Broken' }
+          : { state: 'holding', word: 'Policy Held So Far' };
       case 'accept_terms':
         return (corp.account.treasury || 0) > 0
           ? { state: 'holding', word: 'In surplus' }
-          : { state: 'atrisk', word: 'In the red \u2014 must end in surplus' };
+          : { state: 'atrisk', word: 'In the Red \u00b7 Treasury Must End Above Zero' };
       case 'field_talent':
         return bestFame >= 25
-          ? { state: 'met', word: 'A standout is already fielded' }
-          : { state: 'holding', word: 'Best on the books: fame ' + Math.round(bestFame) };
+          ? { state: 'met', word: 'A Standout Is Already Fielded' }
+          : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
         return alive.length <= 20
-          ? { state: 'holding', word: 'Roster at ' + alive.length + ' \u2014 lean enough' }
-          : { state: 'atrisk', word: 'Roster at ' + alive.length + ' \u2014 must drop 20 or fewer' };
+          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
+          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
       case 'none':
-        return { state: 'met', word: 'No condition \u2014 paid either way' };
+        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the drop \u2014 field mostly energy weapons' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
       case 'no_scandal':
-        return { state: 'pending', word: 'Judged at the drop \u2014 keep losses under a third' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':
-        return { state: 'pending', word: 'Judged at the drop \u2014 bring back four in five' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 Four Fifths Home, Alive and Free' };
       default:
-        return { state: 'pending', word: 'Judged at the season close' };
+        return { state: 'pending', word: 'Judged at the Season Close' };
     }
   }
 
@@ -19006,6 +19620,360 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   global.CDDIVIDE = api;
 })(typeof window !== "undefined" ? window : globalThis);
 
+/* ==== trade.js ==== */
+/* ============================================================================
+ * trade.js — DEALING BETWEEN CORPORATIONS, ACROSS THE PREP YEAR.
+ *
+ * The Divide's own dealing (joining under a banner, ceding, ransoms, pacts) lives in
+ * negotiate.js and happens inside a contest. This is the other thing: two OAs sitting
+ * down between contests and swapping what one has for what the other needs — gear,
+ * people, credits, and what you know about somebody else.
+ *
+ * WHAT A THING IS WORTH. Nothing here invents a currency. Every price is anchored to a
+ * number the game already uses somewhere else:
+ *
+ *   gear     the catalogue cost, which is what it costs to buy one.
+ *   credits  face value.
+ *   intel    the game already sells focus: BOOST_PER_POINT credits doubles one point for a
+ *            month, and a pip of focus buys INTEL_PER_PIP dossier rows. So a row has a
+ *            price the manager already pays, plus a premium for the preparedness edge the
+ *            dossier carries into the Divide.
+ *   a body   WORTH MINUS WAGE, because a contract travels with the person (ruled). Worth is
+ *            quality × CREDITS_PER_QUALITY per remaining season, lifted by fame, plus a
+ *            slice of unrealised potential. The wage is salary × SALARY_MONTHS × seasons
+ *            remaining. CREDITS_PER_QUALITY is not a taste number: it is what the fleet's
+ *            own wage bill already pays for a point of quality (median salary × 12 ÷ median
+ *            quality, measured at 33). Which means a median fighter trades near zero, a
+ *            star on a cheap long deal is treasure, and a passenger on a fat four-season
+ *            deal is worth LESS THAN NOTHING — you pay somebody to take them. Measured on a
+ *            real fleet: 48 of 139 contracts are negative. Salary dumping is a real move,
+ *            and that is the point.
+ *
+ * NO FLOOR (ruled). Nothing here stops a corp trading itself down to nobody. A roster of
+ * zero in M6 filled with sixteen mercenaries in M11 is a plan a manager is allowed to have.
+ *
+ * WHAT IT COSTS A PERSON. Being sold is something that happens TO somebody: a traded
+ * fighter's loyalty takes a hit (ruled). Their stress does not — this is paperwork, not a
+ * firefight.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
+  const isNode = typeof module !== "undefined" && module.exports;
+  const ITEMS = isNode ? require('./items.js') : global.CDITEMS;
+  const REP = isNode ? require('./reputation.js') : global.CDREP;
+
+  const CONST = {
+    /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
+       fleet's own wage bill pays about this much for a point of quality (median salary ×
+       12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
+       break-even instead of every body being a bargain or a burden. */
+    CREDITS_PER_QUALITY: 33,
+    POTENTIAL_SLICE: 0.35,        // [H] of the gap between what they are and what they could be
+    FAME_LIFT: 0.01,              // [H] per point of fame, on worth
+    SALARY_MONTHS: 12,            // [S] a season of wages, matching the ledger
+    INTEL_PREMIUM: 1.35,          // [H] over the raw focus price, for the edge it carries
+    /* [C] regard moves the PRICE, it does not gate the deal — the same rule the Divide's
+       own dealing already follows. A quarter either way at the extremes. */
+    REGARD_SWING: 400,
+    LAST_TRADE_MONTH: 10,         // [C] ruled: the table closes after M10
+    /* [C] an AI proposes rarely and only when it wants something real. The every-turn
+       nuisance offer is how a player learns to stop reading their messages. */
+    OFFER_COOLDOWN: 4,            // months before the SAME OA writes again
+    /* [C] and a floor on how often the manager hears from ANYBODY. Seven OAs each politely
+       waiting their own four months still produced fifteen proposals a year — which is the
+       every-turn nuisance the ruling exists to prevent, arrived at by seven well-behaved
+       parties at once. The fleet as a whole gets to interrupt about this often. */
+    OFFER_QUIET_MONTHS: 3,
+    OFFER_CHANCE: 0.14,           // and even then, not every time
+    OFFER_MIN_APPETITE: 1.05,     // they only ask for deals that are good for them
+    OFFER_MIN_FAIR: 0.75,         // [C] and never so lopsided it trains you to ignore the box
+    LOYALTY_ON_SALE: 14,          // [C] what being sold costs a person's loyalty
+    /* [C] and a small knock to everybody left behind. Watching somebody get sold is a
+       reminder that you are also property; it is a fraction of what it costs the person
+       actually sold, and it does not scale with fame — the crew minds the FACT of it. */
+    LOYALTY_CREW_WATCHING: 2,
+    /* [C] how often the other seven strike a deal among themselves in a month, and how
+       thin a roster has to get before a corp stops selling. Modest: a fleet that
+       reshuffles constantly is noise, not a market. */
+    FLEET_TRADE_CHANCE: 0.22,
+    FLEET_TRADE_KEEP: 18
+  };
+
+  const qualityOf = f => {
+    const s = f.stats || {};
+    const keys = ['aim', 'tactics', 'resolve', 'grit', 'reflex', 'fieldcraft'];
+    let sum = 0, n = 0;
+    for (const k of keys) if (typeof s[k] === 'number') { sum += s[k]; n++; }
+    return n ? sum / n : 0;
+  };
+
+  /** What a body is worth over the life of the contract that travels with them. */
+  function worthOf(f) {
+    const q = qualityOf(f);
+    const pot = typeof f.potential === 'number' ? f.potential : q;
+    const seasons = Math.max(1, (f.contract && f.contract.seasons_remaining) || 1);
+    const per = q * CONST.CREDITS_PER_QUALITY * (1 + CONST.FAME_LIFT * (f.fame || 0))
+              + Math.max(0, pot - q) * CONST.CREDITS_PER_QUALITY * CONST.POTENTIAL_SLICE;
+    return Math.round(per * seasons);
+  }
+  /** What the receiving corp takes on: the rest of the contract. */
+  function wageOf(f) {
+    const c = f.contract || {};
+    const seasons = Math.max(1, c.seasons_remaining || 1);
+    return Math.round((c.salary || 0) * CONST.SALARY_MONTHS * seasons);
+  }
+  /** The number that actually changes hands. Negative means they are doing you a favour. */
+  function netOf(f) { return worthOf(f) - wageOf(f); }
+
+  function gearPrice(itemId) {
+    const it = ITEMS.byId(itemId);
+    return it ? (it.cost || 0) : 0;
+  }
+  /** Priced off the focus market the game already runs. */
+  function intelPrice(rows, focusPointPrice, rowsPerPip) {
+    const perRow = (focusPointPrice || 4000) / Math.max(1, rowsPerPip || 2);
+    return Math.round((rows || 0) * perRow * CONST.INTEL_PREMIUM);
+  }
+
+  /** Everything on one side of the table, in credits. */
+  function valueBundle(corp, bundle, opts) {
+    opts = opts || {};
+    let v = 0;
+    const b = bundle || {};
+    v += (b.credits || 0);
+    for (const g of (b.gear || [])) v += gearPrice(g.id) * (g.n || 1);
+    for (const id of (b.units || [])) {
+      const f = (corp.roster || []).find(x => x.id === id);
+      if (f) v += netOf(f);
+    }
+    for (const t of (b.intel || []))
+      v += intelPrice(t.rows || 6, opts.focusPointPrice, opts.rowsPerPip);
+    return Math.round(v);
+  }
+
+  /**
+   * WHAT THEY MAKE OF IT. `mine` is what the proposer puts up, `theirs` what they are asked
+   * for. Regard moves the price. Returns the ratio and a word, so an interface can show the
+   * beam and a test can assert on the number.
+   */
+  function appetite(me, them, mine, theirs, opts) {
+    opts = opts || {};
+    const give = valueBundle(me, mine, opts);
+    const ask = valueBundle(them, theirs, opts);
+    const regard = typeof opts.regard === 'number' ? opts.regard
+      : (them.rep && REP ? REP.standing(them.rep, 'rival', me.id) : 0);
+    /* what they need to see, softened or hardened by what they think of you */
+    const need = ask * (1 - regard / CONST.REGARD_SWING);
+    let ratio;
+    if (Math.abs(need) < 1) ratio = give >= 0 ? 2 : 0;
+    else if (need < 0) ratio = (give - need) > 0 ? 1.25 : 0.75;  /* they are being paid to take it */
+    else ratio = give / need;
+    return {
+      give: give, ask: ask, need: Math.round(need), regard: regard, ratio: ratio,
+      accept: ratio >= 1,
+      word: ratio >= 1.15 ? 'gladly' : ratio >= 1 ? 'accepted'
+          : ratio >= 0.9 ? 'close' : ratio >= 0.65 ? 'short' : 'refused'
+    };
+  }
+
+  function tradingOpen(month) { return month <= CONST.LAST_TRADE_MONTH; }
+
+  /**
+   * THE DEAL ITSELF. Moves bodies, gear, credits and dossier rows between two corps.
+   * No floor is enforced on either roster — ruled: fluidity until the Divide.
+   * Returns a plain record of what moved, which is what the books and the page both read.
+   */
+  function execute(a, b, fromA, fromB, opts) {
+    opts = opts || {};
+    const moved = { units: [], gear: [], credits: 0, intel: [] };
+
+    const shift = (src, dst, bundle, dir) => {
+      /* credits */
+      if (bundle.credits) {
+        src.account.treasury -= bundle.credits;
+        dst.account.treasury += bundle.credits;
+        moved.credits += dir * bundle.credits;
+        if (opts.post) {
+          opts.post(src.account, 'expense', 'Trade with ' + dst.id, -bundle.credits);
+          opts.post(dst.account, 'income', 'Trade with ' + src.id, bundle.credits);
+        }
+      }
+      /* gear, off one armoury and onto the other */
+      for (const g of (bundle.gear || [])) {
+        const n = Math.min(g.n || 1, (src.armoury && src.armoury[g.id]) || 0);
+        if (n <= 0) continue;
+        src.armoury[g.id] -= n;
+        if (src.armoury[g.id] <= 0) delete src.armoury[g.id];
+        dst.armoury = dst.armoury || {};
+        dst.armoury[g.id] = (dst.armoury[g.id] || 0) + n;
+        moved.gear.push({ id: g.id, n: n, to: dst.id });
+      }
+      /* people, WITH THEIR CONTRACTS (ruled) — and being sold costs them something */
+      for (const id of (bundle.units || [])) {
+        const i = (src.roster || []).findIndex(x => x.id === id);
+        if (i < 0) continue;
+        const f = src.roster[i];
+        src.roster.splice(i, 1);
+        f.corpId = dst.id;
+        /* the contract travels untouched: same salary, same seasons, same benefit */
+        if (f.loyalty != null) f.loyalty = Math.max(0, f.loyalty - CONST.LOYALTY_ON_SALE);
+        /* everybody left behind watches it happen */
+        for (const mate of (src.roster || []))
+          if (mate.loyalty != null && mate.status !== 'dead' && mate.status !== 'retired')
+            mate.loyalty = Math.max(0, mate.loyalty - CONST.LOYALTY_CREW_WATCHING);
+        dst.roster.push(f);
+        /* who sold them rides on the RECORD, not on the body: a field written onto a
+           fighter that nothing reads is dead state, and the cross-audit is right to say so */
+        moved.units.push({ id: id, from: src.id, to: dst.id, name: f.name,
+                          fame: Math.round(f.fame || 0) });
+      }
+      /* what you know, copied — a dossier is not consumed by being handed over */
+      for (const t of (bundle.intel || [])) {
+        if (!src._intel || !src._intel.rivals || !src._intel.rivals[t.about]) continue;
+        dst._intel = dst._intel || { planet: null, rivals: {} };
+        dst._intel.rivals = dst._intel.rivals || {};
+        const copy = JSON.parse(JSON.stringify(src._intel.rivals[t.about]));
+        const have = dst._intel.rivals[t.about];
+        if (!have) dst._intel.rivals[t.about] = copy;
+        else for (const row in copy.rows)
+          if (!have.rows[row] || (have.rows[row].depth || 0) < (copy.rows[row].depth || 0))
+            have.rows[row] = copy.rows[row];
+        moved.intel.push({ about: t.about, to: dst.id });
+      }
+    };
+
+    shift(a, b, fromA || {}, 1);
+    shift(b, a, fromB || {}, -1);
+
+    /* THE STANDS SEE IT (ruled). Your own supporters mind losing somebody, and mind in
+       proportion to who it was — fame carries the weight. The buying corp's supporters warm
+       to you for the same reason, which is what makes this a transfer market rather than a
+       spreadsheet: a rival's fanbase can come round to the OA that gave their favourite a
+       place to play. */
+    if (REP && opts.seen !== false) {
+      for (const m of moved.units) {
+        const seller = m.from === a.id ? a : b;
+        const buyer = m.to === a.id ? a : b;
+        const fame = (m.fame || 0);
+        if (seller.rep) {
+          REP.act(seller.rep, 'sold_away', { count: fame, buyerId: buyer.id });
+          REP.act(seller.rep, 'sold_anyone', {});
+        }
+      }
+    }
+    return moved;
+  }
+
+  /**
+   * AN OA COMES TO YOU — rarely, and only when it wants something it can actually use.
+   * Returns null far more often than not, which is the design: the every-month proposal is
+   * how a manager learns to stop reading. Cooldown per OA, a die roll on top, and the deal
+   * must be good for the proposer before they will bother asking.
+   */
+  function proposeFrom(rng, them, me, month, opts) {
+    opts = opts || {};
+    if (!tradingOpen(month)) return null;
+    const last = them._lastTradeOffer || -99;
+    if (month - last < CONST.OFFER_COOLDOWN) return null;
+    const lastAny = me._lastOfferHeard || -99;
+    if (month - lastAny < CONST.OFFER_QUIET_MONTHS) return null;
+    if (rng() > CONST.OFFER_CHANCE) return null;
+
+    /* what they want: the best body on your roster they could actually field */
+    const want = (me.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired')
+      .slice().sort((x, y) => netOf(y) - netOf(x))[0];
+    if (!want) return null;
+    const price = netOf(want);
+    if (price <= 0) return null;                    /* they do not ask for liabilities */
+
+    /* WHAT THEY PUT UP. They aim a little UNDER the asking price — nobody opens a
+       negotiation by overpaying — and they fill with gear that FITS rather than rounding
+       up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
+       a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
+    const target = price * 0.95;
+    const gear = [];
+    let raised = 0;
+    const shelf = Object.keys(them.armoury || {})
+      .filter(k => them.armoury[k] > 0)
+      .sort((x, y) => gearPrice(y) - gearPrice(x));
+    for (const id of shelf) {
+      const each = gearPrice(id);
+      if (each <= 0 || raised >= target) continue;
+      const room = Math.floor((target - raised) / each);
+      const n = Math.min(them.armoury[id], room);
+      if (n <= 0) continue;
+      gear.push({ id: id, n: n });
+      raised += each * n;
+    }
+    const short = Math.max(0, target - raised);
+    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), short);
+    const offer = { gear: gear, credits: Math.round(credits) };
+    const ask = { units: [want.id] };
+    /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
+       the receiver's lights, which is the opposite of why anybody proposes anything: an OA
+       asks because the deal suits THEM. So — do they get more than they give? And is the
+       offer still worth a manager's time to read, rather than an insult that trains the
+       player to dismiss the box unopened? */
+    const putUp = valueBundle(them, offer, opts);
+    if (putUp <= 0) return null;
+    const forThem = price / Math.max(1, putUp);
+    if (forThem < CONST.OFFER_MIN_APPETITE) return null;      /* no gain in it for them */
+    if (putUp < price * CONST.OFFER_MIN_FAIR) return null;    /* an insult; they know better */
+    const view = appetite(me, them, ask, offer, opts);
+
+    them._lastTradeOffer = month;
+    me._lastOfferHeard = month;
+    return { from: them.id, to: me.id, offer: offer, ask: ask, view: view, month: month };
+  }
+
+  /**
+   * THE FLEET DEALS WITH ITSELF. Seven other corporations do not sit still for eleven months
+   * waiting to hear from one manager: they trade with each other, and the stands watch those
+   * transfers exactly as they watch yours. Without this the whole market existed only where
+   * the player was looking — and the suite caught it, because two acts in the reputation
+   * table could never be produced by a game nobody was playing.
+   *
+   * Rare on purpose, and only where BOTH sides want it: a corp short of bodies buys from a
+   * corp with a surplus, at a price the buyer's own appetite accepts.
+   */
+  function fleetTrades(rng, corps, ids, month, opts) {
+    opts = opts || {};
+    if (!tradingOpen(month)) return [];
+    const done = [];
+    const attempts = opts.attempts || 2;
+    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    for (let n = 0; n < attempts; n++) {
+      if (rng() > (opts.chance != null ? opts.chance : CONST.FLEET_TRADE_CHANCE)) continue;
+      /* the thinnest roster shops; the deepest sells */
+      const pool = ids.filter(id => corps[id] && !corps[id].disqualified);
+      if (pool.length < 2) continue;
+      const sorted = pool.slice().sort((x, y) => alive(corps[x]).length - alive(corps[y]).length);
+      const buyer = corps[sorted[0]], seller = corps[sorted[sorted.length - 1]];
+      if (!buyer || !seller || buyer === seller) continue;
+      if (alive(seller).length <= CONST.FLEET_TRADE_KEEP) continue;
+      /* the seller parts with the best paper they can spare: positive net, lowest quality */
+      const spare = alive(seller).filter(f => netOf(f) > 0)
+        .sort((a, b) => qualityOf(a) - qualityOf(b))[0];
+      if (!spare) continue;
+      const price = netOf(spare);
+      if (buyer.account.treasury < price) continue;
+      const offer = { credits: Math.round(price) }, ask = { units: [spare.id] };
+      const view = appetite(buyer, seller, offer, ask, opts);
+      if (!view.accept) continue;
+      execute(buyer, seller, offer, ask, opts);
+      done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price) });
+    }
+    return done;
+  }
+
+  const api = {
+    CONST, qualityOf, worthOf, wageOf, netOf, gearPrice, intelPrice,
+    valueBundle, appetite, tradingOpen, execute, proposeFrom, fleetTrades
+  };
+  if (isNode) module.exports = api;
+  global.CDTRADE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
 /* ==== season.js ==== */
 /* SEASONS.md — the persistent Corp and the season loop.
  *
@@ -19021,12 +19989,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     require('./prng.js'), require('./roster.js'), require('./items.js'),
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
-    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'));
+    require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
+    require('./trade.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE) {
+                               root.CDPREDIVIDE, root.CDTRADE);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE) {
   'use strict';
 
   const CONST = {
@@ -19072,6 +20041,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRESS_CAP: 100,             // [S] the store's ceiling, everywhere
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
+    /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
+       STRESS. Both come down on their own every month; focus speeds either up sharply, and
+       it is painted at the same four breadth tiers the drill grid uses, so the two verbs
+       read the same way and a manager learns one grammar rather than two. The tier weights
+       are the drill's own — the inverse-breadth rule does not change because the subject
+       does. */
+    /* [C] AND FOCUS IS NEVER WASTED. Pour physical recovery onto somebody with nothing to
+       mend and it becomes CONDITIONING: they walk onto the ground harder than they left it.
+       Stress focus on somebody already calm steadies them the same way. Both are temporary
+       by construction — they last exactly one Divide and are spent there, because a
+       permanent gain from resting would be a second training verb wearing a bandage. */
+    REST_CONDITION_PER_BLOCK: 5, // [C] raw stat points (×10 scale) a full block of overflow buys
+    REST_CONDITION_CAP: 15,      // [C] and the most any one body can carry into a Divide
     TRAIN_STRESS_FOCUS: 4,       // [C] drilling hard wears on the drilled, scaled by thirds
     /* RULED — BOOST. The verbs cost nothing inherent (they never did: the census at step e
        confirmed every prep credit is a purchase). Instead a manager may pay to DOUBLE the
@@ -19082,7 +20064,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
-    TREAT_DAYS: 45,              // [C] days of healing bought by one treatment block
+    TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
        pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four
@@ -19186,7 +20168,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     FOUNDING_FLOOR: 16,          // [H] = ROSTER_MIN; the legal minimum to field at all
 
     /* --- careers (S4) --- */
-    DEVELOP_BASE: 5.5,           // [C] movement toward potential, per Divide survived (×10 scale)
+    DEVELOP_BASE: 5.5,           // [C] movement toward the ceiling, per Divide survived (×10 scale)
+    /* [C] THE HIDDEN CEILING IS GONE (ruled). `potential` was a per-person cap that stopped
+       growth and nobody could see: with careers this short and growth this slow almost
+       nobody ever reached theirs, so all it could do was quietly forbid specialisation in
+       the rare case somebody did. Growth now runs to the SCALE's ceiling, the same for
+       everyone. Potential survives as what it honestly is — what a scout thinks of somebody
+       at signing — and decides who a corp is interested in, not who they may become. */
+    STAT_CEIL: 200,
     DEVELOP_GREEN_MULT: 1.7,     // [C] before prime opens
     DEVELOP_BENCH_FRAC: 0.35,    // [C] a season on the bench against one on the ground
     DECLINE_RATE: 6.5,           // [C] body-stat loss per year past `decline` (×10 scale)
@@ -19203,6 +20192,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     /* --- the board (S5, S12) --- */
     UNDERWRITE_PATIENCE_FLOOR: 8,
+    /* [C] THE SCRAPE. Ruled with the trade table: a corp may run its roster down to nothing
+       all year — fluidity until the Divide — but somebody has to walk onto the ground. So
+       the floor is enforced at the LAST possible moment, when the merc window shuts in M10:
+       whatever is missing is bought at the cheapest asking price on the board, and the
+       board's patience takes a beating for having to do it. This is not a service, it is
+       an intervention. */
+    SCRAPE_PATIENCE: 22,         // [C] patience burned for having to fill your roster for you
     UNDERWRITE_DEMANDS: 5,
 
     /* --- contracts ---
@@ -19327,14 +20323,77 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /** The eight greenest fit bodies — this is a place to blood people, not to win with veterans. */
+  /* WHO YOU SEND TO THE LIGHTS. The fleet's own rule is the greenest fit bodies — an
+     exhibition is where you blood people who have not seen a Divide. A manager may name
+     their own eight instead (`corp._dividendPick`), which is the whole decision the format
+     offers: blood the green, or put your names in front of a crowd that pays in fame. Only
+     fit, unpledged bodies can take the floor either way, so the pick cannot smuggle a
+     wounded fighter or a conscript owed to a term onto the card. */
+  function dividendEligible(corp) {
+    return corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' &&
+      !(f.contract && f.contract.divides_required != null &&
+        (f.contract.divides_served || 0) < f.contract.divides_required) &&
+      !((f.condition || {}).injuries || []).length);
+  }
   function dividendSquad(corp) {
-    return corp.roster
-      .filter(f => f.status !== 'dead' && f.status !== 'retired' &&
-                   !(f.contract && f.contract.divides_required != null &&
-                     (f.contract.divides_served || 0) < f.contract.divides_required) &&
-                   !((f.condition || {}).injuries || []).length)
-      .sort((a, b) => ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0))
-      .slice(0, 8);
+    const pick = corp._dividendPick;
+    if (pick && pick.length) {
+      const ok = dividendEligible(corp);
+      const named = pick.map(id => ok.find(f => f.id === id)).filter(Boolean).slice(0, 8);
+      if (named.length >= 4) return named;
+      /* too few of the named are fit to show: fall through to the fleet's own rule rather
+         than field a card that cannot legally take the floor */
+    }
+    /* THE FLEET HAS TASTE TOO (ruled). Every corp sending its greenest eight made the card
+       the same every year and gave a manager who fielded names a free win over rookies.
+       Each OA picks by its own lights instead, and which lights depends on what the corp is
+       and how its year is going:
+
+         BLOOD   the greenest — an exhibition nobody dies in is where you season people;
+         SHOW    the famous — a paying crowd, and fame is worth more to some boards;
+         DRILL   the best of the unblooded — the ones a corp is trying to bring on;
+         SPARE   whoever is idlest — rest the people who matter, treat the night as noise.
+
+       The lean is the corp's own: a board hungry for standing shows off, a corp deep in
+       green hands bloods them, a corp with a thin roster spares it. Deterministic per corp
+       and season, because a card that reshuffles on a re-run is not a decision. */
+    const eligible = dividendEligible(corp);
+    if (!eligible.length) return [];
+    const seasonN = (corp._season || corp.season || 0);
+    let h = 2166136261;
+    const key = corp.id + '|dividend|' + seasonN;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const roll = ((h >>> 8) % 1000) / 1000;
+
+    const green = eligible.filter(f => ((f.experience || {}).divides || 0) === 0).length;
+    const patience = (corp.rep && corp.rep.patience != null) ? corp.rep.patience : 50;
+    const thin = eligible.length <= CONST.ROSTER_MIN;
+    /* WEIGHTS, NOT A LADDER OF GATES. The first cut stacked conditions in order and the
+       first one that matched won — which in season one, when nearly every corp is deep in
+       green hands, meant four fifths of the fleet chose BLOOD and the other two leans never
+       appeared at all. Each corp now draws from a distribution that its own situation
+       tilts, so the card varies from the first year on. */
+    let w;
+    if (thin) w = { spare: 0.55, blood: 0.20, drill: 0.15, show: 0.10 };
+    else if (patience < 35) w = { show: 0.50, drill: 0.20, blood: 0.20, spare: 0.10 };
+    else if (green >= 6) w = { blood: 0.40, drill: 0.30, show: 0.20, spare: 0.10 };
+    else w = { drill: 0.30, show: 0.30, blood: 0.25, spare: 0.15 };
+    let lean = 'blood', acc = 0;
+    for (const k of ['blood', 'drill', 'show', 'spare']) {
+      acc += w[k] || 0;
+      if (roll < acc) { lean = k; break; }
+    }
+
+    const divides = f => ((f.experience || {}).divides || 0);
+    const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 4;
+    const sorters = {
+      blood: (a, b) => divides(a) - divides(b),
+      show:  (a, b) => (b.fame || 0) - (a.fame || 0),
+      drill: (a, b) => (divides(a) - divides(b)) || (quality(b) - quality(a)),
+      spare: (a, b) => (b.condition && b.condition.stress || 0) - (a.condition && a.condition.stress || 0)
+    };
+    corp._dividendLean = lean;
+    return eligible.slice().sort(sorters[lean]).slice(0, 8);
   }
 
   function runDividend(rng, corps, ids, season, tally) {
@@ -19740,8 +20799,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - 20);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - 20);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
@@ -19783,12 +20842,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
   function monthTracks(corp, month) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     const hurt = alive.filter(f => f.condition && (f.condition.injuries || []).length);
     const green = alive.filter(f => {
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      return cap != null && CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
+      const cap = CONST.STAT_CEIL;
+      return CONST.MIND.some(k => f.stats[k] < cap - CONST.TRAIN_GREEN_GAP);
     });
     const interest = ((corp.rep || {}).goal || {}).interest;
     return [
@@ -19913,10 +20972,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         } else {
           gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
         }
-        landed.push({ kind: 'intel', text: 'the scouts reported back' });
+        landed.push({ kind: 'intel', text: 'The Scouts Reported Back' });
         if (tally) tally.surveysLanded = (tally.surveysLanded || 0) + 1;
       } else {
-        landed.push({ kind: item.kind, text: 'an outcome this build does not know arrived', unknown: true });
+        landed.push({ kind: item.kind, text: 'An Outcome This Build Does Not Know Arrived', unknown: true });
       }
     }
     corp._pending = keep;
@@ -20058,13 +21117,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function snapshotRival(them, rowKey, depth, season) {
-    const nf = x => Math.round(x || 0).toLocaleString('en-US');
+    /* money wears the credit mark here too, so a dossier reads like every other surface */
+    const nf = x => '\u20a1' + Math.round(x || 0).toLocaleString('en-US');
     const rng2 = null;
     /* a number, bracketed to what this depth can honestly claim */
+    /* A GUESS SHOULD LOOK LIKE A GUESS. ₡199,725–₡314,475 is preposterously precise about
+       being imprecise — nobody's scouts come back with the last seven credits of a range.
+       Big figures round to a legible step, and they round OUTWARD (low down, high up) so the
+       window can only ever grow: the truth stays inside it, which is the one thing about
+       partial intelligence that must never break. Small counts — hands, drill points — are
+       already legible and are left alone. */
+    const niceStep = v => {
+      const a = Math.abs(v);
+      if (a >= 100000) return 5000;
+      if (a >= 10000) return 500;
+      if (a >= 1000) return 50;
+      return 0;
+    };
     const band = (rowKey2, value, opts) => {
       const w = intelWindow(them, rowKey2, season, value, depth, opts);
       const f = (opts && opts.fmt) || (x => String(Math.round(x)));
       if (!w) return f(value);
+      const step = (opts && opts.round === false) ? 0 : niceStep(value);
+      if (step) {
+        w.lo = Math.floor(w.lo / step) * step;
+        w.hi = Math.ceil(w.hi / step) * step;
+        if (opts && opts.min != null) w.lo = Math.max(opts.min, w.lo);
+        if (opts && opts.max != null) w.hi = Math.min(opts.max, w.hi);
+      }
       const lo = f(w.lo), hi = f(w.hi);
       /* a window that has closed to a single figure SAYS the figure — "3\u20133 points"
          reads like a bug, and after formatting a tight range often is one number */
@@ -20082,26 +21162,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const label = { nattie: 'Natural-Born', mercenary: 'Mercenary', prisoner: 'Conscript' };
         const parts = Object.keys(mix).filter(k => mix[k])
           .sort((a, b) => mix[b] - mix[a]).map(k => mix[k] + ' ' + label[k]);
-        const hands = band('roster', n, { min: 0, floor: 3 }) + ' hands';
+        const hands = band('roster', n, { min: 0, floor: 3 }) + ' Fighters';
         if (vague) return hands;
-        if (!full) return hands + ' \u00b7 mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
-        return n + ' hands \u00b7 ' + parts.join(', ');
+        if (!full) return hands + ' \u00b7 Mostly ' + (parts[0] ? parts[0].replace(/^\d+ /, '') : '\u2014');
+        return n + ' Fighters \u00b7 ' + parts.join(', ');
       }
       case 'finances': {
         const t = acct.treasury || 0;
         const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
         const money = { fmt: nf, min: 0, floor: 1000 };
-        if (vague) return 'Treasury ' + band('finances', t, money);
-        if (!full) return 'Treasury ' + band('finances', t, money) +
-                          ' \u00b7 season wage ' + band('finances_wage', wage, money);
-        return 'Treasury ' + nf(t) + ' \u00b7 season wage ' + nf(wage) +
-               ' \u00b7 grant ' + nf(acct.grant || 0);
+        if (vague) return band('finances', t, money);
+        if (!full) return band('finances', t, money) +
+                          ' \u00b7 Wage ' + band('finances_wage', wage, money);
+        return nf(t) + ' \u00b7 Wage ' + nf(wage) + ' \u00b7 Grant ' + nf(acct.grant || 0);
       }
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' pieces in the armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' pieces in the armoury';
+        if (full) return held + ' Pieces in the Armoury';
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -20118,20 +21197,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           : ((t ? (t.all || 0) : 0) +
              Object.keys(col).reduce((s, k) => s + (col[k] || 0), 0) +
              Object.keys((t && t.cell) || {}).reduce((s, k) => s + (t.cell[k] || 0), 0));
-        if (!spent) return full ? 'No drilling this month' : 'Little or no drilling \u00b7 0\u20131 points';
-        const pts = band('training', spent, { min: 0, floor: 2 }) + ' points of drill';
+        if (!spent) return full ? 'No Drilling This Month' : 'Little or No Drilling \u00b7 0\u20131 Points';
+        const pts = band('training', spent, { min: 0, floor: 2 }) + ' Points of Drill';
         if (vague) return pts;
-        if (!full) return pts + (cols[0] ? ' \u00b7 mostly ' + cols[0] : ' \u00b7 spread wide');
-        return spent + ' points of drill \u00b7 ' +
-               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'spread across the roster');
+        if (!full) return pts + (cols[0] ? ' \u00b7 Mostly ' + cols[0] : ' \u00b7 Spread Wide');
+        return spent + ' Points of Drill \u00b7 ' +
+               (cols.length ? cols.map(k => k + ' ' + col[k]).join(', ') : 'Spread Across the Roster');
       }
       case 'moves': {
         const signed = (them._recruit && them._recruit.signed) || 0;
-        if (full) return signed + ' signed recently \u00b7 ' +
-                      (((them.sponsors || {}).contracts || []).length ? 'courting sponsors' : 'no courting');
+        if (full) return signed + ' Signed Recently \u00b7 ' +
+                      (((them.sponsors || {}).contracts || []).length ? 'Courting Sponsors' : 'No Courting');
         /* a small count needs a wider floor to stay a window at all: 0\u20131 is a real
            statement, but it collapses to a certainty the moment the floor rounds away */
-        return band('moves', signed, { min: 0, floor: 2 }) + ' signed of late';
+        return band('moves', signed, { min: 0, floor: 2 }) + ' Signed of Late';
       }
       case 'board': {
         /* the demand itself is a sentence, not a quantity — but board INTEREST is a
@@ -20140,11 +21219,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const it = goal.interest;
         const pct = { fmt: x => Math.round(x * 100) + '%', min: 0, max: 100, floor: 0.08 };
         if (vague) return it != null
-          ? 'Board interest ' + band('board', it, pct)
-          : 'Board interest unread';
-        if (!full) return 'Board wants ' + (goal.text || 'a strong Divide') +
-                          (it != null ? ' \u00b7 interest ' + band('board', it, pct) : '');
-        return 'Board demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 interest ' +
+          ? 'Board Interest ' + band('board', it, pct)
+          : 'Board Interest Unread';
+        if (!full) return 'Board Wants ' + (goal.text || 'a strong Divide') +
+                          (it != null ? ' \u00b7 Interest ' + band('board', it, pct) : '');
+        return 'Board Demands: ' + (goal.text || 'a strong Divide') + ' \u00b7 Interest ' +
                (it != null ? Math.round(it * 100) + '%' : '\u2014');
       }
     }
@@ -20152,8 +21231,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
 
+  /* A TEMPORARY EDGE, SPENT IN THE NEXT DIVIDE. Conditioning is not training: it does not
+     touch a fighter's stats, it rides beside them in `_conditioned`, combat reads it when a
+     body becomes a combatant, and the settlement clears it. A permanent gain bought by
+     resting would just be a second drill verb wearing a bandage. */
+  function condition(f, stat, blocks) {
+    if (!(blocks > 0)) return;
+    f._conditioned = f._conditioned || {};
+    const add = CONST.REST_CONDITION_PER_BLOCK * blocks;
+    f._conditioned[stat] = Math.min(CONST.REST_CONDITION_CAP,
+                                    (f._conditioned[stat] || 0) + add);
+  }
+
   function prepMonth(rng, corp, month, season, tally, wanted, landedOut, corps) {
-    const win = MONTHS[month] || { name: 'month ' + month, signing: null, event: null };
+    const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     /* --- time passes whether or not anybody spends anything --- */
     let mended = 0;
     for (const f of corp.roster) {
@@ -20179,7 +21270,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
-      const cap = typeof f.potential === 'number' ? f.potential : null;
+      const cap = CONST.STAT_CEIL;
       if (cap == null) continue;
       let drifted = false;
       for (const k of CONST.MIND)
@@ -20228,20 +21319,62 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
       const a = { kind: kind };
       if (a.kind === 'rest') {
-        /* RULED: rest is for EVERYONE. The wounded mend faster by thirds — every wounded
-           body, not the worst three — and everyone's stress comes down with them. */
+        /* --- THE RECOVERY GRID. Two tracks per body — `wounds` and `stress` — painted at
+           the drill's four tiers, which STACK: the corner (everyone, both tracks), a column
+           (one track, everyone), a row (one body, both tracks), a cell (one body, one
+           track). A bare `rest` scalar with no map is a corner paint, which is what the
+           old whole-roster rest was, so nothing that used to call this changes its meaning.
+
+           Focus is never wasted: physical effort with nothing to mend becomes conditioning
+           (grit), calm-side effort on somebody already steady becomes composure (resolve),
+           and both are spent in the next Divide. */
+        const rt = (wanted && wanted.restTarget) || null;
+        const rmap = rt && (rt.all != null || rt.col || rt.row || rt.cell)
+          ? { all: rt.all || 0, col: rt.col || {}, row: rt.row || {}, cell: rt.cell || {} }
+          : { all: fpts, col: {}, row: {}, cell: {} };
+        const TRACKS = ['wounds', 'stress'];
+        const blocks = (fighterId, track) => {
+          /* the share of a full block this body gets on this track, summed over every tier
+             that covers it — the drill's own arithmetic, subject changed */
+          let b = 0;
+          b += (rmap.all || 0) / 3 * CONST.TRAIN_W_ALL;
+          b += ((rmap.col || {})[track] || 0) / 3 * CONST.TRAIN_W_COL;
+          b += ((rmap.row || {})[fighterId] || 0) / 3 * CONST.TRAIN_W_ROW;
+          b += ((rmap.cell || {})[fighterId + '|' + track] || 0) / 3 * CONST.TRAIN_W_CELL;
+          return b * mult;
+        };
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
-          f.condition.stress = Math.max(0, (f.condition.stress || 0) -
-                                           CONST.REST_STRESS_FOCUS * third);
-          if ((f.condition.injuries || []).length) {
-            f.condition.injuries = f.condition.injuries.filter(w => {
-              if (w.careerEnding || w.permanent) return true;
-              w.days_remaining -= CONST.TREAT_DAYS * third;
-              return w.days_remaining > 0;
-            });
-            if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
-            tally.treated++;
+          const wB = blocks(f.id, 'wounds'), sB = blocks(f.id, 'stress');
+
+          /* the calm side */
+          if (sB > 0) {
+            const before = f.condition.stress || 0;
+            const after = Math.max(0, before - CONST.REST_STRESS_FOCUS * sB);
+            f.condition.stress = after;
+            const spent = before - after;
+            /* whatever the effort could have taken off but found nothing to take */
+            const spare = CONST.REST_STRESS_FOCUS * sB - spent;
+            if (spare > 0) condition(f, 'resolve', spare / CONST.REST_STRESS_FOCUS);
+          }
+          /* the physical side */
+          if (wB > 0) {
+            const inj = f.condition.injuries || [];
+            if (inj.length) {
+              let budget = CONST.TREAT_DAYS * wB, used = 0;
+              f.condition.injuries = inj.filter(w => {
+                if (w.careerEnding || w.permanent) return true;
+                const take = Math.min(w.days_remaining, budget - used);
+                if (take > 0) { w.days_remaining -= take; used += take; }
+                return w.days_remaining > 0;
+              });
+              if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+              tally.treated++;
+              const spare = CONST.TREAT_DAYS * wB - used;
+              if (spare > 0) condition(f, 'grit', spare / CONST.TREAT_DAYS);
+            } else {
+              condition(f, 'grit', wB);          /* nothing to mend: all of it is conditioning */
+            }
           }
         }
       } else if (a.kind === 'train') {
@@ -20268,7 +21401,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
-          const cap = typeof f.potential === 'number' ? f.potential : null;
+          const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
           /* the stats this hand can be drilled on: the seven core stats, plus any weapon
@@ -20335,7 +21468,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (anyGathered) {
           tally.scouted++;
           tally.surveysLanded = (tally.surveysLanded || 0) + 1;
-          if (landedOut) landedOut.push({ kind: 'intel', text: 'the scouts reported' });
+          if (landedOut) landedOut.push({ kind: 'intel', text: 'The Scouts Reported' });
         }
         void intelNow;
       } else if (a.kind === 'court') {
@@ -20381,11 +21514,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* `potential` is a single ceiling, not a map — the highest this person could ever be
          at anything. It has been rolled and hidden since Step 2 and nothing has ever
          approached it, because nobody has ever had a second season. */
-      const cap = typeof f.potential === 'number' ? f.potential : null;
-      if (cap != null) {
-        for (const k of CONST.MIND) {
-          if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
-        }
+      const cap = CONST.STAT_CEIL;
+      for (const k of CONST.MIND) {
+        if (f.stats[k] < cap) { f.stats[k] = Math.min(cap, f.stats[k] + rate); out.developed++; }
       }
       /* --- decline: the body goes late, and then quickly --- */
       if (f.age > a.decline) {
@@ -21029,7 +22160,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function chooseDropSector(state, corpId, index) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'the drop is called at the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
     state.drop.sectors[corpId] = index;
     return { ok: true };
@@ -21049,10 +22180,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function offerPact(state, corpId, toId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'nobody talks terms before the lock' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Nobody Talks Terms Before the Lock' };
     state.drop.pacts = state.drop.pacts || {};
     const key = corpId + '>' + toId;
-    if (state.drop.pacts[key]) return { ok: false, why: 'already spoken to them' };
+    if (state.drop.pacts[key]) return { ok: false, why: 'Already Spoken to Them' };
     const r = PRE.proposePact(P.mulberry32(P.seedFrom('pact' + state.season + key)),
                               state.corps[corpId], state.corps[toId]);
     state.drop.pacts[key] = r;
@@ -21061,9 +22192,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** Perform, or don't. Paid in standing, charged in concealment. */
   function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'media day is the week of the drop' };
+    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
     state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'you have already been' };
+    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
     const r = PRE.mediaDay(state.corps[corpId]);
     state.drop.media[corpId] = r;
     return { ok: true, gain: r.gain, reveal: r.reveal };
@@ -21082,7 +22213,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    */
   function stepMonth(state, choices) {
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
-    const m = state.month, win = MONTHS[m] || { name: 'month ' + m, event: null };
+    const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {};
     for (const id of state.ids) {
       landed[id] = [];
@@ -21110,8 +22241,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (win.event === 'mercs') {
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season)), state.corps, state.ids,
                     state.lots.mercs || [], state.mercs, state.bids.mercs);
+      /* --- THE SCRAPE, at the last door out. The merc window is the final chance to put
+         bodies on a roster, so this is where the floor lives now: anybody still short is
+         filled to ROSTER_MIN with the cheapest paper on offer, charged for it, and made to
+         feel it with the board. Deliberately AFTER the market, so a manager who bought
+         their own way to sixteen never meets this at all. --- */
+      for (const id of state.ids) {
+        const corp = state.corps[id];
+        const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
+        const short = CONST.ROSTER_MIN - alive.length;
+        if (short <= 0) continue;
+        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
+          .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
+        let bill = 0;
+        for (const f of filled) {
+          bill += ((f.contract && f.contract.signing_cost) || 0)
+                + ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
+          corp.roster.push(f);
+        }
+        LED.post(corp.account, 'expense', 'the board fills your roster', -bill);
+        if (corp.rep)
+          corp.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR,
+                                       (corp.rep.patience != null ? corp.rep.patience : 50)
+                                       - CONST.SCRAPE_PATIENCE);
+        state.mercs.scraped = (state.mercs.scraped || 0) + short;
+      }
       state.lots.mercs = null; state.bids.mercs = {};
     }
+    /* the other seven deal with each other too — see trade.js fleetTrades */
+    if (TRADE && TRADE.tradingOpen(m))
+      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+                        state.corps, state.ids, m, {});
     state.month++;
     ensureLot(state);
     return { month: m, name: win.name, event: win.event || null, spent, landed };
@@ -21307,6 +22468,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
   function finishSeason(state, res) {
+    /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
+       it walks onto the ground, does its work, and is gone at the settlement. Cleared here
+       rather than at the drop so a replayed or halted contest still sees it. */
+    for (const id of state.ids)
+      for (const f of state.corps[id].roster) if (f._conditioned) delete f._conditioned;
     const corps = state.corps, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     /* built by `closeSeasonToDrop` and carried on the state rather than in a closure, because
@@ -21490,7 +22656,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
-        dropSize: drop.length
+        dropSize: drop.length,
+        /* how much of the drop had never seen a Divide before this one — what the Almsdesk
+           is actually buying: somewhere for the unproven to be proven */
+        greenDropped: drop.filter(f => (((f.experience || {}).divides || 0) <= 1)).length
       });
       rec.corps[id].sponsors = {
         advance: verdict.advance || 0, paid: verdict.paid || 0,
@@ -21782,7 +22951,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                                recruitment: A.recruitment, oa: A.oa_profiles });
   var P = window.CDPRNG, ROSTER = window.CDROSTER, ITEMS = window.CDITEMS,
       LED = window.CDLEDGER, SEASON = window.CDSEASON, DIVIDE = window.CDDIVIDE,
-      TAC = window.CDTACTICAL;
+      TAC = window.CDTACTICAL, REP = window.CDREP, TRADE = window.CDTRADE;
   var OA = A.oa_profiles.oa_profiles;
 
   var $ = function (id) { return document.getElementById(id); };
@@ -21800,6 +22969,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
   var n0 = function (x) { return Math.round(x).toLocaleString(); };
+  /* THE CREDIT MARK. Money should look like money everywhere — a bare number reads as a
+     count. \u20a1 is a C with a stroke through it, which is what this currency wants to be,
+     and it is a real glyph so it renders wherever the game does. */
+  var cr = function (x) { return '\u20a1' + Math.round(x).toLocaleString(); };
 
   var ITEM_BY_ID = {};
   ITEMS.catalog.forEach(function (it) { ITEM_BY_ID[it.id] = it; });
@@ -21815,21 +22988,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      (the roster never closes), and each phase names its own home and its own order. */
   var SURFACES = {
     desk:   { name: 'Desk',      live: true },
+    market: { name: 'The Market', live: true },
+    lights: { name: 'The Dividend', live: true },
     roster: { name: 'Roster',    live: true },
     squads: { name: 'Squads',    live: true },
-    talks:  { name: 'Negotiation',
-      what: 'Dealing between corporations across the year: player trades, and the plain-sense swaps that happen outside a Divide \u2014 people or gear for what a corp runs short of. A new system, still to come.' },
-    board:  { name: 'The Board',
-      what: 'Report: four audiences and the standing they hold you in.' },
+    talks:  { name: 'Negotiation', live: true },
+    board:  { name: 'The Board',  live: true },
     table:  { name: 'The Table',  live: true },
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true }
   };
   var RAILS = {
     prep:   { head: 'Months 1\u201311 \u00b7 The Preparation', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
-              tabs: ['table', 'ground', 'roster', 'board'] }
+              tabs: ['table', 'ground', 'roster', 'board'] },
+    /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
+       step and leave a shelf on the Desk: a manager walked through month six and felt
+       nothing happen. It gets the floor now, the way the Divide does. */
+    dividend: { head: 'Month 6 \u00b7 The Dividend', home: 'lights',
+                tabs: ['lights', 'fight', 'roster'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -21860,7 +23038,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   function applyPhase() {
     var m = G && G.state ? G.state.month : 1;
-    var phase = m >= 12 ? 'divide' : 'prep';
+    var phase = m >= 12 ? 'divide' : (G && G._dividendFloor ? 'dividend' : 'prep');
     if (!G || G._railPhase !== phase) {
       buildRail(phase);
       if (G) G._railPhase = phase;
@@ -21869,7 +23047,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     $('nextyear').style.display = m >= 12 ? '' : 'none';
     /* End Month lives on the top line so it is reachable from any page; it stands during the
        preparation months and steps aside once the Divide has the floor. */
-    $('endmonth').style.display = (G && G.state && m < 12) ? '' : 'none';
+    $('endmonth').style.display = (G && G.state && m < 12 && !(G && G._dividendFloor)) ? '' : 'none';
     $('clock').textContent = G && G.state
       ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 the Divide'
           : 'Month ' + m + ' \u2014 ' + ((SEASON.MONTHS[m] || {}).name || ''))
@@ -21884,6 +23062,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (G) {
       if (tab === 'squads') renderSquads();
       else if (tab === 'roster') renderRoster();
+      else if (tab === 'board') { renderBoard(); if (TAB.board) TAB.board.classList.remove('urgent'); }
+      else if (tab === 'talks') renderTrade();
+      else if (tab === 'lights') renderDividend();
+      else if (tab === 'market') renderShelf();
     }
   }
 
@@ -21939,7 +23121,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var b = G._rinspect ? bodyById(G._rinspect) : null;
     if (!b) {
       panel.innerHTML = '<div class="railbox"><div class="m" style="color:var(--dim);font-size:11px">' +
-        'Select a hand to read their sheet.</div></div>';
+        'Select a fighter to read their sheet.</div></div>';
       return;
     }
     var s = b.stats, skills = b.skills || {}, ct = b.contract || {};
@@ -22277,6 +23459,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          AI would have spent drilling stay free for the player to paint deliberately. */
       G.plan.trainFocus = { all: 0, col: {}, row: {}, cell: {} };
       G._focusSel.train = 0;
+      G.plan.restFocus = { all: 0, col: {}, row: {}, cell: {} };
+      G._focusSel.rest = 0;
       /* courting is the desk section below, painted per supplier — start it empty and drop the
          AI's prefilled target so the player's board opens uncommitted, like intel and training */
       G._focusSel.court = 0;
@@ -22288,6 +23472,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var h = '';
     tracks.forEach(function (o) {
       if (o.kind === 'train') return;   /* training is the grid below, not a button row */
+      if (o.kind === 'rest') return;    /* and so is rest, since the recovery grid took it */
       if (o.kind === 'scout') return;   /* gathering intel is its own section below */
       if (o.kind === 'court') return;   /* courting sponsors is its own section below */
       var cur = G._focusSel[o.kind] || 0;
@@ -22308,6 +23493,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     });
     $('verbs').innerHTML = h;
     renderTrainGrid();
+    renderRestGrid();
     renderIntelGrid();
     renderCourtGrid();
     renderDossier();
@@ -22334,8 +23520,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var boostCost = 0;
     if (G._boostSel) for (var bk in G._boostSel)
       if (G._focusSel[bk]) boostCost += G._focusSel[bk] * SEASON.CONST.BOOST_PER_POINT;
-    $('apline').innerHTML = spent + ' of ' + SEASON.CONST.FOCUS_POINTS + ' Focus Committed' +
-      (boostCost ? ' <span class="gold">\u00b7 \u26a1 ' + n0(boostCost) + '</span>' : '');
+    /* ONE PLACE FOR THE BUDGET. It used to head every section — drill, recovery, intel,
+       courting — four copies of one number, and none of them where a manager looks for
+       the state of their month. It lives on the top line beside the clock now. */
+    var line = 'Focus Spent ' + spent + ' of ' + SEASON.CONST.FOCUS_POINTS +
+      (spent >= SEASON.CONST.FOCUS_POINTS ? ' \u2014 Fully Committed' : '') +
+      (boostCost ? ' <span class="gold">\u00b7 \u26a1 ' + cr(boostCost) + '</span>' : '');
+    $('apline').innerHTML = '';
+    if ($('focusline'))
+      $('focusline').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
   }
 
   /* ============================ THE TRAINING GRID ============================
@@ -22357,6 +23550,43 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     });
     return TG_STATS;
   }
+  /* THE NUMBER SAYS HOW GOOD IT IS. Ruled at the grid mock: a stat's own colour on the
+     COLUMN HEAD keeps the column legible however far down the list your eye is, and the
+     number itself runs red through grey to green so a manager can see who needs work
+     without reading every figure. Cut against this roster's own spread rather than an
+     invented midpoint, so grey means average HERE. */
+  var STATCOL = { aim:'#e0a848', tactics:'#7aa2f7', presence:'#c792ea', resolve:'#4fd6be',
+                  fieldcraft:'#9ece6a', grit:'#e06c75', reflex:'#56b6c2' };
+  var TG_SPREAD = null;
+  var TG_OPEN = {};                 /* which hands have their stats open */
+  function tgSpread() {
+    if (TG_SPREAD && TG_SPREAD._m === G.state.month) return TG_SPREAD;
+    var all = [];
+    tgRoster().forEach(function (f) {
+      tgStats().forEach(function (st) {
+        var v = st.fam ? ((f.skills || {})[st.id] != null ? f.skills[st.id] : f.stats.aim)
+                       : f.stats[st.id];
+        if (typeof v === 'number') all.push(v);
+      });
+    });
+    all.sort(function (a, b) { return a - b; });
+    var q = function (p) { return all.length ? all[Math.floor((all.length - 1) * p)] : 100; };
+    TG_SPREAD = { lo: q(0.1), mid: q(0.5), hi: q(0.9), _m: G.state.month };
+    return TG_SPREAD;
+  }
+  function gradeColour(v) {
+    var s = tgSpread();
+    var mix = function (a, b, t) {
+      return 'rgb(' + a.map(function (x, i) { return Math.round(x + (b[i] - x) * t); }).join(',') + ')';
+    };
+    if (v <= s.mid) {
+      var t = Math.max(0, Math.min(1, (v - s.lo) / Math.max(1, s.mid - s.lo)));
+      return mix([214, 106, 94], [138, 148, 164], t);
+    }
+    var u = Math.max(0, Math.min(1, (v - s.mid) / Math.max(1, s.hi - s.mid)));
+    return mix([138, 148, 164], [108, 192, 139], u);
+  }
+
   function tgRoster() {
     return G.corps[G.me].roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
   }
@@ -22408,40 +23638,196 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     normTrainFocus();
     G._focusSel.train = trainPips();           /* board value tracks the painted grid */
     var roster = tgRoster(), stats = tgStats();
-    var pips = G._focusSel.train, budgetSpent = pips + otherFocus(), full = budgetSpent >= SEASON.CONST.FOCUS_POINTS;
+    var pips = G._focusSel.train, budgetSpent = pips + otherFocus();
+    var full = budgetSpent >= SEASON.CONST.FOCUS_POINTS;
 
+    /* THE BROAD PAINTS STAY ON TOP AND NEVER FOLD — the corner and the seven columns are
+       what a manager reaches for most, and a fold that hides them would be worse than no
+       fold at all. */
     var h = '<div class="tgwrap"><div class="tghead">' +
       '<span class="tgtitle">Training</span>' +
-      '<span class="tgbudget' + (full ? ' full' : '') + '">focus spent ' + budgetSpent + ' of ' +
-      SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span></div>';
-    h += '<table class="tgrid"><tr>' +
-         '<th class="rn ' + (normTrainFocus().all > 0 ? 'lith' : '') + '">' +
-         '<div class="tglabel' + (normTrainFocus().all > 0 ? ' on' : '') + '">Whole roster</div>' +
-         tgTrack('all', '', normTrainFocus().all) + '</th>';
+      '</div>';
+    h += '<table class="tgrid tghdr"><tr>' +
+         '<th class="rn ' + (tgGet('all') > 0 ? 'lith' : '') + '">' +
+         '<div class="tglabel' + (tgGet('all') > 0 ? ' on' : '') + '">Whole roster</div>' +
+         tgTrack('all', '', tgGet('all')) + '</th>';
     stats.forEach(function (st) {
       var n = tgGet('col', st.id);
-      h += '<th class="' + (n > 0 ? 'lith' : '') + '"><div class="tglabel' + (n > 0 ? ' on' : '') + '">' +
-           st.abbr + '</div>' + tgTrack('col', st.id, n) + '</th>';
+      h += '<th class="' + (n > 0 ? 'lith' : '') + '"><div class="tglabel' + (n > 0 ? ' on' : '') +
+           '" style="color:' + (STATCOL[st.id] || 'inherit') + '">' + st.abbr + '</div>' +
+           tgTrack('col', st.id, n) + '</th>';
+    });
+    h += '</tr></table>';
+
+    /* A CLOSED HAND IS ONE THIN LINE. The first fold put a best/weakest/ceiling read beside
+       the name, which cost exactly the room the fold saved — a fold that saves nothing is
+       just a click. Now: chevron, name, what you have painted on them, their whole-body
+       pips. Everything else waits behind the chevron. */
+    h += '<div class="tghands">';
+    roster.forEach(function (f) {
+      var rn = tgGet('row', f.id), open = !!TG_OPEN[f.id];
+      var skills = f.skills || {};
+      var valOf = function (st) {
+        return st.fam ? (skills[st.id] != null ? skills[st.id] : f.stats.aim) : f.stats[st.id];
+      };
+      var painted = 0;
+      stats.forEach(function (st) { painted += tgGet('cell', f.id + ':' + st.id); });
+      /* THE WHOLE LINE OPENS THE HAND, not just the triangle: a chevron is a hint about what
+         will happen, not a target to hunt for. The pips keep a dead strip beside them so a
+         near miss neither paints nor opens anything. */
+      h += '<div class="tghand' + (open ? ' open' : '') + '" data-tgopen="' + f.id + '">' +
+           '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
+           '<span class="tgname">' +
+           (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
+           (painted ? '<span class="tgcount">' + painted + '</span>' : '') +
+           '<span class="tgguard"></span>' +
+           '<span class="tgpips">' + tgTrack('row', f.id, rn) + '</span></div>';
+      if (open) {
+        /* THE PANEL KEEPS THE STAT NAMES AND THEIR COLOURS. A bare row of numbers gives a
+           manager nothing to aim at — this was in the mock and lost on the way in. */
+        h += '<div class="tgpanel"><table class="tgrid"><tr>' +
+             stats.map(function (st) {
+               return '<th><div class="tglabel" style="color:' + (STATCOL[st.id] || 'inherit') +
+                      '">' + st.abbr + '</div></th>';
+             }).join('') + '</tr><tr>' +
+             stats.map(function (st) {
+               var key = f.id + ':' + st.id, cn = tgGet('cell', key), v = valOf(st);
+               return '<td class="' + (cn > 0 ? 'lit' : '') + '">' +
+                      '<div class="tgnum' + (cn > 0 ? ' on' : '') + '" style="color:' +
+                      gradeColour(v) + '">' + fmtStat(v) + '</div>' +
+                      tgTrack('cell', key, cn) + '</td>';
+             }).join('') + '</tr></table></div>';
+      }
+    });
+    h += '</div></div>';
+    host.innerHTML = h;
+  }
+
+  /* ================== REST AND RECOVERY — the desk's other grid ==================
+     The same grammar as the drill, two columns instead of seven: WOUNDS and STRESS. Both
+     mend on their own every month; focus speeds either up sharply, painted at the same four
+     tiers that stack — the corner, a column, a row, a cell.
+
+     And focus is never wasted. Pour physical recovery onto somebody with nothing to mend
+     and it becomes CONDITIONING; settle somebody already calm and it becomes composure.
+     Both last exactly one Divide and are spent there. The cell shows what each body has to
+     work on, so the manager can see where the effort would actually land. */
+  var RTRACKS = [{ id: 'wounds', label: 'Wounds' }, { id: 'stress', label: 'Stress' }];
+  function normRestFocus() {
+    if (!G.plan.restFocus) G.plan.restFocus = { all: 0, col: {}, row: {}, cell: {} };
+    var t = G.plan.restFocus;
+    if (t.all == null) t.all = 0;
+    if (!t.col) t.col = {}; if (!t.row) t.row = {}; if (!t.cell) t.cell = {};
+    return t;
+  }
+  function restPips() {
+    var t = normRestFocus(), s = t.all;
+    for (var c in t.col) s += t.col[c];
+    for (var r in t.row) s += t.row[r];
+    for (var k in t.cell) s += t.cell[k];
+    return s;
+  }
+  function otherFocusRest() {
+    var s = 0;
+    for (var k in G._focusSel)
+      if (k !== '_m' && k !== 'rest' && typeof G._focusSel[k] === 'number') s += G._focusSel[k];
+    return s;
+  }
+  function rgGet(tier, key) {
+    var t = normRestFocus();
+    if (tier === 'all') return t.all;
+    return (tier === 'col' ? t.col : tier === 'row' ? t.row : t.cell)[key] || 0;
+  }
+  function rgSet(tier, key, v) {
+    var t = normRestFocus();
+    if (tier === 'all') { t.all = v; return; }
+    var st = tier === 'col' ? t.col : tier === 'row' ? t.row : t.cell;
+    if (v <= 0) delete st[key]; else st[key] = v;
+  }
+  function rgPip(tier, key, i, filled) {
+    return '<span class="pip" data-rtier="' + tier + '" data-rkey="' + key + '" data-i="' + i +
+           '"><i class="' + (filled ? 'f' : '') + '"></i></span>';
+  }
+  function rgTrack(tier, key, n) {
+    var s = '<span class="piptrack">';
+    for (var i = 0; i < SEASON.CONST.FOCUS_CAP; i++) s += rgPip(tier, key, i, i < n);
+    return s + '</span>';
+  }
+  /* what this body has on each side, in words a manager can act on */
+  function restReads(f, track) {
+    if (track === 'wounds') {
+      var inj = (f.condition && f.condition.injuries) || [];
+      if (!inj.length) return { word: 'Healthy', cls: 'good', spare: true };
+      var days = 0, perm = 0;
+      inj.forEach(function (w) {
+        if (w.careerEnding || w.permanent) perm++; else days += (w.days_remaining || 0);
+      });
+      if (!days && perm) return { word: 'Permanent', cls: 'bad', spare: true };
+      return { word: Math.round(days) + 'd', cls: days > 60 ? 'bad' : 'warn', spare: false };
+    }
+    var st = Math.round((f.condition && f.condition.stress) || 0);
+    if (st <= 0) return { word: 'Settled', cls: 'good', spare: true };
+    return { word: String(st), cls: st >= 50 ? 'bad' : st >= 25 ? 'warn' : '', spare: false };
+  }
+  function renderRestGrid() {
+    var host = $('restgrid');
+    if (!host || !G || !G.state) return;
+    var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
+    var open = tracks.some(function (o) { return o.kind === 'rest' && o.available; });
+    if (!open) { host.innerHTML = ''; return; }
+    normRestFocus();
+    G._focusSel.rest = restPips();
+    var roster = tgRoster();
+    var pips = G._focusSel.rest, spent = pips + otherFocusRest();
+    var full = spent >= SEASON.CONST.FOCUS_POINTS;
+
+    var h = '<div class="tgwrap"><div class="tghead">' +
+      '<span class="tgtitle">Rest and Recovery</span>' +
+      '</div>';
+    h += '<table class="tgrid"><tr>' +
+         '<th class="rn ' + (rgGet('all') > 0 ? 'lith' : '') + '">' +
+         '<div class="tglabel' + (rgGet('all') > 0 ? ' on' : '') + '">Whole roster</div>' +
+         rgTrack('all', '', rgGet('all')) + '</th>';
+    RTRACKS.forEach(function (tr) {
+      var n = rgGet('col', tr.id);
+      h += '<th class="' + (n > 0 ? 'lith' : '') + '"><div class="tglabel' + (n > 0 ? ' on' : '') +
+           '">' + tr.label + '</div>' + rgTrack('col', tr.id, n) + '</th>';
     });
     h += '</tr>';
     roster.forEach(function (f) {
-      var rn = tgGet('row', f.id);
-      var skills = f.skills || {};
+      var rn = rgGet('row', f.id);
       h += '<tr><td class="rn ' + (rn > 0 ? 'lit' : '') + '">' +
-           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '">' +
-           (G.plan.leaderOf[f.id] ? '<span class="lead">\\u2605</span> ' : '') + esc(f.name) + '</span> ' +
-           tgTrack('row', f.id, rn) + '</td>';
-      stats.forEach(function (st) {
-        var key = f.id + ':' + st.id, cn = tgGet('cell', key);
-        var val = fmtStat(st.fam ? (skills[st.id] != null ? skills[st.id] : f.stats.aim) : f.stats[st.id]);
+           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '">' + esc(f.name) + '</span> ' +
+           rgTrack('row', f.id, rn) + '</td>';
+      RTRACKS.forEach(function (tr) {
+        var key = f.id + '|' + tr.id, cn = rgGet('cell', key);
+        var read = restReads(f, tr.id);
         h += '<td class="' + (cn > 0 ? 'lit' : '') + '">' +
-             '<div class="tgnum' + (cn > 0 ? ' on' : '') + '">' + val + '</div>' +
-             tgTrack('cell', key, cn) + '</td>';
+             '<div class="tgnum' + (cn > 0 ? ' on' : '') + ' ' + read.cls + '">' + read.word +
+             '</div>' + rgTrack('cell', key, cn) + '</td>';
       });
       h += '</tr>';
     });
-    h += '</table></div>';
-    host.innerHTML = h;
+    h += '</table>';
+    /* what the effort would become for anybody with nothing left to mend */
+    var spare = 0;
+    roster.forEach(function (f) {
+      RTRACKS.forEach(function (tr) {
+        if (rgGet('cell', f.id + '|' + tr.id) > 0 && restReads(f, tr.id).spare) spare++;
+      });
+    });
+    var carried = roster.filter(function (f) { return f._conditioned; });
+    h += '<div class="m" style="margin-top:6px">' +
+         (spare ? '<span class="gold">' + spare + ' painted cell' + (spare === 1 ? '' : 's') +
+                  ' would condition rather than mend.</span>' : '') +
+         (carried.length ? '<br>Carrying an edge into the Divide: ' +
+            carried.map(function (f) {
+              var c = f._conditioned, bits = [];
+              if (c.grit) bits.push('+' + Math.round(c.grit) + ' grit');
+              if (c.resolve) bits.push('+' + Math.round(c.resolve) + ' resolve');
+              return esc(f.name) + ' (' + bits.join(', ') + ')';
+            }).join(' &middot; ') : '') + '</div>';
+    host.innerHTML = h + '</div>';
   }
 
   /* ===================== GATHER INTEL — the desk section ===================== */
@@ -22536,10 +23922,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     var h = '<div class="tgwrap"><div class="tghead">' +
       '<span class="tgtitle">Gather Intel</span>' +
-      (canGather
-        ? '<span class="tgbudget' + (full ? ' full' : '') + '">Focus spent ' + spent + ' of ' +
-          SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span>'
-        : '<span class="m">The scouts can no longer report before the Lock \\u2014 read what you have</span>') +
+      (canGather ? ''
+        : '<span class="m">The scouts can no longer report before the Lock \u2014 read what you have</span>') +
       '</div>';
     h += '<table class="itbl">';
     intelTargets().forEach(function (t) {
@@ -22601,9 +23985,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   function rewardWords(rw) {
     if (!rw || rw.kind === 'cash')
-      return 'reward <b>' + SEASON.SPON.CONST.SPONSOR_REWARD.toLocaleString() + '</b> on completion';
-    var tag = rw.tag === 'energy' ? 'energy kit' : rw.tag === 'medical' ? 'medical kit' : rw.tag + ' kit';
-    return 'reward <span class="kit">' + (rw.count || 1) + '&times; ' + tag + '</span> on completion';
+      return 'Reward <b>' + cr(SEASON.SPON.CONST.SPONSOR_REWARD) + '</b> on Completion';
+    var tag = rw.tag === 'energy' ? 'Energy Kit' : rw.tag === 'medical' ? 'Medical Kit'
+            : (rw.tag.charAt(0).toUpperCase() + rw.tag.slice(1) + ' Kit');
+    return 'Reward <span class="kit">' + (rw.count || 1) + '&times; ' + tag + '</span> on Completion';
   }
   function courtPipTrack(house, n) {
     var s = '<span class="piptrack">';
@@ -22639,10 +24024,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     var h = '<div class="tgwrap"><div class="tghead">' +
       '<span class="tgtitle">Court Sponsors</span>' +
-      (canCourt
-        ? '<span class="tgbudget' + (full ? ' full' : '') + '">Focus spent ' + spent + ' of ' +
-          SEASON.CONST.FOCUS_POINTS + (full ? ' &mdash; fully committed' : '') + '</span>'
-        : '<span class="m">The backers have committed for the year</span>') +
+      (canCourt ? '' : '<span class="m">The backers have committed for the year</span>') +
       '</div><table class="ctbl">';
 
     courtTargets().forEach(function (t) {
@@ -22650,33 +24032,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var backer = backedBy(t.id), mine = myContract(t.id);
       var regard = SEASON.SPON.regardOf(me, t.id);
       var taken = backer && backer !== G.me;
-      var signedTag = mine ? '<span class="csigned you">&mdash; backing you</span>'
-                   : (taken ? '<span class="csigned">&mdash; backing <span style="color:' + colFor(backer) + '">' + esc(nameOfCorp(backer)) + '</span></span>' : '');
+      var signedTag = mine ? '<span class="csigned you">&mdash; Backing You</span>'
+                   : (taken ? '<span class="csigned">&mdash; Backing <span style="color:' + colFor(backer) + '">' + esc(nameOfCorp(backer)) + '</span></span>' : '');
 
       h += '<tr class="' + (n > 0 ? 'lit' : '') + (taken ? ' signed' : '') + '">';
       /* left: name, flavour tag, condition, pay line */
       h += '<td><span class="cname">' + esc(t.name) + '</span>' +
            '<span class="cflavor ' + t.flavor + '">' + (t.flavor.charAt(0).toUpperCase() + t.flavor.slice(1)) + '</span>' + signedTag +
-           '<div class="ccond">' + esc(t.text) + '</div>';
+           '<div class="ccond">' + esc(t.text.charAt(0).toUpperCase() + t.text.slice(1)) + '</div>';
       if (!taken || mine)
-        h += '<div class="cpay">advance <b>' + SEASON.SPON.CONST.SPONSOR_ADVANCE.toLocaleString() +
-             '</b> ' + (mine ? 'paid' : 'now') + ' &middot; ' + rewardWords(t.reward) + '</div>';
+        h += '<div class="cpay">Advance <b>' + cr(SEASON.SPON.CONST.SPONSOR_ADVANCE) +
+             '</b> ' + (mine ? 'Paid' : 'Now') + ' &middot; ' + rewardWords(t.reward) + '</div>';
       /* the contract you hold shows a live read of how it is tracking (Pass D) */
       if (mine) {
         var stt = SEASON.SPON.contractStatus(me, mine);
         h += '<div class="cstatus ' + stt.state + '">' + esc(stt.word) + '</div>';
       }
       h += '</td>';
-      /* middle: pip track, only while courting is open and the house is untaken */
+      /* middle: pip track, only while courting is open and the supplier is untaken */
       h += '<td class="cpips">' + (canCourt && !taken ? courtPipTrack(t.id, n) : '') + '</td>';
       /* right: live cost while open, and your regard */
       h += '<td class="cright">';
       if (canCourt && !taken) {
         var cost = courtCostFor(t.id), base = SEASON.SPON.CONST.COURT_COST_BASE;
-        h += '<div class="ccost">costs <b>' + cost.toFixed(cost % 1 ? 1 : 0) + '</b>' +
+        h += '<div class="ccost">Costs <b>' + cost.toFixed(cost % 1 ? 1 : 0) + '</b>' +
              (cost < base - 0.01 ? ' <span class="drop">&darr;</span>' : '') + '</div>';
       }
-      h += '<div class="cregard"><span class="' + regardClass(regard) + '">regard ' +
+      h += '<div class="cregard"><span class="' + regardClass(regard) + '">Regard ' +
            Math.round(regard) + ' (' + regardBand(regard) + ')</span></div>';
       h += '</td></tr>';
     });
@@ -22841,6 +24223,44 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     renderDesk();
   });
 
+  /* the recovery grid's pips, painted the same way the drill's are */
+  /* naming the card: click a hand on or off the floor */
+  document.addEventListener('click', function (e) {
+    var r = e.target.closest ? e.target.closest('[data-dvpick]') : null;
+    if (!r || !G) return;
+    var id = r.getAttribute('data-dvpick');
+    if (!G._dvPick) G._dvPick = dvDefaultPick();
+    var at = G._dvPick.indexOf(id);
+    if (at >= 0) G._dvPick.splice(at, 1);
+    else if (G._dvPick.length < 8) G._dvPick.push(id);
+    renderDividend();
+  });
+
+  /* the chevrons: a hand's stats open and shut */
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    /* a click inside the pip track paints; it must not also open the hand under it */
+    if (e.target.closest('.tgpips')) return;
+    var ch = e.target.closest('[data-tgopen]');
+    if (!ch) return;
+    var id = ch.getAttribute('data-tgopen');
+    TG_OPEN[id] = !TG_OPEN[id];
+    renderTrainGrid();
+  });
+
+  document.addEventListener('click', function (e) {
+    var pip = e.target.closest ? e.target.closest('#restgrid .pip') : null;
+    if (!pip) return;
+    var tier = pip.getAttribute('data-rtier'), key = pip.getAttribute('data-rkey'),
+        i = +pip.getAttribute('data-i');
+    var cur = rgGet(tier, key), target = i + 1, newVal = (cur === target) ? i : target,
+        delta = newVal - cur;
+    if (delta > 0 && restPips() + otherFocusRest() + delta > SEASON.CONST.FOCUS_POINTS) return;
+    rgSet(tier, key, newVal);
+    G._focusSel.rest = restPips();
+    renderDesk();
+  });
+
   document.addEventListener('click', function (e) {
     var pip = e.target.closest ? e.target.closest('#traingrid .pip') : null;
     if (!pip) return;
@@ -22856,8 +24276,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   function dlog() { /* the month-by-month desk log was removed; narration lives in the sections */ }
 
+  /* PLACING AN ORDER. Credits leave the treasury through the ledger like any other
+     spend — a purchase nobody can find in the books is a purchase that did not happen —
+     and the pieces land in the armoury where the Squads board already reads them. */
+  if ($('mktbuy')) $('mktbuy').onclick = function () {
+    var me = G.corps[G.me], total = mktTotal();
+    if (!total || total > me.account.treasury) return;
+    var lines = 0, pieces = 0;
+    for (var id in MKT.cart) {
+      me.armoury = me.armoury || {};
+      me.armoury[id] = (me.armoury[id] || 0) + MKT.cart[id];
+      lines++; pieces += MKT.cart[id];
+    }
+    LED.post(me.account, 'expense', 'The Market', -total);
+    MKT.cart = {};
+    renderShelf();
+    $('mktnote').innerHTML = 'Bought ' + pieces + ' piece' + (pieces === 1 ? '' : 's') +
+      ' across ' + lines + ' line' + (lines === 1 ? '' : 's') + ' \u00b7 ' +
+      '<span class="cr neg">\u2212\u20a1' + Math.round(total).toLocaleString() + '</span>';
+  };
+  if ($('mktclear')) $('mktclear').onclick = function () { MKT.cart = {}; renderShelf(); };
+
+  wireDividend();
+
   $('endmonth').onclick = function () {
     if (!G || !G.state || G.state.month >= 12) return;
+    /* WHILE THE LIGHTS ARE UP THE MONTH BELONGS TO THE FLOOR. End Month does nothing until
+       the manager has taken it; without this the show could be resolved from the desk with
+       nobody named, which is the silent month six the floor exists to end. */
+    if (G._dividendFloor && !G._forceMonth) return;
     var me = G.corps[G.me];
     var before = {};
     me.roster.forEach(function (b) { before[b.id] = true; });
@@ -22871,6 +24318,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* gathering intel: the painted per-target map ({ planet:pips, oaId:pips }) is the truth */
     if (intelPips() > 0) { wanted.scout = intelPips(); wanted.intelTarget = intelSel(); }
     else { delete wanted.scout; delete wanted.intelTarget; }
+    /* the painted recovery grid is the truth for rest, exactly as the drill grid is for
+       training. This line was first written BETWEEN the intel branch and its else, which
+       handed the else to the rest condition and quietly deleted every scout order a
+       manager gave — the page said three pips on a rival and the engine heard nothing. */
+    if (restPips() > 0) { wanted.rest = restPips(); wanted.restTarget = normRestFocus(); }
+    else delete wanted.rest;
     /* courting: the painted per-supplier map ({ <houseId>:pips }) is the truth */
     if (courtPips() > 0) { wanted.court = courtPips(); wanted.courtTarget = courtSel(); }
     else { delete wanted.court; delete wanted.courtTarget; }
@@ -22878,6 +24331,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var choices = {}; choices[G.me] = wanted;
     var res = SEASON.stepMonth(G.state, choices);
     if (!res) return;
+    /* AN OA MAY WRITE. Rarely: each waits months before asking again, and the fleet as a
+       whole keeps a quiet period on top, because the every-month proposal is how a manager
+       learns to stop reading the box. Measured at about three a year from a fleet of seven. */
+    if (!G._tradeOffer && TRADE.tradingOpen(G.state.month)) {
+      var ids = G.state.ids.filter(function (id) { return id !== G.me; });
+      for (var oi = 0; oi < ids.length; oi++) {
+        var prop = TRADE.proposeFrom(G.rng, G.corps[ids[oi]], G.corps[G.me], G.state.month,
+          { focusPointPrice: SEASON.CONST.BOOST_PER_POINT, rowsPerPip: SEASON.CONST.INTEL_PER_PIP });
+        if (prop) { G._tradeOffer = prop; if (TAB.talks) TAB.talks.classList.add('urgent'); break; }
+      }
+    }
     var lines = [];
     var sp = (res.spent || {})[G.me] || {};
     var spWords = [];
@@ -22917,6 +24381,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     dlog('<b>month ' + res.month + ' \u2014 ' + esc(res.name) + '</b><br>' +
          (lines.length ? lines.join('<br>') : '<span class="m">a quiet month</span>'));
     renderBench(); renderSquads(); renderDesk(); renderEncounters();
+    /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
+       month, which meant the manager spent all of month six on the desk and only then
+       heard there had been a show. The year stops when the Dividend arrives, not when it
+       is already over. */
+    if (G.state.month === 6 && !G._dividendDone && !G._forceMonth) {
+      G._dividendFloor = true;
+      applyPhase();
+      renderDividend();
+      return;
+    }
     applyPhase();
     if (G.state.month >= 12)
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
@@ -22928,7 +24402,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        plays, windows fire, focus lands — just without stopping. Nothing is faked; it only
        fast-forwards to the Lock so the Divide's pages are quick to reach. */
     var guard = 0;
+    /* the dev skip does not stop for the lights: it is a tool for reaching the Lock, and
+       a halt it cannot answer would simply hang it */
+    G._forceMonth = true;
     while (G.state.month < 12 && guard++ < 24) $('endmonth').onclick();
+    G._forceMonth = false;
     dlog('<span class="m">\\u00bb skipped to the Lock (dev)</span>');
   };
 
@@ -23038,7 +24516,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     d.setAttribute('draggable', 'true');
     d.dataset.id = b.id;
     var marks = (lead ? '<span class="lead" title="leader">\u2605</span> ' : '') +
-                (kit ? '<span class="lead" title="hand-kitted">\u2726</span> ' : '');
+                (kit ? '<span class="lead" title="kitted by hand">\u2726</span> ' : '');
     d.innerHTML = '<span class="nm">' + marks + esc(b.name) + '</span>' +
                   '<span class="st">' + statLine(b) + '</span>';
     d.addEventListener('dragstart', function () { DRAG = b.id; d.classList.add('dragging'); });
@@ -23770,6 +25248,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* THE SEASON SETTLES ITS OWN CONTEST: purses, ransoms, reputation, the record */
       var seasonRec = SEASON.finishSeason(G.state, step.value);
       var mine = (step.value.perCorp || []).filter(function (p) { return p.id === G.me; })[0] || {};
+      /* THE BOARD ASKS. A contest is over; somebody wants a word. The outcome the question
+         is chosen from is the manager's own, not the fleet's. */
+      G._boardOutcome = {
+        won: step.value.winner === G.me,
+        placement: mine.placement != null ? mine.placement : null,
+        ceded: !!mine.ceded, cededDay: mine.cededDay || 99,
+        permanentLosses: mine.dead != null ? mine.dead : (mine.permanentLosses || 0),
+        famousLosses: mine.famousLosses || 0,
+        payout: mine.payout || 0
+      };
+      G._boardAnswered = null;
+      if (TAB.board) TAB.board.classList.add('urgent');
       $('advwin').style.display = 'none';
       syncWindowBtns();
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
@@ -24286,6 +25776,637 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     else gLabel();
   }
 
+  /* the Market's clicks: the stepper adds and removes, the row opens */
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest
+      ? e.target.closest('[data-madd],[data-mdrop],[data-mslot],[data-mgrp],[data-mopen]') : null;
+    if (!t || !G) return;
+    if (t.hasAttribute('data-madd')) {
+      var id = t.getAttribute('data-madd'), it = ITEMS.byId(id);
+      if (it && mktTotal() + (it.cost || 0) <= G.corps[G.me].account.treasury)
+        MKT.cart[id] = (MKT.cart[id] || 0) + 1;
+      renderShelf(); e.stopPropagation(); return;
+    }
+    if (t.hasAttribute('data-mdrop')) {
+      var d = t.getAttribute('data-mdrop');
+      MKT.cart[d] = (MKT.cart[d] || 0) - 1;
+      if (MKT.cart[d] <= 0) delete MKT.cart[d];
+      renderShelf(); e.stopPropagation(); return;
+    }
+    if (t.hasAttribute('data-mslot')) { MKT.slot = t.getAttribute('data-mslot'); renderShelf(); return; }
+    if (t.hasAttribute('data-mgrp')) { MKT.grp = t.getAttribute('data-mgrp'); renderShelf(); return; }
+    if (t.hasAttribute('data-mopen')) {
+      var o = t.getAttribute('data-mopen'); MKT.open[o] = !MKT.open[o]; renderShelf(); return;
+    }
+  });
+
+  /* the table's clicks: pick an OA, put things up, take them back, and put it to them */
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-toa],[data-tcat],[data-tadd],[data-tdrop]') : null;
+    if (!t || !G) return;
+    if (t.hasAttribute('data-toa')) {
+      TSEL = t.getAttribute('data-toa'); TBL = { give: [], get: [] }; TLOG = '';
+      renderTrade(); return;
+    }
+    if (t.hasAttribute('data-tcat')) {
+      TCAT[t.getAttribute('data-tside')] = t.getAttribute('data-tcat'); renderTrade(); return;
+    }
+    if (t.hasAttribute('data-tadd')) {
+      var side = t.getAttribute('data-tadd'), it = tradePool(side)[+t.getAttribute('data-i')];
+      /* A BODY CAN ONLY BE ON THE TABLE ONCE. Without this a manager could stack the same
+         fighter eight times, each copy counted at full value, and put a rival's whole
+         roster on the beam using one person — the deal then executed once and the books
+         were nonsense. Gear and dossiers are the same: one line, one entry. Credits are
+         the exception, because two piles of credits are a bigger pile. */
+      var already = it && it.k !== 'credits' &&
+        TBL[side].some(function (x) { return x.k === it.k && x.id === it.id; });
+      if (it && !it.over && !already && tradeOpen()) TBL[side].push(it);
+      renderTrade(); return;
+    }
+    if (t.hasAttribute('data-tdrop')) {
+      TBL[t.getAttribute('data-tdrop')].splice(+t.getAttribute('data-i'), 1); renderTrade(); return;
+    }
+  });
+
+  /* the floor's two buttons: take it, then leave it */
+  function wireDividend() {
+    if (!$('dvgo')) return;
+    $('dvgo').onclick = function () {
+      if (!G._dvPick || G._dvPick.length < 4) return;
+      G.corps[G.me]._dividendPick = G._dvPick.slice();
+      G._dividendDone = true;
+      /* run the month the ordinary way, with the halt stood down for one pass — the
+         Dividend resolves inside the month step and always has */
+      G._forceMonth = true;
+      $('endmonth').onclick();
+      G._forceMonth = false;
+      renderDividend();
+    };
+    $('dvdone').onclick = function () {
+      G._dividendFloor = false;
+      applyPhase();
+      renderDesk();
+    };
+  }
+
+  /* ================================= THE MARKET =================================
+     Where kit is bought. Ruled: buying costs CREDITS AND NO FOCUS — shopping is not
+     attention, and the four focus verbs are about where a manager puts their week.
+
+     The shelf is sectioned by what a piece IS (`item.type`, canon data now rather than a
+     guess from tags), and the sections run everyday-first: what most hands carry, then the
+     specialists, then the things you buy once. Opening a shop on anti-materiel rifles tells
+     a new manager the wrong thing about what this fleet fights with.
+
+     The kit cap is a number on the summary, not a lecture: it is what any OA may FIELD at
+     the drop, the same for everyone, and owning more than that is allowed. --- */
+  var MSEC = ['Carbines', 'Close-Quarters', 'Scatterguns', 'Support Guns', 'Long Rifles',
+              'Marksman Rifles', 'Launchers', 'Anti-Materiel', 'Stun-Grade',
+              'Sidearms', 'Armour', 'Mods', 'Consumables', 'Other'];
+  var MSLOTS = ['primary', 'sidearm', 'armor', 'mod', 'consumable'];
+  var MKT = { slot: 'primary', grp: 'type', cart: {}, open: {} };
+  function titleWords(s2) {
+    return String(s2).replace(/_/g, ' ')
+                     .replace(/(^|[ -])([a-z])/g, function (m, a, c) { return a + c.toUpperCase(); });
+  }
+  function tierBadge(t) { return '<span class="tierb t' + t + '">' + t + '</span>'; }
+  function mktCatalogue() {
+    return ITEMS.all().filter(function (i) { return i.slot === MKT.slot; });
+  }
+  function mktSection(i) { return MKT.grp === 'tier' ? 'Tier ' + i.tier : (i.type || 'Other'); }
+  function mktRank(name) {
+    var ix = MSEC.indexOf(name);
+    return ix < 0 ? MSEC.length : ix;
+  }
+  function mktTotal() {
+    var t = 0;
+    for (var id in MKT.cart) {
+      var it = ITEMS.byId(id);
+      t += (it ? (it.cost || 0) : 0) * MKT.cart[id];
+    }
+    return t;
+  }
+  /* NAMED FOR THE SHELF, not for markets in general: the roster's signing window has owned
+     `renderMarket` since long before this page existed, and defining a second one silently
+     replaced it — the tryouts window went blank and nothing threw. */
+  function renderShelf() {
+    if (!G || !$('mktledger')) return;
+    var me = G.corps[G.me], arm = me.armoury || {};
+    var total = mktTotal(), left = me.account.treasury - total;
+    var cap = ITEMS.allowanceFor(G.state.season);
+
+    $('mktsum').innerHTML =
+      '<span>Treasury ' + cr(me.account.treasury) + '</span>' +
+      (total ? '<span>Order <span class="cr neg">\u2212\u20a1' +
+               Math.round(total).toLocaleString() + '</span></span>' +
+               '<span>' + cr(left) + ' After</span>' : '') +
+      '<span>(Kit Cap ' + cr(cap) + ')</span>';
+    $('mktslots').innerHTML = MSLOTS.map(function (sl) {
+      return '<button class="tiny' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
+             titleWords(sl) + '</button>';
+    }).join(' ');
+    Array.prototype.forEach.call(document.querySelectorAll('.mgrp'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-mgrp') === MKT.grp);
+    });
+
+    var items = mktCatalogue().slice().sort(function (a, b) {
+      var sa = mktSection(a), sb = mktSection(b);
+      if (sa !== sb) return MKT.grp === 'tier' ? a.tier - b.tier : mktRank(sa) - mktRank(sb);
+      return a.tier - b.tier || (a.cost || 0) - (b.cost || 0);
+    });
+    var h = '', sec = null;
+    items.forEach(function (i) {
+      var s2 = mktSection(i);
+      if (s2 !== sec) {
+        sec = s2;
+        var n = items.filter(function (x) { return mktSection(x) === s2; }).length;
+        h += '<div class="msec"><span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
+      }
+      var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
+      h += '<div class="mrow' + (open ? ' open' : '') + '" data-mopen="' + i.id + '">' +
+        '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
+        tierBadge(i.tier) +
+        '<span class="nm">' + esc(i.name) +
+        (i.legality === 'contraband' ? '<span class="cflavor limitation">Contraband</span>' : '') +
+        '</span>' +
+        (held ? '<span class="held">' + held + ' Held</span>' : '') +
+        '<span class="pr">' + cr(i.cost || 0) + '</span>' +
+        '<span class="step">' +
+          '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
+          '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
+          '<button class="stepbtn" data-madd="' + i.id + '">+</button>' +
+        '</span></div>';
+      if (open) {
+        var e = i.effects || {};
+        h += '<div class="mpanel">' +
+          '<span class="st">Tier <b>' + i.tier + '</b></span>' +
+          (e.power ? '<span class="st">Power <b>' + e.power + '</b></span>' : '') +
+          (e.range ? '<span class="st">Band <b>' + titleWords(e.range) + '</b></span>' : '') +
+          (i.bulk ? '<span class="st">Bulk <b>' + i.bulk + '</b></span>' : '') +
+          (i.family ? '<span class="st">Family <b>' + titleWords(i.family) + '</b></span>' : '') +
+          '<span class="st">Type <b>' + esc(i.type || 'Other') + '</b></span>' +
+          ((e.tags || []).length
+            ? '<div class="m" style="margin-top:3px">Traits: ' + e.tags.map(titleWords).join(', ') + '</div>'
+            : '') +
+          (i.identity ? '<div class="flav">' + esc(i.identity) + '</div>' : '') + '</div>';
+      }
+    });
+    $('mktledger').innerHTML = h;
+    var over = total > me.account.treasury;
+    $('mktnote').innerHTML = over ? 'This Order Costs More Than You Hold.' : '';
+    $('mktbuy').disabled = !Object.keys(MKT.cart).length || over;
+    $('mktclear').style.display = Object.keys(MKT.cart).length ? '' : 'none';
+  }
+
+  /* ================================ THE DIVIDEND ================================
+     The mid-year show-match, given the floor. It used to resolve inside the month step and
+     leave a shelf on the Desk — the manager walked through month six and felt nothing
+     happen, which is no way to run the one night of the year the crowd turns up for.
+
+     Now the year STOPS here. You name who takes the floor (the fleet's own rule is the
+     greenest fit bodies; a manager may put their names in front of the crowd instead), the
+     card is drawn, and afterwards every match is watchable on the same grid the Divide
+     uses — because it is the same grid, and always was. --- */
+  function dvEligible() {
+    var me = G.corps[G.me];
+    return me.roster.filter(function (f) {
+      return f.status !== 'dead' && f.status !== 'retired' &&
+             !((f.condition || {}).injuries || []).length &&
+             !(f.contract && f.contract.divides_required != null &&
+               (f.contract.divides_served || 0) < f.contract.divides_required);
+    });
+  }
+  function dvPick() {
+    if (!G._dvPick) G._dvPick = null;
+    return G._dvPick;
+  }
+  function dvDefaultPick() {
+    /* the fleet's rule, shown as the starting card so the manager sees what happens if
+       they touch nothing: the greenest fit bodies, blooded where nobody can die */
+    return dvEligible().slice().sort(function (a, b) {
+      return ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0);
+    }).slice(0, 8).map(function (f) { return f.id; });
+  }
+  function renderDividend() {
+    if (!G || !$('dvhead')) return;
+    var done = !!G._dividendDone;
+    var me = G.corps[G.me];
+    $('dvhead').innerHTML = '<b>The Dividend</b> <span class="m">' +
+      (done ? 'the lights are down \u2014 watch any match below'
+            : 'the mid-year exhibition. Stun-grade kit: every blow the medics can catch, ' +
+              'they catch, and nobody dies under the lights.') + '</span>';
+
+    if (!done) {
+      if (!G._dvPick) G._dvPick = dvDefaultPick();
+      var pick = G._dvPick, elig = dvEligible();
+      var h = '<div class="m">Name up to eight. The fleet sends its greenest \u2014 a night where ' +
+              'nobody dies is where you blood people \u2014 but a famous name in front of a paying ' +
+              'crowd is worth something too.</div><div class="dvlist">';
+      elig.forEach(function (f) {
+        var on = pick.indexOf(f.id) >= 0;
+        h += '<div class="dvrow' + (on ? ' on' : '') + '" data-dvpick="' + f.id + '">' +
+             '<span class="nm">' + esc(f.name) + '</span>' +
+             '<span class="m">' + (f.experience || {}).divides + ' divides \u00b7 fame ' +
+             Math.round(f.fame || 0) + ' \u00b7 aim ' + fmtStat(f.stats.aim) + '</span></div>';
+      });
+      $('dvpick').innerHTML = h + '</div><div class="m" style="margin-top:6px">' +
+        pick.length + ' named' + (pick.length < 4 ? ' \u2014 four is the fewest that can take the floor'
+                                                  : '') + '</div>';
+      $('dvcard').innerHTML = '<span class="m">The card is drawn when the lights come up.</span>';
+      $('dvgo').style.display = ''; $('dvdone').style.display = 'none';
+      $('dvstate').textContent = '';
+      return;
+    }
+
+    /* afterwards: the whole card, yours first, every match watchable */
+    $('dvpick').innerHTML = '<span class="m">The floor is done for this year.</span>';
+    var lights = (G.state.dividend && G.state.dividend.watch) || [];
+    var mine = [], rest = [];
+    lights.forEach(function (m, i) {
+      (m.corps.indexOf(G.me) >= 0 ? mine : rest).push({ m: m, i: i });
+    });
+    var row = function (x) {
+      var m = x.m, yours = m.corps.indexOf(G.me) >= 0;
+      return '<div class="ev' + (yours ? ' you' : '') + '">' +
+             cSpan(m.corps[0]) + ' <b>' + m.score[0] + '</b> \u2013 <b>' + m.score[1] + '</b> ' +
+             cSpan(m.corps[1]) +
+             (m.winnerId ? ' \u00b7 ' + cSpan(m.winnerId) + ' took the purse' : ' \u00b7 drawn') +
+             ' <button class="tiny" data-watchd="' + x.i + '">Watch</button></div>';
+    };
+    $('dvcard').innerHTML = (mine.length ? '<div class="m">Your match</div>' + mine.map(row).join('') : '') +
+      (rest.length ? '<div class="m" style="margin-top:6px">The rest of the card</div>' +
+                     rest.map(row).join('') : '') ||
+      '<span class="m">no matches were made this year</span>';
+    $('dvgo').style.display = 'none'; $('dvdone').style.display = '';
+    /* what the night was worth, read from the RESULT rather than from the treasury: month
+       six pays wages and kit too, so a bank balance cannot tell you whether you won a fight */
+    var yours = mine[0] && mine[0].m;
+    $('dvstate').innerHTML = !yours ? '<span class="m">you made no card this year</span>'
+      : yours.winnerId === G.me
+        ? 'You took the purse: <b class="good">' + cr(SEASON.CONST.DIVIDEND_PURSE) + '</b>'
+        : yours.winnerId
+          ? '<span class="m">' + esc(nameOfCorp(yours.winnerId)) + ' took the purse.</span>'
+          : '<span class="m">Drawn \u2014 the exhibition settles nothing.</span>';
+    wireLights();
+  }
+  /* ============================ THE NEGOTIATION TABLE ==========================
+     Dealing between corporations across the prep year: gear, people, credits, and what you
+     know about somebody else. Two pans and a beam, as ruled.
+
+     The economics live in trade.js and are anchored to numbers the game already uses. The
+     one that matters here: A CONTRACT TRAVELS WITH THE BODY, so a person is worth what they
+     bring MINUS what they are owed, and a third of the fleet's paper is worth less than
+     nothing. Putting one of those on THEIR side of the table is asking them to take a
+     liability off your hands, and the beam knows it. --- */
+  var TSEL = null;                          /* who we are talking to */
+  var TBL = { give: [], get: [] };          /* what is on the table */
+  var TCAT = { give: 'unit', get: 'unit' };
+  var TLOG = '';
+  function tradeMe() { return G.corps[G.me]; }
+  function tradeOpen() { return G.state && TRADE.tradingOpen(G.state.month); }
+  function tradeOpts() {
+    return { focusPointPrice: SEASON.CONST.BOOST_PER_POINT,
+             rowsPerPip: SEASON.CONST.INTEL_PER_PIP,
+             regard: TSEL ? REP.standing(G.corps[TSEL].rep, 'rival', G.me) : 0 };
+  }
+  function aliveOf(c) {
+    return (c.roster || []).filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+  }
+  function tradePool(side) {
+    var c = side === 'give' ? tradeMe() : (TSEL ? G.corps[TSEL] : null);
+    if (!c) return [];
+    var k = TCAT[side];
+    if (k === 'unit') return aliveOf(c).map(function (f) {
+      return { k: 'unit', id: f.id, label: f.name,
+               sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) +
+                    ' \u00b7 ' + n0((f.contract || {}).salary || 0) + '/mo \u00b7 ' +
+                    ((f.contract || {}).seasons_remaining || 1) + ' Seasons Left' +
+                    (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
+               worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) };
+    });
+    if (k === 'gear') return Object.keys(c.armoury || {}).filter(function (id) { return c.armoury[id] > 0; })
+      .map(function (id) {
+        var it = ITEMS.byId(id);
+        return { k: 'gear', id: id, n: c.armoury[id],
+                 label: (it ? it.name : id) + ' \u00d7' + c.armoury[id],
+                 sub: it ? ('Tier ' + it.tier + ' \u00b7 ' + it.slot) : '',
+                 v: TRADE.gearPrice(id) };
+      }).sort(function (a, b) { return b.v - a.v; });
+    if (k === 'credits') return [10000, 25000, 50000, 100000].map(function (n) {
+      return { k: 'credits', id: 'cr' + n, label: cr(n),
+               sub: (side === 'give' ? 'You hold ' : 'They hold ') + cr(c.account.treasury),
+               v: n, over: n > c.account.treasury };
+    });
+    /* INTEL. Never about the OA across the table \u2014 they know what they are (ruled). */
+    var mine = c._intel && c._intel.rivals;
+    return G.state.ids.filter(function (id) {
+      return id !== c.id && id !== (TSEL || '') && id !== G.me && mine && mine[id];
+    }).map(function (id) {
+      var rows = 0, rs = mine[id];
+      for (var r in rs.rows) if (rs.rows[r] && rs.rows[r].depth) rows++;
+      return { k: 'intel', id: id, rows: rows,
+               label: 'Dossier on ' + nameOfCorp(id),
+               sub: rows + ' Row' + (rows === 1 ? '' : 's') + ' \u00b7 What Your Scouts Brought Back',
+               v: TRADE.intelPrice(rows, SEASON.CONST.BOOST_PER_POINT, SEASON.CONST.INTEL_PER_PIP) };
+    }).filter(function (x) { return x.rows > 0; });
+  }
+  function bundleOf(side) {
+    var b = { credits: 0, gear: [], units: [], intel: [] };
+    TBL[side].forEach(function (it) {
+      if (it.k === 'credits') b.credits += it.v;
+      else if (it.k === 'gear') b.gear.push({ id: it.id, n: 1 });
+      else if (it.k === 'unit') b.units.push(it.id);
+      else if (it.k === 'intel') b.intel.push({ about: it.id, rows: it.rows });
+    });
+    return b;
+  }
+  function renderTrade() {
+    if (!G || !$('tradestrip')) return;
+    var open = tradeOpen();
+    $('tradehead').innerHTML = '<b>The Negotiation Table</b> <span class="m">' +
+      (open ? 'Open \u00b7 The Table Closes After Month ' + TRADE.CONST.LAST_TRADE_MONTH
+            : 'Closed for the Year \u2014 Nothing Moves After Month ' + TRADE.CONST.LAST_TRADE_MONTH) +
+      '</span><div class="m" style="margin-top:4px">A Contract Travels With the Body: What You ' +
+      'Trade Is Worth Minus Wage. Some Paper Is Worth Less Than Nothing.</div>';
+
+    $('tradestrip').innerHTML = G.state.ids.filter(function (id) { return id !== G.me; })
+      .map(function (id) {
+        var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
+        return '<div class="oachip2' + (TSEL === id ? ' on' : '') + '" data-toa="' + id +
+               '" style="border-left-color:' + colFor(id) + ';color:' + colFor(id) + '">' +
+               markFor(id, 14) + '<span>' + esc(nameOfCorp(id)) + '</span>' +
+               '<span class="m">' + (r > 0 ? '+' : '') + r + '</span></div>';
+      }).join('');
+
+    ['give', 'get'].forEach(function (side) {
+      $('ttabs-' + side).innerHTML = ['unit', 'gear', 'credits', 'intel'].map(function (k) {
+        return '<button class="tiny' + (TCAT[side] === k ? ' on' : '') + '" data-tcat="' + k +
+               '" data-tside="' + side + '">' +
+               (k === 'unit' ? 'People' : k.charAt(0).toUpperCase() + k.slice(1)) + '</button>';
+      }).join('');
+      var pool = TSEL ? tradePool(side) : [];
+      $('tpool-' + side).innerHTML = TSEL
+        ? (pool.map(function (it, i) {
+            var cls = it.v < 0 ? 'bad' : 'good';
+            var detail = it.k === 'unit'
+              ? '<span class="m">Worth ' + cr(it.worth) + ' \u2212 Wage ' + cr(it.wage) + '</span>' : '';
+            return '<div class="trow' + (it.over ? ' dead' : '') + '" data-tadd="' + side +
+                   '" data-i="' + i + '"><span class="nm">' + esc(it.label) +
+                   '<div class="m">' + esc(it.sub) + '</div></span>' +
+                   '<span class="val"><b class="' + cls + '">' + cr(it.v) + '</b>' + detail + '</span></div>';
+          }).join('') || '<div class="trow"><span class="m">Nothing Here to Trade.</span></div>')
+        : '<div class="trow"><span class="m">Pick an OA Above.</span></div>';
+      $('tchips-' + side).innerHTML = TBL[side].map(function (it, i) {
+        return '<span class="chip" data-tdrop="' + side + '" data-i="' + i + '">' +
+               esc(it.label) + ' \u00b7 ' + cr(it.v) + ' \u00d7</span>';
+      }).join('');
+    });
+
+    var view = null;
+    if (TSEL) {
+      view = TRADE.appetite(tradeMe(), G.corps[TSEL], bundleOf('give'), bundleOf('get'), tradeOpts());
+      $('ttot-give').innerHTML = '<span class="' + (view.give < 0 ? 'bad' : 'good') + '">' + cr(view.give) + '</span>';
+      $('ttot-get').innerHTML = '<span class="' + (view.ask < 0 ? 'bad' : 'good') + '">' + cr(view.ask) + '</span>';
+      var pct = Math.max(2, Math.min(98, 50 + (view.ratio - 1) * 60));
+      $('tneedle').style.left = pct + '%';
+      var word;
+      if (!open) word = 'The Table Is Closed for the Year.';
+      else if (!TBL.give.length && !TBL.get.length) word = 'Nothing on the Table.';
+      else if (view.word === 'gladly') word = 'They Would Take This Gladly \u2014 You Are Paying Over the Odds.';
+      else if (view.word === 'accepted') word = 'They Would Take This.';
+      else if (view.word === 'close') word = 'Close \u2014 A Little More Would Do It.';
+      else if (view.word === 'short') word = 'Not as it stands \u2014 short by ' + cr(view.need - view.give) + '.';
+      else word = 'They Would Not Entertain This.';
+      if (view.regard > 15) word += ' They Think Well of You, So They Will Take a Little Less.';
+      else if (view.regard < -15) word += ' They Do Not Trust You, So They Want a Premium.';
+      $('tverd').textContent = word;
+      $('tverd').className = view.accept && open ? 'good' : 'm';
+      $('tregard').innerHTML = 'They Regard You <b>' + (view.regard > 0 ? '+' : '') +
+        Math.round(view.regard) + '</b>';
+    } else {
+      $('ttot-give').textContent = '0'; $('ttot-get').textContent = '0';
+      $('tverd').textContent = 'Pick an OA to Deal With.'; $('tverd').className = 'm';
+      $('tregard').innerHTML = '';
+    }
+    $('tput').disabled = !(TSEL && open && (TBL.give.length || TBL.get.length));
+    $('tlog').innerHTML = TLOG;
+
+    /* an OA that has written to you, which they do rarely and only when they want something */
+    var off = G._tradeOffer;
+    if (off && open) {
+      $('tradeinbox').style.display = '';
+      var f = (aliveOf(tradeMe()).filter(function (x) { return x.id === off.ask.units[0]; })[0]) || {};
+      $('tradeinbox').innerHTML = '<b style="color:' + colFor(off.from) + '">' +
+        markFor(off.from, 14) + ' ' + esc(nameOfCorp(off.from)) + '</b> ' +
+        '<span class="m">has written \u2014 they do this rarely</span>' +
+        '<div style="margin-top:6px">They Want <b>' + esc(f.name || 'Somebody of Yours') +
+        '</b>, and Offer ' + esc(offerWords(off.offer)) + '.</div>' +
+        '<div class="bar"><button id="toffyes">Accept</button>' +
+        '<button id="toffno" class="tiny">Decline</button></div>';
+      $('toffyes').onclick = function () { takeOffer(true); };
+      $('toffno').onclick = function () { takeOffer(false); };
+    } else $('tradeinbox').style.display = 'none';
+  }
+  /* PUT IT TO THEM. Their answer is the appetite the engine already computed — no second
+     opinion, no dice: if the beam says they take it, they take it. */
+  $('tput') && ($('tput').onclick = function () {
+    if (!TSEL || !tradeOpen()) return;
+    var mine = bundleOf('give'), theirs = bundleOf('get');
+    var view = TRADE.appetite(tradeMe(), G.corps[TSEL], mine, theirs, tradeOpts());
+    if (!view.accept) { TLOG = esc(nameOfCorp(TSEL)) + ' Declines.'; renderTrade(); return; }
+    var moved = TRADE.execute(tradeMe(), G.corps[TSEL], mine, theirs,
+      { post: function (acct, kind, label, amt) { LED.post(acct, kind, label, amt); } });
+    var bits = [];
+    if (moved.units.length) bits.push(moved.units.length + ' on the Move');
+    if (moved.gear.length) bits.push(moved.gear.length + ' Line' + (moved.gear.length === 1 ? '' : 's') + ' of Gear');
+    if (moved.credits) bits.push(cr(Math.abs(moved.credits)));
+    if (moved.intel.length) bits.push(moved.intel.length + ' Dossier' + (moved.intel.length === 1 ? '' : 's'));
+    TLOG = 'Done with ' + esc(nameOfCorp(TSEL)) + ' · ' + (bits.join(', ') || 'nothing moved') + '.';
+    TBL = { give: [], get: [] };
+    /* renderRoster paints the money box too — there is no separate money renderer, and
+       calling for one threw on every completed deal */
+    renderTrade(); renderRoster();
+  });
+
+  function offerWords(b) {
+    var bits = [];
+    (b.gear || []).forEach(function (g) {
+      var it = ITEMS.byId(g.id);
+      bits.push((it ? it.name : g.id) + ' \u00d7' + g.n);
+    });
+    if (b.credits) bits.push(cr(b.credits));
+    return bits.join(' and ') || 'Nothing at All';
+  }
+  function takeOffer(yes) {
+    var off = G._tradeOffer;
+    if (!off) return;
+    if (yes) {
+      var moved = TRADE.execute(G.corps[off.from], tradeMe(), off.offer, off.ask,
+        { post: function (acct, kind, label, amt) { LED.post(acct, kind, label, amt); } });
+      TLOG = 'Done: ' + esc(nameOfCorp(off.from)) + ' took ' +
+             (moved.units[0] ? esc(moved.units[0].name) : 'the deal') + '.';
+      renderRoster();
+    } else TLOG = 'You declined ' + esc(nameOfCorp(off.from)) + '.';
+    G._tradeOffer = null;
+    if (TAB.talks) TAB.talks.classList.remove('urgent');
+    renderTrade();
+  }
+
+  /* ================================ THE BOARD ==================================
+     Four audiences and the standing they hold you in. The reputation engine has run inside
+     this page since the corporation existed — every cession, every purse, every name spent
+     has been landing in it — but the surface lived on a separate page, so the manager paid
+     the price of being seen without ever seeing it.
+
+     Nothing here is scored. The engine's own line: a manager is never graded on how they
+     answer, only moved. --- */
+  var AUDNAME = {
+    own:   { name: 'Your Own People', sub: 'The crews, the families, the ones who go down' },
+    fleet: { name: 'The Fleet',       sub: 'The other OAs, watching what you are worth' },
+    aleas: { name: 'The Aleas',       sub: 'Who runs the Divide, and remembers who plays straight' }
+  };
+  /* THE WORD FOR A NUMBER IS NOT THE SAME WORD FOR EVERY AUDIENCE. All four run on the
+     same -100..100 scale, but they do not live in the same part of it, and one set of
+     thresholds read every corporation as adored. MEASURED over six seasons of a full
+     career: your own people start at 80 and drift to the ceiling; the fleet runs 5 to 100
+     around a median of 66; the Aleas runs -74 to 78 around 20; a rival runs the whole
+     scale around a median of -9. So each audience gets bands cut against where it
+     actually sits, and the bar shows the true position on the shared scale. */
+  var STAND_BANDS = {
+    own:   [[40, 'Mutinous', 'bad'], [65, 'Strained', 'bad'], [85, 'Loyal', 'good'],
+            [999, 'Devoted', 'good']],
+    fleet: [[20, 'Unknown', ''], [40, 'Watched', ''], [65, 'Respected', 'good'],
+            [999, 'Renowned', 'good']],
+    aleas: [[-40, 'Distrusted', 'bad'], [-10, 'Watched', 'bad'], [25, 'Tolerated', ''],
+            [60, 'Approved', 'good'], [999, 'Favoured', 'good']],
+    rival: [[-50, 'Hostile', 'bad'], [-20, 'Cold', 'bad'], [15, 'Neutral', ''],
+            [45, 'Warm', 'good'], [999, 'Close', 'good']]
+  };
+  function standBand(v, aud) {
+    var t = STAND_BANDS[aud] || STAND_BANDS.rival;
+    for (var i = 0; i < t.length; i++) if (v < t[i][0]) return { word: t[i][1], cls: t[i][2] };
+    return { word: t[t.length - 1][1], cls: t[t.length - 1][2] };
+  }
+  /* THE NUMBER HAS TO MEAN WHAT THE WORD MEANS. Every standing lives on the same
+     -100..100 store, but the four audiences do not use the same part of it, and printing a
+     SIGNED figure beside a per-audience word produced nonsense: "+20 Mutinous" next to
+     "+13 Neutral", where the first is a crew close to walking off and the second is a rival
+     who barely knows you. A plus sign promises a symmetric scale.
+
+     So each audience is drawn on the range it actually occupies. Your own people and the
+     fleet are read out of 100 — 20 of 100 is a bad number and looks like one. The Aleas and
+     a rival genuinely run both ways, so they keep the sign and the bar keeps its centre. */
+  var STAND_SCALE = {
+    own:   { lo: 0, hi: 100, signed: false },
+    fleet: { lo: 0, hi: 100, signed: false },
+    aleas: { lo: -100, hi: 100, signed: true },
+    rival: { lo: -100, hi: 100, signed: true }
+  };
+  function standBar(v, aud) {
+    var sc = STAND_SCALE[aud] || STAND_SCALE.rival;
+    var pct = Math.max(0, Math.min(100, ((v - sc.lo) / (sc.hi - sc.lo)) * 100));
+    var b = standBand(v, aud);
+    var num = sc.signed ? ((v > 0 ? '+' : '') + Math.round(v))
+                        : (Math.round(v) + ' of ' + sc.hi);
+    return '<span class="sbar' + (sc.signed ? '' : ' onesided') + '">' +
+           '<i style="left:' + pct.toFixed(1) + '%"></i></span>' +
+           '<span class="swrd ' + b.cls + '">' + b.word + ' \u00b7 ' + num + '</span>';
+  }
+  function renderBoard() {
+    if (!G || !$('audiences')) return;
+    var me = G.corps[G.me], rep = me && me.rep;
+    if (!rep) { $('audiences').innerHTML = '<span class="m">&mdash;</span>'; return; }
+    var rivalIds = G.state.ids.filter(function (id) { return id !== G.me; });
+    var read = REP.readAll(rep, rivalIds);
+
+    var goal = (rep.goal || {});
+    var pat = rep.patience != null ? rep.patience : (goal.patience != null ? goal.patience : null);
+    $('boarddemand').innerHTML =
+      '<b>The Card</b> <span class="m">what your own board has asked for this year</span>' +
+      '<div class="sub" style="margin-top:6px">' + esc(goal.text || 'A strong Divide') + '</div>' +
+      (goal.interest != null
+        ? '<div class="m" style="margin-top:4px">Board interest ' +
+          Math.round(goal.interest * 100) + '%' +
+          (pat != null ? ' \u00b7 patience ' + Math.round(pat) : '') + '</div>'
+        : '');
+
+    var h = '';
+    ['own', 'fleet', 'aleas'].forEach(function (a) {
+      var v = read[a] || 0, d = AUDNAME[a];
+      h += '<div class="audrow"><div class="audname">' + d.name +
+           '<span class="m">' + d.sub + '</span></div>' +
+           '<div class="audbar">' + standBar(v, a) + '</div></div>';
+    });
+    h += '<div class="audhead">The Other OAs</div>';
+    rivalIds.map(function (id) { return { id: id, v: read.rival[id] || 0 }; })
+      .sort(function (x, y) { return y.v - x.v; })
+      .forEach(function (r) {
+        h += '<div class="audrow"><div class="audname" style="color:' + colFor(r.id) + '">' +
+             markFor(r.id, 14) + ' ' + esc(nameOfCorp(r.id)) +
+             '</div><div class="audbar">' + standBar(r.v, 'rival') + '</div></div>';
+      });
+    $('audiences').innerHTML = h;
+
+    /* WHY: the remembered acts still moving each number, biggest first. A standing with no
+       story behind it is a number a manager cannot act on. */
+    var lines = [];
+    ['own', 'fleet', 'aleas'].forEach(function (a) {
+      (REP.why(rep, a, null, 4) || []).forEach(function (m) {
+        lines.push({ a: a, s: m.season, act: m.act, now: m.now, head: m.headline });
+      });
+    });
+    lines.sort(function (x, y) { return Math.abs(y.now) - Math.abs(x.now); });
+    $('boardwhy').innerHTML = lines.length
+      ? lines.slice(0, 14).map(function (m) {
+          var sign = m.now > 0 ? 'good' : m.now < 0 ? 'bad' : '';
+          return '<div class="ev"><span class="' + sign + '">' +
+                 (m.now > 0 ? '+' : '') + m.now.toFixed(1) + '</span> ' +
+                 '<span class="m">' + AUDNAME[m.a].name + ' \u00b7 season ' + m.s + '</span> ' +
+                 esc(m.head || String(m.act).replace(/_/g, ' ')) + '</div>';
+        }).join('')
+      : '<span class="m">Nothing remembered yet &mdash; the board is watching a corporation with no history.</span>';
+
+    renderBoardQuestion();
+  }
+  /* THE QUESTION. After a Divide the board asks one, and the manager answers in a register.
+     Six registers, always all six; none is correct, each is right somewhere and wrong
+     elsewhere, and the answer MOVES the audiences rather than scoring the manager. */
+  function renderBoardQuestion() {
+    var me = G.corps[G.me], rep = me && me.rep;
+    var out = G._boardOutcome;
+    if (!rep || !out) { $('boardask').style.display = 'none'; return; }
+    $('boardask').style.display = '';
+    if (G._boardAnswered) {
+      $('boardq').innerHTML = '<div class="sub">' + esc(G._boardAnswered.ask) + '</div>' +
+        '<div class="m" style="margin-top:6px">You answered <b>' +
+        esc(G._boardAnswered.register) + '</b>. It is on the record.</div>';
+      return;
+    }
+    var q = REP.question(out);
+    var opts = REP.addressOptions(rep, out);
+    var h = '<div class="sub">' + esc(q.ask) + '</div>' +
+            '<div class="m" style="margin-top:4px">Nothing here is scored. Each register is ' +
+            'right somewhere and wrong somewhere else.</div><div class="regs">';
+    opts.forEach(function (o) {
+      var mv = o.moves, bits = [];
+      ['own', 'fleet', 'aleas'].forEach(function (a) {
+        if (mv[a]) bits.push(AUDNAME[a].name.replace('Your Own People', 'Your People') + ' ' +
+                             (mv[a] > 0 ? '+' : '') + mv[a]);
+      });
+      h += '<button class="regbtn" data-reg="' + o.register + '">' +
+           '<b>' + o.register.charAt(0).toUpperCase() + o.register.slice(1) + '</b>' +
+           '<span class="m">' + (bits.join(' \u00b7 ') || 'Moves nobody') + '</span></button>';
+    });
+    $('boardq').innerHTML = h + '</div>';
+    Array.prototype.forEach.call($('boardq').querySelectorAll('.regbtn'), function (b) {
+      b.onclick = function () {
+        REP.address(rep, b.getAttribute('data-reg'), { outcome: out });
+        G._boardAnswered = { register: b.getAttribute('data-reg'), ask: q.ask };
+        renderBoard();
+      };
+    });
+  }
+
   /* ---- TWO LISTS, TWO PLACES. The Dividend's show-matches belong on the Desk's shelf,
      where the year's lights live; "Since the Last Window" is the CONTEST's recap and had
      been carrying the summer's exhibition into it, so the Divide opened with a list of
@@ -24325,15 +26446,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     Array.prototype.forEach.call(document.querySelectorAll('[data-watch]'), function (btn) {
       btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); openFight('table'); };
     });
+    wireLights();
+  }
+  /* both the Desk's shelf and the Dividend's own card open the same footage */
+  function wireLights() {
+    var lights = (G.state && G.state.dividend && G.state.dividend.watch) || [];
     Array.prototype.forEach.call(document.querySelectorAll('[data-watchl],[data-watchd]'), function (btn) {
       btn.onclick = function () {
         var m = lights[+(btn.getAttribute('data-watchl') || btn.getAttribute('data-watchd'))];
+        if (!m) return;
         loadRec({ res: m.res, sides: m.sides, corps: m.corps },
           '<b>the Dividend</b><div class="m">' + cSpan(m.corps[0]) + ' ' + m.score[0] +
           ' \u2013 ' + m.score[1] + ' ' + cSpan(m.corps[1]) +
           (m.winnerId ? '<br>' + cSpan(m.winnerId) + ' took the purse' : '<br>drawn') +
           '<br>stun-grade kit \u00b7 every blow the medics can catch, they catch</div>');
-        openFight(G.div ? 'table' : 'desk');
+        openFight(G._dividendFloor ? 'lights' : (G.div ? 'table' : 'desk'));
       };
     });
   }
@@ -24461,7 +26588,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     /* the deal sections */
     var sealedMe = DIVIDE.sealedCorp(G.corps[G.me]);
-    var sealNote = '<span class="m">your house does not negotiate \u2014 a cultural fact, not a stance</span>';
+    var sealNote = '<span class="m">This OA does not negotiate \u2014 a cultural fact, not a stance</span>';
     if (sealedMe) {
       $('tjoin').innerHTML = sealNote; $('ttake').innerHTML = sealNote; $('tpact').innerHTML = sealNote;
       return;
@@ -24600,7 +26727,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     p.motto = 'Unwritten.';
     p.archetype = 'founder';
     p.colors = { primary: '#3ad8e0', secondary: '#5a5f66' };
-    p.lore = 'A house with no history: the fleet average in every number, and nothing on its banner yet.';
+    p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
     p.no_negotiation = false;
     p.relationships = [];
     p.canon_status = 'player-founded';
@@ -24701,24 +26828,39 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       loadGame(save);
     } catch (e) { $('mNote').textContent = 'that code is not a save'; }
   };
+  /* the seed is shown, not asked for: one click if somebody wants to reproduce a run */
+  $('seededit').onclick = function () {
+    $('seedline').style.display = 'none';
+    $('seed').style.display = '';
+    $('seed').focus(); $('seed').select();
+  };
+  $('seed').onchange = function () { $('seedval').textContent = $('seed').value || 'corp-1'; };
+
   $('mNew').onclick = function () {
     $('menu').style.display = 'none';
     $('setup').style.display = 'flex';
     var h = '';
+    /* AN OA IS ITS COLOUR AND ITS MARK before it is a paragraph. The founding screen was
+       the last place in the game still naming them in plain text — every other surface
+       has worn the marks since the colour pass. */
     OA.forEach(function (p) {
-      h += '<div class="oacard" data-oa="' + p.id + '"><b>' + esc(p.name) + '</b>' +
-           ' <span class="m">' + esc(p.tag || '') + '</span>' +
+      var col = colFor(p.id);
+      h += '<div class="oacard" data-oa="' + p.id + '" style="border-left-color:' + col + '">' +
+           '<span class="oaname" style="color:' + col + '">' + markFor(p.id, 18) +
+           esc(p.name) + '</span>' +
+           '<span class="m">' + esc(p.tag || '') + '</span>' +
            '<span class="m">' + esc(p.motto || '') +
-           (p.no_negotiation ? ' \u00b7 a sealed house: it does not come to the table' : '') +
+           (p.no_negotiation ? ' \u00b7 Sealed: It Does Not Come to the Table' : '') +
            '</span></div>';
     });
-    h += '<div class="oacard" data-oa="__custom"><b>Found your own house</b>' +
+    h += '<div class="oacard" data-oa="__custom">' +
+         '<span class="oaname">' + markFor('__founder', 18) + 'Found Your Own OA</span>' +
          '<span class="m">A Blank Slate</span></div>';
     $('oacards').innerHTML = h;
     var cr = $('creplace'); cr.innerHTML = '';
     OA.forEach(function (p) {
       var o = document.createElement('option'); o.value = p.id;
-      o.textContent = 'in place of ' + p.name;
+      o.textContent = 'In Place of ' + p.name;
       cr.appendChild(o);
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-oa]'), function (card) {
