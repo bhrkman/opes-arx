@@ -14,10 +14,14 @@ const D = __dirname + '/';
 
 /* ORDER MATTERS — each module captures its dependencies at load time. The season needs the
    sponsor and pre-Divide modules too; the desk's list is the precedent. */
-const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js',
+const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
                  'divide.js', 'trade.js', 'season.js'];
-const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'oa_display.json', 'oa_marks.json', 'recruitment.json', 'items.json'];
+/* planets.json RIDES TOO. It did not, and the map module only reads it from disk under node —
+   so every planet the browser generated had no composition: no ore on the ground, no resource
+   demand ever on a board's card, richness falling back to the archetype lean. The regress runs
+   under node and never saw it. */
+const DATA = ['races.json', 'traits.json', 'oa_profiles.json', 'oa_display.json', 'oa_marks.json', 'recruitment.json', 'items.json', 'planets.json'];
 
 let js = '';
 for (const m of MODULES) js += '\n/* ==== ' + m + ' ==== */\n' + fs.readFileSync(D + m, 'utf8');

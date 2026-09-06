@@ -44,7 +44,10 @@ const hasTab = (name) => {
   for (const t of tabs) if (t.textContent === name) return true;
   return false;
 };
-const endMonth = () => doc.getElementById('endmonth').click();
+const endMonth = () => { doc.getElementById('endmonth').click(); const go = doc.getElementById('recapgo'); if (go && doc.querySelector('.page[data-tab="recap"]').classList.contains('on')) go.click(); };
+/* walk to a month by number, never past it; stops at the Dividend's floor if it comes first */
+const toMonth = (n) => { let g = 0; while (window.__G.state.month < n && !window.__G._dividendFloor && g++ < 12) endMonth(); };
+const cr0 = n => '\u20a1' + Math.round(n).toLocaleString();
 /* the locker's-books helper retired with the scrim */
 const bidHigh = (n) => {
   const btns = doc.querySelectorAll('#rostmarket [data-bid]');
@@ -71,7 +74,7 @@ setTimeout(() => {
     /* they are Opes Arx — OAs, megacorporations — and never "houses" (ruled): the founding
        screen was the last surface still saying so, and the last still naming them in plain
        text while every other surface wore their colours and marks. */
-    check(/Sealed: It Does Not Come to the Table/.test(text('#oacards')),
+    check(/Sealed/.test(text('#oacards')),
           'the sealed OA says so on its card');
     check(doc.querySelectorAll('#oacards .oacard svg').length >= 8,
           'every founding card wears its OA\'s mark');
@@ -151,7 +154,22 @@ setTimeout(() => {
     } else {
       check(false, 'the courting desk offers a paintable supplier');
     }
-    endMonth();
+    /* THE TURN HAS A SHAPE: the brief at the Desk's head, the recap between the months */
+    check(/Month 1/.test(text('#brief')) && /Waiting on You/.test(text('#brief')),
+          'the brief names the month and what waits');
+    /* THE YEAR LINE stands left of every preparation page: twelve stops, the current lit */
+    check(doc.body.classList.contains('yearline') && doc.querySelectorAll('#yearline .ystop').length === 12 &&
+          doc.querySelector('#yearline .ystop.now .yn').textContent.indexOf('M1') === 0 && /In 11/.test(text('#yearline')),
+          'the year line shows twelve stops with the current lit and the Divide eleven off: ' + text('#yearline .ystop.now').replace(/\s+/g, ' ').trim().slice(0, 60));
+    check(/Waiting/.test(doc.getElementById('endmonth').textContent) || /End the Month/.test(doc.getElementById('endmonth').textContent),
+          'End the Month counts what waits: ' + doc.getElementById('endmonth').textContent);
+    doc.getElementById('endmonth').click();
+    check(doc.querySelector('.page[data-tab="recap"]').classList.contains('on') && /Month 1/.test(text('#recaphead')) && /Next/.test(text('#recaphead')),
+          'ending the month stands the recap up: ' + text('#recaphead').replace(/\s+/g, ' ').trim().slice(0, 70));
+    check(/Money/.test(text('#recapbody')) && /Standing/.test(text('#recapbody')) && /Training/.test(text('#recapbody')),
+          'the recap reads the month\'s work, money, people, training, standing');
+    doc.getElementById('recapgo').click();
+    check(doc.querySelector('.page[data-tab="desk"]').classList.contains('on'), 'Continue returns to the Desk and the next brief');
     /* YOU FOCUS ON THE INTEL, YOU GET THE INTEL (ruled). The gather used to be scheduled
        three months out; it resolves in the month it is bought now, so a look late in the
        year is still worth buying and a second look reads the rival as they stand today. */
@@ -176,8 +194,25 @@ setTimeout(() => {
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
             'and the exotica sit at the bottom, not the top');
-      check(/Kit Cap/.test(text('#mktsum')) && /\u20a1/.test(text('#mktsum')),
-            'the summary carries treasury and the kit cap in credits');
+      check(!/Kit Cap/.test(text('#mktsum')) && /\u20a1/.test(text('#mktsum')),
+            'the summary carries the treasury in credits; the kit cap has gone to the Squads');
+      /* THE PLANET HAS GROUND: planets.json rides in the bundle now, so the browser's planet
+         carries a composition like node's does */
+      check((window.__G.state.planet.composition || []).length >= 2,
+            'the planet generated with a composition in the browser (' +
+            (window.__G.state.planet.composition || []).length + ' resources)');
+      /* THE CARD READS OUT: every demand named, the priority starred, the holds barred */
+      [...doc.querySelectorAll('.tab')].filter(x => /Board/.test(x.textContent))[0].click();
+      const cardRows = doc.querySelectorAll('#boarddemand .cardrow:not(.standing)').length;
+      const rep0 = window.__G.corps[window.__G.me].rep;
+      check(cardRows === rep0.goal.demands.length && cardRows >= 3,
+            'the Board names every demand on the card (' + cardRows + '): ' +
+            [...doc.querySelectorAll('#boarddemand .cardrow:not(.standing) .dw')].map(e => e.textContent.replace(/\s+/g, ' ').trim()).join(' | '));
+      check(doc.querySelectorAll('#boarddemand .cardrow.pri').length === 1, 'one demand is starred as the priority');
+      check(doc.querySelectorAll('#boarddemand .cardrow.standing').length === 2, 'the two standing demands stand under it');
+      check(doc.querySelectorAll('#boardholds .holdrow').length === 4, 'the four holds are barred');
+      [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
+      check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
       const focusBefore = text('#focusline');
       const t0 = meM.account.treasury;
       const id = doc.querySelector('#mktledger .mrow').getAttribute('data-mopen');
@@ -223,27 +258,51 @@ setTimeout(() => {
       const themChip = doc.querySelector('#tradestrip .oachip2');
       const themId = themChip.getAttribute('data-toa');
       themChip.click();
-      check(doc.querySelectorAll('#tpool-give .trow').length > 5,
-            'your own people are on the table with a price');
-      check(/Worth/.test(text('#tpool-give')) && /Wage/.test(text('#tpool-give')),
-            'a body reads as worth minus wage, because the contract travels');
-      /* the ruled exclusion: never sell somebody their own dossier */
-      doc.querySelector('#ttabs-give [data-tcat="intel"]').click();
-      check(!new RegExp(GT.corps[themId].profile.name).test(text('#tpool-give')),
-            'intel about the OA across the table is never on offer');
-      doc.querySelector('#ttabs-give [data-tcat="credits"]').click();
+      /* THE NEGOTIATION IN TWO FACING COLUMNS: your terms, their terms, every kind in one
+         table with a filter; credits typed, not clicked in lumps; the contract beneath */
+      const giveCol = () => doc.querySelectorAll('#negwrap .negcol')[0];
+      const getCol = () => doc.querySelectorAll('#negwrap .negcol')[1];
+      check(giveCol().querySelectorAll('tr.pick').length > 5, 'your side lists what you can put up, with a price each');
+      check(/Worth/.test(giveCol().textContent) && /Wage/.test(giveCol().textContent),
+            'a body\'s price is its worth less its wage, said on the row');
+      giveCol().querySelector('[data-tcat="intel"]').click();
+      check(!new RegExp(GT.corps[themId].profile.name).test(giveCol().textContent),
+            'the dossier on the house across the table is not for sale to them');
+      giveCol().querySelector('[data-tcat="gear"]').click();
+      check(giveCol().querySelectorAll('.ntbl .tierb').length > 0 && giveCol().querySelectorAll('.qty').length > 0,
+            'gear lists with its tier badge, grouped by type, with a quantity to trade');
+      giveCol().querySelector('[data-tcat="all"]').click();
+      /* THE BOOKS DO NOT GO NEGATIVE: credits are typed, and clamp to what is held */
+      {
+        const treas = GT.corps[GT.me].account.treasury;
+        const inp = giveCol().querySelector('[data-tcash]');
+        inp.value = String(treas + 50000);
+        giveCol().querySelector('[data-tcashadd]').click();
+        const contractGive = doc.querySelectorAll('#negwrap .contract .negcols > div')[0];
+        check(new RegExp(cr0(treas).replace(/[₡,]/g, m => '\\' + m)).test(contractGive.textContent),
+              'credits typed past the treasury clamp to it (' + cr0(treas) + ')');
+        /* THEIR PURSE IS PRIVATE: the number never shows; the dossier's reading does, or Unknown */
+        const theirTreas = cr0(GT.corps[themId].account.treasury).replace(/[₡,]/g, m => '\\' + m);
+        check(!new RegExp(theirTreas).test(text('#negwrap')) && /Purse/.test(text('#negwrap')),
+              'the other house\'s treasury is not on the page; the dossier\'s word for it is');
+        doc.querySelector('#negwrap .contract [data-tdrop]').click();
+        check(/Nothing Yet/.test(doc.querySelectorAll('#negwrap .contract .negcols > div')[0].textContent),
+              'the cross takes it off the contract');
+      }
       /* buy one of theirs, over the odds, and watch the people actually move */
-      const mineBefore = GT.corps[GT.me].roster.length;
-      const theirsBefore = GT.corps[themId].roster.length;
-      doc.querySelectorAll('#tpool-give .trow')[1].click();
-      const want = doc.querySelectorAll('#tpool-get .trow')[0];
+      const mineBefore = GT.corps[GT.me].roster.length, theirsBefore = GT.corps[themId].roster.length;
+      /* the same two bodies the old check traded — your second by roster order for their
+         first — so the training arithmetic downstream reads the same roster it always did */
+      giveCol().querySelector('tr.pick[data-tid="unit:' + GT.corps[GT.me].roster[1].id + '"]').click();
+      getCol().querySelector('tr.pick[data-tid="unit:' + GT.corps[themId].roster[0].id + '"]').click();
       const wantId = TR.netOf(GT.corps[themId].roster[0]);
-      want.click();
+      check(doc.querySelectorAll('#negwrap .contract tr:not(.tot):not(.none)').length >= 2, 'both contributions stand on the contract');
+      check(/They Would|Short by|Would Not/.test(text('#negwrap')), 'the pressure bar reads a verdict: ' + (text('#negwrap').match(/(They Would[^₡]*|Short by ₡[\d,]+|They Would Not Entertain This)/) || [''])[0].trim());
       doc.getElementById('tput').click();
       const moved = GT.corps[GT.me].roster.length - mineBefore;
-      check(moved === 1 && GT.corps[themId].roster.length === theirsBefore - 1,
-            'a struck deal moves the body between rosters (' + mineBefore + '\u2192' +
-            GT.corps[GT.me].roster.length + ')');
+      check(moved === 0 && GT.corps[themId].roster.length === theirsBefore,
+            'a struck deal moves the bodies between rosters, one for one (' + mineBefore + ' stays ' +
+            GT.corps[GT.me].roster.length + ')'); void wantId;
       const bought = GT.corps[GT.me].roster[GT.corps[GT.me].roster.length - 1];
       check(!!bought.contract && bought.contract.salary > 0,
             'the contract travelled with them, salary and all');
@@ -267,9 +326,8 @@ setTimeout(() => {
               'the crew left behind notices a sale');
       }
       /* no floor: the ruling is fluidity until the Divide */
-      check(TR.CONST.LAST_TRADE_MONTH === 10, 'the table closes after M10, as ruled');
-      check(!TR.tradingOpen(11) && TR.tradingOpen(10), 'and it is shut in M11');
-      void wantId;
+      check(TR.CONST.LAST_TRADE_MONTH === 11 && TR.CONST.FIRST_TRADE_MONTH === 2, 'the table trades M2 through M11, as ruled');
+      check(!TR.tradingOpen(1) && TR.tradingOpen(11) && !TR.tradingOpen(12), 'shut in the review month and after the lock');
       openRoster();
     }
 
@@ -404,13 +462,12 @@ setTimeout(() => {
 
     /* ---- months 3-4: the tryouts window, now in the Roster's rail — Natural-Born, flat sign ---- */
     openRoster();
-    check(/Nattie Tryouts/.test(text('#rostmarket')) && /Natural-Born/.test(text('#rostmarket')),
-          'the tryouts window names the origin: ' + text('#rostmarket').trim().slice(0, 70));
+    check(/Natural-Born/.test(text('#rostmarket')) && /Discount Pool/.test(text('#rostmarket')),
+          'month 3 is the Natural-Born refresh, the discount pool: ' + text('#rostmarket').trim().slice(0, 70));
     doc.querySelectorAll('#rostmarket [data-sign]')[0].click();
     doc.querySelectorAll('#rostmarket [data-sign]')[0].click();
     check(doc.querySelectorAll('#rostmarket .pcsigning').length >= 2, 'two marked to sign, no bidding');
-    endMonth();               /* month 3 ends; month 4 is the deadline month */
-    endMonth();               /* the tryouts sign inside this step */
+    endMonth();               /* month 3 ends and its pool signs; month 4 raises the lights */
     openRoster();
     check(doc.querySelectorAll('#roster .rcard[data-hand]').length > 0 &&
           /Natural-Born/.test(text('#roster')),
@@ -420,10 +477,10 @@ setTimeout(() => {
     {
       const card = doc.querySelector('#roster .rcard[data-hand]');
       card.click();
-      const hcell = doc.querySelector('#rostpanel .st.health');
+      const hcell = doc.querySelector('#unitpanel .st.health');
       const shown = hcell ? +(hcell.textContent.match(/\d+/) || [0])[0] : -1;
       const body = window.__G.corps[window.__G.me].roster
-                     .find(f => f.id === window.__G._rinspect);
+                     .find(f => f.id === window.__G._inspect);
       const pool = window.CDCOMBAT.hpFor(body);
       check(shown === pool && pool !== 100,
             'the sheet\'s Health is the real wound pool (' + shown + ' = hpFor ' + pool + '), not the flat meter');
@@ -434,37 +491,59 @@ setTimeout(() => {
        The year used to walk straight through month six: the show resolved inside the month
        step and left a shelf on the Desk, so the one night the crowd turns up for was a line
        in a log. It stops the year now, the way the Divide does. */
-    endMonth();               /* 5 */
-    endMonth();               /* arriving at 6 raises the lights */
+    /* walk to the lights: End the Month until month six stops the year. (End the Month IS
+       Take the Floor while the lights are up, so one click too many would take it — count.) */
+    { let g2 = 0; while (!window.__G._dividendFloor && window.__G.state.month < 7 && g2++ < 3) endMonth(); }
     {
       const GD = window.__G;
-      check(!!GD._dividendFloor && GD.state.month === 6,
-            'arriving at month six stops the year for the Dividend');
+      check(!!GD._dividendFloor && GD.state.month === window.CDSEASON.DIVIDEND_MONTH,
+            'arriving at the Dividend\'s month stops the year for it');
       const rail = [...doc.querySelectorAll('#rail .tab')].map(t => t.textContent).join(' | ');
-      check(/Dividend/.test(rail) && /Firefight/.test(rail),
-            'the Dividend takes the rail with the grid beside it: ' + rail);
-      check(doc.getElementById('endmonth').style.display === 'none',
-            'and the month cannot be walked past while the lights are up');
-      const listed = doc.querySelectorAll('#dvpick .dvrow').length;
-      check(listed >= 8 && (GD._dvPick || []).length === 8,
-            'the manager names who takes the floor (' + (GD._dvPick || []).length +
-            ' of ' + listed + ' fit)');
-      const named = GD._dvPick.slice();
-      doc.querySelectorAll('#dvpick .dvrow')[0].click();
-      check(GD._dvPick.length === named.length - 1 || GD._dvPick.length === named.length + 1,
-            'a hand can be put on the card or taken off it');
+      check(/Dividend/.test(rail) && /Desk/.test(rail) && /Squads/.test(rail),
+            'the Dividend joins the rail without locking the rest of it: ' + rail);
+      check(doc.getElementById('endmonth').style.display !== 'none' &&
+            /Take the Floor/.test(doc.getElementById('endmonth').textContent),
+            'End the Month reads Take the Floor while the lights are up — one gate, not two');
+      const onCard = doc.querySelectorAll('#dvpick .fcard[data-dvdrop]').length;
+      const atHome = doc.querySelectorAll('#dvbench .fcard').length;
+      check(onCard === 8 && (GD._dvPick || []).length === 8 && atHome >= 0,
+            'the fleet\'s default card stands on the board as eight fighter cards (' +
+            atHome + ' more at home)');
+      check(doc.querySelectorAll('#dvpick .fcard.full').length === 1, 'the card reads Full at eight');
+      doc.querySelector('#dvpick [data-dvdrop]').click();
+      check(GD._dvPick.length === 7 && doc.querySelectorAll('#dvpick .fcard.open').length === 1,
+            'the cross takes a hand off the card and an open row appears');
+      if (atHome > 0) {
+        doc.querySelector('#dvbench .fcard[data-dvadd]').click();
+        check(GD._dvPick.length === 8, 'a card at home joins the card on a click');
+        doc.querySelector('#dvpick [data-dvdrop]').click();
+      }
+      check(doc.querySelectorAll('#dvbench [data-dvsort]').length === 5, 'the bench sorts the Squads\' ways');
+      doc.querySelector('#dvbench [data-sheet], #dvpick [data-sheet]').click();
+      check(doc.getElementById('unitpanel').classList.contains('on'), 'a name on the card opens the sheet');
+      doc.getElementById('sheetclose').click();
       doc.getElementById('dvgo').click();
-      check(GD.state.month === 7 && GD._dividendDone,
+      check(GD.state.month === window.CDSEASON.DIVIDEND_MONTH + 1 && GD._dividendDone,
             'taking the floor resolves the month that holds the show');
       check(doc.querySelectorAll('#dvcard .ev').length >= 1,
             'the whole card is on the page afterwards (' +
             doc.querySelectorAll('#dvcard .ev').length + ' matches)');
-      doc.querySelector('#dvcard [data-watchd]').click();
+      check(!GD._dividendFloor && !doc.querySelector('.page[data-tab="lights"]').classList.contains('on') &&
+            doc.querySelector('.page[data-tab="desk"]').classList.contains('on'),
+            'the lights go down by themselves and the Desk is back, nothing to dismiss');
+      /* the matches are watched from the Desk's shelf now */
+      doc.querySelector('#desklights [data-watchd]').click();
       check(+doc.getElementById('fr').max > 5,
             'and any match replays on the same grid the Divide uses (' +
             (+doc.getElementById('fr').max + 1) + ' frames)');
-      doc.getElementById('dvdone') && doc.getElementById('dvdone').click();
-      check(!GD._dividendFloor, 'and the desk is there when the lights go down');
+      doc.getElementById('fightback').click();
+      check(doc.querySelector('.page[data-tab="desk"]').classList.contains('on'), 'Back returns to the Desk the shelf stands on');
+      check(!/Dividend/.test([...doc.querySelectorAll('#rail .tab')].map(t => t.textContent).join(' ')) &&
+            doc.getElementById('endmonth').style.display !== 'none' && /End the Month/.test(doc.getElementById('endmonth').textContent),
+            'the rail is the preparation\'s again and End the Month is back');
+      /* clicking a card on the card sends it home, the Squads' habit; the cross still works */
+      const dvc = doc.querySelectorAll('#dvpick .fcard[data-dvdrop]').length;
+      check(dvc >= 1, 'the card\'s fighters are whole-card click targets (' + dvc + ')');
     }
     check(/the Dividend/.test(text('#desklights')),
           'the Dividend surfaces on the Desk\'s shelf, not a month log');
@@ -482,7 +561,7 @@ setTimeout(() => {
     check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/.test(text('#frLbl')),
           'a show-match replays on the grid (' + (+doc.getElementById('fr').max + 1) +
           ' frames \u00b7 ' + text('#frLbl') + ')');
-    check(/purse|drawn/.test(text('#result')) && /exhibition settles nothing/.test(text('#settle')),
+    check(/Purse|Drawn/.test(text('#result')) && /Paid at the Whistle/.test(text('#settle')),
           'the lights\' result reads as an exhibition: ' +
           text('#result').replace(/\s+/g, ' ').trim().slice(0, 90));
     check(!doc.getElementById('lock') && !doc.getElementById('run') && !doc.getElementById('lockinfo'),
@@ -491,8 +570,8 @@ setTimeout(() => {
           'the room knows its way back to the Desk during the year');
     openRoster();
     check(/Bastille/.test(text('#rostmarket')) && /Conscript/.test(text('#rostmarket')),
-          'months 7-8 show the Bastille intake for Conscripts, not a bidding table');
-    check(/earn release/.test(text('#rostmarket')),
+          'months 5-6 show the Bastille intake for Conscripts, not a bidding table');
+    check(/Earn Release/.test(text('#rostmarket')),
           'every Conscript\'s freedom clause is on the sheet');
     /* the intel painted in M1 has landed by now (M6); the gather section is still open, so open
        its dossier through the real click target and confirm it reads on the page */
@@ -508,13 +587,90 @@ setTimeout(() => {
               'the dossier reads on the page, honestly dated');
         GI._dossier = null;
       }
+      /* THE PLANET'S DOSSIER READS AS FIGURES. Force the sheet full and read every row: the
+         veins named with their category, the sites in units, the hazards as shares, supply as
+         a ration burn, the landing ring saying what it unlocks. No 'partial', no snake_case. */
+      const pl = GI.corps[GI.me]._intel.planet, keep = JSON.stringify(pl.rows);
+      ['ground', 'veins', 'sites', 'terrain', 'hazards', 'supply', 'sectors'].forEach(k => { pl.rows[k] = { depth: 3, gathered: 101 }; });
+      const plink = [...doc.querySelectorAll('#intelgrid .idoss')].find(d => d.getAttribute('data-doss') === 'planet');
+      if (plink) {
+        plink.click();
+        const dt = text('#dossier').replace(/\s+/g, ' ');
+        check(/Units to Play For/.test(dt) && /Rations Burn/.test(dt) && /Read at the Drop/.test(dt) && /Richness \d+%/.test(dt),
+              'the planet dossier reads as figures: units in the ground, ration burn, richness, what the ring unlocks');
+        check(!/_/.test(dt) && !/Partial|partial/.test(dt) && /Full/.test(dt),
+              'the planet dossier has no snake_case and grades Blank / Sparse / Read / Full');
+        GI._dossier = null;
+      } else check(false, 'the planet stands on the intel section for its dossier to open');
+      pl.rows = JSON.parse(keep);    /* the reading was a look, not a purchase */
       openRoster();
     })();
-    endMonth(); endMonth();   /* 7, 8 (intake) */
+    /* THE EVENTS: something asks for a decision. Force one onto the month, answer it, and see it
+       resolve; leave another and see it default in the recap. */
+    {
+      const GE = window.__G, S2 = window.CDSEASON;
+      const box = GE.state.events[GE.me];
+      const roster = GE.corps[GE.me].roster.filter(f => f.status === 'active');
+      box.list = [{ id: 'raise-test', pool: 'raise', kind: 'raise', subject: roster[0].id, ask: 500, title: roster[0].name + ' Wants a Raise', text: 'test',
+                    options: [{ id: 'grant', label: 'Grant It', cost: '' }, { id: 'refuse', label: 'Refuse', cost: '' }, { id: 'release', label: 'Release Them', cost: '' }], def: 'refuse', resolved: null },
+                  { id: 'insult-test', pool: 'insult', kind: 'insult', from: GE.state.ids.find(x => x !== GE.me), title: 'A Slight in the Postings', text: 'test',
+                    options: [{ id: 'answer', label: 'Answer It', cost: '' }, { id: 'ignore', label: 'Say Nothing', cost: '' }, { id: 'laugh', label: 'Laugh It Off', cost: '' }], def: 'ignore', resolved: null }];
+      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
+      check(doc.querySelectorAll('#events .evcard').length === 2 && /Wants a Raise/.test(text('#events')), 'two events stand on the Desk as cards');
+      check(/Wants a Raise/.test(text('#brief')) && /Defaults to Refuse/.test(text('#brief')), 'the agenda lists an open event with its default');
+      const sal0 = roster[0].contract.salary;
+      doc.querySelector('#events [data-ev="raise-test"][data-opt="grant"]').click();
+      check(roster[0].contract.salary === sal0 + 500 && /Got the Raise/.test(text('#events')), 'granting the raise moves the salary and the card says so');
+      doc.getElementById('endmonth').click();
+      check(/Got the Raise/.test(text('#recapbody')) && /Your Call/.test(text('#recapbody')) && /Slight Was Ignored/.test(text('#recapbody')) && /By Default/.test(text('#recapbody')),
+            'the recap reads the answered event as your call and the open one as its default');
+      doc.getElementById('recapgo').click();
+    }
+    /* WHAT IS LEFT WAITING COSTS: plant a letter from a house, end the month without answering,
+       and the letter is gone and the house remembers being snubbed */
+    {
+      const GL = window.__G, from = GL.state.ids.find(x => x !== GL.me);
+      const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
+      GL._tradeOffer = { from: from, ask: { units: [GL.corps[GL.me].roster[0].id], credits: 0, gear: [], intel: [] }, offer: { credits: 10000, gear: [], units: [], intel: [] } };
+      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
+      check(/Has Written/.test(text('#brief')) && /Waiting/.test(doc.getElementById('endmonth').textContent),
+            'a letter stands on the agenda and End the Month counts it');
+      doc.getElementById('endmonth').click();
+      check(/Lapses/.test(text('#recapbody')), 'the recap says the letter lapsed and was noticed');
+      doc.getElementById('recapgo').click();
+      check(!GL._tradeOffer && GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length === memBefore + 1,
+            'the letter is gone and the house remembers the snub');
+    }
+    /* the Bastille's two intakes resolve as months 5 and 6 end; month 7 is the fleet's */
+    toMonth(8);
+    /* THE EIGHT: one name, one fight, real deaths */
+    {
+      const G8 = window.__G;
+      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
+      check(doc.querySelectorAll('#eight .fcard[data-eight]').length >= 4 && /Your Best/.test(text('#eight')) && /Name Your Fighter for The Eight/.test(text('#brief')),
+            'month 8 asks for a name for The Eight: fighter cards on the Desk, the item on the agenda');
+      const pickCard = doc.querySelectorAll('#eight .fcard[data-eight]')[1]; const chosen = pickCard.getAttribute('data-eight');
+      pickCard.click();
+      check(G8.state.eight.names[G8.me] === chosen && doc.querySelector('#eight .fcard.named') && doc.querySelector('#eight .fcard.named').getAttribute('data-eight') === chosen,
+            'clicking a card names that fighter');
+      const bodies0 = G8.corps[G8.me].roster.filter(f => f.status === 'active').length;
+      doc.getElementById('endmonth').click();
+      const R8 = G8.state.eight.result;
+      check(R8 && R8.held && R8.teams.A.length === 4 && R8.teams.B.length === 4 && ['A', 'B', null].indexOf(R8.winner) >= 0,
+            'The Eight was fought, four against four; winner ' + R8.winner + ', pot ' + R8.pot + ', dead ' + JSON.stringify(R8.deadBy));
+      check(doc.querySelectorAll('#recapbody .eightcard .tm').length === 2 && /Died|Hurt|Standing/.test(text('#recapbody')) && !!doc.getElementById('eightwatch'),
+            'the recap carries both fours with each fighter\'s fate and a Watch');
+      doc.getElementById('eightwatch').click();
+      check(+doc.getElementById('fr').max > 3, 'The Eight replays on the grid (' + (+doc.getElementById('fr').max + 1) + ' frames)');
+      doc.getElementById('fightback').click();
+      check(doc.querySelector('.page[data-tab="recap"]').classList.contains('on'), 'Back returns to the recap');
+      doc.getElementById('recapgo').click();
+    }
+    toMonth(9);
 
     /* ---- months 9-10: the merc window — they auction themselves ---- */
     openRoster();
-    check(/Merc Market/.test(text('#rostmarket')) && /Mercenary/.test(text('#rostmarket')) &&
+    check(/Mercenary Market/.test(text('#rostmarket')) && /Mercenary/.test(text('#rostmarket')) &&
           /One Divide/.test(text('#rostmarket')),
           'the merc window names the origin and the terms');
     bidHigh(2);
@@ -547,44 +703,84 @@ setTimeout(() => {
     check(doc.querySelectorAll('#sqboxes .sqcard').length === 6 &&
           /Alpha/.test(text('#sqboxes')) && /Foxtrot/.test(text('#sqboxes')),
           'the board shows six squads, named Alpha through Foxtrot');
-    /* assign six to Alpha. jsdom has no native HTML5 drag, so exercise the same model path
-       the drop handler calls — moveTo — via the exposed G, then re-render by re-opening the tab. */
+    /* assign six to Alpha. The board is select-then-place: pick a bench card up, then click
+       the squad's Place. Six times, through the page's own clicks. */
     const fit = G.corps[G.me].roster.filter(f => f.status === 'active');
     const squadIds = fit.slice(0, 6).map(f => f.id);
-    squadIds.forEach(id => { G.plan.at[id] = 0; });
     hasTab('Squads') && [...doc.querySelectorAll('.tab')].filter(x => /Squad/.test(x.textContent))[0].click();
-    check(doc.querySelectorAll('#sqboxes .sqcard')[0].querySelectorAll('.ucard').length === 6,
-          'six cards stand in Alpha on the board');
-    /* inspect the fourth, make them leader, and equip through the paper-doll picker */
+    squadIds.forEach(id => {
+      doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
+      doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]').click();
+    });
+    const alpha = () => doc.querySelectorAll('#sqboxes .sqcard')[0];
+    check(alpha().querySelectorAll('.fcard[data-id]').length === 6 &&
+          alpha().querySelectorAll('.fcard.open').length === 1,
+          'six rows stand in Alpha on the board, one open row waiting');
+    check(!doc.querySelector('#bench .fcard[data-id="' + squadIds[0] + '"]'),
+          'a placed fighter leaves the bench');
+    /* the seventh and eighth fit the engine's SQUAD_MAX of 8; a ninth is refused */
+    const more = fit.slice(6, 9).map(f => f.id);
+    more.forEach(id => { doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
+                         const pl = doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]');
+                         if (pl) pl.click(); else G._sqsel = null; });
+    check(alpha().querySelectorAll('.fcard[data-id]').length === 8 &&
+          alpha().querySelectorAll('.fcard.open').length === 0 && /Full/.test(alpha().textContent),
+          'Alpha fills to eight and closes its open row');
+    /* the cross sends the two extras home again */
+    more.slice(0, 2).forEach(id => alpha().querySelector('.fcard[data-id="' + id + '"] [data-home]').click());
+    check(alpha().querySelectorAll('.fcard[data-id]').length === 6 &&
+          doc.querySelectorAll('#bench .fcard').length === fit.length - 6,
+          'the cross on a row sends a fighter home');
+    /* the star on a row makes a leader, on the person */
     const leadId = squadIds[3];
     const leadName = fit.find(f => f.id === leadId).name;
-    const leadCard = [...doc.querySelectorAll('#sqboxes .sqcard')[0].querySelectorAll('.ucard')]
-      .find(c => c.dataset.id === leadId);
-    leadCard.click();
-    check(doc.getElementById('unitpanel').style.display !== 'none' &&
+    alpha().querySelector('.fcard[data-id="' + leadId + '"] [data-lead]').click();
+    check(!!G.plan.leaderOf[leadId] && alpha().querySelectorAll('.star.on').length === 1,
+          'clicking the star sets leadership on the person: ' + leadName);
+    /* the name opens the sheet as a drawer: four loadout slots, the moves, the actions */
+    alpha().querySelector('.fcard[data-id="' + leadId + '"] [data-sheet]').click();
+    check(doc.getElementById('unitpanel').classList.contains('on') &&
           doc.querySelectorAll('#unitpanel .slot').length === 4,
-          'the detail panel opens with the four paper-doll slots');
+          'the sheet opens as a drawer with the four loadout slots');
+    check(doc.querySelectorAll('#unitpanel .mv').length === 6 &&
+          doc.querySelector('#unitpanel .mv[data-mv="0"]').disabled,
+          'the sheet offers a move to every squad but the one they stand in');
     doc.getElementById('pmakelead').click();
-    check(!!G.plan.leaderOf[leadId],
-          'clicking make-leader sets leadership on the person: ' + leadName);
-    /* the panel stays open on the inspected body after the rerender; open the primary picker */
-    check(doc.getElementById('unitpanel').style.display !== 'none' && G._inspect === leadId,
-          'the detail panel stays on the inspected unit through the rerender');
+    check(!G.plan.leaderOf[leadId], 'the sheet\'s leader button toggles leadership off');
+    doc.getElementById('pmakelead').click();
+    check(!!G.plan.leaderOf[leadId] && G._inspect === leadId &&
+          doc.getElementById('unitpanel').classList.contains('on'),
+          'and on again, the drawer staying on the inspected fighter through the rerender');
     doc.querySelector('#unitpanel [data-slot="primary"]').click();
     check(doc.querySelectorAll('.picker .prow').length > 1,
           'the equip picker lists options: ' + doc.querySelectorAll('.picker .prow').length + ' rows');
-    const rackRow = [...doc.querySelectorAll('.picker .prow')].find(r => /rack /.test(r.textContent));
-    const buyRow = [...doc.querySelectorAll('.picker .prow')].find(r => /buy /.test(r.textContent));
+    check(doc.querySelectorAll('.picker .prow .tierb').length >= doc.querySelectorAll('.picker .prow').length - 1,
+          'every item in the picker wears its tier badge');
+    const rackRow = [...doc.querySelectorAll('.picker .prow')].find(r => /Rack /.test(r.textContent));
+    const buyRow = [...doc.querySelectorAll('.picker .prow')].find(r => /Buy /.test(r.textContent));
     const pickRow = rackRow || buyRow;
-    const handPrim = pickRow.querySelector('span').textContent.replace(/[✓✓\s]+/g,' ').trim();
-    check(/power|range|trade|protect|ballistic|energy/.test(pickRow.textContent),
+    const handPrim = pickRow.querySelector('.pn').firstChild.textContent.trim();
+    check(/Power|Range|Long|Short|Medium|Protect|Ballistic|Energy/.test(pickRow.textContent),
           'a picker row shows what the item does: ' +
           (pickRow.querySelector('.pd') || {}).textContent);
     pickRow.click();
     check(!!G.plan.hand[leadId] && G.plan.hand[leadId].primary,
           'the picker set a hand primary: ' + handPrim);
+    check(/Hand-Kitted/.test(text('#unitpanel')), 'the sheet marks the fighter hand-kitted');
+    /* a benched fighter's sheet opens too, and can place them from the drawer */
+    const benchOne = doc.querySelector('#bench .fcard [data-sheet]').getAttribute('data-sheet');
+    doc.querySelector('#bench .fcard [data-sheet]').click();
+    check(G._inspect === benchOne && /Place in/.test(text('#unitpanel')),
+          'a fighter at home opens the same sheet, offering to place them');
+    doc.querySelector('#unitpanel .mv[data-mv="1"]').click();
+    check(G.plan.at[benchOne] === 1, 'the sheet\'s move button placed them in Beta');
+    alpha().querySelector('.fcard[data-id]'); doc.getElementById('sheetclose').click();
+    check(!doc.getElementById('unitpanel').classList.contains('on'), 'the drawer closes');
+    /* Beta holds one now and reads short; send them home so the lock below sees one squad */
+    doc.querySelector('#sqboxes .sqcard[data-si="1"] [data-home]').click();
     endMonth();               /* month 11 — the lock; the year turns to the Divide */
     check(/the Divide/.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
+    check(!doc.body.classList.contains('yearline'), 'the year line stands down for the Divide');
     check(!hasTab('Desk') && !hasTab('The Firefight') && hasTab('The Table') &&
           hasTab('The Ground') && hasTab('Roster'),
           'the whole menu switches: the Divide\'s rail, the Firefight off it');
@@ -598,9 +794,13 @@ setTimeout(() => {
        proved about the game now proves through the real Divide below: composition in the
        replay's side panels, the hand at begindiv, casualties on the shared roster after
        the contest. */
+    /* CLEAR SQUADS asks first, then wipes the board; the hand survives it */
     doc.getElementById('autodeal').click();
-    check(/no plan — the engine deals/.test(text('#planstate')),
-          'clearing the plan hands the deal back to the engine');
+    check(doc.querySelectorAll('#sqboxes .sqcard.filled').length > 0 && !!doc.getElementById('clearyes'),
+          'Clear Squads asks before it acts');
+    doc.getElementById('clearyes').click();
+    check(doc.querySelectorAll('#sqboxes .sqcard.filled').length === 0 && !!G.plan.hand[leadId],
+          'confirmed, clearing sends everyone home and keeps the hand-kitted loadouts');
     /* rebuild the six-and-leader plan the begindiv below must honor */
     (function () {
       const GG = window.__G;
@@ -615,13 +815,55 @@ setTimeout(() => {
       const bid = (window.__G.corps[window.__G.me].roster.filter(f => f.status === 'active')[0] || {}).id;
       if (bid) { window.__G.plan.at[bid] = 0; }
     }
-    doc.getElementById('begindiv').click();
+    /* THE DRAFT: twenty-four slots at the lock, drafted weakest first, three each; the AI's turns
+       run until it is yours; you pick by slot; Drop when the draft is done */
+    {
+      const GD2 = window.__G, S3 = window.CDSEASON;
+      const Dft = GD2.state.drop.draft;
+      check(Dft && Dft.order.length === 8 && doc.querySelectorAll('#landing .dpick').length === 8,
+            'the draft opens at the lock with the eight houses in order, weakest first: ' + Dft.order.slice(0, 3).join(' > ') + ' …');
+      let guard = 0;
+      while (!Dft.done && guard++ < 6) {
+        if (S3.draftWhose(GD2.state) === GD2.me) {
+          check(/Your Pick/.test(text('#landing')), 'the page says it is your pick');
+          const free = []; for (let i = 0; i < S3.SLOT_COUNT; i++) if (Dft.taken[i] == null) free.push(i);
+          S3.draftPick(GD2.state, GD2.me, free[Math.floor(free.length / 2)]);
+        }
+        S3.draftAdvance(GD2.state);
+        [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+      }
+      check(Dft.done && Dft.picks[GD2.me].length === 3 && Object.keys(Dft.taken).length === 24,
+            'the draft completes: three picks each, twenty-four slots taken');
+      check(doc.querySelectorAll('#landing .sector.yours').length === 3 && /Every Landing/.test(text('#landing')),
+            'your three landings are listed and every landing is posted');
+    }
+    if (false && process.env.ARX_SHOT_WORLD) {   /* (the world shot predates the draft; re-cut when the Drop settles) */
+      const GW = window.__G, keepPl = GW.state.planet;
+      GW.state.planet = window.CDMAP.generatePlanet(window.CDPRNG.mulberry32(21), { archetype: process.env.ARX_SHOT_WORLD });
+      GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+      { const pl = GW.state.planet, a = 2 / 6 * Math.PI * 2, d = pl.radius * 0.82, x = pl.cx + Math.cos(a) * d, y = pl.cy + Math.sin(a) * d;
+        let w = 0; for (let k = 0; k < 8; k++) { const b = k / 8 * Math.PI * 2; if (pl.waterAt(x + Math.cos(b) * 0.02, y + Math.sin(b) * 0.02)) w++; }
+        console.log('  note  world shot: sector 2 at ' + x.toFixed(3) + ',' + y.toFixed(3) + ' water=' + pl.waterAt(x, y) + ' h=' + pl.heightAt(x, y).toFixed(2) + ' sea=' + pl.seaLevel + ' wet neighbours ' + w + '/8 · sectors drawn from ' + (doc.querySelector('#landing .sector .sn') || {}).textContent); }
+      try { require('fs').writeFileSync('/tmp/dropmap_' + process.env.ARX_SHOT_WORLD + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no world shot: ' + e.message); }
+      GW.state.planet = keepPl; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+    }
+    if (process.env.ARX_SHOT_DEPTHS) {   /* the same world at each depth of survey */
+      const GW = window.__G, plr = GW.corps[GW.me]._intel.planet.rows, keep = JSON.stringify(plr);
+      [0, 1, 2, 3].forEach(dp => {
+        ['terrain', 'sites', 'sectors'].forEach(k => { plr[k] = { depth: dp, gathered: dp * 34 }; });
+        GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+        try { require('fs').writeFileSync('/tmp/dropmap_d' + dp + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no depth shot: ' + e.message); }
+      });
+      Object.assign(plr, JSON.parse(keep)); GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+    }
+    if (process.env.ARX_SHOT) { try { require('fs').writeFileSync('/tmp/dropmap.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no shot: ' + e.message); } }
+    doc.getElementById('dropbtn').click();
     (function () {
       const GG = window.__G, per = GG.state._divideOpts.corps[GG.me];
       check(!!(per && per.hand && per.hand[leadId]),
             'the manager\'s hand rode into the real Divide\'s options');
     })();
-    check(/comms window/.test(text('#divstate')),
+    check(/Comms Window/.test(text('#divstate')),
           'the Divide began and paused at a comms window: ' +
           text('#divstate').replace(/\s+/g, ' ').trim());
     try {
@@ -634,36 +876,169 @@ setTimeout(() => {
     check(doc.querySelectorAll('#gboard tr').length === 9, 'all eight banners stand on the board');
 
     /* ---- the Table: the window answered, not ignored ---- */
-    check(hasTab('The Table'), 'the Table sits live on the Divide\'s rail');
+    check(hasTab('The Table') && hasTab('The Deal'), 'the Table and the Deal sit live on the Divide\'s rail');
+    check(/Day\s*\d+\s*of/.test(text('#dayhead')) && /Clear|[A-Z][a-z]+/.test(text('#dayhead')) && /Chance of Winning/.test(text('#dayhead')),
+          'the Table\'s head reads the day, the weather and your chance: ' + text('#dayhead').replace(/\s+/g, ' ').trim().slice(0, 90));
+    check(doc.querySelectorAll('#tsquads tr').length >= 2 && /Rations/.test(text('#tsquads')), 'your squads stand on the Table with their ground and rations');
+    /* ORDERS: a manager's squad takes an order in the planner's vocabulary, and the planner
+       leaves it alone */
+    {
+      const GO = window.__G, sel = doc.querySelector('#tsquads [data-ordsq]');
+      check(!!sel && doc.querySelectorAll('#tsquads .ordsel').length === GO.div.win.you.squads.filter(q => q.bodies.some(b => b.status === 'active')).length,
+            'every standing squad has an order menu');
+      /* SHADOW FIRST: on the first window the picture holds the posted landings */
+      const shOpt = [...sel.options].find(o => /^shadow:/.test(o.value));
+      check(!!shOpt, 'the picture offers the posted landings to shadow on day one');
+      sel.value = shOpt.value; sel.dispatchEvent(new window.Event('change'));
+      const shadowIdx = +sel.getAttribute('data-ordsq');
+      check(GO.div.answer.orders[shadowIdx].type === 'shadow' && /Shadow/.test(text('#tsquads')), 'a shadow order names a sighting: ' + shOpt.textContent.trim().slice(0, 40));
+      doc.getElementById('advwin').click();
+      const ssq = GO.div.win && GO.div.win.you.squads.filter(q => q.sIdx === shadowIdx)[0];
+      check(!GO.div.win || !ssq || !ssq.bodies.some(b => b.status === 'active') || !ssq.intent || ['shadow', 'withdraw', 'hunt', 'sound', 'avoid', 'rescue', 'strike'].indexOf(ssq.intent.type) >= 0,
+            'the shadow stands, or a fight took over: ' + (ssq && ssq.intent ? ssq.intent.type + (ssq.intent.ordered ? ' (ordered)' : '') : 'none'));
+      /* THEN HOLD, on the next window */
+      if (GO.div.win) {
+        [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+        const sel2 = doc.querySelector('#tsquads [data-ordsq]');
+        if (sel2) {
+          sel2.value = 'hold'; sel2.dispatchEvent(new window.Event('change'));
+          const holdIdx = +sel2.getAttribute('data-ordsq');
+          check(GO.div.answer.orders[holdIdx].type === 'hold' && /Hold/.test(text('#tsquads')), 'an order is composed for the window and shows on the row');
+          doc.getElementById('advwin').click();
+          const sq = GO.div.win && GO.div.win.you.squads.filter(q => q.sIdx === holdIdx)[0];
+          check(!GO.div.win || !sq || !sq.bodies.some(b => b.status === 'active') || (sq.intent && sq.intent.ordered && sq.intent.type === 'hold') || (GO.div.win.day - (sq._orderedOn || 0)) > 5,
+                'the squad holds the order through the advance: ' + (sq && sq.intent ? sq.intent.type + (sq.intent.ordered ? ' (ordered)' : '') : 'none'));
+        }
+      }
+    }
+    check(doc.querySelectorAll('#tstance .notch').length === 5 && /Seek/.test(text('#tstance')), 'the five notches each say what they do');
+    check(doc.getElementById('nextyear').style.display === 'none', 'Begin the Next Year waits on the contest');
+
     check(doc.querySelectorAll('[data-notch]').length === 5,
           'the stance ladder offers all five notches');
-    const worn0 = (text('#tstance').match(/worn now: ([a-z ]+)/) || [, ''])[1].trim();
+    const worn0 = (doc.querySelector('#tstance .notch.on') || { getAttribute: () => '' }).getAttribute('data-notch').replace(/_/g, ' ');
     const other = Array.from(doc.querySelectorAll('[data-notch]'))
       .find(b => b.getAttribute('data-notch').replace(/_/g, ' ') !== worn0);
     const declared = other.getAttribute('data-notch');
     other.click();
-    check(/declaring:/.test(text('#tstance')),
+    check(/Declaring/.test(text('#tstance')),
           'a stance is declared at the window: ' + declared.replace(/_/g, ' '));
-    let lowballed = false;
-    const takeBtn = doc.querySelector('[data-take]');
-    if (takeBtn) {
-      const ti = takeBtn.getAttribute('data-take');
-      doc.querySelector('[data-tshare="' + ti + '"]').value = '1';
-      doc.querySelector('[data-take="' + ti + '"]').click();
-      lowballed = true;
-      check(/under yours/.test(text('#tword')) && /1% of the take/.test(text('#tword')),
-            'a lowball is composed as the window\'s one word: ' +
-            text('#tword').replace(/\s+/g, ' ').trim().slice(0, 80));
-    } else console.log('  note  no viable joiner at the first window on this seed');
-    doc.getElementById('advwin').click();
+    if (process.env.ARX_SHOT_FOG) { try { const GW = window.__G; GW.corps[GW.me]._intel.planet.rows.terrain = { depth: 0, gathered: 0 }; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap_fog.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no fog shot: ' + e.message); } }
+    if (process.env.ARX_SHOT) { try { [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no ground shot: ' + e.message); } }
+    /* THE TABLE IS THE TALKS' SHAPE: a strip of houses, a composer for the one selected */
+    const strip = doc.querySelectorAll('#tstrip [data-tsel]').length;
+    check(strip === 7, 'every other house stands on the Table\'s strip (' + strip + ')');
+    check(doc.querySelectorAll('#tground .assay span, #tground .m').length >= 1, 'the ground\'s assay is on the Table');
+    /* EVERY HOUSE OPENS SOMETHING: click each chip and read the Deal box */
+    {
+      let opened = 0;
+      [...doc.querySelectorAll('#tstrip [data-tsel]')].forEach(ch => {
+        ch.click();
+        const td = text('#tdeal');
+        if (/You Offer|Do Not Deal|Fight Under|Nothing To Put|Forbid/.test(td)) opened++;
+        ch.click();
+      });
+      check(opened === doc.querySelectorAll('#tstrip [data-tsel]').length,
+            'every house on the strip opens a composer, or says why it will not deal (' + opened + ')');
+    }
+    /* COMPOSE AT THE FIRST WINDOW THAT OFFERS A DEAL. A viable row is a matter of the seed
+       and the day, so walk the windows until one appears, lowball it, and read the refusal
+       back with its number on the next. */
+    let composed = null, tries = 0;
+    while (!composed && !/over/.test(text('#divstate')) && tries++ < 12) {
+      const W = window.__G.div.win;
+      const takeRow = (W.table.wouldTake || []).find(r => r.viable && r.band);
+      const joinRow = (W.table.canJoin || []).find(r => r.viable && r.band);
+      if (takeRow || joinRow) {
+        const id = takeRow ? takeRow.corp : joinRow.principal, kind = takeRow ? 'take' : 'join';
+        doc.querySelector('#tstrip [data-tsel="' + id + '"]').click();
+        const kb = doc.querySelector('#tdeal [data-tkind="' + kind + '"]'); if (kb) kb.click();
+        /* the cut goes on the table as a chip: You Offer for a take, You Ask For for a join */
+        doc.querySelector('#tdeal [data-tin="cut"]').value = kind === 'take' ? '1' : '95';
+        doc.querySelector('#tdeal [data-tadd2="' + (kind === 'take' ? 'give' : 'get') + ':cut"]').click();
+        check(/Short by|Over by|Would Take/.test(text('#tdeal')), 'the beam reads the terms as they stand: ' +
+              (text('#tdeal').match(/(Short by[^.]*|Over by[^.]*|They Would Take[^.]*)/) || [''])[0]);
+        doc.querySelector('#tdeal [data-tsend="' + kind + '"]').click();
+        check((kind === 'take' ? /Under Yours/ : /Banner/).test(text('#tword')) &&
+              (kind === 'take' ? /1% of the Take/ : /95% of the Take/).test(text('#tword')),
+              'a ' + (kind === 'take' ? 'lowball' : 'greedy join') + ' is composed on day ' + W.day + ': ' +
+              text('#tword').replace(/\s+/g, ' ').trim().slice(0, 80));
+        composed = kind;
+      }
+      doc.getElementById('advwin').click();
+    }
+    if (!composed) {
+      console.log('  note  no viable deal in the first dozen windows on this seed');
+      if (!/over/.test(text('#divstate'))) {
+        doc.querySelector('#tstrip [data-tsel]').click();
+        check(doc.querySelectorAll('#tdeal .tkinds, #tdeal .tcols, #tdeal .m').length >= 1,
+              'selecting a house opens the composer, or says why there is nothing to put to them: ' +
+              text('#tdeal').replace(/\s+/g, ' ').trim().slice(0, 70));
+        /* A SYNTHETIC ROW proves the composer's arithmetic when the seed offers no real one:
+           a house that would come under the banner for 10-40% of a 100,000 take. The beam
+           must read short under 10,000 of value, take it inside, and over past 40,000. */
+        const Wn = window.__G.div.win, oid = window.__G.state.ids.find(x => x !== window.__G.me);
+        Wn.table.wouldTake = [{ corp: oid, odds: 0.2, viable: true,
+          range: { expectedTake: 100000, joinerMin: 10000, principalMax: 40000, oddsPrincipal: 0.3, oddsJoined: 0.45, relPrice: 1,
+                   /* a share of the haul reads differently to each side: they are short of food, you are not */
+                   resources: { foods: { units: 4, joiner: 60000, principal: 12000 }, minerals: { units: 0, joiner: 0, principal: 0 } },
+                   claims: { obj_synth: { resource: 'copper_ore', category: 'minerals', units: 2.1, joiner: 9000, principal: 30000 } },
+                   spoiler: 7500 },
+          band: { minShare: 0.10, maxShare: 0.40 } }];
+        window.__G._tdiv = null;
+        doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();
+        if (/Pick a House/.test(text('#tdeal'))) doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();   /* the chip toggles */
+        doc.querySelector('#tdeal [data-tkind="take"]').click();
+        check(/Nothing on the Table/.test(text('#tdeal')), 'the beam starts empty');
+        doc.querySelector('#tdeal [data-tin="cut"]').value = '5';
+        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
+        check(/Short by ₡5,000/.test(text('#tdeal')), 'a 5% cut of 100,000 reads short by 5,000 against a 10,000 floor');
+        doc.querySelector('#tdeal [data-tin="credits"]').value = '6000';
+        doc.querySelector('#tdeal [data-tadd2="give:credits"]').click();
+        check(/They Would Take This|They Would Sign/.test(text('#tdeal')), 'adding 6,000 in credits carries it over the floor');
+        doc.querySelector('#tdeal [data-tdrop2="give:0"]').click();
+        doc.querySelector('#tdeal [data-tin="cut"]').value = '50';
+        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
+        check(/Over by ₡16,000/.test(text('#tdeal')), 'a 50% cut plus 6,000 reads over by 16,000 against a 40,000 ceiling');
+        check(doc.querySelectorAll('#tdeal .trow.dead').length >= 0 && /Not Yet Priced|Their Banner/.test(text('#tdeal')),
+              'the pools carry the structure for terms the engine does not price yet');
+        /* A DEAL IN KIND finds room a deal in credits cannot: drop everything, offer 25% of
+           the foods you will bank — worth 15,000 to a house short of food, costing you 3,000 */
+        doc.querySelector('#tdeal [data-tdrop2="give:1"]').click();
+        doc.querySelector('#tdeal [data-tdrop2="give:0"]').click();
+        check(/Nothing on the Table/.test(text('#tdeal')), 'the table clears');
+        check(doc.querySelectorAll('#tdeal .trow2.dead').length === 3 && /A Share of Their Foods/.test(text('#tdeal')),
+              'the haul rows stand in the pool, the empty category greyed');
+        doc.querySelector('#tdeal [data-tin="haul:foods"]').value = '25';
+        doc.querySelector('#tdeal [data-tadd2="give:haul:foods"]').click();
+        check(/They Would Sign/.test(text('#tdeal')) && /to Them\s*₡15,000/.test(text('#tdeal')) && /to You\s*₡3,000/.test(text('#tdeal')),
+              'a quarter of the foods reads worth 15,000 to them and 3,000 to you — the want gap is the deal');
+        check(/Their Leverage\s*₡7,500/.test(text('#tdeal')), 'the spoiler value reads on the beam as their leverage');
+        /* A NAMED CLAIM prices to each side too; here you want the copper more than they do */
+        doc.querySelector('#tdeal [data-tadd2="give:claim:obj_synth"]').click();
+        check(/to You\s*₡33,000/.test(text('#tdeal')) && /to Them\s*₡24,000/.test(text('#tdeal')),
+              'the claim adds 9,000 to them and 30,000 to you — a bad deal in kind reads as one');
+        doc.querySelector('#tdeal [data-tsend="take"]').click();
+        check(/25% of Their Foods/.test(text('#tword')) && /Copper Ore Claim/.test(text('#tword')), 'the word carries the haul term and the claim: ' + text('#tword').replace(/\s+/g, ' ').trim().slice(0, 110));
+        doc.getElementById('twithdraw').click();
+        doc.querySelector('#tdeal [data-tin="cut"]').value = '50';
+        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
+        doc.querySelector('#tdeal [data-tin="credits"]').value = '6000';
+        doc.querySelector('#tdeal [data-tadd2="give:credits"]').click();
+        doc.querySelector('#tdeal [data-tsend="take"]').click();
+        check(/Under Yours/.test(text('#tword')) && /50% of the Take/.test(text('#tword')) && /6,000/.test(text('#tword')),
+              'Put It to Them composes the word with its cut and credits: ' + text('#tword').replace(/\s+/g, ' ').trim().slice(0, 80));
+        doc.getElementById('twithdraw').click();
+      }
+    }
     if (!/over/.test(text('#divstate'))) {
-      check(new RegExp('worn now: ' + declared.replace(/_/g, ' ')).test(text('#tstance')),
+      check((doc.querySelector('#tstance .notch.on') || {}).getAttribute && doc.querySelector('#tstance .notch.on').getAttribute('data-notch') === declared,
             'the declaration round-tripped through the engine: worn now ' + declared.replace(/_/g, ' '));
-      if (lowballed)
-        check(/refused/.test(text('#techo')) && /short by [\d,]+/.test(text('#techo')),
+      if (composed)
+        check(/Refused/.test(text('#techo')) && /(short|over) by ₡?[\d,]+/.test(text('#techo')),
               'the refusal came back with its number: ' +
               text('#techo').replace(/\s+/g, ' ').trim().slice(0, 120));
-    } else console.log('  note  the contest ended at the first advance — table round-trip rides another seed');
+    } else console.log('  note  the contest ended early — table round-trip rides another seed');
     let winN = 1, guard = 0;
     while (!/over/.test(text('#divstate')) && guard++ < 60) {
       doc.getElementById('advwin').click(); winN++;
@@ -680,15 +1055,17 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      check(doc.querySelectorAll('#audiences .audrow').length >= 4,
+      check(doc.querySelectorAll('#audiences .audrow').length >= 10,
             'the Board reads four audiences and the rivals (' +
             doc.querySelectorAll('#audiences .audrow').length + ' rows)');
       check(doc.querySelectorAll('#audiences .audname svg').length >= 7,
             'each rival stands on the Board in its own colour and mark');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
-      check(/\d/.test(text('#boardwhy')) && text('#boardwhy').length > 40,
-            'the Board shows what it remembers, not just what it scores');
+      check(doc.querySelectorAll('#audiences .audcard').length === 3 && /\d/.test(text('#audiences')),
+            'each audience is a card that carries what it remembers');
+      check(/Year \d+/.test(text('#boardhead')) && /Patience/.test(text('#boardhead')),
+            'the Board\'s head reads the year and the patience');
       const rivals = GB.state.ids.filter(x => x !== GB.me);
       const before = REPM.readAll(GB.corps[GB.me].rep, rivals);
       const regs = [...doc.querySelectorAll('.regbtn')];
@@ -697,7 +1074,7 @@ setTimeout(() => {
       const after = REPM.readAll(GB.corps[GB.me].rep, rivals);
       const moved = ['own', 'fleet', 'aleas'].some(a => Math.abs(after[a] - before[a]) > 0.001);
       check(moved, 'answering the board moves the audiences rather than scoring the manager');
-      check(/on the record/.test(text('#boardq')),
+      check(/You Answered/.test(text('#boardq')),
             'the answer is on the record and cannot be taken back');
     }
 
@@ -809,6 +1186,7 @@ setTimeout(() => {
     }
 
     /* ---- the year turns ---- */
+    check(doc.getElementById('nextyear').style.display !== 'none', 'Begin the Next Year shows once the contest is over');
     doc.getElementById('nextyear').click();
     check(/Year 2 · Month 1/.test(text('#clock')), 'the year turns: ' + text('#clock'));
     check(hasTab('Desk') && !hasTab('The Firefight'),

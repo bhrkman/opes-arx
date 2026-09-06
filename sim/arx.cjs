@@ -1048,7 +1048,10 @@ function laterConsequences() {
   const corps2 = SEASONMOD.openFleet(rng2, oa, {});
   const me2 = Object.keys(corps2)[0];
   let st2 = SEASONMOD.beginSeason(rng2, corps2, oa, {});
-  SEASONMOD.stepMonth(st2, { [me2]: ['scout'] });          /* bought in M1, due M4 */
+  /* the choice in the shape the page sends it: pips on the planet's sheet. (The old array
+     form was never read, so this gate was measuring the AI's own scouting by accident; when
+     the world seed moved the rng, the AI happened not to scout and the gate fell.) */
+  SEASONMOD.stepMonth(st2, { [me2]: { scout: 3, intelTarget: { planet: 3 } } });
   const owed = (corps2[me2]._pending || []).length;
   const back = SEASONMOD.loadCareer(JSON.parse(JSON.stringify(SEASONMOD.saveCareer(st2))), oa);
   const c2 = back.corps[me2];

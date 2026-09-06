@@ -1142,6 +1142,7 @@
    * keeps firing to cover them, and they leave the field rather than milling at the edge.
    */
   function checkWithdraw(S) {
+    if (S.noWithdraw) return false;          /* The Eight: nobody calls it */
     if (S.withdrawing) return true;
     const total = S.units.length;
     const gone = S.units.filter(u => u.state !== 'ok' && u.state !== 'light').length;
@@ -1189,7 +1190,7 @@
        and the grid called it a death anyway, so the Dividend killed 39 people across 32
        matches while a counter reported the safety net firing. Step 7.5's lesson twice
        over: the tag reached the grid, the grid never reached the tag. */
-    if (C.hasQuirk(by, 'nonlethal')) {
+    if (C.hasQuirk(by, 'nonlethal') || STUN_GRADE) {
       if (sev === 'killed') { sev = 'critical'; tel.stunned = (tel.stunned || 0) + 1; }
       t._stunnedDown = true;
       t.hp = Math.max(t.hp, -C.CONST.HP_OVERKILL + 1);   /* stunned, not overkilled */
@@ -1251,11 +1252,13 @@
    * step exists to correct, so it takes N sides: `E` becomes "everyone who is not us", chosen
    * by who is closest and most dangerous rather than by being the other array.
    */
+  let STUN_GRADE = false;   /* the Aleas' edict for the year, set per fight from ctx */
   function resolve(rng, A, B, ctx) {
     let sides;
     if (Array.isArray(A)) { sides = A.slice(); ctx = B; }
     else { sides = [A, B]; }
     ctx = ctx || {};
+    STUN_GRADE = !!ctx.stunGrade;
     const map = ctx.map || makeMap(rng, ctx.terrain || 'broken_ground');
     A = sides[0]; B = sides[1];
     const prep = ctx.prep || sides.map(() => 0.5);   /* how ready each side was for this */

@@ -2386,6 +2386,26 @@
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_field_rations",
+   "name": "Field Rations",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 2,
+   "cost": 160,
+   "bulk": 1,
+   "uses": 1,
+   "action": "carry",
+   "effects": {
+    "tags": [],
+    "ration_days": 6
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "Six days of rations for the bearer, on top of the fourteen every drop carries. Weight in the pack, food in the squad.",
+   "type": "Consumables"
   }
  ],
  "roles": [

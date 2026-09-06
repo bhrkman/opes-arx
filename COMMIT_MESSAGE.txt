@@ -1,0 +1,463 @@
+Squads is select-then-place with a fighter sheet drawer; the Dividend takes its shape;
+one colour convention; the Board reads out the card; planets get their ground; the
+Table takes the Talks' shape with a beam, and a share of the haul is a term
+
+THE SQUADS BOARD
+- Drag-and-drop retired. One fighter card serves the bench and the squads alike: name
+  in race colour (underlined — click it for the sheet) and the primary with its tier
+  badge; all eight numbers in two rows of four. In a squad the card adds a star and a
+  cross. Click the card to pick the fighter up; Place buttons and open rows take them.
+- ONE open row per squad until SQUAD_MAX (8). Bench sorts the Roster's ways; Stats is
+  new to both. Clear Squads is red and asks first, in place.
+- THE KIT CAP MOVES HERE from the Market: "Kit ₡X of ₡60,000 Cap". The sheet prices
+  each loadout; both warn when a hand lacks a primary or armor (the Divide refuses it).
+
+THE FIGHTER SHEET (a drawer any tab may open)
+- The Roster rail's blocks, the loadout with the picker beneath, Move to / Place in
+  buttons per squad, Make leader / Send home.
+- The equip click that silently failed (a Roster selection hijacked Squads' slot clicks).
+
+THE DIVIDEND
+- The floor is the Squads board's shape; one gate (End the Month IS Take the Floor
+  while the lights are up); the lights go down by themselves afterwards.
+- Bug: _dividendDone never reset at the new year.
+
+THE BOARD
+- THE CARD IS READ OUT. The page printed a goal.text that never existed. Every demand
+  is a sentence, the priority starred, the live reading beside it and Met / Missed
+  after the Divide. Spending and Casualties read on a spectrum with the year's marker.
+- THE HOLDS: the four stores as bars of a full store, the one the card asks for tagged.
+- THE PLANETS HAD NO GROUND IN THE BROWSER: planets.json was never bundled and nothing
+  called setResourcePool. Every browser planet had no composition — no ore, no assay,
+  no resource demand could reach a card. Bundled and handed over at load.
+- sim/reputation.js: "lose no more than N for good" LEFT THE CARD POOL — it measured
+  what Casualties already grades. Cards draw differently by seed; BOARD_CUTS want
+  re-measuring.
+
+THE TABLE — A SHARE OF THE HAUL (engine)
+- sim/negotiate.js: a deal may carry resources: [{category, share, when}] — a share of
+  what the principal actually BANKS in a category. settleHaul() pays it down the chain
+  at the settlement like the pot, roots first: a joiner's joiner takes a share of a
+  share; nothing banked, nothing owed; when: 'win' pays only under the winning banner.
+- No fixed price for a unit: wantOf() values a category by each house's own want (an
+  empty hold, a board that asks, doubly for the priority), so an offer reads two ways —
+  worth to the joiner, cost to the principal — and evaluateOffer checks each against
+  its own side's bound. The want gap is the surplus a deal in credits cannot find.
+- The AI's old deal.resource flag (never paid) is a real term now, asking for the
+  category it is shortest of at RESOURCE_AI_SHARE.
+- sim/divide.js: the negotiation contexts carry the planet and the category reader;
+  the haul settles after it is counted; haulLines ride on the result.
+
+THE TABLE — THE NEXT THREE OF THE ARC (engine)
+- A NAMED CLAIM: claims: [siteId] — one revealed, undug site, dug by the banner (the
+  principal or anyone under it) but banked to the joiner; priced to each side like a
+  share of the haul (claimRates). claimLines ride on the result.
+- THE SPOILER: the share of the banner's expected losses a house accounts for while it
+  stays out fighting is added to the banner's gain (SPOILER_WEIGHT) — a weak house's
+  leverage, priced at nothing before. The AI channel's context now carries umbrellas.
+- HELD OUT: a house whose odds fell under 0.15 and fought on, never sold and not the
+  winner, is credited by its fans and the fleet (held_out), scaled by how hopeless and
+  how much fight. The channel tracks each house's low-water mark for it.
+- sim/measure_table.cjs: the baseline and the sweep — offers, refusals by cause
+  (seller's floor over buyer's ceiling, or the crowd's wall), joins, deals in kind,
+  claims, stand-downs, end day, banners standing. `node measure_table.cjs <seed>
+  '{"GREED_HOLDOUT":0.25}'` overrides a constant.
+- TUNED: GREED_HOLDOUT 0.55 -> 0.25. At 0.55, four seeds: 77-151 offers, 1-2 joins, no
+  deals in kind, 5-6 banners standing, four refusals in five on joinerMin > principalMax
+  (1.2-2.2x). At 0.25: 4-5 joins, the first deals in kind, 2-3 standing, the crowd's
+  wall the main refusal (day-two sellouts still fail — the design working). 0.10
+  overshoots (a seed collapsed under the favourite on day 8). MIN_ASK_FRAC moved nothing.
+  The human's Table now meets a real deal on day 2 in the harness, and the refusal
+  round-trips with its number.
+
+THE TABLE
+- The Talks' shape: a strip of every other house (mark, colour, odds, Your Banner /
+  Under You / Pact) and a composer for the one selected — Join Their Banner, Take Them
+  Under Yours, Seek a Pact — laid out You Offer | The Beam | You Ask For. Terms go on
+  the table as chips (a cut, credits, a stand-down; the banner always); THE BEAM values
+  them by the engine's own arithmetic against the joiner's floor and the principal's
+  ceiling, reading Short by / Over by / They Would Take This as they stand.
+- Claims stand as pool rows too (the site's units if they dig it, both wants), and the
+  beam reads a house's leverage from the spoiler.
+- The four categories stand as pool rows — the principal's expected haul, each side's
+  want (Short / Low / Stocked · Board Asks), a percentage, an If-They-Win toggle — and
+  the beam reads both sides: "Worth ₡15,000 to the Joiner · Costs the Banner ₡3,000".
+- THE DEAL has its own page on the Divide's rail, beside the Table: the strip and the
+  composer. The Table keeps the stance, the word, the echo, the ground, the recap.
+- The Ground's assay lists only the sites found (resource, units, category, Open / Dug
+  by) with a count of the unfound; "In the Ground" names the composition. The recap
+  reads as sentences: "Day 6 · Open Basin · X Met Y — Y Broke Off", result codes gone.
+- After the Dividend the Desk is back (not the card's page); Begin the Next Year waits
+  on the contest being over.
+- ONE DEAL WINDOW: the three ways (Join Their Banner, Take Them Under Yours, A Truce)
+  stand at the top of You Offer as one choice; picking one greys the others, each
+  saying why it is closed today. The kind tabs are gone.
+- A PACT SAID PLAINLY: the pact card reads "A Truce — Your Squads Do Not Engage Theirs
+  for 5 Days", that it has no price (the weaker asks, the stronger grants), both banners'
+  odds, and that it can be torn up in view of the crowd.
+- Begin the Next Year shows again once the contest is over (the rail re-reads at the
+  finish; it had been left hidden).
+- The Talks' books do not go negative: credit lines count what is already on the table
+  and die when they would overdraw; Put It to Them refuses a bundle either side cannot
+  cover.
+- The Deal page reads top-down: a head line (the day, your banner's odds, whether a
+  word is composed), the strip, then the composer named for the house, its kinds, and
+  the three columns. Pool rows are two lines — what it is and Add above, the reading
+  and the number below; If They Win is a toggle chip; the beam's word stands alone with
+  the fine print beneath it.
+- The composer opens on the first kind with a number both
+  sides would sign and never collapses: when none would, the pools and the beam still
+  stand, the beam saying whose floor is where or whose fans forbid it (the old one-line
+  "No Number" read as no window at all for some houses).
+- sim/divide.js: the table's rows take the engine's own `viable`, wall included; they
+  omitted the wall and called closable what the crowd forbade.
+- THE CROWD, before you sign: the beam says what your fans charge for quitting (or
+  buying a win) on this day, from the same priceOfBeingSeen the engine bills after.
+- After the contest the Table shows what came home and what moved under terms.
+- THE GROUND'S ASSAY beside it: every site revealed, its resource and category, who
+  dug it. The Ground tab, the window line, and the stance ladder capitalised; the
+  "ground waits on you" and "paused at the window" texts cut.
+
+THE NEGOTIATION (Talks), in two facing columns
+- The two houses at the head with treasuries and regard; the pressure bar across the
+  page with a one-line verdict; Your Terms and Their Terms as facing tables (type ·
+  name · value) with a filter (All · People · Gear · Intel); credits typed into a box,
+  clamped to what is held; gear grouped by type with its tier badge and a quantity of
+  the stock to trade (the old list moved the whole holding or nothing); the contract as
+  it stands beneath with a cross per line and totals; Reset and Make the Offer.
+- The contract's lines keep what their rows showed: race-coloured names, tier badges,
+  the sub-line. Credits read gold and red when negative everywhere (crs). THE OTHER
+  HOUSE'S PURSE IS PRIVATE: the page showed their treasury; it shows the dossier's
+  finances reading or Unknown, and an ask they cannot pay is refused without the number.
+- The placard about contracts travelling with the body is gone.
+
+THE DAYS WALK BETWEEN WINDOWS; THE DROP FITS A SCREEN
+- sim/divide.js: the window carries `record` (the days so far with tracks). The page's
+  gDays() serves it live with only the house's own squads on it and the picture as
+  sightings on the latest day; opening the Ground after a window plays the days since
+  the last one (gPlayPending); the scrubber takes the days so far.
+- The Drop page: the map takes the room (to 780px), the landings a 280px sliver beside
+  it, the key in what is left; the strip compact.
+
+SHADOW, SCREEN, MEET-THEN-STRIKE
+- sim/divide.js: SHADOW keeps a stronger known enemy in sight at SHADOW_DIST, its aim
+  refreshed each dawn from the picture, done when the quarry is forgotten. SCREEN stands
+  between a digging mate and the nearest known threat. Both are planner approaches
+  (leans per stance) and manager orders (Shadow names a sighting, Screen a squad). A
+  rally carries `then`: when the house can beat together what drove it together, the
+  meet hands off into a hunt on arrival.
+
+THE PICTURE ON THE MAP
+- Live, the Ground draws what the house knows: its own and its banner's squads as they
+  are; every other house as its last sighting — a hollow circle in its colour, the count
+  inside, Landed or the day beneath, fading with age; nothing where nothing is known.
+  Rings draw only round your own. The replay keeps the truth.
+
+ORDERS AT THE WINDOW
+- sim/divide.js: answer.orders = { sIdx: { type: hold|move|claim|meet|hunt|withdraw,
+  ... } } becomes an intent with the manager's name on it (ordered); the planner leaves
+  it alone until done or expired; a Hold or Meet stands where put. The window hands the
+  page the house's picture (key, house, position, day, count, landing).
+- The Table's squad rows carry an order menu built from what the house knows (sites
+  revealed, own squads, sightings) and say what each squad is doing and whether ordered.
+
+THE DISPERSED DROP — STEP THREE, THE PICTURE AND THE SQUAD MIND
+- sim/divide.js: a house knows a PICTURE (corp._picture — where each foreign squad was
+  last seen), not every live position. Written by the posted landings (day 1, good for
+  LANDING_KNOWN_DAYS), by contact (both sides and their banners), by the relay mast;
+  read fresh (KNOWN_STALE). The dawn planner runs on the picture.
+- RALLYING joins the approaches: a house spread by its draft with a stronger known enemy
+  within RALLY_THREAT_RANGE gathers at its own centre (intent 'meet'); leaned toward by
+  careful stances, away from by death-or-glory.
+- Measured (measure_drop.cjs): with the picture, spread and grouped landings match on
+  week-one fights and deaths; a larger ring only lengthens the contest. Radius unchanged.
+
+THE DISPERSED DROP — STEP TWO, THE DRAFT
+- sim/season.js: ensureDraft / draftWhose / draftPick / draftAdvance. Order by
+  strengthRead (drop quality × size, standing with the fleet), weakest first, three
+  rounds, strictly. The AI's turns run at the seam (fleetTakesTheSeam); a human's waits
+  for the page (or choices[id].slots). prepareDivide hands the picks to the Divide.
+- sim/predivide.js: readSlot (the survey's depth) and chooseSlot (prize and cover by
+  greed; neighbours by relative strength and aggression; own picks cluster the careful,
+  spread the aggressive). Careful houses take neighbours (6,7,8); aggressive ones spread.
+- The Drop page is the draft: the order strip with picks, the map with every slot
+  numbered and filled in its house's colour, your click on a free slot on your turn,
+  your three landings read at survey depth, every landing posted, Drop when done.
+
+THE DISPERSED DROP — STEP ONE, THE GROUND FOR IT
+- Ruled: squads do not drop together; 24 slots drafted lowest standing first, strictly;
+  every house knows where every other came down, nothing after.
+- sim/predivide.js slots(planet, n): n ring points with dry footing, each reading like a
+  sector. sim/divide.js: a corp's squads land at its picks (opts.dropSlots / slotCount),
+  or the old way without them. sim/map.js: opts.wallHold slows the first closings; the
+  radius was already an option.
+- sim/measure_drop.cjs: grouped vs spread at a radius and hold. A dumb random draft at
+  today's radius: week-one fights the same, total fights a little up, contests longer —
+  the bloc corp AI regroups at dawn, so the radius waits on the squad mind (step 3).
+- Finding: FATALITY. The Divide kills about half the drop (77 of 152; 58 of ~150) where a
+  stun-grade year kills none. Its own tuning pass.
+
+A PASS OF FIX-UPS
+- audit_ui: a clause rule (six words around a verb is prose, however short); the month
+  log's lines are audited (they show in the recap). Every finding fixed in the page.
+- The month shapes came off the brief and the year line (titles only); the refresh
+  months are named for their window, the pool named on the sheet ("Second Intake").
+- The recruitment window stands above the roster in its own green key, as a grid.
+- Events read as dispatches: kind colour and name, the subject as a fighter card, the
+  ways side by side with costs beneath.
+- THE EIGHT: no declining (engine); named by clicking a fighter card; the result — both
+  fours with each fighter's fate, the purse, Watch — in the recap of its month. Back
+  from the replay returns to the recap.
+- ELEVATION AS CONTOURS: pale lines where the ground crosses a height band, at Read and
+  above and along the squads' tracks. The Drop's sector cards take the conventions:
+  prize green/gold/red, rivals red, hidden and height graded, the shore warned.
+
+THE YEAR LINE
+- A route map of the year down the left of every preparation page (#yearline, fixed):
+  twelve stops in their kinds' colours, the current lit, the past dim, each with its
+  name, its shape and how far off it is; the current stop opens its tab. Stands down for
+  the Divide and on a phone. The brief's countdown chips came off — the line does their
+  job. (--wall joins the CSS tokens.)
+
+THE EIGHT (M8)
+- sim/season.js runEight: one name per house (nameForEight / choices[id].eight; the
+  house's best named for it if unnamed; declining is seen — declined_the_eight), seeded
+  by standing with the fleet into two fours, one fight on the tactical grid with real
+  kit, death-or-glory, no withdrawal (tactical.js noWithdraw), real deaths (stun-grade
+  under the edict). Every entrant pays EIGHT_ENTRY into a pot the Aleas top up; the
+  winning four split it and take won_the_eight and fame. The Eight's dead count against
+  Casualties. The footage is kept for Watch.
+- The Desk: the naming card with the seeding at M8 (agenda: "Name Your Fighter for The
+  Eight"), the result with each fighter's fate and a Watch after; the recap's line.
+- Measured: one to three of the eight die a year.
+
+THE FLEET'S MONTH (Phase 2b) — and every world was the same world
+- M7 brings one card to every house from FLEET_POOL: the wall closes early (the dome's
+  schedule × FAST_WALL), a stun-grade Divide (fatal rounds converted, as the Dividend's
+  are), pacts forbidden, the survey goes public (every house reads the planet to depth
+  two), an Aleas levy at the lock, a glut or shortage moving the shelf's prices for the
+  year (priceMult; the shelf tags Glut / Shortage). Edicts can be petitioned against
+  (PETITION_COST); half the fleet petitioning withdraws one. The AI petitions as a
+  stance by its dials, so edicts usually stand. They ride into the Divide as
+  opts.edicts (divide.js: the zone schedule, the pact paths; tactical.js: STUN_GRADE).
+- sim/season.js: EVERY GAME'S PLANET WAS THE SAME PLANET — seeded from the season number
+  alone. A world seed is drawn once a career (_worldSeed, carried on the corps, saved,
+  rebuilt on load) and every year's planet is seeded from both.
+- sim/arx.cjs: the owed-across-a-save gate sent a choice shape the engine never read
+  and was measuring the AI's scouting by accident; it sends the page's shape now.
+
+EVENTS (Phase 2a) — sim/events.js, new
+- Each month a corp may draw one or two incidents from a pool built on what the engine
+  has: a raise demanded, a war debt called in, a barracks brawl, a board memo, a rival's
+  offer for a named fighter, a slight in the postings, a dealer with a rare piece, and
+  the fork — a veteran made Spy (free intel monthly) or Drill Sergeant (free drill
+  monthly), off the line, once a career. Every event is a card with two or three
+  options and their costs; unresolved ones take their default at the month's end.
+- SYMMETRY: every corp draws; a human answers through answerEvent / choices[id].events,
+  an AI through each event's policy — same options, same consequences. sim/season.js
+  settles events before the month, runs the roles, draws the next month's. Role-holders
+  do not field. build_corp.cjs bundles events.js.
+- The Desk shows the cards under the brief; the agenda lists open events with their
+  default; the recap reads each as Your Call or By Default.
+- New reputation acts: sold_a_fighter, refused_an_offer, answered_a_slight,
+  ignored_a_slight. Measured ~0.6 events a corp a month, all eight kinds firing.
+
+WHAT IS LEFT WAITING COSTS (Phase 3)
+- Agenda items say what letting them slide does; the recap's Left Waiting says it in
+  red where it bit. A letter unanswered lapses at the month's end and the house
+  remembers the snub (sim/reputation.js snubbed_letter, on their regard). The board's
+  question unanswered when the year turns: silence is the answer (silent_before_board,
+  and three points of patience). Nothing marked: the pool moves on. Focus unspent:
+  wasted. No squads at the lock: the quartermaster deals — a default you chose.
+- The Desk refreshes on open (it did not; a brief could stand stale).
+
+THE TURN HAS A SHAPE (Phase 1)
+- THE BRIEF at the Desk's head: the month's name and shape, whether the table is open,
+  countdown chips for what is coming (the next windows, the Dividend, the Divide, the
+  table closing), and the AGENDA — what waits on the manager (a house has written, the
+  board asks, nothing marked on an open sheet, focus unspent, roster under the floor,
+  no squads set at the lock, hands incomplete), each jumping to its tab. End the Month
+  counts them: "End the Month · 2 Waiting".
+- THE RECAP, a page between End the Month and the next brief: the month's work and its
+  window, training that took (biggest gains by fighter and stat), money (treasury
+  before → after, the ledger's lines), people (came, left, changed), standing (own,
+  fleet, patience, each with its move), what was left waiting. Continue → the next
+  brief. The dev skip does not stop for it.
+
+THE CALENDAR, RE-CUT: EVERY MONTH HAS A SHAPE (sim/season.js, sim/trade.js)
+- A hiring window is TWO MONTHS WITH TWO POOLS, each resolving at its own month's end
+  (it was a run-up and a deadline over one pool):
+    M1 the Review (no hiring, no table) · M2 Natural-Born premium pool (younger,
+    further from the ceiling, dearer; POOL_PREMIUM) · M3 Natural-Born refresh, the
+    discount pool (POOL_DISCOUNT) — a total refresh, uncontested, nothing carries ·
+    M4 the Dividend (DIVIDEND_MONTH, exported) · M5/M6 the Bastille, a shared market:
+    whoever nobody took carries to the refresh at CARRY_MARKDOWN beside a fresh intake ·
+    M7 the fleet's event and M8 The Eight, reserved for the event engine · M9/M10
+    Mercenaries, the contested market: anyone offered a contract chooses at the month's
+    end and is gone; whoever nobody offered carries at a markdown beside a fresh lot; the
+    roster floor lives at M10, the last door · M11 the lock. The table trades M2–M11.
+- Lots are sized to the month (TRYOUT_LOT 6, MERC_LOT 4, BASTILLE_LOT 3), so the year's
+  supply is what it was: on the same seeds the old and new calendars end the year with
+  identical mean rosters (23.4 / 23.1). The AI's Natural-Born signings are a yearly cap
+  spent across both months (NATTIE_YEAR_CAP + shortfall); its merc and Bastille bids run
+  in both months. lotFor() says the pool and marks the carried.
+- The page names the pool on the window ("Natural-Born · Discount Pool", "Refresh") and
+  tags carried bodies; the Dividend's month is read from the engine.
+- harness: walks the new calendar by month number (toMonth); docs: the calendar table
+  rewritten, and the symmetry rule written down — if a player can do it, a computer can,
+  and the other way round.
+
+THE BOARD HAS A SPINE
+- A head line: year, patience, interest, the verdict once there is one, a word each for
+  how your own people and the fleet stand. The question at the top when there is one.
+  Left the card and the holds; right each audience as a card with its bar and the three
+  remembered acts still moving it inside; the other OAs in a compact block. Mid-contest
+  the card's placement and win rows read your banner's live chance of winning.
+
+THE TABLE IS THE DAY
+- A head line: day of thirty, window, the weather in words, your chance of winning,
+  standing / hurt / lost, whose banner you fight under, whether a word rides — and Next
+  Comms Window as the one primary action. Left: Your Squads (standing, ground and
+  height, rations as days with a bar, what each is doing) and the recap. Right: the
+  stance as five notches that each say what they do (Seek · Take a Fight · Risk the
+  Wall, from STANCE_DIALS), the declared one marked; your word and its answer, with a
+  way to the Deal when nothing is composed. The assay moved to the Ground tab.
+
+A PHONE READS IT
+- html carries the dark ground and color-scheme: dark (the white page on a phone was the
+  document showing through); below 900px the two- and three-column layouts stack, the
+  drawer takes the full width, tables scroll sideways. Media queries only — the desktop
+  is untouched.
+
+THE UI AUDIT (harness/audit_ui.cjs) — a tool where notes never held
+- Fails the build on three things that crept back into the page every pass: CASE
+  (user-facing text is Title Case, small words small), PROSE (the page does not explain
+  itself — no sentences, no "because", no teaching dashes), COLOUR (colour from the
+  conventions only: STATCOL/gradeColour for stats, crs() for credits, cSpan() for
+  houses, raceColour() for fighters, the TOK table for the canvas, CSS vars for the
+  rest; a plain cr() in HTML, a bare nameOfCorp(), a raw hex all fail). Comments, the
+  Desk's log, tooltips' length and the named colour tables are exempt by design;
+  deliberate exceptions go in harness/audit_ui.allow.json (empty).
+- Run against the page and brought to clean: ~70 case fixes across every tab (labels,
+  tooltips, states, verdicts), 8 explanatory strings cut (the stub page, the register
+  explainer, the settle line, the loading message, the save notes, the survey words,
+  the hand note), every canvas colour moved to the TOK table (the CSS tokens spelt
+  once for the canvas, plus the map's own), a stray nameOfCorp() and three plain cr().
+- README and PROJECT.md name it in the gate: run after every change to the page.
+
+THE SURVEY BUYS THE PICTURE
+- The planet dossier's Terrain row is the map's resolution on the Drop and the Ground:
+  Blank = fog (coast and peaks show from orbit), Sparse = coarse blocks, no height, Read =
+  finer with height, Full = the ground as it is. The Sites row at Full marks the assay
+  sites on the Drop. During the contest the fog lifts wherever your own squads have
+  walked (seenBySquads, traced between windows). The key says what the picture is
+  worth; the dossier's rows say what each depth buys.
+- harness: ARX_SHOT_DEPTHS=1 shoots the same world at all four depths; ARX_SHOT_FOG=1
+  shoots the Ground with no survey mid-contest.
+
+HAZARDS ARE WEATHER
+- sim/divide.js: one condition over the planet per day (WEATHER_P), from the archetype's
+  list; each kind does what its name says (WEATHER table): whiteout/sandstorm cut sight
+  and pace and lose bearings; cold/heat/thirst/rot burn rations; storm/downpour slow and
+  blind; flooding raises the water for the day (map.js setFlood); crevasse falls, gas
+  vents, currents, collapses, fever, glare injure only on their terrain. The old
+  hazardCheck rolled the same four effects whatever the hazard was called.
+- The comms window carries the weather; the Table reads it with its figures; the
+  Ground's key lists the world's weather; the dossier's Hazards row at full depth too.
+- Measured on a Desert Pan: 13 weather days of 25; 28 reroutes round water and peaks,
+  15 holds.
+
+WATER AND PEAKS
+- sim/map.js: the floor rolls (BASE_HEIGHT + a swell) and rises toward the middle
+  (CENTRE_RISE) so the last rings are always land; each archetype has a sea level and a
+  water name (Meltwater, River, Lava, Sea, Flood; the Desert Pan has none); peaks are the
+  caps of tall hills (PEAK_LEVEL on the dome, not the floor). waterAt / peakAt /
+  passableAt / nearestPassable exported; a landing wants dry footing, not a dry point.
+- sim/divide.js: squads route round what cannot be crossed (swing the heading, hold if
+  nothing is open — audit.routedRound / heldByGround); nobody lands in water or on a
+  peak; sites do not spawn in them. Chokepoints fall out of the geometry.
+- The map draws water and peaks in their own colours; the palettes keep land and water
+  unmistakable (the Drowned World's land had been nearly its sea's colour); the place-
+  name labels are off the map, the drop points stay; the key carries the world's
+  terrains, its water, its peaks, and a Low -> High swatch.
+- harness: ARX_SHOT_WORLD=<archetype> draws the Drop for another kind of world.
+
+ELEVATION, AND COUNTRY THAT LOOKS LIKE COUNTRY
+- sim/map.js: a height field of five to nine domes (heightAt, slopeAt, hills exported).
+  sim/divide.js reads it three ways: detection × (1 + HEIGHT_SPOT × the height gap
+  between two squads); pace × (1 − HEIGHT_CLIMB × slope); HIGH_GROUND_PREP on the
+  preparedness of the side that came from the higher ground.
+- The terrain patches curl and pocket now: the domain warp ran at wavelengths longer
+  than the disc (a uniform shift, straight cells); it runs at WARP_FREQ 26-60, patches
+  take a size of their own (PATCH_WEIGHT), and the page samples cell centres out to
+  the rim, so the ground reaches the edge everywhere.
+- The map shades terrain by height in its own palette (pale is high); the legend says
+  what height does; the Drop's sector cards read High / Rising / Low Ground.
+
+THE DROP IS A MAP; A PALETTE AND A TERRAIN PER WORLD
+- The landing page draws the planet as the survey knows it (terrain, place-names, the
+  first ring's centre) with the six sectors on their ring, yours lit, rivals counted at
+  full depth; click the map or the card. sim/predivide.js names the sectors for where
+  they sit (the old names put North Reach in the east).
+- sim/map.js: ruins are Dead Industrial's alone; every other archetype has a special —
+  crevasse_field, deep_canopy, salt_flats, lava_field, tidal_marsh — with its own
+  concealment, forage and pace (TERRAIN, TERRAIN_NAMES exported). sim/combat.js: cover
+  profiles and crossing costs for each.
+- The page colours each archetype in its own palette (PALETTES), the special loudest;
+  the legend lists that world's terrains, special first; the Ground and the Drop share
+  one drawPlanetBase().
+- harness/drive.cjs: with `canvas` installed (npm install canvas, not saved) jsdom
+  draws for real and the page runs clean; ARX_SHOT=1 dumps the Drop and Ground to PNG.
+
+THE GROUND READS
+- Five terrains in colours a manager can tell apart (they were near-identical browns);
+  the planet's place-names faint on the map; a legend beneath from the engine's own
+  tables — cover, hidden, pace, forage. sim/map.js exports TERRAIN.
+
+THE LANDING, FIELD RATIONS, AND THE DEAL MADE HONEST
+- THE LANDING: at the lock the Table shows the ring — six sectors, each reading what the
+  survey bought (ground and cover at depth 1, prize and distance at 2, rivals landing
+  at 3). Pick one and Drop. The inert "Begin the Divide" button is gone; the engine's
+  chooseDropSector had never been reached by a human hand.
+- FIELD RATIONS (data/items.json, sim/divide.js): a Store item, tier 2, ₡160, adds
+  RATION_PACK_DAYS (6) to its bearer's squad — the kit's answer to a planet that is
+  hard to keep fed.
+- sim/negotiate.js pactChance(): a pact has a chance, never a wall. A house ahead of
+  you wants paying and credits pay (PACT_CREDIT_SCALE); a house behind you wants the
+  quiet. The old gate refused "too close" outright and refused when YOU were ahead —
+  backwards. The Deal's pact card carries a sweetener; the page pays it on acceptance.
+- Only structure closes a way on the Deal: a banner already joined, a house under
+  another's, a house that does not deal.
+- THE BEAM as a verdict and figures: one line (They Would Sign · Short by ₡N · Over by
+  ₡N · Their Fans Forbid It Today), then label · value rows — their chance alone and
+  together, least they would take, most they would pay, your offer to each side,
+  trust, leverage, your fans' charge. "On the board" gone; odds read as a chance of
+  winning.
+- The Roster's card opens the fighter drawer (the rail panel is gone); the Gather
+  Intel dossier opens beneath its row in the grid.
+
+THE PLANET'S DOSSIER (Desk · Gather Intel)
+- sim/season.js: the planet's rows are ground, veins, sites, terrain, hazards, supply,
+  sectors. 'demand' left (the Board says it for free); 'sites' is new. Same level
+  total, so a pip buys what it did.
+- Every row reads as figures and every depth adds one: richness %, sites in all; each
+  vein named with its category, share of the ground and value; per resource the sites
+  and the units ("63 Units to Play For"); terrain and hazards as shares; supply as the
+  ration burn (+15%) with ration sites counted; the landing ring saying what it
+  unlocks at the drop. Graded Blank / Sparse / Read / Full. No snake_case.
+
+THE COLOUR CONVENTION, audited across every page
+- Names wear the race fill; stats are one statCell(); credits are gold with the ₡;
+  corp names are cSpan().
+
+ELSEWHERE
+- Placards cut across Squads, the Dividend, the Board, and the Table.
+- harness/drive.cjs drives the real clicks on the boards, the Board's card, the
+  planet's composition, and the Table's composer — with a synthetic row proving the
+  beam's arithmetic when a seed offers no real deal.
+- docs/PROJECT.md revised to match.
+- the_corp.html rebuilt.
+
+Known, not fixed: Olmac names draw from 40 titles with no uniqueness (two "The Ballast").
+
+regress --fast 114/114 · audit_docs 0 contradictions · drive.cjs all checks passed

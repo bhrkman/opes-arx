@@ -59,10 +59,68 @@
    * Divide will fight on — not a parallel description of it, because a sector map that disagreed
    * with the ground would be the survey lying to the player in the game's own voice.
    */
+  /** §DROP — THE SLOTS. `n` landing points round the ring (the drop ring at DROP_RING × R),
+      each with dry footing, each reading like a sector: its ground, its cover, its height,
+      the prize within reach, its distance to the centre. The draft picks from these. */
+  function slots(planet, n) {
+    const out = [];
+    const R = planet.radius, d = R * 0.82;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      let x = planet.cx + Math.cos(a) * d, y = planet.cy + Math.sin(a) * d;
+      if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
+      let prize = 0;
+      for (const o of planet.objectives || []) if (o.type === 'ore_assay' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
+      out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),
+                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10,
+                 toCentre: MAP.dist(x, y, planet.cx, planet.cy) / R });
+    }
+    return out;
+  }
+  /** what a corp can read of a slot at its survey depth; the draft itself is public */
+  function readSlot(slot, intel) {
+    const seen = { index: slot.index, angle: slot.angle, x: slot.x, y: slot.y };
+    if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = slot.terrain; seen.conceal = slot.conceal; seen.height = slot.height; }
+    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; }
+    return seen;
+  }
+  /** §DROP THE DRAFT'S PICK. An AI corp values a free slot by what it can see of the ground
+      and by who has already landed near it: the prize and the cover by its greed; the
+      neighbours by whether it is stronger than them and how aggressive it is (a hunter drops
+      near a weaker house, a careful one away from a stronger); its own earlier picks by
+      whether it wants its squads together (careful) or spread to flank (aggressive). Every
+      house sees every pick, so this is a real read of the board. */
+  function chooseSlot(rng, corp, slots, taken, ownPicks, strengthOf, intel) {
+    const dials = (corp.profile && corp.profile.dials) || {};
+    const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;
+    const mine = strengthOf(corp.id);
+    let best = null, bestV = -Infinity;
+    for (const s of slots) {
+      if (taken[s.index] != null) continue;
+      const seen = readSlot(s, intel);
+      let v = 0;
+      if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8);
+      if (seen.conceal != null) v += (1 / Math.max(0.2, seen.conceal)) * (1 - aggr) * 0.6 + (seen.height || 0.5) * 0.4;
+      /* the neighbours: who has landed within two slots either way */
+      for (const k in taken) {
+        const other = taken[k], dist = Math.min(Math.abs(+k - s.index), slots.length - Math.abs(+k - s.index));
+        if (dist > 2) continue;
+        const near = 1 - dist / 3;
+        if (other === corp.id) { v += (thrift * 1.2 - aggr * 0.8) * near; continue; }   /* cluster if careful, spread if aggressive */
+        const edge = mine - strengthOf(other);                                              /* + means I am the stronger */
+        v += near * (edge > 0 ? aggr * 1.4 * Math.min(1, edge) : -(1.6 - aggr) * Math.min(1, -edge));
+      }
+      v += rng() * 0.15;                                                                    /* a little of the unknown */
+      if (v > bestV) { bestV = v; best = s; }
+    }
+    return best ? best.index : null;
+  }
   function sectors(planet) {
     const out = [];
-    const NAMES = ['north reach', 'east cut', 'south flats', 'south-west scree',
-                   'west shelf', 'north-west ridge'];
+    /* named for where they are: index 0 sits at angle 0 (east) and the ring runs clockwise
+       with y down, so 1 is south-east, 3 is west, 5 is north-east */
+    const NAMES = ['east cut', 'south-east flats', 'south-west scree',
+                   'west shelf', 'north-west ridge', 'north-east reach'];
     for (let i = 0; i < CONST.SECTORS; i++) {
       const a = (i / CONST.SECTORS) * Math.PI * 2;
       const d = planet.radius * 0.82;
@@ -167,6 +225,6 @@
     return { with: to.id, agreed: agreed, chance: p };
   }
 
-  return { CONST, sectors, readSector, sectorValue, chooseSector, mediaDay,
+  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector, mediaDay,
            pactChance, proposePact };
 }));

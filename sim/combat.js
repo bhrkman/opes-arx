@@ -68,7 +68,13 @@ const CONST = {
     broken_ground: [0.25, 0.45, 0.25, 0.05],
     forest:        [0.20, 0.50, 0.28, 0.02],
     ruins:         [0.14, 0.34, 0.36, 0.16],
-    entrenched:    [0.10, 0.25, 0.40, 0.25]
+    entrenched:    [0.10, 0.25, 0.40, 0.25],
+    /* the specials, one per kind of world (map.js TERRAIN) */
+    crevasse_field: [0.20, 0.40, 0.30, 0.10],   // lips and seracs; deep but treacherous
+    deep_canopy:    [0.15, 0.45, 0.30, 0.10],   // trunks and roots everywhere, little of it hard
+    salt_flats:     [0.78, 0.18, 0.04, 0.00],   // nothing to hide behind at all
+    lava_field:     [0.20, 0.30, 0.40, 0.10],   // basalt ridges: hard cover, hard going
+    tidal_marsh:    [0.35, 0.45, 0.20, 0.00]    // reeds and channels: soft cover, soft ground
   },
   COVER_POSITIONS_PER_FIGHTER: 1.6,       // [C] slack in the pool — room to move, not room for everyone
   COVER_IMPROVE_P: 0.75,                  // [C] chance the take-cover action lands a better slot
@@ -111,7 +117,9 @@ const CONST = {
      planet a counter to a composition through the terrain system that already exists. */
   CROSS_EXPOSURE: 1.30,                   // [C] motion penalty while crossing
   CROSS_COST_P: { open_basin: 0.95, broken_ground: 0.70, forest: 0.55,
-                  ruins: 0.50, entrenched: 0.62 },   // [C] chance a crosser loses the exchange
+                  ruins: 0.50, entrenched: 0.62,
+                  crevasse_field: 0.72, deep_canopy: 0.50, salt_flats: 0.98,
+                  lava_field: 0.66, tidal_marsh: 0.80 },   // [C] chance a crosser loses the exchange
   /* §5.1 — a pinned squad does not cross ground. This is the half that turns suppression from
      a small aim debuff into the thing the machine gun exists for. */
   SUPPRESS_PIN: 1.0,                      // [S] share of a suppressed unit's push that is lost

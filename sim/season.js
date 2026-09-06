@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'));
+    require('./trade.js'), require('./events.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
   'use strict';
 
   const CONST = {
@@ -87,6 +87,15 @@
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
+    /* THE EIGHT (M8): one name per house, two teams of four seeded by standing, one fight,
+       no retreat, no surrender, real deaths. A pot every entrant pays into, split by the
+       winning side; fame to match. Declining is seen. */
+    EIGHT_MONTH: 8,              // [S]
+    EIGHT_ENTRY: 10000,          // [C] what each house puts in the pot
+    EIGHT_PURSE: 40000,          // [C] what the Aleas add to it
+    EIGHT_FAME: 12,              // [C] fame for standing in it
+    EIGHT_FAME_WIN: 14,          // [C] more for the winning four
+    EIGHT_STRESS: 14,            // [C] the pressure of it
     TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
@@ -128,13 +137,20 @@
     /* --- the Dividend (S17), the mid-year show-match at T3 --- */
     /* --- the merc deadline (S18), T5. A free professional picks their employer. --- */
     /* --- the Kier Bastille intake (S19), T4. Volunteers, on contract, with a way out. --- */
-    BASTILLE_LOT: 6,             // [S] how many sign out of the Bastille a year
+    /* LOTS ARE SIZED TO THE MONTH NOW: a window is two pools, so each is about half what the
+       one-pool window offered, and the year's supply stays where it was measured. */
+    BASTILLE_LOT: 3,             // [S] volunteers in the wing each Bastille month (six a year, as before)
     BASTILLE_TERM: 3,            // [S] Divides to serve before the freedom clause opens
     BASTILLE_WAGE_FRAC: 0.62,    // [H] of an open-market wage — cheaper, and that is the trade
-    MERC_LOT: 8,              // [S] professionals on the market a year
-    TRYOUT_LOT: 10,           // [S] Natties who turn up to trial a year — more of them than
+    MERC_LOT: 4,              // [S] professionals on the market each merc month (eight a year, as before)
+    TRYOUT_LOT: 6,            // [S] Natties who turn up to trial each Natural-Born month — more of them than
                               //     mercs, cheaper, and further from what they might become
     MERC_HUNGER: 0.45,        // [H] how much harder a corp short of bodies bids
+    /* the two pools of a window */
+    POOL_PREMIUM:  { potential: 1.08, salary: 1.25, age: -2 },   // [C] the Natural-Born premium month
+    POOL_DISCOUNT: { potential: 0.92, salary: 0.75, age: 3 },    // [C] the Natural-Born discount month
+    CARRY_MARKDOWN: 0.90,     // [C] what a body nobody took asks the second month, as a share of the first
+    NATTIE_YEAR_CAP: 2,       // [C] the AI signs this many of its own a year beyond its shortfall, across both months
     MERC_W_MONEY: 0.45,       // [H] weight a fighter puts on the purse
     MERC_W_SAFETY: 0.40,      // [H] and on how many of that corp's people came home
     MERC_W_FAME: 0.15,        // [H] and on whether the crowd knows the name
@@ -496,6 +512,73 @@
     }
   }
 
+  /* ------------------------------------------------------------------------ THE EIGHT ---- */
+  /** who a house would send: its best standing body, by what the crowd and the fight both read */
+  function eightPick(corp) {
+    const fit = corp.roster.filter(f => f.status === 'active' && !f._role && !(f.condition && (f.condition.injuries || []).length));
+    if (!fit.length) return null;
+    const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
+    return fit.slice().sort((a, b) => score(b) - score(a))[0];
+  }
+  /** a manager names a fighter — a choice for the month's end. RULED: every house sends
+      someone; there is no declining. Unnamed, the house's best goes. */
+  function nameForEight(state, corpId, fighterId) {
+    state.eight = state.eight || { names: {} };
+    const c = state.corps[corpId], f = c && c.roster.find(x => x.id === fighterId && x.status === 'active' && !x._role);
+    if (!f) return false;
+    state.eight.names[corpId] = fighterId; return true;
+  }
+  function runEight(rng, corps, ids, season, state) {
+    const E = state.eight = state.eight || { names: {} };
+    /* every house sends someone; unnamed, its best goes */
+    const entrants = [];
+    for (const id of ids) {
+      let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
+      if (!f) f = eightPick(corps[id]);
+      if (f) entrants.push({ corp: corps[id], f });
+    }
+    if (entrants.length < 4) { E.result = { held: false, why: 'Too Few Houses Entered' }; return E.result; }
+    /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
+    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'fleet') : 0) - (a.corp.rep ? REP.standing(a.corp.rep, 'fleet') : 0));
+    const n = entrants.length, A = [], B = [];
+    entrants.forEach((e, i) => { const pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(e); });
+    const pot = entrants.length * CONST.EIGHT_ENTRY + CONST.EIGHT_PURSE;
+    for (const e of entrants) LED.post(e.corp.account, 'expense', 'The Eight', -CONST.EIGHT_ENTRY);
+    const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
+      units: team.map((e, i) => C.makeCombatant(e.f, { traitIndex: ROSTER.traitById, isCaptain: i === 0, day: 1 })) });
+    const sA = side(A, 'eightA'), sB = side(B, 'eightB');
+    const stun = !!(state.fleet && state.fleet.edicts && state.fleet.edicts.stun_grade);
+    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB, { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun });
+    /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
+    const deadBy = {}, hurtBy = {};
+    const land = (S, team) => S.units.forEach((u, i) => {
+      const e = team[i], f = e.f;
+      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1; }
+      else if (u.injury || u.state === 'down' || u.state === 'stable') {
+        f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+      }
+      if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
+      f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
+      f.experience.battles = (f.experience.battles || 0) + 1; f.experience.eights = (f.experience.eights || 0) + 1;
+      f.fame = Math.min(100, (f.fame || 0) + CONST.EIGHT_FAME);
+    });
+    land(sA, A); land(sB, B);
+    const standing = S => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
+    const cas = t => (res.casualties && res.casualties[t]) || {};
+    const points = c => ((c || {}).light || 0) + 2 * ((c || {}).down || 0) + 3 * ((c || {}).dead || 0);
+    let winner = standing(sA) !== standing(sB) ? (standing(sA) > standing(sB) ? 'A' : 'B')
+               : points(cas('eightB')) !== points(cas('eightA')) ? (points(cas('eightB')) > points(cas('eightA')) ? 'A' : 'B') : null;
+    const win = winner === 'A' ? A : winner === 'B' ? B : null;
+    if (win) {
+      const share = Math.round(pot / win.length);
+      for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); e.f.fame = Math.min(100, (e.f.fame || 0) + CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
+    }
+    E.result = { held: true, season, teams: { A: A.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })), B: B.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })) },
+                 winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy, stun,
+                 watch: { corps: entrants.map(e => e.corp.id), sides: [sA, sB], res, teamsOf: { eightA: A.map(e => e.corp.id), eightB: B.map(e => e.corp.id) } } };
+    return E.result;
+  }
   /* ------------------------------------------------------------------ the merc deadline */
 
   /**
@@ -554,7 +637,7 @@
    * A lot is now opened at the START of its window and hangs on the season, so every month of
    * the run-up shows the same faces, and an offer is made against a NAMED fighter.
    */
-  function openLot(rng, kind, corpId) {
+  function openLot(rng, kind, corpId, pool) {
     const spec = {
       tryouts:  { n: CONST.TRYOUT_LOT,   mix: [['nattie', 1]] },
       mercs:    { n: CONST.MERC_LOT,     mix: [['mercenary', 1]] },
@@ -563,6 +646,15 @@
     /* a tryout lot belongs to ONE ship — corpId weights the races to that ship's people */
     const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+    /* the premium and discount pools of the Natural-Born window: the same ship, a different
+       year of it — dearer and greener, or cheaper and nearer the ceiling */
+    const shape = pool === 'premium' ? CONST.POOL_PREMIUM : pool === 'discount' ? CONST.POOL_DISCOUNT : null;
+    if (shape) for (const f of lot) {
+      if (f.potential != null) f.potential = Math.max(1, Math.round(f.potential * shape.potential));
+      if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary * shape.salary);
+      if (f.age != null) f.age = Math.max(16, f.age + shape.age);
+      f._pool = pool;
+    }
     return lot;
   }
 
@@ -674,7 +766,10 @@
          below the floor calls up more of its own, to two above the floor, budget willing. */
       const aliveNow = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
       const shortfall = Math.max(0, (CONST.DROP_MIN + 2) - aliveNow);
-      const depth = 2 + shortfall;
+      /* the cap is the year's, spent across both months of the window */
+      corp._nattieYear = corp._nattieYear || { season: null, signed: 0 };
+      if (corp._nattieYear.season !== (tally.season || null)) corp._nattieYear = { season: tally.season || null, signed: 0 };
+      const depth = Math.max(0, CONST.NATTIE_YEAR_CAP + shortfall - corp._nattieYear.signed);
       const want = marked
         ? lot.filter(f => marked.indexOf(f.id) >= 0)
         : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
@@ -686,6 +781,7 @@
         corp.roster.push(f);
         lots[id] = lots[id].filter(x => x !== f);
         tally.signed++; took++;
+        if (!marked) corp._nattieYear.signed++;
       }
       tally.bids += want.length;
     }
@@ -796,19 +892,34 @@
      M10 and the deadline falls at the close of M10. The lock is M11 and is a decision rather
      than a spend, but the month still carries a budget: patching somebody up in the last four
      weeks so they can stand at the drop is a real call, and it was not available before. */
+  /* THE CALENDAR, re-cut so every month has a shape. A hiring window is TWO MONTHS WITH TWO
+     POOLS now, each resolving at its own month's end, where it used to be a run-up and a
+     deadline over one pool:
+       Natural-Born (M2, M3): your own ship's people — uncontested, so no leftovers carry.
+         M2 is the premium pool (younger, further from their ceiling, dearer); M3 the discount
+         pool (older, nearer their ceiling, cheaper). A total refresh between the two.
+       Kier Bastille (M5, M6): a shared market of volunteers; whoever nobody took in M5 is
+         still in the wing in M6, at a markdown, beside a fresh intake.
+       Mercenaries (M9, M10): a contested market; anyone offered a contract picks at the
+         month's end and is gone. Whoever nobody offered carries to M10, at a markdown,
+         beside a fresh lot. M10 is the last door, so the roster floor lives there.
+     M1 is the review: no hiring, no trade, the year's verdict and the new card. M4 the
+     Dividend. M7 the fleet's event and M8 The Eight are reserved for the event engine. M11
+     the lock. The table trades M2 through M11. */
   const MONTHS = {
-    1:  { name: 'Season Open',      signing: null,       event: null },
-    2:  { name: 'Season Open',      signing: null,       event: null },
-    3:  { name: 'Nattie Tryouts',   signing: 'tryouts',  event: null },
-    4:  { name: 'Nattie Tryouts',   signing: 'tryouts',  event: 'tryouts' },
-    5:  { name: 'Survey Drip',      signing: null,       event: null },
-    6:  { name: 'The Dividend',     signing: null,       event: 'dividend' },
-    7:  { name: 'Bastille Run-Up',  signing: 'bastille', event: null },
-    8:  { name: 'Bastille Intake',  signing: 'bastille', event: 'bastille' },
-    9:  { name: 'Merc Run-Up',      signing: 'mercs',    event: null },
-    10: { name: 'Merc Deadline',    signing: 'mercs',    event: 'mercs' },
-    11: { name: 'The Lock',         signing: null,       event: null }
+    1:  { name: 'The Review',            signing: null,       event: null },
+    2:  { name: 'Natural-Born Window',   signing: 'tryouts',  event: 'tryouts',  pool: 'premium' },
+    3:  { name: 'Natural-Born Window',   signing: 'tryouts',  event: 'tryouts',  pool: 'discount' },
+    4:  { name: 'The Dividend',          signing: null,       event: 'dividend' },
+    5:  { name: 'Bastille Window',       signing: 'bastille', event: 'bastille', pool: 'first' },
+    6:  { name: 'Bastille Window',       signing: 'bastille', event: 'bastille', pool: 'second' },
+    7:  { name: 'The Fleet',             signing: null,       event: 'fleet' },
+    8:  { name: 'The Eight',             signing: null,       event: 'eight' },
+    9:  { name: 'Mercenary Window',      signing: 'mercs',    event: 'mercs',    pool: 'first' },
+    10: { name: 'Mercenary Window',      signing: 'mercs',    event: 'mercs',    pool: 'second' },
+    11: { name: 'The Lock',              signing: null,       event: null }
   };
+  const DIVIDEND_MONTH = 4;
 
   /**
    * What this corp would do with a turn's action points. Ranked by need, not by taste, and
@@ -1014,7 +1125,12 @@
      module owns the economy (points in, depth out) and the two aging axes. */
   const INTEL_RIVAL_ROWS = ['roster', 'finances', 'kit', 'training', 'moves', 'board'];
   /* the planet's fat row costs more to fill; everything else is an ordinary two-per-level row */
-  const INTEL_PLANET_ROWS = ['archetype', 'prize', 'demand', 'terrain', 'hazards', 'supply', 'sectors'];
+  /* THE PLANET'S ROWS, RE-CUT AS NUMBERS. 'demand' left — the board says what it wants for
+     free on its own tab. 'sites' is new: what is actually in the ground, in the board's own
+     units, is what a manager plans against. 'sectors' stays, because it buys something real —
+     the landing ring's reading at the lock (the ground, the prize, who else is landing
+     where) — and its text now says so. */
+  const INTEL_PLANET_ROWS = ['ground', 'veins', 'sites', 'terrain', 'hazards', 'supply', 'sectors'];
   const INTEL_FAT_ROWS = { sectors: 2 };   /* sectors costs 2 level-units per level — 6 to fill,
                                               making the planet a 24-level sheet (6×3 + 6) */
 
@@ -1795,7 +1911,7 @@
 
   function selectDrop(corp, opts) {
     opts = opts || {};
-    const fit = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired'
+    const fit = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && !f._role
                                      && !(f.condition && (f.condition.injuries || []).length));
     if (opts.manual && opts.manual.length) {
       const byId = {}; for (const f of fit) byId[f.id] = f;
@@ -2056,7 +2172,14 @@
        funding and its demands. It says it now. The planet generated here is the SAME OBJECT the
        Divide fights on, handed down as `groundTruth`, because a board demanding a resource that
        is not on the ground is unsatisfiable for a reason no player could ever see. */
-    const planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + season)), {});
+    /* THE WORLD HAS A SEED OF ITS OWN. It was seeded from the season number alone, so every
+       game's Year 1 was the same planet, and Year 2, and so on — one world per year for every
+       manager who ever played. The world seed is drawn once per career from the game's rng,
+       carried on the corps so a save rebuilds the same planet, and every year's planet is
+       seeded from both. */
+    const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
+    for (const id of ids) corps[id]._worldSeed = worldSeed;
+    const planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + season + ':' + worldSeed)), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
@@ -2084,6 +2207,8 @@
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
+    if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
+    for (const id of ids) delete corps[id]._eightDead;
     return state;
   }
 
@@ -2096,18 +2221,28 @@
    * Opened once per window: the same people must still be there next month.
    */
   function ensureLot(state) {
-    const kind = (MONTHS[state.month] || {}).signing;
+    const win = MONTHS[state.month] || {}, kind = win.signing;
     if (!kind || state.lots[kind]) return;
+    const seed = 'lot' + kind + state.season + 'm' + state.month;
     if (kind === 'tryouts') {
       /* RULED: YOUR OWN SHIP DOES NOT AUCTION ITS CHILDREN. Every corp gets its own lot,
-         drawn from its own ship's people — nobody else is at the table. */
+         drawn from its own ship's people — nobody else is at the table, and nothing carries:
+         the refresh is a different year of the same ship. */
       const byCorp = {};
       for (const id of state.ids)
-        byCorp[id] = openLot(P.mulberry32(P.seedFrom('lot' + kind + state.season + id)), kind, id);
+        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool);
       state.lots[kind] = byCorp;
       return;
     }
-    state.lots[kind] = openLot(P.mulberry32(P.seedFrom('lot' + kind + state.season)), kind);
+    /* the shared markets: a fresh lot, and in the second month whoever nobody took in the
+       first, still there at a markdown */
+    const fresh = openLot(P.mulberry32(P.seedFrom(seed)), kind, null, win.pool);
+    const carried = (win.pool === 'second' && state.carry && state.carry[kind]) || [];
+    for (const f of carried) {
+      if (f.contract && f.contract.salary && !f._carried) f.contract.salary = Math.round(f.contract.salary * CONST.CARRY_MARKDOWN);
+      f._carried = true;
+    }
+    state.lots[kind] = carried.concat(fresh);
   }
 
   /** The candidates a manager can look at right now, with what each is asking and what this
@@ -2128,7 +2263,9 @@
       pension: f.contract && f.contract.death_benefit,
       bonus: f.contract && f.contract.divide_bonus,
       freedomReq: f.contract && f.contract.divides_required,
-      record: f.experience || null
+      record: f.experience || null,
+      pool: f._pool || (MONTHS[state.month] || {}).pool || null,
+      carried: !!f._carried
     }));
   }
 
@@ -2182,6 +2319,61 @@
     });
   }
 
+  /* ------------------------------------------------------------------------ THE DRAFT ---- */
+  /** The 24 slots are drafted at the lock, strictly lowest standing first, three rounds. A
+      house picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
+      draftAdvance walks the AI turns until it is a human's turn or the draft is done. Every
+      pick is public. */
+  const SLOT_COUNT = 24, PICKS_EACH = 3;
+  function ensureDraft(state) {
+    state.drop = state.drop || { sectors: {} };
+    if (state.drop.draft && state.drop.draft.season === state.season) return state.drop.draft;
+    const order = state.ids.slice().sort((a, b) => strengthRead(state, a) - strengthRead(state, b));   /* weakest first */
+    state.drop.draft = { season: state.season, order, round: 0, turn: 0, picks: {}, taken: {}, done: false, log: [] };
+    for (const id of state.ids) state.drop.draft.picks[id] = [];
+    return state.drop.draft;
+  }
+  /* a house's strength as the fleet reads it: the drop's worth and its standing */
+  function strengthRead(state, corpId) {
+    const c = state.corps[corpId];
+    const alive = c.roster.filter(f => f.status === 'active');
+    const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
+    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
+  }
+  function draftWhose(state) {
+    const D = ensureDraft(state); if (D.done) return null;
+    return D.order[D.turn];
+  }
+  function draftPick(state, corpId, slot) {
+    const D = ensureDraft(state);
+    if (D.done || draftWhose(state) !== corpId) return false;
+    if (slot == null || slot < 0 || slot >= SLOT_COUNT || D.taken[slot] != null) return false;
+    D.taken[slot] = corpId; D.picks[corpId].push(slot); D.log.push({ round: D.round, corp: corpId, slot });
+    D.turn++;
+    if (D.turn >= D.order.length) { D.turn = 0; D.round++; }
+    if (D.round >= PICKS_EACH) D.done = true;
+    return true;
+  }
+  /** walk the AI's turns; stop at a human's turn or the end */
+  function draftAdvance(state, choices) {
+    const D = ensureDraft(state), human = (state.opts || {}).human;
+    const slots = PRE.slots(state.planet, SLOT_COUNT);
+    const strengthOf = id => strengthRead(state, id);
+    let guard = 0;
+    while (!D.done && guard++ < 64) {
+      const who = draftWhose(state);
+      const given = choices && choices[who] && Array.isArray(choices[who].slots) ? choices[who].slots[D.round] : undefined;
+      if (given != null && D.taken[given] == null) { draftPick(state, who, given); continue; }
+      if (who === human && given == null) break;
+      const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
+      const depth = intel ? intel.depth : 0;
+      const rng = P.mulberry32(P.seedFrom('draft' + state.season + who + D.round));
+      let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
+      if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
+      draftPick(state, who, slot);
+    }
+    return D;
+  }
   function chooseDropSector(state, corpId, index) {
     if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
@@ -2237,9 +2429,26 @@
   function stepMonth(state, choices) {
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
-    const spent = {}, landed = {};
+    const spent = {}, landed = {}, eventsOut = {};
+    const human = (state.opts || {}).human;
     for (const id of state.ids) {
       landed[id] = [];
+      /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
+         human's) or come now from the engine's own policy (an AI's); anything still open takes
+         its default — the cost of leaving it waiting. */
+      if (EVENTS) {
+        const ans = (choices && choices[id] && choices[id].events) || {};
+        for (const evId in ans) EVENTS.answer(state, id, evId, ans[evId]);
+        eventsOut[id] = EVENTS.settle(state, id, id !== human);
+        /* the roles earn their keep: the spy gathers, the drill sergeant drills */
+        const intel = ensureIntel(state.corps[id], state.season || 0);
+        const abs = (state.season || 0) * 100 + m;
+        EVENTS.roles(state.corps[id], state.season, m, (target, oaId, levels) => {
+          if (target === 'rival' && oaId && state.corps[oaId])
+            gatherIntel(state.corps[id], 'rival', oaId, levels, abs, (rk, d) => snapshotRival(state.corps[oaId], rk, d, state.season || 0));
+          else gatherIntel(state.corps[id], 'planet', null, levels, abs, null);
+        }, state.ids.filter(x => x !== id)).forEach(t => landed[id].push({ kind: 'role', text: t }));
+      }
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
@@ -2251,25 +2460,45 @@
 
     if (win.event === 'dividend')
       runDividend(P.mulberry32(P.seedFrom('div' + state.season)), state.corps, state.ids, state.season, state.dividend);
+    if (win.event === 'eight') {
+      for (const id of state.ids) {
+        const ch = choices && choices[id];
+        if (ch && Object.prototype.hasOwnProperty.call(ch, 'eight')) nameForEight(state, id, ch.eight);
+      }
+      runEight(P.mulberry32(P.seedFrom('eight' + state.season)), state.corps, state.ids, state.season, state);
+    }
+    state.carry = state.carry || {};
     if (win.event === 'tryouts') {
-      runTryouts(P.mulberry32(P.seedFrom('try' + state.season)), state.corps, state.ids,
+      state.tryouts.season = state.season;
+      runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts);
-      state.lots.tryouts = null; state.bids.tryouts = {};
+      state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
-      bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season)), state.corps, state.ids,
-                     state.season, state.bastille, state.lots.bastille);
+      const lot = state.lots.bastille || [];
+      bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season + 'm' + m)), state.corps, state.ids,
+                     state.season, state.bastille, lot);
+      /* whoever was not taken waits in the wing for the refresh; after it, the wing is closed */
+      const signedIds = {}; for (const id of state.ids) for (const f of state.corps[id].roster) signedIds[f.id] = true;
+      state.carry.bastille = win.pool === 'first' ? lot.filter(f => !signedIds[f.id]) : [];
       state.lots.bastille = null;
     }
     if (win.event === 'mercs') {
-      runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season)), state.corps, state.ids,
-                    state.lots.mercs || [], state.mercs, state.bids.mercs);
+      const lot = state.lots.mercs || [];
+      runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
+                    lot, state.mercs, state.bids.mercs);
+      /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
+         offered is still on the market for the refresh */
+      const offered = {}; (state.mercs.results || []).forEach(r => { offered[r.fighterId] = true; });
+      const signedM = {}; for (const id of state.ids) for (const f of state.corps[id].roster) signedM[f.id] = true;
+      state.carry.mercs = win.pool === 'first' ? lot.filter(f => !signedM[f.id] && !offered[f.id]) : [];
       /* --- THE SCRAPE, at the last door out. The merc window is the final chance to put
          bodies on a roster, so this is where the floor lives now: anybody still short is
          filled to ROSTER_MIN with the cheapest paper on offer, charged for it, and made to
          feel it with the board. Deliberately AFTER the market, so a manager who bought
          their own way to sixteen never meets this at all. --- */
       for (const id of state.ids) {
+        if (win.pool !== 'second') break;                          /* the floor lives at the last door */
         const corp = state.corps[id];
         const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
         const short = CONST.ROSTER_MIN - alive.length;
@@ -2292,14 +2521,31 @@
       }
       state.lots.mercs = null; state.bids.mercs = {};
     }
+    /* THE FLEET'S MONTH SETTLES: the petitions are counted and the edict stands or falls */
+    if (EVENTS && m === EVENTS.CONST.FLEET_MONTH) {
+      const abs = (state.season || 0) * 100 + m;
+      const outcome = EVENTS.settleFleet(state, (id) => {
+        /* the survey goes public: every house reads the planet to depth two */
+        const c = state.corps[id]; ensureIntel(c, state.season || 0);
+        for (const k of INTEL_PLANET_ROWS) { const r = intelRow(c._intel.planet, k); if (r.depth < 2) { r.depth = 2; r.gathered = abs; } }
+      });
+      if (outcome) for (const id of state.ids) landed[id].push({ kind: 'fleet', text: outcome.withdrawn ? 'The Fleet Petitioned and the Edict Was Withdrawn' : outcome.title, fleet: outcome });
+    }
     /* the other seven deal with each other too — see trade.js fleetTrades */
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
                         state.corps, state.ids, m, {});
     state.month++;
     ensureLot(state);
-    return { month: m, name: win.name, event: win.event || null, spent, landed };
+    /* the next month draws its events for every corp */
+    if (EVENTS && state.month <= CONST.PREP_MONTHS) for (const id of state.ids) EVENTS.draw(state, id);
+    return { month: m, name: win.name, event: win.event || null, spent, landed, events: eventsOut };
   }
+  /** the manager's window onto the month's events, and the answer */
+  function eventsFor(state, corpId) { return EVENTS ? EVENTS.draw(state, corpId) : []; }
+  /** the shelf's price this year: the fleet's month may have moved it */
+  function priceMult(state) { return (state && state.fleet && state.fleet.priceMult) || 1; }
+  function answerEvent(state, corpId, eventId, optionId) { return EVENTS ? EVENTS.answer(state, corpId, eventId, optionId) : null; }
 
   /**
    * THE FLEET TAKES THE SEAM TOO. Every corp except the one a person is holding picks a sector,
@@ -2310,6 +2556,9 @@
    */
   function fleetTakesTheSeam(state) {
     const human = (state.opts || {}).human;
+    /* THE DRAFT opens at the seam: the AI's turns run; a human's turn waits for the page (or
+       for choices[id].slots when the closing is driven without one) */
+    draftAdvance(state, state._draftChoices || null);
     const secs = PRE.sectors(state.planet);
     for (const id of state.ids) {
       if (id === human) continue;
@@ -2380,6 +2629,7 @@
          so it must be captured here rather than recomputed at scoring time off a roster the
          Divide has already thinned. */
       c._committed = LED.wageBill(alive);
+      if (state.fleet && state.fleet.levy) LED.post(c.account, 'expense', 'Aleas levy', -state.fleet.levy);
       LED.settleSeason(c.account, alive, {
         injuries: c._off.injured || 0,
         /* WHAT THE DEAD COST. `_lastDead` was read here and written by no code anywhere, so
@@ -2451,9 +2701,11 @@
          second card over the one the manager spent the year working against, which is the same
          bug in the other direction. */
       openSeason: false, groundTruth: state.planet,
+      edicts: (state.fleet && state.fleet.edicts) || {},
       /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
          whom before anyone had seen anything. */
       dropSectors: state.drop.sectors,
+      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: SLOT_COUNT,
       preDividePacts: state.drop.pacts,
       mediaRevealed: state.drop.media,
       human: (opts || {}).human || null
@@ -2572,7 +2824,7 @@
         placement: res.placement ? res.placement[id] : null,
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
-        permanentLosses: dead.length,
+        permanentLosses: dead.length + (c._eightDead || 0),
         /* R25 — the two standing demands. `spendRatio` is what this corp actually laid out on
            wages and kit against WHAT A FULL COMMITMENT WOULD HAVE COST: the whole ceiling, and
            every living body paid in full. Field sixteen instead of twenty-four and it drops
@@ -2914,7 +3166,8 @@
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season)), {});
+    const ws = corps[Object.keys(corps)[0]] && corps[Object.keys(corps)[0]]._worldSeed;
+    state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season + (ws != null ? ':' + ws : ''))), {});
     state.planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + o.season)),
                                    state.planet.archetype, state.planet.richness);
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
@@ -2937,13 +3190,13 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { CONST, MONTHS, openFleet, offseason, selectDrop, muster, grieve, renewRoster,
+  return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick, openFleet, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           schedule, resolvePending, sectorsFor, chooseDropSector, pactTargets,
+           schedule, resolvePending, sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_COUNT, PICKS_EACH, pactTargets,
            offerPact, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid, bidsFor,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */

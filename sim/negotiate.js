@@ -42,6 +42,7 @@
 
     /* §6 the table */
     OFFERS_PER_WINDOW: 2,               // [S] how many a corp may send in one window
+    PACT_CREDIT_SCALE: 0.06,            // [C] §4.1 credits equal to this share of the pot buy the full sweetener
     PACT_DAYS: [2, 5],                  // [C] §4 how long a truce runs. NEGOTIATION.md quoted
                                         //     this by name and the code had it inlined — the
                                         //     doc described a constant that did not exist
@@ -107,7 +108,14 @@
        Two directions, because greed cuts both ways at a table:
          HOLDOUT — I would rather fight you for all of it than be bought at a fair price
          MERCY   — you are finished, and I will pay you accordingly */
-    GREED_HOLDOUT: 0.55,                // [H] how much more a seller demands than the maths says
+    /* [C] how much more a seller demands than the maths says. WAS 0.55, and at 0.55 the seller's
+       stack (aggression × relationship × holdout × the crowd's premium) cleared the buyer's
+       ceiling by 1.2–2.2× in four refusals of five: one or two joins a Divide, none in kind,
+       five or six banners standing at the end. Measured with measure_table.cjs over four
+       seeds — 0.25: four or five joins, the first deals in kind, two or three banners
+       standing, the crowd's wall now the main refusal (the design working). 0.10 overshoots:
+       a seed collapsed under the favourite on day 8. */
+    GREED_HOLDOUT: 0.25,
     GREED_MERCY: 0.28,                  // [H] how much less a buyer pays a beaten rival
 
     /* §8 the Aleas */
@@ -121,6 +129,25 @@
     RANSOM_PER_SALARY: 14,              // [C] x monthly salary, asking price
     RESOURCE_TERM_P: 0.22,              // [C] §4 — how often a cut is taken in the thing itself
     RESOURCE_DISCOUNT: 0.88,            // [C] and the discount for insisting on it
+    /* §4.1 A SHARE OF THE HAUL. A resource term is a share of what the principal actually
+       banks in a category, paid down the chain like the pot: nothing banked, nothing owed, and
+       a joiner's joiner gets a share of a share. Each side values a unit by its own WANT —
+       a board short of food pays dearly for food and gives up minerals it does not need
+       cheaply — and the gap between the two wants is the surplus that makes a deal. */
+    RESOURCE_WANT_BASE: 0.55,           // [C] what a full-hold, unasked category is worth, as a fraction of ASSAY_VALUE
+    RESOURCE_WANT_SHORT: 1.10,          // [C] added at an empty hold, scaling with the shortage
+    RESOURCE_WANT_ASKED: 0.80,          // [C] added when the board's card asks for the category
+    RESOURCE_WANT_PRIORITY: 1.60,       // [C] instead of ASKED, when it is the card's priority
+    RESOURCE_AI_SHARE: 0.25,            // [C] the share of the haul the AI asks when it asks in kind
+    RESOURCE_FORECAST_SITES: 0.5,       // [C] how much of the still-open ground a banner expects to dig, scaled by its odds
+    /* §4.2 THE SPOILER. A house that stays out and keeps fighting costs the banner people. The
+       share of the banner's expected losses this house accounts for — its force against
+       everything else still standing — is worth paying to take off the board, whatever the
+       house's own odds. This is a weak house's leverage, and it was priced at nothing. */
+    SPOILER_WEIGHT: 0.60,               // [C] how much of the avoided losses the banner will pay for
+    /* §4.3 A NAMED CLAIM: one revealed site, dug by the banner but banked to the joiner. Priced
+       like a share of the haul — the site's units, discounted by the chance the banner digs it. */
+    CLAIM_FORECAST: 0.7,                // [C] the chance a banner digs a site it has claimed, scaled by its odds
     CAPTIVE_KEEP: 0.34, CAPTIVE_RELEASE: 0.42, CAPTIVE_KILL: 0.24  // [C] base weights
   };
 
@@ -482,7 +509,16 @@
     const joinerMin = bareMin * relPrice * (1 + CONST.GREED_HOLDOUT * jGreed) * seenJ.premium;
 
     const keep = chainDilution(principal, ctx);
-    const gain = (oddsJoined - oddsPrincipal) * pot * keep;
+    /* §4.2 the spoiler: what the banner would lose to this house staying in the fight */
+    let spoiler = 0;
+    if (ctx.umbrellas) {
+      const fJ = corpForce(joiner), fP = corpForce(principal);
+      let fAll = 0;
+      for (const u of ctx.umbrellas) for (const m of u.members) fAll += corpForce(m);
+      const others = Math.max(1e-6, fAll - fP);
+      spoiler = expectedLosses(principal, ctx.day, ctx.lastDay, oddsPrincipal, 0) * Math.min(1, fJ / others) * CONST.SPOILER_WEIGHT;
+    }
+    const gain = (oddsJoined - oddsPrincipal) * pot * keep + spoiler;
     const buyScale = Math.min(1, buyPenalty(0.30, Math.max(0, oddsPrincipal - oddsNow))
                                  / (CONST.BUY_BASE * 0.30 * 1.5));
     const seenP = seenDoing(principal, 'bought_win', { scale: buyScale });
@@ -495,6 +531,9 @@
 
     return {
       oddsNow, oddsPrincipal, oddsJoined,
+      resources: resourceRates(joiner, principal, ctx),
+      claims: claimRates(joiner, principal, ctx),
+      spoiler: Math.round(spoiler),
       stayValue: Math.round(stayValue),
       stayLosses: Math.round(stayLosses), joinLosses: Math.round(joinLosses),
       joinerMin: Math.round(joinerMin), principalMax: Math.round(principalMax),
@@ -511,8 +550,75 @@
   }
 
   /** What a set of terms is actually worth to the joiner, in credits. */
-  function termsValue(terms, range) {
-    return (terms.share || 0) * range.expectedTake + (terms.credits || 0);
+  /* §4.1 what a category is worth to a house, per unit banked, in credits */
+  function wantOf(corp, category) {
+    const rep = corp.rep || {};
+    const hold = Math.max(0, Math.min(1, (rep.holds || {})[category] != null ? rep.holds[category] : 0.5));
+    let w = CONST.RESOURCE_WANT_BASE + CONST.RESOURCE_WANT_SHORT * (1 - hold);
+    const g = rep.goal || {};
+    (g.demands || []).forEach((d, i) => {
+      if (d.kind === 'resource' && d.category === category)
+        w += i === g.priority ? CONST.RESOURCE_WANT_PRIORITY : CONST.RESOURCE_WANT_ASKED;
+    });
+    return w * CONST.ASSAY_VALUE;
+  }
+  /* what a banner can expect to have banked in a category by the end: what it holds now,
+     plus the open ground of that category discounted by its odds */
+  function expectedBank(corp, category, ctx) {
+    let units = ((corp._banked || {})[category] || 0);
+    const planet = ctx.planet;
+    if (planet && ctx.categoryOf) {
+      const pOdds = ctx.odds[ctx.principalOf(corp).id] || 0;
+      let open = 0;
+      for (const o of planet.objectives || []) {
+        if (o.type !== 'ore_assay' || o.looted || !o.resource) continue;
+        if (ctx.categoryOf(o.resource) !== category) continue;
+        open += Math.round(o.potency || 1);
+      }
+      units += open * pOdds * CONST.RESOURCE_FORECAST_SITES;
+    }
+    return units;
+  }
+  /* the credit value of a 100% share of the principal's haul in each category, to each side */
+  function resourceRates(joiner, principal, ctx) {
+    const out = {};
+    for (const cat of (ctx.categories || ['minerals', 'fuels', 'luxuries', 'foods'])) {
+      const units = expectedBank(principal, cat, ctx);
+      out[cat] = { units: Math.round(units * 10) / 10,
+                   joiner: Math.round(units * wantOf(joiner, cat)),
+                   principal: Math.round(units * wantOf(principal, cat)) };
+    }
+    return out;
+  }
+  /* §4.3 the value of each revealed, undug site as a claim, to each side */
+  function claimRates(joiner, principal, ctx) {
+    const out = {};
+    const planet = ctx.planet;
+    if (!planet || !ctx.categoryOf) return out;
+    const pOdds = ctx.odds[ctx.principalOf(principal).id] || 0;
+    for (const o of planet.objectives || []) {
+      if (o.type !== 'ore_assay' || !o.revealed || o.looted || !o.resource) continue;
+      const cat = ctx.categoryOf(o.resource); if (!cat) continue;
+      const units = Math.round(o.potency || 1) * pOdds * CONST.CLAIM_FORECAST;
+      out[o.id] = { resource: o.resource, category: cat, units: Math.round(units * 10) / 10,
+                    joiner: Math.round(units * wantOf(joiner, cat)),
+                    principal: Math.round(units * wantOf(principal, cat)) };
+    }
+    return out;
+  }
+  function termsValue(terms, range, side) {
+    let v = (terms.share || 0) * range.expectedTake + (terms.credits || 0);
+    const rates = range.resources || {};
+    for (const t of terms.resources || []) {
+      const r = rates[t.category]; if (!r) continue;
+      v += (t.share || 0) * (side === 'principal' ? r.principal : r.joiner);
+    }
+    const crates = range.claims || {};
+    for (const id of terms.claims || []) {
+      const c = crates[id]; if (!c) continue;
+      v += side === 'principal' ? c.principal : c.joiner;
+    }
+    return v;
   }
 
   /**
@@ -527,15 +633,19 @@
       return { accepted: false, reason: 'no_gain', range,
                note: 'adding them does not improve the banner\'s chances' };
     }
-    const value = termsValue(terms, range);
+    /* TWO READINGS OF ONE OFFER: what it is worth to the joiner, what it costs the principal.
+       Credits and the cut read the same to both; a share of the haul does not, and that
+       asymmetry is where a deal in kind finds room that a deal in credits cannot. */
+    const value = termsValue(terms, range, 'joiner');
+    const cost = termsValue(terms, range, 'principal');
     if (value < range.joinerMin) {
       return { accepted: false, reason: 'too_little_for_joiner', range, value: Math.round(value),
                short: Math.round(range.joinerMin - value),
                note: 'they would rather take their chances' };
     }
-    if (value > range.principalMax) {
+    if (cost > range.principalMax) {
       return { accepted: false, reason: 'too_much_for_principal', range, value: Math.round(value),
-               over: Math.round(value - range.principalMax),
+               over: Math.round(cost - range.principalMax),
                note: 'the banner would be paying more than the help is worth' };
     }
     /* AN ACCEPTED OFFER MUST BE A DEAL, not a verdict about one. This returned only
@@ -551,6 +661,8 @@
         share: Math.max(0, Math.min(0.95, terms.share || 0)),
         credits: Math.max(0, Math.round(terms.credits || 0)),
         standDown: !!terms.standDown,
+        resources: cleanResources(terms.resources),
+        claims: (terms.claims || []).filter(id => typeof id === 'string'),
         debt: terms.debt || 0,
         day: ctx.day, kind: terms.standDown ? 'stand_down' : 'join',
         why: { human: true }
@@ -594,9 +706,21 @@
 
     const deal = makeDeal(joiner, principal, share, credits, range.standDown, ctx,
                           credits > 0 && share <= 0.001 ? 'flat' : 'share');
-    if (ctx.resource && share > 0.03 && rng() < CONST.RESOURCE_TERM_P) {
-      deal.resource = ctx.resource;
-      deal.share *= CONST.RESOURCE_DISCOUNT;   /* they want the stuff, not the maximum price */
+    if (share > 0.03 && rng() < CONST.RESOURCE_TERM_P) {
+      /* THEY WANT THE STUFF: the category the joiner is shortest of, among what the principal
+         can expect to bank. A real term now, paid at the settlement, where it used to be a flag. */
+      let best = null, bestW = 0;
+      for (const cat of Object.keys(range.resources || {})) {
+        const r = range.resources[cat];
+        if (!r || r.units <= 0) continue;
+        const w = wantOf(joiner, cat);
+        if (w > bestW) { bestW = w; best = cat; }
+      }
+      if (best) {
+        deal.resources = [{ category: best, share: CONST.RESOURCE_AI_SHARE, when: 'always' }];
+        deal.resource = best;
+        deal.share *= CONST.RESOURCE_DISCOUNT;   /* they want the stuff, not the maximum price */
+      }
     }
     deal.why = Object.assign({}, range, { value: Math.round(value) });
     return deal;
@@ -610,6 +734,11 @@
     return frac < 0.45 && careful > 0.5;
   }
 
+  function cleanResources(list) {
+    return (list || []).filter(t => t && t.category && t.share > 0).map(t => ({
+      category: t.category, share: Math.max(0, Math.min(0.95, t.share)),
+      when: t.when === 'win' ? 'win' : 'always' }));
+  }
   function makeDeal(joiner, principal, share, credits, standDown, ctx, kind) {
     /* N9 — debts after the games ride only as a clause inside a joining deal. */
     let debt = null;
@@ -621,6 +750,8 @@
       share: Math.max(0, Math.min(0.95, share)),
       credits: Math.max(0, Math.round(credits || 0)),
       standDown: !!standDown,
+      resources: [],
+      claims: [],
       debt: debt,
       day: ctx.day, kind: kind
     };
@@ -645,6 +776,33 @@
     const want = (ob - oa) * (1 - dial(a, 'aggression'));
     if (want < 0.05) return { possible: false, why: 'too close to be worth their while', p: 0 };
     return { possible: true, p: Math.max(0, Math.min(1, 0.35 + 0.4 * dial(b, 'thrift'))) };
+  }
+
+  /**
+   * §4.1 THE CHANCE OF A PACT, for a manager's offer. Nothing here is impossible short of a
+   * sealed house or the same banner: a house doing better than you wants paying, and credits
+   * pay; a house doing worse than you wants the truce and will mostly say yes. Deterministic,
+   * so the beam can read it before the word goes out.
+   */
+  function pactChance(a, b, ctx, terms) {
+    if (ctx.sealed(a) || ctx.sealed(b)) return { possible: false, why: 'they do not deal', p: 0 };
+    if (ctx.principalOf(a).id === ctx.principalOf(b).id) return { possible: false, why: 'same banner', p: 0 };
+    const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
+    const credits = Math.max(0, (terms && terms.credits) || 0);
+    const sweet = Math.min(0.45, credits / Math.max(1, (ctx.pot || 1) * CONST.PACT_CREDIT_SCALE));
+    let p, why;
+    if (oa < ob) {
+      /* they are ahead: the truce is your relief, not theirs. Thrift makes them take the quiet;
+         the gap makes them want it less; credits make up the difference. */
+      const gap = Math.min(1, (ob - oa) / 0.3);
+      p = (0.35 + 0.4 * dial(b, 'thrift')) * (1 - 0.6 * gap) + sweet;
+      why = gap > 0.5 ? 'they are well ahead of you' : 'they are ahead of you';
+    } else {
+      /* you are ahead: the truce is theirs to want */
+      p = 0.55 + 0.35 * Math.min(1, (oa - ob) / 0.2) + sweet * 0.5;
+      why = 'they need the quiet more than you do';
+    }
+    return { possible: true, p: Math.max(0.03, Math.min(0.95, p)), why };
   }
 
   function considerPact(rng, a, b, ctx) {
@@ -752,6 +910,45 @@
    * Conserves: every credit paid out is a credit that came from the pot or from a named
    * treasury. Asserted in `regress`.
    */
+  /**
+   * §4.1 THE HAUL SETTLES DOWN THE CHAIN. `banked` is { corpId: { category: units, ... } } as
+   * dug. Each deal's resource terms move a share of what the principal HOLDS — its own digging
+   * plus what came down to it — to the joiner, roots first, so a share of a share is exactly
+   * that. A term marked `win` pays only under the winning banner. Nothing banked, nothing owed.
+   */
+  function settleHaul(banked, corps, deals, winnerId, categories) {
+    const cats = categories || ['minerals', 'fuels', 'luxuries', 'foods'];
+    const byPrincipal = {};
+    for (const d of deals || []) {
+      if (d.void || !(d.resources && d.resources.length)) continue;
+      (byPrincipal[d.principal] = byPrincipal[d.principal] || []).push(d);
+    }
+    const lines = [];
+    const rootOf = id => { const c = corps.find(x => x.id === id); return c && c.joinedTo ? rootOf(c.joinedTo) : id; };
+    const paid = {};
+    function payChain(pid) {
+      if (paid[pid]) return; paid[pid] = true;
+      const list = (byPrincipal[pid] || []).slice().sort((a, b) => a.day - b.day);
+      for (const d of list) {
+        for (const t of d.resources) {
+          if (t.when === 'win' && rootOf(pid) !== winnerId) continue;
+          if (cats.indexOf(t.category) < 0) continue;
+          const held = (banked[pid] || {})[t.category] || 0;
+          const amt = held * t.share;
+          if (amt <= 0) continue;
+          banked[pid][t.category] = held - amt;
+          banked[d.joiner] = banked[d.joiner] || {};
+          banked[d.joiner][t.category] = (banked[d.joiner][t.category] || 0) + amt;
+          lines.push({ from: pid, to: d.joiner, category: t.category, units: amt, day: d.day });
+        }
+        payChain(d.joiner);
+      }
+    }
+    for (const c of corps) if (!c.joinedTo) payChain(c.id);
+    for (const c of corps) payChain(c.id);
+    return lines;
+  }
+
   function settle(rng, corps, opts) {
     const pot = opts.pot;
     const winnerId = opts.winnerId;
@@ -846,7 +1043,8 @@
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
     corpForce, believedForce, oddsBoard,
     foldPenalty, buyPenalty, priceModifier, relationship, bodyMoney, seenDoing, TELEMETRY,
-    considerJoin, offerRange, evaluateOffer, termsValue, considerPact, pactViability, wantsStandDown,
+    considerJoin, offerRange, evaluateOffer, termsValue, considerPact, pactViability, pactChance, wantsStandDown,
+    wantOf, resourceRates, settleHaul,
     ransomPrice, considerRansom, resolveCaptive,
     considerBetrayal, disqualificationRoll, aleasStandingOf,
     settle

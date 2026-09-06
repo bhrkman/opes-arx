@@ -18,57 +18,73 @@
   /* Terrain types map 1:1 onto COMBAT.md 3.2's cover profiles, so the day loop hands the
      resolver a profile name and nothing in the resolver changes. `conceal` multiplies the
      detection roll: open ground gives you away, forest hides you. */
+  /* FOUR TERRAINS EVERY WORLD CAN HAVE, and one that belongs to each kind of world. Ruins on a
+     planet nobody ever lived on were a strange sight; ruins are Dead Industrial's now, and
+     every other archetype has its own — a crevasse field, the deep canopy, salt flats, a lava
+     field, a tidal marsh — with its own concealment, forage and going, and its own cover
+     profile in combat.js. `special` names it. */
   const TERRAIN = {
-    open_basin:    { conceal: 1.30, forage: 0, speed: 1.15 },
-    broken_ground: { conceal: 1.00, forage: 1, speed: 0.95 },
-    forest:        { conceal: 0.70, forage: 3, speed: 0.80 },
-    ruins:         { conceal: 0.75, forage: 1, speed: 0.85 },
-    entrenched:    { conceal: 0.85, forage: 0, speed: 0.75 }
+    open_basin:     { conceal: 1.30, forage: 0, speed: 1.15 },
+    broken_ground:  { conceal: 1.00, forage: 1, speed: 0.95 },
+    forest:         { conceal: 0.70, forage: 3, speed: 0.80 },
+    entrenched:     { conceal: 0.85, forage: 0, speed: 0.75 },
+    /* the specials */
+    ruins:          { conceal: 0.75, forage: 1, speed: 0.85, special: 'dead_industrial' },
+    crevasse_field: { conceal: 0.80, forage: 0, speed: 0.65, special: 'ice_shelf' },
+    deep_canopy:    { conceal: 0.55, forage: 3, speed: 0.70, special: 'jungle_cradle' },
+    salt_flats:     { conceal: 1.50, forage: 0, speed: 1.25, special: 'desert_pan' },
+    lava_field:     { conceal: 0.90, forage: 0, speed: 0.60, special: 'volcanic_waste' },
+    tidal_marsh:    { conceal: 0.80, forage: 2, speed: 0.60, special: 'drowned_world' }
+  };
+  const TERRAIN_NAMES = {
+    open_basin: 'Open Basin', broken_ground: 'Broken Ground', forest: 'Forest', entrenched: 'Entrenched',
+    ruins: 'Ruins', crevasse_field: 'Crevasse Field', deep_canopy: 'Deep Canopy', salt_flats: 'Salt Flats',
+    lava_field: 'Lava Field', tidal_marsh: 'Tidal Marsh'
   };
 
   const ARCHETYPES = {
     ice_shelf: {
-      name: "Ice Shelf",
-      terrain: [["open_basin", 45], ["broken_ground", 40], ["entrenched", 10], ["ruins", 5]],
+      name: "Ice Shelf", seaLevel: 0.21, waterName: 'Meltwater',
+      terrain: [["open_basin", 45], ["broken_ground", 40], ["entrenched", 10], ["crevasse_field", 5]],
       forageMult: 0.25, supplyStrain: 1.15, bandBias: 0,
       hazards: [["cold", 34], ["whiteout", 26], ["crevasse", 18], ["storm", 22]],
       places: ["Shelf", "Rift", "Pale", "Drift", "Floe", "Sound", "Cairn", "Reach"],
       adjectives: ["White", "Iron", "Long", "Broken", "Still", "Bitter", "Grey", "Far"]
     },
     jungle_cradle: {
-      name: "Jungle Cradle",
-      terrain: [["forest", 60], ["broken_ground", 25], ["ruins", 10], ["open_basin", 5]],
+      name: "Jungle Cradle", seaLevel: 0.23, waterName: 'River',
+      terrain: [["forest", 60], ["broken_ground", 25], ["deep_canopy", 10], ["open_basin", 5]],
       forageMult: 1.35, supplyStrain: 0.90, bandBias: 2,
       hazards: [["fever", 32], ["downpour", 30], ["heat", 20], ["rot", 18]],
       places: ["Canopy", "Hollow", "Green", "Basin", "Thicket", "Delta", "Shade", "Root"],
       adjectives: ["Deep", "Wet", "Old", "Tangled", "Low", "Quiet", "Fat", "Drowned"]
     },
     desert_pan: {
-      name: "Desert Pan",
-      terrain: [["open_basin", 58], ["broken_ground", 30], ["ruins", 8], ["entrenched", 4]],
+      name: "Desert Pan", seaLevel: 0, waterName: 'Water',
+      terrain: [["open_basin", 58], ["broken_ground", 30], ["salt_flats", 8], ["entrenched", 4]],
       forageMult: 0.15, supplyStrain: 1.20, bandBias: 0,
       hazards: [["heat", 36], ["thirst", 28], ["sandstorm", 24], ["glare", 12]],
       places: ["Pan", "Flat", "Scarp", "Wash", "Dune", "Salt", "Mesa", "Draw"],
       adjectives: ["Wide", "Red", "Blind", "Empty", "Hot", "Cracked", "Long", "Bright"]
     },
     volcanic_waste: {
-      name: "Volcanic Waste",
-      terrain: [["broken_ground", 48], ["ruins", 24], ["open_basin", 18], ["entrenched", 10]],
+      name: "Volcanic Waste", seaLevel: 0.19, waterName: 'Lava',
+      terrain: [["broken_ground", 48], ["lava_field", 24], ["open_basin", 18], ["entrenched", 10]],
       forageMult: 0.45, supplyStrain: 1.10, bandBias: 1,
       hazards: [["ashfall", 32], ["gas_vent", 28], ["tremor", 22], ["heat", 18]],
       places: ["Caldera", "Flow", "Vent", "Slag", "Cone", "Ridge", "Fume", "Crag"],
       adjectives: ["Black", "Burnt", "Sullen", "New", "Hard", "Smoking", "Low", "Cinder"]
     },
     drowned_world: {
-      name: "Drowned World",
-      terrain: [["broken_ground", 34], ["forest", 24], ["ruins", 22], ["open_basin", 20]],
+      name: "Drowned World", seaLevel: 0.30, waterName: 'Sea',
+      terrain: [["broken_ground", 34], ["forest", 24], ["tidal_marsh", 22], ["open_basin", 20]],
       forageMult: 0.85, supplyStrain: 1.00, bandBias: 1,
       hazards: [["flooding", 34], ["cold", 24], ["current", 24], ["storm", 18]],
       places: ["Shallows", "Causeway", "Bank", "Spit", "Narrows", "Mouth", "Bar", "Weir"],
       adjectives: ["Grey", "Slow", "Sunk", "Half", "Green", "Cold", "Thin", "Turning"]
     },
     dead_industrial: {
-      name: "Dead Industrial",
+      name: "Dead Industrial", seaLevel: 0.22, waterName: 'Flood',
       terrain: [["ruins", 46], ["entrenched", 24], ["broken_ground", 22], ["open_basin", 8]],
       forageMult: 0.30, supplyStrain: 1.05, bandBias: 2, salvage: true,
       hazards: [["collapse", 32], ["toxicity", 30], ["void", 20], ["fire", 18]],
@@ -107,7 +123,28 @@
                                          //     in about eleven days at full effort
     TERRAIN_PATCHES: [22, 34],           // [C] coherent country, not confetti
     WARP_OCTAVES: 3,                     // [C] domain warp: fingered, interlocking edges
-    WARP_AMPLITUDE: 0.030,               // [C]
+    WARP_AMPLITUDE: 0.022,               // [C]
+    /* THE WARP HAS TO BE SMALLER THAN THE WORLD. Frequencies of 6-15 on a planet 0.58 wide
+       gave waves longer than the ground, which read as a uniform shift — the cells stayed
+       straight-edged. 26-60 puts three to eight waves across the disc: edges curl and finger. */
+    WARP_FREQ: [26, 60],                 // [C]
+    /* patches take a size of their own, so the country is basins and pockets rather than a
+       tiling of equal cells */
+    PATCH_WEIGHT: [0.7, 1.5],            // [C]
+    /* §7.5 ELEVATION. A height field of a few broad hills over the disc, 0 (the floor) to 1
+       (the highest ground). Read by the Divide: high ground sees further, steep ground is slow
+       ground, and the side that came from the high ground holds the edge when squads meet. */
+    HILLS: [5, 9],                       // [C] how many hills a world carries
+    HILL_RADIUS: [0.20, 0.50],           // [C] × PLANET_RADIUS
+    HILL_HEIGHT: [0.30, 0.72],           // [C] domes seldom stack past the peak line, so a peak is a cap
+    /* §7.6 WATER AND PEAKS. The floor rolls (BASE_HEIGHT plus a slow swell), and below a
+       world's sea level it is water; above PEAK_LEVEL it is a peak. Neither can be crossed —
+       squads route round them, and the ground between two of them is the pass everybody must
+       use. Each archetype sets its own sea level; the Desert Pan has none. */
+    BASE_HEIGHT: 0.22,                   // [C]
+    BASE_SWELL: 0.14,                    // [C] amplitude of the slow roll under everything
+    CENTRE_RISE: 0.24,                   // [C] the middle stands above any sea: the last rings are land, always
+    PEAK_LEVEL: 0.60,                    // [C] a cap, not a plateau
     /* §2.5 sponsor waves: a drop at every ring step, fewer at the start and more in total,
        each wave landing inside the ring as it will stand that day and worth more than the
        last. The ring stops being only a squeeze and becomes what reloads the map. */
@@ -201,7 +238,8 @@
     const patches = [];
     for (let i = 0; i < nPatch; i++) {
       const p = pointIn(rng, CX, CY, R * 1.04);
-      patches.push({ x: p.x, y: p.y, type: P.weightedPick(rng, arch.terrain), name: placeName(rng, arch, used) });
+      patches.push({ x: p.x, y: p.y, type: P.weightedPick(rng, arch.terrain), name: placeName(rng, arch, used),
+                     w: CONST.PATCH_WEIGHT[0] + rng() * (CONST.PATCH_WEIGHT[1] - CONST.PATCH_WEIGHT[0]) });
     }
 
     /* Nearest-seed alone gives straight-edged cells, which read as a diagram rather than
@@ -210,8 +248,9 @@
        can reproduce the same ground exactly rather than approximating it. */
     const warp = [];
     for (let k = 0; k < CONST.WARP_OCTAVES; k++) {
+      const f0 = CONST.WARP_FREQ[0], f1 = CONST.WARP_FREQ[1];
       warp.push({
-        fx: 6 + rng() * 9, fy: 6 + rng() * 9,
+        fx: (f0 + rng() * (f1 - f0)) * (k + 1), fy: (f0 + rng() * (f1 - f0)) * (k + 1),
         px: rng() * Math.PI * 2, py: rng() * Math.PI * 2,
         a: CONST.WARP_AMPLITUDE / (k + 1)
       });
@@ -225,11 +264,76 @@
       return [wx, wy];
     }
 
+    /* §7.5 the hills, and the height of any point */
+    const hills = [];
+    const nHill = P.int(rng, CONST.HILLS[0], CONST.HILLS[1]);
+    for (let i = 0; i < nHill; i++) {
+      const c = pointIn(rng, CX, CY, R * 0.95);
+      hills.push({ x: c.x, y: c.y,
+                   r: R * (CONST.HILL_RADIUS[0] + rng() * (CONST.HILL_RADIUS[1] - CONST.HILL_RADIUS[0])),
+                   h: CONST.HILL_HEIGHT[0] + rng() * (CONST.HILL_HEIGHT[1] - CONST.HILL_HEIGHT[0]) });
+    }
+    const swell = { fx: 9 + rng() * 6, fy: 9 + rng() * 6, px: rng() * Math.PI * 2, py: rng() * Math.PI * 2 };
+    function heightAt(x, y) {
+      let h = CONST.BASE_HEIGHT + CONST.BASE_SWELL * 0.5 * (Math.sin(x * swell.fx + swell.px) + Math.cos(y * swell.fy + swell.py));
+      const dc = dist(x, y, CX, CY) / R;
+      h += CONST.CENTRE_RISE * Math.max(0, 1 - dc * dc);
+      return Math.max(0, Math.min(1, h + domeAt(x, y)));
+    }
+    /* the tallest dome under the point stands; domes do not stack into plateaus */
+    function domeAt(x, y) {
+      let dome = 0;
+      for (const k of hills) {
+        const dx = x - k.x, dy = y - k.y, q = (dx * dx + dy * dy) / (k.r * k.r);
+        if (q < 1) { const t = 1 - q; dome = Math.max(dome, k.h * t * t); }
+      }
+      return dome;
+    }
+    /* how steep the ground is here: the rise over a squad's step, 0 flat to ~1 a wall */
+    function slopeAt(x, y) {
+      const e = R * 0.05;
+      const gx = heightAt(x + e, y) - heightAt(x - e, y), gy = heightAt(x, y + e) - heightAt(x, y - e);
+      return Math.min(1, Math.sqrt(gx * gx + gy * gy) * 4);
+    }
+
+    /* §7.6 what cannot be crossed */
+    const seaLevel = arch.seaLevel || 0;
+    /* §7.7 the weather can raise the water for a day: flooding is a real rise in the level */
+    let flood = 0;
+    const setFlood = f => { flood = Math.max(0, f || 0); };
+    const waterAt = (x, y) => (seaLevel + flood) > 0 && heightAt(x, y) < seaLevel + flood;
+    /* a peak is the cap of a tall hill, whatever the floor beneath it — so the raised middle
+       never grows a mountain the last rings cannot use */
+    const peakAt = (x, y) => domeAt(x, y) > CONST.PEAK_LEVEL;
+    const passableAt = (x, y) => !waterAt(x, y) && !peakAt(x, y);
+    /* dry FOOTING, not a dry point: a squad stands on a patch of ground, so a landing wants the
+       point and a small ring around it clear. The nearest such footing to (x, y), searching
+       outward; the point itself if it qualifies. */
+    const FOOT = R * 0.035;
+    function footingAt(x, y) {
+      if (!passableAt(x, y)) return false;
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        if (!passableAt(x + Math.cos(a) * FOOT, y + Math.sin(a) * FOOT)) return false;
+      }
+      return true;
+    }
+    function nearestPassable(x, y) {
+      if (footingAt(x, y)) return { x, y };
+      for (let r = R * 0.02; r <= R * 0.6; r += R * 0.02) {
+        for (let k = 0; k < 16; k++) {
+          const a = (k / 16) * Math.PI * 2, qx = x + Math.cos(a) * r, qy = y + Math.sin(a) * r;
+          if (dist(qx, qy, CX, CY) <= R - FOOT && footingAt(qx, qy)) return { x: qx, y: qy };
+        }
+      }
+      return { x, y };
+    }
+
     function patchAt(x, y) {
       const w = warpAt(x, y);
       let best = patches[0], bd = Infinity;
       for (const p of patches) {
-        const d = (p.x - w[0]) * (p.x - w[0]) + (p.y - w[1]) * (p.y - w[1]);
+        const d = ((p.x - w[0]) * (p.x - w[0]) + (p.y - w[1]) * (p.y - w[1])) / (p.w || 1);
         if (d < bd) { bd = d; best = p; }
       }
       return best;
@@ -250,7 +354,10 @@
         const p = pointIn(rng, cx, cy, Math.max(0, slack));
         cx = p.x; cy = p.y;
       }
-      zone.push({ fromDay: CONST.ZONE_STEP_DAYS[w], cx, cy, r });
+      /* the first closings can be held back (opts.wallHold, in days) for a contest that
+         starts spread thin: the dispersed drop meets sooner and needs the ring to wait */
+      const hold = w === 0 ? 0 : Math.round((opts.wallHold || 0) * (w <= 2 ? 1 : 0.5));
+      zone.push({ fromDay: Math.min(CONST.LAST_GROUND_DAY - 1, CONST.ZONE_STEP_DAYS[w] + hold), cx, cy, r });
     }
     /* N18 — the last ground. The ring closes one final time and then stops closing; the
        contest runs on it until one banner is left. It does not expire and does not move. */
@@ -279,11 +386,12 @@
         for (let tries = 0; tries < 220; tries++) {
           const q = pointIn(rng, ring.cx, ring.cy, ring.r * 0.88);
           if (w === 0 && Math.abs(dist(q.x, q.y, CX, CY) - dropRing) < clearance) continue;
+          if (!passableAt(q.x, q.y)) continue;     /* §7.6 nothing worth digging under water or on a peak */
           let ok = true;
           for (const o of objectives) if (dist(q.x, q.y, o.x, o.y) < gap * 0.7) { ok = false; break; }
           if (ok) { p = q; break; }
         }
-        if (!p) p = pointIn(rng, ring.cx, ring.cy, ring.r * 0.6);
+        if (!p) p = nearestPassable(...Object.values(pointIn(rng, ring.cx, ring.cy, ring.r * 0.6)).slice(0, 2));
         const type = P.weightedPick(rng, OBJECTIVE_TYPES.map(t => [t, t.weight]));
         objectives.push({
           id: 'obj_' + (objId++), type: type.id, label: type.label,
@@ -307,8 +415,9 @@
       supplyStrain: arch.supplyStrain, salvage: !!arch.salvage,
       hazards: arch.hazards, bandBias: arch.bandBias,
       cx: CX, cy: CY, radius: R,
-      patches, zone, objectives, warp,
-      terrainAt, concealAt, speedAt, forageAt, patchAt, warpAt
+      patches, zone, objectives, warp, hills, seaLevel, waterName: arch.waterName || 'Water',
+      terrainAt, concealAt, speedAt, forageAt, patchAt, warpAt, heightAt, slopeAt,
+      waterAt, peakAt, passableAt, nearestPassable, setFlood, floodNow: () => flood
     };
   }
 
@@ -453,7 +562,7 @@
   }
 
   const api = {
-    CONST, ARCHETYPES, OBJECTIVE_TYPES, TERRAIN,
+    CONST, ARCHETYPES, OBJECTIVE_TYPES, TERRAIN, TERRAIN_NAMES,
     generatePlanet, zoneOn, zoneNext, tighteningTomorrow, inZone, outsideBy, towardZone,
     revealObjectives, siteLive, windowCadence, dist, pointIn, clampInside,
     setResourcePool, rollComposition, richnessOf, resourceValue, resourceCategory,

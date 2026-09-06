@@ -133,6 +133,15 @@
     ceded:             { own: [-4, -14], fleet: [-5, -18], aleas: 2, buyer: 3, residue: 0.15 },
     stood_down:        { own: [-1, -5], rival: 2, fleet: [-2, -6], aleas: 1, residue: 0.15 },
     bought_win:        { own: -2, rival: -6, fleet: [-4, -11], aleas: -3, residue: 0.15 },
+    /* §3.1a HOLDING OUT. A house whose odds fell through the floor and kept fighting is
+       what the crowd came to see; scaled by how hopeless it was and how much fight it gave. */
+    held_out:          { own: [2, 9], fleet: [1, 6], aleas: 1, residue: 0.20 },
+    /* §3.1b WHAT IS LEFT WAITING. A house that wrote and got no answer noticed; a board that
+       asked and heard nothing took the silence as the answer. */
+    snubbed_letter:    { rival: -4, residue: 0.25 },
+    /* The Eight: the fleet came to see it */
+    won_the_eight:     { own: 4, fleet: 6, aleas: 2, residue: 0.25 },
+    silent_before_board: { own: -3, aleas: -1, residue: 0.20 },
     refused_all:       { own: 6, rival: -5, fleet: 9, aleas: -4, residue: 0.30 },
     kept_truce:        { own: 1, rival: 7, fleet: 3, aleas: 1, residue: 0.15 },
     broke_truce:       { own: -1, rival: -22, fleet: -9, aleas: -3, residue: 0.55 },
@@ -501,14 +510,17 @@
     pool.push({ weight: ambition <= 2 ? 0.9 : 0.25, demand: { kind: 'win' } });
     pool.push({ weight: opts.thinTreasury ? 1.4 : 0.7,
                 demand: { kind: 'surplus', amount: 10000 + Math.round(rng() * 25000) } });
-    pool.push({ weight: 1.6, demand: { kind: 'losses', max: 9 + Math.floor(rng() * 8) } });
+    /* THE LOSSES DEMAND LEFT THE CARD. "Lose no more than N for good" measured the same thing
+       the standing Casualties demand grades on a spectrum every year; two readings of one
+       number is not a spread of asks. The bag is smaller, so a seed's card draws differently
+       than it did; the verdict cuts below are anchored to a score distribution that this
+       moves, and want re-measuring. */
     pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
     pool.push({ weight: standingNow < 10 ? 1.6 : 0.8,
                 demand: { kind: 'standing', audience: 'fleet',
                           above: Math.round(standingNow + 3) } });
     /* two more that a corp of any size can actually satisfy, so a card is a spread of
        achievable asks rather than a list of long shots */
-    pool.push({ weight: 1.5, demand: { kind: 'losses', max: 13 + Math.floor(rng() * 6) } });
     pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'own',
                                        above: Math.round(standing(rep, 'own') - 4) } });
 

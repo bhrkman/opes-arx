@@ -36,8 +36,27 @@ figure cost 65 seconds a run to produce a number the suite itself declares meani
 cd sim
 node arx.cjs regress --fast   111 checks, ~90s. The edit-loop gate.
 node arx.cjs regress          249 checks, ~5.5min (slower machines ~12min). Before packaging.
-cd ../harness && node drive.cjs   93 checks: drives the BUILT page through a whole year
-                              (one-time `npm install` for jsdom; node_modules is ignored)
+cd ../harness && node drive.cjs   drives the BUILT page through a whole year
+                              (one-time `npm install` for jsdom; node_modules is ignored;
+                               `npm install canvas` too and the maps draw for real —
+                               ARX_SHOT=1 / ARX_SHOT_DEPTHS=1 / ARX_SHOT_FOG=1 / ARX_SHOT_WORLD=x
+                               dump PNGs to /tmp so the drawing is looked at, not assumed)
+node harness/audit_ui.cjs     THE UI AUDIT — after every change to viewers/corp_template.html.
+                              Fails on the three things that have crept back into the page in
+                              every pass no matter how many notes were left, so the notes are
+                              a tool now:
+                                CASE    user-facing text is Title Case (small words stay small)
+                                PROSE   the page does not explain itself: no sentences, no
+                                        "because", no dashes that teach — labels, values, verdicts
+                                COLOUR  colour comes from the conventions, never a hex at the
+                                        point of use: stats STATCOL/gradeColour, credits crs(),
+                                        houses cSpan()/colFor(), fighters raceColour(), the
+                                        canvas from the TOK table, everything else a CSS var.
+                                        A plain cr() in HTML, a bare nameOfCorp(), a name
+                                        without its race colour all fail.
+                              Deliberate exceptions go in harness/audit_ui.allow.json by exact
+                              string. Do not add to the allowlist to make a run green — fix
+                              the page. The Desk's log lines narrate and are exempt by design.
 node audit_open.cjs       what is actually built, tested by running the game
 node audit_docs.cjs       does this document still agree with the code
 node audit_cross.cjs      does one step's work reach the next, or just sit there
@@ -174,18 +193,32 @@ decision made at a desk. That last
 clause is why the month is the unit and not the two-month block it used to be — it is the shape a
 second human player slots into with nothing rebuilt.
 
+*Re-cut since this was written — every month has a shape, and a hiring window is two months
+with two pools, each resolving at its own month's end, where it was a run-up and a deadline over
+one pool:*
+
 | | |
 |---|---|
-| **M1–2** | season open — the planet is announced, the board sets funding and its demands |
-| **M3–4** | Nattie tryouts |
-| **M5–6** | survey work, closing with **the Dividend** at the end of M6 |
-| **M7–8** | the **Kier Bastille intake**, at the end of M8 |
-| **M9–10** | the **merc deadline**, at the end of M10 |
+| **M1** | **the Review** — last year's Divide, the verdict, the new card, the holds' movement; no hiring, no table |
+| **M2** | **Natural-Born window** — your own ship's premium pool: younger, further from their ceiling, dearer; signs at the month's end |
+| **M3** | **Natural-Born window, second month** — a total refresh, the discount pool: older, nearer the ceiling, cheaper. Uncontested, so nothing carries: these are your ship's people |
+| **M4** | **the Dividend** |
+| **M5** | **Kier Bastille window** — a shared market of volunteers; the intake at the month's end |
+| **M6** | **Bastille window, second month** — whoever nobody took is still in the wing at a markdown, beside a fresh intake |
+| **M7** | **the fleet's event** — reserved: something with fleet-reaching scope, every year |
+| **M8** | **The Eight** — reserved: one name per OA, two teams of four, one fight, no retreat |
+| **M9** | **Mercenary window** — the contested market; anyone offered a contract chooses at the month's end and is gone |
+| **M10** | **Mercenary window, second month** — whoever nobody offered carries at a markdown beside a fresh lot; the roster floor lives here, the last door |
 | **M11** | the lock — who goes, and how many |
 | **M12** | **the Capital Divide** |
 
-A fixed date falls at the *close* of its month, after every corp has finished spending, which is
-what makes a deadline a deadline. The month before each is a run-up you can work.
+The table trades M2 through M11. A fixed date falls at the *close* of its month, after every
+corp has finished spending, which is what makes a deadline a deadline. The AI's Natural-Born
+signings are a yearly cap spent across both months (`NATTIE_YEAR_CAP` plus its shortfall); its
+merc and Bastille bids run in both months by the same budget test. Every window is worked
+through `choices[id]` and `placeBid`, so a human and an AI corp are the same kind of player to
+the engine — the rule for every system from here: if a player can do it, a computer can, and
+the other way round.
 
 Each month is a budget of action points against verbs that compete: treat the wounded, drill the
 green, survey the planet, work a signing window. **You cannot do all of them in the same month.**
@@ -765,9 +798,11 @@ Things that need a decision rather than a programmer.
   covers each bound, and how far a bound carries. None have been touched.
 - **Squad shape is now a decision.** *Built since this was written.* Ruled: three to six squads,
   three to eight people each, with a manager choosing who stands with whom and who leads. The
-  Squads board delivers exactly that — membership is dragged, not derived from the drop list;
-  leaders are chosen per squad rather than being whoever has the highest tactics; and loadout is
-  edited per hand through a shared detail panel. What remains open is only tuning (how many
+  Squads board delivers exactly that — membership is placed by the manager (pick a fighter up,
+  click a squad; drag-and-drop was tried and retired as too crude), not derived from the drop
+  list; leaders are chosen per squad rather than being whoever has the highest tactics; and
+  loadout is edited per hand through the fighter's sheet, which opens as a drawer from the board
+  and shares its blocks with the Roster's rail. What remains open is only tuning (how many
   squads a corp *should* field, and whether the game should push toward a shape), not the
   mechanism.
 - ~~**Nobody chooses what their people carry.**~~ **Answered.** The squads screen's shared
@@ -875,6 +910,427 @@ the drill in the seam, the sprout in the cradle, the open ring — stored as pro
 artist. Dosage: marks live where identity is the point — the banners, the encounter lines, the
 roster heads, the lock — and stay out of flowing prose, which keeps its colour-only names. The
 founded house flies the empty pennant: a house too new for a device.
+
+**The rest of the palette, audited. *Built since this was written.*** The same reading holds on
+every page: a fighter's NAME wears their race's fill (the colour of their circle on the field)
+on the Roster, the Squads, the Dividend, the Desk's Training and Recovery grids, the Talks, the
+month notes, and the Firefight's side rosters. A STAT is a label in the stat's own colour
+(`STATCOL`, the Training grid's) with its number on the grade scale — green high, red low,
+against the roster's spread — rendered by one `statCell()`; the sheet's older per-stat value
+hues (`--s-aim` and kin) are retired, and the abbreviations are one set (Aim Gri Ref Fld Tac
+Pre Res). Health grades on its own spread because hit points run 8–13. CREDITS are gold with
+the ₡ through `crs()` wherever they are a plain figure — salary, treasury, asks, prices,
+purses; only the trade beam signs its totals good/bad, because there the colour is direction.
+A CORP is `cSpan()`, never a plain name. Tiers are the badge. Squads are the six hues. Origins
+are the three.
+
+**The turn has a shape. *Built since this was written.*** Every month opens with THE BRIEF at
+the Desk's head — the month's name and shape in a line ("Your Own Ship's Discount Pool Signs at
+the Month's End"), whether the table is open, what is coming and when as countdown chips
+(Natural-Born Refresh Next Month · The Dividend in 3 · The Table Closes in 8), and the AGENDA:
+what waits on the manager this month — a house that has written, the board asking, a signing
+sheet with nothing marked, focus unspent, a roster under the drop floor, no squads set at the
+lock, hands incomplete — each a line that jumps to its tab. End the Month counts them ("End the
+Month · 2 Waiting"). Every month closes with THE RECAP, a page that stands between End the Month
+and the next brief: the month's work and its window, the training that took (the biggest gains
+by fighter and stat), money (the treasury before and after, the ledger's lines), people (who
+came, who left, whose status changed), standing (own, fleet, patience, each with its move),
+and what was left waiting — then Continue, and the next month's brief. Nothing an AI corp
+needs; everything a human turn was missing. The recap is what makes "I ended my turn" a
+felt thing. (Phase 1 of the game-not-simulation plan; Phase 3 makes what is left waiting
+resolve against you, Phase 2 fills the agenda with events.)
+
+**The days walk between windows. *Built since this was written.*** The Ground only ever
+animated the finished contest's replay; live, the comms windows drew complete. The window hands
+the page the record so far (`record`, the days with their tracks), the page keeps to its own
+house's squads on it and lays the picture on the latest day as sightings, and when the Ground
+opens after a window the days since the last one play forward — the scrubber taking the days so
+far, the Play control theirs. The truth of the other houses' movement stays with the replay.
+The Drop page fits a screen: the map bounded, the landings and the key beside it, the order
+strip compact.
+
+**Shadow, screen, and the rendezvous that ends in a strike. *Built since this was written.***
+Two manoeuvres the dispersed drop wanted and the mind did not have. SHADOW: a squad keeps a
+stronger known enemy in sight at `SHADOW_DIST` — outside contact, inside knowledge — its aim
+recomputed each dawn from the picture, done when the quarry goes out of it; the house's picture
+stays current without a fight. SCREEN: a squad stands between a digging mate and the nearest
+known threat at `STAGE_RADIUS` from the mate. Both are approaches the planner can choose (leaned
+toward by the careful stances) and orders a manager can give (Shadow names a sighting; Screen
+names a squad). And a RALLY CARRIES A PURPOSE: when what drove a house together is something it
+can beat together (`then`), the meet hands off into a hunt on arrival — meet, then strike — so
+a rendezvous is not the end of a plan but the middle of one.
+
+**The picture on the map. *Built since this was written.*** Live, the Ground shows what your
+house knows and nothing more: your own squads and your banner's as they are, every other house
+as its last sighting — a hollow circle in its colour with the count inside and when it was seen
+beneath (Landed, or the day), fading with age and gone when the picture forgets — and nothing
+where you know nothing. Sight and contact rings draw only round your own. The map used to draw
+every rival's true position every window, against the ruling. The truth waits for the replay,
+which is the broadcast.
+
+**Orders at the window. *Built since this was written.*** A manager's squads take orders in
+the planner's own vocabulary — Hold, Move, Dig a site, Meet a squad, Hunt a squad the house has
+seen, Fall Back — on the Table's squad rows, each a menu built from what the house knows: the
+sites revealed, its own squads, the picture's sightings (with the house, the count, and when).
+`answer.orders` = { sIdx: order }; the Divide turns each into an intent with the manager's name
+on it (`ordered`), and the planner leaves it alone until it is done or runs out — a Hold or a
+Meet standing where it is put, arriving being the point. Symmetric by construction: an AI's dawn
+plan and a manager's order are the same object executed by the same march. The row says what
+each squad is doing and whether it was ordered.
+
+**The dispersed drop — step three, the picture and the squad mind. *Built since this was
+written.*** What a house knows of everyone else is a PICTURE now (`corp._picture`: where a
+foreign squad was when it was last seen), not the `flares` that handed every corp every live
+position every dawn. The picture is written by the posted landings (every house, day one, good
+for `LANDING_KNOWN_DAYS`), by contact (both sides and their banners, when detection passes),
+and by the relay mast (everyone under the tower's banner); it is read fresh, a sighting older
+than `KNOWN_STALE` dropped. The dawn planner — strikes, pincers, hunting, hiding, the rest —
+runs on the picture, so a squad hunts what its house has seen, not what exists. The squad mind
+gains RALLYING: a house spread by its draft, with a stronger known enemy within
+`RALLY_THREAT_RANGE`, gathers at its own centre inside the wall (`meet`), leaned toward by the
+careful stances and away from by death-or-glory. Measured with the picture and a random strict
+draft against today's grouped landing at today's radius: week-one fights the same (18–29 against
+22–34), deaths the same (54–68 against 60–64), contests a little longer; a larger ring runs the
+contest to the last day without changing the deaths. The radius stays where it is. The fatality
+pass — half the drop dies — is the next piece, and it is now the only thing between the
+dispersed drop and a contest that plays the way it was ruled.
+
+**The dispersed drop — step two, the draft. *Built since this was written.*** At the seam the
+twenty-four slots are drafted: the houses in order of strength as the fleet reads it
+(`strengthRead`: the drop's quality and size, and standing with the fleet), weakest first,
+three rounds, strictly. An AI's pick (`chooseSlot`) values a free slot by what its survey lets
+it see — the prize and the cover by its greed — and by who has landed within two slots of it:
+a stronger neighbour it can beat draws an aggressive house, a stronger one it cannot repels a
+careful one; its own earlier picks draw a careful house together and push an aggressive one
+apart to flank. Every pick is posted. The Drop page IS the draft now: the order strip with
+each house's picks, the map with every slot numbered and filled in its house's colour as it
+goes, your turn a click on a free slot, your three landings read at your survey's depth, every
+landing listed, Drop when it is done. A human picks through `draftPick`; a fleet without one
+finishes the draft itself at the seam; `choices[id].slots` carries a remote human's picks.
+Measured: a careful house takes three neighbours (6, 7, 8); an aggressive one spreads
+(2, 21, 13).
+
+**The dispersed drop — step one, the ground for it. *Built since this was written.*** Ruled:
+squads do not drop together. Twenty-four slots round the ring, drafted among the houses lowest
+standing first, strictly (no snake — a snake would let the strongest cluster two squads); every
+house knows where every other came down, and nothing after. Step one lays the ground: the ring
+has `slots(planet, n)` (dry footing, each reading like a sector); the Divide lands a corp's
+squads at its picks (`opts.dropSlots`, `opts.slotCount`) or the old way without them; the
+planet takes a radius and a wall hold (`opts.radius`, `opts.wallHold`) so the ring can be grown
+or slowed if the spread needs it. `measure_drop.cjs` is the instrument. What it said, with a
+dumb random draft against today's grouped landing at today's radius: week-one fights the same
+(14–31 either way), total fights a little up (57–70 against 49–57), the contest longer (22–26
+days against 15–25). The spread did NOT set the ground alight — because the corp AI still
+plans as a bloc and pulls its squads together at dawn. The radius question therefore waits on
+step three, the squad mind; the knobs are in. And a finding that is not about the drop:
+FATALITY. On the seeds measured the Divide killed 77 of 152 fielded and 58 of ~150 — half the
+drop — where a stun-grade year killed none. That is the number behind "skyrocketed fatality",
+and it is its own tuning pass.
+
+**A pass of fix-ups. *Built since this was written.*** The audit gained a clause rule (six
+words around a verb is the page explaining itself, however short) and stopped exempting the
+month log's lines, since they show in the recap; the month shapes came off the brief and the
+year line, which reads titles only; the refresh months are named for their window
+("Natural-Born Window" twice), the pool named on the sheet. The recruitment window stands
+ABOVE the roster in its own key — green, the colour of signing — as a grid of prospects, not a
+rail. Events read as dispatches: a bar in the kind's colour, the kind named, the subject as a
+fighter card, the ways side by side with the cost under each. THE EIGHT cannot be declined —
+every house sends someone — and is named by clicking a fighter card; its result, both fours
+with each fighter's fate, the purse and Watch, lives in the recap of the month it happened, not
+the next month's Desk. ELEVATION draws as CONTOURS: brightness alone could not carry the height
+across five hues of brown, so where the ground crosses a height line between one cell and the
+next a thin pale line is drawn, at Read depth and above and wherever the squads have walked.
+The Drop's sector cards take the colour conventions — prize graded green/gold/red, rivals red,
+hidden and height graded, the shore warned, the terrain named in its own colour.
+
+**The year line. *Built since this was written.*** A route map of the year down the left of
+every preparation page: twelve stops, the current one lit, the past dim, each in its kind's
+colour (the Natural-Born, Bastille and Mercenary months in their origin hues, the Dividend in
+magenta, the fleet's month in the wall's violet, The Eight in red, the lock gold, the Divide
+green) with its name, a word of what it does, and how far off it is. Chosen over a header
+strip (too crammed on a small screen) and a swimlane grid (the systems do not overlap enough
+to need lanes yet); the brief's countdown chips came off, the line doing their job. It stands
+down for the Divide and on a phone.
+
+**The Eight. *Built since this was written.*** M8: one name from each house — the manager's
+choice on the Desk from the fit and unrole'd, or the house's best named for it; declining is
+seen (`declined_the_eight`, the fleet and your own people). The eight are seeded by standing
+with the fleet, 1·4·5·8 against 2·3·6·7, and fight once on the tactical grid with real kit,
+death-or-glory policy, nobody able to call a withdrawal (`noWithdraw`), real deaths — under a
+stun-grade edict the year's rule applies here too. Every entrant pays `EIGHT_ENTRY` into a pot
+the Aleas top up (`EIGHT_PURSE`); the winning four split it, take `won_the_eight` and the
+fame; the dead of The Eight count against the board's Casualties like the Divide's. The Desk
+carries the seeding before, the result and a Watch after; the recap says how your fighter's
+four did. Measured: one to three of the eight die a year. Every house plays it through
+`choices[id].eight` / `nameForEight`, the AI naming by fame and stats.
+
+**The fleet's month. *Built since this was written.*** (Phase 2b.) M7 brings one thing with
+fleet-reaching scope, the same card to every house (`FLEET_POOL` in events.js, seeded by the
+world): the Aleas close the wall early (the dome's schedule compressed to `FAST_WALL` of its
+days); a stun-grade Divide (every fatal round converted, the way the Dividend's are); pacts
+forbidden (the Table's truce says so); the survey goes public (every house reads the planet to
+depth two); an Aleas levy at the lock; a glut or a shortage that moves the shelf's prices for
+the year (`priceMult`, the shelf tags it Glut or Shortage). An edict can be petitioned against
+for `PETITION_COST`; if `PETITION_SHARE` of the fleet petitions it is withdrawn. The AI
+petitions as a stance — a house the edict cuts against by temperament pays to say so — so an
+edict usually stands and sometimes falls (measured: two or three petitions of eight, one
+withdrawal in eight worlds). The edicts ride into the Divide as `opts.edicts`.
+
+**Every game's world was the same world.** The planet was seeded from the season number alone,
+so every career's Year 1 was one planet, Year 2 another, for every manager who ever played — and
+the fleet's month, seeded from the world, came up identical eight times running, which is how
+it was found. The world has a seed of its own now (`_worldSeed`, drawn once a career from the
+game's rng, carried on the corps so a save rebuilds the same planet). One gate in arx.cjs was
+measuring the AI's scouting by accident — it sent a choice shape the engine never read — and
+fell when the rng moved; it sends the page's shape now.
+
+**Events. *Built since this was written.*** (Phase 2a.) `sim/events.js`: each month a corp may
+draw one or two incidents (`EVENT_P`, `SECOND_P`) from a pool the engine already has material
+for, and every one is a card with two or three options and their costs said: a famous fighter
+wants a raise (grant, refuse and they sour, release); a fighter carrying `war_debt` has their
+creditors call (pay, not your debt and they are hurt for it, sell the paper); a `hot_headed`
+brawl in the barracks (punish, fine both, let it lie); a memo from the board wanting the card's
+priority moved (move it for patience, hold it and pay); a rival's offer for a named fighter
+(take the money and your people notice, refuse, ask double); a slight in the fleet's postings
+(answer it, say nothing, laugh it off); a dealer at the airlock with a rare piece; and the
+FORK: a veteran with a talent, who can be made your Spy (a free intel level every month) or
+your Drill Sergeant (a free drill every month), off the line either way, or kept fighting —
+once a career. Events stand on the Desk under the brief and on the agenda with their default
+named; unresolved ones take their default at the month's end and the recap says "By Default"
+against "Your Call". SYMMETRY: every corp draws; a human answers through `answerEvent` (or
+`choices[id].events`), an AI through each event's own policy — the same options, the same
+consequences. Measured: about 0.6 events a corp a month, all eight kinds firing across two
+seasons. New acts: `sold_a_fighter`, `refused_an_offer`, `answered_a_slight`,
+`ignored_a_slight`.
+
+**What is left waiting costs. *Built since this was written.*** (Phase 3.) The agenda's items
+each say what letting them slide does, and the recap's *Left Waiting* says it again in red where
+it bit. A house that wrote and got no answer: the letter lapses at the month's end and the house
+remembers being snubbed (`snubbed_letter`, on their regard for you). The board that asked after
+the Divide and heard nothing before the year turned: silence is the answer (`silent_before_board`,
+own people and the Aleas, and three points of patience). A sheet with nothing marked: the pool
+moves on. Focus unspent: wasted. No squads set at the lock: the quartermaster deals the drop —
+a default you chose, said so. An incomplete hand: overridden. The fighter who walks and the
+sponsor who leaves arrive with Phase 2's events. And the Desk refreshes on open now; it did not,
+so a brief could stand stale until something else redrew it.
+
+**The Board has a spine. *Built since this was written.*** A head line — the year, patience,
+interest, the board's verdict once there is one, and a word for how your own people and the
+fleet stand; the question, when the board has one, at the top where it cannot be missed. Left,
+the card and the holds. Right, *Who Is Watching*: each audience a card with its standing bar
+and, inside it, the three remembered acts still moving the number — the memory folded into
+the audience it belongs to, where it used to be one undifferentiated list beside them. The
+other OAs beneath in a compact block. During the contest the card's placement and win rows
+read your banner's live chance of winning.
+
+**The Table is the day. *Built since this was written.*** It had become a grab-bag of five
+boxes after the Deal moved out. It is organised around the day now: a head line — the day of
+thirty, the window, the weather in words, your banner's chance of winning, who is standing
+and hurt and lost, whose banner you fight under, whether a word rides with the advance — with
+Next Comms Window as the one primary action beside it. Left: *Your Squads* (each squad's
+standing, the ground it is on and whether it holds the height, its rations as days with a
+bar, what it is doing) and the recap since the last window. Right: the stance as five notches
+that each say what they do (seek, take a fight, risk the wall, from `STANCE_DIALS`), the
+declared one marked; your word and its answer beneath, with a way to the Deal when nothing is
+composed. The assay moved to the Ground tab, where the map is.
+
+**The survey buys the picture. *Built since this was written.*** The planet dossier's Terrain
+row is the resolution of the map, on the Drop and on the Ground alike: Blank is fog — the coast
+and the peaks show from orbit, the rest is a grey guess; Sparse is the ground in coarse blocks
+with no height; Read is finer with the height on it; Full is the ground as it is. The Sites row
+at Full marks every assay site on the Drop's map. During the contest, wherever one of your own
+squads has walked reads true whatever the survey bought — the fog lifts along their tracks
+(`seenBySquads`, traced between windows). The key says what the picture is worth; the dossier's
+Terrain and Sites rows say what each depth buys. Gather Intel and the Divide are one system now:
+a manager who scouted lands seeing the ground, one who did not lands blind and learns it by
+walking.
+
+**Hazards are weather. *Built since this was written.*** The old `hazardCheck` rolled the same
+four effects — fatigue, rations, lost, an injury — per squad-day whatever the hazard was called:
+a whiteout did what heat did. Each day now brings one condition over the whole planet
+(`WEATHER_P`), drawn from the archetype's own list, and each kind does what its name says
+(`WEATHER` in divide.js): a whiteout or sandstorm cuts sight to a fraction and slows the march
+and loses squads their bearing; killing cold, heat, thirst and rot burn rations; a storm or
+downpour slows and blinds; a flood raises the water for the day (`setFlood`); and the
+terrain-bound kinds — crevasse falls, gas vents, currents, collapses, fever under the canopy,
+glare on the salt — injure only the squads standing on that terrain. The comms window carries
+the day's weather; the Table reads it in words with its figures, the Ground's key lists the
+world's weather and what each does, and the planet dossier's Hazards row at full depth says the
+same. Measured on a Desert Pan: thirteen weather days of twenty-five; squads rerouted round
+water and peaks twenty-eight times and were held by the ground fifteen.
+
+**Water and peaks. *Built since this was written.*** The floor rolls (`BASE_HEIGHT` plus a
+slow swell) and rises toward the middle (`CENTRE_RISE`), so the last rings are land on every
+seed; below a world's own sea level it is water — Meltwater, River, Lava, Sea, Flood, none on
+the Desert Pan — and the cap of a tall hill above `PEAK_LEVEL` is a peak. Neither is crossed:
+squads swing their heading up to a half-circle either way for open footing and hold where none
+is (`audit.routedRound`, `audit.heldByGround`), nothing worth digging spawns in them, and nobody
+lands in them — a landing wants dry FOOTING, a small ring of ground, not a dry point
+(`nearestPassable`). The ground between a lake and a peak is the pass everyone must use, which
+is the chokepoint without a rule for it. Coverage as measured: the Drowned World a quarter sea,
+the others a tenth or less, peaks one or two percent. On the map the water and the peaks draw in
+their own colours, and a first cut had the Drowned World's land nearly the colour of its sea —
+the palettes now keep land and water unmistakable on every world. The place-name labels came
+off the map (the drop points stay); the key beneath carries the world's terrains, its water,
+its peaks and the Low → High swatch.
+
+**Elevation. *Built since this was written.*** A world carries a height field (`heightAt`,
+`slopeAt` in map.js: five to nine broad domes, 0 the floor to 1 the summit), and the Divide
+reads it three ways: the high see the low (detection × (1 + `HEIGHT_SPOT` × the height
+difference between two squads)), steep ground is slow ground (pace × (1 − `HEIGHT_CLIMB` ×
+slope)), and the side that came from the higher ground meets the fight readier
+(`HIGH_GROUND_PREP` on its preparedness, which decides who fires first and how well each side
+deploys). The map shades terrain by height in its own key — pale is high — and the sector cards
+say High, Rising or Low Ground. The terrain patches themselves are country now: the domain warp
+ran at wavelengths longer than the planet, so it read as a uniform shift and the cells stayed
+straight-edged; it runs at three to eight waves across the disc, patches take sizes of their
+own (`PATCH_WEIGHT`), and the drawing samples cell centres out to the rim.
+
+**A palette per world, and a terrain of its own. *Built since this was written.*** Ruins on a
+planet nobody ever lived on were a strange sight. The four common terrains stay (open basin,
+broken ground, forest, entrenched); ruins are Dead Industrial's alone, and every other
+archetype has a special of its own with its own concealment, forage, pace and cover profile:
+the Ice Shelf's crevasse field, the Jungle Cradle's deep canopy, the Desert Pan's salt flats
+(nothing to hide behind at all), the Volcanic Waste's lava field (hard cover, hard going), the
+Drowned World's tidal marsh. Each archetype draws in its own palette (`PALETTES`) — an ice shelf
+in blue-greys, a lava waste in reds — with the special loudest, and the legend lists only the
+terrains that world has, the special first.
+
+**The Drop is a map. *Built since this was written.*** The landing page draws the planet as
+the survey knows it — terrain in the world's palette, its place-names, the first ring's centre
+dashed — with the six sectors on their ring, yours lit, rivals' counts on theirs at full depth;
+click a sector on the map or its card. The sectors are named for where they sit (east cut,
+south-east flats…); the old names put North Reach in the east. The harness now runs jsdom with a
+real canvas when `canvas` is installed, and `ARX_SHOT=1` dumps the Drop and the Ground to PNGs,
+so the drawing is looked at, not assumed.
+
+**The Ground reads. *Built since this was written.*** The five terrains draw in colours a
+manager can tell apart (they were five near-identical browns), the planet's own place-names
+sit faint on the map so the recap's "Long Rift" is somewhere, and a legend beneath says what
+each terrain does from the engine's own tables — cover (the share of positions that are hard
+cover or better, from `COVER_PROFILES`), how hidden a squad is (from `conceal`), pace (from
+`speed`), forage (from `forage`). These effects were always in play; nothing said so.
+
+**The Negotiation, in two facing columns. *Built since this was written.*** The Talks page
+is laid out as the genre lays it out: the two houses at the head with their treasuries and how
+they regard you; the pressure bar across the page with a one-line verdict (They Would Sign ·
+Short by ₡N · They Would Not Entertain This); *Your Terms* and *Their Terms* as facing tables
+— type, name, value — with a filter (All · People · Gear · Intel) and credits TYPED into a
+box, not clicked in lumps of ten thousand; gear grouped by type with its tier badge and a
+quantity of the stock to trade, where the old list moved the whole holding or nothing; the
+contract as it stands beneath, each line keeping what its row showed (the race-coloured name,
+the tier badge, the sub-line) with its value and a cross; Reset and Make the Offer at the foot.
+The placard about contracts travelling with the body is gone. THE OTHER HOUSE'S PURSE IS
+PRIVATE: the page showed their treasury outright; it shows what your dossier's finances row
+knows, or Unknown, and an ask they cannot pay is refused without the number. Credits read gold,
+and red when negative, through one `crs()`.
+
+**The landing is chosen. *Built since this was written.*** At the lock the Table shows the
+ring — six sectors, and on each what the survey bought: the ground and its cover at depth one,
+the prize and its distance to the centre at two, how many rivals land there at three. The
+manager picks a sector and Drops; the "Begin the Divide" button, which stood over an inert
+page, is gone. The engine's `chooseDropSector` had never been called by a human hand — the
+Landing Ring row bought knowledge nothing could act on.
+
+**Field Rations. *Built since this was written.*** A Store item (`itm_field_rations`, tier 2,
+₡160) adds `RATION_PACK_DAYS` (6) to its bearer's squad on top of the drop's fourteen — the
+one thing a kit can do about a planet the survey says is hard to keep fed. Money and a slot for
+food; the supply row is worth knowing now.
+
+**Nothing on the Deal is closed by fiat. *Built since this was written.*** A pact has a
+CHANCE, never a wall (`pactChance`): a house ahead of you wants paying and credits pay — a
+sweetener up to `PACT_CREDIT_SCALE` of the pot — and a house behind you wants the quiet and
+mostly says yes. The old `pactViability` refused "too close to be worth their while" and "you
+are doing better than they are" outright; the first is a price now and the second was
+backwards. Only structure closes a way: a banner already joined, a house under another's, a
+house that does not deal. The beam is a verdict in one line — They Would Sign · Short by ₡N ·
+Over by ₡N · Their Fans Forbid It Today — with the figures beneath as label and value: their
+chance of winning alone and together, the least they would take, the most they would pay, your
+offer read to each side, their trust, the leverage, your fans' charge. "On the board" is gone;
+odds read as a chance of winning.
+
+**The last two windows fold in. *Built since this was written.*** The Roster's card opens the
+same fighter drawer the Squads use — the rail panel is gone and the market has the rail; the
+Gather Intel dossier opens beneath its own row in the grid, the Training grid's habit, instead
+of in a box of its own below.
+
+**One deal window. *Built since this was written.*** The three ways — Join Their Banner,
+Take Them Under Yours, A Truce — stand at the top of *You Offer* as a single choice; picking
+one greys the others, each greyed one saying why it is closed today. What each side can put
+beneath depends on the way picked.
+
+**The planet's dossier reads as figures. *Built since this was written.*** The rows are The
+Ground (archetype, richness %, sites in all), The Veins (each resource named with its category,
+its share of the ground and its value), The Sites (per resource: how many, how many units —
+"63 Units to Play For", the board's own measure), Terrain (patch shares), Hazards (shares),
+Supply (the ration burn as a percentage, ration sites on the ground — supply is real: the
+strain multiplies every squad's ration demand) and The Landing Ring (what the row unlocks at
+the drop: the ground, the prize, where the rivals land). Every depth adds a figure, graded
+Blank / Sparse / Read / Full; nothing reads "partial". *The Demand* row left — the Board says
+it for free — and nothing on the sheet is snake_case any more.
+
+**A pact, said plainly. *Built since this was written.*** A pact is a truce: for
+`PACT_DAYS[1]` days neither banner's squads engage the other's. It has no price — the weaker
+banner asks, the stronger grants or refuses (a thrifty house more readily) — and it can be
+torn up, which the crowd sees. The Deal's pact card says all of this where it is offered; the
+word "pact" alone had said none of it.
+
+**The Table takes the Talks' shape. *Built since this was written.*** The negotiation has
+its own page on the Divide's rail, *The Deal*, beside the Table: a strip of every other
+house — mark, colour, odds on the board, and where it stands to you (Your Banner, Under You,
+Pact) — and a composer for the one selected: Join Their Banner, Take Them Under Yours, Seek a
+Pact, laid out as the Talks are — *You Offer* | *The Beam* | *You Ask For*. Terms go on the
+table as chips (a cut of the take, credits, a stand-down; the banner itself is always there),
+and the beam values them by the engine's own arithmetic — cut × expected take + credits,
+against the joiner's floor and the principal's ceiling — reading Short by, Over by, or They
+Would Take This as they stand, where the old two boxes offered a bare percentage. **A share of the haul is a term now. *Built since this was written.*** A deal may carry
+`resources: [{category, share, when}]`: a share of what the principal actually BANKS in a
+category, paid down the chain at the settlement like the pot (`settleHaul`, roots first, so a
+joiner's joiner takes a share of a share), and nothing banked means nothing owed — which is
+what keeps a joiner digging. `when: 'win'` pays only under the winning banner. The Divide has
+no fixed price for a unit: each house values a category by its own WANT (`wantOf` — an empty
+hold and a board that asks, doubly if it is the card's priority), so an offer reads two ways —
+worth to the joiner, cost to the principal — and `evaluateOffer` checks each against its own
+side's bound. A house short of food will sign for food a house stocked with food gives up
+cheaply; that gap is the surplus a deal in credits cannot find. The AI's old `deal.resource`
+flag, which the settlement never paid, is a real term now, asking for the category it is
+shortest of. On the Table the four categories stand as pool rows with each side's want and
+the principal's expected haul, an If-They-Win toggle, and the beam reads both sides. Before
+you sign, the beam also says what your fans will charge for quitting (or buying a win) on
+this day, from the same `priceOfBeingSeen` the engine bills afterwards. The composer never
+collapses: it opens on the first kind with a number both sides would sign, and when none
+would it still stands, the beam saying whose floor is where or whose fans forbid it — the old
+one-line "No Number" was read as no window at all. And the table's rows take the engine's own
+`viable`, wall included; they used to omit the wall and call closable what the crowd forbade. After the contest the
+Table shows what came home and what moved under terms. Beside it the ground's assay: every site
+revealed, its resource and category, and who has dug it, which is what a board's demand is
+written against and what a joiner is courted for. **And the next three of the arc. *Built since this was written.*** A NAMED CLAIM
+(`claims: [siteId]`): one revealed, undug site, dug by the banner but banked to the joiner,
+priced to each side like a share of the haul (`claimRates`, the site's units discounted by the
+banner's odds). THE SPOILER (`SPOILER_WEIGHT`): the share of the banner's expected losses this
+house accounts for while it stays out fighting, added to the banner's gain — a weak house's
+leverage, priced at nothing before; the beam reads it as "Their Leverage: Staying in the Fight
+Costs the Banner ₡N". HELD OUT (`held_out`): a house whose banner's odds fell under 0.15 and
+fought on from there, never sold and not the winner, is credited by its own fans and the fleet,
+scaled by how hopeless it was and how much fight it gave.
+
+**What the measurement then said.** Over three seeds, one Divide each: 77–151 offers sent,
+57–129 refused, ONE OR TWO joins a contest, no deals in kind at all, the contest ending on day
+19–28 with five or six banners still standing. Of the refusals, four in five fail because
+`joinerMin` exceeds `principalMax` by 1.2–2.2× — the seller's price stacks `aggressionHold` ×
+`relPrice` × (1 + `GREED_HOLDOUT`) × the crowd's premium onto `stayValue`, while the buyer's
+ceiling is `gain` cut by mercy and the same premium; one in five fails at the seller's wall on
+day two, the crowd's charge for quitting early, which is the design working. The arc the game
+wants — resist, establish leverage, then deal — was priced out by the greed stack before the
+resources or the spoiler could matter.
+
+**Tuned. *Built since this was written.*** `GREED_HOLDOUT` 0.55 → 0.25, swept with
+`measure_table.cjs` over four seeds. At 0.25: four or five joins a Divide, the first deals in
+kind, two or three banners standing at the end, and the crowd's wall the main cause of refusal
+— sellouts on day two still fail, which is the design working. 0.10 overshoots: one seed
+collapsed under the favourite on day 8, a market rather than a contest. `MIN_ASK_FRAC` moved
+nothing; the floor rarely binds. The baseline to hold from here: offers, refusals by cause,
+joins, deals in kind, stand-downs, the end day, and banners standing.
 
 ## The Divide's shape — the Table leads, the Firefight is a room. *Ruled at this pass.*
 
@@ -1002,12 +1458,18 @@ month step, the year walked straight through month six, and the only trace was a
 appeared on the Desk afterwards. A manager felt nothing happen on the one night the crowd turns
 up for.
 
-**The year stops when the lights come up.** Arriving at month six raises a Dividend phase on the
-rail — the floor, the grid, the roster — the same shape the Divide gets. End Month does nothing
-while the lights are up, so the show cannot be resolved from the desk with nobody named.
+**The year stops when the lights come up.** Arriving at the Dividend's month (`DIVIDEND_MONTH`, M4 now) opens the Dividend on the rail
+with the rest of the preparation still reachable beside it — the card is a roster decision, and
+the Squads, the Market and the Talks are part of making it. End the Month reads *Take the Floor*
+while the lights are up: ending the month IS taking the floor with the card as it stands, so
+there is one gate, not two, and the show cannot resolve with nobody named. *Revised from the
+first cut, which replaced the rail with a three-tab floor and needed a "Back to the Desk"
+press afterwards.*
 
-**The manager names who takes the floor.** Every fit, unpledged body is listed and the fleet's
-own choice is pre-named, so touching nothing still fields a sensible card. That is the decision
+**The manager names who takes the floor.** The floor is the Squads board's shape: the eligible
+stand at home as fighter cards on the left, the card on the right fills to eight with one open
+row, a cross takes a name off, a name opens the sheet. The fleet's own choice is pre-named, so
+touching nothing still fields a sensible card. That is the decision
 the format offers: blood the green where nobody can die, or put famous names in front of a
 paying crowd. A named card that cannot legally show falls back to the fleet's rule rather than
 fielding four people.
@@ -1024,8 +1486,12 @@ appear from the first year. Measured across eight fleets: drill 36%, spare 31%, 
 show 14% — and the cards differ visibly, a showing corp fielding average fame 19 against a
 drilling corp's 3.5.
 
-Afterwards the whole card is on the page, your match first, and any match replays on the same
-grid the Divide uses — because it is the same grid, and always was.
+Afterwards the lights go down by themselves: the whole card is on the page, your match first,
+any match replays on the same grid the Divide uses — because it is the same grid, and always
+was — and the rail is the preparation's again and the Desk is back; its shelf keeps every
+match watchable for the rest of the year. Next summer's show is its own: the done-flag resets at the
+new year (it did not, once, and every year after the first walked through month six in
+silence).
 
 ## Rest and Recovery is a grid, and nothing spent on it is wasted. *Ruled and built.*
 
@@ -1124,6 +1590,25 @@ read it was a separate baked page. The manager paid the price of being seen and 
 Now: the four audiences with the standing each holds, every rival in its own colour and mark,
 the card the manager's own board has put up for the year, and the memory behind each number,
 biggest first, because a standing with no story behind it cannot be acted on.
+
+**The card is read out. *Built since this was written.*** The page printed a `goal.text` that
+never existed — every year read "A strong Divide" — while the engine held the whole card: five
+or six demands with one the priority, and the two standing demands. Each is a sentence now
+("Place 4th or better", "End the year ₡13,250 up", "Bring home a measure of Copper Ore"), the
+priority starred, with the live reading beside it where the year can already say something
+(the surplus so far, the calls made, the standing now) and the scored Met / Missed after the
+Divide. Beside it the four holds — minerals, fuels, luxuries, foods — as bars of a full store,
+the one the card asks for tagged. The two standing demands read as *Spending* and *Casualties*
+on a spectrum from displeased to pleased with the year's marker on it, because they are graded,
+not met. The discrete "lose no more than N for good" demand LEFT THE CARD: it measured the same
+number Casualties already grades, so a card carried one ask printed twice. The pool is smaller
+and the verdict cuts were anchored to a distribution this moves — they want re-measuring.
+
+**And the planets had no ground in the browser.** `planets.json` was never bundled and nothing
+called `setResourcePool`, so every planet a manager ever played generated with no composition:
+no ore, no assay to fight over, no resource demand could ever reach a card, richness falling
+back to the archetype lean. Node loads the file from disk, so the regress runs never saw it. It
+rides in the bundle now and the module is handed it at load.
 
 After a Divide the board asks its question and the manager answers in one of six registers.
 The engine's own rule is kept exactly: nothing is scored, each register is right somewhere and

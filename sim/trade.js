@@ -52,7 +52,8 @@
     /* [C] regard moves the PRICE, it does not gate the deal — the same rule the Divide's
        own dealing already follows. A quarter either way at the extremes. */
     REGARD_SWING: 400,
-    LAST_TRADE_MONTH: 10,         // [C] ruled: the table closes after M10
+    FIRST_TRADE_MONTH: 2,         // [C] the review month has no table
+    LAST_TRADE_MONTH: 11,         // [C] ruled: the table trades M2 through M11 and closes with the lock
     /* [C] an AI proposes rarely and only when it wants something real. The every-turn
        nuisance offer is how a player learns to stop reading their messages. */
     OFFER_COOLDOWN: 4,            // months before the SAME OA writes again
@@ -153,7 +154,7 @@
     };
   }
 
-  function tradingOpen(month) { return month <= CONST.LAST_TRADE_MONTH; }
+  function tradingOpen(month) { return month >= CONST.FIRST_TRADE_MONTH && month <= CONST.LAST_TRADE_MONTH; }
 
   /**
    * THE DEAL ITSELF. Moves bodies, gear, credits and dossier rows between two corps.
