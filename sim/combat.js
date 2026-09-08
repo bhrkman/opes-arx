@@ -14,16 +14,30 @@
 
 const CONST = {
   /* §3.3 exchange loop */
-  EXCHANGE_CAP: 12,                       // [C]
-  STALEMATE_EXCHANGES: 7,                 // [C] consecutive scoreless exchanges before both break off
+  /* ============================================================================================
+     THE ABSTRACT MODEL'S DIALS. Everything marked [ABSTRACT] below belongs to the exchange-based
+     model the tactical grid replaced: exchange caps, band shifts, suppression weights, turret
+     and drone timings, stalemate rules. The housekeeping audit found thirty-odd constants that
+     nothing reads, and this is almost all of them — not rot, but the old model's instrument
+     panel left bolted to the wall beside the new one.
+
+     THEY ARE KEPT, DELIBERATELY, AND LABELLED: the grid's own numbers were derived FROM these,
+     several rulings in the docs are written in their terms, and the abstract model is still the
+     cheap answer for anything that ever needs to resolve a thousand fights without frames. What
+     is not acceptable is a reader thinking they still decide something — which is what happened
+     with MONWA_TETHER_COMP, ratified and unread, while the tether was built beside it with a
+     number somebody invented. Anything below marked [ABSTRACT] is not read by the grid.
+     ============================================================================================ */
+  EXCHANGE_CAP: 12,                       // [C] [ABSTRACT]
+  STALEMATE_EXCHANGES: 7,                 // [ABSTRACT] [C] consecutive scoreless exchanges before both break off
 
   /* §3.4 actions */
   AMMO: { shot: 1, suppress: 3, overwatch: 1 },        // [S]
   LOADOUT_AMMO: 16,                       // [C] NEW in v1 — COMBAT.md v0.3 should adopt this
   LOADOUT_RATE_CAP: 1.5,                  // [C] a fast weapon is issued more, but not unboundedly
   LOADOUT_BELT: 6,                        // [C] what a belt-fed weapon carries beyond a magazine
-  SUPPRESS_WEIGHT: 0.18,                  // [C]
-  OVERWATCH_WEIGHT: 0.06,                 // [C]
+  SUPPRESS_WEIGHT: 0.18,                  // [ABSTRACT] [C]
+  OVERWATCH_WEIGHT: 0.06,                 // [ABSTRACT] [C]
 
   /* COMPOSITION.md §4 — TEMPO. Shots per fighter per exchange.
    *
@@ -76,10 +90,15 @@ const CONST = {
     lava_field:     [0.20, 0.30, 0.40, 0.10],   // basalt ridges: hard cover, hard going
     tidal_marsh:    [0.35, 0.45, 0.20, 0.00]    // reeds and channels: soft cover, soft ground
   },
-  COVER_POSITIONS_PER_FIGHTER: 1.6,       // [C] slack in the pool — room to move, not room for everyone
-  COVER_IMPROVE_P: 0.75,                  // [C] chance the take-cover action lands a better slot
-  COVER_SUPPRESSED_DEGRADE_P: 0.12,       // [C] sustained fire chips a position down a grade
+  COVER_POSITIONS_PER_FIGHTER: 1.6,       // [ABSTRACT] [C] slack in the pool — room to move, not room for everyone
+  COVER_IMPROVE_P: 0.75,                  // [ABSTRACT] [C] chance the take-cover action lands a better slot
+  COVER_SUPPRESSED_DEGRADE_P: 0.12,       // [ABSTRACT] [C] sustained fire chips a position down a grade
   MOTION_HOLD: 1.00, MOTION_REPOS: 1.15, MOTION_HOVER: 1.35,   // [S]
+  TETHER_AIM_MULT: 0.82,                  // [C] §RACES what a stretched half's shooting is worth
+  SVALBARD_MOVING: 1.22,                  // [C] §RACES what firing on the move is worth to them
+  EXPOSED_HIT: 1.10,                      // [C] §QUIRKS what injury_exposure_up is worth against them
+  ATTORAK_FRENZY_AIM: 0.85,               // [C] §RACES what the frenzy costs their shooting
+  ATTORAK_FRENZY_DMG: 1.30,               // [C] and what it is worth when they land one
   SPOT_UNSPOTTED: 0.50, SPOT_OVERWATCH: 1.40,                  // [S]
   /* TRIED AND REMOVED: making a body on overwatch easier to hit, so that holding an arc cost
      something. It did what it said — watching fell from 99.8% of body-turns to 37% — and it did
@@ -98,9 +117,9 @@ const CONST = {
   UNSPOTTED_AIM: 3,                                            // [H]
   BAND_HIT_MULT: [0.80, 1.00, 1.32],      // [C] §3.2 long / medium / short
   BAND_SEV_BONUS: [-7, 0, 6],             // [C] §3.2 lethality by band
-  BAND_COMP_DRAIN: [0, -1, -2],           // [C] §3.2 "composure collapses fast" at short
-  BAND_SHIFT_AGREED: 0.38,                // [C] both sides want the same range
-  BAND_SHIFT_CONTESTED: 0.24,             // [C] winner of the contest moves it
+  BAND_COMP_DRAIN: [0, -1, -2],           // [ABSTRACT] [C] §3.2 "composure collapses fast" at short
+  BAND_SHIFT_AGREED: 0.38,                // [ABSTRACT] [C] both sides want the same range
+  BAND_SHIFT_CONTESTED: 0.24,             // [ABSTRACT] [C] winner of the contest moves it
 
   /* COMPOSITION.md §5.2 — CLOSING AND OPENING ARE DIFFERENT ACTS.
    *
@@ -111,26 +130,26 @@ const CONST = {
    * did nothing. You can cross ground if you are willing to be shot at while you do it; you
    * cannot reliably back away, because breaking contact under fire exposes you.
    */
-  BAND_OPEN_UNDER_FIRE: 0.35,             // [C] how badly backing away goes while being shot at
+  BAND_OPEN_UNDER_FIRE: 0.35,             // [ABSTRACT] [C] how badly backing away goes while being shot at
   /* And crossing costs the exchange. Without this line closing is free and the short build
      loses to nothing at all. The ground decides how survivable it is, which is what makes the
      planet a counter to a composition through the terrain system that already exists. */
   CROSS_EXPOSURE: 1.30,                   // [C] motion penalty while crossing
-  CROSS_COST_P: { open_basin: 0.95, broken_ground: 0.70, forest: 0.55,
+  CROSS_COST_P: { open_basin: 0.95, broken_ground: 0.70, forest: 0.55,   // [ABSTRACT]
                   ruins: 0.50, entrenched: 0.62,
                   crevasse_field: 0.72, deep_canopy: 0.50, salt_flats: 0.98,
                   lava_field: 0.66, tidal_marsh: 0.80 },   // [C] chance a crosser loses the exchange
   /* §5.1 — a pinned squad does not cross ground. This is the half that turns suppression from
      a small aim debuff into the thing the machine gun exists for. */
-  SUPPRESS_PIN: 1.0,                      // [S] share of a suppressed unit's push that is lost
+  SUPPRESS_PIN: 1.0,                      // [ABSTRACT] [S] share of a suppressed unit's push that is lost
 
   /* COMPOSITION.md §6 — tags that were declared, priced, sold, and inert. */
   DISORIENT_COMP: -8,                     // [C] composure a disorienting hit costs beyond the wound
-  ARC_CHAIN_FRAC: 0.5,                    // [C] what the second body in the arc takes
+  ARC_CHAIN_FRAC: 0.5,                    // [ABSTRACT] [C] what the second body in the arc takes
   RICOCHET_P: 0.25,                       // [C] chance a miss finds somebody else
-  MOB_STEP: 1,                            // [S] what mob_up / mob_down move a weapon's mobility by
+  MOB_STEP: 1,                            // [ABSTRACT] [S] what mob_up / mob_down move a weapon's mobility by
 
-  BAND_CLOSE_BIAS: 1.55,                  // [C] closing is marginally easier than opening under fire
+  BAND_CLOSE_BIAS: 1.55,                  // [ABSTRACT] [C] closing is marginally easier than opening under fire
   BAND_MISMATCH_PENALTY: 1.5,             // [S] per band off optimal — softened from 2 in Step 3b
   /* A SPECIALIST IS SPECIALISED. On the grid, fights settle toward medium, so a medium-band
      weapon is in its element about half the time whatever happens while a long or short weapon
@@ -198,7 +217,7 @@ const CONST = {
   RECOVER_BY_SEV: { graze: 0.94, light: 0.90, serious: 0.78, critical: 0.60, killed: 0.45 },
 
   /* §3.7 downed */
-  BLEED_SERIOUS: 6, BLEED_CRITICAL: 3,    // [C] exchanges
+  BLEED_SERIOUS: 6, BLEED_CRITICAL: 3,    // [ABSTRACT] [C] exchanges
   TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.02,  // [C]
   /* MEDKIT_RATE deleted at Step 5b-2: whether a squad has medical kit is no longer a
      coin flip, it is whether somebody bought one and is carrying it (PROCUREMENT.md §10). */
@@ -216,7 +235,7 @@ const CONST = {
   },
   COMP_BANDS: { steady: 70, shaken: 45, rattled: 25 },           // [S]
   AIM_PENALTY_BY_BAND: { steady: 0, shaken: 1, rattled: 3, broken: 5 },  // [S]
-  ROUT_SLOPE: 0.018, ROUT_MAX: 0.60, ROUT_THRESHOLD: 25,         // [C] aligned to §4.3's broken band
+  ROUT_SLOPE: 0.018, ROUT_MAX: 0.60, ROUT_THRESHOLD: 25,         // [ABSTRACT] [C] aligned to §4.3's broken band
   /* §6 energy weapons: heat inside the fight, charge across the day. A ballistic weapon
      is limited by supply; an energy weapon is limited by tempo. */
   HEAT_SHED: 2,                           // [S] per exchange the weapon does not fire
@@ -224,30 +243,30 @@ const CONST = {
   VENT_EXCHANGES: 1,                      // [S] 2 with the vent_2 quirk
   /* §10 consumables — single use, each a real action in the exchange, not a modifier. */
   GRENADE_POWER: 7,                       // [C] frag; incendiary adds its quirk on top
-  GRENADE_TARGETS: 3,                     // [S] up to three in band
+  GRENADE_TARGETS: 3,                     // [ABSTRACT] [S] up to three in band
   GRENADE_WEIGHT: 0.22,                   // [H] how readily a fighter reaches for one
   GRENADE_LAND_P: 0.50,                   // [C] per target, before cover: it is thrown, not aimed
   GRENADE_COVER_P: 0.16,                  // [C] each grade of cover this much less likely to matter
-  SMOKE_EXCHANGES: 2,                     // [S] how long a screen lasts
-  STIM_COMPOSURE: 25,                     // [C]
+  SMOKE_EXCHANGES: 2,                     // [ABSTRACT] [S] how long a screen lasts
+  STIM_COMPOSURE: 25,                     // [ABSTRACT] [C]
   /* §10 `deploy` — a turret is not a body: it shoots, it cannot be routed, it is not a
      casualty and it does not count toward a squad breaking. A drone does not shoot at all;
      it takes the dark away from the people you are shooting at. */
-  TURRET_EXCHANGES: 4,                    // [S]
-  TURRET_AIM: 9,                          // [C] steady, unimaginative, never flinches
-  TURRET_COVER: 1,                        // [C] emplaced, but a machine that cannot duck.
+  TURRET_EXCHANGES: 4,                    // [ABSTRACT] [S]
+  TURRET_AIM: 9,                          // [ABSTRACT] [C] steady, unimaginative, never flinches
+  TURRET_COVER: 1,                        // [ABSTRACT] [C] emplaced, but a machine that cannot duck.
                                           //     At hard cover nothing but an EMP could kill
                                           //     one, which made it a consumable with no
                                           //     counter — 2.60 inflicted against 1.40.
-  TURRET_HP: 2,                           // [C] hits it takes before it stops working
-  TURRET_TARGET_P: 0.40,                  // [C] share of fire that goes at the gun instead
+  TURRET_HP: 2,                           // [ABSTRACT] [C] hits it takes before it stops working
+  TURRET_TARGET_P: 0.40,                  // [ABSTRACT] [C] share of fire that goes at the gun instead
                                           //     of the people — it is the loudest thing there
-  TURRET_EMP_MULT: 3,                     // [S] §4.2 `emp`: built to kill machines
-  DRONE_EXCHANGES: 4,                     // [S] how long the sky stays lit
+  TURRET_EMP_MULT: 3,                     // [ABSTRACT] [S] §4.2 `emp`: built to kill machines
+  DRONE_EXCHANGES: 4,                     // [ABSTRACT] [S] how long the sky stays lit
   /* REMOVED in the Step 6 audit: SIDEARM_TIER_FLOOR. Declared, never read. */
   MOTION_AIM_RECOVERY: 2,                 // [C] what `stabilized` gives back when firing on the move
-  WITHDRAW_ROUT_MULT: 0.62,               // [C] a called withdrawal is not a rout — bounding, not scattering
-  CAPTAIN_STEADY_MAX: 0.72,               // [C] floor on the multiplier a standing captain can apply
+  WITHDRAW_ROUT_MULT: 0.62,               // [ABSTRACT] [C] a called withdrawal is not a rout — bounding, not scattering
+  CAPTAIN_STEADY_MAX: 0.72,               // [ABSTRACT] [C] floor on the multiplier a standing captain can apply
 
   /* §5 rout / capture */
   ROUT_SQUAD_FRACTION: 0.40,              // [C] squad breaks when this share has routed
@@ -255,7 +274,7 @@ const CONST = {
 
   /* §8.1 (DIVIDE.md) captain judgment — replaces the deleted policy notch table.
      `own_down` is a COUNT, so HOLD_BASE is calibrated up from the spec's 1.4. */
-  BASE_COVER_BIAS: 0.35,                  // [C] was POLICY.coverBias; now flat (D1)
+  BASE_COVER_BIAS: 0.35,                  // [ABSTRACT] [C] was POLICY.coverBias; now flat (D1)
   CAP_THREAT_DOWN: 1.0,                   // [C] per own fighter down
   CAP_THREAT_COMPOSURE: 3.0,              // [C] × (1 − avg composure/100)
   CAP_THREAT_AMMO: 2.0,                   // [C] × dry fraction
@@ -263,7 +282,7 @@ const CONST = {
   CAP_THREAT_ENEMY_DOWN: 0.35,            // [C] subtracted; 0.6 cancelled own losses in symmetric fights
   CAP_HOLD_BASE: 1.9,                     // [C] see note above; tuned against the real day loop
   CAP_HOLD_TACTICS: 0.10,                 // [C] judgment accuracy, not stubbornness
-  RECOVERY_BASE_P: 0.72,                  // [C] eagerness to go to a downed squadmate
+  RECOVERY_BASE_P: 0.72,                  // [ABSTRACT] [C] eagerness to go to a downed squadmate
   TREAT_EXPOSURE_MULT: 1.30,              // [S] §3.7 worse than open ground; see hitChance
 
   /* §7 injuries */
@@ -523,7 +542,7 @@ const QUIRK = {
   /* --- aim --- */
   /* The catalog's own words: "At short band the target's cover counts one grade worse; at
      long, aim_eff -3." The aim half read the engagement band correctly. The cover half read
-     `bandOf(s)` — the shooter's WEAPON band — which is `short` for every weapon that carries
+     `weaponBandOf(s)` — the shooter's WEAPON band — which is `short` for every weapon that carries
      spread, so the condition was always true and a shotgun ignored a grade of cover from
      across the map. It measured 8-1 in the league and this is most of why. */
   spread: { aim: (c, b) => b === 0 ? -3 : 0,
@@ -592,7 +611,11 @@ function loadoutFor(weapon) {
   return Math.round(CONST.LOADOUT_AMMO * t) + belt;
 }
 
-function bandOf(c) { return BANDS.indexOf(c.weapon.range || 'medium'); }
+/* TWO RULES SHARED ONE NAME. `bandOf` here takes a FIGHTER and reads the band their weapon
+   was built for; `bandOf` in tactical.js takes a DISTANCE and says which band that is. Neither
+   was wrong and either could be read as the other, which is the sort of thing that survives
+   every test and ruins one afternoon. This one is named for what it asks. */
+function weaponBandOf(c) { return BANDS.indexOf(c.weapon.range || 'medium'); }
 
 /* Verbose-only: what this fighter chose to do, so a viewer can step one BODY at a time
    instead of one exchange at a time. Costs nothing when verbose is off. */
@@ -699,7 +722,9 @@ function bandMismatch(c, bandIdx) {
 function aimEff(c, bandIdx, ctx) {
   let a = c.stats.aim;
   if (c.hooks.has('accuracy_bonus')) a += 2;
-  if (ctx.squadLink) a += 1;                                          // Gil psion_squad_link
+  if (ctx.squadLink || (ctx.side && ctx.side._psi && ctx.side._psi.link)) a += 1;   // Gil psion_squad_link
+  /* §QUIRKS a fighter who shoots better waiting than moving, when the shot is a reaction */
+  if (ctx.overwatch && c.hooks.has('overwatch_bonus')) a += 2;
   if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += 3;
   /* Shooting before they know where you are. The grid sets this when the target's side has
      neither eyes on the shooter nor a recent shot to look toward; nothing else passes it, so
@@ -750,6 +775,39 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
      simply standing in the open. You are not shooting, so nothing is keeping their heads
      down, and you are moving fast rather than carefully. */
   if (target.treating) m *= CONST.TREAT_EXPOSURE_MULT;
+  /* §RACES a half working outside the tether does not shoot like a whole being */
+  if (shooter._tetherStrained) m *= CONST.TETHER_AIM_MULT;
+  /* §RACES SVALBARD FIRE ON THE MOVE. A quadruped built like cavalry does not stand off and
+     snipe — a first cut gave them the long band, which was the wrong animal entirely. They
+     shoot from the gallop: what costs everybody else their aim while crossing ground costs
+     them much less, and a squad they are moving through is a squad that is still shooting. */
+  if (shooter.repositioning && shooter.race === 'svalbard') m *= CONST.SVALBARD_MOVING;
+  /* §RACES THE BLOOD IN A GNOLL'S EYES. An Attorak with a body in front of them fights harder
+     and shoots worse: they close, they swing, and their aim goes with the frenzy. */
+  if (shooter._frenzy > 0) m *= CONST.ATTORAK_FRENZY_AIM;
+  /* §QUIRKS a body that is easier to hurt is easier to hit hard: injury_exposure_up was
+     carried and never read */
+  if (target.hooks && target.hooks.has('injury_exposure_up')) m *= CONST.EXPOSED_HIT;
+  /* §3.9 WHY THE SHOT WAS THAT LIKELY. The chance was a number with no account of itself, so
+     a manager watching a replay could see a squad lose and never learn what beat it. The two
+     or three things that moved this shot most are named, in the order they mattered, and the
+     page prints them beside the percentage. Nothing here changes the odds. */
+  const why = [];
+  const cw = ['No Cover', 'Light Cover', 'Hard Cover', 'Dug In'][coverIdx];
+  if (coverIdx > 0) why.push([cw, CONST.COVER_MULT[coverIdx]]);
+  const bandName = ['Close', 'Medium', 'Long'][bandIdx] || '';
+  if (CONST.BAND_HIT_MULT[bandIdx] !== 1) why.push([bandName + ' Range', CONST.BAND_HIT_MULT[bandIdx]]);
+  if (target.flanked) why.push(['Flanked', 1.4]);
+  if (!target.spotted) why.push(['Unspotted', CONST.SPOT_UNSPOTTED]);
+  if (overwatch) why.push(['Overwatch', CONST.SPOT_OVERWATCH]);
+  if (target.suppressed) why.push(['Suppressed', CONST.SUPPRESSED_HARDER_TO_HIT]);
+  if (target.hovering) why.push(['Hovering', CONST.MOTION_HOVER]);
+  else if (target._crossed) why.push(['Caught Crossing', CONST.CROSS_EXPOSURE]);
+  else if (target.repositioning) why.push(['Moving', CONST.MOTION_REPOS]);
+  if (target.treating) why.push(['Treating the Wounded', CONST.TREAT_EXPOSURE_MULT]);
+  if (shooter.ammo != null && shooter.ammo <= 2) why.push(['Low on Rounds', 0.9]);
+  why.sort((a, b) => Math.abs(Math.log(b[1])) - Math.abs(Math.log(a[1])));
+  hitChance.why = why.slice(0, 3).map(x => x[0]);
   return clamp(base * m, 0.005, 0.95);
 }
 
@@ -1028,6 +1086,9 @@ function rollInjury(rng, u, worst) {
      be permanently maiming people in a show-match, which is the same fault as killing them. */
   const stunned = u._killedBy && hasQuirk(u._killedBy, 'nonlethal');
   if (!stunned && type === 'inj_spinal' && rng() < CONST.SPINAL_PERMANENT_P) { severity = 'permanent'; permanent = true; }
+  /* §RACES a hurt wing does not fly: the injury table already knew where a Thythyn is hit,
+     and now the grid does too */
+  if (String(type).indexOf('inj_wing') === 0) u.wingHurt = true;
   if (!stunned && type === 'inj_wing_loss') { severity = 'permanent'; permanent = true; }
   if (type === 'inj_wing_strut') severity = 'serious';
   if (type === 'inj_wing_spar') { severity = 'critical'; if (!stunned && rng() < CONST.WING_SPAR_PERMANENT_P) { severity = 'permanent'; permanent = true; } }

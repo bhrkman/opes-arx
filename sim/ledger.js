@@ -35,6 +35,15 @@
     MEDICAL_PER_INJURY: 900,         // [C] treating one wounded fighter between Divides
     DEATH_BENEFIT_MULT: 5,           // [C] x monthly salary, averaged across pools
     ALEAS_ENTRY: 40000,              // [C] what it costs to be in the Divide at all
+    /* §GATE THE FANS PAY. A house's own people and the fleet's watchers buy tickets, kit and
+       whatever else this fleet sells, and the money lands every month so a manager sees his
+       popularity in the same recap as the choices that moved it. Fame on the roster draws a
+       crowd; standing decides whether they come back. */
+    GATE_BASE: 2600,                 // [C] a month's gate for a house nobody minds
+    GATE_PER_STANDING: 55,           // [C] per point of standing with your own people
+    GATE_FLEET_SHARE: 0.35,          // [C] fans on other ships, per point of fleet standing
+    GATE_PER_FAME: 22,               // [C] per point of roster fame (the draw)
+    GATE_FLOOR: 0,                   // [C] a hated house sells nothing; it does not pay to play
     ALEAS_WINDOW_FEE: 1200,          // [C] per unscheduled comms window
     /* S15 — what a fighter is paid for being on the books rather than for going down the
        well. The rest of the contract is the purse, and it is only paid to those who drop.
@@ -121,7 +130,9 @@
     return {
       corpId: profile.id,
       treasury: opts.treasury != null ? opts.treasury : Math.round((band[0] + band[1]) / 2),
-      grant: (profile.finance && profile.finance.funding_base) || 200000,
+      /* §FOUNDING a house nobody has heard of is not underwritten like one that has been
+         paying out for a century: a founder's grant is what the opts say it is */
+      grant: opts.grant != null ? opts.grant : ((profile.finance && profile.finance.funding_base) || 200000),
       season: opts.season || 1,
       solvent: true,
       ledger: []                      // one line per movement, for the broadcast and for Step 8
@@ -163,6 +174,13 @@
    *
    *   retainerBill(roster) + purseBill(dropped) = what the season actually cost in people.
    */
+  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw. */
+  function gateFor(ownStanding, fleetStanding, rosterFame) {
+    const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
+    const good = (ownStanding || 0) + (fleetStanding || 0) * CONST.GATE_FLEET_SHARE;
+    const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
+    return Math.max(CONST.GATE_FLOOR, Math.round(v));
+  }
   function wageBill(roster) {
     let m = 0;
     for (const f of roster) m += (f.contract && f.contract.salary) || 0;
@@ -292,7 +310,7 @@
              short: Math.max(0, plan.shortfall - canRaise) };
   }
 
-  const api = { CONST, open, post, wageBill, retainerBill, purseBill, payPurse, wageBillAt, meanSalary, procurementBudget, settleSeason,
+  const api = { CONST, open, post, wageBill, gateFor, retainerBill, purseBill, payPurse, wageBillAt, meanSalary, procurementBudget, settleSeason,
                 musterCheck, bookDivide, callOnBoard, squadBonus };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;

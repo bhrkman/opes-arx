@@ -236,6 +236,34 @@
        banner's) have seen, where they saw it, until it goes stale. */
     LANDING_KNOWN_DAYS: 2,              // [S] the posted landings are current information this long
     RALLY_THREAT_RANGE: 0.20,           // [C] a stronger known enemy within this makes a spread corp gather
+    /* §MIND THE MANAGER'S TWO LEVERS. A manager does not tell a squad what to do — he sets the
+       stance, and he says which houses he would rather his people found. A leaning of 1 to 5
+       (3 is nothing) multiplies how near a rival READS when a squad is choosing whom to seek
+       or avoid: a house leaned toward feels closer than it is, one leaned away feels further.
+       It never forbids and never orders; the squad still decides by its stance. */
+    LEAN_PULL: 0.30,                    // [C] how much a full leaning moves the reading
+    /* APPROACH_SHARPNESS stood here until the captain's judgement replaced it: how sharply a
+       squad favours its strongest need is the CAPTAIN's now, not one number for the fleet.
+       Removed rather than left for somebody to read as though it still decided something. */
+    /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
+       same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
+       led by a frightened corporal. A captain now brings three things to the decision:
+         JUDGEMENT (tactics) — how sharply the weighing favours the best answer. A poor captain
+           draws nearly at random from what seems reasonable; a great one almost always takes
+           the strongest need.
+         SIGHT (fieldcraft, and what the house knows) — how much of the picture the captain is
+           actually weighing. A poor captain reads only what is close; a great one reads what
+           the house has seen, and reads it as it is.
+         NERVE (resolve and presence) — whether the numbers are read hopefully or fearfully.
+           A frightened captain sees more enemies than there are and fewer of his own.
+       A captain also thinks further ahead the better he is: a plan he sets, he keeps. */
+    MIND_LOW: 25, MIND_MID: 90, MIND_HIGH: 135,   // [C] the spread a roster's stats actually deal
+    HUMAN_COMMAND: 0.12,                // [C] §RACES what a human's aptitude for command is worth
+    JUDGE_MIN: 1.1, JUDGE_MAX: 3.4,     // [C] the sharpness the worst and best captains bring
+    SIGHT_NEAR: 0.10,                   // [C] the ground a captain of 0 can weigh at all
+    SIGHT_FAR: 0.55,                    // [C] and what a captain of 100 weighs
+    NERVE_SWING: 0.45,                  // [C] how far nerve bends the count of what is out there
+    PLAN_DAYS_MIN: 2, PLAN_DAYS_MAX: 6, // [C] how long a captain's plan stands before rethinking
     /* §MIND SHADOW AND SCREEN, the dispersed drop's manoeuvres. A shadowing squad keeps a
        stronger known enemy in sight at SHADOW_DIST — outside contact, inside knowledge — so the
        house keeps its picture current without a fight. A screening squad stands between a
@@ -622,7 +650,7 @@
     const corp = {
       id: profile.id, profile, policy: stance, declaredAt: stance,
       rigidity: rigidity != null ? rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
-      squads: [], allBodies: [], stanceChanges: 0, oreCredit: 0, sitesClaimed: 0, engagements: 0,
+      squads: [], allBodies: [], stanceChanges: 0, hauled: 0, sitesClaimed: 0, engagements: 0,
       /* Step 6 — the banner. Every corp drops holding its own claim. `joinedTo` is the corp
          it ceded that claim to, if any; follow the chain to the principal. Irreversible
          (N4): once set it is never cleared and never repointed. */
@@ -1580,6 +1608,15 @@
      day 1), by contact (both sides, and their banners), and by the relay mast (everyone under
      the tower's banner). Read fresh: a sighting older than KNOWN_STALE is dropped, a landing
      after LANDING_KNOWN_DAYS. Nothing else hands a corp another's position. */
+  /** §MIND how near a house reads to this one: 5 pulls them in, 1 pushes them away, 3 is the
+      truth. The manager's second lever, and the AI's own standing preferences ride the same
+      wire — a house that hates another leans toward it without being told. */
+  function leanOf(corp, otherId) {
+    const L = corp._leanings || {};
+    const v = L[otherId];
+    if (v == null || v === 3) return 1;
+    return 1 - (v - 3) / 2 * CONST.LEAN_PULL;
+  }
   function recordSighting(corp, other, day, live) {
     if (!corp || !other || other.corpId === corp.id) return;
     corp._picture = corp._picture || {};
@@ -1749,11 +1786,11 @@
   }
 
   const APPROACH_LEAN = {
-    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:1.45, rallying:1.35, shadowing:1.20, screening:1.30, days:4 },
-    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:1.20, rallying:1.20, shadowing:1.10, screening:1.15, days:4 },
-    standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, shadowing:1.00, screening:1.00, days:3 },
-    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:0.75, rallying:0.80, shadowing:0.70, screening:0.85, days:3 },
-    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:0.45, rallying:0.55, shadowing:0.40, screening:0.60, days:2 }
+    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:1.45, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
+    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:1.20, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
+    standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
+    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:0.75, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
+    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:0.45, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
   };
   /* `prospecting` is new at Step 7 and it exists because the board's ask had no verb behind
      it. A corp was told at season open to bring back a named resource, and mining was a side
@@ -1761,8 +1798,13 @@
      in the corp's lap, which measured at 1.6%. Weighting the site chooser did almost nothing
      (1.6% → 2.7%), because a squad only looks at sites when it is already short of supplies.
      What was missing was not a weight. It was an intention. */
+  /* §MIND WHAT A SQUAD MAY BE DOING. The manager sets a stance and says which houses he would
+     rather his people found; everything below is the squads' own. The list is long on purpose —
+     it is invisible to a manager, so it costs nothing to be various, and a contest where every
+     squad is doing one of four things reads as four squads. */
   const APPROACHES = ['resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
-                      'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening'];
+                      'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening',
+                      'entrenching', 'baiting', 'sweeping', 'pressing'];
 
   /** A sighting older than this is not information. */
   function knownCount(sq, day) {
@@ -1774,7 +1816,7 @@
   function approachValid(sq, planet, day) {
     if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day));
     /* nothing left to dig means nothing to prospect for */
-    if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'ore_assay' && MAP.siteLive(o, day));
+    if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'resource_site' && MAP.siteLive(o, day));
     return true;
   }
 
@@ -1788,7 +1830,7 @@
 
     let near = null, nearD = 9;
     for (const f of foreign) {
-      const dd = MAP.dist(sq.x, sq.y, f.x, f.y);
+      const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId);
       if (dd < nearD) { nearD = dd; near = f; }
     }
     let site = null, sd = 9;
@@ -1804,6 +1846,13 @@
     const mateD = mates.length ? Math.min.apply(null, mates.map(s => MAP.dist(sq.x, sq.y, s.x, s.y))) : 9;
 
     switch (ap) {
+      case 'resupplying': {
+        /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
+           Being dry was a state nothing wanted anything about. */
+        const dry = 1 - Math.max(0, Math.min(1, (sq.ammo == null ? CONST.AMMO_LOAD : sq.ammo) / CONST.AMMO_LOAD));
+        if (dry > 0.6) return 0.55 + dry * 0.2;
+      }
+      /* falls through to the kit and ration reasons */
       case 'resupplying':
         /* The kit term used to read `sq.gearTier < 3`, and `gearTier` started at 3 and was
            only ever raised, so it was FALSE in all 1,417 squad-fights of six Divides. The
@@ -1824,6 +1873,29 @@
         return wounded * 0.16 + (fatigue > 55 ? 0.40 : 0) + (fatigue > 75 ? 0.35 : 0);
       case 'consolidating':
         return (head <= CONST.REFORM_AT ? 0.65 : 0) + (mateD < CONST.CONSOLIDATE_RANGE && head < 5 ? 0.25 : 0);
+      case 'entrenching': {
+        /* good ground under us, a wall coming, and nothing worth walking to: dig in and let
+           them come to it */
+        const good = planet.heightAt ? planet.heightAt(sq.x, sq.y) : 0.5;
+        const inZone = MAP.dist(sq.x, sq.y, z.cx, z.cy) < z.r * 0.8;
+        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < CONST.CLAIM_RANGE ? 0.15 : 0);
+      }
+      case 'baiting': {
+        /* let ourselves be seen on ground of our choosing, and meet whoever comes on it */
+        if (!near || nearD > CONST.SIGHT_RANGE * 2) return 0;
+        const cover = 1 / Math.max(0.2, planet.concealAt(sq.x, sq.y));
+        return head >= 4 && cover > 1.1 ? 0.28 : 0;
+      }
+      case 'sweeping': {
+        /* walk the ground nobody has walked: sites are found by looking */
+        const unfound = (planet.objectives || []).filter(o => !o.revealed).length;
+        return unfound > 2 && (sq.rations || 0) > head * 5 ? 0.22 + (fatigue < 40 ? 0.08 : 0) : 0;
+      }
+      case 'pressing': {
+        /* they are hurt and they are near: do not let them mend */
+        if (!near || nearD > CONST.SIGHT_RANGE * 1.5) return 0;
+        return (near.n || 9) < head ? 0.34 : 0;
+      }
       case 'shadowing': {
         /* a stronger known enemy nearby that I cannot fight but can watch */
         const t = foreign.filter(f => (f.n || 0) > head && MAP.dist(sq.x, sq.y, f.x, f.y) < CONST.SHADOW_RANGE)
@@ -1854,7 +1926,7 @@
         if (((corp._banked || {})[ask.resource] || 0) > 0) return 0.05;   /* already have it */
         let d2 = 9, found = false;
         for (const o of planet.objectives) {
-          if (o.type !== 'ore_assay' || !MAP.siteLive(o, day) || o.resource !== ask.resource) continue;
+          if (o.type !== 'resource_site' || !MAP.siteLive(o, day) || o.resource !== ask.resource) continue;
           found = true;
           d2 = Math.min(d2, MAP.dist(sq.x, sq.y, o.x, o.y));
         }
@@ -1869,15 +1941,67 @@
   }
 
   /** Score, lean, commit. Nothing re-opens the question until it expires or is invalidated. */
+  /** §MIND what the captain brings to the decision: judgement, sight, nerve, and how long a
+      plan of theirs stands. A squad with nobody left to lead it decides badly, which is right. */
+  function captainMind(sq) {
+    const c = squadCaptain(sq);
+    if (!c) return { judge: CONST.JUDGE_MIN, sight: CONST.SIGHT_NEAR, nerve: 0.55, days: CONST.PLAN_DAYS_MIN, cap: null };
+    /* THE STATS RUN WIDER THAN A HUNDRED — a roster's tactics run about 14 to 144, the middle
+       near 95 — so a captain is read against the spread the game actually deals, not against a
+       hundred. Read against 100 every captain came out excellent. */
+    const st = c.stats || {};
+    const band = v => Math.max(0, Math.min(1, ((v == null ? CONST.MIND_MID : v) - CONST.MIND_LOW) / (CONST.MIND_HIGH - CONST.MIND_LOW)));
+    let tac = band(st.tactics), fld = band(st.fieldcraft);
+    /* §RACES A HUMAN LEADS. `captain_aptitude_bonus` sat in the data reading "feeds captain
+       fidelity" and fed nothing. Captains decide now — judgement, sight, nerve — so the
+       aptitude is worth exactly what it says: a human reads a situation better than the sheet
+       alone would say. */
+    if (c.race === 'human') tac = Math.min(1, tac + CONST.HUMAN_COMMAND);
+    const nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
+    /* a captain worn down reads worse than a fresh one: fatigue and stress are on the sheet */
+    const worn = 1 - Math.min(0.5, ((c.condition && c.condition.fatigue || 0) * 0.004 + (c.condition && c.condition.stress || 0) * 0.003));
+    return {
+      cap: c,
+      judge: CONST.JUDGE_MIN + (CONST.JUDGE_MAX - CONST.JUDGE_MIN) * tac * worn,
+      sight: CONST.SIGHT_NEAR + (CONST.SIGHT_FAR - CONST.SIGHT_NEAR) * fld * worn,
+      nerve: Math.max(0.1, Math.min(1, nerve * worn)),
+      days: Math.round(CONST.PLAN_DAYS_MIN + (CONST.PLAN_DAYS_MAX - CONST.PLAN_DAYS_MIN) * tac * worn)
+    };
+  }
+  /** §MIND the picture as THIS captain reads it: only what is within their sight, counted with
+      their nerve — a frightened captain sees more of them than there are. */
+  function asRead(sq, foreign, mind) {
+    const out = [];
+    for (const f of foreign) {
+      const d = MAP.dist(sq.x, sq.y, f.x, f.y);
+      if (d > mind.sight) continue;
+      const fear = 1 + (0.5 - mind.nerve) * CONST.NERVE_SWING * 2;
+      out.push(Object.assign({}, f, { n: Math.max(1, Math.round((f.n || 1) * fear)) }));
+    }
+    return out;
+  }
   function chooseApproach(rng, sq, corp, planet, day, foreign, stats) {
     const lean = APPROACH_LEAN[corp.policy] || APPROACH_LEAN.standard;
+    const mind = captainMind(sq);
+    foreign = asRead(sq, foreign, mind);
+    /* THE PICK IS A WEIGHING, NOT A MAXIMUM. Taking the highest need meant the four or five
+       loudest approaches were the only ones a contest ever saw: a squad with a good reason to
+       hunt never entrenched, baited, swept or pressed, however sensible those were, because
+       hunting scored higher every time. Every approach with a real need goes in a hat weighted
+       by that need, and the squad draws from it — so the loud ones still dominate and the
+       quiet ones happen. */
+    const hat = [];
     let best = 'scouting', bestV = -1;
     for (const ap of APPROACHES) {
       const v = approachNeed(sq, ap, corp, planet, day, foreign) * (lean[ap] || 1);
+      if (v > 0.05) hat.push([ap, Math.pow(v, mind.judge)]);
       if (v > bestV) { bestV = v; best = ap; }
     }
+    if (hat.length) best = P.weightedPick(rng, hat);
     sq.approach = best;
-    sq.approachUntil = day + lean.days;
+    /* a good captain's plan stands; a poor one is back at the start of it every other morning */
+    sq.approachUntil = day + Math.max(1, Math.min(lean.days + 2, mind.days));
+    sq._mind = { judge: Math.round(mind.judge * 100) / 100, sight: Math.round(mind.sight * 100) / 100, nerve: Math.round(mind.nerve * 100) / 100, cap: mind.cap ? mind.cap.name : null };
     sq.intent = approachIntent(rng, sq, corp, planet, day, foreign);
     stats.audit.approaches = stats.audit.approaches || {};
     stats.audit.approaches[best] = (stats.audit.approaches[best] || 0) + 1;
@@ -1889,7 +2013,7 @@
     const exp = day + (CONST.PATROL_DAYS || 5);
     let near = null, nearD = 9;
     for (const f of foreign) {
-      const dd = MAP.dist(sq.x, sq.y, f.x, f.y);
+      const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId);
       if (dd < nearD) { nearD = dd; near = f; }
     }
     /* REPUTATION.md §6.2 — A CORP GOES AFTER WHAT ITS BOARD ASKED FOR.
@@ -1924,8 +2048,8 @@
       case 'prospecting': {
         const g = sq.corp && sq.corp.rep && sq.corp.rep.goal;
         const ask = g ? g.demands.filter(d => d.kind === 'resource')[0] : null;
-        const o = site(o2 => o2.type === 'ore_assay' && (!ask || o2.resource === ask.resource))
-               || site(o2 => o2.type === 'ore_assay');
+        const o = site(o2 => o2.type === 'resource_site' && (!ask || o2.resource === ask.resource))
+               || site(o2 => o2.type === 'resource_site');
         if (o) return { type: 'claim', obj: o, tx: o.x, ty: o.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
@@ -1954,6 +2078,25 @@
           if (dd < md) { md = dd; m3 = s; }
         }
         if (m3) return { type: 'hold', tx: m3.x, ty: m3.y, expires: day + 3 };
+        break;
+      }
+      case 'entrenching': {
+        const p5 = MAP.clampInside(planet, day + 4, sq.x, sq.y);
+        return { type: 'hold', tx: p5.x, ty: p5.y, expires: day + CONST.PLAN_LIFE };
+      }
+      case 'baiting': {
+        /* stand where we are and be seen; the crowd calls it nerve */
+        return { type: 'hold', tx: sq.x, ty: sq.y, expires: day + 3, loud: true };
+      }
+      case 'sweeping': {
+        /* the nearest ground nobody has looked at, inside the wall */
+        const dark = (planet.objectives || []).filter(o => !o.revealed)
+          .sort((a, b) => MAP.dist(sq.x, sq.y, a.x, a.y) - MAP.dist(sq.x, sq.y, b.x, b.y))[0];
+        if (dark) { const p6 = MAP.clampInside(planet, day, dark.x, dark.y); return { type: 'patrol', tx: p6.x, ty: p6.y, expires: day + CONST.PLAN_LIFE }; }
+        break;
+      }
+      case 'pressing': {
+        if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
       case 'shadowing': {
@@ -2247,7 +2390,7 @@
     obj.heldBy = sq.corpId;
     /* running tally so a corp that already has what its board asked for stops prospecting
        and goes back to the contest — otherwise the new approach never releases the squad */
-    if (obj.type === 'ore_assay' && obj.resource && sq.corp) {
+    if (obj.type === 'resource_site' && obj.resource && sq.corp) {
       sq.corp._banked = sq.corp._banked || {};
       sq.corp._banked[obj.resource] = (sq.corp._banked[obj.resource] || 0) + Math.round(obj.potency || 1);
     }
@@ -2263,7 +2406,7 @@
       case 'sponsor_cache':  if (openCrate(rng, sq, obj, stats)) stats.audit.gearUpgraded++; break;
       case 'munitions_drop': sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
       case 'ration_site':    sq.rations += CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot; break;
-      case 'ore_assay':      sq.corp.oreCredit += Math.round(pot); break;
+      case 'resource_site':      sq.corp.hauled += Math.round(pot); break;
     }
   }
 
@@ -2539,7 +2682,8 @@
     /* THE FLEET'S EDICTS, when they stood: the wall's schedule compressed */
     const edicts = opts.edicts || {};
     if (edicts.fast_wall && planet.zone && !planet._fastWalled) {
-      for (const z of planet.zone) if (z.fromDay > 0 && !z.lastGround) z.fromDay = Math.max(1, Math.round(z.fromDay * 0.80));
+      const share = opts.fastWallShare != null ? opts.fastWallShare : 0.80;
+      for (const z of planet.zone) if (z.fromDay > 0 && !z.lastGround) z.fromDay = Math.max(1, Math.round(z.fromDay * share));
       planet._fastWalled = true;
     }
     /* NEGOTIATION.md §2.1 — what is being fought over, rolled with the planet and public
@@ -2645,6 +2789,22 @@
     }
     /* THE DRAFT IS POSTED: every house knows where every other came down */
     for (const c of corps) for (const oc of corps) if (oc !== c) for (const sq of oc.squads) recordSighting(c, sq, 1, true);
+    /* §5.3b THE FLEET'S REGARD FOR EACH HOUSE, read once and carried on the corp, so the
+       negotiation can price a banner by what it costs a joiner's people to fight under it */
+    if (REP && opts.reputations) for (const c of corps) {
+      const rp = opts.reputations[c.id];
+      if (rp) c._fleetStanding = REP.standing(rp, 'fleet');
+      /* §MIND an AI house leans the way its own regard leans: it seeks out the houses it
+         thinks least of and gives the ones it respects a wider berth */
+      if (rp && c.id !== opts.human) {
+        c._leanings = c._leanings || {};
+        for (const other of corps) {
+          if (other === c) continue;
+          const r = REP.standing(rp, 'rival', other.id);
+          c._leanings[other.id] = r < -20 ? 5 : r < -5 ? 4 : r > 20 ? 1 : r > 5 ? 2 : 3;
+        }
+      }
+    }
     /* guarantee, not hope: nudge apart anything that still landed inside sight range */
     for (let pass = 0; pass < 24; pass++) {
       let moved = false;
@@ -3804,6 +3964,31 @@
             odds: board, penned: penned, zone: zNow, table: table,
             weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
             picture: pictureOf(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing })),
+            leanings: Object.assign({}, you._leanings || {}),
+            /* the wall's remaining beats, so a manager can plan against the clock */
+            wall: MAP.wallSchedule(planet, day),
+            /* §STORES WHAT THE GROUND HAS GIVEN YOU SO FAR, in the units the board asks in,
+               and by category — so a manager can see the point of the contest while it is
+               still running, instead of a year later on the Board */
+            banked: Object.assign({}, you._banked || {}),
+            bankedBy: (function () {
+              const by = {};
+              for (const rid in (you._banked || {})) {
+                const cat = MAP.resourceCategory ? MAP.resourceCategory(rid) : null;
+                if (cat) by[cat] = (by[cat] || 0) + you._banked[rid];
+              }
+              return by;
+            })(),
+            /* what is left in the ground that this house knows of, by category */
+            openBy: (function () {
+              const by = {};
+              for (const o of planet.objectives || []) {
+                if (o.type !== 'resource_site' || o.looted || !o.revealed) continue;
+                const cat = o.category || (MAP.resourceCategory ? MAP.resourceCategory(o.resource) : null);
+                if (cat) by[cat] = (by[cat] || 0) + Math.round(o.potency || 1);
+              }
+              return by;
+            })(),
             /* the days so far, with their tracks, so the window can be walked and watched — the
                page keeps to its own squads' tracks; the rest is the picture */
             record: REC ? REC.days : null,
@@ -3828,30 +4013,14 @@
             }
           }
 
-          /* THE ORDERS. A manager's squads take orders at the window in the same vocabulary the
-             planner gives its own: hold, move, claim a site, meet another squad, hunt a squad
-             the house has seen, fall back. An order is an intent with the manager's name on it;
-             the planner leaves it alone until it runs out or is done. Symmetric by construction:
-             an AI's dawn plan and a manager's order are the same object executed by the same
-             march. `answer.orders` = { sIdx: { type, tx, ty, obj?, target? } }. */
-          const youO = corps.filter(c => c.id === opts.human)[0];
-          if (answer && answer.orders && youO) {
-            const pic = pictureOf(youO, day);
-            for (const k in answer.orders) {
-              const o = answer.orders[k], sq = youO.squads.filter(q => q.sIdx === +k)[0];
-              if (!o || !sq || !squadHead(sq).length) continue;
-              let intent = null;
-              const life = day + CONST.PLAN_LIFE;
-              if (o.type === 'hold') intent = { type: 'hold', tx: sq.x, ty: sq.y, expires: life };
-              else if (o.type === 'move' && o.tx != null) { const p2 = MAP.clampInside(planet, day, o.tx, o.ty); intent = { type: 'patrol', tx: p2.x, ty: p2.y, expires: life }; }
-              else if (o.type === 'claim') { const ob = planet.objectives.filter(x => x.id === o.obj && MAP.siteLive(x, day))[0]; if (ob) intent = { type: 'claim', obj: ob, tx: ob.x, ty: ob.y, expires: life }; }
-              else if (o.type === 'meet') { const m = youO.squads.filter(q => q.sIdx === +o.target && squadHead(q).length)[0]; if (m) { const p3 = MAP.clampInside(planet, day, (sq.x + m.x) / 2, (sq.y + m.y) / 2); intent = { type: 'meet', tx: p3.x, ty: p3.y, expires: life }; m.intent = { type: 'meet', tx: p3.x, ty: p3.y, expires: life, ordered: true }; m.approach = null; } }
-              else if (o.type === 'hunt') { const e = pic.filter(x => x.corpId + ':' + x.sq.sIdx === o.target)[0]; if (e) intent = { type: 'hunt', tx: e.x, ty: e.y, expires: life }; }
-              else if (o.type === 'withdraw') { const p4 = MAP.towardZone(planet, day + 3, sq.x, sq.y, 0.6); intent = { type: 'withdraw', tx: p4.x, ty: p4.y, expires: day + CONST.WITHDRAW_DAYS }; }
-              else if (o.type === 'shadow') { const e = pic.filter(x => x.corpId + ':' + x.sq.sIdx === o.target)[0]; if (e) intent = { type: 'shadow', target: o.target, tx: sq.x, ty: sq.y, expires: life }; }
-              else if (o.type === 'screen') { const m2 = youO.squads.filter(q => q.sIdx === +o.target && squadHead(q).length)[0]; if (m2) { const th = pic.sort((a, b) => MAP.dist(m2.x, m2.y, a.x, a.y) - MAP.dist(m2.x, m2.y, b.x, b.y))[0]; intent = { type: 'screen', mate: m2, target: th ? th.corpId + ':' + th.sq.sIdx : null, tx: m2.x, ty: m2.y, expires: life }; } }
-              if (intent) { intent.ordered = true; sq.intent = intent; sq.approach = null; sq._orderedOn = day; stats.audit.orders = (stats.audit.orders || 0) + 1; }
-            }
+          /* THE MANAGER'S SECOND LEVER. Not orders — a leaning, one to five, on each other
+             house: which of them he would rather his people found. It is a thumb on the scale
+             the squads are already weighing, never an instruction. Per-squad orders lived here
+             for a step and were the wrong game: a manager sets a policy and a preference, and
+             what a squad does with them is the squad's. */
+          if (answer && answer.leanings) {
+            const youL = corps.filter(c => c.id === opts.human)[0];
+            if (youL) { youL._leanings = youL._leanings || {}; for (const k in answer.leanings) youL._leanings[k] = answer.leanings[k]; }
           }
 
           /* THE NEGOTIATION HALF. The comment above claimed this existed for two steps and it
@@ -3996,7 +4165,7 @@
             e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length,
             a: c.allBodies.filter(b => b.status === 'active').length,
             w: c.allBodies.filter(b => b.status === 'injured').length,
-            o: c.oreCredit, si: c.sitesClaimed, st: c.policy,
+            o: c.hauled, si: c.sitesClaimed, st: c.policy,
             sd: Math.round(standing(c) * 100)
           })),
           ev: dayEvents
@@ -4146,7 +4315,7 @@
       for (const id of d.claims || []) claimedBy[id] = claimedBy[id] || { joiner: d.joiner, principal: d.principal };
     }
     for (const o of planet.objectives) {
-      if (o.type !== 'ore_assay' || !o.looted || !o.lootedBy || !o.resource) continue;
+      if (o.type !== 'resource_site' || !o.looted || !o.lootedBy || !o.resource) continue;
       const cat = MAP.resourceCategory(o.resource);
       if (!cat || !stats.banked[o.lootedBy]) continue;
       let to = o.lootedBy;
@@ -4190,20 +4359,20 @@
        The pot lands on the last banner standing, the umbrella settles down the chain, the
        assay banks pay out whatever happened, and the winner pays its own people. Nothing
        here decides anything: the winner was decided by the last fighter left standing. */
-    let unclaimedAssay = 0;
+    let unclaimedHaul = 0;
     for (const o of planet.objectives) {
-      if (o.type === 'ore_assay' && !o.looted) unclaimedAssay += Math.round(o.potency || 1);
+      if (o.type === 'resource_site' && !o.looted) unclaimedHaul += Math.round(o.potency || 1);
     }
     stats.settlement = NEG.settle(rng, corps, {
       pot: planet.pot.value, winnerId: stats.winner,
-      deals: stats.deals, unclaimedAssay: unclaimedAssay
+      deals: stats.deals, unclaimedHaul: unclaimedHaul
     });
 
     for (const pc of stats.perCorp) {
       const c = corps.find(x => x.id === pc.id);
       pc.dropped = c.allBodies.length;
       pc.policy = c.policy;
-      pc.oreCredit = c.oreCredit;
+      pc.hauled = c.hauled;
       pc.sitesClaimed = c.sitesClaimed;
       pc.stress = c.squads.reduce((s, q) => s + squadStress(q), 0) / c.squads.length;
       pc.captured = c.allBodies.filter(b => b.status === 'captured').length;

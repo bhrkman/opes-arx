@@ -27,6 +27,38 @@
     W: 26, H: 18,                    // [C] tiles. Big enough for flanks, small enough to close.
     AP: 2,                           // [S] move+shoot, or move+move
     MOVE_TILES: 5,                   // [C] tiles per move action, before mobility
+    /* §RACES THE FLEET'S ONLY FLIERS. A Thythyn's wings were in the data, in the lore and in
+       the injury table, and in nothing that moved: they walked like everybody else. A burst of
+       flight carries them further and over cover, bought with exposure — nothing in the air is
+       behind anything — once a fight, and never on a hurt wing. */
+    /* §RACES THE TETHER. A Mon-Wa is one being in two bodies, and the two fought as strangers:
+       the pair was linked, the bond-shock roll fired when a half died, and the distance between
+       them cost nothing at all. Inside the tether they are steadier than either would be alone;
+       outside it, both of them come apart — the canon's own numbers, per exchange. */
+    TETHER_TILES: 6,                 // [C] how far apart the halves may work
+    TETHER_DRILLED: 3,               // [C] §QUIRKS what drilling to work apart is worth to a pair
+    /* THE NUMBER WAS ALREADY WRITTEN. `MONWA_TETHER_COMP` has sat in combat.js since the canon
+       was ratified — "separation costs −25 composure an exchange to both" — and the tether was
+       built with a fresh −12 beside it, because nobody looked. The housekeeping audit found
+       three of these in one pass. The canon's figure is per EXCHANGE; a turn takes a share. */
+    TETHER_PER_TURN: 0.48,           // [C] a turn's share of the exchange the canon priced
+    TETHER_CLOSE_COMP: 3,            // [C] what being within it is worth, a turn
+    TETHER_STEADY_CAP: 55,           // [C] and the composure past which it steadies nobody:
+                                     //     a pair that could top itself up every turn never
+                                     //     broke, and neither did the fight
+    TETHER_PULL: 0.075,              // [C] per tile beyond the tether, when choosing a tile
+    SVALBARD_TILES: 2,               // [C] §RACES what four legs are worth on a move
+    EARLY_OUT: 0.06,                 // [C] §QUIRKS how much sooner a squad with a bolter calls it
+    OBEDIENT: 0.04,                  // [C] and how much longer one that does as it is told holds
+    AURA_TILES: 4,                   // [C] §QUIRKS how near a steadying presence must stand
+    AURA_COMP: 2,                    // [C] and what it is worth a turn, capped by the band below
+    AURA_CAP: 62,                    // [C] the composure past which nobody needs steadying
+    OLMAC_SOAK: 0.80,                // [C] §RACES what a round is worth against granite flesh
+    ATTORAK_FRENZY_TURNS: 2,         // [C] §RACES how long the blood is in a gnoll's eyes
+    ETU_WITNESS_COMP: 4,             // [C] §RACES what the first death a believer sees is worth,
+                                     //     once a fight — the spectacle their god was made for
+    FLIGHT_TILES: 4,                 // [C] how far a burst of flight adds
+    FLIGHT_AT: 6,                    // [C] the gap worth taking to the air to close
     DASH_EXPOSE: true,               // [S] spending both AP on movement means no cover this turn
     TILE_METRES: 6,                  // [C] what a tile is worth, for turning distance into a band
     BAND_TILE: [14, 6],              // [C] >14 tiles is long, >6 medium, else short
@@ -809,6 +841,17 @@
        pays while nobody has eyes on you, which is the only time moving quietly is worth
        anything: once you are seen, the ground you cover is ground people watch you cross. */
     if (unseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) mp += CONST.SOFT_BOOTS_TILES;
+    if (u.hooks && u.hooks.has('reposition_speed_up')) mp += 1;              /* §QUIRKS quick on their feet */
+    if (u.race === 'svalbard') mp += CONST.SVALBARD_TILES;                  /* §RACES four legs cover ground */
+    /* §RACES a flier with ground to cross takes to the air: further, over cover, and seen */
+    /* §RACES A FLIER HAS THE AIR AVAILABLE TO IT, once a fight, never on a hurt wing. The
+       tiles are offered while the move is being CHOSEN — the first cut of this set the want
+       after the choice was made, so the wings were never in the reckoning and no Thythyn ever
+       left the ground. Taking them is what spends it. */
+    if (u.race === 'thythyn' && !u._flew && !u.wingHurt && (u.state === 'ok' || u.state === 'light')) {
+      mp += CONST.FLIGHT_TILES; u._flightOffered = true;
+    }
+    if (u.hooks && u.hooks.has('evasion_surge') && u._underFire) mp += 1;    /* §QUIRKS moves when shot at */
     return Math.max(2, mp);
   }
 
@@ -916,8 +959,10 @@
         if (shooter.hooks && shooter.hooks.has('unspotted_open_fire_bonus')) tel.ambushInstinct++;
       }
     }
+    /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
+       reaction — both were wanted by hooks that had no way to ask */
     const p = C.hitChance(shooter, target, band,
-                          unseen ? { unseen: true } : {}, !!react)
+                          { unseen: !!unseen, overwatch: !!react, side: shooter._side }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
@@ -984,7 +1029,7 @@
          about the same event, and only the counter was ever checked. */
       const tHit = rng() < p;
       chipCoverFrom(rng, map, shooter, target, tel, log);
-      if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id,
+      if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id, why: (C.hitChance.why || []).slice(),
                           p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
                           ammo: shooter.ammo, react: !!react, tempo: true });
       if (tHit) {
@@ -1018,7 +1063,7 @@
     }
     if (!hit) {
       comp(rng, target, C.CONST.COMP.nearMiss);
-      if (log) log.push({ t: tel.turn, type: 'miss', by: shooter.id, at: target.id, p: +p.toFixed(3), band, cover: cov, w: (shooter.weapon||{}).name, ammo: shooter.ammo, react: !!react });
+      if (log) log.push({ t: tel.turn, type: 'miss', by: shooter.id, at: target.id, p: +p.toFixed(3), band, cover: cov, why: (C.hitChance.why || []).slice(), w: (shooter.weapon||{}).name, ammo: shooter.ammo, react: !!react });
       /* a miss still does something with the right weapon — `cover_shred`, `ricochet` */
       for (const q of C.quirksOf(shooter)) {
         const h = C.QUIRK[q];
@@ -1116,11 +1161,28 @@
   }
 
   function comp(rng, u, delta) {
+    /* §QUIRKS WHAT A NERVE IS WORTH. Half the catalogue's hooks were read by nothing at all —
+       a fighter carried "nothing shakes him" and nothing in the engine knew. These are the
+       composure ones, doing what their names always said. */
+    if (delta < 0 && u.hooks) {
+      /* §QUIRKS the ones who do not mind what they are looking at */
+      if (u._fromDeath && (u.hooks.has('death_morale_immune') || u.hooks.has('gore_morale_immune'))) delta = 0;
+      if (u.hooks.has('cohesion_morale_bonus_near_squadmates') && u._nearMates) delta *= 0.7;
+      /* §QUIRKS a fighter who is steadier the closer it gets: short_band_composure_bonus was
+         carried and never asked for */
+      if (u.hooks.has('short_band_composure_bonus') && u._closeBand) delta *= 0.65;
+      if (u.hooks.has('morale_swings_damped')) delta *= 0.6;
+      if (u.hooks.has('morale_swings_amplified')) delta *= 1.45;
+      if (u.hooks.has('wounded_composure_bonus') && (u.state === 'light' || (u.hp != null && u.maxHp && u.hp < u.maxHp * 0.6))) delta *= 0.55;
+      if (u.hooks.has('composure_up_as_intensity_rises') && u.comp < C.CONST.COMP_BANDS.rattled + 15) delta *= 0.5;
+    }
     u.comp = Math.max(0, Math.min(100, (u.comp || 60) + delta));
     /* Composure bottoms out around 7 in a hard fight and only touches 0 in the worst of
        them, so gating panic on exactly zero made it a dead mechanism rather than a rare one.
        It is checked from the `rattled` band down, and resolve still decides it. */
     if (u.comp <= C.CONST.COMP_BANDS.rattled && u.state !== 'panicked' && rng) {
+      /* a fighter who does not rout, does not rout */
+      if (u.hooks && u.hooks.has('rout_immune')) return;
       const res = (u.stats && u.stats.resolve) || 10;
       /* how far past rattled they are, times how badly their resolve is failing them */
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
@@ -1132,9 +1194,28 @@
     const K = C.CONST.COMP;
     for (const m of side.units) {
       if (m === unit || (m.state !== 'ok' && m.state !== 'light')) continue;
+      /* §QUIRKS the mark the composure hooks read: this loss is a body going down, and these
+         are the mates standing near enough to draw comfort from each other */
+      m._fromDeath = true;
+      m._nearMates = side.units.some(o => o !== m && (o.state === 'ok' || o.state === 'light') &&
+                                     Math.max(Math.abs(o.x - m.x), Math.abs(o.y - m.y)) <= CONST.AURA_TILES);
       comp(rng, m, kind === 'dead' ? K.mateDown : K.mateDown * 0.6);
       if (unit.isCaptain) comp(rng, m, K.captainDown);
+      m._fromDeath = false;
     }
+  }
+  /* §QUIRKS WHO WANTS OUT EARLY, AND WHO WILL NOT ARGUE. `early_disengage_bias` and
+     `follows_bad_orders` were carried by people and read by nothing: a squad with a body who
+     wants out calls it sooner, and one full of people who do as they are told holds a bad
+     order longer than it should. */
+  function withdrawShift(S) {
+    let shift = 0;
+    for (const u of S.units) {
+      if (!u.hooks || (u.state !== 'ok' && u.state !== 'light')) continue;
+      if (u.hooks.has('early_disengage_bias')) shift += CONST.EARLY_OUT;
+      if (u.hooks.has('follows_bad_orders')) shift -= CONST.OBEDIENT;
+    }
+    return shift;
   }
   /**
    * The captain calls it. Past a threshold of loss the squad is ordered back — and an ordered
@@ -1146,7 +1227,9 @@
     if (S.withdrawing) return true;
     const total = S.units.length;
     const gone = S.units.filter(u => u.state !== 'ok' && u.state !== 'light').length;
-    if (gone / total >= CONST.WITHDRAW_AT) { S.withdrawing = true; return true; }
+    /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
+       holds a bad order longer */
+    if (gone / total >= CONST.WITHDRAW_AT - withdrawShift(S)) { S.withdrawing = true; return true; }
     return false;
   }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
@@ -1168,7 +1251,16 @@
        read in twenty-one places across three modules, and nothing downstream of the grid needs
        to know the model changed. */
     if (t.hp == null) t.hp = C.hpFor(t.ref || t);
-    const dmg = t._sevRoll != null ? C.damageOf(t._sevRoll) : C.CONST.DMG_MIN;
+    let dmg = t._sevRoll != null ? C.damageOf(t._sevRoll) : C.CONST.DMG_MIN;
+    /* §RACES LEATHERY, GRANITE-COLOURED FLESH. An Olmac's toughness was in the lore and in a
+       grit lean and in nothing that took a round: what would drop a body takes more of them
+       to drop this one. It is soak, not evasion — they are hit as often as anybody. */
+    if (t.race === 'olmac') dmg = Math.max(C.CONST.DMG_MIN, dmg * CONST.OLMAC_SOAK);
+    /* §RACES and a gnoll in the frenzy hits like one */
+    if (by && by._frenzy > 0) dmg *= C.CONST.ATTORAK_FRENZY_DMG;
+    /* THE ROUND LANDS. An edit that added the two lines above deleted this one, so damage was
+       computed and never applied: four hundred and thirty-eight fights in a whole contest with
+       nobody wounded, and every fight ran out its clock because nobody could fall. */
     t.hp -= dmg;
     tel.damage = (tel.damage || 0) + dmg;
     if (t.hp > 0) {
@@ -1208,6 +1300,7 @@
       return;
     }
     t.state = 'dead'; tel.dead++;
+    (tel._deathsThisTurn = tel._deathsThisTurn || []).push({ x: t.x, y: t.y });
     if (side) moraleShock(rng, side, t, 'dead');
     if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, dmg: dmg,
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
@@ -1218,6 +1311,7 @@
       if (log) log.push({ t: tel.turn, type: 'light', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo }); return; }
     if (sev === 'killed') {
       t.state = 'dead'; tel.dead++;
+    (tel._deathsThisTurn = tel._deathsThisTurn || []).push({ x: t.x, y: t.y });
       if (side) moraleShock(rng, side, t, 'dead');
       if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
       return;
@@ -1259,6 +1353,30 @@
     else { sides = [A, B]; }
     ctx = ctx || {};
     STUN_GRADE = !!ctx.stunGrade;
+    /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
+    const closeFight = (ctx.openingBand || 1) === 0;
+    /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
+       and in nothing that fought: `squadLink` was read in the aim path and set by NOBODY. A
+       latent Gil standing with a squad is worth something to everyone in it — the link steadies
+       their shooting, battle sense means the side is never caught unready, and a pressure
+       reader knows when the other side is close to breaking. */
+    for (const S of sides) {
+      S._psi = { link: false, sense: false, read: false };
+      for (const u of S.units) {
+        u._side = S;                              /* a body knows whose side it is on */
+        u._closeBand = closeFight;
+        if (!u.hooks) continue;
+        /* THE HOOKS THE TRAITS ACTUALLY GRANT. The first cut read `psion_squad_link` and its
+           siblings as hook names — those are TRAIT ids, and no trait grants a hook so called,
+           so the resolver was listening for words nobody says. The suite's ghost-hook check
+           caught it, which is what it is for. A link is `squad_coordination_bonus`; battle
+           sense grants `evasion_surge` and the broadcast; the pressure reader's own hooks are
+           manager-facing, so the fight reads its broadcast instead. */
+        if (u.hooks.has('squad_coordination_bonus')) S._psi.link = true;
+        if (u.hooks.has('ambush_avoidance_slight') || u.hooks.has('night_ambush_warning_bonus')) S._psi.sense = true;
+        if (u.hooks.has('psionic_broadcast_sensation')) S._psi.read = true;
+      }
+    }
     const map = ctx.map || makeMap(rng, ctx.terrain || 'broken_ground');
     A = sides[0]; B = sides[1];
     const prep = ctx.prep || sides.map(() => 0.5);   /* how ready each side was for this */
@@ -1404,7 +1522,9 @@
     const initiative = (u) => (u.stats.reflex || 10) * 1.6 + (u.stats.tactics || 10) * 0.5
                             + (prep[u.side] || 0.5) * 6;
 
-    for (tel.turn = 1; tel.turn <= CONST.MAX_TURNS; tel.turn++) {
+    /* a fight with no way out runs past the ordinary backstop: it ends when a side is done */
+    const MAXT = ctx.toTheEnd ? CONST.MAX_TURNS * 3 : CONST.MAX_TURNS;
+    for (tel.turn = 1; tel.turn <= MAXT; tel.turn++) {
       _geo = new Map();           /* the map does not move; positions do, once a turn */
       if (fog) {
         sides[0]._fog.turn = tel.turn;
@@ -1515,6 +1635,10 @@
           const homeX = si === 0 ? 0 : map.w - 1;
           /* Panicked: no shooting, no thinking, straight for the edge and off the field. */
           if (u.state === 'panicked') {
+            /* NOWHERE TO RUN. In a fight with no way out a panicking fighter cannot leave the
+               field: they gather themselves and fight on, badly, rather than walking off it. */
+            if (ctx.toTheEnd) { u.state = 'ok'; u.comp = Math.max(u.comp, C.CONST.COMP_BANDS.rattled + 1); }
+            else {
             const dir = si === 0 ? -1 : 1;
             for (let s = 0; s < CONST.MOVE_TILES + 2; s++) {
               const nx = u.x + dir;
@@ -1524,6 +1648,7 @@
             triggerOverwatch(rng, u, sides, map, tel, log);
             if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'fled'; tel.fled++; }
             continue;
+            }
           }
 
           /* Ordered fallback: bounds. Half the squad moves while the other half shoots to
@@ -1848,8 +1973,20 @@
                 threat += incoming(f, u, spot, map);
               }
               const bandOff = Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u));
+              /* §RACES A HALF KEEPS STATION. A pair that pays for separation and never tries
+                 to close is a pair being punished for the engine's indifference: a Mon-Wa
+                 weighs a tile by how far it leaves them from the other half, and weighs it
+                 hard once the tether is stretched. */
+              let tether = 0;
+              if (u.pair) {
+                const o = u.pair.halves.find(h => h !== u);
+                if (o && o.state !== 'dead' && o.state !== 'withdrawn') {
+                  const d = Math.max(Math.abs(cand.x - o.x), Math.abs(cand.y - o.y));
+                  tether = Math.max(0, d - CONST.TETHER_TILES) * CONST.TETHER_PULL;
+                }
+              }
               const val = bestP * CONST.SHOT_WEIGHT - threat * CONST.THREAT_WEIGHT
-                        - bandOff * CONST.BAND_PULL;
+                        - bandOff * CONST.BAND_PULL - tether;
               /* SCORE TAP — inert unless a caller supplies one, and no caller in the game does.
                  It exists so an audit can ask whether a term in this decision actually CHANGES
                  the decision: drop the term, recompute the ranking, see if the same tile still
@@ -1891,6 +2028,7 @@
           }
           if (move && move.val > stayVal + moveGate && (move.x !== u.x || move.y !== u.y)) {
             const strippedCover = target ? coverAgainst(map, target, u) : 0;
+            const fromX = u.x, fromY = u.y;      /* §RACES how far this step actually carried */
             u.x = move.x; u.y = move.y; u.ap--; tel.moves++;
             /* WHERE IT GOT TO BEFORE ANY DASH. A frame carried only `from` and the final tile,
                so a body that moved and then dashed was recorded as one small hop — the Bellow
@@ -1902,6 +2040,20 @@
                and written by nothing, so crossing ground was free — the game specified a
                penalty and applied none. */
             if (motion) u.repositioning = true;
+            /* §RACES IN THE AIR: a step longer than legs could carry them is a burst of flight
+               — over whatever was in the way, and in the open while they are up there. */
+            if (u._flightOffered) {
+              const hop = Math.max(Math.abs(u.x - fromX), Math.abs(u.y - fromY));
+              if (hop > CONST.MOVE_TILES) {
+                u._flew = true;
+                /* THYTHYN_HOVER_P, ratified and unread until now: not every burst ends with
+                   them hanging in the air where everybody can see them */
+                u.hovering = rng() < C.CONST.THYTHYN_HOVER_P * 3;
+                tel.flights = (tel.flights || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'flight', by: u.id });
+              }
+              u._flightOffered = false;
+            }
             /* CROSSING GROUND IS HOW YOU GET SEEN, so knowledge is stale the moment anybody
                steps. Marked before overwatch is offered the shot rather than after, because
                the whole question overwatch asks is whether this mover has just walked into
@@ -2008,6 +2160,59 @@
           }
         }
       }
+      /* §QUIRKS WHAT THE ONES BESIDE YOU ARE WORTH. `presence_aura`, `cohesion_morale_bonus_
+         near_squadmates`, `death_morale_immune` and `gore_morale_immune` were carried by
+         fighters and read by nothing at all. A body who steadies people steadies the people
+         near them; a body who does not mind the dead does not mind them. */
+      for (const S of sides) {
+        const auras = S.units.filter(u => u.hooks && u.hooks.has('presence_aura') &&
+                                      (u.state === 'ok' || u.state === 'light'));
+        if (!auras.length) continue;
+        for (const u of S.units) {
+          if (u.state !== 'ok' && u.state !== 'light') continue;
+          if (u.comp >= CONST.AURA_CAP) continue;      /* steadying a steady body does nothing */
+          if (auras.some(a => a !== u && Math.max(Math.abs(a.x - u.x), Math.abs(a.y - u.y)) <= CONST.AURA_TILES))
+            comp(rng, u, CONST.AURA_COMP);
+        }
+      }
+      /* §RACES WHAT A DEATH DOES TO THE ONES WATCHING, and THE TETHER — one pass over the
+         standing, because two passes over the same units every turn is how the last cut of
+         this ground the engine to a halt. A gnoll comes UP at the sight of blood; the
+         faithful read a death as the spectacle their god was made for and steady. */
+      const deaths = tel._deathsThisTurn || [];
+      for (const S of sides) for (const u of S.units) {
+        if (u.state === 'dead' || u.state === 'withdrawn') continue;
+        /* THE FIRST CUT PAID BOTH OF THESE IN COMPOSURE, every turn, to everybody near a
+           body — and composure is what makes a side break, so nothing broke and every fight
+           ran to the turn cap: ten turns became twenty-seven. A death now marks the ones who
+           saw it, and the mark is spent where each race's nature actually lives — the gnoll's
+           in his hands, the faithful's in one refusal to break. */
+        if (deaths.length && (u.race === 'attorak' || u.race === 'etu')) {
+          for (let di = 0; di < deaths.length; di++) {
+            if (Math.max(Math.abs(u.x - deaths[di].x), Math.abs(u.y - deaths[di].y)) > CONST.FLIGHT_AT) continue;
+            if (u.race === 'attorak') { u._frenzy = CONST.ATTORAK_FRENZY_TURNS; comp(rng, u, C.CONST.ATTORAK_INTENSITY_COMP); }
+            else if (!u._witnessed) { u._witnessed = true; comp(rng, u, CONST.ETU_WITNESS_COMP); }
+            break;
+          }
+        }
+        if (u._frenzy > 0) u._frenzy--;
+        if (!u.pair) continue;
+        const o = u.pair.halves.find(h => h !== u);
+        if (!o || o.state === 'dead') continue;
+        const d = Math.max(Math.abs(u.x - o.x), Math.abs(u.y - o.y));
+        const wasStrained = !!u._tetherStrained;
+        /* §QUIRKS a pair drilled to work apart works further apart: tether_range_extended was
+           written for exactly this and read by nothing */
+        const reach = CONST.TETHER_TILES + ((u.hooks && u.hooks.has('tether_range_extended')) ||
+                                            (o.hooks && o.hooks.has('tether_range_extended')) ? CONST.TETHER_DRILLED : 0);
+        u._tetherStrained = d > reach;
+        if (u._tetherStrained) {
+          comp(rng, u, C.CONST.MONWA_TETHER_COMP * CONST.TETHER_PER_TURN);
+          if (!wasStrained && log) log.push({ t: tel.turn, type: 'tether_strained', by: u.id, at: o.id });
+          tel.tetherStrain = (tel.tetherStrain || 0) + 1;
+        } else if (u.comp < 100 && u.comp < CONST.TETHER_STEADY_CAP) comp(rng, u, CONST.TETHER_CLOSE_COMP);
+      }
+      tel._deathsThisTurn = [];
       /* Between rounds: heat bleeds off, vents tick down, hands go back to the rifle, and every
          weapon banks another turn's worth of its rate of fire.
          `coolWeapons` was described in this comment and never called — so on the grid an energy
@@ -2067,6 +2272,10 @@
        knocked down `down` for ever — nobody bled out and NOBODY WAS EVER CAPTURED, which
        quietly removes ransom, the freedom clause and every captive outcome from the game.
        A side that withdrew or broke is the grid's version of "overrun". */
+    /* NOWHERE TO RUN, AT THE END TOO: a fighter still panicking when a fight to the death
+       stops is a fighter the other side has walked up to. They go down with the rest. */
+    if (ctx.toTheEnd) for (const S of sides) for (const u of S.units)
+      if (u.state === 'panicked' || u.state === 'fled') { u.state = 'down'; u.bleed = u.bleed || { turns: 0 }; }
     C.settleAftermath(rng, sides, tel, log, tel.turn, (S) => {
       const live = S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
       const gone = S.units.filter(u => u.state === 'fled' || u.state === 'panicked').length;
@@ -2088,6 +2297,10 @@
          warns about, reintroduced by the change that made the branch reachable.
          Getting your people off is the opposite of being overrun. */
       const away = S.units.filter(u => u.state === 'withdrawn').length;
+      /* A FIGHT WITH NO WAY OUT takes the field from the side that loses it: nobody withdraws
+         from The Eight, so a side left without anyone standing IS overrun, and its wounded lie
+         where they fell. Without this the loser walked away hurt from a death match. */
+      if (ctx.toTheEnd) return !live;
       return (!live && !away) || gone / S.units.length >= C.CONST.ROUT_SQUAD_FRACTION;
     });
 

@@ -27,6 +27,12 @@
     /* §2.1 the scale — signed, because loathing is a position and not an absence */
     STANDING_FLOOR: -100,               // [S]
     STANDING_CEIL: 100,                 // [S]
+    SOFT_AT: 40,                        // [C] §2.2 past this the scale compresses toward the ceiling
+    SOFT_SCALE: 150,                    // [C] how much raw feeling it takes to climb the last stretch:
+                                        //     a house with two hundred points of goodwill reads high,
+                                        //     not pinned, and can still be told from one with four
+    DRIFT: 0.22,                        // [C] §2.3 the share of the gap back to a house's resting
+                                        //     place that closes each season
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
@@ -62,6 +68,9 @@
        re-anchors itself as the economy moves; the number did not. */
     STANDING_THRIFT_W: 1.30,            // [C] how hard a cheap year moves a board with no
                                         //     interest in the planet; scaled DOWN by interest
+    STANDING_POPULARITY_W: 0.85,        // [C] §5.3 what the crowd is worth beside the books
+    POPULARITY_NEUTRAL: 25,             // [C] the standing a board takes for granted
+    POPULARITY_SPAN: 45,                // [C] the distance from neutral to delight or fury
     STANDING_CARE_W: 0.70,              // [C] how hard bringing people home moves one
     CARE_NEUTRAL_LOSS: 0.29,            // [C] the loss rate a board considers unremarkable.
                                         //     MEASURED, not assumed, and re-measured whenever
@@ -77,10 +86,19 @@
     GOAL_CONTENT_FRACTION: 0.50,        // [C] R25 — the score at which a board is merely content
     /* [C] R25b — anchored to the measured spread of card scores (p25 0.45, median 0.62,
        p75 0.76), not chosen. Re-anchor these whenever the card or the resolver moves. */
-    BOARD_CUTS: { delighted: 0.88, pleased: 0.74, disappointed: 0.36, unhappy: 0.24 },
+    /* §5.4 RE-MEASURED. The cuts were set against a card pool that has since lost two demands
+       (losses and surplus, each a second reading of a standing demand) and gained a third
+       standing one (popularity). Measured over seventy-two card years — three fleets, three
+       seasons — the scores now run: p10 0.34, p25 0.44, median 0.60, p75 0.71, p90 0.78, and
+       almost nothing above 0.88. Against the old cuts a board was delighted once in seventy-two
+       years and content in half of them. The cuts follow the distribution: the top tenth
+       delights, the top quarter pleases, the bottom quarter disappoints, the bottom tenth is a
+       sacking offence. `measure_board.cjs` is the instrument. */
+    BOARD_CUTS: { delighted: 0.78, pleased: 0.66, disappointed: 0.44, unhappy: 0.33 },
     HOME_CUSHION: 0.40,                 // [C] §6.4 how much popular support blunts a bad year
     HOLDS_DRAIN: 0.12,                  // [H] §6.1 of a full store, per season. [OPEN-R1]
     HOLDS_CEIL: 1.0,                    // [S]
+    RESOURCE_ASK: 0.33,                 // [C] the share of a store a board asks for, in units
     UNITS_PER_STORE: 9,                 // [H] assay units that fill a store. RE-DERIVED: the
                                         //     first pass took 40, and a corp digs two to six
                                         //     out of a Divide, so every resource demand on
@@ -139,6 +157,18 @@
     /* §3.1b WHAT IS LEFT WAITING. A house that wrote and got no answer noticed; a board that
        asked and heard nothing took the silence as the answer. */
     snubbed_letter:    { rival: -4, residue: 0.25 },
+    /* §3.1c WHAT A CAREFUL HOUSE EARNS. Nearly every act that touched a house's own people
+       took something away — ceding, selling, refusing, silence — and the ones that gave came
+       only from fighting, so a manager who kept his people alive was hated for it. These are
+       what a year of ordinary good management is worth to the crews and the fans. */
+    everyone_came_home: { own: 7, fleet: 2, residue: 0.20 },   // a Divide with no dead
+    few_lost:           { own: 3, residue: 0.20 },             // fewer than the fleet's average
+    paid_the_wages:     { own: 2, residue: 0.30 },             // the books balanced, nobody went short
+    granted_a_raise:    { own: 3, residue: 0.25 },
+    kept_a_debtor:      { own: 4, residue: 0.25 },
+    a_star_rose:        { own: 4, fleet: 5, residue: 0.20 },   // one of yours became famous
+    took_the_purse:     { own: 5, fleet: 4, residue: 0.20 },   // the Dividend
+    the_gate_was_good:  { own: 2, fleet: 2, residue: 0.15 },
     /* The Eight: the fleet came to see it */
     won_the_eight:     { own: 4, fleet: 6, aleas: 2, residue: 0.25 },
     silent_before_board: { own: -3, aleas: -1, residue: 0.20 },
@@ -211,10 +241,24 @@
   function open(profile, allProfiles, opts) {
     opts = opts || {};
     const rep = profile.reputation || {};
+    /* §2.0 A HOUSE STANDS SOMEWHERE BEFORE IT DOES ANYTHING. The eight carry their standings
+       in their profiles; a corporation built at the desk carried none, so a manager opened at
+       zero on every audience and could only ever go down from there — the whole first career
+       read "nobody has an opinion" and then "your own people hate you". A house without
+       declared standings is read from its dials: its own people expect what it is (a bloody
+       house is loved for blood, a thrifty one starts cool with its crews), the fleet knows a
+       showman, the Aleas mistrust the treacherous. */
+    const d = (profile.dials || {});
+    const dial = k => (d[k] != null ? d[k] : 50);
+    const fromDials = {
+      own:   Math.round(10 + dial('showmanship') * 0.35 + dial('aggression') * 0.15 - (100 - dial('thrift')) * 0.10),
+      fleet: Math.round(-5 + dial('showmanship') * 0.30 + dial('tradition') * 0.20 - dial('treachery') * 0.25),
+      aleas: Math.round(15 + dial('tradition') * 0.30 - dial('treachery') * 0.45 + dial('patience') * 0.10)
+    };
     const base = {
-      own: rep.own != null ? rep.own : 0,
-      fleet: rep.fleet != null ? rep.fleet : 0,
-      aleas: rep.aleas != null ? rep.aleas : 0,
+      own: rep.own != null ? rep.own : fromDials.own,
+      fleet: rep.fleet != null ? rep.fleet : fromDials.fleet,
+      aleas: rep.aleas != null ? rep.aleas : fromDials.aleas,
       rival: {}
     };
     /* how each OTHER corp's supporters feel about this one: their disposition toward us if
@@ -255,9 +299,19 @@
       if (audience === 'rival' && m.r !== targetId) continue;
       v += m.v * decay(m, rep.season);
     }
-    return clamp(v, CONST.STANDING_FLOOR, CONST.STANDING_CEIL);
+    return compress(v);
   }
 
+  /* §2.2 THE LAST POINTS COST THE MOST. The raw sum was clamped, so four houses of eight sat
+     pinned at the ceiling after three years and the number stopped carrying information. Past
+     SOFT_AT the scale compresses toward the ceiling and never reaches it: the difference
+     between adored and worshipped stays legible, and nothing saturates. */
+  function compress(v) {
+    const soft = CONST.SOFT_AT, ceil = CONST.STANDING_CEIL, floor = CONST.STANDING_FLOOR, k = CONST.SOFT_SCALE;
+    if (v > soft) return Math.min(ceil - 0.5, soft + (ceil - soft) * (1 - Math.exp(-(v - soft) / k)));
+    if (v < -soft) return Math.max(floor + 0.5, -soft - (-floor - soft) * (1 - Math.exp(-(-v - soft) / k)));
+    return v;
+  }
   /** How much of a remembered act is still being felt. Residue never washes off (R8). */
   function decay(m, season) {
     const age = Math.max(0, season - m.s);
@@ -487,9 +541,13 @@
       const there = (planet && planet.composition || []).filter(r => r.category === cat);
       if (!there.length) continue;
       const pick = there.slice().sort((a, b) => b.density - a.density)[0];
+      /* THE DEMAND IS IN UNITS, and it was in stores. `amount` was a fraction of a store
+         (1/9) while `banked` counts assay units, so the test compared 3 units against 0.11
+         and every resource demand on every card passed the moment a corp dug anything. The
+         board asks for a share of a store IN THE UNITS THAT FILL IT. */
+      const want = Math.max(1, Math.round(CONST.UNITS_PER_STORE * CONST.RESOURCE_ASK));
       pool.push({ weight: 2.2 * (1 - (rep.holds[cat] || 0)), demand: {
-        kind: 'resource', category: cat, resource: pick.id,
-        amount: P.roundTo(1 / CONST.UNITS_PER_STORE, 0.01)
+        kind: 'resource', category: cat, resource: pick.id, units: want, amount: want
       } });
       break;                                    /* one, not one per shortage */
     }
@@ -508,8 +566,9 @@
     rep.ambition = ambition; rep.anchor = anchor;
     pool.push({ weight: 2.4, demand: { kind: 'placement', at: ambition } });
     pool.push({ weight: ambition <= 2 ? 0.9 : 0.25, demand: { kind: 'win' } });
-    pool.push({ weight: opts.thinTreasury ? 1.4 : 0.7,
-                demand: { kind: 'surplus', amount: 10000 + Math.round(rng() * 25000) } });
+    /* THE SURPLUS DEMAND LEFT THE CARD. "End the year N up" and the standing Spending demand
+       read the same money two ways, and a card that asks twice for one thing is a card with
+       one fewer ask. Spending grades it every year on its own spectrum. */
     /* THE LOSSES DEMAND LEFT THE CARD. "Lose no more than N for good" measured the same thing
        the standing Casualties demand grades on a spectrum every year; two readings of one
        number is not a spread of asks. The bag is smaller, so a seed's card draws differently
@@ -563,10 +622,14 @@
      * "field small" behaviour bolted on, they are both just answering the same board.
      */
     const interest = planet && planet.pot ? clamp01((planet.pot.richness - 0.7) / 0.7) : 0.5;
+    /* §5.3 POPULARITY IS A STANDING DEMAND. The gate is the board's money too, and a house
+       the fleet will not watch is a house the board cannot sell: what the crowd thinks is
+       graded every year beside the spending and the casualties. */
     rep.goal.standing = [
       { kind: 'thrift', weight: CONST.STANDING_THRIFT_W * (1 - interest) + 0.35,
         expected: 1.0 },
-      { kind: 'care', weight: CONST.STANDING_CARE_W }
+      { kind: 'care', weight: CONST.STANDING_CARE_W },
+      { kind: 'popularity', weight: CONST.STANDING_POPULARITY_W, expected: CONST.POPULARITY_NEUTRAL }
     ];
     rep.goal.interest = interest;
     return rep.goal;
@@ -589,6 +652,12 @@
       const r = outcome.lossRate != null ? outcome.lossRate : 0.3;
       return Math.max(-1, Math.min(1, (CONST.CARE_NEUTRAL_LOSS - r) / CONST.CARE_NEUTRAL_LOSS));
     }
+    if (s.kind === 'popularity') {
+      /* what the crowd thought of the house this year: its own people and the fleet's,
+         against what a board takes for granted */
+      const v = outcome.popularity != null ? outcome.popularity : (s.expected || 0);
+      return Math.max(-1, Math.min(1, (v - (s.expected || 0)) / CONST.POPULARITY_SPAN));
+    }
     return 0;
   }
 
@@ -606,7 +675,7 @@
   /** Was a demand met? `outcome` is what the season actually produced. */
   function demandMet(d, outcome, rep) {
     switch (d.kind) {
-      case 'resource':  return ((outcome.banked || {})[d.category] || 0) >= d.amount;
+      case 'resource':  return ((outcome.banked || {})[d.category] || 0) >= (d.units != null ? d.units : d.amount);
       case 'placement': return (outcome.placement || 99) <= d.at;
       case 'win':       return !!outcome.won;
       case 'surplus':   return (outcome.surplus || 0) >= d.amount;
@@ -911,7 +980,22 @@
     return rep;
   }
 
+  /* §2.3 EVERY AUDIENCE DRIFTS BACK toward what it expects of a house. Without it the sums
+     ratchet: a good year is carried for ever and a bad one never forgiven, whatever happens
+     after. The drift moves the BASE, so it is the house's resting place that changes and the
+     memory stays what it was. */
+  function drift(rep) {
+    /* THE RESTING PLACE IS WHERE A HOUSE STARTED. The first cut of this pulled the base
+       toward the CURRENT standing, which is a ratchet, not a drift: every good year became
+       permanent. What drifts is the memory — each season the accumulated feeling loses a
+       share of itself, so an old triumph stops carrying a house for ever and an old disgrace
+       stops damning it, while the house's own nature (the base) stays what it always was. */
+    rep.origin = rep.origin || { own: rep.base.own, fleet: rep.base.fleet, aleas: rep.base.aleas };
+    for (const a of ['own', 'fleet', 'aleas']) rep.base[a] = rep.origin[a];
+    for (const m of rep.memory) m.v *= (1 - CONST.DRIFT);
+  }
   function closeSeason(rep, outcome) {
+    drift(rep);
     const score = scoreGoal(rep, outcome || {});
     const moved = movePatience(rep, score);
     fillHolds(rep, (outcome && outcome.banked) || {});
@@ -925,7 +1009,7 @@
 
   const api = {
     CONST, ACTS, AUDIENCES, CATEGORIES, REGISTERS, DISPOSITION,
-    open, standing, readAll, attention, act, why, decay, foldTail,
+    open, standing, readAll, attention, act, why, decay, foldTail, compress, drift,
     fameTransfer, addFame, decayFame,
     placements,
     drainHolds, fillHolds, bankedShare, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,

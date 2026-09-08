@@ -70,7 +70,7 @@
       let x = planet.cx + Math.cos(a) * d, y = planet.cy + Math.sin(a) * d;
       if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
       let prize = 0;
-      for (const o of planet.objectives || []) if (o.type === 'ore_assay' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
+      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
       out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),
                  height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10,
                  toCentre: MAP.dist(x, y, planet.cx, planet.cy) / R });

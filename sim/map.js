@@ -93,11 +93,20 @@
     }
   };
 
+  /* WHAT A DEPOSIT IS CALLED, by what is raw in it. Ferrite and chromite lie in a SEAM;
+     helium-3 and clathrate are drawn from a WELL; algae, lichen and fungal mass grow in a
+     BLOOM; pigment salt, songcoral, resin and amber lie in a BED. A stand and a vault were the wrong
+     words twice over — both belong to somebody who was here first, and nobody was. */
+  const DEPOSIT_LABEL = { minerals: 'Seam', fuels: 'Well', foods: 'Bloom', luxuries: 'Bed' };
   const OBJECTIVE_TYPES = [
     { id: "sponsor_cache",  label: "Sponsor Cache",  weight: 22, claimDays: 2 },
     { id: "munitions_drop", label: "Munitions Drop", weight: 22, claimDays: 2 },
     { id: "ration_site",    label: "Water & Forage", weight: 20, claimDays: 2 },
-    { id: "ore_assay",      label: "Ore Assay",      weight: 34, claimDays: 2 },
+    /* §7.4 A SITE IS NAMED FOR WHAT IS IN IT. It was an "ore assay" whatever the ground held,
+       which read as mining even where the haul was grain or water, and "assay" is a surveyor's
+       word for a thing a squad does with its hands. A deposit is a seam, a well, a stand or a
+       vault by its category, and a squad WORKS it. */
+    { id: "resource_site",  label: "Deposit",       weight: 34, claimDays: 2 },
     { id: "relay_mast",     label: "Relay Mast",     weight: 14, claimDays: 2 }
   ];
 
@@ -393,14 +402,19 @@
         }
         if (!p) p = nearestPassable(...Object.values(pointIn(rng, ring.cx, ring.cy, ring.r * 0.6)).slice(0, 2));
         const type = P.weightedPick(rng, OBJECTIVE_TYPES.map(t => [t, t.weight]));
+        const res = type.id === 'resource_site' && composition.length
+          ? P.weightedPick(rng, composition.map(r => [r.id, r.density])) : null;
+        const cat = res ? resourceCategory(res) : null;
         objectives.push({
-          id: 'obj_' + (objId++), type: type.id, label: type.label,
+          id: 'obj_' + (objId++), type: type.id,
+          /* a deposit is called what it is: a seam, a well, a stand, a vault */
+          label: cat && DEPOSIT_LABEL[cat] ? DEPOSIT_LABEL[cat] : type.label,
+          category: cat,
           /* §7.4 an assay site sits on one of the planet's actual resources, weighted by
              density, so emptying it banks THAT and not a generic credit. Which turns the
              hedge into a targeted one: the corp that needs fuel goes for the fuel sites,
              and so does the other corp that needs fuel. */
-          resource: type.id === 'ore_assay' && composition.length
-            ? P.weightedPick(rng, composition.map(r => [r.id, r.density])) : null,
+          resource: res,
           x: p.x, y: p.y, place: patchAt(p.x, p.y).name,
           wave: w, tier: Math.min(5, 2 + w), potency: 1 + w * 0.35,
           revealed: w === 0, revealDay: day0,
@@ -441,6 +455,17 @@
     /* tomorrow's circle — under continuous closing it is always a little smaller */
     const z = zoneOn(planet, day + 1);
     return { cx: z.cx, cy: z.cy, r: z.r, fromDay: day + 1 };
+  }
+  /** §THE CLOCK THE SCHEDULE, said plainly: the beats still to come, what the dome will be at
+      each, and how far off. The wall is the clock the whole contest runs on and it existed as a
+      dashed circle that told nobody anything until it had already moved. */
+  function wallSchedule(planet, day) {
+    const out = [];
+    for (const z of planet.zone || []) {
+      if (z.fromDay <= day) continue;
+      out.push({ day: z.fromDay, r: z.r, share: z.r / planet.radius, in: z.fromDay - day, last: !!z.lastGround });
+    }
+    return out;
   }
   /** The Aleas announces a tightening a day ahead, so leaving is a decision. */
   function tighteningTomorrow(planet, day) {
@@ -562,8 +587,8 @@
   }
 
   const api = {
-    CONST, ARCHETYPES, OBJECTIVE_TYPES, TERRAIN, TERRAIN_NAMES,
-    generatePlanet, zoneOn, zoneNext, tighteningTomorrow, inZone, outsideBy, towardZone,
+    CONST, ARCHETYPES, OBJECTIVE_TYPES, DEPOSIT_LABEL, TERRAIN, TERRAIN_NAMES,
+    generatePlanet, zoneOn, zoneNext, wallSchedule, tighteningTomorrow, inZone, outsideBy, towardZone,
     revealObjectives, siteLive, windowCadence, dist, pointIn, clampInside,
     setResourcePool, rollComposition, richnessOf, resourceValue, resourceCategory,
     get pool() { return POOL; }

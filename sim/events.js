@@ -30,6 +30,9 @@
     DEBT_CALL: 6000,             // [C] what a Debtor's creditors want
     FINE: 1500,                  // [C] a barracks fine, per brawler
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
+    SEEDED: 2.6,                 // [C] §QUIRKS what a house with the people for it draws instead
+    UNSEEDED: 0.7,               // [C] and what a house with nobody who could cause it draws
+    POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
     ROLE_ONCE: true,             // [C] the veteran's fork comes once a career
@@ -76,8 +79,13 @@
     {
       id: 'raise', weight: 1.4,
       when: (c) => { const cand = alive(c).filter(f => (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked); return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
-      make: (f, c) => {
-        const ask = Math.round((f.contract.salary || 0) * CONST.RAISE_FRAC);
+      make: (f, c, ctx) => {
+        /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the house asks louder */
+        let raiseMult = CONST.RAISE_FRAC;
+        const st0 = ctx && ctx.state;
+        if (fighterHas(st0, f, 'salary_anchoring_up')) raiseMult *= 1.35;
+        if (fighterHas(st0, f, 'salary_demand_pressure')) raiseMult *= 1.20;
+        const ask = Math.round((f.contract.salary || 0) * raiseMult);
         return { kind: 'raise', subject: f.id, title: f.name + ' Wants a Raise',
                  text: f.name + ' has a following now, and a following has a price: ' + fmtCr(ask) + ' more a month.',
                  options: [
@@ -159,7 +167,10 @@
     {
       id: 'poach', weight: 1.1,
       when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
-      make: (s) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT);
+      /* §QUIRKS a hand who does not listen to other houses costs more to tempt: poach_resistant
+         was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
+      make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
+                                 * (ctx && ctx.state && fighterHas(ctx.state, s.f, 'poach_resistant') ? CONST.POACH_LOYAL : 1));
         return { kind: 'poach', subject: s.f.id, from: s.from, price: price, title: 'An Offer for ' + s.f.name,
           text: 'A house across the fleet wants ' + s.f.name + ', and has put ' + fmtCr(price) + ' on the table for the paper.',
           options: [
@@ -246,6 +257,59 @@
   if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
+  /* §QUIRKS does this fighter carry a hook? The pool's events wanted to ask and had no way to:
+     `salary_anchoring_up`, `salary_demand_pressure` and `poach_resistant` were carried by
+     people and read by nobody. The trait index rides on the corp, where the roster keeps it. */
+  /* §QUIRKS THE PEOPLE YOU KEEP DECIDE WHAT HAPPENS TO YOU. Fourteen quirks carry a
+     `*_event_seed` hook — a hot head seeds a brawl, a clause reader seeds a renegotiation, a
+     superstitious hand seeds an omen — and the draw asked none of them: every house drew from
+     one flat pool whoever was aboard. A house with the seed for an event draws it far oftener,
+     and a house with nobody who could cause it draws it a little less. */
+  const SEED_FOR = {
+    brawl:  ['aggression_event_seed'],
+    raise:  ['renegotiation_demand_seed', 'status_coupling_amplified'],
+    debt:   ['syndicate_contact_seed'],
+    poach:  ['rivalry_event_seed', 'squad_envy_event_seed'],
+    insult: ['pride_event_seed', 'unlikely_friendship_arc_seed'],
+    dealer: ['omen_event_seed', 'ritual_event_seed', 'squad_superstition_event_seed'],
+    memo:   ['collective_demand_event_seed', 'abolitionist_event_seed', 'cradle_camp_event_seed'],
+    role:   ['desperation_event_seed_final_divide', 'scandal_seed_step9']
+  };
+  /* THE CACHE LIVES OFF THE CORP. The first cut hung a Set on each corporation and a whole
+     trait index on the state — and the save keeps everything on those objects, so a career
+     saved mid-year came back wrong. Neither belongs in a save: they are derived from the
+     catalogue, which every build already has. */
+  const SEED_CACHE = new WeakMap();
+  function corpSeeds(state, corp) {
+    const cached = SEED_CACHE.get(corp);
+    if (cached && cached.n === corp.roster.length) return cached.set;
+    const idx = traitIndexOf(state), set = new Set();
+    for (const f of corp.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      for (const t of (f.traits || [])) {
+        const tr = idx && idx[t];
+        if (tr && tr.effects) for (const h of (tr.effects.hooks || [])) if (/_seed|_amplified/.test(h)) set.add(h);
+      }
+    }
+    SEED_CACHE.set(corp, { n: corp.roster.length, set });
+    return set;
+  }
+  function seedWeight(state, corp, specId) {
+    const want = SEED_FOR[specId]; if (!want) return 1;
+    const have = corpSeeds(state, corp);
+    return want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
+  }
+  let TRAIT_INDEX = null;
+  /** the catalogue's index, handed in once by the season rather than saved with the career */
+  function useTraitIndex(idx) { TRAIT_INDEX = idx || null; }
+  function traitIndexOf(state) { return TRAIT_INDEX || (state && state.traitIndex) || null; }
+  function fighterHas(state, f, hook) {
+    const idx = traitIndexOf(state);
+    return (f.traits || []).some(t => {
+      const tr = idx && idx[t];
+      return tr && tr.effects && (tr.effects.hooks || []).indexOf(hook) >= 0;
+    });
+  }
   function fleetEventFor(state) {
     state.fleet = state.fleet || { edicts: {}, priceMult: 1, levy: 0 };
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
@@ -311,8 +375,9 @@
 
   /* ---------------------------------------------------------------------- the machinery ---- */
   function ctxFor(rng, state, corpId) {
+    /* the state rides on the ctx so a spec can read a fighter's hooks */
     const rivals = state.ids.filter(id => id !== corpId);
-    return { rng, corps: state.corps, rivals, month: state.month, season: state.season,
+    return { rng, corps: state.corps, rivals, month: state.month, season: state.season, state: state,
              corpFlags: c => (c._eventFlags = c._eventFlags || {}) };
   }
   /** Draw a corp's events for the month it is entering. Idempotent per month. */
@@ -331,7 +396,7 @@
     for (let t = 0; t < tries; t++) {
       const pool = POOL.filter(p => !used[p.id]);
       for (let g = 0; g < 6 && pool.length; g++) {
-        const spec = P.weightedPick(rng, pool.map(p => [p, p.weight]));
+        const spec = P.weightedPick(rng, pool.map(p => [p, p.weight * seedWeight(state, corp, p.id)]));
         const subject = spec.when(corp, ctx);
         if (subject == null) { pool.splice(pool.indexOf(spec), 1); continue; }
         const ev = spec.make(subject, corp, ctx);
@@ -395,6 +460,6 @@
   /* the roles' fighters do not field: the Divide's drop reads this */
   function offTheLine(corp) { const r = corp._roles || {}; return [r.spy, r.drill].filter(Boolean); }
 
-  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet, fleetEventFor };
+  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet, fleetEventFor, useTraitIndex };
   return api;
 });

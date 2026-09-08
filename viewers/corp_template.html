@@ -61,6 +61,8 @@
      card carries both, and the set reads as a grid of choices rather than a column of text */
   #oacards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;
     margin-top:8px}
+  .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+  .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
   .oacard{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0;
     cursor:pointer;background:var(--panel);text-align:center;
     border-left:3px solid var(--line)}
@@ -74,18 +76,21 @@
   /* the card and the holds */
   .cardhead{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px;font-size:11.5px}
   .cardhead b{color:var(--ink)}
-  .cardrow{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px solid #16233a;font-size:11.5px}
+  .cardrow{display:grid;grid-template-columns:14px 1fr minmax(150px,auto);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
+  .cardrow.standing{align-items:start}
   .cardrow:last-child{border-bottom:none}
   .cardrow .pri{color:var(--mag);font-size:11px}
   .cardrow.pri .dw{color:var(--ink)} .cardrow .dw b{color:var(--ink)}
   .cardrow.standing .dw{color:var(--dim)}
   .cardrow .dn{font-size:10.5px;white-space:nowrap;text-align:right}
-  .spec{display:grid;grid-template-columns:auto 120px auto;gap:6px;align-items:center;font-size:9px;color:var(--faint)}
-  .spec .sw{grid-column:1/-1;text-align:center;font-size:10px}
+  .spec{display:grid;grid-template-columns:auto 110px auto;gap:5px;align-items:center;font-size:9px;color:var(--faint);row-gap:3px}
+  .spec .sw{grid-column:1/-1;text-align:center;font-size:10px;white-space:nowrap}
   .sbar{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),#4a4f58 50%,var(--hit))}
   .sbar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
   .spec.unset .sbar i{background:var(--dim)}
-  .holdrow{display:grid;grid-template-columns:110px 1fr 40px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
+  .holdrow{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
+  .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+  .holdrow.hh .hv{color:var(--faint)}
   .holdrow:last-child{border-bottom:none}
   .hbar{height:8px;background:#0b111c;border:1px solid var(--line);border-radius:4px;overflow:hidden;display:block}
   .hbar i{display:block;height:100%}
@@ -120,7 +125,7 @@
   .landhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .landhead .m b{color:var(--ink)}
   /* THE BRIEF: the month at the head of the Desk — its shape, what is coming, what waits */
-  .brief{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:stretch;margin-bottom:12px}
+  .brief{display:block;margin-bottom:12px}
   .brief .shape{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 14px}
   .brief .shape .mn{font-size:15px;color:var(--ink);font-weight:bold;letter-spacing:.02em}
   .brief .shape .mn .m{font-weight:normal;font-size:11px;margin-left:10px}
@@ -129,8 +134,6 @@
   .cd{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line2);border-radius:12px;font-size:10.5px;color:var(--dim);background:var(--a-deep)}
   .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)} .cd.soon b{color:var(--cred)} .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
   .agenda{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 12px}
-  .agenda .ah{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-  .agenda .ah b{color:var(--ink)}
   .agi{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #16233a;font-size:11.5px;cursor:pointer}
   .agi:hover .at{color:var(--a)}
   .agi .dot{width:8px;height:8px;border-radius:50%;background:var(--cred);flex-shrink:0}
@@ -204,6 +207,17 @@
   .notch .nn{font-size:11.5px;color:var(--ink)}
   .notch .nf{display:flex;gap:10px;font-size:9.5px;color:var(--dim);white-space:nowrap}
   .notch .nf b{color:var(--ink);font-weight:600}
+  /* the leanings: a five-point thumb on the scale, per house */
+  .leans{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+  .leans .lh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .leanrow{display:grid;grid-template-columns:1fr auto 96px;gap:8px;align-items:center;border-left:3px solid var(--faint);padding:3px 0 3px 7px;margin-bottom:3px;font-size:11px}
+  .leanrow .lsc{display:flex;gap:3px}
+  .leanrow .lp{width:13px;height:13px;border-radius:50%;border:1px solid var(--line2);cursor:pointer;background:transparent}
+  .leanrow .lp:hover{border-color:var(--a)}
+  .leanrow .lp.on{background:var(--dim);border-color:var(--dim)}
+  .leanrow .lp.on.hot{background:var(--red);border-color:var(--red)}
+  .leanrow .lp.on.cold{background:var(--b);border-color:var(--b)}
+  .leanrow .lw{text-align:right;font-size:10px}
   /* the Table's composer and the ground's assay */
   .dealhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:11.5px;color:var(--dim)}
   .dealhead b{color:var(--ink)}
@@ -316,11 +330,11 @@
   .contract .ntbl tr .x{color:var(--faint);cursor:pointer;text-align:center;width:18px} .contract .ntbl tr .x:hover{color:var(--bad)}
   .contract .tot td{border-bottom:none;color:var(--ink);font-weight:bold;padding-top:6px}
   .contract .none td{color:var(--faint);text-align:center;padding:10px}
-  .negfoot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
-  .negfoot .tlog{color:var(--dim);font-size:11px;flex:1}
-  .negfoot button.primary{padding:7px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
-  .negfoot button.primary:hover{background:var(--a);color:var(--bg)}
-  .negfoot button:disabled{opacity:.4;cursor:default}
+  .negact{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:8px}
+  .negact .tlog{color:var(--dim);font-size:11px}
+  .negact button.primary{padding:8px 26px;font-size:12.5px;border-color:var(--a);color:var(--a);background:var(--a-deep);font-weight:600}
+  .negact button.primary:hover:not(:disabled){background:var(--a);color:var(--bg)}
+  .negact button:disabled{opacity:.35;cursor:default}
   .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
   .trow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid #16233a;
     cursor:pointer;font-size:11.5px}
@@ -483,7 +497,27 @@
      preparation: the current stop lit, the past dim, each stop in its kind's colour with a
      word of what it does and how far off it is. During the Divide it stands down. */
   #yearline{display:none;position:fixed;left:0;top:0;bottom:0;width:212px;padding:12px 10px 12px 14px;border-right:1px solid var(--line);background:var(--bg);overflow-y:auto;z-index:5}
-  body.yearline #yearline{display:block}
+  body.yearline #yearline{display:block;bottom:auto;max-height:100vh}
+  /* the agenda stands at the foot of the year line: always in the corner of the eye, never
+     a corner of a page */
+  /* THE TURN STANDS IN THE BOTTOM RIGHT, where a turn stands: what is waiting above it, and
+     beneath, the one button — which leads to the next unfinished thing while anything is
+     unfinished, and becomes End the Month when nothing is. */
+  #agenda{display:none;position:fixed;right:0;bottom:0;width:290px;z-index:20}
+  body.yearline #agenda,body.turnon #agenda{display:block}
+  #agenda .items{max-height:44vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:4px 10px;box-shadow:-10px 6px 26px rgba(0,0,0,.45)}
+  #agenda.shut .items{display:none}
+  #agenda .ah{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 4px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);cursor:pointer}
+  #agenda .ah b{background:var(--cred);color:var(--bg);border-radius:9px;padding:0 6px;font-size:10px}
+  #agenda .ah b.clear{background:var(--hit)}
+  #agenda .turn{display:flex;flex-direction:column;gap:5px;padding:0 12px 12px}
+  #agenda .turnbtn{padding:13px 16px;border-radius:8px;border:1px solid var(--cred);background:var(--panel);color:var(--cred);font:inherit;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:-8px 6px 22px rgba(0,0,0,.5);text-align:center}
+  #agenda .turnbtn:hover{background:var(--cred);color:var(--bg)}
+  #agenda .turnbtn.clear{border-color:var(--a);color:var(--a)}
+  #agenda .turnbtn.clear:hover{background:var(--a);color:var(--bg)}
+  #agenda .turnbtn .sub{display:block;font-size:9.5px;font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--dim);margin-top:3px}
+  #agenda .anyway{background:none;border:none;color:var(--faint);font-size:10px;cursor:pointer;padding:2px;text-decoration:underline;text-underline-offset:2px}
+  #agenda .anyway:hover{color:var(--dim)}
   body.yearline header,body.yearline #rail,body.yearline .page{margin-left:212px}
   #yearline .yl{position:relative;padding-left:20px}
   #yearline .yl::before{content:'';position:absolute;left:7px;top:8px;bottom:10px;width:2px;background:var(--line2)}
@@ -497,7 +531,7 @@
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
-  @media (max-width: 900px){ body.yearline #yearline{display:none} body.yearline header,body.yearline #rail,body.yearline .page{margin-left:0} }
+  @media (max-width: 900px){ body.yearline #yearline{display:none} body.yearline #agenda{display:none} body.yearline header,body.yearline #rail,body.yearline .page{margin-left:0} }
   .page.on{display:block}
   table{border-collapse:collapse;width:100%;font-size:11.5px}
   th{color:var(--faint);font-weight:600;text-align:left;padding:3px 8px 3px 0;
@@ -523,6 +557,11 @@
   .ev{font-size:11.5px;color:var(--dim);margin:2px 0}
   .ev.hit{color:#d9a49c} .ev.down{color:var(--bad)}
   .evbox{max-height:220px;overflow:auto}
+  /* what decided the fight, read off its own log */
+  .whatdecided{margin-top:8px;border-top:1px solid var(--line);padding-top:7px;font-size:10.5px}
+  .whatdecided .wd,.whatdecided .wdh{display:grid;grid-template-columns:1fr 74px 74px;gap:6px;padding:2px 0}
+  .whatdecided .wdh{color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #16233a;margin-bottom:3px}
+  .whatdecided .k{color:var(--dim)} .whatdecided .a,.whatdecided .b{text-align:right;color:var(--ink)}
   .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .unit{display:flex;justify-content:space-between;gap:6px;padding:3px 0;
         border-bottom:1px solid #16233a;font-size:11.5px}
@@ -584,6 +623,11 @@
   .sqhead .place{font-size:10px;color:var(--a);border:1px solid var(--a);border-radius:4px;padding:1px 7px;cursor:pointer}
   .sqhead .place:hover{background:var(--a);color:var(--bg)}
   .sqbody{display:flex;flex-direction:column;gap:5px;padding:7px}
+  /* the empty slots: numbered, quiet, and lit when there is somebody to put in them */
+  .sqbody.slots .fcard.open{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;min-height:30px;padding:4px 8px;border-style:dashed;border-color:var(--line2);background:transparent;color:var(--faint);font-size:10.5px;text-align:left}
+  .sqbody.slots .fcard.open .sn{color:var(--faint);font-size:10px;text-align:center}
+  .sqbody.slots .fcard.open.can{border-color:var(--sq);color:var(--sq);cursor:pointer}
+  .sqbody.slots .fcard.open.can:hover{background:var(--a-deep)}
   .planline{display:flex;gap:14px;align-items:baseline;font-size:11px;color:var(--dim);min-height:18px}
   .planline b{color:var(--ink)} .planline .over{color:var(--bad)} .planline .sel{color:var(--a)}
   /* a red button, and its inline confirmation */
@@ -601,6 +645,28 @@
   .drawer .close:hover{color:var(--a)}
   .scrim{position:fixed;inset:0;z-index:29;display:none} .scrim.on{display:block}
   @media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+  /* the quiet business: a card per act, its price, its odds, and what it costs if it comes out */
+  #quietpanel .qact{background:var(--panel);border:1px solid var(--line2);border-left:3px solid var(--red);border-radius:6px;padding:9px 11px;margin-bottom:8px}
+  #quietpanel .qact .qt{font-size:12.5px;color:var(--ink);font-weight:bold}
+  #quietpanel .qact .qx{font-size:11px;color:var(--dim);line-height:1.4;margin:3px 0 6px}
+  #quietpanel .qact .qo{font-size:11px;color:var(--hit);margin-bottom:6px}
+  #quietpanel .qact .qf{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:10.5px;margin-bottom:7px}
+  #quietpanel .qact .qf .k{color:var(--dim)} #quietpanel .qact .qf .v{text-align:right;color:var(--ink)}
+  #quietpanel select.qsel{background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:3px 5px;font:inherit;font-size:10.5px;width:100%;margin-bottom:6px}
+  #quietpanel .qbtn{width:100%;padding:6px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:11.5px}
+  #quietpanel .qbtn:hover{background:var(--red);color:var(--bg)}
+  #quietpanel .qheld{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+  #quietpanel .qhh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:6px}
+  #quietpanel .qev{background:var(--panel);border:1px solid var(--warn);border-radius:6px;padding:8px 10px;margin-bottom:7px}
+  #quietpanel .qev .qt{font-size:12px;color:var(--ink)}
+  #quietpanel .qways{display:grid;gap:4px;margin-top:7px}
+  #quietpanel .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;padding:5px 9px}
+  #quietpanel .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
+  #quietpanel .qways .sub{display:block;font-size:9px;color:var(--dim)}
+  #quietpanel .qways .qbtn:hover .sub{color:var(--bg)}
+  #quietpanel .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+  #quietpanel .qdone .out{color:var(--bad)}
+  .quietbtn{border-color:var(--red);color:var(--red)}
   .kit{display:flex;flex-direction:column;gap:4px}
   .slot{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;background:var(--a-deep);cursor:pointer}
   .slot:hover,.slot.open{border-color:var(--a)}
@@ -692,6 +758,16 @@
   .st.health .k{color:var(--s-health)}
   .talrow{display:grid;grid-template-columns:repeat(2,1fr);gap:3px 14px;font-size:10.5px}
   .talrow .st .v{color:var(--s-wpn)}
+  .q{position:relative}
+  .q .qtip{display:none;position:absolute;left:0;bottom:130%;z-index:60;min-width:180px;max-width:260px;
+    background:var(--bg);border:1px solid var(--a);border-radius:6px;padding:7px 9px;box-shadow:0 8px 26px rgba(0,0,0,.6);
+    font-size:10.5px;line-height:1.45;text-transform:none;letter-spacing:0;white-space:normal;color:var(--ink)}
+  .q:hover .qtip{display:block}
+  .q .qtip b{display:block;color:var(--a);margin-bottom:3px}
+  .q .qtip .ql{display:block;color:var(--hit)}
+  .q .qtip .ql.m{color:var(--faint)}
+  .q .qtip .qf{display:block;color:var(--dim);font-style:italic;margin-top:4px;border-top:1px solid var(--line);padding-top:4px}
+  .q.flav{opacity:.75}
   .qk .q{display:inline-block;color:var(--b);border:1px solid var(--line2);border-radius:3px;padding:1px 5px;margin:0 3px 3px 0;font-size:9px}
   .paperline{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:10.5px}
   .paperline .k{color:var(--s-name)} .paperline .v{color:var(--ink);text-align:right}
@@ -721,7 +797,12 @@
   .pcbtn.on{border-color:var(--hit);color:var(--hit)}
   .pcbtn.x{padding:3px 7px;color:var(--dim);margin-left:3px}
   .pcbid{width:54px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:4px;padding:3px 5px;font-family:inherit;font-size:10px;margin-right:4px}
-  .pcsigning{color:var(--hit);font-size:9.5px;margin-right:4px}
+  /* a prospect you have marked wears it: the card takes the signing colour and says so, and
+     the button keeps its place and its word */
+  .acq .pc.taken{background:#12332b;border-color:var(--hit);position:relative}
+  .acq .pc.taken .pc-foot{border-top-color:#2a5f58}
+  .pc-flag{position:absolute;top:-1px;right:-1px;background:var(--hit);color:var(--bg);font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:0 6px 0 6px}
+  .acq .pc.taken .pcbtn.on{background:var(--hit);border-color:var(--hit);color:var(--bg)}
   /* ---- A PHONE IS NOT THE GAME'S HOME, but it should not read as a white page of
      clusters. The dark ground covers the whole document; below 900px the two- and
      three-column layouts stack, the fixed drawer takes the whole width, and the tables
@@ -757,8 +838,8 @@
   <div class="bar">
     <span class="gold" id="clock" style="letter-spacing:.08em"></span>
     <span class="m" id="focusline"></span>
-    <button id="endmonth" style="display:none">End the Month</button>
-    <button id="nextyear" style="display:none">Begin the Next Year</button>
+    <button id="endmonth" style="display:none" hidden>End the Month</button>
+    <button id="nextyear" style="display:none" hidden>Begin the Next Year</button>
     <button id="savebtn" class="tiny">Save</button>
     <button id="menubtn" class="tiny">Menu</button>
   </div>
@@ -817,6 +898,8 @@
 <nav id="rail"></nav>
 <!-- THE YEAR LINE: twelve stops down the left of every preparation page, the current one lit -->
 <aside id="yearline"></aside>
+<!-- WAITING ON YOU: a standing panel under the year line, on every preparation page -->
+<aside id="agenda"></aside>
 
 <!-- ================================= THE DESK ================================= -->
 <div class="page" data-tab="desk">
@@ -891,6 +974,8 @@
 <!-- THE FIGHTER SHEET, a drawer any tab may open (Squads, the Dividend) -->
 <div class="scrim" id="sqscrim"></div>
 <div class="drawer" id="unitpanel"></div>
+<!-- THE QUIET BUSINESS: a window, not a tab, open in the preparation and in the Divide -->
+<div class="drawer" id="quietpanel"></div>
 
 <!-- ============================== THE FIREFIGHT ============================== -->
 <div class="page" data-tab="fight">
@@ -943,7 +1028,7 @@
       <div id="glegend" class="box" style="margin-top:8px"></div></div>
     <div>
       <div class="box" id="gplanet"><span class="m">No Contest On the Ground</span></div>
-      <h2>The Assay</h2>
+      <h2>The Ground’s Deposits</h2>
       <div class="box" id="tground"><span class="m">&mdash;</span></div>
       <h2>The Banners</h2>
       <div class="box"><table id="gboard"></table></div>
@@ -1131,6 +1216,7 @@
   /* THE STAT CONVENTION, one for every page: the label in the stat's own colour (STATCOL),
      the number on the grade scale — green high, red low, against the roster's spread */
   var STAT_ABBR = { aim:'Aim', grit:'Gri', reflex:'Ref', fieldcraft:'Fld', tactics:'Tac', presence:'Pre', resolve:'Res' };
+  var STATNAME = { aim:'Aim', grit:'Grit', reflex:'Reflex', fieldcraft:'Fieldcraft', tactics:'Tactics', presence:'Presence', resolve:'Resolve' };
   function statCell(key, label, v) {
     return '<span class="st ' + key + '"><span class="k" style="color:' + (STATCOL[key] || 'var(--s-name)') + '">' + label + '</span>' +
            '<span class="v" style="color:' + (typeof v === 'number' ? gradeColour(v) : 'var(--faint)') + '">' +
@@ -1209,14 +1295,15 @@
       if (G) G._railPhase = phase;
       TAB[stayOn && TAB[stayOn] ? stayOn : RAILS[phase].home].click();
     }
-    /* the year turns only once the contest is over */
+    /* THE TURN IS THE CORNER'S. These two are the machinery it drives — kept in the document
+       so every path that ended a month still has one thing to call, hidden so the top line
+       carries no turn of its own. What a manager presses is in the bottom right, always, and
+       it says what this particular turn is: End the Month, Take the Floor, Drop, Next Comms
+       Window, Begin the Next Year. */
     $('nextyear').style.display = (m >= 12 && G && G.div && G.div.done) ? '' : 'none';
-    /* End Month lives on the top line so it is reachable from any page; it stands during the
-       preparation months and steps aside once the Divide has the floor. WHILE THE LIGHTS ARE
-       UP it reads "Take the Floor": ending month six IS taking the floor with the card as it
-       stands, so there is no second gate to find. */
     $('endmonth').style.display = (G && G.state && m < 12) ? '' : 'none';
     $('endmonth').textContent = (G && G._dividendFloor) ? 'Take the Floor' : 'End the Month';
+    renderTurn();
     $('clock').textContent = G && G.state
       ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 the Divide'
           : 'Month ' + m + ' \u2014 ' + ((SEASON.MONTHS[m] || {}).name || ''))
@@ -1285,8 +1372,7 @@
   function sheetBlocks(b) {
     var s = b.stats, skills = b.skills || {}, ct = b.contract || {};
     var org = originOf(b);
-    var quirks = (b.traits || []).map(function (t) {
-      return (ROSTER.traitById && ROSTER.traitById[t] ? ROSTER.traitById[t].name : capWords(t)); });
+    var quirks = (b.traits || []).map(function (t) { return t; });
     /* HEALTH IS THE REAL WOUND POOL, not the inert condition meter. hpFor is the same reader
        the grid uses to size how many hits put a body down; grit sizes it, so a hand's toughness
        shows here honestly. Falls back gracefully if the combat module is somehow absent. */
@@ -1326,10 +1412,69 @@
     return '<div class="colblk"><div class="clab">Stats</div><div class="statrow">' + statCells + '</div></div>' +
       '<div class="colblk"><div class="clab">Weapon Skill</div><div class="talrow">' + talCells + '</div></div>' +
       (quirks.length ? '<div class="colblk"><div class="clab">Quirks</div><div class="qk">' +
-        quirks.map(function (q) { return '<span class="q">' + esc(q) + '</span>'; }).join('') + '</div></div>' : '') +
+        quirks.map(quirkChip).join('') + '</div></div>' : '') +
       '<div class="colblk"><div class="clab">Contract</div><div class="paperline">' + paper + '</div></div>';
   }
   function capWords(t) { return String(t).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+
+  /* ======================= WHAT A QUIRK DOES =======================
+     A quirk was a word on a card. What it MEANS is in the data — a stat it moves, and the
+     hooks the engine reads — so the chip says it: hover, and the reading is the mechanics,
+     not the flavour. A hook nothing reads says so rather than promising something. */
+  var HOOK_TEXT = {
+    accuracy_bonus: 'Better Aim', field_treatment_bonus: 'Treats Wounds Better',
+    evac_stabilize_bonus: 'Steadier Hands on the Wounded', development_rate_up: 'Trains 30% Faster',
+    young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
+    unspotted_movement_bonus: 'Moves Further Unseen', reposition_speed_up: 'One More Step a Turn',
+    evasion_surge: 'One More Step When Shot At', rout_immune: 'Never Routs',
+    morale_swings_damped: 'Loses 40% Less Composure', morale_swings_amplified: 'Loses 45% More Composure',
+    wounded_composure_bonus: 'Steadier When Hurt', composure_up_as_intensity_rises: 'Steadier the Worse It Gets',
+    suppression_output_up: 'Suppresses a Wider Field', suppression_output_down_slight: 'Suppresses a Narrower Field',
+    night_ambush_warning_bonus: 'Warns the Squad at Night', ambush_avoidance_slight: 'Harder to Ambush',
+    navigation_bonus: 'Does Not Get Lost', hazard_forecast_bonus: 'Reads the Weather Coming',
+    forage_bonus: 'Finds More on the Ground', pact_reputation_up: 'Truces Come Cheaper',
+    injury_exposure_up: 'Hurt More Easily', death_morale_immune: 'Unmoved by the Dead',
+    gore_morale_immune: 'Unmoved by the Sight of It', cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
+    presence_aura: 'Steadies Those Around Them', squad_coordination_bonus: 'The Squad Works Better Together',
+    overwatch_bonus: 'Better on Overwatch', tether_range_extended: 'Ranges Further From the Pair',
+    presence_aura: 'Steadies Anyone Beside Them', cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
+    death_morale_immune: 'Unshaken by a Fallen Mate', gore_morale_immune: 'Unshaken by the Sight of It',
+    injury_exposure_up: 'Easier to Hurt', squad_coordination_bonus: 'The Whole Squad Aims Better',
+    psionic_broadcast_sensation: 'The Crowd Feels It Too', negotiation_bluff_detection: 'Hears a Bluff',
+    salary_anchoring_up: 'Asks 35% More at the Table', salary_demand_pressure: 'Asks 20% More at the Table',
+    poach_resistant: 'Costs 60% More to Tempt Away',
+    aggression_event_seed: 'Starts Things', renegotiation_demand_seed: 'Reopens the Paper',
+    syndicate_contact_seed: 'Draws Creditors', rivalry_event_seed: 'Draws Rivals',
+    squad_envy_event_seed: 'Draws Envy', pride_event_seed: 'Draws Slights',
+    unlikely_friendship_arc_seed: 'Draws Old Enemies', omen_event_seed: 'Draws Omens',
+    ritual_event_seed: 'Draws Omens', squad_superstition_event_seed: 'Draws Omens',
+    collective_demand_event_seed: 'Draws the Board\u2019s Notice', abolitionist_event_seed: 'Draws the Board\u2019s Notice',
+    cradle_camp_event_seed: 'Draws the Board\u2019s Notice', desperation_event_seed_final_divide: 'Draws a Reckoning',
+    scandal_seed_step9: 'Draws a Reckoning', status_coupling_amplified: 'Reopens the Paper',
+    short_band_composure_bonus: 'Steadier Up Close', early_disengage_bias: 'Calls It Sooner',
+    follows_bad_orders: 'Holds a Bad Order Too Long', tether_range_extended: 'The Pair Works 3 Tiles Further Apart',
+    sponsor_income_up: 'The Gate Takes 12% More', rare_quote_fame_spike: 'The Gate Takes 12% More'
+  };
+  function quirkText(id) {
+    var tr = ROSTER.traitById && ROSTER.traitById[id];
+    if (!tr) return { name: capWords(id), lines: [], flavour: '' };
+    var e = tr.effects || {}, lines = [];
+    for (var k in (e.stat_mods || {})) {
+      var v = e.stat_mods[k];
+      lines.push((v > 0 ? '+' : '') + v + ' ' + (STATNAME[k] || capWords(k)));
+    }
+    (e.hooks || []).forEach(function (h) { if (HOOK_TEXT[h]) lines.push(HOOK_TEXT[h]); });
+    return { name: tr.name, lines: lines, flavour: tr.description || '' };
+  }
+  function quirkChip(id) {
+    var q = quirkText(id);
+    var title = q.lines.length ? q.lines.join(' \u00b7 ') : 'Character, Not Mechanics';
+    return '<span class="q' + (q.lines.length ? '' : ' flav') + '" data-quirk="' + esc(id) + '" title="' + esc(q.name + ' \u2014 ' + title) + '">' + esc(q.name) +
+      '<span class="qtip"><b>' + esc(q.name) + '</b>' +
+      (q.lines.length ? '<span class="ql">' + q.lines.map(esc).join('</span><span class="ql">') + '</span>'
+                      : '<span class="ql m">Character, Not Mechanics</span>') +
+      (q.flavour ? '<span class="qf">' + esc(q.flavour) + '</span>' : '') + '</span></span>';
+  }
 
   /* THE ORIGIN of a hand — the pool they came from, which sets their whole economic
      relationship. contract.kind is the data key ('nattie'|'mercenary'|'prisoner'); the
@@ -1501,13 +1646,21 @@
     var lot = SEASON.lotFor(G.state, G.me);
     var meta = WIN_META[win.signing] || { name: win.signing, cls: 'none', kind: '', deadline: '' };
     var POOLWORD = { premium: 'Premium Pool', discount: 'Discount Pool', first: 'First Intake', second: 'Second Intake' };
+    /* §MARKET a house's name is a discount or a premium on every ask */
+    var meRep = G.corps[G.me].rep;
+    var nameGood = meRep ? REP.standing(meRep, 'own') + REP.standing(meRep, 'fleet') * SEASON.CONST.MARKET_FLEET_SHARE : 0;
+    var namePct = Math.round(Math.max(-SEASON.CONST.MARKET_SWING, Math.min(SEASON.CONST.MARKET_SWING, nameGood / 100 * SEASON.CONST.MARKET_SWING)) * 100);
+    var nameWord = namePct > 2 ? '<span class="good">Your Name: \u2212' + namePct + '% on Every Ask</span>'
+                 : namePct < -2 ? '<span class="bad">Your Name: +' + (-namePct) + '% on Every Ask</span>'
+                 : '<span class="m">Your Name Moves Nothing</span>';
     meta = Object.assign({}, meta, { name: meta.name + (win.pool && POOLWORD[win.pool] ? ' \u00b7 ' + POOLWORD[win.pool] : '') });
     if (!lot.length) {
       mkt.innerHTML = winShell(meta.cls, meta.name, meta.kind,
         meta.deadline.replace('%d', deadline), '<span class="none">The Sheet Is Empty</span>');
       return;
     }
-    var body = '<div class="pcs">' + lot.map(function (f) { return prospectCard(f, win.signing); }).join('') + '</div>';
+    var body = '<div class="m" style="margin-bottom:7px">' + nameWord + '</div>' +
+      '<div class="pcs">' + lot.map(function (f) { return prospectCard(f, win.signing); }).join('') + '</div>';
     mkt.innerHTML = winShell(meta.cls, meta.name, meta.kind,
       meta.deadline.replace('%d', deadline), body);
 
@@ -1555,22 +1708,21 @@
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       foot = f.yourBid
-        ? '<span><span class="pcsigning">signing</span>' +
-          '<button class="pcbtn on" data-unsign="' + f.id + '">Marked \u2715</button></span>'
+        ? '<button class="pcbtn on" data-unsign="' + f.id + '">Signing \u00b7 Cancel</button>'
         : '<button class="pcbtn" data-sign="' + f.id + '">Sign</button>';
     } else if (signing === 'mercs') {
       terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       foot = '<span><input class="pcbid" data-f="' + f.id + '" value="' + (f.yourBid || f.ask) + '">' +
-             '<button class="pcbtn' + (f.yourBid ? ' on' : '') + '" data-bid="' + f.id + '">' +
-             (f.yourBid ? 'Change' : 'Bid') + '</button>' +
-             (f.yourBid ? '<button class="pcbtn x" data-nobid="' + f.id + '">\u2715</button>' : '') + '</span>';
+             '<button class="pcbtn' + (f.yourBid ? ' on' : '') + '" data-bid="' + f.id + '">' + (f.yourBid ? 'Change' : 'Bid') + '</button>' +
+             (f.yourBid ? '<button class="pcbtn x" data-nobid="' + f.id + '" title="Withdraw the Bid">\u2715</button>' : '') + '</span>';
     } else {   /* bastille */
       var req = f.freedomReq || (f.contract && f.contract.divides_required);
       terms = 'Serves ' + (req || '?') + ' Divide' + (req === 1 ? '' : 's') + ' to Earn Release' +
               (f.ask ? ' \u00b7 Wage ' + crs(f.ask) : '');
       foot = '';
     }
-    return '<div class="pc">' +
+    return '<div class="pc' + (f.yourBid ? ' taken' : '') + '">' +
+      (f.yourBid ? '<div class="pc-flag">' + (signing === 'mercs' ? 'Bid ' + crs(f.yourBid) : 'Signing') + '</div>' : '') +
       '<div class="pc-top"><span class="pc-nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
         '<span class="pc-who">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') + '</span></div>' +
       '<div class="pc-stats">' + cells + '</div>' +
@@ -1702,6 +1854,8 @@
       var E8 = G.state.eight || { names: {}, declined: {} };
       if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', urgent: true, cost: 'Best Named for You' });
     }
+    var dirt = (SEASON.evidenceOf(G.state, G.me) || []).filter(function (e) { return !e.used; });
+    if (dirt.length) items.push({ txt: 'You Hold Something on ' + cSpan(dirt[0].against), tab: 'desk', cost: 'It Goes Stale' });
     (SEASON.eventsFor(G.state, G.me) || []).forEach(function (e) {
       if (e.resolved) return;
       var d = e.options.filter(function (o) { return o.id === e.def; })[0];
@@ -1762,6 +1916,20 @@
     return '<div class="eightcard" style="margin:0"><div class="teams">' + team('A') + '<span class="vs">vs</span>' + team('B') + '</div>' +
       '<div class="bar" style="margin-top:8px"><button class="tiny" id="eightwatch">Watch</button>' + (R.stun ? '<span class="ktag">Stun-Grade</span>' : '') + '</div></div>';
   }
+  /* the Dividend's own account in the recap: the card, your match, and a Watch */
+  function dividendRecapHtml() {
+    var lights = (G.state.dividend && G.state.dividend.watch) || [];
+    if (!lights.length) return '';
+    var mine = [], rest = [];
+    lights.forEach(function (m, i) { (m.corps.indexOf(G.me) >= 0 ? mine : rest).push({ m: m, i: i }); });
+    var row = function (x, yours) {
+      var m = x.m;
+      return '<div class="row"><span class="k">' + cSpan(m.corps[0]) + ' <b>' + m.score[0] + '</b> \u2013 <b>' + m.score[1] + '</b> ' + cSpan(m.corps[1]) + '</span>' +
+        '<span class="v">' + (m.winnerId ? cSpan(m.winnerId) + ' Took the Purse' : 'Drawn') +
+        (yours ? ' <button class="tiny" data-watchd="' + x.i + '">Watch</button>' : '') + '</span></div>'; };
+    return '<div class="rcp">' + (mine.length ? mine.map(function (x) { return row(x, true); }).join('') : '<div class="none">No Card This Year</div>') +
+      (rest.length ? '<div class="row"><span class="k">The Rest of the Card</span><span class="v">' + rest.length + ' Matches</span></div>' : '') + '</div>';
+  }
   function wireEightWatch() {
     var b = $('eightwatch'); if (!b) return;
     b.onclick = function () {
@@ -1815,7 +1983,7 @@
     var host = $('yearline'); if (!host) return;
     var live = G && G.state && G.state.month < 12;
     document.body.classList.toggle('yearline', !!live);
-    if (!live) { host.innerHTML = ''; return; }
+    if (!live) { host.innerHTML = ''; if ($('agenda')) $('agenda').innerHTML = ''; document.body.classList.remove('agendaopen'); return; }
     var m = G.state.month, h = '<div class="yhead">Year ' + G.state.season + '<b>Month ' + m + ' \u00b7 ' + esc((SEASON.MONTHS[m] || {}).name || '') + '</b></div><div class="yl">';
     for (var k = 1; k <= 12; k++) {
       var w = k === 12 ? { name: 'The Divide' } : (SEASON.MONTHS[k] || { name: 'Month ' + k });
@@ -1829,23 +1997,129 @@
       el.onclick = function () { var k = +el.getAttribute('data-stop'); if (k !== G.state.month) return; var t = STOP_TAB[monthKind(k).k]; if (TAB[t]) TAB[t].click(); };
     });
   }
+  /* ============================ THE QUIET BUSINESS ============================ */
+  function renderQuiet() {
+    var host = $('quietpanel'); if (!host || !G || !G.state) return;
+    var offered = SEASON.illicitOffered(G.state, G.me) || [];
+    var done = SEASON.illicitDone(G.state, G.me) || [];
+    var others = G.state.ids.filter(function (id) { return id !== G.me; });
+    var h = '<span class="close" id="quietclose">\u2715</span><h2 style="margin-top:0">The Quiet Business</h2>' +
+      '<div class="m" style="margin-bottom:10px">Paid in Credits and in Standing \u00b7 the Standing Goes Either Way</div>';
+    h += offered.map(function (o) {
+      var st = Object.keys(o.standing || {}).map(function (a) { return AUDNAME[a].name + ' ' + o.standing[a]; }).join(' \u00b7 ');
+      return '<div class="qact"><div class="qt">' + esc(o.title) + '</div><div class="qx">' + esc(o.text) + '</div>' +
+        '<div class="qo">' + esc(o.offer) + '</div>' +
+        '<div class="qf"><span class="k">Price</span><span class="v">' + crs(o.cost) + (st ? ' \u00b7 ' + st : '') + '</span>' +
+          '<span class="k">Goes Off Clean</span><span class="v ' + (o.clean >= 0.88 ? 'good' : o.clean >= 0.75 ? 'warn' : 'bad') + '">' + Math.round(o.clean * 100) + '%</span></div>' +
+        '<div class="m" style="font-size:10px;margin:-3px 0 7px">Otherwise \u00b7 Traced to You</div>' +
+        (o.needsTarget ? '<select class="qsel" data-qtarget="' + o.id + '">' + others.map(function (id) { return '<option value="' + id + '" style="color:' + colFor(id) + '">' + esc(nameOfCorp(id)) + '</option>'; }).join('') + '</select>' : '') +
+        '<button class="qbtn" data-qact="' + o.id + '">Have It Done</button></div>';
+    }).join('');
+    /* §QUIET WHAT YOU HOLD ON THEM. A scout deep enough in another house's books turns up
+       what that house paid to keep quiet. Three things to do with it, and each answers to a
+       different audience. */
+    var held = SEASON.evidenceOf(G.state, G.me) || [];
+    if (held.length) h += '<div class="qheld"><div class="qhh">What You Hold</div>' + held.map(function (e, i) {
+      var name = capWords(String(e.actId).replace(/_/g, ' '));
+      return '<div class="qev"><div class="qt">' + cSpan(e.against) + ' \u00b7 ' + esc(name) + '</div>' +
+        '<div class="m">Month ' + e.at + ' \u00b7 Year ' + e.season + (e.used ? ' \u00b7 <span class="good">' + capWords(e.used) + '</span>' : '') + '</div>' +
+        (e.used ? '' : '<div class="qways">' +
+          '<button class="qbtn" data-ev="' + i + '" data-how="blackmail">Blackmail<span class="sub">They Pay \u00b7 Nobody Learns</span></button>' +
+          '<button class="qbtn" data-ev="' + i + '" data-how="leak">Leak It<span class="sub">The Fleet Learns \u00b7 You Are Seen Printing It</span></button>' +
+          '<button class="qbtn" data-ev="' + i + '" data-how="report">Report It<span class="sub">The Aleas Thank You \u00b7 the Fleet Does Not</span></button>' +
+          '</div>') + '</div>'; }).join('') + '</div>';
+    if (done.length) h += '<div class="qdone"><b>This Year</b><br>' + done.map(function (d) {
+      return esc(capWords(d.id.replace(/_/g, ' '))) + ' \u00b7 M' + d.month + ' \u00b7 ' + (d.worked ? 'Clean' : '<span class="out">Came Apart</span>'); }).join('<br>') + '</div>';
+    host.innerHTML = h;
+    $('quietclose').onclick = function () { host.classList.remove('on'); $('sqscrim').classList.remove('on'); };
+    Array.prototype.forEach.call(host.querySelectorAll('[data-ev]'), function (b) {
+      b.onclick = function () {
+        var r = SEASON.useEvidence(G.state, G.me, +b.getAttribute('data-ev'), b.getAttribute('data-how'));
+        if (r.line) dlog('<span class="gold">' + esc(r.line) + '</span>');
+        renderQuiet(); renderDesk();
+      };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-qact]'), function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-qact');
+        var sel = host.querySelector('[data-qtarget="' + id + '"]');
+        var r = SEASON.illicitAttempt(G.state, G.me, id, sel ? sel.value : null, {});
+        if (r.line) dlog('<span class="' + (r.exposed ? 'bad' : 'm') + '">' + esc(r.line) + '</span>');
+        renderQuiet(); renderDesk();
+      };
+    });
+  }
+  function openQuiet() { renderQuiet(); $('quietpanel').classList.add('on'); $('sqscrim').classList.add('on'); }
+  /* THE CORNER'S BUTTON, whatever the turn is. In the preparation it is the month and what
+     waits on it; while the lights are up it takes the floor; at the lock it drops; in the
+     Divide it is the next comms window; when the contest is done it begins the next year. */
+  function renderTurn(items) {
+    var ag = $('agenda'); if (!ag || !G || !G.state) return;
+    var m = G.state.month;
+    var press = function (id) { var b = $(id); if (b) b.onclick(); };
+    var shell = function (cls, label, sub, fn, list) {
+      ag.innerHTML = (list || '') +
+        '<div class="turn"><button class="turnbtn ' + cls + '" id="turngo">' + label +
+        (sub ? '<span class="sub">' + sub + '</span>' : '') + '</button></div>';
+      $('turngo').onclick = fn;
+      document.body.classList.add('turnon');
+    };
+    if (G.div && G.div.done) { shell('clear', 'Begin the Next Year', 'The Contest Is Settled', function () { press('nextyear'); }); return; }
+    if (G.div && G.div.win) { shell('clear', 'Next Comms Window', 'Day ' + G.div.win.day, function () { advanceDivide(); }); return; }
+    if (m >= 12) {
+      var D = G.state.drop && G.state.drop.draft;
+      var mine = D ? (D.picks[G.me] || []).length : 0;
+      if (D && !D.done) { shell('', 'The Draft', mine + ' of ' + SEASON.PICKS_EACH + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
+      shell('clear', 'Drop', 'The Draft Is Done', function () { if (TAB.table) TAB.table.click(); var b = $('dropbtn'); if (b) b.onclick(); }); return;
+    }
+    if (G._dividendFloor) { shell('clear', 'Take the Floor', 'The Lights Are Up', function () { press('endmonth'); }); return; }
+    /* the ordinary month: the agenda, and the button that leads to what waits */
+    var list = items;
+    if (!list) return;                                    /* the brief renders the month's own */
+  }
   function renderBrief() {
     renderYearLine(); renderEvents(); renderEight();
     var host = $('brief'); if (!host || !G || !G.state) return;
-    var m = G.state.month, win = SEASON.MONTHS[m] || { name: 'Month ' + m };
+    var m = G.state.month, win = SEASON.MONTHS[m] || { name: 'Month ' + m }, me = G.corps[G.me];
     var items = agendaItems();
     var coming = (TRADE.tradingOpen(m) && m < TRADE.CONST.LAST_TRADE_MONTH ? '<span class="cd">The Table Closes <b>After Month ' + TRADE.CONST.LAST_TRADE_MONTH + '</b></span>' : '');
     host.innerHTML =
       '<div class="shape"><div class="mn">Month ' + m + ' \u00b7 ' + esc(win.name) + '<span class="m">Year ' + G.state.season + '</span></div>' +
-        '<div class="what">' + (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') + '</div>' +
-        '<div class="coming">' + coming + '</div></div>' +
-      '<div class="agenda"><div class="ah"><span>Waiting on You</span><b>' + items.length + '</b></div>' +
-        (items.length ? items.map(function (it, i) {
+        '<div class="what">' + (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') +
+          (me._lastGate ? ' \u00b7 Gate ' + crs(me._lastGate) + '/mo' : '') + '</div>' +
+        '<div class="coming">' + coming + '</div>' +
+        '<div style="margin-top:7px"><button class="tiny quietbtn" id="quietopen">The Quiet Business</button></div></div>';
+    /* the agenda stands in its own panel, at the foot of the year line */
+    var ag = $('agenda');
+    if (ag && (G.div || G.state.month >= 12 || G._dividendFloor)) { renderTurn(); return; }
+    if (ag) {
+      if (G._agendaShut == null) G._agendaShut = false;
+      ag.className = G._agendaShut ? 'shut' : '';
+      /* the button leads to the next unfinished thing, and ends the month only when there is
+         nothing left — with a way past it, because a manager may choose to let something
+         lapse and the recap will say that he did */
+      var first = items[0];
+      var turn = items.length
+        ? '<button class="turnbtn" id="turnnext">Waiting on You \u00b7 ' + items.length +
+            '<span class="sub">' + esc(String(first.txt).replace(/<[^>]*>/g, '')) + ' \u2192</span></button>' +
+          '<button class="anyway" id="turnanyway">End the Month Anyway</button>'
+        : '<button class="turnbtn clear" id="turnend">End the Month<span class="sub">Nothing Waiting</span></button>';
+      ag.innerHTML = '<div class="items">' + (items.length ? items.map(function (it) {
           return '<div class="agi' + (it.urgent ? ' urgent' : '') + '" data-agenda="' + it.tab + '"><span class="dot"></span><span class="at">' + it.txt + (it.cost ? '<div class="m" style="font-size:10px">' + it.cost + '</div>' : '') + '</span><span class="go">' + (SURFACES[it.tab] ? SURFACES[it.tab].name : '') + ' \u2192</span></div>'; }).join('')
-                     : '<div class="clear">Nothing Waiting</div>') + '</div>';
-    Array.prototype.forEach.call(host.querySelectorAll('[data-agenda]'), function (el) {
-      el.onclick = function () { var t = el.getAttribute('data-agenda'); if (TAB[t]) TAB[t].click(); else show(t); };
-    });
+                     : '<div class="clear">Nothing Waiting</div>') + '</div>' +
+        '<div class="ah" id="agendahead"><span>Waiting on You</span><b' + (items.length ? '' : ' class="clear"') + '>' + items.length + '</b></div>' +
+        '<div class="turn">' + turn + '</div>';
+      var endIt = function () { var em2 = $('endmonth'); if (em2 && em2.style.display !== 'none') em2.onclick(); };
+      if ($('turnnext')) $('turnnext').onclick = function () { var t = first.tab; if (TAB[t]) TAB[t].click(); else show(t); };
+      if ($('turnanyway')) $('turnanyway').onclick = endIt;
+      if ($('turnend')) $('turnend').onclick = endIt;
+      document.body.classList.toggle('agendaopen', !G._agendaShut);
+      $('agendahead').onclick = function () { G._agendaShut = !G._agendaShut; renderBrief(); };
+      if ($('quietopen')) $('quietopen').onclick = openQuiet;
+      Array.prototype.forEach.call(ag.querySelectorAll('[data-agenda]'), function (el) {
+        el.onclick = function () { var t = el.getAttribute('data-agenda'); if (TAB[t]) TAB[t].click(); else show(t); };
+      });
+    }
     var em = $('endmonth');
     if (em && m < 12 && !G._dividendFloor) { em.textContent = items.length ? 'End the Month \u00b7 ' + items.length + ' Waiting' : 'End the Month'; em.classList.toggle('waiting', !!items.length); }
   }
@@ -2499,7 +2773,7 @@
   function planetRowText(k, depth) {
     var pl = G.state.planet; if (!pl) return '\u2014';
     var comp = pl.composition || [];
-    var sites = (pl.objectives || []).filter(function (o) { return o.type === 'ore_assay'; });
+    var sites = (pl.objectives || []).filter(function (o) { return o.type === 'resource_site'; });
     switch (k) {
       case 'ground': {
         var rich = pl.richness >= 1 ? 'Rich' : pl.richness >= 0.7 ? 'Fair' : 'Lean';
@@ -2509,7 +2783,7 @@
         return h;
       }
       case 'veins': {
-        if (!comp.length) return 'Nothing Worth Digging';
+        if (!comp.length) return 'Nothing Worth Working';
         if (depth < 2) { var cats = {}; comp.forEach(function (r) { cats[r.category] = 1; });
           return Object.keys(cats).map(function (c) { return CAT_NAME[c] || capWords(c); }).join(', '); }
         return comp.map(function (r) {
@@ -2518,8 +2792,8 @@
         }).join('<br>');
       }
       case 'sites': {
-        if (!sites.length) return 'No Assay Sites';
-        if (depth < 2) return sites.length + ' Assay Site' + (sites.length === 1 ? '' : 's');
+        if (!sites.length) return 'No Deposits';
+        if (depth < 2) return sites.length + ' Deposit' + (sites.length === 1 ? '' : 's');
         var by = {};
         sites.forEach(function (o) { var b = by[o.resource] = by[o.resource] || { n: 0, u: 0 }; b.n++; b.u += Math.round(o.potency || 1); });
         return Object.keys(by).map(function (rid) {
@@ -2726,6 +3000,8 @@
     var spWords = [];
     for (var sk in sp) if (sp[sk] && typeof sp[sk] === 'number') spWords.push(sp[sk] + ' on ' + sk);
     if (spWords.length) lines.push('Focus \u00b7 ' + spWords.map(capWords).join(' \u00b7 '));
+    var gateLine = ((res.landed && res.landed[G.me]) || []).filter(function (l) { return l.kind === 'gate'; })[0];
+    if (gateLine) lines.push('<b>Gate and Merchandise</b> \u2014 ' + crs(gateLine.amount) + ' <span class="m">\u00b7 What the Crowd Paid</span>');
     ((res.landed || {})[G.me] || []).forEach(function (x) {
       lines.push('<span class="gold">landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
     });
@@ -2771,16 +3047,19 @@
        heard there had been a show. The year stops when the Dividend arrives, not when it
        is already over. */
     if (G.state.month === SEASON.DIVIDEND_MONTH && !G._dividendDone && !G._forceMonth) {
+      /* the lights are next, but the month that just ended still has its result: the recap
+         stands, and Continue opens the floor */
       G._dividendFloor = true;
       applyPhase();
       renderDividend();
+      if (!G._devSkip) { G._recapThen = 'lights'; showRecap(); }
       return;
     }
     applyPhase();
     if (G.state.month >= 12)
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
-    /* the month's own result stands before the next brief; the dev skip does not stop for it */
-    if (!G._forceMonth) showRecap();
+    /* the month's own result stands before the next brief; only the dev skip passes it by */
+    if (!G._devSkip) showRecap();
   };
   /* ============================ THE RECAP ============================ */
   function monthSnapshot(me) {
@@ -2833,12 +3112,14 @@
     var work = R.lines.length ? R.lines.map(function (l) { return '<div class="row"><span class="v" style="text-align:left">' + l + '</span></div>'; }).join('') : '<div class="none">A Quiet Month</div>';
     var evs = (R.events || []).map(function (x) { return row(esc(x.line), x.defaulted ? '<span class="bad">By Default</span>' : '<span class="good">Your Call</span>'); }).join('');
     var eight = R.event === 'eight' ? eightRecapHtml() : '';
+    var lights = R.event === 'dividend' ? dividendRecapHtml() : '';
     var left = R.agendaLeft.length ? R.agendaLeft.map(function (it) { return row(it.txt, '<span class="' + (it.urgent ? 'bad' : 'm') + '">' + (it.cost || 'Let Slide') + '</span>'); }).join('') : '<div class="none">Nothing Left Waiting</div>';
     var nextWin = SEASON.MONTHS[nextM];
     $('recaphead').innerHTML = '<div class="dl"><span>Month <b>' + m + '</b> \u00b7 ' + esc(R.name) + ' \u00b7 Ended</span>' +
       (nextM <= 11 && nextWin ? '<span>Next <b>Month ' + nextM + ' \u00b7 ' + esc(nextWin.name) + '</b></span>' : '<span><b>The Lock</b></span>') + '</div><span></span>';
     $('recapbody').innerHTML =
-      '<div>' + (eight ? '<h2>The Eight</h2>' + eight : '') + '<h2>The Month\u2019s Work</h2><div class="rcp">' + work + '</div>' +
+      '<div>' + (eight ? '<h2>The Eight</h2>' + eight : '') + (lights ? '<h2>The Dividend</h2>' + lights : '') +
+           '<h2>The Month\u2019s Work</h2><div class="rcp">' + work + '</div>' +
            (evs ? '<h2>Events</h2><div class="rcp">' + evs + '</div>' : '') +
            '<h2>Training</h2><div class="rcp">' + train + '</div>' +
            '<h2>Left Waiting</h2><div class="rcp">' + left + '</div></div>' +
@@ -2847,8 +3128,14 @@
            '<h2>Standing</h2><div class="rcp">' + st + '</div></div>';
     show('recap');
     wireEightWatch();
+    wireLights();
     Array.prototype.forEach.call(document.querySelectorAll('#rail .tab'), function (t) { t.classList.remove('on'); });
-    $('recapgo').onclick = function () { G._recap = null; var home = RAILS[G._railPhase] ? RAILS[G._railPhase].home : 'desk'; if (TAB[home]) TAB[home].click(); else show(home); };
+    $('recapgo').onclick = function () {
+      G._recap = null;
+      var to = G._recapThen; G._recapThen = null;
+      var home = to || (RAILS[G._railPhase] ? RAILS[G._railPhase].home : 'desk');
+      if (TAB[home]) TAB[home].click(); else show(home);
+    };
   }
 
   $('skiptolock').onclick = function () {
@@ -2859,9 +3146,9 @@
     var guard = 0;
     /* the dev skip does not stop for the lights: it is a tool for reaching the Lock, and
        a halt it cannot answer would simply hang it */
-    G._forceMonth = true;
+    G._forceMonth = true; G._devSkip = true;
     while (G.state.month < 12 && guard++ < 24) $('endmonth').onclick();
-    G._forceMonth = false;
+    G._forceMonth = false; G._devSkip = false;
     dlog('<span class="m">\\u00bb skipped to the Lock (dev)</span>');
   };
 
@@ -3080,11 +3367,15 @@
         '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="click to rename">' + esc(G.plan.names[si]) + '</span>' +
         (canPlace ? '<span class="place" data-place="' + si + '">Place</span>' : '') +
         '<span class="ct' + (bad ? ' bad' : '') + '">' + n + ' of ' + MAX + (bad ? ' \u00b7 needs ' + MIN : '') + '</span></div>';
-      h += '<div class="sqbody">';
-      mem.forEach(function (b) { h += fighterCard(b, true); });
-      /* ONE open row, always, until the squad is full */
-      if (n < MAX) h += '<div class="fcard open" data-place="' + si + '">' + (canPlace ? 'Place ' + esc(sel.name) : 'Open') + '</div>';
-      else h += '<div class="fcard full">Full</div>';
+      /* A SQUAD IS EIGHT SLOTS, and they all stand: the filled ones carry their fighter, the
+         empty ones number themselves, so a squad reads as a unit with room in it rather than
+         a list that happens to be short. */
+      h += '<div class="sqbody slots">';
+      for (var slot = 0; slot < MAX; slot++) {
+        if (slot < n) h += fighterCard(mem[slot], true);
+        else h += '<div class="fcard open' + (canPlace ? ' can' : '') + '" data-place="' + si + '"><span class="sn">' + (slot + 1) + '</span>' +
+                  '<span class="sw">' + (canPlace ? 'Place ' + esc(sel.name) : (slot < MIN ? 'Needed' : 'Open')) + '</span></div>';
+      }
       h += '</div>';
       h += '</div>';
     }
@@ -3597,7 +3888,8 @@
       if (v2.w) tail += ' \u00b7 ' + esc(v2.w);
       if (v2.react) tail += ' \u00b7 On Overwatch';
       if (v2.sev) tail += ' \u00b7 ' + esc(v2.sev);
-      if (v2.type === 'miss' && v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '% Shot';
+      if (v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '%';
+      if (v2.why && v2.why.length) tail += ' <span class="m">\u00b7 ' + v2.why.map(esc).join(' \u00b7 ') + '</span>';
       var col2 = colFor(fCid(sideOf[v2.by] || 0));
       out2 += '<div class="ev ' + cls + '">t' + v2.t + ' \u00b7 ' +
               '<span style="color:' + col2 + '">' + esc(who) + '</span> ' + esc(verb) +
@@ -3764,7 +4056,7 @@
     var t = planetIntelDepth('terrain'), st = planetIntelDepth('sites');
     var word = ['No Survey \u00b7 Coast and Peaks Only', 'Sparse Survey \u00b7 Coarse Ground', 'Read Survey \u00b7 Ground and Height', 'Full Survey'][Math.max(0, Math.min(3, t))];
     return '<div class="m" style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px">' + word +
-           (st >= 3 ? ' \u00b7 <span class="warn">\u25c6</span> Assay Sites Marked' : '') +
+           (st >= 3 ? ' \u00b7 <span class="warn">\u25c6</span> Deposits Marked' : '') +
            (G.div && !G.div.done ? ' \u00b7 Your Squads\u2019 Tracks Read True' : '') + '</div>';
   }
   /* the legend: what each terrain does to the squads that cross it, from the engine's own tables */
@@ -4034,7 +4326,7 @@
   /* WHAT THE SURVEY BOUGHT, in the map. The planet dossier's Terrain row is the resolution
      of the picture: Blank is fog with the shape of the coast; Sparse is the ground in coarse
      blocks; Read is finer, with the height on it; Full is the ground as it is. The Sites row
-     at Full marks where the assay sites lie. During the contest, whatever your own squads have
+     at Full marks where the deposits lie. During the contest, whatever your own squads have
      walked past is Full regardless — the fog lifts where they went. */
   function planetIntelDepth(row) {
     var me = G && G.corps && G.corps[G.me], r = me && me._intel && me._intel.planet && me._intel.planet.rows[row];
@@ -4367,6 +4659,15 @@
         g.beginPath(); g.arc(nc[0], nc[1], D.zn.r * sc, 0, Math.PI * 2); g.stroke();
         g.setLineDash([]);
       }
+      /* §THE CLOCK THE NEXT BEAT, drawn and dated: the dome tightens a little every day, but
+         it is the beats a manager plans against, and only tomorrow's circle was ever shown */
+      var beat = (G.div.win && (G.div.win.wall || [])[0]) || null;
+      if (beat) {
+        g.strokeStyle = rgba(TOK.wall, .26); g.lineWidth = 1.5; g.setLineDash([4, 8]);
+        g.beginPath(); g.arc(zc[0], zc[1], beat.r * sc, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+        g.fillStyle = rgba(TOK.wall, .8); g.font = '600 11px ui-monospace, Menlo, monospace'; g.textAlign = 'center';
+        g.fillText('Day ' + beat.day, zc[0], zc[1] - beat.r * sc - 7);
+      }
       g.strokeStyle = TOK.wall; g.lineWidth = 3;
       g.beginPath(); g.arc(zc[0], zc[1], zr, 0, Math.PI * 2); g.stroke();
       /* every layer reads the same display positions, so the reach rings walk with
@@ -4623,7 +4924,7 @@
     G.corps[G.me]._dividendPick = G._dvPick.slice();
     G._dividendDone = true;
     G._dividendFloor = false;
-    G._forceMonth = true;
+    G._forceMonth = true;               /* the halt is stood down for this one pass */
     $('endmonth').onclick();
     G._forceMonth = false;
     renderDividend();
@@ -5018,11 +5319,14 @@
         '<div class="house theirs" style="border-right:3px solid ' + colFor(TSEL) + '"><span class="m" title="what your dossier knows of their purse">Purse ' + theirPurse(TSEL) + '</span>' + cSpan(TSEL) + markFor(TSEL, 16) + '</div>' +
       '</div>' +
       '<div class="pressure"><div class="tscale"><i style="left:' + pct + '%"></i></div>' +
-        '<div class="pw"><span class="m">Your Side ' + crs(view.give) + '</span><span class="verdict ' + vcls + '">' + verdict + '</span><span class="m">Their Side ' + crs(view.ask) + '</span></div></div>' +
+        '<div class="pw"><span class="m">Your Side ' + crs(view.give) + '</span><span class="verdict ' + vcls + '">' + verdict + '</span><span class="m">Their Side ' + crs(view.ask) + '</span></div>' +
+        /* THE OFFER SITS WITH THE VERDICT: the thing you press is beside the thing that tells
+           you whether to press it, not in a dark corner at the foot of the page */
+        '<div class="negact"><button id="tput" class="primary"' + (open && !empty ? '' : ' disabled') + '>Make the Offer</button>' +
+          '<button id="treset" class="tiny"' + (empty ? ' disabled' : '') + '>Clear the Table</button>' +
+          '<span class="tlog">' + TLOG + '</span></div></div>' +
       '<div class="negcols">' + col('give') + col('get') + '</div>' +
-      '<div class="contract"><h2>The Contract as It Stands</h2><div class="negcols">' + contract('give') + contract('get') + '</div></div>' +
-      '<div class="negfoot"><button id="treset" class="tiny"' + (empty ? ' disabled' : '') + '>Reset</button><span class="tlog">' + TLOG + '</span>' +
-        '<button id="tput" class="primary"' + (open && !empty ? '' : ' disabled') + '>Make the Offer</button></div>';
+      '<div class="contract"><h2>The Contract as It Stands</h2><div class="negcols">' + contract('give') + contract('get') + '</div></div>';
 
     /* wiring */
     Array.prototype.forEach.call(W.querySelectorAll('[data-tcat]'), function (f) {
@@ -5249,7 +5553,7 @@
   function ordinal(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
   function demandWords(d) {
     switch (d.kind) {
-      case 'resource':  return 'Bring Home a Measure of <b>' + esc(RES_NAME[d.resource] || capWords(d.resource)) + '</b> <span class="m">(' + CAT_NAME[d.category] + ')</span>';
+      case 'resource':  return 'Bring Home <b>' + (d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25)) + '</b> Units of <b>' + esc(RES_NAME[d.resource] || capWords(d.resource)) + '</b> <span class="m">(' + CAT_NAME[d.category] + ')</span>';
       case 'placement': return d.at <= 1 ? 'Win the Divide' : 'Place <b>' + ordinal(d.at) + '</b> or Better';
       case 'win':       return 'Win the Divide Outright';
       case 'surplus':   return 'End the Year <b>' + crs(d.amount) + '</b> Up';
@@ -5258,6 +5562,7 @@
       case 'standing':  return 'Stand Above <b>' + d.above + '</b> With ' + (AUDNAME[d.audience] || {}).name;
       case 'thrift':    return 'Spending';
       case 'care':      return 'Casualties';
+      case 'popularity': return 'Popularity';
     }
     return esc(d.kind);
   }
@@ -5265,7 +5570,11 @@
   function demandNow(d, me, rep) {
     var out = G._boardOutcome;
     switch (d.kind) {
-      case 'resource':  return out ? null : { txt: 'Decided On the Ground', dim: true };
+      case 'resource': {
+        var got = out && out.banked ? Math.round((out.banked[d.category] || 0) * 10) / 10 : null;
+        var want = d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25);
+        return got != null ? { txt: got + ' of ' + want, good: got >= want, bad: got < want } : { txt: 'On the Ground', dim: true };
+      }
       case 'placement': return out ? (out.placement ? { txt: 'Placed ' + ordinal(out.placement) } : null) : liveChance() || { txt: 'Decided at the Divide', dim: true };
       case 'win':       return out ? { txt: out.won ? 'Won' : 'Did Not Win' } : liveChance() || { txt: 'Decided at the Divide', dim: true };
       case 'surplus': {
@@ -5303,16 +5612,23 @@
            '<span class="dw">' + demandWords(d) + (pri ? ' <span class="ktag hand">Priority</span>' : '') + '</span>' +
            '<span class="dn' + (now && now.good ? ' good' : now && now.bad ? ' bad' : now && now.dim ? ' m' : '') + '">' + (now ? now.txt : '') + '</span></div>';
     });
-    /* THE TWO THAT SCALE. Spending and Casualties are not met or missed: each reads on a
-       spectrum from displeased to pleased, and the marker lands where the year lands. */
+    /* THE THREE THAT SCALE. Spending, Casualties and Popularity are not met or missed: each
+       reads on a spectrum from displeased to pleased, and the marker lands where the year
+       lands. Popularity reads live, because the crowd does not wait for the Divide. */
     (g.standing || []).forEach(function (sd) {
       var line = byKind[sd.kind];
       var v = line ? line.value : null;
+      if (v == null && sd.kind === 'popularity') {
+        var pop = REP.standing(rep, 'own') + REP.standing(rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE;
+        v = Math.max(-1, Math.min(1, (pop - sd.expected) / REP.CONST.POPULARITY_SPAN));
+      }
       var pos = v == null ? 50 : Math.round((v + 1) / 2 * 100);
       var word = v == null ? 'Settled at the Divide'
                : v > 0.5 ? 'Delighted' : v > 0.15 ? 'Pleased' : v > -0.15 ? 'Unremarkable' : v > -0.5 ? 'Displeased' : 'Angry';
       var sub = sd.kind === 'thrift'
         ? (line ? '' : 'Under the Stipend Pleases; Over It Does Not')
+        : sd.kind === 'popularity'
+        ? (line ? '' : 'The Gate, and the Board\u2019s Cut')
         : (line ? '' : 'Fewer Than ' + Math.round(REP.CONST.CARE_NEUTRAL_LOSS * 100) + '% of the Drop Lost Pleases');
       h += '<div class="cardrow standing"><span class="pri"></span><span class="dw">' + demandWords(sd) +
            (sub ? '<div class="m" style="font-size:10px">' + sub + '</div>' : '') + '</span>' +
@@ -5325,18 +5641,25 @@
   }
   /* THE HOLDS: the four stores, as shares of full. They drain every season and the Divide
      tops them up; the card asks for what is shortest that the planet carries. */
+  /* THE HOLDS IN UNITS. A store holds UNITS_PER_STORE units; a hold is what is in it
+     against that, so a demand for units and a hold's reading share one measure and a manager
+     can add them. The year's drain is said in units too. */
   function renderHolds(me, rep) {
     var holds = rep.holds || {}, g = rep.goal || {};
-    var asked = {};
+    var per = REP.CONST.UNITS_PER_STORE, drain = REP.CONST.HOLDS_DRAIN * per;
+    var asked = {}, banked = (G._boardOutcome && G._boardOutcome.banked) || {};
     (g.demands || []).forEach(function (d) { if (d.kind === 'resource') asked[d.category] = true; });
-    var h = REP.CATEGORIES.map(function (c) {
-      var v = Math.max(0, Math.min(1, holds[c] || 0)), pct = Math.round(v * 100);
-      var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
-      return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') + '</span>' +
-             '<span class="hbar"><i style="width:' + pct + '%;background:' + col + '"></i></span>' +
-             '<span class="hv" style="color:' + col + '">' + pct + '%</span></div>';
-    }).join('');
-    $('boardholds').innerHTML = h;
+    var h = '<div class="holdrow hh"><span class="hn">Store</span><span class="hbar"></span><span class="hv">Units of ' + per + '</span></div>' +
+      REP.CATEGORIES.map(function (c) {
+        var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per * 10) / 10;
+        var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
+        var came = Math.round((banked[c] || 0) * 10) / 10;
+        return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
+               (came ? '<div class="m">Came Home This Year: ' + came + '</div>' : '') + '</span>' +
+               '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i></span>' +
+               '<span class="hv" style="color:' + col + '">' + units + '</span></div>';
+      }).join('');
+    $('boardholds').innerHTML = h + '<div class="m" style="margin-top:6px">The Stores Fall ' + (Math.round(drain * 10) / 10) + ' a Year</div>';
   }
   /* THE QUESTION. After a Divide the board asks one, and the manager answers in a register.
      Six registers, always all six; none is correct, each is right somewhere and wrong
@@ -5459,6 +5782,36 @@
     if (t === 'desk') renderDesk(); else if (t === 'table') renderTable();
   };
 
+  /* §3.9 WHAT DECIDED IT. A replay showed a manager an outcome and left him to guess at the
+     cause. The fight's own log answers it: who shot more, who hit more, what those shots were
+     taken against, and who was waiting on overwatch. Read from the log, so it cannot disagree
+     with what happened. */
+  function whatDecided(F0) {
+    if (!F0 || !F0.res) return '';
+    var lg = F0.res.log || []; if (!lg.length) return '';
+    var side = {};
+    ((F0.res.frames && F0.res.frames[0] && F0.res.frames[0].units) || []).forEach(function (u) { side[u.id] = u.s; });
+    var st = [{ shots: 0, hits: 0, downs: 0, kills: 0, over: 0, why: {} }, { shots: 0, hits: 0, downs: 0, kills: 0, over: 0, why: {} }];
+    lg.forEach(function (e) {
+      var si = side[e.by]; if (si == null || !st[si]) return;
+      var S = st[si];
+      if (e.type === 'hit' || e.type === 'miss') { S.shots++; if (e.type === 'hit') S.hits++; if (e.react) S.over++; }
+      if (e.type === 'down') S.downs++;
+      if (e.type === 'killed') S.kills++;
+      (e.why || []).forEach(function (wm) { S.why[wm] = (S.why[wm] || 0) + 1; });
+    });
+    var nm = function (si) { return (F0.names && F0.names[si]) || ('Side ' + (si + 1)); };
+    var row = function (k, a, b2) { return '<div class="wd"><span class="k">' + k + '</span><span class="a">' + a + '</span><span class="b">' + b2 + '</span></div>'; };
+    var acc = function (S) { return S.shots ? Math.round(S.hits / S.shots * 100) + '%' : '\u2014'; };
+    var top = function (S) { var ks = Object.keys(S.why).sort(function (x, y) { return S.why[y] - S.why[x]; }); return ks.length ? ks.slice(0, 2).join(', ') : '\u2014'; };
+    return '<div class="whatdecided"><div class="wdh"><span class="k">What Decided It</span><span class="a">' + esc(nm(0)) + '</span><span class="b">' + esc(nm(1)) + '</span></div>' +
+      row('Shots', st[0].shots, st[1].shots) +
+      row('Hit', acc(st[0]), acc(st[1])) +
+      row('Put Down', st[0].downs + st[0].kills, st[1].downs + st[1].kills) +
+      row('On Overwatch', st[0].over, st[1].over) +
+      row('Shot Against', '<span class="m">' + esc(top(st[0])) + '</span>', '<span class="m">' + esc(top(st[1])) + '</span>') +
+      '</div>';
+  }
   function loadRec(b, resultHtml) {
     stop(); clearTween();
     var weap = {};
@@ -5472,7 +5825,7 @@
     $('fr').max = String(Math.max(0, b.res.frames.length - 1));
     $('fr').value = '0';
     if (resultHtml) {
-      $('result').innerHTML = resultHtml;
+      $('result').innerHTML = resultHtml + whatDecided(G.fight);
       $('settle').innerHTML = '<span class="m">Paid at the Whistle</span>';
       goto(0, false);
       return;
@@ -5489,11 +5842,11 @@
       var x = (b.res.casualties || {})[tag] || {};
       return (x.dead || 0) + (x.down || 0) + (x.stable || 0) + (x.captured || 0);
     };
-    $('result').innerHTML = '<b>' + esc(b.res.result) + '</b><div class="m">day ' + b.day +
-      ' on ' + esc(b.terrain.replace('_', ' ')) + ' \u00b7 ' + b.res.turns + ' turns \u00b7 ' +
-      (t.shots || 0) + ' shots, ' + (t.hits || 0) + ' hits<br>' +
-      cSpan(b.corps[0]) + ' lost ' + cas(b.sides[0].tag) + ' \u00b7 ' +
-      (b.corps[1] != null ? cSpan(b.corps[1]) : '') + ' lost ' + cas((b.sides[1] || {}).tag) + '</div>';
+    $('result').innerHTML = '<b>' + esc(capWords(String(b.res.result).replace(/_/g, ' '))) + '</b><div class="m">Day ' + b.day +
+      ' on ' + terrainName(b.terrain) + ' \u00b7 ' + b.res.turns + ' Turns<br>' +
+      cSpan(b.corps[0]) + ' Lost ' + cas(b.sides[0].tag) + ' \u00b7 ' +
+      (b.corps[1] != null ? cSpan(b.corps[1]) : '') + ' Lost ' + cas((b.sides[1] || {}).tag) + '</div>' +
+      whatDecided(G.fight);
     $('settle').innerHTML = '<b>Settled Where It Happened</b><div class="m">The Ground\u2019s Own ' +
       '</div>';
     goto(0, false);
@@ -5517,6 +5870,7 @@
      picks one and drops. The choice used to have no page at all: the engine's own
      chooseDropSector was never called by a human hand. */
   function renderLanding() {
+    renderTurn();                       /* the corner follows the draft as it fills */
     var host = $('landing'); if (!host) return;
     var m = G && G.state ? G.state.month : 0;
     if (!G || m < 12 || G.div) { host.innerHTML = ''; $('tablegrid').style.display = ''; return; }
@@ -5542,7 +5896,7 @@
       var on = !D.done && D.order[D.turn] === id;
       return '<div class="dpick' + (on ? ' on' : '') + (id === G.me ? ' me' : '') + '" style="border-left-color:' + colFor(id) + '">' +
         '<div class="dn"><span class="m">' + (i + 1) + '</span> ' + markFor(id, 12) + ' ' + cSpan(id) + '</div>' +
-        '<div class="ds">' + (D.picks[id] || []).map(function (sl) { return '<span class="slotchip" style="background:' + colFor(id) + '">' + sl + '</span>'; }).join('') +
+        '<div class="ds">' + (D.picks[id] || []).map(function (sl) { return '<span class="slotchip" style="background:' + colFor(id) + '">' + (sl + 1) + '</span>'; }).join('') +
         (on ? '<span class="m">Picking</span>' : '') + '</div></div>'; }).join('');
     var mine = D.picks[G.me] || [];
     var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Draft \u00b7 Round ' + Math.min(SEASON.PICKS_EACH, D.round + 1) + ' of ' + SEASON.PICKS_EACH + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
@@ -5563,7 +5917,7 @@
       var g = base.g;
       if (planetIntelDepth('sites') >= 3) {
         g.save(); g.fillStyle = TOK.warn;
-        (pl.objectives || []).filter(function (o) { return o.type === 'ore_assay'; }).forEach(function (o) {
+        (pl.objectives || []).filter(function (o) { return o.type === 'resource_site'; }).forEach(function (o) {
           var q = gproj(cv, o.x, o.y, pl); g.beginPath(); g.moveTo(q[0], q[1] - 5); g.lineTo(q[0] + 5, q[1]); g.lineTo(q[0], q[1] + 5); g.lineTo(q[0] - 5, q[1]); g.closePath(); g.fill(); });
         g.restore();
       }
@@ -5589,9 +5943,62 @@
     if ($('dropbtn')) $('dropbtn').onclick = function () { $('begindiv').onclick(); };
   }
 
+  /* WHO IS DECIDING, AND HOW THEY READ IT. A captain's judgement, sight and nerve are what
+     turns a squad's situation into what it does; the row says who they are and, in a word,
+     how well they are reading the ground today. */
+  /* what a squad has left to shoot with: dropped with a load, spent a fight at a time, and
+     a dry squad shoots worse until it finds a munitions drop */
+  function ammoCell(q) {
+    var max = DIVIDE.CONST.AMMO_LOAD, n = q.ammo == null ? max : q.ammo;
+    var share = Math.max(0, Math.min(1, n / max));
+    var col = share > 0.5 ? 'var(--hit)' : share > 0.2 ? 'var(--cred)' : 'var(--red)';
+    return '<span class="bar2"><i style="width:' + Math.round(share * 100) + '%;background:' + col + '"></i></span> ' +
+           '<span style="color:' + col + '">' + (n <= 0 ? 'Dry' : n) + '</span>';
+  }
+  function leadCell(q) {
+    var cap = q.bodies.filter(function (b) { return b.id === q.captainId && b.status === 'active'; })[0]
+           || q.bodies.filter(function (b) { return b.status === 'active'; })[0];
+    if (!cap) return '<span class="bad">Nobody Leading</span>';
+    var m = q._mind || {};
+    var word = m.judge == null ? '' : m.judge >= 2.8 ? 'Sharp' : m.judge >= 2.0 ? 'Steady' : 'Struggling';
+    var wcls = m.judge >= 2.8 ? 'good' : m.judge >= 2.0 ? '' : 'warn';
+    var nerve = m.nerve == null ? '' : m.nerve >= 0.7 ? 'Cool' : m.nerve >= 0.45 ? 'Holding' : 'Shaken';
+    return '<span class="nm" data-sheet="' + cap.id + '" style="color:' + raceColour(cap) + ';cursor:pointer">' + esc(cap.name) + '</span>' +
+      (word ? '<div class="m" style="font-size:9.5px"><span class="' + wcls + '">' + word + '</span> \u00b7 ' + nerve +
+              (m.sight != null ? ' \u00b7 Sees ' + Math.round(m.sight * 100) + '%' : '') + '</div>' : '');
+  }
+  /* §STORES WHAT THE GROUND HAS GIVEN, while it is still giving. The units a house works out
+     are the point of the contest and the measure the board asks in, and until now they were
+     visible only on next year's Board. Each category reads: what is in hand, what the board
+     asked for, and what is still open on the ground that the house knows of. */
+  /* §THE CLOCK WHEN THE WALL MOVES NEXT, and to what. It is the thing every plan is made
+     against, and it was a dashed circle that spoke only after the fact. */
+  function wallWords(w) {
+    var sch = w.wall || [];
+    if (!sch.length) return '<span class="m">The Dome Holds</span>';
+    var n = sch[0];
+    var cls = n.in <= 1 ? 'bad' : n.in <= 3 ? 'warn' : '';
+    return 'The Wall Closes <b class="' + cls + '">Day ' + n.day + '</b> <span class="m">' +
+      (n.in === 1 ? 'Tomorrow' : 'in ' + n.in) + ' \u00b7 to ' + Math.round(n.share * 100) + '%' +
+      (n.last ? ' \u00b7 the Last Ground' : '') + '</span>';
+  }
+  function haulStrip(w) {
+    var got = w.bankedBy || {}, open = w.openBy || {};
+    var rep = G.corps[G.me].rep, demands = ((rep && rep.goal && rep.goal.demands) || []);
+    var asked = {}; demands.forEach(function (d) { if (d.kind === 'resource') asked[d.category] = d.units || d.amount; });
+    var any = REP.CATEGORIES.filter(function (c) { return got[c] || open[c] || asked[c]; });
+    if (!any.length) return '<span class="m">Nothing Worked Yet</span>';
+    return 'Worked ' + any.map(function (c) {
+      var g = Math.round((got[c] || 0) * 10) / 10, want = asked[c], o = open[c] || 0;
+      var cls = want ? (g >= want ? 'good' : 'warn') : '';
+      return '<b class="' + cls + '">' + CAT_NAME[c] + ' ' + g + (want ? '/' + want : '') + '</b>' +
+             (o ? '<span class="m"> +' + o + ' Open</span>' : '');
+    }).join(' \u00b7 ');
+  }
   function renderTable() {
     if (!G) return;
     renderLanding();
+    renderTurn();
     if (!G.div || !G.div.win || G.div.done) {
       if ($('dayhead')) $('dayhead').innerHTML = G.div && G.div.done
         ? '<div class="dl"><span><b>The Contest Is Over</b></span></div><span></span>' : '';
@@ -5611,21 +6018,24 @@
       '<div class="dl"><span>Day <b>' + w.day + '</b> of ' + (w.lastDay || 30) + '</span>' +
         '<span>Window <b>' + G.div.windows + '</b></span>' +
         '<span class="wx">' + weatherWords(w.weather) + '</span>' +
+        '<span>' + wallWords(w) + '</span>' +
         '<span>Chance of Winning <b>' + Math.round(myOdds0 * 100) + '%</b></span>' +
         '<span>Standing <b>' + up + '</b>' + (hurt ? ' \u00b7 <span class="warn">' + hurt + ' Hurt</span>' : '') + (dead ? ' \u00b7 <span class="bad">' + dead + ' Lost</span>' : '') + '</span>' +
         (you.joinedTo ? '<span>Under ' + cSpan(you.joinedTo) + '</span>' : '') +
+        '<span>' + haulStrip(w) + '</span>' +
         (ans.deal ? '<span class="gold">A Word Rides With the Advance</span>' : '') + '</div>' +
-      '<button id="advmain" class="primary">Next Comms Window</button>';
+      '<button id="advmain" class="primary">Next Comms Window</button>' +
+      '<button class="tiny quietbtn" id="quietopen2" style="margin-left:6px">The Quiet Business</button>';
     $('advmain').onclick = function () { advanceDivide(); };
+    $('quietopen2').onclick = openQuiet;
 
     /* ---- your squads: where they are, how they are, and what you tell them ----
        An order is the planner's own vocabulary with the manager's name on it: Hold, Move,
        Dig a site, Meet a squad, Hunt a squad the house has seen, Fall Back. */
-    ans.orders = ans.orders || {};
-    var INTENT_WORD = { hold: 'Holding', patrol: 'Moving', claim: 'Digging', meet: 'Meeting', hunt: 'Hunting', strike: 'Striking', withdraw: 'Falling Back', sound: 'Going to the Sound', avoid: 'Avoiding', rescue: 'Rescuing', shadow: 'Shadowing', screen: 'Screening' };
-    var sites = (G.div.planet.objectives || []).filter(function (o) { return o.revealed && !o.looted; });
-    var picture = w.picture || [];
-    var sqh = '<table class="sqtbl"><tr><th>Squad</th><th>Standing</th><th>Ground</th><th>Rations</th><th>Doing</th><th>Orders</th></tr>';
+    var INTENT_WORD = { hold: 'Holding', patrol: 'Moving', claim: 'Working a Deposit', meet: 'Meeting', hunt: 'Hunting', strike: 'Striking',
+                        withdraw: 'Falling Back', sound: 'Going to the Sound', avoid: 'Avoiding', rescue: 'Rescuing',
+                        shadow: 'Shadowing', screen: 'Screening' };
+    var sqh = '<table class="sqtbl"><tr><th>Squad</th><th>Standing</th><th>Ground</th><th>Rations</th><th>Rounds</th><th>Leader</th><th>Doing</th></tr>';
     mine.forEach(function (q, i) {
       var alive = q.bodies.filter(function (b) { return b.status === 'active'; }).length;
       var hurtN = q.bodies.filter(function (b) { return b.status === 'injured'; }).length;
@@ -5633,41 +6043,18 @@
       var days = alive ? Math.floor((q.rations || 0) / Math.max(1, alive)) : 0;
       var rcol = days >= 8 ? 'var(--hit)' : days >= 4 ? 'var(--cred)' : 'var(--red)';
       var pct = Math.max(0, Math.min(100, days / 14 * 100));
-      var doing = q.intent ? (INTENT_WORD[q.intent.type] || capWords(q.intent.type)) + (q.intent.ordered ? ' <span class="ktag hand">Ordered</span>' : '') : (q._why ? capWords(String(q._why).replace(/_/g, ' ')) : 'Holding');
-      var ord = ans.orders[q.sIdx];
-      var ordWord = ord ? ({ hold: 'Hold', move: 'Move', claim: 'Dig', meet: 'Meet', hunt: 'Hunt', withdraw: 'Fall Back', shadow: 'Shadow', screen: 'Screen' })[ord.type] : null;
-      var orderCell = '<span class="ordwrap">' +
-        (ord ? '<span class="gold">' + ordWord + (ord.label ? ' \u00b7 ' + ord.label : '') + '</span> <span class="x" data-ordclear="' + q.sIdx + '" title="Clear">\u2715</span>'
-             : '<select class="ordsel" data-ordsq="' + q.sIdx + '"><option value="">\u2014</option><option value="hold">Hold</option>' +
-               (sites.length ? '<optgroup label="Dig">' + sites.map(function (o) { return '<option value="claim:' + o.id + '">' + esc(RES_NAME[o.resource] || capWords(o.resource || o.type)) + '</option>'; }).join('') + '</optgroup>' : '') +
-               (mine.length > 1 ? '<optgroup label="Meet">' + mine.filter(function (m2) { return m2 !== q; }).map(function (m2) { return '<option value="meet:' + m2.sIdx + '">' + esc((G.plan.names && G.plan.names[mine.indexOf(m2)]) || ('Squad ' + (mine.indexOf(m2) + 1))) + '</option>'; }).join('') + '</optgroup>' : '') +
-               (picture.length ? '<optgroup label="Hunt">' + picture.map(function (e) { return '<option value="hunt:' + e.key + '" style="color:' + colFor(e.corpId) + '">' + esc(nameOfCorp(e.corpId)) + ' \u00b7 ' + e.n + (e.landing ? ' \u00b7 Landed' : ' \u00b7 Day ' + e.day) + '</option>'; }).join('') + '</optgroup>' +
-                                  '<optgroup label="Shadow">' + picture.map(function (e) { return '<option value="shadow:' + e.key + '" style="color:' + colFor(e.corpId) + '">' + esc(nameOfCorp(e.corpId)) + ' \u00b7 ' + e.n + '</option>'; }).join('') + '</optgroup>' : '') +
-               (mine.length > 1 ? '<optgroup label="Screen">' + mine.filter(function (m2) { return m2 !== q; }).map(function (m2) { return '<option value="screen:' + m2.sIdx + '">' + esc((G.plan.names && G.plan.names[mine.indexOf(m2)]) || ('Squad ' + (mine.indexOf(m2) + 1))) + '</option>'; }).join('') + '</optgroup>' : '') +
-               '<option value="withdraw">Fall Back</option></select>') + '</span>';
+      var doing = q.intent ? (INTENT_WORD[q.intent.type] || capWords(q.intent.type)) : 'Holding';
       var here = terrainName(G.div.planet.terrainAt(q.x, q.y)) + (G.div.planet.heightAt && G.div.planet.heightAt(q.x, q.y) >= 0.6 ? ' \u00b7 High' : '');
       sqh += '<tr class="' + SQCLASS[i % 6] + '"><td class="n">' + esc(nm) + '</td>' +
         '<td>' + (alive ? '<b>' + alive + '</b>' : '<span class="bad">None</span>') + (hurtN ? ' <span class="warn">+' + hurtN + ' Hurt</span>' : '') + '</td>' +
         '<td>' + here + '</td>' +
         '<td class="r"><span class="bar2"><i style="width:' + pct + '%;background:' + rcol + '"></i></span> <span style="color:' + rcol + '">' + days + 'd</span></td>' +
-        '<td class="m">' + doing + '</td><td>' + orderCell + '</td></tr>';
+        '<td class="r">' + ammoCell(q) + '</td>' +
+        '<td>' + leadCell(q) + '</td>' +
+        '<td class="m">' + doing + '</td></tr>';
     });
-    if (!mine.length) sqh += '<tr><td colspan="6" class="m">Nobody on the Ground</td></tr>';
+    if (!mine.length) sqh += '<tr><td colspan="7" class="m">Nobody on the Ground</td></tr>';
     $('tsquads').innerHTML = sqh + '</table>';
-    Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-ordsq]'), function (sel) {
-      sel.onchange = function () {
-        var v = sel.value; if (!v) return;
-        var si = +sel.getAttribute('data-ordsq'), parts = v.split(':'), o = { type: parts[0] };
-        if (o.type === 'claim') { o.obj = parts.slice(1).join(':'); var ob = sites.filter(function (x) { return x.id === o.obj; })[0]; o.label = ob ? (RES_NAME[ob.resource] || capWords(ob.resource || ob.type)) : ''; }
-        if (o.type === 'meet') { o.target = parts[1]; var mm = mine.filter(function (m2) { return String(m2.sIdx) === parts[1]; })[0]; o.label = mm ? ((G.plan.names && G.plan.names[mine.indexOf(mm)]) || ('Squad ' + (mine.indexOf(mm) + 1))) : ''; }
-        if (o.type === 'hunt' || o.type === 'shadow') { o.target = parts.slice(1).join(':'); o.label = nameOfCorp(o.target.split(':')[0]); }
-        if (o.type === 'screen') { o.target = parts[1]; var ms = mine.filter(function (m2) { return String(m2.sIdx) === parts[1]; })[0]; o.label = ms ? ((G.plan.names && G.plan.names[mine.indexOf(ms)]) || ('Squad ' + (mine.indexOf(ms) + 1))) : ''; }
-        G.div.answer = G.div.answer || {}; G.div.answer.orders = G.div.answer.orders || {}; G.div.answer.orders[si] = o; renderTable();
-      };
-    });
-    Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-ordclear]'), function (b) {
-      b.onclick = function () { delete G.div.answer.orders[+b.getAttribute('data-ordclear')]; renderTable(); };
-    });
 
     /* ---- the stance: five notches, each saying what it does ---- */
     var D = DIVIDE.STANCE_DIALS, sh = '';
@@ -5677,9 +6064,32 @@
             '<span class="nn">' + stanceWords(n) + (dec ? ' <span class="gold">\u00b7 Declaring</span>' : '') + '</span>' +
             '<span class="nf"><span>Seek <b>' + Math.round(d.seek * 100) + '%</b></span><span>Take a Fight <b>' + Math.round(d.accept * 100) + '%</b></span><span>Risk the Wall <b>' + Math.round(d.zoneRisk * 100) + '%</b></span></span></div>';
     });
+    /* ---- WHO YOUR PEOPLE LOOK FOR. Not an order: a leaning, one to five, on each house.
+       Three is nothing; higher and your squads find them sooner, lower and they find them
+       later. The stance still decides what they do about it. ---- */
+    var lean = Object.assign({}, w.leanings || {});
+    if (ans.leanings) for (var lk in ans.leanings) lean[lk] = ans.leanings[lk];
+    var LEANWORD = ['', 'Keep Away', 'Rather Not', 'No Preference', 'If They Are There', 'Seek Them Out'];
+    sh += '<div class="leans"><div class="lh">Who Your People Look For</div>' +
+      G.state.ids.filter(function (id) { return id !== G.me; }).map(function (id) {
+        var v = lean[id] || 3;
+        return '<div class="leanrow" style="border-left-color:' + colFor(id) + '"><span class="ln">' + markFor(id, 12) + ' ' + cSpan(id) + '</span>' +
+          '<span class="lsc">' + [1, 2, 3, 4, 5].map(function (n) {
+            return '<span class="lp' + (n === v ? ' on' : '') + (n > 3 ? ' hot' : n < 3 ? ' cold' : '') + '" data-lean="' + id + '" data-lv="' + n + '"></span>'; }).join('') + '</span>' +
+          '<span class="lw m">' + LEANWORD[v] + '</span></div>'; }).join('') + '</div>';
     $('tstance').innerHTML = sh;
     Array.prototype.forEach.call(document.querySelectorAll('[data-notch]'), function (b) {
       b.onclick = function () { G.div.answer = G.div.answer || {}; G.div.answer.stance = b.getAttribute('data-notch'); renderTable(); };
+    });
+    Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-sheet]'), function (el) {
+      el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
+    });
+    Array.prototype.forEach.call($('tstance').querySelectorAll('[data-lean]'), function (p2) {
+      p2.onclick = function () {
+        G.div.answer = G.div.answer || {}; G.div.answer.leanings = G.div.answer.leanings || {};
+        G.div.answer.leanings[p2.getAttribute('data-lean')] = +p2.getAttribute('data-lv');
+        renderTable();
+      };
     });
 
     /* ---- the head: the day, your odds, your banner ---- */
@@ -5969,7 +6379,7 @@
     var host = $('tground');
     if (!G || !G.div || !G.div.planet) { host.innerHTML = '<span class="m">&mdash;</span>'; return; }
     var pl = G.div.planet, comp = pl.composition || [];
-    var sites = (pl.objectives || []).filter(function (o) { return o.type === 'ore_assay'; });
+    var sites = (pl.objectives || []).filter(function (o) { return o.type === 'resource_site'; });
     var h = '<div style="margin-bottom:6px"><b>' + esc(pl.name || capWords(pl.archetype || '')) + '</b>' +
             (comp.length ? '<div class="m">In the Ground: ' + comp.map(function (r) { return esc(RES_NAME[r.id] || capWords(r.id)); }).join(', ') + '</div>' : '') + '</div>';
     /* after the contest: what came home, and what the deals in kind moved */
@@ -5984,7 +6394,7 @@
     }
     var known = sites.filter(function (o) { return o.revealed || o.looted; });
     var hidden = sites.length - known.length;
-    h += '<div style="color:var(--faint);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin:6px 0 4px">Assay Sites \u00b7 ' + known.length + ' Found' + (hidden ? ' \u00b7 ' + hidden + ' Unfound' : '') + '</div>';
+    h += '<div style="color:var(--faint);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin:6px 0 4px">Deposits \u00b7 ' + known.length + ' Found' + (hidden ? ' \u00b7 ' + hidden + ' Unfound' : '') + '</div>';
     if (!known.length) { host.innerHTML = h + '<span class="m">None Found Yet</span>'; return; }
     h += '<div class="assay">';
     known.forEach(function (o) {
@@ -6062,6 +6472,7 @@
     p.no_negotiation = false;
     p.relationships = [];
     p.canon_status = 'player-founded';
+    p.founding = 'lean';        /* §FOUNDING a founded house opens with money and old hands */
     return p;
   }
 
@@ -6170,38 +6581,26 @@
   $('mNew').onclick = function () {
     $('menu').style.display = 'none';
     $('setup').style.display = 'flex';
-    var h = '';
-    /* AN OA IS ITS COLOUR AND ITS MARK before it is a paragraph. The founding screen was
-       the last place in the game still naming them in plain text — every other surface
-       has worn the marks since the colour pass. */
+    /* §FOUNDING THE EIGHT ARE THE FLEET, NOT THE PLAYER. Taking one of them over was a
+       difficulty selector wearing a house's name: a manager inherited somebody else's roster,
+       armoury and reputation, and spent the first year managing choices already made. A
+       manager founds a house now. The eight stand here as what the fleet IS, and as the seat
+       this house takes among them. */
+    var h = '<div class="m" style="margin-bottom:8px">The Fleet You Are Joining</div><div class="fleetrow">';
     OA.forEach(function (p) {
       var col = colFor(p.id);
-      h += '<div class="oacard" data-oa="' + p.id + '" style="border-left-color:' + col + '">' +
-           '<span class="oaname" style="color:' + col + '">' + markFor(p.id, 18) +
-           esc(p.name) + '</span>' +
-           '<span class="m">' + esc(p.tag || '') + '</span>' +
-           '<span class="m">' + esc(p.motto || '') +
-           (p.no_negotiation ? ' \u00b7 Sealed' : '') +
-           '</span></div>';
+      h += '<span class="fleetchip" style="border-color:' + col + ';color:' + col + '">' +
+           markFor(p.id, 14) + esc(p.name) + '</span>';
     });
-    h += '<div class="oacard" data-oa="__custom">' +
-         '<span class="oaname">' + markFor('__founder', 18) + 'Found Your Own OA</span>' +
-         '<span class="m">A Blank Slate</span></div>';
-    $('oacards').innerHTML = h;
+    $('oacards').innerHTML = h + '</div>';
+    $('customform').style.display = '';
     var cr = $('creplace'); cr.innerHTML = '';
     OA.forEach(function (p) {
       var o = document.createElement('option'); o.value = p.id;
       o.textContent = 'In Place of ' + p.name;
       cr.appendChild(o);
     });
-    Array.prototype.forEach.call(document.querySelectorAll('[data-oa]'), function (card) {
-      card.onclick = function () {
-        var id = card.getAttribute('data-oa');
-        if (id === '__custom') { $('customform').style.display = ''; return; }
-        $('setup').style.display = 'none';
-        startGame($('seed').value, id, OA, null);
-      };
-    });
+
   };
   /* the founder's colour: swatches pre-vetted by the palette instrument, so any pick
      is already separable from every house, race, ground and interface voice */

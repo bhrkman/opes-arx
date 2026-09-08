@@ -41,6 +41,11 @@ cd ../harness && node drive.cjs   drives the BUILT page through a whole year
                                `npm install canvas` too and the maps draw for real —
                                ARX_SHOT=1 / ARX_SHOT_DEPTHS=1 / ARX_SHOT_FOG=1 / ARX_SHOT_WORLD=x
                                dump PNGs to /tmp so the drawing is looked at, not assumed)
+node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread constants,
+                              helpers written twice. Answer everything or label it.
+node sim/measure_fight.cjs     THE FIGHT'S SHAPE — mean turns, break vs clock, casualties.
+                              Run it whenever the fight changes and ALWAYS beside a snapshot
+                              blessing: the snapshots can be re-recorded, this cannot.
 node harness/audit_ui.cjs     THE UI AUDIT — after every change to viewers/corp_template.html.
                               Fails on the three things that have crept back into the page in
                               every pass no matter how many notes were left, so the notes are
@@ -940,6 +945,104 @@ needs; everything a human turn was missing. The recap is what makes "I ended my 
 felt thing. (Phase 1 of the game-not-simulation plan; Phase 3 makes what is left waiting
 resolve against you, Phase 2 fills the agenda with events.)
 
+**Reputation, made to read and made to buy. *Built since this was written.*** Four faults, one
+symptom ("everybody is nought and my own people hate me"):
+1. **A house built at the desk started nowhere.** The eight carry standings in their profiles;
+   a corporation made by a manager carried none, so it opened at zero on every audience and
+   could only go down. A house without declared standings is now read from its dials — its own
+   people expect what it is, the fleet knows a showman, the Aleas mistrust the treacherous.
+2. **The scale saturated.** Raw feeling was clamped at a hundred, so four houses of eight sat
+   pinned there after three years and the number stopped carrying anything. Past `SOFT_AT` the
+   scale compresses toward the ceiling over `SOFT_SCALE` and never reaches it.
+3. **Nothing drifted.** Residue never washes off, so every good year was carried for ever. Each
+   season the remembered feeling loses `DRIFT` of itself, while the house's own nature — the
+   base it opened with — stays what it always was. (The first cut of this pulled the base toward
+   the current standing, which is a ratchet, not a drift.)
+4. **A careful house was hated for it.** Nearly every act touching a house's own people took
+   something away, and the ones that gave came only from fighting. A year now says what it was:
+   everyone came home, few were lost, the wages were paid, a raise was granted, a debt was
+   settled, a star rose, the purse was taken.
+
+And it buys things. THE GATE: the fans pay every month (`gateFor` — a base draw, the roster's
+fame, and standing with your own people plus a share of the fleet's, who watch from other
+ships), so a manager sees his popularity in the same recap as the choices that moved it, on the
+brief as a monthly figure and in the ledger as *Gate and Merchandise*. POPULARITY IS A BOARD
+DEMAND, graded on a spectrum beside Spending and Casualties, and it reads live because the crowd
+does not wait for the Divide. Still to come: the fleet's standing in `considerJoin` and the
+Market's prices, and the illicit window — bribing the Aleas spends the standing that honest
+dealing builds, with a small chance it comes to light and takes everything with it.
+
+**The quiet business. *Built since this was written.*** `sim/illicit.js`: a window, not a tab,
+open in the preparation and in the Divide, holding the things a house would rather nobody knew.
+Standing with the Aleas is a currency here, not a scoreboard — honest dealing builds it and this
+spends it. Bribe an official (one ruling goes your way); buy a malfunction (one act this Divide
+is not seen); sabotage a rival's kit (their squads drop worse for it); a quiet word before the
+drop (a pact that holds from day one); buy a story (the postings print what they are paid to).
+Each has a price in credits AND in standing — paid whether it works or not, because the people
+you asked know what you asked for — and ONE FIGURE: the chance it goes off clean. It goes off
+clean, or it comes apart and is traced back to the house that paid for it; there is no quiet
+failure. (Two rolls, a chance of working and a separate chance of being caught, asked a manager
+to weigh two figures that meant nearly the same thing.) EACH ACT ANSWERS TO ITS OWN AUDIENCE: a bribe is the Aleas' business and the
+fleet shrugs; sabotage is the fleet's business; a quiet word is what your own people mind most.
+A house already under suspicion is likelier to be caught. The other houses work the same window
+by their treachery, and the fleet hears when one of them is caught. Sabotage bites at the drop.
+
+**Standing buys a banner and a signature. *Built since this was written.*** WHO YOU FIGHT
+UNDER IS SEEN: a house's own people have to live with the banner their manager takes, so the
+fleet's regard for a banner moves what it costs to join it (`BANNER_SHAME` on `priceModifier`,
+read once at the drop onto each corp). WHAT A HOUSE IS ASKED FOR: a fighter signs with a house,
+not a treasury — `askingPrice` takes the corp, and standing with its own people plus a share of
+the fleet's moves every ask by up to `MARKET_SWING`. The shared merc market keeps the flat ask
+as its reserve, so a house's name moves what THAT house must offer rather than what the fighter
+is worth. The acquisition window says it in a line: *Your Name: −18% on Every Ask*.
+
+**Three UI fixes. *Built since this was written.*** THE TURN STANDS IN THE BOTTOM RIGHT, where
+the genre puts it: what is waiting on the manager listed above, and beneath it ONE button. While
+anything waits, the button reads *Waiting on You · 3* with the first item under it, and pressing
+it goes there rather than ending the month; when nothing waits it becomes *End the Month ·
+Nothing Waiting*. A manager who means to let something lapse can still end it anyway, in small
+type — the recap will say he did. (It began at the foot of the year line on the left; the room
+was ampler there and the habit was wrong.) AND IT CARRIES EVERY TURN, not only a month's: at the
+lights it reads *Take the Floor*, at the lock *The Draft · 1 of 3 Landings Chosen* and then
+*Drop*, in the contest *Next Comms Window · Day 6*, and when the contest is settled *Begin the
+Next Year*. The top line carries no turn button at all now; `#endmonth` and `#nextyear` remain
+in the document, hidden, as the machinery the corner drives, so every path that ended a month
+still has one thing to call. A SQUAD IS
+EIGHT SLOTS: every slot stands, filled or empty, numbered, the empty ones lit when there is
+somebody selected to put in them, so a squad reads as a unit with room in it rather than a list
+that happens to be short. THE TALKS' OFFER sits with the verdict: Make the Offer and Clear the
+Table stand under the pressure bar, beside the thing that tells you whether to press them,
+instead of in a dark corner at the foot of the page.
+
+**The board asks in units, and asks once. *Built since this was written.*** THE RESOURCE
+DEMAND WAS IN THE WRONG MEASURE: `amount` was a fraction of a store (1/9) while `banked` counts
+assay units, so the test compared three units against 0.11 and every resource demand on every
+card passed the moment a corp dug anything. The board now asks for `RESOURCE_ASK` of a store IN
+UNITS ("Bring Home 3 Units of Thorite"), the card reads what came home against what was asked,
+and the Holds read in the same measure — a store holds `UNITS_PER_STORE`, a hold is what is in
+it out of that, with what came home this year under each and the year's drain said in units.
+Percentages that could not be added to anything are gone. THE SURPLUS DEMAND LEFT THE CARD: "end
+the year N up" and the standing Spending demand read the same money two ways, the same argument
+that took the losses demand out. The card's rows no longer overlap their spectrums.
+
+**A signed prospect wears it. *Built since this was written.*** The Sign button used to move,
+change into "Marked ✕" (a word that cancels), and leave a lower-case "signing" beside it. The
+button keeps its place and reads *Signing · Cancel*; the card takes the signing green and wears
+a corner flag (Signing, or the bid).
+
+**Three months had no recap, and The Eight had a way out. *Built since this was written.***
+The month before the lights returned early — the floor was raised and the recap never stood —
+and the Dividend's own month ran under the flag the dev skip uses, so a manager saw neither the
+month that led to the show nor the show's own month. Both stand now: the recap before the lights
+carries on to the floor when it is dismissed, and the Dividend's month ends in a recap that
+carries the card, your match, and its Watch. Only the dev skip passes a recap by (`_devSkip`,
+which is what the flag always meant). THE EIGHT is a fight with no way out: `toTheEnd` keeps a
+panicking fighter on the field (there is nowhere to run — and one still panicking when it stops
+goes down with the rest), runs the fight past the ordinary backstop, and takes the field from
+the side that loses it, so its wounded lie where they fall rather than walking away hurt.
+Measured: one to three of the eight die, and none in a stun-grade year. The Drop's slots read 1–24 to a manager; the engine keeps its
+own indices.
+
 **The days walk between windows. *Built since this was written.*** The Ground only ever
 animated the finished contest's replay; live, the comms windows drew complete. The window hands
 the page the record so far (`record`, the days with their tracks), the page keeps to its own
@@ -968,15 +1071,310 @@ where you know nothing. Sight and contact rings draw only round your own. The ma
 every rival's true position every window, against the ruling. The truth waits for the replay,
 which is the broadcast.
 
+## The housekeeping audit. *Built.*
+
+`sim/audit_code.cjs` looks for what no test can: functions nobody calls, constants nothing
+reads, helpers written twice, and files that have outgrown a reading. None of these change what
+the game does, which is exactly why nothing catches them — a function nobody calls passes every
+check in the suite. First run: **no dead functions**, thirty-eight unread constants, twelve
+names shared by two modules, two files past three thousand lines.
+
+THREE OF THE THIRTY-EIGHT WERE FAULTS, not tidying:
+- `MONWA_TETHER_COMP` (−25 composure an exchange, ratified with the canon) had sat in combat.js
+  unread while the tether was built beside it with a fresh −12 that somebody invented. Likewise
+  `ATTORAK_INTENSITY_COMP` and `THYTHYN_HOVER_P` — the gnoll's own figure and the share of
+  Thythyn repositions that end hovering, both ratified, both ignored while I wrote new ones. All
+  three are read now, and the hover is a roll rather than a certainty.
+- `FAST_WALL` named the edict's compression in events.js, and divide.js typed `0.80` again where
+  nobody would think to change it. The share travels from where the edict is written.
+- `APPROACH_SHARPNESS` was superseded by the captain's judgement and left behind to be read as
+  though it still decided something. Removed.
+
+TWO RULES SHARED ONE NAME: `bandOf` in combat.js takes a FIGHTER and reads the band their weapon
+was built for; `bandOf` in tactical.js takes a DISTANCE. Neither was wrong and either could be
+read as the other — the sort of thing that survives every test and ruins one afternoon. The first
+is `weaponBandOf` now.
+
+THE REMAINING THIRTY-ONE ARE THE ABSTRACT MODEL'S, and they are kept deliberately: exchange caps,
+band shifts, turret and drone timings — the instrument panel of the model the grid replaced. The
+grid's own numbers were derived from them and several rulings are written in their terms. They
+carry `[ABSTRACT]` where they live, and the audit takes that as an answer, so the next reader
+knows they decide nothing without having to find out the hard way. The remaining shared names are
+module-local (`clamp`, `open`, `resolve`) and harmless. `divide.js` at 4,417 lines and `season.js`
+at 3,382 are noted, not split: a split is invasive and belongs to its own pass.
+
+## A manager founds a house. *Ruled and built.*
+
+Taking one of the eight over was a difficulty selector wearing a house's name. A manager
+inherited somebody else's roster, somebody else's armoury and somebody else's reputation, and
+spent the first year managing choices that had already been made. THE EIGHT ARE THE FLEET, and
+the fleet is not the player: their identities are for the houses across the strip. A manager —
+solo or otherwise — founds a house and takes a berth among them.
+
+And a founded house opens with nothing but money and a few old hands:
+
+| | A founded house | One of the eight |
+|---|---|---|
+| Roster | **7**, every one with a year left on the paper, no mercenaries among them | 20–21 under contract |
+| Armoury | **18 pieces** — one drop, armed badly | ~280 pieces across 35 lines |
+| Treasury | ₡210,000 | ₡255,000–330,000 |
+| Grant | ₡150,000 — nobody underwrites a house they have not heard of | ₡265,000 |
+| To build with, after the entry, the wages and the reserve | **₡260,600** | — |
+
+The old start handed a manager six hundred thousand AND a full roster AND a full armoury, which
+is why the first year never felt like a decision. The mercenary market opens at the year's end,
+so a founder's first real choice is what to spend the year becoming. (`profile.founding = 'lean'`
+→ `LEAN_ROSTER`, `LEAN_DEPTH`, `LEAN_PIECES`, `LEAN_TREASURY`, `LEAN_GRANT`; the ledger takes a
+grant from opts now, since a founder is not underwritten like a century-old house.)
+
+TWO HARNESS CHECKS FELL, and neither was the engine. *The letter is gone and the house remembers
+the snub* — the snub WAS remembered (memory 1→2); what failed was "gone", because the fleet
+writes every month and a new letter had already arrived. The check tests the letter that lapsed
+now, not that no letter stands. *The scalpel bit deeper than the column* — `dT` is the column's
+MEAN gain across the roster, and a column spread over seven hands gives each of them nearly what
+a scalpel gives one. That is the founding change working, and a thing a manager should feel: a
+small roster trains broadly for cheap. The check asks that the scalpel is still worth its focus,
+not that it buries the broad spend.
+
+**The people you keep decide what happens to you. *Built since this was written.*** Fourteen
+quirks carry a `*_event_seed` hook — a hot head seeds a brawl, a clause reader a renegotiation, a
+superstitious hand an omen, a war debt the creditors — and the event draw asked none of them:
+every house drew from one flat pool whoever was aboard. A house with the people for an event now
+draws it far oftener (`SEEDED`) and a house with nobody who could cause it a little less
+(`UNSEEDED`), which is what those hooks were written for. Wired beside them:
+`short_band_composure_bonus` (steadier the closer it gets), `early_disengage_bias` and
+`follows_bad_orders` (a squad with a bolter calls it sooner; one that does as it is told holds a
+bad order too long — both read at the captain's call), `tether_range_extended` (a drilled pair
+works three tiles further apart), and `sponsor_income_up` / `rare_quote_fame_spike` (a marketable
+face is worth a tenth more at the gate). SIXTY-THREE HOOKS WERE READ BY NOTHING WHEN THIS BEGAN;
+NINETEEN ARE, and quirks that do nothing at all have gone from twenty to five.
+
+TWO THINGS THE GATES CAUGHT, both mine. The seed cache was a `Set` hung on each corporation and
+the trait index a whole catalogue hung on the state — and a career is saved from those objects, so
+a save came back wrong; the harness said so in one line. Neither belongs in a save: they are
+derived from the catalogue every build already has, so the cache lives in a `WeakMap` and the
+index is handed to the events module rather than stored. And a ground-encounter check was
+asserting that a fight ran longer than five frames, which is no longer that check's business —
+a squad with somebody who wants out can be gone in three turns, and how long fights run is
+`measure_fight.cjs`'s question now.
+
+**Twenty-one more hooks, and the Gil's psions. *Built since this was written.*** The Gil were
+half-built: their goggles worked (a head wound breaks them, and a Gil without them shoots worse)
+and all three PSIONIC EXPRESSIONS were inert — `squadLink` was read in the aim path and set by
+nobody. A latent Gil is now worth something to everyone standing with them: the link steadies the
+whole side's shooting, battle sense means the side is never caught unready, and the broadcast
+carries to the crowd. THE SUITE CAUGHT ME WIRING GHOSTS: the first cut listened for
+`psion_squad_link` as a HOOK, and that is a trait id — no trait grants a hook so called, so the
+resolver was listening for a word nobody says. The ghost-hook check exists for exactly that and
+found it in one line; the resolver reads the hooks the traits actually grant now
+(`squad_coordination_bonus`, `ambush_avoidance_slight`, `psionic_broadcast_sensation`).
+
+Wired alongside them: `presence_aura` (a steadying body steadies the people near them, and only
+those who need it), `cohesion_morale_bonus_near_squadmates`, `death_morale_immune` and
+`gore_morale_immune` (which needed a mark saying THIS loss is a body going down — the hooks were
+there, the question was never asked), `injury_exposure_up`, `overwatch_bonus`,
+`salary_anchoring_up` and `salary_demand_pressure` (a fighter who anchors hard asks a third
+more), and `poach_resistant` (a hand who does not listen costs 60% more to tempt — a loyal
+fighter was as cheap to buy as any other). Sixty-three hooks were read by nothing when this began;
+forty-two are. The tooltip is honest about which, and the snapshots were blessed once, deliberately,
+with the shape gate beside them: 9.1 turns a fight, ten of ten ended by a break.
+
+**A deleted line, three blessings, and the gate that would have caught it. *Built since this was
+written.*** An edit that gave the Olmac their toughness computed the damage, applied the soak and
+the frenzy multiplier — and swallowed `t.hp -= dmg`. Damage was worked out and never applied to
+anybody. Every hit in the game became cosmetic: a whole contest ran FOUR HUNDRED AND THIRTY-EIGHT
+FIGHTS WITH NO CASUALTIES, every fight ran out its clock because nobody could fall, and the
+fighters shot their magazines dry grazing each other.
+
+It survived because of how it was checked. The combat suite's fight snapshots have a `--bless`
+path, and three changes in a row had been blessed through it — the quirk hooks, the Thythyn's
+flight, the tether. Each blessing was defensible alone; together they taught the suite to accept
+whatever the engine now did, and a suite that accepts anything is not a suite. The snapshots
+went green over a game where nobody could be hurt.
+
+`sim/measure_fight.cjs` is the answer and it is now a gate: it measures the SHAPE of a fight —
+mean turns, whether it ended because a side broke or because the clock ran out, casualties, hit
+rate — against a hard band, and no blessing can silence it. Pointed at the broken tree it failed
+in one line ("12 of 12 fights ran out the clock"), which is what the snapshots should have said.
+With the line restored: 8.8 turns a fight, every one ended by a break, and a real contest back to
+sixty fights, seventy-nine dead, five joins, two banners standing. THE RULE THIS LEAVES: a
+snapshot may be blessed when a change is meant to move it, but never twice running without a
+measure of shape beside it that was not blessed.
+
+**The tether, and two more specials that were only ever data. *Built since this was written.***
+THE TETHER: a Mon-Wa is one being in two bodies, and the two fought as strangers. The pair was
+linked and the bond-shock roll fired when a half died, but the distance between them cost
+nothing — the canon's own model ("separation costs −25 composure an exchange to both, plus aim
+−4") was written down and never built. Inside the tether the halves steady each other a little
+every turn; outside it both come apart, in composure and in aim, because it is one being. And a
+half KEEPS STATION: a Mon-Wa weighs a tile by how far it leaves them from the other half, hard
+once the tether is stretched — without that they were being punished for the engine's
+indifference rather than for anything a manager or a captain did. Measured: strain fell from 256
+turns to 149 across ten fights, so pairs hold together and break under pressure, which is the
+texture the canon describes. A HUMAN LEADS: `captain_aptitude_bonus` read "feeds captain
+fidelity" and fed nothing; captains decide now, so it is worth what it says — a human reads a
+situation better than the sheet alone would. SVALBARD FIRE ON THE MOVE: `long_prime`
+was data nothing read, and standing off to snipe was the wrong animal entirely — they are
+quadrupeds built like cavalry. They shoot from the gallop: crossing ground costs them much less
+aim than it costs anybody else, and four legs carry them two tiles further on a move. The data
+says so now (`fire_on_the_move` replaces `long_prime` in races.json). Still inert: `media_flat` and
+`english_loose`, both broadcast colour rather than mechanics.
+
+**The fleet's only fliers actually fly. *Built since this was written.*** A Thythyn's wings
+were in the data (`flier`, `winged`, `light_frame`), in the lore, and in the injury table — which
+has a whole limb of wing wounds — and in nothing that moved: they walked like everybody else. A
+flier now has the air available to it once a fight: `FLIGHT_TILES` further on one step, over
+whatever was in the way, and hovering while they are up there, which is its own price because
+nothing in the air is behind anything (`MOTION_HOVER`, and cover counts a grade worse against a
+hoverer — both already in the engine, waiting). A hurt wing grounds them, which the injury table
+was already deciding. Measured: twenty-seven flights across twelve fights. THE FIRST CUT OFFERED
+THE AIR AFTER THE MOVE WAS CHOSEN, so the wings were never in the reckoning and no Thythyn ever
+left the ground; the tiles are offered while the move is being weighed now, and taking a step
+longer than legs could carry is what spends it. Racial specials still inert: `long_prime`,
+`captain_aptitude_bonus`, `media_flat`, `english_loose`, and the Mon-Wa tether.
+
+**A quirk says what it does. *Built since this was written.*** A quirk was a word on a card: a
+manager read "Clause Reader" and learned nothing. The chip now carries its own mechanics, read
+from the data rather than written twice — the stats it moves, and a plain reading of every hook
+the engine actually consumes ("Trains 30% Faster", "Never Routs", "Asks More at the Table"),
+with the flavour line beneath. A quirk whose hooks nothing reads says *Character, Not Mechanics*
+and dims, because promising an effect that does not exist is worse than admitting there is none.
+AND THERE WERE MANY: sixty-three of a hundred and forty hooks were read by nothing at all — a
+fighter carried "nothing shakes him" and no part of the engine knew. Wired in this pass:
+`development_rate_up` and `young_squadmate_development_up` (a quick study trains a third faster,
+and an old hand aboard lifts the young), `reposition_speed_up` and `evasion_surge` (a step more,
+and a step more when shot at), `rout_immune`, `morale_swings_damped` and `_amplified`,
+`wounded_composure_bonus`, `composure_up_as_intensity_rises`. Fifty-four hooks and twenty quirks
+are still decoration, and the tooltip is honest about which. The fight snapshots were re-blessed:
+composure and movement changed, which is what wiring them means.
+
+**Four hanging jobs, closed. *Built since this was written.***
+
+**A joiner never priced its own nuisance.** The spoiler — what a house costs a banner by
+staying in the fight — was in the banner's CEILING (what it would pay to stop bleeding) and in
+nothing the joiner ASKED FOR, so a house that could see it was costing a banner a fortune sold
+itself on its own odds alone and left the whole of that money on the table. A joiner now asks
+for `SPOILER_ASK_BASE` of it, more if it is greedy. Joins hold at four to six a Divide.
+
+**No two people with one name.** A fleet dealt the same Olmac title two and three times over;
+a manager met two fighters called The Salt. Every draw keeps a book of names, seeded with the
+roster's own so a new intake never offers a name already aboard, and a genuine second becomes
+*The Salt the Younger*. Mon-Wa halves count as clashes, being names people are called by. THE
+FIRST CUT OF THIS WAS A GLOBAL BOOK, and it broke the one rule the engine cannot break:
+generation stopped being a function of its seed, because it depended on everything drawn
+before it. The regression caught it in one run. The book is passed in by whoever is drawing.
+
+**`BOARD_CUTS` re-measured.** The verdict cuts were set against a card pool that has since lost
+two demands (losses and surplus, each a second reading of a standing demand) and gained a third
+standing one (popularity). Over seventy-two card years the scores run p10 0.32, median 0.55, p90
+0.78 — against the old cuts a board was delighted ONCE in seventy-two years and content in half
+of them. The cuts follow the distribution now (0.78 / 0.66 / 0.44 / 0.33) and the moods spread:
+8 delighted, 18 pleased, 18 content, 7 disappointed, 13 unhappy, 8 asking questions.
+`sim/measure_board.cjs` is the instrument.
+
+**Named claim pricing was not missing.** The note said it had no anchor; it has one — units ×
+the banner's odds × `CLAIM_FORECAST` × what that category is worth to each side, in the same
+credits as a haul. Nothing to build; the note was stale.
+
+**What a house paid to keep quiet can be found. *Built since this was written.*** An act that
+goes off clean is not an act nobody could ever prove: it leaves a trace in the year's paperwork.
+A scout sent into another house's books turns it up when the dossier is read past `DIRT_AT`
+(three quarters), at odds that read from the thing itself — more done this year is easier to
+find, a house already in bad odour with the Aleas is watched harder, and an act that was HUSHED
+is much harder to turn up, which is what the hush was for. THE DIRT IS A BONUS, NOT A
+SUBSTITUTE: the row the scout was sent for lands either way, or scouting a dirty house would
+punish you for its luck. What you hold, you can spend three ways, each answering to a different
+audience: BLACKMAIL (they pay a share of their purse and nobody else learns — they remember it
+against you), LEAK IT (the fleet reads it by morning and their standing craters; the fleet has a
+word for a house that prints another's business), or REPORT IT (the Aleas fine them and thank
+you for it; the fleet likes an informer rather less). Evidence keeps for the year and the next.
+IT RUNS BOTH WAYS: an AI house that holds something on you uses it in its own character — the
+treacherous blackmail, the traditional report, the loud leak — which is what makes your own
+quiet business a risk rather than a purchase.
+
+**The fight says what decided it. *Built since this was written.*** The tactical fight was a
+black box a manager could only watch: kit, cover, stance, morale and a captain's stats all fed
+it, and the only feedback was a replay of an outcome. Two answers, both read off the fight's own
+record so neither can disagree with what happened. EVERY SHOT SAYS WHY IT WAS THAT LIKELY:
+`hitChance` names the two or three things that moved it most, in the order they mattered — Hard
+Cover, Long Range, Flanked, Unspotted, Overwatch, Suppressed, Caught Crossing, Treating the
+Wounded, Low on Rounds — and the feed prints them beside the percentage on every shot, hit or
+miss. WHAT DECIDED IT: under the result, a reading of the whole engagement side by side — shots
+taken, the share that hit, how many were put down, how many were shooting from overwatch, and
+what the shots were mostly taken against. A manager who loses a fight can now see that his
+people shot at hard cover forty times while the other house shot at men in the open.
+
+**The wall says when it moves. *Built since this was written.*** The dome is the clock the
+whole contest runs on and it existed as a dashed circle that told nobody anything until it had
+already closed. `wallSchedule` hands the window the beats still to come; the day head reads *The
+Wall Closes Day 13 · in 4 · to 52%* (gold at three days, red at one, and it names the last
+ground), and the Ground draws the next beat's circle, dated, inside the one that stands. A
+manager plans against the second circle.
+
+**The stores while the contest runs, and rounds that can run out. *Built since this was
+written.*** Two things the Divide never showed a manager. THE STORES: the units a house works
+out of the ground are the point of the contest and the measure the board asks in, and they were
+visible only on next year's Board. The day head reads them now — *Worked Fuels 2/3 · +4 Open* —
+what is in hand by category, against what the board asked for, beside what is still open in the
+ground that the house knows of. AMMUNITION: it was a flag that made the next fight better and
+was invisible until a squad was dry inside one. It is a store like rations now (`AMMO_LOAD`,
+spent an engagement at a time), it reads on the squad rows beside the rations bar, a dry squad
+shoots worse (`AMMO_DRY_AIM`), and a squad low on rounds *wants* a munitions drop — which is
+what that site was always for.
+
+**A deposit, not an assay. *Built since this was written.*** The site a squad works was an
+"ore assay" whatever the ground held — which read as mining where the haul was grain or water,
+and "assay" is a surveyor's word for a thing a squad does with its hands. The type is
+`resource_site` now and a deposit is named for its category: a SEAM (minerals), a WELL (fuels),
+a STAND (foods), a VAULT (luxuries), each carrying its category on the objective itself. The
+verb is WORKING A DEPOSIT, not digging. And the settlement says what it is: the units a house
+works out of the ground go to ITS OWN STORES — that is the point of the Divide, and the board's
+demand is written in those units — while the credits on the settlement line are the second half
+of it, the fleet buying what a house does not need at `HAUL_VALUE` a unit. The line is a sale,
+not a fee for collecting. (`oreCredit` → `hauled`, `ASSAY_VALUE` → `HAUL_VALUE`, the ledger's
+`assay` → `haul`.)
+
+**The captain decides, and captains differ. *Built since this was written.*** Every squad
+weighed its choices with the same cold arithmetic, so a squad led by a brilliant tactician
+behaved exactly like one led by a frightened corporal. A captain brings three things to a
+decision now: JUDGEMENT (tactics) — how sharply the weighing favours the strongest need, so a
+poor captain draws nearly at random from what seems reasonable and a great one almost always
+takes the best answer; SIGHT (fieldcraft) — how much of the house's picture the captain is
+actually weighing, a poor one reading only what is close; and NERVE (resolve and presence) —
+whether the numbers are read hopefully or fearfully, a frightened captain seeing more of them
+than there are and choosing accordingly. A good captain's plan also stands longer before it is
+rethought. Fatigue and stress wear all four down. THE STATS RUN WIDER THAN A HUNDRED — a
+roster's tactics run about 14 to 144, the middle near 95 — so a captain is read against the
+spread the game actually deals (`MIND_LOW`/`MIND_MID`/`MIND_HIGH`); read against a hundred,
+every captain came out excellent. The Table's squad rows name the captain and say how they are
+reading the ground: Sharp, Steady or Struggling; Cool, Holding or Shaken; and how much of the
+picture they can see.
+
+**Two levers, and the rest is the squads'. *Built since this was written.*** Per-squad orders
+were the wrong game — a manager does not tell a squad where to walk. He has TWO LEVERS: the
+stance, and a LEANING on each other house, one to five (three is nothing), saying which of them
+he would rather his people found. A leaning multiplies how near a rival READS when a squad
+chooses whom to seek or avoid — leaned toward, a house feels closer than it is; leaned away,
+further — so it never forbids and never orders, it puts a thumb on a scale the squads are
+already weighing. An AI house leans by its own regard, seeking out the houses it thinks least
+of. What a squad then does is entirely its own, and THE LIST OF WHAT IT MAY DO IS LONGER: with
+the manager out of it, variety costs nothing. Entrenching (good ground, a wall coming, let them
+come to it), baiting (be seen, on ground of our choosing), sweeping (walk the ground nobody has
+walked — sites are found by looking) and pressing (they are hurt and near: do not let them mend)
+join hunting, scouting, hiding, prospecting, resupplying, recovering, consolidating, rallying,
+shadowing and screening, each leaned by stance. AND THE PICK IS A WEIGHING, NOT A MAXIMUM:
+taking the highest need meant four or five loud approaches were the only ones a contest ever
+saw, because a squad with a reason to hunt never entrenched however sensible it was. Every
+approach with a real need goes in a hat weighted by that need (`APPROACH_SHARPNESS`), so the
+loud ones still dominate and the quiet ones happen — measured across five contests, thirteen of
+the fourteen appear.
+
 **Orders at the window. *Built since this was written.*** A manager's squads take orders in
 the planner's own vocabulary — Hold, Move, Dig a site, Meet a squad, Hunt a squad the house has
 seen, Fall Back — on the Table's squad rows, each a menu built from what the house knows: the
 sites revealed, its own squads, the picture's sightings (with the house, the count, and when).
-`answer.orders` = { sIdx: order }; the Divide turns each into an intent with the manager's name
-on it (`ordered`), and the planner leaves it alone until it is done or runs out — a Hold or a
-Meet standing where it is put, arriving being the point. Symmetric by construction: an AI's dawn
-plan and a manager's order are the same object executed by the same march. The row says what
-each squad is doing and whether it was ordered.
+*(Retired one step later: see "Two levers" above. The squad rows still say what each squad is
+doing — holding, digging, shadowing, pressing — because watching them decide is the point.)*
 
 **The dispersed drop — step three, the picture and the squad mind. *Built since this was
 written.*** What a house knows of everyone else is a PICTURE now (`corp._picture`: where a
@@ -1451,7 +1849,7 @@ better, since sixteen is the floor the board fills for you if you fail to reach 
 not be failed. It now asks for a drop that is a third unproven fighters — a real price, because
 green fighters lose more often and a corp chasing a finish would rather field veterans.
 
-## The Dividend takes the floor. *Ruled and built.*## The Dividend takes the floor. *Ruled and built.*
+## The Dividend takes the floor. *Ruled and built.*
 
 The mid-year show-match was fully simulated and completely invisible: it resolved inside the
 month step, the year walked straight through month six, and the only trace was a shelf that

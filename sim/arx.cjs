@@ -116,64 +116,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_both",
-    "exchanges": 8,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 3,
-    "bDead": 0,
-    "bDown": 3,
-    "shots": 143,
-    "hits": 30,
-    "downs": 6
-  },
-  "short band, both aggressive": {
     "result": "disengage_B",
-    "exchanges": 13,
+    "exchanges": 12,
     "band": "medium",
     "aDead": 1,
     "aDown": 0,
-    "bDead": 1,
-    "bDown": 3,
-    "shots": 160,
-    "hits": 46,
-    "downs": 6
+    "bDead": 3,
+    "bDown": 1,
+    "shots": 164,
+    "hits": 28,
+    "downs": 5
+  },
+  "short band, both aggressive": {
+    "result": "disengage_A",
+    "exchanges": 10,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 3,
+    "bDead": 0,
+    "bDown": 1,
+    "shots": 111,
+    "hits": 30,
+    "downs": 4
   },
   "long band, both cautious": {
     "result": "disengage_B",
-    "exchanges": 11,
+    "exchanges": 8,
     "band": "medium",
     "aDead": 0,
-    "aDown": 2,
+    "aDown": 1,
     "bDead": 0,
-    "bDown": 4,
-    "shots": 188,
-    "hits": 27,
-    "downs": 6
+    "bDown": 2,
+    "shots": 151,
+    "hits": 21,
+    "downs": 3
   },
   "forest, standard v unyielding": {
     "result": "disengage_A",
-    "exchanges": 8,
+    "exchanges": 4,
     "band": "medium",
     "aDead": 1,
-    "aDown": 3,
+    "aDown": 2,
     "bDead": 0,
-    "bDown": 0,
-    "shots": 120,
-    "hits": 40,
+    "bDown": 1,
+    "shots": 87,
+    "hits": 26,
     "downs": 4
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
-    "exchanges": 6,
+    "exchanges": 11,
     "band": "medium",
-    "aDead": 1,
+    "aDead": 3,
     "aDown": 3,
     "bDead": 0,
-    "bDown": 0,
-    "shots": 67,
-    "hits": 21,
-    "downs": 4
+    "bDown": 1,
+    "shots": 99,
+    "hits": 32,
+    "downs": 8
   }
 };
 
@@ -2993,7 +2993,7 @@ function negotiationRules() {
     if (st) {
       let outTotal = 0;
       for (const id in st.take) outTotal += st.take[id];
-      const assay = st.assayPaid || 0;
+      const assay = st.haulPaid || 0;
       let unclaimed = 0;
       for (const l of st.lines) if (l.kind === 'assay_unclaimed') unclaimed += l.amount;
       const expected = (st.winnerId ? st.pot : 0) + assay + unclaimed - (st.bonuses.total || 0);
@@ -3004,7 +3004,7 @@ function negotiationRules() {
       /* N1 — losers get nothing but their own assay banks. */
       for (const pc of s.perCorp) {
         if (pc.won || pc.joinedTo) continue;
-        const ownAssay = (pc.oreCredit || 0) * NEG.CONST.ASSAY_VALUE;
+        const ownAssay = (pc.hauled || 0) * NEG.CONST.HAUL_VALUE;
         if (pc.payout > ownAssay + 1) {
           bad.push(pc.id + ' lost, joined nobody, and was still paid ' + Math.round(pc.payout));
         }

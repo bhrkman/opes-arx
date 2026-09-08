@@ -4,11 +4,11 @@
   "version": "0.10",
   "date": "2026-08-15",
   "status": "Step 2 ratified (V7, V8, V10, V11, V12, V13, V14); COMBAT.md debts discharged",
-  "sources": "DESIGN.md v0.4 \u00a72/\u00a73/\u00a710/\u00a711 \u00b7 RACES.md v0.2 (ratified sheets)",
+  "sources": "DESIGN.md v0.4 §2/§3/§10/§11 · RACES.md v0.2 (ratified sheets)",
   "provenance_notes": [
    "Stat leans, naming conventions, and dispositions are ratified canon (Q28); their numeric encodings here are proposed.",
-   "Age curves, pool_weights, market multipliers, loyalty bands, resentment rates, and every fossil_lexicon entry are (proposed) \u2014 veto freely.",
-   "Lean encoding: '++' \u2192 +3, '+' \u2192 +2, human 'mild' \u2192 +1, '\u2212' \u2192 \u22122, '\u2212\u2212' \u2192 \u22123. Balancing offsets beyond RACES.md are flagged in 'lean_notes'.",
+   "Age curves, pool_weights, market multipliers, loyalty bands, resentment rates, and every fossil_lexicon entry are (proposed) — veto freely.",
+   "Lean encoding: '++' → +3, '+' → +2, human 'mild' → +1, '−' → −2, '−−' → −3. Balancing offsets beyond RACES.md are flagged in 'lean_notes'.",
    "The Ankoth are excluded by design (canon, Q24): banished non-playable lore race. Not omission.",
    "pool_weights are relative fleet-wide base rates per recruitment pool; corp nattie pools multiply these by oa_profiles.json race_weights.",
    "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and thythyn.special.wing_injury_table now point at the ratified model rather than owing it."
@@ -48,20 +48,20 @@
     60
    ],
    "loyalty_texture": null,
-   "supply_mult": 1.0,
+   "supply_mult": 1,
    "pool_weights": {
     "nattie": 30,
     "merc": 16,
     "prisoner": 22
    },
    "market": {
-    "cost_mult": 1.0,
-    "salary_mult": 1.0
+    "cost_mult": 1,
+    "salary_mult": 1
    },
    "oa_lean": [],
    "oa_lean_note": "Plural everywhere; no single-corp gravity.",
-   "resentment_rate": 0.0,
-   "resentment_note": "Founders \u2014 the Spent Cradles are not theirs to mourn. Cradleborn Resentment does not roll on humans.",
+   "resentment_rate": 0,
+   "resentment_note": "Founders — the Spent Cradles are not theirs to mourn. Cradleborn Resentment does not roll on humans.",
    "special": {
     "captain_aptitude_bonus": 1,
     "trait_variety_bonus": 0.3,
@@ -154,7 +154,7 @@
    "fossil_lexicon": [
     {
      "word": "terra",
-     "gloss": "any solid ground underfoot \u2014 the old word for the lost home; muttered when boots hit planet",
+     "gloss": "any solid ground underfoot — the old word for the lost home; muttered when boots hit planet",
      "register": "reverent",
      "provenance": "proposed"
     },
@@ -190,7 +190,7 @@
     "aim": 3,
     "reflex": 2
    },
-   "lean_notes": "++aim / +reflex per RACES.md \u2014 lore precision maps onto the all-ranged canon.",
+   "lean_notes": "++aim / +reflex per RACES.md — lore precision maps onto the all-ranged canon.",
    "age": {
     "recruit_min": 17,
     "prime": [
@@ -206,13 +206,13 @@
     80
    ],
    "loyalty_texture": null,
-   "supply_mult": 1.0,
+   "supply_mult": 1,
    "pool_weights": {
     "nattie": 8,
     "merc": 8,
     "prisoner": 3
    },
-   "pool_note": "Rare in the Kier Bastille \u2014 honor culture (proposed).",
+   "pool_note": "Rare in the Kier Bastille — honor culture (proposed).",
    "market": {
     "cost_mult": 1.35,
     "salary_mult": 1.25,
@@ -304,7 +304,7 @@
     },
     {
      "word": "keth",
-     "gloss": "grace under fire \u2014 the compliment paid to a clean shot",
+     "gloss": "grace under fire — the compliment paid to a clean shot",
      "register": "praise",
      "provenance": "proposed"
     },
@@ -324,7 +324,7 @@
    "absorbed_vc": 8,
    "homeworld": "Rumia",
    "cohabitant": "kellis",
-   "lore": "Pet-like in appearance and vastly more useful than they look: each Mon-Wa is a pair of telepathically linked symbiotes \u2014 one being in two bodies. Gentle, clever, resourceful; among the least hostile species in the fleet and among the most sought-after recruits.",
+   "lore": "Pet-like in appearance and vastly more useful than they look: each Mon-Wa is a pair of telepathically linked symbiotes — one being in two bodies. Gentle, clever, resourceful; among the least hostile species in the fleet and among the most sought-after recruits.",
    "physiology_tags": [
     "paired_symbiote",
     "small"
@@ -351,13 +351,13 @@
     70
    ],
    "loyalty_texture": null,
-   "supply_mult": 1.0,
+   "supply_mult": 1,
    "pool_weights": {
     "nattie": 5,
     "merc": 4,
     "prisoner": 2
    },
-   "pool_note": "Rare in the Bastille \u2014 least hostile species in the fleet (proposed).",
+   "pool_note": "Rare in the Bastille — least hostile species in the fleet (proposed).",
    "market": {
     "cost_mult": 1.2,
     "salary_mult": 1.1,
@@ -384,7 +384,7 @@
    },
    "naming": {
     "style": "paired_halves",
-    "note": "Each half named separately, 3\u20134 letters, addressed together as {Mon}-{Wa}. Widowed Mon takes Em- prefix; widowed Wa takes -Em suffix (ratified; canon anchors: Bahn-Kal, Ari-Onn, Em-Mak).",
+    "note": "Each half named separately, 3–4 letters, addressed together as {Mon}-{Wa}. Widowed Mon takes Em- prefix; widowed Wa takes -Em suffix (ratified; canon anchors: Bahn-Kal, Ari-Onn, Em-Mak).",
     "halves": [
      "Tev",
      "Sull",
@@ -433,7 +433,7 @@
    "fossil_lexicon": [
     {
      "word": "em",
-     "gloss": "severed; alone \u2014 the language's saddest word (surviving grammar: the widow particle, canon)",
+     "gloss": "severed; alone — the language's saddest word (surviving grammar: the widow particle, canon)",
      "register": "grief",
      "provenance": "canon particle; gloss proposed"
     },
@@ -445,7 +445,7 @@
     },
     {
      "word": "sib",
-     "gloss": "any bonded pair \u2014 extended, as an honor, to trusted squadmates",
+     "gloss": "any bonded pair — extended, as an honor, to trusted squadmates",
      "register": "warm",
      "provenance": "proposed"
     }
@@ -459,7 +459,7 @@
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
    "cohabitant": "thythyn",
-   "lore": "Towering forces of nature with leathery, granite-colored flesh \u2014 outsized only by the banished Ankoth. What they lack in cunning they repay in overwhelming battlefield skill, smothering enemies in firepower. No true loyalty: they take any role that puts them on a battlefield.",
+   "lore": "Towering forces of nature with leathery, granite-colored flesh — outsized only by the banished Ankoth. What they lack in cunning they repay in overwhelming battlefield skill, smothering enemies in firepower. No true loyalty: they take any role that puts them on a battlefield.",
    "physiology_tags": [
     "massive",
     "granite_skin",
@@ -472,7 +472,7 @@
     "tactics": -2,
     "fieldcraft": -3
    },
-   "lean_notes": "++grit / \u2212tactics / \u2212fieldcraft per RACES.md ('nothing that size hides' pushed fieldcraft to \u22123); the aim/resolve nudges encode smothering fire and unsentimental steadiness (proposed).",
+   "lean_notes": "++grit / −tactics / −fieldcraft per RACES.md ('nothing that size hides' pushed fieldcraft to −3); the aim/resolve nudges encode smothering fire and unsentimental steadiness (proposed).",
    "age": {
     "recruit_min": 18,
     "prime": [
@@ -507,7 +507,7 @@
    "special": {
     "carry_bonus": 2,
     "media_flat": true,
-    "media_note": "Barely speaks \u2014 spends words like they cost blood (canon language ruling). Media statements flat; broadcast novelty when one DOES speak.",
+    "media_note": "Barely speaks — spends words like they cost blood (canon language ruling). Media statements flat; broadcast novelty when one DOES speak.",
     "armor_ruling": "The concept art's sealed gold armor is one individual's kit, not racial physiology (canon ruling)."
    },
    "naming": {
@@ -559,13 +559,13 @@
    "fossil_lexicon": [
     {
      "word": "hrn",
-     "gloss": "assent \u2014 as much conversation as most Olmac offer",
+     "gloss": "assent — as much conversation as most Olmac offer",
      "register": "curt",
      "provenance": "proposed"
     },
     {
      "word": "dolm",
-     "gloss": "enough; stop \u2014 also their only word for death",
+     "gloss": "enough; stop — also their only word for death",
      "register": "final",
      "provenance": "proposed"
     }
@@ -579,7 +579,7 @@
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
    "cohabitant": "olmac",
-   "lore": "Moth-like, agile, intelligent \u2014 the fleet's only fliers, and skilled at every range of a fight. Between Divides many work as mercenaries; they excel under orders and under pressure, and they are intensely status-focused, always maneuvering up the chain.",
+   "lore": "Moth-like, agile, intelligent — the fleet's only fliers, and skilled at every range of a fight. Between Divides many work as mercenaries; they excel under orders and under pressure, and they are intensely status-focused, always maneuvering up the chain.",
    "physiology_tags": [
     "winged",
     "flier",
@@ -600,7 +600,7 @@
     ],
     "decline": 32,
     "venerable": 40,
-    "provenance": "proposed \u2014 short bright careers feed the status urgency"
+    "provenance": "proposed — short bright careers feed the status urgency"
    },
    "loyalty_base": [
     30,
@@ -700,7 +700,7 @@
     },
     {
      "word": "kryv",
-     "gloss": "a superior worth following \u2014 from a Thythyn, high praise",
+     "gloss": "a superior worth following — from a Thythyn, high praise",
      "register": "praise",
      "provenance": "proposed"
     },
@@ -721,7 +721,7 @@
    "homeworld": "Kranoia",
    "cohabitant": null,
    "cohabitant_note": "Unknowing cohabitants of Kranoia beside the Ankoth (banished).",
-   "lore": "Imposing feline figures \u2014 massive upper bodies carried on four legs. Known for wisdom, long tradition, and training years that include the killing of their own young; the surviving adults are elite hybrids of speed, strength, and intellect, famous for long military careers.",
+   "lore": "Imposing feline figures — massive upper bodies carried on four legs. Known for wisdom, long tradition, and training years that include the killing of their own young; the surviving adults are elite hybrids of speed, strength, and intellect, famous for long military careers.",
    "physiology_tags": [
     "six_limbed",
     "centauroid",
@@ -733,7 +733,7 @@
     "tactics": 2,
     "presence": 2
    },
-   "lean_notes": "Strong across grit/reflex/tactics/presence with high floors (ratified) \u2014 the culls mean weak Svalbard mostly don't exist.",
+   "lean_notes": "Strong across grit/reflex/tactics/presence with high floors (ratified) — the culls mean weak Svalbard mostly don't exist.",
    "stat_floor": 7,
    "age": {
     "recruit_min": 20,
@@ -768,14 +768,15 @@
    "resentment_rate": 0.1,
    "special": {
     "carry_bonus": 2,
-    "long_prime": true,
     "tradition_bound": true,
-    "tradition_note": "Resistant to doctrine changes and mid-Divide policy whiplash \u2014 they signed for a banner, not a mood (ratified).",
-    "notes": "Whispered about as a cause of the fleet's slow decline (lore)."
+    "tradition_note": "Resistant to doctrine changes and mid-Divide policy whiplash — they signed for a banner, not a mood (ratified).",
+    "notes": "Whispered about as a cause of the fleet's slow decline (lore).",
+    "fire_on_the_move": true,
+    "fire_on_the_move_note": "Quadruped cavalry: they shoot from the gallop. Crossing ground costs them much less aim than anybody else, and four legs carry them further on a move. (Was long_prime, which was the wrong animal — nothing about a quadruped says stand off and snipe.)"
    },
    "naming": {
     "style": "pride_classical",
-    "note": "Melodic given names of 2\u20133 syllables with a classical ring + short hard pride names, shared and heavy with tradition (ratified; canon anchors: Alyrion Vonn, Lanthas Vonn, Armas Jannik).",
+    "note": "Melodic given names of 2–3 syllables with a classical ring + short hard pride names, shared and heavy with tradition (ratified; canon anchors: Alyrion Vonn, Lanthas Vonn, Armas Jannik).",
     "given_stems": [
      "Alyr",
      "Lanth",
@@ -817,7 +818,7 @@
      "Fenn",
      "Ulve"
     ],
-    "pride_note": "Prides are a finite list on purpose \u2014 repeats across fighters are kin, not collisions."
+    "pride_note": "Prides are a finite list on purpose — repeats across fighters are kin, not collisions."
    },
    "fossil_lexicon": [
     {
@@ -828,7 +829,7 @@
     },
     {
      "word": "vasska",
-     "gloss": "an unculled cub \u2014 a stinging insult to any adult",
+     "gloss": "an unculled cub — a stinging insult to any adult",
      "register": "insult",
      "provenance": "proposed"
     },
@@ -848,7 +849,7 @@
    "absorbed_vc": 40,
    "homeworld": "Etuic",
    "cohabitant": null,
-   "lore": "Reptilian, tough, endlessly adaptive \u2014 and the fleet's mystics. Nearly all Etu follow Et-y-Bellum, the faith that their people were made as instruments of battle: healing, scouting, or pulling the trigger, every role is worship, and battle is the spectacle their lives were purposed for.",
+   "lore": "Reptilian, tough, endlessly adaptive — and the fleet's mystics. Nearly all Etu follow Et-y-Bellum, the faith that their people were made as instruments of battle: healing, scouting, or pulling the trigger, every role is worship, and battle is the spectacle their lives were purposed for.",
    "physiology_tags": [
     "crocodilian",
     "tough_hide",
@@ -869,7 +870,7 @@
     ],
     "decline": 43,
     "venerable": 55,
-    "provenance": "proposed \u2014 cold-blooded slow burn"
+    "provenance": "proposed — cold-blooded slow burn"
    },
    "loyalty_base": [
     40,
@@ -877,15 +878,15 @@
    ],
    "loyalty_texture": null,
    "supply_mult": 0.75,
-   "supply_note": "Cold-blooded low metabolism \u2192 reduced field supply consumption (canon management hook).",
+   "supply_note": "Cold-blooded low metabolism → reduced field supply consumption (canon management hook).",
    "pool_weights": {
     "nattie": 12,
     "merc": 9,
     "prisoner": 10
    },
    "market": {
-    "cost_mult": 1.0,
-    "salary_mult": 1.0
+    "cost_mult": 1,
+    "salary_mult": 1
    },
    "oa_lean": [
     "nevlon_collective"
@@ -897,11 +898,11 @@
      "et_y_bellum_zealot": 0.08
     },
     "devotion_note": "Nearly all Etu hold the faith; the traits mark the visibly devout and the zealous. Zealots and war-priests take the Et- honorific prefix (ratified).",
-    "cede_friction": "Devout Etu take loyalty/morale hits when their corp cedes \u2014 the sacrament abandoned (ratified, spicier variant)."
+    "cede_friction": "Devout Etu take loyalty/morale hits when their corp cedes — the sacrament abandoned (ratified, spicier variant)."
    },
    "naming": {
     "style": "doubled_mononym",
-    "note": "Mononyms, 1\u20132 syllables, hard consonants, mandatory doubled letter \u2014 vowel or consonant. Et- honorific for clergy and zealots (ratified; canon anchors: Stokk, Koruuth, Mazzk, Oort, Gurrim).",
+    "note": "Mononyms, 1–2 syllables, hard consonants, mandatory doubled letter — vowel or consonant. Et- honorific for clergy and zealots (ratified; canon anchors: Stokk, Koruuth, Mazzk, Oort, Gurrim).",
     "heads": [
      "Sto",
      "Ko",
@@ -957,19 +958,19 @@
    "fossil_lexicon": [
     {
      "word": "bellum",
-     "gloss": "battle as sacrament \u2014 from Et-y-Bellum, the surviving phrase",
+     "gloss": "battle as sacrament — from Et-y-Bellum, the surviving phrase",
      "register": "sacred",
      "provenance": "canon phrase; gloss proposed"
     },
     {
      "word": "et",
-     "gloss": "a made thing; an instrument \u2014 also the honorific particle for the devout",
+     "gloss": "a made thing; an instrument — also the honorific particle for the devout",
      "register": "sacred",
      "provenance": "canon particle; gloss proposed"
     },
     {
      "word": "y'kess",
-     "gloss": "a wasted death \u2014 dying far from battle; their bitterest word",
+     "gloss": "a wasted death — dying far from battle; their bitterest word",
      "register": "grief",
      "provenance": "proposed"
     }
@@ -1015,7 +1016,7 @@
     "merc": 12,
     "prisoner": 16
    },
-   "pool_note": "Overrepresented in the Bastille \u2014 battle-joy finds trouble between Divides (proposed).",
+   "pool_note": "Overrepresented in the Bastille — battle-joy finds trouble between Divides (proposed).",
    "market": {
     "cost_mult": 0.95,
     "salary_mult": 0.95
@@ -1024,15 +1025,15 @@
     "nevlon_collective"
    ],
    "resentment_rate": 0.14,
-   "resentment_note": "Keshu died recently, as cradles go \u2014 the memory is fresh (proposed recency weighting).",
+   "resentment_note": "Keshu died recently, as cradles go — the memory is fresh (proposed recency weighting).",
    "special": {
     "english_loose": true,
-    "language_note": "Their grasp of English stays loose (canon) \u2014 broadcast color, mangled idioms, subtitle jokes.",
-    "mimicry": "Named for vocal mimics produced in their youth (canon) \u2014 comms/decoy utility surfaces as a trait."
+    "language_note": "Their grasp of English stays loose (canon) — broadcast color, mangled idioms, subtitle jokes.",
+    "mimicry": "Named for vocal mimics produced in their youth (canon) — comms/decoy utility surfaces as a trait."
    },
    "naming": {
     "style": "onomatopoeia",
-    "note": "A sound from their youth they associate with themselves and verbalize constantly: mangled sound-effect words, 1\u20132 percussive syllables, reduplication welcome (canon convention; anchors: Bonq, Hikkup, Boum).",
+    "note": "A sound from their youth they associate with themselves and verbalize constantly: mangled sound-effect words, 1–2 percussive syllables, reduplication welcome (canon convention; anchors: Bonq, Hikkup, Boum).",
     "bases": [
      "Bonq",
      "Hikkup",
@@ -1068,7 +1069,7 @@
    "fossil_lexicon": [
     {
      "word": "rrak",
-     "gloss": "an excited yes \u2014 barked, often several times",
+     "gloss": "an excited yes — barked, often several times",
      "register": "joyous",
      "provenance": "proposed"
     },
@@ -1080,7 +1081,7 @@
     },
     {
      "word": "keshhh",
-     "gloss": "water \u2014 and grief; both, ever since Keshu",
+     "gloss": "water — and grief; both, ever since Keshu",
      "register": "grief",
      "provenance": "proposed"
     }
@@ -1094,7 +1095,7 @@
    "absorbed_vc": 48,
    "homeworld": "Keshu",
    "cohabitant": "attorak",
-   "lore": "Short-statured, blue-skinned, trunk-horned \u2014 and nearly blind, famous for the goggles that give them back the world. Magnificently agile masters of ambush who held their own against the Attorak through the War for Keshu. Culturally individualist: each Gil enlists wherever best serves their own goals. Some are born psionic.",
+   "lore": "Short-statured, blue-skinned, trunk-horned — and nearly blind, famous for the goggles that give them back the world. Magnificently agile masters of ambush who held their own against the Attorak through the War for Keshu. Culturally individualist: each Gil enlists wherever best serves their own goals. Some are born psionic.",
    "physiology_tags": [
     "small",
     "agile",
@@ -1131,15 +1132,15 @@
    },
    "pool_note": "Bastille lean: patient hunters get caught holding other people's property (proposed).",
    "market": {
-    "cost_mult": 1.0,
-    "salary_mult": 1.0
+    "cost_mult": 1,
+    "salary_mult": 1
    },
    "oa_lean": [],
    "oa_lean_note": "Scattered by individual motive (canon).",
    "resentment_rate": 0.14,
    "resentment_note": "Keshu recency, as with the Attorak (proposed).",
    "special": {
-    "vision": "Racially impaired vision \u2014 goggles are corrective equipment on every Gil, not kit (canon ruling). Optional damaged-goggles quirk lands with COMBAT.md gear rules.",
+    "vision": "Racially impaired vision — goggles are corrective equipment on every Gil, not kit (canon ruling). Optional damaged-goggles quirk lands with COMBAT.md gear rules.",
     "psionics": {
      "latent_rate": 0.05,
      "expressions": {
@@ -1152,7 +1153,7 @@
    },
    "naming": {
     "style": "latinate_nickname",
-    "note": "Long exuberant Latinate given (4\u20135 syllables, -us/-ius) shortened to a 3-letter nickname + short family-house name; houses repeat (ratified; canon anchors: Elioysus (Eli) Bentu, Uriosirus (Uri) Bentu, Onimirius (Oni) Fynn, Anamagdrius (Ana) Tahl).",
+    "note": "Long exuberant Latinate given (4–5 syllables, -us/-ius) shortened to a 3-letter nickname + short family-house name; houses repeat (ratified; canon anchors: Elioysus (Eli) Bentu, Uriosirus (Uri) Bentu, Onimirius (Oni) Fynn, Anamagdrius (Ana) Tahl).",
     "given_heads": [
      "Eli",
      "Uri",
@@ -1205,12 +1206,12 @@
      "Ostra",
      "Merl"
     ],
-    "house_note": "Finite house list on purpose \u2014 Bentu repeats in canon; family houses ratified with the v0.1 sheet."
+    "house_note": "Finite house list on purpose — Bentu repeats in canon; family houses ratified with the v0.1 sheet."
    },
    "fossil_lexicon": [
     {
      "word": "veya",
-     "gloss": "the world seen clearly; truth \u2014 what the goggles restore",
+     "gloss": "the world seen clearly; truth — what the goggles restore",
      "register": "earnest",
      "provenance": "proposed"
     },
@@ -1222,7 +1223,7 @@
     },
     {
      "word": "osk",
-     "gloss": "a favor owed \u2014 the true currency of Gil society",
+     "gloss": "a favor owed — the true currency of Gil society",
      "register": "transactional",
      "provenance": "proposed"
     }

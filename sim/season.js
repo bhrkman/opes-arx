@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'));
+    require('./trade.js'), require('./events.js'), require('./illicit.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDILLICIT);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, ILLICIT) {
   'use strict';
 
   const CONST = {
@@ -146,6 +146,20 @@
     TRYOUT_LOT: 6,            // [S] Natties who turn up to trial each Natural-Born month — more of them than
                               //     mercs, cheaper, and further from what they might become
     MERC_HUNGER: 0.45,        // [H] how much harder a corp short of bodies bids
+    SPONSORED_GATE: 1.12,     // [C] §QUIRKS what a marketable face is worth at the gate
+    /* §FOUNDING what a house founded at the desk opens with */
+    LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
+    LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
+    LEAN_TREASURY: 210000,    // [C] and the money to become something — measured against a
+                              //     year: the entry, the wages, and a market worth entering
+    LEAN_GRANT: 150000,       // [C] a house nobody has heard of is not underwritten like one
+                              //     that has been paying out for a century
+    LEAN_PIECES: 18,          // [C] guns and plate enough to put one drop on the ground badly
+    QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
+    MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
+    YOUNG_AT: 26,             // [C] who counts as young for that
+    MARKET_SWING: 0.25,       // [C] §MARKET the most a house's name moves what it is asked for
+    MARKET_FLEET_SHARE: 0.4,  // [C] how much the fleet's regard counts beside its own people's
     /* the two pools of a window */
     POOL_PREMIUM:  { potential: 1.08, salary: 1.25, age: -2 },   // [C] the Natural-Born premium month
     POOL_DISCOUNT: { potential: 0.92, salary: 0.75, age: 3 },    // [C] the Natural-Born discount month
@@ -276,12 +290,26 @@
   }
 
   /** Open the whole fleet once. After this nothing is ever regenerated. */
+  /** §FOUNDING one drop's worth of kit, badly: one of each line until the count is spent */
+  function leanArmoury(stock) {
+    const out = {}; let left = CONST.LEAN_PIECES;
+    for (const id of Object.keys(stock)) { if (left <= 0) break; out[id] = 1; left--; }
+    return out;
+  }
   function openFleet(rng, profiles, opts) {
     opts = opts || {};
     const corps = {};
     for (const profile of profiles) {
       const doc = ITEMS.doctrineForCorp(profile.id);
-      const size = opts.rosterSize || foundingRoster(profile);
+      /* §FOUNDING A HOUSE FOUNDED BY A MANAGER STARTS WITH NOTHING BUT MONEY AND A FEW OLD
+         HANDS. The eight are old houses and open like old houses — twenty-one under contract,
+         an armoury of thirty-nine lines, six hundred thousand between treasury and grant. A
+         manager handed all of that has nothing left to decide: the roster is built, the guns
+         are bought, and the first year is spent managing somebody else's choices. A founded
+         house opens with a skeleton crew whose paper is nearly up, guns enough to arm one
+         drop badly, and the money to make it into whatever it is going to be. */
+      const lean = profile.founding === 'lean';
+      const size = opts.rosterSize || (lean ? CONST.LEAN_ROSTER : foundingRoster(profile));
       const roster = [];
       /* generated ONCE, in squad-sized batches so the generator's own shape is preserved */
       let left = size;
@@ -291,11 +319,18 @@
         left -= n;
       }
       for (const f of roster) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+      /* the crew a founder inherits is at the end of its paper: nobody signed on for a house
+         that did not exist last year, and none of them are mercenaries — that market opens at
+         the year's end, which is the first real choice a founder makes */
+      if (lean) for (const f of roster) {
+        if (f.contract) { f.contract.seasons = 1; f.contract.kind = f.contract.kind === 'mercenary' ? 'nattie' : f.contract.kind; }
+      }
       corps[profile.id] = {
         id: profile.id, profile,
         roster: roster,
-        armoury: ITEMS.foundingArmoury(doc.id, size, {}).stock,
-        account: LED.open(profile),
+        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
+                      : ITEMS.foundingArmoury(doc.id, size, {}).stock,
+        account: LED.open(profile, lean ? { treasury: CONST.LEAN_TREASURY, grant: CONST.LEAN_GRANT } : {}),
         rep: REP.open(profile, profiles, { season: 1 }),
         doctrineId: doc.id,
         season: 0,
@@ -548,7 +583,10 @@
       units: team.map((e, i) => C.makeCombatant(e.f, { traitIndex: ROSTER.traitById, isCaptain: i === 0, day: 1 })) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
     const stun = !!(state.fleet && state.fleet.edicts && state.fleet.edicts.stun_grade);
-    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB, { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun });
+    /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
+       field is taken from whoever loses it */
+    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB,
+      { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun, toTheEnd: !stun });
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
     const land = (S, team) => S.units.forEach((u, i) => {
@@ -637,14 +675,17 @@
    * A lot is now opened at the START of its window and hangs on the season, so every month of
    * the run-up shows the same faces, and an offer is made against a NAMED fighter.
    */
-  function openLot(rng, kind, corpId, pool) {
+  /* a lot never offers a house a name it already has aboard: the book of names the draw keeps
+     starts with the roster's own */
+  function openLot(rng, kind, corpId, pool, corp) {
     const spec = {
       tryouts:  { n: CONST.TRYOUT_LOT,   mix: [['nattie', 1]] },
       mercs:    { n: CONST.MERC_LOT,     mix: [['mercenary', 1]] },
       bastille: { n: CONST.BASTILLE_LOT, mix: [['prisoner', 1]] }
     }[kind];
     /* a tryout lot belongs to ONE ship — corpId weights the races to that ship's people */
-    const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix }).bodies;
+    const taken = new Set((corp && corp.roster || []).map(f => f.name));
+    const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix, taken }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
     /* the premium and discount pools of the Natural-Born window: the same ship, a different
        year of it — dearer and greener, or cheaper and nearer the ceiling */
@@ -659,8 +700,16 @@
   }
 
   /** What one fighter is asking for a year, before anybody bids. */
-  function askingPrice(f) {
-    return Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
+  /** §MARKET WHAT A HOUSE IS ASKED FOR. A fighter signs with a house, not with a treasury:
+      one everybody wants to fight for is signed for less, and one nobody will work for has to
+      pay a premium. The house's standing with its own people is the discount, the fleet's
+      regard the rest of it. */
+  function askingPrice(f, corp) {
+    const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
+    if (!corp || !corp.rep) return flat;
+    const good = REP.standing(corp.rep, 'own') + REP.standing(corp.rep, 'fleet') * CONST.MARKET_FLEET_SHARE;
+    const mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
+    return Math.round(flat * mult);
   }
 
   /** What a corp can put into new contracts right now. */
@@ -683,7 +732,9 @@
     for (const f of lot) {
       /* --- who bids --- */
       const offers = [];
-      const ask = askingPrice(f);
+      /* an open market: the fighter's flat ask is the reserve, and each house's own name moves
+         what THAT house must offer */
+      const ask = askingPrice(f, null);
       for (const id of ids) {
         const c = corps[id];
         const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
@@ -775,7 +826,7 @@
         : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
       let took = 0;
       for (const f of want) {
-        if (signingBudget(corp) < askingPrice(f)) { tally.refused++; continue; }
+        if (signingBudget(corp) < askingPrice(f, corp)) { tally.refused++; continue; }
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         corp.roster.push(f);
@@ -1084,6 +1135,8 @@
   }
 
   /** Everything due this month, applied. Returns what landed, so an interface can say so. */
+  /* the state a pending outcome belongs to, so a scout's find has somewhere to be written */
+  let STATE_REF = null;
   function resolvePending(corp, month, tally, season, CORPS) {
     if (!corp._pending || !corp._pending.length) return [];
     const landed = [], keep = [];
@@ -1103,6 +1156,15 @@
           const them = CORPS[p.oaId];
           gatherIntel(corp, 'rival', p.oaId, p.levels || 0, absMonth,
                       (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+          /* §QUIET A SCOUT DEEP IN THEIR BOOKS may turn up what a house would rather nobody
+             knew. The row they were sent for lands either way — the dirt is a bonus, not a
+             substitute — and only a dossier read nearly to the bottom is deep enough. */
+          if (ILLICIT && STATE_REF) {
+            const full = dossierFullness(corp, p.oaId);
+            const rngD = P.mulberry32(P.seedFrom('dirt' + (season || 0) + month + corp.id + p.oaId));
+            const found = ILLICIT.maybeUncover(rngD, STATE_REF, corp.id, p.oaId, full);
+            if (found) landed.push({ kind: 'dirt', text: 'The Scouts Found Something Else', against: p.oaId });
+          }
         } else {
           gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
         }
@@ -1191,6 +1253,15 @@
 
   /* the preparedness a RIVAL sheet buys against that house: depth × freshness, averaged over
      the rows, scaled to the cap. A blank or wholly-stale sheet buys nothing. */
+  /** how full a rival's dossier is, 0 to 1, ignoring freshness: what a scout has read of
+      their books, which is what decides whether the scout is deep enough to find the dirt */
+  function dossierFullness(corp, oaId) {
+    const sheet = corp._intel && corp._intel.rivals && corp._intel.rivals[oaId];
+    if (!sheet) return 0;
+    let sum = 0;
+    for (const k of INTEL_RIVAL_ROWS) { const r = sheet.rows[k]; if (r && r.depth) sum += r.depth / CONST.INTEL_MAX_DEPTH; }
+    return sum / INTEL_RIVAL_ROWS.length;
+  }
   function rivalPreparedness(corp, oaId, season) {
     const sheet = corp._intel && corp._intel.rivals && corp._intel.rivals[oaId];
     if (!sheet) return 0;
@@ -1538,8 +1609,15 @@
         const isFam = id => CONST.MIND.indexOf(id) < 0 && (CONST.BODY || []).indexOf(id) < 0;
         /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
+        /* §QUIRKS A QUICK STUDY LEARNS QUICKER, and a mentor's presence lifts the young.
+           `development_rate_up` and `young_squadmate_development_up` were carried by fighters
+           and read by nothing. */
+        /* the reader is module-level now: the gate wants it too */
+        const mentors = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && hasHookF(f, 'young_squadmate_development_up')).length;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
+          const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
+                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1);
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -1561,6 +1639,7 @@
             if (!fam) gain += w(map.row[f.id] || 0, CONST.TRAIN_W_ROW);
             gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
             if (gain <= 0) continue;
+            gain *= learn;                       /* §QUIRKS a quick study, and the mentored young */
             store[k] = Math.min(cap, cur + gain);
             tally.trained++;
             drilled = true;
@@ -1599,6 +1678,13 @@
             const them = corps[key];
             gatherIntel(corp, 'rival', key, levels, absMonth,
                         (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+            /* §QUIET a scout deep in their books may turn up more than the row they were sent
+               for — the dirt is a bonus, and only a dossier read nearly to the bottom finds it */
+            if (ILLICIT && STATE_REF) {
+              const rngD = P.mulberry32(P.seedFrom('dirt' + (season || 0) + month + corp.id + key));
+              const found = ILLICIT.maybeUncover(rngD, STATE_REF, corp.id, key, dossierFullness(corp, key));
+              if (found && landedOut) landedOut.push({ kind: 'dirt', text: 'The Scouts Found Something Else', against: key });
+            }
           } else {
             gatherIntel(corp, 'planet', null, levels, absMonth, null);
           }
@@ -2208,6 +2294,7 @@
     };
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
+    if (ILLICIT) ILLICIT.clearYear(state);
     for (const id of ids) delete corps[id]._eightDead;
     return state;
   }
@@ -2230,7 +2317,7 @@
          the refresh is a different year of the same ship. */
       const byCorp = {};
       for (const id of state.ids)
-        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool);
+        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool, state.corps[id]);
       state.lots[kind] = byCorp;
       return;
     }
@@ -2252,11 +2339,11 @@
     let lot = kind && state.lots[kind];
     if (kind === 'tryouts' && lot) lot = lot[corpId];   /* your own ship's sheet */
     if (!lot) return [];
-    const mine = (state.bids[kind] || {})[corpId] || {};
+    const mine = (state.bids[kind] || {})[corpId] || {}, corp = state.corps[corpId];
     return lot.map(f => ({
       id: f.id, name: f.name, age: f.age, race: f.race,
       potential: f.potential, stats: f.stats, fame: f.fame || 0,
-      ask: askingPrice(f), yourBid: mine[f.id] || 0, kind: kind,
+      ask: askingPrice(f, corp), yourBid: mine[f.id] || 0, kind: kind,
       /* the paper's terms, so a display never has to guess them */
       contractKind: (f.contract && f.contract.kind) || kind,
       seasons: f.contract && f.contract.seasons_remaining,
@@ -2428,6 +2515,10 @@
    */
   function stepMonth(state, choices) {
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
+    STATE_REF = state;
+    /* §QUIRKS the events read the catalogue's hooks through an index handed in here — never
+       stored on the state, which is what a career is saved from */
+    if (EVENTS && EVENTS.useTraitIndex) EVENTS.useTraitIndex(ROSTER && ROSTER.traitById);
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
     const human = (state.opts || {}).human;
@@ -2531,6 +2622,48 @@
       });
       if (outcome) for (const id of state.ids) landed[id].push({ kind: 'fleet', text: outcome.withdrawn ? 'The Fleet Petitioned and the Edict Was Withdrawn' : outcome.title, fleet: outcome });
     }
+    /* §GATE THE FANS PAY, every month, to every house: what the crowd is worth is what the
+       crowd thinks of you, so a manager sees his popularity in the same recap as the choices
+       that moved it. */
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
+      const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
+      const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
+      /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
+         were carried by people and read by nothing at all: a house with a marketable hand
+         aboard takes more at the gate, and the crowd repeats what they say. */
+      const marketable = alive.some(f => hasHookF(f, 'sponsor_income_up') || hasHookF(f, 'rare_quote_fame_spike'));
+      const gate2 = marketable ? Math.round(gate * CONST.SPONSORED_GATE) : gate;
+      if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
+      c._lastGate = gate2;
+      landed[id].push({ kind: 'gate', text: 'Gate and Merchandise', amount: gate2 });
+      /* the books balanced and nobody went short: worth something to the people who work here */
+      if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
+    }
+    /* §QUIET the other houses have their own business to do, and it is the same window */
+    if (ILLICIT) {
+      ILLICIT.ensure(state);
+      for (const id of state.ids) {
+        if (id === human) continue;
+        const rngI = P.mulberry32(P.seedFrom('ill-ai' + state.season + m + id));
+        /* a house that holds something on another uses it, in its own character: the
+           treacherous blackmail, the traditional report, the loud leak */
+        const held = ILLICIT.evidenceOf(state, id).filter(e => !e.used);
+        if (held.length && rngI() < 0.5) {
+          const d2 = (state.corps[id].profile && state.corps[id].profile.dials) || {};
+          const how = (d2.treachery || 50) > 55 ? 'blackmail' : (d2.tradition || 50) > 60 ? 'report' : 'leak';
+          const out = ILLICIT.useEvidence(rngI, state, id, ILLICIT.evidenceOf(state, id).indexOf(held[0]), how);
+          if (out.ok) landed[id].push({ kind: 'evidence', text: out.line, against: held[0].against });
+        }
+        const want = ILLICIT.consider(rngI, state, id);
+        if (want) {
+          const res = ILLICIT.attempt(state, id, want.id, want.target, {});
+          if (res.ok && res.exposed) for (const other of state.ids)
+            landed[other].push({ kind: 'exposed', text: 'A House Was Caught at Something', corp: id });
+        }
+      }
+    }
     /* the other seven deal with each other too — see trade.js fleetTrades */
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
@@ -2545,6 +2678,14 @@
   function eventsFor(state, corpId) { return EVENTS ? EVENTS.draw(state, corpId) : []; }
   /** the shelf's price this year: the fleet's month may have moved it */
   function priceMult(state) { return (state && state.fleet && state.fleet.priceMult) || 1; }
+  /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
+      market, so it lives once rather than three times. */
+  function hasHookF(f, h) {
+    return (f.traits || []).some(t => {
+      const tr = ROSTER.traitById && ROSTER.traitById[t];
+      return tr && tr.effects && (tr.effects.hooks || []).indexOf(h) >= 0;
+    });
+  }
   function answerEvent(state, corpId, eventId, optionId) { return EVENTS ? EVENTS.answer(state, corpId, eventId, optionId) : null; }
 
   /**
@@ -2671,6 +2812,16 @@
     const persist = state._persist = {};
     for (const id of ids) {
       const c = corps[id];
+      /* §QUIET SABOTAGE BITES AT THE DROP: a bad batch signed off on another ship means the
+         armour and the guns that go down are not the ones that were paid for. Every house that
+         paid for it adds a share of the damage. */
+      if (ILLICIT) {
+        const bad = ILLICIT.sabotageOn(state, id);
+        if (bad) for (const f of (c._drop || [])) {
+          if (f.condition) f.condition.fatigue = Math.min(100, (f.condition.fatigue || 0) + 6 * bad);
+          f._sabotaged = bad;
+        }
+      }
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
@@ -2702,6 +2853,9 @@
          bug in the other direction. */
       openSeason: false, groundTruth: state.planet,
       edicts: (state.fleet && state.fleet.edicts) || {},
+      /* the edict's own share, from where the edict is written, rather than a number typed
+         again in the Divide where nobody would think to change it */
+      fastWallShare: EVENTS ? EVENTS.CONST.FAST_WALL : 0.80,
       /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
          whom before anyone had seen anything. */
       dropSectors: state.drop.sectors,
@@ -2853,6 +3007,19 @@
           return actual / funded;
         })(),
         lossRate: dropped.length ? dead.length / dropped.length : 0,
+        /* §5.3 what the crowd thought of the house this year: its own people, and the fleet's
+           watching from other ships */
+        popularity: c.rep ? REP.standing(c.rep, 'own') + REP.standing(c.rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE : 0,
+        /* §3.1c and what the year said about the house to the people who work in it */
+        _own: (function () {
+          if (!c.rep) return 0;
+          if (dropped.length && !dead.length) REP.act(c.rep, 'everyone_came_home', {});
+          else if (dropped.length && dead.length / dropped.length < 0.12) REP.act(c.rep, 'few_lost', {});
+          const stars = c.roster.filter(f => (f.fame || 0) >= 60 && f.status !== 'dead').length;
+          if (stars > (c._starsLast || 0)) REP.act(c.rep, 'a_star_rose', {});
+          c._starsLast = stars;
+          return 0;
+        })(),
         famousLosses: dead.filter(f => (f.fame || 0) >= 55).length,
         sitesClaimed: dc.sitesClaimed || 0,
         oreCredit: dc.oreCredit || 0,
@@ -3190,7 +3357,13 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick, openFleet, offseason, selectDrop, muster, grieve, renewRoster,
+  return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+           illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
+           evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
+           useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },
+           dossierFullness,
+           illicitAttempt: (state, id, act, target, opts) => ILLICIT ? ILLICIT.attempt(state, id, act, target, opts) : { ok: false },
+           illicitDone: (state, id) => ((state.illicit || {}).done || {})[id] || [], openFleet, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,

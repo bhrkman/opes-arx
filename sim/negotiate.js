@@ -24,7 +24,7 @@
        immense AFTER the deals, or the deals are not worth making. */
     POT_BASE: 1400000,                  // [H] credits, a whole planet
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
-    ASSAY_VALUE: 22000,                 // [H] §2.2 credits per assay credit banked
+    HAUL_VALUE: 22000,                 // [H] §2.2 what the fleet pays for a unit a house sells on
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary
@@ -42,6 +42,7 @@
 
     /* §6 the table */
     OFFERS_PER_WINDOW: 2,               // [S] how many a corp may send in one window
+    BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for a banner moves its price
     PACT_CREDIT_SCALE: 0.06,            // [C] §4.1 credits equal to this share of the pot buy the full sweetener
     PACT_DAYS: [2, 5],                  // [C] §4 how long a truce runs. NEGOTIATION.md quoted
                                         //     this by name and the code had it inlined — the
@@ -134,7 +135,7 @@
        a joiner's joiner gets a share of a share. Each side values a unit by its own WANT —
        a board short of food pays dearly for food and gives up minerals it does not need
        cheaply — and the gap between the two wants is the surplus that makes a deal. */
-    RESOURCE_WANT_BASE: 0.55,           // [C] what a full-hold, unasked category is worth, as a fraction of ASSAY_VALUE
+    RESOURCE_WANT_BASE: 0.55,           // [C] what a full-hold, unasked category is worth, as a fraction of HAUL_VALUE
     RESOURCE_WANT_SHORT: 1.10,          // [C] added at an empty hold, scaling with the shortage
     RESOURCE_WANT_ASKED: 0.80,          // [C] added when the board's card asks for the category
     RESOURCE_WANT_PRIORITY: 1.60,       // [C] instead of ASKED, when it is the card's priority
@@ -144,6 +145,8 @@
        share of the banner's expected losses this house accounts for — its force against
        everything else still standing — is worth paying to take off the board, whatever the
        house's own odds. This is a weak house's leverage, and it was priced at nothing. */
+    SPOILER_ASK_BASE: 0.35,             // [C] §4.2b the share of its nuisance value a joiner asks for
+    SPOILER_ASK_GREED: 0.30,            // [C] and how much more a greedy one asks
     SPOILER_WEIGHT: 0.60,               // [C] how much of the avoided losses the banner will pay for
     /* §4.3 A NAMED CLAIM: one revealed site, dug by the banner but banked to the joiner. Priced
        like a share of the haul — the site's units, discounted by the chance the banner digs it. */
@@ -401,10 +404,16 @@
 
   function priceModifier(from, to) {
     const d = relationship(from, to);
-    if (!d) return 1.00;
-    if (HOSTILE.indexOf(d) >= 0) return 1.00 + 0.30 * (1 + dial(from, 'tradition'));
-    if (WARM.indexOf(d) >= 0) return 1.00 - 0.18 * (1 + dial(from, 'tradition')) / 2;
-    return 1.00;
+    let v = 1.00;
+    if (d && HOSTILE.indexOf(d) >= 0) v = 1.00 + 0.30 * (1 + dial(from, 'tradition'));
+    else if (d && WARM.indexOf(d) >= 0) v = 1.00 - 0.18 * (1 + dial(from, 'tradition')) / 2;
+    /* §5.3b WHO YOU FIGHT UNDER IS SEEN. A house's own people have to live with the banner
+       their manager takes, so the fleet's regard for a banner is a real part of its price: a
+       house nobody minds fighting under is joined for less, and a house the fleet despises has
+       to pay for the shame of it. */
+    const fleetRep = to && to.rep && to.rep.base ? (to._fleetStanding != null ? to._fleetStanding : null) : null;
+    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, fleetRep / 100 * CONST.BANNER_SHAME));
+    return v;
   }
 
   function refusesOutright(from, to) {
@@ -505,9 +514,6 @@
     const expectedTake0 = Math.max(1, oddsJoined * pot * chainDilution(principal, ctx));
     if (stayValue * aggressionHold < expectedTake0 * CONST.MIN_ASK_FRAC) TELEMETRY.floorBinds++;
     TELEMETRY.valuations++;
-    const bareMin = Math.max(stayValue * aggressionHold, expectedTake0 * CONST.MIN_ASK_FRAC);
-    const joinerMin = bareMin * relPrice * (1 + CONST.GREED_HOLDOUT * jGreed) * seenJ.premium;
-
     const keep = chainDilution(principal, ctx);
     /* §4.2 the spoiler: what the banner would lose to this house staying in the fight */
     let spoiler = 0;
@@ -518,6 +524,14 @@
       const others = Math.max(1e-6, fAll - fP);
       spoiler = expectedLosses(principal, ctx.day, ctx.lastDay, oddsPrincipal, 0) * Math.min(1, fJ / others) * CONST.SPOILER_WEIGHT;
     }
+    /* §4.2b A JOINER KNOWS WHAT IT IS WORTH AS A NUISANCE. The spoiler was in the banner's
+       ceiling — what it would pay to stop bleeding — and in nothing the joiner asked for, so a
+       house that could see it was costing a banner a fortune sold itself on its own odds alone
+       and left the whole of that money on the table. A joiner asks for a share of it, more of a
+       share the harder it holds out. */
+    const nuisance = spoiler * (CONST.SPOILER_ASK_BASE + CONST.SPOILER_ASK_GREED * jGreed);
+    const bareMin = Math.max(stayValue * aggressionHold, expectedTake0 * CONST.MIN_ASK_FRAC) + nuisance;
+    const joinerMin = bareMin * relPrice * (1 + CONST.GREED_HOLDOUT * jGreed) * seenJ.premium;
     const gain = (oddsJoined - oddsPrincipal) * pot * keep + spoiler;
     const buyScale = Math.min(1, buyPenalty(0.30, Math.max(0, oddsPrincipal - oddsNow))
                                  / (CONST.BUY_BASE * 0.30 * 1.5));
@@ -533,7 +547,7 @@
       oddsNow, oddsPrincipal, oddsJoined,
       resources: resourceRates(joiner, principal, ctx),
       claims: claimRates(joiner, principal, ctx),
-      spoiler: Math.round(spoiler),
+      spoiler: Math.round(spoiler), nuisance: Math.round(nuisance),
       stayValue: Math.round(stayValue),
       stayLosses: Math.round(stayLosses), joinLosses: Math.round(joinLosses),
       joinerMin: Math.round(joinerMin), principalMax: Math.round(principalMax),
@@ -560,7 +574,7 @@
       if (d.kind === 'resource' && d.category === category)
         w += i === g.priority ? CONST.RESOURCE_WANT_PRIORITY : CONST.RESOURCE_WANT_ASKED;
     });
-    return w * CONST.ASSAY_VALUE;
+    return w * CONST.HAUL_VALUE;
   }
   /* what a banner can expect to have banked in a category by the end: what it holds now,
      plus the open ground of that category discounted by its odds */
@@ -571,7 +585,7 @@
       const pOdds = ctx.odds[ctx.principalOf(corp).id] || 0;
       let open = 0;
       for (const o of planet.objectives || []) {
-        if (o.type !== 'ore_assay' || o.looted || !o.resource) continue;
+        if (o.type !== 'resource_site' || o.looted || !o.resource) continue;
         if (ctx.categoryOf(o.resource) !== category) continue;
         open += Math.round(o.potency || 1);
       }
@@ -597,7 +611,7 @@
     if (!planet || !ctx.categoryOf) return out;
     const pOdds = ctx.odds[ctx.principalOf(principal).id] || 0;
     for (const o of planet.objectives || []) {
-      if (o.type !== 'ore_assay' || !o.revealed || o.looted || !o.resource) continue;
+      if (o.type !== 'resource_site' || !o.revealed || o.looted || !o.resource) continue;
       const cat = ctx.categoryOf(o.resource); if (!cat) continue;
       const units = Math.round(o.potency || 1) * pOdds * CONST.CLAIM_FORECAST;
       out[o.id] = { resource: o.resource, category: cat, units: Math.round(units * 10) / 10,
@@ -957,17 +971,21 @@
     const take = {};                    /* corp id → credits */
     for (const c of corps) take[c.id] = 0;
 
-    /* 2/3 — assay banks, outside the pot (N13). Unclaimed sites go to the winner. */
-    let assayPaid = 0;
+    /* §2.2 WHAT A HAUL IS. The units a house works out of the ground go to its OWN STORES —
+       that is the point of the Divide, and the board's demand is written in those units. What
+       is settled here is the second half of it: the fleet buys whatever a house does not need
+       at the going rate, and that is the money on this line. The stores are filled from
+       `banked` at the season's close, not here; this is the sale, not the haul. */
+    let haulPaid = 0;
     for (const c of corps) {
-      const v = (c.oreCredit || 0) * CONST.ASSAY_VALUE;
-      if (v > 0) { take[c.id] += v; assayPaid += v; lines.push({ corp: c.id, kind: 'assay', amount: v }); }
+      const v = (c.hauled || 0) * CONST.HAUL_VALUE;
+      if (v > 0) { take[c.id] += v; haulPaid += v; lines.push({ corp: c.id, kind: 'haul', amount: v, units: c.hauled || 0 }); }
     }
     if (winnerId != null) {
-      const unclaimed = (opts.unclaimedAssay || 0) * CONST.ASSAY_VALUE;
+      const unclaimed = (opts.unclaimedHaul || 0) * CONST.HAUL_VALUE;
       if (unclaimed > 0) {
         take[winnerId] += unclaimed;
-        lines.push({ corp: winnerId, kind: 'assay_unclaimed', amount: unclaimed });
+        lines.push({ corp: winnerId, kind: 'haul_unclaimed', amount: unclaimed });
       }
     }
 
@@ -1036,7 +1054,7 @@
     }
 
     return { lines: lines, take: take, pot: pot, winnerId: winnerId,
-             paidFromPot: pot, assayPaid: assayPaid, bonuses: bonuses };
+             paidFromPot: pot, haulPaid: haulPaid, bonuses: bonuses };
   }
 
   const api = {

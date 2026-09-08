@@ -164,11 +164,37 @@
    * @param race   race object from races.json (needs .naming)
    * @returns { name, parts, style }
    */
-  function generateName(rng, race) {
+  /* NO TWO PEOPLE WITH ONE NAME. An Olmac is "The" and one title out of a pool of forty, so
+     a fleet of two hundred was dealing the same title two and three times over and a manager
+     met two fighters called The Salt. Every name drawn is remembered, and a collision is
+     redrawn a few times before the name is given a mark of its own — a second Salt is The
+     Salt the Younger, a third The Salt the Third, which is how a crowd tells them apart. */
+  const ORDINAL = ['', ' the Younger', ' the Third', ' the Fourth', ' the Fifth', ' the Sixth'];
+  /**
+   * @param taken  optional Set of names already in use. A GLOBAL book of names was the first
+   *   cut of this and it broke the one rule the engine cannot break: generation stopped being
+   *   a function of its seed, because it depended on everything drawn before it. The set is
+   *   passed in by whoever is drawing, so the same seed and the same book always deal the
+   *   same names.
+   */
+  function generateName(rng, race, taken) {
     const n = race.naming;
     const fn = styles[n.style];
     if (!fn) throw new Error("namegen: unknown style '" + n.style + "' for race " + race.id);
-    const out = fn(rng, n);
+    let out = fn(rng, n);
+    if (!taken) return (out.style = n.style, out);
+    /* a pair's halves are names people are called by, so a clash on either half is a clash */
+    const clash = o => taken.has(o.name) ||
+      (o.parts && o.parts.mon && (taken.has(o.parts.mon) || taken.has(o.parts.wa)));
+    for (let t = 0; t < 6 && clash(out); t++) out = fn(rng, n);
+    if (taken.has(out.name)) {
+      const base = out.name;
+      for (let k = 1; k < ORDINAL.length; k++) {
+        const tryName = base + ORDINAL[k];
+        if (!taken.has(tryName)) { out.name = tryName; break; }
+      }
+    }
+    taken.add(out.name);
     out.style = n.style;
     return out;
   }
@@ -522,7 +548,7 @@
                                              stats.aim + (leans[fam.id] || 0) * 10));
 
     // Name (Et- honorific for etu clergy/zealots — ratified).
-    let named = opts.named || NG.generateName(rng, race);
+    let named = opts.named || NG.generateName(rng, race, opts.taken);
     let displayName = named.name;
     if (race.id === "etu" && (traitIds.includes("et_y_bellum_zealot") || traitIds.includes("war_priest"))) {
       displayName = NG.applyEtHonorific(displayName, race.naming);
@@ -627,7 +653,7 @@
     const race = this.pickRace(rng, pool, opts.corpId, opts.race);
 
     if (race.id !== "mon_wa") {
-      const b = this.buildFighter(rng, { pool, race, batchTally: opts.batchTally });
+      const b = this.buildFighter(rng, { pool, race, batchTally: opts.batchTally, taken: opts.taken });
       return {
         kind: "single", race: race.id, pool,
         fighters: [b.fighter],
@@ -637,7 +663,10 @@
     }
 
     // Mon-Wa pair: one being, two bodies.
-    const named = NG.generateName(rng, race);
+    const named = NG.generateName(rng, race, opts.taken);
+    /* a pair's halves are names in their own right and go in the book too, or two beings
+       across a fleet come out with the same half */
+    if (opts.taken) { opts.taken.add(named.parts.mon); opts.taken.add(named.parts.wa); }
     const suffix = idSuffix(rng);
     const sharedTraits = this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
     const sharedAge = this.rollAge(rng, race, pool);
@@ -1002,7 +1031,11 @@
    * @param opts   { corpId, poolMix, batchTally }
    * @returns { bodies, captainId, slots, recruits }
    */
+  /* every draw keeps its own book of names, and a caller may hand in the names already on a
+     roster so a new intake never doubles somebody already aboard */
   function generateSquad(rng, slots, opts) {
+    opts = opts || {};
+    if (!opts.taken) opts.taken = new Set(opts.takenNames || []);
     opts = opts || {};
     if (!gen) throw new Error("roster: call initRoster(data) first");
     const batchTally = opts.batchTally || {};
@@ -1011,7 +1044,7 @@
 
     for (let i = 0; i < slots; i++) {
       const pool = P.weightedPick(rng, mix);
-      const rec = gen.generateRecruit(rng, { pool, corpId: opts.corpId, batchTally });
+      const rec = gen.generateRecruit(rng, { pool, corpId: opts.corpId, batchTally, taken: opts.taken });
       recruits.push(rec);
       for (const f of rec.fighters) bodies.push(f);
       for (const id of rec.fighters[0].traits) batchTally[id] = (batchTally[id] || 0) + 1;

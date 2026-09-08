@@ -14,7 +14,7 @@ const D = __dirname + '/';
 
 /* ORDER MATTERS — each module captures its dependencies at load time. The season needs the
    sponsor and pre-Divide modules too; the desk's list is the precedent. */
-const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js',
+const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js', 'illicit.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
                  'divide.js', 'trade.js', 'season.js'];
 /* planets.json RIDES TOO. It did not, and the map module only reads it from disk under node —
@@ -87,7 +87,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       'data-slot', 'openPicker', 'leaderOf', 'renameSquad',
                       /* the shell: menu, founding, the blank-slate house, and saves that
                          continue identically through the engine's own career serializer */
-                      'saveCareer(', 'loadCareer(', 'blankSlate', 'data-oa', 'opesarx_saves'];
+                      'saveCareer(', 'loadCareer(', 'blankSlate', 'fleetchip', 'opesarx_saves'];
 const missing = MUST_CONTAIN.filter(t => out.indexOf(t) < 0);
 if (missing.length) {
   console.error('the built page is not the page this template describes.\n  missing: ' + missing.join(', '));
