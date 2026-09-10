@@ -181,6 +181,30 @@ setTimeout(() => {
     check(!!window.CDSEASON && !!window.CDDIVIDE && !!window.CDTACTICAL,
           'all engine modules are live in the page');
     check(/Year 1 · Month 1/.test(text('#clock')), 'the clock opens the year: ' + text('#clock'));
+    /* §QUIRKS the trait index answers BEFORE a month has been stepped. It was installed inside
+       stepMonth, so every hook read on the Review screen of a fresh career silently said no —
+       not wrongly, quietly, which is the worst way for a lookup to fail. */
+    {
+      const S0 = window.CDSEASON, G0 = window.__G;
+      const carriers = G0.corps[G0.me].roster.filter(f => (f.traits || []).length);
+      const answered = carriers.some(f => (f.traits || []).some(t => {
+        const tr = window.CDROSTER.traitById[t];
+        return tr && ((tr.effects || {}).hooks || []).some(h => S0.EVENTS.fighterHas(G0.state, f, h));
+      }));
+      check(answered, 'a hand\'s hooks answer before any month has been stepped');
+      /* §LOYALTY a hand who likes the house asks less to stay than one who does not. The
+         contract is forced to expire so the check cannot pass by simply not running — a
+         silently skipped assertion is the same as no assertion. */
+      const r0 = G0.corps[G0.me].roster[0];
+      const keepL = r0.loyalty, keepC = r0.contract;
+      r0.contract = { salary: 1000, seasons_remaining: 1, kind: 'natural' };
+      r0.loyalty = 90; const low = S0.renewalsFor(G0.state, G0.me).find(x => x.id === r0.id);
+      r0.loyalty = 10; const high = S0.renewalsFor(G0.state, G0.me).find(x => x.id === r0.id);
+      check(!!low && !!high && low.asks < high.asks,
+            'loyalty moves a re-signing ask (' + (low && low.asks) + ' liked vs ' +
+            (high && high.asks) + ' not)');
+      r0.loyalty = keepL; r0.contract = keepC;
+    }
     /* §BRIEF the first month of a career says what a manager walked into */
     check(/Already in Play/.test(text('#brief')),
           'the opening month says the fleet was already running, not that a table is shut');

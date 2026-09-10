@@ -1,18 +1,42 @@
-A SHELF THAT FOLDS, AND QUIET BUSINESS THAT COSTS SOMETHING VISIBLE
+THE LANDING REDIRECT, AND THE QUIRKS
 
-- THE MARKET'S SHELF FOLDS AND RUNS IN TWO COLUMNS. Every rack stood open, one row to a line
-  across the whole width. Racks are SHUT until asked for (the Desk's own fold); #mktledger is
-  column-count:2 with section heads spanning both. The slot picker wears the rail's clothes —
-  it was five grey `tiny` buttons doing the tabs' job.
-  (The delegated click selector had to learn data-msec, or the heads were inert.)
-- QUIET BUSINESS: the cost was REAL AND INVISIBLE, which is the same as absent. An act bills
-  the treasury, costs standing at once, and raises the risk of the next (RISK_PER_ACT across
-  the year) — but nothing said so, so the same official could be bribed four times in an
-  afternoon and it read as free and pointless at once. ONE THING ARRANGED IS ARRANGED: an act
-  cannot be repeated in the month it was taken (offered() marks `spent`, attempt() refuses),
-  and the button says so. The risk it added still stands for the year.
-- THE YEAR'S LIST MOVED TO THE MONTH'S RECAP. "Quiet Word · M1 · Came Apart" was a data dump
-  under the things a manager might arrange NEXT, reporting each outcome the instant it landed.
-  It is read when the month is read, in a sentence.
+FIRST, THE LANDING PAGE. index.html and viewers/index.html are redirects to the game — the
+old card page is gone from both. Two additions this time: no-cache meta headers, because a
+redirect is the most aggressively cached thing on a site and a browser that saw the old
+landing page will go on showing it; and a .nojekyll file at the root, so GitHub Pages serves
+the tree as-is rather than running a Jekyll build over it.
 
-regress 114/114 · audit_code 0 · docs clean · ui audit clean · drive green
+IF THE LIVE SITE STILL SHOWS THE OLD PAGE after this lands, the file did not reach the
+remote: `git show HEAD:index.html | head -5` will say which page is committed.
+
+THE QUIRKS, AND A LOOKUP THAT ANSWERED NO IN SILENCE
+
+- THE COUNT WAS WRONG, AND IT WAS MY SCAN. The sweep for inert hooks listed `rep.js`; the file
+  is `reputation.js`. ELEVEN hooks reported dead were already live. A scan with a hardcoded
+  file list is a scan that lies quietly. sim/audit_hooks.cjs (new gate) reads the directory.
+- THE FAULT UNDER ALL OF IT: fighterHas resolved its trait index from a variable installed
+  inside stepMonth, so every hook read BEFORE a month was stepped answered FALSE — quietly,
+  with no error. It was suppressing poach_resistant, loyalty_cap_reduced and remembers_grudges
+  on any Review-screen read in a fresh career. THE FIRST FIX REACHED FOR `require`, which does
+  not exist in the page, so the simulator was cured and the browser went on answering no; the
+  fallback now takes the roster's index, which both houses have.
+
+BUILT, all on machinery that already existed:
+- LOYALTY DECIDES SOMETHING: a hand who likes the house asks less to stay (824 vs 1,176).
+  loyalty_cap_reduced is a consequence — he never reaches the discount.
+- THE GRUDGE IS ONE FIELD: f._grudge, set at the poach, read by the merc market (refuses that
+  house), the Divide (composure against them), and carried onto the ground.
+- SIX STORY HOOKS ARE ONE MULTIPLIER on REP.act; the loudest name on a casualty list carries
+  the notice.
+- LUCK is one more term in a draw already weighted by who a house carries.
+- PROMOTION lands on people at the succession that already happens when a captain falls.
+- A house that pays its dead well is seen to; a war-priest is called one.
+- SIX HOOKS LABELLED `effects.decoration` IN THE DATA with the reason each wants a FEATURE,
+  not wiring: superstition, an odds board, a comms layer, a manager to read, a harvest
+  economy, a discovery path.
+
+Harness: hooks answer before any month is stepped; loyalty moves an ask (with the contract
+forced to expire, so the check cannot pass by not running).
+
+regress 114/114 · fight shape ok (11.4 turns, 9/10 by break) · kit measured · audit_hooks
+clean · audit_code 0 · audit_marks 0 · docs clean · ui audit clean · drive green

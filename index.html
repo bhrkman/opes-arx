@@ -8,6 +8,11 @@
      both a meta refresh and a script so it works with scripting off, and the link beneath is
      what a visitor sees if neither fires. -->
 <meta http-equiv="refresh" content="0; url=viewers/the_corp.html">
+<!-- A REDIRECT IS THE MOST CACHED THING ON A SITE. A browser that saw the old landing page will
+     happily go on showing it, and GitHub Pages puts its own ten minutes on top; without this a
+     visitor can be told to come back later and still be sent to a page that no longer exists. -->
+<meta http-equiv="cache-control" content="no-cache, must-revalidate">
+<meta http-equiv="expires" content="0">
 <link rel="canonical" href="viewers/the_corp.html">
 <style>
   html,body{height:100%;margin:0;background:#0a0e16;color:#5f7a9c;

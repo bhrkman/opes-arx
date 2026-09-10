@@ -211,6 +211,14 @@
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
     DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
+    /* §STORY what a name does to the loudness of the notice its death makes */
+    /* §RANK what a captaincy changing hands is worth to a man who wanted it */
+    RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
+    RANK_SNUB: 6,                       // [C] onto the stress of one passed over
+    STORY_MOURNED: 1.50,                // [C] a company family's dead
+    STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
+    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the house that
+                                        //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most a house may field, as ruled
     SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
@@ -1205,6 +1213,19 @@
       return b.stats.tactics - a.stats.tactics;
     })[0];
     if (heir && sq.captainId !== heir.id) {
+      /* §RANK SOMEBODY WANTED THAT JOB. Rank Climber's two hooks asked for promotion to be an
+         event a fighter notices, and the first design for it was an ambition system. It is not
+         needed: a captaincy already CHANGES HANDS here, on the day, when the last one falls.
+         The man who takes it and is hungry for it steadies; the men passed over who wanted it
+         take it badly. Nothing new happens — the same moment simply lands on people. */
+      for (const b of avail) {
+        const hk = C.hooksOf(b, ROSTER.traitById);
+        if (b.id === heir.id) {
+          if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
+        } else if (hk.has('captaincy_snub_morale_risk')) {
+          b.condition.stress = (b.condition.stress || 0) + CONST.RANK_SNUB;
+        }
+      }
       sq.captainId = heir.id;
       addStress(sq, CONST.STRESS.succession);
       heir._stress = squadStress(sq);
@@ -3520,6 +3541,21 @@
               return Math.atan2(my - lead.hy, mx - lead.hx);
             });
 
+            /* §GRUDGE A MAN FIGHTING THE HOUSE HE REMEMBERS. Grudge Holder's three hooks wanted
+               a fighter's memory of every house in the fleet, and the first design for it was a
+               relationship matrix — far more machinery than a trait that is mostly texture is
+               worth. A man remembers ONE house: the last that tried to buy him out from under
+               his own. It is set where that happens (events.js, the poach) and read in exactly
+               two places — here, and at the market, which will not offer him to them. */
+            for (const side of built) {
+              const foes = built.filter(o => o !== side).map(o => o.corpId);
+              for (const u of side.units) {
+                if (!u._grudge || foes.indexOf(u._grudge) < 0) continue;
+                if (!u.hooks || !u.hooks.has('morale_up_vs_grudge_target')) continue;
+                u.comp = Math.min(100, u.comp + CONST.GRUDGE_COMP);
+                stats.audit.traitHooks++;
+              }
+            }
             const res = TACTICAL.resolve(rng, built, ctx);
             /* THE LENGTH OF THE FIGHT, IN THE WORLD'S OWN CLOCK. `telemetry.turn` is how many
                turns the grid actually took to decide it. One block minimum: even a brush where
@@ -4258,13 +4294,22 @@
        swings an audience at triple weight, and until now fame had no reader but ransom. */
     for (const c of corps) {
       if (!c.rep) continue;
-      let ourDead = 0, ourFamous = 0;
+      let ourDead = 0, ourFamous = 0, loudest = 1;
       for (const b of c.allBodies) {
         if (b.status !== 'dead') continue;
         ourDead++;
         if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) ourFamous++;
+        /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
+           magnet is who the fleet decides it was about — the loudest name among the fallen
+           carries the whole notice, which is how a fleet reads a casualty list. Read through
+           `C.hooksOf`, the reader this module already uses, rather than reaching into events. */
+        const hk = C.hooksOf(b, ROSTER.traitById);
+        let m = 1;
+        if (hk.has('death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
+        if (hk.has('blame_magnet')) m *= CONST.STORY_BLAME;
+        if (m > loudest) loudest = m;
       }
-      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous });
+      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous, storyMult: loudest });
       /* their dead, by your hand — attributed per victim's corp so the right fanbase reacts */
       const bag = c._killsBy || {};
       for (const victimCorp in bag) {

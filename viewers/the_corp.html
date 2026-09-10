@@ -3590,7 +3590,10 @@
     "hooks": [
      "luck_event_bias_positive",
      "superstition_magnet"
-    ]
+    ],
+    "decoration": {
+     "superstition_magnet": "no squad-belief state exists; the luck bias carries this trait"
+    }
    }
   },
   {
@@ -3740,7 +3743,10 @@
    "effects": {
     "hooks": [
      "performance_tracks_odds_board"
-    ]
+    ],
+    "decoration": {
+     "performance_tracks_odds_board": "no odds board a fighter could read"
+    }
    }
   },
   {
@@ -4199,7 +4205,10 @@
     "hooks": [
      "comms_decoy_utility",
      "broadcast_color"
-    ]
+    ],
+    "decoration": {
+     "comms_decoy_utility": "no comms layer in the fight"
+    }
    },
    "notes": "From the canon naming lore — vocal mimics produced in youth."
   },
@@ -4359,7 +4368,10 @@
     "hooks": [
      "negotiation_bluff_detection",
      "manager_facing_utility"
-    ]
+    ],
+    "decoration": {
+     "manager_facing_utility": "a reading of a manager, with nothing for it to read"
+    }
    },
    "conflicts": [
     "psion_battle_sense",
@@ -4385,7 +4397,10 @@
      "delicacy_harvest_friction",
      "cradle_camp_event_seed",
      "ankoth_sympathy_chemistry"
-    ]
+    ],
+    "decoration": {
+     "delicacy_harvest_friction": "no delicacy or harvest economy exists to have friction with"
+    }
    },
    "notes": "Canon thread (DESIGN.md §2.18, §3.3). Never rolls on humans — the Spent Cradles are not theirs to mourn. Rates per races.json resentment_rate."
   },
@@ -4405,7 +4420,10 @@
      "abolitionist_event_seed",
      "scandal_seed_step9",
      "hidden_leaning"
-    ]
+    ],
+    "decoration": {
+     "hidden_leaning": "its events fire; concealing a conviction wants a discovery path"
+    }
    },
    "notes": "Quiet undercurrent per §3.5 — any race, humans included; far likelier alongside cradleborn_resentment. Rates in recruitment.json. Scandal system lands at Step 9."
   },
@@ -4433,8 +4451,7 @@
    "notes": "Ratified spice from RACES.md — friction with the other Keshu race, or the long road to an unlikely friendship. Rates in recruitment.json."
   }
  ]
-}
-,
+},
   "oa_profiles": {
   "_meta": {
     "file": "oa_profiles.json",
@@ -11451,10 +11468,18 @@
     ctx = ctx || {};
     const spec = ACTS[type];
     if (!spec) throw new Error('reputation: unknown act ' + type);
+    /* §STORY WHO IT HAPPENED TO CHANGES HOW LOUDLY IT LANDS. Six trait hooks — a soundbite
+       machine, a villain edit, a blame magnet, a company family's dead — all wanted the same
+       thing, and the first design for it was a press system with named subjects. There is no
+       need: an act already carries a subject through `ctx`, and the whole swing is computed in
+       one place. The subject's own traits scale it, and that is the whole mechanism.
+       `ctx.storyMult` is set by whoever raises the act, from the hooks that hand carries. */
     const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
+    const story = ctx.storyMult || 1;
     const season = ctx.season != null ? ctx.season : rep.season;
     const moved = [];
     const push = (audience, targetId, value) => {
+      value = value * story;
       if (!value) return;
       const headline = Math.abs(value) >= CONST.HEADLINE_AT;
       rep.memory.push({
@@ -12157,6 +12182,13 @@
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
     SEEDED: 2.6,                 // [C] §QUIRKS what a house with the people for it draws instead
     UNSEEDED: 0.7,               // [C] and what a house with nobody who could cause it draws
+    /* §STORY what a hand does to the loudness of a story told about him */
+    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts a house's draw
+    LUCK_CAP: 1.8,               // [C] and the furthest a roster of them can tilt it
+    STORY_LOUD: 1.35,            // [C] a soundbite machine is quoted
+    STORY_VILLAIN: 1.40,         // [C] a villain edit is cut against him
+    STORY_BLAME: 1.30,           // [C] a blame magnet wears it
+    STORY_MOURNED: 1.50,         // [C] a company family's dead are mourned louder
     POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
@@ -12306,6 +12338,12 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._poached = true;
+        /* §GRUDGE ONE FIELD, NOT A LEDGER. Grudge Holder's three hooks wanted a fighter's memory
+           of other houses, and the first design for it was a relationship matrix — far more
+           machinery than a trait that is mostly texture is worth. A man remembers ONE house: the
+           last one that did something to him. It is set where something memorable happens and
+           read in two places, and that is the whole of it. */
+        if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
           if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + ' Went for ' + fmtCr(price); };
@@ -12422,21 +12460,82 @@
   function seedWeight(state, corp, specId) {
     const want = SEED_FOR[specId]; if (!want) return 1;
     const have = corpSeeds(state, corp);
-    return want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
+    let w = want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
+    /* §LUCK A HOUSE WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
+       system and does not need one — the draw is already weighted by who a house is carrying,
+       and this is one more term in it. A favoured hand tilts the good events toward the house
+       and the sour ones away; a bad omen does the reverse. No dice anywhere else change. */
+    const luck = luckOf(state, corp);
+    if (luck !== 1) w *= GOOD_EVENTS.has(specId) ? luck : 1 / luck;
+    return w;
+  }
+  /* the events a house would rather draw than not */
+  const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
+  const LUCK_CACHE = new WeakMap();
+  function luckOf(state, corp) {
+    const c = LUCK_CACHE.get(corp);
+    if (c && c.n === corp.roster.length) return c.v;
+    let v = 1;
+    for (const f of corp.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      if (fighterHas(state, f, 'luck_event_bias_positive')) v *= CONST.LUCKY;
+      if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
+    }
+    v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
+    LUCK_CACHE.set(corp, { n: corp.roster.length, v });
+    return v;
   }
   let TRAIT_INDEX = null;
   /** the catalogue's index, handed in once by the season rather than saved with the career */
   function useTraitIndex(idx) { TRAIT_INDEX = idx || null; }
-  function traitIndexOf(state) { return TRAIT_INDEX || (state && state.traitIndex) || null; }
+  /* §QUIRKS THE INDEX MUST BE THERE WHENEVER SOMEBODY ASKS. It was installed inside
+     `stepMonth`, so every hook read BEFORE a month had been stepped — a re-signing ask on the
+     Review screen, a mercenary weighing an offer in a fresh career — silently answered FALSE.
+     Not wrongly: quietly, with no error, which is the worst way for a lookup to fail. If
+     nobody has handed one in, the catalogue is right there to build one from. */
+  let OWN_INDEX = null;
+  function traitIndexOf(state) {
+    if (TRAIT_INDEX) return TRAIT_INDEX;
+    if (state && state.traitIndex) return state.traitIndex;
+    if (OWN_INDEX) return OWN_INDEX;
+    /* THE FALLBACK HAS TO WORK IN BOTH HOUSES. The first cut reached for `require`, which does
+       not exist in the page — so the fix worked in the simulator and the browser went on
+       quietly answering no, which is the same fault one floor down. The roster module keeps
+       the index the whole game uses; in the page it is a global, in node it is an export. */
+    const root = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : {});
+    const R = root.CDROSTER || (typeof require === 'function' ? (function () {
+      try { return require('./roster.js'); } catch (e) { return null; }
+    })() : null);
+    if (R && R.traitById) { OWN_INDEX = R.traitById; return OWN_INDEX; }
+    return null;
+  }
   /* §NAMES WHAT TO CALL SOMEBODY IN A SENTENCE. Taking the first word of a name gives "Punish
      The" for an Olmac, who is "The Tide" — the article is not a forename. A name that begins
      with an article is used whole; everything else keeps its first word, which is how a
      shipmate would say it. */
+  /* §NAMES A WAR-PRIEST IS CALLED ONE. `honorific_et_prefix` is not a system and never was:
+     it is what the fleet puts in front of a zealot's name when it speaks of him. */
+  function honorific(state, f) {
+    return (state && fighterHas(state, f, 'honorific_et_prefix')) ? 'Et-' : '';
+  }
   function shortName(f) {
     const n = String(f && f.name || '');
     if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
     if (/-/.test(n) && n.indexOf(' ') < 0) return n;     /* a Mon-Wa half is one word with a hyphen */
     return n.split(' ')[0];
+  }
+  /* §STORY WHAT THIS HAND DOES TO A STORY. One reader, consulted wherever an act is raised
+     about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
+     one worse, a blame magnet wears whatever went wrong, and a company family's dead are
+     mourned louder. These were six hooks wanting a press office; they are one multiplier. */
+  function storyMult(state, f, good) {
+    if (!f) return 1;
+    let m = 1;
+    if (fighterHas(state, f, 'media_statement_impact_amplified')) m *= CONST.STORY_LOUD;
+    if (!good && fighterHas(state, f, 'sportsmanship_penalty_amplified')) m *= CONST.STORY_VILLAIN;
+    if (!good && fighterHas(state, f, 'blame_magnet')) m *= CONST.STORY_BLAME;
+    if (!good && fighterHas(state, f, 'death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
+    return m;
   }
   function fighterHas(state, f, hook) {
     const idx = traitIndexOf(state);
@@ -12595,7 +12694,10 @@
   /* the roles' fighters do not field: the Divide's drop reads this */
   function offTheLine(corp) { const r = corp._roles || {}; return [r.spy, r.drill].filter(Boolean); }
 
-  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet, fleetEventFor, useTraitIndex };
+  /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
+     ask it too now, rather than each growing a convention of its own */
+  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet,
+                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific };
   return api;
 });
 
@@ -13305,6 +13407,8 @@ function makeCombatant(fighter, opts) {
        stopped cells being spent at all and quietly turned every energy weapon into a ballistic
        one firing ammunition it does not carry. The family is named by its cell. */
     cellFed: !!(kit && kit.charge > 0),
+    /* §GRUDGE the one house this man remembers, carried onto the ground with him */
+    _grudge: fighter._grudge || null,
     heat: 0, heatCap: (kit && kit.heatCap) || 0, heatPerShot: (kit && kit.heat) || 0,
     _heatShed: CONST.HEAT_SHED, _firedThisExchange: false,
     /* §6 — charge is the fighter's, not the engagement's: it persists across every fight
@@ -18565,6 +18669,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
     DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
+    /* §STORY what a name does to the loudness of the notice its death makes */
+    /* §RANK what a captaincy changing hands is worth to a man who wanted it */
+    RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
+    RANK_SNUB: 6,                       // [C] onto the stress of one passed over
+    STORY_MOURNED: 1.50,                // [C] a company family's dead
+    STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
+    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the house that
+                                        //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most a house may field, as ruled
     SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
@@ -19559,6 +19671,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return b.stats.tactics - a.stats.tactics;
     })[0];
     if (heir && sq.captainId !== heir.id) {
+      /* §RANK SOMEBODY WANTED THAT JOB. Rank Climber's two hooks asked for promotion to be an
+         event a fighter notices, and the first design for it was an ambition system. It is not
+         needed: a captaincy already CHANGES HANDS here, on the day, when the last one falls.
+         The man who takes it and is hungry for it steadies; the men passed over who wanted it
+         take it badly. Nothing new happens — the same moment simply lands on people. */
+      for (const b of avail) {
+        const hk = C.hooksOf(b, ROSTER.traitById);
+        if (b.id === heir.id) {
+          if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
+        } else if (hk.has('captaincy_snub_morale_risk')) {
+          b.condition.stress = (b.condition.stress || 0) + CONST.RANK_SNUB;
+        }
+      }
       sq.captainId = heir.id;
       addStress(sq, CONST.STRESS.succession);
       heir._stress = squadStress(sq);
@@ -21874,6 +21999,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               return Math.atan2(my - lead.hy, mx - lead.hx);
             });
 
+            /* §GRUDGE A MAN FIGHTING THE HOUSE HE REMEMBERS. Grudge Holder's three hooks wanted
+               a fighter's memory of every house in the fleet, and the first design for it was a
+               relationship matrix — far more machinery than a trait that is mostly texture is
+               worth. A man remembers ONE house: the last that tried to buy him out from under
+               his own. It is set where that happens (events.js, the poach) and read in exactly
+               two places — here, and at the market, which will not offer him to them. */
+            for (const side of built) {
+              const foes = built.filter(o => o !== side).map(o => o.corpId);
+              for (const u of side.units) {
+                if (!u._grudge || foes.indexOf(u._grudge) < 0) continue;
+                if (!u.hooks || !u.hooks.has('morale_up_vs_grudge_target')) continue;
+                u.comp = Math.min(100, u.comp + CONST.GRUDGE_COMP);
+                stats.audit.traitHooks++;
+              }
+            }
             const res = TACTICAL.resolve(rng, built, ctx);
             /* THE LENGTH OF THE FIGHT, IN THE WORLD'S OWN CLOCK. `telemetry.turn` is how many
                turns the grid actually took to decide it. One block minimum: even a brush where
@@ -22612,13 +22752,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        swings an audience at triple weight, and until now fame had no reader but ransom. */
     for (const c of corps) {
       if (!c.rep) continue;
-      let ourDead = 0, ourFamous = 0;
+      let ourDead = 0, ourFamous = 0, loudest = 1;
       for (const b of c.allBodies) {
         if (b.status !== 'dead') continue;
         ourDead++;
         if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) ourFamous++;
+        /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
+           magnet is who the fleet decides it was about — the loudest name among the fallen
+           carries the whole notice, which is how a fleet reads a casualty list. Read through
+           `C.hooksOf`, the reader this module already uses, rather than reaching into events. */
+        const hk = C.hooksOf(b, ROSTER.traitById);
+        let m = 1;
+        if (hk.has('death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
+        if (hk.has('blame_magnet')) m *= CONST.STORY_BLAME;
+        if (m > loudest) loudest = m;
       }
-      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous });
+      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous, storyMult: loudest });
       /* their dead, by your hand — attributed per victim's corp so the right fanbase reacts */
       const bag = c._killsBy || {};
       for (const victimCorp in bag) {
@@ -23317,6 +23466,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     COURT_APPETITE_PRIDE: 0.30,  // [C] a showy one would rather not be seen asking
     COURT_APPETITE_HELD: 0.22,   // [C] off the appetite per backer already signed
     COURT_COMFORTABLE: 300000,   // [C] the purse above which nobody is hungry
+    /* §LOYALTY what a hand's regard for the house is worth at the table */
+    RENEWAL_LOYALTY_PULL: 0.22,  // [C] how far loyalty moves a re-signing ask, either way
+    LOYALTY_CAP_LOW: 35,         // [C] the ceiling on a hand who cannot be fully loyal
     QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
     MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
     YOUNG_AT: 26,             // [C] who counts as young for that
@@ -23837,7 +23989,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /** What one fighter thinks of one offer. Higher is better; below zero they would rather not. */
-  function weighOffer(f, corp, offer, best) {
+  function weighOffer(f, corp, offer, best, state) {
+    /* §GRUDGE A MAN WILL NOT SIGN FOR THE HOUSE HE REMEMBERS. `refuses_grudged_corps` is the
+       third of Grudge Holder's hooks and the only one a manager meets across a table: whatever
+       is on offer, this name comes off that house's sheet. No ledger — one remembered house,
+       set when they tried to buy him. */
+    if (f._grudge && corp.id === f._grudge && state && EVENTS.fighterHas(state, f, 'refuses_grudged_corps'))
+      return -1;
     const money = best > 0 ? offer / best : 1;                       /* 0..1 against the top bid */
     const safety = survivalRecord(corp);                             /* 0..1, share who came home */
     /* THE CROWD. This read `rep.base.public`, and there is no `public` audience — the four are
@@ -23915,7 +24073,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * `{ fighterId: amount }` — a HUMAN'S named offers. Any corp without an entry bids the way it
    * always did. The fighter still chooses, and can still refuse the lot of them.
    */
-  function runOfferMarket(rng, corps, ids, lot, tally, bids, kind) {
+  function runOfferMarket(rng, corps, ids, lot, tally, bids, kind, state) {
     tally.lot += lot.length;
     bids = bids || {};
 
@@ -23953,7 +24111,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const best = Math.max.apply(null, offers.map(o => o.bid));
       let pick = null, pickScore = 0;
       for (const o of offers) {
-        const v = weighOffer(f, o.corp, o.bid, best);
+        const v = weighOffer(f, o.corp, o.bid, best, state);
         if (v > pickScore) { pickScore = v; pick = o; }
       }
       if (!pick) { tally.refused++; continue; }                      /* nobody was worth it */
@@ -23977,8 +24135,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /** The merc deadline, over the lot opened at the start of its window. */
-  function runMercMarket(rng, corps, ids, lot, tally, bids) {
-    return runOfferMarket(rng, corps, ids, lot, tally, bids, 'mercs');
+  function runMercMarket(rng, corps, ids, lot, tally, bids, state) {
+    return runOfferMarket(rng, corps, ids, lot, tally, bids, 'mercs', state);
   }
 
   /** The Nattie tryouts. THIS MARKET DID NOT EXIST: the calendar offered a `tryouts` window in
@@ -25083,10 +25241,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /** What it would cost to keep somebody, priced against who they have become. */
-  function renewalSalary(f) {
+  /* §LOYALTY WHAT A HAND ASKS FOR DEPENDS ON WHETHER HE WANTS TO STAY. `f.loyalty` was carried
+     on every fighter and read in three places, none of which a manager could see — a small term
+     in one combat roll, and a captain's average. So the number existed, the traits that moved
+     it existed, and nothing anywhere turned it into a decision. A hand who likes the house asks
+     for less to stay; one who does not asks for more, and asks for a lot more if he is only
+     here for the wage. This is where `loyalty_cap_reduced` becomes a consequence rather than a
+     system: a fighter who can never be fully loyal simply never reaches the discount. */
+  function loyaltyOf(state, f) {
+    let l = f.loyalty == null ? 50 : f.loyalty;
+    if (state && EVENTS.fighterHas(state, f, 'loyalty_cap_reduced'))
+      l = Math.min(l, CONST.LOYALTY_CAP_LOW);
+    return Math.max(0, Math.min(100, l));
+  }
+  function renewalSalary(f, state) {
     const base = (f.contract && f.contract.salary) || 0;
     const fame = (f.fame || 0) - (f._fameAtSigning || 0);
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100))));
+    /* 50 is indifferent; the pull runs either way from there */
+    const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull));
   }
 
   /**
@@ -25117,9 +25290,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         id: f.id, name: f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
         was: ct.salary || 0,
-        asks: renewalSalary(f),
+        asks: renewalSalary(f, state),
         /* what a season of them costs against what they were paid: the argument itself */
-        year: renewalSalary(f) * LED.CONST.SALARY_MONTHS,
+        year: renewalSalary(f, state) * LED.CONST.SALARY_MONTHS,
         called: (c._renewalCalls || {})[f.id] || null
       });
     }
@@ -25133,7 +25306,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     c._renewalCalls[fighterId] = { how: how, offer: offer || null };
     return { ok: true };
   }
-  function renewRoster(rng, corp, expiring, freed) {
+  function renewRoster(rng, corp, expiring, freed, state) {
     const out = { renewed: 0, released: 0, resigned: 0, walked: 0, cost: 0 };
     const gone = [];
 
@@ -25175,7 +25348,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const call = calls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
-          const asked = renewalSalary(f);
+          const asked = renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
           /* a fighter offered less than they asked may walk, and the further under, the likelier */
           const under = Math.max(0, (asked - paying) / Math.max(1, asked));
@@ -25189,7 +25362,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           out.renewed++; out.cost += paying * LED.CONST.SALARY_MONTHS;
           continue;
         }
-        const ask = renewalSalary(f);
+        const ask = renewalSalary(f, state);
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
           budget -= year;
@@ -25940,7 +26113,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (win.event === 'mercs') {
       const lot = state.lots.mercs || [];
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
-                    lot, state.mercs, state.bids.mercs);
+                    lot, state.mercs, state.bids.mercs, state);
       /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
          offered is still on the market for the refresh */
       const offered = {}; (state.mercs.results || []).forEach(r => { offered[r.fighterId] = true; });
@@ -26137,7 +26310,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
       c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
-                             c._off.expired, c._off.freed);
+                             c._off.expired, c._off.freed, state);
       c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       /* S15 — this charges the RETAINER only. The purse is charged at the muster below, once
@@ -26411,6 +26584,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          highest by canon, which is part of what a corp owes its own ship. */
       const pensions = c.roster.filter(f => f.status === 'dead')
                         .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
+      /* §STORY A HOUSE THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
+         system and needs a sentence: when a Company Family man is buried, what his house pays
+         his people is noticed, and the fleet thinks a little better of it. The money was
+         already leaving; nothing was ever made of it. */
+      let told = 0;
+      for (const f of c.roster) {
+        if (f.status !== 'dead') continue;
+        if (!EVENTS.fighterHas(state, f, 'pension_story')) continue;
+        told += (f.contract && f.contract.death_benefit) || 0;
+      }
+      if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
@@ -26756,7 +26940,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            rivalPreparedness, planetPreparedness,
            INTEL_RIVAL_ROWS, INTEL_PLANET_ROWS,
            /* Courting Sponsors — the module, for the desk to read costs, regard, and the roster */
-           SPON };
+           SPON, EVENTS };
 }));
 </script>
 <script>
@@ -27260,7 +27444,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       h += '<div class="' + cls + '" data-hand="' + f.id + '">' +
         '<div class="rc-top"><span class="rowmark" data-editmark="' + f.id + '" title="Change the Mark">' +
           fighterMark(f, 22, colFor(G.me)) + '</span><span class="rc-name" style="color:' + raceColour(f) + '">' +
-          (lead ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
+          (lead ? '<span class="lead">\u2605</span> ' : '') +
+          /* §NAMES a war-priest is called one, on the row where a manager reads his people */
+          esc(SEASON.EVENTS.honorific(G.state, f) + f.name) + '</span>' +
           '<span class="rc-sq ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) : '\u2014') + '</span></div>' +
         '<div class="rc-orig ' + org.cls + '">' + org.label +
           ' <span class="who">\u00b7 ' + capRace(f.race) + ', ' + (f.age || '?') + '</span></div>' +

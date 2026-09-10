@@ -45,6 +45,8 @@ node sim/audit_marks.cjs       THE KIT'S GEOMETRY — every field and device mus
                               pivot it turns about, or it swings on a hinge beside itself.
 node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread constants,
                               helpers written twice. Answer everything or label it.
+node sim/audit_hooks.cjs       THE CATALOGUE'S HOOKS — every one either does something or
+                              carries the reason it does not. Fails on a silent no-op.
 node sim/measure_kit.cjs       WHAT A FLEET CARRIES — primaries, armour, sidearms and
                               consumables across every house. Fails on a bare hand.
 node sim/measure_energy.cjs    THE ENERGY BARGAIN — cost, power, heat and dry rate against
@@ -1232,6 +1234,45 @@ and the suite asserts that nothing vents rather than that something does.
 
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
+
+## The quirks, and a lookup that answered no in silence. *Ruled and built.*
+
+**FIRST, THE COUNT WAS WRONG, AND IT WAS MY SCAN THAT WAS WRONG.** The sweep for inert hooks
+listed `rep.js`; the file is `reputation.js`. ELEVEN hooks reported dead were already live —
+`media_statement_impact_amplified` among them. A scan with a hardcoded file list is a scan that
+lies quietly, which is the same fault as everything else in this section. `sim/audit_hooks.cjs`
+reads the directory instead, and is now a gate.
+
+**AND THE FAULT UNDER ALL OF IT: `fighterHas` ANSWERED NO IN SILENCE.** The one reader for "does
+this hand carry this hook" resolved its trait index from a variable installed inside `stepMonth`
+— so every hook read BEFORE a month had been stepped answered FALSE. Not wrongly: quietly, with
+no error, which is the worst way for a lookup to fail. It was suppressing `poach_resistant`,
+`loyalty_cap_reduced` and `remembers_grudges` on any Review-screen read in a fresh career. It
+builds its own index now — and THE FIRST FIX FOR IT REACHED FOR `require`, which does not exist
+in the page, so the simulator was cured and the browser went on answering no. The fallback takes
+the roster's index, which both houses have.
+
+**WHAT WAS BUILT, all of it on machinery that already existed:**
+- **LOYALTY DECIDES SOMETHING.** It was carried by every fighter and read in three places a
+  manager could never see. A hand who likes the house asks less to stay: measured 824 against
+  1,176 for one who does not. `loyalty_cap_reduced` is a consequence of that, not a system —
+  a man who cannot be fully loyal never reaches the discount.
+- **THE GRUDGE IS ONE FIELD.** `f._grudge` holds the single house that tried to buy him, set at
+  the poach. Three readers: the merc market refuses that house, the Divide gives him composure
+  against them, and the mark rides onto the ground with him. The first design was a
+  fighter-to-corp relationship matrix; a man remembers one house.
+- **SIX STORY HOOKS ARE ONE MULTIPLIER** on `REP.act`, which already computed the whole swing in
+  one place. The loudest name among a casualty list carries the notice.
+- **LUCK IS ONE MORE TERM** in a draw already weighted by who a house carries.
+- **PROMOTION LANDS ON PEOPLE** at the succession that already happens when a captain falls: the
+  hungry steady, the passed-over take it badly.
+- A house that pays its dead well is seen to; a war-priest is called one.
+
+**AND SIX HOOKS ARE LABELLED DECORATION IN THE DATA, WITH THE REASON.** Superstition wants a
+squad-belief state, Odds Watcher an odds board, Mimic Call a comms layer, Pressure-Read a manager
+to read, Cradleborn a harvest economy, and Ankoth a discovery path for a concealed conviction.
+None is a hook awaiting wiring; each is a hook awaiting a FEATURE, and saying so in the file is
+better than leaving a trait that quietly does nothing.
 
 ## A shelf that folds, and quiet business that costs something visible. *Ruled and built.*
 

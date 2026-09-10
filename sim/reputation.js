@@ -369,10 +369,18 @@
     ctx = ctx || {};
     const spec = ACTS[type];
     if (!spec) throw new Error('reputation: unknown act ' + type);
+    /* §STORY WHO IT HAPPENED TO CHANGES HOW LOUDLY IT LANDS. Six trait hooks — a soundbite
+       machine, a villain edit, a blame magnet, a company family's dead — all wanted the same
+       thing, and the first design for it was a press system with named subjects. There is no
+       need: an act already carries a subject through `ctx`, and the whole swing is computed in
+       one place. The subject's own traits scale it, and that is the whole mechanism.
+       `ctx.storyMult` is set by whoever raises the act, from the hooks that hand carries. */
     const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
+    const story = ctx.storyMult || 1;
     const season = ctx.season != null ? ctx.season : rep.season;
     const moved = [];
     const push = (audience, targetId, value) => {
+      value = value * story;
       if (!value) return;
       const headline = Math.abs(value) >= CONST.HEADLINE_AT;
       rep.memory.push({

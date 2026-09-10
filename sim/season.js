@@ -166,6 +166,9 @@
     COURT_APPETITE_PRIDE: 0.30,  // [C] a showy one would rather not be seen asking
     COURT_APPETITE_HELD: 0.22,   // [C] off the appetite per backer already signed
     COURT_COMFORTABLE: 300000,   // [C] the purse above which nobody is hungry
+    /* §LOYALTY what a hand's regard for the house is worth at the table */
+    RENEWAL_LOYALTY_PULL: 0.22,  // [C] how far loyalty moves a re-signing ask, either way
+    LOYALTY_CAP_LOW: 35,         // [C] the ceiling on a hand who cannot be fully loyal
     QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
     MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
     YOUNG_AT: 26,             // [C] who counts as young for that
@@ -686,7 +689,13 @@
   }
 
   /** What one fighter thinks of one offer. Higher is better; below zero they would rather not. */
-  function weighOffer(f, corp, offer, best) {
+  function weighOffer(f, corp, offer, best, state) {
+    /* §GRUDGE A MAN WILL NOT SIGN FOR THE HOUSE HE REMEMBERS. `refuses_grudged_corps` is the
+       third of Grudge Holder's hooks and the only one a manager meets across a table: whatever
+       is on offer, this name comes off that house's sheet. No ledger — one remembered house,
+       set when they tried to buy him. */
+    if (f._grudge && corp.id === f._grudge && state && EVENTS.fighterHas(state, f, 'refuses_grudged_corps'))
+      return -1;
     const money = best > 0 ? offer / best : 1;                       /* 0..1 against the top bid */
     const safety = survivalRecord(corp);                             /* 0..1, share who came home */
     /* THE CROWD. This read `rep.base.public`, and there is no `public` audience — the four are
@@ -764,7 +773,7 @@
    * `{ fighterId: amount }` — a HUMAN'S named offers. Any corp without an entry bids the way it
    * always did. The fighter still chooses, and can still refuse the lot of them.
    */
-  function runOfferMarket(rng, corps, ids, lot, tally, bids, kind) {
+  function runOfferMarket(rng, corps, ids, lot, tally, bids, kind, state) {
     tally.lot += lot.length;
     bids = bids || {};
 
@@ -802,7 +811,7 @@
       const best = Math.max.apply(null, offers.map(o => o.bid));
       let pick = null, pickScore = 0;
       for (const o of offers) {
-        const v = weighOffer(f, o.corp, o.bid, best);
+        const v = weighOffer(f, o.corp, o.bid, best, state);
         if (v > pickScore) { pickScore = v; pick = o; }
       }
       if (!pick) { tally.refused++; continue; }                      /* nobody was worth it */
@@ -826,8 +835,8 @@
   }
 
   /** The merc deadline, over the lot opened at the start of its window. */
-  function runMercMarket(rng, corps, ids, lot, tally, bids) {
-    return runOfferMarket(rng, corps, ids, lot, tally, bids, 'mercs');
+  function runMercMarket(rng, corps, ids, lot, tally, bids, state) {
+    return runOfferMarket(rng, corps, ids, lot, tally, bids, 'mercs', state);
   }
 
   /** The Nattie tryouts. THIS MARKET DID NOT EXIST: the calendar offered a `tryouts` window in
@@ -1932,10 +1941,25 @@
   }
 
   /** What it would cost to keep somebody, priced against who they have become. */
-  function renewalSalary(f) {
+  /* §LOYALTY WHAT A HAND ASKS FOR DEPENDS ON WHETHER HE WANTS TO STAY. `f.loyalty` was carried
+     on every fighter and read in three places, none of which a manager could see — a small term
+     in one combat roll, and a captain's average. So the number existed, the traits that moved
+     it existed, and nothing anywhere turned it into a decision. A hand who likes the house asks
+     for less to stay; one who does not asks for more, and asks for a lot more if he is only
+     here for the wage. This is where `loyalty_cap_reduced` becomes a consequence rather than a
+     system: a fighter who can never be fully loyal simply never reaches the discount. */
+  function loyaltyOf(state, f) {
+    let l = f.loyalty == null ? 50 : f.loyalty;
+    if (state && EVENTS.fighterHas(state, f, 'loyalty_cap_reduced'))
+      l = Math.min(l, CONST.LOYALTY_CAP_LOW);
+    return Math.max(0, Math.min(100, l));
+  }
+  function renewalSalary(f, state) {
     const base = (f.contract && f.contract.salary) || 0;
     const fame = (f.fame || 0) - (f._fameAtSigning || 0);
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100))));
+    /* 50 is indifferent; the pull runs either way from there */
+    const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull));
   }
 
   /**
@@ -1966,9 +1990,9 @@
         id: f.id, name: f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
         was: ct.salary || 0,
-        asks: renewalSalary(f),
+        asks: renewalSalary(f, state),
         /* what a season of them costs against what they were paid: the argument itself */
-        year: renewalSalary(f) * LED.CONST.SALARY_MONTHS,
+        year: renewalSalary(f, state) * LED.CONST.SALARY_MONTHS,
         called: (c._renewalCalls || {})[f.id] || null
       });
     }
@@ -1982,7 +2006,7 @@
     c._renewalCalls[fighterId] = { how: how, offer: offer || null };
     return { ok: true };
   }
-  function renewRoster(rng, corp, expiring, freed) {
+  function renewRoster(rng, corp, expiring, freed, state) {
     const out = { renewed: 0, released: 0, resigned: 0, walked: 0, cost: 0 };
     const gone = [];
 
@@ -2024,7 +2048,7 @@
         const call = calls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
-          const asked = renewalSalary(f);
+          const asked = renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
           /* a fighter offered less than they asked may walk, and the further under, the likelier */
           const under = Math.max(0, (asked - paying) / Math.max(1, asked));
@@ -2038,7 +2062,7 @@
           out.renewed++; out.cost += paying * LED.CONST.SALARY_MONTHS;
           continue;
         }
-        const ask = renewalSalary(f);
+        const ask = renewalSalary(f, state);
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
           budget -= year;
@@ -2789,7 +2813,7 @@
     if (win.event === 'mercs') {
       const lot = state.lots.mercs || [];
       runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
-                    lot, state.mercs, state.bids.mercs);
+                    lot, state.mercs, state.bids.mercs, state);
       /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
          offered is still on the market for the refresh */
       const offered = {}; (state.mercs.results || []).forEach(r => { offered[r.fighterId] = true; });
@@ -2986,7 +3010,7 @@
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
       c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
-                             c._off.expired, c._off.freed);
+                             c._off.expired, c._off.freed, state);
       c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       /* S15 — this charges the RETAINER only. The purse is charged at the muster below, once
@@ -3260,6 +3284,17 @@
          highest by canon, which is part of what a corp owes its own ship. */
       const pensions = c.roster.filter(f => f.status === 'dead')
                         .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
+      /* §STORY A HOUSE THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
+         system and needs a sentence: when a Company Family man is buried, what his house pays
+         his people is noticed, and the fleet thinks a little better of it. The money was
+         already leaving; nothing was ever made of it. */
+      let told = 0;
+      for (const f of c.roster) {
+        if (f.status !== 'dead') continue;
+        if (!EVENTS.fighterHas(state, f, 'pension_story')) continue;
+        told += (f.contract && f.contract.death_benefit) || 0;
+      }
+      if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
@@ -3605,5 +3640,5 @@
            rivalPreparedness, planetPreparedness,
            INTEL_RIVAL_ROWS, INTEL_PLANET_ROWS,
            /* Courting Sponsors — the module, for the desk to read costs, regard, and the roster */
-           SPON };
+           SPON, EVENTS };
 }));

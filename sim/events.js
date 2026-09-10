@@ -32,6 +32,13 @@
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
     SEEDED: 2.6,                 // [C] §QUIRKS what a house with the people for it draws instead
     UNSEEDED: 0.7,               // [C] and what a house with nobody who could cause it draws
+    /* §STORY what a hand does to the loudness of a story told about him */
+    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts a house's draw
+    LUCK_CAP: 1.8,               // [C] and the furthest a roster of them can tilt it
+    STORY_LOUD: 1.35,            // [C] a soundbite machine is quoted
+    STORY_VILLAIN: 1.40,         // [C] a villain edit is cut against him
+    STORY_BLAME: 1.30,           // [C] a blame magnet wears it
+    STORY_MOURNED: 1.50,         // [C] a company family's dead are mourned louder
     POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
@@ -181,6 +188,12 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._poached = true;
+        /* §GRUDGE ONE FIELD, NOT A LEDGER. Grudge Holder's three hooks wanted a fighter's memory
+           of other houses, and the first design for it was a relationship matrix — far more
+           machinery than a trait that is mostly texture is worth. A man remembers ONE house: the
+           last one that did something to him. It is set where something memorable happens and
+           read in two places, and that is the whole of it. */
+        if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
           if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + ' Went for ' + fmtCr(price); };
@@ -297,21 +310,82 @@
   function seedWeight(state, corp, specId) {
     const want = SEED_FOR[specId]; if (!want) return 1;
     const have = corpSeeds(state, corp);
-    return want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
+    let w = want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
+    /* §LUCK A HOUSE WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
+       system and does not need one — the draw is already weighted by who a house is carrying,
+       and this is one more term in it. A favoured hand tilts the good events toward the house
+       and the sour ones away; a bad omen does the reverse. No dice anywhere else change. */
+    const luck = luckOf(state, corp);
+    if (luck !== 1) w *= GOOD_EVENTS.has(specId) ? luck : 1 / luck;
+    return w;
+  }
+  /* the events a house would rather draw than not */
+  const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
+  const LUCK_CACHE = new WeakMap();
+  function luckOf(state, corp) {
+    const c = LUCK_CACHE.get(corp);
+    if (c && c.n === corp.roster.length) return c.v;
+    let v = 1;
+    for (const f of corp.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      if (fighterHas(state, f, 'luck_event_bias_positive')) v *= CONST.LUCKY;
+      if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
+    }
+    v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
+    LUCK_CACHE.set(corp, { n: corp.roster.length, v });
+    return v;
   }
   let TRAIT_INDEX = null;
   /** the catalogue's index, handed in once by the season rather than saved with the career */
   function useTraitIndex(idx) { TRAIT_INDEX = idx || null; }
-  function traitIndexOf(state) { return TRAIT_INDEX || (state && state.traitIndex) || null; }
+  /* §QUIRKS THE INDEX MUST BE THERE WHENEVER SOMEBODY ASKS. It was installed inside
+     `stepMonth`, so every hook read BEFORE a month had been stepped — a re-signing ask on the
+     Review screen, a mercenary weighing an offer in a fresh career — silently answered FALSE.
+     Not wrongly: quietly, with no error, which is the worst way for a lookup to fail. If
+     nobody has handed one in, the catalogue is right there to build one from. */
+  let OWN_INDEX = null;
+  function traitIndexOf(state) {
+    if (TRAIT_INDEX) return TRAIT_INDEX;
+    if (state && state.traitIndex) return state.traitIndex;
+    if (OWN_INDEX) return OWN_INDEX;
+    /* THE FALLBACK HAS TO WORK IN BOTH HOUSES. The first cut reached for `require`, which does
+       not exist in the page — so the fix worked in the simulator and the browser went on
+       quietly answering no, which is the same fault one floor down. The roster module keeps
+       the index the whole game uses; in the page it is a global, in node it is an export. */
+    const root = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : {});
+    const R = root.CDROSTER || (typeof require === 'function' ? (function () {
+      try { return require('./roster.js'); } catch (e) { return null; }
+    })() : null);
+    if (R && R.traitById) { OWN_INDEX = R.traitById; return OWN_INDEX; }
+    return null;
+  }
   /* §NAMES WHAT TO CALL SOMEBODY IN A SENTENCE. Taking the first word of a name gives "Punish
      The" for an Olmac, who is "The Tide" — the article is not a forename. A name that begins
      with an article is used whole; everything else keeps its first word, which is how a
      shipmate would say it. */
+  /* §NAMES A WAR-PRIEST IS CALLED ONE. `honorific_et_prefix` is not a system and never was:
+     it is what the fleet puts in front of a zealot's name when it speaks of him. */
+  function honorific(state, f) {
+    return (state && fighterHas(state, f, 'honorific_et_prefix')) ? 'Et-' : '';
+  }
   function shortName(f) {
     const n = String(f && f.name || '');
     if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
     if (/-/.test(n) && n.indexOf(' ') < 0) return n;     /* a Mon-Wa half is one word with a hyphen */
     return n.split(' ')[0];
+  }
+  /* §STORY WHAT THIS HAND DOES TO A STORY. One reader, consulted wherever an act is raised
+     about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
+     one worse, a blame magnet wears whatever went wrong, and a company family's dead are
+     mourned louder. These were six hooks wanting a press office; they are one multiplier. */
+  function storyMult(state, f, good) {
+    if (!f) return 1;
+    let m = 1;
+    if (fighterHas(state, f, 'media_statement_impact_amplified')) m *= CONST.STORY_LOUD;
+    if (!good && fighterHas(state, f, 'sportsmanship_penalty_amplified')) m *= CONST.STORY_VILLAIN;
+    if (!good && fighterHas(state, f, 'blame_magnet')) m *= CONST.STORY_BLAME;
+    if (!good && fighterHas(state, f, 'death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
+    return m;
   }
   function fighterHas(state, f, hook) {
     const idx = traitIndexOf(state);
@@ -470,6 +544,9 @@
   /* the roles' fighters do not field: the Divide's drop reads this */
   function offTheLine(corp) { const r = corp._roles || {}; return [r.spy, r.drill].filter(Boolean); }
 
-  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet, fleetEventFor, useTraitIndex };
+  /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
+     ask it too now, rather than each growing a convention of its own */
+  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet,
+                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific };
   return api;
 });

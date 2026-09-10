@@ -436,6 +436,8 @@ function makeCombatant(fighter, opts) {
        stopped cells being spent at all and quietly turned every energy weapon into a ballistic
        one firing ammunition it does not carry. The family is named by its cell. */
     cellFed: !!(kit && kit.charge > 0),
+    /* §GRUDGE the one house this man remembers, carried onto the ground with him */
+    _grudge: fighter._grudge || null,
     heat: 0, heatCap: (kit && kit.heatCap) || 0, heatPerShot: (kit && kit.heat) || 0,
     _heatShed: CONST.HEAT_SHED, _firedThisExchange: false,
     /* §6 — charge is the fighter's, not the engagement's: it persists across every fight

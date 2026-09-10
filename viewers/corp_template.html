@@ -1991,7 +1991,9 @@
       h += '<div class="' + cls + '" data-hand="' + f.id + '">' +
         '<div class="rc-top"><span class="rowmark" data-editmark="' + f.id + '" title="Change the Mark">' +
           fighterMark(f, 22, colFor(G.me)) + '</span><span class="rc-name" style="color:' + raceColour(f) + '">' +
-          (lead ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
+          (lead ? '<span class="lead">\u2605</span> ' : '') +
+          /* §NAMES a war-priest is called one, on the row where a manager reads his people */
+          esc(SEASON.EVENTS.honorific(G.state, f) + f.name) + '</span>' +
           '<span class="rc-sq ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) : '\u2014') + '</span></div>' +
         '<div class="rc-orig ' + org.cls + '">' + org.label +
           ' <span class="who">\u00b7 ' + capRace(f.race) + ', ' + (f.age || '?') + '</span></div>' +
