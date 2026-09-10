@@ -65,6 +65,20 @@ setTimeout(() => {
   try {
     /* ---- the shell: menu first, then the founding ---- */
     check(loadErrors === 0, 'the page loads without a single error (' + loadErrors + ')');
+    /* §CHROME the rail holds one line and scrolls rather than reflowing like a web page */
+    {
+      const css0 = [...doc.querySelectorAll('style')].map(x => x.textContent).join('\n');
+      check(/#rail\{[^}]*flex-wrap:nowrap/.test(css0) && /header\{[^}]*flex-wrap:nowrap/.test(css0),
+            'the tab rail and the header hold their line rather than wrapping');
+    }
+    /* §LANDING the front page is a redirect, not a menu in front of the menu */
+    {
+      const fsx = require('fs'), pth = require('path');
+      const land = fsx.readFileSync(pth.join(__dirname, '..', 'index.html'), 'utf8');
+      check(/http-equiv="refresh"/.test(land) && /viewers\/the_corp\.html/.test(land) &&
+            !/THE CORPORATION/.test(land),
+            'the landing page goes straight to the game rather than describing it first');
+    }
     /* §MENU three of the fleet's peoples stand on the menu, art inlined by the build */
     /* the tagline is gone: there are no houses, the game runs many years, and a year holds
        more than one contest — three claims and all three untrue */
@@ -95,6 +109,21 @@ setTimeout(() => {
           doc.querySelectorAll('#cmarks .padb').length === 12 &&
           !doc.querySelector('#cmarks .gv'),
           'the founding screen asks a name, a colour and a mark, with no figures on the pad');
+    /* §MARK every button on the pad is the same size and nothing is nudged sideways: the
+       group stacks, so a left margin between adjacent buttons offsets the second of each
+       pair — which is what threw every row out of line. jsdom computes no layout, so the
+       rules themselves are what gets checked. */
+    {
+      const css = [...doc.querySelectorAll('style')].map(x => x.textContent).join('\n');
+      const rule = n => (css.match(new RegExp('\\' + n + '\\{[^}]*\\}')) || [''])[0];
+      check(!/\.mkgrp[^{]*\{[^}]*margin-left/.test(css),
+            'no stray side margin offsets the second button of a pair');
+      check(/width:42px/.test(rule('.padb')) && /height:36px/.test(rule('.padb')) &&
+            /width:42px/.test(rule('.dpad .padb')),
+            'every pad button is one size, the d-pad included');
+      check(/flex-direction:column/.test(rule('.padb.tall')),
+            'and Height stacks its arrows one above the other');
+    }
     {
       /* turning a piece changes the mark; a ready-made replaces it whole */
       const big = () => doc.querySelector('#cmarks .mkbig').innerHTML;
@@ -112,7 +141,13 @@ setTimeout(() => {
       padOn('y', -1); padOn('x', 1);
       check(/translate\(12\.9 11\.1\)/.test(big()), 'a piece can be moved off centre');
       padOn('wide', 1); padOn('tall', -1);
-      check(/scale\(1\.3\d* 1\.0\d*\)/.test(big()) || /scale\(/.test(big()), 'a piece can be stretched');
+      check(/scale\(/.test(big()), 'a piece can be stretched');
+      /* §MARK the stretch is applied OUTSIDE the turn, so Width always runs across the screen
+         and Height always down it, whichever way the piece has been turned. SVG reads a
+         transform list right to left: with rotate first, the stretch went on the piece's
+         ORIGINAL axes and Taller made a quarter-turned device wider. */
+      check(/scale\([^)]*\)\s*rotate\(/.test(big()),
+            'width and height work on the piece as it is turned, not as it was drawn');
       doc.querySelector('#cmarks [data-adj="reset"]').click();
       check(big() === before, 'and Reset puts it back');
 
@@ -146,6 +181,9 @@ setTimeout(() => {
     check(!!window.CDSEASON && !!window.CDDIVIDE && !!window.CDTACTICAL,
           'all engine modules are live in the page');
     check(/Year 1 · Month 1/.test(text('#clock')), 'the clock opens the year: ' + text('#clock'));
+    /* §BRIEF the first month of a career says what a manager walked into */
+    check(/Already in Play/.test(text('#brief')),
+          'the opening month says the fleet was already running, not that a table is shut');
     /* §RESIGN THE PAPER: the Review is where a manager answers his own expiring contracts */
     {
       const GP = window.__G, S6 = window.CDSEASON;
@@ -302,7 +340,14 @@ setTimeout(() => {
     {
       const GM = window.__G, meM = GM.corps[GM.me];
       [...doc.querySelectorAll('#rail .tab')].find(t => /Market/.test(t.textContent)).click();
+      /* §MARKET the shelf's sections start SHUT — a manager opens the rack he came for rather
+         than scrolling a mile of half-empty rows. Open the first to read its rows. */
       const secs = [...doc.querySelectorAll('#mktledger .msec .nm')].map(x => x.textContent);
+      check(doc.querySelectorAll('#mktledger .msec.shut').length === secs.length &&
+            !doc.querySelector('#mktledger .mrow'),
+            'the shelf opens with every rack shut (' + secs.length + ' racks)');
+      doc.querySelector('#mktledger .msec').click();
+      check(!!doc.querySelector('#mktledger .mrow'), 'and a rack opens when it is asked for');
       check(secs.length >= 5 && secs[0] === 'Carbines',
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
@@ -812,8 +857,12 @@ setTimeout(() => {
       const after = ['own', 'fleet', 'aleas'].map(a => R4.standing(GQ.corps[GQ.me].rep, a));
       check(GQ.corps[GQ.me].account.treasury < purse0 && after.some((v, i) => v < before[i]),
             'the work costs credits and standing at once (' + whichAct + ')');
-      check(S4.illicitDone(GQ.state, GQ.me).length === 1 && /This Year/.test(text('#backroom')),
-            'the year keeps a record of what was done quietly');
+      /* §QUIET the record is kept, but it is READ in the month's recap rather than dumped in
+         the panel; and a thing arranged this month cannot be arranged again */
+      check(S4.illicitDone(GQ.state, GQ.me).length === 1 && !/This Year/.test(text('#backroom')),
+            'the year keeps its record, and the panel no longer dumps it');
+      check(!!doc.querySelector('#backroom .qact .qbtn[disabled]'),
+            'and the thing just arranged cannot be arranged twice in a month');
       /* §QUIET WHAT A SCOUT TURNS UP. Plant an act by a rival, read their books to the
          bottom, and the dirt is there to blackmail, leak or report. */
       {

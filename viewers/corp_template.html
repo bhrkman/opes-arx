@@ -105,6 +105,19 @@
   .rostsum .sub{font-size:9.5px;color:var(--dim)}
   #whoami{font-size:15px;letter-spacing:.06em}
   #whoami svg{vertical-align:-2px}
+  #skiptolock{position:fixed;left:14px;bottom:14px;z-index:20;font:inherit;font-size:9.5px;letter-spacing:.1em;
+    background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
+  #skiptolock:hover{border-color:var(--bad);color:var(--bad)}
+  body.yearline #skiptolock{left:18px}
+  @media (max-width:900px){ #skiptolock{left:8px;bottom:8px} }
+  /* §CHROME A GAME'S CHROME DOES NOT REFLOW. The tab rail wrapped onto a second line when the
+     window narrowed, which is how a website behaves and not how a board does — the tabs move,
+     the page jumps, and a manager loses the thing he was reaching for. The rail holds one line
+     and scrolls sideways if it must; the header's own line holds too. */
+  #rail{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+  #rail .tab{flex:none;white-space:nowrap}
+  header{flex-wrap:nowrap;gap:14px}
+  header .bar{flex-wrap:nowrap;white-space:nowrap}
   .menufleet{display:flex;justify-content:center;gap:14px;margin-top:12px}
   .menufleet span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);
     display:inline-flex;align-items:center;justify-content:center;opacity:.7}
@@ -148,11 +161,12 @@
   .mkreset:hover{border-color:var(--a);color:var(--a)}
   /* §MARK with the figures gone, every control has room to be read */
   .mkpadgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 14px;justify-items:center}
-  .mkgrp{display:flex;flex-direction:column;align-items:center;gap:4px}
+  /* §MARK A COLUMN WITH A LEFT MARGIN IN IT. The group stacks its two buttons vertically and
+     a leftover `margin-left:6px` sat between adjacent ones — so the SECOND button of every
+     pair was nudged six pixels right of the first, and no pair on the pad lined up. The gap is
+     the group's own, in the direction the group actually runs. */
+  .mkgrp{display:flex;flex-direction:column;align-items:center;gap:5px}
   .mkgrp .gl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-  .mkgrp > .padb,.mkgrp .padrow{display:inline-flex}
-  .mkgrp{flex-flow:column wrap}
-  .mkgrp .padb + .padb{margin-left:6px}
   /* MOVE is the only thing on its row, so it stands in the middle of the pad */
   .mkgrp.move{grid-column:1/-1;justify-self:center}
   /* EVERY BUTTON THE SAME SIZE. They were sized by their contents — one glyph or two, a wide
@@ -161,13 +175,15 @@
     font:inherit;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
     padding:0;flex:none}
   .padb:hover{border-color:var(--a);color:var(--a);background:var(--a-deep)}
-  .padb .ar{font-size:11px;line-height:1}
-  .padb.wide{gap:1px}                       /* the pair reads across */
-  .padb.tall{flex-direction:column;gap:0}   /* and this pair reads DOWN */
+  /* the paired arrows are drawn large enough to read as arrows rather than specks */
+  .padb .ar{font-size:14px;line-height:.82}
+  .padb.wide{gap:0}                          /* the pair reads across */
+  .padb.tall{flex-direction:column;gap:0}    /* and this pair reads DOWN */
   .padb.turn{font-size:21px}                /* the turn glyphs draw small; give them room */
   /* the d-pad's four are the same button as every other, in a cross */
-  .dpad{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,36px);gap:4px}
-  .dpad .padb{margin-left:0}
+  /* every cell of the cross is one button, the same button as every other on the pad */
+  .dpad{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,36px);gap:5px}
+  .dpad .padb{width:42px;height:36px;margin:0}
   .dpad .u{grid-area:1/2} .dpad .l{grid-area:2/1} .dpad .d{grid-area:2/2} .dpad .r{grid-area:2/3}
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
@@ -197,6 +213,7 @@
   #backroom .qbtn{width:100%;padding:8px;margin-top:8px;border:1px solid var(--red);color:var(--red);
     background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.04em}
   #backroom .qbtn:hover{background:var(--red);color:var(--bg)}
+  #backroom .qbtn:disabled{border-color:var(--line2);color:var(--faint);cursor:default;background:transparent}
   #backroom .qways{display:grid;gap:6px;margin-top:10px}
   #backroom .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;margin-top:0;padding:7px 10px}
   #backroom .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
@@ -557,6 +574,12 @@
   .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
     border:1px solid var(--line);border-radius:4px;background:#0b111b;margin-bottom:8px}
   /* the market's shelf */
+  /* the shelf: two columns of rows, and a section head that spans both */
+  #mktledger{column-count:2;column-gap:18px}
+  #mktledger .msec{column-span:all;cursor:pointer;break-inside:avoid}
+  #mktledger .msec:hover .nm{color:var(--ink)}
+  #mktledger .mrow{break-inside:avoid}
+  @media (max-width:900px){ #mktledger{column-count:1} }
   .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
     border-top:1px solid var(--line)}
   .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
@@ -811,7 +834,9 @@
   .sqhead{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);
     background:linear-gradient(90deg,color-mix(in srgb,var(--sq) 22%,transparent),transparent 70%)}
   .sqhead .dot{width:8px;height:8px;border-radius:2px;background:var(--sq);flex-shrink:0}
-  .sqname{color:var(--sq);font-weight:bold;letter-spacing:.04em;flex:1;cursor:text}
+  .planline .kitcap{font-size:14px;letter-spacing:.05em}
+  #planstate{justify-content:center;text-align:center;font-size:12.5px}
+  .sqname{color:var(--sq);font-weight:bold;letter-spacing:.04em;flex:1;cursor:text;text-align:center}
   .sqname input{background:#0a0e16;border:1px solid var(--a);color:var(--ink);font:inherit;width:110px;padding:1px 4px;border-radius:3px}
   .sqhead .ct{font-size:10px;color:var(--dim);white-space:nowrap} .sqhead .ct.bad{color:var(--bad)}
   .sqhead .place{font-size:10px;color:var(--a);border:1px solid var(--a);border-radius:4px;padding:1px 7px;cursor:pointer}
@@ -941,7 +966,11 @@
      origin, on the map's markers — and the window that buys them was one green box for all
      three. The panel takes `--o` from the window, and every rule below reads it, so the three
      are told apart before a word is read. */
-  .focusdeskline{text-align:right;margin:-4px 0 8px;font-size:11px}
+  /* the focus tally sits ABOVE both grids, in the middle, and says how much is left in a
+     colour a manager can read across the room: red while any is unspent, green when it is all
+     committed */
+  .focusdeskline{text-align:center;margin:2px 0 10px;font-size:13px;letter-spacing:.06em}
+  .focusdeskline b{font-size:16px} .focusdeskline b.left{color:var(--bad)} .focusdeskline b.done{color:var(--hit)}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
   .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
   .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
@@ -959,6 +988,14 @@
   .acq .pc-flag{position:absolute;top:-1px;right:-1px;background:var(--o);color:var(--bg);font-size:8.5px;font-weight:700;
     letter-spacing:.06em;text-transform:uppercase;padding:1px 8px;border-radius:0 6px 0 6px}
   .acq .none{color:color-mix(in srgb, var(--o) 60%, var(--dim));font-size:11px}
+  /* §MARKET the shop behind the shutter: visible, greyed, and plainly not open */
+  .acq.shut .shutwrap{position:relative}
+  .acq.shut .pcs{filter:grayscale(.85) blur(.6px);opacity:.4;pointer-events:none;user-select:none}
+  .acq.shut .shutplate{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:rgba(10,14,22,.92);border:1px solid var(--o);border-radius:7px;padding:12px 22px;
+    text-align:center;display:flex;flex-direction:column;gap:3px;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+  .acq.shut .shutplate b{color:var(--o);font-size:14px;letter-spacing:.06em}
+  .acq.shut .shutplate span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
   /* §ACQ THE MERCENARY BID IS A SLIDER, and the three buttons beneath it never swap places.
      A text box asked a manager for a number with no sense of whether it was enough; the bar
      says what the fighter makes of the offer against what the field is putting up. */
@@ -1031,7 +1068,13 @@
   .paperline{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:10.5px}
   .paperline .k{color:var(--s-name)} .paperline .v{color:var(--ink);text-align:right}
   /* the acquisition window */
-  .wtitle{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:9px}
+  /* §CENTRE A TITLE BELONGS OVER WHAT IT TITLES. Window heads, squad names and the plan's
+     figures all began hard against the left edge of a panel that was centred around them,
+     which reads as a form rather than a board. The head's own name centres; anything that
+     rides beside it (a kind, a count) sits out at the edges where it does not fight it. */
+  .wtitle{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;
+    border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:9px}
+  .wtitle .wnm{grid-column:2;text-align:center;justify-self:center}
   .wtitle .dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .wtitle .wnm{font-weight:bold;font-size:12px}
   .wtitle .deadline{font-size:9.5px;color:var(--dim);margin-left:6px}
@@ -1183,6 +1226,10 @@
 <nav id="rail"></nav>
 <!-- THE YEAR LINE: twelve stops down the left of every preparation page, the current one lit -->
 <aside id="yearline"></aside>
+<!-- §DEV a test control, and it says so. It sat at the foot of the Desk where it was both hard
+     to reach and easy to mistake for a thing the game offers; under the year line it is on
+     every tab and unmistakably not part of the game. -->
+<button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock">DEV: Skip to Lock</button>
 <!-- WAITING ON YOU: a standing panel under the year line, on every preparation page -->
 <aside id="agenda"></aside>
 
@@ -1200,10 +1247,7 @@
       <div id="verbs"></div>
       <div id="traingrid"></div>
       <div id="restgrid"></div>
-      <div class="bar" style="margin-top:8px">
-        <button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock" style="opacity:.7;font-size:10px">&raquo; Skip to the Lock</button>
-        <span class="m" id="apline"></span>
-      </div>
+      <div class="bar" style="margin-top:8px"><span class="m" id="apline"></span></div>
     </div>
     <div>
       <div id="intelgrid"></div>
@@ -1549,7 +1593,9 @@
     backroom: { name: 'The Backroom', live: true }
   };
   var RAILS = {
-    prep:   { head: 'Months 1\u201311 \u00b7 The Preparation', home: 'desk',
+    /* the phase head said "Months 1–11 · The Preparation" on every page of the preparation —
+       a thing the clock beside it already tells a manager, in the space a manager needs */
+    prep:   { head: '', home: 'desk',
               tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board', 'backroom'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
               tabs: ['table', 'deal', 'ground', 'roster', 'board', 'backroom'] },
@@ -1995,7 +2041,7 @@
     if (G.state.month !== 1 || !list.length) { host.innerHTML = ''; return; }
     var me = G.corps[G.me];
     host.innerHTML = '<div class="railbox rsbox"><div class="wtitle"><span class="dot" style="background:var(--cred)"></span>' +
-      '<span class="wnm">The Paper</span><span class="deadline">Answered This Month</span>' +
+      '<span class="wnm">The Paper</span>' +
       '<span class="kind">' + list.length + ' Expiring</span></div>' +
       '<div class="rsgrid">' + list.map(function (r) {
         var f = me.roster.filter(function (x) { return x.id === r.id; })[0];
@@ -2048,11 +2094,28 @@
       var next = null;
       for (var mm = m + 1; mm <= 11 && !next; mm++)
         if ((SEASON.MONTHS[mm] || {}).signing) next = { m: mm, kind: SEASON.MONTHS[mm].signing };
+      /* §MARKET A SHUT WINDOW SHOWS THE SHOP BEHIND THE SHUTTER. It said "No Signing Window ·
+         Next: Natural-Born, Month 2" and nothing else — true, and it left a manager with no
+         idea what is coming or why he should care. The window that IS next stands here in its
+         own colour, closed: its people are on the sheet, greyed and untouchable, with a plate
+         across them saying when the doors open. A manager can see who he will be bidding for
+         a month before he can bid. */
       var nn = next ? WIN_META[next.kind] : null;
-      mkt.className = 'acq';
-      mkt.innerHTML = winShell('none', 'The Window', '', '',
-        '<span class="none">No Signing Window' +
-        (next ? ' \u00b7 Next: <span style="color:var(--o-' + nn.cls + ')">' + nn.name + '</span>, Month ' + next.m : '') + '</span>');
+      mkt.className = 'acq' + (nn ? ' w-' + nn.cls + ' shut' : '');
+      if (!next) {
+        mkt.innerHTML = winShell('none', 'The Window', '', '',
+          '<span class="none">No Signing Window Left This Year</span>');
+        return;
+      }
+      var peek = (SEASON.lotPeek ? SEASON.lotPeek(G.state, G.me, next.m) : []) || [];
+      mkt.innerHTML = winShell(nn.cls, nn.name, nn.kind, 'Opens Month ' + next.m,
+        '<div class="shutwrap">' +
+          '<div class="pcs">' + (peek.length
+            ? peek.map(function (f) { return prospectCard(f, null); }).join('')
+            : '<span class="none">No Sheet Yet</span>') + '</div>' +
+          '<div class="shutplate"><b>' + esc(nn.name) + '</b>' +
+            '<span>Opens Month ' + next.m + '</span></div>' +
+        '</div>');
       return;
     }
     /* every window month resolves at its own end; the pool says which month of the window this is */
@@ -2296,8 +2359,13 @@
     $('apline').innerHTML = '';
     if ($('focusline'))
       $('focusline').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
-    if ($('focusdesk'))
-      $('focusdesk').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
+    if ($('focusdesk')) {
+      var allIn = spent >= SEASON.CONST.FOCUS_POINTS;
+      $('focusdesk').innerHTML = (G && G.state && G.state.month < 12)
+        ? 'Focus Spent <b class="' + (allIn ? 'done' : 'left') + '">' + spent + '</b> of ' +
+          SEASON.CONST.FOCUS_POINTS
+        : '';
+    }
   }
 
   /* ============================ THE BRIEF ============================
@@ -2501,7 +2569,9 @@
         (o.needsTarget ? '<div class="qtargets">' +
             housePicker(others, pick, 'data-qid', { ring: false, size: 38 }).replace(/data-qid=/g, 'data-qpick="' + o.id + '" data-qid=') +
             '</div>' : '') +
-        '<button class="qbtn" data-qact="' + o.id + '">Have It Done</button></div>';
+        (o.spent
+          ? '<button class="qbtn" disabled>Arranged This Month</button>'
+          : '<button class="qbtn" data-qact="' + o.id + '">Have It Done</button>') + '</div>';
     }).join('') + '</div>';
     var held = SEASON.evidenceOf(G.state, G.me) || [];
     if (held.length) h += '<div class="qheld"><div class="qhh">What You Hold</div><div class="qgrid">' + held.map(function (e, i) {
@@ -2513,8 +2583,10 @@
           '<button class="qbtn" data-ev="' + i + '" data-how="leak">Leak It<span class="sub">The Fleet Learns \u00b7 You Are Seen Printing It</span></button>' +
           '<button class="qbtn" data-ev="' + i + '" data-how="report">Report It<span class="sub">The Aleas Thank You \u00b7 the Fleet Does Not</span></button>' +
           '</div>') + '</div>'; }).join('') + '</div></div>';
-    if (done.length) h += '<div class="qdone"><b>This Year</b><br>' + done.map(function (d) {
-      return esc(capWords(d.id.replace(/_/g, ' '))) + ' \u00b7 M' + d.month + ' \u00b7 ' + (d.worked ? 'Clean' : '<span class="out">Came Apart</span>'); }).join('<br>') + '</div>';
+    /* §QUIET THE YEAR'S LIST BELONGS TO THE MONTH'S RECAP, not to a standing panel: it was a
+       data dump of everything ever arranged, sitting under the things a manager might arrange
+       next, and it reported an outcome the instant it happened rather than when the month was
+       read. What is left here is what can be done now. */
     host.innerHTML = h;
     Array.prototype.forEach.call(host.querySelectorAll('[data-qpick]'), function (b) {
       b.onclick = function () { G._qTarget[b.getAttribute('data-qpick')] = b.getAttribute('data-qid'); renderQuiet(); };
@@ -2571,8 +2643,16 @@
     var coming = (TRADE.tradingOpen(m) && m < TRADE.CONST.LAST_TRADE_MONTH ? '<span class="cd">The Table Closes <b>After Month ' + TRADE.CONST.LAST_TRADE_MONTH + '</b></span>' : '');
     host.innerHTML =
       '<div class="shape"><div class="mn">Month ' + m + ' \u00b7 ' + esc(win.name) + '<span class="m">Year ' + G.state.season + '</span></div>' +
-        '<div class="what">' + (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') +
-          (me._lastGate ? ' \u00b7 Gate ' + crs(me._lastGate) + '/mo' : '') + '</div>' +
+        /* §BRIEF THE FIRST MONTH OF A CAREER SAID "TABLE CLOSED" AND NOTHING ELSE. A manager
+           arriving at the Review is not starting a game the fleet is also starting — the
+           Divide has been run for years and he has walked in on it. The opening month says
+           what he has walked into: what the fleet made of last year, and what he is carrying.
+           Every other month keeps the table's state, which is what that month turns on. */
+        '<div class="what">' +
+          (G.state.season === 1 && m === 1
+            ? 'A Fleet Already in Play \u00b7 The Books Are Yours Now'
+            : (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') +
+              (me._lastGate ? ' \u00b7 Gate ' + crs(me._lastGate) + '/mo' : '')) + '</div>' +
         '<div class="coming">' + coming + '</div>' +
         '</div>';
     /* the agenda stands in its own panel, at the foot of the year line */
@@ -3661,6 +3741,16 @@
     /* people: who came, who left, who changed status */
     var people = '', came = R.joined.map(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; return b ? nameSpan(b) : ''; }).filter(Boolean);
     if (came.length) people += row('Signed', came.join(', '));
+    /* §QUIET WHAT WAS ARRANGED, TOLD RATHER THAN LISTED. The Backroom used to print every
+       quiet act of the year in a column under the things a manager might arrange next, and
+       report each outcome the instant it landed. A month's work is read when the month is
+       read, in a sentence: what was asked for, and whether it held. */
+    var quiet = (SEASON.illicitDone(G.state, G.me) || []).filter(function (d) { return d.month === G.state.month - 1 || d.month === G.state.month; });
+    quiet.forEach(function (d) {
+      people += row(esc(capWords(String(d.id).replace(/_/g, ' '))),
+        d.worked ? '<span class="good">Went Off Clean</span>'
+                 : '<span class="bad">Came Apart \u00b7 Traced to You</span>');
+    });
     var gone = [], changed = [];
     Object.keys(snap.stats).forEach(function (id) {
       var b = me.roster.filter(function (x) { return x.id === id; })[0], was = snap.stats[id];
@@ -4041,7 +4131,7 @@
       ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">' +
         'Kit ' + (fieldedKit > cap ? '<span class="over">' : '') + crs(fieldedKit) + (fieldedKit > cap ? '</span>' : '') +
         ' of ' + crs(cap) + ' Cap</span>'
-      : '<span>Kit Cap ' + crs(cap) + '</span>';
+      : '<span class="kitcap">Kit Cap ' + crs(cap) + '</span>';
     $('planstate').innerHTML = kitLine +
       (refused ? '<span class="over" title="a hand needs a primary and armor, or the quartermaster overrides it">' + refused + ' hand' + (refused === 1 ? '' : 's') + ' incomplete</span>' : '') +
       (total > SEASON.CONST.DROP_MAX
@@ -5579,7 +5669,7 @@
   /* the Market's clicks: the stepper adds and removes, the row opens */
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest
-      ? e.target.closest('[data-madd],[data-mdrop],[data-mslot],[data-mgrp],[data-mopen]') : null;
+      ? e.target.closest('[data-madd],[data-mdrop],[data-mslot],[data-mgrp],[data-mopen],[data-msec]') : null;
     if (!t || !G) return;
     if (t.hasAttribute('data-madd')) {
       var id = t.getAttribute('data-madd'), it = ITEMS.byId(id);
@@ -5595,6 +5685,10 @@
     }
     if (t.hasAttribute('data-mslot')) { MKT.slot = t.getAttribute('data-mslot'); renderShelf(); return; }
     if (t.hasAttribute('data-mgrp')) { MKT.grp = t.getAttribute('data-mgrp'); renderShelf(); return; }
+    if (t.hasAttribute('data-msec')) {
+      var sc = t.getAttribute('data-msec');
+      MKT.shut = MKT.shut || {}; MKT.shut[sc] = !MKT.shut[sc]; renderShelf(); return;
+    }
     if (t.hasAttribute('data-mopen')) {
       var o = t.getAttribute('data-mopen'); MKT.open[o] = !MKT.open[o]; renderShelf(); return;
     }
@@ -5698,10 +5792,12 @@
       (total ? '<span>Order <span class="cr neg">\u2212\u20a1' +
                Math.round(total).toLocaleString() + '</span></span>' +
                '<span>' + crs(left) + ' After</span>' : '');
+    /* the slot picker is a rail, and should look like one: it was five grey `tiny` buttons
+       doing the same job the tabs at the top of the screen do */
     $('mktslots').innerHTML = MSLOTS.map(function (sl) {
-      return '<button class="tiny' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
+      return '<button class="tab' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
              titleWords(sl) + '</button>';
-    }).join(' ');
+    }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.mgrp'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-mgrp') === MKT.grp);
     });
@@ -5711,14 +5807,24 @@
       if (sa !== sb) return MKT.grp === 'tier' ? a.tier - b.tier : mktRank(sa) - mktRank(sb);
       return a.tier - b.tier || (a.cost || 0) - (b.cost || 0);
     });
-    var h = '', sec = null;
+    /* §MARKET THE SHELF FOLDS, AND RUNS IN TWO COLUMNS. Every section stood open, one row to
+       a line across the whole width, so a manager scrolled a mile of half-empty rows to reach
+       the one rack he came for. Sections are shut until asked for — the same fold the Desk's
+       grids use — and the shelf runs two columns wide, which is what that space was for. */
+    MKT.shut = MKT.shut || {};
+    var h = '', sec = null, hidden = false;
     items.forEach(function (i) {
       var s2 = mktSection(i);
       if (s2 !== sec) {
         sec = s2;
         var n = items.filter(function (x) { return mktSection(x) === s2; }).length;
-        h += '<div class="msec"><span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
+        if (MKT.shut[s2] == null) MKT.shut[s2] = true;      /* shut until a manager opens it */
+        hidden = MKT.shut[s2];
+        h += '<div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
+             '<span class="tgchev">' + (hidden ? '\u25b8' : '\u25be') + '</span>' +
+             '<span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
       }
+      if (hidden) return;
       var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
       h += '<div class="mrow' + (open ? ' open' : '') + '" data-mopen="' + i.id + '">' +
         '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
@@ -7453,9 +7559,15 @@
      order, so a turn stays a turn however the piece has been stretched */
   function placed(body, p) {
     if (!body) return '';
+    /* §MARK WIDTH AND HEIGHT WORK ON THE SHAPE AS IT LOOKS NOW. SVG applies a transform list
+       RIGHT TO LEFT, so with `rotate` before `scale` the stretch was applied FIRST, to the
+       piece's original axes, and the rotation then turned the already-stretched shape — a
+       device turned a quarter got wider when a manager pressed Taller. The scale sits outside
+       the rotation now, so Width always stretches across the screen and Height always down it,
+       whichever way the piece has been turned. */
     var t = 'translate(' + (12 + p.x) + ' ' + (12 + p.y) + ')' +
-            ' rotate(' + MK_TURNS[p.r] + ')' +
             ' scale(' + (p.s * p.sx).toFixed(3) + ' ' + (p.s * p.sy).toFixed(3) + ')' +
+            ' rotate(' + MK_TURNS[p.r] + ')' +
             ' translate(-12 -12)';
     return '<g transform="' + t + '">' + body + '</g>';
   }

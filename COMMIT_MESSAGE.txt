@@ -1,19 +1,18 @@
-A MONTH THAT ADDS UP, EIGHT COLOURS THAT ARE EIGHT, AND A NAME FOR A NAMELESS OA
+A SHELF THAT FOLDS, AND QUIET BUSINESS THAT COSTS SOMETHING VISIBLE
 
-- THE RECAP COULD NOT ADD UP BY CONSTRUCTION: the change stood at the TOP, computed across
-  the whole month, above a list showing only the LAST SIX ledger lines (led.slice(-6)). Every
-  line the month wrote is shown now, in order, and THE TOTAL IS AT THE FOOT with the opening
-  and closing purse beside it.
-- MONEY COMING IN IS GREEN, EVERYWHERE (.cr.pos). Loss had a colour and gain did not, so an
-  advance, a purse and a gate read like a shelf price. Convention: OUT red, IN green, a plain
-  sum of money gold.
-- EIGHT SUPPLIERS, EIGHT COLOURS. The board hashed them into ten hues — eight draws from ten
-  guarantee collisions rather than risk them. Assigned BY POSITION now, from eight pitched
-  away from the houses' banners and the origin colours.
-- The benchmark came off the head of the board: it threw the title's centring out, and every
-  row already says how much more regard that supplier wants.
-- A NAMELESS OA IS "AN UNNAMED OA". It was "The Unnamed House" (a thing the game does not
-  have), which I replaced with "An Unnamed Concern" (a different thing it does not have).
+- THE MARKET'S SHELF FOLDS AND RUNS IN TWO COLUMNS. Every rack stood open, one row to a line
+  across the whole width. Racks are SHUT until asked for (the Desk's own fold); #mktledger is
+  column-count:2 with section heads spanning both. The slot picker wears the rail's clothes —
+  it was five grey `tiny` buttons doing the tabs' job.
+  (The delegated click selector had to learn data-msec, or the heads were inert.)
+- QUIET BUSINESS: the cost was REAL AND INVISIBLE, which is the same as absent. An act bills
+  the treasury, costs standing at once, and raises the risk of the next (RISK_PER_ACT across
+  the year) — but nothing said so, so the same official could be bribed four times in an
+  afternoon and it read as free and pointless at once. ONE THING ARRANGED IS ARRANGED: an act
+  cannot be repeated in the month it was taken (offered() marks `spent`, attempt() refuses),
+  and the button says so. The risk it added still stands for the year.
+- THE YEAR'S LIST MOVED TO THE MONTH'S RECAP. "Quiet Word · M1 · Came Apart" was a data dump
+  under the things a manager might arrange NEXT, reporting each outcome the instant it landed.
+  It is read when the month is read, in a sentence.
 
-regress 114/114 · fight shape ok · audit_code 0 · audit_marks 0 · docs clean · ui audit clean
-· drive green
+regress 114/114 · audit_code 0 · docs clean · ui audit clean · drive green

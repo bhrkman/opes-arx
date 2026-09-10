@@ -351,7 +351,33 @@
         history: []
       };
     }
+    /* §FOUNDING THE HANDS CARRY THE LOCKER. A house opened with people and a rack of kit and
+       no connection between them — every fighter walked around unequipped until a quartermaster
+       ran at the drop, which for a founded house meant seven veterans of last year's Divide
+       standing about with nothing on them. They are issued from what is on the shelf, best
+       first, and what they take comes off it. */
+    for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
     return corps;
+  }
+
+  /** dress a roster out of a corp's own armoury: a primary, armour and a sidearm apiece,
+      taken off the shelf, best that is there and only what is there */
+  function issueFromLocker(corp) {
+    const rack = corp.armoury || {};
+    const have = id => (rack[id] || 0) > 0;
+    const take = id => { if (!have(id)) return false; rack[id]--; if (!rack[id]) delete rack[id]; return true; };
+    const bySlot = slot => Object.keys(rack)
+      .map(id => ITEMS.byId ? ITEMS.byId(id) : null)
+      .filter(it => it && it.slot === slot)
+      .sort((a, b) => (b.tier || 0) - (a.tier || 0));
+    for (const f of corp.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      if (f.loadout && f.loadout.kit) continue;                 /* already dressed */
+      const pick = slot => { const l = bySlot(slot); for (const it of l) if (take(it.id)) return it.id; return null; };
+      const primary = pick('primary'), armor = pick('armor'), sidearm = pick('sidearm');
+      if (!primary && !armor) continue;                          /* an empty shelf dresses nobody */
+      ITEMS.equip(f, { primary: primary, armor: armor, sidearm: sidearm, mods: [], consumables: [] });
+    }
   }
 
   /* ------------------------------------------------------------------ the offseason */
@@ -2433,11 +2459,26 @@
 
   /** The candidates a manager can look at right now, with what each is asking and what this
       corp has already offered. Empty outside a signing window. */
+  /* §MARKET WHAT IS COMING, before it can be bid on. A shut window used to say only that it
+     was shut; a manager can see the people the NEXT window will offer — the same sheet, read
+     a month early — so he can want somebody before he can pay for them. The lot for a window
+     is opened when the window opens, so this is empty until then, and says so. */
+  function lotPeek(state, corpId, month) {
+    const kind = (MONTHS[month] || {}).signing;
+    let lot = kind && state.lots[kind];
+    if (kind === 'tryouts' && lot) lot = lot[corpId];
+    if (!lot) return [];
+    return lotAt(state, corpId, kind, lot);
+  }
   function lotFor(state, corpId) {
     const kind = (MONTHS[state.month] || {}).signing;
     let lot = kind && state.lots[kind];
     if (kind === 'tryouts' && lot) lot = lot[corpId];   /* your own ship's sheet */
     if (!lot) return [];
+    return lotAt(state, corpId, kind, lot);
+  }
+  /** one reader for a lot, whether it is this month's or the one a manager is peeking at */
+  function lotAt(state, corpId, kind, lot) {
     const mine = (state.bids[kind] || {})[corpId] || {}, corp = state.corps[corpId];
     return lot.map(f => ({
       id: f.id, name: f.name, age: f.age, race: f.race,
@@ -2450,7 +2491,7 @@
       bonus: f.contract && f.contract.divide_bonus,
       freedomReq: f.contract && f.contract.divides_required,
       record: f.experience || null,
-      pool: f._pool || (MONTHS[state.month] || {}).pool || null,
+      pool: f._pool || null,
       carried: !!f._carried
     }));
   }
@@ -3544,7 +3585,7 @@
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
   return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
-           renewalsFor, answerRenewal, claimPrisoner, claimsOf, signNow,
+           renewalsFor, answerRenewal, claimPrisoner, claimsOf, signNow, lotPeek,
            illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
            evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
            useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },

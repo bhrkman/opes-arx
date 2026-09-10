@@ -1233,6 +1233,85 @@ and the suite asserts that nothing vents rather than that something does.
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
 
+## A shelf that folds, and quiet business that costs something visible. *Ruled and built.*
+
+**THE MARKET'S SHELF FOLDS AND RUNS IN TWO COLUMNS.** Every rack stood open, one row to a line
+across the whole width, so a manager scrolled a mile of half-empty rows to reach the rack he came
+for. Racks are SHUT until asked for — the same fold the Desk's grids use — and the shelf runs two
+columns wide, which is what that space was for. The slot picker wears the rail's clothes: it was
+five grey `tiny` buttons doing the job the tabs at the top of the screen already do.
+
+**AND THE QUIET BUSINESS: the cost was real and invisible, which is the same as absent.** An act
+DOES bill the treasury, DOES cost standing at once, and DOES raise the risk of the next one
+(`RISK_PER_ACT` against everything done that year) — but nothing on the page said any of it, so a
+manager could have the same official bribed four times in an afternoon and read the whole thing
+as free and pointless at once. **ONE THING ARRANGED IS ARRANGED**: an act cannot be repeated in
+the month it was taken, and the button says so. The risk it added still stands for the year.
+
+**AND THE YEAR'S LIST BELONGS TO THE MONTH'S RECAP.** *Quiet Word · M1 · Came Apart* was a data
+dump sitting under the things a manager might arrange NEXT, reporting each outcome the instant it
+landed. A month's work is read when the month is read, in a sentence: what was asked for, and
+whether it held.
+
+## A centring pass, a shop behind the shutter, and hands that carry the locker. *Built.*
+
+**TITLES BELONG OVER WHAT THEY TITLE.** Window heads, squad names and the plan's figures all
+began hard against the left edge of a panel centred around them, which reads as a form rather
+than a board. A head's name centres and anything riding beside it (a kind, a count) sits out at
+the edges where it does not fight it. *The Paper* lost its *Answered This Month* chip — the
+month is the only time it appears — and the Kit Cap is centred and larger, since it is a figure
+a manager checks rather than reads past.
+
+**THE FOCUS TALLY IS ABOVE BOTH GRIDS, IN THE MIDDLE**, and says how much is committed in a
+colour readable across the room: RED while any is unspent, GREEN when it is all in.
+
+**A SHUT WINDOW SHOWS THE SHOP BEHIND THE SHUTTER.** It said *No Signing Window · Next:
+Natural-Born, Month 2* — true, and it left a manager with no idea what was coming or why to
+care. The window that IS next stands there in its own colour, closed: its people on the sheet,
+greyed and untouchable, with a plate across them naming the window and the month it opens
+(`lotPeek`). A manager can want somebody a month before he can bid.
+
+**AND A FOUNDED HOUSE'S HANDS CARRY ITS LOCKER.** A house opened with people and a rack of kit
+and NO CONNECTION BETWEEN THEM — every fighter walked around unequipped until a quartermaster
+ran at the drop, which for a founded house meant seven veterans of last year's Divide standing
+about with nothing on them. They are issued from the shelf at the founding, best first, and what
+they take comes off it: the first hands get a rifle, plate and a pistol, the last get a rifle and
+what is left, which is what a thin locker should look like.
+
+**SMALLER:** *Months 1–11 · The Preparation* is gone from every page — the clock beside it says
+that already. The dev control is labelled **DEV: Skip to Lock** and sits under the year line
+where every tab can reach it. The tab rail and the header HOLD THEIR LINE and scroll rather than
+reflowing onto a second row, which is how a website behaves and not a board. And the first month
+of a career says *A Fleet Already in Play · The Books Are Yours Now* rather than *Table Closed*:
+a manager has walked in on a Divide that has been run for years, and the opening line should say
+so.
+
+## Width and height work on the shape as it looks now. *Built.*
+
+SVG applies a transform list RIGHT TO LEFT. With `rotate` written before `scale`, the stretch
+was applied FIRST — to the piece's ORIGINAL axes — and the rotation then turned an
+already-stretched shape. So a device turned a quarter got WIDER when a manager pressed Taller,
+which is the sort of control that teaches a person to stop touching it. The scale sits outside
+the rotation now: Width always stretches across the screen and Height always down it, whichever
+way the piece has been turned.
+
+## A column with a left margin in it, and a menu in front of the menu. *Built.*
+
+**THE PAD'S ROWS WERE THROWN OUT BY ONE LEFTOVER RULE.** The group stacks its two buttons
+VERTICALLY, and a `margin-left:6px` sat between adjacent ones — so the second button of every
+pair was nudged six pixels right of the first, and nothing on the pad lined up. Sizing the
+buttons had not fixed it and could not have: the fault was a gap running in the wrong direction.
+The gap is the group's own now, in the direction the group actually runs, every button on the
+pad is one size including the d-pad's four, and the paired arrows are drawn large enough to read
+as arrows rather than specks. The harness checks the RULES rather than the render, since jsdom
+computes no layout and would pass a pad in any state.
+
+**AND THE LANDING PAGE WAS A MENU IN FRONT OF THE MENU.** It held a single card describing the
+game and linking to it — one build, nothing to choose between, and one more click between a
+visitor and the thing itself. Both `index.html` and `viewers/index.html` are redirects now, by
+meta refresh and by script so it works either way, with a plain link beneath for when neither
+fires.
+
 ## A month that adds up, eight colours that are eight, and a name for a nameless OA. *Built.*
 
 **THE RECAP'S MONEY COULD NOT ADD UP BY CONSTRUCTION.** The change stood at the TOP, computed

@@ -184,11 +184,17 @@
     const suspicion = rep ? Math.max(0, -REP.standing(rep, 'aleas')) / 100 : 0;
     return ACTS.filter(a => a.when(state)).map(a => {
       const already = done.filter(d => d.id === a.id).length;
+      /* §QUIET ONCE A MONTH FOR ANY ONE THING. A manager could have the same official bribed
+         four times in an afternoon: each one cost money and standing and raised the risk of
+         the next, but nothing on the page said so, so it read as free and pointless at once.
+         A thing arranged this month is arranged; the risk it added stands for the year. */
+      const thisMonth = done.some(d => d.id === a.id && d.month === state.month);
       /* the more a house has already had done this year, and the worse its odour with the
          Aleas, the likelier the next thing comes apart */
       const risk = (1 - a.clean) + CONST.RISK_PER_ACT * done.length + suspicion * CONST.ALEAS_SUSPICION;
       return { id: a.id, title: a.title, text: a.text, offer: a.offer, cost: a.cost, standing: a.standing,
-               clean: Math.max(0.25, Math.min(0.97, 1 - risk)), needsTarget: !!a.needsTarget, done: already };
+               clean: Math.max(0.25, Math.min(0.97, 1 - risk)), needsTarget: !!a.needsTarget,
+               done: already, spent: thisMonth };
     });
   }
   /**
@@ -209,6 +215,7 @@
       c.rep.base[a] = (c.rep.base[a] || 0) + spec.standing[a];
     }
     const list = offered(state, corpId).filter(o => o.id === actId)[0];
+    if (list && list.spent) return { ok: false, line: 'That Is Already Arranged This Month' };
     /* ONE ROLL: it goes off clean, or it comes apart and is traced back */
     const clean = hush ? 1 - (1 - list.clean) * CONST.HUSH_SHARE : list.clean;
     const worked = rng() < clean, exposed = !worked;
