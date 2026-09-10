@@ -1233,6 +1233,127 @@ and the suite asserts that nothing vents rather than that something does.
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
 
+## The menu wears three of the fleet's faces. *Built.*
+
+Three portraits — a Kellis, a Thythyn, an Etu — stand on the menu in TALL OVALS, a portrait's
+own shape, which keeps the antennae, the ears and the crest that a circle would cut away. An oval
+has no corners, so the art's black rectangle vanishes into the stage and the three read as one
+piece rather than three images set side by side. The middle is raised and a touch smaller; the
+sides sit lower and further out, framing the title from beneath and beside rather than crowding
+it from above; each wears the light of its own art — cold blue, magenta, ember. The foot line
+reads *Eight Houses · One Year · One Divide*: eleven months named only the preparation and left
+out the thing everybody was preparing for.
+
+THE ART RIDES IN THE BUILD AS DATA URLS, the way the catalogue does, because the page is one file
+that opens anywhere. Three PNGs at 3.4MB would have tripled the page; they are WebP at 600×900,
+183KB the three, and `viewers/art/` keeps the sources. `build_corp.cjs` reads them into
+`ARX_DATA.art`. (A slant on the side ovals was tried, noticed only once pointed out, and then
+wished away — it is not there.)
+
+## The pad, the tally, and a sponsor board nobody could read. *Ruled and built.*
+
+**THE MARK EDITOR WAS DEAD BECAUSE A DRAWER OPENS WITH ITS CLASS, NOT WITH `display`.** It set
+`style.display` on a `.drawer`, which is `translateX(100%)` until it is given `.on` — so the
+editor built itself in full, twenty-two thousand characters of it, and sat one screen width to
+the right where nobody could see it. It looked exactly like a dead button, and jsdom saw it
+present and reported it working.
+
+**THE PAD SAYS WHICH WAY A PIECE GOES.** Wider and Narrower were the SAME GLYPH TWICE, one
+filled and one hollow, which asks a manager to learn a code rather than read a picture: they
+point outward and inward now, and Taller and Shorter are up-over-down and down-over-up. THE
+FIGURES ARE GONE — it does not matter that a piece is 1.6 units to the left, and a number nobody
+can act on is furniture. With them gone every control is half again the size, and MOVE, being
+the only thing on its row, sits in the middle of the pad. THE READY-MADE ROW IS GONE TOO: twelve
+fixed marks made sense when the kit was small; beside eleven fields, twenty devices, eight bars
+and a full turn on each, it is a thin extra field on a screen that wants fewer of them.
+
+**THE FOCUS TALLY LIVES WHERE FOCUS IS SPENT.** It stood in the top line of EVERY tab in a dark
+font, saying a thing the agenda already says louder and in a place where nothing could be done
+about it. It is on the Desk. And *"Nothing Marked in the Natural-Born Window · 6 on the Sheet"*
+is removed rather than reworded: marking is not a thing any more (a Natural-Born signs when you
+sign them), the sentence never changed when somebody was signed, and a sheet with names on it is
+not a task waiting on anybody.
+
+**WHAT COURTING ACTUALLY IS, since the screen never said.** Focus spent on a supplier is not a
+price and does not buy a contract. It builds REGARD (which persists, kept or lost) and records
+this year's EFFORT, and at the season's turn every still-open supplier signs whichever courting
+house has the highest standing with it — one supplier per house. So "cost 3" is the focus a
+courting attempt costs, not what the contract costs; it falls as contracts are signed anywhere
+in the fleet (`COURT_COST_DROP`) and falls a little further for a house the supplier already
+regards, which is the 2.9. Losing a year's courting is not wasted: the regard stands.
+**AND "AT THE SEASON'S TURN" WAS THE FAULT, NOT THE EXPLANATION.** Everything resolved at the
+lock, simultaneously — which makes the discount at the centre of the system incoherent:
+`COURT_COST_DROP` takes focus off every remaining supplier FOR EACH CONTRACT SIGNED ANYWHERE,
+and nothing was ever signed until the year was already over. No manager could ever see a price
+fall for the reason the rule gives. He courted for three focus, did not get it, and watched the
+number move by a tenth for reasons nothing explained.
+
+**A SUPPLIER NOW SIGNS THE MONTH SOMEBODY CONVINCES IT.** Each carries a BENCHMARK — the
+standing it wants to see before it commits (`SIGN_BENCH_BASE`, about two months of steady
+courting, so a signature is a campaign and not one month's focus). The first house to reach it
+takes the contract THAT MONTH, and every supplier still open drops its bar (`SIGN_BENCH_DROP`,
+never below `SIGN_BENCH_FLOOR`) — a board that is emptying is a board where the rest get
+anxious. That is the fiction the focus discount always described, and now the two agree. The
+lock keeps a final sweep for anything still open, where the bar no longer matters because there
+is no more year to wait for, and a contract records the month it was signed.
+
+ONE PASS A MONTH, deliberately: re-running while the bar fell let a whole board sign in a single
+month — four suppliers went at once because each signature dropped the bar under the next one
+instantly. A supplier judges by the bar AT THE START OF THE MONTH; what falls this month is what
+the rest weigh next month.
+
+**AND THE FOCUS PRICE WAS NOT A THING.** "Costs 3" stood on every row and was READ BY NOTHING —
+no rule required a manager to spend it, or spent it, or checked it. A manager was shown a price,
+put three focus in, did not get the contract, and watched the price become 2.9: a price for a
+thing that was not for sale. `courtCost` and its four constants are gone. What they were reaching
+for is the benchmark.
+
+**AND THERE IS ONE CURRENCY NOW.** A focus of courting bumped regard by two AND counted for two
+again through `effort`, so a point of focus was worth four of whatever standing was measured in
+and no screen could have explained the number. ONE FOCUS IS ONE REGARD, and standing IS regard —
+the same −60..+60 scale the board already showed, built a point at a time by courting, warmed by
+keeping a contract (+10) and soured hard by failing one (−22). Effort is still recorded, because
+a supplier only considers houses that actually courted it this year, but it is not counted twice.
+The benchmark is stated in that scale: `SIGN_BENCH_BASE` 8, falling 1.5 per contract signed
+anywhere, never below 3.
+
+**THE BOARD NOW SAYS WHAT IT WANTS.** Its head carries the bar every supplier is judging by and
+how many have already gone; where the fake price stood, each row says how much more regard that
+supplier needs before it signs you, or *Convinced* when it is there. WHAT IT DOES NOT SAY, by
+ruling, IS WHO ELSE IS COURTING: that is a thing to send a scout for, not a thing the desk hands
+over.
+
+**AND THE RACE IS A RACE NOW, because the houses no longer all want the same thing equally.**
+Courting was weighted at a FLAT 0.55 for every house in the fleet and every track took the whole
+focus cap it could reach — so all eight courted from month one, with the same three focus, and
+crossed the benchmark in the same month. No benchmark could have fixed that; it was not a board
+rule but eight identical appetites.
+
+A house's appetite for a backer is `courtAppetite`: it rises as the purse thins over a year of
+wages (`COURT_COMFORTABLE`), rises with thrift — a careful house courts rather than spends —
+falls with showmanship, because a showy house would rather not be seen asking, and falls for
+every backer already signed. AND THE APPETITE DECIDES HOW MUCH, NOT ONLY WHETHER: a hungry house
+throws the cap at it, a lukewarm one puts a point in and waits. The base is low enough that a
+house with money and pride may never court at all.
+
+Measured over four fleets: the first supplier signs in month 4, two more around month 7, and ONE
+OF THE FOUR IS OFTEN NEVER TAKEN — a board that does not empty is a board a manager can win from
+late. Against the old reading, which was all four in a single month.
+
+*Still bunched, and honestly so: two suppliers commonly go in the same month, because there are
+only three focus to spend and eight houses' appetites round to the same handful of integers.
+Finer staggering wants either more focus to divide or a reason to start in different months, and
+neither is worth inventing until the screen shows a manager what the race looks like.*
+
+**AND THE TIE-BREAK WAS ARBITRARY.** `st > bestStanding` meant an exact tie went to whichever
+house came first in the id list. A sponsor with two equal suitors now SPREADS ITS BETS: the
+house carrying fewer of its contracts takes it, and if they are level there too, the one with
+less standing in the fleet — a backer courted equally by a giant and an upstart gains more by
+backing the upstart.
+
+**Each supplier wears its own colour**, drawn from its own id so it is the same on every screen.
+A column of identical grey names was the one thing the fleet is never shown as.
+
 ## A fleet that leaves the ship properly equipped. *Ruled and built.*
 
 **NOBODY IN THE FLEET CARRIED A SIDEARM, AND IT WAS A PROCUREMENT FAULT.** Every role names two

@@ -155,6 +155,17 @@
     LEAN_GRANT: 150000,       // [C] a house nobody has heard of is not underwritten like one
                               //     that has been paying out for a century
     LEAN_PIECES: 18,          // [C] guns and plate enough to put one drop on the ground badly
+    /* §SPONSORS the appetite for a backer, and what tempers it */
+    /* NOT EVERY HOUSE IS IN THE MARKET IN JANUARY. At 0.30 every house courted from month
+       one, so they all crossed the bar together whatever else was tuned. A house courts when
+       a backer starts to matter to it, and a purse thins as a year's wages are paid — so the
+       hungry are in early and the comfortable arrive later, if at all. */
+    COURT_APPETITE_BASE: 0.10,   // [C] a house with money and pride may never court at all
+    COURT_APPETITE_NEED: 0.55,   // [C] and a thin purse makes it urgent
+    COURT_APPETITE_THRIFT: 0.25, // [C] a careful house courts rather than spends
+    COURT_APPETITE_PRIDE: 0.30,  // [C] a showy one would rather not be seen asking
+    COURT_APPETITE_HELD: 0.22,   // [C] off the appetite per backer already signed
+    COURT_COMFORTABLE: 300000,   // [C] the purse above which nobody is hungry
     QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
     MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
     YOUNG_AT: 26,             // [C] who counts as young for that
@@ -1002,13 +1013,26 @@
       ['rest', hurt.length + stressed * 0.3],
       ['train', green.length * 0.5],
       ['scout', interest == null ? 0.5 : interest - CONST.SCOUT_APATHY],
-      ['court', 0.55 - 0.2 * (((corp.sponsors || {}).contracts || []).length)]
+      /* §SPONSORS HOW BADLY A HOUSE WANTS A BACKER IS A MATTER OF CHARACTER. This was a flat
+         0.55 for every house in the fleet, so all eight courted with the same weight from the
+         same month and crossed the benchmark in the same month — four suppliers signing at
+         once, which reads as a formality rather than a race. A house that is short of money
+         wants a backer badly; a thrifty one can wait; a proud one would rather not be seen
+         asking. */
+      ['court', courtAppetite(corp)]
     ].filter(w => w[1] > 0 && open[w[0]]).sort((a, b) => b[1] - a[1]);
     const focus = {};
     let left = CONST.FOCUS_POINTS;
-    for (const [kind] of weights) {
+    for (const [kind, w] of weights) {
       if (!left) break;
-      const f = Math.min(CONST.FOCUS_CAP, left);
+      /* §SPONSORS HOW MUCH, NOT ONLY WHETHER. Every track took the whole cap it could, so
+         every house that courted at all courted with the same three focus and reached the
+         benchmark in the same month. Courting takes what its appetite is worth — a hungry
+         house throws the cap at it, a lukewarm one puts a point in and waits. */
+      const cap = kind === 'court'
+        ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP)))
+        : CONST.FOCUS_CAP;
+      const f = Math.min(cap, left);
       focus[kind] = f; left -= f;
     }
     /* COURTING PICKS A HOUSE. If the AI spent focus on courting, aim it at the sponsor it fits
@@ -1033,6 +1057,21 @@
    * hurt to treat — never for reasons of taste. Cost is checked by the caller against what is
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
+  /* §SPONSORS what a backer is worth to THIS house, this year: the thinner the purse the more
+     it matters, tempered by what the house thinks of itself. */
+  function courtAppetite(corp) {
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const held = ((corp.sponsors || {}).contracts || []).length;
+    const purse = (corp.account && corp.account.treasury) || 0;
+    /* a house with money in the bank is not hungry for an advance */
+    const need = Math.max(0, 1 - purse / CONST.COURT_COMFORTABLE);
+    return (CONST.COURT_APPETITE_BASE
+            + need * CONST.COURT_APPETITE_NEED
+            + dial('thrift') * CONST.COURT_APPETITE_THRIFT
+            - dial('showmanship') * CONST.COURT_APPETITE_PRIDE)
+           - held * CONST.COURT_APPETITE_HELD;
+  }
   function monthTracks(corp, month) {
     const win = MONTHS[month] || { name: 'Month ' + month, signing: null, event: null };
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -2801,6 +2840,17 @@
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
                         state.corps, state.ids, m, {});
+    /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
+       month, and every supplier still open lowers what it wants — which is the discount the
+       system always described and never delivered, because everything used to resolve at the
+       lock at once. */
+    if (state.sponsorBoard && SPON.stepBoard) {
+      const took = SPON.stepBoard(state.sponsorBoard, state.corps, state.ids, m);
+      for (const id in took) {
+        const c = state.corps[id];
+        (c._signedThisMonth = c._signedThisMonth || []).push({ month: m, houses: took[id] });
+      }
+    }
     state.month++;
     ensureLot(state);
     /* the next month draws its events for every corp */
@@ -2868,6 +2918,9 @@
        the highest standing (regard plus this year's effort) and pays its advance. Conditions
        are judged after the Divide, in finishSeason. One commitment per house. The result lives
        on each corp's `sponsors.contracts` — the page and the record read it from there. */
+    /* §SPONSORS the board has been signing all year, the month each supplier was convinced;
+       this is the sweep for anything still open at the lock, where the bar no longer matters
+       because there is no more year to wait for. */
     SPON.resolveBoard(state.sponsorBoard, corps, ids);
     /* the fleet's seam decisions are taken here, at the close, so a human has had all of M11 to
        make theirs first and the AI is reacting to a board that already has their pick on it */

@@ -24,6 +24,10 @@
   --wall:#9d7cd8;
     /* ORIGIN HUES — muted, their own identity, distinct from the squad vivids */
     --o-nat:#6fb4d8; --o-mer:#b899cc; --o-con:#c8a86a;
+    /* §SPONSORS ten voices for the suppliers, vetted against the houses, the races and the
+       ground so a backer never reads as somebody else */
+    --spn-1:#c9a227; --spn-2:#5eb0d6; --spn-3:#b06fd6; --spn-4:#63c98a; --spn-5:#e0784a;
+    --spn-6:#d95f7a; --spn-7:#6f8fe0; --spn-8:#c2a06a; --spn-9:#4fc4c0; --spn-10:#d6a0c8;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -61,7 +65,34 @@
   .overlay > *{max-height:none}
   @media (max-height:760px){ .overlay{align-items:flex-start} }
   .menucol{display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:420px}
-  .menutitle{font-size:34px;letter-spacing:.35em;color:var(--a);text-align:center}
+  /* §MENU the stage: three tall ovals, the middle raised, the words around it. Each oval wears
+     the light of its own art — cold blue, magenta, ember — and the stage is black because the
+     art is. Sizes are clamped to the viewport so a laptop and a wide monitor both hold it. */
+  /* NO WRAPPING. `.overlay` wraps its children, and in a column that means the moment the
+     ovals plus the menu are taller than the screen, the menu is pushed into a SECOND COLUMN
+     to the right — ovals on the left, buttons on the right, which is exactly what happened.
+     The stage stacks and scrolls; nothing ever wraps sideways. */
+  .menustage{flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:0;
+    background:#050810;padding:24px 16px 40px}
+  .menustage::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
+  .menuovals{display:flex;align-items:flex-end;justify-content:center;gap:clamp(14px,3vw,40px);margin-top:2vh;position:relative;z-index:1}
+  .moval{position:relative;overflow:hidden;background:#000;border-radius:50% / 46%;border:2px solid var(--c);
+    box-shadow:0 0 0 7px rgba(0,0,0,.65),0 0 60px var(--glow),inset 0 -60px 70px rgba(0,0,0,.6)}
+  .moval img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
+  .moval.right img{object-position:50% 20%}
+  .moval.left{--c:#8fb8ff;--glow:rgba(143,184,255,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(-3.5vw,7vh)}
+  .moval.right{--c:#ff6a2a;--glow:rgba(255,106,42,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(3.5vw,7vh)}
+  .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);width:clamp(195px,21vw,285px);height:clamp(300px,33.5vw,455px);margin-bottom:clamp(40px,7vh,90px)}
+  .menustage .menucol{position:relative;z-index:2;margin-top:clamp(-70px,-9vh,-120px);align-items:center}
+  .menustage .menubtn{width:290px;max-width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;text-transform:uppercase}
+  .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
+  .menufleet{display:flex;justify-content:center;gap:14px;margin-top:12px}
+  .menufleet span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);
+    display:inline-flex;align-items:center;justify-content:center;opacity:.7}
+  @media (max-width:720px){ .moval.left,.moval.right{display:none} .moval.mid{margin-bottom:0} .menustage .menucol{margin-top:18px} }
+  .menutitle{font-size:clamp(34px,4.6vw,56px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
+    text-shadow:0 0 22px rgba(58,216,224,.45),0 0 2px rgba(58,216,224,.9)}
   .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
   .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
   .menubtn:disabled{opacity:.35}
@@ -97,15 +128,20 @@
   .mkreset{background:transparent;border:1px solid var(--line2);color:var(--faint);border-radius:5px;
     padding:2px 8px;font:inherit;font-size:9.5px;cursor:pointer}
   .mkreset:hover{border-color:var(--a);color:var(--a)}
-  .mkpadgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 12px}
-  .mkgrp{display:flex;align-items:center;gap:4px}
-  .mkgrp.wide{grid-column:1/-1}
-  .mkgrp .gl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);width:34px}
-  .mkgrp .gv{font-size:9.5px;color:var(--dim);margin-left:2px;font-variant-numeric:tabular-nums}
-  .padb{width:26px;height:24px;border:1px solid var(--line2);background:var(--bg);color:var(--dim);border-radius:5px;
-    font:inherit;font-size:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
-  .padb:hover{border-color:var(--a);color:var(--a)}
-  .dpad{display:grid;grid-template-columns:repeat(3,24px);grid-template-rows:repeat(2,22px);gap:2px}
+  /* §MARK with the figures gone, every control has room to be read */
+  .mkpadgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 14px;justify-items:center}
+  .mkgrp{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .mkgrp .gl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .mkgrp > .padb,.mkgrp .padrow{display:inline-flex}
+  .mkgrp{flex-flow:column wrap}
+  .mkgrp .padb + .padb{margin-left:6px}
+  /* MOVE is the only thing on its row, so it stands in the middle of the pad */
+  .mkgrp.move{grid-column:1/-1;justify-self:center}
+  .padb{min-width:40px;height:34px;border:1px solid var(--line2);background:var(--bg);color:var(--dim);border-radius:6px;
+    font:inherit;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+  .padb:hover{border-color:var(--a);color:var(--a);background:var(--a-deep)}
+  .dpad{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,32px);gap:3px}
+  .dpad .padb{min-width:0;width:36px;height:32px;margin-left:0}
   .dpad .u{grid-area:1/2} .dpad .l{grid-area:2/1} .dpad .d{grid-area:2/2} .dpad .r{grid-area:2/3}
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
@@ -594,6 +630,12 @@
   .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
   .ctbl .ccost{color:var(--dim);font-size:10px} .ctbl .ccost b{color:var(--ink)} .ctbl .ccost .drop{color:var(--hit)}
   .ctbl .cregard{font-size:10px;margin-top:2px}
+  /* §SPONSORS the bar the board judges by, and each supplier's distance from it */
+  .cbench{font-size:11px;color:var(--dim);margin-top:3px}
+  .cbench b{color:var(--cred)}
+  .ctbl .cgap{font-size:10.5px;color:var(--dim)}
+  .ctbl .cgap b{color:var(--ink);font-size:13px}
+  .ctbl .cgap b.good{color:var(--hit)}
   .ctbl .cregard .warm{color:var(--hit)} .ctbl .cregard .cold{color:var(--bad)} .ctbl .cregard .neutral{color:var(--dim)}
   .ctbl .csigned{color:var(--warn);font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
   .ctbl .csigned.you{color:var(--hit)}
@@ -859,6 +901,7 @@
      origin, on the map's markers — and the window that buys them was one green box for all
      three. The panel takes `--o` from the window, and every rule below reads it, so the three
      are told apart before a word is read. */
+  .focusdeskline{text-align:right;margin:-4px 0 8px;font-size:11px}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
   .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
   .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
@@ -1023,7 +1066,8 @@
   </div>
   <div class="bar">
     <span class="gold" id="clock" style="letter-spacing:.08em"></span>
-    <span class="m" id="focusline"></span>
+    <!-- §DESK the focus tally lives on the Desk, where focus is spent. It stood in the top
+         line of EVERY tab, in a dark font, saying a thing the agenda already says louder. -->
     <button id="endmonth" style="display:none" hidden>End the Month</button>
     <button id="nextyear" style="display:none" hidden>Begin the Next Year</button>
     <button id="savebtn" class="tiny">Save</button>
@@ -1032,10 +1076,19 @@
 </header>
 
 <!-- ================================ THE MENU ================================ -->
-<div id="menu" class="overlay">
+<div id="menu" class="overlay menustage">
+  <!-- §MENU three of the fleet's peoples in tall ovals — a portrait's own shape, which keeps
+       the antennae, the ears and the crest a circle would cut — the middle raised and the title
+       set below it so the words sit around the figure rather than across it. The art is drawn
+       on black, so the stage is black too and each figure carries its own light outward. -->
+  <div class="menuovals">
+    <div class="moval left"><img id="menuArtL" alt=""></div>
+    <div class="moval mid"><img id="menuArtM" alt=""></div>
+    <div class="moval right"><img id="menuArtR" alt=""></div>
+  </div>
   <div class="menucol">
     <div class="menutitle">OPES ARX</div>
-    <div class="menusub">Eight Houses &middot; Eleven Months &middot; One Divide</div>
+    <div class="menusub">The Capital Divide</div>
     <button class="menubtn" id="mNew">New Game</button>
     <button class="menubtn" id="mLoad">Load Game</button>
     <button class="menubtn" id="mResume" style="display:none">Resume</button>
@@ -1043,6 +1096,9 @@
     <button class="menubtn" disabled title="not yet">Options</button>
     <button class="menubtn" id="mExit">Exit Game</button>
     <div class="m" id="mNote"></div>
+    <div class="menufoot">Eight Houses &middot; One Year &middot; One Divide</div>
+    <!-- the eight houses' own marks, the real ones, so the stage says what the game is -->
+    <div class="menufleet" id="menufleet"></div>
   </div>
   <div class="menucol" id="loadpanel" style="display:none">
     <div class="menusub">Saved Games</div>
@@ -1097,6 +1153,7 @@
       <!-- "The month's verbs" said nothing a manager would say, and the section beneath it
            already names each verb; "Gather Intel and Court Sponsors" simply listed the two
            boxes under it. Both removed rather than reworded. -->
+      <div class="focusdeskline"><span class="m" id="focusdesk"></span></div>
       <div id="verbs"></div>
       <div id="traingrid"></div>
       <div id="restgrid"></div>
@@ -1164,7 +1221,7 @@
   <div id="backroom"></div>
 </div>
 <div class="drawer" id="unitpanel"></div>
-<div class="drawer" id="markedit" style="display:none"></div>
+<div class="drawer" id="markedit"></div>
 <!-- THE QUIET BUSINESS: a window, not a tab, open in the preparation and in the Divide -->
 
 <!-- ============================== THE FIREFIGHT ============================== -->
@@ -2164,6 +2221,8 @@
     $('apline').innerHTML = '';
     if ($('focusline'))
       $('focusline').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
+    if ($('focusdesk'))
+      $('focusdesk').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
   }
 
   /* ============================ THE BRIEF ============================
@@ -2194,9 +2253,10 @@
       var d = e.options.filter(function (o) { return o.id === e.def; })[0];
       items.push({ txt: esc(e.title), tab: 'desk', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
     });
-    var lot = SEASON.lotFor(G.state, G.me), bids = SEASON.bidsFor(G.state, G.me);
-    if (lot.length && !Object.keys(bids).length && (SEASON.MONTHS[m] || {}).signing !== 'bastille')
-      items.push({ txt: 'Nothing Marked in the ' + capWords((SEASON.MONTHS[m] || {}).name) + ' \u00b7 ' + lot.length + ' on the Sheet', tab: 'roster', cost: 'The Pool Moves On' });
+    /* "NOTHING MARKED IN THE NATURAL-BORN WINDOW · 6 ON THE SHEET" stood here and said
+       nothing: marking is not a thing any more (a Natural-Born signs when you sign them), the
+       sentence did not change when a manager signed somebody, and a sheet with names on it is
+       not a task waiting on anybody. Removed rather than reworded. */
     var spent = 0; for (var k in (G._focusSel || {})) if (k !== '_m' && typeof G._focusSel[k] === 'number') spent += G._focusSel[k];
     spent = Math.max(spent, trainPips() + restPips() + intelPips() + courtPips());
     if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', cost: 'Wasted' });
@@ -2963,13 +3023,8 @@
     for (var k in G._focusSel) if (k !== '_m' && k !== 'court' && typeof G._focusSel[k] === 'number') s += G._focusSel[k] || 0;
     return s;
   }
-  /* the supplier's live courting cost: base, less a drop per contract taken fleet-wide, less a
-     regard discount, floored — read straight from the engine so the desk and the sim agree. */
-  function courtCostFor(house) {
-    var me = G.corps[G.me], board = G.state.sponsorBoard;
-    if (!board) return SEASON.SPON.CONST.COURT_COST_BASE;
-    return SEASON.SPON.courtCost(board, me, house);
-  }
+  /* the focus price is gone with the rule that never read it: what a supplier wants is a
+     benchmark in regard, shown at the head of the board. */
   /* regard as a number with a worded band beside it, e.g. "56 (Warm)". Bands split the span. */
   function regardBand(v) {
     var span = SEASON.SPON.CONST.REGARD_SPAN;               /* runs -span..+span */
@@ -3017,6 +3072,15 @@
     return null;
   }
 
+  /* §SPONSORS a supplier's colour, stable from its id — the same house is the same colour on
+     every screen it appears on, and no two neighbours in the list collide */
+  var SPON_HUES = ['var(--spn-1)', 'var(--spn-2)', 'var(--spn-3)', 'var(--spn-4)', 'var(--spn-5)',
+                   'var(--spn-6)', 'var(--spn-7)', 'var(--spn-8)', 'var(--spn-9)', 'var(--spn-10)'];
+  function sponsorColour(id) {
+    var h = 0, str = String(id);
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return SPON_HUES[h % SPON_HUES.length];
+  }
   function renderCourtGrid() {
     var host = $('courtgrid');
     var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
@@ -3027,6 +3091,10 @@
                     Object.keys(me.sponsors.regard).some(function (k) { return me.sponsors.regard[k]; });
     if (!canCourt && !hasContract && !hasRegard) { host.innerHTML = ''; return; }
 
+    /* §SPONSORS the bar this board is judging by, and how much of it has already gone */
+    var board0 = G.state.sponsorBoard || { taken: 0, signedBy: {} };
+    var bench = SEASON.SPON.benchmarkFor(board0);
+    var taken0 = board0.taken || 0;
     var sel = courtSel();
     if (canCourt) G._focusSel.court = courtPips();
     var spent = courtPips() + otherFocusCourt(), full = spent >= SEASON.CONST.FOCUS_POINTS;
@@ -3034,6 +3102,9 @@
     var h = '<div class="tgwrap' + (deskFolded('court') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="court">' +
       '<span class="tgtitle">Court Sponsors</span>' + boostTag('court') + foldTag('court') +
       (canCourt ? '' : '<span class="m">Backers Committed</span>') +
+      /* the bar every supplier on this board is judging by, and why it moves */
+      '<div class="cbench">The Board Signs At <b>' + (Math.round(bench * 10) / 10) + '</b> Regard' +
+        (taken0 ? ' <span class="m">\u00b7 ' + taken0 + ' Already Signed</span>' : '') + '</div>' +
       '</div><table class="ctbl">';
 
     courtTargets().forEach(function (t) {
@@ -3046,7 +3117,11 @@
 
       h += '<tr class="' + (n > 0 ? 'lit' : '') + (taken ? ' signed' : '') + '">';
       /* left: name, flavour tag, condition, pay line */
-      h += '<td><span class="cname">' + esc(t.name) + '</span>' +
+      /* §SPONSORS EACH HOUSE WEARS ITS OWN COLOUR, like every other body in the game: a
+         column of identical grey names is the one thing the fleet is never shown as. The
+         colour is drawn from the house's own id, so it is the same every time it appears. */
+      h += '<td style="border-left:3px solid ' + sponsorColour(t.id) + '">' +
+           '<span class="cname" style="color:' + sponsorColour(t.id) + '">' + esc(t.name) + '</span>' +
            '<span class="cflavor ' + t.flavor + '">' + (t.flavor.charAt(0).toUpperCase() + t.flavor.slice(1)) + '</span>' + signedTag +
            '<div class="ccond">' + esc(t.text.charAt(0).toUpperCase() + t.text.slice(1)) + '</div>';
       if (!taken || mine)
@@ -3062,10 +3137,14 @@
       h += '<td class="cpips">' + (canCourt && !taken ? courtPipTrack(t.id, n) : '') + '</td>';
       /* right: live cost while open, and your regard */
       h += '<td class="cright">';
+      /* §SPONSORS WHERE THE FAKE PRICE STOOD, THE DISTANCE TO THE BAR. "Costs 3" was a price
+         for a thing that was not for sale — no rule read it. What a manager needs is how far
+         this supplier still is from signing him. */
       if (canCourt && !taken) {
-        var cost = courtCostFor(t.id), base = SEASON.SPON.CONST.COURT_COST_BASE;
-        h += '<div class="ccost">Costs <b>' + cost.toFixed(cost % 1 ? 1 : 0) + '</b>' +
-             (cost < base - 0.01 ? ' <span class="drop">&darr;</span>' : '') + '</div>';
+        var need = Math.max(0, bench - regard);
+        h += '<div class="cgap">' + (need <= 0
+              ? '<b class="good">Convinced</b>'
+              : '<b>' + (Math.round(need * 10) / 10) + '</b> <span class="m">More Regard</span>') + '</div>';
       }
       h += '<div class="cregard"><span class="' + regardClass(regard) + '">Regard ' +
            Math.round(regard) + ' (' + regardBand(regard) + ')</span></div>';
@@ -7144,6 +7223,19 @@
 
   /* the seed still decides the world; it is simply not a question the founding screen asks */
 
+  /* §MENU the portraits come from the build, as data URLs, so the one file opens anywhere */
+  (function () {
+    var art = (window.ARX_DATA && ARX_DATA.art) || {};
+    var set = function (id, key) { var el = $(id); if (el && art[key]) el.src = art[key]; };
+    set('menuArtL', 'menu_kellis'); set('menuArtM', 'menu_thythyn'); set('menuArtR', 'menu_etu');
+    /* the row of the eight was in the mock-up as placeholder glyphs; here it is the houses'
+       own marks in their own colours, which the game already knows how to draw */
+    if ($('menufleet') && typeof markFor === 'function') {
+      $('menufleet').innerHTML = OA.map(function (p) {
+        return '<span style="--c:' + colFor(p.id) + '" title="' + esc(p.name) + '">' + markFor(p.id, 13) + '</span>';
+      }).join('');
+    }
+  })();
   $('mNew').onclick = function () {
     $('menu').style.display = 'none';
     $('setup').style.display = 'flex';
@@ -7287,9 +7379,10 @@
     paintMarks();
   }
   /* the twelve presets: a manager who does not want to build one picks one */
-  var MK_PRESETS = [[1,0,0],[2,3,0],[3,1,0],[4,4,0],[1,3,1],[5,0,0],
-                    [6,2,0],[2,6,0],[1,7,0],[3,10,0],[7,5,0],[4,11,1]]
-                   .map(function (p) { return [Math.min(p[0], 10), p[1], p[2]]; });
+  /* THE READY-MADE ROW IS GONE. Twelve fixed marks made sense when the kit was small; beside
+     eleven fields, twenty devices, eight bars and a full turn on each, a dozen presets is a
+     thin extra field on a screen that wants fewer of them. A manager who does not care picks
+     the first thing in each row and is done. */
 
   /* ======================= A FIGHTER'S MARK =======================
      §MARK EVERY FIGHTER IS THEIR OWN MARK. Portrait art for hundreds of people across a
@@ -7393,11 +7486,15 @@
   }
   function renderMarkEditor() {
     var host = $('markedit'); if (!host) return;
-    if (!MARK_EDIT) { host.style.display = 'none'; host.innerHTML = ''; return; }
+    /* A DRAWER OPENS WITH ITS CLASS, NOT WITH `display`. This set `style.display` on a
+       `.drawer`, which is `transform: translateX(100%)` until it is given `.on` — so the
+       editor built itself in full, twenty-two thousand characters of it, and sat one screen
+       width to the right where nobody could see it. It looked exactly like a dead button. */
+    if (!MARK_EDIT) { host.classList.remove('on'); host.innerHTML = ''; return; }
     var f = bodyById(MARK_EDIT.id); if (!f) { MARK_EDIT = null; host.style.display = 'none'; return; }
     var raceHex = (RACE[f.race] || {}).fill || '#c4d4e8';
     var fillHex = MARK_EDIT.color || raceHex;
-    host.style.display = '';
+    host.classList.add('on');
     host.innerHTML = '<div class="railbox mkedit"><span class="close" data-mkclose="1">\u2715</span>' +
       '<div class="railhead">' + fighterMark(f, 34, colFor(G.me)) +
         '<span class="nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
@@ -7456,8 +7553,12 @@
             (piece || '<circle cx="12" cy="12" r="1.3" fill="currentColor" opacity=".35"/>') + '</svg></button>'; }).join('') +
         '</span></div>';
     };
-    /* §MARK THE PAD. One set of controls, working whichever piece was last touched — a symbol
-       apiece and the reading beside it, rather than a figure crammed into the button. */
+    /* §MARK THE PAD. One set of controls, working whichever piece was last touched. THE
+       ARROWS SAY WHICH WAY THE PIECE GOES: Wider points outward and Narrower inward; Taller
+       is up-over-down and Shorter down-over-up. They were the same glyph twice, one filled and
+       one hollow, which asks a manager to learn a code rather than read a picture. THE FIGURES
+       ARE GONE: it does not matter that a piece is 1.6 units to the left, and a number nobody
+       can act on is furniture. Fewer things on the row means each of them can be bigger. */
     var p = mk[mk.slot];
     var pad =
       '<div class="mkpad"><div class="mkpadhead">Adjusting <b>' +
@@ -7466,27 +7567,23 @@
       '<div class="mkpadgrid">' +
         '<div class="mkgrp"><span class="gl">Turn</span>' +
           '<button type="button" class="padb" data-adj="turn" data-d="-1" title="Turn Back">\u21ba</button>' +
-          '<button type="button" class="padb" data-adj="turn" data-d="1" title="Turn On">\u21bb</button>' +
-          '<span class="gv">' + MK_TURNS[p.r] + '\u00b0</span></div>' +
+          '<button type="button" class="padb" data-adj="turn" data-d="1" title="Turn On">\u21bb</button></div>' +
         '<div class="mkgrp"><span class="gl">Size</span>' +
           '<button type="button" class="padb" data-adj="size" data-d="-1" title="Smaller">\u2212</button>' +
-          '<button type="button" class="padb" data-adj="size" data-d="1" title="Bigger">+</button>' +
-          '<span class="gv">' + Math.round(p.s * 100) + '%</span></div>' +
-        '<div class="mkgrp wide"><span class="gl">Move</span>' +
+          '<button type="button" class="padb" data-adj="size" data-d="1" title="Bigger">+</button></div>' +
+        '<div class="mkgrp move"><span class="gl">Move</span>' +
           '<span class="dpad">' +
             '<button type="button" class="padb u" data-adj="y" data-d="-1" title="Up">\u25b2</button>' +
             '<button type="button" class="padb l" data-adj="x" data-d="-1" title="Left">\u25c0</button>' +
             '<button type="button" class="padb r" data-adj="x" data-d="1" title="Right">\u25b6</button>' +
             '<button type="button" class="padb d" data-adj="y" data-d="1" title="Down">\u25bc</button>' +
-          '</span><span class="gv">' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + '</span></div>' +
-        '<div class="mkgrp"><span class="gl">Wide</span>' +
-          '<button type="button" class="padb" data-adj="wide" data-d="-1" title="Narrower">\u25c0\u25b6</button>' +
-          '<button type="button" class="padb" data-adj="wide" data-d="1" title="Wider">\u25c1\u25b7</button>' +
-          '<span class="gv">' + Math.round(p.sx * 100) + '%</span></div>' +
-        '<div class="mkgrp"><span class="gl">Tall</span>' +
-          '<button type="button" class="padb" data-adj="tall" data-d="-1" title="Shorter">\u25b2\u25bc</button>' +
-          '<button type="button" class="padb" data-adj="tall" data-d="1" title="Taller">\u25b3\u25bd</button>' +
-          '<span class="gv">' + Math.round(p.sy * 100) + '%</span></div>' +
+          '</span></div>' +
+        '<div class="mkgrp"><span class="gl">Width</span>' +
+          '<button type="button" class="padb" data-adj="wide" data-d="-1" title="Narrower">\u25b6\u25c0</button>' +
+          '<button type="button" class="padb" data-adj="wide" data-d="1" title="Wider">\u25c0\u25b6</button></div>' +
+        '<div class="mkgrp"><span class="gl">Height</span>' +
+          '<button type="button" class="padb" data-adj="tall" data-d="-1" title="Shorter">\u25bc\u25b2</button>' +
+          '<button type="button" class="padb" data-adj="tall" data-d="1" title="Taller">\u25b2\u25bc</button></div>' +
       '</div></div>';
     host.innerHTML =
       '<div class="mkstage"><svg class="mkbig" viewBox="0 0 24 24" style="color:' + cpick + '">' + markBody() + '</svg>' +
@@ -7496,12 +7593,7 @@
           '<svg width="12" height="12" viewBox="0 0 24 24">' + markBody() + '</svg></div>' +
         '<span class="m">On a Tab, a Chip, the Ground</span></div>' +
       '<div class="mkkit">' + SLOTS.map(function (sl) { return row(sl[0], sl[1], sl[2]); }).join('') + pad +
-        '<div class="mkrow"><span class="mklab">Ready-Made</span><span class="mkopts">' +
-          MK_PRESETS.map(function (p2, i) {
-            var body = MK_FIELDS[p2[0]] + MK_BARS[p2[2]] + MK_DEVICES[p2[1]];
-            return '<button type="button" class="mkopt" data-preset="' + i + '" style="--c:' + cpick + '">' +
-              '<svg width="24" height="24" viewBox="0 0 24 24">' + body + '</svg></button>'; }).join('') +
-        '</span></div></div>';
+        '';
     Array.prototype.forEach.call(host.querySelectorAll('[data-mk]'), function (b) {
       b.onclick = function () {
         var k = b.getAttribute('data-mk');
@@ -7514,13 +7606,7 @@
     Array.prototype.forEach.call(host.querySelectorAll('[data-adj]'), function (b) {
       b.onclick = function () { mkAdjust(b.getAttribute('data-adj'), +b.getAttribute('data-d')); };
     });
-    Array.prototype.forEach.call(host.querySelectorAll('[data-preset]'), function (b) {
-      b.onclick = function () {
-        var p2 = MK_PRESETS[+b.getAttribute('data-preset')];
-        mk.f = mkPiece(p2[0]); mk.d = mkPiece(p2[1]); mk.b = mkPiece(p2[2]);
-        paintMarks();
-      };
-    });
+
   }
   paintMarks($('cmarks'));
   $('cfound').onclick = function () {

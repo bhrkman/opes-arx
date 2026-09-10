@@ -1,28 +1,16 @@
-THE OVERHEAT IS RETIRED AND EVERY CELL HOLDS HALF AGAIN WHAT IT DID
+THE MENU WEARS THREE OF THE FLEET'S FACES
 
-A family that costs slightly more should perform slightly better; it was worse in nearly
-every way instead — same money, softer at every tier a fleet fields, 37% fewer rounds a
-fight, in exchange for freedom from a resupply burden that costs 3%.
+- Three portraits — a Kellis, a Thythyn, an Etu — in TALL OVALS on the menu: a portrait's own
+  shape, which keeps the antennae, ears and crest a circle would cut. The middle raised and a
+  touch smaller; the sides lower and further out, framing the title from beneath and beside.
+  Each wears the light of its own art.
+- Foot line: "Eight Houses · One Year · One Divide", and beneath it THE EIGHT HOUSES' OWN
+  MARKS in their own colours — the mock-up's placeholder glyphs, drawn for real by markFor.
+- viewers/art/menu_{kellis,thythyn,etu}.webp (600x900, 183KB the three, from 3.4MB of PNG).
+  build_corp.cjs reads them into ARX_DATA.art as data URLs so the one file opens anywhere.
+- THE STAGE STACKS AND NEVER WRAPS. .overlay has flex-wrap:wrap, and in a column that means
+  the moment the ovals plus the menu are taller than the screen the menu is pushed into a
+  SECOND COLUMN to the right. .menustage is flex-wrap:nowrap and scrolls instead; the harness
+  asserts the rule, since jsdom computes no layout.
 
-- data/items.json: all fifteen cell-fed primaries lose `heat` and `heat_cap`, and every
-  `charge` is multiplied by 1.5 (Surplus Las-Carbine 12 -> 18, Las-Repeater 18 -> 27).
-- combat.js: spendShot no longer accumulates heat or sets `venting`. WHAT MAKES A WEAPON
-  CELL-FED IS THAT IT HAS A CELL — isEnergy tested heatCap > 0, so pulling the overheat out
-  of the catalogue alone would have stopped cells being spent at all and quietly turned every
-  energy weapon into a ballistic one firing ammunition it does not carry. The family is named
-  by `cellFed`. The venting machinery stays: a mod or quirk may still put heat in a weapon.
-- VENT_EXCHANGES and HEAT_SUPPRESS_MULT labelled _RETIRED, not deleted — a heat rule may come
-  back and this is where it lands. audit_code takes _RETIRED as a deliberate answer, as it
-  takes [ABSTRACT]. VENT_EXCHANGES leaves arx.cjs's known-duplicates list.
-
-MEASURED AFTER: a cell holds 19.5 shots, a fight asks 14.6, energy hands fire 14.6 rounds
-against a ballistic hand's 13.5 — a 9% EDGE where there was a 37% deficit. Venting zero.
-cellFedWithNoSidearm 22 -> 0. Range gradient unharmed: 2.25 dead a fight at a short opening
-against 1.42 at a long one.
-
-CAVEAT KEPT IN THE DOCS: the catalogue's charges were multiplied TWICE on the first attempt
-(12 -> 18 -> 27) and caught only by checking the committed values. A data multiplier is not
-idempotent and the file is its own only record.
-
-regress 114/114 · fight shape ok · bands measured · kit measured · energy measured ·
-audit_code 0 · audit_marks 0 · docs clean · ui audit clean · drive green
+regress 114/114 · audit_code 0 · docs clean · ui audit clean · drive green · page 1.9MB

@@ -31,6 +31,17 @@ for (const d of DATA) {
   data += '  ' + JSON.stringify(d.replace('.json', '')) + ': ' +
           fs.readFileSync(D + '../data/' + d, 'utf8') + ',\n';
 }
+/* THE MENU'S ART rides in as data URLs, the same way the catalogue does: the page is one
+   file that opens anywhere, and three portraits at 60KB apiece are a fair price for that.
+   They are read from viewers/art so the source images stay images in the repo. */
+const ART = ['menu_kellis', 'menu_thythyn', 'menu_etu'];
+data += '  art: {\n';
+for (const a of ART) {
+  const f = D + '../viewers/art/' + a + '.webp';
+  const b64 = fs.existsSync(f) ? fs.readFileSync(f).toString('base64') : '';
+  data += '    ' + JSON.stringify(a) + ': ' + JSON.stringify(b64 ? 'data:image/webp;base64,' + b64 : '') + ',\n';
+}
+data += '  },\n';
 data += '};\n';
 
 const tplPath = D + '../viewers/corp_template.html';

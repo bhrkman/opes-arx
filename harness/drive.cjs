@@ -65,6 +65,20 @@ setTimeout(() => {
   try {
     /* ---- the shell: menu first, then the founding ---- */
     check(loadErrors === 0, 'the page loads without a single error (' + loadErrors + ')');
+    /* §MENU three of the fleet's peoples stand on the menu, art inlined by the build */
+    check([...doc.querySelectorAll('#menu .moval img')].filter(i => /^data:image\/webp/.test(i.src)).length === 3 &&
+          /One Year/.test(text('#menu .menufoot')),
+          'the menu carries its three portraits and names the whole year');
+    check(doc.querySelectorAll('#menufleet span svg').length === 8,
+          'and the eight houses stand along its foot in their own marks');
+    /* the stage stacks: the overlay wraps its children, and a column that wraps pushes the
+       menu into a second column beside the ovals the moment they are taller than the screen */
+    {
+      const css = [...doc.querySelectorAll('style')].map(s2 => s2.textContent).join('\n');
+      const rule = (css.match(/\.menustage\{[^}]*\}/) || [''])[0];
+      check(/flex-direction:column/.test(rule) && /flex-wrap:nowrap/.test(rule),
+            'the menu stage stacks its ovals above its buttons and never wraps them sideways');
+    }
     check(doc.getElementById('menu').style.display !== 'none',
           'the game opens on the menu, not mid-cockpit');
     doc.getElementById('mNew').click();
@@ -75,10 +89,10 @@ setTimeout(() => {
        with ready-made marks beside them for a manager who does not want to make one */
     check(doc.getElementById('setup').style.display !== 'none' &&
           !!doc.getElementById('cname') && doc.querySelectorAll('#cswatches .oasw').length >= 6 &&
-          doc.querySelectorAll('#cmarks .mkrow').length === 4 &&
+          doc.querySelectorAll('#cmarks .mkrow').length === 3 &&
           doc.querySelectorAll('#cmarks .padb').length === 12 &&
-          doc.querySelectorAll('#cmarks [data-preset]').length === 12,
-          'the founding screen asks a name, a colour and a mark, and nothing else');
+          !doc.querySelector('#cmarks .gv'),
+          'the founding screen asks a name, a colour and a mark, with no figures on the pad');
     {
       /* turning a piece changes the mark; a ready-made replaces it whole */
       const big = () => doc.querySelector('#cmarks .mkbig').innerHTML;
@@ -99,8 +113,7 @@ setTimeout(() => {
       check(/scale\(1\.3\d* 1\.0\d*\)/.test(big()) || /scale\(/.test(big()), 'a piece can be stretched');
       doc.querySelector('#cmarks [data-adj="reset"]').click();
       check(big() === before, 'and Reset puts it back');
-      doc.querySelectorAll('#cmarks [data-preset]')[5].click();
-      check(big() !== before, 'a ready-made mark can be taken whole');
+
     }
     check(!doc.querySelector('#setup .menusub') && doc.getElementById('oacards').style.display === 'none' &&
           doc.getElementById('seed').style.display === 'none',
@@ -170,8 +183,8 @@ setTimeout(() => {
           'the desk offers all four verbs as their own boards: drill, recovery, intel, courting');
     check(!/0\s*1\s*2\s*3/.test(text('#verbs')),
           'and the retired 0-to-3 rest row is gone from the top of the desk');
-    check(/Focus Spent \d of 8/.test(text('#focusline')),
-          'the focus board is prefilled by the corp\'s own judgement: ' + text('#focusline').slice(0, 40));
+    check(/Focus Spent \d of 8/.test(text('#focusdesk')),
+          'the focus board is prefilled by the corp\'s own judgement: ' + text('#focusdesk').slice(0, 40));
     /* the grid is the source of truth for training; clear it and the other verbs so the whole
        budget is free to paint deliberately */
     const TG = window.__G;
@@ -188,8 +201,8 @@ setTimeout(() => {
     });
     /* ONE BUDGET LINE, on the top bar beside the clock — it used to head every section, four
    copies of one number and none of them where a manager looks. */
-    check(/^Focus Spent 0 of 8/.test(text('#focusline').trim()),
-          'clearing the verbs frees the whole budget: ' + text('#focusline').trim());
+    check(/^Focus Spent 0 of 8/.test(text('#focusdesk').trim()),
+          'clearing the verbs frees the whole budget: ' + text('#focusdesk').trim());
 
     /* ---- THE TRAINING GRID: paint a column and watch that one stat outgrow the rest ---- */
     check(!!doc.querySelector('#traingrid .tgrid'),
@@ -210,8 +223,8 @@ setTimeout(() => {
                              .concat(window.CDSEASON.CONST.BODY || ['grit', 'reflex']);
     const colOf = id => [...doc.querySelectorAll('#traingrid tr:first-child th')][1 + gridStats.indexOf(id)];
     colOf('tactics').querySelectorAll('.pip')[2].click();     // paint tactics column to 3
-    check(/^Focus Spent 3 of 8/.test(text('#focusline').trim()),
-          'painting a column to 3 pips spends 3: ' + text('#focusline').trim());
+    check(/^Focus Spent 3 of 8/.test(text('#focusdesk').trim()),
+          'painting a column to 3 pips spends 3: ' + text('#focusdesk').trim());
     /* RESOLVE RISES FROM REST AS WELL AS DRILL, and on a founded house's seven hands one
        rested body moves the mean — so the painted column is measured against AIM, which
        nothing but training touches. */
@@ -308,7 +321,7 @@ setTimeout(() => {
             'the four holds are barred in a fleet\'s own units, falling monthly');
       [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
       check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
-      const focusBefore = text('#focusline');
+      const focusBefore = text('#focusdesk');
       const t0 = meM.account.treasury;
       const id = doc.querySelector('#mktledger .mrow').getAttribute('data-mopen');
       const held0 = (meM.armoury || {})[id] || 0;
@@ -324,7 +337,7 @@ setTimeout(() => {
       check(meM.account.treasury < t0, 'and takes the credits out of the treasury');
       check(meM.account.ledger.some(l => /Market/.test(l.label)),
             'the spend is in the books, not conjured');
-      check(text('#focusline') === focusBefore,
+      check(text('#focusdesk') === focusBefore,
             'buying kit costs no focus \u2014 shopping is not attention');
       doc.querySelector('#mktledger .mrow').click();
       const panel = text('#mktledger .mpanel');
@@ -431,6 +444,13 @@ setTimeout(() => {
     /* the courting effort reached the corp's standing (accumulates, not scheduled) */
     check(courtHouse && window.CDSEASON.SPON.courtStanding(meC, courtHouse) > 0,
           'courting built standing with ' + courtHouse);
+    /* §SPONSORS the board says what it wants and how far off you are; the fake focus price
+       that no rule ever read is gone */
+    check(/The Board Signs At/.test(text('#courtgrid')) &&
+          (/More Regard/.test(text('#courtgrid')) || /Convinced/.test(text('#courtgrid'))),
+          'the board names its benchmark and each supplier\'s distance from it');
+    check(!/Costs \d/.test(text('#courtgrid')),
+          'and quotes no focus price for a thing that was never for sale');
     const dT = mean('tactics', who) - tac0, dR = mean('resolve', who) - res0, dA = mean('aim', who) - aim0;
     check(dT > dA + 0.2,
           'the painted column outgrew the unpainted: tactics +' + dT.toFixed(2) +
@@ -470,8 +490,8 @@ setTimeout(() => {
           'the open panel names every stat, in its own colour');
     const cellTd = panel.querySelectorAll('td')[gridStats.indexOf('tactics')];
     cellTd.querySelectorAll('.pip')[2].click();               // subject's tactics cell to 3
-    check(/^Focus Spent 3 of 8/.test(text('#focusline').trim()),
-          'the scalpel paints one cell to 3: ' + text('#focusline').trim());
+    check(/^Focus Spent 3 of 8/.test(text('#focusdesk').trim()),
+          'the scalpel paints one cell to 3: ' + text('#focusdesk').trim());
     const sTac0 = subject.stats.tactics;
     endMonth();
     /* THE GAP NARROWS ON A SMALL ROSTER, and that is the founding change working: `dT` is the
@@ -494,7 +514,7 @@ setTimeout(() => {
       const bst = doc.querySelector('#traingrid [data-boost]');
       check(!!bst && /\u20a1/.test(bst.textContent),
             'painting focus offers the boost on that grid, at its price: ' + (bst ? bst.textContent.trim() : '—'));
-      check(!/Double It|to Double/.test(text('#focusline')),
+      check(!/Double It|to Double/.test(text('#focusdesk')),
             'and nothing explains it in prose beside the tally');
       bst.click();
       check(!!(window.__G._boostSel || {}).train && !!doc.querySelector('#traingrid [data-boost].on'),
@@ -508,11 +528,11 @@ setTimeout(() => {
     resetGrid();
     const corner = () => doc.querySelectorAll('#traingrid th.rn .pip');
     corner()[2].click();                                      // corner to 3
-    check(/^Focus Spent 3 of 8/.test(text('#focusline').trim()), 'corner paints to 3: ' + text('#focusline').trim());
+    check(/^Focus Spent 3 of 8/.test(text('#focusdesk').trim()), 'corner paints to 3: ' + text('#focusdesk').trim());
     corner()[2].click();                                      // step down to 2
     corner()[1].click();                                      // to 1
     corner()[0].click();                                      // to 0
-    check(/^Focus Spent 0 of 8/.test(text('#focusline').trim()),
+    check(/^Focus Spent 0 of 8/.test(text('#focusdesk').trim()),
           'stepping the corner back down to zero always works: ' + text('.tgbudget').trim());
     resetGrid();
     check(hasTab('Desk') && !hasTab('The Firefight'),
@@ -547,8 +567,8 @@ setTimeout(() => {
       stressed.condition.stress = 60;
       renderDeskIfAny();
       stressCol.querySelectorAll('.pip')[2].click();
-      check(/^Focus Spent 3 of 8/.test(text('#focusline').trim()),
-            'a column of recovery spends like a column of drill: ' + text('#focusline').trim());
+      check(/^Focus Spent 3 of 8/.test(text('#focusdesk').trim()),
+            'a column of recovery spends like a column of drill: ' + text('#focusdesk').trim());
       /* ONE month is spent here and no more: the checks below this block count the calendar,
          and a guard that quietly burns two months breaks the ones that come after it. Both
          claims — the stress drop and the overflow — are proved in the same month. */

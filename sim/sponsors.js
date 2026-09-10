@@ -43,15 +43,18 @@
        are taken, and regard discounts it further — so the one you want is worth grabbing early,
        and a leftover is a consolation, never a trap. Failure moves regard hard, and regard is
        the only thing that crosses the year: a burned sponsor simply favours you far less. */
-    COURT_COST_BASE: 3,          // [H] focus to court a contract when the board is untouched
-    COURT_COST_DROP: 0.35,       // [H] focus knocked off the rest per contract signed anywhere
-    COURT_COST_FLOOR: 1,         // [H] a contract never costs less than this to court
-    COURT_REGARD_DISCOUNT: 1.5,  // [H] focus a full-regard house takes off your courting cost
     SPONSOR_ADVANCE: 6000,       // [H] the modest money-now, part-repaying the focus you sank
     SPONSOR_REWARD: 40000,       // [H] the big completion payout — cash, or its value in kind
     SPONSOR_FAIL_REGARD: -22,    // [H] a failed condition sours the house hard (the only memory)
     SPONSOR_KEPT_REGARD: 10,     // [H] a kept one warms it
-    SPONSOR_COURT_REGARD: 2,     // [H] regard each focus of courting builds, kept or not
+    /* §SPONSORS what a supplier wants to see before it commits, and how far the bar falls for
+       those still open each time one of them signs */
+    /* the bar is in REGARD, the same scale the board already shows a manager: a supplier
+       wants to be well thought of before it puts its name to anybody */
+    SIGN_BENCH_BASE: 8,          // [H] regard a supplier wants before it signs anybody
+    SIGN_BENCH_DROP: 1.5,        // [H] off the bar for every contract signed anywhere
+    SIGN_BENCH_FLOOR: 3,         // [H] and the least it will ever settle for
+    SPONSOR_COURT_REGARD: 1,     // [H] regard each focus of courting builds, kept or not
     SPONSOR_ENERGY_FRAC: 0.75    // [H] the share of the drop a 'mostly energy' limitation wants
   };
 
@@ -177,11 +180,16 @@
      gentle drop for every contract already taken across the fleet, minus a regard discount,
      never below the floor. Shallow by design — a discount sweetens a leftover without ever
      making waiting the smart play. */
-  function courtCost(board, corp, houseId) {
-    let c = CONST.COURT_COST_BASE - board.taken * CONST.COURT_COST_DROP;
-    c -= (regardOf(corp, houseId) / CONST.REGARD_SPAN) * CONST.COURT_REGARD_DISCOUNT;
-    return Math.max(CONST.COURT_COST_FLOOR, c);
-  }
+  /* §SPONSORS THE FOCUS COST IS GONE. It was displayed on every row and READ BY NOTHING — no
+     rule anywhere required a manager to spend it, or spent it, or checked it. A manager was
+     shown "Costs 3", put three focus in, did not get the contract, and watched the number
+     become 2.9: a price for a thing that was not for sale. Focus buys regard at a point
+     apiece; what a supplier wants is a BENCHMARK in regard, which is a number the board can
+     show and a manager can act on. */
+  /* COURT_COST_BASE, _DROP, _FLOOR and COURT_REGARD_DISCOUNT went with it — four constants
+     that between them computed a number nothing acted on. What they were reaching for is the
+     benchmark: a bar that falls as the board empties. */
+  function courtCost() { return 0; }
 
   /* COURT. Spend focus on a house this season: it raises regard (the slow memory) and records
      this year's effort, which together decide who the sponsor signs. Courting never fails and
@@ -197,35 +205,113 @@
 
   /* a corp's standing for the sign: regard PLUS this year's courting effort. Standing is what
      the sponsor weighs when more than one house is at its door. */
+  /* §SPONSORS ONE FOCUS IS ONE REGARD, AND STANDING IS REGARD. A focus of courting used to
+     bump regard by two AND count for two again through `effort`, so a point of focus was worth
+     four of whatever standing was measured in, and no screen could have explained the number.
+     There is one currency: REGARD, which runs -60..+60, is built a point at a time by courting,
+     is warmed by keeping a contract (+10) and soured hard by failing one (-22), and is what a
+     supplier weighs against its benchmark. `effort` is still recorded — a supplier only
+     considers houses that actually courted it this year — but it is not counted twice. */
   function courtStanding(corp, houseId) {
-    const eff = ((corp.sponsors || {}).courting || {})[houseId] || 0;
-    return regardOf(corp, houseId) + eff * CONST.SPONSOR_COURT_REGARD;
+    return regardOf(corp, houseId);
   }
 
-  /* RESOLVE THE BOARD at the season open: each still-open house signs the courting corp with
-     the highest standing, one OA per house. Signing pays the advance and lands a live contract
-     carrying its condition and reward. Returns a per-corp summary of what was signed. */
+  /* §SPONSORS A SUPPLIER SIGNS THE MONTH SOMEBODY CONVINCES IT, NOT AT THE YEAR'S END.
+     Everything resolved at the lock, simultaneously — which made the discount that is the
+     centre of the system incoherent: `COURT_COST_DROP` takes focus off every remaining
+     supplier FOR EACH CONTRACT SIGNED ANYWHERE, and nothing was ever signed until the year was
+     already over, so no manager ever saw a price fall. A manager courted a supplier for three
+     focus, did not get it, and watched the cost move by a tenth for reasons nothing explained.
+
+     A supplier has a BENCHMARK: the standing it wants to see before it commits. The first
+     house to reach it takes the contract, that month, and every supplier still open drops its
+     benchmark — a board that is emptying is a board where the rest get anxious. That is the
+     same fiction the focus discount always described, and now the two agree. Ties are broken
+     by who is carrying fewer of that supplier's kind of favour, then by who is smaller. */
+  /** the signature itself, in one place: the contract, the advance, the board's tally */
+  function signSupplier(board, corp, corpId, h, month) {
+    const def = board.houses[h];
+    corp.sponsors = corp.sponsors || { regard: {}, contracts: [], offers: [], courted: {} };
+    corp.sponsors.contracts = corp.sponsors.contracts || [];
+    corp.sponsors.contracts.push({
+      house: h, flavor: def.flavor, key: def.key, text: def.text,
+      reward: def.reward, advance: CONST.SPONSOR_ADVANCE, seasonsServed: 0, term: 1,
+      signedMonth: month || null
+    });
+    board.signedBy[h] = corpId;
+    board.taken++;
+    LED.post(corp.account, 'income', 'sponsor advance (' + h + ')', CONST.SPONSOR_ADVANCE);
+    return def;
+  }
+  function benchmarkFor(board) {
+    return Math.max(CONST.SIGN_BENCH_FLOOR,
+                    CONST.SIGN_BENCH_BASE - board.taken * CONST.SIGN_BENCH_DROP);
+  }
+  /** Run every month: any supplier whose benchmark has been met signs, and the bar falls. */
+  function stepBoard(board, corps, ids, month) {
+    const signed = {};
+    if (!board || !board.houses) return signed;
+    /* ONE PASS A MONTH. Re-running while the bar fell let a whole board sign in a single
+       month: four suppliers went at once in M2 because each signature dropped the bar under
+       the next one instantly. The bar a supplier judges by is the bar AT THE START OF THE
+       MONTH, and what falls this month is what the rest weigh next month — the board gets
+       anxious over a year, not over an afternoon. */
+    {
+      const bench = benchmarkFor(board);
+      for (const h in board.houses) {
+        if (board.signedBy[h]) continue;
+        let best = null, bestStanding = -Infinity;
+        const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
+        const fleetStanding = id => {
+          const rep = corps[id].rep;
+          return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+        };
+        for (const id of ids) {
+          const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
+          if (eff <= 0) continue;
+          const st = courtStanding(corps[id], h);
+          if (st < bench) continue;                 /* not yet convincing enough */
+          if (st > bestStanding + 1e-9) { bestStanding = st; best = id; continue; }
+          if (best && Math.abs(st - bestStanding) <= 1e-9) {
+            const mine = contractsWith(id), theirs = contractsWith(best);
+            if (mine < theirs || (mine === theirs && fleetStanding(id) < fleetStanding(best))) best = id;
+          }
+        }
+        if (!best) continue;
+        signSupplier(board, corps[best], best, h, month);
+        (signed[best] = signed[best] || []).push(h);
+      }
+    }
+    return signed;
+  }
   function resolveBoard(board, corps, ids) {
     const signed = {};
     for (const h in board.houses) {
       if (board.signedBy[h]) continue;
+      /* WHO A SPONSOR SIGNS WHEN TWO HOUSES ARE LEVEL. The test was `st > bestStanding`, so an
+         exact tie went to whichever house came first in `ids` — an arbitrary, order-dependent
+         answer to a question the fiction can answer properly. A sponsor with two equal suitors
+         SPREADS ITS BETS: the house carrying fewer of its contracts already takes it, and if
+         they are level there too, the one with less standing in the fleet, because a sponsor
+         courted equally by a giant and an upstart gains more by backing the upstart. */
       let best = null, bestStanding = -Infinity;
+      const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
+      const fleetStanding = id => {
+        const rep = corps[id].rep;
+        return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+      };
       for (const id of ids) {
         const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
         if (eff <= 0) continue;                    /* only courting corps are in the running */
         const st = courtStanding(corps[id], h);
-        if (st > bestStanding) { bestStanding = st; best = id; }
+        if (st > bestStanding + 1e-9) { bestStanding = st; best = id; continue; }
+        if (best && Math.abs(st - bestStanding) <= 1e-9) {
+          const mine = contractsWith(id), theirs = contractsWith(best);
+          if (mine < theirs || (mine === theirs && fleetStanding(id) < fleetStanding(best))) best = id;
+        }
       }
       if (!best) continue;
-      const corp = corps[best], def = board.houses[h];
-      corp.sponsors.contracts = corp.sponsors.contracts || [];
-      corp.sponsors.contracts.push({
-        house: h, flavor: def.flavor, key: def.key, text: def.text,
-        reward: def.reward, advance: CONST.SPONSOR_ADVANCE, seasonsServed: 0, term: 1
-      });
-      board.signedBy[h] = best;
-      board.taken++;
-      LED.post(corp.account, 'income', 'sponsor advance (' + h + ')', CONST.SPONSOR_ADVANCE);
+      const def = signSupplier(board, corps[best], best, h, null);
       (signed[best] = signed[best] || []).push({ house: h, text: def.text, reward: def.reward });
     }
     return signed;
@@ -388,6 +474,6 @@
   return { CONST, STYLES, OBLIGATION_TEXT, CONDITIONS, HOUSE_NAMES, houseIds, houseName,
            contractStatus,
            fit, regardOf, bumpRegard,
-           openBoard, courtCost, court, courtStanding, resolveBoard,
+           openBoard, courtCost, court, courtStanding, resolveBoard, stepBoard, benchmarkFor,
            judge, prospects };
 }));
