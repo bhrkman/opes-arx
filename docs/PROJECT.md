@@ -1347,11 +1347,14 @@ pad is one size including the d-pad's four, and the paired arrows are drawn larg
 as arrows rather than specks. The harness checks the RULES rather than the render, since jsdom
 computes no layout and would pass a pad in any state.
 
-**AND THE LANDING PAGE WAS A MENU IN FRONT OF THE MENU.** It held a single card describing the
-game and linking to it — one build, nothing to choose between, and one more click between a
-visitor and the thing itself. Both `index.html` and `viewers/index.html` are redirects now, by
-meta refresh and by script so it works either way, with a plain link beneath for when neither
-fires.
+**AND THE FRONT DOOR IS THE GAME.** The root held a landing page — a single card describing the
+game and linking to it, one build and nothing to choose between. It was replaced with a
+REDIRECT, and the redirect did not take: the live site went on serving the old page through
+three uploads. A redirect is a SECOND FILE that has to be uploaded, cached and trusted before
+anybody reaches anything, and every one of those is a place to fail. The build writes the page
+to `index.html` and `viewers/index.html` as well as `viewers/the_corp.html` — the same bytes, so
+the root IS the game and there is nothing in between to go stale, be missed in an upload, or sit
+in a cache. The harness compares the two files byte for byte.
 
 ## A month that adds up, eight colours that are eight, and a name for a nameless OA. *Built.*
 

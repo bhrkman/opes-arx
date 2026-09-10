@@ -105,7 +105,13 @@ if (missing.length) {
   process.exit(1);
 }
 fs.writeFileSync(D + '../viewers/the_corp.html', out);
+/* THE FRONT DOOR IS THE GAME, NOT A SIGN POINTING AT IT. The site's root held a landing page,
+   then a redirect, and a redirect is a second file that has to be uploaded, cached and trusted
+   before anybody reaches anything. The root IS the built page now — the same bytes — so there
+   is nothing between a visitor and the game that can go stale or be missed. */
+fs.writeFileSync(D + '../index.html', out);
+fs.writeFileSync(D + '../viewers/index.html', out);
 /* The build message is not evidence — the size and module count are read back off the file. */
-console.log('the_corp.html written · ' +
+console.log('the_corp.html + index.html written · ' +
             Math.round(fs.statSync(D + '../viewers/the_corp.html').size / 1024) + 'KB · live engine, ' +
             MODULES.length + ' modules inlined');

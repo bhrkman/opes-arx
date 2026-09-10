@@ -866,7 +866,10 @@
     "hooks": [
      "luck_event_bias_positive",
      "superstition_magnet"
-    ]
+    ],
+    "decoration": {
+     "superstition_magnet": "no squad-belief state exists; the luck bias carries this trait"
+    }
    }
   },
   {
@@ -1016,7 +1019,10 @@
    "effects": {
     "hooks": [
      "performance_tracks_odds_board"
-    ]
+    ],
+    "decoration": {
+     "performance_tracks_odds_board": "no odds board a fighter could read"
+    }
    }
   },
   {
@@ -1475,7 +1481,10 @@
     "hooks": [
      "comms_decoy_utility",
      "broadcast_color"
-    ]
+    ],
+    "decoration": {
+     "comms_decoy_utility": "no comms layer in the fight"
+    }
    },
    "notes": "From the canon naming lore — vocal mimics produced in youth."
   },
@@ -1635,7 +1644,10 @@
     "hooks": [
      "negotiation_bluff_detection",
      "manager_facing_utility"
-    ]
+    ],
+    "decoration": {
+     "manager_facing_utility": "a reading of a manager, with nothing for it to read"
+    }
    },
    "conflicts": [
     "psion_battle_sense",
@@ -1661,7 +1673,10 @@
      "delicacy_harvest_friction",
      "cradle_camp_event_seed",
      "ankoth_sympathy_chemistry"
-    ]
+    ],
+    "decoration": {
+     "delicacy_harvest_friction": "no delicacy or harvest economy exists to have friction with"
+    }
    },
    "notes": "Canon thread (DESIGN.md §2.18, §3.3). Never rolls on humans — the Spent Cradles are not theirs to mourn. Rates per races.json resentment_rate."
   },
@@ -1681,7 +1696,10 @@
      "abolitionist_event_seed",
      "scandal_seed_step9",
      "hidden_leaning"
-    ]
+    ],
+    "decoration": {
+     "hidden_leaning": "its events fire; concealing a conviction wants a discovery path"
+    }
    },
    "notes": "Quiet undercurrent per §3.5 — any race, humans included; far likelier alongside cradleborn_resentment. Rates in recruitment.json. Scandal system lands at Step 9."
   },

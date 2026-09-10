@@ -71,13 +71,19 @@ setTimeout(() => {
       check(/#rail\{[^}]*flex-wrap:nowrap/.test(css0) && /header\{[^}]*flex-wrap:nowrap/.test(css0),
             'the tab rail and the header hold their line rather than wrapping');
     }
-    /* §LANDING the front page is a redirect, not a menu in front of the menu */
+    /* §LANDING THE FRONT DOOR IS THE GAME ITSELF. It was a landing page, then a redirect —
+       and a redirect is a second file that has to be uploaded, cached and trusted before
+       anybody reaches anything, which is exactly where it kept failing. The root holds the
+       BUILT PAGE, the same bytes, so there is nothing in between to go stale or be missed. */
     {
       const fsx = require('fs'), pth = require('path');
-      const land = fsx.readFileSync(pth.join(__dirname, '..', 'index.html'), 'utf8');
-      check(/http-equiv="refresh"/.test(land) && /viewers\/the_corp\.html/.test(land) &&
-            !/THE CORPORATION/.test(land),
-            'the landing page goes straight to the game rather than describing it first');
+      const root = pth.join(__dirname, '..');
+      const land = fsx.readFileSync(pth.join(root, 'index.html'), 'utf8');
+      const game = fsx.readFileSync(pth.join(root, 'viewers', 'the_corp.html'), 'utf8');
+      check(land.length === game.length && land === game,
+            'the site root is the built game itself, byte for byte');
+      check(!/THE CORPORATION/.test(land) && !/http-equiv="refresh"/.test(land),
+            'and no landing page or redirect stands in front of it');
     }
     /* §MENU three of the fleet's peoples stand on the menu, art inlined by the build */
     /* the tagline is gone: there are no houses, the game runs many years, and a year holds
