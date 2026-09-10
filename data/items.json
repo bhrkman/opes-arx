@@ -6,12 +6,12 @@
   "status": "Step 5b-1 (plumbing). Catalog per PROCUREMENT.md 4-11; all (proposed).",
   "sources": "PROCUREMENT.md 4.2 quirk vocabulary, 4.3 price formulae, 5-11 catalog",
   "provenance_notes": [
-   "Armour carries three resistances \u2014 ballistic, energy, explosive \u2014 added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
+   "Armour carries three resistances — ballistic, energy, explosive — added to protection against the matching damage type. No single vest answers the whole field: plate stops bullets and conducts heat, ablative boils a beam away and cracks under a rifle. Carrying a mix is the point (PROCUREMENT.md 8).",
    "Energy weapons overheat in two or three shots and hold a day's charge, not a fight's: you cannot swap a cell mid-firefight the way you swap a magazine. Their damage runs a point below their ballistic equivalents. The trade is that they never need resupplying (PROCUREMENT.md 6).",
    "There is NO free kit. Nothing in this catalog costs zero: a corp fields what it owns (its armoury) and buys the rest with treasury credits. A founding armoury carries a corp into season one; losing it is a management failure, not a case for charity (PROCUREMENT.md 3, ruled).",
    "picks_for names the stat a corp selects that role by: the marksman rifle goes to the best shot in the squad, the scout kit to the best fieldcraft. Deterministic, (proposed), and it is what stops a 5-aim fighter carrying the Whisper.",
    "roles[] is the baseline squad composition every corp fields (PROCUREMENT.md 15.1). Six roles, a spread of bands, and a candidate list per role. Nobody fields two unit types.",
-   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns \u2014 the allowance is free, so preferring cheap would be incoherent.",
+   "armoury_max_tier is the first appearance of locker depth (PROCUREMENT.md 2.2): the Verdant Cradle gets the same 54,000 allowance as everyone and simply does not own tier-4 kit to spend it on. Poverty is modelled as what you own, never as a preference for cheap guns — the allowance is free, so preferring cheap would be incoherent.",
    "doctrines[] are LEANS on that baseline, not replacements for it: a composition bias of a few bodies, an ordered taste in quirks, a mod wishlist, and the order in which the allowance gets spent. ONE source: the armoury page, the document's table and Step 5b-2's AI procurement all read this block.",
    "Prices with price_model 'formula' are DERIVED from constants.pricing and are regenerated and diffed by `arx.cjs regress`. Editing a formula cost by hand will fail the suite.",
    "price_model 'scarcity' = exotica, hand-priced; guarded only by the 3x floor against the dearest formula item.",
@@ -669,9 +669,7 @@
      "burst"
     ],
     "damage": "energy",
-    "heat": 4,
-    "heat_cap": 8,
-    "charge": 12
+    "charge": 18
    },
    "price_model": "formula",
    "legality": "legal",
@@ -695,9 +693,7 @@
      "heavy_draw"
     ],
     "damage": "energy",
-    "heat": 4,
-    "heat_cap": 8,
-    "charge": 14
+    "charge": 21
    },
    "price_model": "formula",
    "legality": "legal",
@@ -721,9 +717,7 @@
      "heavy_draw"
     ],
     "damage": "energy",
-    "heat": 3,
-    "heat_cap": 9,
-    "charge": 18
+    "charge": 27
    },
    "price_model": "formula",
    "legality": "legal",
@@ -747,9 +741,7 @@
      "disorient"
     ],
     "damage": "energy",
-    "heat": 4,
-    "heat_cap": 8,
-    "charge": 14
+    "charge": 21
    },
    "price_model": "formula",
    "legality": "legal",
@@ -772,9 +764,7 @@
      "daylight"
     ],
     "damage": "energy",
-    "heat": 5,
-    "heat_cap": 10,
-    "charge": 10
+    "charge": 15
    },
    "price_model": "formula",
    "legality": "legal",
@@ -797,9 +787,7 @@
      "arc_chain"
     ],
     "damage": "energy",
-    "heat": 5,
-    "heat_cap": 10,
-    "charge": 12
+    "charge": 18
    },
    "price_model": "formula",
    "legality": "legal",
@@ -823,9 +811,7 @@
      "pierce_1"
     ],
     "damage": "energy",
-    "heat": 5,
-    "heat_cap": 10,
-    "charge": 12
+    "charge": 18
    },
    "price_model": "formula",
    "legality": "legal",
@@ -848,9 +834,7 @@
      "sustained"
     ],
     "damage": "energy",
-    "heat": 4,
-    "heat_cap": 12,
-    "charge": 16
+    "charge": 24
    },
    "price_model": "formula",
    "legality": "legal",
@@ -873,9 +857,7 @@
      "silent"
     ],
     "damage": "energy",
-    "heat": 5,
-    "heat_cap": 10,
-    "charge": 10
+    "charge": 15
    },
    "price_model": "formula",
    "legality": "legal",
@@ -899,9 +881,7 @@
      "cover_shred"
     ],
     "damage": "energy",
-    "heat": 4,
-    "heat_cap": 10,
-    "charge": 14
+    "charge": 21
    },
    "price_model": "formula",
    "legality": "legal",
@@ -924,9 +904,7 @@
      "pierce_1"
     ],
     "damage": "energy",
-    "heat": 6,
-    "heat_cap": 12,
-    "charge": 10
+    "charge": 15
    },
    "price_model": "formula",
    "legality": "legal",
@@ -950,9 +928,7 @@
      "vent_2"
     ],
     "damage": "energy",
-    "heat": 8,
-    "heat_cap": 12,
-    "charge": 8
+    "charge": 12
    },
    "price_model": "formula",
    "legality": "legal",
@@ -977,9 +953,7 @@
      "vent_2"
     ],
     "damage": "explosive",
-    "heat": 7,
-    "heat_cap": 12,
-    "charge": 8
+    "charge": 12
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1003,9 +977,7 @@
      "spread"
     ],
     "damage": "energy",
-    "heat": 6,
-    "heat_cap": 12,
-    "charge": 10
+    "charge": 15
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1639,7 +1611,7 @@
    "cost": 290,
    "bulk": 1,
    "effects": {
-    "charge": 12,
+    "charge": 18,
     "tags": []
    },
    "price_model": "fixed",
@@ -1974,9 +1946,7 @@
     "power": 13,
     "range": "long",
     "damage": "energy",
-    "heat": 6,
-    "heat_cap": 18,
-    "charge": 12
+    "charge": 18
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -2386,26 +2356,6 @@
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns"
-  },
-  {
-   "id": "itm_field_rations",
-   "name": "Field Rations",
-   "category": "consumable",
-   "slot": "consumable",
-   "family": "any",
-   "tier": 2,
-   "cost": 160,
-   "bulk": 1,
-   "uses": 1,
-   "action": "carry",
-   "effects": {
-    "tags": [],
-    "ration_days": 6
-   },
-   "price_model": "fixed",
-   "legality": "legal",
-   "identity": "Six days of rations for the bearer, on top of the fourteen every drop carries. Weight in the pack, food in the squad.",
-   "type": "Consumables"
   }
  ],
  "roles": [
@@ -2639,7 +2589,7 @@
   {
    "id": "std_issue",
    "corp": "Aleas Standard",
-   "flavor": "\u2014",
+   "flavor": "—",
    "note": "No lean at all: the baseline every other doctrine is measured against.",
    "corp_id": null,
    "composition": {},

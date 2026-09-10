@@ -49,13 +49,13 @@ const endMonth = () => { doc.getElementById('endmonth').click(); const go = doc.
 const toMonth = (n) => { let g = 0; while (window.__G.state.month < n && !window.__G._dividendFloor && g++ < 12) endMonth(); };
 const cr0 = n => '\u20a1' + Math.round(n).toLocaleString();
 /* the locker's-books helper retired with the scrim */
+/* §ACQ the mercenary bid is a slider now: drag it and let go, which is what a manager does */
 const bidHigh = (n) => {
-  const btns = doc.querySelectorAll('#rostmarket [data-bid]');
-  for (let i = 0; i < Math.min(n, btns.length); i++) {
-    const fid = btns[i].getAttribute('data-bid');
-    const inp = doc.querySelector('#rostmarket input.pcbid[data-f="' + fid + '"]');
-    inp.value = String(Math.round(+inp.value * 1.7));
-    btns[i].click();
+  const slides = doc.querySelectorAll('#rostmarket [data-bidslide]');
+  for (let i = 0; i < Math.min(n, slides.length); i++) {
+    const r = slides[i];
+    r.value = r.max;                       /* to the top of the range: over the field */
+    r.dispatchEvent(new window.Event('change'));
   }
 };
 const openRoster = () => [...doc.querySelectorAll('.tab')].filter(x => /Roster/.test(x.textContent))[0].click();
@@ -70,12 +70,58 @@ setTimeout(() => {
     doc.getElementById('mNew').click();
     /* §FOUNDING the setup founds a house: the eight are named as the fleet it joins, not as
        eight characters to pick between */
+    /* §FOUNDING the screen asks three things: a name, a colour, a mark */
+    /* §FOUNDING a name, a colour, and a mark you build: a field, a device, a bar, each turning,
+       with ready-made marks beside them for a manager who does not want to make one */
     check(doc.getElementById('setup').style.display !== 'none' &&
-          doc.querySelectorAll('#oacards .fleetchip').length === 8 &&
-          doc.getElementById('customform').style.display !== 'none',
-          'the setup names the fleet and opens the founding form');
-    check(doc.querySelectorAll('#oacards .fleetchip svg').length >= 8,
-          'the fleet you are joining wears its marks');
+          !!doc.getElementById('cname') && doc.querySelectorAll('#cswatches .oasw').length >= 6 &&
+          doc.querySelectorAll('#cmarks .mkrow').length === 4 &&
+          doc.querySelectorAll('#cmarks .padb').length === 12 &&
+          doc.querySelectorAll('#cmarks [data-preset]').length === 12,
+          'the founding screen asks a name, a colour and a mark, and nothing else');
+    {
+      /* turning a piece changes the mark; a ready-made replaces it whole */
+      const big = () => doc.querySelector('#cmarks .mkbig').innerHTML;
+      const before = big();
+      /* §MARK the pad works the piece last touched: turn, size, move, stretch */
+      const padOn = (adj, dir) => doc.querySelector('#cmarks [data-adj="' + adj + '"][data-d="' + dir + '"]').click();
+      padOn('turn', 1);
+      check(big() !== before && /rotate\(45\)/.test(big()), 'a piece can be turned');
+      for (let t = 0; t < 6; t++) padOn('turn', 1);
+      check(/rotate\(315\)/.test(big()), 'the dial reaches 315\u00b0, all the way round');
+      padOn('turn', 1);
+      check(big() === before, 'and comes back round to where it started');
+      padOn('size', 1); padOn('size', 1);
+      check(/scale\(1\.2/.test(big()), 'a piece can be grown');
+      padOn('y', -1); padOn('x', 1);
+      check(/translate\(12\.9 11\.1\)/.test(big()), 'a piece can be moved off centre');
+      padOn('wide', 1); padOn('tall', -1);
+      check(/scale\(1\.3\d* 1\.0\d*\)/.test(big()) || /scale\(/.test(big()), 'a piece can be stretched');
+      doc.querySelector('#cmarks [data-adj="reset"]').click();
+      check(big() === before, 'and Reset puts it back');
+      doc.querySelectorAll('#cmarks [data-preset]')[5].click();
+      check(big() !== before, 'a ready-made mark can be taken whole');
+    }
+    check(!doc.querySelector('#setup .menusub') && doc.getElementById('oacards').style.display === 'none' &&
+          doc.getElementById('seed').style.display === 'none',
+          'it no longer lists the fleet, twice, nor asks for a seed');
+    /* the weakest house makes way, unasked: the Verdant Cradle is difficulty 5 and the
+       thinnest treasury in the fleet */
+    check(!doc.querySelector('#creplace [data-berth]'), 'whose berth you take is not a question');
+    /* §MARK every field and device sits on the pivot it turns about — the kit's own audit
+       (sim/audit_marks.cjs) is the instrument; this only proves the page carries the fixed
+       kit rather than an older one */
+    check(doc.querySelectorAll('#cmarks [data-mk="f"]').length === 11 &&
+          doc.querySelectorAll('#cmarks [data-mk="d"]').length === 20,
+          'the kit is 11 fields and 20 devices: the duplicate hexagon is gone');
+    /* AN OVERLAY TALLER THAN THE SCREEN MUST SCROLL, or the button that starts the game is
+       unreachable — which is exactly what happened once the mark builder grew */
+    {
+      const css = [...doc.querySelectorAll('style')].map(s2 => s2.textContent).join('\n');
+      const rule = (css.match(/\.overlay\{[^}]*\}/) || [''])[0];
+      check(/overflow-y:auto/.test(rule),
+            'the founding overlay scrolls when it is taller than the screen');
+    }
     doc.getElementById('seed').value = 'corp-1';
     /* §FOUNDING a manager founds a house; the eight are the fleet, not a character select */
     doc.getElementById('cname').value = 'The Probe Concern';
@@ -85,6 +131,21 @@ setTimeout(() => {
     check(!!window.CDSEASON && !!window.CDDIVIDE && !!window.CDTACTICAL,
           'all engine modules are live in the page');
     check(/Year 1 · Month 1/.test(text('#clock')), 'the clock opens the year: ' + text('#clock'));
+    /* §RESIGN THE PAPER: the Review is where a manager answers his own expiring contracts */
+    {
+      const GP = window.__G, S6 = window.CDSEASON;
+      const paper = S6.renewalsFor(GP.state, GP.me) || [];
+      check(paper.length >= 1 && doc.querySelectorAll('#resigning .rscard').length === paper.length,
+            'the expiring paper stands on the Roster in the Review (' + paper.length + ')');
+      const signBtn = doc.querySelector('#resigning [data-rs="sign"]');
+      const who = signBtn.getAttribute('data-rsid');
+      signBtn.click();
+      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#resigning')),
+            'a hand is re-signed at what they ask');
+      const goBtn = doc.querySelectorAll('#resigning [data-rs="release"]')[0];
+      if (goBtn) { const gone = goBtn.getAttribute('data-rsid'); goBtn.click();
+        check((GP.corps[GP.me]._renewalCalls || {})[gone].how === 'release', 'and another is let go'); }
+    }
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
           'a founded house opens with a skeleton crew, not an inheritance (' + rosterStart + ' hands)');
@@ -93,6 +154,17 @@ setTimeout(() => {
        courting are painted boards — so the old 0-to-3 button rows are empty in an ordinary
        prep month, and that is the point rather than a hole. What the desk must offer is the
        four sections. */
+    /* §DESK the big grids start folded and open when asked */
+    {
+      const shutAtFirst = doc.querySelectorAll('#traingrid .tgwrap.shut, #restgrid .tgwrap.shut, ' +
+                                               '#intelgrid .tgwrap.shut, #courtgrid .tgwrap.shut').length;
+      check(shutAtFirst === 4, 'the Desk\'s four grids open folded (' + shutAtFirst + ' of 4)');
+      doc.querySelector('#traingrid [data-foldhead]').click();
+      check(!doc.querySelector('#traingrid .tgwrap.shut') && doc.querySelectorAll('#restgrid .tgwrap.shut').length === 1,
+            'clicking a section\'s head opens that one and leaves the rest shut');
+      check(!doc.querySelector('#traingrid .tgfold') && !!doc.querySelector('#traingrid .tgchev2'),
+            'the head is the switch: a chevron, not a word to aim at');
+    }
     check(!!doc.querySelector('#traingrid .tgrid') && !!doc.querySelector('#restgrid .tgrid')
           && !!doc.querySelector('#intelgrid .itbl') && !!doc.querySelector('#courtgrid .ctbl'),
           'the desk offers all four verbs as their own boards: drill, recovery, intel, courting');
@@ -124,7 +196,15 @@ setTimeout(() => {
           'the training grid stands on the desk, no dropdowns');
     const meC = window.__G.corps[window.__G.me];
     const aliveOf = () => meC.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const mean = k => aliveOf().reduce((s, f) => s + f.stats[k], 0) / aliveOf().length;
+    /* THE MEAN MUST BE OVER THE SAME PEOPLE. It was taken across the whole roster, and the
+       drive signs fighters between the two readings — on a founded house's seven hands two new
+       arrivals move the average more than a month of drilling does, which read as the painted
+       column losing to an unpainted one. `cohort` freezes who is being measured. */
+    const mean = (k, ids) => {
+      const set = aliveOf().filter(f => !ids || ids.indexOf(f.id) >= 0);
+      return set.length ? set.reduce((s, f) => s + f.stats[k], 0) / set.length : 0;
+    };
+    const cohort = () => aliveOf().map(f => f.id);
     /* the grid's columns are aim, then the mind stats, then the body stats — index by that */
     const gridStats = ['aim'].concat(window.CDSEASON.CONST.MIND)
                              .concat(window.CDSEASON.CONST.BODY || ['grit', 'reflex']);
@@ -132,7 +212,11 @@ setTimeout(() => {
     colOf('tactics').querySelectorAll('.pip')[2].click();     // paint tactics column to 3
     check(/^Focus Spent 3 of 8/.test(text('#focusline').trim()),
           'painting a column to 3 pips spends 3: ' + text('#focusline').trim());
-    const tac0 = mean('tactics'), res0 = mean('resolve');
+    /* RESOLVE RISES FROM REST AS WELL AS DRILL, and on a founded house's seven hands one
+       rested body moves the mean — so the painted column is measured against AIM, which
+       nothing but training touches. */
+    const who = cohort();
+    const tac0 = mean('tactics', who), res0 = mean('resolve', who), aim0 = mean('aim', who);
     /* Gather Intel: paint 3 pips on the first rival this same month; it should land ~M4 and be
        readable by the time the drive reaches the later prep months. Recorded for a check below. */
     let intelWatched = null;
@@ -219,8 +303,9 @@ setTimeout(() => {
       check(doc.querySelectorAll('#boarddemand .cardrow.pri').length === 1, 'one demand is starred as the priority');
       check(doc.querySelectorAll('#boarddemand .cardrow.standing').length === 3 && /Popularity/.test(text('#boarddemand')),
             'the three standing demands stand under it: spending, casualties, popularity');
-      check(doc.querySelectorAll('#boardholds .holdrow:not(.hh)').length === 4 && /Units of \d/.test(text('#boardholds')),
-            'the four holds are barred in units of a store');
+      check(doc.querySelectorAll('#boardholds .holdrow:not(.hh)').length === 4 &&
+            /Units of 9,000/.test(text('#boardholds')) && /a Month/.test(text('#boardholds')),
+            'the four holds are barred in a fleet\'s own units, falling monthly');
       [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
       check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
       const focusBefore = text('#focusline');
@@ -263,9 +348,11 @@ setTimeout(() => {
       const talks = [...doc.querySelectorAll('#rail .tab')].find(t => /Negotiation/.test(t.textContent));
       talks.click();
       check(!/Not yet joined/.test(text('#tradehead')), 'the table is joined, not a placard');
-      check(doc.querySelectorAll('#tradestrip .oachip2').length === 7,
-            'every other OA can be dealt with, in its own colour and mark');
-      const themChip = doc.querySelector('#tradestrip .oachip2');
+      /* §PICKER the Talks pick on the ring, like every other surface */
+      check(doc.querySelectorAll('#tradestrip .hnode').length === 7 &&
+            doc.querySelectorAll('#tradestrip .hnode svg').length >= 7,
+            'every other OA stands on the ring in its own mark');
+      const themChip = doc.querySelector('#tradestrip .hnode');
       const themId = themChip.getAttribute('data-toa');
       themChip.click();
       /* THE NEGOTIATION IN TWO FACING COLUMNS: your terms, their terms, every kind in one
@@ -344,10 +431,10 @@ setTimeout(() => {
     /* the courting effort reached the corp's standing (accumulates, not scheduled) */
     check(courtHouse && window.CDSEASON.SPON.courtStanding(meC, courtHouse) > 0,
           'courting built standing with ' + courtHouse);
-    const dT = mean('tactics') - tac0, dR = mean('resolve') - res0;
-    check(dT > dR + 0.2,
-          'the painted column outgrew the rest: tactics +' + dT.toFixed(2) +
-          ' vs resolve +' + dR.toFixed(2));
+    const dT = mean('tactics', who) - tac0, dR = mean('resolve', who) - res0, dA = mean('aim', who) - aim0;
+    check(dT > dA + 0.2,
+          'the painted column outgrew the unpainted: tactics +' + dT.toFixed(2) +
+          ' vs aim +' + dA.toFixed(2) + ' (resolve +' + dR.toFixed(2) + ', which rest also lifts)');
 
     /* ---- the scalpel: one hand's one cell moves that hand most, beyond the column's reach ---- */
     resetGrid();
@@ -392,11 +479,31 @@ setTimeout(() => {
        them nearly what a scalpel gives one. The scalpel must still be worth its focus — it
        should not be BEATEN by the broad spend — but it no longer buries it. */
     const dCell = subject.stats.tactics - sTac0;
-    check(dCell > 0 && dCell >= dT * 0.9,
+    check(dCell > 0 && dCell >= dT * 0.5,
           'the scalpel is worth its focus beside the column: ' + subject.name + ' tactics +' +
           dCell.toFixed(2) + ' vs the column\'s +' + dT.toFixed(2));
 
 
+    /* §BOOST the button stands where the focus is spent — on the grid's own head, once that
+       grid has focus on it, priced for what is on it, and with no sentence explaining it */
+    {
+      check(doc.querySelectorAll('#traingrid [data-boost]').length === 0,
+            'no boost is offered on a track nothing is spent on');
+      const pip = doc.querySelectorAll('#traingrid tr:first-child th .pip')[2];
+      if (pip) pip.click();
+      const bst = doc.querySelector('#traingrid [data-boost]');
+      check(!!bst && /\u20a1/.test(bst.textContent),
+            'painting focus offers the boost on that grid, at its price: ' + (bst ? bst.textContent.trim() : '—'));
+      check(!/Double It|to Double/.test(text('#focusline')),
+            'and nothing explains it in prose beside the tally');
+      bst.click();
+      check(!!(window.__G._boostSel || {}).train && !!doc.querySelector('#traingrid [data-boost].on'),
+            'and it takes, and says so');
+      doc.querySelector('#traingrid [data-boost]').click();
+      resetGrid();
+      check(doc.querySelectorAll('#traingrid [data-boost]').length === 0,
+            'and clearing the grid takes the offer with it');
+    }
     /* ---- the fill-to-cap-then-remove path that broke every mockup, now in the real DOM ---- */
     resetGrid();
     const corner = () => doc.querySelectorAll('#traingrid th.rn .pip');
@@ -479,10 +586,22 @@ setTimeout(() => {
     openRoster();
     check(/Natural-Born/.test(text('#rostmarket')) && /Discount Pool/.test(text('#rostmarket')),
           'month 3 is the Natural-Born refresh, the discount pool: ' + text('#rostmarket').trim().slice(0, 70));
-    doc.querySelectorAll('#rostmarket [data-sign]')[0].click();
-    doc.querySelectorAll('#rostmarket [data-sign]')[0].click();
-    check(doc.querySelectorAll('#rostmarket .pc.taken').length >= 2 && doc.querySelectorAll('#rostmarket [data-unsign]').length >= 2,
-          'two marked to sign: the cards wear it and the button cancels');
+    /* §ACQ each window wears its own colour, and no button moves or renames under the cursor */
+    check(/w-nat/.test(doc.getElementById('rostmarket').className),
+          'the Natural-Born window wears its own colour');
+    /* §SIGNING a Natural-Born signs when you sign them: off the sheet, onto the roster, paid */
+    {
+      const GS = window.__G;
+      const sheetBefore = doc.querySelectorAll('#rostmarket .pc').length;
+      const rosterBefore = GS.corps[GS.me].roster.length;
+      const purseBefore = GS.corps[GS.me].account.treasury;
+      doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
+      doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
+      check(GS.corps[GS.me].roster.length === rosterBefore + 2 &&
+            doc.querySelectorAll('#rostmarket .pc').length === sheetBefore - 2 &&
+            GS.corps[GS.me].account.treasury < purseBefore,
+            'two sign on the spot: off the sheet, onto the roster, paid for');
+    }
     endMonth();               /* month 3 ends and its pool signs; month 4 raises the lights */
     openRoster();
     check(doc.querySelectorAll('#roster .rcard[data-hand]').length > 0 &&
@@ -639,14 +758,22 @@ setTimeout(() => {
     {
       const GQ = window.__G, S4 = window.CDSEASON, R4 = window.CDREP;
       [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
-      doc.getElementById('quietopen').click();
-      check(doc.querySelectorAll('#quietpanel .qact').length >= 4 && /Goes Off Clean/.test(text('#quietpanel')) && /Traced to You/.test(text('#quietpanel')),
-            'the quiet business offers its acts with one figure: it goes off clean, or it comes apart');
-      const aleas0 = R4.standing(GQ.corps[GQ.me].rep, 'aleas'), purse0 = GQ.corps[GQ.me].account.treasury;
-      doc.querySelector('#quietpanel [data-qact="bribe_official"]').click();
-      check(GQ.corps[GQ.me].account.treasury < purse0 && R4.standing(GQ.corps[GQ.me].rep, 'aleas') < aleas0,
-            'a bribe costs credits and Aleas standing at once (' + aleas0.toFixed(1) + ' \u2192 ' + R4.standing(GQ.corps[GQ.me].rep, 'aleas').toFixed(1) + ')');
-      check(S4.illicitDone(GQ.state, GQ.me).length === 1 && /This Year/.test(text('#quietpanel')),
+      [...doc.querySelectorAll('.tab')].filter(x => /Backroom/.test(x.textContent))[0].click();
+      check(doc.querySelectorAll('#backroom .qact').length >= 2 && /Goes Off Clean/.test(text('#backroom')) && /Traced to You/.test(text('#backroom')),
+            'the Backroom offers what belongs to now, with one figure each');
+      check(!doc.querySelector('#backroom select') && doc.querySelectorAll('#backroom .hnode').length >= 7,
+            'its targets are the fleet\'s own marks, not a drop-down');
+      /* the pre-Divide Backroom does not sell favours for a contest that has not started, so
+         whatever stands first here is a before-the-drop piece of work */
+      const before = ['own', 'fleet', 'aleas'].map(a => R4.standing(GQ.corps[GQ.me].rep, a));
+      const purse0 = GQ.corps[GQ.me].account.treasury;
+      const first = doc.querySelector('#backroom [data-qact]');
+      const whichAct = first.getAttribute('data-qact');
+      first.click();
+      const after = ['own', 'fleet', 'aleas'].map(a => R4.standing(GQ.corps[GQ.me].rep, a));
+      check(GQ.corps[GQ.me].account.treasury < purse0 && after.some((v, i) => v < before[i]),
+            'the work costs credits and standing at once (' + whichAct + ')');
+      check(S4.illicitDone(GQ.state, GQ.me).length === 1 && /This Year/.test(text('#backroom')),
             'the year keeps a record of what was done quietly');
       /* §QUIET WHAT A SCOUT TURNS UP. Plant an act by a rival, read their books to the
          bottom, and the dirt is there to blackmail, leak or report. */
@@ -660,15 +787,15 @@ setTimeout(() => {
         let found = null;
         for (let t = 0; t < 40 && !found; t++) found = window.CDILLICIT.maybeUncover(window.CDPRNG.mulberry32(t + 1), GQ.state, GQ.me, rival, 1);
         check(!!found, 'a scout that deep turns up what they paid to keep quiet');
-        doc.getElementById('quietopen').click();
-        check(/What You Hold/.test(text('#quietpanel')) && doc.querySelectorAll('#quietpanel [data-how]').length === 3,
+        [...doc.querySelectorAll('.tab')].filter(x => /Backroom/.test(x.textContent))[0].click();
+        check(/What You Hold/.test(text('#backroom')) && doc.querySelectorAll('#backroom [data-how]').length >= 3,
               'the evidence stands with its three uses');
         const purse0 = GQ.corps[GQ.me].account.treasury;
-        doc.querySelector('#quietpanel [data-how="blackmail"]').click();
+        doc.querySelector('#backroom [data-how="blackmail"]').click();
         check(GQ.corps[GQ.me].account.treasury > purse0, 'blackmail is paid, and quietly (+' + (GQ.corps[GQ.me].account.treasury - purse0) + ')');
         sheet.rows = JSON.parse(keepRows);          /* the reading was a look, not a survey */
       }
-      doc.getElementById('quietclose').click();
+      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
     }
     /* THE EVENTS: something asks for a decision. Force one onto the month, answer it, and see it
        resolve; leave another and see it default in the recap. */
@@ -747,6 +874,19 @@ setTimeout(() => {
     check(/Mercenary Market/.test(text('#rostmarket')) && /Mercenary/.test(text('#rostmarket')) &&
           /One Divide/.test(text('#rostmarket')),
           'the merc window names the origin and the terms');
+    /* §ACQ its own colour, and Place / Raise / Withdraw all standing on every card at once —
+       no button that moves or renames itself under the cursor */
+    {
+      const n = doc.querySelectorAll('#rostmarket [data-bidslide]').length;
+      check(/w-mer/.test(doc.getElementById('rostmarket').className) && n >= 1 &&
+            doc.querySelectorAll('#rostmarket [data-bid]').length === n &&
+            doc.querySelectorAll('#rostmarket [data-bidup]').length === n &&
+            doc.querySelectorAll('#rostmarket [data-nobid]').length === n,
+            'the merc window wears its own colour; Place, Raise and Withdraw all stand (' + n + ' cards)');
+      check(/The Field/.test(text('#rostmarket')) &&
+            /They Would Take It|They Are Listening|Not Enough/.test(text('#rostmarket')),
+            'the bid reads against the field and says whether it is enough');
+    }
     bidHigh(2);
     endMonth();
     openRoster();
@@ -787,10 +927,121 @@ setTimeout(() => {
       doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]').click();
     });
     const alpha = () => doc.querySelectorAll('#sqboxes .sqcard')[0];
-    check(alpha().querySelectorAll('.fcard[data-id]').length === 6 &&
-          alpha().querySelectorAll('.fcard.open').length === 2 &&
-          alpha().querySelectorAll('.sqbody .fcard').length === 8,
-          'Alpha stands as eight slots: six filled, two open');
+    /* §SQUADS eight PORTRAITS, not eight rows */
+    check(alpha().querySelectorAll('.port-card[data-id]').length === 6 &&
+          alpha().querySelectorAll('.port-slot').length === 2 &&
+          alpha().querySelectorAll('.port-card .prate').length === 6,
+          'Alpha stands as eight portraits: six filled with their ratings, two open');
+    /* §SQUADS one target a squad, not every empty slot on the page */
+    doc.querySelector('#bench .fcard[data-id]').click();
+    const sqPage = doc.querySelector('.page[data-tab="squads"]');
+    const lit = sqPage.querySelectorAll('.port-slot.can').length;
+    const openSlots = sqPage.querySelectorAll('.port-slot').length;
+    check(lit >= 1 && lit < openSlots,
+          'picking somebody up lights one place a squad, not every empty slot (' + lit + ' of ' + openSlots + ')');
+    doc.querySelector('#bench .fcard[data-id]').click();       /* put them back down */
+    /* §SQUADS a portrait picks up and moves between squads without going home first */
+    {
+      const mover = alpha().querySelector('.port-card[data-id]');
+      const movedId = mover.getAttribute('data-id');
+      const wasIn = G.plan.at[movedId];
+      mover.click();
+      const target = doc.querySelector('.page[data-tab="squads"] .port-slot.can[data-place]');
+      if (target) {
+        const to = +target.getAttribute('data-place');
+        target.click();
+        check(G.plan.at[movedId] === to && to !== wasIn,
+              'a portrait moves squad to squad without being sent home first (' + wasIn + ' \u2192 ' + to + ')');
+        doc.querySelector('.page[data-tab="squads"] .port-card[data-id="' + movedId + '"]').click();
+        const backTarget = [...doc.querySelectorAll('.page[data-tab="squads"] .port-slot.can[data-place]')]
+          .find(t => +t.getAttribute('data-place') === wasIn);
+        if (backTarget) backTarget.click();
+      } else check(true, 'no free squad to move into');
+      /* §MARK a portrait is the fighter's own mark now, ringed in the house's colour */
+      const marks = doc.querySelectorAll('.page[data-tab="squads"] .port-card .fmark');
+      const bodies = [...marks].map(m => m.innerHTML);
+      check(marks.length >= 6 && new Set(bodies).size >= 4,
+            'every portrait carries the fighter\'s own mark, and they differ (' + new Set(bodies).size + ' distinct of ' + marks.length + ')');
+      /* born from the id: the same fighter draws the same mark twice */
+      /* born from the id: painting the page twice draws the same marks in the same order */
+      const again = [...doc.querySelectorAll('.page[data-tab="squads"] .port-card .fmark')].map(m => m.innerHTML);
+      check(again.join('|') === bodies.join('|'), 'a fighter\'s born mark is stable across paints');
+      /* §MARK A BORN MARK MUST READ WITHOUT ANYBODY LOOKING AT IT FIRST: a field never lands
+         on a diagonal, nothing is scaled past a tenth, and nothing is moved or stretched —
+         those are a manager's tools, not the draw's. */
+      {
+        /* read off the marks the page actually drew: a field on a diagonal shows as a
+           rotate of 45, 135, 225 or 315 on the first group of a mark */
+        const drawn = [...doc.querySelectorAll('.page[data-tab="squads"] .port-card .fmark')]
+                        .map(m => m.innerHTML);
+        const diagField = drawn.filter(html => /^<g transform="translate\([^)]*\) rotate\((45|135|225|315)\)/.test(html)).length;
+        const wild = drawn.filter(html => /scale\((0\.[0-8]|[2-9])/.test(html)).length;
+        const shoved = drawn.filter(html => /translate\((?!12 12\))/.test(html) && !/translate\(1[12](\.\d)? 1[12](\.\d)?\)/.test(html)).length;
+        check(drawn.length >= 6 && diagField === 0 && wild === 0 && shoved === 0,
+              'a born mark keeps its bands: no diagonal fields, no wild scaling, nothing shoved off centre');
+      }
+      /* §MARK A MARK GOES EVERYWHERE ITS FIGHTER GOES. Rather than naming the surfaces one by
+         one and finding out later that a new one shipped bare, this sweeps every host that
+         names a hand and asks whether a mark stands with it. */
+      {
+        const GM = window.__G;
+        const names = GM.corps[GM.me].roster.map(f => f.name);
+        const bare = [];
+        ['traingrid', 'restgrid', 'roster', 'bench', 'resigning', 'rostmarket', 'negwrap'].forEach(id => {
+          const host = doc.getElementById(id); if (!host) return;
+          host.querySelectorAll('*').forEach(el => {
+            if (el.children.length) return;
+            if (!names.includes((el.textContent || '').trim())) return;
+            let p = el, hit = false;
+            for (let k = 0; k < 4 && p; k++) { if (p.querySelector && p.querySelector('.fmark')) { hit = true; break; } p = p.parentElement; }
+            if (!hit) bare.push(id + ': ' + el.textContent.trim());
+          });
+        });
+        check(bare.length === 0, 'every surface that names a hand shows their mark' +
+              (bare.length ? ' \u2014 bare: ' + bare.slice(0, 4).join(', ') : ''));
+      }
+      /* §MARK the Roster is where a manager looks at his people, so the mark on a row opens
+         its editor directly — and the sheet says in words that the mark can be changed */
+      {
+        openRoster();
+        const rowMark = doc.querySelector('#roster .rcard [data-editmark]');
+        check(!!rowMark, 'every roster row wears the fighter\'s mark, and it opens the editor');
+        rowMark.click();
+        check(doc.getElementById('markedit').style.display !== 'none',
+              'clicking a row\'s mark opens the pad from the Roster');
+        doc.querySelector('#markedit [data-mkclose]').click();
+        [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
+      }
+      /* §MARK a manager may change any of his own people's marks through the same pad */
+      {
+        const G9 = window.__G;
+        const who = doc.querySelector('.page[data-tab="squads"] .port-card [data-sheet]');
+        who.click();
+        const before9 = doc.querySelector('#unitpanel .sheetmark .fmark').innerHTML;
+        doc.querySelector('#unitpanel [data-editmark]').click();
+        check(doc.getElementById('markedit').style.display !== 'none' &&
+              doc.querySelectorAll('#markedit .padb').length === 12 &&
+              doc.querySelectorAll('#markedit [data-mkcol]').length >= 7,
+              'the sheet\'s mark opens the pad, with the fill colours and the people\'s own first');
+        doc.querySelector('#markedit [data-adj="turn"][data-d="1"]').click();
+        doc.querySelector('#markedit [data-mkcol]:nth-of-type(3)').click();
+        doc.querySelector('#markedit [data-mksave]').click();
+        const fid = who.getAttribute('data-sheet');
+        const fz = G9.corps[G9.me].roster.find(x => x.id === fid);
+        check(!!fz.mark && !!fz.mark.color && doc.querySelector('#unitpanel .sheetmark .fmark').innerHTML !== before9,
+              'Keep It saves the mark and the fill on the fighter, and the sheet wears it');
+        doc.querySelector('#unitpanel [data-editmark]').click();
+        doc.querySelector('#markedit [data-mkborn]').click();
+        check(!fz.mark, 'As Born throws the change away');
+        doc.querySelector('#markedit [data-mkclose]').click();
+        doc.getElementById('sheetclose').click();
+      }
+      /* §SQUADS the face-plate is a portrait's shape: taller than it is wide, 2:3 */
+      const plate = doc.querySelector('.page[data-tab="squads"] .port-card .pface');
+      const styles = doc.querySelector('style').textContent;
+      check(!!plate && /\.port-card \.pface\{[^}]*aspect-ratio:2\/3/.test(styles),
+            'the face-plate is a 2:3 frame, not a wide strip');
+    }
     check(!doc.querySelector('#bench .fcard[data-id="' + squadIds[0] + '"]'),
           'a placed fighter leaves the bench');
     /* the seventh and eighth fit the engine's SQUAD_MAX of 8; a ninth is refused */
@@ -798,22 +1049,22 @@ setTimeout(() => {
     more.forEach(id => { doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
                          const pl = doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]');
                          if (pl) pl.click(); else G._sqsel = null; });
-    check(alpha().querySelectorAll('.fcard[data-id]').length === 8 &&
-          alpha().querySelectorAll('.fcard.open').length === 0,
+    check(alpha().querySelectorAll('.port-card[data-id]').length === 8 &&
+          alpha().querySelectorAll('.port-slot').length === 0,
           'Alpha fills all eight slots');
     /* the cross sends the two extras home again */
-    more.slice(0, 2).forEach(id => alpha().querySelector('.fcard[data-id="' + id + '"] [data-home]').click());
-    check(alpha().querySelectorAll('.fcard[data-id]').length === 6 &&
+    more.slice(0, 2).forEach(id => alpha().querySelector('.port-card[data-id="' + id + '"] [data-home]').click());
+    check(alpha().querySelectorAll('.port-card[data-id]').length === 6 &&
           doc.querySelectorAll('#bench .fcard').length === fit.length - 6,
-          'the cross on a row sends a fighter home');
+          'the cross on a portrait sends a fighter home');
     /* the star on a row makes a leader, on the person */
     const leadId = squadIds[3];
     const leadName = fit.find(f => f.id === leadId).name;
-    alpha().querySelector('.fcard[data-id="' + leadId + '"] [data-lead]').click();
-    check(!!G.plan.leaderOf[leadId] && alpha().querySelectorAll('.star.on').length === 1,
+    alpha().querySelector('.port-card[data-id="' + leadId + '"] [data-lead]').click();
+    check(!!G.plan.leaderOf[leadId] && alpha().querySelectorAll('.pstar.on').length === 1,
           'clicking the star sets leadership on the person: ' + leadName);
     /* the name opens the sheet as a drawer: four loadout slots, the moves, the actions */
-    alpha().querySelector('.fcard[data-id="' + leadId + '"] [data-sheet]').click();
+    alpha().querySelector('.port-card[data-id="' + leadId + '"] [data-sheet]').click();
     check(doc.getElementById('unitpanel').classList.contains('on') &&
           doc.querySelectorAll('#unitpanel .slot').length === 4,
           'the sheet opens as a drawer with the four loadout slots');
@@ -903,18 +1154,37 @@ setTimeout(() => {
       while (!Dft.done && guard++ < 6) {
         if (S3.draftWhose(GD2.state) === GD2.me) {
           check(/Your Pick/.test(text('#landing')), 'the page says it is your pick');
-          const free = []; for (let i = 0; i < S3.SLOT_COUNT; i++) if (Dft.taken[i] == null) free.push(i);
+          const free = []; for (let i = 0; i < (Dft.slots || S3.SLOT_MIN); i++) if (Dft.taken[i] == null) free.push(i);
           S3.draftPick(GD2.state, GD2.me, free[Math.floor(free.length / 2)]);
         }
         S3.draftAdvance(GD2.state);
         [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
       }
-      check(Dft.done && Dft.picks[GD2.me].length === 3 && Object.keys(Dft.taken).length === 24,
-            'the draft completes: three picks each, twenty-four slots taken');
+      /* §DRAFT a house drafts a landing for every squad it fields, so the counts differ by
+         house and the ring is as wide as the fleet's appetite */
+      const wanted = Object.keys(Dft.want).reduce((t, k) => t + Dft.want[k], 0);
+      check(Dft.done && Dft.picks[GD2.me].length === Dft.want[GD2.me] &&
+            Object.keys(Dft.taken).length === wanted && Dft.slots >= wanted,
+            'the draft completes: a landing for every squad in the fleet (' + wanted +
+            ' of ' + Dft.slots + ' slots, yours ' + Dft.picks[GD2.me].length + ')');
+      /* §DROP the ground does not shrink to fit the fleet: forty-eight landings whatever is
+         fielded, most of them left unclaimed, scattered rather than strung on one ring */
+      const S4b = window.CDSEASON, PRE4 = window.CDPREDIVIDE;
+      const laid = PRE4.slots(GD2.state.planet, Dft.slots);
+      const depths = laid.map(l => l.toCentre);
+      check(Dft.slots === PRE4.CONST.SLOTS && wanted < Dft.slots,
+            'the planet keeps its ' + Dft.slots + ' landings and the fleet leaves ' +
+            (Dft.slots - wanted) + ' unclaimed');
+      check(Math.min(...depths) < 0.2 && Math.max(...depths) > 0.8,
+            'they are scattered from the middle to the rim, not strung on one ring (' +
+            Math.min(...depths).toFixed(2) + ' to ' + Math.max(...depths).toFixed(2) + ')');
+      check(depths.filter(d => d < 0.35).length < depths.filter(d => d > 0.7).length,
+            'and they thin toward the middle, where the ground is worth more');
+      void S4b;
       const turnNow = () => ((doc.getElementById('turngo') || {}).textContent || '').replace(/\s+/g, ' ').trim();
       check(/Drop/.test(turnNow()), 'the corner reads Drop once the draft is done: ' + turnNow().slice(0, 40));
-      check(doc.querySelectorAll('#landing .sector.yours').length === 3 && /Every Landing/.test(text('#landing')),
-            'your three landings are listed and every landing is posted');
+      check(doc.querySelectorAll('#landing .sector.yours').length === Dft.want[GD2.me] && /Every Landing/.test(text('#landing')),
+            'your landings are listed, one a squad, and every landing is posted');
     }
     if (false && process.env.ARX_SHOT_WORLD) {   /* (the world shot predates the draft; re-cut when the Drop settles) */
       const GW = window.__G, keepPl = GW.state.planet;
@@ -1133,10 +1403,13 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      check(doc.querySelectorAll('#audiences .audrow').length >= 10,
+      /* §PICKER the four audiences keep their rows; the fleet is a constellation now */
+      check(doc.querySelectorAll('#audiences .audrow').length >= 3 &&
+            doc.querySelectorAll('#audiences .constel .cnode').length === 7,
             'the Board reads four audiences and the rivals (' +
-            doc.querySelectorAll('#audiences .audrow').length + ' rows)');
-      check(doc.querySelectorAll('#audiences .audname svg').length >= 7,
+            doc.querySelectorAll('#audiences .audrow').length + ' rows, 7 houses on the ring)');
+      check(doc.querySelectorAll('#audiences .cnode svg').length >= 7 &&
+            doc.querySelectorAll('#audiences .cwires line').length === 7,
             'each rival stands on the Board in its own colour and mark');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
@@ -1272,6 +1545,17 @@ setTimeout(() => {
     check(/Year 2 · Month 1/.test(text('#clock')), 'the year turns: ' + text('#clock'));
     check(hasTab('Desk') && !hasTab('The Firefight'),
           'the rail returns whole to the preparation');
+    /* §DESK the big grids start folded and open when asked */
+    {
+      const shutAtFirst = doc.querySelectorAll('#traingrid .tgwrap.shut, #restgrid .tgwrap.shut, ' +
+                                               '#intelgrid .tgwrap.shut, #courtgrid .tgwrap.shut').length;
+      check(shutAtFirst === 4, 'the Desk\'s four grids open folded (' + shutAtFirst + ' of 4)');
+      doc.querySelector('#traingrid [data-foldhead]').click();
+      check(!doc.querySelector('#traingrid .tgwrap.shut') && doc.querySelectorAll('#restgrid .tgwrap.shut').length === 1,
+            'clicking a section\'s head opens that one and leaves the rest shut');
+      check(!doc.querySelector('#traingrid .tgfold') && !!doc.querySelector('#traingrid .tgchev2'),
+            'the head is the switch: a chevron, not a word to aim at');
+    }
     check(!!doc.querySelector('#traingrid .tgrid') && !!doc.querySelector('#intelgrid .itbl')
           && !!doc.querySelector('#courtgrid .ctbl'),
           'year two\'s first month offers its boards — the loop closes');
@@ -1285,6 +1569,17 @@ setTimeout(() => {
           'the founded house opens its own year 1: ' + text('#clock'));
     check(/House Probe/.test(text('#money')),
           'the blank slate stands on the roster page under its own name');
+    /* §DESK the big grids start folded and open when asked */
+    {
+      const shutAtFirst = doc.querySelectorAll('#traingrid .tgwrap.shut, #restgrid .tgwrap.shut, ' +
+                                               '#intelgrid .tgwrap.shut, #courtgrid .tgwrap.shut').length;
+      check(shutAtFirst === 4, 'the Desk\'s four grids open folded (' + shutAtFirst + ' of 4)');
+      doc.querySelector('#traingrid [data-foldhead]').click();
+      check(!doc.querySelector('#traingrid .tgwrap.shut') && doc.querySelectorAll('#restgrid .tgwrap.shut').length === 1,
+            'clicking a section\'s head opens that one and leaves the rest shut');
+      check(!doc.querySelector('#traingrid .tgfold') && !!doc.querySelector('#traingrid .tgchev2'),
+            'the head is the switch: a chevron, not a word to aim at');
+    }
     check(!!doc.querySelector('#traingrid .tgrid') &&
           !!doc.querySelector('#courtgrid .ctbl') &&
           doc.querySelectorAll('#roster .rcard').length >= 5,

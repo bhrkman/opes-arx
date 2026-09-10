@@ -41,8 +41,16 @@ cd ../harness && node drive.cjs   drives the BUILT page through a whole year
                                `npm install canvas` too and the maps draw for real —
                                ARX_SHOT=1 / ARX_SHOT_DEPTHS=1 / ARX_SHOT_FOG=1 / ARX_SHOT_WORLD=x
                                dump PNGs to /tmp so the drawing is looked at, not assumed)
+node sim/audit_marks.cjs       THE KIT'S GEOMETRY — every field and device must sit on the
+                              pivot it turns about, or it swings on a hinge beside itself.
 node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread constants,
                               helpers written twice. Answer everything or label it.
+node sim/measure_kit.cjs       WHAT A FLEET CARRIES — primaries, armour, sidearms and
+                              consumables across every house. Fails on a bare hand.
+node sim/measure_energy.cjs    THE ENERGY BARGAIN — cost, power, heat and dry rate against
+                              ballistic weapons of the same tier.
+node sim/measure_bands.cjs     WHERE A FIGHT IS FOUGHT — the range mix, lethality and length
+                              per opening band, on squads carrying real kit.
 node sim/measure_fight.cjs     THE FIGHT'S SHAPE — mean turns, break vs clock, casualties.
                               Run it whenever the fight changes and ALWAYS beside a snapshot
                               blessing: the snapshots can be re-recorded, this cannot.
@@ -1070,6 +1078,574 @@ beneath (Landed, or the day), fading with age and gone when the picture forgets 
 where you know nothing. Sight and contact rings draw only round your own. The map used to draw
 every rival's true position every window, against the ruling. The truth waits for the replay,
 which is the broadcast.
+
+## The approach: why the fog never bit. *Built and measured.*
+
+**THE SPOTTING MODEL WAS FINE. THE ARITHMETIC AROUND IT WAS NOT.** `sightRange` added
+`SIGHT_FIELDCRAFT` (0.30) tiles for every point of fieldcraft OVER TEN — a rule written when a
+stat was imagined to run to twenty. Fieldcraft actually runs to about 195, median 91, so MEDIAN
+SIGHT CAME TO THIRTY-EIGHT TILES ON A TWENTY-SIX-TILE BOARD. Every fighter could see the whole
+ground. A complete, correct, switched-on fog model had nothing left to decide, which is why every
+fight in the game opened with a shot on turn one and no ambush had ever fired in any contest.
+
+Three things, and all three were needed before any of them did anything:
+- **Sight reads against the spread rosters actually deal** — `EYE_NEAR` 7 tiles for a poor scout
+  to `EYE_FAR` 15 for a superb one, and neither sees the far corner. (Named EYE_ because
+  `SIGHT_NEAR`/`SIGHT_FAR` already mean something else in divide.js; the suite caught the clash
+  before the two could drift.)
+- **A long opening is beyond sight** — 25 tiles against a 15-tile best eye, so neither side
+  begins knowing where the other is.
+- **The board grows to fit the approach** — 36×22 for a long opening, because an approach cannot
+  happen on ground smaller than the gap.
+
+**THE RANGE READING WAS THE INSTRUMENT'S FAULT, NOT THE GAME'S.** The first measurement said
+every fight was fought at medium whatever band it opened at, and concluded there was no
+short-range bloodbath because there was no short range. THE PROBE WAS BUILDING UNEQUIPPED
+FIGHTERS. `generateSquad` bodies carry no kit, so every one fell back to `DEFAULT_WEAPON` —
+power 5, range MEDIUM — and the instrument was reading a fleet in which no short or long weapon
+existed at all. A built corp resolves its kit from the catalogue: 44 short, 123 medium, 29 long
+across 196 hands.
+
+Measured again with squads carrying what the game gives them, fourteen fights a band
+(`sim/measure_bands.cjs`):
+
+| Opening | shots long / medium / short | dead a fight | turns | ran the clock |
+|---|---|---|---|---|
+| Long   | 56% / 37% / 7%  | **1.07** | 16.2 | 2 of 14 |
+| Medium | 44% / 45% / 11% | **1.86** | 10.9 | 0 of 14 |
+| Short  | 22% / 56% / 22% | **2.86** | 10.2 | 0 of 14 |
+
+Which is the reading that was hoped for and then wrongly written off: A SHORT-RANGE ENGAGEMENT IS
+NEARLY THREE TIMES AS DEADLY AS A LONG ONE, and a long one takes half again as long to resolve.
+The clock problem largely goes with it, because a fight with real weapons in it resolves.
+
+**AND `measure_fight.cjs` HAD THE SAME FAULT**, which is worse: the standing gate on the fight's
+shape had been reading unequipped fighters all along. It said the shape was fine, and it was —
+for a game nobody plays. It builds a real corp now: 11.3 turns, all twelve fights ended by a side
+breaking, 22 dead. The snapshots were blessed once against the corrected instrument.
+
+**TWO TUNINGS TRIED AND REVERTED**, recorded in the source so they are not rediscovered:
+refusing a shot at a body only HEARD unless it was close cured the hit rate (0.12 → 0.27) and
+made the clock WORSE (5 fights in 18 running out, then 9), because a squad with nothing to shoot
+at simply waits; and making a blind body close on its search point emptied the fight entirely,
+because `near` is a PLACE when blind, not a body, so both squads converged on the middle without
+converging on each other.
+
+**AND THE STALEMATE WAS NOT A SEARCH PROBLEM AT ALL.** Watching a clock-running fight tile by
+tile: the gap went 25 → 19 → 11 → 4 → 3 → 2 and then sat at ONE OR TWO TILES for twenty turns
+while the two squads traded 188 shots. Nobody was lost; they were nose to nose. Of those 188
+shot attempts, 160 FAILED FOR WANT OF A LOADED WEAPON — and the ammunition was not the problem
+either, since 294 rounds remained in the squad. Five of eight hands in a fleet squad carry
+ENERGY weapons with twelve to eighteen shots in the cell, a cell recharges per night at camp and
+not inside a fight, and NOBODY IS ISSUED A SIDEARM. So the las-carbines ran flat around turn
+twelve and their owners stood at knife range for the rest of the fight, unable to fire and
+unwilling to leave, until the clock ran out.
+
+`canHurt` asked only whether the weapon had power — a property of the model, not of the moment —
+so a fighter with a flat cell still counted as armed and the band pull kept walking him in. It
+asks whether the trigger will do anything now. A body that cannot shoot wants distance, exactly
+as a body carrying nothing does, and the withdrawal check counts it for what it is. Clock
+failures across the three bands went from 2/0/0 to 1/1/0, fights shortened (long 16.2 → 13.4
+turns, short 10.2 → 8.3), and the range gradient held: **2.50 dead a fight at a short opening
+against 1.43 at a long one.**
+
+## What an energy weapon costs and what it buys. *Measured. Nothing changed.*
+
+`sim/measure_energy.cjs` asks the catalogue and the fight, and proposes nothing. The bargain as
+written is: a cell holds a fixed number of shots, recharges only at camp overnight, cannot be
+resupplied mid-contest — paid for by power, and by never carrying ammunition.
+
+**THE POWER IS NOT THERE.** Tier for tier, against ballistic weapons of the same tier:
+
+| Tier | Energy | Ballistic | |
+|---|---|---|---|
+| 1 | 4.0 power at ₡470 | 4.0 at ₡440 | same power, 7% dearer |
+| 3 | 4.8 power at ₡1,066 | 5.5 at ₡1,185 | **12% LESS power** for 10% less |
+| 4 | 6.0 power at ₡2,224 | 6.6 at ₡2,317 | **9% LESS power** for 4% less |
+| 5 | 13.0 power at ₡13,400 | 9.6 at ₡11,120 | 35% more power for 21% more |
+
+Only the single tier-5 entry is the weapon the bargain describes. At the tiers a fleet actually
+fields, an energy weapon is slightly WEAKER for roughly the same money.
+
+**AND THE CELL IS NOT THE COST — THE HEAT IS.** A cell holds 13 shots and a fight asks for 8.2,
+so running flat inside one engagement happens to 23% of energy hands, not most of them. What
+actually bites is venting: A TYPICAL CELL-FED WEAPON OVERHEATS EVERY TWO SHOTS and loses an
+exchange cooling, 3.2 times per hand per fight. **Energy hands fire 8.2 rounds a fight against a
+ballistic hand's 12.9 — a 37% gap in output**, most of it spent waiting for a barrel to cool.
+
+**AND THE UPSIDE IT IS PAID FOR IS NEARLY WORTHLESS.** The freedom being bought is freedom from
+resupply — and ballistic weapons fail for want of a loaded weapon in 3% of shot attempts. There
+is almost no logistics burden to be free of.
+
+So a fleet's energy weapons cost about the same, hit slightly softer, fire a third less often,
+and a quarter of them go silent before the fight ends, in exchange for avoiding a problem that
+costs three per cent.
+
+**THE OVERHEAT IS UNIVERSAL, NOT A CHEAP-TIER QUIRK.** Every one of the fifteen cell-fed
+primaries fires TWO OR THREE SHOTS before it must stop and cool — the tier-5 Phase Lance and the
+tier-1 Surplus Las-Carbine alike. It is not a property of bad weapons; it is the family.
+
+**AND TAKING IT OUT DOES NOT FIX THE BARGAIN — IT MOVES THE COST** (`sim/probe_energy_noheat.cjs`,
+a hypothetical run with the switch flipped and nothing written back):
+
+| | energy fires | gap to ballistic | ran flat |
+|---|---|---|---|
+| As it stands | 8.2 | 37% | 23% |
+| No overheat | 11.3 | 18% | **72%** |
+| No overheat, cell ×1.25 | 13.3 | 5% | 54% |
+| No overheat, cell ×1.5 | 14.8 | −8% | 36% |
+| No overheat, cell ×2 | 16.5 | −15% | 23% |
+
+THE TWO SYSTEMS ARE COUPLED, and that is the finding. The overheat was acting as a RATE LIMITER
+that made a small cell last: an energy hand only fired 8.2 rounds, so its 13-shot cell mostly
+held. Remove the throttle and the hand fires 11.3 — and now the CELL is the binding constraint,
+with 72% going silent before the fight ends. Removing the overheat alone trades a weapon that
+shoots slowly for one that shoots itself empty.
+
+Closing the output gap without emptying the cell takes BOTH: no overheat and about half again
+the charge. At cell ×1.5 the energy hand out-shoots the ballistic one by 8% — which is the point
+at which the family would finally be paying for its inability to resupply.
+
+**RULED AND BUILT: the overheat is out of the catalogue, and every cell holds half again what it
+did.** A family that costs slightly more should perform slightly better; it now does. All fifteen
+cell-fed primaries lost `heat` and `heat_cap` and had their charge multiplied by 1.5 — a Surplus
+Las-Carbine holds 18 rather than 12, a Las-Repeater 27 rather than 18. Measured after: **energy
+hands fire 14.6 rounds a fight against a ballistic hand's 13.5, a 9% edge**, with a cell holding
+19.5 and a fight asking 14.6. Clock failures across the three bands stand at 1/1/1 of twelve, and NO CELL-FED HAND IS LEFT
+WITHOUT A SIDEARM (`cellFedWithNoSidearm` 22 → 0, since a bigger cell no longer runs flat before
+the pistol phase matters).
+
+WHAT MAKES A WEAPON CELL-FED IS THAT IT HAS A CELL. `isEnergy` tested `heatCap > 0`, so taking
+the overheat out of the catalogue would have stopped cells being spent at all and quietly turned
+every energy weapon into a ballistic one firing ammunition it does not carry. The family is named
+by `cellFed` now. The venting MACHINERY stays — a mod or a quirk may still put heat in a weapon —
+and the suite asserts that nothing vents rather than that something does.
+
+**TWO LATENT FAULTS CAME OUT WITH IT**, both invisible while cells were small and alike:
+- A CELL HELD WHAT THE LAST CELL HELD. What a fighter carried out of the previous fight was
+  restored without regard to the weapon in their hands, so a hand who ended with twenty-seven in
+  a repeater and then drew a beam lance began with twenty-seven in a cell that takes fifteen.
+- A SHOT COST MORE THAN THE CELL HELD. The guard asked only whether anything was left and then
+  took the draw, so a `heavy_draw` weapon firing on its last unit spent two and left the cell at
+  MINUS ONE — on seven of every eight energy fighters once cells grew and hands fired half again
+  as often. A shot now costs what it costs, and the cell must hold it.
+
+*Further weapon balance may want revisiting; this is a healthier starting point than a family
+that was worse in nearly every way.*
+
+## A fleet that leaves the ship properly equipped. *Ruled and built.*
+
+**NOBODY IN THE FLEET CARRIED A SIDEARM, AND IT WAS A PROCUREMENT FAULT.** Every role names two
+to five of them, ten exist in the catalogue from ninety credits, `useSidearm` has been in the
+fight since the beginning and `equipCorp` passes the slot through — and NO PHASE OF THE PLAN EVER
+BOUGHT ONE. The plan's essentials list was `[primary, armor]` and nothing else ever filled the
+slot. A sidearm phase sits after the essentials and before the upgrades, because a house buys
+every hand a pistol before it buys anybody a better rifle; the cell-fed go first, since a flat
+cell is what ends a fighter's fight.
+
+**AND THE GUNS NOW RESPECT THE RESERVE THE MODS ALREADY HAD.** Muster and the buy that followed
+were capped at the WHOLE fielding allowance while the upgrade phase worked against `gunAllow` —
+so a house could field itself to the ceiling on rifles and plate and have nothing left for a
+pistol or a grenade.
+
+**NO FIGHTER IN THE GAME EVER DEPLOYED UNARMED.** That state existed only in the PROBES, which
+built `generateSquad` bodies and never equipped them. Measured across three fleets, 598 hands:
+100% carry a primary, 100% armour, 85% a sidearm, 88% a consumable, and NOBODY walks on unable
+to hurt anybody. `sim/measure_kit.cjs` is the gate, and it fails on a bare hand.
+
+**ONE HOUSE STILL ARMS NOBODY WITH A PISTOL: the Verdant Cradle, 0%.** It is the poorest house
+in the fleet, its fielding allowance is small, and twelve per cent of a small allowance buys a
+ninety-credit holdout for the two roles that list one and nothing for the rest — while the house
+sits on thirty-one thousand credits it cannot field. THAT IS RECORDED AND NOT FIXED: whether a
+fielding cap should bind a poor house this hard is a ruling about what the allowance means, and
+it wants deciding rather than patching.
+
+*Re-measured with sidearms in play: the range gradient holds — 2.33 dead a fight at a short
+opening against 1.25 at a long one — and clock failures across the three bands are 0/1/0.*
+
+**STILL OPEN: a squad that has lost contact has no way to LOOK for anybody.** It heads for the
+last place anybody was seen and then holds its weapon's preferred range there. With real kit this
+costs two fights in fourteen at the long band rather than a third of them, so it is a refinement
+now rather than a fault — but a search behaviour is what it wants, and it is the next piece.
+
+## The draft dealt three landings because everybody happened to field three. *Ruled and built.*
+
+The rule allows a house SIX squads. Every house packed its people eight to a squad and so
+fielded three — and the draft dealt three picks apiece, which looked correct because the two
+numbers matched BY COINCIDENCE. A house that split into six got three landings and the engine
+quietly stacked the other three onto the last pick: splitting was punished by an accident nobody
+had noticed, including me.
+
+**A HOUSE DRAFTS A LANDING FOR EVERY SQUAD IT FIELDS.** Rounds run to the largest count in the
+fleet and a house with fewer simply has no pick in the later rounds. Measured: eight houses
+wanting 5,5,3,5,4,4,3,3 landings drew exactly that, no slot dealt twice, nobody short.
+
+**THE GROUND DOES NOT SHRINK TO FIT THE FLEET.** The first cut grew the ring with what the fleet
+meant to field, which made the map a function of the houses standing on it. A planet has the
+landings it has — FORTY-EIGHT, always — and a light fleet leaves most of them unclaimed. Ground
+going unused is the point: a house that scouted knows which of the unused ground was worth
+having. Measured: thirty-two claimed, sixteen left.
+
+**AND THEY ARE SCATTERED, NOT STRUNG ON A RING.** A single circle at 0.82 of the radius meant the
+whole fleet came down at one depth, and which ground a house got was whatever happened to fall on
+that circle — so scouting the planet told a manager almost nothing, because the choice was only
+ever WHERE ROUND, never HOW DEEP. The landings lie across the whole ground on rings that THIN
+TOWARD THE CENTRE (`SLOT_BANDS`: eighteen at the rim, two in the middle), because the middle is
+the shortest walk to everything and the last ground the wall leaves — worth more, and fewer to
+take. Measured: landings from 0.10 to 0.86 of the radius, and the AI reaching for the deep ones.
+
+TWO LANDINGS MUST NOT BE ONE: snapping a point to the nearest passable ground can walk two of
+them onto the same tile — a lake between them and both slide to the same shore — and a draft that
+deals the same ground twice is a draft that lies. Each point is tried a few steps round and
+inward before it is allowed to sit near another; measured across six planets, the closest pair is
+never nearer than a tenth of the radius.
+
+**AND A HOUSE NOW CHOOSES ITS SHAPE.** Six squads is a real decision with real terms — more
+landings drafted, more ground covered, more deposits worked at once, against squads thin enough
+to lose the fights they pick — and the AI had no way to make it, because `dealSizes` packed to
+the maximum and stopped. `squadCountFor` leans on the dials: ground-hunger and appetite for
+contact push a house wider, patience keeps it massed. From a drop of twenty: a greedy house
+fields six, a plain one four, a careful one three. A manager's own call overrides it.
+
+## A mark goes everywhere its fighter goes. *Built.*
+
+The marks reached the Squads portraits, the roster rows, the bench and the sheet, and stopped
+there — Training and Rest named a hand in plain text, and so did the Paper, the sheets on offer
+and the negotiation table, where a fighter is a TERM and most needs to be recognised as a person.
+All of them carry the mark now. A prospect wears one before they have a house, ringed in a
+neutral line until they sign; a fighter on the table is ringed in the colour of whoever holds
+them, which says at a glance whose side of the deal they are on.
+
+RATHER THAN NAME THE SURFACES ONE BY ONE and find out later that a new one shipped bare, the
+harness SWEEPS: it takes the roster's names, walks every host that could print one, and asks
+whether a mark stands within a few nodes of it. It caught the Training grid, which was the one
+edit in the batch that had not landed — and it will catch the next surface too.
+
+## Every piece turns about the point it looks like it turns about. *Built.*
+
+`sim/audit_marks.cjs` reads the kit's own source, samples each piece's outline, and reports how
+far its ink sits from the pivot every transform turns about. It found EIGHT pieces swinging on a
+hinge beside themselves — the triangle field, the Olmac slab, the chevron, the arrow, the
+mantis-blade, the claw, the flame and the hoof-arch — all now plotted from (12,12) or sat back
+onto it. The triangle, the pentagon and the hexagon are drawn as REGULAR polygons from the pivot
+rather than by eye, which is what made the pentagon read as lopsided: its sides were not even.
+
+TWO MEASURES HAD TO BE THROWN OUT ALONG THE WAY, and both are worth recording.
+- THE BOUNDING BOX IS THE WRONG MEASURE FOR AN ODD-SIDED SHAPE. A pentagram centred exactly on
+  its circumcircle still has a bbox sitting high, because it has one point up and two down — so
+  judging by the box condemned the star that had just been fixed. The centroid of the ink is the
+  test.
+- RADIAL SPREAD IS NOT THE TEST EITHER. It condemned the Gil goggles, which are two circles
+  either side of the pivot: radially uneven, and they rotate perfectly evenly, because they are
+  SYMMETRIC about it. Spread is printed because it is worth seeing and judged on by nobody.
+
+A BAR IS ALLOWED OFF THE PIVOT, deliberately: a ground-line belongs at the foot, and turning it
+is how a manager puts it on another side. Only fields and devices must be centred.
+
+AND THE SECOND HEXAGON IS GONE — it was the first one lying on its side, and the pad turns
+things. A piece a quarter-turn already reaches is not a piece, it is a duplicate. The kit is
+eleven fields, twenty devices and eight bars.
+
+## What a born mark is allowed to do, and where a mark is changed. *Ruled and built.*
+
+**THE EDITOR WAS UNFINDABLE.** It was reached by clicking a bare disc on a fighter's sheet, with
+the whole affordance in a `title` nobody hovers — the same mistake the focus boost made, and the
+same fix: the word is on the page. The sheet's mark now says *Change the Mark* beside it, and
+THE MARK ON EVERY ROSTER ROW opens the editor directly, because the Roster is where a manager
+looks at his people and so it is where changing how they are drawn belongs.
+
+**AND THE DRAW WAS TOO FREE.** It turned and scaled every piece without limit, and free is not
+the same as varied: most of what came out was a jumble, because a field turned 45° stops being a
+field and a device at half size stops being the subject. A MANAGER may do all of that — if he
+makes a mess, he made it, and that was the ruling — but a mark a fighter is BORN with has to read
+at twelve pixels without anybody looking at it first. Each piece is now bound by what that piece
+is FOR: a field stands square and only ever turns a quarter; a device may turn to any eighth,
+because a device is the subject and a turned subject is still a subject; a bar turns to a quarter
+or a diagonal. Nothing is moved off centre and nothing is stretched — those are a manager's tools,
+not the draw's — and scale stays within a tenth. Measured over 450 marks across all nine peoples:
+no field on a diagonal, every piece between 0.90 and 1.10, and the variety carried by WHICH
+pieces come up rather than by noise.
+
+## An overlay taller than the screen. *Fixed.*
+
+The founding screen is `position:fixed`, centred, and said nothing about overflow — so once the
+mark builder grew, the button that starts the game sat past the bottom edge with NO WAY TO SCROLL
+TO IT. A short viewport could not begin a career at all. The overlay scrolls now, centres only
+while it fits, and keeps a margin at the foot so the last control is never flush against the
+edge; on a narrow one the builder stacks under its stage, the pad becomes one column, and the
+button that starts the game sticks to the bottom where a thumb is. The harness asserts the
+overflow rule, since jsdom computes no layout and would never notice the button had gone.
+
+## Every fighter is their own mark. *Ruled and built.*
+
+Portrait art for hundreds of people across a career is not a thing this project will ever have,
+and a mark from the same kit the founding builder uses is BETTER than a face for what the game
+needs: distinct at twelve pixels, stable across saves, and drawn on the grid so a fight can be
+followed by WHO rather than by coloured dots.
+
+**A FIGHTER IS BORN WITH ONE**, drawn from their id (`bornMark`), so it needs no storage and never
+changes under them. Their people lean the draw — a Thythyn toward the wings and the wing-case,
+an Olmac toward the slab and the block, a Mon-Wa toward the halves and the tether, a Kellis
+toward the mantis-blade, an Attorak toward the claw, the Etu toward the flame and the
+candle-house, a Gil toward the goggles, a Svalbard toward the hoof-arch — and the people's own
+piece comes up more often than not, so a squad of Thythyn reads as one. EVERY PIECE THE DRAW CAN
+REACH IS IN THE KIT (`RACE_LEAN` indexes it), so nothing a fighter is born with cannot be made by
+hand: the kit is twelve fields, twenty devices and eight bars now.
+
+**THE FILL IS THEIRS; THE RING IS THE HOUSE'S.** The mark is filled in the fighter's race colour
+by default and may be changed to any of the founder's swatches; the ring round it is always the
+house's colour, which is how the grid says whose they are. It reads on the Squads portraits (where
+the silhouette stood), on the roster rows, on the bench cards, and on the sheet — where clicking
+it opens THE SAME PAD the house's mark was built with: *As Born* throws a change away, *Re-Roll*
+draws again from their people's kit, *Keep It* saves. Only what was changed is saved; a fighter
+never touched carries no mark at all.
+
+**AND ON THE GRID.** The field is a canvas, so each mark is rasterised once per fighter and colour
+from the same SVG and drawn over the disc, faded on a body that is down, with the cross still over
+the dead. (Two elements shared `id="cmarks"` for a while — the founding screen's and the editor's
+— and the pad painted into the hidden one; it takes its host explicitly now.)
+
+## The founding screen asks three things. *Ruled and built.*
+
+It listed the fleet TWICE, explained that a blank slate is the fleet average, offered a seed
+almost nobody wants to type, titled itself *Choose Your OA* above a button reading *Found the
+OA*, and asked whose berth to take. What is left is a NAME, a COLOUR and a MARK, which is what
+founding a corporation actually is.
+
+**WHOSE BERTH IS NOT A QUESTION.** It has no information behind it and no interesting answer.
+The weakest house canonically gives way — the highest declared difficulty, the thinnest treasury
+breaking the tie — which today is the Verdant Cradle (difficulty 5). With several managers the
+weakest several give way in that order: three managers displace the Cradle, the New Line and
+Vantis Deepcore. That is the rule multiplayer will want, written now rather than retrofitted.
+
+**THE PAD.** Each piece can be TURNED, GROWN, MOVED and STRETCHED, not only turned — one set of
+controls working whichever piece was last touched, the way a Mii is built: pick the part, then
+adjust it. A symbol apiece with the reading beside it rather than a figure crammed into the
+button. There are no bounds worth imposing on taste — if it looks bad, a manager made it look
+bad — so the only limits are the ones that keep a mark inside its own box at twelve pixels, and
+Reset puts a piece back where it started.
+
+**THE STAR SPUN AROUND SOMETHING THAT WAS NOT ITS MIDDLE.** It was drawn as a run of relative
+moves from its top point, so its ink sat high in the box while every transform turns about the
+box's centre — the whole thing swung on a hinge above itself. Plotted from (12,12) outward, it
+turns about the point it looks like it turns about.
+
+**A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN.** A founded house wore the same borrowed device
+as every other founded house. The mark is BUILT: a FIELD (eight), a DEVICE (twelve) and a BAR
+(six), and each of the three CAN BE TURNED, all the way round in eighths. Stopping at 135° was
+a half-measure resting on the assumption that the upper half of the dial repeats the lower, and
+it does not: a chevron at 225° is not a chevron at 45°, and an asymmetric field has eight faces.
+Rotation is worth more than more shapes — a diamond turned is a square, a chevron turned is an arrow, a bar turned is a pale
+— so the kit stays small enough that every piece could be drawn for twelve pixels, which is the
+whole constraint: the mark goes on a rail tab and a map marker. Five hundred and seventy-six
+combinations before turning; two hundred and ninety-five thousand with it. Twelve READY-MADE marks stand beside
+the kit for a manager who does not want to make one, and the preview draws the mark at 104, 24,
+16 and 12 pixels at once, because legibility at the small end is the only thing that can go
+wrong.
+
+**TWO HARNESS MEASUREMENTS WERE WRONG, and the founded house exposed them.** The training mean
+was taken across the whole roster while the drive SIGNS FIGHTERS between the two readings — on
+seven hands, two arrivals move the average more than a month of drilling does, which read as a
+painted column losing to an unpainted one. The mean is over a frozen cohort now. And the painted
+column was compared against RESOLVE, which rest lifts as well as drill; it is compared against
+AIM, which nothing but training touches.
+
+## A portrait's shape, and a head that is its own switch. *Ruled and built.*
+
+**THE TILES KEPT COMING OUT WIDER THAN TALL** through three attempts, because the face-plate was
+a fixed HEIGHT inside a card whose width the grid decided — so however the card was sized, the
+plate stayed a strip. The plate is a 2:3 FRAME now, the shape a portrait is, and the card is
+only as wide as its frame, with the name and the gun beneath. The empty slots take the same
+proportion so a part-filled squad reads as a rack of eight rather than a ragged row. (The
+harness asserts the aspect ratio in the stylesheet, since jsdom computes no layout and would
+have passed a strip happily.)
+
+**AND THE DESK'S FOLDS LOST THEIR BUTTON.** A word to press beside a title a manager was already
+reaching for is a second thing to aim at for no reason: the whole head opens and shuts its
+section, with a chevron saying which way it will go.
+
+## Each window wears its own colour, and no button moves. *Ruled and built.*
+
+Natural-Born, the Bastille and the mercenaries have had a colour apiece everywhere else in the
+game — on the year line, on a roster row's origin, on the map's markers — and the window that
+buys them was one green box for all three. The panel takes `--o` from the window and every rule
+reads it, so a manager knows which market he is in before he reads a word.
+
+**A · THE LEDGER LINE, for Natural-Born and the Bastille.** The card never reflows: one action,
+full width, in the window's colour, in the same place whatever state the card is in. Signed, the
+card takes the colour and wears a corner flag.
+
+**B · THE STANDING BID, for the mercenaries — the one window where waiting is the mechanic**,
+because seven houses are bidding and the fighter chooses. It keeps its bidding and loses its
+moving buttons: THE BID IS A SLIDER against what the field is putting up (`MERC_FIELD`), and
+**Place, Raise and Withdraw all stand on every card at once** — none of them renames itself or
+takes another's place under the cursor. The reading beneath answers what a manager actually
+wants to know in an auction: not how much, but whether it is enough — *Not Enough*, *They Are
+Listening*, *They Would Take It*. A text box asked for a number with no sense of the field at
+all.
+
+## The ring reaches the Talks and the Deal. *Ruled and built.*
+
+Both surfaces pick a house the way every other one now does: the mark large in a circle in the
+house's own colour, the name under it, laid on a ring with the manager's own house in the middle.
+Each carries under the name the one thing that surface's choice turns on — in THE DEAL, whether
+they are your banner or under you or in a pact with you, and their odds; in THE TALKS, what they
+think of you, or *Sealed* if they will not come to the table at all. These were the two emptiest
+menus in the game and the ring was designed for exactly that.
+
+*Still to take it: the leanings on the Table, which are a five-point scale per house rather than
+a choice of one, and want their own shape.*
+
+## A signature is a signature. *Ruled and built.*
+
+**A NATURAL-BORN SIGNS WHEN YOU SIGN THEM.** The tryout sheet is your own ship's — nobody else
+is bidding on it — and it still made a manager mark somebody, wait for the month to turn, and
+find out then whether he had a fighter. There is no auction to wait for: `signNow` draws the
+paper, commits the money and puts the hand on the roster the moment the button is pressed, and
+the name comes off the sheet. The re-signing answers land the same way, with a line in the log
+saying what was done. THE MERCENARY MARKET KEEPS ITS BIDDING, and only it: seven houses are
+bidding there and the fighter chooses, which is the one place where waiting is the mechanic
+rather than a delay. (Its moving-button problem is the acquisition mock-up's business.)
+
+**THE BACKROOM'S STYLES WERE LOST.** A cleanup that removed the old drawer's rules took the
+page's with them, so the Backroom rendered as unspaced white text — *Price₡15,000Goes Off
+Clean88%* is what a card looks like with no stylesheet at all. Written back, with the price grid
+given room: label left, figure right, rules above and below, and the offer set off in the
+signing colour.
+
+## One gesture for picking a house, and a fleet you can see. *Ruled and built.*
+
+**A HOUSE IS ITS MARK.** Every place a manager chose another house wore its own shape — long
+rectangles at the founding, a strip in the Talks, chips in the Backroom — and none of them
+matched. `housePicker` is the single component: the emblem large inside a circle in the house's
+own colour, the NAME UNDER IT, laid on a ring where there is room and a row where there is not.
+It fills the empty middles of the menus that use it, which was half the reason those menus read
+as thin. The founding berth and the Backroom's targets use it now; the Talks and the Deal are
+the next surfaces to take it.
+
+**AND THE BOARD SHOWS A FLEET, NOT A COLUMN OF BARS.** Seven bars said what each house thought
+of you and showed nothing. The fleet is a set of DISTANCES: each house stands on a ring around
+yours, the warmer they are the CLOSER and LARGER they sit, the colder the further out and the
+smaller, with a line drawn to you — green where they are warm, red where they are cold, its
+weight the strength of the feeling. Same disc-and-name as the pickers, so the fleet looks like
+itself wherever it appears.
+
+**THE DESK'S BIG GRIDS FOLD, AND OPEN FOLDED.** Training, Rest, Intel and Sponsors between them
+fill a screen and a half, so a manager opening the Desk met a wall and scrolled past three
+things to reach the one he wanted. Each is a fold with its name CENTRED and the word that opens
+it on the right: shut until asked for, remembered once opened. (jsdom does not compute CSS, so
+the harness asserts the fold state itself rather than trusting the stylesheet.)
+
+## The Kellis, the Bastille's missing button, and a place for a face. *Ruled and built.*
+
+**THE KELLIS WERE SKIPPED.** The racial pass gave every other people something and never
+discussed them at all. They are mantis-featured and precise, drilled in duelling arts that are
+never fielded — and that drill is exactly the mechanic: they fight IN MEASURE. A Kellis who
+holds their ground rather than crossing it is reading the exchange, and each turn held is worth
+more on the next shot, to `KELLIS_MEASURE_CAP` turns; crossing ground breaks it. Measured: their
+hit rate runs 0.226 against a human squad's 0.212, bought entirely by standing still, which is a
+thing a manager can play around. (The number lives once, in combat.js where the shot is priced —
+declaring it in both modules is how two numbers drift apart, and the suite caught me doing it.)
+
+**THE BASTILLE'S SHEET HAD NO BUTTON.** The intake allotted prisoners purely by which house was
+shortest of people, so a manager read six names on the Roster and could do nothing with any of
+them. A house ASKS for the ones it wants (`claimPrisoner`), and the claims are honoured first;
+the Bastille still fills the rest of the lot its own way. CEILING is off every sheet at last —
+Natural-Born, Mercenary and Bastille all still carried it — replaced by the RATING, which is the
+number a hiring call actually turns on.
+
+**ROSTER SHORT IS GONE FROM THE AGENDA ENTIRELY.** Narrowing it to the signing months was not
+enough: it is a STATE, not a task, and it held the turn button up over a thing a manager
+frequently cannot act on. The Market says how short a house is where something can be done about
+it; the lock stops a drop that cannot be fielded.
+
+**THE PORTRAITS LOST THEIR EASE, AND HAVE IT BACK.** The cross was the only way out of a squad
+and there was no way to move somebody between squads without sending them home first. A portrait
+picks up the way a bench card does; the next open place in any other squad takes them; the bench
+takes them back. And the initials are gone: a head and shoulders in the fighter's own race
+colour reads as *a portrait goes here*, which is what the tile is for and what art will replace.
+
+## A squad is eight portraits, and a fighter has a rating. *Ruled and built.*
+
+The first attempt at "make the squads feel less like lists" made the list TALLER: eight
+full-width rows, each with a wall of seven stats, and every empty slot on the page lighting up
+the moment a manager picked somebody up — forty-two offers at once, which is a screen shouting
+rather than an offer. It was worse in every way it was meant to be better.
+
+A SQUAD IS EIGHT PORTRAIT TILES, four across and two down: a face-plate (initials until there is
+art to put there), the name, the RATING, and the gun. The star and the cross come up on hover
+rather than standing in the way, and the name opens the sheet. It is the shape the art will want
+when there are faces for it. ONE TARGET A SQUAD: picking somebody up lights the next open place
+in each squad that could take them — six offers, not forty-two.
+
+THE RATING is one number that stands for a fighter at a glance: their stats, what their kit is
+worth, what their quirks are worth to a fight, and what their condition takes off. Building a
+squad meant reading seven stats on every card, which says everything and shows nothing. The
+rating is not the whole picture and is not meant to be — the sheet is one click away — but it is
+what a manager actually asks when he is filling eight slots: is this one better than that one.
+It reads on the portraits, on the bench cards beside the gun, and it is what the Roster's sort
+now means by *Rating* (it was `Stats`, and it was already this average, unnamed and unshown).
+
+AND AN ARTICLE IS NOT A FORENAME: an Olmac called The Tide was punished as "Punish The", because
+an event took the first word of a name. A name that opens with an article is used whole.
+
+## The paper, and a boost nobody could see. *Ruled and built.*
+
+**THE REVIEW IS WHERE A MANAGER ANSWERS HIS OWN PAPER.** Every expiring contract was renewed or
+dropped by the same budget arithmetic the fleet uses — the human's included — so a fighter who
+came good never got an argument, a veteran past his best never got cheap, and a manager never
+had to decide whether either was worth what they now ask. Month 1 shows the expiring contracts
+on the Roster: what each was paid, what they ask now (fame moves it), and what a year of them
+costs. Three answers — RE-SIGN at the ask, OFFER LESS (`HAGGLE_FLOOR`, and the further under
+the ask the likelier they walk, `HAGGLE_WALK`), or LET THEM GO. A prisoner who has served his
+sentence is marked, and signing him on makes him a free hand on ordinary wages. The fleet still
+answers its own paper by arithmetic; a manager's calls stand before it. This matters most to a
+founded house, whose seven hands ALL have a year left on their paper — the first year opens with
+a decision about every one of them.
+
+**AND THE BOOST WAS DRAWN WHERE THE FOCUS IS NOT SPENT.** Labelling the button was the wrong fix
+twice over. The button lived on the VERBS LIST, and that list deliberately SKIPS training, rest
+and intel, because each of those is a grid of its own below it — so for three of the four tracks
+the button was never drawn at all, and a manager could spend eight points on drilling and never
+be offered the thing that doubles them. It sits on each grid's OWN HEAD now, appears only once
+that grid has focus on it, and names the price of what is actually on it. The sentence explaining
+it came off the tally: prose beside a control is the admission that the control does not explain
+itself, and a button that names its own price does not need a sentence.
+
+**THE BOOST WAS THERE ALL ALONG, AND UNREADABLE.** Doubling a focus point for credits exists in
+the engine and on the page, and read as a lightning bolt with a price beside it, the whole
+mechanic hidden in a tooltip nobody opens — which is indistinguishable from not existing. The
+button says *Double This · ₡8,000* and *⚡ Doubled* when taken, in the credit colour, and the
+focus line says the price once. Nothing about the mechanic changed; a manager can now find it.
+
+## The Backroom, the holds, and the last drop-down. *Ruled and built.*
+
+**THERE ARE NO DROP-DOWN MENUS IN THE GAME.** There were two, and both are gone: the Quiet
+Business's targets and the founding screen's berth. Both are chips in their houses' own colours
+now, the way every house is shown on every other surface. This is a standing rule — a select
+hides seven things behind one word.
+
+**THE BACKROOM** is a page with a rail tab, not a drawer opened by a button, and it carries the
+work that belongs to WHEN YOU ASK: before the drop you can sabotage a rival's kit or have a
+quiet word; while the contest runs you can buy a ruling or a malfunction. A favour that says
+"this Divide" was never something a manager buys in month three. ("The Quiet Business" was a
+strange name for a page; the Backroom is where it happens.)
+
+**THE HOLDS ARE A FLEET'S HOLDS.** "The ship has 4 food" is a silly sentence. A store is
+measured in units of a thousand — a full hold is 9,000, the board asks for 3,000, and what came
+home reads in the same scale. Every ratio in the game is unchanged. And the stores fall EVERY
+MONTH for the same annual total (`HOLDS_DRAIN / HOLDS_DRAIN_MONTHS`), because a hold that empties
+in twelve small bites is a thing a manager watches, not a number that jumps once while he is
+looking elsewhere.
+
+**THREE SMALLER CORRECTIONS.** *Roster short of 16* stood on the agenda in month one, when no
+window is open and nothing can be done, and held the turn button up saying so; it stands only in
+months a manager could sign somebody. *Gate and Merchandise* was said twice in one recap — the
+money block already carries it. *Focus · 3 On Train* was neither true (a manager who spent eight
+points across the grid saw three) nor useful (the Training tab says what the drilling went to, in
+the cells it went to); both lines are gone. And CEILING came off the prospect card: training is
+capped globally now, so a prospect's own potential decides nothing a manager can see or move, and
+showing it as a stat promised a mechanic that is not there.
 
 ## The housekeeping audit. *Built.*
 

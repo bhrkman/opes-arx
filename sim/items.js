@@ -391,7 +391,15 @@
     const cheapestOf = (r, listKey) => owned(r[listKey]).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
 
     /* ---- phase 1: muster from the locker ---- */
-    /* Stock costs no money, so exhaust it before opening the wallet. */
+    /* Stock costs no money, so exhaust it before opening the wallet.
+       THE GUNS RESPECT THE SAME RESERVE THE MODS DO. Muster and the buy that follows it were
+       capped at the WHOLE allowance while phase 4 upgraded against `gunAllow` — so a house
+       with a full locker could field itself right up to the ceiling on rifles and plate and
+       have nothing left for a pistol or a grenade. The Verdant Cradle, the poorest house in
+       the fleet, issued sidearms to NOBODY while sitting on thirty-one thousand credits it
+       could not field. The essentials stop at the gun allowance; what is held back is what
+       buys the rest of a fighter's kit. */
+    const mustAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
     const SLOTS = [['primary', 'primaries'], ['armor', 'armors']];
     for (const roleId of order) for (const b of bodies.filter(x => x.role === roleId)) {
       const r = roleById(b.role);
@@ -400,7 +408,7 @@
            good rifles here would spend the cap before the medic gets a medkit. Phase 4
            upgrades from the same locker once the essentials are covered. */
         const cheap = owned(r[listKey]).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
-        const got = cheap.find(c => spent + c.cost <= allow && take(c.id));
+        const got = cheap.find(c => spent + c.cost <= mustAllow && take(c.id));
         if (got) { b.loadout[slot] = got.id; spent += got.cost; }
       }
     }
@@ -427,9 +435,9 @@
         /* Reserve BOTH currencies for the bodies still bare: enough money to buy them
            something, and enough allowance to field it. Reserving only the money let an
            early buyer eat the cap and leave the last man unfieldable. */
-        const ceilingHere = Math.min(money - reserve, allow - spent - reserve);
+        const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve);
         const ranked = rankBy(owned(roleById(q.b.role)[q.listKey]), taste);
-        const fits = ranked.filter(c => spent + c.cost <= allow);
+        const fits = ranked.filter(c => spent + c.cost <= mustAllow);
         const pick = fits.find(c => c.cost <= ceilingHere) ||
                      fits.slice().sort((x, y) => x.cost - y.cost)[0] ||
                      ranked.slice().sort((x, y) => x.cost - y.cost)[0];
@@ -459,6 +467,35 @@
         if (spent + c.cost > allow) continue;
         if (take(cId)) { b.loadout.consumables = [cId]; spent += c.cost; }
         else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [cId]; spent += c.cost; }
+      }
+    }
+
+    /* ---- phase 3b: A SIDEARM IS NOT A LUXURY ----------------------------------------
+       NOBODY IN THE FLEET CARRIED ONE. Every role in the catalogue names two to five
+       sidearms, ten exist from ninety credits, `useSidearm` has been in the fight since the
+       beginning and `equipCorp` passes the slot through — and no phase of the plan ever
+       BOUGHT one, so the slot was empty on every fighter in every house. It showed up as a
+       stalemate: five of eight hands carry an energy primary with twelve to eighteen shots
+       in the cell, cells recharge at camp and not inside a fight, and when they ran flat
+       their owners had nothing to draw and stood at knife range doing nothing until the
+       clock ran out.
+
+       The cell-fed go first, because a flat cell is what ends a fighter's fight; then
+       everybody else, cheapest first, because this is insurance and not armament. It sits
+       after the essentials and before the upgrades: a corp buys every hand a pistol before
+       it buys anybody a better rifle. */
+    {
+      const needsSide = bodies.filter(b => !b.loadout.sidearm);
+      const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && (pr.effects.heat_cap || pr.effects.charge)); };
+      needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
+      for (const b of needsSide) {
+        const r = roleById(b.role);
+        const list = (r.sidearms || []).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
+        for (const c of list) {
+          if (spent + c.cost > allow) continue;
+          if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
+          if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
+        }
       }
     }
 

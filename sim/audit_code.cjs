@@ -46,7 +46,10 @@ for (const f of modules) {
     /* [ABSTRACT] is a deliberate answer, not an oversight: those dials belong to the
        exchange model the grid replaced, and combat.js says so where they live */
     const line = body.split('\n').find(l => l.includes(key + ':')) || '';
-    if (total <= 1 && !/\[ABSTRACT\]/.test(line)) findings.unreadConstants.push(f + ': ' + key);
+    /* a name ending _RETIRED is a deliberate answer too: the rule it belonged to was taken
+       out and the dial is left labelled where a replacement would land */
+    if (total <= 1 && !/\[ABSTRACT\]/.test(line) && !/_RETIRED\b/.test(key))
+      findings.unreadConstants.push(f + ': ' + key);
   }
 }
 /* ---- the same helper written in two places ---- */

@@ -268,6 +268,8 @@
        Divides, because the lock sorted on quality alone and they sit a little under
        the market. This is the weight of an unserved clause at the lock. */
     LOCK_TERM_W: 0.5,
+    HAGGLE_FLOOR: 0.85,       // [C] §RESIGN what a manager's low offer defaults to, of the ask
+    HAGGLE_WALK: 2.2,         // [C] and how readily a fighter offered under it walks
     RENEWAL_SEASONS: 2           // [H] how long a renewed contract runs
 
     /* `SEASON_MONTHS: 13` WAS DECLARED HERE and is gone. A year is twelve months — eleven of
@@ -880,9 +882,14 @@
       return n(a) - n(b);
     });
     for (const f of lot) {
+      /* §BASTILLE A HOUSE MAY ASK FOR A BODY. The intake allotted prisoners purely by who was
+         shortest of people, so the sheet stood on the Roster with no way to take anybody off
+         it — a manager read six names and could do nothing. A house that has claimed somebody
+         is first in the queue for them; the rest are allotted as they always were. */
       const order = queue();
+      const claimed = order.filter(id => ((corps[id]._bastilleClaims || {})[f.id]));
       let taken = null;
-      for (const id of order) {
+      for (const id of claimed.concat(order.filter(id => claimed.indexOf(id) < 0))) {
         const c = corps[id];
         const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
         if (alive.length >= CONST.ROSTER_TARGET) continue;
@@ -1877,6 +1884,39 @@
    * `FREED_RESIGN_BASE` was declared and read nowhere, so a prisoner who served out their
    * freedom clause became `freed` and then simply stayed, for ever, unpaid-for and unasked.
    */
+  /* §RESIGN THE PAPER IS A MANAGER'S BUSINESS. Every expiring contract was renewed or dropped
+     by the same budget arithmetic, the human's included — so a fighter who came good never got
+     an argument and a manager never had to decide whether a veteran was worth what he now asks.
+     A manager answers his own paper in the Review; the fleet still answers its own. */
+  function renewalsFor(state, corpId) {
+    const c = state.corps[corpId];
+    const out = [];
+    for (const f of c.roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      const ct = f.contract || {};
+      const endingNow = (ct.seasons_remaining != null ? ct.seasons_remaining : ct.seasons || 0) <= 1;
+      if (!endingNow) continue;
+      const freed = ct.kind === 'prisoner' && (ct.sentence_remaining == null || ct.sentence_remaining <= 1);
+      out.push({
+        id: f.id, name: f.name, race: f.race, fame: f.fame || 0, age: f.age,
+        kind: ct.kind, freed: freed,
+        was: ct.salary || 0,
+        asks: renewalSalary(f),
+        /* what a season of them costs against what they were paid: the argument itself */
+        year: renewalSalary(f) * LED.CONST.SALARY_MONTHS,
+        called: (c._renewalCalls || {})[f.id] || null
+      });
+    }
+    return out;
+  }
+  /** a manager's answer: sign at the ask, offer less and risk them walking, or let them go */
+  function answerRenewal(state, corpId, fighterId, how, offer) {
+    const c = state.corps[corpId];
+    const f = c.roster.find(x => x.id === fighterId); if (!f) return { ok: false };
+    c._renewalCalls = c._renewalCalls || {};
+    c._renewalCalls[fighterId] = { how: how, offer: offer || null };
+    return { ok: true };
+  }
   function renewRoster(rng, corp, expiring, freed) {
     const out = { renewed: 0, released: 0, resigned: 0, walked: 0, cost: 0 };
     const gone = [];
@@ -1912,8 +1952,27 @@
          did not choose. Without this line a roster could be released down to fifteen and the
          Divide fielded a force under the floor, which S14 caught. */
       let headroom = staying.length + expiring.length - CONST.ROSTER_MIN;
+      /* §RESIGN a manager's own calls stand before the arithmetic does */
+      const calls = corp._renewalCalls || {};
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
         if (gone.indexOf(f) >= 0) continue;
+        const call = calls[f.id];
+        if (call) {
+          if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
+          const asked = renewalSalary(f);
+          const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
+          /* a fighter offered less than they asked may walk, and the further under, the likelier */
+          const under = Math.max(0, (asked - paying) / Math.max(1, asked));
+          if (call.how === 'haggle' && rng() < under * CONST.HAGGLE_WALK) { gone.push(f); out.walked++; headroom--; continue; }
+          f.contract.salary = paying;
+          f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
+          f.contract.seasons_total = CONST.RENEWAL_SEASONS;
+          /* a prisoner who has served signs on as anybody else does */
+          if (f.contract.kind === 'prisoner') f.contract.kind = 'nattie';
+          f._fameAtSigning = f.fame || 0;
+          out.renewed++; out.cost += paying * LED.CONST.SALARY_MONTHS;
+          continue;
+        }
         const ask = renewalSalary(f);
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
@@ -2295,6 +2354,7 @@
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     if (ILLICIT) ILLICIT.clearYear(state);
+    for (const id of ids) delete corps[id]._bastilleClaims;
     for (const id of ids) delete corps[id]._eightDead;
     return state;
   }
@@ -2368,6 +2428,34 @@
     return true;
   }
 
+  /* §SIGNING A NATURAL-BORN SIGNS WHEN YOU SIGN THEM. The tryout sheet is your own ship's —
+     nobody else is bidding on it — and it still made a manager mark somebody, wait for the
+     month to turn, and find out then whether he had a fighter. There is no auction to wait
+     for: the paper is drawn, the money is committed and the hand is on the roster the moment
+     it is signed. (The mercenary market keeps its bidding: seven houses are bidding there and
+     the fighter chooses.) */
+  function signNow(state, corpId, fighterId) {
+    const kind = (MONTHS[state.month] || {}).signing;
+    if (kind !== 'tryouts') return { ok: false, why: 'Not a Signing Window' };
+    const c = state.corps[corpId];
+    let lot = state.lots[kind]; if (lot && lot[corpId]) lot = lot[corpId];
+    const f = (lot || []).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not on the Sheet' };
+    const year = askingPrice(f, c) * LED.CONST.SALARY_MONTHS;
+    if (signingBudget(c) < year) return { ok: false, why: 'The Money Is Not There' };
+    /* off the sheet and onto the roster, this moment */
+    const idx = lot.indexOf(f); if (idx >= 0) lot.splice(idx, 1);
+    f.contract = f.contract || {};
+    f.contract.salary = Math.round(askingPrice(f, c) / LED.CONST.SALARY_MONTHS);
+    f.contract.kind = f.contract.kind || 'nattie';
+    f.contract.seasons_remaining = f.seasons || CONST.RENEWAL_SEASONS;
+    f.contract.seasons_total = f.contract.seasons_remaining;
+    f._fameAtSigning = f.fame || 0;
+    f.status = 'active';
+    c.roster.push(f);
+    LED.post(c.account, 'expense', 'A Contract Signed', -year);
+    return { ok: true, name: f.name, cost: year };
+  }
   function bidsFor(state, corpId) {
     const kind = (MONTHS[state.month] || {}).signing;
     return (kind && (state.bids[kind] || {})[corpId]) || {};
@@ -2411,12 +2499,36 @@
       house picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
       draftAdvance walks the AI turns until it is a human's turn or the draft is done. Every
       pick is public. */
-  const SLOT_COUNT = 24, PICKS_EACH = 3;
+  /* §DRAFT A HOUSE DRAFTS ONE LANDING FOR EACH SQUAD IT FIELDS. The draft was three picks
+     apiece, which matched what every house happened to field — three squads of eight — and
+     matched NOTHING about the rule, which allows six. A house that split into six squads got
+     three landings and the engine quietly stacked the other three onto the last one, so
+     splitting was punished by a coincidence nobody had noticed. Rounds run to the largest
+     count in the fleet, and a house with fewer simply has no pick in the later rounds. The
+     ring grows with the fleet's appetite so there is always ground to come down on. */
+  /* THE GROUND DOES NOT SHRINK TO FIT THE FLEET. The ring grew with what the fleet meant to
+     field, which made the map a function of the houses on it; the planet has the landings it
+     has (`PRE.CONST.SLOTS`), and a light fleet simply leaves most of them unclaimed. Ground
+     going unused is the point — a house that scouted knows which of it was worth having. */
+  const SLOT_MIN = 48;
+  function squadPlanFor(state, corpId) {
+    const c = state.corps[corpId];
+    if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
+    const alive = c.roster.filter(f => f.status === 'active').length;
+    const n = DIVIDE.squadCountFor(alive, c.profile || {}, (state.opts || {}).human === corpId ? (c._wantSquads || 0) : 0);
+    c._squadPlan = { season: state.season, n };
+    return n;
+  }
+  function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
   function ensureDraft(state) {
     state.drop = state.drop || { sectors: {} };
     if (state.drop.draft && state.drop.draft.season === state.season) return state.drop.draft;
     const order = state.ids.slice().sort((a, b) => strengthRead(state, a) - strengthRead(state, b));   /* weakest first */
-    state.drop.draft = { season: state.season, order, round: 0, turn: 0, picks: {}, taken: {}, done: false, log: [] };
+    const want = {};
+    let rounds = 0;
+    for (const id of state.ids) { want[id] = squadPlanFor(state, id); rounds = Math.max(rounds, want[id]); }
+    state.drop.draft = { season: state.season, order, round: 0, turn: 0, picks: {}, taken: {},
+                         want, rounds, slots: slotCountFor(state), done: false, log: [] };
     for (const id of state.ids) state.drop.draft.picks[id] = [];
     return state.drop.draft;
   }
@@ -2427,24 +2539,35 @@
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
     return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
   }
+  /* whose turn it is — skipping any house that has already drafted a landing for every
+     squad it means to field */
   function draftWhose(state) {
     const D = ensureDraft(state); if (D.done) return null;
-    return D.order[D.turn];
+    let guard = 0;
+    while (guard++ < D.order.length * (D.rounds + 1)) {
+      const id = D.order[D.turn];
+      if (D.picks[id].length < D.want[id]) return id;
+      D.turn++;
+      if (D.turn >= D.order.length) { D.turn = 0; D.round++; }
+      if (D.round >= D.rounds) { D.done = true; return null; }
+    }
+    D.done = true; return null;
   }
   function draftPick(state, corpId, slot) {
     const D = ensureDraft(state);
     if (D.done || draftWhose(state) !== corpId) return false;
-    if (slot == null || slot < 0 || slot >= SLOT_COUNT || D.taken[slot] != null) return false;
+    if (slot == null || slot < 0 || slot >= D.slots || D.taken[slot] != null) return false;
     D.taken[slot] = corpId; D.picks[corpId].push(slot); D.log.push({ round: D.round, corp: corpId, slot });
     D.turn++;
     if (D.turn >= D.order.length) { D.turn = 0; D.round++; }
-    if (D.round >= PICKS_EACH) D.done = true;
+    if (D.round >= D.rounds) D.done = true;
+    else if (!draftWhose(state)) D.done = true;    /* everybody has all the ground they wanted */
     return true;
   }
   /** walk the AI's turns; stop at a human's turn or the end */
   function draftAdvance(state, choices) {
     const D = ensureDraft(state), human = (state.opts || {}).human;
-    const slots = PRE.slots(state.planet, SLOT_COUNT);
+    const slots = PRE.slots(state.planet, D.slots);
     const strengthOf = id => strengthRead(state, id);
     let guard = 0;
     while (!D.done && guard++ < 64) {
@@ -2461,6 +2584,15 @@
     }
     return D;
   }
+  /** §BASTILLE a manager asks for a body off the sheet; the intake honours it if it can */
+  function claimPrisoner(state, corpId, fighterId, on) {
+    const c = state.corps[corpId];
+    c._bastilleClaims = c._bastilleClaims || {};
+    if (on === false) delete c._bastilleClaims[fighterId];
+    else c._bastilleClaims[fighterId] = true;
+    return true;
+  }
+  function claimsOf(state, corpId) { return (state.corps[corpId]._bastilleClaims) || {}; }
   function chooseDropSector(state, corpId, index) {
     if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
@@ -2627,6 +2759,7 @@
        that moved it. */
     for (const id of state.ids) {
       const c = state.corps[id];
+      if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
       const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
@@ -2859,7 +2992,7 @@
       /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
          whom before anyone had seen anything. */
       dropSectors: state.drop.sectors,
-      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: SLOT_COUNT,
+      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: (state.drop.draft && state.drop.draft.slots) || SLOT_MIN,
       preDividePacts: state.drop.pacts,
       mediaRevealed: state.drop.media,
       human: (opts || {}).human || null
@@ -3358,6 +3491,7 @@
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
   return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+           renewalsFor, answerRenewal, claimPrisoner, claimsOf, signNow,
            illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
            evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
            useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },
@@ -3369,7 +3503,7 @@
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           schedule, resolvePending, sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_COUNT, PICKS_EACH, pactTargets,
+           schedule, resolvePending, sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, pactTargets,
            offerPact, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid, bidsFor,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */

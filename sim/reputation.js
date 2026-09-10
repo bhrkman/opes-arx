@@ -96,7 +96,16 @@
        sacking offence. `measure_board.cjs` is the instrument. */
     BOARD_CUTS: { delighted: 0.78, pleased: 0.66, disappointed: 0.44, unhappy: 0.33 },
     HOME_CUSHION: 0.40,                 // [C] §6.4 how much popular support blunts a bad year
-    HOLDS_DRAIN: 0.12,                  // [H] §6.1 of a full store, per season. [OPEN-R1]
+    /* §6.1 THE STORES ARE SHIPS' HOLDS, not shelves. "The ship has 4 food" is a silly
+       sentence: a store is measured in UNITS OF A THOUSAND, so a full hold of grain is nine
+       thousand and a year's demand is three. The share is unchanged — every ratio in the game
+       reads the same — only the words a manager sees have a scale a fleet would use. And the
+       stores fall a little EVERY MONTH rather than all at once at the year's turn, for the
+       same annual total: a hold that empties in twelve small bites is a thing a manager
+       watches, not a number that jumps once while he is looking elsewhere. */
+    UNIT_SCALE: 1000,                   // [C] what one unit is, in the words the page uses
+    HOLDS_DRAIN: 0.12,                  // [H] §6.1 of a full store, per YEAR. [OPEN-R1]
+    HOLDS_DRAIN_MONTHS: 11,             // [C] spread across the preparation's months
     HOLDS_CEIL: 1.0,                    // [S]
     RESOURCE_ASK: 0.33,                 // [C] the share of a store a board asks for, in units
     UNITS_PER_STORE: 9,                 // [H] assay units that fill a store. RE-DERIVED: the
@@ -491,7 +500,9 @@
   function drainHolds(rep, scale) {
     const s = scale == null ? 1 : scale;
     for (const c of CATEGORIES) {
-      rep.holds[c] = clamp((rep.holds[c] || 0) - CONST.HOLDS_DRAIN * s, 0, CONST.HOLDS_CEIL);
+      /* the year's fall is taken monthly now (drainHolds); what remains here is the share for
+         any season a caller settles without stepping its months */
+      rep.holds[c] = clamp((rep.holds[c] || 0) - CONST.HOLDS_DRAIN * s * (rep._drainedThisYear ? 0 : 1), 0, CONST.HOLDS_CEIL);
     }
     return rep.holds;
   }
@@ -984,6 +995,13 @@
      ratchet: a good year is carried for ever and a bad one never forgiven, whatever happens
      after. The drift moves the BASE, so it is the house's resting place that changes and the
      memory stays what it was. */
+  /** §6.1 a month's share of the year's fall, so a hold empties in bites a manager can watch */
+  function drainHolds(rep) {
+    for (const c of CATEGORIES) {
+      rep.holds[c] = clamp((rep.holds[c] || 0) - CONST.HOLDS_DRAIN / CONST.HOLDS_DRAIN_MONTHS, 0, CONST.HOLDS_CEIL);
+    }
+    rep._drainedThisYear = true;
+  }
   function drift(rep) {
     /* THE RESTING PLACE IS WHERE A HOUSE STARTED. The first cut of this pulled the base
        toward the CURRENT standing, which is a ratchet, not a drift: every good year became
@@ -1009,7 +1027,7 @@
 
   const api = {
     CONST, ACTS, AUDIENCES, CATEGORIES, REGISTERS, DISPOSITION,
-    open, standing, readAll, attention, act, why, decay, foldTail, compress, drift,
+    open, standing, readAll, attention, act, why, decay, foldTail, compress, drift, drainHolds,
     fameTransfer, addFame, decayFame,
     placements,
     drainHolds, fillHolds, bankedShare, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,

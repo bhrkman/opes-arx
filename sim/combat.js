@@ -97,6 +97,7 @@ const CONST = {
   TETHER_AIM_MULT: 0.82,                  // [C] §RACES what a stretched half's shooting is worth
   SVALBARD_MOVING: 1.22,                  // [C] §RACES what firing on the move is worth to them
   EXPOSED_HIT: 1.10,                      // [C] §QUIRKS what injury_exposure_up is worth against them
+  KELLIS_MEASURE: 0.06,                   // [C] §RACES per turn of measure held, on the shot
   ATTORAK_FRENZY_AIM: 0.85,               // [C] §RACES what the frenzy costs their shooting
   ATTORAK_FRENZY_DMG: 1.30,               // [C] and what it is worth when they land one
   SPOT_UNSPOTTED: 0.50, SPOT_OVERWATCH: 1.40,                  // [S]
@@ -239,8 +240,12 @@ const CONST = {
   /* §6 energy weapons: heat inside the fight, charge across the day. A ballistic weapon
      is limited by supply; an energy weapon is limited by tempo. */
   HEAT_SHED: 2,                           // [S] per exchange the weapon does not fire
-  HEAT_SUPPRESS_MULT: 3,                  // [S] holding an arc down is what cooks a laser
-  VENT_EXCHANGES: 1,                      // [S] 2 with the vent_2 quirk
+  HEAT_SUPPRESS_MULT_RETIRED: 3,                  // [S] holding an arc down is what cooks a laser
+  /* THE OVERHEAT'S OWN DIALS, RETIRED WITH IT. They are labelled rather than deleted because
+     a heat rule may well come back — the family wants SOME cost for its output, and this is
+     where it would land — but nothing reads them now and nobody should think they decide
+     anything. */
+  VENT_EXCHANGES_RETIRED: 1,                      // [S] 2 with the vent_2 quirk
   /* §10 consumables — single use, each a real action in the exchange, not a modifier. */
   GRENADE_POWER: 7,                       // [C] frag; incendiary adds its quirk on top
   GRENADE_TARGETS: 3,                     // [ABSTRACT] [S] up to three in band
@@ -426,13 +431,24 @@ function makeCombatant(fighter, opts) {
        and the whole heat path is skipped. */
     /* §10 — carried consumables, spent once each. */
     carried: (kit && kit.consumables) ? kit.consumables.map(x => x.id) : [],
+    /* §ENERGY WHAT MAKES A WEAPON CELL-FED is that it has a cell, not that it runs hot.
+       `isEnergy` tested `heatCap > 0`, so taking the overheat out of the catalogue would have
+       stopped cells being spent at all and quietly turned every energy weapon into a ballistic
+       one firing ammunition it does not carry. The family is named by its cell. */
+    cellFed: !!(kit && kit.charge > 0),
     heat: 0, heatCap: (kit && kit.heatCap) || 0, heatPerShot: (kit && kit.heat) || 0,
     _heatShed: CONST.HEAT_SHED, _firedThisExchange: false,
     /* §6 — charge is the fighter's, not the engagement's: it persists across every fight
        in a day and only comes back at camp. Ammunition, by contrast, currently refills
        between engagements (see [OPEN-P11]) — so the supply half of the contrast is not
        modelled yet and the tempo half is. */
-    charge: (fighter._charge != null ? fighter._charge : (kit && kit.charge) || 0),
+    /* §ENERGY A CELL HOLDS WHAT THE WEAPON'S CELL HOLDS. What a fighter carried out of the
+       last fight is remembered, and it was restored WITHOUT REGARD TO THE WEAPON THEY ARE
+       HOLDING NOW: a hand who ended a fight with twenty-seven in a repeater and then drew a
+       beam lance began with twenty-seven in a cell that takes ten. Latent for as long as the
+       cells were all much of a size; visible the moment they were not. */
+    charge: Math.min((fighter._charge != null ? fighter._charge : (kit && kit.charge) || 0),
+                     (kit && kit.charge) || 0),
     chargeMax: (kit && kit.charge) || 0, venting: 0,
     sidearm: (kit && kit.sidearm) || null, primary: null, onSidearm: false,
     fatigue: (fighter.condition && fighter.condition.fatigue) || 0,
@@ -447,7 +463,7 @@ function makeCombatant(fighter, opts) {
 /* §6 energy resources · §7 the sidearm fallback                       */
 /* ------------------------------------------------------------------ */
 
-function isEnergy(u) { return u.heatCap > 0; }
+function isEnergy(u) { return !!u.cellFed || u.heatCap > 0; }
 
 /** Can this fighter fire their PRIMARY this exchange? */
 function primaryReady(u) {
@@ -457,7 +473,9 @@ function primaryReady(u) {
 }
 
 /**
- * §7 — the sidearm answers exactly three failures: dry, venting, damaged. Never otherwise.
+ * §7 — the sidearm answers exactly two failures now: dry and damaged. (It answered venting
+ * too, until the overheat was retired; `venting` stays at zero and the guards below are left
+ * standing rather than unpicked, so a future heat rule has somewhere to land.) Never otherwise.
  * Swapping is not free: it costs the exchange's aim, which is why a sidearm is a hedge
  * rather than a second primary.
  */
@@ -485,18 +503,29 @@ function backToPrimary(u) {
 
 /** Spend the shot. Returns false if the weapon could not fire at all. */
 function spendShot(u, kind) {
-  const mult = kind === 'suppress' ? CONST.HEAT_SUPPRESS_MULT : 1;
   if (isEnergy(u) && !u.onSidearm) {
-    const h = u.heatPerShot * mult;
-    if (u.charge <= 0) return false;
-    u.charge -= (hasQuirk(u, 'heavy_draw') ? 2 : 1);
-    u.heat += h;
-    if (u.heat >= u.heatCap) {
-      u.heat = 0;
-      u.venting = hasQuirk(u, 'vent_2') ? 2 : CONST.VENT_EXCHANGES;
-      u._ventJustSet = true;          /* do not tick it down in the same exchange it began */
-      u._vented = (u._vented || 0) + 1;
-    }
+    /* §ENERGY A SHOT COSTS WHAT IT COSTS, and the cell must hold it. The guard asked only
+       whether anything was left, then took the draw — so a `heavy_draw` weapon firing on its
+       last unit of charge spent two and left the cell at MINUS ONE. Latent while cells were
+       small and fights short; the moment cells grew and hands fired half again as often, it
+       showed up on seven of every eight energy fighters. */
+    const draw = hasQuirk(u, 'heavy_draw') ? 2 : 1;
+    if (u.charge < draw) return false;
+    u.charge -= draw;
+    /* §ENERGY THE OVERHEAT IS GONE, AND `heatCap` IS NOW ONLY THE MARK OF A CELL-FED WEAPON.
+       Every one of the fifteen cell-fed primaries fired two or three shots and then lost an
+       exchange cooling — the tier-5 Phase Lance and the tier-1 Surplus Las-Carbine alike, so
+       it was the family and not the bad weapons. Measured, the family cost about the same
+       money as ballistic, hit slightly SOFTER at every tier a fleet actually fields, and put
+       out 37% fewer rounds a fight, in exchange for freedom from a resupply burden that costs
+       three per cent. It was worse in nearly every way.
+
+       THE OVERHEAT WAS ALSO A RATE LIMITER, and taking it out alone would have traded a weapon
+       that shoots slowly for one that shoots itself empty: output rose to within 18% of
+       ballistic and the share running flat inside one engagement went from 23% to 72%. The two
+       systems were coupled. The cells are half again as large in the catalogue to answer it,
+       and the family now out-shoots ballistic slightly — which is what a slightly dearer
+       weapon that cannot be resupplied should do. */
     return true;
   }
   const cost = ammoCost(u, kind === 'suppress' ? CONST.AMMO.suppress
@@ -785,6 +814,9 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   /* §RACES THE BLOOD IN A GNOLL'S EYES. An Attorak with a body in front of them fights harder
      and shoots worse: they close, they swing, and their aim goes with the frenzy. */
   if (shooter._frenzy > 0) m *= CONST.ATTORAK_FRENZY_AIM;
+  /* §RACES A KELLIS IN MEASURE. Every turn held rather than crossed is a turn spent reading
+     the exchange, and the duelling drill is what makes that worth something. */
+  if (shooter._measure) m *= 1 + shooter._measure * CONST.KELLIS_MEASURE;
   /* §QUIRKS a body that is easier to hurt is easier to hit hard: injury_exposure_up was
      carried and never read */
   if (target.hooks && target.hooks.has('injury_exposure_up')) m *= CONST.EXPOSED_HIT;

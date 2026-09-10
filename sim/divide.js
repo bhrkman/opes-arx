@@ -211,7 +211,11 @@
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
     DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
-    SQUAD_MAX: 8, SQUAD_MIN: 3,         // [S] squads live inside these bounds. RULED: the
+    SQUAD_MAX: 8, SQUAD_MIN: 3,
+    SQUADS_MAX: 6,                      // [S] §SQUADS the most a house may field, as ruled
+    SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
+    SPREAD_AGGRESSION: 0.35,            // [C] and appetite for contact
+    SPREAD_PATIENCE: 0.45,              // [C] against what a careful house keeps massed         // [S] squads live inside these bounds. RULED: the
                                         // floor is THREE — it binds the manager's own squad
                                         // page, which reads it from here. The auto-deal's
                                         // arithmetic (two-squad minimum against an eight cap)
@@ -610,7 +614,7 @@
 
   /* SEASONS.md S2/S3 — a drop force of 16 to 24 deals into squads of at most eight and at
      least five. The named splits still win when the force is a full 24. */
-  function dealSizes(n, split) {
+  function dealSizes(n, split, profile, want) {
     if (n === 24 && split === '2x12') return [12, 12];
     if (n === 24 && split === '4x6') return [6, 6, 6, 6];
     /* SQUAD_MAX and SQUAD_MIN live HERE, where the dealing happens, and season.js reads them
@@ -619,7 +623,7 @@
        and `SQUAD_MIN` was declared in season.js and read by nothing at all, so the "at least
        five" in the comment below was true only by arithmetic accident. */
     const SQUAD_MAX = CONST.SQUAD_MAX, SQUAD_MIN = CONST.SQUAD_MIN;
-    let squads = Math.max(2, Math.ceil(n / SQUAD_MAX));
+    let squads = squadCountFor(n, profile, want);
     while (squads > 2 && Math.floor(n / squads) < SQUAD_MIN) squads--;
     const base = Math.floor(n / squads), extra = n % squads;
     const out = [];
@@ -627,6 +631,25 @@
     return out;
   }
 
+  /* §SQUADS HOW WIDE A NET A HOUSE CASTS. Every house packed its people into squads of eight
+     and so fielded three, which is why nobody noticed the draft only dealt three landings. The
+     rule allows six, and six is a real choice with real terms: more squads means more landings
+     drafted, more ground covered and more deposits worked at once — and thinner squads that
+     lose the fights they pick. A house leans on its dials: the greedy spread to reach more
+     ground, the aggressive spread to be everywhere a fight is, and the careful mass. */
+  function squadCountFor(n, profile, want) {
+    const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
+    const most = Math.max(2, Math.min(CONST.SQUADS_MAX, Math.floor(n / CONST.SQUAD_MIN)));
+    if (want && want >= 2) return Math.max(2, Math.min(most, want));  /* a manager's own call */
+    const d = (profile && profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    /* what a house wants: ground-hunger and appetite for contact push it wider */
+    const spread = dial('greed') * CONST.SPREAD_GREED
+                 + dial('aggression') * CONST.SPREAD_AGGRESSION
+                 - dial('patience') * CONST.SPREAD_PATIENCE;
+    const reach = Math.round(packed + spread * (most - packed) * 2);
+    return Math.max(2, Math.min(most, Math.max(packed, reach)));
+  }
   function buildCorp(rng, profile, stance, split, rigidity, loadout, planet, persist, season) {
     /* SEASONS.md — the drop force is BORROWED when a persistent Corp supplies one. The
        people outlive the Divide; the squads, positions and banner do not. Without a Corp
@@ -645,7 +668,7 @@
     const dropById = {};
     if (groups) for (const b of drop) dropById[b.id] = b;
     const sizes = groups ? groups.map(g => g.length)
-                : drop ? dealSizes(drop.length, split)
+                : drop ? dealSizes(drop.length, split, profile, (persist && persist._wantSquads) || 0)
                 : split === '2x12' ? [12, 12] : split === '4x6' ? [6, 6, 6, 6] : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance, declaredAt: stance,
@@ -4408,7 +4431,7 @@
   /* `applyOutcome` is exported for the unified viewer: a fight it stages settles back to the
      roster through the same function the Divide uses, because a second settler would drift the
      way the replay's two frame builders drifted. */
-  const api = { CONST, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
+  const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
     /* the size reads on the ground, exported so the probe that keeps them honest can
        measure them and any surface can show a manager the cost of the squad they shaped */
     sizeMarchMult, sizeDetectMult, squadStress, WEATHER };

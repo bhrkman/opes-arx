@@ -130,7 +130,7 @@
       make: (pair) => ({ kind: 'brawl', subject: pair[0].id, other: pair[1].id, title: 'A Fight in the Barracks',
         text: pair[0].name + ' put ' + pair[1].name + ' through a bulkhead over a card game. ' + pair[1].name + ' will be a week mending.',
         options: [
-          { id: 'punish', label: 'Punish ' + pair[0].name.split(' ')[0], cost: 'They Sour \u00b7 the Rest Settle' },
+          { id: 'punish', label: 'Punish ' + shortName(pair[0]), cost: 'They Sour \u00b7 the Rest Settle' },
           { id: 'fine', label: 'Fine Them Both', cost: '−' + fmtCr(CONST.FINE * 2) + ' from Wages \u00b7 Both Sour a Little' },
           { id: 'lie', label: 'Let It Lie', cost: 'The Barracks Simmer' }
         ], def: 'lie' }),
@@ -303,6 +303,16 @@
   /** the catalogue's index, handed in once by the season rather than saved with the career */
   function useTraitIndex(idx) { TRAIT_INDEX = idx || null; }
   function traitIndexOf(state) { return TRAIT_INDEX || (state && state.traitIndex) || null; }
+  /* §NAMES WHAT TO CALL SOMEBODY IN A SENTENCE. Taking the first word of a name gives "Punish
+     The" for an Olmac, who is "The Tide" — the article is not a forename. A name that begins
+     with an article is used whole; everything else keeps its first word, which is how a
+     shipmate would say it. */
+  function shortName(f) {
+    const n = String(f && f.name || '');
+    if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
+    if (/-/.test(n) && n.indexOf(' ') < 0) return n;     /* a Mon-Wa half is one word with a hyphen */
+    return n.split(' ')[0];
+  }
   function fighterHas(state, f, hook) {
     const idx = traitIndexOf(state);
     return (f.traits || []).some(t => {

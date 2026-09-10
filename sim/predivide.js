@@ -29,6 +29,23 @@
   'use strict';
 
   const CONST = {
+    /* §DROP THE LANDINGS. Forty-eight points across the whole ground, on rings that thin
+       toward the middle: the centre is the shortest walk to everything and the last ground the
+       wall leaves, so a landing there is worth more and there are fewer to take. The count
+       never changes with the fleet — a light fleet leaves most of them unclaimed, which is the
+       point: a house that scouted knows which of the unused ground was worth having. */
+    SLOTS: 48,
+    SLOT_APART: 0.11,            // [C] the least ground between two landings, as a share of the radius
+    SLOT_TRIES: 9,               // [C] how many nudges before a point is allowed to crowd another
+    SLOT_NUDGE_A: 0.07,          // [C] a step round
+    SLOT_NUDGE_D: 0.05,          // [C] and a step inward
+    SLOT_BANDS: [
+      { d: 0.86, share: 18, spin: 0.00 },     // the rim: the most room, the longest walk
+      { d: 0.66, share: 14, spin: 0.17 },
+      { d: 0.46, share: 9,  spin: 0.34 },
+      { d: 0.27, share: 5,  spin: 0.11 },
+      { d: 0.10, share: 2,  spin: 0.50 }      // the middle: two places, and everybody wants them
+    ],
     SECTORS: 6,                  // [S] how the ring is cut. Fewer than corps, so it is contested.
     /* [H] What a survey buys you HERE, which is the second half of a verb that previously paid
        only a flat readiness bonus nobody could see. Below the first threshold a sector reads as
@@ -62,13 +79,41 @@
   /** §DROP — THE SLOTS. `n` landing points round the ring (the drop ring at DROP_RING × R),
       each with dry footing, each reading like a sector: its ground, its cover, its height,
       the prize within reach, its distance to the centre. The draft picks from these. */
+  /* §DROP THE LANDINGS ARE SCATTERED, NOT STRUNG ON A RING. A single ring at 0.82 of the
+     radius meant the whole fleet came down at one distance from the middle, and which ground a
+     house got was whatever happened to fall on that circle — scouting the planet told a manager
+     almost nothing, because the choice was only ever WHERE ROUND, never HOW DEEP. The points
+     are laid across the whole ground now, on rings that thin toward the centre: the middle is
+     the shortest walk to everything and the last ground the wall leaves, so a landing there is
+     worth more and there are fewer of them to take. The count is FIXED (SLOTS) whatever the
+     fleet fields — eighteen squads on forty-eight points leaves thirty unclaimed, which is the
+     point: ground goes unused, and a house that scouted knows which of it was worth having. */
   function slots(planet, n) {
     const out = [];
-    const R = planet.radius, d = R * 0.82;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      let x = planet.cx + Math.cos(a) * d, y = planet.cy + Math.sin(a) * d;
-      if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
+    const R = planet.radius;
+    /* rings from the rim inward, each holding fewer than the last */
+    const bands = CONST.SLOT_BANDS;
+    const total = bands.reduce((t, b) => t + b.share, 0);
+    const plan = [];
+    bands.forEach((b, bi) => {
+      const count = bi === bands.length - 1 ? n - plan.length : Math.round(n * b.share / total);
+      for (let k = 0; k < count; k++) plan.push({ d: b.d, k: k, of: Math.max(1, count), spin: b.spin });
+    });
+    for (let i = 0; i < plan.length; i++) {
+      const p = plan[i];
+      const a = (p.k / p.of) * Math.PI * 2 + p.spin;
+      /* TWO LANDINGS MUST NOT BE ONE. Snapping a point to the nearest passable ground can walk
+         two of them onto the same tile — a lake between them and both slide to the same shore —
+         and a draft that deals the same ground twice is a draft that lies. Each point is tried
+         a few steps round and in before it is allowed to sit near another. */
+      let x, y, ok = false;
+      for (let t = 0; t < CONST.SLOT_TRIES && !ok; t++) {
+        const aa = a + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * CONST.SLOT_NUDGE_A : 0);
+        const dd = R * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
+        x = planet.cx + Math.cos(aa) * dd; y = planet.cy + Math.sin(aa) * dd;
+        if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
+        ok = out.every(o => MAP.dist(o.x, o.y, x, y) >= R * CONST.SLOT_APART);
+      }
       let prize = 0;
       for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
       out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),

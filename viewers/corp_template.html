@@ -50,8 +50,16 @@
   nav .tab.live{color:var(--dim);cursor:pointer}
   nav .tab.live:hover{color:var(--ink)}
   nav .tab.on{color:var(--a);background:var(--panel);border-bottom:2px solid var(--a)}
+  /* AN OVERLAY TALLER THAN THE SCREEN WAS UNREACHABLE. Fixed, centred and with nothing said
+     about overflow, the founding screen simply cut off on a short viewport — the mark builder
+     grew and the button that starts the game went past the bottom edge with no way to scroll
+     to it. It scrolls now, centres only while it fits, and keeps a margin at the foot so the
+     last control is never flush against the edge. */
   .overlay{position:fixed;inset:0;background:rgba(12,11,9,.97);z-index:40;display:flex;
-    gap:40px;align-items:center;justify-content:center;flex-wrap:wrap}
+    gap:40px;align-items:center;justify-content:center;flex-wrap:wrap;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 16px 40px}
+  .overlay > *{max-height:none}
+  @media (max-height:760px){ .overlay{align-items:flex-start} }
   .menucol{display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:420px}
   .menutitle{font-size:34px;letter-spacing:.35em;color:var(--a);text-align:center}
   .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
@@ -61,6 +69,104 @@
      card carries both, and the set reads as a grid of choices rather than a column of text */
   #oacards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;
     margin-top:8px}
+  /* §FOUNDING the screen asks three things: a name, a colour, a mark */
+  .foundrow{display:flex;justify-content:center;margin-top:6px}
+  .foundname{width:290px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:6px;
+    padding:10px 14px;font:inherit;font-size:15px;text-align:center}
+  .foundlab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:16px 0 7px;text-align:center}
+  /* §FOUNDING the mark is built: a field, a device and a bar, each of which turns */
+  .markrow{display:grid;grid-template-columns:172px 1fr;gap:16px;max-width:620px;margin:0 auto;text-align:left}
+  .mkstage{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .mkbig{width:104px;height:104px}
+  .mksizes{display:flex;gap:9px;align-items:flex-end}
+  .mkkit{display:flex;flex-direction:column;gap:9px}
+  .mkrow{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
+  .mklab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .mkopts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .mkopt{width:34px;height:34px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:var(--c);padding:0}
+  .mkopt:hover{border-color:var(--a)}
+  .mkopt.on{border-color:var(--c);background:var(--a-deep);box-shadow:0 0 0 1px var(--c)}
+  .mkrow.active{background:var(--a-deep);border-radius:6px;padding:3px 5px;margin:-3px -5px}
+  .mkrow[data-slot]{cursor:pointer}
+  /* §MARK THE PAD: a symbol apiece, the reading beside it */
+  .mkpad{border:1px solid var(--line2);border-radius:7px;padding:8px 10px;margin-top:4px;background:var(--panel)}
+  .mkpadhead{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--dim);margin-bottom:7px}
+  .mkpadhead b{color:var(--a)}
+  .mkreset{background:transparent;border:1px solid var(--line2);color:var(--faint);border-radius:5px;
+    padding:2px 8px;font:inherit;font-size:9.5px;cursor:pointer}
+  .mkreset:hover{border-color:var(--a);color:var(--a)}
+  .mkpadgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 12px}
+  .mkgrp{display:flex;align-items:center;gap:4px}
+  .mkgrp.wide{grid-column:1/-1}
+  .mkgrp .gl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);width:34px}
+  .mkgrp .gv{font-size:9.5px;color:var(--dim);margin-left:2px;font-variant-numeric:tabular-nums}
+  .padb{width:26px;height:24px;border:1px solid var(--line2);background:var(--bg);color:var(--dim);border-radius:5px;
+    font:inherit;font-size:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+  .padb:hover{border-color:var(--a);color:var(--a)}
+  .dpad{display:grid;grid-template-columns:repeat(3,24px);grid-template-rows:repeat(2,22px);gap:2px}
+  .dpad .u{grid-area:1/2} .dpad .l{grid-area:2/1} .dpad .d{grid-area:2/2} .dpad .r{grid-area:2/3}
+  .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
+    font-size:13px;letter-spacing:.06em;cursor:pointer}
+  .foundgo:hover{background:var(--a);color:var(--bg)}
+  .berthrow{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .berth{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line2);background:transparent;
+    border-radius:12px;padding:2px 9px;font:inherit;font-size:10px;cursor:pointer}
+  /* §PICKER the mark large, the name under it */
+  /* §BACKROOM ITS STYLES WERE LOST. A cleanup that removed the old drawer's rules took the
+     page's with them, so the Backroom rendered as unspaced white text — "Price₡15,000Goes Off
+     Clean88%" — which is what a card looks like with no stylesheet at all. Written back, and
+     the price grid given room to breathe: label left, figure right, a line between them. */
+  #backroom .qhead{display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:4px}
+  #backroom .qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:10px}
+  #backroom .qact,#backroom .qev{background:var(--panel);border:1px solid var(--line2);
+    border-left:3px solid var(--red);border-radius:7px;padding:12px 14px}
+  #backroom .qev{border-left-color:var(--warn)}
+  #backroom .qt{font-size:13px;color:var(--ink);font-weight:bold;margin-bottom:4px}
+  #backroom .qx{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:9px}
+  #backroom .qo{font-size:11px;color:var(--hit);border-left:2px solid var(--hit);padding-left:7px;margin-bottom:10px}
+  #backroom .qf{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:11px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 0;margin-bottom:4px}
+  #backroom .qf .k{color:var(--dim)}
+  #backroom .qf .v{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  #backroom .qtargets{margin:10px 0 4px}
+  #backroom .qbtn{width:100%;padding:8px;margin-top:8px;border:1px solid var(--red);color:var(--red);
+    background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.04em}
+  #backroom .qbtn:hover{background:var(--red);color:var(--bg)}
+  #backroom .qways{display:grid;gap:6px;margin-top:10px}
+  #backroom .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;margin-top:0;padding:7px 10px}
+  #backroom .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
+  #backroom .qways .sub{display:block;font-size:9.5px;color:var(--dim);margin-top:2px}
+  #backroom .qways .qbtn:hover .sub{color:var(--bg)}
+  #backroom .qheld{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+  #backroom .qhh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+  #backroom .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:16px;padding-top:10px;line-height:1.7}
+  #backroom .qdone .out{color:var(--bad)}
+  .constel{position:relative;margin:4px auto 8px}
+  .constel .cwires{position:absolute;inset:0;width:100%;height:100%}
+  .constel .chub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;
+    border:1px solid var(--a);background:var(--a-deep);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;color:var(--a);font-size:9px;text-align:center;line-height:1.1;padding:6px}
+  .constel .cnode{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;
+    gap:2px;color:var(--c)}
+  .constel .cnode .hn-name{font-size:9px;color:var(--c);text-align:center}
+  .hpick{position:relative}
+  .hpick.row{display:flex;flex-wrap:wrap;gap:10px}
+  .hpick-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:112px;height:112px;border-radius:50%;
+    border:1px solid var(--line2);background:var(--panel);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;font-size:10px;color:var(--dim);line-height:1.35;padding:8px}
+  .hpick-hub b{color:var(--ink);font-size:11.5px;display:block}
+  .hnode{background:none;border:none;padding:0;cursor:pointer;font:inherit;display:flex;flex-direction:column;
+    align-items:center;gap:3px;width:86px;color:var(--c)}
+  .hnode .hn-disc{display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid var(--c);
+    background:var(--panel);color:var(--c);transition:background .12s}
+  .hnode:hover .hn-disc{background:var(--a-deep)}
+  .hnode.on .hn-disc{background:var(--c);color:var(--bg);box-shadow:0 0 0 3px rgba(58,216,224,.18)}
+  .hnode.on .hn-disc svg{color:var(--bg)}
+  .hnode .hn-name{font-size:9.5px;line-height:1.15;text-align:center;white-space:normal}
+  .hnode .hn-sub{font-size:9px;color:var(--faint)}
   .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
   .oacard{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0;
@@ -359,6 +465,12 @@
   .verbrow{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid #16233a;font-size:11.5px}
   .verbrow.na{opacity:.45}
   .fbtn{min-width:22px}
+  .tgboost{position:absolute;right:30px;font-size:10px;letter-spacing:.04em;color:var(--cred);cursor:pointer;
+    border:1px solid var(--cred);border-radius:11px;padding:1px 9px;background:transparent}
+  .tgboost:hover{background:var(--cred);color:var(--bg)}
+  .tgboost.on{background:var(--cred);color:var(--bg)}
+  .bbtn{border-color:var(--cred);color:var(--cred)}
+  .bbtn.on{background:var(--cred);border-color:var(--cred);color:var(--bg)}
   .fbtn.on{background:var(--a);color:#0a0e16;border-color:var(--a)}
 
   /* ---- the Training grid: paint focus onto stats, four tiers, star-rating pips ---- */
@@ -424,6 +536,13 @@
   .tgread{text-align:left;font-size:11px;color:var(--dim)}
   .tghead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
   .tgtitle{color:var(--a);font-size:14px;letter-spacing:.04em}
+  /* §DESK a folded section is its name, centred, and the word that opens it */
+  .tghead{justify-content:center;position:relative}
+  .tghead.foldable{cursor:pointer;border-radius:5px;padding:3px 8px;transition:background .12s}
+  .tghead.foldable:hover{background:var(--a-deep)}
+  .tgchev2{position:absolute;right:8px;color:var(--dim);font-size:11px}
+  .tghead.foldable:hover .tgchev2{color:var(--a)}
+  .tgwrap.shut > *:not(.tghead){display:none}
   .tgbudget{color:var(--dim);font-size:11px}
   .tgbudget.full{color:var(--warn)}
   table.tgrid{width:100%;border-collapse:collapse;font-size:10.5px}
@@ -623,6 +742,49 @@
   .sqhead .place{font-size:10px;color:var(--a);border:1px solid var(--a);border-radius:4px;padding:1px 7px;cursor:pointer}
   .sqhead .place:hover{background:var(--a);color:var(--bg)}
   .sqbody{display:flex;flex-direction:column;gap:5px;padding:7px}
+  /* §SQUADS the eight portraits */
+  /* §SQUADS A PORTRAIT IS TALLER THAN IT IS WIDE. The tiles kept coming out wider than tall
+     because the face-plate was a fixed height inside a wide card; the plate is a 2:3 frame now
+     — the shape a portrait is — and the card is only as wide as the frame, with the name and
+     the gun beneath it. */
+  .sqbody.port{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px}
+  .port-card{position:relative;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--sq,var(--faint));
+    border-radius:5px;padding:5px;cursor:pointer;overflow:hidden}
+  .port-card:hover{border-color:var(--a)} .port-card.sel{box-shadow:inset 0 0 0 1px var(--a)}
+  .port-card.hurt{border-left:2px solid var(--warn)}
+  .port-card .pface{position:relative;aspect-ratio:2/3;border-radius:4px;background:var(--a-deep);
+    display:flex;align-items:center;justify-content:center;margin-bottom:5px;min-height:96px}
+  .port-card .psil{width:64%;height:auto;display:block}
+  .port-card .plead{position:absolute;top:2px;left:3px;font-size:9px;color:var(--cred)}
+  .port-card .prate{position:absolute;bottom:3px;right:5px;font-size:12px;font-weight:700;color:var(--ink)}
+  .port-card .prate.good{color:var(--hit)} .port-card .prate.warn{color:var(--cred)} .port-card .prate.bad{color:var(--red)}
+  .port-card .pname{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .port-card .pkit{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;text-align:center}
+  .port-card .px,.port-card .pstar{position:absolute;top:3px;font-size:9px;color:var(--faint);cursor:pointer;opacity:0}
+  .port-card .px{right:4px} .port-card .pstar{right:16px} .port-card .pstar.on{opacity:1;color:var(--cred)}
+  .port-card:hover .px,.port-card:hover .pstar{opacity:1}
+  .port-card .px:hover{color:var(--bad)} .port-card .pstar:hover{color:var(--cred)}
+  .port-slot{border:1px dashed var(--line2);border-radius:5px;aspect-ratio:2/3.32;min-height:128px;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--faint);font-size:10px}
+  /* ONLY THE SLOTS THAT CAN TAKE THE ONE YOU ARE HOLDING light up — the first cut lit every
+     empty slot on the page at once, which is a screen shouting rather than an offer. */
+  .port-slot.can{border-color:var(--sq,var(--a));color:var(--a);cursor:pointer}
+  .port-slot.can:hover{background:var(--a-deep)}
+  .sheetmark{margin-right:9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
+  .sheetmark:hover .fmark circle:first-child{stroke:var(--a)}
+  .mkedit-cue{font-size:8.5px;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .sheetmark:hover .mkedit-cue{color:var(--a)}
+  #markedit{z-index:62}
+  .mkedit .mkcolors{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:6px 0 10px}
+  .mkedit .mkcolors .mklab{width:34px}
+  .mkedit .markrow{grid-template-columns:150px 1fr;max-width:none}
+  .fmark{vertical-align:middle;flex:none}
+  .tghand .fmark,.trow .fmark{margin-right:5px}
+  .rsn .fmark{margin-right:5px}
+  .pc-top .fmark{margin-right:5px}
+  .rc-top .rowmark{margin-right:6px;display:inline-flex;cursor:pointer;border-radius:50%}
+  .rc-top .rowmark:hover .fmark circle:first-child{stroke:var(--a)}
+  .rating{font-weight:700} .rating.good{color:var(--hit)} .rating.warn{color:var(--cred)} .rating.bad{color:var(--red)}
   /* the empty slots: numbered, quiet, and lit when there is somebody to put in them */
   .sqbody.slots .fcard.open{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;min-height:30px;padding:4px 8px;border-style:dashed;border-color:var(--line2);background:transparent;color:var(--faint);font-size:10.5px;text-align:left}
   .sqbody.slots .fcard.open .sn{color:var(--faint);font-size:10px;text-align:center}
@@ -646,27 +808,6 @@
   .scrim{position:fixed;inset:0;z-index:29;display:none} .scrim.on{display:block}
   @media (prefers-reduced-motion:reduce){.drawer{transition:none}}
   /* the quiet business: a card per act, its price, its odds, and what it costs if it comes out */
-  #quietpanel .qact{background:var(--panel);border:1px solid var(--line2);border-left:3px solid var(--red);border-radius:6px;padding:9px 11px;margin-bottom:8px}
-  #quietpanel .qact .qt{font-size:12.5px;color:var(--ink);font-weight:bold}
-  #quietpanel .qact .qx{font-size:11px;color:var(--dim);line-height:1.4;margin:3px 0 6px}
-  #quietpanel .qact .qo{font-size:11px;color:var(--hit);margin-bottom:6px}
-  #quietpanel .qact .qf{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:10.5px;margin-bottom:7px}
-  #quietpanel .qact .qf .k{color:var(--dim)} #quietpanel .qact .qf .v{text-align:right;color:var(--ink)}
-  #quietpanel select.qsel{background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:3px 5px;font:inherit;font-size:10.5px;width:100%;margin-bottom:6px}
-  #quietpanel .qbtn{width:100%;padding:6px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:11.5px}
-  #quietpanel .qbtn:hover{background:var(--red);color:var(--bg)}
-  #quietpanel .qheld{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
-  #quietpanel .qhh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:6px}
-  #quietpanel .qev{background:var(--panel);border:1px solid var(--warn);border-radius:6px;padding:8px 10px;margin-bottom:7px}
-  #quietpanel .qev .qt{font-size:12px;color:var(--ink)}
-  #quietpanel .qways{display:grid;gap:4px;margin-top:7px}
-  #quietpanel .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;padding:5px 9px}
-  #quietpanel .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
-  #quietpanel .qways .sub{display:block;font-size:9px;color:var(--dim)}
-  #quietpanel .qways .qbtn:hover .sub{color:var(--bg)}
-  #quietpanel .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
-  #quietpanel .qdone .out{color:var(--bad)}
-  .quietbtn{border-color:var(--red);color:var(--red)}
   .kit{display:flex;flex-direction:column;gap:4px}
   .slot{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;background:var(--a-deep);cursor:pointer}
   .slot:hover,.slot.open{border-color:var(--a)}
@@ -703,15 +844,50 @@
   /* THE ACQUISITION WINDOW stands above the roster in its own key — green, the colour of
      signing — so the market and the books never read as one thing. The prospects run as a
      grid, not a rail. */
-  .acq{margin-bottom:14px}
-  .acq .railbox{background:#0c1a19;border-color:#1f4a45}
-  .acq .wtitle{border-bottom-color:#1f4a45}
-  .acq .pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:7px}
-  .acq .pc{background:#0f2321;border-color:#1f4a45;margin:0}
-  .acq .pc-foot{border-top-color:#1f4a45}
-  .acq .pcbtn{background:#0c1a19;border-color:#2a5f58;color:var(--hit)} .acq .pcbtn:hover{border-color:var(--hit)}
-  .acq .pcbid{background:#0c1a19;border-color:#2a5f58}
-  .acq .none{color:#4f8a84;font-size:11px}
+  /* the paper, answered in the Review */
+  .rsbox{background:#1c1608;border-color:#4a3a12;margin-bottom:14px}
+  .rsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:7px}
+  .rscard{background:#231c0c;border:1px solid #4a3a12;border-radius:6px;padding:8px 10px}
+  .rscard.called{border-color:var(--cred)}
+  .rsn{font-size:12px} .rsf{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:10.5px;margin:6px 0}
+  .rsf .k{color:var(--dim)} .rsf .v{text-align:right}
+  .rsways{display:grid;gap:4px} .rsways .pcbtn{width:100%;text-align:left}
+  .rsways .sub{display:block;font-size:9px;color:var(--dim)}
+  .rsdone{font-size:11px;color:var(--cred)} .rsdone .x{color:var(--faint);cursor:pointer;margin-left:4px}
+  /* §ACQ EACH WINDOW WEARS ITS OWN COLOUR. Natural-Born, the Bastille and the mercenaries
+     have had a colour apiece everywhere else in the game — on the year line, on a roster row's
+     origin, on the map's markers — and the window that buys them was one green box for all
+     three. The panel takes `--o` from the window, and every rule below reads it, so the three
+     are told apart before a word is read. */
+  .acq{margin-bottom:14px;--o:var(--o-nat)}
+  .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
+  .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
+  .acq .wtitle{border-bottom-color:color-mix(in srgb, var(--o) 34%, var(--line))}
+  .acq .wnm{color:var(--o)} .acq .wtitle .dot{background:var(--o)}
+  .acq .pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:9px}
+  .acq .pc{background:color-mix(in srgb, var(--o) 6%, var(--panel));
+    border-color:color-mix(in srgb, var(--o) 28%, var(--line));border-left:3px solid var(--o);margin:0;position:relative}
+  .acq .pc-foot{border-top-color:color-mix(in srgb, var(--o) 26%, var(--line));padding-top:8px;margin-top:8px}
+  /* THE BUTTON NEVER MOVES AND NEVER RENAMES ITSELF UNDER THE CURSOR: one action, full width,
+     in the window's colour, in the same place whatever state the card is in. */
+  .acq .pcbtn{width:100%;padding:8px;border-radius:5px;background:transparent;border:1px solid var(--o);color:var(--o);font-size:12px}
+  .acq .pcbtn:hover{background:var(--o);color:var(--bg)}
+  .acq .pc.taken{background:color-mix(in srgb, var(--o) 16%, var(--panel));border-color:var(--o)}
+  .acq .pc-flag{position:absolute;top:-1px;right:-1px;background:var(--o);color:var(--bg);font-size:8.5px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;padding:1px 8px;border-radius:0 6px 0 6px}
+  .acq .none{color:color-mix(in srgb, var(--o) 60%, var(--dim));font-size:11px}
+  /* §ACQ THE MERCENARY BID IS A SLIDER, and the three buttons beneath it never swap places.
+     A text box asked a manager for a number with no sense of whether it was enough; the bar
+     says what the fighter makes of the offer against what the field is putting up. */
+  .acq .bidrow{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center;margin:8px 0 2px}
+  .acq .bidrow input[type=range]{width:100%;accent-color:var(--o)}
+  .acq .bidnum{font-size:14px;font-weight:700;color:var(--o);font-variant-numeric:tabular-nums;min-width:82px;text-align:right}
+  .acq .bidscale{display:flex;justify-content:space-between;font-size:9px;color:var(--faint)}
+  .acq .bidread{font-size:10px;margin-top:6px;color:var(--dim)}
+  .acq .bidread .bar{height:5px;border-radius:3px;background:#16233a;overflow:hidden;margin-top:3px}
+  .acq .bidread .bar i{display:block;height:100%;background:var(--o)}
+  .acq .bidbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:9px}
+  .acq .bidbtns .pcbtn{padding:6px 4px;font-size:11px}
   .sortbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
   .sortbar .lbl{color:var(--faint);font-size:10px;letter-spacing:.05em;text-transform:uppercase;margin-right:2px}
   .sortopt{padding:5px 12px;border:1px solid var(--line2);border-radius:6px;color:var(--dim);cursor:pointer;font-size:11px;user-select:none}
@@ -810,6 +986,16 @@
   html{background:var(--bg);color-scheme:dark;min-height:100%}
   @media (max-width: 900px) {
     header{padding:10px 12px 8px;flex-wrap:wrap;gap:8px}
+    /* the founding screen on a narrow one: the builder stacks under its stage, the pad's
+       columns become one, and the button that starts the game stays where a thumb is */
+    .markrow{grid-template-columns:1fr;gap:10px}
+    .mkstage{flex-direction:row;justify-content:space-around}
+    .mkbig{width:72px;height:72px}
+    .mkpadgrid{grid-template-columns:1fr}
+    .foundname{width:100%;max-width:290px}
+    .overlay{align-items:flex-start}
+    .menucol{min-width:0;width:100%}
+    #setup .foundgo{position:sticky;bottom:8px}
     .page{padding:10px 12px}
     .grid2,.grid3,.negcols,.landcols,.ring{grid-template-columns:1fr}
     .tcols,#tdeal .tcols{grid-template-columns:1fr}
@@ -869,25 +1055,25 @@
 <!-- ================================ THE SETUP ================================ -->
 <div id="setup" class="overlay" style="display:none">
   <div class="menucol" style="max-width:760px">
-    <div class="menusub">Choose Your OA</div>
-    <!-- the seed decides the world, and almost nobody wants to type one: it is shown for
-         the curious and for reproducing a run, not offered as a decision -->
-    <div class="bar" style="justify-content:center">
-      <span class="m" id="seedline" title="the world this run is generated from">Seed <b id="seedval">corp-1</b>
-        <button class="tiny" id="seededit">Change</button></span>
-      <input id="seed" value="corp-1" style="width:150px;display:none" title="seed">
-    </div>
-    <div id="oacards"></div>
-    <div id="customform" style="display:none">
-      <div class="bar" style="justify-content:center;margin-top:10px">
-        <input id="cname" value="" placeholder="Your OA's Name" style="width:220px">
-        <select id="creplace" class="tiny" title="whose berth your OA takes"></select>
+    <!-- §FOUNDING THE SCREEN ASKS THREE THINGS. It listed the fleet twice, explained a blank
+         slate, offered a seed almost nobody wants to type, and asked whose berth to take —
+         which is not a choice: the weakest house canonically makes way, and with several
+         managers the weakest several do, in order. What is left is a name, a colour and a
+         mark, which is what founding an OA actually is. -->
+    <div id="oacards" style="display:none"></div>
+    <div id="customform">
+      <div class="foundrow">
+        <input id="cname" value="" placeholder="Your OA's Name" class="foundname">
       </div>
-      <div class="bar" style="justify-content:center;margin-top:6px" id="cswatches" title="Your OA's Colour"></div>
-      <div class="bar" style="justify-content:center;margin-top:6px">
-        <button id="cfound">Found the OA</button>
+      <div class="foundlab">Colour</div>
+      <div class="bar" style="justify-content:center" id="cswatches"></div>
+      <div class="foundlab">Mark</div>
+      <div id="cmarks" class="markrow"></div>
+      <div class="bar" style="justify-content:center;margin-top:14px">
+        <button id="cfound" class="foundgo">Found the OA</button>
       </div>
-      <div class="m" style="margin-top:6px">A Blank Slate &mdash; The Fleet Average</div>
+      <span id="creplace" style="display:none"></span>
+      <input id="seed" value="corp-1" style="display:none">
     </div>
     <div class="bar" style="justify-content:center;margin-top:10px">
       <button class="tiny" id="setupback">Back</button>
@@ -947,6 +1133,7 @@
     <span class="m advwin2state"></span>
   </div>
   <div class="box" id="money"></div>
+  <div id="resigning"></div>
   <div id="rostmarket" class="acq"></div>
   <div class="rostcols">
     <div class="rostbooks">
@@ -973,9 +1160,12 @@
 </div>
 <!-- THE FIGHTER SHEET, a drawer any tab may open (Squads, the Dividend) -->
 <div class="scrim" id="sqscrim"></div>
+<div class="page" data-tab="backroom">
+  <div id="backroom"></div>
+</div>
 <div class="drawer" id="unitpanel"></div>
+<div class="drawer" id="markedit" style="display:none"></div>
 <!-- THE QUIET BUSINESS: a window, not a tab, open in the preparation and in the Divide -->
-<div class="drawer" id="quietpanel"></div>
 
 <!-- ============================== THE FIREFIGHT ============================== -->
 <div class="page" data-tab="fight">
@@ -1246,18 +1436,24 @@
     table:  { name: 'The Table',  live: true },
     deal:   { name: 'The Deal',   live: true },
     ground: { name: 'The Ground',    live: true },
-    fight:  { name: 'The Firefight', live: true }
+    fight:  { name: 'The Firefight', live: true },
+    /* §QUIET A PAGE, NOT A DRAWER. "The Quiet Business" was a side panel opened by a button,
+       which made a whole standing system feel like a footnote and forced its targets into
+       DROP-DOWN MENUS for want of room. It is a surface with a rail tab, and it carries
+       different work before the Divide and during it: the favours that say "this Divide" are
+       not things a manager buys in month three. */
+    backroom: { name: 'The Backroom', live: true }
   };
   var RAILS = {
     prep:   { head: 'Months 1\u201311 \u00b7 The Preparation', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board', 'backroom'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
-              tabs: ['table', 'deal', 'ground', 'roster', 'board'] },
+              tabs: ['table', 'deal', 'ground', 'roster', 'board', 'backroom'] },
     /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
        step and leave a shelf on the Desk: a manager walked through month six and felt
        nothing happen. It gets the floor now, the way the Divide does. */
     dividend: { head: 'Month ' + (window.CDSEASON ? CDSEASON.DIVIDEND_MONTH : 4) + ' \u00b7 The Dividend', home: 'lights',
-                tabs: ['lights', 'desk', 'roster', 'squads', 'market', 'talks', 'board'] }
+                tabs: ['lights', 'desk', 'roster', 'squads', 'market', 'talks', 'board', 'backroom'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -1325,6 +1521,7 @@
       else if (tab === 'table' || tab === 'deal') renderTable();
       else if (tab === 'desk') renderDesk();
       else if (tab === 'ground') { renderGround(); gPlayPending(); }
+      else if (tab === 'backroom') renderQuiet();
     }
   }
 
@@ -1332,6 +1529,7 @@
      G.oa is THIS GAME'S profile list — the stock eight, or seven of them plus the
      player's own blank-slate house standing in a chosen berth. ---- */
   var G = null;
+  var BERTH = null;          /* whose berth a founded house takes — a setup-screen choice, before G exists */
 
   function startGame(seedStr, meId, oaList, customDef) {
     if (G) { stop(); clearTween(); }   /* an orphaned timer would keep drawing a dead world */
@@ -1526,7 +1724,7 @@
     if (key === 'salary') return ct.salary || 0;
     if (key === 'term')   return termOf(f).ord;
     if (key === 'squad')  { var si = G.plan && G.plan.at ? G.plan.at[f.id] : null; return si == null ? 99 : si; }
-    if (key === 'stats')  return statAvg(f);
+    if (key === 'stats')  return ratingOf(f);
     if (key === 'oblig')  return obligationOf(f).txt.toLowerCase();
     if (key === 'status') return statusOf(f).gone ? 2 : statusOf(f).warn ? 1 : 0;
     return 0;
@@ -1534,6 +1732,33 @@
 
   /* THE ONE NUMBER: the mean of the seven stats */
   var STAT_KEYS = ['aim', 'grit', 'reflex', 'fieldcraft', 'tactics', 'presence', 'resolve'];
+  /* §RATING WHAT A FIGHTER IS WORTH AT A GLANCE. Building a squad meant reading seven stats
+     on every card — a wall of figures that says everything and shows nothing. The RATING is one
+     number for a fighter: their stats, what their kit is worth, what their people bring, and
+     what their quirks are worth to a fight. It is not the whole picture and is not meant to be —
+     the sheet is a click away — but it is what a manager actually asks when he is filling eight
+     slots: is this one better than that one. */
+  function ratingOf(f) {
+    var base = statAvg(f);
+    var kit = currentKit(f), prim = ITEM_BY_ID[kit.primary], arm = ITEM_BY_ID[kit.armor];
+    var gear = (prim ? prim.tier : 0) * 3 + (arm ? arm.tier : 0) * 2;      /* armed and plated */
+    var qk = (f.traits || []).reduce(function (n, t) {
+      var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects) return n;
+      var sm = tr.effects.stat_mods || {}, sum = 0;
+      for (var k in sm) sum += sm[k];
+      return n + sum * 2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
+               - ((tr.tags || []).indexOf('negative') >= 0 ? 2 : 0);
+    }, 0);
+    var cond = 1 - Math.min(0.35, ((f.condition && f.condition.fatigue || 0) * 0.003 +
+                                   (f.condition && f.condition.stress || 0) * 0.002));
+    var hurt = (f.condition && (f.condition.injuries || []).length) ? 0.82 : 1;
+    return Math.max(1, Math.round((base + gear + qk) * cond * hurt));
+  }
+  function ratingBand(r) { return r >= 120 ? 'good' : r >= 95 ? '' : r >= 75 ? 'warn' : 'bad'; }
+  function ratingHtml(f) {
+    var r = ratingOf(f);
+    return '<span class="rating ' + ratingBand(r) + '" title="Stats, Kit, Quirks and Condition">' + r + '</span>';
+  }
   function statAvg(f) {
     var s = f.stats || {}, t = 0, n = 0;
     STAT_KEYS.forEach(function (k) { if (typeof s[k] === 'number') { t += s[k]; n++; } });
@@ -1545,7 +1770,7 @@
     { k: 'salary', lbl: 'Salary' },
     { k: 'origin', lbl: 'Origin' },
     { k: 'term',   lbl: 'Term' },
-    { k: 'stats',  lbl: 'Stats' },
+    { k: 'stats',  lbl: 'Rating' },
     { k: 'name',   lbl: 'Name' }
   ];
   function squadOf(f) {
@@ -1555,6 +1780,7 @@
   }
   function capRace(r) { return r ? r.charAt(0).toUpperCase() + r.slice(1).replace('_', '-') : '?'; }
   function renderRoster() {
+    renderResigning();
     if (!G) return;
     var me = G.corps[G.me];
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
@@ -1585,7 +1811,8 @@
       var cls = 'rcard' + (sq ? ' ' + sq.cls : '') + (stt.gone ? ' gone' : '') +
                 (G._inspect === f.id ? ' sel' : '');
       h += '<div class="' + cls + '" data-hand="' + f.id + '">' +
-        '<div class="rc-top"><span class="rc-name" style="color:' + raceColour(f) + '">' +
+        '<div class="rc-top"><span class="rowmark" data-editmark="' + f.id + '" title="Change the Mark">' +
+          fighterMark(f, 22, colFor(G.me)) + '</span><span class="rc-name" style="color:' + raceColour(f) + '">' +
           (lead ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
           '<span class="rc-sq ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) : '\u2014') + '</span></div>' +
         '<div class="rc-orig ' + org.cls + '">' + org.label +
@@ -1612,6 +1839,11 @@
     Array.prototype.forEach.call(document.querySelectorAll('#roster .rcard[data-hand]'), function (card) {
       card.onclick = function () { inspectRoster(card.getAttribute('data-hand')); };
     });
+    /* §MARK the mark on a row opens its editor directly: the Roster is where a manager looks
+       at his people, so it is where changing how they are drawn belongs */
+    Array.prototype.forEach.call(document.querySelectorAll('#roster [data-editmark]'), function (el) {
+      el.onclick = function (e) { e.stopPropagation(); openMarkEditor(el.getAttribute('data-editmark')); };
+    });
 
     renderMarket();
   }
@@ -1621,6 +1853,55 @@
   /* ---- THE OPEN WINDOW, in the Roster's rail. Three signings, three origins:
      tryouts sign your own Natural-Born prospects free; the merc window is an auction you
      bid in; the Bastille places Conscripts by need. Idle when no window is open. ---- */
+  /* §RESIGN THE REVIEW IS WHERE THE PAPER IS ANSWERED. Every expiring contract used to be
+     renewed or dropped by the same budget arithmetic the fleet uses, so a manager never had to
+     decide whether a veteran was worth what he now asks — or that a prisoner who has served his
+     sentence is a free man asking for wages. */
+  function renderResigning() {
+    var host = $('resigning'); if (!host || !G || !G.state) return;
+    var list = (SEASON.renewalsFor(G.state, G.me) || []);
+    if (G.state.month !== 1 || !list.length) { host.innerHTML = ''; return; }
+    var me = G.corps[G.me];
+    host.innerHTML = '<div class="railbox rsbox"><div class="wtitle"><span class="dot" style="background:var(--cred)"></span>' +
+      '<span class="wnm">The Paper</span><span class="deadline">Answered This Month</span>' +
+      '<span class="kind">' + list.length + ' Expiring</span></div>' +
+      '<div class="rsgrid">' + list.map(function (r) {
+        var f = me.roster.filter(function (x) { return x.id === r.id; })[0];
+        var up = r.asks > r.was, low = Math.round(r.asks * SEASON.CONST.HAGGLE_FLOOR);
+        return '<div class="rscard' + (r.called ? ' called' : '') + '">' +
+          '<div class="rsn">' + fighterMark(f || r, 18, colFor(G.me)) +
+            '<span class="nm" data-sheet="' + r.id + '" style="color:' + raceColour(f || r) + '">' + esc(r.name) + '</span>' +
+            (r.freed ? ' <span class="ktag hand">Sentence Served</span>' : '') + '</div>' +
+          '<div class="m">' + esc(capWords(r.kind)) + ' \u00b7 Fame ' + Math.round(r.fame) + ' \u00b7 Age ' + r.age + '</div>' +
+          '<div class="rsf"><span class="k">Was</span><span class="v">' + crs(r.was) + '</span>' +
+            '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.asks) + '</span>' +
+            '<span class="k">A Year</span><span class="v">' + crs(r.year) + '</span></div>' +
+          (r.called
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed', haggle: 'Offered ' + crs(r.called.offer || low), release: 'Let Go' })[r.called.how] +
+              ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
+            : '<div class="rsways">' +
+              '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.asks) + '</button>' +
+              '<button class="pcbtn" data-rs="haggle" data-rsid="' + r.id + '">Offer ' + crs(low) + '<span class="sub">They May Walk</span></button>' +
+              '<button class="pcbtn x" data-rs="release" data-rsid="' + r.id + '">Let Them Go</button></div>') +
+          '</div>'; }).join('') + '</div></div>';
+    Array.prototype.forEach.call(host.querySelectorAll('[data-rs]'), function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-rsid'), how = b.getAttribute('data-rs');
+        var row = list.filter(function (r) { return r.id === id; })[0];
+        SEASON.answerRenewal(G.state, G.me, id, how, how === 'haggle' ? Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR) : null);
+        dlog(how === 'release' ? '<span class="m">' + esc(row.name) + ' Will Not Be Kept</span>'
+           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs(Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) + '</span>'
+           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks) + '</span>');
+        renderRoster();
+      };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-rsclear]'), function (b) {
+      b.onclick = function () { delete (G.corps[G.me]._renewalCalls || {})[b.getAttribute('data-rsclear')]; renderRoster(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-sheet]'), function (el) {
+      el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
+    });
+  }
   function renderMarket() {
     var mkt = $('rostmarket');
     if (!G || !G.state) { mkt.innerHTML = ''; return; }
@@ -1636,6 +1917,7 @@
       for (var mm = m + 1; mm <= 11 && !next; mm++)
         if ((SEASON.MONTHS[mm] || {}).signing) next = { m: mm, kind: SEASON.MONTHS[mm].signing };
       var nn = next ? WIN_META[next.kind] : null;
+      mkt.className = 'acq';
       mkt.innerHTML = winShell('none', 'The Window', '', '',
         '<span class="none">No Signing Window' +
         (next ? ' \u00b7 Next: <span style="color:var(--o-' + nn.cls + ')">' + nn.name + '</span>, Month ' + next.m : '') + '</span>');
@@ -1655,25 +1937,53 @@
                  : '<span class="m">Your Name Moves Nothing</span>';
     meta = Object.assign({}, meta, { name: meta.name + (win.pool && POOLWORD[win.pool] ? ' \u00b7 ' + POOLWORD[win.pool] : '') });
     if (!lot.length) {
+      mkt.className = 'acq w-' + meta.cls;      /* §ACQ the window wears its own colour */
       mkt.innerHTML = winShell(meta.cls, meta.name, meta.kind,
         meta.deadline.replace('%d', deadline), '<span class="none">The Sheet Is Empty</span>');
       return;
     }
     var body = '<div class="m" style="margin-bottom:7px">' + nameWord + '</div>' +
       '<div class="pcs">' + lot.map(function (f) { return prospectCard(f, win.signing); }).join('') + '</div>';
+      mkt.className = 'acq w-' + meta.cls;      /* §ACQ the window wears its own colour */
     mkt.innerHTML = winShell(meta.cls, meta.name, meta.kind,
       meta.deadline.replace('%d', deadline), body);
 
-    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-sign]'), function (b) {
-      b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-sign'), 1); renderRoster(); };
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-signnow]'), function (b) {
+      b.onclick = function () {
+        var r = SEASON.signNow(G.state, G.me, b.getAttribute('data-signnow'));
+        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.cost) + '</span>'
+                  : '<span class="bad">' + esc(r.why) + '</span>');
+        renderRoster();
+      };
     });
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-unsign]'), function (b) {
       b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-unsign'), 0); renderRoster(); };
     });
+    /* the slider IS the bid: dragging shows the figure, letting go places it */
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-bidslide]'), function (r) {
+      r.oninput = function () {
+        var cell = r.parentNode.querySelector('.bidnum');
+        if (cell) cell.textContent = crs(Math.round(+r.value || 0));
+      };
+      r.onchange = function () {
+        SEASON.placeBid(G.state, G.me, r.getAttribute('data-bidslide'), Math.round(+r.value || 0));
+        renderRoster();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-bidup]'), function (b) {
+      b.onclick = function () {
+        var fid = b.getAttribute('data-bidup');
+        var lot = SEASON.lotFor(G.state, G.me).filter(function (x) { return x.id === fid; })[0];
+        var cur = (lot && lot.yourBid) || (lot ? lot.ask : 0);
+        SEASON.placeBid(G.state, G.me, fid, Math.round(cur * 1.08));
+        renderRoster();
+      };
+    });
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-bid]'), function (b) {
       b.onclick = function () {
         var fid = b.getAttribute('data-bid');
-        var amt = Math.round(+document.querySelector('#rostmarket input.pcbid[data-f="' + fid + '"]').value || 0);
+        var slider = document.querySelector('#rostmarket [data-bidslide="' + fid + '"]');
+        var amt = Math.round(slider ? +slider.value : 0);
         SEASON.placeBid(G.state, G.me, fid, amt); renderRoster();
       };
     });
@@ -1698,6 +2008,7 @@
       '</div>';
   }
   /* one prospect, shown with the full picture a hiring call needs */
+  var MERC_FIELD = 1.15;      /* §ACQ what the rest of the fleet is putting up, as a share of the ask */
   function prospectCard(f, signing) {
     var s = f.stats || {};
     var cells = STAT_KEYS.map(function (k) { return statCell(k, STAT_ABBR[k], s[k]); }).join('') +
@@ -1707,14 +2018,27 @@
     if (signing === 'tryouts') {
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
-      foot = f.yourBid
-        ? '<button class="pcbtn on" data-unsign="' + f.id + '">Signing \u00b7 Cancel</button>'
-        : '<button class="pcbtn" data-sign="' + f.id + '">Sign</button>';
+      /* §SIGNING no marking and waiting: the sheet is your own ship's, so signing signs them */
+      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '</button>';
     } else if (signing === 'mercs') {
       terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
-      foot = '<span><input class="pcbid" data-f="' + f.id + '" value="' + (f.yourBid || f.ask) + '">' +
-             '<button class="pcbtn' + (f.yourBid ? ' on' : '') + '" data-bid="' + f.id + '">' + (f.yourBid ? 'Change' : 'Bid') + '</button>' +
-             (f.yourBid ? '<button class="pcbtn x" data-nobid="' + f.id + '" title="Withdraw the Bid">\u2715</button>' : '') + '</span>';
+      /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven houses bid and the fighter
+         chooses — so it keeps its bidding, but not its moving buttons. The bid is a slider set
+         against what the field is putting up, and the reading answers the thing a manager
+         actually wants to know: not how much, but whether it is enough. */
+      var bid = f.yourBid || f.ask;
+      var field = Math.round(f.ask * MERC_FIELD);
+      var lo = Math.round(f.ask * 0.8), hi = Math.round(field * 1.25);
+      var conf = Math.max(0, Math.min(1, (bid - lo) / Math.max(1, hi - lo)));
+      var word = conf > 0.72 ? 'They Would Take It' : conf > 0.45 ? 'They Are Listening' : 'Not Enough';
+      foot = '<div class="bidrow"><input type="range" min="' + lo + '" max="' + hi + '" step="25" value="' + bid +
+               '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(bid) + '</span></div>' +
+             '<div class="bidscale"><span>Low</span><span>The Field \u00b7 ' + crs(field) + '</span><span>High</span></div>' +
+             '<div class="bidread">' + word + '<div class="bar"><i style="width:' + Math.round(conf * 100) + '%"></i></div></div>' +
+             '<div class="bidbtns">' +
+               '<button class="pcbtn" data-bid="' + f.id + '">' + (f.yourBid ? 'Hold' : 'Place') + '</button>' +
+               '<button class="pcbtn" data-bidup="' + f.id + '">Raise</button>' +
+               '<button class="pcbtn" data-nobid="' + f.id + '">Withdraw</button></div>';
     } else {   /* bastille */
       var req = f.freedomReq || (f.contract && f.contract.divides_required);
       terms = 'Serves ' + (req || '?') + ' Divide' + (req === 1 ? '' : 's') + ' to Earn Release' +
@@ -1723,7 +2047,9 @@
     }
     return '<div class="pc' + (f.yourBid ? ' taken' : '') + '">' +
       (f.yourBid ? '<div class="pc-flag">' + (signing === 'mercs' ? 'Bid ' + crs(f.yourBid) : 'Signing') + '</div>' : '') +
-      '<div class="pc-top"><span class="pc-nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
+      /* a prospect has a mark before they have a house: the ring is neutral until they sign */
+      '<div class="pc-top">' + fighterMark(f, 20, 'var(--line2)') +
+        '<span class="pc-nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
         '<span class="pc-who">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') + '</span></div>' +
       '<div class="pc-stats">' + cells + '</div>' +
       '<div class="pc-foot"><span class="pc-terms">' + terms + '</span>' + foot + '</div>' +
@@ -1785,11 +2111,14 @@
              o.kind + ':' + p + '"' + (o.available ? '' : ' disabled') + '>' + p + '</button>';
       }
       h += '</span> <b>' + esc(o.name) + '</b> ';
+      /* BOOST WAS A LIGHTNING BOLT AND A PRICE, with the whole mechanic in a tooltip nobody
+         opens: a manager could play a year without learning that a focus point can be doubled.
+         It says what it does. */
       var canBoost = o.available && o.kind !== 'recruit';
       if (canBoost && cur > 0) {
         var on = G._boostSel && G._boostSel[o.kind];
-        h += '<button class="tiny bbtn' + (on ? ' on' : '') + '" data-boost="' + o.kind +
-             '" title="Double This Focus for ' + cr(cur * SEASON.CONST.BOOST_PER_POINT) + '">\u26a1 ' + crs(cur * SEASON.CONST.BOOST_PER_POINT) + '</button> ';
+        h += '<button class="tiny bbtn' + (on ? ' on' : '') + '" data-boost="' + o.kind + '">' +
+             (on ? '\u26a1 Doubled \u00b7 ' : 'Double This \u00b7 ') + crs(cur * SEASON.CONST.BOOST_PER_POINT) + '</button> ';
       }
       h += '<span class="m">' + esc(o.why) + '</span></div>';
     });
@@ -1799,6 +2128,7 @@
     renderIntelGrid();
     renderCourtGrid();
     renderDossier();
+    wireFolds();
     Array.prototype.forEach.call(document.querySelectorAll('[data-focus]'), function (b2) {
       b2.onclick = function () {
         var kv = b2.getAttribute('data-focus').split(':');
@@ -1825,6 +2155,9 @@
     /* ONE PLACE FOR THE BUDGET. It used to head every section — drill, recovery, intel,
        courting — four copies of one number, and none of them where a manager looks for
        the state of their month. It lives on the top line beside the clock now. */
+    /* THE SENTENCE CAME OFF. Explaining a control in prose beside it is the admission that
+       the control does not explain itself; the button names its own price where the focus is
+       spent, and that is the whole of it. */
     var line = 'Focus Spent ' + spent + ' of ' + SEASON.CONST.FOCUS_POINTS +
       (spent >= SEASON.CONST.FOCUS_POINTS ? ' \u2014 Fully Committed' : '') +
       (boostCost ? ' <span class="m">\u00b7 \u26a1 ' + crs(boostCost) + '</span>' : '');
@@ -1867,7 +2200,11 @@
     var spent = 0; for (var k in (G._focusSel || {})) if (k !== '_m' && typeof G._focusSel[k] === 'number') spent += G._focusSel[k];
     spent = Math.max(spent, trainPips() + restPips() + intelPips() + courtPips());
     if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', cost: 'Wasted' });
-    if (alive.length < SEASON.CONST.DROP_MIN) items.push({ txt: 'Roster Short: ' + alive.length + ' of ' + SEASON.CONST.DROP_MIN, tab: 'roster', urgent: m >= 9 });
+    /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
+       button up over a thing a manager frequently cannot act on — no window open, nobody to
+       sign, nothing to do but click around it. The Market says how short a house is where
+       something can be done about it, and the lock stops a drop that cannot be fielded.
+       Nothing waits on the turn for it. */
     if (m === 11 && !Object.keys(G.plan.at || {}).length) items.push({ txt: 'No Squads Set', tab: 'squads', urgent: true, cost: 'Quartermaster\u2019s Deal' });
     if (m === 11) {
       var bad = 0; alive.forEach(function (b) { if (G.plan.at[b.id] != null && G.plan.hand[b.id] && !handStands(b)) bad++; });
@@ -1999,27 +2336,40 @@
   }
   /* ============================ THE QUIET BUSINESS ============================ */
   function renderQuiet() {
-    var host = $('quietpanel'); if (!host || !G || !G.state) return;
-    var offered = SEASON.illicitOffered(G.state, G.me) || [];
+    var host = $('backroom'); if (!host || !G || !G.state) return;
+    /* §QUIET WHAT IS ON OFFER DEPENDS ON WHEN YOU ASK. A favour that buys a ruling "this
+       Divide" is not a thing a manager buys in month three, and a bad batch of kit has to be
+       signed off before the drop, not after it. The page shows the work that belongs to now. */
+    var inDivide = !!(G.div && G.div.win);
+    var offered = (SEASON.illicitOffered(G.state, G.me) || []).filter(function (o) {
+      var duringOnly = o.id === 'bribe_official' || o.id === 'camera_malfunction';
+      var beforeOnly = o.id === 'sabotage_kit' || o.id === 'quiet_word';
+      return inDivide ? !beforeOnly : !duringOnly;
+    });
     var done = SEASON.illicitDone(G.state, G.me) || [];
     var others = G.state.ids.filter(function (id) { return id !== G.me; });
-    var h = '<span class="close" id="quietclose">\u2715</span><h2 style="margin-top:0">The Quiet Business</h2>' +
-      '<div class="m" style="margin-bottom:10px">Paid in Credits and in Standing \u00b7 the Standing Goes Either Way</div>';
+    if (!G._qTarget) G._qTarget = {};
+    var h = '<div class="qhead"><h2 style="margin:0">The Backroom</h2>' +
+      '<span class="m">' + (inDivide ? 'While the Contest Runs' : 'Before the Drop') + '</span></div>' +
+      '<div class="m" style="margin-bottom:10px">Paid in Credits and in Standing \u00b7 the Standing Goes Either Way</div>' +
+      '<div class="qgrid">';
     h += offered.map(function (o) {
-      var st = Object.keys(o.standing || {}).map(function (a) { return AUDNAME[a].name + ' ' + o.standing[a]; }).join(' \u00b7 ');
+      var st = Object.keys(o.standing || {}).map(function (a2) { return AUDNAME[a2].name + ' ' + o.standing[a2]; }).join(' \u00b7 ');
+      var pick = G._qTarget[o.id] || (others[0] || '');
       return '<div class="qact"><div class="qt">' + esc(o.title) + '</div><div class="qx">' + esc(o.text) + '</div>' +
         '<div class="qo">' + esc(o.offer) + '</div>' +
         '<div class="qf"><span class="k">Price</span><span class="v">' + crs(o.cost) + (st ? ' \u00b7 ' + st : '') + '</span>' +
           '<span class="k">Goes Off Clean</span><span class="v ' + (o.clean >= 0.88 ? 'good' : o.clean >= 0.75 ? 'warn' : 'bad') + '">' + Math.round(o.clean * 100) + '%</span></div>' +
-        '<div class="m" style="font-size:10px;margin:-3px 0 7px">Otherwise \u00b7 Traced to You</div>' +
-        (o.needsTarget ? '<select class="qsel" data-qtarget="' + o.id + '">' + others.map(function (id) { return '<option value="' + id + '" style="color:' + colFor(id) + '">' + esc(nameOfCorp(id)) + '</option>'; }).join('') + '</select>' : '') +
+        '<div class="m" style="font-size:10px;margin:2px 0 0">Otherwise \u00b7 Traced to You</div>' +
+        /* THE TARGETS ARE CHIPS. A drop-down hides seven houses behind one word and makes a
+           manager hunt for what he can already see everywhere else in the game. */
+        (o.needsTarget ? '<div class="qtargets">' +
+            housePicker(others, pick, 'data-qid', { ring: false, size: 38 }).replace(/data-qid=/g, 'data-qpick="' + o.id + '" data-qid=') +
+            '</div>' : '') +
         '<button class="qbtn" data-qact="' + o.id + '">Have It Done</button></div>';
-    }).join('');
-    /* §QUIET WHAT YOU HOLD ON THEM. A scout deep enough in another house's books turns up
-       what that house paid to keep quiet. Three things to do with it, and each answers to a
-       different audience. */
+    }).join('') + '</div>';
     var held = SEASON.evidenceOf(G.state, G.me) || [];
-    if (held.length) h += '<div class="qheld"><div class="qhh">What You Hold</div>' + held.map(function (e, i) {
+    if (held.length) h += '<div class="qheld"><div class="qhh">What You Hold</div><div class="qgrid">' + held.map(function (e, i) {
       var name = capWords(String(e.actId).replace(/_/g, ' '));
       return '<div class="qev"><div class="qt">' + cSpan(e.against) + ' \u00b7 ' + esc(name) + '</div>' +
         '<div class="m">Month ' + e.at + ' \u00b7 Year ' + e.season + (e.used ? ' \u00b7 <span class="good">' + capWords(e.used) + '</span>' : '') + '</div>' +
@@ -2027,11 +2377,13 @@
           '<button class="qbtn" data-ev="' + i + '" data-how="blackmail">Blackmail<span class="sub">They Pay \u00b7 Nobody Learns</span></button>' +
           '<button class="qbtn" data-ev="' + i + '" data-how="leak">Leak It<span class="sub">The Fleet Learns \u00b7 You Are Seen Printing It</span></button>' +
           '<button class="qbtn" data-ev="' + i + '" data-how="report">Report It<span class="sub">The Aleas Thank You \u00b7 the Fleet Does Not</span></button>' +
-          '</div>') + '</div>'; }).join('') + '</div>';
+          '</div>') + '</div>'; }).join('') + '</div></div>';
     if (done.length) h += '<div class="qdone"><b>This Year</b><br>' + done.map(function (d) {
       return esc(capWords(d.id.replace(/_/g, ' '))) + ' \u00b7 M' + d.month + ' \u00b7 ' + (d.worked ? 'Clean' : '<span class="out">Came Apart</span>'); }).join('<br>') + '</div>';
     host.innerHTML = h;
-    $('quietclose').onclick = function () { host.classList.remove('on'); $('sqscrim').classList.remove('on'); };
+    Array.prototype.forEach.call(host.querySelectorAll('[data-qpick]'), function (b) {
+      b.onclick = function () { G._qTarget[b.getAttribute('data-qpick')] = b.getAttribute('data-qid'); renderQuiet(); };
+    });
     Array.prototype.forEach.call(host.querySelectorAll('[data-ev]'), function (b) {
       b.onclick = function () {
         var r = SEASON.useEvidence(G.state, G.me, +b.getAttribute('data-ev'), b.getAttribute('data-how'));
@@ -2042,14 +2394,13 @@
     Array.prototype.forEach.call(host.querySelectorAll('[data-qact]'), function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-qact');
-        var sel = host.querySelector('[data-qtarget="' + id + '"]');
-        var r = SEASON.illicitAttempt(G.state, G.me, id, sel ? sel.value : null, {});
+        var r = SEASON.illicitAttempt(G.state, G.me, id, G._qTarget[id] || others[0], {});
         if (r.line) dlog('<span class="' + (r.exposed ? 'bad' : 'm') + '">' + esc(r.line) + '</span>');
         renderQuiet(); renderDesk();
       };
     });
   }
-  function openQuiet() { renderQuiet(); $('quietpanel').classList.add('on'); $('sqscrim').classList.add('on'); }
+  function openQuiet() { if (TAB.backroom) TAB.backroom.click(); }
   /* THE CORNER'S BUTTON, whatever the turn is. In the preparation it is the month and what
      waits on it; while the lights are up it takes the floor; at the lock it drops; in the
      Divide it is the next comms window; when the contest is done it begins the next year. */
@@ -2069,7 +2420,7 @@
     if (m >= 12) {
       var D = G.state.drop && G.state.drop.draft;
       var mine = D ? (D.picks[G.me] || []).length : 0;
-      if (D && !D.done) { shell('', 'The Draft', mine + ' of ' + SEASON.PICKS_EACH + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
+      if (D && !D.done) { shell('', 'The Draft', mine + ' of ' + ((D.want || {})[G.me] || 0) + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
       shell('clear', 'Drop', 'The Draft Is Done', function () { if (TAB.table) TAB.table.click(); var b = $('dropbtn'); if (b) b.onclick(); }); return;
     }
     if (G._dividendFloor) { shell('clear', 'Take the Floor', 'The Lights Are Up', function () { press('endmonth'); }); return; }
@@ -2088,7 +2439,7 @@
         '<div class="what">' + (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') +
           (me._lastGate ? ' \u00b7 Gate ' + crs(me._lastGate) + '/mo' : '') + '</div>' +
         '<div class="coming">' + coming + '</div>' +
-        '<div style="margin-top:7px"><button class="tiny quietbtn" id="quietopen">The Quiet Business</button></div></div>';
+        '</div>';
     /* the agenda stands in its own panel, at the foot of the year line */
     var ag = $('agenda');
     if (ag && (G.div || G.state.month >= 12 || G._dividendFloor)) { renderTurn(); return; }
@@ -2115,7 +2466,6 @@
       if ($('turnend')) $('turnend').onclick = endIt;
       document.body.classList.toggle('agendaopen', !G._agendaShut);
       $('agendahead').onclick = function () { G._agendaShut = !G._agendaShut; renderBrief(); };
-      if ($('quietopen')) $('quietopen').onclick = openQuiet;
       Array.prototype.forEach.call(ag.querySelectorAll('[data-agenda]'), function (el) {
         el.onclick = function () { var t = el.getAttribute('data-agenda'); if (TAB[t]) TAB[t].click(); else show(t); };
       });
@@ -2240,6 +2590,51 @@
     for (var i = 0; i < SEASON.CONST.FOCUS_CAP; i++) s += tgPip(tier, key, i, i < n);
     return s + '</span>';
   }
+  /* §DESK THE BIG SECTIONS FOLD, AND START FOLDED. Training, Rest, Intel and Sponsors are
+     four grids that between them fill a screen and a half, so a manager opening the Desk met a
+     wall and had to scroll past three things to reach the one he wanted. Each is a fold with
+     its name centred: shut until it is asked for, and remembered once opened. */
+  function deskFolded(key) {
+    if (!G._folds) G._folds = { train: true, rest: true, intel: true, court: true };
+    return !!G._folds[key];
+  }
+  /* THE HEAD IS THE SWITCH. A separate word to press beside a title a manager was already
+     reaching for is a second thing to aim at for no reason: the whole head opens and shuts it,
+     and a chevron says which way it will go. */
+  function foldTag(key) {
+    return '<span class="tgchev2">' + (deskFolded(key) ? '\u25be' : '\u25b4') + '</span>';
+  }
+  /* §BOOST THE BUTTON BELONGS WHERE THE FOCUS IS SPENT. It was drawn on the verbs list — and
+     that list SKIPS training, rest and intel, because each of those is a grid of its own below
+     it, so for three of the four tracks the button was never drawn at all. A manager could
+     spend eight points on drilling and never be offered the thing that doubles them. It sits on
+     the grid's own head, appears only once that grid has focus on it, and says the price it
+     will cost; no sentence anywhere explains it, because a button that names its own price is
+     not a thing that needs explaining. */
+  var BOOST_KEY = { train: 'train', rest: 'rest', intel: 'scout', court: 'court' };
+  function boostTag(key) {
+    var kind = BOOST_KEY[key];
+    var spent = focusOn(kind);
+    if (!spent) return '';
+    var on = G._boostSel && G._boostSel[kind];
+    return '<span class="tgboost' + (on ? ' on' : '') + '" data-boost="' + kind + '" ' +
+      'title="Double What This Month\u2019s Focus Buys">\u26a1 ' + crs(spent * SEASON.CONST.BOOST_PER_POINT) + '</span>';
+  }
+  /* how many points stand on a track right now — each grid already counts its own */
+  function focusOn(kind) {
+    return kind === 'train' ? trainPips()
+         : kind === 'rest'  ? restPips()
+         : kind === 'scout' ? intelPips()
+         : kind === 'court' ? courtPips() : 0;
+  }
+  function wireFolds() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-foldhead]'), function (el) {
+      el.onclick = function (e) {
+        if (e.target.closest('[data-boost]')) return;   /* the boost is its own control */
+        var k = el.getAttribute('data-foldhead'); G._folds[k] = !G._folds[k]; renderDesk();
+      };
+    });
+  }
   function renderTrainGrid() {
     var host = $('traingrid');
     var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
@@ -2254,8 +2649,8 @@
     /* THE BROAD PAINTS STAY ON TOP AND NEVER FOLD — the corner and the seven columns are
        what a manager reaches for most, and a fold that hides them would be worse than no
        fold at all. */
-    var h = '<div class="tgwrap"><div class="tghead">' +
-      '<span class="tgtitle">Training</span>' +
+    var h = '<div class="tgwrap' + (deskFolded('train') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="train">' +
+      '<span class="tgtitle">Training</span>' + boostTag('train') + foldTag('train') +
       '</div>';
     h += '<table class="tgrid tghdr"><tr>' +
          '<th class="rn ' + (tgGet('all') > 0 ? 'lith' : '') + '">' +
@@ -2287,6 +2682,7 @@
          near miss neither paints nor opens anything. */
       h += '<div class="tghand' + (open ? ' open' : '') + '" data-tgopen="' + f.id + '">' +
            '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
+           fighterMark(f, 18, colFor(G.me)) +
            '<span class="tgname" style="color:' + raceColour(f) + '">' +
            (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
            (painted ? '<span class="tgcount">' + painted + '</span>' : '') +
@@ -2391,8 +2787,8 @@
     var pips = G._focusSel.rest, spent = pips + otherFocusRest();
     var full = spent >= SEASON.CONST.FOCUS_POINTS;
 
-    var h = '<div class="tgwrap"><div class="tghead">' +
-      '<span class="tgtitle">Rest and Recovery</span>' +
+    var h = '<div class="tgwrap' + (deskFolded('rest') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="rest">' +
+      '<span class="tgtitle">Rest and Recovery</span>' + boostTag('rest') + foldTag('rest') +
       '</div>';
     h += '<table class="tgrid"><tr>' +
          '<th class="rn ' + (rgGet('all') > 0 ? 'lith' : '') + '">' +
@@ -2407,6 +2803,7 @@
     roster.forEach(function (f) {
       var rn = rgGet('row', f.id);
       h += '<tr><td class="rn ' + (rn > 0 ? 'lit' : '') + '">' +
+           fighterMark(f, 18, colFor(G.me)) +
            '<span class="tgnum' + (rn > 0 ? ' on' : '') + '" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span> ' +
            rgTrack('row', f.id, rn) + '</td>';
       RTRACKS.forEach(function (tr) {
@@ -2530,8 +2927,8 @@
     if (canGather) G._focusSel.scout = intelPips();   /* board value tracks painted targets */
     var spent = intelPips() + otherFocusIntel(), full = spent >= SEASON.CONST.FOCUS_POINTS;
 
-    var h = '<div class="tgwrap"><div class="tghead">' +
-      '<span class="tgtitle">Gather Intel</span>' +
+    var h = '<div class="tgwrap' + (deskFolded('intel') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="intel">' +
+      '<span class="tgtitle">Gather Intel</span>' + boostTag('intel') + foldTag('intel') +
       (canGather ? ''
         : '<span class="m">The Scouts Report No Further Before the Lock</span>') +
       '</div>';
@@ -2634,8 +3031,8 @@
     if (canCourt) G._focusSel.court = courtPips();
     var spent = courtPips() + otherFocusCourt(), full = spent >= SEASON.CONST.FOCUS_POINTS;
 
-    var h = '<div class="tgwrap"><div class="tghead">' +
-      '<span class="tgtitle">Court Sponsors</span>' +
+    var h = '<div class="tgwrap' + (deskFolded('court') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="court">' +
+      '<span class="tgtitle">Court Sponsors</span>' + boostTag('court') + foldTag('court') +
       (canCourt ? '' : '<span class="m">Backers Committed</span>') +
       '</div><table class="ctbl">';
 
@@ -2678,7 +3075,13 @@
     host.innerHTML = h;
   }
 
-  function nameOfCorp(id) { return (G.corps[id] && G.corps[id].profile && G.corps[id].profile.name) || id; }
+  /* THE FOUNDING SCREEN ASKS THIS BEFORE THERE IS A GAME: the picker runs on the setup screen
+     where G is still null, so a house's name falls back to the catalogue it was read from. */
+  function nameOfCorp(id) {
+    if (G && G.corps && G.corps[id] && G.corps[id].profile) return G.corps[id].profile.name;
+    var p = (OA || []).filter(function (x) { return x.id === id; })[0];
+    return (p && p.name) || id;
+  }
 
   /* THE SEASON-CLOSE VERDICT. After the Divide is judged, show what your backers made of the
      year: which conditions you kept, which you broke, what the rewards paid (cash or kit), and
@@ -3276,6 +3679,31 @@
   }
   /* THE FIGHTER CARD, the same on the bench and in a squad; a squad's card adds the star and
      the cross */
+  /* §SQUADS ONE FIGHTER, AS A PORTRAIT: their name, what they are worth, and what they carry.
+     Everything else is on the sheet, one click away on the name. */
+  function portraitCard(b, si) {
+    var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
+    var lead = !!G.plan.leaderOf[b.id];
+    var hurt = (b.condition && (b.condition.injuries || []).length) ? ' hurt' : '';
+    return '<div class="port-card' + (G._sqsel === b.id ? ' sel' : '') + hurt + '" data-id="' + b.id + '"' +
+      (si != null ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
+      '<div class="pface">' + fighterMark(b, 72, colFor(G.me)) +
+        (lead ? '<span class="plead">\u2605</span>' : '') +
+        '<span class="prate ' + ratingBand(ratingOf(b)) + '">' + ratingOf(b) + '</span></div>' +
+      '<div class="pname" data-sheet="' + b.id + '" style="color:' + raceColour(b) + '">' + esc(b.name) + '</div>' +
+      '<div class="pkit">' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</div>' +
+      '<span class="px" data-home="' + b.id + '" title="Send Home">\u2715</span>' +
+      '<span class="pstar' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="Leads">\u2605</span>' +
+      '</div>';
+  }
+  /* §SQUADS A PLACE FOR A FACE. Initials read as a spreadsheet with a haircut; a head and
+     shoulders reads as "a portrait goes here", which is what the tile is for and what art will
+     replace. Drawn in the fighter's own race colour, faint, so it is furniture. */
+  function silhouette(col) {
+    return '<svg class="psil" viewBox="0 0 40 40" aria-hidden="true">' +
+      '<circle cx="20" cy="14.5" r="7.5" fill="' + col + '" opacity=".40"/>' +
+      '<path d="M5.5 40c0-8.4 6.5-13.5 14.5-13.5S34.5 31.6 34.5 40z" fill="' + col + '" opacity=".28"/></svg>';
+  }
   function fighterCard(b, inSquad, opts) {
     opts = opts || {};
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
@@ -3286,7 +3714,7 @@
       (inSquad ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
       '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="read the sheet" style="color:' + raceColour(b) + '">' +
         (lead ? '<span class="lead">\u2605</span>' : '') + esc(b.name) + '</span></span>' +
-        '<span class="kn">' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</span>' +
+        '<span class="kn">' + fighterMark(b, 20, colFor(G.me)) + ' ' + ratingHtml(b) + ' ' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</span>' +
         (inSquad ? '<span class="ctl"><span class="star' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="' + (lead ? 'Leads the Squad' : 'Make Leader') + '">\u2605</span>' +
                    '<span class="x" data-home="' + b.id + '" title="send home">\u2715</span></span>' : '') +
         (opts.drop ? '<span class="ctl"><span class="x" data-' + opts.drop + '="' + b.id + '" title="take off the card">\u2715</span></span>' : '') +
@@ -3365,16 +3793,26 @@
       var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX;
       h += '<div class="sqcard ' + SQCLASS[si] + (n ? ' filled' : '') + (canPlace ? ' target' : '') + (bad ? ' badct' : '') + '" data-si="' + si + '">' +
         '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="click to rename">' + esc(G.plan.names[si]) + '</span>' +
-        (canPlace ? '<span class="place" data-place="' + si + '">Place</span>' : '') +
+
         '<span class="ct' + (bad ? ' bad' : '') + '">' + n + ' of ' + MAX + (bad ? ' \u00b7 needs ' + MIN : '') + '</span></div>';
-      /* A SQUAD IS EIGHT SLOTS, and they all stand: the filled ones carry their fighter, the
-         empty ones number themselves, so a squad reads as a unit with room in it rather than
-         a list that happens to be short. */
-      h += '<div class="sqbody slots">';
+      /* §SQUADS A SQUAD IS EIGHT PORTRAITS. The first cut of "make it less like a list" made
+         the list TALLER — eight full-width rows, each with a wall of stats, and every empty slot
+         shouting for a fighter the moment one was picked up. A squad is eight portrait tiles:
+         the name, the rating, the gun. That is what a manager reads when he is filling slots,
+         and it is the shape the art will want when there are faces to put in them. */
+      h += '<div class="sqbody port">';
       for (var slot = 0; slot < MAX; slot++) {
-        if (slot < n) h += fighterCard(mem[slot], true);
-        else h += '<div class="fcard open' + (canPlace ? ' can' : '') + '" data-place="' + si + '"><span class="sn">' + (slot + 1) + '</span>' +
-                  '<span class="sw">' + (canPlace ? 'Place ' + esc(sel.name) : (slot < MIN ? 'Needed' : 'Open')) + '</span></div>';
+        if (slot < n) h += portraitCard(mem[slot], si);
+        else {
+          /* ONE TARGET A SQUAD. Lighting every empty slot in every squad meant a manager who
+             picked somebody up got a screen full of shouting; the squad's next open place is
+             the offer, and the rest are quietly empty. */
+          var isNext = slot === n;
+          h += '<div class="port-slot' + (canPlace && isNext ? ' can' : '') + '"' +
+               (canPlace && isNext ? ' data-place="' + si + '"' : '') + '>' +
+               '<span class="pn">' + (slot + 1) + '</span>' +
+               (canPlace && isNext ? '<span class="pw">Place</span>' : '') + '</div>';
+        }
       }
       h += '</div>';
       h += '</div>';
@@ -3386,7 +3824,12 @@
     Array.prototype.forEach.call(page.querySelectorAll('[data-sheet]'), function (el) {
       el.onclick = function (e) { e.stopPropagation(); inspect(el.getAttribute('data-sheet')); };
     });
-    Array.prototype.forEach.call(page.querySelectorAll('.fcard[data-id]'), function (el) {
+    /* §SQUADS A PORTRAIT PICKS UP THE WAY A BENCH CARD DOES. The cross was the only way out
+       of a squad and there was no way to move somebody between squads without sending them
+       home first — the ease the rows had was lost with them. Clicking a portrait picks that
+       fighter up; the next open place in any other squad takes them; clicking them again puts
+       them down, and the bench takes them back. */
+    Array.prototype.forEach.call(page.querySelectorAll('.fcard[data-id],.port-card[data-id]'), function (el) {
       el.onclick = function () { selectForPlace(el.getAttribute('data-id')); };
     });
     Array.prototype.forEach.call(page.querySelectorAll('[data-lead]'), function (el) {
@@ -3398,6 +3841,13 @@
     Array.prototype.forEach.call(page.querySelectorAll('[data-place]'), function (el) {
       el.onclick = function (e) { e.stopPropagation(); if (G._sqsel) moveTo(G._sqsel, +el.getAttribute('data-place')); };
     });
+    /* and the bench is a place too: a fighter held from a squad, dropped on the bench, goes
+       home — without hunting for the cross on their own tile */
+    var benchBox = $('bench');
+    if (benchBox) benchBox.onclick = function (e) {
+      if (!G._sqsel || e.target.closest('.fcard')) return;
+      if (G.plan.at[G._sqsel] != null) moveTo(G._sqsel, null);
+    };
     Array.prototype.forEach.call(page.querySelectorAll('[data-rename]'), function (el) {
       el.onclick = function (e) { e.stopPropagation(); renameSquad(+el.getAttribute('data-rename'), el); };
     });
@@ -3540,6 +3990,9 @@
       '</div>';
 
     $('sheetclose').onclick = closeSheet;
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-editmark]'), function (el) {
+      el.onclick = function () { openMarkEditor(el.getAttribute('data-editmark')); };
+    });
     Array.prototype.forEach.call(panel.querySelectorAll('[data-slot]'), function (el) {
       el.onclick = function () {
         var sl = el.getAttribute('data-slot');
@@ -3565,7 +4018,14 @@
      both tabs */
   function sheetHead(b) {
     var sq = squadOf(b), lead = !!G.plan.leaderOf[b.id];
-    return '<div class="railhead"><span class="nm" style="color:' + raceColour(b) + '">' + (lead ? '<span class="lead">\u2605</span> ' : '') + esc(b.name) + '</span>' +
+    /* §MARK THE SHEET OPENS ON THE FIGHTER'S MARK, AND SAYS THE MARK CAN BE CHANGED. It was
+       a bare disc with the whole affordance in a `title` nobody hovers — which is the same
+       mistake the focus boost made, and it made the editor unfindable. The word is on the
+       page. The sheet is reached from the Roster and from Squads alike, so this is the one
+       place it needs to be. */
+    return '<div class="railhead"><span class="sheetmark" data-editmark="' + b.id + '" title="Change the Mark">' +
+      fighterMark(b, 44, colFor(G.me)) + '<span class="mkedit-cue">Change<br>the Mark</span></span>' +
+      '<span class="nm" style="color:' + raceColour(b) + '">' + (lead ? '<span class="lead">\u2605</span> ' : '') + esc(b.name) + '</span>' +
       '<span class="sub ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) + (lead ? ' \u00b7 Leads' : '') : 'At Home') + '</span></div>';
   }
 
@@ -3752,8 +4212,23 @@
         }
         /* species is the size and the fill; side is the ring, and the ring is the loud one */
         g.beginPath(); g.arc(cx, cy, s * rc.r, 0, Math.PI * 2);
-        if (u.st === 'ok' || u.st === 'light') { g.fillStyle = rc.fill; g.fill(); }
+        if (u.st === 'ok' || u.st === 'light') { g.fillStyle = TOK.bg; g.fill(); }
         g.lineWidth = 3; g.strokeStyle = col; g.stroke();
+        /* §MARK the fighter's own mark on the disc, so a fight is followed by WHO: the fill is
+           theirs, the ring the house's. A body down keeps its mark, faded; the dead keep the
+           cross over it. */
+        if (u.id) {
+          var fx = fighterOf(u), fillC = (fx.mark && fx.mark.color) || rc.fill;
+          var hexFill = /^#/.test(fillC) ? fillC : TOK.ink;
+          var im = markImage(fx, hexFill, col);
+          if (im) {
+            var mr = s * rc.r * 0.92;
+            g.save();
+            if (u.st !== 'ok' && u.st !== 'light') g.globalAlpha = 0.45;
+            g.drawImage(im, cx - mr, cy - mr, mr * 2, mr * 2);
+            g.restore();
+          }
+        }
         if (u.st === 'dead') {
           g.strokeStyle = TOK.blood2;
           g.beginPath();
@@ -4004,6 +4479,70 @@
     return body ? '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px +
       '" style="vertical-align:-2px">' + body + '</svg>' : '';
   }
+  /* ============================ PICKING A HOUSE ============================
+     §PICKER ONE GESTURE, EVERYWHERE. Every place a manager chose another house wore its own
+     shape — a row of long rectangles at the founding, a strip in the Talks, chips in the
+     Backroom — and none of them matched. A house is its MARK: the emblem large inside a
+     circle in the house's own colour, the name under it. The ring fills the empty middle of
+     the menus that use it, and the same component answers everywhere. */
+  /* §PICKER the fleet round a house, distance and size carrying what they think of you */
+  function constellation(ids, byId) {
+    var box = 300, mid = box / 2;
+    var h = '<div class="constel" style="width:' + box + 'px;height:' + box + 'px">' +
+      '<svg class="cwires" viewBox="0 0 ' + box + ' ' + box + '">';
+    var pts = ids.map(function (id, i) {
+      var v = Math.max(-100, Math.min(100, byId[id] || 0));
+      var near = (v + 100) / 200;                       /* 0 cold and far, 1 warm and close */
+      var R = 118 - near * 46;                          /* the warm stand closer */
+      var a = (i / ids.length) * Math.PI * 2 - Math.PI / 2;
+      return { id: id, v: v, x: mid + Math.cos(a) * R, y: mid + Math.sin(a) * R,
+               size: Math.round(34 + near * 20) };
+    });
+    pts.forEach(function (p) {
+      var warm = p.v >= 0;
+      h += '<line x1="' + mid + '" y1="' + mid + '" x2="' + p.x + '" y2="' + p.y + '" stroke="' +
+           (warm ? TOK.hit : TOK.red) + '" stroke-opacity="' + (0.14 + Math.abs(p.v) / 100 * 0.5).toFixed(2) +
+           '" stroke-width="' + (1 + Math.abs(p.v) / 100 * 2.5).toFixed(1) + '"/>';
+    });
+    h += '</svg><div class="chub">' + markFor(G.me, 22) + '<span>' + esc(shortHouse(G.me)) + '</span></div>';
+    pts.forEach(function (p) {
+      h += '<div class="cnode" style="left:' + p.x + 'px;top:' + p.y + 'px;--c:' + colFor(p.id) + '" ' +
+           'title="' + esc(nameOfCorp(p.id)) + ' \u00b7 ' + (p.v > 0 ? '+' : '') + p.v.toFixed(0) + '">' +
+           '<span class="hn-disc" style="width:' + p.size + 'px;height:' + p.size + 'px">' + markFor(p.id, Math.round(p.size * 0.6)) + '</span>' +
+           '<span class="hn-name">' + esc(shortHouse(p.id)) + '</span></div>';
+    });
+    return h + '</div>';
+  }
+  function housePicker(ids, chosen, attr, opts) {
+    opts = opts || {};
+    var n = ids.length;
+    if (opts.ring === false || n <= 2) {
+      return '<div class="hpick row">' + ids.map(function (id) { return houseNode(id, id === chosen, attr, opts); }).join('') + '</div>';
+    }
+    /* laid on a ring: the fleet around the manager, which is what it is */
+    var R = opts.radius || 108, size = opts.size || 56, box = (R + size / 2 + 20) * 2;
+    var h = '<div class="hpick ring" style="width:' + box + 'px;height:' + box + 'px">';
+    if (opts.hub) h += '<div class="hpick-hub">' + opts.hub + '</div>';
+    ids.forEach(function (id, i) {
+      var a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      var x = box / 2 + Math.cos(a) * R, y = box / 2 + Math.sin(a) * R;
+      h += houseNode(id, id === chosen, attr, Object.assign({}, opts, {
+        style: 'position:absolute;left:' + x + 'px;top:' + y + 'px;transform:translate(-50%,-50%)' }));
+    });
+    return h + '</div>';
+  }
+  function houseNode(id, on, attr, opts) {
+    opts = opts || {};
+    var col = colFor(id), size = opts.size || 56;
+    return '<button type="button" class="hnode' + (on ? ' on' : '') + '" ' + attr + '="' + id + '"' +
+      (opts.style ? ' style="' + opts.style + ';--c:' + col + '"' : ' style="--c:' + col + '"') +
+      ' title="' + esc(nameOfCorp(id)) + '">' +
+      '<span class="hn-disc" style="width:' + size + 'px;height:' + size + 'px">' + markFor(id, Math.round(size * 0.62)) + '</span>' +
+      '<span class="hn-name">' + esc(shortHouse(id)) + '</span>' +
+      (opts.sub ? '<span class="hn-sub">' + opts.sub(id) + '</span>' : '') + '</button>';
+  }
+  /* a house's name without its article, so seven of them fit under seven circles */
+  function shortHouse(id) { return String(nameOfCorp(id)).replace(/^The\s+/i, ''); }
   function mSpan(id) { return '<span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>'; }
   function oaIdOf(ci) { var L = (G && G.oa) || OA; return (L[ci % L.length] || {}).id; }
   function fCid(s) { return G.fight && G.fight.cids ? G.fight.cids[s] : null; }
@@ -5194,7 +5733,8 @@
     if (!c) return [];
     var out = [];
     aliveOf(c).forEach(function (f) {
-      out.push({ k: 'unit', id: f.id, label: f.name, race: f.race,
+      /* a fighter on the table is a person, and carries what they are drawn as */
+      out.push({ k: 'unit', id: f.id, label: f.name, race: f.race, mark: f.mark, corpId: c.id,
                  sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr((f.contract || {}).salary || 0) + '/mo \u00b7 ' +
                       ((f.contract || {}).seasons_remaining || 1) + ' Seasons' + (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
                  worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) });
@@ -5239,16 +5779,22 @@
     if (!G || !$('tradestrip')) return;
     var open = tradeOpen();
     $('tradehead').textContent = open ? 'Table Open \u00b7 Through Month ' + TRADE.CONST.LAST_TRADE_MONTH : 'Table Closed';
-    $('tradestrip').innerHTML = G.state.ids.filter(function (id) { return id !== G.me; })
-      .map(function (id) {
+    /* §PICKER THE TALKS PICK THE SAME WAY: the ring, and under each name what they think of
+       you, which is the whole question when choosing whom to write to. */
+    var tOthers = G.state.ids.filter(function (id) { return id !== G.me; });
+    $('tradestrip').innerHTML = housePicker(tOthers, TSEL, 'data-toa', {
+      size: 58, radius: 112,
+      hub: '<b>' + esc(shortHouse(G.me)) + '</b><span>Whom Do You Write To</span>',
+      sub: function (id) {
         var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
-        return '<div class="oachip2' + (TSEL === id ? ' on' : '') + '" data-toa="' + id +
-               '" style="border-left-color:' + colFor(id) + ';color:' + colFor(id) + '">' +
-               markFor(id, 14) + cSpan(id) + '<span class="m">' + (r > 0 ? '+' : '') + r + '</span></div>';
-      }).join('');
+        var sealed = (G.corps[id].profile || {}).no_negotiation;
+        return sealed ? '<span class="bad">Sealed</span>'
+                      : '<span class="' + (r > 8 ? 'good' : r < -8 ? 'bad' : 'm') + '">' + (r > 0 ? '+' : '') + r + '</span>';
+      }
+    });
 
     var W = $('negwrap');
-    if (!TSEL) { W.innerHTML = '<div class="box"><span class="m">Pick a House Above</span></div>'; renderTradeInbox(); return; }
+    if (!TSEL) { W.innerHTML = '<div class="box"><span class="m">Pick a House</span></div>'; renderTradeInbox(); return; }
     var me = tradeMe(), them = G.corps[TSEL];
     var view = TRADE.appetite(me, them, bundleOf('give'), bundleOf('get'), tradeOpts());
     var empty = !TBL.give.length && !TBL.get.length;
@@ -5283,7 +5829,7 @@
       rows.forEach(function (it, i) {
         var on = !!onTable(side, it.k, it.id);
         if (it.k === 'gear' && it.type !== lastType) { h += '<tr><th class="t"></th><th colspan="2">' + esc(it.type) + '</th></tr>'; lastType = it.type; }
-        var name = it.k === 'gear' ? tierHtml(it.id) + esc(it.label) : it.k === 'unit' ? '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>' : esc(it.label);
+        var name = it.k === 'gear' ? tierHtml(it.id) + esc(it.label) : it.k === 'unit' ? fighterMark(it, 18, colFor(it.corpId || G.me)) + '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>' : esc(it.label);
         var qty = it.k === 'gear' && !on ? ' <input class="qty" data-tqty="' + side + ':' + i + '" value="1" min="1" max="' + it.n + '" title="How Many of ' + it.n + '">' : '';
         h += '<tr class="pick' + (on ? ' on' : '') + '" data-tadd="' + side + '" data-i="' + i + '" data-tid="' + it.k + ':' + it.id + '"><td class="t" title="' + TKINDNAME[it.k] + '">' + TGLYPH[it.k] + '</td>' +
              '<td>' + name + qty + '<div class="sub">' + esc(it.sub) + (it.k === 'unit' ? ' \u00b7 Worth ' + crs(it.worth) + ' \u2212 Wage ' + crs(it.wage) : '') + '</div></td>' +
@@ -5302,7 +5848,7 @@
       items.forEach(function (it, i) {
         var v = it.k === 'gear' ? it.v * (it.n || 1) : it.v; tot += v;
         var name = it.k === 'gear' ? tierHtml(it.id) + esc(it.label) + (it.n > 1 ? ' \u00d7' + it.n : '')
-                 : it.k === 'unit' ? '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>'
+                 : it.k === 'unit' ? fighterMark(it, 18, colFor(it.corpId || G.me)) + '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>'
                  : esc(it.label);
         var sub = it.k === 'unit' ? it.sub : it.k === 'gear' ? (it.sub || '').split(' \u00b7 ')[0] : it.k === 'intel' ? it.sub : '';
         h += '<tr><td class="t">' + TGLYPH[it.k] + '</td><td>' + name + (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</td>' +
@@ -5529,15 +6075,14 @@
                     '<span class="t">' + esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span></div>'; }).join('') + '</div>' : '') +
            '</div>';
     });
-    h += '<div class="audhead">The Other OAs</div><div class="rivals">';
-    rivalIds.map(function (id) { return { id: id, v: read.rival[id] || 0 }; })
-      .sort(function (x, y) { return y.v - x.v; })
-      .forEach(function (r) {
-        h += '<div class="audrow"><div class="audname" style="color:' + colFor(r.id) + '">' +
-             markFor(r.id, 14) + ' ' + cSpan(r.id) +
-             '</div><div class="audbar">' + standBar(r.v, 'rival') + '</div></div>';
-      });
-    $('audiences').innerHTML = h + '</div>';
+    /* §PICKER THE FLEET AS A CONSTELLATION. Seven bars in a column said what each house thinks
+       of you and showed nothing: a fleet is a set of DISTANCES. Each house stands on a ring
+       round yours — the warmer they are the CLOSER and the LARGER they sit, the colder the
+       further out and the smaller — with a line drawn to you in green where they are warm and
+       red where they are cold, its weight the strength of the feeling. The same disc-and-name
+       the pickers use, so the fleet looks like itself everywhere. */
+    h += '<div class="audhead">The Other OAs</div>' + constellation(rivalIds, read.rival) + '</div>';
+    $('audiences').innerHTML = h;
 
     renderBoardQuestion();
   }
@@ -5553,7 +6098,7 @@
   function ordinal(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
   function demandWords(d) {
     switch (d.kind) {
-      case 'resource':  return 'Bring Home <b>' + (d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25)) + '</b> Units of <b>' + esc(RES_NAME[d.resource] || capWords(d.resource)) + '</b> <span class="m">(' + CAT_NAME[d.category] + ')</span>';
+      case 'resource':  return 'Bring Home <b>' + ((d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25)) * REP.CONST.UNIT_SCALE).toLocaleString('en-US') + '</b> Units of <b>' + esc(RES_NAME[d.resource] || capWords(d.resource)) + '</b> <span class="m">(' + CAT_NAME[d.category] + ')</span>';
       case 'placement': return d.at <= 1 ? 'Win the Divide' : 'Place <b>' + ordinal(d.at) + '</b> or Better';
       case 'win':       return 'Win the Divide Outright';
       case 'surplus':   return 'End the Year <b>' + crs(d.amount) + '</b> Up';
@@ -5571,9 +6116,11 @@
     var out = G._boardOutcome;
     switch (d.kind) {
       case 'resource': {
-        var got = out && out.banked ? Math.round((out.banked[d.category] || 0) * 10) / 10 : null;
-        var want = d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25);
-        return got != null ? { txt: got + ' of ' + want, good: got >= want, bad: got < want } : { txt: 'On the Ground', dim: true };
+        var SC2 = REP.CONST.UNIT_SCALE;
+        var got = out && out.banked ? Math.round((out.banked[d.category] || 0) * SC2) : null;
+        var want = (d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25)) * SC2;
+        return got != null ? { txt: got.toLocaleString('en-US') + ' of ' + want.toLocaleString('en-US'), good: got >= want, bad: got < want }
+                           : { txt: 'On the Ground', dim: true };
       }
       case 'placement': return out ? (out.placement ? { txt: 'Placed ' + ordinal(out.placement) } : null) : liveChance() || { txt: 'Decided at the Divide', dim: true };
       case 'win':       return out ? { txt: out.won ? 'Won' : 'Did Not Win' } : liveChance() || { txt: 'Decided at the Divide', dim: true };
@@ -5646,20 +6193,24 @@
      can add them. The year's drain is said in units too. */
   function renderHolds(me, rep) {
     var holds = rep.holds || {}, g = rep.goal || {};
-    var per = REP.CONST.UNITS_PER_STORE, drain = REP.CONST.HOLDS_DRAIN * per;
+    /* §6.1 THE HOLDS IN THE FLEET'S OWN SCALE. "The ship has 4 food" is a silly sentence: a
+       store is units of a thousand, so a full hold is nine thousand and the board asks three.
+       Every ratio is unchanged; only the words have a scale a fleet would use. */
+    var SC = REP.CONST.UNIT_SCALE;
+    var per = REP.CONST.UNITS_PER_STORE * SC, drain = REP.CONST.HOLDS_DRAIN * per;
     var asked = {}, banked = (G._boardOutcome && G._boardOutcome.banked) || {};
     (g.demands || []).forEach(function (d) { if (d.kind === 'resource') asked[d.category] = true; });
-    var h = '<div class="holdrow hh"><span class="hn">Store</span><span class="hbar"></span><span class="hv">Units of ' + per + '</span></div>' +
+    var h = '<div class="holdrow hh"><span class="hn">Store</span><span class="hbar"></span><span class="hv">Units of ' + per.toLocaleString('en-US') + '</span></div>' +
       REP.CATEGORIES.map(function (c) {
-        var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per * 10) / 10;
+        var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per);
         var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
-        var came = Math.round((banked[c] || 0) * 10) / 10;
+        var came = Math.round((banked[c] || 0) * SC);
         return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
-               (came ? '<div class="m">Came Home This Year: ' + came + '</div>' : '') + '</span>' +
+               (came ? '<div class="m">Came Home This Year: ' + came.toLocaleString('en-US') + '</div>' : '') + '</span>' +
                '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i></span>' +
-               '<span class="hv" style="color:' + col + '">' + units + '</span></div>';
+               '<span class="hv" style="color:' + col + '">' + units.toLocaleString('en-US') + '</span></div>';
       }).join('');
-    $('boardholds').innerHTML = h + '<div class="m" style="margin-top:6px">The Stores Fall ' + (Math.round(drain * 10) / 10) + ' a Year</div>';
+    $('boardholds').innerHTML = h + '<div class="m" style="margin-top:6px">The Stores Fall ' + Math.round(drain / REP.CONST.HOLDS_DRAIN_MONTHS).toLocaleString('en-US') + ' a Month</div>';
   }
   /* THE QUESTION. After a Divide the board asks one, and the manager answers in a register.
      Six registers, always all six; none is correct, each is right somewhere and wrong
@@ -5875,11 +6426,14 @@
     var m = G && G.state ? G.state.month : 0;
     if (!G || m < 12 || G.div) { host.innerHTML = ''; $('tablegrid').style.display = ''; return; }
     $('tablegrid').style.display = 'none';
-    /* THE DRAFT. Twenty-four slots round the ring, drafted lowest standing first, three
-       each, every pick posted. The AI's turns run; yours waits for a click on a free slot. */
+    /* THE DRAFT. Landings round the ring, drafted lowest standing first — ONE FOR EVERY SQUAD
+       A HOUSE FIELDS, so a house that spreads into six draws six — every pick posted. The AI's
+       turns run; yours waits for a click on a free slot. */
     var pl = G.state.planet, me = G.corps[G.me];
     var D = SEASON.draftAdvance(G.state);
-    var slots = CDPREDIVIDE.slots(pl, SEASON.SLOT_COUNT);
+    /* §DRAFT the ring is as wide as the fleet's appetite: a house drafts a landing for each
+       squad it fields, so the count is the draft's, not a constant */
+    var slots = CDPREDIVIDE.slots(pl, (D && D.slots) || SEASON.SLOT_MIN);
     var depth = ((me._intel || {}).planet || { rows: {} }).rows.sectors; depth = depth ? depth.depth : 0;
     var whose = SEASON.draftWhose(G.state), myTurn = whose === G.me;
     var heightWord = function (v) { return v >= 0.6 ? 'High Ground' : v >= 0.3 ? 'Rising Ground' : 'Low Ground'; };
@@ -5989,10 +6543,11 @@
     var any = REP.CATEGORIES.filter(function (c) { return got[c] || open[c] || asked[c]; });
     if (!any.length) return '<span class="m">Nothing Worked Yet</span>';
     return 'Worked ' + any.map(function (c) {
-      var g = Math.round((got[c] || 0) * 10) / 10, want = asked[c], o = open[c] || 0;
+      var SC3 = REP.CONST.UNIT_SCALE;
+      var g = Math.round((got[c] || 0) * SC3), want = asked[c] ? asked[c] * SC3 : 0, o = Math.round((open[c] || 0) * SC3);
       var cls = want ? (g >= want ? 'good' : 'warn') : '';
-      return '<b class="' + cls + '">' + CAT_NAME[c] + ' ' + g + (want ? '/' + want : '') + '</b>' +
-             (o ? '<span class="m"> +' + o + ' Open</span>' : '');
+      return '<b class="' + cls + '">' + CAT_NAME[c] + ' ' + g.toLocaleString('en-US') + (want ? '/' + want.toLocaleString('en-US') : '') + '</b>' +
+             (o ? '<span class="m"> +' + o.toLocaleString('en-US') + ' Open</span>' : '');
     }).join(' \u00b7 ');
   }
   function renderTable() {
@@ -6025,9 +6580,8 @@
         '<span>' + haulStrip(w) + '</span>' +
         (ans.deal ? '<span class="gold">A Word Rides With the Advance</span>' : '') + '</div>' +
       '<button id="advmain" class="primary">Next Comms Window</button>' +
-      '<button class="tiny quietbtn" id="quietopen2" style="margin-left:6px">The Quiet Business</button>';
+      '';
     $('advmain').onclick = function () { advanceDivide(); };
-    $('quietopen2').onclick = openQuiet;
 
     /* ---- your squads: where they are, how they are, and what you tell them ----
        An order is the planner's own vocabulary with the manager's name on it: Hold, Move,
@@ -6107,16 +6661,21 @@
     (w.table.pacts || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].pact = r; });
     var others = G.state.ids.filter(function (id) { return id !== G.me; });
     if (TSEL_DIV && others.indexOf(TSEL_DIV) < 0) TSEL_DIV = null;
-    $('tstrip').innerHTML = others.map(function (id) {
-      var t = byId[id] || {}, rel = '';
-      if (you.joinedTo === id) rel = 'Your Banner';
-      else if (G.corps[id].joinedTo === G.me) rel = 'Under You';
-      else if (t.pact && t.pact.live) rel = 'Pact';
-      var odds = (t.join && t.join.odds) || (t.take && t.take.odds) || 0;
-      return '<div class="oachip2' + (TSEL_DIV === id ? ' on' : '') + '" data-tsel="' + id + '" style="border-left-color:' + colFor(id) + '">' +
-             markFor(id, 14) + cSpan(id) + (rel ? '<span class="rel">' + rel + '</span>' : '') +
-             '<span class="odds">' + Math.round(odds * 100) + '% to Win</span></div>';
-    }).join('');
+    /* §PICKER THE DEAL PICKS A HOUSE THE WAY EVERY OTHER SURFACE DOES: the ring, the mark
+       large, the name under it — with what a manager needs to choose between them under the
+       name, which is their odds and where they stand with you. */
+    $('tstrip').innerHTML = housePicker(others, TSEL_DIV, 'data-tsel', {
+      size: 60, radius: 116,
+      hub: '<b>' + esc(shortHouse(G.me)) + '</b><span>' + Math.round(((byId[G.me] || {}).odds || you.odds || 0) * 100) + '% to Win</span>',
+      sub: function (id) {
+        var t = byId[id] || {}, rel = '';
+        if (you.joinedTo === id) rel = 'Your Banner';
+        else if (G.corps[id].joinedTo === G.me) rel = 'Under You';
+        else if (t.pact && t.pact.live) rel = 'Pact';
+        var odds = (t.join && t.join.odds) || (t.take && t.take.odds) || 0;
+        return (rel ? '<span class="gold">' + rel + '</span><br>' : '') + Math.round(odds * 100) + '%';
+      }
+    });
     Array.prototype.forEach.call($('tstrip').querySelectorAll('[data-tsel]'), function (c) {
       c.onclick = function () { TSEL_DIV = TSEL_DIV === c.getAttribute('data-tsel') ? null : c.getAttribute('data-tsel'); TKIND = null; renderTable(); };
     });
@@ -6476,6 +7035,17 @@
     return p;
   }
 
+  /* §FOUNDING THE ORDER THE FLEET GIVES WAY IN: the highest declared difficulty first, the
+     thinnest treasury breaking the tie. One manager displaces one house; three managers
+     displace the weakest three, which is what multiplayer will ask for. */
+  function weakestBerths(n) {
+    return OA.slice().sort(function (a, b) {
+      var d = (b.difficulty || 0) - (a.difficulty || 0);
+      if (d) return d;
+      var ta = ((a.finance || {}).treasury_band || [0])[0], tb = ((b.finance || {}).treasury_band || [0])[0];
+      return ta - tb;
+    }).slice(0, n || 1).map(function (p) { return p.id; });
+  }
   function gameOa(customDef, replaceId) {
     if (!customDef) return OA;
     return OA.map(function (p) { return p.id === replaceId ? customDef : p; });
@@ -6571,12 +7141,8 @@
     } catch (e) { $('mNote').textContent = 'Not a Save Code'; }
   };
   /* the seed is shown, not asked for: one click if somebody wants to reproduce a run */
-  $('seededit').onclick = function () {
-    $('seedline').style.display = 'none';
-    $('seed').style.display = '';
-    $('seed').focus(); $('seed').select();
-  };
-  $('seed').onchange = function () { $('seedval').textContent = $('seed').value || 'corp-1'; };
+
+  /* the seed still decides the world; it is simply not a question the founding screen asks */
 
   $('mNew').onclick = function () {
     $('menu').style.display = 'none';
@@ -6594,12 +7160,15 @@
     });
     $('oacards').innerHTML = h + '</div>';
     $('customform').style.display = '';
-    var cr = $('creplace'); cr.innerHTML = '';
-    OA.forEach(function (p) {
-      var o = document.createElement('option'); o.value = p.id;
-      o.textContent = 'In Place of ' + p.name;
-      cr.appendChild(o);
-    });
+    /* §FOUNDING WHOSE BERTH IS NOT A CHOICE. A manager was asked which of the eight to
+       displace, which is a question with no information behind it and no interesting answer:
+       the WEAKEST house canonically makes way — the one with the highest declared difficulty,
+       and the thinnest treasury behind that. With several managers the weakest several make
+       way, in the same order, which is the rule multiplayer will want. */
+    BERTH = weakestBerths(1)[0];
+    var paintBerth = function () {
+    };
+    paintBerth();
 
   };
   /* the founder's colour: swatches pre-vetted by the palette instrument, so any pick
@@ -6613,14 +7182,353 @@
       cpick = hex;
       Array.prototype.forEach.call(document.querySelectorAll('.oasw'), function (x) {
         x.className = 'oasw' + (x === b ? ' on' : ''); });
+      paintMarks($('cmarks'));                       /* the marks wear the chosen colour */
     };
     $('cswatches').appendChild(b);
   });
+  /* §FOUNDING A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN. A founded house wore the same
+     borrowed device as every other founded house. Twelve presets stand for a manager who does
+     not care, and behind them a builder: a FIELD, a DEVICE and a BAR, each of which can be
+     TURNED. Rotation is worth more than more shapes — a diamond turned is a square, a chevron
+     turned is an arrow — so the kit stays small and every piece stays legible at twelve pixels,
+     which is the whole constraint: the mark is drawn on a rail tab and a map marker. */
+  var MK_FIELDS = [
+    '',
+    '<circle cx="12" cy="12" r="8.8" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    '<rect x="3.8" y="3.8" width="16.4" height="16.4" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    '<path d="M12 3 L21 12 L12 21 L3 12 Z" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    '<path d="M12.00 3.10 L19.71 7.55 L19.71 16.45 L12.00 20.90 L4.29 16.45 L4.29 7.55 Z" fill="none" stroke="currentColor" stroke-width="1.8"/>',   /* 4 the hexagon — turn it for the other orientation */
+    '<path d="M4.4 6 h15.2 v8.4 a7.6 7.6 0 0 1 -7.6 6 a7.6 7.6 0 0 1 -7.6 -6 Z" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    '<path d="M12.00 2.80 L19.97 16.60 L4.03 16.60 Z" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    /* THE SECOND HEXAGON IS GONE: it was the first one lying on its side, and the pad turns
+       things. A piece that a quarter-turn already reaches is not a piece, it is a duplicate. */
+    /* §RACES the peoples' own fields — in the kit, so nothing a fighter is born with cannot be
+       made by hand */
+    '<path d="M4 8 q8 -7 16 0 v8 q-8 7 -16 0 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>',          /* 8 the Thythyn wing-case */
+    '<g transform="translate(0 -2.5)"><path d="M5 20 V9 q7 -8 14 0 v11 Z" fill="none" stroke="currentColor" stroke-width="2.4"/></g>',   /* the Olmac slab, sat on the pivot */
+    '<path d="M3.4 12 a8.6 8.6 0 0 1 8.6 -8.6 v17.2 a8.6 8.6 0 0 1 -8.6 -8.6 Z M20.6 12 a8.6 8.6 0 0 0 -8.6 -8.6 v17.2 a8.6 8.6 0 0 0 8.6 -8.6 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>',   /* 10 the Mon-Wa halves */
+    '<path d="M12.00 3.00 L20.56 9.22 L17.29 19.28 L6.71 19.28 L3.44 9.22 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>'   /* the Etu pentagon, regular and on the pivot */
+  ];
+  var MK_DEVICES = [
+    '<circle cx="12" cy="12" r="3.3" fill="currentColor"/>',
+    '<path d="M12 6.4 L15.2 12 L12 17.6 L8.8 12 Z" fill="currentColor"/>',
+    '<path d="M12.00 5.40 L17.72 15.30 L6.28 15.30 Z" fill="currentColor"/>',
+    /* THE STAR SPUN AROUND SOMETHING THAT WAS NOT ITS MIDDLE. It was drawn as a run of
+       relative moves from its top point, so its ink sat high in the box while every transform
+       turns about the box's centre — the whole thing swung on a hinge above itself. Plotted
+       from (12,12) outward, it turns about the point it looks like it turns about. */
+    '<path d="M12.00 4.70 L13.73 9.61 L18.94 9.74 L14.81 12.91 L16.29 17.91 L12.00 14.95 L7.71 17.91 L9.19 12.91 L5.06 9.74 L10.27 9.61 Z" fill="currentColor"/>',
+    '<rect x="9.5" y="9.5" width="5" height="5" fill="currentColor"/>',
+    '<g transform="translate(0 -1.3)"><path d="M6.8 16.4 L12 7 L17.2 16.4" fill="none" stroke="currentColor" stroke-width="2.5"/></g>',
+    '<path d="M8 8 L16 16 M16 8 L8 16" stroke="currentColor" stroke-width="2.6"/>',
+    '<path d="M12 6.2 a5.8 5.8 0 1 0 0 11.6" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+    '<path d="M12 5.4 L18 12 L12 18.6 L6 12 Z" fill="none" stroke="currentColor" stroke-width="2.2"/>',
+    '<g transform="translate(0 2.1)"><path d="M12 5.6 v12.8 M7.2 10 L12 5.6 L16.8 10" fill="none" stroke="currentColor" stroke-width="2.2"/></g>',
+    '<circle cx="9.2" cy="12" r="2.4" fill="currentColor"/><circle cx="14.8" cy="12" r="2.4" fill="currentColor"/>',
+    '<path d="M5.6 12 h12.8 M12 5.6 v12.8" stroke="currentColor" stroke-width="2.4"/>',
+    /* §RACES the peoples' own devices */
+    '<path d="M12 6 q-6 3 -6 10 q6 -3 6 -1 q0 -2 6 1 q0 -7 -6 -10 Z" fill="currentColor"/>',                        /* 12 Thythyn wings */
+    '<g transform="translate(0 -1.2)"><path d="M7 17 L12 6 L17 17 M9 13 h6" fill="none" stroke="currentColor" stroke-width="2.3"/></g>',   /* Kellis mantis-blade */
+    '<g transform="translate(0 -1.35)"><path d="M7 16 q1 -6 5 -8 q4 2 5 8 M8.6 15 l-1.4 3 M15.4 15 l1.4 3 M12 8 v-2" fill="none" stroke="currentColor" stroke-width="2"/></g>',   /* Attorak claw */
+    '<g transform="translate(0 -0.85)"><path d="M12 5.4 q-3.6 4 -2.2 7.6 q0.6 -2 2.2 -2.6 q1.6 0.6 2.2 2.6 q1.4 -3.6 -2.2 -7.6 Z M9 15.8 h6 v2.6 H9 Z" fill="currentColor"/></g>',   /* Etu flame */
+    '<circle cx="8.4" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="15.6" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M11.5 12 h1" stroke="currentColor" stroke-width="2.2"/>', /* 16 Gil goggles */
+    '<g transform="translate(0 -2.25)"><path d="M6 16.5 h12 M8 16.5 v-6 q4 -4 8 0 v6 M12 10.5 v6" fill="none" stroke="currentColor" stroke-width="2.1"/></g>',   /* Svalbard hoof-arch */
+    '<path d="M12 6.4 L15.2 12 L12 17.6 L8.8 12 Z M6 12 h2.6 M15.4 12 h2.6" fill="none" stroke="currentColor" stroke-width="2"/>', /* 18 Mon-Wa tether */
+    '<rect x="6.4" y="6.4" width="11.2" height="11.2" fill="none" stroke="currentColor" stroke-width="2.4"/>'   /* 19 Olmac block */
+  ];
+  var MK_BARS = [
+    '',
+    '<rect x="4.6" y="11.1" width="14.8" height="1.8" fill="currentColor"/>',
+    '<rect x="4.6" y="6.6" width="14.8" height="1.5" fill="currentColor"/><rect x="4.6" y="15.9" width="14.8" height="1.5" fill="currentColor"/>',
+    '<path d="M5.2 18.8 L18.8 5.2" stroke="currentColor" stroke-width="1.8"/>',
+    '<path d="M12 3.4 v17.2" stroke="currentColor" stroke-width="1.8"/>',
+    '<path d="M3.6 15.6 q8.4 -6 16.8 0" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+    /* §RACES two more bars the peoples use */
+    '<path d="M4 6 L20 18 M4 18 L20 6" stroke="currentColor" stroke-width="1.5"/>',                              /* 6 the saltire */
+    '<path d="M4 17 h16 M4 20 h16" stroke="currentColor" stroke-width="1.5"/>'                                    /* 7 the ground-line */
+  ];
+  /* ALL THE WAY ROUND. Four quarters was a half-measure: turning stopped at 135° because the
+     upper half of the dial was assumed to be a repeat, and it is not — a chevron at 225° is not
+     a chevron at 45°, and an asymmetric field has eight faces, not four. The full eight costs
+     nothing and takes the kit from thirty-six thousand marks to nearly three hundred thousand. */
+  var MK_TURNS = [0, 45, 90, 135, 180, 225, 270, 315];
+  /* §MARK EVERY PIECE CAN BE MOVED, GROWN AND STRETCHED, not only turned. One pad works the
+     piece a manager last touched, the way a Mii is built: pick the part, then adjust it. There
+     are no bounds worth imposing — if it looks bad, a manager made it look bad — so the only
+     limits are the ones that keep a mark inside its own box at twelve pixels. */
+  var MK_STEP = { scale: 0.12, move: 0.9, stretch: 0.12 };
+  var MK_LIMIT = { scale: [0.35, 2.4], move: [-7, 7], stretch: [0.4, 2.2] };
+  /* each slot carries its own shape, turn, size, offset and stretch */
+  function mkPiece(i) { return { i: i, r: 0, s: 1, x: 0, y: 0, sx: 1, sy: 1 }; }
+  var mk = { f: mkPiece(1), d: mkPiece(3), b: mkPiece(0), slot: 'd' };
+  /* a piece is turned, scaled, stretched and shifted about the box's own centre, in that
+     order, so a turn stays a turn however the piece has been stretched */
+  function placed(body, p) {
+    if (!body) return '';
+    var t = 'translate(' + (12 + p.x) + ' ' + (12 + p.y) + ')' +
+            ' rotate(' + MK_TURNS[p.r] + ')' +
+            ' scale(' + (p.s * p.sx).toFixed(3) + ' ' + (p.s * p.sy).toFixed(3) + ')' +
+            ' translate(-12 -12)';
+    return '<g transform="' + t + '">' + body + '</g>';
+  }
+  function markBody() {
+    return placed(MK_FIELDS[mk.f.i], mk.f) + placed(MK_BARS[mk.b.i], mk.b) + placed(MK_DEVICES[mk.d.i], mk.d);
+  }
+  /* the pad's own arithmetic: a step, and the bounds that keep a mark in its box */
+  function mkAdjust(what, dir) {
+    var p = mk[mk.slot], L = MK_LIMIT;
+    if (what === 'turn') p.r = (p.r + (dir > 0 ? 1 : MK_TURNS.length - 1)) % MK_TURNS.length;
+    if (what === 'size') p.s = Math.max(L.scale[0], Math.min(L.scale[1], p.s + dir * MK_STEP.scale));
+    if (what === 'x') p.x = Math.max(L.move[0], Math.min(L.move[1], p.x + dir * MK_STEP.move));
+    if (what === 'y') p.y = Math.max(L.move[0], Math.min(L.move[1], p.y + dir * MK_STEP.move));
+    if (what === 'wide') p.sx = Math.max(L.stretch[0], Math.min(L.stretch[1], p.sx + dir * MK_STEP.stretch));
+    if (what === 'tall') p.sy = Math.max(L.stretch[0], Math.min(L.stretch[1], p.sy + dir * MK_STEP.stretch));
+    if (what === 'reset') { p.r = 0; p.s = 1; p.x = 0; p.y = 0; p.sx = 1; p.sy = 1; }
+    paintMarks();
+  }
+  /* the twelve presets: a manager who does not want to build one picks one */
+  var MK_PRESETS = [[1,0,0],[2,3,0],[3,1,0],[4,4,0],[1,3,1],[5,0,0],
+                    [6,2,0],[2,6,0],[1,7,0],[3,10,0],[7,5,0],[4,11,1]]
+                   .map(function (p) { return [Math.min(p[0], 10), p[1], p[2]]; });
+
+  /* ======================= A FIGHTER'S MARK =======================
+     §MARK EVERY FIGHTER IS THEIR OWN MARK. Portrait art for hundreds of people across a
+     career is not a thing this project will ever have; a mark from the same kit the founding
+     builder uses is better than a face for what the game needs — distinct at twelve pixels,
+     stable across saves, and drawn on the grid so a fight can be followed by WHO rather than
+     by coloured dots. A fighter is born with one, drawn from their id so it needs no storage
+     and never changes under them; their people lean the draw — a Thythyn toward wings and
+     the wing-case, an Olmac toward the slab and the block, a Mon-Wa toward the halves — and
+     every piece the draw can reach is in the kit, so nothing born cannot be made by hand.
+     The fill is the fighter's race colour by default and may be changed; the RING is always
+     the house's, which is how the grid says whose they are. */
+  /* the field indices moved down one when the duplicate hexagon came out; the peoples' own
+     pieces are 7 the wing-case, 8 the slab, 9 the halves, 10 the pentagon */
+  var RACE_LEAN = {
+    thythyn:  { f: [7, 1],      d: [12, 5, 9],  b: [0, 3] },
+    olmac:    { f: [8, 2],      d: [19, 4, 0],  b: [0, 1, 7] },
+    mon_wa:   { f: [9, 1],      d: [18, 10, 1], b: [0, 4] },
+    kellis:   { f: [3, 4],      d: [13, 5, 8],  b: [0, 4, 3] },
+    attorak:  { f: [6, 5],      d: [14, 2, 6],  b: [0, 6] },
+    etu:      { f: [10, 5],     d: [15, 3],     b: [0, 4] },
+    gil:      { f: [1, 4],      d: [16, 7, 11], b: [0, 1] },
+    svalbard: { f: [4, 2],      d: [17, 9, 1],  b: [0, 7, 1] },
+    human:    { f: [1, 2, 3, 4], d: [0, 1, 2, 4, 5, 6, 8], b: [0, 1, 2, 4] }
+  };
+  function markSeed(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function markRng(seed) { var t = seed; return function () { t += 0x6D2B79F5; var r = Math.imul(t ^ (t >>> 15), 1 | t); r ^= r + Math.imul(r ^ (r >>> 7), 61 | r); return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+  /* §MARK WHAT A BORN MARK IS ALLOWED TO DO. The first draw turned and scaled every piece
+     freely, and free is not the same as varied: most of what came out was a jumble, because a
+     field turned 45° stops being a field and a device at half size stops being the subject.
+     A MANAGER may do all of that — if he makes a mess, he made it — but a mark a fighter is
+     BORN with has to read at twelve pixels without anybody looking at it first. So the bands
+     are narrow and each piece is bound by what that piece is FOR: a field stands square and
+     only ever turns a quarter, a device may turn to any eighth because a device is the subject
+     and a turned subject is still a subject, a bar turns to a quarter or a diagonal. Nothing
+     moves off centre and nothing stretches; those are a manager's tools, not the draw's. */
+  var BORN = {
+    fieldTurnP: 0.16, fieldTurns: [0, 2, 4, 6],          /* the quarters only */
+    devTurnP: 0.45,   devTurns: [0, 1, 2, 3, 4, 5, 6, 7],
+    barTurnP: 0.40,   barTurns: [0, 2, 3, 4, 6, 7],
+    fieldSize: [0.98, 1.04], devSize: [0.9, 1.1], barSize: [0.95, 1.05]
+  };
+  function bornMark(f) {
+    var rng = markRng(markSeed(String(f.id || f.name || 'x')));
+    var lean = RACE_LEAN[f.race] || RACE_LEAN.human;
+    var pick = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+    var piece = function (i, turnP, turns, size) {
+      var p = mkPiece(i);
+      if (rng() < turnP) p.r = pick(turns);
+      p.s = size[0] + rng() * (size[1] - size[0]);
+      return p;
+    };
+    /* the people's own pieces come up more often than not, so a squad of Thythyn reads as one */
+    var fld = rng() < 0.65 ? lean.f[0] : pick(lean.f);
+    var dev = rng() < 0.6 ? lean.d[0] : pick(lean.d);
+    return {
+      f: piece(fld, BORN.fieldTurnP, BORN.fieldTurns, BORN.fieldSize),
+      d: piece(dev, BORN.devTurnP, BORN.devTurns, BORN.devSize),
+      b: piece(pick(lean.b), BORN.barTurnP, BORN.barTurns, BORN.barSize)
+    };
+  }
+  function fighterMarkParts(f) { return f.mark && f.mark.f ? f.mark : bornMark(f); }
+  function fighterMarkBody(f) {
+    var m = fighterMarkParts(f);
+    return placed(MK_FIELDS[m.f.i], m.f) + placed(MK_BARS[m.b.i], m.b) + placed(MK_DEVICES[m.d.i], m.d);
+  }
+  /* §MARK ON THE GRID. The field is a canvas, so a mark is rasterised once per fighter and
+     colour, from the same SVG the page shows everywhere else, and drawn over the disc. The
+     first frame a mark is needed on may paint before it has loaded; the load repaints. */
+  var MARK_IMG = {};
+  function fighterOf(u) {
+    if (G && G.corps) for (var id in G.corps) {
+      var hit = G.corps[id].roster.filter(function (f) { return f.id === u.id; })[0];
+      if (hit) return hit;
+    }
+    return { id: u.id, race: u.race || 'human' };
+  }
+  function markImage(f, fill, ring) {
+    var key = f.id + '|' + fill + '|' + ring + '|' + JSON.stringify(fighterMarkParts(f));
+    var im = MARK_IMG[key];
+    if (im) return im.complete ? im : null;
+    im = new Image();
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" style="color:' + fill + '">' +
+      '<g transform="translate(12 12) scale(.78) translate(-12 -12)">' + fighterMarkBody(f) + '</g></svg>';
+    im.onload = function () { if (typeof draw === 'function') draw(); };
+    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    MARK_IMG[key] = im;
+    return null;
+  }
+  /* §MARK A MANAGER MAY CHANGE ANY OF HIS OWN PEOPLE'S MARKS through the same pad the house's
+     mark was built with. What is saved is only what was changed; a fighter never touched
+     carries no mark at all and draws the one they were born with. */
+  var MARK_EDIT = null;
+  function openMarkEditor(id) {
+    var f = bodyById(id); if (!f) return;
+    var born = fighterMarkParts(f);
+    mk.f = JSON.parse(JSON.stringify(born.f)); mk.d = JSON.parse(JSON.stringify(born.d)); mk.b = JSON.parse(JSON.stringify(born.b));
+    mk.slot = 'd';
+    MARK_EDIT = { id: id, color: (f.mark && f.mark.color) || null };
+    renderMarkEditor();
+  }
+  function renderMarkEditor() {
+    var host = $('markedit'); if (!host) return;
+    if (!MARK_EDIT) { host.style.display = 'none'; host.innerHTML = ''; return; }
+    var f = bodyById(MARK_EDIT.id); if (!f) { MARK_EDIT = null; host.style.display = 'none'; return; }
+    var raceHex = (RACE[f.race] || {}).fill || '#c4d4e8';
+    var fillHex = MARK_EDIT.color || raceHex;
+    host.style.display = '';
+    host.innerHTML = '<div class="railbox mkedit"><span class="close" data-mkclose="1">\u2715</span>' +
+      '<div class="railhead">' + fighterMark(f, 34, colFor(G.me)) +
+        '<span class="nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
+        '<span class="sub">The Mark</span></div>' +
+      '<div class="mkcolors"><span class="mklab">Fill</span>' +
+        [raceHex].concat(FOUNDER_SW).map(function (hex, i) {
+          return '<span class="oasw' + (hex === fillHex ? ' on' : '') + '" data-mkcol="' + hex + '" style="background:' + hex + '" ' +
+            'title="' + (i === 0 ? 'Their People\u2019s Colour' : '') + '"></span>'; }).join('') + '</div>' +
+      '<div class="markrow mkpadhost"></div>' +
+      '<div class="bar" style="justify-content:flex-end;gap:6px;margin-top:8px">' +
+        '<button class="tiny" data-mkborn="1">As Born</button>' +
+        '<button class="tiny" data-mkroll="1">Re-Roll</button>' +
+        '<button class="primary" data-mksave="1">Keep It</button></div></div>';
+    cpick = fillHex;
+    paintMarks(host.querySelector('.mkpadhost'));
+    host.querySelector('[data-mkclose]').onclick = function () { MARK_EDIT = null; renderMarkEditor(); };
+    Array.prototype.forEach.call(host.querySelectorAll('[data-mkcol]'), function (sw) {
+      sw.onclick = function () { MARK_EDIT.color = sw.getAttribute('data-mkcol') === raceHex ? null : sw.getAttribute('data-mkcol'); renderMarkEditor(); };
+    });
+    host.querySelector('[data-mkborn]').onclick = function () {
+      delete f.mark; MARK_EDIT.color = null; openMarkEditor(f.id); renderPanel(); renderSquads();
+    };
+    host.querySelector('[data-mkroll]').onclick = function () {
+      var b2 = bornMark({ id: f.id + ':' + Math.floor(Math.random() * 1e9), race: f.race });
+      mk.f = b2.f; mk.d = b2.d; mk.b = b2.b; paintMarks();
+    };
+    host.querySelector('[data-mksave]').onclick = function () {
+      f.mark = { f: JSON.parse(JSON.stringify(mk.f)), d: JSON.parse(JSON.stringify(mk.d)), b: JSON.parse(JSON.stringify(mk.b)),
+                 color: MARK_EDIT.color || null };
+      MARK_EDIT = null; renderMarkEditor(); renderPanel(); renderSquads();
+      if (typeof renderRoster === 'function') renderRoster();
+    };
+  }
+  /** the mark as drawn: fill in the fighter's colour (race by default), ring in the house's */
+  function fighterMark(f, size, ringCol) {
+    var fill = (f.mark && f.mark.color) || raceColour(f);
+    var ring = ringCol || (G && G.corps && f.corpId && G.corps[f.corpId] ? colFor(f.corpId) : (G ? colFor(G.me) : 'var(--line2)'));
+    size = size || 24;
+    return '<svg class="fmark" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" style="color:' + fill + '">' +
+      '<circle cx="12" cy="12" r="11.2" fill="var(--bg)" stroke="' + ring + '" stroke-width="1.4"/>' +
+      '<g transform="translate(12 12) scale(.72) translate(-12 -12)">' + fighterMarkBody(f) + '</g></svg>';
+  }
+  /* the pad paints into whichever host asked for it — the founding screen or a fighter's
+     editor — and remembers, so its own buttons repaint the right one */
+  var MK_HOST = null;
+  function paintMarks(host) {
+    if (host) MK_HOST = host;
+    host = MK_HOST || $('cmarks'); if (!host) return;
+    var SLOTS = [['f', 'Field', MK_FIELDS], ['d', 'Device', MK_DEVICES], ['b', 'Bar', MK_BARS]];
+    var row = function (key, label, arr) {
+      return '<div class="mkrow' + (mk.slot === key ? ' active' : '') + '" data-slot="' + key + '">' +
+        '<span class="mklab">' + label + '</span>' +
+        '<span class="mkopts">' + arr.map(function (piece, i) {
+          return '<button type="button" class="mkopt' + (mk[key].i === i ? ' on' : '') + '" data-mk="' + key + '" data-i="' + i + '" ' +
+            'style="--c:' + cpick + '"><svg width="24" height="24" viewBox="0 0 24 24">' +
+            (piece || '<circle cx="12" cy="12" r="1.3" fill="currentColor" opacity=".35"/>') + '</svg></button>'; }).join('') +
+        '</span></div>';
+    };
+    /* §MARK THE PAD. One set of controls, working whichever piece was last touched — a symbol
+       apiece and the reading beside it, rather than a figure crammed into the button. */
+    var p = mk[mk.slot];
+    var pad =
+      '<div class="mkpad"><div class="mkpadhead">Adjusting <b>' +
+        ({ f: 'the Field', d: 'the Device', b: 'the Bar' })[mk.slot] + '</b>' +
+        '<button type="button" class="mkreset" data-adj="reset" data-d="0">Reset</button></div>' +
+      '<div class="mkpadgrid">' +
+        '<div class="mkgrp"><span class="gl">Turn</span>' +
+          '<button type="button" class="padb" data-adj="turn" data-d="-1" title="Turn Back">\u21ba</button>' +
+          '<button type="button" class="padb" data-adj="turn" data-d="1" title="Turn On">\u21bb</button>' +
+          '<span class="gv">' + MK_TURNS[p.r] + '\u00b0</span></div>' +
+        '<div class="mkgrp"><span class="gl">Size</span>' +
+          '<button type="button" class="padb" data-adj="size" data-d="-1" title="Smaller">\u2212</button>' +
+          '<button type="button" class="padb" data-adj="size" data-d="1" title="Bigger">+</button>' +
+          '<span class="gv">' + Math.round(p.s * 100) + '%</span></div>' +
+        '<div class="mkgrp wide"><span class="gl">Move</span>' +
+          '<span class="dpad">' +
+            '<button type="button" class="padb u" data-adj="y" data-d="-1" title="Up">\u25b2</button>' +
+            '<button type="button" class="padb l" data-adj="x" data-d="-1" title="Left">\u25c0</button>' +
+            '<button type="button" class="padb r" data-adj="x" data-d="1" title="Right">\u25b6</button>' +
+            '<button type="button" class="padb d" data-adj="y" data-d="1" title="Down">\u25bc</button>' +
+          '</span><span class="gv">' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + '</span></div>' +
+        '<div class="mkgrp"><span class="gl">Wide</span>' +
+          '<button type="button" class="padb" data-adj="wide" data-d="-1" title="Narrower">\u25c0\u25b6</button>' +
+          '<button type="button" class="padb" data-adj="wide" data-d="1" title="Wider">\u25c1\u25b7</button>' +
+          '<span class="gv">' + Math.round(p.sx * 100) + '%</span></div>' +
+        '<div class="mkgrp"><span class="gl">Tall</span>' +
+          '<button type="button" class="padb" data-adj="tall" data-d="-1" title="Shorter">\u25b2\u25bc</button>' +
+          '<button type="button" class="padb" data-adj="tall" data-d="1" title="Taller">\u25b3\u25bd</button>' +
+          '<span class="gv">' + Math.round(p.sy * 100) + '%</span></div>' +
+      '</div></div>';
+    host.innerHTML =
+      '<div class="mkstage"><svg class="mkbig" viewBox="0 0 24 24" style="color:' + cpick + '">' + markBody() + '</svg>' +
+        '<div class="mksizes" style="color:' + cpick + '">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24">' + markBody() + '</svg>' +
+          '<svg width="16" height="16" viewBox="0 0 24 24">' + markBody() + '</svg>' +
+          '<svg width="12" height="12" viewBox="0 0 24 24">' + markBody() + '</svg></div>' +
+        '<span class="m">On a Tab, a Chip, the Ground</span></div>' +
+      '<div class="mkkit">' + SLOTS.map(function (sl) { return row(sl[0], sl[1], sl[2]); }).join('') + pad +
+        '<div class="mkrow"><span class="mklab">Ready-Made</span><span class="mkopts">' +
+          MK_PRESETS.map(function (p2, i) {
+            var body = MK_FIELDS[p2[0]] + MK_BARS[p2[2]] + MK_DEVICES[p2[1]];
+            return '<button type="button" class="mkopt" data-preset="' + i + '" style="--c:' + cpick + '">' +
+              '<svg width="24" height="24" viewBox="0 0 24 24">' + body + '</svg></button>'; }).join('') +
+        '</span></div></div>';
+    Array.prototype.forEach.call(host.querySelectorAll('[data-mk]'), function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-mk');
+        mk[k].i = +b.getAttribute('data-i'); mk.slot = k; paintMarks();
+      };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-slot]'), function (r) {
+      r.onclick = function (e) { if (e.target.closest('[data-mk]')) return; mk.slot = r.getAttribute('data-slot'); paintMarks(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-adj]'), function (b) {
+      b.onclick = function () { mkAdjust(b.getAttribute('data-adj'), +b.getAttribute('data-d')); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-preset]'), function (b) {
+      b.onclick = function () {
+        var p2 = MK_PRESETS[+b.getAttribute('data-preset')];
+        mk.f = mkPiece(p2[0]); mk.d = mkPiece(p2[1]); mk.b = mkPiece(p2[2]);
+        paintMarks();
+      };
+    });
+  }
+  paintMarks($('cmarks'));
   $('cfound').onclick = function () {
     var nm = $('cname').value.trim() || 'The Unnamed House';
-    var rep = $('creplace').value;
+    var rep = BERTH || weakestBerths(1)[0];
     var prof = blankSlate(nm);
     prof.displayColor = cpick;
+    OA_MARKS.__founder = markBody();                /* the mark a founded house wears */
     $('setup').style.display = 'none';
     startGame($('seed').value, 'custom_house', gameOa(prof, rep),
               { profile: prof, replaced: rep });

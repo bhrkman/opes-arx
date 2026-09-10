@@ -53,6 +53,14 @@
     AURA_TILES: 4,                   // [C] §QUIRKS how near a steadying presence must stand
     AURA_COMP: 2,                    // [C] and what it is worth a turn, capped by the band below
     AURA_CAP: 62,                    // [C] the composure past which nobody needs steadying
+    /* §RACES THE DANCE. A Kellis treats the moment of battle as a dance — mantis-featured,
+       precise, drilled in duelling arts that are never fielded but are exactly what the drill
+       was for. They fight in MEASURE: a Kellis who holds their ground rather than crossing it
+       reads the exchange and answers it, and each turn spent in place is worth more than the
+       last. They were the one race the racial pass forgot. */
+    /* what a turn of measure is WORTH lives in combat.js, where the shot is priced; declaring
+       it in both places is how two numbers drift apart. Here we only count the turns. */
+    KELLIS_MEASURE_CAP: 4,           // [C] how many turns of measure they can hold
     OLMAC_SOAK: 0.80,                // [C] §RACES what a round is worth against granite flesh
     ATTORAK_FRENZY_TURNS: 2,         // [C] §RACES how long the blood is in a gnoll's eyes
     ETU_WITNESS_COMP: 4,             // [C] §RACES what the first death a believer sees is worth,
@@ -202,15 +210,21 @@
        There are three states a body can be in, not two, and the middle one is the interesting
        one. Seen — somebody has eyes on you. Heard — you fired and gave your position away
        roughly, so people can shoot back at you badly. Neither — you are not a target at all. */
-    SIGHT_TILES: 14,                 // [C] NOT a fitted number: it is `BAND_TILE[0]`, the
-                                     //     distance at which this grid already says range has
-                                     //     become "long". Past the point where a rifle is
-                                     //     working at its limit, a body is a shape in the
-                                     //     rocks. The reference point already existed.
-    SIGHT_FIELDCRAFT: 0.30,          // [C] tiles per point of fieldcraft over 10. Fieldcraft
-                                     //     is already the choosing-ground stat the contest
-                                     //     reads for readiness; seeing first is the same skill.
-    SIGHT_MIN: 4,                    // [S] nobody is blind
+    /* §APPROACH the opening gaps, as shares of the long band's own edge */
+    OPEN_LONG: 1.85,                 // [C] a long opening is well beyond sight: an approach
+    OPEN_MEDIUM: 1.05,               // [C] a medium one is at the edge of it
+    BOARD_MARGIN: 10,                // [C] ground either side of the gap to manoeuvre in
+    BOARD_TALLER: 4,                 // [C] a longer board is a little deeper too
+    /* what a fieldcraft score is worth as eyes, against the spread rosters actually deal */
+    /* EYE_ rather than SIGHT_NEAR/FAR: those names already mean something else in divide.js
+       (how much of the picture a captain weighs), and the suite catches a constant declared
+       twice with two values before the two can drift into each other. */
+    SIGHT_STAT_LOW: 40, SIGHT_STAT_HIGH: 150,   // [C] the useful span of the stat
+    EYE_NEAR: 7, EYE_FAR: 15,                   // [C] tiles: a poor scout, and a superb one
+    /* SIGHT_TILES and SIGHT_MIN were the old rule's dials — a base plus a per-point slope —
+       and the slope is what broke it. EYE_NEAR and EYE_FAR replace both; these are removed
+       rather than left for somebody to read as though they still set how far anybody sees. */
+
     /* How long a muzzle flash gives you away for. You fired, so they know roughly where you
        are — for now. This is what `silent` exempts you from, which is the quirk's original
        written job and the thing it has been waiting on. */
@@ -239,15 +253,21 @@
    * dense and hard while an open basin has almost nothing worth standing behind. Scarcity
    * is the point — cover you have to reach is cover worth taking a risk for.
    */
-  function makeMap(rng, terrain) {
+  /* §APPROACH THE GROUND IS AS WIDE AS THE APPROACH NEEDS. Every fight was fought on one
+     26-tile board, and the widest opening put two squads seventeen tiles apart against a
+     fourteen-tile sight — so somebody was always already inside sight, the first spotting pass
+     saw them, and every fight in the game opened with a shot on turn one. The fog was built and
+     switched on and had nothing to do. A long opening is fought on a longer board. */
+  function makeMap(rng, terrain, w, h) {
+    const W = w || CONST.W, H = h || CONST.H;
     const dist = C.CONST.COVER_PROFILES[terrain] || C.CONST.COVER_PROFILES.broken_ground;
     const tiles = [];
-    for (let y = 0; y < CONST.H; y++) tiles.push(new Array(CONST.W).fill(0));
+    for (let y = 0; y < H; y++) tiles.push(new Array(W).fill(0));
 
     /* how much of this ground is worth hiding behind at all, and how good it is */
     const density = 1 - dist[0];                        /* open share inverted */
     const want = CONST.COVER_TARGET[0] + CONST.COVER_TARGET[1] * density * density;
-    const pieces = Math.max(4, Math.round(want * CONST.W * CONST.H / 2.5));
+    const pieces = Math.max(4, Math.round(want * W * H / 2.5));
     const gradeOf = () => {
       const r = rng() * (dist[1] + dist[2] + dist[3]);
       return r < dist[1] ? 1 : r < dist[1] + dist[2] ? 2 : 3;
@@ -265,21 +285,21 @@
       }
       return true;
     };
-    const tiles2 = { w: CONST.W, h: CONST.H, tiles };
+    const tiles2 = { w: W, h: H, tiles };
     for (let i = 0; i < pieces; i++) {
-      const ax = P.int(rng, 3, CONST.W - 4), ay = P.int(rng, 1, CONST.H - 2);
+      const ax = P.int(rng, 3, W - 4), ay = P.int(rng, 1, H - 2);
       const n = P.int(rng, CONST.CLUSTER_SIZE[0], CONST.CLUSTER_SIZE[1]);
       const grade = gradeOf();
       for (let k = 0; k < n; k++) {
         const x = ax + P.int(rng, -CONST.CLUSTER_SPREAD, CONST.CLUSTER_SPREAD);
         const y = ay + P.int(rng, -CONST.CLUSTER_SPREAD, CONST.CLUSTER_SPREAD);
-        if (x < 2 || y < 0 || x >= CONST.W - 2 || y >= CONST.H) continue;
+        if (x < 2 || y < 0 || x >= W - 2 || y >= H) continue;
         if (tiles[y][x]) continue;
         if (!runOK(x, y)) continue;
         tiles[y][x] = grade;
       }
     }
-    return { w: CONST.W, h: CONST.H, tiles, terrain };
+    return { w: W, h: H, tiles, terrain };
   }
 
   /** An object occupies its tile. Nobody stands in a wall. */
@@ -474,9 +494,18 @@
 
   /** Can this body do anything to anyone, at any range? Declared here with the other small
       predicates: `shotAt` reads it and threw on the opening shot when it lived further down. */
+  /* §SPENT A GUN WITH NOTHING LEFT IN IT IS NOT A GUN. `canHurt` asked only whether the weapon
+     had power — a property of the model, not of the moment — so a fighter whose cell was flat
+     still counted as armed. Five of eight hands in a fleet squad carry energy weapons with
+     twelve to eighteen shots in them and no sidearm; when those ran out the fighters kept
+     standing at two tiles, unable to fire, unwilling to leave, while the clock ran down. THIS
+     WAS THE STALEMATE, not a failure to search: one measured fight spent 160 of its 188 shot
+     attempts on weapons with nothing to fire. A body that cannot shoot now wants distance, the
+     same as a body carrying nothing, and the withdrawal check counts it for what it is. */
   function canHurt(c) {
     const w = c.weapon;
-    return !!(w && (w.power || 0) > 0);
+    if (!w || (w.power || 0) <= 0) return false;
+    return C.primaryReady ? (C.primaryReady(c) || !!(c.sidearm && !c.onSidearm)) : true;
   }
 
   function bandOf(d) {
@@ -487,10 +516,23 @@
   /* what anybody actually knows                                       */
   /* ---------------------------------------------------------------- */
 
-  /** How far this fighter can pick a body out of the ground. */
+  /** How far this fighter can pick a body out of the ground.
+   *
+   * §APPROACH THIS WAS WHY THE FOG NEVER BIT. The rule added `SIGHT_FIELDCRAFT` (0.30) tiles
+   * for every point of fieldcraft OVER TEN — written when a stat was imagined to run to twenty
+   * or so. Fieldcraft actually runs to about 195, with a median of 91: median sight came to
+   * THIRTY-EIGHT TILES on a board twenty-six wide, so every fighter could see the whole ground
+   * and the whole spotting model, correct in itself, had nothing left to decide. Every fight in
+   * the game opened with a shot on turn one and no ambush ever fired, because there was never
+   * anybody unseen to ambush.
+   *
+   * Sight is read against the spread the rosters actually deal, between a floor and a ceiling
+   * that mean something on this board: a poor scout picks a body out at SIGHT_NEAR, a superb
+   * one at SIGHT_FAR, and neither of them sees the far corner. */
   function sightRange(u) {
     const fc = (u.stats && u.stats.fieldcraft) || 10;
-    return Math.max(CONST.SIGHT_MIN, CONST.SIGHT_TILES + (fc - 10) * CONST.SIGHT_FIELDCRAFT);
+    const t = Math.max(0, Math.min(1, (fc - CONST.SIGHT_STAT_LOW) / (CONST.SIGHT_STAT_HIGH - CONST.SIGHT_STAT_LOW)));
+    return CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR);
   }
 
   /**
@@ -561,6 +603,16 @@
   const sideSees = (side, f) => !side._seen ? true : side._seen.has(f.id);
 
   /** Everyone on `E` this side can do anything about. Empty is a real and common answer. */
+  /* §APPROACH TWO TUNINGS TRIED AND REVERTED, recorded so the next hand does not spend the
+     afternoon rediscovering them. (1) Refusing a shot at a body only HEARD unless it was close
+     cured the hit rate (0.12 → 0.27) and made the clock problem worse, not better: 9 fights in
+     18 ran out instead of 5, because a squad with nothing to shoot at simply waits. (2) Making
+     a blind body close on its search point rather than hold its weapon's range emptied the
+     fight altogether — every long-band fight ran the clock with no shots fired at all, because
+     `near` is a PLACE when blind, not a body, and both squads converged on the middle without
+     converging on each other. The fault they were both aimed at is real and is NOT the shooting
+     rule: it is that a squad which has lost contact has no way to LOOK for anybody. That wants
+     a search behaviour, which is the next piece of this work and not a constant. */
   function knownFoes(side, foes) {
     if (!side._seen) return foes;
     return foes.filter(f => sideKnows(side, f));
@@ -609,11 +661,21 @@
    * It is not a balance number. It is a value computed by one system, handed to another, and
    * read by nobody — the same fault as the resolver itself, one level down.
    */
+  /* §APPROACH HOW FAR APART A FIGHT OPENS. A long opening is now well BEYOND sight, so neither
+     side starts knowing where the other is and the approach is a real part of the fight: they
+     close under partial knowledge, and whoever is seen first is at a disadvantage before a
+     round is fired. A short opening is unchanged — walking into somebody at nine metres is not
+     stealth, and it should not pretend to be. */
   function deployGap(band) {
     const B = CONST.BAND_TILE;                       /* [long>14, medium>6] */
     if (band === 2) return Math.max(2, Math.round(B[1] * 0.6));
-    if (band === 1) return Math.round((B[0] + B[1]) / 2);
-    return B[0] + 3;
+    if (band === 1) return Math.round(B[0] * CONST.OPEN_MEDIUM);
+    return Math.round(B[0] * CONST.OPEN_LONG);
+  }
+  /** the board a given opening is fought on: wide enough for the gap and the closing */
+  function boardFor(band) {
+    const w = Math.max(CONST.W, deployGap(band) + CONST.BOARD_MARGIN);
+    return { w: w, h: CONST.H + (w > CONST.W ? CONST.BOARD_TALLER : 0) };
   }
 
   /**
@@ -1377,7 +1439,8 @@
         if (u.hooks.has('psionic_broadcast_sensation')) S._psi.read = true;
       }
     }
-    const map = ctx.map || makeMap(rng, ctx.terrain || 'broken_ground');
+    const board = boardFor(ctx.openingBand == null ? 1 : ctx.openingBand);
+    const map = ctx.map || makeMap(rng, ctx.terrain || 'broken_ground', board.w, board.h);
     A = sides[0]; B = sides[1];
     const prep = ctx.prep || sides.map(() => 0.5);   /* how ready each side was for this */
     /* Being ready has to mean something that LASTS. Starting behind cover does not: everyone
@@ -2040,6 +2103,7 @@
                and written by nothing, so crossing ground was free — the game specified a
                penalty and applied none. */
             if (motion) u.repositioning = true;
+            if (u.race === 'kellis') u._measure = 0;      /* §RACES crossing ground breaks the measure */
             /* §RACES IN THE AIR: a step longer than legs could carry them is a burst of flight
                — over whatever was in the way, and in the open while they are up there. */
             if (u._flightOffered) {
@@ -2159,6 +2223,12 @@
             });
           }
         }
+      }
+      /* §RACES THE KELLIS KEEP THEIR MEASURE: a turn held in place is a turn spent reading the
+         other side, and it tells in the next exchange. Moving breaks it. */
+      for (const S of sides) for (const u of S.units) {
+        if (u.race !== 'kellis' || (u.state !== 'ok' && u.state !== 'light')) continue;
+        u._measure = Math.min(CONST.KELLIS_MEASURE_CAP, (u._measure || 0) + 1);
       }
       /* §QUIRKS WHAT THE ONES BESIDE YOU ARE WORTH. `presence_aura`, `cohesion_morale_bonus_
          near_squadmates`, `death_morale_immune` and `gore_morale_immune` were carried by

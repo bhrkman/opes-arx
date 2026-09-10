@@ -117,63 +117,63 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_B",
-    "exchanges": 12,
+    "exchanges": 16,
     "band": "medium",
-    "aDead": 1,
+    "aDead": 0,
     "aDown": 0,
-    "bDead": 3,
-    "bDown": 1,
-    "shots": 164,
-    "hits": 28,
-    "downs": 5
+    "bDead": 0,
+    "bDown": 3,
+    "shots": 202,
+    "hits": 33,
+    "downs": 3
   },
   "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 10,
+    "result": "disengage_both",
+    "exchanges": 11,
     "band": "medium",
-    "aDead": 0,
-    "aDown": 3,
-    "bDead": 0,
-    "bDown": 1,
-    "shots": 111,
-    "hits": 30,
-    "downs": 4
+    "aDead": 2,
+    "aDown": 0,
+    "bDead": 1,
+    "bDown": 3,
+    "shots": 129,
+    "hits": 36,
+    "downs": 6
   },
   "long band, both cautious": {
-    "result": "disengage_B",
-    "exchanges": 8,
+    "result": "disengage_both",
+    "exchanges": 10,
     "band": "medium",
-    "aDead": 0,
+    "aDead": 2,
     "aDown": 1,
-    "bDead": 0,
-    "bDown": 2,
-    "shots": 151,
-    "hits": 21,
-    "downs": 3
+    "bDead": 2,
+    "bDown": 1,
+    "shots": 155,
+    "hits": 20,
+    "downs": 6
   },
   "forest, standard v unyielding": {
     "result": "disengage_A",
-    "exchanges": 4,
+    "exchanges": 10,
     "band": "medium",
     "aDead": 1,
     "aDown": 2,
     "bDead": 0,
-    "bDown": 1,
-    "shots": 87,
-    "hits": 26,
-    "downs": 4
+    "bDown": 0,
+    "shots": 177,
+    "hits": 24,
+    "downs": 3
   },
   "entrenched, cautious v hunter": {
-    "result": "disengage_A",
-    "exchanges": 11,
+    "result": "disengage_B",
+    "exchanges": 12,
     "band": "medium",
-    "aDead": 3,
-    "aDown": 3,
+    "aDead": 1,
+    "aDown": 2,
     "bDead": 0,
-    "bDown": 1,
-    "shots": 99,
-    "hits": 32,
-    "downs": 8
+    "bDown": 2,
+    "shots": 119,
+    "hits": 29,
+    "downs": 5
   }
 };
 
@@ -1219,7 +1219,12 @@ function energyInvariants(n) {
   ok('energy: charge never negative and never above the cell', bad.charge === 0, bad.charge + ' of ' + checked);
   ok('energy: vent counter never negative', bad.vent === 0, bad.vent + ' of ' + checked);
   ok('sidearm: nobody finishes on a sidearm with a working primary', bad.swap === 0, bad.swap + ' of ' + checked);
-  ok('energy: weapons actually vent under fire', vents > 0, vents + ' vents in ' + n + ' engagements');
+  /* §ENERGY THE OVERHEAT IS GONE FROM THE CATALOGUE, deliberately: it throttled a cell-fed
+     weapon to two shots between coolings and cost the family a third of its output for nothing
+     it was paid for. The venting MACHINERY stays — a mod or a quirk may still put heat in a
+     weapon — so what is asserted is that it behaves, not that it fires. */
+  ok('energy: nothing vents, because nothing in the catalogue runs hot', vents === 0,
+     vents + ' vents in ' + n + ' engagements');
   ok('sidearm: fallbacks are actually drawn', draws > 0, draws + ' draws in ' + n + ' engagements');
 }
 
@@ -3954,8 +3959,9 @@ function runRegression() {
     }
     ok('no constant is declared in two modules with different values',
        disagree.length === 0, disagree.join(' · ') || 'none');
-    const KNOWN = ['CELL_RECHARGE', 'DROP_MAX', 'HEAT_SHED', 'UNTREATED_DEGRADE_DAYS',
-                   'VENT_EXCHANGES'];
+    /* VENT_EXCHANGES left this list when the overheat was retired: the dial is labelled
+       _RETIRED in combat.js and items.js no longer needs to agree with it. */
+    const KNOWN = ['CELL_RECHARGE', 'DROP_MAX', 'HEAT_SHED', 'UNTREATED_DEGRADE_DAYS'];
     const names = agree.map(a => a.split(' [')[0]).sort();
     ok('the set of constants declared twice is the known set',
        names.join(',') === KNOWN.join(','),
