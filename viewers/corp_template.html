@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Opes Arx — One Corporation</title>
+<title>Opes Arx — The Capital Divide</title>
 <style>
   :root{
     /* ---- NIGHT-OPS: a holographic tactical display. Cyan is the command colour,
@@ -24,10 +24,17 @@
   --wall:#9d7cd8;
     /* ORIGIN HUES — muted, their own identity, distinct from the squad vivids */
     --o-nat:#6fb4d8; --o-mer:#b899cc; --o-con:#c8a86a;
-    /* §SPONSORS ten voices for the suppliers, vetted against the houses, the races and the
-       ground so a backer never reads as somebody else */
-    --spn-1:#c9a227; --spn-2:#5eb0d6; --spn-3:#b06fd6; --spn-4:#63c98a; --spn-5:#e0784a;
-    --spn-6:#d95f7a; --spn-7:#6f8fe0; --spn-8:#c2a06a; --spn-9:#4fc4c0; --spn-10:#d6a0c8;
+    /* §SPONSORS EIGHT SUPPLIERS, EIGHT COLOURS, NONE OF THEM A HOUSE'S. There are exactly
+       eight backers and the board was colouring them by a HASH into ten hues — with eight
+       draws from ten, collisions are not a risk but a certainty, and several read identically.
+       They are assigned by POSITION now, so no two can ever collide. The eight are pitched
+       away from the houses' own (deep red, steel, violet, teal, gold, rust, olive, bone) and
+       from the origin colours: paler and cooler where a house is deep, warmer where a house
+       is cold, so a backer never reads as somebody's banner. */
+    --spn-1:#7fd4c1;   /* sea green   */  --spn-2:#e8a0c8;   /* orchid      */
+    --spn-3:#9fb8ff;   /* periwinkle  */  --spn-4:#f2d98a;   /* straw       */
+    --spn-5:#c98fe8;   /* lilac       */  --spn-6:#8fd070;   /* spring      */
+    --spn-7:#ff9e7a;   /* apricot     */  --spn-8:#6fc3e8;   /* sky         */
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -87,6 +94,17 @@
   .menustage .menucol{position:relative;z-index:2;margin-top:clamp(-70px,-9vh,-120px);align-items:center}
   .menustage .menubtn{width:290px;max-width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;text-transform:uppercase}
   .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
+  /* §MONEY the purse in the top line: quiet, always there, never a headline */
+  #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
+  /* §MONEY the two facts the Roster is about, given room rather than a grey aside */
+  .rostsum{display:flex;gap:26px;align-items:flex-end}
+  .rostsum .rsfig{display:flex;flex-direction:column;line-height:1.25}
+  .rostsum .lab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .rostsum b{font-size:19px;letter-spacing:.02em}
+  .rostsum b.good{color:var(--hit)} .rostsum b.bad{color:var(--bad)}
+  .rostsum .sub{font-size:9.5px;color:var(--dim)}
+  #whoami{font-size:15px;letter-spacing:.06em}
+  #whoami svg{vertical-align:-2px}
   .menufleet{display:flex;justify-content:center;gap:14px;margin-top:12px}
   .menufleet span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);
     display:inline-flex;align-items:center;justify-content:center;opacity:.7}
@@ -137,11 +155,19 @@
   .mkgrp .padb + .padb{margin-left:6px}
   /* MOVE is the only thing on its row, so it stands in the middle of the pad */
   .mkgrp.move{grid-column:1/-1;justify-self:center}
-  .padb{min-width:40px;height:34px;border:1px solid var(--line2);background:var(--bg);color:var(--dim);border-radius:6px;
-    font:inherit;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+  /* EVERY BUTTON THE SAME SIZE. They were sized by their contents — one glyph or two, a wide
+     arrow or a tall one — so no two rows lined up and the pad read as a rummage drawer. */
+  .padb{width:42px;height:36px;border:1px solid var(--line2);background:var(--bg);color:var(--dim);border-radius:6px;
+    font:inherit;font-size:15px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    padding:0;flex:none}
   .padb:hover{border-color:var(--a);color:var(--a);background:var(--a-deep)}
-  .dpad{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(2,32px);gap:3px}
-  .dpad .padb{min-width:0;width:36px;height:32px;margin-left:0}
+  .padb .ar{font-size:11px;line-height:1}
+  .padb.wide{gap:1px}                       /* the pair reads across */
+  .padb.tall{flex-direction:column;gap:0}   /* and this pair reads DOWN */
+  .padb.turn{font-size:21px}                /* the turn glyphs draw small; give them room */
+  /* the d-pad's four are the same button as every other, in a cross */
+  .dpad{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,36px);gap:4px}
+  .dpad .padb{margin-left:0}
   .dpad .u{grid-area:1/2} .dpad .l{grid-area:2/1} .dpad .d{grid-area:2/2} .dpad .r{grid-area:2/3}
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
@@ -318,6 +344,9 @@
   .eightpick .fcard{--sq:var(--mag)} .eightpick .fcard.named{border-color:var(--mag);box-shadow:inset 0 0 0 1px var(--mag)}
   /* THE RECAP */
   .recap h2{margin:0 0 6px}
+  /* §RECAP a total belongs at the foot of what it totals */
+  .recaptot{border-top:1px solid var(--line2);margin-top:7px;padding-top:6px}
+  .recaptot .row .v{font-size:12.5px}
   .rcp{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:11.5px}
   .rcp .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #16233a}
   .rcp .row:first-child{border-top:none}
@@ -519,8 +548,12 @@
   .tierb.t3{background:#1b2c46;color:#5aa0f0} .tierb.t4{background:#3a2716;color:#e08a3c}
   .tierb.t5{background:#3a1c1a;color:#e0524a}
   /* money is gold, and red when it is money leaving */
+  /* §MONEY THE CREDIT CONVENTION, EVERYWHERE. Money going OUT is red and money coming IN is
+     green; a figure that is merely a sum of money — a price, a purse, a balance — stays gold.
+     Loss had a colour and gain did not, so an income read the same as a shelf price. */
   .cr{color:var(--cred);font-weight:600}
   .cr.neg{color:var(--bad)}
+  .cr.pos{color:var(--hit)}
   .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
     border:1px solid var(--line);border-radius:4px;background:#0b111b;margin-bottom:8px}
   /* the market's shelf */
@@ -816,10 +849,17 @@
   .sheetmark:hover .fmark circle:first-child{stroke:var(--a)}
   .mkedit-cue{font-size:8.5px;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
   .sheetmark:hover .mkedit-cue{color:var(--a)}
-  #markedit{z-index:62}
-  .mkedit .mkcolors{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:6px 0 10px}
+  /* §MARK the editor's own room: a dimmed screen and a panel wide enough for the builder */
+  .markmodal{position:fixed;inset:0;z-index:62;display:none;align-items:center;justify-content:center;
+    background:rgba(4,7,13,.78);padding:24px 16px;overflow-y:auto}
+  .markmodal.on{display:flex}
+  .markwrap{width:min(760px,96vw);max-height:92vh;overflow-y:auto;background:var(--bg);
+    border:1px solid var(--line2);border-radius:9px;box-shadow:0 24px 70px rgba(0,0,0,.65);padding:16px 18px;position:relative}
+  .mkedit .mkcolors{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:8px 0 12px}
   .mkedit .mkcolors .mklab{width:34px}
-  .mkedit .markrow{grid-template-columns:150px 1fr;max-width:none}
+  /* the builder gets its two columns back: preview beside the rows, whatever the host */
+  .mkedit .markrow{grid-template-columns:200px 1fr;max-width:none;gap:18px}
+  @media (max-width:720px){ .mkedit .markrow{grid-template-columns:1fr} }
   .fmark{vertical-align:middle;flex:none}
   .tghand .fmark,.trow .fmark{margin-right:5px}
   .rsn .fmark{margin-right:5px}
@@ -1061,11 +1101,15 @@
 <body>
 <header>
   <div>
-    <h1>One Corporation</h1>
+    <!-- §HEADER "One Corporation" sat here, and in the page's title, for no reason anybody
+         could name — two words that had quietly overwritten the name of the game and the name
+         of the house a manager is running. The game is Opes Arx; the corner says whose it is. -->
+    <h1 id="whoami"></h1>
     
   </div>
   <div class="bar">
-    <span class="gold" id="clock" style="letter-spacing:.08em"></span>
+    <span id="clock" style="letter-spacing:.08em"></span>
+    <span id="purse" title="What Is In The Treasury"></span>
     <!-- §DESK the focus tally lives on the Desk, where focus is spent. It stood in the top
          line of EVERY tab, in a dark font, saying a thing the agenda already says louder. -->
     <button id="endmonth" style="display:none" hidden>End the Month</button>
@@ -1096,7 +1140,6 @@
     <button class="menubtn" disabled title="not yet">Options</button>
     <button class="menubtn" id="mExit">Exit Game</button>
     <div class="m" id="mNote"></div>
-    <div class="menufoot">Eight Houses &middot; One Year &middot; One Divide</div>
     <!-- the eight houses' own marks, the real ones, so the stage says what the game is -->
     <div class="menufleet" id="menufleet"></div>
   </div>
@@ -1221,7 +1264,11 @@
   <div id="backroom"></div>
 </div>
 <div class="drawer" id="unitpanel"></div>
-<div class="drawer" id="markedit"></div>
+<!-- §MARK THE EDITOR IS NOT A DRAWER. It was opened in the 340px rail beside the sheet, and a
+     builder — a preview, three rows of pieces and a pad — cannot be folded into a sliver: the
+     rows wrapped to one column apiece and the whole thing became unusable. It stands in the
+     middle of the screen at a width it can actually be worked in. -->
+<div id="markedit" class="markmodal"><div class="markwrap"></div></div>
 <!-- THE QUIET BUSINESS: a window, not a tab, open in the preparation and in the Divide -->
 
 <!-- ============================== THE FIREFIGHT ============================== -->
@@ -1557,6 +1604,22 @@
     $('endmonth').style.display = (G && G.state && m < 12) ? '' : 'none';
     $('endmonth').textContent = (G && G._dividendFloor) ? 'Take the Floor' : 'End the Month';
     renderTurn();
+    /* the corner wears the manager's own OA, in its own colour */
+    if ($('whoami')) {
+      var meNow = G && G.corps && G.corps[G.me];
+      $('whoami').innerHTML = meNow
+        ? '<span style="color:' + colFor(G.me) + '">' + markFor(G.me, 17) + ' ' + esc(meNow.profile.name) + '</span>'
+        : 'Opes Arx';
+    }
+    /* §MONEY THE PURSE IS A THING EVERY PAGE NEEDS. It lived on the Roster and the Market and
+       nowhere else, so the Desk — where a manager spends credits doubling focus — never showed
+       him what he had. It stands in the top line beside the clock, on every surface. */
+    if ($('purse')) {
+      $('purse').innerHTML = (G && G.corps && G.corps[G.me])
+        ? '<span class="cr">' + crs(G.corps[G.me].account.treasury) + '</span>' : '';
+    }
+    /* the clock wears the month's own colour, the one the year line uses for that stop */
+    if (G && G.state) { var mk2 = monthKind(m); $('clock').style.color = mk2.c; }
     $('clock').textContent = G && G.state
       ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 the Divide'
           : 'Month ' + m + ' \u2014 ' + ((SEASON.MONTHS[m] || {}).name || ''))
@@ -1842,12 +1905,24 @@
     var me = G.corps[G.me];
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
     var wage = alive.reduce(function (a, f) { return a + ((f.contract || {}).salary || 0); }, 0);
+    /* §MONEY FOUR DIFFERENT FACTS IN ONE GREY LINE. Treasury (what you have), the board's
+       grant (what you were given, once, and already in the treasury), the wage bill (what you
+       owe) and the headcount stood side by side in the same voice, as though they were the
+       same kind of thing. The treasury is in the top line now, on every page. The grant is
+       past tense and belongs to the year's opening, not to a permanent home. What is left is
+       the two facts this page is actually about: WHAT THE ROSTER COSTS and HOW MANY ARE ON IT,
+       said plainly, the wage in red because it is money going out, the count in green when a
+       house can field a drop and red when it cannot. */
+    var canField = alive.length >= SEASON.CONST.DROP_MIN;
     $('money').innerHTML =
-      '<b class="gold">' + esc(me.profile.name) + '</b>' +
-      '<div class="m">Treasury ' + crs(me.account.treasury) +
-      ' &middot; Board Grant ' + crs(me.account.grant) +
-      ' &middot; Season Wage ' + crs(wage) +
-      ' &middot; ' + alive.length + ' on the Books</div>';
+      '<div class="rostsum">' +
+        '<span class="rsfig"><span class="lab">The Wage Bill</span>' +
+          '<b class="cr neg">\u2212' + crs(wage).replace('\u20a1', '\u20a1') + '</b>' +
+          '<span class="sub">A Month</span></span>' +
+        '<span class="rsfig"><span class="lab">On the Books</span>' +
+          '<b class="' + (canField ? 'good' : 'bad') + '">' + alive.length + '</b>' +
+          '<span class="sub">' + (canField ? 'Enough to Drop' : 'Short of ' + SEASON.CONST.DROP_MIN) + '</span></span>' +
+      '</div>';
 
     var rows = me.roster.slice().sort(function (a, b) {
       var x = rosterSortVal(a, ROSTER_SORT.key), y = rosterSortVal(b, ROSTER_SORT.key);
@@ -3074,12 +3149,19 @@
 
   /* §SPONSORS a supplier's colour, stable from its id — the same house is the same colour on
      every screen it appears on, and no two neighbours in the list collide */
-  var SPON_HUES = ['var(--spn-1)', 'var(--spn-2)', 'var(--spn-3)', 'var(--spn-4)', 'var(--spn-5)',
-                   'var(--spn-6)', 'var(--spn-7)', 'var(--spn-8)', 'var(--spn-9)', 'var(--spn-10)'];
+  var SPON_HUES = ['var(--spn-1)', 'var(--spn-2)', 'var(--spn-3)', 'var(--spn-4)',
+                   'var(--spn-5)', 'var(--spn-6)', 'var(--spn-7)', 'var(--spn-8)'];
+  /* by POSITION in the roll, not by a hash of the name: eight suppliers drawn from eight
+     colours cannot collide, and the same supplier is the same colour in every career */
+  var SPON_ORDER = null;
   function sponsorColour(id) {
-    var h = 0, str = String(id);
-    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-    return SPON_HUES[h % SPON_HUES.length];
+    if (!SPON_ORDER) {
+      SPON_ORDER = {};
+      var ids = (SEASON.SPON.houseIds ? SEASON.SPON.houseIds() : []);
+      ids.forEach(function (h, i) { SPON_ORDER[h] = i; });
+    }
+    var i = SPON_ORDER[id];
+    return SPON_HUES[(i == null ? 0 : i) % SPON_HUES.length];
   }
   function renderCourtGrid() {
     var host = $('courtgrid');
@@ -3102,9 +3184,9 @@
     var h = '<div class="tgwrap' + (deskFolded('court') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="court">' +
       '<span class="tgtitle">Court Sponsors</span>' + boostTag('court') + foldTag('court') +
       (canCourt ? '' : '<span class="m">Backers Committed</span>') +
-      /* the bar every supplier on this board is judging by, and why it moves */
-      '<div class="cbench">The Board Signs At <b>' + (Math.round(bench * 10) / 10) + '</b> Regard' +
-        (taken0 ? ' <span class="m">\u00b7 ' + taken0 + ' Already Signed</span>' : '') + '</div>' +
+      /* THE BENCHMARK CAME OFF THE HEAD. It threw the title's centring out, and every row
+         already says how much more regard THAT supplier wants — which is the same fact, in the
+         place a manager is looking when he wants it. */
       '</div><table class="ctbl">';
 
     courtTargets().forEach(function (t) {
@@ -3125,7 +3207,7 @@
            '<span class="cflavor ' + t.flavor + '">' + (t.flavor.charAt(0).toUpperCase() + t.flavor.slice(1)) + '</span>' + signedTag +
            '<div class="ccond">' + esc(t.text.charAt(0).toUpperCase() + t.text.slice(1)) + '</div>';
       if (!taken || mine)
-        h += '<div class="cpay">Advance <b>' + crs(SEASON.SPON.CONST.SPONSOR_ADVANCE) +
+        h += '<div class="cpay">Advance <b class="cr pos">' + crs(SEASON.SPON.CONST.SPONSOR_ADVANCE) +
              '</b> ' + (mine ? 'Paid' : 'Now') + ' &middot; ' + rewardWords(t.reward) + '</div>';
       /* the contract you hold shows a live read of how it is tracking (Pass D) */
       if (mine) {
@@ -3173,7 +3255,7 @@
       host.innerHTML = ''; return;
     }
     var h = '<div class="tgwrap"><div class="tghead"><span class="tgtitle">Your Backers\u2019 Verdict</span>' +
-      '<span class="tgbudget">Advances Banked ' + crs(sp.advance || 0) + '</span></div>';
+      '<span class="tgbudget">Advances Banked <span class="cr pos">' + crs(sp.advance || 0) + '</span></span></div>';
     h += '<table class="ctbl">';
     /* kept — reward paid */
     (sp.rewards || []).forEach(function (r) {
@@ -3483,7 +3565,7 @@
     for (var sk in sp) if (sp[sk] && typeof sp[sk] === 'number') spWords.push(sp[sk] + ' on ' + sk);
     if (spWords.length) lines.push('Focus \u00b7 ' + spWords.map(capWords).join(' \u00b7 '));
     var gateLine = ((res.landed && res.landed[G.me]) || []).filter(function (l) { return l.kind === 'gate'; })[0];
-    if (gateLine) lines.push('<b>Gate and Merchandise</b> \u2014 ' + crs(gateLine.amount) + ' <span class="m">\u00b7 What the Crowd Paid</span>');
+    if (gateLine) lines.push('<b>Gate and Merchandise</b> \u2014 <span class="cr pos">' + crs(gateLine.amount) + '</span>' + ' <span class="m">\u00b7 What the Crowd Paid</span>');
     ((res.landed || {})[G.me] || []).forEach(function (x) {
       lines.push('<span class="gold">landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
     });
@@ -3561,8 +3643,21 @@
     /* money: the ledger's lines since the snapshot */
     var led = (me.account.ledger || []).slice(snap.ledgerN);
     var dT = me.account.treasury - snap.treasury;
-    var money = row('Treasury', crs(snap.treasury) + ' \u2192 ' + crs(me.account.treasury) + ' <span class="' + cls(dT) + '">' + (dT >= 0 ? '+' : '') + '</span>' + crs(dT));
-    led.slice(-6).forEach(function (l) { money += row(esc(capWords(l.label || l.kind)), crs(l.amount)); });
+    /* §RECAP THE MONTH'S MONEY MUST ADD UP. The change stood at the TOP, computed across the
+       whole month, above a list showing only the LAST SIX ledger lines — so the figures could
+       not agree by construction and a manager was asked to trust an arithmetic he could not
+       follow. Every line the month wrote is shown, in the order it was written, and the total
+       is at the FOOT where a total belongs, with the opening and closing purse beside it. */
+    var money = '';
+    led.forEach(function (l) {
+      money += row(esc(capWords(l.label || l.kind)),
+                   '<span class="' + cls(l.amount) + '">' + (l.amount >= 0 ? '+' : '\u2212') +
+                   crs(Math.abs(l.amount)) + '</span>');
+    });
+    if (!led.length) money += row('Nothing Moved', '<span class="m">\u2014</span>');
+    money += '<div class="recaptot">' + row('The Month',
+      '<span class="m">' + crs(snap.treasury) + ' \u2192 </span><b>' + crs(me.account.treasury) + '</b> ' +
+      '<span class="' + cls(dT) + '">' + (dT >= 0 ? '+' : '\u2212') + crs(Math.abs(dT)) + '</span>') + '</div>';
     /* people: who came, who left, who changed status */
     var people = '', came = R.joined.map(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; return b ? nameSpan(b) : ''; }).filter(Boolean);
     if (came.length) people += row('Signed', came.join(', '));
@@ -5597,8 +5692,9 @@
     var me = G.corps[G.me], arm = me.armoury || {};
     var total = mktTotal(), left = me.account.treasury - total;
 
+    /* the treasury is in the top line on every page now; what belongs HERE is what this
+       order costs and what is left after it */
     $('mktsum').innerHTML =
-      '<span>Treasury ' + crs(me.account.treasury) + '</span>' +
       (total ? '<span>Order <span class="cr neg">\u2212\u20a1' +
                Math.round(total).toLocaleString() + '</span></span>' +
                '<span>' + crs(left) + ' After</span>' : '');
@@ -5775,7 +5871,7 @@
     var yours = mine[0] && mine[0].m;
     $('dvstate').innerHTML = !yours ? '<span class="m">No Card This Year</span>'
       : yours.winnerId === G.me
-        ? 'You Took the Purse: ' + crs(SEASON.CONST.DIVIDEND_PURSE)
+        ? 'You Took the Purse: <span class="cr pos">' + crs(SEASON.CONST.DIVIDEND_PURSE) + '</span>'
         : yours.winnerId
           ? '<span class="m">' + cSpan(yours.winnerId) + ' Took the Purse</span>'
           : '<span class="m">Drawn</span>';
@@ -7490,12 +7586,12 @@
        `.drawer`, which is `transform: translateX(100%)` until it is given `.on` — so the
        editor built itself in full, twenty-two thousand characters of it, and sat one screen
        width to the right where nobody could see it. It looked exactly like a dead button. */
-    if (!MARK_EDIT) { host.classList.remove('on'); host.innerHTML = ''; return; }
+    if (!MARK_EDIT) { host.classList.remove('on'); host.querySelector('.markwrap').innerHTML = ''; return; }
     var f = bodyById(MARK_EDIT.id); if (!f) { MARK_EDIT = null; host.style.display = 'none'; return; }
     var raceHex = (RACE[f.race] || {}).fill || '#c4d4e8';
     var fillHex = MARK_EDIT.color || raceHex;
     host.classList.add('on');
-    host.innerHTML = '<div class="railbox mkedit"><span class="close" data-mkclose="1">\u2715</span>' +
+    host.querySelector('.markwrap').innerHTML = '<div class="mkedit"><span class="close" data-mkclose="1">\u2715</span>' +
       '<div class="railhead">' + fighterMark(f, 34, colFor(G.me)) +
         '<span class="nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
         '<span class="sub">The Mark</span></div>' +
@@ -7510,6 +7606,8 @@
         '<button class="primary" data-mksave="1">Keep It</button></div></div>';
     cpick = fillHex;
     paintMarks(host.querySelector('.mkpadhost'));
+    /* the dark around the panel closes it, the way every modal does */
+    host.onclick = function (e) { if (e.target === host) { MARK_EDIT = null; renderMarkEditor(); } };
     host.querySelector('[data-mkclose]').onclick = function () { MARK_EDIT = null; renderMarkEditor(); };
     Array.prototype.forEach.call(host.querySelectorAll('[data-mkcol]'), function (sw) {
       sw.onclick = function () { MARK_EDIT.color = sw.getAttribute('data-mkcol') === raceHex ? null : sw.getAttribute('data-mkcol'); renderMarkEditor(); };
@@ -7566,8 +7664,8 @@
         '<button type="button" class="mkreset" data-adj="reset" data-d="0">Reset</button></div>' +
       '<div class="mkpadgrid">' +
         '<div class="mkgrp"><span class="gl">Turn</span>' +
-          '<button type="button" class="padb" data-adj="turn" data-d="-1" title="Turn Back">\u21ba</button>' +
-          '<button type="button" class="padb" data-adj="turn" data-d="1" title="Turn On">\u21bb</button></div>' +
+          '<button type="button" class="padb turn" data-adj="turn" data-d="-1" title="Turn Back">\u21ba</button>' +
+          '<button type="button" class="padb turn" data-adj="turn" data-d="1" title="Turn On">\u21bb</button></div>' +
         '<div class="mkgrp"><span class="gl">Size</span>' +
           '<button type="button" class="padb" data-adj="size" data-d="-1" title="Smaller">\u2212</button>' +
           '<button type="button" class="padb" data-adj="size" data-d="1" title="Bigger">+</button></div>' +
@@ -7578,12 +7676,18 @@
             '<button type="button" class="padb r" data-adj="x" data-d="1" title="Right">\u25b6</button>' +
             '<button type="button" class="padb d" data-adj="y" data-d="1" title="Down">\u25bc</button>' +
           '</span></div>' +
+        /* WIDTH reads across, HEIGHT reads down — the arrows are stacked for the one that
+           works vertically, which is the whole point of the picture. */
         '<div class="mkgrp"><span class="gl">Width</span>' +
-          '<button type="button" class="padb" data-adj="wide" data-d="-1" title="Narrower">\u25b6\u25c0</button>' +
-          '<button type="button" class="padb" data-adj="wide" data-d="1" title="Wider">\u25c0\u25b6</button></div>' +
+          '<button type="button" class="padb wide" data-adj="wide" data-d="-1" title="Narrower">' +
+            '<span class="ar">\u25b6</span><span class="ar">\u25c0</span></button>' +
+          '<button type="button" class="padb wide" data-adj="wide" data-d="1" title="Wider">' +
+            '<span class="ar">\u25c0</span><span class="ar">\u25b6</span></button></div>' +
         '<div class="mkgrp"><span class="gl">Height</span>' +
-          '<button type="button" class="padb" data-adj="tall" data-d="-1" title="Shorter">\u25bc\u25b2</button>' +
-          '<button type="button" class="padb" data-adj="tall" data-d="1" title="Taller">\u25b2\u25bc</button></div>' +
+          '<button type="button" class="padb tall" data-adj="tall" data-d="-1" title="Shorter">' +
+            '<span class="ar">\u25bc</span><span class="ar">\u25b2</span></button>' +
+          '<button type="button" class="padb tall" data-adj="tall" data-d="1" title="Taller">' +
+            '<span class="ar">\u25b2</span><span class="ar">\u25bc</span></button></div>' +
       '</div></div>';
     host.innerHTML =
       '<div class="mkstage"><svg class="mkbig" viewBox="0 0 24 24" style="color:' + cpick + '">' + markBody() + '</svg>' +
@@ -7610,7 +7714,11 @@
   }
   paintMarks($('cmarks'));
   $('cfound').onclick = function () {
-    var nm = $('cname').value.trim() || 'The Unnamed House';
+    /* A NAMELESS OA IS STILL AN OA. It was "The Unnamed House" — naming a thing this game does
+       not have — and then "An Unnamed Concern", which names a different thing it does not have
+       either. A manager founds an Opes Arx; if he will not name it, the fleet calls it what it
+       is. */
+    var nm = $('cname').value.trim() || 'An Unnamed OA';
     var rep = BERTH || weakestBerths(1)[0];
     var prof = blankSlate(nm);
     prof.displayColor = cpick;

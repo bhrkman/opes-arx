@@ -231,6 +231,11 @@
     REVEAL_TURNS: 1,                 // [C] this turn and the next
     /* UNSPOTTED_AIM lives in `combat.js`, where `aimEff` reads it. It was briefly declared
        here, which would have resolved it to `undefined` at the only site that uses it. */
+    /* §CONCEAL how much of an eye's reach a body's cover takes away, and what moving gives back */
+    CONCEAL_PER_COVER: 0.22,         // [C] per grade of cover the body is lying in
+    CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
+    CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
+    SEARCH_DRIFT: 0.55,              // [C] §SEARCH how fast the sweep's aim point walks the flank
     SOFT_BOOTS_TILES: 1.5,           // [H] extra ground covered while nobody has eyes on you
     /* Two ways a side stops fighting, and they should not look the same.
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
@@ -434,6 +439,19 @@
     return v;
   }
 
+  /* §CONCEAL WHAT A BODY IS LYING IN, from no direction in particular. `coverAgainstRaw` wants
+     a shooter, because cover is a thing between two points — but being HIDDEN is not: a fighter
+     in a thicket is hard to pick out from anywhere, and the best scrap of ground around them is
+     what does it. */
+  function concealAt(map, body) {
+    let best = 0;
+    const around = [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    for (const [ox, oy] of around) {
+      const c = at(map, body.x + ox, body.y + oy);
+      if (c && c > best) best = c;
+    }
+    return best;
+  }
   function coverAgainstRaw(map, target, shooter) {
     const ang = Math.atan2(shooter.y - target.y, shooter.x - target.x);
     let best = 0;
@@ -566,9 +584,21 @@
         if (other === side) continue;
         for (const f of other.units) {
           if (f.state !== 'ok' && f.state !== 'light') continue;
+          /* §CONCEAL WHAT A BODY IS LYING IN DECIDES HOW FAR OFF IT CAN BE PICKED OUT. The
+             pass asked two things — is it inside my sight, and is there a line to it — so a
+             fighter flat in heavy cover was as visible at fourteen tiles as one standing in the
+             open, and every scrap of concealment on the map did nothing at all for being SEEN.
+             Cover shortens the reach of an eye against that body; movement gives it back,
+             because a man who is moving is a man you notice; and a body that just fired is
+             seen wherever it is, since a muzzle flash is not concealed by a bush. */
+          const cov = concealAt(map, f);
+          let reach = 1 - cov * CONST.CONCEAL_PER_COVER;
+          if (f.repositioning || f._crossed) reach += CONST.CONCEAL_MOVING;
+          if ((f._revealedUntil || -1) >= turn) reach = 1;      /* it just fired */
+          reach = Math.max(CONST.CONCEAL_FLOOR, Math.min(1, reach));
           let have = false;
           for (const u of eyes) {
-            if (dist(u, f) > sightRange(u)) continue;
+            if (dist(u, f) > sightRange(u) * reach) continue;
             if (!hasLOS(map, u, f)) continue;
             have = true; break;
           }
@@ -624,8 +654,20 @@
    * to the range its weapons want from the last place anyone was seen — rather than standing
    * still, which is what an empty enemy list would otherwise produce.
    */
-  function searchPoint(side, map) {
-    return side._lastContact || { x: (map.w - 1) / 2, y: (map.h - 1) / 2 };
+  /* §SEARCH WHERE A SQUAD LOOKS WHEN IT CAN SEE NOBODY. It went to the last place anybody was
+     seen, or the middle of the map — and two squads that had never made contact both walked to
+     the same middle and milled there, each holding the range its guns preferred from a POINT
+     rather than from a body. Once concealment was built this stopped being a curiosity: half of
+     the shape gate's fights ran out the clock, because a forest full of people who cannot see
+     each other is a forest full of people standing still.
+     A squad with nothing to go on sweeps ACROSS the ground the enemy came from, and the aim
+     point drifts as the fight runs so the sweep covers ground rather than orbiting one spot. */
+  function searchPoint(side, map, turn) {
+    if (side._lastContact) return side._lastContact;
+    const home = side.sIdx === 0 ? map.w - 1 : 0;          /* the ground THEY came from */
+    const t = (turn || 0) * CONST.SEARCH_DRIFT;
+    const y = (map.h - 1) * (0.5 + 0.42 * Math.sin(t + (side.sIdx || 0) * 2.1));
+    return { x: home, y: y };
   }
 
   /** You fired. Unless you are carrying something quiet, that is a place people now look. */
@@ -1469,6 +1511,8 @@
     const bearings = ctx.bearings || null;
     sides.forEach((S, i) => {
       S.tag = S.tag || String.fromCharCode(65 + i);
+      S.sIdx = i;          /* §SEARCH which edge this side came on, so a sweep knows which
+                              ground to walk: without it both squads swept the same flank */
       /* BEARINGS ONLY WHEN THERE IS SOMETHING TO SAY. With two sides and no bearings supplied
          this is the original left/right deployment, unchanged, so the fixed-seed snapshots
          still describe the fight they were recorded from. */
@@ -2003,7 +2047,7 @@
              machinery that is already there rather than a second search behaviour. */
           const near = foes.length
             ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
-            : searchPoint(S, map);
+            : searchPoint(S, map, tel.turn);
           if (tap) tap.rows = [];
           let move = null;
           /* am I currently unseen? decides Soft Boots. Declared out here rather than inside

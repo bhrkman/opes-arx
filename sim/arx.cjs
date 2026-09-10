@@ -116,64 +116,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "disengage_B",
-    "exchanges": 16,
-    "band": "medium",
-    "aDead": 0,
-    "aDown": 0,
-    "bDead": 0,
-    "bDown": 3,
-    "shots": 202,
-    "hits": 33,
-    "downs": 3
-  },
-  "short band, both aggressive": {
-    "result": "disengage_both",
-    "exchanges": 11,
-    "band": "medium",
-    "aDead": 2,
-    "aDown": 0,
-    "bDead": 1,
-    "bDown": 3,
-    "shots": 129,
-    "hits": 36,
-    "downs": 6
-  },
-  "long band, both cautious": {
-    "result": "disengage_both",
-    "exchanges": 10,
-    "band": "medium",
-    "aDead": 2,
-    "aDown": 1,
-    "bDead": 2,
-    "bDown": 1,
-    "shots": 155,
-    "hits": 20,
-    "downs": 6
-  },
-  "forest, standard v unyielding": {
     "result": "disengage_A",
-    "exchanges": 10,
+    "exchanges": 12,
     "band": "medium",
     "aDead": 1,
     "aDown": 2,
     "bDead": 0,
     "bDown": 0,
     "shots": 177,
-    "hits": 24,
+    "hits": 26,
     "downs": 3
+  },
+  "short band, both aggressive": {
+    "result": "disengage_A",
+    "exchanges": 13,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 4,
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 142,
+    "hits": 30,
+    "downs": 4
+  },
+  "long band, both cautious": {
+    "result": "disengage_both",
+    "exchanges": 11,
+    "band": "medium",
+    "aDead": 0,
+    "aDown": 1,
+    "bDead": 2,
+    "bDown": 0,
+    "shots": 165,
+    "hits": 12,
+    "downs": 3
+  },
+  "forest, standard v unyielding": {
+    "result": "disengage_A",
+    "exchanges": 4,
+    "band": "medium",
+    "aDead": 1,
+    "aDown": 1,
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 49,
+    "hits": 14,
+    "downs": 2
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_B",
     "exchanges": 12,
     "band": "medium",
     "aDead": 1,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 2,
-    "shots": 119,
+    "aDown": 1,
+    "bDead": 1,
+    "bDown": 3,
+    "shots": 127,
     "hits": 29,
-    "downs": 5
+    "downs": 6
   }
 };
 

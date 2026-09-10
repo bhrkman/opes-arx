@@ -66,9 +66,11 @@ setTimeout(() => {
     /* ---- the shell: menu first, then the founding ---- */
     check(loadErrors === 0, 'the page loads without a single error (' + loadErrors + ')');
     /* §MENU three of the fleet's peoples stand on the menu, art inlined by the build */
+    /* the tagline is gone: there are no houses, the game runs many years, and a year holds
+       more than one contest — three claims and all three untrue */
     check([...doc.querySelectorAll('#menu .moval img')].filter(i => /^data:image\/webp/.test(i.src)).length === 3 &&
-          /One Year/.test(text('#menu .menufoot')),
-          'the menu carries its three portraits and names the whole year');
+          !doc.querySelector('#menu .menufoot'),
+          'the menu carries its three portraits and claims nothing untrue beneath them');
     check(doc.querySelectorAll('#menufleet span svg').length === 8,
           'and the eight houses stand along its foot in their own marks');
     /* the stage stacks: the overlay wraps its children, and a column that wraps pushes the
@@ -162,7 +164,13 @@ setTimeout(() => {
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
           'a founded house opens with a skeleton crew, not an inheritance (' + rosterStart + ' hands)');
-    check(/Treasury/.test(text('#money')), 'the treasury is on the roster page');
+    /* §MONEY the treasury is in the TOP LINE on every page now — it was on the Roster and the
+       Market and nowhere else, so the Desk never showed a manager what he had to spend. What
+       the Roster says is what the roster costs and how many are on it. */
+    check(/\u20a1/.test(text('#purse')), 'the treasury stands in the top line, on every page');
+    check(/The Wage Bill/.test(text('#money')) && /On the Books/.test(text('#money')) &&
+          !/Treasury|Board Grant/.test(text('#money')),
+          'the roster says what it costs and how many are on it, and nothing else');
     /* EVERY VERB HAS ITS OWN SECTION NOW. Training and recovery are grids, intel and
        courting are painted boards — so the old 0-to-3 button rows are empty in an ordinary
        prep month, and that is the point rather than a hole. What the desk must offer is the
@@ -299,8 +307,11 @@ setTimeout(() => {
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
             'and the exotica sit at the bottom, not the top');
-      check(!/Kit Cap/.test(text('#mktsum')) && /\u20a1/.test(text('#mktsum')),
-            'the summary carries the treasury in credits; the kit cap has gone to the Squads');
+      /* the strip under the market speaks about the ORDER — the treasury is in the top line
+         on every page now, and a second copy of it here was one of the four facts crammed
+         into one voice that this pass took apart */
+      check(!/Kit Cap|Treasury/.test(text('#mktsum')),
+            'the market summary no longer carries a second copy of the treasury');
       /* THE PLANET HAS GROUND: planets.json rides in the bundle now, so the browser's planet
          carries a composition like node's does */
       check((window.__G.state.planet.composition || []).length >= 2,
@@ -446,9 +457,17 @@ setTimeout(() => {
           'courting built standing with ' + courtHouse);
     /* §SPONSORS the board says what it wants and how far off you are; the fake focus price
        that no rule ever read is gone */
-    check(/The Board Signs At/.test(text('#courtgrid')) &&
-          (/More Regard/.test(text('#courtgrid')) || /Convinced/.test(text('#courtgrid'))),
-          'the board names its benchmark and each supplier\'s distance from it');
+    /* the benchmark is not repeated at the head — every row says how much more regard THAT
+       supplier wants, which is the same fact where a manager is already looking */
+    check((/More Regard/.test(text('#courtgrid')) || /Convinced/.test(text('#courtgrid'))) &&
+          !/The Board Signs At/.test(text('#courtgrid')),
+          'each supplier says its own distance, and nothing repeats it at the head');
+    /* eight suppliers, eight colours, assigned by position so they cannot collide */
+    {
+      const cols = [...doc.querySelectorAll('#courtgrid .cname')].map(e => e.style.color).filter(Boolean);
+      check(cols.length >= 4 && new Set(cols).size === cols.length,
+            'no two suppliers wear the same colour (' + new Set(cols).size + ' of ' + cols.length + ')');
+    }
     check(!/Costs \d/.test(text('#courtgrid')),
           'and quotes no focus price for a thing that was never for sale');
     const dT = mean('tactics', who) - tac0, dR = mean('resolve', who) - res0, dA = mean('aim', who) - aim0;
@@ -834,6 +853,13 @@ setTimeout(() => {
       doc.querySelector('#events [data-ev="raise-test"][data-opt="grant"]').click();
       check(roster[0].contract.salary === sal0 + 500 && /Got the Raise/.test(text('#events')), 'granting the raise moves the salary and the card says so');
       doc.getElementById('endmonth').click();
+      /* §RECAP the month's money adds up: every line the month wrote, then the total */
+      {
+        const GR = window.__G;
+        const rows = [...doc.querySelectorAll('#recapbody .row')].map(r => r.textContent);
+        check(/The Month/.test(text('#recapbody')) && !/Treasury.*\u2192.*\+/.test(rows[0] || ''),
+              'the recap totals the month at the foot, not the head');
+      }
       check(/Got the Raise/.test(text('#recapbody')) && /Your Call/.test(text('#recapbody')) && /Slight Was Ignored/.test(text('#recapbody')) && /By Default/.test(text('#recapbody')),
             'the recap reads the answered event as your call and the open one as its default');
       doc.getElementById('recapgo').click();
@@ -1039,10 +1065,13 @@ setTimeout(() => {
         who.click();
         const before9 = doc.querySelector('#unitpanel .sheetmark .fmark').innerHTML;
         doc.querySelector('#unitpanel [data-editmark]').click();
-        check(doc.getElementById('markedit').style.display !== 'none' &&
-              doc.querySelectorAll('#markedit .padb').length === 12 &&
+        /* §MARK the editor is a panel in the middle of the screen: a builder cannot be folded
+       into the 340px rail beside a sheet */
+        check(doc.getElementById('markedit').classList.contains('on') &&
+              doc.querySelectorAll('#markedit .markwrap .padb').length === 12 &&
+              doc.querySelectorAll('#markedit .mkrow').length === 3 &&
               doc.querySelectorAll('#markedit [data-mkcol]').length >= 7,
-              'the sheet\'s mark opens the pad, with the fill colours and the people\'s own first');
+              'the sheet\'s mark opens the builder in its own panel, with the fill colours');
         doc.querySelector('#markedit [data-adj="turn"][data-d="1"]').click();
         doc.querySelector('#markedit [data-mkcol]:nth-of-type(3)').click();
         doc.querySelector('#markedit [data-mksave]').click();
@@ -1587,8 +1616,9 @@ setTimeout(() => {
     doc.getElementById('cfound').click();
     check(/Year 1 · Month 1/.test(text('#clock')),
           'the founded house opens its own year 1: ' + text('#clock'));
-    check(/House Probe/.test(text('#money')),
-          'the blank slate stands on the roster page under its own name');
+    /* a founded corporation's name lives in the CORNER now, not on the roster's money line */
+    check(/House Probe/.test(text('#whoami')),
+          'a founded corporation wears its own name in the corner of every page');
     /* §DESK the big grids start folded and open when asked */
     {
       const shutAtFirst = doc.querySelectorAll('#traingrid .tgwrap.shut, #restgrid .tgwrap.shut, ' +

@@ -1233,6 +1233,69 @@ and the suite asserts that nothing vents rather than that something does.
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
 
+## A month that adds up, eight colours that are eight, and a name for a nameless OA. *Built.*
+
+**THE RECAP'S MONEY COULD NOT ADD UP BY CONSTRUCTION.** The change stood at the TOP, computed
+across the whole month, above a list showing only the LAST SIX ledger lines — so a manager was
+shown a total and an itemisation that could not agree, and asked to trust arithmetic he could not
+follow. Every line the month wrote is shown now, in the order it was written, and THE TOTAL IS AT
+THE FOOT where a total belongs, with the opening and closing purse beside it.
+
+**MONEY COMING IN IS GREEN, EVERYWHERE.** Loss had a colour and gain did not, so an advance, a
+purse and a gate read exactly like a shelf price. The convention, said once and applied across the
+game: OUT is red, IN is green, and a figure that is merely a sum of money — a price, a balance —
+stays gold.
+
+**EIGHT SUPPLIERS, EIGHT COLOURS.** The board coloured them by a HASH into ten hues, and eight
+draws from ten do not risk collision, they guarantee it — several read identically. They are
+assigned BY POSITION now, so no two can collide, out of eight pitched away from the houses' own
+banners and the origin colours: paler and cooler where a house is deep, warmer where a house is
+cold. And the benchmark came off the head of the board — it threw the title's centring out, and
+every row already says how much more regard THAT supplier wants, which is the same fact in the
+place a manager is looking when he wants it.
+
+**AND A NAMELESS OA IS *AN UNNAMED OA*.** It was "The Unnamed House", naming a thing this game
+does not have, and I replaced it with "An Unnamed Concern" — which names a DIFFERENT thing it does
+not have. A manager founds an Opes Arx; if he will not name it, the fleet calls it what it is.
+
+## Four facts in one voice, and two words that had eaten the title. *Ruled and built.*
+
+**"TREASURY · BOARD GRANT · SEASON WAGE · 7 ON THE BOOKS"** said four completely different kinds
+of thing side by side, in the same grey, as though they were the same kind of thing. Taken apart:
+
+- **THE TREASURY IS IN THE TOP LINE, ON EVERY PAGE.** It lived on the Roster and the Market and
+  nowhere else — so the DESK, where a manager spends credits doubling focus, never showed him
+  what he had. It is the one figure that transcends the page a manager happens to be on.
+- **THE BOARD GRANT IS GONE FROM THE PAGE.** It is past tense — money already IN the treasury,
+  given once — and a past-tense figure with a permanent home is a figure nobody can act on. It
+  belongs to a year's opening summary, not to a standing line.
+- **WHAT IS LEFT IS WHAT THE ROSTER IS ABOUT:** the wage bill and the headcount, given room
+  rather than a grey aside. The wage is RED, because it is money going out. The count is GREEN
+  when a house can field a drop and RED when it cannot, and says which.
+
+**AND THE CLOCK WEARS THE MONTH'S OWN COLOUR**, the same one the year line gives that stop, so
+the two agree instead of the header being permanently gold.
+
+**"ONE CORPORATION" WAS THE PAGE'S TITLE AND ITS HEADER**, for no reason anybody could name —
+two words that had quietly overwritten the name of the game in the browser tab. The title is
+*Opes Arx — The Capital Divide*. The corner carries the manager's own OA, its mark and its
+colour, which is where a manager's name should have been all along and was nowhere. And an
+unnamed founded corporation is *An Unnamed Concern*: **THE UNNAMED HOUSE** named a thing this
+game does not have.
+
+## The pad lines up, and the builder gets a room. *Built.*
+
+**EVERY BUTTON ON THE PAD IS THE SAME SIZE NOW.** They were sized by their contents — one glyph
+or two, a wide arrow or a tall one — so no two rows lined up and the pad read as a rummage
+drawer. And HEIGHT's arrows now stack one above the other, which is the entire point of the
+picture: width reads across, height reads down. The turn glyphs draw small at any size, so they
+are set larger to match the weight of the rest.
+
+**THE EDITOR IS NOT A DRAWER.** It opened in the 340px rail beside the sheet, and a builder — a
+preview, three rows of pieces and a pad — cannot be folded into a sliver: the rows collapsed to
+one column apiece and the thing was unusable. It stands in the middle of the screen now, on a
+dimmed field, at a width it can actually be worked in, and the dark around it closes it.
+
 ## The menu wears three of the fleet's faces. *Built.*
 
 Three portraits — a Kellis, a Thythyn, an Etu — stand on the menu in TALL OVALS, a portrait's
@@ -1240,9 +1303,11 @@ own shape, which keeps the antennae, the ears and the crest that a circle would 
 has no corners, so the art's black rectangle vanishes into the stage and the three read as one
 piece rather than three images set side by side. The middle is raised and a touch smaller; the
 sides sit lower and further out, framing the title from beneath and beside rather than crowding
-it from above; each wears the light of its own art — cold blue, magenta, ember. The foot line
-reads *Eight Houses · One Year · One Divide*: eleven months named only the preparation and left
-out the thing everybody was preparing for.
+it from above; each wears the light of its own art — cold blue, magenta, ember. THE TAGLINE IS GONE. *Eight Houses · One Year · One Divide* made three claims and all three
+were untrue: there are no houses, there are OAs; the game runs many YEARS, not one; and a year
+holds contests throughout, not one Divide. It was reworded once and should have been cut —
+a line that has to be argued into truth is a line that is not saying anything. The eight OAs'
+own marks stand under the title instead, which claims nothing and shows something.
 
 THE ART RIDES IN THE BUILD AS DATA URLS, the way the catalogue does, because the page is one file
 that opens anywhere. Three PNGs at 3.4MB would have tripled the page; they are WebP at 600×900,
@@ -1384,10 +1449,32 @@ it wants deciding rather than patching.
 *Re-measured with sidearms in play: the range gradient holds — 2.33 dead a fight at a short
 opening against 1.25 at a long one — and clock failures across the three bands are 0/1/0.*
 
-**STILL OPEN: a squad that has lost contact has no way to LOOK for anybody.** It heads for the
-last place anybody was seen and then holds its weapon's preferred range there. With real kit this
-costs two fights in fourteen at the long band rather than a third of them, so it is a refinement
-now rather than a fault — but a search behaviour is what it wants, and it is the next piece.
+**AND THE OTHER HALF OF THE RULING: CONCEALMENT DID NOTHING FOR BEING SEEN.** The spotting pass
+asked two questions — is that body inside my sight, and is there a line to it — so a fighter flat
+in heavy cover was as visible at fourteen tiles as one standing in the open, and every scrap of
+concealment on the map bought exactly nothing. Cover now SHORTENS THE REACH OF AN EYE against
+that body (`CONCEAL_PER_COVER` a grade, never past `CONCEAL_FLOOR`); movement gives it back,
+because a man who is moving is a man you notice (`CONCEAL_MOVING`); and a body that has just
+fired is seen wherever it is, since a muzzle flash is not concealed by a bush. Concealment is
+what the ground IS, not what lies between two points, so it is read from the best cover around
+the body rather than from the shooter's angle.
+
+The ground finally decides something: over twelve fights a side, a FOREST costs 151 body-turns
+with nobody to shoot at against BROKEN GROUND's 54 and an OPEN BASIN's 42, and a fight in it runs
+two and a half turns longer.
+
+**AND THAT MADE THE SEARCH GAP BITE, so it is built too.** A squad with nobody in sight went to
+the last place anybody was seen, or to the middle of the map — and two squads that had never made
+contact both walked to the same middle and milled there, each holding the range its guns preferred
+from a POINT rather than from a body. While sight was long this was a curiosity; the moment
+concealment was real, HALF THE SHAPE GATE'S FIGHTS RAN OUT THE CLOCK, because a forest full of
+people who cannot see each other is a forest full of people standing still. A squad with nothing
+to go on now SWEEPS the ground the enemy came from, and the aim point drifts along that flank as
+the fight runs, so the sweep covers ground rather than orbiting one spot. (`S.sIdx` had to be set
+for that: a side did not know which edge it had come on, so both swept the same flank.)
+
+Shape after: 11.4 turns, nine fights in ten ended by a side breaking, and clock failures across
+the three bands of 1/0/0. Snapshots blessed once against it.
 
 ## The draft dealt three landings because everybody happened to field three. *Ruled and built.*
 

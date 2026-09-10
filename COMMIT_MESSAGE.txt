@@ -1,16 +1,19 @@
-THE MENU WEARS THREE OF THE FLEET'S FACES
+A MONTH THAT ADDS UP, EIGHT COLOURS THAT ARE EIGHT, AND A NAME FOR A NAMELESS OA
 
-- Three portraits — a Kellis, a Thythyn, an Etu — in TALL OVALS on the menu: a portrait's own
-  shape, which keeps the antennae, ears and crest a circle would cut. The middle raised and a
-  touch smaller; the sides lower and further out, framing the title from beneath and beside.
-  Each wears the light of its own art.
-- Foot line: "Eight Houses · One Year · One Divide", and beneath it THE EIGHT HOUSES' OWN
-  MARKS in their own colours — the mock-up's placeholder glyphs, drawn for real by markFor.
-- viewers/art/menu_{kellis,thythyn,etu}.webp (600x900, 183KB the three, from 3.4MB of PNG).
-  build_corp.cjs reads them into ARX_DATA.art as data URLs so the one file opens anywhere.
-- THE STAGE STACKS AND NEVER WRAPS. .overlay has flex-wrap:wrap, and in a column that means
-  the moment the ovals plus the menu are taller than the screen the menu is pushed into a
-  SECOND COLUMN to the right. .menustage is flex-wrap:nowrap and scrolls instead; the harness
-  asserts the rule, since jsdom computes no layout.
+- THE RECAP COULD NOT ADD UP BY CONSTRUCTION: the change stood at the TOP, computed across
+  the whole month, above a list showing only the LAST SIX ledger lines (led.slice(-6)). Every
+  line the month wrote is shown now, in order, and THE TOTAL IS AT THE FOOT with the opening
+  and closing purse beside it.
+- MONEY COMING IN IS GREEN, EVERYWHERE (.cr.pos). Loss had a colour and gain did not, so an
+  advance, a purse and a gate read like a shelf price. Convention: OUT red, IN green, a plain
+  sum of money gold.
+- EIGHT SUPPLIERS, EIGHT COLOURS. The board hashed them into ten hues — eight draws from ten
+  guarantee collisions rather than risk them. Assigned BY POSITION now, from eight pitched
+  away from the houses' banners and the origin colours.
+- The benchmark came off the head of the board: it threw the title's centring out, and every
+  row already says how much more regard that supplier wants.
+- A NAMELESS OA IS "AN UNNAMED OA". It was "The Unnamed House" (a thing the game does not
+  have), which I replaced with "An Unnamed Concern" (a different thing it does not have).
 
-regress 114/114 · audit_code 0 · docs clean · ui audit clean · drive green · page 1.9MB
+regress 114/114 · fight shape ok · audit_code 0 · audit_marks 0 · docs clean · ui audit clean
+· drive green
