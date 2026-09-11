@@ -11,7 +11,7 @@
    "Lean encoding: '++' → +3, '+' → +2, human 'mild' → +1, '−' → −2, '−−' → −3. Balancing offsets beyond RACES.md are flagged in 'lean_notes'.",
    "The Ankoth are excluded by design (canon, Q24): banished non-playable lore race. Not omission.",
    "pool_weights are relative fleet-wide base rates per recruitment pool; corp nattie pools multiply these by oa_profiles.json race_weights.",
-   "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and thythyn.special.wing_injury_table now point at the ratified model rather than owing it."
+   "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and ththyn.special.wing_injury_table now point at the ratified model rather than owing it."
   ]
  },
  "races": [
@@ -458,7 +458,7 @@
    "adjective": "olmac",
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
-   "cohabitant": "thythyn",
+   "cohabitant": "ththyn",
    "lore": "Towering forces of nature with leathery, granite-colored flesh — outsized only by the banished Ankoth. What they lack in cunning they repay in overwhelming battlefield skill, smothering enemies in firepower. No true loyalty: they take any role that puts them on a battlefield.",
    "physiology_tags": [
     "massive",
@@ -572,10 +572,10 @@
    ]
   },
   {
-   "id": "thythyn",
-   "name": "Thythyn",
-   "plural": "Thythyn",
-   "adjective": "thythyn",
+   "id": "ththyn",
+   "name": "Ththyn",
+   "plural": "Ththyn",
+   "adjective": "ththyn",
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
    "cohabitant": "olmac",
@@ -607,7 +607,7 @@
     55
    ],
    "loyalty_texture": "status_coupled",
-   "loyalty_texture_note": "Canon: morale and loyalty track fame, rank, and captaincy prospects; a passed-over Thythyn sours.",
+   "loyalty_texture_note": "Canon: morale and loyalty track fame, rank, and captaincy prospects; a passed-over Ththyn sours.",
    "supply_mult": 0.95,
    "pool_weights": {
     "nattie": 10,
@@ -700,7 +700,7 @@
     },
     {
      "word": "kryv",
-     "gloss": "a superior worth following — from a Thythyn, high praise",
+     "gloss": "a superior worth following — from a Ththyn, high praise",
      "register": "praise",
      "provenance": "proposed"
     },

@@ -39,7 +39,7 @@
       "etu",
       "gil",
       "kellis",
-      "thythyn",
+      "ththyn",
       "svalbard",
       "mon_wa",
       "olmac"
@@ -171,7 +171,7 @@
         "properties": {
          "type": {
           "type": "string",
-          "description": "Injury id from the COMBAT.md 7 tables: inj_arm, inj_leg, inj_torso, inj_head, inj_internal, inj_burns, inj_chest, inj_spinal, inj_catastrophic; Thythyn wing table inj_wing_tear, inj_wing_strut, inj_wing_spar, inj_wing_loss."
+          "description": "Injury id from the COMBAT.md 7 tables: inj_arm, inj_leg, inj_torso, inj_head, inj_internal, inj_burns, inj_chest, inj_spinal, inj_catastrophic; Ththyn wing table inj_wing_tear, inj_wing_strut, inj_wing_spar, inj_wing_loss."
          },
          "severity": {
           "type": "string",
@@ -199,7 +199,7 @@
      "type": "number",
      "minimum": 0,
      "maximum": 100,
-     "description": "Attachment to the corp/manager. Feeds captain doctrine fidelity and poaching resistance. Racially textured (Kellis high, Olmac low, Gil motive-driven, Thythyn status-coupled) per RACES.md. Declared `integer` and produced as a float since it became continuous; caught at Step 8.5b, the first time anything walked a live fighter against this schema."
+     "description": "Attachment to the corp/manager. Feeds captain doctrine fidelity and poaching resistance. Racially textured (Kellis high, Olmac low, Gil motive-driven, Ththyn status-coupled) per RACES.md. Declared `integer` and produced as a float since it became continuous; caught at Step 8.5b, the first time anything walked a live fighter against this schema."
     },
     "fame": {
      "type": "number",

@@ -27,7 +27,7 @@
     W: 26, H: 18,                    // [C] tiles. Big enough for flanks, small enough to close.
     AP: 2,                           // [S] move+shoot, or move+move
     MOVE_TILES: 5,                   // [C] tiles per move action, before mobility
-    /* §RACES THE FLEET'S ONLY FLIERS. A Thythyn's wings were in the data, in the lore and in
+    /* §RACES THE FLEET'S ONLY FLIERS. A Ththyn's wings were in the data, in the lore and in
        the injury table, and in nothing that moved: they walked like everybody else. A burst of
        flight carries them further and over cover, bought with exposure — nothing in the air is
        behind anything — once a fight, and never on a hurt wing. */
@@ -950,9 +950,9 @@
     /* §RACES a flier with ground to cross takes to the air: further, over cover, and seen */
     /* §RACES A FLIER HAS THE AIR AVAILABLE TO IT, once a fight, never on a hurt wing. The
        tiles are offered while the move is being CHOSEN — the first cut of this set the want
-       after the choice was made, so the wings were never in the reckoning and no Thythyn ever
+       after the choice was made, so the wings were never in the reckoning and no Ththyn ever
        left the ground. Taking them is what spends it. */
-    if (u.race === 'thythyn' && !u._flew && !u.wingHurt && (u.state === 'ok' || u.state === 'light')) {
+    if (u.race === 'ththyn' && !u._flew && !u.wingHurt && (u.state === 'ok' || u.state === 'light')) {
       mp += CONST.FLIGHT_TILES; u._flightOffered = true;
     }
     if (u.hooks && u.hooks.has('evasion_surge') && u._underFire) mp += 1;    /* §QUIRKS moves when shot at */

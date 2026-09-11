@@ -424,7 +424,7 @@ field.
 Checked numerically rather than by eye, in perceptual space rather than RGB, because RGB distance
 does not match what an eye separates. Two thresholds: every race must be separable from every
 other race, **and** from all three side colours. `palcheck.cjs` reports the closest pair of each.
-Final: closest two races 14.7 (olmac/svalbard), closest race to a side 14.2 (thythyn/blue),
+Final: closest two races 14.7 (olmac/svalbard), closest race to a side 14.2 (ththyn/blue),
 against a confusion threshold around 12. Two rounds of adjustment were needed — the first palette
 put attorak and gil 10.7 apart, both muted browns.
 
@@ -638,8 +638,8 @@ object and is never set is this project's signature fault and only running it te
 
 ### Reaching the grid, confirmed live
 
-- **Race**, mechanically — `etu` and `thythyn` and `gil` and `human` are each read at their own
-  call sites in `combat.js`; thythyn ignore the long-range penalty, gil break goggles on a head
+- **Race**, mechanically — `etu` and `ththyn` and `gil` and `human` are each read at their own
+  call sites in `combat.js`; ththyn ignore the long-range penalty, gil break goggles on a head
   injury.
 - **Mon-Wa bonded pairs** — 54 bodies in one contest arrive with their half bound, exactly
   matching the 54 cases where both halves were fielded in the same squad. *(A first measurement

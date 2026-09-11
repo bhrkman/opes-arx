@@ -280,7 +280,7 @@ function run(nDivides, seedLabel) {
     engagements: 0, exchanges: 0, shots: 0, hits: 0, downs: 0, killedOutright: 0, downDeaths: 0,
     zeroCas: 0, routEng: 0, brokenEng: 0, squadsBroken: 0, sidesEngaged: 0,
     sidearmDraws: 0, vents: 0,
-    capExits: 0, wingInjuries: 0, thythynSerious: 0
+    capExits: 0, wingInjuries: 0, ththynSerious: 0
   };
   const perNotch = {}; for (const n of NOTCHES) perNotch[n] = { permanent: [], injured: [], dropped: [] };
   const homogeneous = {}; for (const n of NOTCHES) homogeneous[n] = { permanent: [], injured: [], wipes: 0, corps: 0 };
@@ -302,7 +302,7 @@ function run(nDivides, seedLabel) {
 
   for (let i = 0; i < nDivides; i++) {
     const s = runDivide(rng, {});
-    for (const k of ['dead', 'captured', 'injured', 'careerEnded', 'monwaShock', 'engagements', 'exchanges', 'shots', 'hits', 'downs', 'killedOutright', 'downDeaths', 'wingInjuries', 'thythynSerious']) agg[k] += s[k];
+    for (const k of ['dead', 'captured', 'injured', 'careerEnded', 'monwaShock', 'engagements', 'exchanges', 'shots', 'hits', 'downs', 'killedOutright', 'downDeaths', 'wingInjuries', 'ththynSerious']) agg[k] += s[k];
     agg.zeroCas += s.zeroCasualtyEngagements; agg.routEng += s.routEngagements; agg.capExits += s.capExits;
     agg.brokenEng += s.brokenEngagements || 0; agg.squadsBroken += s.squadsBroken || 0;
     agg.sidearmDraws += s.sidearmDraws || 0; agg.vents += s.vents || 0;
@@ -368,7 +368,7 @@ function run(nDivides, seedLabel) {
     joinsPerDivide: mean(joinTally),
     earlyDealShare: pct(dealDays.filter(d => d < 5).length, dealDays.length),
     medianForceEngagements: median(forceEngagements),
-    wingShare: pct(agg.wingInjuries, agg.thythynSerious),
+    wingShare: pct(agg.wingInjuries, agg.ththynSerious),
     wipeShare: pct(wipeFlags.filter(Boolean).length, nDivides),
     standardMedian: median(homogeneous.standard.permanent),
     dogWipeShare: pct(homogeneous.death_or_glory.wipes, Math.max(1, homogeneous.death_or_glory.corps))
@@ -457,7 +457,7 @@ function runAcceptance() {
   observe('P4', 'energy weapons venting per firefight', r.ventPerEng, '');
   observe('T10', 'engagements per drop force', r.medianForceEngagements, '');
   observe('T11', 'median Divide length', r.medianDays, ' days');
-  observe('T12', 'Thythyn serious wounds that are wing', r.wingShare, '%');
+  observe('T12', 'Ththyn serious wounds that are wing', r.wingShare, '%');
   observe('T13', 'Mon-Wa pair losses per Divide', r.agg.monwaShock / n, '');   // corrected in COMBAT.md v0.3
 
   /* T14 — preservationist solvency. COMBAT.md calls this the balance target that matters

@@ -249,7 +249,7 @@ window.ARX_DATA = {
    "Lean encoding: '++' \u2192 +3, '+' \u2192 +2, human 'mild' \u2192 +1, '\u2212' \u2192 \u22122, '\u2212\u2212' \u2192 \u22123. Balancing offsets beyond RACES.md are flagged in 'lean_notes'.",
    "The Ankoth are excluded by design (canon, Q24): banished non-playable lore race. Not omission.",
    "pool_weights are relative fleet-wide base rates per recruitment pool; corp nattie pools multiply these by oa_profiles.json race_weights.",
-   "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and thythyn.special.wing_injury_table now point at the ratified model rather than owing it."
+   "v0.2: the two COMBAT.md debts recorded in this file are discharged. mon_wa.special.tether_note and ththyn.special.wing_injury_table now point at the ratified model rather than owing it."
   ]
  },
  "races": [
@@ -696,7 +696,7 @@ window.ARX_DATA = {
    "adjective": "olmac",
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
-   "cohabitant": "thythyn",
+   "cohabitant": "ththyn",
    "lore": "Towering forces of nature with leathery, granite-colored flesh \u2014 outsized only by the banished Ankoth. What they lack in cunning they repay in overwhelming battlefield skill, smothering enemies in firepower. No true loyalty: they take any role that puts them on a battlefield.",
    "physiology_tags": [
     "massive",
@@ -810,10 +810,10 @@ window.ARX_DATA = {
    ]
   },
   {
-   "id": "thythyn",
-   "name": "Thythyn",
-   "plural": "Thythyn",
-   "adjective": "thythyn",
+   "id": "ththyn",
+   "name": "Ththyn",
+   "plural": "Ththyn",
+   "adjective": "ththyn",
    "absorbed_vc": 24,
    "homeworld": "Xxuntic",
    "cohabitant": "olmac",
@@ -845,7 +845,7 @@ window.ARX_DATA = {
     55
    ],
    "loyalty_texture": "status_coupled",
-   "loyalty_texture_note": "Canon: morale and loyalty track fame, rank, and captaincy prospects; a passed-over Thythyn sours.",
+   "loyalty_texture_note": "Canon: morale and loyalty track fame, rank, and captaincy prospects; a passed-over Ththyn sours.",
    "supply_mult": 0.95,
    "pool_weights": {
     "nattie": 10,
@@ -938,7 +938,7 @@ window.ARX_DATA = {
     },
     {
      "word": "kryv",
-     "gloss": "a superior worth following \u2014 from a Thythyn, high praise",
+     "gloss": "a superior worth following \u2014 from a Ththyn, high praise",
      "register": "praise",
      "provenance": "proposed"
     },
@@ -2689,7 +2689,7 @@ window.ARX_DATA = {
     "positive"
    ],
    "race_locked": [
-    "thythyn"
+    "ththyn"
    ],
    "effects": {
     "hooks": [
@@ -2709,7 +2709,7 @@ window.ARX_DATA = {
     "mixed"
    ],
    "race_locked": [
-    "thythyn"
+    "ththyn"
    ],
    "effects": {
     "hooks": [
@@ -2732,7 +2732,7 @@ window.ARX_DATA = {
     "negative"
    ],
    "race_locked": [
-    "thythyn"
+    "ththyn"
    ],
    "effects": {
     "hooks": [
@@ -3397,7 +3397,7 @@ window.ARX_DATA = {
         "secondary": "#2b2f33"
       },
       "archetype": "broker",
-      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Thythyn contingent — ambitious, transactional, excellent — grows every season.",
+      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Ththyn contingent — ambitious, transactional, excellent — grows every season.",
       "dials": {
         "aggression": 60,
         "treachery": 55,
@@ -3409,7 +3409,7 @@ window.ARX_DATA = {
       "engagement_lean": "standard",
       "doctrine_flavor": "flexible postures; merc-heavy rosters; mid-Divide dealmaking as core competency",
       "race_weights": {
-        "thythyn": 2.2,
+        "ththyn": 2.2,
         "gil": 1.3
       },
       "finance": {
@@ -6974,7 +6974,7 @@ window.ARX_DATA = {
  * this file owns only structure. Seeded via CDPRNG; no Math.random.
  *
  * Styles: diaspora_list (human) · soft_two_word (kellis) · paired_halves (mon_wa)
- *         the_title (olmac) · vowel_starved (thythyn) · pride_classical (svalbard)
+ *         the_title (olmac) · vowel_starved (ththyn) · pride_classical (svalbard)
  *         doubled_mononym (etu) · onomatopoeia (attorak) · latinate_nickname (gil)
  *
  * Also exports: widowName() — Em-/-Em marks (canon) · applyEtHonorific() (ratified)
@@ -7038,7 +7038,7 @@ window.ARX_DATA = {
       return { name: "The " + title, parts: { title } };
     },
 
-    /** Thythyn — vowel-starved y-syllable given + doubled-consonant family. */
+    /** Ththyn — vowel-starved y-syllable given + doubled-consonant family. */
     vowel_starved(rng, n) {
       const onset = P.pick(rng, n.given_onsets);
       let coda = P.pick(rng, n.given_codas);
@@ -7843,8 +7843,8 @@ window.ARX_DATA = {
       text: c => `Mon-Wa bookkeeping: one being, two bodies, one slot. The camp runs better the day they arrive.` },
     { key: "r_olmac", tier: 1, register: "dry", when: c => c.f.race === "olmac",
       text: c => `Olmac: cheap to sign, easy to lose, impossible to suppress. The Divide's load-bearing race, in every sense.` },
-    { key: "r_thythyn", tier: 1, register: "hype", when: c => c.f.race === "thythyn",
-      text: c => `Wings on the roster! Short careers, bright ones — Thythyn fight like the clock is audible, because to them it is.` },
+    { key: "r_ththyn", tier: 1, register: "hype", when: c => c.f.race === "ththyn",
+      text: c => `Wings on the roster! Short careers, bright ones — Ththyn fight like the clock is audible, because to them it is.` },
     { key: "r_svalbard", tier: 1, register: "dry", when: c => c.f.race === "svalbard",
       text: c => `A Svalbard signature is a decades bet — no weak ones exist, and the price agrees.` },
     { key: "r_etu", tier: 1, register: "dry", when: c => c.f.race === "etu",
@@ -10698,7 +10698,7 @@ const CONST = {
 
   /* §8 racial */
   MONWA_TETHER_COMP: -25,                 // [S]
-  THYTHYN_HOVER_P: 0.22,                  // [C] share of Thythyn repositions that hover
+  THYTHYN_HOVER_P: 0.22,                  // [C] share of Ththyn repositions that hover
   GIL_GOGGLE_DAMAGE_P: 0.40,              // [S] on head-location hit
   GIL_GOGGLE_AIM_PENALTY: 5,              // [S]
   ATTORAK_INTENSITY_COMP: 4,              // [S]
@@ -10733,7 +10733,7 @@ const INJURY_TABLE = [
   [18, 'inj_arm'], [36, 'inj_leg'], [52, 'inj_torso'], [62, 'inj_head'],
   [72, 'inj_internal'], [82, 'inj_burns'], [90, 'inj_chest'], [96, 'inj_spinal'], [100, 'inj_catastrophic']
 ];
-/* §7.2 Thythyn wing table */
+/* §7.2 Ththyn wing table */
 const WING_TABLE = [[40, 'inj_wing_tear'], [72, 'inj_wing_strut'], [92, 'inj_wing_spar'], [100, 'inj_wing_loss']];
 
 const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], permanent: [120, 240] };
@@ -11111,7 +11111,7 @@ function compBandOf(c) {
 }
 
 function bandMismatch(c, bandIdx) {
-  if (c.race === 'thythyn') return 0;                       // no_range_band_penalty (ratified)
+  if (c.race === 'ththyn') return 0;                       // no_range_band_penalty (ratified)
   const optimal = BANDS.indexOf(c.weapon.range || 'medium');
   const off = Math.abs(optimal - bandIdx);
   /* in your own element, and your element is not the one every fight drifts into */
@@ -11433,13 +11433,13 @@ function tallySide(rng, S) {
 
 function rollInjury(rng, u, worst) {
   let roll = 1 + Math.floor(rng() * 100);
-  const isThythyn = u.race === 'thythyn';
+  const isThthyn = u.race === 'ththyn';
   let wingRange = 35;
   if (u.hooks.has('wing_injury_susceptibility_up')) wingRange = 46;
   if (u.hooks.has('flight_mobility_bonus')) wingRange = 28;
 
   let type;
-  if (isThythyn && roll <= wingRange) {
+  if (isThthyn && roll <= wingRange) {
     const wr = 1 + Math.floor(rng() * 100);
     type = WING_TABLE.find(e => wr <= e[0])[1];
   } else {
@@ -17554,7 +17554,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       engagements: 0, exchanges: 0, shots: 0, hits: 0, downs: 0, killedOutright: 0, downDeaths: 0,
       zeroCasualtyEngagements: 0, routEngagements: 0, brokenEngagements: 0, squadsBroken: 0,
       sidesEngaged: 0, sidearmDraws: 0, vents: 0, capExits: 0, days: 0,
-      wingInjuries: 0, thythynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
+      wingInjuries: 0, ththynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
       _corps: corps,   /* the relay broadcast needs the whole field, §2.4 */
       claims: 0, relayFirings: 0, stanceChanges: 0, windows: 0, forcedContacts: 0, escapes: 0,
       deals: [], refusals: [], joins: 0, pacts: 0, standDowns: 0, betrayals: 0, disqualifications: 0, offersSent: 0,
@@ -18258,8 +18258,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             for (let gi = 0; gi < groups.length; gi++) {
               const side = built[gi];
               for (const u of side.units) {
-                if (u.race === 'thythyn' && u.injury) {
-                  stats.thythynSerious++;
+                if (u.race === 'ththyn' && u.injury) {
+                  stats.ththynSerious++;
                   if (u.injury.type.startsWith('inj_wing')) stats.wingInjuries++;
                 }
               }

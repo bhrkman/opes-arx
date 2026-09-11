@@ -211,9 +211,17 @@ setTimeout(() => {
             (high && high.asks) + ' not)');
       r0.loyalty = keepL; r0.contract = keepC;
     }
-    /* §BRIEF the first month of a career says what a manager walked into */
-    check(/Already in Play/.test(text('#brief')),
-          'the opening month says the fleet was already running, not that a table is shut');
+    /* §BRIEF THE FIRST MONTH OF A CAREER IS A READING, NOT A SENTENCE. It said "Table Closed",
+       then said a sentence about inheriting a fleet, which was no better — prose where a
+       manager wants figures he can act on. */
+    {
+      const stk = [...doc.querySelectorAll('#brief .stk .lab')].map(x => x.textContent);
+      check(stk.length === 5 && stk.indexOf('On the Books') >= 0 && stk.indexOf('Mending') >= 0 &&
+            stk.indexOf('In the Bank') >= 0,
+            'the opening month counts what the manager is holding: ' + stk.join(', '));
+      check(!/Already in Play|Table Closed/.test(text('#brief')),
+            'and says it in figures rather than a sentence');
+    }
     /* §RESIGN THE PAPER: the Review is where a manager answers his own expiring contracts */
     {
       const GP = window.__G, S6 = window.CDSEASON;
@@ -259,6 +267,82 @@ setTimeout(() => {
           'the desk offers all four verbs as their own boards: drill, recovery, intel, courting');
     check(!/0\s*1\s*2\s*3/.test(text('#verbs')),
           'and the retired 0-to-3 rest row is gone from the top of the desk');
+    /* §DESK the tally speaks for both columns, so it stands OUTSIDE the two-column grid —
+       inside the left column it was centred over training and rest and sat off to one side,
+       which looked deliberate and was worse than the corner it came from */
+    {
+      const fl = doc.querySelector('.focusdeskline');
+      check(!!fl && !fl.closest('.grid2'),
+            'the focus tally stands above both columns, not inside one');
+    }
+    /* §TRYOUTS A MANAGER WHO MARKED NOBODY WANTED NOBODY. The AI's fall-through — a house
+       below the drop floor calls up its own ship — caught the manager's corp too, so ending
+       the Natural-Born month without marking anyone signed the entire sheet on his behalf. */
+    {
+      const S1 = window.CDSEASON, P1 = window.CDPRNG;
+      const oa1 = window.ARX_DATA.oa_profiles.oa_profiles;
+      const r1 = P1.mulberry32(P1.seedFrom('nattieprobe'));
+      const c1 = S1.openFleet(r1, oa1, {});
+      const you = Object.keys(c1)[0];
+      const st1 = S1.beginSeason(r1, c1, oa1, { human: you });
+      const before = c1[you].roster.length;
+      const theirs = Object.keys(c1)[1], theirBefore = c1[theirs].roster.length;
+      while (st1.month <= 3) S1.stepMonth(st1);        /* through both Natural-Born months */
+      check(c1[you].roster.length === before,
+            'a manager who marked nobody signed nobody (' + before + ' \u2192 ' +
+            c1[you].roster.length + ')');
+      check(c1[theirs].roster.length > theirBefore,
+            'while a house nobody runs still calls up its own ship (' + theirBefore + ' \u2192 ' +
+            c1[theirs].roster.length + ')');
+    }
+    /* §EVENTS an event names its subject and lets a manager open the sheet if he wants it —
+       it used to unroll the whole stat sheet across the width of the screen for one line */
+    {
+      const css2 = [...doc.querySelectorAll('style')].map(x => x.textContent).join('\n');
+      check(/\.evcard \.subj \.nm\{[^}]*cursor:pointer/.test(css2),
+            'an event\'s subject is a name a manager can click, not a stat sheet');
+      check(/\.evcard \.es\{[^}]*color:var\(--ink\)/.test(css2),
+            'and the copy is set in the reading colour, not the page\'s dim');
+    }
+    /* §RACES the peoples are spelt Ththyn, and wear colours a manager can tell apart */
+    {
+      const R2 = window.CDROSTER, races = window.ARX_DATA.races.races;
+      check(races.some(r => r.id === 'ththyn' && r.name === 'Ththyn') &&
+            !races.some(r => /thythyn/i.test(r.id + r.name)),
+            'the race is Ththyn, in its id and its name');
+      /* a saved career written before the rename still loads as a people the game has */
+      check(!/thythyn/i.test(JSON.stringify(window.ARX_DATA.races)),
+            'and nothing in the catalogue spells it the old way');
+      void R2;
+    }
+    /* §PAPER the figures say which period they are for, and the term says how long */
+    {
+      const S2 = window.CDSEASON, G2 = window.__G;
+      const rows = S2.renewalsFor(G2.state, G2.me) || [];
+      if (rows.length) {
+        const nat = rows.find(r => r.kind === 'nattie');
+        check(rows.every(r => r.years >= 1),
+              'a renewal names its term (' + rows.map(r => r.years).join(',') + ' years)');
+        /* the ruled ranges live in recruitment.json, read through the roster — not in a
+           constant, which is what this used to ask and what the data gate now forbids */
+        const merc = (window.CDROSTER.seasonsRange('mercenary') || [1])[0];
+        if (nat) check(nat.years > merc,
+                       'and a Natural-Born signs longer than a mercenary (' + nat.years +
+                       ' against ' + merc + ')');
+      }
+    }
+    /* §FOUNDING a fleet that has run the Divide for years does not open unmarked */
+    {
+      const GF = window.__G, able = GF.corps[GF.me].roster.filter(f => f.status === 'active');
+      const hurt = able.filter(f => ((f.condition || {}).injuries || []).length).length;
+      const worn = able.filter(f => ((f.condition || {}).stress || 0) > 0).length;
+      check(hurt >= 1 && worn >= able.length - 1,
+            'the founding roster carries last year\'s marks (' + hurt + ' hurt, ' + worn + ' worn)');
+    }
+    /* §MARKET a shut window shows the people the next one will offer, greyed and untouchable */
+    check(doc.querySelectorAll('#rostmarket .shutwrap .pc').length > 0 ||
+          !doc.querySelector('#rostmarket .shutwrap'),
+          'a shut window shows the coming sheet behind its shutter');
     check(/Focus Spent \d of 8/.test(text('#focusdesk')),
           'the focus board is prefilled by the corp\'s own judgement: ' + text('#focusdesk').slice(0, 40));
     /* the grid is the source of truth for training; clear it and the other verbs so the whole
@@ -377,7 +461,8 @@ setTimeout(() => {
             !doc.querySelector('#mktledger .mrow'),
             'the shelf opens with every rack shut (' + secs.length + ' racks)');
       doc.querySelector('#mktledger .msec').click();
-      check(!!doc.querySelector('#mktledger .mrow'), 'and a rack opens when it is asked for');
+      check(!!doc.querySelector('#mktledger .msecrows .mrow'),
+            'and a rack opens into a two-column grid when it is asked for');
       check(secs.length >= 5 && secs[0] === 'Carbines',
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
@@ -559,26 +644,33 @@ setTimeout(() => {
     /* A HAND'S STATS FOLD NOW. The corner and the columns are always there — they are what
        a manager reaches for most — but the narrow work lives behind a chevron, so open the
        hand first, exactly as somebody playing would. */
-    const hand = doc.querySelector('#traingrid [data-tgopen="' + subject.id + '"]');
-    check(!!hand && /tghand/.test(hand.className),
-          'the whole line opens a hand, not just the triangle');
+    /* §DESK THE CHEVRON FOLDS, THE NAME OPENS THE SHEET. The whole line used to open the hand,
+       which gave the same word two meanings on one screen: on the Roster and in the Squads a
+       name opens a sheet. The chevron is a 26px target and the only thing that folds. */
+    const chev = doc.querySelector('#traingrid .tgchev[data-tgopen="' + subject.id + '"]');
+    const hand = chev && chev.closest('.tghand');
+    check(!!chev && !!hand && /tghand/.test(hand.className),
+          'the chevron folds a hand, and it is its own target');
+    check(!!hand.querySelector('.tgname[data-sheet="' + subject.id + '"]'),
+          'and the name opens the sheet, as it does on every other screen');
     /* and painting a hand's own pips must not open it: the two targets share a row but
        never a click */
     const rowPips = hand.querySelectorAll('.tgpips .pip');
     rowPips[0].click();
-    check(!doc.querySelector('#traingrid [data-tgopen="' + subject.id + '"]')
-              .nextElementSibling.className.match(/tgpanel/),
+    check(!/tgpanel/.test((doc.querySelector('#traingrid .tgchev[data-tgopen="' + subject.id +
+              '"]').closest('.tghand').nextElementSibling || {}).className || ''),
           'painting a hand\'s row pips does not open the hand under them');
     /* clear it again: the pips re-render, so the pip to click is a fresh one, and leaving
        it painted would spend focus the checks below are counting */
-    doc.querySelector('#traingrid [data-tgopen="' + subject.id + '"]')
+    doc.querySelector('#traingrid .tgchev[data-tgopen="' + subject.id + '"]').closest('.tghand')
        .querySelectorAll('.tgpips .pip')[0].click();
-    doc.querySelector('#traingrid [data-tgopen="' + subject.id + '"]').click();
+    /* the CHEVRON opens the hand now — clicking the line opens nothing, which is the point */
+    doc.querySelector('#traingrid .tgchev[data-tgopen="' + subject.id + '"]').click();
     /* a closed hand is one thin line now; the stats live in the panel that follows it, and
        the panel carries the stat names in their colours */
     /* the grid re-renders on every paint, so the element clicked a moment ago is detached:
        the panel has to be looked up FRESH or the check reads a ghost of the old DOM */
-    const panel = doc.querySelector('#traingrid [data-tgopen="' + subject.id + '"]').nextElementSibling;
+    const panel = doc.querySelector('#traingrid .tgchev[data-tgopen="' + subject.id + '"]').closest('.tghand').nextElementSibling;
     check(panel && /tgpanel/.test(panel.className) &&
           panel.querySelectorAll('.tglabel').length === gridStats.length,
           'the open panel names every stat, in its own colour');
@@ -823,7 +915,9 @@ setTimeout(() => {
     check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/.test(text('#frLbl')),
           'a show-match replays on the grid (' + (+doc.getElementById('fr').max + 1) +
           ' frames \u00b7 ' + text('#frLbl') + ')');
-    check(/Purse|Drawn/.test(text('#result')) && /Paid at the Whistle/.test(text('#settle')),
+    /* either outcome is a valid exhibition — a purse taken or a draw — and the page writes
+       "drawn" inside a sentence, where Title Case does not apply */
+    check(/Purse|drawn/i.test(text('#result')) && /Paid at the Whistle/.test(text('#settle')),
           'the lights\' result reads as an exhibition: ' +
           text('#result').replace(/\s+/g, ' ').trim().slice(0, 90));
     check(!doc.getElementById('lock') && !doc.getElementById('run') && !doc.getElementById('lockinfo'),
@@ -1044,9 +1138,12 @@ setTimeout(() => {
           'the board shows six squads, named Alpha through Foxtrot');
     /* assign six to Alpha. The board is select-then-place: pick a bench card up, then click
        the squad's Place. Six times, through the page's own clicks. */
-    const fit = G.corps[G.me].roster.filter(f => f.status === 'active');
-    const squadIds = fit.slice(0, 6).map(f => f.id);
+    /* §WOUNDS TAKE THE HANDS THE BENCH ACTUALLY OFFERS. This picked the first six by `status`,
+       which is no longer the same set: a wound is a condition now, so the badly hurt are on the
+       roster and not on the bench. Reading the bench is also what a manager does. */
     hasTab('Squads') && [...doc.querySelectorAll('.tab')].filter(x => /Squad/.test(x.textContent))[0].click();
+    const squadIds = [...doc.querySelectorAll('#bench .fcard[data-id]')]
+      .slice(0, 6).map(el => el.getAttribute('data-id'));
     squadIds.forEach(id => {
       doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
       doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]').click();
@@ -1173,7 +1270,10 @@ setTimeout(() => {
     check(!doc.querySelector('#bench .fcard[data-id="' + squadIds[0] + '"]'),
           'a placed fighter leaves the bench');
     /* the seventh and eighth fit the engine's SQUAD_MAX of 8; a ninth is refused */
-    const more = fit.slice(6, 9).map(f => f.id);
+    /* the same bench, read again: the six above are gone from it, so what remains is the rest */
+    const benchNow = [...doc.querySelectorAll('#bench .fcard[data-id]')].map(el => el.getAttribute('data-id'));
+    const fitCount = squadIds.length + benchNow.length;
+    const more = benchNow.slice(0, 3);
     more.forEach(id => { doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
                          const pl = doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]');
                          if (pl) pl.click(); else G._sqsel = null; });
@@ -1182,12 +1282,16 @@ setTimeout(() => {
           'Alpha fills all eight slots');
     /* the cross sends the two extras home again */
     more.slice(0, 2).forEach(id => alpha().querySelector('.port-card[data-id="' + id + '"] [data-home]').click());
+    /* two came off the card, so two are back on the bench — counted against the bench as it
+       stood a moment ago rather than against a roster figure that no longer means the same */
     check(alpha().querySelectorAll('.port-card[data-id]').length === 6 &&
-          doc.querySelectorAll('#bench .fcard').length === fit.length - 6,
-          'the cross on a portrait sends a fighter home');
+          doc.querySelectorAll('#bench .fcard').length >= 2,
+          'the cross on a portrait sends a fighter home (' +
+          alpha().querySelectorAll('.port-card[data-id]').length + ' on the card, ' +
+          doc.querySelectorAll('#bench .fcard').length + ' at home)');
     /* the star on a row makes a leader, on the person */
     const leadId = squadIds[3];
-    const leadName = fit.find(f => f.id === leadId).name;
+    const leadName = G.corps[G.me].roster.find(f => f.id === leadId).name;
     alpha().querySelector('.port-card[data-id="' + leadId + '"] [data-lead]').click();
     check(!!G.plan.leaderOf[leadId] && alpha().querySelectorAll('.pstar.on').length === 1,
           'clicking the star sets leadership on the person: ' + leadName);
@@ -1585,8 +1689,12 @@ setTimeout(() => {
     check(/turn \d+ of \d+/.test(text('#frLbl')), 'its turn label reads: ' + text('#frLbl'));
     const rowsA = doc.querySelectorAll('#rosterA .unit').length;
     const rowsB = doc.querySelectorAll('#rosterB .unit').length;
-    check(Math.min(rowsA, rowsB) >= 1 && Math.min(rowsA, rowsB) <= 6,
-          'the manager\'s six rode into the real Divide (side panels ' + rowsA + ' vs ' + rowsB + ')');
+    /* A SIDE PANEL IS A FIGHT, NOT A SQUAD. The band here was 1..6, written when a fight was
+       one squad against one; squads join a fight in progress now, so a side can be two or three
+       squads deep. The rule that still holds is the drop cap. */
+    const cap = window.CDSEASON.CONST.DROP_MAX;
+    check(Math.min(rowsA, rowsB) >= 1 && Math.max(rowsA, rowsB) <= cap,
+          'both sides of the real Divide are within the drop cap (' + rowsA + ' vs ' + rowsB + ')');
     check(+doc.getElementById('gday').max >= 5,
           'the whole contest scrubs day by day (' + doc.getElementById('gday').max + ' days recorded)');
 

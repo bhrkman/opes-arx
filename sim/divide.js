@@ -2887,7 +2887,7 @@
       engagements: 0, exchanges: 0, shots: 0, hits: 0, downs: 0, killedOutright: 0, downDeaths: 0,
       zeroCasualtyEngagements: 0, routEngagements: 0, brokenEngagements: 0, squadsBroken: 0,
       sidesEngaged: 0, sidearmDraws: 0, vents: 0, capExits: 0, days: 0,
-      wingInjuries: 0, thythynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
+      wingInjuries: 0, ththynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
       _corps: corps,   /* the relay broadcast needs the whole field, §2.4 */
       claims: 0, relayFirings: 0, stanceChanges: 0, windows: 0, forcedContacts: 0, escapes: 0,
       deals: [], refusals: [], joins: 0, pacts: 0, standDowns: 0, betrayals: 0, disqualifications: 0, offersSent: 0,
@@ -3632,8 +3632,8 @@
             for (let gi = 0; gi < groups.length; gi++) {
               const side = built[gi];
               for (const u of side.units) {
-                if (u.race === 'thythyn' && u.injury) {
-                  stats.thythynSerious++;
+                if (u.race === 'ththyn' && u.injury) {
+                  stats.ththynSerious++;
                   if (u.injury.type.startsWith('inj_wing')) stats.wingInjuries++;
                 }
               }

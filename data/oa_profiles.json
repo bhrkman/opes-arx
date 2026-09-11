@@ -214,7 +214,7 @@
         "secondary": "#2b2f33"
       },
       "archetype": "broker",
-      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Thythyn contingent — ambitious, transactional, excellent — grows every season.",
+      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Ththyn contingent — ambitious, transactional, excellent — grows every season.",
       "dials": {
         "aggression": 60,
         "treachery": 55,
@@ -226,7 +226,7 @@
       "engagement_lean": "standard",
       "doctrine_flavor": "flexible postures; merc-heavy rosters; mid-Divide dealmaking as core competency",
       "race_weights": {
-        "thythyn": 2.2,
+        "ththyn": 2.2,
         "gil": 1.3
       },
       "finance": {

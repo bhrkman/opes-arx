@@ -101,7 +101,14 @@
   .rostsum .rsfig{display:flex;flex-direction:column;line-height:1.25}
   .rostsum .lab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
   .rostsum b{font-size:19px;letter-spacing:.02em}
-  .rostsum b.good{color:var(--hit)} .rostsum b.bad{color:var(--bad)}
+  .rostsum b.good{color:var(--hit)} .rostsum b.bad{color:var(--red)}
+  /* §REST one scale for both tracks: green whole, grey through the middle, red at the end */
+  /* green, light green, grey, light red, red — the five the drill's own reads use */
+  .tgnum.good{color:var(--hit)}
+  .tgnum.okgood{color:#8fd070}
+  .tgnum.mid{color:var(--dim)}
+  .tgnum.warn{color:#e8907a}
+  .tgnum.bad{color:var(--red)}
   .rostsum .sub{font-size:9.5px;color:var(--dim)}
   #whoami{font-size:15px;letter-spacing:.06em}
   #whoami svg{vertical-align:-2px}
@@ -331,12 +338,32 @@
      large, the subject as a fighter card where there is one, the situation in a line, and
      the ways side by side — the label big, the cost small under it. Answered, the dispatch
      folds to its line. */
+  /* §BRIEF the opening reading: five figures, each one a thing to act on */
+  .brief .stock{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin-top:2px}
+  .brief .stk{display:flex;flex-direction:column;line-height:1.2}
+  .brief .stk b{font-size:17px;letter-spacing:.02em}
+  .brief .stk b.good{color:var(--hit)} .brief .stk b.bad{color:var(--bad)}
+  .brief .stk b.cr{color:var(--cred)}
+  .brief .stk b .good{color:var(--hit)} .brief .stk b .bad{color:var(--red)}
+  .brief .stk b .of{color:var(--dim);font-size:13px}
+  .brief .stk .lab{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
   .evgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-bottom:12px}
   .evcard{--k:var(--cred);background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--k);border-radius:8px;padding:0;overflow:hidden}
   .evcard.done{opacity:.6}
   .evcard .evk{display:flex;justify-content:space-between;align-items:baseline;padding:6px 12px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--k)}
   .evcard .et{font-size:14px;color:var(--ink);font-weight:bold;padding:2px 12px 0}
-  .evcard .es{font-size:11.5px;color:var(--dim);line-height:1.45;padding:4px 12px 8px}
+  /* §EVENTS AN EVENT IS THE ONE THING ON THE DESK THAT MUST BE READ. It was set in the same
+     receding dim as every aside on the page, inside the same quiet border as every box — so
+     the one item that stops a month looked like furniture. The copy is brought up to the
+     reading colour, and the card is ringed in its own kind's colour rather than the line grey. */
+  .evcard .es{font-size:12.5px;color:var(--ink);line-height:1.5;padding:4px 12px 8px}
+  .evcard{border-color:color-mix(in srgb, var(--k) 45%, var(--line2)) !important;
+    box-shadow:0 0 0 1px color-mix(in srgb, var(--k) 18%, transparent), 0 6px 20px rgba(0,0,0,.35)}
+  .evcard.done{border-color:var(--line2) !important;box-shadow:none}
+  .evcard.done .es{color:var(--dim)}
+  .evcard .subj{display:flex;align-items:center;gap:7px;padding:2px 12px 8px}
+  .evcard .subj .nm{font-weight:bold;cursor:pointer;text-decoration:underline dotted 1px;text-underline-offset:3px}
+  .evcard .subj .nm:hover{color:var(--a)}
   .evcard .subj{margin:0 12px 8px}
   .evcard .subj .fcard{cursor:default;--sq:var(--k)}
   .evopts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;background:var(--line2);border-top:1px solid var(--line2)}
@@ -569,17 +596,25 @@
      green; a figure that is merely a sum of money — a price, a purse, a balance — stays gold.
      Loss had a colour and gain did not, so an income read the same as a shelf price. */
   .cr{color:var(--cred);font-weight:600}
-  .cr.neg{color:var(--bad)}
+  /* MONEY LEAVING IS RED, AND `--bad` IS NOT RED — it is amber (#e0a848), a warning colour,
+     within a few points of the gold `--cred` it was supposed to contrast with. Every loss in
+     the game has been painted as a caution rather than a cost. */
+  .cr.neg{color:var(--red)}
+  .cr.bad{color:var(--red)}                 /* the form `crs` emits for a negative figure */
   .cr.pos{color:var(--hit)}
   .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
     border:1px solid var(--line);border-radius:4px;background:#0b111b;margin-bottom:8px}
   /* the market's shelf */
-  /* the shelf: two columns of rows, and a section head that spans both */
-  #mktledger{column-count:2;column-gap:18px}
-  #mktledger .msec{column-span:all;cursor:pointer;break-inside:avoid}
+  /* §MARKET THE SHELF IS TWO COLUMNS, AND A GRID SAYS SO. It was CSS multi-column with the
+     section heads set to span all of it — which balances by height, breaks where it likes, and
+     with one rack open put everything in the first column and left the second empty. A rack's
+     rows are a two-column GRID: each row is a cell, the head is its own full-width line, and
+     the shelf is half as tall as it was. */
+  #mktledger .msec{cursor:pointer}
   #mktledger .msec:hover .nm{color:var(--ink)}
-  #mktledger .mrow{break-inside:avoid}
-  @media (max-width:900px){ #mktledger{column-count:1} }
+  #mktledger .msecrows{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+  #mktledger .msecrows .mrow.open{grid-column:1/-1}
+  @media (max-width:900px){ #mktledger .msecrows{grid-template-columns:1fr} }
   .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
     border-top:1px solid var(--line)}
   .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
@@ -602,7 +637,8 @@
   .stepn{width:26px;text-align:center;font-size:11.5px;color:var(--dim);padding:1px 0;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .stepn.on{color:var(--cred);font-weight:600}
-  .tgchev{cursor:pointer;color:var(--dim);user-select:none;width:12px;display:inline-block}
+  /* was `width:12px` — a twelve-pixel triangle to aim at. See the chevron rule below. */
+  .tgchev{cursor:pointer;color:var(--dim);user-select:none}
   .tgchev:hover{color:var(--a)}
   /* a closed hand is one thin line; the panel under an open one carries the stat names */
   .tghdr{width:100%;margin-bottom:2px}
@@ -615,7 +651,21 @@
   .tgguard{width:18px;flex:0 0 18px}
   .tgpips{cursor:default;padding:2px 2px}
   .tghand.open{background:#101b2b}
-  .tgname{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the name centres in the space the row gives it, and reads as the link it now is */
+  .tgname{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
+    cursor:pointer;text-decoration:underline dotted 1px;text-underline-offset:3px}
+  .tgname:hover{color:var(--a) !important}
+  /* THE CHEVRON IS THE FOLD, so it is a target rather than a hint: a 26px square with the
+     glyph centred in it, which is about a fingertip and plainly clickable. */
+  /* §CHROME A CHEVRON IS A CONTROL, SO IT IS THE SIZE OF ONE. Every fold on the page was a
+     glyph at the page's body size — a few pixels of triangle to aim at — on the Desk's grids,
+     the shelf's racks, the fold heads and the market rows alike. They are all the same target
+     now, and all plainly clickable. */
+  .tgchev,.tgchev2{display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:26px;flex:none;border-radius:5px;cursor:pointer;font-size:17px;line-height:1;color:var(--dim)}
+  .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a)}
+  .tghead .tgchev2{margin-left:auto}
+  #mktledger .msec .tgchev{font-size:16px}
   .tgcount{color:var(--gold);font-size:10.5px}
   .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
   .tgpanel table{border-collapse:collapse}
@@ -956,7 +1006,17 @@
   .rsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:7px}
   .rscard{background:#231c0c;border:1px solid #4a3a12;border-radius:6px;padding:8px 10px}
   .rscard.called{border-color:var(--cred)}
-  .rsn{font-size:12px} .rsf{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:10.5px;margin:6px 0}
+  /* §PAPER the names sit centred, as they do on the Roster, and an offer is typed */
+  .rsn{font-size:12px;justify-content:center;text-align:center}
+  .rsf{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:10.5px;margin:6px 0}
+  .rscard .m{text-align:center}
+  .o-nat{color:var(--o-nat)} .o-mer{color:var(--o-mer)} .o-con{color:var(--o-con)}
+  .rsoffer{display:flex;gap:5px;align-items:stretch}
+  .rsin{width:84px;font:inherit;font-size:11px;background:var(--bg);border:1px solid var(--line2);
+    color:var(--ink);border-radius:5px;padding:3px 6px;text-align:right}
+  .rsin:focus{outline:none;border-color:var(--a)}
+  .rsf .per{color:var(--dim);font-size:9px;letter-spacing:.04em;margin-left:2px}
+  .rsoffer .pcbtn{flex:1}
   .rsf .k{color:var(--dim)} .rsf .v{text-align:right}
   .rsways{display:grid;gap:4px} .rsways .pcbtn{width:100%;text-align:left}
   .rsways .sub{display:block;font-size:9px;color:var(--dim)}
@@ -969,7 +1029,7 @@
   /* the focus tally sits ABOVE both grids, in the middle, and says how much is left in a
      colour a manager can read across the room: red while any is unspent, green when it is all
      committed */
-  .focusdeskline{text-align:center;margin:2px 0 10px;font-size:13px;letter-spacing:.06em}
+  .focusdeskline{text-align:center;margin:4px 0 12px;font-size:13px;letter-spacing:.06em;width:100%}
   .focusdeskline b{font-size:16px} .focusdeskline b.left{color:var(--bad)} .focusdeskline b.done{color:var(--hit)}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
   .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
@@ -1238,12 +1298,16 @@
   <div class="brief" id="brief"></div>
   <div id="eight"></div>
   <div id="events"></div>
+  <!-- §DESK THE TALLY SPEAKS FOR BOTH COLUMNS, SO IT STANDS ABOVE BOTH. It was put inside the
+       LEFT column of the grid, which centred it over training and rest and left it sitting
+       off to one side of the screen — worse than the corner it came from, because it now
+       looked deliberate. It belongs outside the grid entirely. -->
+  <div class="focusdeskline"><span class="m" id="focusdesk"></span></div>
   <div class="grid2">
     <div>
       <!-- "The month's verbs" said nothing a manager would say, and the section beneath it
            already names each verb; "Gather Intel and Court Sponsors" simply listed the two
            boxes under it. Both removed rather than reworded. -->
-      <div class="focusdeskline"><span class="m" id="focusdesk"></span></div>
       <div id="verbs"></div>
       <div id="traingrid"></div>
       <div id="restgrid"></div>
@@ -1963,7 +2027,12 @@
     $('money').innerHTML =
       '<div class="rostsum">' +
         '<span class="rsfig"><span class="lab">The Wage Bill</span>' +
-          '<b class="cr neg">\u2212' + crs(wage).replace('\u20a1', '\u20a1') + '</b>' +
+          /* the MINUS was inside the red span and the figure was not — a red dash in front of
+             a gold number, which reads as a typo rather than a cost */
+          /* §MONEY `crs` WRAPS ITS OWN GOLD SPAN, so a red parent coloured the minus sign and
+             the figure inside kept the gold: a red dash in front of a gold number, which reads
+             as a typo rather than a cost. `crs(-n)` is the negative form, red throughout. */
+          '<b>' + crs(-wage) + '</b>' +
           '<span class="sub">A Month</span></span>' +
         '<span class="rsfig"><span class="lab">On the Books</span>' +
           '<b class="' + (canField ? 'good' : 'bad') + '">' + alive.length + '</b>' +
@@ -2052,23 +2121,47 @@
           '<div class="rsn">' + fighterMark(f || r, 18, colFor(G.me)) +
             '<span class="nm" data-sheet="' + r.id + '" style="color:' + raceColour(f || r) + '">' + esc(r.name) + '</span>' +
             (r.freed ? ' <span class="ktag hand">Sentence Served</span>' : '') + '</div>' +
-          '<div class="m">' + esc(capWords(r.kind)) + ' \u00b7 Fame ' + Math.round(r.fame) + ' \u00b7 Age ' + r.age + '</div>' +
-          '<div class="rsf"><span class="k">Was</span><span class="v">' + crs(r.was) + '</span>' +
-            '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.asks) + '</span>' +
-            '<span class="k">A Year</span><span class="v">' + crs(r.year) + '</span></div>' +
+          /* §PAPER A CONTRACT IS FOR A YEAR, so the figures are a year's. Was / Asks / A Year
+             showed the same wage twice — once a month and once times twelve — and a manager had
+             to know which was which. And the window is called NATURAL-BORN everywhere else on
+             the page; "Nattie" is what the fleet says, not what a screen should. */
+          /* the page has said "Natural-Born" since the origins were named; the Paper was the
+             one screen still saying "Nattie", which is what the fleet says, not what a screen
+             should — and it wears the origin's own colour, as every other mention does */
+          '<div class="m"><span class="o-' + (ORIGIN[r.kind] || ORIGIN.nattie).cls + '">' +
+            esc((ORIGIN[r.kind] || ORIGIN.nattie).label) + '</span> \u00b7 Fame ' +
+            Math.round(r.fame) + ' \u00b7 Age ' + r.age + '</div>' +
+          /* the wage bill above and every salary below are MONTHLY; these are a year's, and
+             the only way a manager knows which is if the figure says so */
+          '<div class="rsf"><span class="k">Was</span><span class="v">' + crs(r.was * 12) + '<span class="per">/year</span></span>' +
+            '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
+            '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
             ? '<div class="rsdone">' + ({ sign: 'Re-Signed', haggle: 'Offered ' + crs(r.called.offer || low), release: 'Let Go' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
             : '<div class="rsways">' +
-              '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.asks) + '</button>' +
-              '<button class="pcbtn" data-rs="haggle" data-rsid="' + r.id + '">Offer ' + crs(low) + '<span class="sub">They May Walk</span></button>' +
+              '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.year) + '</button>' +
+              /* §PAPER AN OFFER IS A NUMBER A MANAGER CHOOSES. It was a single fixed step
+                 below the ask, so haggling was one button with one answer. He types a year's
+                 figure; a man weighs it against what he thinks of the house, and one paid over
+                 his ask remembers it. */
+              '<span class="rsoffer"><input class="rsin" type="text" inputmode="numeric" ' +
+                'data-rsoff="' + r.id + '" value="' + Math.round(r.year * SEASON.CONST.HAGGLE_FLOOR) + '">' +
+                '<button class="pcbtn" data-rs="haggle" data-rsid="' + r.id + '">Offer This</button></span>' +
               '<button class="pcbtn x" data-rs="release" data-rsid="' + r.id + '">Let Them Go</button></div>') +
           '</div>'; }).join('') + '</div></div>';
     Array.prototype.forEach.call(host.querySelectorAll('[data-rs]'), function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-rsid'), how = b.getAttribute('data-rs');
         var row = list.filter(function (r) { return r.id === id; })[0];
-        SEASON.answerRenewal(G.state, G.me, id, how, how === 'haggle' ? Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR) : null);
+        var typed = null;
+        if (how === 'haggle') {
+          var box = host.querySelector('[data-rsoff="' + id + '"]');
+          var yr = box ? parseInt(String(box.value).replace(/[^0-9]/g, ''), 10) : NaN;
+          /* the manager types a YEAR; the contract is carried monthly */
+          typed = isFinite(yr) && yr > 0 ? Math.max(1, Math.round(yr / 12)) : Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR);
+        }
+        SEASON.answerRenewal(G.state, G.me, id, how, typed);
         dlog(how === 'release' ? '<span class="m">' + esc(row.name) + ' Will Not Be Kept</span>'
            : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs(Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) + '</span>'
            : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks) + '</span>');
@@ -2492,7 +2585,15 @@
       return '<div class="evcard ev-' + e.pool + (e.resolved ? ' done' : '') + '">' +
         '<div class="evk"><span>' + (KIND[e.pool] || 'Dispatch') + '</span>' + (e.resolved ? '<span>Answered</span>' : '<span>Waiting</span>') + '</div>' +
         '<div class="et">' + esc(e.title) + '</div><div class="es">' + esc(e.text) + '</div>' +
-        (subj ? '<div class="subj">' + fighterCard(subj, false, { drop: 'none' }) + '</div>' : '') +
+        /* §EVENTS A NAME, NOT A STAT SHEET. An event that mentions somebody unrolled their
+           ENTIRE sheet across the width of the screen — a rectangle the length of the page to
+           carry one line about one person. The name is a name, and clicking it opens the same
+           side panel every other name on every other screen opens. */
+        (subj ? '<div class="subj">' + fighterMark(subj, 20, colFor(G.me)) +
+                '<span class="nm" data-sheet="' + subj.id + '" style="color:' + raceColour(subj) + '">' +
+                esc(subj.name) + '</span>' +
+                '<span class="m">' + esc(titleWords(String(subj.race || '').replace(/_/g, ' '))) +
+                '</span>' + ratingHtml(subj) + '</div>' : '') +
         (e.resolved ? '<div class="chosen">' + esc(e.resolved.line) + '</div>'
                     : '<div class="evopts">' + e.options.map(function (o) {
                         return '<button class="evopt" data-ev="' + e.id + '" data-opt="' + o.id + '"><span class="ol">' + esc(o.label) + '</span><span class="oc">' + esc(o.cost || '') + '</span></button>'; }).join('') + '</div>') +
@@ -2637,6 +2738,31 @@
     var list = items;
     if (!list) return;                                    /* the brief renders the month's own */
   }
+  /* §BRIEF WHAT A MANAGER HAS WALKED INTO, COUNTED. Five readings, each one a thing he can act
+     on in the months ahead: the hands he has against the drop floor, who is hurt, how worn they
+     are, what the rack holds that nobody is carrying, and what is in the bank. */
+  function takingStock(me) {
+    var able = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+    var floor = SEASON.CONST.DROP_MIN;
+    var hurt = able.filter(function (f) { return ((f.condition || {}).injuries || []).length; }).length;
+    var worn = able.filter(function (f) { return ((f.condition || {}).stress || 0) >= 25; }).length;
+    var rack = 0;
+    for (var k in (me.armoury || {})) rack += me.armoury[k];
+    var bit = function (v, lab, cls) {
+      return '<span class="stk"><b class="' + (cls || '') + '">' + v + '</b>' +
+             '<span class="lab">' + lab + '</span></span>';
+    };
+    return '<div class="stock">' +
+      /* the figure is the HANDS, and it is red until there are enough of them: "7 of 16" is
+         one reading, and the 7 is the part that is wrong */
+      bit('<span class="' + (able.length >= floor ? 'good' : 'bad') + '">' + able.length + '</span>' +
+          '<span class="of"> of ' + floor + '</span>', 'On the Books', '') +
+      bit(hurt, 'Mending', hurt ? 'bad' : 'good') +
+      bit(worn, 'Worn Down', worn > able.length / 2 ? 'bad' : '') +
+      bit(rack, 'Spare Kit', rack ? '' : 'bad') +
+      bit(crs(me.account.treasury), 'In the Bank', 'cr') +
+      '</div>';
+  }
   function renderBrief() {
     renderYearLine(); renderEvents(); renderEight();
     var host = $('brief'); if (!host || !G || !G.state) return;
@@ -2645,14 +2771,15 @@
     var coming = (TRADE.tradingOpen(m) && m < TRADE.CONST.LAST_TRADE_MONTH ? '<span class="cd">The Table Closes <b>After Month ' + TRADE.CONST.LAST_TRADE_MONTH + '</b></span>' : '');
     host.innerHTML =
       '<div class="shape"><div class="mn">Month ' + m + ' \u00b7 ' + esc(win.name) + '<span class="m">Year ' + G.state.season + '</span></div>' +
-        /* §BRIEF THE FIRST MONTH OF A CAREER SAID "TABLE CLOSED" AND NOTHING ELSE. A manager
-           arriving at the Review is not starting a game the fleet is also starting — the
-           Divide has been run for years and he has walked in on it. The opening month says
-           what he has walked into: what the fleet made of last year, and what he is carrying.
-           Every other month keeps the table's state, which is what that month turns on. */
+        /* §BRIEF THE FIRST MONTH OF A CAREER SAID "TABLE CLOSED" AND NOTHING ELSE, and then
+           said a sentence about inheriting a fleet, which was no better: prose where a manager
+           wants a reading. He has walked in on a house he did not build and needs to know what
+           is in it — how many hands, how many can be fielded, who is hurt, what is on the rack
+           and what is in the bank. Nothing here is simulated history; it is what he is holding,
+           counted. Every other month keeps the table's state, which is what those months turn
+           on. */
         '<div class="what">' +
-          (G.state.season === 1 && m === 1
-            ? 'A Fleet Already in Play \u00b7 The Books Are Yours Now'
+          (G.state.season === 1 && m === 1 ? takingStock(me)
             : (TRADE.tradingOpen(m) ? 'Table Open' : 'Table Closed') +
               (me._lastGate ? ' \u00b7 Gate ' + crs(me._lastGate) + '/mo' : '')) + '</div>' +
         '<div class="coming">' + coming + '</div>' +
@@ -2897,10 +3024,14 @@
       /* THE WHOLE LINE OPENS THE HAND, not just the triangle: a chevron is a hint about what
          will happen, not a target to hunt for. The pips keep a dead strip beside them so a
          near miss neither paints nor opens anything. */
-      h += '<div class="tghand' + (open ? ' open' : '') + '" data-tgopen="' + f.id + '">' +
-           '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
+      /* §DESK THE NAME IS A NAME, EVERYWHERE. On the Roster and in the Squads a fighter's name
+         opens his sheet; here it opened a fold instead, which is two different meanings for the
+         same word on the same screen. The CHEVRON folds the hand — given real room to be hit,
+         since it is now the only thing that does it — and the name does what a name does. */
+      h += '<div class="tghand' + (open ? ' open' : '') + '">' +
+           '<span class="tgchev" data-tgopen="' + f.id + '">' + (open ? '\u25be' : '\u25b8') + '</span>' +
            fighterMark(f, 18, colFor(G.me)) +
-           '<span class="tgname" style="color:' + raceColour(f) + '">' +
+           '<span class="tgname" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' +
            (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + esc(f.name) + '</span>' +
            (painted ? '<span class="tgcount">' + painted + '</span>' : '') +
            '<span class="tgguard"></span>' +
@@ -2977,20 +3108,32 @@
     return s + '</span>';
   }
   /* what this body has on each side, in words a manager can act on */
+  /* §REST BOTH TRACKS READ ON THE SAME SCALE THE STATS DO, and one of them runs backwards.
+     A wound is a CONDITION from 0 to 100 — whole at the top, and the two ruled cut-offs
+     beneath it: below SERIOUS everything a man does costs him more, below CRIPPLING he cannot
+     drill at all and his stats begin to go. Stress is the inverse: 0 is settled and 100 is a
+     man about to come apart, so its colours run the other way. */
+  /* §REST FIVE FIXED BRACKETS OF TWENTY, NOT A RELATIVE READING. The bands were 80/55/33,
+     which put 23 and 42 in the same colour and made a manager guess where the lines were. The
+     scale is the plain one the eye expects — 0-20, 21-40, 41-60, 61-80, 81-100 — and it is
+     ABSOLUTE: a stress of 42 is the same colour on every screen in every year, because what a
+     hand can bear does not depend on who he is standing next to. */
+  function bandCls(v, lowIsGood) {
+    var g = lowIsGood ? 100 - v : v;                 /* put both on "higher is better" */
+    return g > 80 ? 'good' : g > 60 ? 'okgood' : g > 40 ? 'mid' : g > 20 ? 'warn' : 'bad';
+  }
   function restReads(f, track) {
     if (track === 'wounds') {
-      var inj = (f.condition && f.condition.injuries) || [];
-      if (!inj.length) return { word: 'Healthy', cls: 'good', spare: true };
-      var days = 0, perm = 0;
-      inj.forEach(function (w) {
-        if (w.careerEnding || w.permanent) perm++; else days += (w.days_remaining || 0);
-      });
-      if (!days && perm) return { word: 'Permanent', cls: 'bad', spare: true };
-      return { word: Math.round(days) + 'd', cls: days > 60 ? 'bad' : 'warn', spare: false };
+      var h = Math.round((f.condition && f.condition.health != null) ? f.condition.health : 100);
+      var perm = ((f.condition && f.condition.injuries) || []).some(function (w) { return w.careerEnding || w.permanent; });
+      if (h >= 100) return { word: perm ? 'Scarred' : 'Healthy', cls: perm ? 'warn' : 'good', spare: !perm };
+      var C = SEASON.CONST;
+      var word = h < C.WOUND_CRIPPLED ? 'Crippling' : h < C.WOUND_SERIOUS ? 'Serious' : 'Hurt';
+      return { word: h + '% \u00b7 ' + word, cls: bandCls(h, false), spare: false };
     }
     var st = Math.round((f.condition && f.condition.stress) || 0);
     if (st <= 0) return { word: 'Settled', cls: 'good', spare: true };
-    return { word: String(st), cls: st >= 50 ? 'bad' : st >= 25 ? 'warn' : '', spare: false };
+    return { word: String(st), cls: bandCls(st, true), spare: false };
   }
   function renderRestGrid() {
     var host = $('restgrid');
@@ -3021,8 +3164,12 @@
       var rn = rgGet('row', f.id);
       h += '<tr><td class="rn ' + (rn > 0 ? 'lit' : '') + '">' +
            fighterMark(f, 18, colFor(G.me)) +
-           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span> ' +
-           rgTrack('row', f.id, rn) + '</td>';
+           /* §REST THE ROW PIPS BESIDE A NAME PAINTED BOTH TRACKS AT ONCE, which is a third
+              control doing what the two beside it already do — and a manager reading three
+              sets of pips on one line has no way to know that. Wounds and stress are the two
+              things rest answers; they are the two things a manager paints. */
+           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
+           '</td>';
       RTRACKS.forEach(function (tr) {
         var key = f.id + '|' + tr.id, cn = rgGet('cell', key);
         var read = restReads(f, tr.id);
@@ -3537,6 +3684,20 @@
     renderTrainGrid();
   });
 
+  /* §DESK A NAME OPENS A SHEET, ON EVERY SCREEN. The Roster and the Squads wire `data-sheet`
+     per host, one loop apiece; the Desk's grids are redrawn constantly and would need the same
+     loop in three places. One delegated listener serves any name the page ever prints, and the
+     per-host loops that already exist are harmless beside it — `inspect` opens the same panel
+     whether it is called once or twice. */
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    var host = e.target.closest('#traingrid, #restgrid');
+    if (!host) return;
+    var el = e.target.closest('[data-sheet]');
+    if (!el) return;
+    inspect(el.getAttribute('data-sheet'));
+  });
+
   document.addEventListener('click', function (e) {
     var pip = e.target.closest ? e.target.closest('#restgrid .pip') : null;
     if (!pip) return;
@@ -3730,15 +3891,20 @@
        not agree by construction and a manager was asked to trust an arithmetic he could not
        follow. Every line the month wrote is shown, in the order it was written, and the total
        is at the FOOT where a total belongs, with the opening and closing purse beside it. */
-    var money = '';
+    /* §RECAP WHAT YOU HAD, WHAT MOVED, WHAT YOU HAVE. The total was at the head over an
+       itemisation that could not reach it; then the total went to the foot and the OPENING
+       purse went with it, so the foot read "The Month ₡210,000 → ₡219,594 +₡9,594" — the whole
+       sum crammed into one line under the one line it summarised. A month reads down: the
+       purse you started with, then every line that moved it, then the purse you have. */
+    var money = row('At the Start', '<span class="m">' + crs(snap.treasury) + '</span>');
     led.forEach(function (l) {
       money += row(esc(capWords(l.label || l.kind)),
                    '<span class="' + cls(l.amount) + '">' + (l.amount >= 0 ? '+' : '\u2212') +
                    crs(Math.abs(l.amount)) + '</span>');
     });
     if (!led.length) money += row('Nothing Moved', '<span class="m">\u2014</span>');
-    money += '<div class="recaptot">' + row('The Month',
-      '<span class="m">' + crs(snap.treasury) + ' \u2192 </span><b>' + crs(me.account.treasury) + '</b> ' +
+    money += '<div class="recaptot">' + row('At the End',
+      '<b>' + crs(me.account.treasury) + '</b> ' +
       '<span class="' + cls(dT) + '">' + (dT >= 0 ? '+' : '\u2212') + crs(Math.abs(dT)) + '</span>') + '</div>';
     /* people: who came, who left, who changed status */
     var people = '', came = R.joined.map(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; return b ? nameSpan(b) : ''; }).filter(Boolean);
@@ -4421,16 +4587,26 @@
      somebody looking for a moment, not watching a fight. */
   /* SIDE WAS HERE — three colours by seat, cyan for whoever sat first. Retired with
      BANNER at the colour pass; fights colour by house now. */
+  /* §RACES THE PEOPLES WEAR THEIR OWN COLOURS, NOT ONE MUDDY PALETTE. Every race sat between
+     slate and olive — a swamp of near-neighbours that were hard to tell apart on a grid and
+     said nothing about the people wearing them. A Kellis is BLUE, an Etu GREEN, a Gil PURPLE.
+     Each is pitched clear of the houses' banners (#ca7272 #41c841 #4141c8 #29aeae #c8ad41
+     #7284ca #c841ad #a3c28e) and of the suppliers' eight, so a race never reads as somebody's
+     flag. The radius is unchanged: it is build, not colour.
+
+     BROWN AND PURPLE HAD TO BE LIFTED. At their honest values (#8a5a2b, #8b4fc9) they came to
+     3.3 and 3.7 against this page's background — a name in either was a smudge. They are the
+     same hues carried up to about 5, where they read. */
   var RACE = {
-    olmac:    { r: 0.46, fill: '#6f6f69' },   /* massive, granite_skin — dark stone */
-    svalbard: { r: 0.42, fill: '#566b7a' },   /* six_limbed, centauroid — dark slate */
-    etu:      { r: 0.38, fill: '#6e8560' },   /* crocodilian, tough_hide — olive */
-    attorak:  { r: 0.36, fill: '#8f7256' },   /* hyena_build — brown */
-    human:    { r: 0.32, fill: '#bcae96' },   /* baseline — tan */
-    kellis:   { r: 0.30, fill: '#a291b5' },   /* insectoid, light_frame — mauve */
-    thythyn:  { r: 0.285, fill: '#8fabab' },  /* winged, light_frame — pale grey-teal */
-    gil:      { r: 0.26, fill: '#c98a80' },   /* small, agile — muted rose-rust */
-    mon_wa:   { r: 0.235, fill: '#dce8f8' }   /* paired_symbiote, small — near white */
+    olmac:    { r: 0.46,  fill: '#9aa0a6' },   /* granite_skin — granite, cool and pale */
+    svalbard: { r: 0.42,  fill: '#e8b93a' },   /* six-limbed centaur — gold */
+    etu:      { r: 0.38,  fill: '#3fae52' },   /* crocodilian — green */
+    attorak:  { r: 0.36,  fill: '#b07c44' },   /* hyena build — brown, lifted to read on the dark */
+    human:    { r: 0.32,  fill: '#d8c39a' },   /* baseline — tan */
+    kellis:   { r: 0.30,  fill: '#3f7fe0' },   /* insectoid, light frame — blue */
+    ththyn:  { r: 0.285, fill: '#f7a8c4' },   /* winged, light frame — light pink */
+    gil:      { r: 0.26,  fill: '#a96fe0' },   /* small, agile — purple, lifted the same way */
+    mon_wa:   { r: 0.235, fill: '#f2f4f8' }    /* paired symbiote — white, against black */
   };
 
   function draw() {
@@ -5814,7 +5990,7 @@
        the one rack he came for. Sections are shut until asked for — the same fold the Desk's
        grids use — and the shelf runs two columns wide, which is what that space was for. */
     MKT.shut = MKT.shut || {};
-    var h = '', sec = null, hidden = false;
+    var h = '', sec = null, hidden = false, openRows = false;
     items.forEach(function (i) {
       var s2 = mktSection(i);
       if (s2 !== sec) {
@@ -5822,9 +5998,12 @@
         var n = items.filter(function (x) { return mktSection(x) === s2; }).length;
         if (MKT.shut[s2] == null) MKT.shut[s2] = true;      /* shut until a manager opens it */
         hidden = MKT.shut[s2];
+        if (openRows) h += '</div>';          /* close the rack before opening the next */
+        openRows = false;
         h += '<div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
              '<span class="tgchev">' + (hidden ? '\u25b8' : '\u25be') + '</span>' +
              '<span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
+        if (!hidden) { h += '<div class="msecrows">'; openRows = true; }
       }
       if (hidden) return;
       var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
@@ -5856,6 +6035,7 @@
           (i.identity ? '<div class="flav">' + esc(i.identity) + '</div>' : '') + '</div>';
       }
     });
+    if (openRows) h += '</div>';           /* the last rack on the shelf closes too */
     $('mktledger').innerHTML = h;
     var over = total > me.account.treasury;
     $('mktnote').innerHTML = over ? 'This Order Costs More Than You Hold.' : '';
@@ -5875,8 +6055,13 @@
   function dvEligible() {
     var me = G.corps[G.me];
     return me.roster.filter(function (f) {
+      /* §WOUNDS FIT ENOUGH TO PERFORM IS A CONDITION, NOT AN EMPTY LIST. This asked whether
+         the injuries list was empty — and the list is what a wound IS now, not how bad it is,
+         so it never empties and anybody ever hurt was barred from the Dividend for ever. A man
+         below Serious is not put in front of a crowd. */
       return f.status !== 'dead' && f.status !== 'retired' &&
-             !((f.condition || {}).injuries || []).length &&
+             ((f.condition || {}).health == null ||
+              f.condition.health >= SEASON.CONST.WOUND_SERIOUS) &&
              !(f.contract && f.contract.divides_required != null &&
                (f.contract.divides_served || 0) < f.contract.divides_required);
     });
@@ -7351,7 +7536,17 @@
     setTimeout(applyPhase, 1200);
   }
 
+  /* §RACES A SAVED CAREER SPELLS THE RACE THE WAY IT WAS SPELT WHEN IT WAS SAVED. The people
+     were written `thythyn` throughout and the name is Ththyn; renaming the id would have made
+     every fighter in an existing career a race the game no longer has — no colour, no hooks,
+     no flight. The old key is carried forward on load. */
+  function fixOldNames(save) {
+    var j = JSON.stringify(save);
+    if (j.indexOf('thythyn') < 0) return save;
+    return JSON.parse(j.replace(/thythyn/g, 'ththyn').replace(/Thythyn/g, 'Ththyn'));
+  }
   function loadGame(save) {
+    save = fixOldNames(save);
     if (G) { stop(); clearTween(); }
     var oaList = gameOa(save.custom, save.replaced);
     var L = SEASON.loadCareer(JSON.parse(JSON.stringify(save.career)), oaList);
@@ -7431,7 +7626,7 @@
   (function () {
     var art = (window.ARX_DATA && ARX_DATA.art) || {};
     var set = function (id, key) { var el = $(id); if (el && art[key]) el.src = art[key]; };
-    set('menuArtL', 'menu_kellis'); set('menuArtM', 'menu_thythyn'); set('menuArtR', 'menu_etu');
+    set('menuArtL', 'menu_kellis'); set('menuArtM', 'menu_ththyn'); set('menuArtR', 'menu_etu');
     /* the row of the eight was in the mock-up as placeholder glyphs; here it is the houses'
        own marks in their own colours, which the game already knows how to draw */
     if ($('menufleet') && typeof markFor === 'function') {
@@ -7500,7 +7695,7 @@
        things. A piece that a quarter-turn already reaches is not a piece, it is a duplicate. */
     /* §RACES the peoples' own fields — in the kit, so nothing a fighter is born with cannot be
        made by hand */
-    '<path d="M4 8 q8 -7 16 0 v8 q-8 7 -16 0 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>',          /* 8 the Thythyn wing-case */
+    '<path d="M4 8 q8 -7 16 0 v8 q-8 7 -16 0 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>',          /* 8 the Ththyn wing-case */
     '<g transform="translate(0 -2.5)"><path d="M5 20 V9 q7 -8 14 0 v11 Z" fill="none" stroke="currentColor" stroke-width="2.4"/></g>',   /* the Olmac slab, sat on the pivot */
     '<path d="M3.4 12 a8.6 8.6 0 0 1 8.6 -8.6 v17.2 a8.6 8.6 0 0 1 -8.6 -8.6 Z M20.6 12 a8.6 8.6 0 0 0 -8.6 -8.6 v17.2 a8.6 8.6 0 0 0 8.6 -8.6 Z" fill="none" stroke="currentColor" stroke-width="1.6"/>',   /* 10 the Mon-Wa halves */
     '<path d="M12.00 3.00 L20.56 9.22 L17.29 19.28 L6.71 19.28 L3.44 9.22 Z" fill="none" stroke="currentColor" stroke-width="1.7"/>'   /* the Etu pentagon, regular and on the pivot */
@@ -7523,7 +7718,7 @@
     '<circle cx="9.2" cy="12" r="2.4" fill="currentColor"/><circle cx="14.8" cy="12" r="2.4" fill="currentColor"/>',
     '<path d="M5.6 12 h12.8 M12 5.6 v12.8" stroke="currentColor" stroke-width="2.4"/>',
     /* §RACES the peoples' own devices */
-    '<path d="M12 6 q-6 3 -6 10 q6 -3 6 -1 q0 -2 6 1 q0 -7 -6 -10 Z" fill="currentColor"/>',                        /* 12 Thythyn wings */
+    '<path d="M12 6 q-6 3 -6 10 q6 -3 6 -1 q0 -2 6 1 q0 -7 -6 -10 Z" fill="currentColor"/>',                        /* 12 Ththyn wings */
     '<g transform="translate(0 -1.2)"><path d="M7 17 L12 6 L17 17 M9 13 h6" fill="none" stroke="currentColor" stroke-width="2.3"/></g>',   /* Kellis mantis-blade */
     '<g transform="translate(0 -1.35)"><path d="M7 16 q1 -6 5 -8 q4 2 5 8 M8.6 15 l-1.4 3 M15.4 15 l1.4 3 M12 8 v-2" fill="none" stroke="currentColor" stroke-width="2"/></g>',   /* Attorak claw */
     '<g transform="translate(0 -0.85)"><path d="M12 5.4 q-3.6 4 -2.2 7.6 q0.6 -2 2.2 -2.6 q1.6 0.6 2.2 2.6 q1.4 -3.6 -2.2 -7.6 Z M9 15.8 h6 v2.6 H9 Z" fill="currentColor"/></g>',   /* Etu flame */
@@ -7600,7 +7795,7 @@
      builder uses is better than a face for what the game needs — distinct at twelve pixels,
      stable across saves, and drawn on the grid so a fight can be followed by WHO rather than
      by coloured dots. A fighter is born with one, drawn from their id so it needs no storage
-     and never changes under them; their people lean the draw — a Thythyn toward wings and
+     and never changes under them; their people lean the draw — a Ththyn toward wings and
      the wing-case, an Olmac toward the slab and the block, a Mon-Wa toward the halves — and
      every piece the draw can reach is in the kit, so nothing born cannot be made by hand.
      The fill is the fighter's race colour by default and may be changed; the RING is always
@@ -7608,7 +7803,7 @@
   /* the field indices moved down one when the duplicate hexagon came out; the peoples' own
      pieces are 7 the wing-case, 8 the slab, 9 the halves, 10 the pentagon */
   var RACE_LEAN = {
-    thythyn:  { f: [7, 1],      d: [12, 5, 9],  b: [0, 3] },
+    ththyn:  { f: [7, 1],      d: [12, 5, 9],  b: [0, 3] },
     olmac:    { f: [8, 2],      d: [19, 4, 0],  b: [0, 1, 7] },
     mon_wa:   { f: [9, 1],      d: [18, 10, 1], b: [0, 4] },
     kellis:   { f: [3, 4],      d: [13, 5, 8],  b: [0, 4, 3] },
@@ -7645,7 +7840,7 @@
       p.s = size[0] + rng() * (size[1] - size[0]);
       return p;
     };
-    /* the people's own pieces come up more often than not, so a squad of Thythyn reads as one */
+    /* the people's own pieces come up more often than not, so a squad of Ththyn reads as one */
     var fld = rng() < 0.65 ? lean.f[0] : pick(lean.f);
     var dev = rng() < 0.6 ? lean.d[0] : pick(lean.d);
     return {

@@ -62,6 +62,18 @@
        rest — which is for EVERYONE, not just the wounded. STRESS_CAP mirrors divide.js
        STRESS_MAX: one store, one ceiling. */
     STRESS_CAP: 100,             // [S] the store's ceiling, everywhere
+    /* §WOUNDS A WOUND IS A CONDITION, NOT A COUNTDOWN. It was `days_remaining` against a month
+       of thirty: a minor wound was eighteen days, so a manager could ignore it entirely and it
+       healed itself in half a turn. Worse, a countdown only matters if it outlasts the year —
+       anything shorter is a number watching itself run out. A hand carries a CONDITION from 0
+       to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
+    WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
+    WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
+    WOUND_CRIPPLED: 33,          // [S] and below this he is Crippling: he cannot train at all
+    WOUND_STRESS_SERIOUS: 5,     // [C] extra stress a month for working while Serious
+    WOUND_STRESS_CRIPPLED: 11,   // [C] and while Crippling
+    WOUND_DECAY: 0.5,            // [C] stat points lost a month at Crippling with no care
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
@@ -167,6 +179,10 @@
     COURT_APPETITE_HELD: 0.22,   // [C] off the appetite per backer already signed
     COURT_COMFORTABLE: 300000,   // [C] the purse above which nobody is hungry
     /* §LOYALTY what a hand's regard for the house is worth at the table */
+    SCAR_STRESS: [14, 52],       // [C] §FOUNDING what a year on the ground leaves on a hand.
+                                 //     Was 4..34, which left almost everybody in the settled
+                                 //     end of the scale and gave the calm side of rest as
+                                 //     little to do as the physical side had.
     RENEWAL_LOYALTY_PULL: 0.22,  // [C] how far loyalty moves a re-signing ask, either way
     LOYALTY_CAP_LOW: 35,         // [C] the ceiling on a hand who cannot be fully loyal
     QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
@@ -282,9 +298,18 @@
        Divides, because the lock sorted on quality alone and they sit a little under
        the market. This is the weight of an unserved clause at the lock. */
     LOCK_TERM_W: 0.5,
+    HAGGLE_LOYALTY: 0.45,        // [C] §PAPER how far regard for the house bends a low offer
+    OVER_ASK_LOYALTY: 18,        // [C] and what paying over the ask is remembered as
     HAGGLE_FLOOR: 0.85,       // [C] §RESIGN what a manager's low offer defaults to, of the ask
     HAGGLE_WALK: 2.2,         // [C] and how readily a fighter offered under it walks
-    RENEWAL_SEASONS: 2           // [H] how long a renewed contract runs
+    /* §PAPER HOW LONG A RENEWED CONTRACT RUNS IS RULED IN recruitment.json, and I invented
+       numbers instead of reading them: nattie 3, mercenary 2, prisoner 1 — every one wrong,
+       and the mercenary wrong in the way the file explicitly warns against. The canon is
+       `pools[kind].seasons_range`: NATTIE 3-4, PRISONER 2-4, and MERCENARY 1-1, with a note
+       against it saying a merc contract is ONE Divide and an extension is a fresh agreement at
+       next year's market, NEVER a multi-year. The ranges are read from the data, not copied
+       into it — a constant that restates a data file is a second place for it to be wrong. */
+    RENEWAL_SEASONS: 2           // [H] the fallback where a kind has no ruled range
 
     /* `SEASON_MONTHS: 13` WAS DECLARED HERE and is gone. A year is twelve months — eleven of
        prep and the Divide — and the ledger already declared `SEASON_MONTHS: 12`, which is the
@@ -360,7 +385,38 @@
        standing about with nothing on them. They are issued from what is on the shelf, best
        first, and what they take comes off it. */
     for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
+    for (const id of Object.keys(corps))
+      lastYearsMarks(P.mulberry32(P.seedFrom('scars' + id)), corps[id]);
     return corps;
+  }
+
+  /* §FOUNDING A FLEET THAT HAS RUN THE DIVIDE FOR YEARS DOES NOT OPEN UNMARKED. Every hand
+     began at full health with no stress, so Rest and Recovery had nothing to do in the whole
+     first year — a whole verb idle because the world was born yesterday. These people came off
+     last year's ground: one carries something serious, a couple carry something minor, and the
+     rest carry what a year does to a person, which is stress rather than wounds. */
+  function lastYearsMarks(rng, corp) {
+    const able = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
+    if (!able.length) return;
+    const hurt = P.shuffle ? P.shuffle(rng, able.slice()) : able.slice().sort(() => rng() - 0.5);
+    const mark = (f, severity, days, health) => {
+      f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
+      f.condition.injuries.push({
+        type: P.pick(rng, ['inj_arm', 'inj_leg', 'inj_torso']),
+        severity: severity, days_remaining: P.int(rng, days[0], days[1]), untreated: false
+      });
+      f.condition.health = P.int(rng, health[0], health[1]);
+    };
+    if (hurt[0]) mark(hurt[0], 'serious', [30, 70], [45, 65]);
+    if (hurt[1]) mark(hurt[1], 'minor', [8, 25], [78, 92]);
+    if (hurt[2]) mark(hurt[2], 'minor', [8, 25], [78, 92]);
+    /* and a year's worth of wear on everybody, heavier on the ones who were hurt */
+    able.forEach(f => {
+      f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
+      const base = P.int(rng, CONST.SCAR_STRESS[0], CONST.SCAR_STRESS[1]);
+      const extra = (f.condition.injuries || []).length ? P.int(rng, 10, 22) : 0;
+      f.condition.stress = Math.min(90, (f.condition.stress || 0) + base + extra);
+    });
   }
 
   /** dress a roster out of a corp's own armoury: a primary, armour and a sidearm apiece,
@@ -384,6 +440,24 @@
   }
 
   /* ------------------------------------------------------------------ the offseason */
+
+  /* §WOUNDS ONE READING OF HOW HURT A MAN IS, 0 (broken) to 100 (whole). `condition.health`
+     was already on every fighter and already meant this; the injuries list carried a parallel
+     truth in days beside it. The list survives for WHAT the wound is — the flavour and the
+     permanent ones — and the number is the state. */
+  function woundOf(f) {
+    const c = f.condition || {};
+    return Math.max(0, Math.min(100, c.health == null ? 100 : c.health));
+  }
+  function setWound(f, v) {
+    f.condition = f.condition || {};
+    f.condition.health = Math.max(0, Math.min(100, v));
+  }
+  function woundBand(f) {
+    const h = woundOf(f);
+    return h >= 100 ? 'whole' : h < CONST.WOUND_CRIPPLED ? 'crippled'
+         : h < CONST.WOUND_SERIOUS ? 'serious' : 'hurt';
+  }
 
   function ageOf(f) { return (f.age != null ? f.age : 24); }
 
@@ -844,7 +918,7 @@
       read it, because there was no tryouts event of any kind. Two of the six window-months in
       the year were guaranteed to do nothing. Prospects rather than professionals — younger,
       cheaper, further from their ceiling. */
-  function runTryouts(rng, corps, ids, lots, tally, bids) {
+  function runTryouts(rng, corps, ids, lots, tally, bids, human) {
     /* Natties sign FLAT: the listed salary for the listed years, the pension for the
        family, the Divide bonus on top — no premium, because there is no other bidder.
        The manager marks who they want from their own sheet; every other house signs from
@@ -869,9 +943,16 @@
       corp._nattieYear = corp._nattieYear || { season: null, signed: 0 };
       if (corp._nattieYear.season !== (tally.season || null)) corp._nattieYear = { season: tally.season || null, signed: 0 };
       const depth = Math.max(0, CONST.NATTIE_YEAR_CAP + shortfall - corp._nattieYear.signed);
+      /* §TRYOUTS A MANAGER WHO MARKED NOBODY WANTED NOBODY. The fall-through here is the AI's
+         appetite: a house below the drop floor calls up its own ship to fill out, which is
+         right for the seven houses nobody is running. THE MANAGER'S OWN CORP FELL THROUGH IT
+         TOO. A founded house opens eleven under the floor, so ending the Natural-Born month
+         without marking anyone signed the ENTIRE SHEET on his behalf and billed him for it.
+         The manager's sheet is his; an empty mark means an empty month. */
       const want = marked
         ? lot.filter(f => marked.indexOf(f.id) >= 0)
-        : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth);
+        : (id === human ? []
+           : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth));
       let took = 0;
       for (const f of want) {
         if (signingBudget(corp) < askingPrice(f, corp)) { tally.refused++; continue; }
@@ -1542,17 +1623,16 @@
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
       f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE);
-      f.condition.health = Math.min(100, (f.condition.health || 0) + 30);
+      /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
+         a wound now lives in — it would have wiped any injury inside a single turn and made the
+         whole verb ornamental. The drift above is what a body does on its own now. */
       if (f.condition.morale != null) f.condition.morale = Math.min(100, f.condition.morale + 3);
-      const inj = f.condition.injuries || [];
-      if (inj.length) {
-        f.condition.injuries = inj.filter(w => {
-          if (w.careerEnding || w.permanent) return true;
-          w.days_remaining -= CONST.PREP_MONTH_DAYS;
-          return w.days_remaining > 0;
-        });
-        mended += inj.length - f.condition.injuries.length;
-        if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+      /* §WOUNDS the body mends on its own, barely: a hand left alone is a hand still hurt
+         next month, which is the whole point of having a verb for it */
+      const before = woundOf(f);
+      if (before < 100) {
+        setWound(f, before + CONST.WOUND_DRIFT);
+        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
       }
     }
     tally.mended += mended;
@@ -1650,22 +1730,35 @@
           }
           /* the physical side */
           if (wB > 0) {
-            const inj = f.condition.injuries || [];
-            if (inj.length) {
-              let budget = CONST.TREAT_DAYS * wB, used = 0;
-              f.condition.injuries = inj.filter(w => {
-                if (w.careerEnding || w.permanent) return true;
-                const take = Math.min(w.days_remaining, budget - used);
-                if (take > 0) { w.days_remaining -= take; used += take; }
-                return w.days_remaining > 0;
-              });
-              if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+            const have = woundOf(f);
+            if (have < 100) {
+              const room = 100 - have, want = CONST.WOUND_FOCUS * wB;
+              setWound(f, have + Math.min(room, want));
+              if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
               tally.treated++;
-              const spare = CONST.TREAT_DAYS * wB - used;
-              if (spare > 0) condition(f, 'grit', spare / CONST.TREAT_DAYS);
+              /* whatever the effort could have mended and found nothing to mend */
+              const spare = Math.max(0, want - room);
+              if (spare > 0) condition(f, 'grit', spare / CONST.WOUND_FOCUS);
+              f._treatedThisMonth = true;
             } else {
               condition(f, 'grit', wB);          /* nothing to mend: all of it is conditioning */
             }
+          }
+        }
+        /* §WOUNDS WORKING HURT COSTS A MAN SOMETHING. A hand below SERIOUS who was given no
+           care this month carries the month harder; one below CRIPPLED harder still, and his
+           stats begin to go — permanently, a little at a time, which is what makes ignoring a
+           broken man a decision rather than an oversight. */
+        for (const f of corp.roster) {
+          if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
+          const band = woundBand(f);
+          if (band === 'whole' || f._treatedThisMonth) { delete f._treatedThisMonth; continue; }
+          if (band === 'serious') f.condition.stress = Math.min(100, (f.condition.stress || 0) + CONST.WOUND_STRESS_SERIOUS);
+          else if (band === 'crippled') {
+            f.condition.stress = Math.min(100, (f.condition.stress || 0) + CONST.WOUND_STRESS_CRIPPLED);
+            for (const k of Object.keys(f.stats || {}))
+              f.stats[k] = Math.max(1, f.stats[k] - CONST.WOUND_DECAY);
+            tally.decayed = (tally.decayed || 0) + 1;
           }
         }
       } else if (a.kind === 'train') {
@@ -1697,6 +1790,9 @@
         const mentors = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && hasHookF(f, 'young_squadmate_development_up')).length;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
+          /* §WOUNDS A CRIPPLED MAN DOES NOT DRILL. Focus painted on him is not lost — it is
+             simply not learning, which is the cost of fielding a broken hand. */
+          if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
           const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
                       * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1);
           const cap = CONST.STAT_CEIL;
@@ -1977,6 +2073,13 @@
      by the same budget arithmetic, the human's included — so a fighter who came good never got
      an argument and a manager never had to decide whether a veteran was worth what he now asks.
      A manager answers his own paper in the Review; the fleet still answers its own. */
+  /* the years a hand's paper would run if it were signed today, from the ruled range for his
+     kind; the low end, because a renewal is the shortest paper a house can get him to sign */
+  function renewalTerm(f) {
+    const kind = (f.contract || {}).kind || 'nattie';
+    const range = ROSTER.seasonsRange && ROSTER.seasonsRange(kind);
+    return (range && range[0]) || CONST.RENEWAL_SEASONS;
+  }
   function renewalsFor(state, corpId) {
     const c = state.corps[corpId];
     const out = [];
@@ -1990,7 +2093,7 @@
         id: f.id, name: f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
         was: ct.salary || 0,
-        asks: renewalSalary(f, state),
+        asks: renewalSalary(f, state), years: renewalTerm(f),
         /* what a season of them costs against what they were paid: the argument itself */
         year: renewalSalary(f, state) * LED.CONST.SALARY_MONTHS,
         called: (c._renewalCalls || {})[f.id] || null
@@ -2019,8 +2122,8 @@
         f.status = 'active';
         f.contract = f.contract || {};
         f.contract.divides_required = null;          /* the clause is served; it is not re-armed */
-        f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
-        f.contract.seasons_total = CONST.RENEWAL_SEASONS;
+        f.contract.seasons_remaining = renewalTerm(f);
+        f.contract.seasons_total = renewalTerm(f);
         f._fameAtSigning = f.fame || 0;
         out.resigned++;
       } else { gone.push(f); out.walked++; }
@@ -2050,12 +2153,24 @@
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
           const asked = renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
-          /* a fighter offered less than they asked may walk, and the further under, the likelier */
+          /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE HOUSE. The further
+             under his ask, the likelier he walks — and a hand who likes it here will swallow a
+             cut that one who does not would walk over. Loyalty runs 0..100 about an indifferent
+             50, so it widens or narrows the same slope rather than replacing it. */
           const under = Math.max(0, (asked - paying) / Math.max(1, asked));
-          if (call.how === 'haggle' && rng() < under * CONST.HAGGLE_WALK) { gone.push(f); out.walked++; headroom--; continue; }
+          const regard = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.HAGGLE_LOYALTY;
+          if (call.how === 'haggle' && rng() < under * CONST.HAGGLE_WALK * Math.max(0.2, regard)) {
+            gone.push(f); out.walked++; headroom--; continue;
+          }
+          /* AND A HOUSE THAT PAYS OVER THE ASK IS REMEMBERED FOR IT. Nothing a manager could do
+             at this table ever moved a man's regard for him; being paid more than he asked is
+             the plainest thing that would. */
+          if (paying > asked) {
+            const over = Math.min(1, (paying - asked) / Math.max(1, asked));
+            f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
+          }
           f.contract.salary = paying;
-          f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
-          f.contract.seasons_total = CONST.RENEWAL_SEASONS;
+  
           /* a prisoner who has served signs on as anybody else does */
           if (f.contract.kind === 'prisoner') f.contract.kind = 'nattie';
           f._fameAtSigning = f.fame || 0;
@@ -2067,8 +2182,8 @@
         if (year <= budget || headroom <= 0) {
           budget -= year;
           f.contract.salary = ask;
-          f.contract.seasons_remaining = CONST.RENEWAL_SEASONS;
-        f.contract.seasons_total = CONST.RENEWAL_SEASONS;
+          f.contract.seasons_remaining = renewalTerm(f);
+        f.contract.seasons_total = renewalTerm(f);
           f._fameAtSigning = f.fame || 0;
           out.renewed++; out.cost += year;
           if (year > budget + year) out.forced = (out.forced || 0) + 1;
@@ -2456,10 +2571,20 @@
    * `stepMonth`, so whatever month the season is sitting on already has its faces.
    * Opened once per window: the same people must still be there next month.
    */
+  /* §MARKET A SHEET A MONTH EARLY. A window's people were drawn the month the window OPENED,
+     so a manager looking at a shut window had literally nothing to be shown — the shutter was
+     down over an empty room. The NEXT window's sheet is drawn as soon as this month begins,
+     from the same seed it would have used, so the same people arrive; only the moment they
+     become visible has moved. */
   function ensureLot(state) {
-    const win = MONTHS[state.month] || {}, kind = win.signing;
+    lotFor_ensure(state, state.month);
+    for (let m = state.month + 1; m <= CONST.PREP_MONTHS; m++)
+      if ((MONTHS[m] || {}).signing) { lotFor_ensure(state, m); break; }
+  }
+  function lotFor_ensure(state, month) {
+    const win = MONTHS[month] || {}, kind = win.signing;
     if (!kind || state.lots[kind]) return;
-    const seed = 'lot' + kind + state.season + 'm' + state.month;
+    const seed = 'lot' + kind + state.season + 'm' + month;
     if (kind === 'tryouts') {
       /* RULED: YOUR OWN SHIP DOES NOT AUCTION ITS CHILDREN. Every corp gets its own lot,
          drawn from its own ship's people — nobody else is at the table, and nothing carries:
@@ -2798,7 +2923,8 @@
     if (win.event === 'tryouts') {
       state.tryouts.season = state.season;
       runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
-                 state.lots.tryouts || [], state.tryouts, state.bids.tryouts);
+                 state.lots.tryouts || [], state.tryouts, state.bids.tryouts,
+                 (state.opts || {}).human || null);
       state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
@@ -3620,7 +3746,7 @@
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
   return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
-           renewalsFor, answerRenewal, claimPrisoner, claimsOf, signNow, lotPeek,
+           renewalsFor, renewalTerm, answerRenewal, claimPrisoner, claimsOf, signNow, lotPeek,
            illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
            evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
            useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },

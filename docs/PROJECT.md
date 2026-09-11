@@ -1235,6 +1235,149 @@ and the suite asserts that nothing vents rather than that something does.
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
 
+## Ththyn, and nine peoples who look like themselves. *Ruled and built.*
+
+**THE RACE WAS SPELT `Thythyn` IN ALL 354 PLACES IT APPEARS**, including the data key every
+fighter in every save carries. It is **Ththyn**. The rename covers the id and the display name,
+and a save written before it is carried forward on load — renaming the key alone would have made
+every fighter in an existing career a race the game no longer has: no colour, no hooks, no
+flight. *The rename also caught a filename: `viewers/art/menu_thythyn.webp` is in the build's ART
+list, so the page came out 84KB light with a portrait missing before the file was renamed too.*
+
+**AND THE PEOPLES WORE ONE MUDDY PALETTE.** Every race sat between slate and olive — a swamp of
+near-neighbours hard to tell apart on a grid, saying nothing about the people wearing them. The
+ruled colours: Attorak BROWN, Etu GREEN, Gil PURPLE, Human TAN, Kellis BLUE, Mon-Wa WHITE
+(against black), Olmac GRANITE, Svalbard GOLD, Ththyn LIGHT PINK. Each is pitched clear of the
+houses' eight banners and the suppliers' eight, so a race never reads as somebody's flag, and the
+radius is untouched — that is build, not colour.
+
+BROWN AND PURPLE HAD TO BE LIFTED. At their honest values (`#8a5a2b`, `#8b4fc9`) they came to
+3.3 and 3.7 contrast against this page's background, where a name in either is a smudge. They are
+the same hues carried up to about 5, which is where they read.
+
+## A wound is a condition, not a countdown. *Ruled and built.*
+
+**`days_remaining` MADE A WOUND A NUMBER WATCHING ITSELF RUN OUT.** A minor wound was eighteen
+days against a thirty-day month, so a manager could ignore it entirely and it healed itself in
+half a turn — and a countdown only matters at all if it outlasts the year. Worse, the monthly
+pass gave every fighter THIRTY POINTS OF HEALTH a month unconditionally, on the very field a
+wound's severity lived in.
+
+A hand carries a CONDITION, 0 to 100. It mends barely at all on its own (`WOUND_DRIFT` 1.6 a
+month) and FOCUS IS WHAT MOVES IT (`WOUND_FOCUS` 14 a full block). Two ruled cut-offs beneath
+whole:
+- **SERIOUS (below 66).** Working a month without care costs him stress he would not otherwise
+  carry, and he is not put in front of a crowd at the Dividend.
+- **CRIPPLING (below 33).** He cannot drill at all — focus painted on him is not lost, it simply
+  does not learn — he carries the month far harder, and EVERY STAT GOES DOWN A LITTLE,
+  PERMANENTLY, for each month nobody helps him. Ignoring a broken man is a decision now.
+
+The injuries list survives for WHAT the wound is — the flavour, and the permanent ones — and the
+number is the state. TWO PLACES WERE STILL ASKING THE LIST: the Dividend barred anybody whose
+list was non-empty, and the list no longer empties, so a man once hurt was barred for ever.
+
+**AND BOTH REST TRACKS READ ON ONE SCALE**, with stress running backwards: a wound shows its
+percentage and its band, green whole through to red crippling; stress is green at nought and red
+near a hundred. **A CHEVRON IS A CONTROL, SO IT IS THE SIZE OF ONE** — every fold on the page was
+a glyph at body size, twelve pixels of triangle to aim at; they are all a 28×26 target now. And
+the opening reading's headcount is RED until it can field a drop.
+
+**FIVE FIXED BRACKETS OF TWENTY, NOT A RELATIVE READING.** The first bands were 80/55/33, which
+put a stress of 23 and one of 42 in the SAME COLOUR and left a manager guessing where the lines
+were. The scale is the plain one the eye expects — 0-20, 21-40, 41-60, 61-80, 81-100 — green,
+light green, grey, light red, red, and ABSOLUTE: a stress of 42 is the same colour on every
+screen in every year, because what a hand can bear does not depend on who he is standing beside.
+And the founding stress was raised (4..34 → 14..52), which had left almost everybody in the
+settled end and given the calm side of rest as little to do as the physical side had.
+
+**A CONTRACT SAYS WHICH PERIOD ITS FIGURES ARE FOR, AND HOW LONG IT RUNS.** The wage bill above
+and every salary below are MONTHLY and the Paper's are a year's, with nothing to tell them apart
+— they carry `/year` now. And every renewal ran two seasons whatever the man was, which makes a
+Natural-Born's paper identical to a mercenary's.
+
+**THE TERMS ARE RULED IN `recruitment.json`, AND I INVENTED THEM INSTEAD OF READING IT.** I wrote
+nattie 3, mercenary 2, prisoner 1 into a constant — three numbers beside a file that already
+said `seasons_range`: **NATTIE 3–4, PRISONER 2–4, MERCENARY 1–1**, with a note against the
+mercenary reading *a merc contract is ONE Divide; extension is a fresh agreement at next year's
+market, never a multi-year*. So the one I got most wrong was the one the data warns about in
+words. A renewal now reads the range off the data through `ROSTER.seasonsRange`, and the Paper
+names the term.
+
+`sim/audit_docs.cjs` FAILS IF ANYTHING RESTATES A RULED RANGE as a constant again — proved by
+putting one back and watching it catch. A constant that restates a data file is a second place
+for it to be wrong, and this is the second time that has cost a session.
+
+**`crs` WRAPS ITS OWN GOLD SPAN**, so putting the wage bill in a red parent coloured the minus
+sign and left the figure gold — a red dash in front of a gold number, which reads as a typo
+rather than a cost. The negative form of `crs` is red throughout.
+
+*Not yet measured: the drift, the focus rate and the decay are ruled numbers, not fitted ones.
+What a month of neglect should actually cost wants a measurement pass of its own.*
+
+## The Paper, and a name that means one thing. *Ruled and built.*
+
+**`--bad` IS NOT RED. IT IS AMBER** (`#e0a848`), within a few points of the gold `--cred` it was
+meant to contrast with — so `.cr.neg`, the class every loss in the game wears, has been painting
+money leaving as a CAUTION rather than a cost. The wage bill was the case that showed it. Losses
+are `--red` now.
+
+**THE PAPER SHOWS A YEAR, BECAUSE A CONTRACT IS FOR A YEAR.** *Was / Asks / A Year* showed the
+same wage twice — once a month, once times twelve — and left a manager to work out which was
+which. And it was the last screen still saying *Nattie*: the page has said Natural-Born since the
+origins were named, and each origin now wears its own colour here as it does everywhere else.
+
+**AN OFFER IS A NUMBER A MANAGER CHOOSES.** It was one button at one fixed step below the ask, so
+haggling had a single answer. He types a year's figure, and **A MAN WEIGHS IT AGAINST WHAT HE
+THINKS OF THE HOUSE**: the further under his ask, the likelier he walks, and a hand who likes it
+here will swallow a cut that one who does not would walk over (`HAGGLE_LOYALTY`). **AND A HOUSE
+THAT PAYS OVER THE ASK IS REMEMBERED FOR IT** (`OVER_ASK_LOYALTY`) — nothing a manager could do
+at this table had ever moved a man's regard for him, and being paid more than he asked is the
+plainest thing that would.
+
+**AND A NAME MEANS ONE THING NOW.** On the Roster and in the Squads a fighter's name opens his
+sheet; in Training it opened a FOLD, which is two meanings for the same word on one screen. The
+chevron folds the hand — given a 26-pixel target, since it is the only thing that does it — and
+the name opens the sheet, through one delegated listener that serves any name the Desk prints.
+Names are centred in the Paper and in Training, as they are on the Roster.
+
+## An event is the one thing on the Desk that must be read. *Built.*
+
+**A NAME, NOT A STAT SHEET.** An event that mentioned somebody unrolled their ENTIRE sheet across
+the width of the screen — a rectangle the length of the page to carry one line about one person.
+The subject is a mark, a name and a rating now, and the name opens the same side panel every
+other name on every other screen opens.
+
+**AND THE CARD WAS DRESSED AS FURNITURE.** The copy sat in the same receding dim as every aside
+on the page, inside the same quiet grey border as every box, so THE ONE ITEM THAT STOPS A MONTH
+looked like something to scroll past. The copy is set in the reading colour and the card is ringed
+in its own kind's colour — the same hue its left edge already carried — with a soft shadow under
+it. An answered event goes back to grey, because a thing already dealt with is furniture again.
+
+## A window that signed the whole sheet on your behalf. *Fixed, and three others with it.*
+
+**ENDING THE NATURAL-BORN MONTH SIGNED EVERY NATTIE ON THE SHEET.** `runTryouts` has a
+fall-through for a house that marked nobody: it calls up its own ship to fill out toward the drop
+floor, which is right for the seven houses nobody is running. THE MANAGER'S OWN CORP FELL THROUGH
+IT TOO — and a founded house opens eleven under the floor, so an unmarked month signed the entire
+sheet on his behalf and billed him for it. The state has known which corp is the manager's since
+the founding (`opts.human`); the tryouts never asked. A manager's sheet is his, and an empty mark
+is an empty month. Measured: his roster holds at 21 across both window months while a house
+nobody runs still goes 21 → 23.
+
+**THE ROW PIPS IN REST AND RECOVERY PAINTED BOTH TRACKS AT ONCE** — a third control doing what
+the two beside it already do, on a line where a manager had no way to know that. Wounds and
+stress are what rest answers; they are what a manager paints.
+
+**A FLEET THAT HAS RUN THE DIVIDE FOR YEARS DOES NOT OPEN UNMARKED.** Every hand began at full
+health with no stress, so Rest and Recovery had nothing to do for a whole first year — an entire
+verb idle because the world was born yesterday. A founding roster carries last year's ground: one
+serious wound, two minor, and a year's wear as stress on everybody, heavier on the hurt.
+
+**AND THE MONTH'S MONEY READS DOWN NOW.** The total went from the head to the foot and took the
+opening purse with it, so the foot read *The Month ₡210,000 → ₡219,594 +₡9,594* — the whole sum
+crammed into one line under the one line it summarised. What you had, then every line that moved
+it, then what you have.
+
 ## The quirks, and a lookup that answered no in silence. *Ruled and built.*
 
 **FIRST, THE COUNT WAS WRONG, AND IT WAS MY SCAN THAT WAS WRONG.** The sweep for inert hooks
@@ -1278,8 +1421,11 @@ better than leaving a trait that quietly does nothing.
 
 **THE MARKET'S SHELF FOLDS AND RUNS IN TWO COLUMNS.** Every rack stood open, one row to a line
 across the whole width, so a manager scrolled a mile of half-empty rows to reach the rack he came
-for. Racks are SHUT until asked for — the same fold the Desk's grids use — and the shelf runs two
-columns wide, which is what that space was for. The slot picker wears the rail's clothes: it was
+for. Racks are SHUT until asked for — the same fold the Desk's grids use — and a rack's rows are a
+TWO-COLUMN GRID. The first cut used CSS multi-column with the section heads spanning all of it,
+which balances by height, breaks where it likes, and with one rack open put everything in the
+first column and left the second empty. A grid says what it means: each row is a cell, each head
+its own full-width line, and the shelf is half as tall. The slot picker wears the rail's clothes: it was
 five grey `tiny` buttons doing the job the tabs at the top of the screen already do.
 
 **AND THE QUIET BUSINESS: the cost was real and invisible, which is the same as absent.** An act
@@ -1303,14 +1449,21 @@ the edges where it does not fight it. *The Paper* lost its *Answered This Month*
 month is the only time it appears — and the Kit Cap is centred and larger, since it is a figure
 a manager checks rather than reads past.
 
-**THE FOCUS TALLY IS ABOVE BOTH GRIDS, IN THE MIDDLE**, and says how much is committed in a
+**THE FOCUS TALLY IS ABOVE BOTH GRIDS, IN THE MIDDLE** — and the first attempt put it INSIDE
+the left column of the two-column grid, which centred it over training and rest and sat it off
+to one side of the screen. That was worse than the corner it came from, because it now looked
+deliberate. It is a sibling of the grid, spanning the page. It says how much is committed in a
 colour readable across the room: RED while any is unspent, GREEN when it is all in.
 
 **A SHUT WINDOW SHOWS THE SHOP BEHIND THE SHUTTER.** It said *No Signing Window · Next:
 Natural-Born, Month 2* — true, and it left a manager with no idea what was coming or why to
 care. The window that IS next stands there in its own colour, closed: its people on the sheet,
-greyed and untouchable, with a plate across them naming the window and the month it opens
-(`lotPeek`). A manager can want somebody a month before he can bid.
+greyed and untouchable, with a plate across them naming the window and the month it opens.
+AND THE FIRST CUT SHOWED AN EMPTY ROOM BEHIND THE SHUTTER: a window's people were drawn the
+month the window OPENED, so there was nothing to peek at. `ensureLot` draws the NEXT window's
+sheet as soon as this month begins, from the same seed it would have used — the same people
+arrive, only the moment they become visible has moved. A manager can want somebody a month
+before he can bid.
 
 **AND A FOUNDED HOUSE'S HANDS CARRY ITS LOCKER.** A house opened with people and a rack of kit
 and NO CONNECTION BETWEEN THEM — every fighter walked around unequipped until a quartermaster
@@ -1323,9 +1476,14 @@ what is left, which is what a thin locker should look like.
 that already. The dev control is labelled **DEV: Skip to Lock** and sits under the year line
 where every tab can reach it. The tab rail and the header HOLD THEIR LINE and scroll rather than
 reflowing onto a second row, which is how a website behaves and not a board. And the first month
-of a career says *A Fleet Already in Play · The Books Are Yours Now* rather than *Table Closed*:
-a manager has walked in on a Divide that has been run for years, and the opening line should say
-so.
+of a career TAKES STOCK rather than saying *Table Closed*. The first attempt at that was a
+sentence — *A Fleet Already in Play · The Books Are Yours Now* — which was no better, because
+prose is not what a manager wants in the one place that should tell him where he stands. FIVE
+FIGURES, each one a thing he can act on in the months ahead: the hands he has against the drop
+floor, how many are mending, how many are worn down, what the rack holds that nobody is carrying,
+and what is in the bank. Nothing there is simulated history; it is what he is holding, counted.
+A reading of a lean founding: 7 of 16 on the books, 3 mending, 5 worn down, 4 spare pieces,
+₡210,000.
 
 ## Width and height work on the shape as it looks now. *Built.*
 
@@ -1421,7 +1579,7 @@ dimmed field, at a width it can actually be worked in, and the dark around it cl
 
 ## The menu wears three of the fleet's faces. *Built.*
 
-Three portraits — a Kellis, a Thythyn, an Etu — stand on the menu in TALL OVALS, a portrait's
+Three portraits — a Kellis, a Ththyn, an Etu — stand on the menu in TALL OVALS, a portrait's
 own shape, which keeps the antennae, the ears and the crest that a circle would cut away. An oval
 has no corners, so the art's black rectangle vanishes into the stage and the three read as one
 piece rather than three images set side by side. The middle is raised and a touch smaller; the
@@ -1715,11 +1873,11 @@ needs: distinct at twelve pixels, stable across saves, and drawn on the grid so 
 followed by WHO rather than by coloured dots.
 
 **A FIGHTER IS BORN WITH ONE**, drawn from their id (`bornMark`), so it needs no storage and never
-changes under them. Their people lean the draw — a Thythyn toward the wings and the wing-case,
+changes under them. Their people lean the draw — a Ththyn toward the wings and the wing-case,
 an Olmac toward the slab and the block, a Mon-Wa toward the halves and the tether, a Kellis
 toward the mantis-blade, an Attorak toward the claw, the Etu toward the flame and the
 candle-house, a Gil toward the goggles, a Svalbard toward the hoof-arch — and the people's own
-piece comes up more often than not, so a squad of Thythyn reads as one. EVERY PIECE THE DRAW CAN
+piece comes up more often than not, so a squad of Ththyn reads as one. EVERY PIECE THE DRAW CAN
 REACH IS IN THE KIT (`RACE_LEAN` indexes it), so nothing a fighter is born with cannot be made by
 hand: the kit is twelve fields, twenty devices and eight bars now.
 
@@ -1990,7 +2148,7 @@ THREE OF THE THIRTY-EIGHT WERE FAULTS, not tidying:
 - `MONWA_TETHER_COMP` (−25 composure an exchange, ratified with the canon) had sat in combat.js
   unread while the tether was built beside it with a fresh −12 that somebody invented. Likewise
   `ATTORAK_INTENSITY_COMP` and `THYTHYN_HOVER_P` — the gnoll's own figure and the share of
-  Thythyn repositions that end hovering, both ratified, both ignored while I wrote new ones. All
+  Ththyn repositions that end hovering, both ratified, both ignored while I wrote new ones. All
   three are read now, and the hover is a roll rather than a certainty.
 - `FAST_WALL` named the edict's compression in events.js, and divide.js typed `0.80` again where
   nobody would think to change it. The share travels from where the edict is written.
@@ -2094,7 +2252,7 @@ FIGHTS WITH NO CASUALTIES, every fight ran out its clock because nobody could fa
 fighters shot their magazines dry grazing each other.
 
 It survived because of how it was checked. The combat suite's fight snapshots have a `--bless`
-path, and three changes in a row had been blessed through it — the quirk hooks, the Thythyn's
+path, and three changes in a row had been blessed through it — the quirk hooks, the Ththyn's
 flight, the tether. Each blessing was defensible alone; together they taught the suite to accept
 whatever the engine now did, and a suite that accepts anything is not a suite. The snapshots
 went green over a game where nobody could be hurt.
@@ -2127,7 +2285,7 @@ aim than it costs anybody else, and four legs carry them two tiles further on a 
 says so now (`fire_on_the_move` replaces `long_prime` in races.json). Still inert: `media_flat` and
 `english_loose`, both broadcast colour rather than mechanics.
 
-**The fleet's only fliers actually fly. *Built since this was written.*** A Thythyn's wings
+**The fleet's only fliers actually fly. *Built since this was written.*** A Ththyn's wings
 were in the data (`flier`, `winged`, `light_frame`), in the lore, and in the injury table — which
 has a whole limb of wing wounds — and in nothing that moved: they walked like everybody else. A
 flier now has the air available to it once a fight: `FLIGHT_TILES` further on one step, over
@@ -2135,7 +2293,7 @@ whatever was in the way, and hovering while they are up there, which is its own 
 nothing in the air is behind anything (`MOTION_HOVER`, and cover counts a grade worse against a
 hoverer — both already in the engine, waiting). A hurt wing grounds them, which the injury table
 was already deciding. Measured: twenty-seven flights across twelve fights. THE FIRST CUT OFFERED
-THE AIR AFTER THE MOVE WAS CHOSEN, so the wings were never in the reckoning and no Thythyn ever
+THE AIR AFTER THE MOVE WAS CHOSEN, so the wings were never in the reckoning and no Ththyn ever
 left the ground; the tiles are offered while the move is being weighed now, and taking a step
 longer than legs could carry is what spends it. Racial specials still inert: `long_prime`,
 `captain_aptitude_bonus`, `media_flat`, `english_loose`, and the Mon-Wa tether.

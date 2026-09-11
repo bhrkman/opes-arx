@@ -146,5 +146,26 @@ for (const p of problems) {
 }
 for (const n of notes) console.log('   ' + n.kind + '  ' + n.detail);
 console.log('='.repeat(78));
+/* §PAPER THE RULED CONTRACT RANGES ARE IN THE DATA, AND NOWHERE ELSE. A renewal term was once
+   written as a constant in season.js — nattie 3, mercenary 2, prisoner 1 — three numbers
+   invented beside a file that already ruled them (3-4, 1-1, 2-4), with the mercenary wrong in
+   exactly the way recruitment.json's own note warns against. Anything that restates a ruled
+   range is a second place for it to be wrong. */
+(function () {
+  const rec = JSON.parse(fs.readFileSync(path.join(DATA, 'recruitment.json'), 'utf8'));
+  const pools = rec.pools || {};
+  const src = fs.readFileSync(path.join(D, 'season.js'), 'utf8');
+  if (/RENEWAL_YEARS\s*:/.test(src))
+    bad('contract terms', 'season.js restates the ruled seasons ranges as RENEWAL_YEARS');
+  const R = require('./roster.js');
+  for (const k of Object.keys(pools)) {
+    const want = pools[k].seasons_range;
+    const got = R.seasonsRange && R.seasonsRange(k);
+    if (!got || got[0] !== want[0] || got[1] !== want[1])
+      bad('contract terms', 'the ' + k + ' range does not reach the engine (' +
+          JSON.stringify(want) + ' vs ' + JSON.stringify(got) + ')');
+  }
+})();
+
 console.log('  ' + problems.length + ' contradiction(s)');
 process.exitCode = 0;

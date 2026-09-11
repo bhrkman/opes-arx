@@ -30,7 +30,7 @@
  * this file owns only structure. Seeded via CDPRNG; no Math.random.
  *
  * Styles: diaspora_list (human) · soft_two_word (kellis) · paired_halves (mon_wa)
- *         the_title (olmac) · vowel_starved (thythyn) · pride_classical (svalbard)
+ *         the_title (olmac) · vowel_starved (ththyn) · pride_classical (svalbard)
  *         doubled_mononym (etu) · onomatopoeia (attorak) · latinate_nickname (gil)
  *
  * Also exports: widowName() — Em-/-Em marks (canon) · applyEtHonorific() (ratified)
@@ -94,7 +94,7 @@
       return { name: "The " + title, parts: { title } };
     },
 
-    /** Thythyn — vowel-starved y-syllable given + doubled-consonant family. */
+    /** Ththyn — vowel-starved y-syllable given + doubled-consonant family. */
     vowel_starved(rng, n) {
       const onset = P.pick(rng, n.given_onsets);
       let coda = P.pick(rng, n.given_codas);
@@ -928,8 +928,8 @@
       text: c => `Mon-Wa bookkeeping: one being, two bodies, one slot. The camp runs better the day they arrive.` },
     { key: "r_olmac", tier: 1, register: "dry", when: c => c.f.race === "olmac",
       text: c => `Olmac: cheap to sign, easy to lose, impossible to suppress. The Divide's load-bearing race, in every sense.` },
-    { key: "r_thythyn", tier: 1, register: "hype", when: c => c.f.race === "thythyn",
-      text: c => `Wings on the roster! Short careers, bright ones — Thythyn fight like the clock is audible, because to them it is.` },
+    { key: "r_ththyn", tier: 1, register: "hype", when: c => c.f.race === "ththyn",
+      text: c => `Wings on the roster! Short careers, bright ones — Ththyn fight like the clock is audible, because to them it is.` },
     { key: "r_svalbard", tier: 1, register: "dry", when: c => c.f.race === "svalbard",
       text: c => `A Svalbard signature is a decades bet — no weak ones exist, and the price agrees.` },
     { key: "r_etu", tier: 1, register: "dry", when: c => c.f.race === "etu",
@@ -1017,11 +1017,21 @@
   let raceById = {};
   let traitById = {};
 
+  let pools = {};
   function initRoster(data) {
     gen = RG.create(data);
     raceById = gen.raceById;
     traitById = gen.traitById;
+    /* §PAPER the ruled contract ranges live in recruitment.json and are read from there by the
+       generator; season.js needs the same ranges for a RENEWAL, and copying them into a
+       constant would be a second place for them to be wrong. */
+    pools = (data.recruitment && data.recruitment.pools) || {};
     return gen;
+  }
+  /** the ruled seasons range for a pool, straight off the data */
+  function seasonsRange(kind) {
+    const p = pools[kind];
+    return (p && p.seasons_range) || null;
   }
 
   /**
@@ -1085,7 +1095,7 @@
                         recruitment: J("recruitment.json"), oa: J("oa_profiles.json") });
   }
 
-  const api = { initRoster, autoInit, generateSquad, generateDropForce, DEFAULT_POOL_MIX,
+  const api = { initRoster, autoInit, generateSquad, generateDropForce, DEFAULT_POOL_MIX, seasonsRange,
                 get raceById() { return raceById; },
                 get traitById() { return traitById; },
                 get generator() { return gen; } };

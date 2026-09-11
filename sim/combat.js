@@ -297,7 +297,7 @@ const CONST = {
 
   /* §8 racial */
   MONWA_TETHER_COMP: -25,                 // [S]
-  THYTHYN_HOVER_P: 0.22,                  // [C] share of Thythyn repositions that hover
+  THYTHYN_HOVER_P: 0.22,                  // [C] share of Ththyn repositions that hover
   GIL_GOGGLE_DAMAGE_P: 0.40,              // [S] on head-location hit
   GIL_GOGGLE_AIM_PENALTY: 5,              // [S]
   ATTORAK_INTENSITY_COMP: 4,              // [S]
@@ -332,7 +332,7 @@ const INJURY_TABLE = [
   [18, 'inj_arm'], [36, 'inj_leg'], [52, 'inj_torso'], [62, 'inj_head'],
   [72, 'inj_internal'], [82, 'inj_burns'], [90, 'inj_chest'], [96, 'inj_spinal'], [100, 'inj_catastrophic']
 ];
-/* §7.2 Thythyn wing table */
+/* §7.2 Ththyn wing table */
 const WING_TABLE = [[40, 'inj_wing_tear'], [72, 'inj_wing_strut'], [92, 'inj_wing_spar'], [100, 'inj_wing_loss']];
 
 const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], permanent: [120, 240] };
@@ -740,7 +740,7 @@ function compBandOf(c) {
 }
 
 function bandMismatch(c, bandIdx) {
-  if (c.race === 'thythyn') return 0;                       // no_range_band_penalty (ratified)
+  if (c.race === 'ththyn') return 0;                       // no_range_band_penalty (ratified)
   const optimal = BANDS.indexOf(c.weapon.range || 'medium');
   const off = Math.abs(optimal - bandIdx);
   /* in your own element, and your element is not the one every fight drifts into */
@@ -1100,13 +1100,13 @@ function tallySide(rng, S) {
 
 function rollInjury(rng, u, worst) {
   let roll = 1 + Math.floor(rng() * 100);
-  const isThythyn = u.race === 'thythyn';
+  const isThthyn = u.race === 'ththyn';
   let wingRange = 35;
   if (u.hooks.has('wing_injury_susceptibility_up')) wingRange = 46;
   if (u.hooks.has('flight_mobility_bonus')) wingRange = 28;
 
   let type;
-  if (isThythyn && roll <= wingRange) {
+  if (isThthyn && roll <= wingRange) {
     const wr = 1 + Math.floor(rng() * 100);
     type = WING_TABLE.find(e => wr <= e[0])[1];
   } else {
@@ -1120,7 +1120,7 @@ function rollInjury(rng, u, worst) {
      be permanently maiming people in a show-match, which is the same fault as killing them. */
   const stunned = u._killedBy && hasQuirk(u._killedBy, 'nonlethal');
   if (!stunned && type === 'inj_spinal' && rng() < CONST.SPINAL_PERMANENT_P) { severity = 'permanent'; permanent = true; }
-  /* §RACES a hurt wing does not fly: the injury table already knew where a Thythyn is hit,
+  /* §RACES a hurt wing does not fly: the injury table already knew where a Ththyn is hit,
      and now the grid does too */
   if (String(type).indexOf('inj_wing') === 0) u.wingHurt = true;
   if (!stunned && type === 'inj_wing_loss') { severity = 'permanent'; permanent = true; }

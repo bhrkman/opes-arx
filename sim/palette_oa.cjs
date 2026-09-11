@@ -71,7 +71,7 @@ function hslHex(h, s, l) {
 
 /* ------------------------------------------------- the fixed world it must fit ---- */
 const RACE = { olmac: '#6f6f69', svalbard: '#566b7a', etu: '#6e8560', attorak: '#8f7256',
-               human: '#bcae96', kellis: '#a291b5', thythyn: '#8fabab', gil: '#c98a80',
+               human: '#bcae96', kellis: '#a291b5', ththyn: '#8fabab', gil: '#c98a80',
                mon_wa: '#dce8f8' };
 const GROUND = { fight_field: '#171410', ground_map: '#100e0c', page: '#0a0e16', panel: '#0d1420' };
 const SEMANTIC = { command_cyan: '#3ad8e0', side_blue: '#6f9bc4', danger_magenta: '#e84393',
