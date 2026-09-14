@@ -45,6 +45,18 @@ node sim/audit_marks.cjs       THE KIT'S GEOMETRY — every field and device mus
                               pivot it turns about, or it swings on a hinge beside itself.
 node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread constants,
                               helpers written twice. Answer everything or label it.
+node sim/measure_value.cjs     WHAT A FIGHTER COSTS AND WHAT HE BRINGS — the three markets
+                              priced over the term of the paper each would sign.
+node sim/measure_economy.cjs   WHAT A YEAR COSTS AND WHAT IT PAYS — the books end to end.
+                              Fails if the wages or the entry fee stop being charged.
+node sim/measure_quirks.cjs    DO THE QUIRKS BITE — how often each condition comes true in a
+                              real fleet, and what each quirk is worth when it lands.
+node sim/audit_quirks.cjs      THE QUIRKS' SHAPE — every rebuilt quirk does something
+                              functional and something narrative, on conditions the fight
+                              can answer.
+node sim/measure_stat_worth.cjs  WHAT A STAT POINT BUYS, in fights won and bodies left.
+node harness/audit_resize.cjs  WHAT A NARROWER WINDOW TAKES AWAY — every media rule that
+                              hides or zeroes an element, and every one that unpins the chrome.
 node sim/audit_hooks.cjs       THE CATALOGUE'S HOOKS — every one either does something or
                               carries the reason it does not. Fails on a silent no-op.
 node sim/measure_kit.cjs       WHAT A FLEET CARRIES — primaries, armour, sidearms and
@@ -1234,6 +1246,409 @@ and the suite asserts that nothing vents rather than that something does.
 
 *Further weapon balance may want revisiting; this is a healthier starting point than a family
 that was worse in nearly every way.*
+
+## The quirks, rebuilt: the shape, and one to prove it. *Ruled; the catalogue follows.*
+
+The old catalogue was a set nobody had authored or balanced — 16 traits in the data today: eight ruled quirks and eight racial. **84 of them changed no stat at
+all**, most carried a single small hook, and — the fault under the rest — **`stat_mods` IS IN
+TENTHS AND NEVER SAID SO**: a catalogue entry of `aim: 1` became TEN points on a scale that runs
+10 to 200. So the numbers a person read in the data were a tenth of what the engine did, which is
+how a trait called Marksman's Eye came to look like +1 and be +10. *I reported that trait to the
+manager as "+2 on a hundred-point roll", which was wrong twice over.*
+
+**WHAT A POINT IS WORTH, MEASURED** (`sim/measure_stat_worth.cjs`, 70 fights a step, a squad
+bumped against its identical twin):
+
+| Bump | Wins | Kill differential |
+|---|---|---|
+| +0 | 46% | +0.09 — the even fight |
+| +5 | 50% | +0.10 |
+| +15 | 54% | +0.19 |
+| +25 | 60% | +0.49 |
+| +40 | 69% | +0.61 |
+
+So **+5 IS BELOW THE NOISE FLOOR** — four points of win rate, inside the run-to-run variance, a
+thing no player would ever feel. **+15 is where an effect becomes perceptible, +25 is a good
+trait, +40 is a defining one and wants a penalty against it.**
+
+**THE SHAPE EVERY REBUILT QUIRK CARRIES:**
+- `effects.stats` — flat points, REAL points, baked in at birth.
+- `effects.situational` — `{ when, stats }`, applied at the fight. The conditions are a CLOSED
+  VOCABULARY (`combat.js SITUATIONS`), each answerable from what the fight already knows. A
+  condition the engine cannot see is not a condition, it is a wish, and a quirk written against
+  one reads as working and does nothing — the exact failure this rebuild exists to escape.
+- `effects.hooks` — machinery, as before.
+- `effects.story` — a TONE and what an event can hang on. Named, not written: an event writer
+  gets a subject and a temper to write toward rather than a stat block.
+
+`sim/audit_quirks.cjs` refuses anything claiming the new shape and not keeping it — no functional
+half, no narrative half, an unanswerable condition, or `stat_mods` in a new entry. Proved by
+breaking a quirk three ways and watching it catch all three.
+
+**THE FIRST CATALOGUE IS AUTHORED: SIXTEEN QUIRKS, AND THE OLD POOL IS RETIRED.** Every one of
+the 78 old pool traits is `draw: "retired"` — out of circulation, still readable so an existing
+career does not find its people carrying a trait the game has forgotten. The eight RACIAL ones
+(`draw: "special"` — the psion line, the Et-y-Bellum faiths, Keshu, Cradleborn, Ankoth) stand
+untouched: they are racial identity wearing a trait's clothes, and belong with the races.
+
+The sixteen run across the three sizes ruled: **general** (+15 — Steady Hands, Hard to Kill,
+Quick Off the Mark), **situational** (+20 to +30 where it applies — Close Company, Fights Hurt,
+The Captain's Man, Lone Wolf, Old Campaigner, The Conscript's Friend, Needs His Rest, First Blood
+Nerves), and **defining** (+40 against a real penalty — Armchair General +40 Tactics/−15 Aim,
+Blunt Instrument +40 Grit/−15 Fieldcraft). Each carries a `story` naming its tone and what an
+event can hang on; *Hot Blooded* names "a fight in the barracks", which is the tie a writer asked
+for.
+
+**THIRTY IN THE POOL, AND FOURTEEN LINES OF COPY BACK FROM THE DEAD.** Seven of the names the
+old broadcast script already speaks for — Born Captain, Bleeder, Mentor, Few Words, Quotable,
+Slow Starter, Loyal to a Fault — were REBUILT rather than retired, which brings their authored
+scout-report lines back into circulation. Fourteen of the thirty-eight lines fire again; the rest
+wait on the names still to be written.
+
+RETIRING THE OLD BOOK ORPHANED FOUR HOOKS THE ENGINE STILL READS, and the suite's ghost-hook
+check caught it. The answer was not to delete the machinery: `slow_starter` now carries
+`early_divide_penalty` and `late_divide_bonus`, which were ALREADY WIRED to do the thing I had
+duplicated in situational stats, and `bleeder` and `loyal_to_a_fault` the same. A rebuilt quirk
+should reach for the machinery that exists before it grows its own.
+
+**AND THE SMALL CATALOGUE EXPOSED A FAULT THAT HAD ALWAYS BEEN THERE: THE SHUFFLE-BAG DAMPER WAS
+ERASING RARITY.** `batch_repeat_decay` is 0.35 per repeat and compounded without limit, so a
+trait drawn five times kept HALF A PER CENT of its weight and one drawn twenty times kept a
+billionth. Across a batch of any size every trait converged to the same frequency and
+`rarity_weights` decided nothing — measured at common 51 draws a trait, uncommon 50, rare 49,
+from weights of 10, 5 and 2. With the old book it was invisible; with sixteen it was total. The damper is
+meant to stop one trait filling a batch, not to flatten the book, so it is floored at a fifth of
+a trait's weight. Measured after: **common 76, uncommon 39, rare 14** on the first sixteen, and 39 / 20 / 6 across
+the full thirty. A hand's net flat swing runs from −15 at the tenth percentile to +35 at the
+ninetieth: quirks tell people apart without inflating everybody.
+
+## The menu, rebuilt the other way round. *Fixed — after three passes that were not.*
+
+Three attempts failed here and all three failed the same way, which is the only interesting part
+of this. **THE PICTURES WERE SIZED FROM THE VIEWPORT AND THE WORDS TOOK WHAT WAS LEFT.** A
+viewport-sized picture plus a text block of its own height can add up to more than the screen —
+so the buttons and the fleet marks fell off the bottom, and every fix that scaled the pictures
+more cleverly only changed WHERE it broke. The first pass stopped the overlap and did not stop
+the overflow; the second gave the whole stage one unit, which made the parts shrink in step and
+made the overflow worse, because a unit derived from the viewport still sizes the pictures from
+the viewport. Each pass answered a real question and none of them answered this one.
+
+**THE WORDS COME FIRST.** The stage is exactly the height of the window and does not scroll. The
+title, the buttons and the marks are `flex:0 0 auto` — they take the height they need. The
+portraits are `flex:1 1 auto` with `min-height:0`, the declaration that lets a flex child shrink
+below its content: **they take what is left, and what is left is what remains after everything
+that must be readable has been given its room.** Each oval is `height:100%` of that remainder
+with a fixed aspect, so its width follows its height, and a `max-width` in `vw` catches the other
+case — a tall narrow window, where height is generous and width is not.
+
+There is no breakpoint in it. Nothing is positioned into anything. Worked out by hand across ten
+window sizes from 1920×1080 to 380×640, the art always fits across the stage and never squeezes
+below forty pixels.
+
+**AND THE ONE-SCALE CHECK IS RETIRED, HAVING BEEN THE WRONG ANSWER.** It required every length on
+the stage to be a multiple of one unit — the right answer to *the parts shrink at different
+rates* and the wrong answer to *the parts do not fit*. What replaces it is structural rather than
+arithmetic: the gate names the six declarations the layout stands on and fails if any is removed.
+Proved by deleting `flex:1 1 auto; min-height:0` and watching it name both.
+
+## The Kier Bastille sells the man, not the paper. *Ruled and built.*
+
+The Bastille's numbers were already the most distinct in the game — the widest stat spread, the
+lowest loyalty by a distance, half again the negative traits — and none of it was worth anything
+at the table, because a manager could READ ALL OF IT before he signed. A high-variance market you
+can see into is not a gamble, it is a shopping list with a wider range.
+
+**A NATURAL-BORN GREW UP ON YOUR SHIP AND A MERCENARY HAS FOUGHT SOMEWHERE YOU CAN ASK ABOUT.
+BOTH ARRIVE WITH A SERVICE RECORD. A PRISONER HAS NOT GOT ONE** — nobody was keeping score — so
+the Bastille can tell you a name, a people, an age, whether he is carrying an injury, what
+notoriety he has and how much sentence is left, and nothing whatever about what he can do.
+
+The sheet carries no stats, no ceiling and no record. The card does not blank the numbers out as
+though something failed to load: it says **No Service Record — The Bastille Sells the Man, Not the
+Paper**, and lists what the auctioneer will actually tell you. Everything is on the fighter as it
+always was; only the SHEET is redacted, and it opens the moment the man is yours. Claimed blind in
+a test, one arrived with 510 in stats and four quirks including Bleeder — a fact the manager could
+not have known and now has to live with.
+
+*This is what the third market was missing. It was never short of differentiation; it was short of
+a reason for the differentiation to matter to the man buying.*
+
+## What a fighter costs and what he brings. *Measured. Nothing changed.*
+
+`sim/measure_value.cjs` reads the markets a manager sees and prices each hand against what he
+carries. **TWO READINGS IN THE FIRST CUT WERE WRONG, and both flattered a conclusion.**
+
+**THE TERM COMPARISON WAS NONSENSE.** It set a Natural-Born's ₡110,448 over four years against a
+mercenary's ₡94,368 over one and called the mercenary cheaper. A four-year paper BUYS FOUR YEARS;
+comparing it to a one-year bill is comparing a mortgage to a night's rent. And the term is not
+even a full liability — a hand who dies stops being paid, so the long paper is an OPTION the house
+holds, not a debt it owes. **Per year of service, which is the only honest measure:**
+
+| | Ask | Per year of service | Per stat point | Term |
+|---|---|---|---|---|
+| Natural-Born | ₡2,301/mo | **₡27,612** | ₡42/yr | 4y |
+| Mercenary | ₡7,864/mo | **₡94,368** | ₡125/yr | 1y |
+| Conscript | ₡1,679/mo | **₡20,148** | ₡34/yr | 3y |
+
+A mercenary costs **3.4× a Natural-Born for every year he serves** and carries **14% more stat** —
+**three times the price for the same quality.** The short term is his COST, not his discount: the
+house carries the risk of replacing him every year and holds no option on him if he comes good.
+
+**AND THE POOLS ARE NOT IDENTICAL — MY PROBE WAS.** It reported the three kinds as nearly the same
+person, which was `generateSquad` TAKING A POOL OPTION AND IGNORING IT: it deals the standard mix
+whatever is asked for, so passing `{pool:'prisoner'}` and comparing it to `{pool:'nattie'}` is
+comparing one population to itself. Read by each fighter's own origin they are quite distinct:
+
+| | p10 | median | p90 | spread | loyalty | negative traits |
+|---|---|---|---|---|---|---|
+| Natural-Born | 465 | 605 | 750 | 285 | **61** | 39% |
+| Mercenary | 570 | **735** | 875 | 305 | 33 | 41% |
+| Conscript | 455 | 675 | 860 | **405** | **22** | **55%** |
+
+The Bastille is doing what its data file promises — *busts and diamonds in the same lot sheet* —
+with the widest spread of the three, the lowest loyalty by a distance, and half again the negative
+traits. **The differentiation exists; what it lacks is a market that makes a manager feel it.** A
+conscript is the cheapest hand in the game per stat point, and the risk he carries is spread thin
+enough that buying one is rarely a gamble a manager notices taking.
+
+*Nothing has been changed. This is the number run, twice corrected.*
+
+## The wages were never paid. *Fixed, and the surplus is now a tuning question.*
+
+The money has been deferred as a balancing matter for a long time, and nothing had ever read the
+books end to end. `sim/measure_economy.cjs` does. It found two costs the game COMPUTES, RESERVES
+AGAINST, DISPLAYS — and never charges:
+
+- **THE WAGE BILL.** `wageBill` has existed since the ledger did. `procurementBudget` subtracts
+  it before deciding what a house may spend on kit. The Roster prints it as *The Wage Bill*, in
+  red, monthly. **No line was ever posted for it.** The single largest cost of running a
+  corporation was a number on a screen.
+- **THE ALEAS ENTRY FEE.** `ALEAS_ENTRY`, forty thousand, *what it costs to be in the Divide at
+  all* — reserved beside the wages and charged to nobody. **A house entered the Divide free.**
+
+Measured before: a prep year cleared **+₡162,428 on average**, against **₡103,504 a year** in
+costs that existed only as arithmetic. Every scarcity the Market, the Paper, the sponsors and the
+kit cap assume was a fiction — and every balance pass measured against them was measured against
+a false constraint.
+
+Wages are posted monthly, for everybody on the roster; the entry fee is taken at the lock from
+every house that is going. A year now nets **+₡97,012** on the same seeds.
+
+**THAT IS STILL A SURPLUS, AND IT IS NOW AN HONEST ONE.** The books balance and the dominant term
+is visible: **the gate at ₡158,864 a year** against a wage bill of sixty. Whether a house should
+clear a hundred thousand for eleven months of preparation is a RULING, and it is one that can
+finally be made against real figures. The instrument fails outright if either charge ever goes
+missing again.
+
+## Eight quirks, and everything else deleted. *Ruled.*
+
+**THE REBUILD HAD GROWN BACK INTO THE THING IT REPLACED.** Forty-eight quirks, and several of the
+last dozen were revived old names carrying hooks that do nothing — Odds Watcher with no odds
+board, Mimic Call with no comms layer. The point of starting again was to start SMALL and grow
+from working parts; instead the catalogue reached its old size in four sessions and smuggled the
+old fault back in with it.
+
+**EIGHT. Every retired trait DELETED, not parked.** Steady Hands and Hard to Kill (general, +15),
+Armchair General (defining, +40 Tactics / −15 Aim), Close Company, The Captain's Man and Fights
+Hurt (situational), Bleeder (the negative), Born Captain (command). The eight RACIAL traits stand
+apart, as they always have — they are racial identity, not the pool. *The catalogue is 16 entries
+where it was 110.*
+
+Cutting it exposed what the small book leaves unused: **43 hooks the engine reads that no quirk
+asks for.** That is not a fault, it is the deliberate state of a book meant to grow — so the
+suite REPORTS it every run rather than failing on it, and the failing half of that check is kept
+for what it was really for: a hook name the resolver reads that is spelt like nothing at all.
+Two different things had been wearing one name.
+
+## Presence does two things now. *Ruled and built.*
+
+It was copied onto every combatant and read NOWHERE in the fight; outside it, thirty-five per cent
+of one captain's nerve and nothing else. A stat on every sheet, raised by training, bought by
+quirks, and worth almost nothing.
+
+- **THE CROWD NOTICES SOME PEOPLE MORE.** A hand the crowd can see earns fame faster for the same
+  work — a little under his share at the bottom of the scale, half again at the top.
+- **AND A STEADY MAN STEADIES THE ONES AROUND HIM.** A captain's nerve was his own resolve and
+  presence; the squad he stands in had no say in it. The strongest presence among the others
+  lifts what the captain can hold together, which is what a squad's steadiest hand is FOR.
+
+## Keshu is a planet, not a people. *Fixed.*
+
+**KESHU GRUDGE TESTED FOR A RACE THAT DOES NOT EXIST.** It looked for somebody of race `keshu`
+in the squad — and Keshu is the WATER WORLD the Attorak and the Gil fought over for fifty-five
+years before the Opes Arx brokered the peace. The trait is race-locked to those two, and the
+friction is between THEM: an Attorak who never signed the peace standing beside a Gil. As written
+the condition could never once have been true. It fires now, and 18% of squads hold both sides of
+that war.
+
+**AND THREE TRAITS SAID "CHARACTER, NOT MECHANICS" OVER MACHINERY THAT WAS FIRING.** Both
+Et-y-Bellum faiths and the Pressure-Read psion carry no stat change and only hooks — and the
+tooltip's word table did not know those hooks, so a trait worth **+8 morale at the drop and −5 if
+the claim is sold** read as flavour. Twenty-three hooks have words now, every figure READ OFF THE
+ENGINE rather than invented: the surge is 4 or 8 because `divide.js` says 4 or 8.
+
+The harness fails if any trait a hand can carry has no words for what it does. It passed at zero,
+which is the number it should stay at — the failure this catches is not a bug, it is a trait
+quietly lying to the person reading it.
+
+## The broadcast script writes for an idea, not an id. *Built.*
+
+Retiring the old catalogue silenced **twenty-four of the scout report's authored lines at a
+stroke** — good writing, quietly unreachable, because each is keyed to a trait NAME. The copy was
+never the brittle part.
+
+Ten of those names are rebuilt as quirks so their lines fire again — Gallows Humor, Kier
+Hardened, Superstitious, Battle Joy, Crowd Darling, Villain Edit, Camp Cook, Thrill Seeker,
+Homesick, Clause Reader — and **eight more lines are re-pointed at the quirk carrying the same
+idea now**: a hot head is Hot Blooded, a tradition keeper is a Company Man, a cull-tempered hand
+is Hard to Kill. **Twenty-eight of thirty-four lines can fire.** The pool is forty-one.
+
+**AND THE DEBT IS CLOSED: ALL THIRTY-FOUR LINES FIRE.** The last six ideas — Odds Watcher, Mimic
+Call, War Priest, Union Tongue, Aleas' Favorite, Bad Omen — are quirks now, so no authored line
+in the scout report is unreachable. `audit_quirks.cjs` still names any that fall out of reach
+without failing on them: a line that cannot fire is a debt, and a debt nobody can see is a debt
+that rots.
+
+Three of those quirks carry hooks that are DECORATION and now say so in the data — there is no
+odds board for an Odds Watcher to read and no comms layer for a Mimic Call to spoof — so each
+pays in stats instead, and the hook is labelled where it sits rather than left looking wired.
+
+*And one more of the old book's hooks turned out to be granted by nobody:
+`field_treatment_bonus`, read in the fight where a hand treats a wounded squadmate. Rather than
+delete a working line, it has a quirk: **Steady Under the Lamp**, who has stopped more bleeding
+in the field than most medics manage in a bay.*
+
+*Reviving ideas from the old book left three of its hooks granted by nobody —
+`seen_worse_composure`, `composure_up_as_intensity_rises`, `volunteers_for_risk` — and the
+suite's ghost check caught all three. The answer again was to give the rebuilt quirk the
+machinery already wired for that idea rather than to delete working code. That is the third time
+this pattern has paid: a rebuilt quirk should reach for what exists before it grows its own.*
+
+## Seven placeholder moments, and they say so. *Built — not authored.*
+
+Every rebuilt quirk carries a `story` naming what an event could hang on it, and until now those
+ties cast NOTHING: a narrative half that was a promissory note. Seven stand-ins fill it, one
+shape filled from a table (`MOMENTS`) — a slight in the mess, a wound off the books, an armband
+that went elsewhere, a caller at the gate, a rookie who came good, an offer never mentioned, a
+shot the fleet is still talking about.
+
+They CAST BY TIE, so they follow the catalogue: rewrite the quirks and these find whoever answers
+instead. Measured over three fleet-years they are a real share of a month — 47 quirk moments
+against 20 raises and 24 fleet notices — and each fires once per hand per career.
+
+**WHAT THEY ARE NOT IS AUTHORED, and the source says so in as many words.** A real event has a
+situation with more than one honest answer and a consequence that lands somewhere a manager will
+feel later. These have two answers and a small immediate cost: enough to prove the wiring, not
+enough to be the writing. Replacing one means rewriting a ROW, not touching code.
+
+**AND THEY DREW PERFECTLY AND ANSWERED NOTHING.** Pushed into the pool AFTER the id index was
+built, every one of them displayed, offered its two options, and then resolved to `null` — the
+answer path looks a spec up by id in `BY_ID`, and `BY_ID` had been built from the pool as it
+stood a moment earlier. An event that draws but cannot be answered is the worst of both: it looks
+like content and is furniture. `audit_quirks.cjs` now fails on any spec in the pool the answer
+path cannot reach.
+
+## The sheet says what a quirk does. *Built.*
+
+The catalogue was rewritten to be FELT, and the one screen that explains it was still reading the
+old field. `quirkText` walked `stat_mods` and the hook table — so every rebuilt quirk, carrying
+thirty points and a condition, showed **"Character, Not Mechanics"**. The player could not see any
+of the work.
+
+It reads the new shape now: flat points, then what a quirk is worth and WHEN, then any machinery
+a hook carries. And the conditions are said the way a manager would say them — *In a Squad of
+Four or Fewer*, *With Their Captain on the Ground*, *While Carrying a Wound* — because a screen
+that prints `squad_at_most_4` is a screen written for its author. A chip now reads:
+
+> **Gallows Humour** — +25 Resolve, +15 Presence — While Rattled · Loses 40% Less Composure
+
+*The old `stat_mods` is printed ×10 here too, since that field is in tenths; the one screen that
+showed those numbers had been showing a tenth of the truth.* The harness fails if any quirk in
+circulation carries nothing the sheet can state.
+
+## Do the quirks actually bite? *Measured, and the probe was wrong twice.*
+
+The old catalogue's failure was never that it was badly written — it was that most of it never
+did anything a manager could feel. **A rebuilt quirk naming a condition the game does not reach
+is the same failure in better prose**, so `sim/measure_quirks.cjs` fields real fleets and counts
+how often each condition is TRUE at the moment a body is made, and what each quirk is worth in
+points when it lands.
+
+**IT REPORTED THREE CONDITIONS AS NEVER REACHED — AND IT WAS THE PROBE, NOT THE GAME.** It called
+`buildCorp` with no persisted drop, and without one the squad sizes fall to the `[8,8,8]` default:
+so every squad it measured was eight or more, and `squad_at_most_4` looked impossible. Built the
+way a season builds them, **a quarter of all bodies are in a squad of four or fewer**. The probe
+was not looking at the game.
+
+**AND IT FLATTERED EVERY QUIRK.** It summed a body's whole situational total and credited it to
+each quirk that body carried, so Close Company read 9.0 points on a condition firing 0% of the
+time — a measurement that flatters is worse than none. Each quirk is now weighed alone.
+
+Corrected, every condition comes true and every quirk earns: `with_their_captain` 81%,
+`squad_at_most_6` 75%, `squad_at_most_4` 26%, `hurt` 18%, `rattled` 16%, `is_captain` 19%. The
+Captain's Man is worth 35 points when it lands, The Conscript's Friend 30, Slow Starter 30, Close
+Company 13. The gate FAILS if the catalogue is ever allowed to name a condition the game never
+reaches.
+
+**AN EVENT ASKS FOR A TIE, NOT A TRAIT ID — and the story half is functional now.** Five events
+cast their subject by NAMING a trait (`hasQuirk(f, 'hot_headed')`), and the moment those traits
+were retired all five went quiet with no error anywhere: the event stayed in the pool, drew its
+turn, found nobody, and did nothing. A name in a script is a hard edge against a catalogue meant
+to be rewritten.
+
+Every rebuilt quirk carries `story.hooks_into` — the things an event could hang on it — and
+`castFor(state, corp, tie)` returns whoever in the house has a quirk answering to it, whatever
+that quirk is called this year. *A fight in the barracks* finds the Hot Blooded man; retire him
+and write a different one, and the event follows. The `story` fields were documentation until
+this; now they are the casting call, which is the difference between a field that claims
+something and a field that does it.
+
+`audit_quirks.cjs` refuses an event that casts by a name the catalogue no longer deals, and
+refuses a tie no quirk in circulation answers. It caught two the moment it was written — a
+stranded `hot_headed` and a tie nothing could answer, which is why *War Debt* exists. IT ALSO
+CAUGHT ITSELF: the first cut read the example inside the comment explaining the check and
+reported its own documentation as a fault, so it reads the code with the commentary stripped.
+
+**ONE RED WAS A CHECK, NOT A FAULT.** The Divide's squad panel read *Alpha · None · 0d · Nobody
+Leading*, and the harness called it a failure — but the squad had been KILLED TO THE MAN, and
+saying so is the panel working. The check demanded a clickable captain on every squad, so the
+moment a manager's last squad was wiped a correct reading failed. It asks for a reading now: a
+captain and how he sees it while anybody is alive, and plainly nobody once they are not. (It also
+required the word *Leader*, which is a COLUMN HEADER in that table and would have matched
+whatever the squads did — a clause that could never fail is not a check.)
+
+## A people's name in their own colour. *Built.*
+
+The nine have distinct colours now, and the one function that spells a race out — `capRace` —
+was printing it in the surrounding grey. So the colours reached the marks, the discs and the
+grid, and never the WORD. One function, so every caller gets it: the roster row, the prospect
+card and the sheet.
+
+**AND THE SHEET NEVER SAID WHAT A MAN WAS.** It carried his squad, his stats, his kit and his
+paper, and not the one fact that decides how he moves and what he can do on the ground. It says
+it now, in the people's own colour, beside his age.
+
+## Nothing is destroyed by making the window smaller. *Ruled and built.*
+
+`harness/audit_resize.cjs` reads the stylesheet and reports EVERY rule inside a width query that
+hides, removes or zeroes an element, plus every rule that lets pinned chrome wrap again. It found
+three things, and one of them was itself:
+
+- **THE MENU DELETED TWO THIRDS OF ITSELF UNDER 720px.** The side portraits were `display:none`,
+  so dragging a corner did not shrink the stage, it removed it. All three survive at every width
+  now: they shrink, the gap closes, the outward lean comes in, and a narrow window is a SMALLER
+  TRIPTYCH rather than a different screen. A short window is handled too — the portraits give up
+  height before the words do.
+- **THE HEADER WAS PINNED AND THEN UNPINNED.** The base rules hold it to one line; a later media
+  block set it back to `flex-wrap:wrap`, which is how a narrow window "moved" the clock and the
+  purse onto a second row. A rule that undoes a rule is worse than no rule, because the first one
+  reads as a promise.
+- **`.mocknote` HID AN ELEMENT THAT DOES NOT EXIST** — a breakpoint rule for a class used
+  nowhere. Removed.
+
+AND THE PROBE LIED ON ITS FIRST RUN: `width:0` matched inside `min-width:0`, so it reported the
+menu column as destroyed when it was being told to shrink. The pattern is anchored now. A check
+that cries wolf is worse than the fault it hunts, because the next real finding is read as noise.
 
 ## Ththyn, and nine peoples who look like themselves. *Ruled and built.*
 

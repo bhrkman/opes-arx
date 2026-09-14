@@ -79,20 +79,50 @@
      ovals plus the menu are taller than the screen, the menu is pushed into a SECOND COLUMN
      to the right — ovals on the left, buttons on the right, which is exactly what happened.
      The stage stacks and scrolls; nothing ever wraps sideways. */
-  .menustage{flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:0;
-    background:#050810;padding:24px 16px 40px}
+  /* §MENU BUILT THE OTHER WAY ROUND. Three passes failed here and all three failed the same
+     way: the PICTURES were sized from the viewport and the words took whatever was left. That
+     is backwards. A viewport-sized picture plus a text block of its own height can add up to
+     more than the screen, so the buttons and the marks fell off the bottom — and every fix that
+     scaled the pictures better only changed WHERE it broke.
+
+     The words come first now. The stage is exactly the height of the window and cannot scroll;
+     the title, the buttons and the fleet marks take the height they need; and the portraits
+     take WHAT IS LEFT — `flex:1` with `min-height:0`, which is the line that lets a flex child
+     shrink below its content. Each oval is `height:100%` of that leftover with a fixed aspect,
+     so its width follows its height, and a `max-width` in vw catches the other case: a tall
+     narrow window, where height is generous and width is not.
+
+     There is no breakpoint anywhere in this. Nothing is positioned into anything. The only way
+     the bottom of this screen can be cut off is if a row that should be `flex:0 0 auto` is
+     allowed to grow, and there is one such row. */
+  .menustage{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:center;
+    justify-content:center;gap:clamp(6px,1.4vh,16px);background:#050810;
+    height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
   .menustage::before{content:"";position:absolute;inset:0;
     background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
-  .menuovals{display:flex;align-items:flex-end;justify-content:center;gap:clamp(14px,3vw,40px);margin-top:2vh;position:relative;z-index:1}
-  .moval{position:relative;overflow:hidden;background:#000;border-radius:50% / 46%;border:2px solid var(--c);
-    box-shadow:0 0 0 7px rgba(0,0,0,.65),0 0 60px var(--glow),inset 0 -60px 70px rgba(0,0,0,.6)}
+
+  /* THE ONE ROW THAT TAKES WHAT IS LEFT */
+  .menuovals{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;
+    gap:clamp(4px,1.2vw,30px);position:relative;z-index:1;max-width:100%}
+  .moval{position:relative;overflow:hidden;background:#000;border-radius:50% / 46%;
+    border:2px solid var(--c);flex:0 1 auto;min-width:0;
+    box-shadow:0 0 0 6px rgba(0,0,0,.6),0 0 46px var(--glow),inset 0 -8% 12% rgba(0,0,0,.6)}
   .moval img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
   .moval.right img{object-position:50% 20%}
-  .moval.left{--c:#8fb8ff;--glow:rgba(143,184,255,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(-3.5vw,7vh)}
-  .moval.right{--c:#ff6a2a;--glow:rgba(255,106,42,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(3.5vw,7vh)}
-  .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);width:clamp(195px,21vw,285px);height:clamp(300px,33.5vw,455px);margin-bottom:clamp(40px,7vh,90px)}
-  .menustage .menucol{position:relative;z-index:2;margin-top:clamp(-70px,-9vh,-120px);align-items:center}
-  .menustage .menubtn{width:290px;max-width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;text-transform:uppercase}
+  /* height comes from the row; width follows the aspect; and vw catches a tall narrow window */
+  .moval.left{--c:#8fb8ff;--glow:rgba(143,184,255,.40);
+    height:86%;aspect-ratio:2 / 3;max-width:26vw}
+  .moval.right{--c:#ff6a2a;--glow:rgba(255,106,42,.40);
+    height:86%;aspect-ratio:2 / 3;max-width:26vw}
+  .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);
+    height:100%;aspect-ratio:2 / 3;max-width:30vw}
+
+  /* AND THE ROWS THAT TAKE ONLY WHAT THEY NEED */
+  .menustage .menucol{flex:0 0 auto;position:relative;z-index:2;align-items:center;
+    min-width:0;width:min(300px,80vw);gap:clamp(4px,0.9vh,10px)}
+  .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
+    text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
+    padding:clamp(5px,1.1vh,11px) 14px}
   .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
@@ -125,13 +155,30 @@
   #rail .tab{flex:none;white-space:nowrap}
   header{flex-wrap:nowrap;gap:14px}
   header .bar{flex-wrap:nowrap;white-space:nowrap}
-  .menufleet{display:flex;justify-content:center;gap:14px;margin-top:12px}
-  .menufleet span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);
+  /* the marks are a row that takes only its own height, like the words above it */
+  .menufleet{flex:0 0 auto;display:flex;justify-content:center;gap:clamp(5px,1vw,14px);margin-top:0}
+  .menufleet span{width:clamp(14px,2.4vh,26px);height:clamp(14px,2.4vh,26px);border-radius:50%;
+    border:1.5px solid var(--c);color:var(--c);flex:0 0 auto;
     display:inline-flex;align-items:center;justify-content:center;opacity:.7}
-  @media (max-width:720px){ .moval.left,.moval.right{display:none} .moval.mid{margin-bottom:0} .menustage .menucol{margin-top:18px} }
-  .menutitle{font-size:clamp(34px,4.6vw,56px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
+  .menufleet svg{width:60%;height:60%}
+  /* §MENU NOTHING IS DESTROYED BY MAKING THE WINDOW SMALLER. The two side portraits were set
+     to `display:none` under 720px — the stage simply lost two thirds of itself, which is what
+     a person dragging a corner sees as the menu breaking. All three survive at every width:
+     they shrink, the gap closes, the outward lean comes in, and the whole stage keeps its
+     shape. A narrow window is a smaller triptych, not a different screen. */
+  /* the narrow window needs only smaller things, not a different layout — the grid already
+     guarantees the rows cannot meet, so nothing here moves anything into anything */
+  /* THE NARROW-WINDOW BLOCK IS GONE. Every rule in it re-solved a size the stage's own unit
+     already solves — and each with its own numbers, which is exactly how six elements came to
+     shrink at six different rates. One unit needs no breakpoint. What is left is the one thing
+     a small stage genuinely wants: a thinner ring, because a two-pixel border on a hundred-pixel
+     oval is a different picture. */
+  @media (max-width:720px){
+    .moval{border-width:1.5px;box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 34px var(--glow),inset 0 -36px 44px rgba(0,0,0,.6)}
+  }
+  .menutitle{font-size:clamp(20px,5.2vh,52px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
     text-shadow:0 0 22px rgba(58,216,224,.45),0 0 2px rgba(58,216,224,.9)}
-  .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
+  .menusub{color:#5f7a9c;font-size:clamp(8px,1.3vh,11px);letter-spacing:.12em;text-align:center;margin-bottom:0}
   .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
   .menubtn:disabled{opacity:.35}
   /* the founding cards: an OA is picked by its colour and mark as much as its name, so the
@@ -1101,6 +1148,7 @@
   .railhead{font-size:12.5px;letter-spacing:.02em;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
   .railhead .nm{color:var(--ink);font-weight:bold}
   .railhead .sub{font-size:10px;white-space:nowrap}
+  .railhead .sub.race{color:var(--dim)}
   .railhead .sub.sqA{color:var(--sqA)} .railhead .sub.sqB{color:var(--sqB)} .railhead .sub.sqC{color:var(--sqC)}
   .railhead .sub.sqD{color:var(--sqD)} .railhead .sub.sqE{color:var(--sqE)} .railhead .sub.sqF{color:var(--sqF)} .railhead .sub.none{color:var(--dim)}
   .colblk{margin-bottom:9px}
@@ -1171,7 +1219,11 @@
      scroll sideways rather than overflow. Media queries only: the desktop is untouched. ---- */
   html{background:var(--bg);color-scheme:dark;min-height:100%}
   @media (max-width: 900px) {
-    header{padding:10px 12px 8px;flex-wrap:wrap;gap:8px}
+    /* the header is PINNED to one line in the base rules; this block used to set it back to
+       `wrap`, which is how a narrow window "moved" the clock and the purse onto a second row.
+       It gets less padding and a smaller type, and it still holds its line. */
+    header{padding:10px 12px 8px;gap:8px}
+    #whoami{font-size:13px} #clock{font-size:11px} #purse{font-size:11px}
     /* the founding screen on a narrow one: the builder stacks under its stage, the pad's
        columns become one, and the button that starts the game stays where a thumb is */
     .markrow{grid-template-columns:1fr;gap:10px}
@@ -1197,7 +1249,6 @@
     .box,.tgwrap{overflow-x:auto}
     canvas{max-width:100%}
     .oastrip{gap:4px}
-    .mocknote{display:none}
   }
 </style>
 </head>
@@ -1849,7 +1900,57 @@
      A quirk was a word on a card. What it MEANS is in the data — a stat it moves, and the
      hooks the engine reads — so the chip says it: hover, and the reading is the mechanics,
      not the flavour. A hook nothing reads says so rather than promising something. */
+  /* §QUIRKS the conditions, said the way a manager would say them rather than as the engine's
+     own keys — a screen that prints `squad_at_most_4` is a screen written for its author */
+  var WHEN_WORDS = {
+    squad_at_most_4: 'In a Squad of Four or Fewer',
+    squad_at_most_6: 'In a Squad of Six or Fewer',
+    squad_at_least_7: 'In a Squad of Seven or More',
+    is_captain: 'While Leading a Squad',
+    not_captain: 'While Not Leading',
+    first_divide: 'In a First Engagement',
+    alongside_conscript: 'Beside a Conscript',
+    alone_of_their_race: 'As the Only One of Their People',
+    veteran: 'After Two Divides',
+    green: 'Before Their First Divide',
+    young: 'While Young',
+    old_hand: 'Past Thirty-Four',
+    hurt: 'While Carrying a Wound',
+    settled: 'While Settled',
+    rattled: 'While Rattled',
+    with_their_captain: 'With Their Captain on the Ground',
+    is_conscript: 'As a Conscript',
+    is_mercenary: 'As a Mercenary'
+  };
+  function WHEN_TEXT(w) { return WHEN_WORDS[w] || capWords(String(w).replace(/_/g, ' ')); }
   var HOOK_TEXT = {
+    /* §QUIRKS THE HOOKS THE TOOLTIP COULD NOT SPEAK FOR. Three racial traits — both
+       Et-y-Bellum faiths and the Pressure-Read psion — carried no stat change and no hook this
+       table knew, so their tooltip said "Character, Not Mechanics" over machinery that is
+       wired, sized and firing. Every figure below is read off the engine, not invented. */
+    divide_start_morale_surge: '+4 Morale at the Drop',
+    divide_start_morale_surge_major: '+8 Morale at the Drop',
+    cede_loyalty_morale_penalty: '\u22123 Morale on a Sold Claim',
+    cede_loyalty_morale_penalty_major: '\u22125 Morale on a Sold Claim',
+    death_or_glory_affinity: '+3 Morale Under Death or Glory, \u22122 Under a Cautious Policy',
+    resists_medical_evac: 'Refuses the Evac',
+    negotiation_bluff_detection: 'Reads a Bluff at the Table',
+    friction_with_keshu_rival_race: '\u22123 Morale Beside the Other Side of the Keshu War',
+    ankoth_sympathy_chemistry: '+2 Morale Beside an Ankoth',
+    evasion_surge: 'Slips the Odd Certain Shot',
+    squad_coordination_bonus: '+1 Aim for the Squad Around Them',
+    psionic_broadcast_sensation: 'The Crowd Pays for a Psion',
+    loyalty_cap_reduced: 'Never Fully Loyal to a House',
+    succession_candidate_priority: 'First in Line for a Captaincy',
+    injury_severity_risk_up: 'Wounds Run a Grade Worse',
+    early_divide_penalty: 'Poor in a First Engagement',
+    late_divide_bonus: 'Better Once Blooded',
+    captain_fidelity_up: 'Follows a Captain Further',
+    field_treatment_bonus: 'Treats a Wound Better in the Field',
+    seen_worse_composure: 'Steadier for Having Seen Worse',
+    composure_up_as_intensity_rises: 'Steadies as a Fight Worsens',
+    volunteers_for_risk: 'Volunteers for the Bad Jobs',
+    unlikely_friendship_arc_seed: 'Draws the Odd Friendship',
     accuracy_bonus: 'Better Aim', field_treatment_bonus: 'Treats Wounds Better',
     evac_stabilize_bonus: 'Steadier Hands on the Wounded', development_rate_up: 'Trains 30% Faster',
     young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
@@ -1886,11 +1987,26 @@
   function quirkText(id) {
     var tr = ROSTER.traitById && ROSTER.traitById[id];
     if (!tr) return { name: capWords(id), lines: [], flavour: '' };
+    /* §QUIRKS THE SHEET HAS TO SAY WHAT THE NEW SHAPE DOES. This read `stat_mods` and hooks,
+       so a rebuilt quirk carrying thirty points and a condition showed "Character, Not
+       Mechanics" — the catalogue was rewritten to be felt and the one screen that explains it
+       was still reading the old field. Flat points first, then what it is worth and WHEN, then
+       any machinery a hook carries. */
     var e = tr.effects || {}, lines = [];
-    for (var k in (e.stat_mods || {})) {
+    for (var k in (e.stat_mods || {})) {          /* the old field, in tenths */
       var v = e.stat_mods[k];
-      lines.push((v > 0 ? '+' : '') + v + ' ' + (STATNAME[k] || capWords(k)));
+      lines.push((v > 0 ? '+' : '') + (v * 10) + ' ' + (STATNAME[k] || capWords(k)));
     }
+    for (var k2 in (e.stats || {})) {             /* and the new one, in real points */
+      var v2 = e.stats[k2];
+      lines.push((v2 > 0 ? '+' : '') + v2 + ' ' + (STATNAME[k2] || capWords(k2)));
+    }
+    (e.situational || []).forEach(function (st) {
+      var parts = [];
+      for (var k3 in (st.stats || {}))
+        parts.push((st.stats[k3] > 0 ? '+' : '') + st.stats[k3] + ' ' + (STATNAME[k3] || capWords(k3)));
+      if (parts.length) lines.push(parts.join(', ') + ' \u2014 ' + WHEN_TEXT(st.when));
+    });
     (e.hooks || []).forEach(function (h) { if (HOOK_TEXT[h]) lines.push(HOOK_TEXT[h]); });
     return { name: tr.name, lines: lines, flavour: tr.description || '' };
   }
@@ -2008,7 +2124,16 @@
     if (si == null) return null;
     return { idx: si, cls: SQCLASS[si] || 'none', name: (G.plan.names || [])[si] || ('Squad ' + (si + 1)) };
   }
-  function capRace(r) { return r ? r.charAt(0).toUpperCase() + r.slice(1).replace('_', '-') : '?'; }
+  /* §RACES A PEOPLE'S NAME IS WRITTEN IN THEIR OWN COLOUR. The nine have distinct colours now
+     and the one place that spells a race out was printing it in the surrounding grey — so the
+     colours reached the marks and the discs and never the word. One function, so every caller
+     gets it: the roster row, the prospect card, and the sheet. */
+  function capRace(r) {
+    if (!r) return '?';
+    var word = r.charAt(0).toUpperCase() + r.slice(1).replace('_', '-');
+    var c = RACE[r];
+    return c ? '<span style="color:' + c.fill + '">' + word + '</span>' : word;
+  }
   function renderRoster() {
     renderResigning();
     if (!G) return;
@@ -2301,8 +2426,25 @@
   var MERC_FIELD = 1.15;      /* §ACQ what the rest of the fleet is putting up, as a share of the ask */
   function prospectCard(f, signing) {
     var s = f.stats || {};
+    /* §BASTILLE A SHEET WITH NOTHING ON IT IS THE POINT. A Natural-Born grew up on your ship
+       and a mercenary has fought somewhere you can ask about; a prisoner has no service record,
+       so the Bastille sells a name, a people, an age and whatever is apparent from looking at
+       him. The stat cells are not blanked as though something failed to load — they carry what
+       the auctioneer WILL tell you, and a plain statement that the rest is not for sale. */
+    var cells;
+    if (f.hidden) {
+      cells = '<span class="pc-blind"><b>No Service Record</b>' +
+        '<span class="m">The Bastille Sells the Man, Not the Paper</span>' +
+        '<span class="seen">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') +
+          (f.hurt ? ' \u00b7 <span class="bad">Carrying an Injury</span>' : '') +
+          (f.fame ? ' \u00b7 Notoriety ' + Math.round(f.fame) : '') +
+          (f.sentence ? ' \u00b7 ' + f.sentence + ' to Serve' : '') +
+        '</span></span>';
+    } else {
     var cells = STAT_KEYS.map(function (k) { return statCell(k, STAT_ABBR[k], s[k]); }).join('') +
       '<span class="pc-pot">Ceiling ' + (f.potential != null ? f.potential : '\u2014') + (f.carried ? ' <span class="ktag">Carried Over</span>' : '') + '</span>';
+    }
+
 
     var foot, terms;
     if (signing === 'tryouts') {
@@ -4458,6 +4600,10 @@
     return '<div class="railhead"><span class="sheetmark" data-editmark="' + b.id + '" title="Change the Mark">' +
       fighterMark(b, 44, colFor(G.me)) + '<span class="mkedit-cue">Change<br>the Mark</span></span>' +
       '<span class="nm" style="color:' + raceColour(b) + '">' + (lead ? '<span class="lead">\u2605</span> ' : '') + esc(b.name) + '</span>' +
+      /* §RACES THE SHEET NEVER SAID WHAT HE WAS. It carried his squad, his stats, his kit and
+         his paper, and not the one fact that decides how he moves and what he can do on the
+         ground — told in the people's own colour, the way the roster tells it. */
+      '<span class="sub race">' + capRace(b.race) + ' \u00b7 ' + (b.age || '?') + '</span>' +
       '<span class="sub ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) + (lead ? ' \u00b7 Leads' : '') : 'At Home') + '</span></div>';
   }
 

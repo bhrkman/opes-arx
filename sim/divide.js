@@ -217,6 +217,11 @@
     RANK_SNUB: 6,                       // [C] onto the stress of one passed over
     STORY_MOURNED: 1.50,                // [C] a company family's dead
     STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
+    /* §PRESENCE what being a man the room looks at is worth */
+    PRESENCE_FAME: 0.5,                 // [C] fame earned, across the whole spread of the stat
+    PRESENCE_STEADIES: 0.12,            // [C] and what the squad's steadiest hand lends a captain
+    KESHU_FRICTION: 3,                  // [C] §KESHU what an old war costs a squad that holds
+                                        //     both sides of it
     GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the house that
                                         //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
@@ -1248,9 +1253,20 @@
     if (!avail.length) return null;
     const cap = squadCaptain(sq);
     const mentorPresent = avail.some(b => (b.traits || []).includes('mentor'));
+    /* §QUIRKS THE SITUATION A BODY IS IN, handed to the body as it is built — without it every
+       situational condition answers false and a quirk written against one does nothing, which
+       is the exact failure this catalogue is being rebuilt to escape. */
+    const withConscript = avail.some(b => ((b.contract || {}).kind) === 'prisoner');
+    const raceCount = {};
+    for (const b of avail) raceCount[b.race] = (raceCount[b.race] || 0) + 1;
     const units = avail.map(f => C.makeCombatant(f, {
       traitIndex, isCaptain: f.id === cap.id, day,
-      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0
+      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0,
+      squadSize: avail.length, withConscript: withConscript,
+      onlyOfRace: raceCount[f.race] === 1,
+      divides: (f.experience && f.experience.divides) || 0, age: f.age,
+      health: (f.condition || {}).health, stress: (f.condition || {}).stress,
+      captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
        What stood here was a squad-wide `gearTier` scalar and a five-row {power, protection}
@@ -1521,8 +1537,17 @@
       else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks++; }
     }
     /* squad chemistry: who is standing next to whom */
-    if (hooksOfSquad.has('friction_with_keshu_rival_race')
-        && bodies.some(b => b.race && /keshu/i.test(b.race.id || ''))) { moraleDelta -= 2; stats.audit.traitHooks++; }
+    /* §KESHU THE GRUDGE TESTED FOR A RACE THAT DOES NOT EXIST. It looked for somebody of race
+       "keshu" in the squad — and Keshu is a PLANET, the water world the Attorak and the Gil
+       fought over for fifty-five years before the Opes Arx brokered the peace. The trait is
+       race-locked to those two, so the friction is between THEM: an Attorak who never signed
+       the peace standing beside a Gil, or the other way round. As written it could never once
+       have fired. */
+    if (hooksOfSquad.has('friction_with_keshu_rival_race')) {
+      const hasAttorak = bodies.some(b => b.race && b.race.id === 'attorak');
+      const hasGil = bodies.some(b => b.race && b.race.id === 'gil');
+      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks++; }
+    }
     if (hooksOfSquad.has('ankoth_sympathy_chemistry')
         && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
     /* a steady pair of hands gets the wounded back on their feet sooner */
@@ -2001,7 +2026,16 @@
        aptitude is worth exactly what it says: a human reads a situation better than the sheet
        alone would say. */
     if (c.race === 'human') tac = Math.min(1, tac + CONST.HUMAN_COMMAND);
-    const nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
+    /* §PRESENCE AND A STEADY MAN STEADIES THE ONES AROUND HIM. A captain's nerve was his own
+       resolve and presence; the squad he stands in had no say in it. The strongest presence
+       among the others lifts (or drags) what the captain can hold together — which is what a
+       squad's steadiest hand is FOR, and the second thing the stat now does. */
+    let nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
+    const others = (sq && sq.bodies || []).filter(b => b !== c && b.status === 'active');
+    if (others.length) {
+      const best = Math.max.apply(null, others.map(b => (b.stats && b.stats.presence) || 90));
+      nerve = Math.max(0, Math.min(1, nerve + ((best - 90) / 110) * CONST.PRESENCE_STEADIES));
+    }
     /* a captain worn down reads worse than a fresh one: fatigue and stress are on the sheet */
     const worn = 1 - Math.min(0.5, ((c.condition && c.condition.fatigue || 0) * 0.004 + (c.condition && c.condition.stress || 0) * 0.003));
     return {
@@ -2618,6 +2652,13 @@
       /* The crowd finds some people and loses others. Read by HOOK, not by trait id: the
          hooks are the contract, ids are not, and reading ids is how a renamed trait silently
          stops working. Eight of these had been declared and read by nothing since Step 2. */
+      /* §PRESENCE THE CROWD NOTICES SOME PEOPLE MORE. Presence was copied onto every combatant
+         and read NOWHERE in the fight, and outside it was thirty-five per cent of one captain's
+         nerve and nothing else — a stat on every sheet, raised by training, bought by quirks,
+         and worth almost nothing. A hand the crowd can see earns fame faster for the same work:
+         at the bottom of the scale a little less than his share, at the top half again. */
+      const pres = (t.stats && t.stats.presence) || CONST.MIND_MID * 10;
+      g *= 1 + ((pres - 90) / 110) * CONST.PRESENCE_FAME;
       const h = C.hooksOf(t, ROSTER.traitById);
       if (h.has('fame_gain_up')) g *= 1.5;
       if (h.has('heel_fame_gain')) g *= 1.4;

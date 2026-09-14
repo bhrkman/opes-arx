@@ -1,19 +1,22 @@
-THTHYN, AND NINE PEOPLES WHO LOOK LIKE THEMSELVES
+THE KIER BASTILLE SELLS THE MAN, NOT THE PAPER
 
-- THE RACE WAS SPELT `Thythyn` IN ALL 354 PLACES, including the data key every fighter in
-  every save carries. It is Ththyn. Renamed in the id and the display name.
-- A SAVE WRITTEN BEFORE THE RENAME IS CARRIED FORWARD ON LOAD (fixOldNames). Renaming the key
-  alone would have made every fighter in an existing career a race the game no longer has —
-  no colour, no hooks, no flight.
-- The rename also caught a FILENAME: viewers/art/menu_thythyn.webp is in build_corp's ART
-  list, so the page came out 84KB light with a portrait missing until the file was renamed.
-  NOTE: this bundle renames that file — the old menu_thythyn.webp should be deleted.
-- THE PEOPLES WORE ONE MUDDY PALETTE, every race between slate and olive. Ruled colours:
-  Attorak brown, Etu green, Gil purple, Human tan, Kellis blue, Mon-Wa white, Olmac granite,
-  Svalbard gold, Ththyn light pink. Each clear of the houses' eight banners and the
-  suppliers' eight. Radius untouched — that is build, not colour.
-- BROWN AND PURPLE LIFTED: at their honest values (#8a5a2b, #8b4fc9) they gave 3.3 and 3.7
-  contrast against the page background, where a name in either is a smudge. Same hues at ~5.
+The Bastille's numbers were already the most distinct in the game — widest stat spread, lowest
+loyalty by a distance, half again the negative traits — and none of it was worth anything at
+the table, because a manager could READ ALL OF IT before signing. A high-variance market you
+can see into is not a gamble; it is a shopping list with a wider range.
 
-regress 114/114 · fight shape ok · audit_code 0 · audit_hooks clean · audit_marks 0 ·
-docs clean · ui audit clean · drive green
+- A Natural-Born grew up on your ship and a mercenary has fought somewhere you can ask about:
+  both arrive with a SERVICE RECORD. A prisoner has not got one. So the Bastille tells you a
+  name, a people, an age, whether he is carrying an injury, his notoriety and the sentence
+  left — and nothing about what he can do.
+- season.js apparentOnly(): the lot record for `bastille` drops stats, potential, traits and
+  the service record, and adds what is apparent (build, visible injury, sentence).
+- The card does not blank the numbers as though something failed to load: "No Service Record —
+  The Bastille Sells the Man, Not the Paper", with what the auctioneer will actually tell you.
+- Everything is on the FIGHTER as before; only the SHEET is redacted, and it opens the moment
+  the man is yours. Claimed blind in a test: 510 in stats and four quirks including Bleeder.
+- Harness: the window opens, the sheet carries no stats/ceiling/record, and does carry a name,
+  a people and an age. (The probe opens its own season and steps to month five — a lot is only
+  drawn when its month arrives.)
+
+regress 114/114 · fight shape ok · audit_code 0 · docs clean · ui audit clean · drive green

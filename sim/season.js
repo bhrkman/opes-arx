@@ -2627,9 +2627,31 @@
     return lotAt(state, corpId, kind, lot);
   }
   /** one reader for a lot, whether it is this month's or the one a manager is peeking at */
+  /* §BASTILLE THE KIER BASTILLE SELLS PEOPLE, NOT RECORDS. A Natural-Born grew up on your own
+     ship and a mercenary has fought somewhere they can be asked about — both arrive with a
+     service record, and a manager reads their numbers before he signs. A prisoner has no such
+     record: the Bastille can tell you a name, a people, an age and what the sentence was, and
+     nothing about what the man can do, because nobody has been keeping score.
+     So the market becomes what its data always said it was — *busts and diamonds in the same
+     lot sheet* — and the widest stat spread in the game, the lowest loyalty and half again the
+     negative traits stop being facts on a page a manager can read past. He is buying blind.
+     Everything is on the fighter as before; only the SHEET is redacted, and it opens the moment
+     the man is his. */
+  function apparentOnly(rec, f) {
+    delete rec.stats; delete rec.potential; delete rec.traits;
+    delete rec.record;          /* the service record is the very thing a prisoner has not got */
+    rec.hidden = true;
+    /* what an auctioneer could not hide: the man is standing in front of you */
+    rec.build = (f.race || '').replace('_', '-');
+    rec.hurt = !!((f.condition || {}).injuries || []).length ||
+               ((f.condition || {}).health != null && f.condition.health < 100);
+    rec.sentence = (f.contract && f.contract.sentence_remaining) || null;
+    return rec;
+  }
   function lotAt(state, corpId, kind, lot) {
     const mine = (state.bids[kind] || {})[corpId] || {}, corp = state.corps[corpId];
-    return lot.map(f => ({
+    return lot.map(f => {
+      const rec = {
       id: f.id, name: f.name, age: f.age, race: f.race,
       potential: f.potential, stats: f.stats, fame: f.fame || 0,
       ask: askingPrice(f, corp), yourBid: mine[f.id] || 0, kind: kind,
@@ -2642,7 +2664,9 @@
       record: f.experience || null,
       pool: f._pool || null,
       carried: !!f._carried
-    }));
+      };
+      return kind === 'bastille' ? apparentOnly(rec, f) : rec;
+    });
   }
 
   /** Offer a named fighter a named amount. Passing 0 withdraws. */
@@ -3001,6 +3025,17 @@
       if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
       c._lastGate = gate2;
       landed[id].push({ kind: 'gate', text: 'Gate and Merchandise', amount: gate2 });
+      /* §MONEY THE WAGES WERE NEVER PAID. `wageBill` has existed since the ledger did, is
+         reserved against in `procurementBudget`, and is printed on the Roster as THE WAGE BILL
+         — and no line was ever posted for it. The single largest cost of running a corporation
+         was computed, displayed, and not charged, so a prep year cleared +162,000 on average
+         before the Divide was fought and every scarcity the Market, the Paper and the kit cap
+         assume was a fiction. A roster is paid every month, for everybody on it. */
+      const payroll = Math.round(LED.wageBill(alive) / LED.CONST.SALARY_MONTHS);
+      if (payroll > 0) {
+        LED.post(c.account, 'expense', 'Wages', -payroll);
+        landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
+      }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
@@ -3105,6 +3140,15 @@
     const corps = state.corps, profiles = state.profiles, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     state.done = true;
+    /* §MONEY AND THE ENTRY FEE WAS NEVER TAKEN EITHER. `ALEAS_ENTRY` is what it costs to be in
+       the Divide at all — reserved against in `procurementBudget` beside the wages, named in
+       the ledger's own constants, and charged to nobody. A house entered the Divide free. It
+       is taken at the lock, from every house that is going. */
+    for (const id of ids) {
+      const c = corps[id];
+      if (!c || c.standDown || c.disqualified) continue;
+      LED.post(c.account, 'expense', 'Aleas entry', -LED.CONST.ALEAS_ENTRY);
+    }
     /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
        the highest standing (regard plus this year's effort) and pays its advance. Conditions
        are judged after the Divide, in finishSeason. One commitment per house. The result lives

@@ -79,20 +79,50 @@
      ovals plus the menu are taller than the screen, the menu is pushed into a SECOND COLUMN
      to the right — ovals on the left, buttons on the right, which is exactly what happened.
      The stage stacks and scrolls; nothing ever wraps sideways. */
-  .menustage{flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:0;
-    background:#050810;padding:24px 16px 40px}
+  /* §MENU BUILT THE OTHER WAY ROUND. Three passes failed here and all three failed the same
+     way: the PICTURES were sized from the viewport and the words took whatever was left. That
+     is backwards. A viewport-sized picture plus a text block of its own height can add up to
+     more than the screen, so the buttons and the marks fell off the bottom — and every fix that
+     scaled the pictures better only changed WHERE it broke.
+
+     The words come first now. The stage is exactly the height of the window and cannot scroll;
+     the title, the buttons and the fleet marks take the height they need; and the portraits
+     take WHAT IS LEFT — `flex:1` with `min-height:0`, which is the line that lets a flex child
+     shrink below its content. Each oval is `height:100%` of that leftover with a fixed aspect,
+     so its width follows its height, and a `max-width` in vw catches the other case: a tall
+     narrow window, where height is generous and width is not.
+
+     There is no breakpoint anywhere in this. Nothing is positioned into anything. The only way
+     the bottom of this screen can be cut off is if a row that should be `flex:0 0 auto` is
+     allowed to grow, and there is one such row. */
+  .menustage{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:center;
+    justify-content:center;gap:clamp(6px,1.4vh,16px);background:#050810;
+    height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
   .menustage::before{content:"";position:absolute;inset:0;
     background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
-  .menuovals{display:flex;align-items:flex-end;justify-content:center;gap:clamp(14px,3vw,40px);margin-top:2vh;position:relative;z-index:1}
-  .moval{position:relative;overflow:hidden;background:#000;border-radius:50% / 46%;border:2px solid var(--c);
-    box-shadow:0 0 0 7px rgba(0,0,0,.65),0 0 60px var(--glow),inset 0 -60px 70px rgba(0,0,0,.6)}
+
+  /* THE ONE ROW THAT TAKES WHAT IS LEFT */
+  .menuovals{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;
+    gap:clamp(4px,1.2vw,30px);position:relative;z-index:1;max-width:100%}
+  .moval{position:relative;overflow:hidden;background:#000;border-radius:50% / 46%;
+    border:2px solid var(--c);flex:0 1 auto;min-width:0;
+    box-shadow:0 0 0 6px rgba(0,0,0,.6),0 0 46px var(--glow),inset 0 -8% 12% rgba(0,0,0,.6)}
   .moval img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
   .moval.right img{object-position:50% 20%}
-  .moval.left{--c:#8fb8ff;--glow:rgba(143,184,255,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(-3.5vw,7vh)}
-  .moval.right{--c:#ff6a2a;--glow:rgba(255,106,42,.40);width:clamp(170px,19vw,250px);height:clamp(255px,28.5vw,375px);transform:translate(3.5vw,7vh)}
-  .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);width:clamp(195px,21vw,285px);height:clamp(300px,33.5vw,455px);margin-bottom:clamp(40px,7vh,90px)}
-  .menustage .menucol{position:relative;z-index:2;margin-top:clamp(-70px,-9vh,-120px);align-items:center}
-  .menustage .menubtn{width:290px;max-width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;text-transform:uppercase}
+  /* height comes from the row; width follows the aspect; and vw catches a tall narrow window */
+  .moval.left{--c:#8fb8ff;--glow:rgba(143,184,255,.40);
+    height:86%;aspect-ratio:2 / 3;max-width:26vw}
+  .moval.right{--c:#ff6a2a;--glow:rgba(255,106,42,.40);
+    height:86%;aspect-ratio:2 / 3;max-width:26vw}
+  .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);
+    height:100%;aspect-ratio:2 / 3;max-width:30vw}
+
+  /* AND THE ROWS THAT TAKE ONLY WHAT THEY NEED */
+  .menustage .menucol{flex:0 0 auto;position:relative;z-index:2;align-items:center;
+    min-width:0;width:min(300px,80vw);gap:clamp(4px,0.9vh,10px)}
+  .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
+    text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
+    padding:clamp(5px,1.1vh,11px) 14px}
   .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
@@ -125,13 +155,30 @@
   #rail .tab{flex:none;white-space:nowrap}
   header{flex-wrap:nowrap;gap:14px}
   header .bar{flex-wrap:nowrap;white-space:nowrap}
-  .menufleet{display:flex;justify-content:center;gap:14px;margin-top:12px}
-  .menufleet span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);
+  /* the marks are a row that takes only its own height, like the words above it */
+  .menufleet{flex:0 0 auto;display:flex;justify-content:center;gap:clamp(5px,1vw,14px);margin-top:0}
+  .menufleet span{width:clamp(14px,2.4vh,26px);height:clamp(14px,2.4vh,26px);border-radius:50%;
+    border:1.5px solid var(--c);color:var(--c);flex:0 0 auto;
     display:inline-flex;align-items:center;justify-content:center;opacity:.7}
-  @media (max-width:720px){ .moval.left,.moval.right{display:none} .moval.mid{margin-bottom:0} .menustage .menucol{margin-top:18px} }
-  .menutitle{font-size:clamp(34px,4.6vw,56px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
+  .menufleet svg{width:60%;height:60%}
+  /* §MENU NOTHING IS DESTROYED BY MAKING THE WINDOW SMALLER. The two side portraits were set
+     to `display:none` under 720px — the stage simply lost two thirds of itself, which is what
+     a person dragging a corner sees as the menu breaking. All three survive at every width:
+     they shrink, the gap closes, the outward lean comes in, and the whole stage keeps its
+     shape. A narrow window is a smaller triptych, not a different screen. */
+  /* the narrow window needs only smaller things, not a different layout — the grid already
+     guarantees the rows cannot meet, so nothing here moves anything into anything */
+  /* THE NARROW-WINDOW BLOCK IS GONE. Every rule in it re-solved a size the stage's own unit
+     already solves — and each with its own numbers, which is exactly how six elements came to
+     shrink at six different rates. One unit needs no breakpoint. What is left is the one thing
+     a small stage genuinely wants: a thinner ring, because a two-pixel border on a hundred-pixel
+     oval is a different picture. */
+  @media (max-width:720px){
+    .moval{border-width:1.5px;box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 34px var(--glow),inset 0 -36px 44px rgba(0,0,0,.6)}
+  }
+  .menutitle{font-size:clamp(20px,5.2vh,52px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
     text-shadow:0 0 22px rgba(58,216,224,.45),0 0 2px rgba(58,216,224,.9)}
-  .menusub{color:#5f7a9c;font-size:11px;letter-spacing:.12em;text-align:center;margin-bottom:8px}
+  .menusub{color:#5f7a9c;font-size:clamp(8px,1.3vh,11px);letter-spacing:.12em;text-align:center;margin-bottom:0}
   .menubtn{padding:10px 14px;font-size:13px;letter-spacing:.1em}
   .menubtn:disabled{opacity:.35}
   /* the founding cards: an OA is picked by its colour and mark as much as its name, so the
@@ -1101,6 +1148,7 @@
   .railhead{font-size:12.5px;letter-spacing:.02em;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
   .railhead .nm{color:var(--ink);font-weight:bold}
   .railhead .sub{font-size:10px;white-space:nowrap}
+  .railhead .sub.race{color:var(--dim)}
   .railhead .sub.sqA{color:var(--sqA)} .railhead .sub.sqB{color:var(--sqB)} .railhead .sub.sqC{color:var(--sqC)}
   .railhead .sub.sqD{color:var(--sqD)} .railhead .sub.sqE{color:var(--sqE)} .railhead .sub.sqF{color:var(--sqF)} .railhead .sub.none{color:var(--dim)}
   .colblk{margin-bottom:9px}
@@ -1171,7 +1219,11 @@
      scroll sideways rather than overflow. Media queries only: the desktop is untouched. ---- */
   html{background:var(--bg);color-scheme:dark;min-height:100%}
   @media (max-width: 900px) {
-    header{padding:10px 12px 8px;flex-wrap:wrap;gap:8px}
+    /* the header is PINNED to one line in the base rules; this block used to set it back to
+       `wrap`, which is how a narrow window "moved" the clock and the purse onto a second row.
+       It gets less padding and a smaller type, and it still holds its line. */
+    header{padding:10px 12px 8px;gap:8px}
+    #whoami{font-size:13px} #clock{font-size:11px} #purse{font-size:11px}
     /* the founding screen on a narrow one: the builder stacks under its stage, the pad's
        columns become one, and the button that starts the game stays where a thumb is */
     .markrow{grid-template-columns:1fr;gap:10px}
@@ -1197,7 +1249,6 @@
     .box,.tgwrap{overflow-x:auto}
     canvas{max-width:100%}
     .oastrip{gap:4px}
-    .mocknote{display:none}
   }
 </style>
 </head>
@@ -2804,318 +2855,218 @@
  },
  "traits": [
   {
-   "id": "marksman_eye",
-   "name": "Marksman's Eye",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Sees the shot before the scope does.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "stat_mods": {
-     "aim": 1
-    },
-    "hooks": [
-     "accuracy_bonus"
-    ]
-   }
-  },
-  {
    "id": "steady_hands",
    "name": "Steady Hands",
    "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The one you want holding the clamp when the shelling starts.",
-   "tags": [
-    "support",
-    "medical",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "field_treatment_bonus",
-     "evac_stabilize_bonus"
-    ]
-   }
-  },
-  {
-   "id": "quick_study",
-   "name": "Quick Study",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Learns in one Divide what others need three to absorb.",
-   "tags": [
-    "development",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "development_rate_up"
-    ]
-   },
-   "sim_note": "Development multiplier lands with Step 8."
-  },
-  {
-   "id": "crowd_darling",
-   "name": "Crowd Darling",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The cameras find them. They pretend not to notice.",
-   "tags": [
-    "media",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "fame_gain_up"
-    ]
-   },
-   "conflicts": [
-    "camera_shy"
-   ]
-  },
-  {
-   "id": "camera_shy",
-   "name": "Camera-Shy",
-   "draw": "pool",
    "rarity": "common",
-   "description": "The cameras never learn their name, and they prefer it that way.",
-   "tags": [
-    "media",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "fame_gain_down"
-    ]
-   },
-   "conflicts": [
-    "crowd_darling"
-   ]
-  },
-  {
-   "id": "scrounger",
-   "name": "Scrounger",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Comes back from a ruined field kitchen with dinner and spare parts.",
-   "tags": [
-    "logistics",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "supply_consumption_down",
-     "forage_bonus"
-    ]
-   }
-  },
-  {
-   "id": "night_stalker",
-   "name": "Night Stalker",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Prefers the hours when the locator flares are stale.",
+   "description": "Does not shake, whatever the day has been.",
    "tags": [
     "combat",
     "positive"
    ],
    "effects": {
-    "hooks": [
-     "night_encounter_bonus"
-    ]
+    "stats": {
+     "aim": 15
+    },
+    "story": {
+     "tone": "calm",
+     "hooks_into": [
+      "a shot that decided a fight",
+      "a long wait before contact"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
    }
   },
   {
-   "id": "pack_mule",
-   "name": "Pack Mule",
+   "id": "hard_to_kill",
+   "name": "Hard to Kill",
    "draw": "pool",
    "rarity": "common",
-   "description": "Carries their kit, your kit, and the tripod nobody claimed.",
+   "description": "Has been written off twice and came back both times.",
    "tags": [
-    "logistics",
+    "combat",
     "positive"
    ],
    "effects": {
-    "hooks": [
-     "carry_bulk_up_2"
-    ]
+    "stats": {
+     "grit": 15
+    },
+    "story": {
+     "tone": "stubborn",
+     "hooks_into": [
+      "a wound that should have ended him",
+      "a medic who gave up too early"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
    }
   },
   {
-   "id": "gallows_humor",
-   "name": "Gallows Humor",
+   "id": "armchair_general",
+   "name": "Armchair General",
    "draw": "pool",
-   "rarity": "common",
-   "description": "The joke lands ten seconds after the shooting stops. Somehow it helps.",
+   "rarity": "rare",
+   "description": "Reads a fight better than anybody and cannot shoot straight.",
    "tags": [
-    "morale",
+    "combat",
+    "mixed"
+   ],
+   "effects": {
+    "stats": {
+     "tactics": 40,
+     "aim": -15
+    },
+    "story": {
+     "tone": "know-it-all",
+     "hooks_into": [
+      "a plan he was right about",
+      "an argument with his captain"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
+   }
+  },
+  {
+   "id": "close_company",
+   "name": "Close Company",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Fights like a man with something to lose when the squad is small enough to know by name.",
+   "tags": [
+    "combat",
+    "positive",
+    "squad"
+   ],
+   "effects": {
+    "stats": {
+     "grit": 5
+    },
+    "situational": [
+     {
+      "when": "squad_at_most_4",
+      "stats": {
+       "grit": 25,
+       "resolve": 15
+      }
+     }
+    ],
+    "hooks": [
+     "cohesion_morale_bonus_near_squadmates"
+    ],
+    "story": {
+     "tone": "loyal",
+     "hooks_into": [
+      "a squad cut to a handful",
+      "a squadmate lost",
+      "a transfer away from his own"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
+   }
+  },
+  {
+   "id": "the_captains_man",
+   "name": "The Captain’s Man",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Twice the fighter with his own captain on the ground.",
+   "tags": [
+    "combat",
+    "positive",
+    "squad"
+   ],
+   "effects": {
+    "situational": [
+     {
+      "when": "with_their_captain",
+      "stats": {
+       "grit": 20,
+       "resolve": 20
+      }
+     },
+     {
+      "when": "is_captain",
+      "stats": {
+       "presence": -10
+      }
+     }
+    ],
+    "story": {
+     "tone": "devoted",
+     "hooks_into": [
+      "a captain who fell in front of him",
+      "an order from a stranger"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
+   }
+  },
+  {
+   "id": "fights_hurt",
+   "name": "Fights Hurt",
+   "draw": "pool",
+   "rarity": "uncommon",
+   "description": "Pain is a thing that happens to the body, not the job.",
+   "tags": [
+    "combat",
     "positive"
    ],
    "effects": {
-    "hooks": [
-     "squad_morale_support_after_losses"
-    ]
-   }
-  },
-  {
-   "id": "grudge_holder",
-   "name": "Grudge Holder",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Keeps a private ledger. It only has one column.",
-   "tags": [
-    "personality",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "remembers_grudges",
-     "refuses_grudged_corps",
-     "morale_up_vs_grudge_target"
-    ]
-   },
-   "sim_note": "Feeds corp.relationships and notable_events chemistry."
-  },
-  {
-   "id": "pact_keeper",
-   "name": "Pact Keeper",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "A deal signed is a deal kept — even when the manager wishes otherwise.",
-   "tags": [
-    "personality",
-    "negotiation",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "betrayal_resistance",
-     "pact_reputation_up"
-    ]
-   }
-  },
-  {
-   "id": "hot_headed",
-   "name": "Hot-Headed",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Burns bright, swings hard — both ways.",
-   "tags": [
-    "personality",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "morale_swings_amplified",
-     "aggression_event_seed"
-    ]
-   },
-   "conflicts": [
-    "stoic"
-   ]
-  },
-  {
-   "id": "stoic",
-   "name": "Stoic",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "The needle barely moves. In either direction.",
-   "tags": [
-    "personality",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "morale_swings_damped"
-    ]
-   },
-   "conflicts": [
-    "hot_headed"
-   ]
-  },
-  {
-   "id": "superstitious",
-   "name": "Superstitious",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Has a ritual for the dawn flares and a word against the Aleas' drones.",
-   "tags": [
-    "personality",
-    "flavor"
-   ],
-   "effects": {
-    "hooks": [
-     "omen_event_seed",
-     "ritual_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "insomniac",
-   "name": "Insomniac",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Watches the camp perimeter because sleep won't have them.",
-   "tags": [
-    "condition",
-    "negative"
-   ],
-   "effects": {
-    "hooks": [
-     "fatigue_recovery_down"
-    ]
-   }
-  },
-  {
-   "id": "fast_healer",
-   "name": "Fast Healer",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Knits back together like the schedule depends on it.",
-   "tags": [
-    "condition",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "injury_recovery_time_down"
-    ]
+    "situational": [
+     {
+      "when": "hurt",
+      "stats": {
+       "grit": 30,
+       "resolve": 20
+      }
+     }
+    ],
+    "story": {
+     "tone": "grim",
+     "hooks_into": [
+      "a wound he did not report",
+      "a medic he waved off"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
    }
   },
   {
    "id": "bleeder",
    "name": "Bleeder",
    "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Every wound runs one grade worse than it should.",
+   "rarity": "common",
+   "description": "Wounds run a grade worse on him, and always have.",
    "tags": [
-    "condition",
-    "negative"
+    "negative",
+    "medical"
    ],
    "effects": {
+    "stats": {
+     "grit": -15
+    },
+    "situational": [
+     {
+      "when": "hurt",
+      "stats": {
+       "grit": -20,
+       "reflex": -10
+      }
+     }
+    ],
     "hooks": [
+     "injury_exposure_up",
      "injury_severity_risk_up"
-    ]
-   }
-  },
-  {
-   "id": "mentor",
-   "name": "Mentor",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Rookies orbit them. The nerves settle; the habits stick.",
-   "tags": [
-    "development",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "young_squadmate_development_up",
-     "rookie_composure_support"
-    ]
+    ],
+    "story": {
+     "tone": "unlucky",
+     "hooks_into": [
+      "a scratch that cost him a month",
+      "an evac retainer the desk had to budget for"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
+    }
    }
   },
   {
@@ -3123,1055 +3074,37 @@
    "name": "Born Captain",
    "draw": "pool",
    "rarity": "rare",
-   "description": "Reads a battlefield the way others read a face.",
+   "description": "Reads a battlefield the way an auditor reads a ledger.",
    "tags": [
-    "leadership",
-    "positive"
+    "combat",
+    "positive",
+    "command"
    ],
-   "race_weight": {
-    "human": 3
-   },
    "effects": {
+    "stats": {
+     "tactics": 20,
+     "presence": 20
+    },
+    "situational": [
+     {
+      "when": "is_captain",
+      "stats": {
+       "tactics": 20,
+       "resolve": 15
+      }
+     }
+    ],
     "hooks": [
-     "captain_fidelity_up",
      "succession_candidate_priority"
-    ]
-   },
-   "sim_note": "Human captain-aptitude premium (RACES.md, ratified) expressed as draw weight, not a lock."
-  },
-  {
-   "id": "cool_hand",
-   "name": "Cool Hand",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "First drop or fiftieth, the breathing never changes.",
-   "tags": [
-    "composure",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "composure_bonus"
-    ]
-   },
-   "sim_note": "Composure model (rookie nerves vs veteran calm) lands with COMBAT.md."
-  },
-  {
-   "id": "angle_cutter",
-   "name": "Angle Cutter",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Crosses between cover like the ground was drawn for them.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "reposition_speed_up"
-    ]
-   }
-  },
-  {
-   "id": "shell_counter",
-   "name": "Shell Counter",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Hears the tube cough and knows the landing to the meter.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "bombardment_evasion_bonus"
-    ]
-   }
-  },
-  {
-   "id": "ammo_miser",
-   "name": "Ammo Miser",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Every round accounted for. The quartermasters send holiday cards.",
-   "tags": [
-    "combat",
-    "logistics",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "ammo_consumption_down",
-     "suppression_output_down_slight"
-    ]
-   },
-   "conflicts": [
-    "trigger_itch"
-   ]
-  },
-  {
-   "id": "trigger_itch",
-   "name": "Trigger Itch",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Shoots at movement, shadows, and once, famously, a flare.",
-   "tags": [
-    "combat",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "suppression_output_up",
-     "ammo_consumption_up"
-    ]
-   },
-   "conflicts": [
-    "ammo_miser"
-   ]
-  },
-  {
-   "id": "soft_boots",
-   "name": "Soft Boots",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Arrives places without the courtesy of being heard first.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "unspotted_movement_bonus"
-    ]
-   }
-  },
-  {
-   "id": "range_finder",
-   "name": "Eye for Distance",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Calls yardage without the optics and is rarely off by much.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "first_shot_long_range_bonus"
-    ]
-   }
-  },
-  {
-   "id": "doorway_nerve",
-   "name": "Doorway Nerve",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Steadiest exactly where the fight gets closest and ugliest.",
-   "tags": [
-    "combat",
-    "composure",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "short_band_composure_bonus"
-    ]
-   }
-  },
-  {
-   "id": "long_watch",
-   "name": "Long Watch",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Can hold a sightline through a night and a day and stay honest about what crossed it.",
-   "tags": [
-    "combat",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "overwatch_fatigue_immune"
-    ]
-   }
-  },
-  {
-   "id": "camp_cook",
-   "name": "Field Kitchen",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Turns forage and ration paste into something a squad lines up for.",
-   "tags": [
-    "logistics",
-    "morale",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "camp_morale_bonus_meals",
-     "forage_value_up"
-    ]
-   }
-  },
-  {
-   "id": "jury_rigger",
-   "name": "Jury-Rigger",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Keeps broken kit lying convincingly about its condition.",
-   "tags": [
-    "logistics",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "squad_supply_efficiency_up"
-    ]
-   }
-  },
-  {
-   "id": "map_mind",
-   "name": "Map Mind",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Saw the survey packet once. Navigates it like a home ship corridor.",
-   "tags": [
-    "fieldwork",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "navigation_bonus",
-     "march_efficiency_up"
-    ]
-   }
-  },
-  {
-   "id": "iron_stomach",
-   "name": "Iron Stomach",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Has eaten worse than anything this planet grows, and said thank you.",
-   "tags": [
-    "fieldwork",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "forage_penalty_immune"
-    ]
-   }
-  },
-  {
-   "id": "light_sleeper",
-   "name": "Light Sleeper",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Half-awake is their deepest setting. Ambushers hate it; so do they.",
-   "tags": [
-    "condition",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "night_ambush_warning_bonus",
-     "fatigue_recovery_down_slight"
-    ]
-   }
-  },
-  {
-   "id": "sky_reader",
-   "name": "Sky Reader",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Smells the weather turning a watch before the Aleas posts it.",
-   "tags": [
-    "fieldwork",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "hazard_forecast_bonus"
-    ]
-   }
-  },
-  {
-   "id": "quotable",
-   "name": "Soundbite Machine",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Everything they say fits a chyron. For better and for worse.",
-   "tags": [
-    "media",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "media_statement_impact_amplified"
-    ]
-   }
-  },
-  {
-   "id": "storyline_bait",
-   "name": "Storyline Bait",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The broadcast keeps finding arcs for them: feuds, redemptions, curses.",
-   "tags": [
-    "media",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "fame_volatility_up",
-     "rivalry_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "logo_ready",
-   "name": "Logo-Ready",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Sponsors request them by name. Squadmates have opinions about that.",
-   "tags": [
-    "media",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "sponsor_income_up",
-     "squad_envy_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "villain_edit",
-   "name": "Villain Edit",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The crowd loves to hate them, and tunes in to do it.",
-   "tags": [
-    "media",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "heel_fame_gain",
-     "sportsmanship_penalty_amplified"
-    ]
-   }
-  },
-  {
-   "id": "clause_reader",
-   "name": "Clause Reader",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Knows their contract, your precedent, and the fleet's going rate to the credit.",
-   "tags": [
-    "personality",
-    "negotiation",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "renegotiation_demand_seed",
-     "salary_anchoring_up"
-    ]
-   }
-  },
-  {
-   "id": "loyal_to_a_fault",
-   "name": "Loyal to a Fault",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Will follow the banner anywhere. Including the places it shouldn't go.",
-   "tags": [
-    "personality",
-    "loyalty",
-    "mixed"
-   ],
-   "effects": {
-    "loyalty_mod": 12,
-    "hooks": [
-     "follows_bad_orders",
-     "poach_resistant"
-    ]
-   }
-  },
-  {
-   "id": "union_tongue",
-   "name": "Union Tongue",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Knows every grievance in camp and how to say it out loud.",
-   "tags": [
-    "personality",
-    "morale",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "camp_morale_contagion_both_ways",
-     "collective_demand_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "thrill_seeker",
-   "name": "Thrill Seeker",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "First hand up for the bad jobs. The medics keep a file open.",
-   "tags": [
-    "personality",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "volunteers_for_risk",
-     "injury_exposure_up"
-    ]
-   }
-  },
-  {
-   "id": "second_guesser",
-   "name": "Second-Guesser",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Sees every way it could go wrong, and occasionally leaves before it does.",
-   "tags": [
-    "personality",
-    "composure",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "early_disengage_bias",
-     "ambush_avoidance_slight"
-    ]
-   }
-  },
-  {
-   "id": "cold_arithmetic",
-   "name": "Cold Arithmetic",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Counts the fallen the way others count ammunition. Unshaken. Unwarm.",
-   "tags": [
-    "personality",
-    "composure",
-    "mixed"
-   ],
-   "effects": {
-    "stat_mods": {
-     "presence": -1
-    },
-    "hooks": [
-     "death_morale_immune"
-    ]
-   }
-  },
-  {
-   "id": "homesick",
-   "name": "Homesick",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Carries the ship in their chest. Long Divides wear a hole in it.",
-   "tags": [
-    "condition",
-    "morale",
-    "negative"
-   ],
-   "effects": {
-    "hooks": [
-     "morale_decay_long_divide"
-    ]
-   }
-  },
-  {
-   "id": "slow_starter",
-   "name": "Slow Starter",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Terrible first week, every time. Then something clicks shut.",
-   "tags": [
-    "condition",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "early_divide_penalty",
-     "late_divide_bonus"
-    ]
-   }
-  },
-  {
-   "id": "adrenal_surge",
-   "name": "Adrenal Surge",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "First contact turns them briefly magnificent. The crash comes due after.",
-   "tags": [
-    "condition",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "first_engagement_surge",
-     "post_engagement_fatigue_spike"
-    ]
-   }
-  },
-  {
-   "id": "white_knuckles",
-   "name": "White Knuckles",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Has never dropped a weapon, a stretcher, or a grudge. Not even shot.",
-   "tags": [
-    "condition",
-    "composure",
-    "positive"
-   ],
-   "effects": {
-    "hooks": [
-     "wounded_composure_bonus",
-     "never_drops_gear"
-    ]
-   }
-  },
-  {
-   "id": "aleas_favorite",
-   "name": "Aleas' Favorite",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Zone closures miss them. Drops land beside them. Nobody can prove anything.",
-   "tags": [
-    "flavor",
-    "mixed"
-   ],
-   "effects": {
-    "hooks": [
-     "luck_event_bias_positive",
-     "superstition_magnet"
     ],
-    "decoration": {
-     "superstition_magnet": "no squad-belief state exists; the luck bias carries this trait"
+    "story": {
+     "tone": "commanding",
+     "hooks_into": [
+      "a captaincy he was passed over for",
+      "a plan that held when it should not have"
+     ],
+     "note": "AUTHORED EVENTS PENDING — the tie is named, the event is not written."
     }
-   }
-  },
-  {
-   "id": "bad_omen",
-   "name": "Bad Omen",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "When things go wrong, the camp remembers who they went wrong near.",
-   "tags": [
-    "flavor",
-    "morale",
-    "negative"
-   ],
-   "effects": {
-    "hooks": [
-     "blame_magnet",
-     "squad_superstition_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "kier_hardened",
-   "name": "Kier-Hardened",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "The Bastille taught them exactly how bad it can get. The Divide rarely manages worse.",
-   "tags": [
-    "origin",
-    "composure",
-    "mixed"
-   ],
-   "origin_weight": {
-    "prisoner": 8
-   },
-   "effects": {
-    "stat_mods": {
-     "grit": 1,
-     "resolve": 1
-    },
-    "loyalty_mod": -5,
-    "hooks": [
-     "seen_worse_composure"
-    ]
-   },
-   "notes": "Canon id — appears in the fighter.schema.json example."
-  },
-  {
-   "id": "freedom_counter",
-   "name": "Counting the Divides",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Keeps the clause tally scratched inside their armor. Fights differently as it shrinks.",
-   "tags": [
-    "origin",
-    "morale",
-    "mixed"
-   ],
-   "race_locked": [],
-   "origin_locked": [
-    "prisoner"
-   ],
-   "effects": {
-    "hooks": [
-     "morale_up_as_freedom_nears",
-     "desperation_event_seed_final_divide"
-    ]
-   }
-  },
-  {
-   "id": "company_family",
-   "name": "Company Family",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Third generation on the same ship. The corp's name is practically theirs.",
-   "tags": [
-    "origin",
-    "loyalty",
-    "mixed"
-   ],
-   "origin_locked": [
-    "nattie"
-   ],
-   "effects": {
-    "loyalty_mod": 10,
-    "hooks": [
-     "pension_story",
-     "death_pr_event_amplified"
-    ]
-   }
-  },
-  {
-   "id": "deck_raised",
-   "name": "Deck-Raised",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Grew up in these corridors. Fights better beside people who did too.",
-   "tags": [
-    "origin",
-    "morale",
-    "positive"
-   ],
-   "origin_weight": {
-    "nattie": 4
-   },
-   "effects": {
-    "hooks": [
-     "cohesion_morale_bonus_near_squadmates"
-    ]
-   }
-  },
-  {
-   "id": "war_debt",
-   "name": "War Debt",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Owes someone. The someone has bookkeepers, and the bookkeepers have friends.",
-   "tags": [
-    "origin",
-    "scandal",
-    "negative"
-   ],
-   "origin_weight": {
-    "mercenary": 6
-   },
-   "effects": {
-    "hooks": [
-     "salary_demand_pressure",
-     "syndicate_contact_seed"
-    ]
-   },
-   "sim_note": "Syndicate/scandal systems land at Step 9; until then this is flavor + salary texture."
-  },
-  {
-   "id": "odds_watcher",
-   "name": "Odds Watcher",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Checks the board before breakfast. Plays up when the fleet doubts them.",
-   "tags": [
-    "origin",
-    "morale",
-    "flavor"
-   ],
-   "origin_weight": {
-    "mercenary": 5
-   },
-   "effects": {
-    "hooks": [
-     "performance_tracks_odds_board"
-    ],
-    "decoration": {
-     "performance_tracks_odds_board": "no odds board a fighter could read"
-    }
-   }
-  },
-  {
-   "id": "battle_dancer",
-   "name": "Battle Dancer",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Carries the dueling forms into the firefight — every reposition a step, every shot a beat.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "kellis"
-   ],
-   "effects": {
-    "hooks": [
-     "aim_bonus_under_pressure",
-     "crowd_pleaser_movement"
-    ]
-   },
-   "notes": "Ceremonial blades stay ceremonial (canon); the dance is how the discipline shows."
-  },
-  {
-   "id": "honor_bound",
-   "name": "Honor-Bound",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Will not fire on a flag of parley, will not strike a signed partner — whatever the order says.",
-   "tags": [
-    "racial",
-    "personality",
-    "mixed"
-   ],
-   "race_locked": [
-    "kellis"
-   ],
-   "effects": {
-    "loyalty_mod": 10,
-    "hooks": [
-     "refuses_betrayal_orders",
-     "pact_reputation_up"
-    ]
-   }
-  },
-  {
-   "id": "den_keeper",
-   "name": "Den Keeper",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Wherever they bed down becomes, briefly, somewhere worth defending.",
-   "tags": [
-    "racial",
-    "morale",
-    "positive"
-   ],
-   "race_locked": [
-    "mon_wa"
-   ],
-   "effects": {
-    "hooks": [
-     "camp_morale_aura"
-    ]
-   }
-  },
-  {
-   "id": "quartermasters_knack",
-   "name": "Quartermaster's Knack",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Two bodies, four hands, one flawless inventory.",
-   "tags": [
-    "racial",
-    "logistics",
-    "positive"
-   ],
-   "race_locked": [
-    "mon_wa"
-   ],
-   "effects": {
-    "hooks": [
-     "squad_supply_efficiency_up",
-     "sponsor_drop_handling_bonus"
-    ]
-   }
-  },
-  {
-   "id": "tether_trained",
-   "name": "Tether-Trained",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Years of drills stretched the link further than the physicians thought wise.",
-   "tags": [
-    "racial",
-    "positive"
-   ],
-   "race_locked": [
-    "mon_wa"
-   ],
-   "effects": {
-    "hooks": [
-     "tether_range_extended"
-    ]
-   },
-   "sim_note": "Extends races.json tether_miles.trained; hard numbers with COMBAT.md."
-  },
-  {
-   "id": "smothering_fire",
-   "name": "Smothering Fire",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Doesn't aim at you so much as at everywhere you might be.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "olmac"
-   ],
-   "effects": {
-    "hooks": [
-     "suppression_bonus",
-     "ammo_consumption_up"
-    ]
-   }
-  },
-  {
-   "id": "walking_bulwark",
-   "name": "Walking Bulwark",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The squad advances behind them the way infantry once advanced behind vehicles.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "olmac"
-   ],
-   "effects": {
-    "hooks": [
-     "mobile_cover_provider",
-     "carry_bulk_up_2"
-    ]
-   }
-  },
-  {
-   "id": "war_born",
-   "name": "War-Born",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Has seen everything a battlefield can do to a body. Registers none of it.",
-   "tags": [
-    "racial",
-    "morale",
-    "positive"
-   ],
-   "race_locked": [
-    "olmac"
-   ],
-   "effects": {
-    "hooks": [
-     "gore_morale_immune"
-    ]
-   }
-  },
-  {
-   "id": "few_words",
-   "name": "Few Words",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Has spoken on broadcast twice. Both clips are famous.",
-   "tags": [
-    "racial",
-    "media",
-    "flavor"
-   ],
-   "race_locked": [
-    "olmac"
-   ],
-   "effects": {
-    "hooks": [
-     "media_statements_flat",
-     "rare_quote_fame_spike"
-    ]
-   }
-  },
-  {
-   "id": "updraft_ace",
-   "name": "Updraft Ace",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Reads thermals the way others read terrain. The sky is cover too.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "ththyn"
-   ],
-   "effects": {
-    "hooks": [
-     "flight_mobility_bonus"
-    ]
-   }
-  },
-  {
-   "id": "rank_climber",
-   "name": "Rank Climber",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Every roster posting is read twice: once for the squad, once for their own name's position in it.",
-   "tags": [
-    "racial",
-    "personality",
-    "mixed"
-   ],
-   "race_locked": [
-    "ththyn"
-   ],
-   "effects": {
-    "hooks": [
-     "status_coupling_amplified",
-     "captaincy_snub_morale_risk",
-     "promotion_morale_surge"
-    ]
-   },
-   "notes": "Amplifies the canon status coupling in both directions."
-  },
-  {
-   "id": "brittle_wings",
-   "name": "Brittle Wings",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "One bad landing away from a grounded season.",
-   "tags": [
-    "racial",
-    "condition",
-    "negative"
-   ],
-   "race_locked": [
-    "ththyn"
-   ],
-   "effects": {
-    "hooks": [
-     "wing_injury_susceptibility_up"
-    ]
-   },
-   "sim_note": "Wing injury table owed by COMBAT.md."
-  },
-  {
-   "id": "pride_bearer",
-   "name": "Pride Bearer",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Carries the pride name like a standard; squadmates straighten when they pass.",
-   "tags": [
-    "racial",
-    "morale",
-    "positive"
-   ],
-   "race_locked": [
-    "svalbard"
-   ],
-   "effects": {
-    "hooks": [
-     "presence_aura",
-     "pride_event_seed"
-    ]
-   }
-  },
-  {
-   "id": "tradition_keeper",
-   "name": "Tradition Keeper",
-   "draw": "pool",
-   "rarity": "common",
-   "description": "Signed for a banner, not a mood. Mid-stream cleverness is met with granite patience.",
-   "tags": [
-    "racial",
-    "personality",
-    "mixed"
-   ],
-   "race_locked": [
-    "svalbard"
-   ],
-   "effects": {
-    "hooks": [
-     "doctrine_change_resistance",
-     "policy_whiplash_morale_penalty_up"
-    ]
-   },
-   "notes": "Ratified vibe from RACES.md — resents mid-Divide policy whiplash."
-  },
-  {
-   "id": "cull_tempered",
-   "name": "Cull-Tempered",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Survived the training years. Panic was culled out with the weak.",
-   "tags": [
-    "racial",
-    "composure",
-    "positive"
-   ],
-   "race_locked": [
-    "svalbard"
-   ],
-   "effects": {
-    "hooks": [
-     "rout_immune",
-     "composure_bonus"
-    ]
-   }
-  },
-  {
-   "id": "war_priest",
-   "name": "War-Priest",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Tends wounds and doubts alike. Every bandage a blessing of Et-y-Bellum.",
-   "tags": [
-    "racial",
-    "medical",
-    "morale",
-    "positive"
-   ],
-   "race_locked": [
-    "etu"
-   ],
-   "effects": {
-    "hooks": [
-     "field_treatment_bonus",
-     "faith_morale_aura",
-     "honorific_et_prefix"
-    ]
-   },
-   "notes": "Clergy take the Et- honorific (ratified)."
-  },
-  {
-   "id": "battle_augur",
-   "name": "Battle Augur",
-   "draw": "pool",
-   "rarity": "rare",
-   "description": "Reads omens in flare patterns and drone drift — and is right unsettlingly often.",
-   "tags": [
-    "racial",
-    "intel",
-    "positive"
-   ],
-   "race_locked": [
-    "etu"
-   ],
-   "effects": {
-    "hooks": [
-     "pre_battle_intel_bonus",
-     "omen_event_seed"
-    ]
    }
   },
   {
@@ -4229,136 +3162,6 @@
     "et_y_bellum_devout"
    ],
    "notes": "Zealots take the Et- honorific (ratified). Rolled per races.json devotion_lines."
-  },
-  {
-   "id": "battle_joy",
-   "name": "Battle-Joy",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Grins wider as the fight gets worse. Steadies, where others shake.",
-   "tags": [
-    "racial",
-    "composure",
-    "positive"
-   ],
-   "race_locked": [
-    "attorak"
-   ],
-   "effects": {
-    "hooks": [
-     "composure_up_as_intensity_rises"
-    ]
-   },
-   "notes": "The disciplined rendering of the withdrawn frenzy idea (ratified)."
-  },
-  {
-   "id": "mimic_call",
-   "name": "Mimic Call",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Can throw a rival captain's voice fifty meters into the wrong ravine.",
-   "tags": [
-    "racial",
-    "utility",
-    "positive"
-   ],
-   "race_locked": [
-    "attorak"
-   ],
-   "effects": {
-    "hooks": [
-     "comms_decoy_utility",
-     "broadcast_color"
-    ],
-    "decoration": {
-     "comms_decoy_utility": "no comms layer in the fight"
-    }
-   },
-   "notes": "From the canon naming lore — vocal mimics produced in youth."
-  },
-  {
-   "id": "broadcast_savage",
-   "name": "Broadcast Savage",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Fights like the cameras are the audience they were born for. The cameras agree.",
-   "tags": [
-    "racial",
-    "media",
-    "positive"
-   ],
-   "race_locked": [
-    "attorak"
-   ],
-   "effects": {
-    "hooks": [
-     "fame_gain_up_on_aggression",
-     "crowd_legible_savagery"
-    ]
-   }
-  },
-  {
-   "id": "patient_hunter",
-   "name": "Patient Hunter",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Will hold a sightline for a day and a night, and call the wait pleasant.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "gil"
-   ],
-   "effects": {
-    "hooks": [
-     "overwatch_bonus",
-     "stakeout_fatigue_reduced"
-    ]
-   },
-   "notes": "Canon id — appears in the fighter.schema.json example."
-  },
-  {
-   "id": "ambush_instinct",
-   "name": "Ambush Instinct",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "The first volley is theirs. It usually decides the rest.",
-   "tags": [
-    "racial",
-    "combat",
-    "positive"
-   ],
-   "race_locked": [
-    "gil"
-   ],
-   "effects": {
-    "hooks": [
-     "first_strike_bonus",
-     "unspotted_open_fire_bonus"
-    ]
-   }
-  },
-  {
-   "id": "goggle_tinkerer",
-   "name": "Goggle Tinkerer",
-   "draw": "pool",
-   "rarity": "uncommon",
-   "description": "Never stops adjusting the optics — theirs, yours, the squad's, the drone they caught.",
-   "tags": [
-    "racial",
-    "utility",
-    "positive"
-   ],
-   "race_locked": [
-    "gil"
-   ],
-   "effects": {
-    "hooks": [
-     "optics_gear_synergy"
-    ]
-   }
   },
   {
    "id": "psion_battle_sense",
@@ -8741,6 +7544,7 @@
   Generator.prototype.rollTraits = function (rng, race, origin, batchTally) {
     const tm = this.rec.trait_model;
     const decay = tm.batch_repeat_decay === undefined ? 1 : tm.batch_repeat_decay;
+    const CONST_DAMP_FLOOR = 0.2;   // [C] the least of its weight a repeated trait keeps
     const seen = batchTally || {};
     const chosen = [];
     const blocked = new Set();
@@ -8773,7 +7577,15 @@
         let w = tm.rarity_weights[t.rarity] || 1;
         if (t.race_weight && t.race_weight[race.id]) w *= t.race_weight[race.id];
         if (t.origin_weight && t.origin_weight[origin]) w *= t.origin_weight[origin];
-        if (seen[t.id]) w *= Math.pow(decay, seen[t.id]); // shuffle-bag damper within a batch
+        /* §QUIRKS THE DAMPER WAS ERASING RARITY. `batch_repeat_decay` is 0.35 per repeat and
+           compounds without limit, so a trait drawn five times keeps half a per cent of its
+           weight and one drawn twenty times keeps a billionth — across a batch of any size
+           every trait converges to the SAME frequency and `rarity_weights` decides nothing.
+           Measured on the new catalogue: common 51 draws a trait, uncommon 50, rare 49, from
+           weights of 10, 5 and 2. The damper is meant to stop one trait filling a batch, not
+           to flatten the book, so it is floored: a trait can fall to a fifth of its weight and
+           no further, and rarity survives underneath it. */
+        if (seen[t.id]) w *= Math.max(CONST_DAMP_FLOOR, Math.pow(decay, seen[t.id]));
         entries.push([t.id, w]);
       }
       if (!entries.length) break;
@@ -8909,12 +7721,25 @@
        fighter's aim, leaned by where they learned to shoot — the leans live in
        recruitment.json beside the rest of the generation's numbers. Effective aim with a
        carried weapon is (aim + trade) / 2, read at combat's boundary. */
+    /* §QUIRKS TWO WAYS TO WRITE A STAT CHANGE, AND ONLY ONE OF THEM IS HONEST. The old
+       `stat_mods` is in TENTHS — a catalogue entry of `aim: 1` became TEN POINTS on a scale
+       that runs 10..200. So the numbers a person read in the data file were a tenth of what
+       the engine did, which is how a trait called Marksman's Eye came to look like +1 and be
+       +10. `effects.stats` is in REAL POINTS, applied as written, and is what every new quirk
+       uses; `stat_mods` is honoured for what is left of the old catalogue and nothing new
+       should use it. Measured worth, for anyone writing one: +15 is where a person starts to
+       feel it, +25 is a good trait, +40 is a defining one and wants a penalty against it. */
     for (const tid of traitIds) {
       const tdef = this.traitById[tid];
-      const tm = tdef && tdef.effects && tdef.effects.stat_mods;
+      const eff = (tdef && tdef.effects) || {};
+      const tm = eff.stat_mods;
       if (tm) for (const k in tm)
         if (stats[k] != null)
           stats[k] = Math.max(10, Math.min(200, stats[k] + tm[k] * 10));
+      const st = eff.stats;
+      if (st) for (const k in st)
+        if (stats[k] != null)
+          stats[k] = Math.max(10, Math.min(200, stats[k] + st[k]));
     }
     potential = Math.max(potential,
                          Math.max.apply(null, STATS.map(k => stats[k])));
@@ -9231,9 +8056,9 @@
       text: c => `Reads a battlefield the way an auditor reads a ledger. Captain material — the market will figure it out eventually.` },
     { key: "t_kier", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
       text: c => `Kier alumni. The Divide's worst day is the Bastille's Tuesday, and ${c.name} did years of Tuesdays.` },
-    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("freedom_counter"),
+    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
       text: c => `Keeps the clause tally scratched inside the armor, the guards say. That's not a habit. That's fuel.` },
-    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_headed"),
+    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_blooded"),
       text: c => `Burns HOT! Point the burn at the other banners and everyone goes home happy. Point it wrong and — well. Ratings.` },
     { key: "t_superstitious", tier: 2, register: "hype", when: c => c.has("superstitious"),
       text: c => `Won't drop without the dawn ritual. Three camps ago, the ritual squad lived. Make of that what the crowd will!` },
@@ -9261,21 +8086,21 @@
       text: c => `Some households never signed the Keshu peace. Check your roster for the other half of that war before you sign this one.` },
     { key: "t_few_words", tier: 2, register: "hype", when: c => c.has("few_words"),
       text: c => `Has spoken on broadcast twice in a career. Both clips are legendary. We live in hope of a third.` },
-    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("broadcast_savage"),
+    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
       text: c => `Fights like the cameras are family. The cameras, for the record, agree.` },
     { key: "t_darling", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
       text: c => `The drones find ${c.name} on their own. Nobody programs that. The crowd just knows.` },
-    { key: "t_climber", tier: 2, register: "dry", when: c => c.has("rank_climber"),
+    { key: "t_climber", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads every roster posting twice: once for the squad, once for their own name's position in it.` },
-    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("tradition_keeper"),
+    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("company_man"),
       text: c => `Signed for a banner, not a mood. Change doctrine mid-Divide and you'll meet granite with a contract.` },
-    { key: "t_cull", tier: 2, register: "dry", when: c => c.has("cull_tempered"),
+    { key: "t_cull", tier: 2, register: "dry", when: c => c.has("hard_to_kill"),
       text: c => `Survived the training years. Panic was culled out of ${c.name} before adulthood — the pride kept receipts.` },
-    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("battle_dancer"),
+    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("quick_off_the_mark"),
       text: c => `Every reposition a step, every shot a beat — the old dueling forms, live on your feed!` },
     { key: "t_mentor", tier: 2, register: "dry", when: c => c.has("mentor"),
       text: c => `Rookies orbit ${c.name}. The nerves settle. The habits stick. Cheap at twice the salary.` },
-    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("pact_keeper"),
+    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
       text: c => `A deal signed is a deal kept — even the ones the manager comes to regret. Negotiators, take note.` },
     { key: "t_clause", tier: 2, register: "dry", when: c => c.has("clause_reader"),
       text: c => `Knows the contract, your precedent, and the fleet's going rate to the credit. Renewal season will be an education.` },
@@ -12299,6 +11124,37 @@
   const fmtCr = n => '\u20a1' + Math.round(n).toLocaleString('en-US');
   const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11) *
                                   (1 + Math.max(0, ((f.potential || 50) - 50) / 100)));
+  /* §STORY AN EVENT ASKS FOR A TIE, NOT A TRAIT ID. Five events cast their subject by naming a
+     trait — `hasQuirk(f, 'hot_headed')` — and the moment those traits were retired all five
+     went quiet with no error anywhere: the event stayed in the pool, drew its turn, found
+     nobody and did nothing. A name in a script is a hard edge against a catalogue that is meant
+     to be rewritten.
+     Every rebuilt quirk carries `story.hooks_into`: the things an event could hang on it. An
+     event asks for one of those — "a fight in the barracks" — and gets whoever in the house has
+     a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
+     and the events follow it. */
+  function tiesOf(state, f) {
+    const idx = traitIndexOf(state), out = [];
+    for (const tid of (f.traits || [])) {
+      const t = idx && idx[tid];
+      const st = t && t.effects && t.effects.story;
+      if (!st) continue;
+      for (const h of (st.hooks_into || [])) out.push({ tie: h, tone: st.tone, trait: tid });
+    }
+    return out;
+  }
+  /** whoever in this house a given tie can be hung on, or null */
+  function castFor(state, corp, tie, rng) {
+    const want = String(tie).toLowerCase();
+    const able = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const fit = [];
+    for (const f of able)
+      for (const t of tiesOf(state, f))
+        if (t.tie.toLowerCase().indexOf(want) >= 0 || want.indexOf(t.tie.toLowerCase()) >= 0)
+          { fit.push({ f: f, tone: t.tone, trait: t.trait }); break; }
+    if (!fit.length) return null;
+    return fit[Math.floor((rng ? rng() : Math.random()) * fit.length)];
+  }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
@@ -12306,6 +11162,75 @@
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
      resolve(corp, event, optionId, ctx) -> line, ai(corp, event) -> optionId */
+  /* §STORY PLACEHOLDER MOMENTS, AND THEY SAY SO. Every rebuilt quirk carries a `story` naming
+     what an event could hang on it, and until this those ties cast nothing — a narrative half
+     that was a promissory note. These are STAND-INS: one shape, filled from a table, so that a
+     quirk a manager is dealt actually surfaces in his month and the machinery is exercised end
+     to end. They are deliberately plain, and replacing one means rewriting a row rather than
+     touching any code. Each names its tie, so it follows the catalogue: rewrite the quirks and
+     these cast for whoever answers instead.
+     WHAT THEY ARE NOT: authored. A real event has a situation with more than one honest answer
+     and a consequence that lands somewhere the manager will feel later. These have two answers
+     and a small, immediate cost, which is enough to prove the wiring and not enough to be the
+     writing. */
+  const MOMENTS = [
+    { id: 'q_argued_the_plan', tie: 'an argument with his captain', title: 'An Argument Over the Plan',
+      text: n => n + ' told the captain the approach was wrong, in front of the squad.',
+      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down'],
+      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken'] },
+    { id: 'q_wound_hidden', tie: 'a wound he did not report', title: 'A Wound Off the Books',
+      text: n => 'The medic signed ' + n + ' fit. The medic is not sure ' + n + ' was honest.',
+      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining'],
+      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It'] },
+    { id: 'q_captaincy_snub', tie: 'a captaincy he was passed over for', title: 'The Armband Went Elsewhere',
+      text: n => n + ' heard about the captaincy from somebody else.',
+      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation'],
+      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice'] },
+    { id: 'q_evac_retainer', tie: 'an evac retainer the desk had to budget for', title: 'The Evac Retainer',
+      text: n => 'Medical have written to the desk about ' + n + ' again. They would like it in writing.',
+      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n],
+      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan'] },
+    { id: 'q_squad_cut_down', tie: 'a squad cut to a handful', title: 'What Is Left of the Squad',
+      text: n => 'There are four of them now, and ' + n + ' has stopped asking for replacements.',
+      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head'],
+      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had'] },
+    { id: 'q_captain_fell', tie: 'a captain who fell in front of him', title: 'The Captain Went Down',
+      text: n => n + ' has not been the same since the armband changed hands.',
+      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month'],
+      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out'] },
+    { id: 'q_long_shot', tie: 'a shot that decided a fight', title: 'The Shot They Are Still Talking About',
+      text: n => 'The clip of ' + n + '\u2019s shot has been round the fleet twice.',
+      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview'],
+      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It'] }
+  ];
+  function momentSpec(m) {
+    return {
+      id: m.id, weight: 0.55,
+      when: (c, ctx) => {
+        const hit = castFor(ctx && ctx.state, c, m.tie, ctx && ctx.rng);
+        if (!hit) return null;
+        const f = hit.f;
+        if (f['_' + m.id]) return null;             /* once per hand per career */
+        return f;
+      },
+      make: (f) => ({ kind: 'quirk', subject: f.id, title: m.title, text: m.text(shortName(f)),
+        options: [{ id: 'a', label: m.a[0] }, { id: 'b', label: m.b[0] }], def: 'a' }),
+      resolve: (c, e, opt) => {
+        const f = alive(c).find(x => x.id === e.subject);
+        if (!f) return 'They Had Already Gone';
+        f['_' + m.id] = true;
+        const pick = opt === 'b' ? m.b : m.a;
+        const kind = pick[1], amount = pick[2];
+        if (kind === 'stress') stress(f, amount);
+        else if (kind === 'health') { f.condition = f.condition || {}; f.condition.health = Math.min(100, (f.condition.health == null ? 100 : f.condition.health) + amount); }
+        else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
+        else if (kind === 'fame') f.fame = Math.max(0, (f.fame || 0) + amount);
+        else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
+        return pick[3](shortName(f));
+      },
+      ai: () => 'a'
+    };
+  }
   const POOL = [
     {
       id: 'raise', weight: 1.4,
@@ -12336,7 +11261,8 @@
     },
     {
       id: 'debt', weight: 1.0,
-      when: (c) => alive(c).find(f => (hasQuirk(f, 'war_debt') || hasQuirk(f, 'thrill_seeker')) && !f._debtCalled) || null,
+      when: (c, ctx) => { const hit = castFor(ctx && ctx.state, c, 'a medic who gave up too early', ctx && ctx.rng);
+        return hit && !hit.f._debtCalled ? hit.f : null; },
       make: (f) => ({ kind: 'debt', subject: f.id, title: f.name + '\u2019s Creditors Call',
         text: 'The people ' + f.name + ' owes have found the ship. They want ' + fmtCr(CONST.DEBT_CALL) + ', or they want ' + f.name + '.',
         options: [
@@ -12357,7 +11283,14 @@
     },
     {
       id: 'brawl', weight: 1.0,
-      when: (c) => { const a = alive(c); if (a.length < 4) return null; const hot = a.find(f => (hasQuirk(f, 'hot_headed') || hasQuirk(f, 'trigger_itch') || hasQuirk(f, 'grudge_holder')) && !f._brawled); return hot ? [hot, a.find(x => x !== hot)] : null; },
+      /* cast by the TIE, so the event follows the catalogue instead of naming three traits
+         that were retired out from under it */
+      when: (c, ctx) => { const a = alive(c); if (a.length < 4) return null;
+        /* the tie has to be one the catalogue actually offers; with eight quirks in the book
+           the brawl is cast on the man who argues with his captain */
+        const hit = castFor(ctx && ctx.state, c, 'an argument with his captain', ctx && ctx.rng);
+        const hot = hit && !hit.f._brawled ? hit.f : null;
+        return hot ? [hot, a.find(x => x !== hot)] : null; },
       make: (pair) => ({ kind: 'brawl', subject: pair[0].id, other: pair[1].id, title: 'A Fight in the Barracks',
         text: pair[0].name + ' put ' + pair[1].name + ' through a bulkhead over a card game. ' + pair[1].name + ' will be a week mending.',
         options: [
@@ -12486,6 +11419,11 @@
       ai: (c) => alive(c).length >= 18 ? 'drill' : 'fight'
     }
   ];
+  /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
+     displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
+     BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
+     cannot be answered is the worst of both — it looks like content and is furniture. */
+  MOMENTS.forEach(m => POOL.push(momentSpec(m)));
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
   /* the acts the events lean on, if the reputation module has not got them */
@@ -12771,7 +11709,8 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet,
-                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific };
+                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
+                BY_ID, MOMENTS };
   return api;
 });
 
@@ -13386,6 +12325,48 @@ const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], perma
 /* Combatant construction                                              */
 /* ------------------------------------------------------------------ */
 
+/* §QUIRKS THE CONDITIONS A SITUATIONAL BONUS MAY ASK ABOUT. A closed vocabulary, deliberately:
+   each one is answerable from what the fight already knows at the moment a body is built. A
+   condition the engine cannot see is not a condition, it is a wish, and a quirk written against
+   one would read as working and do nothing — which is the whole fault this catalogue is being
+   rebuilt to escape. Adding a condition means adding a line here, and the validator refuses any
+   quirk that names one this list does not have. */
+const SITUATIONS = {
+  squad_at_most_4:   ctx => (ctx.squadSize || 99) <= 4,
+  squad_at_most_6:   ctx => (ctx.squadSize || 99) <= 6,
+  squad_at_least_7:  ctx => (ctx.squadSize || 0) >= 7,
+  is_captain:        ctx => !!ctx.isCaptain,
+  not_captain:       ctx => !ctx.isCaptain,
+  first_divide:      ctx => !!ctx.firstEngagement,
+  alongside_conscript: ctx => !!ctx.withConscript,
+  alone_of_their_race: ctx => !!ctx.onlyOfRace,
+  /* the rest of the closed vocabulary, each answerable where a body is built */
+  veteran:             ctx => (ctx.divides || 0) >= 2,
+  green:               ctx => (ctx.divides || 0) === 0,
+  young:               ctx => (ctx.age || 30) <= 24,
+  old_hand:            ctx => (ctx.age || 30) >= 34,
+  hurt:                ctx => (ctx.health == null ? 100 : ctx.health) < 100,
+  settled:             ctx => (ctx.stress || 0) <= 20,
+  rattled:             ctx => (ctx.stress || 0) >= 50,
+  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain,
+  is_conscript:        ctx => ctx.origin === 'prisoner',
+  is_mercenary:        ctx => ctx.origin === 'mercenary'
+};
+function situationalStats(fighter, traitIndex, ctx) {
+  const out = {};
+  const list = (fighter.traits || []);
+  for (const tid of list) {
+    const t = traitIndex && traitIndex[tid];
+    const sits = t && t.effects && t.effects.situational;
+    if (!sits) continue;
+    for (const s of sits) {
+      const test = SITUATIONS[s.when];
+      if (!test || !test(ctx || {})) continue;
+      for (const k in (s.stats || {})) out[k] = (out[k] || 0) + s.stats[k];
+    }
+  }
+  return out;
+}
 function hooksOf(fighter, traitIndex) {
   const h = new Set();
   for (const tid of (fighter.traits || [])) {
@@ -13429,6 +12410,7 @@ function seedComposure(f, hooks, opts) {
 function makeCombatant(fighter, opts) {
   opts = opts || {};
   const hooks = hooksOf(fighter, opts.traitIndex);
+  const sit = situationalStats(fighter, opts.traitIndex, opts);
   /* PROCUREMENT.md §3 — a fighter's kit is resolved from the catalog at equip time and
      carried on loadout.kit. The defaults below are the pre-catalog field and remain the
      fallback for harnesses and probes that build combatants without a loadout. */
@@ -13442,20 +12424,28 @@ function makeCombatant(fighter, opts) {
        formula body was written for the old one, so the unit takes a DIVIDED COPY at this
        one boundary — one seam instead of thirty swept constants, and float-exact while
        births are multiples of ten. The roster object is never touched. */
+    /* §QUIRKS A SITUATIONAL BONUS IS THE POINT OF A QUIRK. "+25 Grit in a squad of four or
+       fewer" is a thing a manager can BUILD AROUND; a flat bonus is a thing he reads once. The
+       conditions are a small, closed vocabulary, and each one is answerable from what the
+       fight already knows — anything that needs a fact the engine cannot see is not a
+       condition, it is a wish. Points are REAL points, on the 10..200 scale, added before the
+       division combat works in. */
     /* STEP D — EFFECTIVE AIM: the hand and the trade, averaged. The weapon carries its
        skillFamily (stamped at resolve, one home in items.js); a fighter without skills, or
        a weapon without a trade, reads as pure aim — so fixtures and defaults are
        untouched. */
-    stats: { aim: (fighter.stats.aim +
+    stats: { aim: (fighter.stats.aim + (sit.aim || 0) +
                    (weapon.skillFamily && fighter.skills &&
                     fighter.skills[weapon.skillFamily] != null
                       ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
              /* a rested body walks on harder, and a settled one steadier — both spent here */
-             grit: (fighter.stats.grit +
+             grit: (fighter.stats.grit + (sit.grit || 0) +
                     ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
-             reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
-             tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
-             resolve: (fighter.stats.resolve +
+             reflex: (fighter.stats.reflex + (sit.reflex || 0)) / 10,
+             fieldcraft: (fighter.stats.fieldcraft + (sit.fieldcraft || 0)) / 10,
+             tactics: (fighter.stats.tactics + (sit.tactics || 0)) / 10,
+             presence: (fighter.stats.presence + (sit.presence || 0)) / 10,
+             resolve: (fighter.stats.resolve + (sit.resolve || 0) +
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
@@ -14197,7 +13187,7 @@ function captainFidelity(fighter, traitIndex) {
 
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
-  spendShot, primaryReady, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
+  spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
   settleAftermath, tallySide, persistCharge, coolWeapons, POLICY, STANCE, BANDS, captainReadsFight, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
@@ -18749,6 +17739,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     RANK_SNUB: 6,                       // [C] onto the stress of one passed over
     STORY_MOURNED: 1.50,                // [C] a company family's dead
     STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
+    /* §PRESENCE what being a man the room looks at is worth */
+    PRESENCE_FAME: 0.5,                 // [C] fame earned, across the whole spread of the stat
+    PRESENCE_STEADIES: 0.12,            // [C] and what the squad's steadiest hand lends a captain
+    KESHU_FRICTION: 3,                  // [C] §KESHU what an old war costs a squad that holds
+                                        //     both sides of it
     GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the house that
                                         //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
@@ -19780,9 +18775,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!avail.length) return null;
     const cap = squadCaptain(sq);
     const mentorPresent = avail.some(b => (b.traits || []).includes('mentor'));
+    /* §QUIRKS THE SITUATION A BODY IS IN, handed to the body as it is built — without it every
+       situational condition answers false and a quirk written against one does nothing, which
+       is the exact failure this catalogue is being rebuilt to escape. */
+    const withConscript = avail.some(b => ((b.contract || {}).kind) === 'prisoner');
+    const raceCount = {};
+    for (const b of avail) raceCount[b.race] = (raceCount[b.race] || 0) + 1;
     const units = avail.map(f => C.makeCombatant(f, {
       traitIndex, isCaptain: f.id === cap.id, day,
-      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0
+      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0,
+      squadSize: avail.length, withConscript: withConscript,
+      onlyOfRace: raceCount[f.race] === 1,
+      divides: (f.experience && f.experience.divides) || 0, age: f.age,
+      health: (f.condition || {}).health, stress: (f.condition || {}).stress,
+      captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
        What stood here was a squad-wide `gearTier` scalar and a five-row {power, protection}
@@ -20053,8 +19059,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks++; }
     }
     /* squad chemistry: who is standing next to whom */
-    if (hooksOfSquad.has('friction_with_keshu_rival_race')
-        && bodies.some(b => b.race && /keshu/i.test(b.race.id || ''))) { moraleDelta -= 2; stats.audit.traitHooks++; }
+    /* §KESHU THE GRUDGE TESTED FOR A RACE THAT DOES NOT EXIST. It looked for somebody of race
+       "keshu" in the squad — and Keshu is a PLANET, the water world the Attorak and the Gil
+       fought over for fifty-five years before the Opes Arx brokered the peace. The trait is
+       race-locked to those two, so the friction is between THEM: an Attorak who never signed
+       the peace standing beside a Gil, or the other way round. As written it could never once
+       have fired. */
+    if (hooksOfSquad.has('friction_with_keshu_rival_race')) {
+      const hasAttorak = bodies.some(b => b.race && b.race.id === 'attorak');
+      const hasGil = bodies.some(b => b.race && b.race.id === 'gil');
+      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks++; }
+    }
     if (hooksOfSquad.has('ankoth_sympathy_chemistry')
         && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
     /* a steady pair of hands gets the wounded back on their feet sooner */
@@ -20533,7 +19548,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        aptitude is worth exactly what it says: a human reads a situation better than the sheet
        alone would say. */
     if (c.race === 'human') tac = Math.min(1, tac + CONST.HUMAN_COMMAND);
-    const nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
+    /* §PRESENCE AND A STEADY MAN STEADIES THE ONES AROUND HIM. A captain's nerve was his own
+       resolve and presence; the squad he stands in had no say in it. The strongest presence
+       among the others lifts (or drags) what the captain can hold together — which is what a
+       squad's steadiest hand is FOR, and the second thing the stat now does. */
+    let nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
+    const others = (sq && sq.bodies || []).filter(b => b !== c && b.status === 'active');
+    if (others.length) {
+      const best = Math.max.apply(null, others.map(b => (b.stats && b.stats.presence) || 90));
+      nerve = Math.max(0, Math.min(1, nerve + ((best - 90) / 110) * CONST.PRESENCE_STEADIES));
+    }
     /* a captain worn down reads worse than a fresh one: fatigue and stress are on the sheet */
     const worn = 1 - Math.min(0.5, ((c.condition && c.condition.fatigue || 0) * 0.004 + (c.condition && c.condition.stress || 0) * 0.003));
     return {
@@ -21150,6 +20174,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* The crowd finds some people and loses others. Read by HOOK, not by trait id: the
          hooks are the contract, ids are not, and reading ids is how a renamed trait silently
          stops working. Eight of these had been declared and read by nothing since Step 2. */
+      /* §PRESENCE THE CROWD NOTICES SOME PEOPLE MORE. Presence was copied onto every combatant
+         and read NOWHERE in the fight, and outside it was thirty-five per cent of one captain's
+         nerve and nothing else — a stat on every sheet, raised by training, bought by quirks,
+         and worth almost nothing. A hand the crowd can see earns fame faster for the same work:
+         at the bottom of the scale a little less than his share, at the top half again. */
+      const pres = (t.stats && t.stats.presence) || CONST.MIND_MID * 10;
+      g *= 1 + ((pres - 90) / 110) * CONST.PRESENCE_FAME;
       const h = C.hooksOf(t, ROSTER.traitById);
       if (h.has('fame_gain_up')) g *= 1.5;
       if (h.has('heel_fame_gain')) g *= 1.4;
@@ -26001,9 +25032,31 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return lotAt(state, corpId, kind, lot);
   }
   /** one reader for a lot, whether it is this month's or the one a manager is peeking at */
+  /* §BASTILLE THE KIER BASTILLE SELLS PEOPLE, NOT RECORDS. A Natural-Born grew up on your own
+     ship and a mercenary has fought somewhere they can be asked about — both arrive with a
+     service record, and a manager reads their numbers before he signs. A prisoner has no such
+     record: the Bastille can tell you a name, a people, an age and what the sentence was, and
+     nothing about what the man can do, because nobody has been keeping score.
+     So the market becomes what its data always said it was — *busts and diamonds in the same
+     lot sheet* — and the widest stat spread in the game, the lowest loyalty and half again the
+     negative traits stop being facts on a page a manager can read past. He is buying blind.
+     Everything is on the fighter as before; only the SHEET is redacted, and it opens the moment
+     the man is his. */
+  function apparentOnly(rec, f) {
+    delete rec.stats; delete rec.potential; delete rec.traits;
+    delete rec.record;          /* the service record is the very thing a prisoner has not got */
+    rec.hidden = true;
+    /* what an auctioneer could not hide: the man is standing in front of you */
+    rec.build = (f.race || '').replace('_', '-');
+    rec.hurt = !!((f.condition || {}).injuries || []).length ||
+               ((f.condition || {}).health != null && f.condition.health < 100);
+    rec.sentence = (f.contract && f.contract.sentence_remaining) || null;
+    return rec;
+  }
   function lotAt(state, corpId, kind, lot) {
     const mine = (state.bids[kind] || {})[corpId] || {}, corp = state.corps[corpId];
-    return lot.map(f => ({
+    return lot.map(f => {
+      const rec = {
       id: f.id, name: f.name, age: f.age, race: f.race,
       potential: f.potential, stats: f.stats, fame: f.fame || 0,
       ask: askingPrice(f, corp), yourBid: mine[f.id] || 0, kind: kind,
@@ -26016,7 +25069,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       record: f.experience || null,
       pool: f._pool || null,
       carried: !!f._carried
-    }));
+      };
+      return kind === 'bastille' ? apparentOnly(rec, f) : rec;
+    });
   }
 
   /** Offer a named fighter a named amount. Passing 0 withdraws. */
@@ -26375,6 +25430,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
       c._lastGate = gate2;
       landed[id].push({ kind: 'gate', text: 'Gate and Merchandise', amount: gate2 });
+      /* §MONEY THE WAGES WERE NEVER PAID. `wageBill` has existed since the ledger did, is
+         reserved against in `procurementBudget`, and is printed on the Roster as THE WAGE BILL
+         — and no line was ever posted for it. The single largest cost of running a corporation
+         was computed, displayed, and not charged, so a prep year cleared +162,000 on average
+         before the Divide was fought and every scarcity the Market, the Paper and the kit cap
+         assume was a fiction. A roster is paid every month, for everybody on it. */
+      const payroll = Math.round(LED.wageBill(alive) / LED.CONST.SALARY_MONTHS);
+      if (payroll > 0) {
+        LED.post(c.account, 'expense', 'Wages', -payroll);
+        landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
+      }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
@@ -26479,6 +25545,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const corps = state.corps, profiles = state.profiles, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
     state.done = true;
+    /* §MONEY AND THE ENTRY FEE WAS NEVER TAKEN EITHER. `ALEAS_ENTRY` is what it costs to be in
+       the Divide at all — reserved against in `procurementBudget` beside the wages, named in
+       the ledger's own constants, and charged to nobody. A house entered the Divide free. It
+       is taken at the lock, from every house that is going. */
+    for (const id of ids) {
+      const c = corps[id];
+      if (!c || c.standDown || c.disqualified) continue;
+      LED.post(c.account, 'expense', 'Aleas entry', -LED.CONST.ALEAS_ENTRY);
+    }
     /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
        the highest standing (regard plus this year's effort) and pays its advance. Conditions
        are judged after the Divide, in finishSeason. One commitment per house. The result lives
@@ -27438,7 +26513,57 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      A quirk was a word on a card. What it MEANS is in the data — a stat it moves, and the
      hooks the engine reads — so the chip says it: hover, and the reading is the mechanics,
      not the flavour. A hook nothing reads says so rather than promising something. */
+  /* §QUIRKS the conditions, said the way a manager would say them rather than as the engine's
+     own keys — a screen that prints `squad_at_most_4` is a screen written for its author */
+  var WHEN_WORDS = {
+    squad_at_most_4: 'In a Squad of Four or Fewer',
+    squad_at_most_6: 'In a Squad of Six or Fewer',
+    squad_at_least_7: 'In a Squad of Seven or More',
+    is_captain: 'While Leading a Squad',
+    not_captain: 'While Not Leading',
+    first_divide: 'In a First Engagement',
+    alongside_conscript: 'Beside a Conscript',
+    alone_of_their_race: 'As the Only One of Their People',
+    veteran: 'After Two Divides',
+    green: 'Before Their First Divide',
+    young: 'While Young',
+    old_hand: 'Past Thirty-Four',
+    hurt: 'While Carrying a Wound',
+    settled: 'While Settled',
+    rattled: 'While Rattled',
+    with_their_captain: 'With Their Captain on the Ground',
+    is_conscript: 'As a Conscript',
+    is_mercenary: 'As a Mercenary'
+  };
+  function WHEN_TEXT(w) { return WHEN_WORDS[w] || capWords(String(w).replace(/_/g, ' ')); }
   var HOOK_TEXT = {
+    /* §QUIRKS THE HOOKS THE TOOLTIP COULD NOT SPEAK FOR. Three racial traits — both
+       Et-y-Bellum faiths and the Pressure-Read psion — carried no stat change and no hook this
+       table knew, so their tooltip said "Character, Not Mechanics" over machinery that is
+       wired, sized and firing. Every figure below is read off the engine, not invented. */
+    divide_start_morale_surge: '+4 Morale at the Drop',
+    divide_start_morale_surge_major: '+8 Morale at the Drop',
+    cede_loyalty_morale_penalty: '\u22123 Morale on a Sold Claim',
+    cede_loyalty_morale_penalty_major: '\u22125 Morale on a Sold Claim',
+    death_or_glory_affinity: '+3 Morale Under Death or Glory, \u22122 Under a Cautious Policy',
+    resists_medical_evac: 'Refuses the Evac',
+    negotiation_bluff_detection: 'Reads a Bluff at the Table',
+    friction_with_keshu_rival_race: '\u22123 Morale Beside the Other Side of the Keshu War',
+    ankoth_sympathy_chemistry: '+2 Morale Beside an Ankoth',
+    evasion_surge: 'Slips the Odd Certain Shot',
+    squad_coordination_bonus: '+1 Aim for the Squad Around Them',
+    psionic_broadcast_sensation: 'The Crowd Pays for a Psion',
+    loyalty_cap_reduced: 'Never Fully Loyal to a House',
+    succession_candidate_priority: 'First in Line for a Captaincy',
+    injury_severity_risk_up: 'Wounds Run a Grade Worse',
+    early_divide_penalty: 'Poor in a First Engagement',
+    late_divide_bonus: 'Better Once Blooded',
+    captain_fidelity_up: 'Follows a Captain Further',
+    field_treatment_bonus: 'Treats a Wound Better in the Field',
+    seen_worse_composure: 'Steadier for Having Seen Worse',
+    composure_up_as_intensity_rises: 'Steadies as a Fight Worsens',
+    volunteers_for_risk: 'Volunteers for the Bad Jobs',
+    unlikely_friendship_arc_seed: 'Draws the Odd Friendship',
     accuracy_bonus: 'Better Aim', field_treatment_bonus: 'Treats Wounds Better',
     evac_stabilize_bonus: 'Steadier Hands on the Wounded', development_rate_up: 'Trains 30% Faster',
     young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
@@ -27475,11 +26600,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function quirkText(id) {
     var tr = ROSTER.traitById && ROSTER.traitById[id];
     if (!tr) return { name: capWords(id), lines: [], flavour: '' };
+    /* §QUIRKS THE SHEET HAS TO SAY WHAT THE NEW SHAPE DOES. This read `stat_mods` and hooks,
+       so a rebuilt quirk carrying thirty points and a condition showed "Character, Not
+       Mechanics" — the catalogue was rewritten to be felt and the one screen that explains it
+       was still reading the old field. Flat points first, then what it is worth and WHEN, then
+       any machinery a hook carries. */
     var e = tr.effects || {}, lines = [];
-    for (var k in (e.stat_mods || {})) {
+    for (var k in (e.stat_mods || {})) {          /* the old field, in tenths */
       var v = e.stat_mods[k];
-      lines.push((v > 0 ? '+' : '') + v + ' ' + (STATNAME[k] || capWords(k)));
+      lines.push((v > 0 ? '+' : '') + (v * 10) + ' ' + (STATNAME[k] || capWords(k)));
     }
+    for (var k2 in (e.stats || {})) {             /* and the new one, in real points */
+      var v2 = e.stats[k2];
+      lines.push((v2 > 0 ? '+' : '') + v2 + ' ' + (STATNAME[k2] || capWords(k2)));
+    }
+    (e.situational || []).forEach(function (st) {
+      var parts = [];
+      for (var k3 in (st.stats || {}))
+        parts.push((st.stats[k3] > 0 ? '+' : '') + st.stats[k3] + ' ' + (STATNAME[k3] || capWords(k3)));
+      if (parts.length) lines.push(parts.join(', ') + ' \u2014 ' + WHEN_TEXT(st.when));
+    });
     (e.hooks || []).forEach(function (h) { if (HOOK_TEXT[h]) lines.push(HOOK_TEXT[h]); });
     return { name: tr.name, lines: lines, flavour: tr.description || '' };
   }
@@ -27597,7 +26737,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (si == null) return null;
     return { idx: si, cls: SQCLASS[si] || 'none', name: (G.plan.names || [])[si] || ('Squad ' + (si + 1)) };
   }
-  function capRace(r) { return r ? r.charAt(0).toUpperCase() + r.slice(1).replace('_', '-') : '?'; }
+  /* §RACES A PEOPLE'S NAME IS WRITTEN IN THEIR OWN COLOUR. The nine have distinct colours now
+     and the one place that spells a race out was printing it in the surrounding grey — so the
+     colours reached the marks and the discs and never the word. One function, so every caller
+     gets it: the roster row, the prospect card, and the sheet. */
+  function capRace(r) {
+    if (!r) return '?';
+    var word = r.charAt(0).toUpperCase() + r.slice(1).replace('_', '-');
+    var c = RACE[r];
+    return c ? '<span style="color:' + c.fill + '">' + word + '</span>' : word;
+  }
   function renderRoster() {
     renderResigning();
     if (!G) return;
@@ -27890,8 +27039,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   var MERC_FIELD = 1.15;      /* §ACQ what the rest of the fleet is putting up, as a share of the ask */
   function prospectCard(f, signing) {
     var s = f.stats || {};
+    /* §BASTILLE A SHEET WITH NOTHING ON IT IS THE POINT. A Natural-Born grew up on your ship
+       and a mercenary has fought somewhere you can ask about; a prisoner has no service record,
+       so the Bastille sells a name, a people, an age and whatever is apparent from looking at
+       him. The stat cells are not blanked as though something failed to load — they carry what
+       the auctioneer WILL tell you, and a plain statement that the rest is not for sale. */
+    var cells;
+    if (f.hidden) {
+      cells = '<span class="pc-blind"><b>No Service Record</b>' +
+        '<span class="m">The Bastille Sells the Man, Not the Paper</span>' +
+        '<span class="seen">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') +
+          (f.hurt ? ' \u00b7 <span class="bad">Carrying an Injury</span>' : '') +
+          (f.fame ? ' \u00b7 Notoriety ' + Math.round(f.fame) : '') +
+          (f.sentence ? ' \u00b7 ' + f.sentence + ' to Serve' : '') +
+        '</span></span>';
+    } else {
     var cells = STAT_KEYS.map(function (k) { return statCell(k, STAT_ABBR[k], s[k]); }).join('') +
       '<span class="pc-pot">Ceiling ' + (f.potential != null ? f.potential : '\u2014') + (f.carried ? ' <span class="ktag">Carried Over</span>' : '') + '</span>';
+    }
+
 
     var foot, terms;
     if (signing === 'tryouts') {
@@ -30047,6 +29213,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return '<div class="railhead"><span class="sheetmark" data-editmark="' + b.id + '" title="Change the Mark">' +
       fighterMark(b, 44, colFor(G.me)) + '<span class="mkedit-cue">Change<br>the Mark</span></span>' +
       '<span class="nm" style="color:' + raceColour(b) + '">' + (lead ? '<span class="lead">\u2605</span> ' : '') + esc(b.name) + '</span>' +
+      /* §RACES THE SHEET NEVER SAID WHAT HE WAS. It carried his squad, his stats, his kit and
+         his paper, and not the one fact that decides how he moves and what he can do on the
+         ground — told in the people's own colour, the way the roster tells it. */
+      '<span class="sub race">' + capRace(b.race) + ' \u00b7 ' + (b.age || '?') + '</span>' +
       '<span class="sub ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) + (lead ? ' \u00b7 Leads' : '') : 'At Home') + '</span></div>';
   }
 

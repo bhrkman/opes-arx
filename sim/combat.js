@@ -341,6 +341,48 @@ const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], perma
 /* Combatant construction                                              */
 /* ------------------------------------------------------------------ */
 
+/* §QUIRKS THE CONDITIONS A SITUATIONAL BONUS MAY ASK ABOUT. A closed vocabulary, deliberately:
+   each one is answerable from what the fight already knows at the moment a body is built. A
+   condition the engine cannot see is not a condition, it is a wish, and a quirk written against
+   one would read as working and do nothing — which is the whole fault this catalogue is being
+   rebuilt to escape. Adding a condition means adding a line here, and the validator refuses any
+   quirk that names one this list does not have. */
+const SITUATIONS = {
+  squad_at_most_4:   ctx => (ctx.squadSize || 99) <= 4,
+  squad_at_most_6:   ctx => (ctx.squadSize || 99) <= 6,
+  squad_at_least_7:  ctx => (ctx.squadSize || 0) >= 7,
+  is_captain:        ctx => !!ctx.isCaptain,
+  not_captain:       ctx => !ctx.isCaptain,
+  first_divide:      ctx => !!ctx.firstEngagement,
+  alongside_conscript: ctx => !!ctx.withConscript,
+  alone_of_their_race: ctx => !!ctx.onlyOfRace,
+  /* the rest of the closed vocabulary, each answerable where a body is built */
+  veteran:             ctx => (ctx.divides || 0) >= 2,
+  green:               ctx => (ctx.divides || 0) === 0,
+  young:               ctx => (ctx.age || 30) <= 24,
+  old_hand:            ctx => (ctx.age || 30) >= 34,
+  hurt:                ctx => (ctx.health == null ? 100 : ctx.health) < 100,
+  settled:             ctx => (ctx.stress || 0) <= 20,
+  rattled:             ctx => (ctx.stress || 0) >= 50,
+  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain,
+  is_conscript:        ctx => ctx.origin === 'prisoner',
+  is_mercenary:        ctx => ctx.origin === 'mercenary'
+};
+function situationalStats(fighter, traitIndex, ctx) {
+  const out = {};
+  const list = (fighter.traits || []);
+  for (const tid of list) {
+    const t = traitIndex && traitIndex[tid];
+    const sits = t && t.effects && t.effects.situational;
+    if (!sits) continue;
+    for (const s of sits) {
+      const test = SITUATIONS[s.when];
+      if (!test || !test(ctx || {})) continue;
+      for (const k in (s.stats || {})) out[k] = (out[k] || 0) + s.stats[k];
+    }
+  }
+  return out;
+}
 function hooksOf(fighter, traitIndex) {
   const h = new Set();
   for (const tid of (fighter.traits || [])) {
@@ -384,6 +426,7 @@ function seedComposure(f, hooks, opts) {
 function makeCombatant(fighter, opts) {
   opts = opts || {};
   const hooks = hooksOf(fighter, opts.traitIndex);
+  const sit = situationalStats(fighter, opts.traitIndex, opts);
   /* PROCUREMENT.md §3 — a fighter's kit is resolved from the catalog at equip time and
      carried on loadout.kit. The defaults below are the pre-catalog field and remain the
      fallback for harnesses and probes that build combatants without a loadout. */
@@ -397,20 +440,28 @@ function makeCombatant(fighter, opts) {
        formula body was written for the old one, so the unit takes a DIVIDED COPY at this
        one boundary — one seam instead of thirty swept constants, and float-exact while
        births are multiples of ten. The roster object is never touched. */
+    /* §QUIRKS A SITUATIONAL BONUS IS THE POINT OF A QUIRK. "+25 Grit in a squad of four or
+       fewer" is a thing a manager can BUILD AROUND; a flat bonus is a thing he reads once. The
+       conditions are a small, closed vocabulary, and each one is answerable from what the
+       fight already knows — anything that needs a fact the engine cannot see is not a
+       condition, it is a wish. Points are REAL points, on the 10..200 scale, added before the
+       division combat works in. */
     /* STEP D — EFFECTIVE AIM: the hand and the trade, averaged. The weapon carries its
        skillFamily (stamped at resolve, one home in items.js); a fighter without skills, or
        a weapon without a trade, reads as pure aim — so fixtures and defaults are
        untouched. */
-    stats: { aim: (fighter.stats.aim +
+    stats: { aim: (fighter.stats.aim + (sit.aim || 0) +
                    (weapon.skillFamily && fighter.skills &&
                     fighter.skills[weapon.skillFamily] != null
                       ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
              /* a rested body walks on harder, and a settled one steadier — both spent here */
-             grit: (fighter.stats.grit +
+             grit: (fighter.stats.grit + (sit.grit || 0) +
                     ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
-             reflex: fighter.stats.reflex / 10, fieldcraft: fighter.stats.fieldcraft / 10,
-             tactics: fighter.stats.tactics / 10, presence: fighter.stats.presence / 10,
-             resolve: (fighter.stats.resolve +
+             reflex: (fighter.stats.reflex + (sit.reflex || 0)) / 10,
+             fieldcraft: (fighter.stats.fieldcraft + (sit.fieldcraft || 0)) / 10,
+             tactics: (fighter.stats.tactics + (sit.tactics || 0)) / 10,
+             presence: (fighter.stats.presence + (sit.presence || 0)) / 10,
+             resolve: (fighter.stats.resolve + (sit.resolve || 0) +
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
@@ -1152,7 +1203,7 @@ function captainFidelity(fighter, traitIndex) {
 
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
-  spendShot, primaryReady, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
+  spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
   settleAftermath, tallySide, persistCharge, coolWeapons, POLICY, STANCE, BANDS, captainReadsFight, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other

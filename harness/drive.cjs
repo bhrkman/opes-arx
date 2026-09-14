@@ -304,6 +304,44 @@ setTimeout(() => {
       check(/\.evcard \.es\{[^}]*color:var\(--ink\)/.test(css2),
             'and the copy is set in the reading colour, not the page\'s dim');
     }
+    /* §QUIRKS THE SHEET SAYS WHAT A QUIRK DOES. The explainer read `stat_mods` and hooks, so
+       every rebuilt quirk — thirty points and a condition — showed "Character, Not Mechanics":
+       the catalogue was rewritten to be felt and the one screen that explains it was still
+       reading the old field. Every quirk a manager can be dealt must state its effect. */
+    {
+      const idx = window.CDROSTER.traitById;
+      const pool = Object.keys(idx).filter(k => idx[k].draw === 'pool');
+      const mute = pool.filter(id => {
+        const e = idx[id].effects || {};
+        return !(e.stats || e.situational || e.stat_mods) && !(e.hooks || []).length;
+      });
+      /* the book is deliberately SMALL — eight, ruled, and grown from there. The floor here was
+         ten, which would have failed the ruling rather than a fault. */
+      check(pool.length >= 4 && mute.length === 0,
+            'every quirk in circulation carries something the sheet can state (' +
+            pool.length + ' quirks, ' + mute.length + ' silent)');
+      /* and the racial ones too: they carry no stat change, only hooks, so the tooltip can
+         only speak for them if HOOK_TEXT knows the words. Three of them said "Character, Not
+         Mechanics" over machinery that was wired, sized and firing. */
+      const cssT = [...doc.querySelectorAll('script')].map(x => x.textContent).join('\n');
+      const spoken = new Set((((cssT.match(/var HOOK_TEXT = \{[\s\S]*?\n  \};/) || [''])[0])
+        .match(/^\s*([a-z_0-9]+)\s*:/gm) || []).map(x => x.replace(/[\s:]/g, '')));
+      const dumb = Object.keys(idx).filter(k => idx[k].draw !== 'retired').filter(k => {
+        const e = idx[k].effects || {};
+        return !(e.stats || e.situational || e.stat_mods) &&
+               !(e.hooks || []).some(h => spoken.has(h));
+      });
+      check(dumb.length === 0,
+            'and every trait a hand can carry has words for what it does (' + dumb.join(', ') + ')');
+    }
+    /* §MENU all three portraits survive a narrow window — they shrink, they do not vanish.
+       The stylesheet sweep in harness/audit_resize.cjs is the thorough version of this; the
+       page only has to prove the menu itself keeps its three. */
+    {
+      const cssM = [...doc.querySelectorAll('style')].map(x => x.textContent).join('\n');
+      check(!/\.moval\.left\s*,\s*\.moval\.right\{[^}]*display:none/.test(cssM),
+            'the menu keeps all three portraits at every width');
+    }
     /* §RACES the peoples are spelt Ththyn, and wear colours a manager can tell apart */
     {
       const R2 = window.CDROSTER, races = window.ARX_DATA.races.races;
@@ -338,6 +376,31 @@ setTimeout(() => {
       const worn = able.filter(f => ((f.condition || {}).stress || 0) > 0).length;
       check(hurt >= 1 && worn >= able.length - 1,
             'the founding roster carries last year\'s marks (' + hurt + ' hurt, ' + worn + ' worn)');
+    }
+    /* §BASTILLE THE KIER SELLS THE MAN, NOT THE PAPER. A prisoner has no service record, so his
+       sheet carries a name, a people, an age and what is apparent — and nothing a manager would
+       otherwise read before signing. The truth arrives with the man. */
+    {
+      /* the window opens in month five, and a lot is only drawn when its month arrives — so
+         this opens its own season and steps to it rather than poking at the live one */
+      const S5 = window.CDSEASON, P5 = window.CDPRNG;
+      const oa5 = window.ARX_DATA.oa_profiles.oa_profiles;
+      const r5 = P5.mulberry32(P5.seedFrom('bastilleprobe'));
+      const c5 = S5.openFleet(r5, oa5, {});
+      const you5 = Object.keys(c5)[0];
+      const st5 = S5.beginSeason(r5, c5, oa5, { human: you5 });
+      let lot5 = [];
+      while (st5.month <= 11) {
+        lot5 = S5.lotFor(st5, you5) || [];
+        if (lot5.length && lot5[0].kind === 'bastille') break;
+        S5.stepMonth(st5);
+      }
+      check(lot5.length > 0 && lot5[0].kind === 'bastille',
+            'the Kier Bastille opens its window (' + lot5.length + ' on the sheet)');
+      check(lot5.every(r => r.stats === undefined && r.potential === undefined && r.record === undefined),
+            'a Bastille sheet carries no stats, no ceiling and no service record');
+      check(lot5.every(r => r.name && r.race && r.age),
+            'and does carry what is apparent: a name, a people and an age');
     }
     /* §MARKET a shut window shows the people the next one will offer, greyed and untouchable */
     check(doc.querySelectorAll('#rostmarket .shutwrap .pc').length > 0 ||
@@ -1476,9 +1539,18 @@ setTimeout(() => {
       /* §THE CLOCK the wall says when it moves next, and to what */
       check(/The Wall Closes Day \d+|The Dome Holds/.test(text('#dayhead')),
             'the day head says when the wall closes next: ' + (text('#dayhead').match(/The Wall Closes[^A-Z]{0,40}/) || ['—'])[0].replace(/\s+/g, ' '));
-      check(/Leader/.test(text('#tsquads')) && doc.querySelectorAll('#tsquads [data-sheet]').length >= 1 &&
-            /Sharp|Steady|Struggling|Nobody Leading/.test(text('#tsquads')),
-            'each squad names its captain and how well they read it');
+      /* A WIPED SQUAD HAS NO CAPTAIN TO NAME, AND SAYING SO IS THE PANEL WORKING. This asked
+         for a clickable captain on every squad — so the moment a manager's last squad was
+         killed to the man, a correct "Nobody Leading" read as a failure. What the panel owes
+         is a READING of each squad: a captain and how he sees it while anybody is alive, and
+         plainly nobody once they are not. (It also asked for the word "Leader", which is a
+         COLUMN HEADER in that table and would have matched whatever the squads did.) */
+      const alive9 = (GO.div.win.you.squads || [])
+        .some(q => (q.bodies || []).some(b => b.status !== 'dead'));
+      check(/Sharp|Steady|Struggling|Nobody Leading/.test(text('#tsquads')) &&
+            (!alive9 || doc.querySelectorAll('#tsquads [data-sheet]').length >= 1),
+            'each squad names its captain and how well they read it, or says nobody leads it' +
+            (alive9 ? '' : ' (every squad was killed to the man)'));
       const anyMind = GO.div.win.you.squads.some(q => q._mind && q._mind.judge);
       check(anyMind, 'a captain\'s judgement, sight and nerve are on the squad');
       const row = doc.querySelector('#tstance .leanrow'), pip = row.querySelectorAll('.lp')[4];

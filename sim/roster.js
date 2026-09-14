@@ -360,6 +360,7 @@
   Generator.prototype.rollTraits = function (rng, race, origin, batchTally) {
     const tm = this.rec.trait_model;
     const decay = tm.batch_repeat_decay === undefined ? 1 : tm.batch_repeat_decay;
+    const CONST_DAMP_FLOOR = 0.2;   // [C] the least of its weight a repeated trait keeps
     const seen = batchTally || {};
     const chosen = [];
     const blocked = new Set();
@@ -392,7 +393,15 @@
         let w = tm.rarity_weights[t.rarity] || 1;
         if (t.race_weight && t.race_weight[race.id]) w *= t.race_weight[race.id];
         if (t.origin_weight && t.origin_weight[origin]) w *= t.origin_weight[origin];
-        if (seen[t.id]) w *= Math.pow(decay, seen[t.id]); // shuffle-bag damper within a batch
+        /* §QUIRKS THE DAMPER WAS ERASING RARITY. `batch_repeat_decay` is 0.35 per repeat and
+           compounds without limit, so a trait drawn five times keeps half a per cent of its
+           weight and one drawn twenty times keeps a billionth — across a batch of any size
+           every trait converges to the SAME frequency and `rarity_weights` decides nothing.
+           Measured on the new catalogue: common 51 draws a trait, uncommon 50, rare 49, from
+           weights of 10, 5 and 2. The damper is meant to stop one trait filling a batch, not
+           to flatten the book, so it is floored: a trait can fall to a fifth of its weight and
+           no further, and rarity survives underneath it. */
+        if (seen[t.id]) w *= Math.max(CONST_DAMP_FLOOR, Math.pow(decay, seen[t.id]));
         entries.push([t.id, w]);
       }
       if (!entries.length) break;
@@ -528,12 +537,25 @@
        fighter's aim, leaned by where they learned to shoot — the leans live in
        recruitment.json beside the rest of the generation's numbers. Effective aim with a
        carried weapon is (aim + trade) / 2, read at combat's boundary. */
+    /* §QUIRKS TWO WAYS TO WRITE A STAT CHANGE, AND ONLY ONE OF THEM IS HONEST. The old
+       `stat_mods` is in TENTHS — a catalogue entry of `aim: 1` became TEN POINTS on a scale
+       that runs 10..200. So the numbers a person read in the data file were a tenth of what
+       the engine did, which is how a trait called Marksman's Eye came to look like +1 and be
+       +10. `effects.stats` is in REAL POINTS, applied as written, and is what every new quirk
+       uses; `stat_mods` is honoured for what is left of the old catalogue and nothing new
+       should use it. Measured worth, for anyone writing one: +15 is where a person starts to
+       feel it, +25 is a good trait, +40 is a defining one and wants a penalty against it. */
     for (const tid of traitIds) {
       const tdef = this.traitById[tid];
-      const tm = tdef && tdef.effects && tdef.effects.stat_mods;
+      const eff = (tdef && tdef.effects) || {};
+      const tm = eff.stat_mods;
       if (tm) for (const k in tm)
         if (stats[k] != null)
           stats[k] = Math.max(10, Math.min(200, stats[k] + tm[k] * 10));
+      const st = eff.stats;
+      if (st) for (const k in st)
+        if (stats[k] != null)
+          stats[k] = Math.max(10, Math.min(200, stats[k] + st[k]));
     }
     potential = Math.max(potential,
                          Math.max.apply(null, STATS.map(k => stats[k])));
@@ -850,9 +872,9 @@
       text: c => `Reads a battlefield the way an auditor reads a ledger. Captain material — the market will figure it out eventually.` },
     { key: "t_kier", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
       text: c => `Kier alumni. The Divide's worst day is the Bastille's Tuesday, and ${c.name} did years of Tuesdays.` },
-    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("freedom_counter"),
+    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
       text: c => `Keeps the clause tally scratched inside the armor, the guards say. That's not a habit. That's fuel.` },
-    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_headed"),
+    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_blooded"),
       text: c => `Burns HOT! Point the burn at the other banners and everyone goes home happy. Point it wrong and — well. Ratings.` },
     { key: "t_superstitious", tier: 2, register: "hype", when: c => c.has("superstitious"),
       text: c => `Won't drop without the dawn ritual. Three camps ago, the ritual squad lived. Make of that what the crowd will!` },
@@ -880,21 +902,21 @@
       text: c => `Some households never signed the Keshu peace. Check your roster for the other half of that war before you sign this one.` },
     { key: "t_few_words", tier: 2, register: "hype", when: c => c.has("few_words"),
       text: c => `Has spoken on broadcast twice in a career. Both clips are legendary. We live in hope of a third.` },
-    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("broadcast_savage"),
+    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
       text: c => `Fights like the cameras are family. The cameras, for the record, agree.` },
     { key: "t_darling", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
       text: c => `The drones find ${c.name} on their own. Nobody programs that. The crowd just knows.` },
-    { key: "t_climber", tier: 2, register: "dry", when: c => c.has("rank_climber"),
+    { key: "t_climber", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads every roster posting twice: once for the squad, once for their own name's position in it.` },
-    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("tradition_keeper"),
+    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("company_man"),
       text: c => `Signed for a banner, not a mood. Change doctrine mid-Divide and you'll meet granite with a contract.` },
-    { key: "t_cull", tier: 2, register: "dry", when: c => c.has("cull_tempered"),
+    { key: "t_cull", tier: 2, register: "dry", when: c => c.has("hard_to_kill"),
       text: c => `Survived the training years. Panic was culled out of ${c.name} before adulthood — the pride kept receipts.` },
-    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("battle_dancer"),
+    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("quick_off_the_mark"),
       text: c => `Every reposition a step, every shot a beat — the old dueling forms, live on your feed!` },
     { key: "t_mentor", tier: 2, register: "dry", when: c => c.has("mentor"),
       text: c => `Rookies orbit ${c.name}. The nerves settle. The habits stick. Cheap at twice the salary.` },
-    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("pact_keeper"),
+    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
       text: c => `A deal signed is a deal kept — even the ones the manager comes to regret. Negotiators, take note.` },
     { key: "t_clause", tier: 2, register: "dry", when: c => c.has("clause_reader"),
       text: c => `Knows the contract, your precedent, and the fleet's going rate to the credit. Renewal season will be an education.` },

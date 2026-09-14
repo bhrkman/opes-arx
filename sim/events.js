@@ -75,6 +75,37 @@
   const fmtCr = n => '\u20a1' + Math.round(n).toLocaleString('en-US');
   const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11) *
                                   (1 + Math.max(0, ((f.potential || 50) - 50) / 100)));
+  /* §STORY AN EVENT ASKS FOR A TIE, NOT A TRAIT ID. Five events cast their subject by naming a
+     trait — `hasQuirk(f, 'hot_headed')` — and the moment those traits were retired all five
+     went quiet with no error anywhere: the event stayed in the pool, drew its turn, found
+     nobody and did nothing. A name in a script is a hard edge against a catalogue that is meant
+     to be rewritten.
+     Every rebuilt quirk carries `story.hooks_into`: the things an event could hang on it. An
+     event asks for one of those — "a fight in the barracks" — and gets whoever in the house has
+     a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
+     and the events follow it. */
+  function tiesOf(state, f) {
+    const idx = traitIndexOf(state), out = [];
+    for (const tid of (f.traits || [])) {
+      const t = idx && idx[tid];
+      const st = t && t.effects && t.effects.story;
+      if (!st) continue;
+      for (const h of (st.hooks_into || [])) out.push({ tie: h, tone: st.tone, trait: tid });
+    }
+    return out;
+  }
+  /** whoever in this house a given tie can be hung on, or null */
+  function castFor(state, corp, tie, rng) {
+    const want = String(tie).toLowerCase();
+    const able = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const fit = [];
+    for (const f of able)
+      for (const t of tiesOf(state, f))
+        if (t.tie.toLowerCase().indexOf(want) >= 0 || want.indexOf(t.tie.toLowerCase()) >= 0)
+          { fit.push({ f: f, tone: t.tone, trait: t.trait }); break; }
+    if (!fit.length) return null;
+    return fit[Math.floor((rng ? rng() : Math.random()) * fit.length)];
+  }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
@@ -82,6 +113,75 @@
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
      resolve(corp, event, optionId, ctx) -> line, ai(corp, event) -> optionId */
+  /* §STORY PLACEHOLDER MOMENTS, AND THEY SAY SO. Every rebuilt quirk carries a `story` naming
+     what an event could hang on it, and until this those ties cast nothing — a narrative half
+     that was a promissory note. These are STAND-INS: one shape, filled from a table, so that a
+     quirk a manager is dealt actually surfaces in his month and the machinery is exercised end
+     to end. They are deliberately plain, and replacing one means rewriting a row rather than
+     touching any code. Each names its tie, so it follows the catalogue: rewrite the quirks and
+     these cast for whoever answers instead.
+     WHAT THEY ARE NOT: authored. A real event has a situation with more than one honest answer
+     and a consequence that lands somewhere the manager will feel later. These have two answers
+     and a small, immediate cost, which is enough to prove the wiring and not enough to be the
+     writing. */
+  const MOMENTS = [
+    { id: 'q_argued_the_plan', tie: 'an argument with his captain', title: 'An Argument Over the Plan',
+      text: n => n + ' told the captain the approach was wrong, in front of the squad.',
+      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down'],
+      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken'] },
+    { id: 'q_wound_hidden', tie: 'a wound he did not report', title: 'A Wound Off the Books',
+      text: n => 'The medic signed ' + n + ' fit. The medic is not sure ' + n + ' was honest.',
+      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining'],
+      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It'] },
+    { id: 'q_captaincy_snub', tie: 'a captaincy he was passed over for', title: 'The Armband Went Elsewhere',
+      text: n => n + ' heard about the captaincy from somebody else.',
+      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation'],
+      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice'] },
+    { id: 'q_evac_retainer', tie: 'an evac retainer the desk had to budget for', title: 'The Evac Retainer',
+      text: n => 'Medical have written to the desk about ' + n + ' again. They would like it in writing.',
+      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n],
+      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan'] },
+    { id: 'q_squad_cut_down', tie: 'a squad cut to a handful', title: 'What Is Left of the Squad',
+      text: n => 'There are four of them now, and ' + n + ' has stopped asking for replacements.',
+      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head'],
+      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had'] },
+    { id: 'q_captain_fell', tie: 'a captain who fell in front of him', title: 'The Captain Went Down',
+      text: n => n + ' has not been the same since the armband changed hands.',
+      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month'],
+      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out'] },
+    { id: 'q_long_shot', tie: 'a shot that decided a fight', title: 'The Shot They Are Still Talking About',
+      text: n => 'The clip of ' + n + '\u2019s shot has been round the fleet twice.',
+      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview'],
+      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It'] }
+  ];
+  function momentSpec(m) {
+    return {
+      id: m.id, weight: 0.55,
+      when: (c, ctx) => {
+        const hit = castFor(ctx && ctx.state, c, m.tie, ctx && ctx.rng);
+        if (!hit) return null;
+        const f = hit.f;
+        if (f['_' + m.id]) return null;             /* once per hand per career */
+        return f;
+      },
+      make: (f) => ({ kind: 'quirk', subject: f.id, title: m.title, text: m.text(shortName(f)),
+        options: [{ id: 'a', label: m.a[0] }, { id: 'b', label: m.b[0] }], def: 'a' }),
+      resolve: (c, e, opt) => {
+        const f = alive(c).find(x => x.id === e.subject);
+        if (!f) return 'They Had Already Gone';
+        f['_' + m.id] = true;
+        const pick = opt === 'b' ? m.b : m.a;
+        const kind = pick[1], amount = pick[2];
+        if (kind === 'stress') stress(f, amount);
+        else if (kind === 'health') { f.condition = f.condition || {}; f.condition.health = Math.min(100, (f.condition.health == null ? 100 : f.condition.health) + amount); }
+        else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
+        else if (kind === 'fame') f.fame = Math.max(0, (f.fame || 0) + amount);
+        else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
+        return pick[3](shortName(f));
+      },
+      ai: () => 'a'
+    };
+  }
   const POOL = [
     {
       id: 'raise', weight: 1.4,
@@ -112,7 +212,8 @@
     },
     {
       id: 'debt', weight: 1.0,
-      when: (c) => alive(c).find(f => (hasQuirk(f, 'war_debt') || hasQuirk(f, 'thrill_seeker')) && !f._debtCalled) || null,
+      when: (c, ctx) => { const hit = castFor(ctx && ctx.state, c, 'a medic who gave up too early', ctx && ctx.rng);
+        return hit && !hit.f._debtCalled ? hit.f : null; },
       make: (f) => ({ kind: 'debt', subject: f.id, title: f.name + '\u2019s Creditors Call',
         text: 'The people ' + f.name + ' owes have found the ship. They want ' + fmtCr(CONST.DEBT_CALL) + ', or they want ' + f.name + '.',
         options: [
@@ -133,7 +234,14 @@
     },
     {
       id: 'brawl', weight: 1.0,
-      when: (c) => { const a = alive(c); if (a.length < 4) return null; const hot = a.find(f => (hasQuirk(f, 'hot_headed') || hasQuirk(f, 'trigger_itch') || hasQuirk(f, 'grudge_holder')) && !f._brawled); return hot ? [hot, a.find(x => x !== hot)] : null; },
+      /* cast by the TIE, so the event follows the catalogue instead of naming three traits
+         that were retired out from under it */
+      when: (c, ctx) => { const a = alive(c); if (a.length < 4) return null;
+        /* the tie has to be one the catalogue actually offers; with eight quirks in the book
+           the brawl is cast on the man who argues with his captain */
+        const hit = castFor(ctx && ctx.state, c, 'an argument with his captain', ctx && ctx.rng);
+        const hot = hit && !hit.f._brawled ? hit.f : null;
+        return hot ? [hot, a.find(x => x !== hot)] : null; },
       make: (pair) => ({ kind: 'brawl', subject: pair[0].id, other: pair[1].id, title: 'A Fight in the Barracks',
         text: pair[0].name + ' put ' + pair[1].name + ' through a bulkhead over a card game. ' + pair[1].name + ' will be a week mending.',
         options: [
@@ -262,6 +370,11 @@
       ai: (c) => alive(c).length >= 18 ? 'drill' : 'fight'
     }
   ];
+  /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
+     displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
+     BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
+     cannot be answered is the worst of both — it looks like content and is furniture. */
+  MOMENTS.forEach(m => POOL.push(momentSpec(m)));
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
   /* the acts the events lean on, if the reputation module has not got them */
@@ -547,6 +660,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet,
-                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific };
+                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
+                BY_ID, MOMENTS };
   return api;
 });
