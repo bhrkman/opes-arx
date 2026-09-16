@@ -33,7 +33,7 @@
        toward the middle: the centre is the shortest walk to everything and the last ground the
        wall leaves, so a landing there is worth more and there are fewer to take. The count
        never changes with the fleet — a light fleet leaves most of them unclaimed, which is the
-       point: a house that scouted knows which of the unused ground was worth having. */
+       point: an OA that scouted knows which of the unused ground was worth having. */
     SLOTS: 48,
     SLOT_APART: 0.11,            // [C] the least ground between two landings, as a share of the radius
     SLOT_TRIES: 9,               // [C] how many nudges before a point is allowed to crowd another
@@ -81,13 +81,13 @@
       the prize within reach, its distance to the centre. The draft picks from these. */
   /* §DROP THE LANDINGS ARE SCATTERED, NOT STRUNG ON A RING. A single ring at 0.82 of the
      radius meant the whole fleet came down at one distance from the middle, and which ground a
-     house got was whatever happened to fall on that circle — scouting the planet told a manager
+     OA got was whatever happened to fall on that circle — scouting the planet told a manager
      almost nothing, because the choice was only ever WHERE ROUND, never HOW DEEP. The points
      are laid across the whole ground now, on rings that thin toward the centre: the middle is
      the shortest walk to everything and the last ground the wall leaves, so a landing there is
      worth more and there are fewer of them to take. The count is FIXED (SLOTS) whatever the
      fleet fields — eighteen squads on forty-eight points leaves thirty unclaimed, which is the
-     point: ground goes unused, and a house that scouted knows which of it was worth having. */
+     point: ground goes unused, and an OA that scouted knows which of it was worth having. */
   function slots(planet, n) {
     const out = [];
     const R = planet.radius;
@@ -132,9 +132,9 @@
   /** §DROP THE DRAFT'S PICK. An AI corp values a free slot by what it can see of the ground
       and by who has already landed near it: the prize and the cover by its greed; the
       neighbours by whether it is stronger than them and how aggressive it is (a hunter drops
-      near a weaker house, a careful one away from a stronger); its own earlier picks by
+      near a weaker OA, a careful one away from a stronger); its own earlier picks by
       whether it wants its squads together (careful) or spread to flank (aggressive). Every
-      house sees every pick, so this is a real read of the board. */
+      OA sees every pick, so this is a real read of the board. */
   function chooseSlot(rng, corp, slots, taken, ownPicks, strengthOf, intel) {
     const dials = (corp.profile && corp.profile.dials) || {};
     const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;

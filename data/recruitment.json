@@ -103,9 +103,13 @@
         25
       ],
       "fame_note": "Notoriety counts as fame. Fame measures how much attention is on a person, not whether the fleet is glad or sorry \u2014 see REPUTATION.md R11. A prisoner is not a category of heel.",
-      "salary_mult": 0.55,
-      "auction_price_formula": "prisoner_salary \u00d7 (2.5 + 1.2 \u00d7 divides_required) \u00d7 potential_premium",
-      "potential_premium": "1 + 0.06 \u00d7 max(0, scout_estimate \u2212 12), young lots only",
+      "kier_wage_monthly": 180,
+      "kier_wage_note": "RULED: a prisoner is paid the Kier's scale, not a wage priced off his numbers. The open-market formula reads quality with r=0.92, so a wage on a blind sheet was the sheet. 180 is the pool's median open-market wage at the old 0.62 discount, rounded, and moves with salary_base (it was 120 at 400). A diamond and a bust cost the same to keep.",
+      "kier_processing_fee": 600,
+      "kier_processing_note": "RULED: what the Kier charges an OA for the paperwork on any volunteer it takes — five months of his wage, flat. Nobody is bought. THE AUCTION IS STRUCK a second time (it was struck once at T4 by designer ruling and rebuilt by mistake): a lot of people bid for with credits is chattel, whatever the contract says, and the setting does not want that on its table. What OAs compete on is the way out.",
+      "remission_per_divide": 3500,
+      "remission_formula": "remission = remission_per_divide \u00d7 (sentence \u2212 divides offered). An OA may honour the sentence as written (the fee alone) or offer release after fewer Divides, and every Divide it forgives it buys from the Kier. He takes the shortest road out; between equal roads, the OA whose people come home. RULED at 3,500: buying a median three-Divide man down to one costs a mercenary's year, on a sheet that is blind \u2014 the gamble is paying to lose the diamond sooner.",
+      "potential_premium_note": "RETIRED. The old premium read the scout estimate into the price of young lots, which told a manager the one number the blind sheet withholds. Nothing on the sheet moves any price but the sentence.",
       "death_benefit_mult": 1.25,
       "death_benefit_note": "A Kier formality, not a pension.",
       "seasons_range": [
@@ -127,8 +131,11 @@
       "negative_trait_note": "Chance of one extra negative-tagged trait on top of the normal rolls: the Bastille does not sell finishing-school graduates. (proposed dial)"
     }
   },
+  "founding_mix": { "nattie": 70, "mercenary": 10, "prisoner": 20 },
+  "founding_mix_note": "RULED: what an OA is founded with, by pool, in parts. Was 45/35/20 in roster.js, which made a third of every founding roster mercenaries at three times a Natural-Born's wage \u2014 half the founding wage bill for a third of the bodies \u2014 when a mercenary is a last-minute fill-in, not the bulk of a team.",
   "pricing": {
-    "salary_base": 400,
+    "salary_base": 600,
+    "salary_base_note": "RULED at the first money pass (was 400). Measured whole \u2014 both incomes, through the lock \u2014 the fleet cleared +\u20a1178k an OA a year before it fought, with pay a quarter of income. The correction is spread: pay \u00d71.5 here, the board grants halved, the gate cut a quarter, the founding mix moved off mercenaries. Kit is still nearly free and is the next lever.",
     "qp_norm": 64,
     "qp_exponent": 2.2,
     "qp_weights": {

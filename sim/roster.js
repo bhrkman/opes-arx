@@ -50,7 +50,7 @@
 
   /* ------------------------------------------------------------------ */
   /* Per-style generators. Each returns { name, parts } where parts     */
-  /* carries structured pieces (family/house/pride, halves, nickname).  */
+  /* carries structured pieces (family/OA/pride, halves, nickname).  */
   /* ------------------------------------------------------------------ */
 
   const styles = {
@@ -135,7 +135,7 @@
       return { name, parts: { base } };
     },
 
-    /** Gil — long Latinate given (4–5 syl) → 3-letter nickname + finite house. */
+    /** Gil — long Latinate given (4–5 syl) → 3-letter nickname + finite OA. */
     latinate_nickname(rng, n) {
       const head = P.pick(rng, n.given_heads);
       let mid = P.pick(rng, n.given_mids);
@@ -591,7 +591,13 @@
     if (pool === "mercenary") fame = P.clamp(fame + exp.divides * 2, 0, 60);
 
     // Contract.
-    const salary = this.salaryFor(race, pool, stats, age);
+    /* §BASTILLE THE KIER SETS THE WAGE, NOT THE MAN. The open-market formula reads quality
+       with r = 0.92, so the day the Bastille sheet went blind the wage line on it was the
+       sheet: a manager could read a stat total off a salary. A prisoner is paid the Kier's
+       scale, flat, ruled in recruitment.json — a diamond costs no more to keep than a bust,
+       and remission (the road out an OA buys him) is where it pays for a difference it
+       cannot see. */
+    const salary = pool === "prisoner" ? poolCfg.kier_wage_monthly : this.salaryFor(race, pool, stats, age);
     const seasons = P.int(rng, poolCfg.seasons_range[0], poolCfg.seasons_range[1]);
     /* THE CONTRACT KNOWS WHAT KIND IT IS, because the three kinds are three different
        deals: a nattie is a flat multi-year wage with the fleet's best family pension and a
@@ -613,9 +619,13 @@
       const req = parseInt(P.weightedPick(rng, poolCfg.freedom_divides_weights), 10);
       contract.divides_served = 0;
       contract.divides_required = req;
-      const young = age <= race.age.prime[0] + 4;
-      const premium = young ? 1 + 0.006 * Math.max(0, scout.estimate - 120) : 1;
-      contract.signing_cost = P.roundTo(salary * (2.5 + 1.2 * req) * premium, 10);
+      /* THE KIER'S PROCESSING FEE, flat and ruled in recruitment.json. Nothing about the man
+         moves it: the old formula multiplied the scout estimate into the price of young lots,
+         which told a manager the one number a blind sheet withholds. The sentence is kept on
+         the contract as `sentence`, because `divides_required` may be shortened by the OA
+         that takes him (remission, bought from the Kier) and the sheet shows both. */
+      contract.sentence = req;
+      contract.signing_cost = poolCfg.kier_processing_fee;
     }
 
     // Condition (prisoner lots may sell as-is with a lingering knock).
@@ -1033,7 +1043,9 @@
 
   /* Pool mix for a drop squad. A roster is built across the three recruitment windows
      (DESIGN.md §4), so a squad on the ground is a blend. Test-fixture tuning, not canon. */
-  const DEFAULT_POOL_MIX = [["nattie", 45], ["mercenary", 35], ["prisoner", 20]];
+  /* §FOUNDING the mix an OA is founded with is ruled in recruitment.json (founding_mix); the
+     45/35/20 that lived here made a third of every founding roster mercenaries */
+  const DEFAULT_POOL_MIX = () => Object.entries(gen.rec.founding_mix || { nattie: 70, mercenary: 10, prisoner: 20 });
 
   let gen = null;
   let raceById = {};
@@ -1071,7 +1083,7 @@
     opts = opts || {};
     if (!gen) throw new Error("roster: call initRoster(data) first");
     const batchTally = opts.batchTally || {};
-    const mix = opts.poolMix || DEFAULT_POOL_MIX;
+    const mix = opts.poolMix || DEFAULT_POOL_MIX();
     const bodies = [], recruits = [];
 
     for (let i = 0; i < slots; i++) {

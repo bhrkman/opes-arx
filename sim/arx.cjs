@@ -116,64 +116,64 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
    that reads it. `regress --bless` rewrites the constant below in place. */
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
-    "result": "cap",
-    "exchanges": 27,
+    "result": "disengage_A",
+    "exchanges": 16,
     "band": "medium",
-    "aDead": 0,
-    "aDown": 1,
+    "aDead": 1,
+    "aDown": 3,
     "bDead": 1,
     "bDown": 0,
-    "shots": 236,
-    "hits": 16,
-    "downs": 2
+    "shots": 227,
+    "hits": 30,
+    "downs": 5
   },
   "short band, both aggressive": {
     "result": "disengage_A",
-    "exchanges": 14,
+    "exchanges": 8,
+    "band": "medium",
+    "aDead": 2,
+    "aDown": 2,
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 85,
+    "hits": 14,
+    "downs": 4
+  },
+  "long band, both cautious": {
+    "result": "disengage_A",
+    "exchanges": 12,
     "band": "medium",
     "aDead": 1,
     "aDown": 1,
-    "bDead": 0,
-    "bDown": 3,
-    "shots": 139,
-    "hits": 31,
-    "downs": 5
-  },
-  "long band, both cautious": {
-    "result": "disengage_both",
-    "exchanges": 17,
-    "band": "medium",
-    "aDead": 1,
-    "aDown": 0,
     "bDead": 1,
-    "bDown": 1,
-    "shots": 220,
-    "hits": 23,
+    "bDown": 0,
+    "shots": 200,
+    "hits": 17,
     "downs": 3
   },
   "forest, standard v unyielding": {
     "result": "disengage_A",
-    "exchanges": 8,
+    "exchanges": 7,
     "band": "medium",
     "aDead": 1,
     "aDown": 1,
     "bDead": 0,
-    "bDown": 0,
-    "shots": 139,
-    "hits": 24,
-    "downs": 2
+    "bDown": 1,
+    "shots": 115,
+    "hits": 22,
+    "downs": 3
   },
   "entrenched, cautious v hunter": {
-    "result": "disengage_B",
-    "exchanges": 10,
+    "result": "disengage_A",
+    "exchanges": 13,
     "band": "medium",
-    "aDead": 0,
-    "aDown": 0,
-    "bDead": 2,
+    "aDead": 2,
+    "aDown": 1,
+    "bDead": 1,
     "bDown": 2,
-    "shots": 105,
-    "hits": 33,
-    "downs": 4
+    "shots": 130,
+    "hits": 34,
+    "downs": 6
   }
 };
 
@@ -719,12 +719,12 @@ function decisionWindow() {
   ok('the cadence tightens as the ring closes',
      one.cadences.length > 1, 'cadences seen: ' + one.cadences.join(', '));
 
-  /* TWO SEEDS AND TWO HOUSES, NOT FOUR AND THREE. This was 36 full Divides to prove that three
+  /* TWO SEEDS AND TWO OAs, NOT FOUR AND THREE. This was 36 full Divides to prove that three
      branches fire, which at ~10s each was about two thirds of the entire suite. Coverage is
-     unchanged — every branch is still exercised by more than one seed and more than one house,
+     unchanged — every branch is still exercised by more than one seed and more than one OA,
      which is what guards against a branch that only works for one profile — and the cost is a
      quarter of what it was. If a branch stops firing at this size that is a finding, not noise:
-     these are the two houses that deal most freely. */
+     these are the two OAs that deal most freely. */
   /* TAKING SOMEBODY IS ALMOST NEVER SIGNABLE, and this check was green by luck rather than
      by coverage. Measured across the same runs: of 112 priced take rows, exactly ONE had a
      number both sides would sign (joinerMin <= principalMax). A two-seed sample of a
@@ -896,7 +896,7 @@ function sponsorship() {
   const corps = SEASONMOD.openFleet(rng, oa, {});
   const ids = Object.keys(corps);
 
-  /* --- fit is read off behaviour, so different corps are drawn to different houses --- */
+  /* --- fit is read off behaviour, so different corps are drawn to different OAs --- */
   const attracted = {};
   for (const id of ids) {
     const best = SPON.prospects(corps[id])[0];
@@ -904,7 +904,7 @@ function sponsorship() {
   }
   ok('different corps are drawn to different sponsors',
      Object.keys(attracted).length >= 3,
-     Object.keys(attracted).length + ' distinct houses lead the field');
+     Object.keys(attracted).length + ' distinct OAs lead the field');
 
   /* --- play six seasons and read what the new board produces --- */
   let advance = 0, reward = 0, breaches = 0, kept = 0, signedTotal = 0;
@@ -931,7 +931,7 @@ function sponsorship() {
   ok('conditions are also kept \u2014 failing is not the only outcome', kept > 0,
      kept + ' kept');
 
-  /* --- one house backs at most one OA a year, proved by construction --- */
+  /* --- one sponsor house backs at most one OA a year, proved by construction --- */
   const houses = SPON.houseIds();
   const board = SPON.openBoard(houses);
   const t = {}; ids.forEach(id => { t[id] = { id, account: { treasury: 0, ledger: [] },
@@ -940,7 +940,7 @@ function sponsorship() {
   SPON.court(t[ids[0]], houses[0], 2);
   SPON.court(t[ids[2]], houses[0], 5);   /* both court the same supplier; the harder courter wins it */
   SPON.resolveBoard(board, t, ids);
-  ok('one supplier backs a single OA \u2014 the contested house has exactly one backer',
+  ok('one supplier backs a single OA \u2014 the contested sponsor has exactly one backer',
      board.signedBy[houses[0]] === ids[2] && (t[ids[0]].sponsors.contracts || []).length === 0,
      'signed ' + board.signedBy[houses[0]]);
 
@@ -1123,20 +1123,20 @@ function signingWindow() {
   const OAs = OA;
   /* THE FOUNDING ROSTER IS A SPREAD, NOT A NUMBER. A flat founding size is what put every corp
      on the same side of the signing gate in the first place, so the shape is guarded: nobody
-     opens able to field a full drop force, nobody opens below the legal minimum, and the houses
+     opens able to field a full drop force, nobody opens below the legal minimum, and the OAs
      differ from each other. If this ever collapses to one value the first year stops being a
      question about who to sign and how much is left for gear. */
   const sizes = OAs.map(p => SEASONMOD.foundingRoster(p));
   const spread = new Set(sizes);
-  ok('no house opens able to field a full drop force',
+  ok('no OA opens able to field a full drop force',
      Math.max.apply(null, sizes) < SEASONMOD.CONST.DROP_MAX,
      'largest ' + Math.max.apply(null, sizes) + ' against a drop max of ' + SEASONMOD.CONST.DROP_MAX);
-  ok('no house opens below the legal minimum to field at all',
+  ok('no OA opens below the legal minimum to field at all',
      Math.min.apply(null, sizes) >= SEASONMOD.CONST.ROSTER_MIN,
      'smallest ' + Math.min.apply(null, sizes) + ' against a roster min of ' + SEASONMOD.CONST.ROSTER_MIN);
-  ok('the houses do not all open the same size',
+  ok('the OAs do not all open the same size',
      spread.size >= 3, spread.size + ' distinct sizes: ' + [...spread].sort((a,b)=>b-a).join(', '));
-  ok('every house opens short of the target it is trying to reach',
+  ok('every OA opens short of the target it is trying to reach',
      sizes.every(n => n < SEASONMOD.CONST.ROSTER_TARGET),
      'largest ' + Math.max.apply(null, sizes) + ' against a target of ' + SEASONMOD.CONST.ROSTER_TARGET);
   observe('F1', 'average founding roster across the fleet',
@@ -1881,9 +1881,6 @@ function seasonRules() {
      LEDG.squadBonus(1000000, 5, ITEMS.CONST.ALLOWANCE_ESCALATOR) >
      LEDG.squadBonus(1000000, 1, ITEMS.CONST.ALLOWANCE_ESCALATOR));
 
-  /* `_lastDead` was read by settleSeason and written by no code anywhere, so the death
-     benefit — one of the three channels by which a life is priced at all — had never been
-     charged in any season of any chain. */
   /* R25's FUNDING SPECTRUM MUST HAVE BOTH HALVES. A board is annoyed by an expensive year, not
      merely un-delighted by one. Neutral was a spend ratio of 1.0 and a corp cannot spend more
      than the entire ceiling plus every contract in full, so the value ran [0, +1] and the
@@ -2007,12 +2004,12 @@ function seasonRules() {
      show a term being SERVED and people going free at the end of it. */
   {
     let lot = 0, bids = 0, signed = 0, safety = 0, refused = 0, unbid = 0;
-    let bLot = 0, bSigned = 0, bUnplaced = 0;
+    let bLot = 0, bSigned = 0, bUnplaced = 0, bBids = 0;
     for (const s of bank.seasons) {
       const m = s.mercs || {}, b = s.bastille || {};
       lot += m.lot || 0; bids += m.bids || 0; signed += m.signed || 0;
       safety += m.tookLessForSafety || 0; refused += m.refused || 0; unbid += m.unbid || 0;
-      bLot += b.lot || 0; bSigned += b.signed || 0; bUnplaced += b.unplaced || 0;
+      bLot += b.lot || 0; bSigned += b.signed || 0; bUnplaced += b.unplaced || 0; bBids += b.bids || 0;
     }
     /* RE-RULED. This counted status 'prisoner' on the roster for "serving" and status
        'freed' for "went free", and both were unfindable by construction: signees carry
@@ -2039,6 +2036,11 @@ function seasonRules() {
        bLot > 0 && bSigned > 0 && serving > 0 && freed > 0,
        bSigned + ' signed out of ' + bLot + '; ' + serving + ' serving a clause, ' +
        freed + ' terms completed (' + walked + ' walked)');
+    /* §BASTILLE OAs compete on the way out: a volunteer chooses the shortest road among
+       the terms offered. `audit_bastille.cjs` proves the offers are blind; this only proves
+       there were offers to be blind with. */
+    ok('G33a the Bastille is offered terms by several OAs, not allotted to one',
+       bSigned > 0 && bBids > bSigned, bBids + ' offers for ' + bSigned + ' placed');
     observe('G18a', 'offers a head at the merc deadline \u2014 refusals ' + refused +
             ', unbid ' + unbid, lot ? bids / lot : 0);
 
@@ -2093,9 +2095,10 @@ function seasonRules() {
        Object.keys(leans).map(k => k + ' ' + leans[k]).join(', '));
   }
 
-  ok('G20 the dead are actually paid for',
-     (lines['death benefits'] || 0) < 0,
-     'death benefits charged: ' + Math.round(lines['death benefits'] || 0));
+  ok('G20 the dead are actually paid for, once, off their own contracts',
+     (lines['Death benefits'] || 0) < 0 && !lines['death benefits'],
+     'death benefits charged: ' + Math.round(lines['Death benefits'] || 0) +
+     (lines['death benefits'] ? ' AND a second estimate at the lock' : ''));
 
   /* Signings used to land after the wage bill, so every contract signed was unpaid for its
      first season — roughly eight a corp a year arriving free.
@@ -3292,9 +3295,10 @@ function negotiationRules() {
     formulaChecks.push(['merc signing bonus', pools.mercenary.signing_bonus_formula,
                         /salary \* \(2 \+ 0\.8 \* seasons \+ 0\.02 \* fame\)/.test(rosterSrc)]);
   }
-  if (pools.prisoner && pools.prisoner.auction_price_formula) {
-    formulaChecks.push(['prisoner auction price', pools.prisoner.auction_price_formula,
-                        /\(2\.5 \+ 1\.2 \* req\)/.test(rosterSrc)]);
+  if (pools.prisoner && pools.prisoner.remission_formula) {
+    const seasonSrc = fs.readFileSync(findFile('season.js'), 'utf8');
+    formulaChecks.push(['Kier remission', pools.prisoner.remission_formula,
+                        /remission_per_divide \* \(sentence - term\)/.test(seasonSrc)]);
   }
   const drifted = formulaChecks.filter(f => !f[2]).map(f => f[0]);
   ok('data: formulas written as prose in recruitment.json match the code',

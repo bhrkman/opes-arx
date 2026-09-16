@@ -86,13 +86,13 @@ setTimeout(() => {
             'and no landing page or redirect stands in front of it');
     }
     /* §MENU three of the fleet's peoples stand on the menu, art inlined by the build */
-    /* the tagline is gone: there are no houses, the game runs many years, and a year holds
+    /* the tagline is gone: there are no OAs, the game runs many years, and a year holds
        more than one contest — three claims and all three untrue */
     check([...doc.querySelectorAll('#menu .moval img')].filter(i => /^data:image\/webp/.test(i.src)).length === 3 &&
           !doc.querySelector('#menu .menufoot'),
           'the menu carries its three portraits and claims nothing untrue beneath them');
     check(doc.querySelectorAll('#menufleet span svg').length === 8,
-          'and the eight houses stand along its foot in their own marks');
+          'and the eight OAs stand along its foot in their own marks');
     /* the stage stacks: the overlay wraps its children, and a column that wraps pushes the
        menu into a second column beside the ovals the moment they are taller than the screen */
     {
@@ -104,7 +104,7 @@ setTimeout(() => {
     check(doc.getElementById('menu').style.display !== 'none',
           'the game opens on the menu, not mid-cockpit');
     doc.getElementById('mNew').click();
-    /* §FOUNDING the setup founds a house: the eight are named as the fleet it joins, not as
+    /* §FOUNDING the setup founds an OA: the eight are named as the fleet it joins, not as
        eight characters to pick between */
     /* §FOUNDING the screen asks three things: a name, a colour, a mark */
     /* §FOUNDING a name, a colour, and a mark you build: a field, a device, a bar, each turning,
@@ -161,7 +161,7 @@ setTimeout(() => {
     check(!doc.querySelector('#setup .menusub') && doc.getElementById('oacards').style.display === 'none' &&
           doc.getElementById('seed').style.display === 'none',
           'it no longer lists the fleet, twice, nor asks for a seed');
-    /* the weakest house makes way, unasked: the Verdant Cradle is difficulty 5 and the
+    /* the weakest OA makes way, unasked: the Verdant Cradle is difficulty 5 and the
        thinnest treasury in the fleet */
     check(!doc.querySelector('#creplace [data-berth]'), 'whose berth you take is not a question');
     /* §MARK every field and device sits on the pivot it turns about — the kit's own audit
@@ -179,11 +179,11 @@ setTimeout(() => {
             'the founding overlay scrolls when it is taller than the screen');
     }
     doc.getElementById('seed').value = 'corp-1';
-    /* §FOUNDING a manager founds a house; the eight are the fleet, not a character select */
+    /* §FOUNDING a manager founds an OA; the eight are the fleet, not a character select */
     doc.getElementById('cname').value = 'The Probe Concern';
     doc.getElementById('cfound').click();
     check(doc.getElementById('setup').style.display === 'none',
-          'founding a house starts the game');
+          'founding an OA starts the game');
     check(!!window.CDSEASON && !!window.CDDIVIDE && !!window.CDTACTICAL,
           'all engine modules are live in the page');
     check(/Year 1 · Month 1/.test(text('#clock')), 'the clock opens the year: ' + text('#clock'));
@@ -198,7 +198,7 @@ setTimeout(() => {
         return tr && ((tr.effects || {}).hooks || []).some(h => S0.EVENTS.fighterHas(G0.state, f, h));
       }));
       check(answered, 'a hand\'s hooks answer before any month has been stepped');
-      /* §LOYALTY a hand who likes the house asks less to stay than one who does not. The
+      /* §LOYALTY a hand who likes the OA asks less to stay than one who does not. The
          contract is forced to expire so the check cannot pass by simply not running — a
          silently skipped assertion is the same as no assertion. */
       const r0 = G0.corps[G0.me].roster[0];
@@ -239,7 +239,7 @@ setTimeout(() => {
     }
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
-          'a founded house opens with a skeleton crew, not an inheritance (' + rosterStart + ' hands)');
+          'a founded OA opens with a skeleton crew, not an inheritance (' + rosterStart + ' hands)');
     /* §MONEY the treasury is in the TOP LINE on every page now — it was on the Roster and the
        Market and nowhere else, so the Desk never showed a manager what he had to spend. What
        the Roster says is what the roster costs and how many are on it. */
@@ -275,7 +275,7 @@ setTimeout(() => {
       check(!!fl && !fl.closest('.grid2'),
             'the focus tally stands above both columns, not inside one');
     }
-    /* §TRYOUTS A MANAGER WHO MARKED NOBODY WANTED NOBODY. The AI's fall-through — a house
+    /* §TRYOUTS A MANAGER WHO MARKED NOBODY WANTED NOBODY. The AI's fall-through — an OA
        below the drop floor calls up its own ship — caught the manager's corp too, so ending
        the Natural-Born month without marking anyone signed the entire sheet on his behalf. */
     {
@@ -292,7 +292,7 @@ setTimeout(() => {
             'a manager who marked nobody signed nobody (' + before + ' \u2192 ' +
             c1[you].roster.length + ')');
       check(c1[theirs].roster.length > theirBefore,
-            'while a house nobody runs still calls up its own ship (' + theirBefore + ' \u2192 ' +
+            'while an OA nobody runs still calls up its own ship (' + theirBefore + ' \u2192 ' +
             c1[theirs].roster.length + ')');
     }
     /* §EVENTS an event names its subject and lets a manager open the sheet if he wants it —
@@ -432,15 +432,10 @@ setTimeout(() => {
           'the training grid stands on the desk, no dropdowns');
     const meC = window.__G.corps[window.__G.me];
     const aliveOf = () => meC.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    /* THE MEAN MUST BE OVER THE SAME PEOPLE. It was taken across the whole roster, and the
-       drive signs fighters between the two readings — on a founded house's seven hands two new
-       arrivals move the average more than a month of drilling does, which read as the painted
-       column losing to an unpainted one. `cohort` freezes who is being measured. */
-    const mean = (k, ids) => {
-      const set = aliveOf().filter(f => !ids || ids.indexOf(f.id) >= 0);
-      return set.length ? set.reduce((s, f) => s + f.stats[k], 0) / set.length : 0;
-    };
-    const cohort = () => aliveOf().map(f => f.id);
+    /* THE MEAN MUST BE OVER THE SAME PEOPLE. It was first taken across the whole roster, and
+       the drive signs fighters between the two readings; then over a frozen cohort, and the
+       drive trades hands out of it. Each hand against itself, below, is the only reading that
+       survives both. */
     /* the grid's columns are aim, then the mind stats, then the body stats — index by that */
     const gridStats = ['aim'].concat(window.CDSEASON.CONST.MIND)
                              .concat(window.CDSEASON.CONST.BODY || ['grit', 'reflex']);
@@ -448,11 +443,16 @@ setTimeout(() => {
     colOf('tactics').querySelectorAll('.pip')[2].click();     // paint tactics column to 3
     check(/^Focus Spent 3 of 8/.test(text('#focusdesk').trim()),
           'painting a column to 3 pips spends 3: ' + text('#focusdesk').trim());
-    /* RESOLVE RISES FROM REST AS WELL AS DRILL, and on a founded house's seven hands one
+    /* RESOLVE RISES FROM REST AS WELL AS DRILL, and on a founded OA's seven hands one
        rested body moves the mean — so the painted column is measured against AIM, which
        nothing but training touches. */
-    const who = cohort();
-    const tac0 = mean('tactics', who), res0 = mean('resolve', who), aim0 = mean('aim', who);
+    /* PER HAND, NOT PER MEAN. A cohort mean taken at two points moves with who is still in the
+       cohort — and between these two points the drive trades hands away and a Conscript walks —
+       so the check measured composition and passed on the luck of the draw. Each hand's own
+       change, over the hands present at both ends, is what training did. */
+    const at0 = {}; for (const f of aliveOf()) at0[f.id] = { tactics: f.stats.tactics, resolve: f.stats.resolve, aim: f.stats.aim };
+    const delta = k => { const xs = aliveOf().filter(f => at0[f.id]).map(f => f.stats[k] - at0[f.id][k]);
+                         return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0; };
     /* Gather Intel: paint 3 pips on the first rival this same month; it should land ~M4 and be
        readable by the time the drive reaches the later prep months. Recorded for a check below. */
     let intelWatched = null;
@@ -611,7 +611,7 @@ setTimeout(() => {
             'a body\'s price is its worth less its wage, said on the row');
       giveCol().querySelector('[data-tcat="intel"]').click();
       check(!new RegExp(GT.corps[themId].profile.name).test(giveCol().textContent),
-            'the dossier on the house across the table is not for sale to them');
+            'the dossier on the OA across the table is not for sale to them');
       giveCol().querySelector('[data-tcat="gear"]').click();
       check(giveCol().querySelectorAll('.ntbl .tierb').length > 0 && giveCol().querySelectorAll('.qty').length > 0,
             'gear lists with its tier badge, grouped by type, with a quantity to trade');
@@ -628,7 +628,7 @@ setTimeout(() => {
         /* THEIR PURSE IS PRIVATE: the number never shows; the dossier's reading does, or Unknown */
         const theirTreas = cr0(GT.corps[themId].account.treasury).replace(/[₡,]/g, m => '\\' + m);
         check(!new RegExp(theirTreas).test(text('#negwrap')) && /Purse/.test(text('#negwrap')),
-              'the other house\'s treasury is not on the page; the dossier\'s word for it is');
+              'the other OA\'s treasury is not on the page; the dossier\'s word for it is');
         doc.querySelector('#negwrap .contract [data-tdrop]').click();
         check(/Nothing Yet/.test(doc.querySelectorAll('#negwrap .contract .negcols > div')[0].textContent),
               'the cross takes it off the contract');
@@ -693,7 +693,7 @@ setTimeout(() => {
     }
     check(!/Costs \d/.test(text('#courtgrid')),
           'and quotes no focus price for a thing that was never for sale');
-    const dT = mean('tactics', who) - tac0, dR = mean('resolve', who) - res0, dA = mean('aim', who) - aim0;
+    const dT = delta('tactics'), dR = delta('resolve'), dA = delta('aim');
     check(dT > dA + 0.2,
           'the painted column outgrew the unpainted: tactics +' + dT.toFixed(2) +
           ' vs aim +' + dA.toFixed(2) + ' (resolve +' + dR.toFixed(2) + ', which rest also lifts)');
@@ -989,7 +989,16 @@ setTimeout(() => {
           'the room knows its way back to the Desk during the year');
     openRoster();
     check(/Bastille/.test(text('#rostmarket')) && /Conscript/.test(text('#rostmarket')),
-          'months 5-6 show the Bastille intake for Conscripts, not a bidding table');
+          'months 5-6 show the Kier Bastille for Conscripts');
+    /* §BASTILLE OAs compete on the way out: every card carries the sentence and a way to
+       offer terms against it, and no wage of the man's own on a sheet that is meant to be blind */
+    check(/Sentence \d/.test(text('#rostmarket')) && doc.querySelectorAll('#rostmarket [data-term]').length > 0
+          && /Honour the Sentence/.test(text('#rostmarket')),
+          'every Conscript carries his sentence and the terms an OA may offer against it');
+    check(!doc.querySelector('#rostmarket [data-bidslide]') || /Mercenary/.test(text('#rostmarket')),
+          'nobody at the Kier is bid for with credits');
+    check(!/Wage \u20a1\d/.test(text('#rostmarket').replace(/Kier Wage/g, '')),
+          'no wage of the man\'s own on a Bastille card — only the Kier\'s scale');
     check(/Earn Release/.test(text('#rostmarket')),
           'every Conscript\'s freedom clause is on the sheet');
     /* the intel painted in M1 has landed by now (M6); the gather section is still open, so open
@@ -1024,7 +1033,7 @@ setTimeout(() => {
       pl.rows = JSON.parse(keep);    /* the reading was a look, not a purchase */
       openRoster();
     })();
-    /* THE QUIET BUSINESS: a window of things a house would rather nobody knew, paid for in
+    /* THE QUIET BUSINESS: a window of things an OA would rather nobody knew, paid for in
        credits and in standing, with a chance of coming out */
     {
       const GQ = window.__G, S4 = window.CDSEASON, R4 = window.CDREP;
@@ -1100,8 +1109,8 @@ setTimeout(() => {
             'the recap reads the answered event as your call and the open one as its default');
       doc.getElementById('recapgo').click();
     }
-    /* WHAT IS LEFT WAITING COSTS: plant a letter from a house, end the month without answering,
-       and the letter is gone and the house remembers being snubbed */
+    /* WHAT IS LEFT WAITING COSTS: plant a letter from an OA, end the month without answering,
+       and the letter is gone and the OA remembers being snubbed */
     {
       const GL = window.__G, from = GL.state.ids.find(x => x !== GL.me);
       const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
@@ -1117,7 +1126,7 @@ setTimeout(() => {
          matters is that THIS letter lapsed and was remembered. */
       const memAfter = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
       check(memAfter === memBefore + 1 && (!GL._tradeOffer || GL._tradeOffer.from !== from),
-            'the letter lapsed and the house remembers the snub (' + memBefore + ' \u2192 ' + memAfter + ')');
+            'the letter lapsed and the OA remembers the snub (' + memBefore + ' \u2192 ' + memAfter + ')');
     }
     /* the Bastille's two intakes resolve as months 5 and 6 end; month 7 is the fleet's */
     toMonth(8);
@@ -1242,7 +1251,7 @@ setTimeout(() => {
           .find(t => +t.getAttribute('data-place') === wasIn);
         if (backTarget) backTarget.click();
       } else check(true, 'no free squad to move into');
-      /* §MARK a portrait is the fighter's own mark now, ringed in the house's colour */
+      /* §MARK a portrait is the fighter's own mark now, ringed in the OA's colour */
       const marks = doc.querySelectorAll('.page[data-tab="squads"] .port-card .fmark');
       const bodies = [...marks].map(m => m.innerHTML);
       check(marks.length >= 6 && new Set(bodies).size >= 4,
@@ -1444,7 +1453,7 @@ setTimeout(() => {
       const GD2 = window.__G, S3 = window.CDSEASON;
       const Dft = GD2.state.drop.draft;
       check(Dft && Dft.order.length === 8 && doc.querySelectorAll('#landing .dpick').length === 8,
-            'the draft opens at the lock with the eight houses in order, weakest first: ' + Dft.order.slice(0, 3).join(' > ') + ' …');
+            'the draft opens at the lock with the eight OAs in order, weakest first: ' + Dft.order.slice(0, 3).join(' > ') + ' …');
       let guard = 0;
       while (!Dft.done && guard++ < 6) {
         if (S3.draftWhose(GD2.state) === GD2.me) {
@@ -1455,8 +1464,8 @@ setTimeout(() => {
         S3.draftAdvance(GD2.state);
         [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
       }
-      /* §DRAFT a house drafts a landing for every squad it fields, so the counts differ by
-         house and the ring is as wide as the fleet's appetite */
+      /* §DRAFT an OA drafts a landing for every squad it fields, so the counts differ by
+         OA and the ring is as wide as the fleet's appetite */
       const wanted = Object.keys(Dft.want).reduce((t, k) => t + Dft.want[k], 0);
       check(Dft.done && Dft.picks[GD2.me].length === Dft.want[GD2.me] &&
             Object.keys(Dft.taken).length === wanted && Dft.slots >= wanted,
@@ -1524,11 +1533,11 @@ setTimeout(() => {
     check(/Day\s*\d+\s*of/.test(text('#dayhead')) && /Clear|[A-Z][a-z]+/.test(text('#dayhead')) && /Chance of Winning/.test(text('#dayhead')),
           'the Table\'s head reads the day, the weather and your chance: ' + text('#dayhead').replace(/\s+/g, ' ').trim().slice(0, 90));
     check(doc.querySelectorAll('#tsquads tr').length >= 2 && /Rations/.test(text('#tsquads')), 'your squads stand on the Table with their ground and rations');
-    /* THE MANAGER'S TWO LEVERS: the stance, and a leaning on each house — not orders */
+    /* THE MANAGER'S TWO LEVERS: the stance, and a leaning on each OA — not orders */
     {
       const GO = window.__G;
       check(doc.querySelectorAll('#tstance .leanrow').length === 7 && /Who Your People Look For/.test(text('#tstance')),
-            'a leaning stands for every other house');
+            'a leaning stands for every other OA');
       check(!doc.querySelector('#tsquads .ordsel'), 'the squads take no orders: what they do is theirs');
       /* THE CAPTAIN DECIDES: the row names them and says how they are reading the ground */
       /* §STORES the contest says what the ground has given, and what a squad has left to shoot */
@@ -1557,7 +1566,7 @@ setTimeout(() => {
       const who = pip.getAttribute('data-lean');
       pip.click();
       check(GO.div.answer.leanings[who] === 5 && /Seek Them Out/.test(text('#tstance')),
-            'a house can be leaned toward: ' + who);
+            'an OA can be leaned toward: ' + who);
       doc.getElementById('advwin').click();
       const corp = GO.div.win && GO.div.win.you;
       check(!GO.div.win || (corp._leanings && corp._leanings[who] === 5),
@@ -1577,11 +1586,11 @@ setTimeout(() => {
           'a stance is declared at the window: ' + declared.replace(/_/g, ' '));
     if (process.env.ARX_SHOT_FOG) { try { const GW = window.__G; GW.corps[GW.me]._intel.planet.rows.terrain = { depth: 0, gathered: 0 }; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap_fog.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no fog shot: ' + e.message); } }
     if (process.env.ARX_SHOT) { try { [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no ground shot: ' + e.message); } }
-    /* THE TABLE IS THE TALKS' SHAPE: a strip of houses, a composer for the one selected */
+    /* THE TABLE IS THE TALKS' SHAPE: a strip of OAs, a composer for the one selected */
     const strip = doc.querySelectorAll('#tstrip [data-tsel]').length;
-    check(strip === 7, 'every other house stands on the Table\'s strip (' + strip + ')');
+    check(strip === 7, 'every other OA stands on the Table\'s strip (' + strip + ')');
     check(doc.querySelectorAll('#tground .assay span, #tground .m').length >= 1, 'the ground\'s assay is on the Table');
-    /* EVERY HOUSE OPENS SOMETHING: click each chip and read the Deal box */
+    /* EVERY OA OPENS SOMETHING: click each chip and read the Deal box */
     {
       let opened = 0;
       [...doc.querySelectorAll('#tstrip [data-tsel]')].forEach(ch => {
@@ -1591,7 +1600,7 @@ setTimeout(() => {
         ch.click();
       });
       check(opened === doc.querySelectorAll('#tstrip [data-tsel]').length,
-            'every house on the strip opens a composer, or says why it will not deal (' + opened + ')');
+            'every OA on the strip opens a composer, or says why it will not deal (' + opened + ')');
     }
     /* COMPOSE AT THE FIRST WINDOW THAT OFFERS A DEAL. A viable row is a matter of the seed
        and the day, so walk the windows until one appears, lowball it, and read the refusal
@@ -1624,10 +1633,10 @@ setTimeout(() => {
       if (!/over/.test(text('#divstate'))) {
         doc.querySelector('#tstrip [data-tsel]').click();
         check(doc.querySelectorAll('#tdeal .tkinds, #tdeal .tcols, #tdeal .m').length >= 1,
-              'selecting a house opens the composer, or says why there is nothing to put to them: ' +
+              'selecting an OA opens the composer, or says why there is nothing to put to them: ' +
               text('#tdeal').replace(/\s+/g, ' ').trim().slice(0, 70));
         /* A SYNTHETIC ROW proves the composer's arithmetic when the seed offers no real one:
-           a house that would come under the banner for 10-40% of a 100,000 take. The beam
+           an OA that would come under the banner for 10-40% of a 100,000 take. The beam
            must read short under 10,000 of value, take it inside, and over past 40,000. */
         const Wn = window.__G.div.win, oid = window.__G.state.ids.find(x => x !== window.__G.me);
         Wn.table.wouldTake = [{ corp: oid, odds: 0.2, viable: true,
@@ -1639,7 +1648,7 @@ setTimeout(() => {
           band: { minShare: 0.10, maxShare: 0.40 } }];
         window.__G._tdiv = null;
         doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();
-        if (/Pick a House/.test(text('#tdeal'))) doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();   /* the chip toggles */
+        if (/Pick an OA/.test(text('#tdeal'))) doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();   /* the chip toggles */
         doc.querySelector('#tdeal [data-tkind="take"]').click();
         check(/Nothing on the Table/.test(text('#tdeal')), 'the beam starts empty');
         doc.querySelector('#tdeal [data-tin="cut"]').value = '5';
@@ -1655,7 +1664,7 @@ setTimeout(() => {
         check(doc.querySelectorAll('#tdeal .trow.dead').length >= 0 && /Not Yet Priced|Their Banner/.test(text('#tdeal')),
               'the pools carry the structure for terms the engine does not price yet');
         /* A DEAL IN KIND finds room a deal in credits cannot: drop everything, offer 25% of
-           the foods you will bank — worth 15,000 to a house short of food, costing you 3,000 */
+           the foods you will bank — worth 15,000 to an OA short of food, costing you 3,000 */
         doc.querySelector('#tdeal [data-tdrop2="give:1"]').click();
         doc.querySelector('#tdeal [data-tdrop2="give:0"]').click();
         check(/Nothing on the Table/.test(text('#tdeal')), 'the table clears');
@@ -1711,7 +1720,7 @@ setTimeout(() => {
       check(doc.querySelectorAll('#audiences .audrow').length >= 3 &&
             doc.querySelectorAll('#audiences .constel .cnode').length === 7,
             'the Board reads four audiences and the rivals (' +
-            doc.querySelectorAll('#audiences .audrow').length + ' rows, 7 houses on the ring)');
+            doc.querySelectorAll('#audiences .audrow').length + ' rows, 7 OAs on the ring)');
       check(doc.querySelectorAll('#audiences .cnode svg').length >= 7 &&
             doc.querySelectorAll('#audiences .cwires line').length === 7,
             'each rival stands on the Board in its own colour and mark');
@@ -1868,15 +1877,15 @@ setTimeout(() => {
           && !!doc.querySelector('#courtgrid .ctbl'),
           'year two\'s first month offers its boards — the loop closes');
 
-    /* ---- the blank slate: a player-founded house takes a berth and plays ---- */
+    /* ---- the blank slate: a player-founded OA takes a berth and plays ---- */
     doc.getElementById('menubtn').click();
     doc.getElementById('mNew').click();
-    doc.getElementById('cname').value = 'House Probe';
+    doc.getElementById('cname').value = 'OA Probe';
     doc.getElementById('cfound').click();
     check(/Year 1 · Month 1/.test(text('#clock')),
-          'the founded house opens its own year 1: ' + text('#clock'));
+          'the founded OA opens its own year 1: ' + text('#clock'));
     /* a founded corporation's name lives in the CORNER now, not on the roster's money line */
-    check(/House Probe/.test(text('#whoami')),
+    check(/OA Probe/.test(text('#whoami')),
           'a founded corporation wears its own name in the corner of every page');
     /* §DESK the big grids start folded and open when asked */
     {
@@ -1892,7 +1901,7 @@ setTimeout(() => {
     check(!!doc.querySelector('#traingrid .tgrid') &&
           !!doc.querySelector('#courtgrid .ctbl') &&
           doc.querySelectorAll('#roster .rcard').length >= 5,
-          'the founder\'s house has a crew and a live desk — playable, not a placard');
+          'the founder\'s OA has a crew and a live desk — playable, not a placard');
 
     console.log(failed ? '\n' + failed + ' CHECK(S) FAILED'
                        : '\nall checks passed — the page lives a year');

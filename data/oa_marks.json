@@ -1,7 +1,7 @@
 {
   "file": "oa_marks.json",
   "status": "proposed art, picked from the pass-3 mock (A everywhere, B for knights_star); awaiting a human artist",
-  "grid": "24x24 viewBox, drawn in currentColor so the house colour carries it",
+  "grid": "24x24 viewBox, drawn in currentColor so the OA colour carries it",
   "marks": {
     "nevlon_collective": "<path d=\"M4 5 L20 5 L14 13 L10 13 Z\" fill=\"currentColor\"/><rect x=\"7\" y=\"16\" width=\"10\" height=\"3\" fill=\"currentColor\"/>",
     "knights_star": "<path d=\"M12 3 L14.2 9.8 L21 12 L14.2 14.2 L12 21 L9.8 14.2 L3 12 L9.8 9.8 Z\" fill=\"currentColor\"/>",

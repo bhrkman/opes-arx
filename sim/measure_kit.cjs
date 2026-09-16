@@ -2,7 +2,7 @@
    Balance measured on badly equipped squads is measured on a game nobody plays: every probe
    that built `generateSquad` bodies was reading fighters with no kit at all, who fall back to
    a default medium weapon and nothing else. This asks the question of a REAL built fleet —
-   every house, every squad — and fails if anybody is short of the things a fighter is supposed
+   every OA, every squad — and fails if anybody is short of the things a fighter is supposed
    to leave the ship with. `node measure_kit.cjs [--quiet]` */
 const fs = require('fs');
 const P = require('./prng.js'), D = require('./divide.js'), MAP = require('./map.js'),

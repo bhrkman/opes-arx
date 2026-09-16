@@ -54,7 +54,7 @@
 
      Consequence worth knowing when reading a per-notch table: no corp in the canon eight now
      declares death_or_glory, so the far pole appears only in homogeneous test fields. That is
-     honest — it is an extreme a manager may declare, not a house style anyone runs. */
+     honest — it is an extreme a manager may declare, not an OA style anyone runs. */
   const STANCE_OVERRIDE = {
     alliance_house: 'unyielding'
   };
@@ -164,7 +164,7 @@
     NOISE_DAYS: 1,                      // [S] how long ago a sound is still worth walking to
     /* [H] YOU RUN TOWARD GUNFIRE, OR YOU DO NOT GET THERE. Squads close on a fight in progress
        at their marching pace plus this much again, scaled by their taste for finding a fight —
-       a preservationist barely quickens and a death-or-glory house sprints.
+       a preservationist barely quickens and a death-or-glory OA sprints.
        Without it, arriving partway through is arithmetically impossible and the first build of
        it fired four times in 279 fights: a squad covers 0.026 in the longest engagement the
        game can produce, while squads within 0.072 are already bundled into the fight at the
@@ -222,13 +222,13 @@
     PRESENCE_STEADIES: 0.12,            // [C] and what the squad's steadiest hand lends a captain
     KESHU_FRICTION: 3,                  // [C] §KESHU what an old war costs a squad that holds
                                         //     both sides of it
-    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the house that
+    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the OA that
                                         //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
-    SQUADS_MAX: 6,                      // [S] §SQUADS the most a house may field, as ruled
+    SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
     SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
     SPREAD_AGGRESSION: 0.35,            // [C] and appetite for contact
-    SPREAD_PATIENCE: 0.45,              // [C] against what a careful house keeps massed         // [S] squads live inside these bounds. RULED: the
+    SPREAD_PATIENCE: 0.45,              // [C] against what a careful OA keeps massed         // [S] squads live inside these bounds. RULED: the
                                         // floor is THREE — it binds the manager's own squad
                                         // page, which reads it from here. The auto-deal's
                                         // arithmetic (two-squad minimum against an eight cap)
@@ -248,15 +248,15 @@
        was rebuilt. The doc entry goes with it. */
     WITHDRAW_RUN_FRAC: 0.60,            // [C] and you can only fall back into room you have
     KNOWN_STALE: 3,                     // [S] a sighting older than this is not information
-    /* §KNOW THE PICTURE. Ruled with the dispersed drop: every house knows where every other
+    /* §KNOW THE PICTURE. Ruled with the dispersed drop: every OA knows where every other
        came down — the draft is posted — and after that only what its own squads (and its
        banner's) have seen, where they saw it, until it goes stale. */
     LANDING_KNOWN_DAYS: 2,              // [S] the posted landings are current information this long
     RALLY_THREAT_RANGE: 0.20,           // [C] a stronger known enemy within this makes a spread corp gather
     /* §MIND THE MANAGER'S TWO LEVERS. A manager does not tell a squad what to do — he sets the
-       stance, and he says which houses he would rather his people found. A leaning of 1 to 5
+       stance, and he says which OAs he would rather his people found. A leaning of 1 to 5
        (3 is nothing) multiplies how near a rival READS when a squad is choosing whom to seek
-       or avoid: a house leaned toward feels closer than it is, one leaned away feels further.
+       or avoid: an OA leaned toward feels closer than it is, one leaned away feels further.
        It never forbids and never orders; the squad still decides by its stance. */
     LEAN_PULL: 0.30,                    // [C] how much a full leaning moves the reading
     /* APPROACH_SHARPNESS stood here until the captain's judgement replaced it: how sharply a
@@ -268,9 +268,9 @@
          JUDGEMENT (tactics) — how sharply the weighing favours the best answer. A poor captain
            draws nearly at random from what seems reasonable; a great one almost always takes
            the strongest need.
-         SIGHT (fieldcraft, and what the house knows) — how much of the picture the captain is
+         SIGHT (fieldcraft, and what the OA knows) — how much of the picture the captain is
            actually weighing. A poor captain reads only what is close; a great one reads what
-           the house has seen, and reads it as it is.
+           the OA has seen, and reads it as it is.
          NERVE (resolve and presence) — whether the numbers are read hopefully or fearfully.
            A frightened captain sees more enemies than there are and fewer of his own.
        A captain also thinks further ahead the better he is: a plan he sets, he keeps. */
@@ -283,7 +283,7 @@
     PLAN_DAYS_MIN: 2, PLAN_DAYS_MAX: 6, // [C] how long a captain's plan stands before rethinking
     /* §MIND SHADOW AND SCREEN, the dispersed drop's manoeuvres. A shadowing squad keeps a
        stronger known enemy in sight at SHADOW_DIST — outside contact, inside knowledge — so the
-       house keeps its picture current without a fight. A screening squad stands between a
+       OA keeps its picture current without a fight. A screening squad stands between a
        digging mate and a known threat at STAGE_RADIUS from the mate. */
     SHADOW_RANGE: 0.22,                 // [C] a known stronger enemy this near is worth shadowing
     SHADOW_DIST: ENGAGE_RANGE * 1.9,    // [C] the distance a shadow keeps
@@ -644,11 +644,11 @@
     return out;
   }
 
-  /* §SQUADS HOW WIDE A NET A HOUSE CASTS. Every house packed its people into squads of eight
+  /* §SQUADS HOW WIDE A NET A OA CASTS. Every OA packed its people into squads of eight
      and so fielded three, which is why nobody noticed the draft only dealt three landings. The
      rule allows six, and six is a real choice with real terms: more squads means more landings
      drafted, more ground covered and more deposits worked at once — and thinner squads that
-     lose the fights they pick. A house leans on its dials: the greedy spread to reach more
+     lose the fights they pick. An OA leans on its dials: the greedy spread to reach more
      ground, the aggressive spread to be everywhere a fight is, and the careful mass. */
   function squadCountFor(n, profile, want) {
     const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
@@ -656,7 +656,7 @@
     if (want && want >= 2) return Math.max(2, Math.min(most, want));  /* a manager's own call */
     const d = (profile && profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
-    /* what a house wants: ground-hunger and appetite for contact push it wider */
+    /* what an OA wants: ground-hunger and appetite for contact push it wider */
     const spread = dial('greed') * CONST.SPREAD_GREED
                  + dial('aggression') * CONST.SPREAD_AGGRESSION
                  - dial('patience') * CONST.SPREAD_PATIENCE;
@@ -922,6 +922,42 @@
 
   /* §5.1 — placement is recorded as banners stop standing, earliest first, so the finish
      order falls out of the Divide rather than being scored at the end. */
+  /** what corp `a` has had with the banner `p` stands under: summed over its members */
+  function contactWith(a, p, corps) {
+    const out = { fights: 0, lostTo: 0, beat: 0, huntedBy: 0, hunting: 0, lastDay: 0 };
+    if (!a || !a._contact || !p) return out;
+    const pid = principalOf(p).id;
+    for (const id in a._contact) {
+      const other = (corps || []).find(c => c.id === id);
+      const under = other ? principalOf(other).id : id;
+      if (under !== pid) continue;
+      const r = a._contact[id];
+      out.fights += r.fights; out.lostTo += r.lostTo; out.beat += r.beat;
+      out.huntedBy = Math.max(out.huntedBy, r.huntedBy); out.hunting = Math.max(out.hunting, r.hunting);
+      out.lastDay = Math.max(out.lastDay, r.lastDay);
+    }
+    return out;
+  }
+
+  /**
+   * §6.9 WHO IS ON WHOM. The engine counted engagements per OA and never whom; the hunting
+   * intent never told the hunted. So the table could look at the board and never at the
+   * OA whose squads were standing on it. A per-pair record, kept on each corp: fights
+   * between them, the last day of contact, how many of those it lost to them and how many it
+   * won, and whether they are hunting it now. `a` and `b` are corps.
+   */
+  function noteContact(a, b, day, what) {
+    if (!a || !b || a === b) return;
+    a._contact = a._contact || {};
+    const r = a._contact[b.id] = a._contact[b.id] || { fights: 0, lostTo: 0, beat: 0, huntedBy: 0, hunting: 0, lastDay: 0 };
+    if (what === 'fight') r.fights++;
+    else if (what === 'lost') r.lostTo++;
+    else if (what === 'beat') r.beat++;
+    else if (what === 'huntedBy') r.huntedBy = day;
+    else if (what === 'hunting') r.hunting = day;
+    r.lastDay = Math.max(r.lastDay, day);
+  }
+
   function recordFall(stats, id, day, how) {
     stats.fallen = stats.fallen || [];
     if (stats.fallen.some(f => f.id === id)) return;
@@ -964,7 +1000,9 @@
       oddsWithJoin: oddsWithJoin, rng: rng, banners: umbrellas.length,
       resource: planet.archetypeName || planet.archetype,
       planet: planet, categoryOf: MAP.resourceCategory, categories: REP.CATEGORIES,
-      hasHook: corpHasHook, refusals: stats.refusals, umbrellas: umbrellas
+      hasHook: corpHasHook, refusals: stats.refusals, umbrellas: umbrellas,
+      contact: (a, b) => contactWith(a, b, corps),
+      corps: corps
     };
   }
 
@@ -975,12 +1013,13 @@
 
     const meanEng = corps.reduce((a, c) => a + c.engagements, 0) / Math.max(1, corps.length);
     const odds = NEG.oddsBoard(umbrellas, { meanEngagements: meanEng });
-    /* §3.1a the low-water mark: the worst a house's banner ever read on the board, and how
+    /* §3.1a the low-water mark: the worst an OA's banner ever read on the board, and how
        many engagements it had then — so the finish can tell who fought on past hope */
     for (const c of corps) {
       if (c.joinedTo || c.disqualified) continue;
       const o = odds[principalOf(c).id] || 0;
       if (c._minOdds == null || o < c._minOdds) { c._minOdds = o; c._engAtLow = c.engagements || 0; }
+      if (c._openingOdds == null) c._openingOdds = o;     /* §6.12 what it dropped with */
     }
 
     /* The board as it would read with one corp's force moved under another's banner. This
@@ -1011,7 +1050,10 @@
          and read by nothing: a psion who can tell when a rival is bluffing, and the two
          traits that make a corp's own people refuse to be party to a broken deal. */
       hasHook: corpHasHook,
-      refusals: stats.refusals
+      refusals: stats.refusals,
+      /* §6.9 what `a` has had with `b`'s whole banner this Divide */
+      contact: (a, b) => contactWith(a, b, corps),
+      corps: corps
     };
 
     /* A hook so an interface — or a test standing in for one — can see the board exactly as
@@ -1024,6 +1066,56 @@
        engine. Nothing in a played game halts. */
     if (opts.haltAt === day) { stats.halted = { day: day, ctx: ctx, corps: corps }; return true; }
 
+    /* STRUCK. It is announced on air, and it is irreversible (N4). One door for an ask a
+       principal accepted and for an invitation an OA took. */
+    function strike(deal, joiner, principal) {
+      joiner.joinedTo = principal.id;
+      joiner.terms = deal;
+      joiner.standDown = deal.standDown;
+      joiner.joinedOnDay = day;
+      (principal._dealsAsPrincipal = principal._dealsAsPrincipal || []).push(deal);
+      stats.deals.push(deal);
+      stats.joins = (stats.joins || 0) + 1;
+      if (deal.standDown) stats.standDowns = (stats.standDowns || 0) + 1;
+      /* §7 — both sides pay the crowd, the folder more than the buyer. `crowdHit` is kept
+         as the in-Divide scalar it always was; what is NEW is that the same act is now
+         also remembered by four audiences who each read it differently, which is the whole
+         of Step 7. REPUTATION.md §3.1. */
+      joiner.crowdHit = (joiner.crowdHit || 0)
+        + NEG.foldPenalty(odds[principalOf(joiner).id] || 0, day, MAP.CONST.LAST_GROUND_DAY, deal.standDown);
+      principal.crowdHit = (principal.crowdHit || 0) + NEG.buyPenalty(deal.share, 0.5);
+      const foldScale = deal.why && deal.why.seller
+        ? Math.min(1, deal.why.seller.damage / Math.max(1e-6, deal.why.seller.tolerance) / REP.CONST.UGLY_WALL)
+        : 0.5;
+      REP.act(joiner.rep, deal.standDown ? 'stood_down' : 'ceded',
+              { scale: foldScale, buyerId: principal.id, rivalIds: corpIds });
+      REP.act(principal.rep, 'bought_win',
+              { scale: Math.min(1, deal.share), rivalIds: corpIds });
+      /* §6.10 two OAs that never met on the ground made an arrangement, and everybody saw */
+      if (deal.why && deal.why.cold) {
+        REP.act(joiner.rep, 'cold_alliance', { rivalIds: corpIds });
+        REP.act(principal.rep, 'cold_alliance', { rivalIds: corpIds });
+        stats.audit.coldAlliances = (stats.audit.coldAlliances || 0) + 1;
+      }
+      /* §5.1 — your finish is fixed the moment your banner stops standing. */
+      recordFall(stats, joiner.id, day, 'ceded');
+      if (stats._rec) stats._rec({ t: 'deal', c: joiner.id, to: principal.id,
+                                   sh: Math.round(deal.share * 100), sd: deal.standDown ? 1 : 0 });
+    }
+
+    /* §6.11 A DECISION IS A THING AN INSTRUMENT CAN OVERRIDE. Every choice the AI makes at the
+       table passes through `decide`: the default is what the AI would do; `opts.decide` may
+       return another of the options; `opts.onDecision` sees every one. That is how
+       `measure_regret.cjs` replays a Divide from its seed and forces one decision the other way
+       to see what it was worth. Nothing in a played game passes either hook. */
+    const decide = (kind, key, dflt, options) => {
+      const k = Object.assign({ kind: kind, day: day }, key);
+      let pick = dflt;
+      if (opts.decide) { const forced = opts.decide(k, dflt, options); if (forced !== undefined) pick = forced; }
+      if (opts.onDecision) opts.onDecision(k, dflt, options, pick);
+      return pick;
+    };
+
     /* Offers, in a fixed order so the stream is deterministic. */
     for (const joiner of corps) {
       if (joiner.joinedTo || joiner.disqualified || sealed(joiner)) continue;
@@ -1033,10 +1125,16 @@
       if (joiner.id === opts.human) continue;
       if (!joiner.allBodies.some(b => b.status === 'active')) continue;
       let sent = 0;
-      /* You approach the banners doing best, because that is where a share is worth having. */
-      const targets = umbrellas
-        .filter(u => u.principal.id !== principalOf(joiner).id)
-        .sort((a, b) => (odds[b.principal.id] || 0) - (odds[a.principal.id] || 0));
+      /* §6.7 a patient OA with a live chance may sit this window out */
+      const acts = decide('act', { corp: joiner.id }, NEG.actsThisWindow(rng, joiner, ctx), [true, false]);
+      if (!acts) { stats.audit.held = (stats.audit.held || 0) + 1; continue; }
+      /* §6.6 the banners ranked by what joining each would be worth to THIS OA — not the
+         two doing best, which is where every OA used to go regardless of regard or grudge */
+      let targets = NEG.rankBanners(joiner, umbrellas, ctx);
+      if (targets.length > 1) {
+        const first = decide('target', { corp: joiner.id }, targets[0].principal.id, targets.map(t => t.principal.id));
+        targets = targets.filter(t => t.principal.id === first).concat(targets.filter(t => t.principal.id !== first));
+      }
       for (const t of targets) {
         if (sent >= NEG.CONST.OFFERS_PER_WINDOW) break;
         sent++;
@@ -1046,35 +1144,67 @@
         joiner._offersReceived = (joiner._offersReceived || 0) + 1;
         const deal = NEG.considerJoin(rng, joiner, t.principal, ctx);
         if (!deal) continue;
-
-        /* Struck. It is announced on air, and it is irreversible (N4). */
-        joiner.joinedTo = t.principal.id;
-        joiner.terms = deal;
-        joiner.standDown = deal.standDown;
-        joiner.joinedOnDay = day;
-        (t.principal._dealsAsPrincipal = t.principal._dealsAsPrincipal || []).push(deal);
-        stats.deals.push(deal);
-        stats.joins = (stats.joins || 0) + 1;
-        if (deal.standDown) stats.standDowns = (stats.standDowns || 0) + 1;
-        /* §7 — both sides pay the crowd, the folder more than the buyer. `crowdHit` is kept
-           as the in-Divide scalar it always was; what is NEW is that the same act is now
-           also remembered by four audiences who each read it differently, which is the whole
-           of Step 7. REPUTATION.md §3.1. */
-        joiner.crowdHit = (joiner.crowdHit || 0)
-          + NEG.foldPenalty(odds[principalOf(joiner).id] || 0, day, MAP.CONST.LAST_GROUND_DAY, deal.standDown);
-        t.principal.crowdHit = (t.principal.crowdHit || 0) + NEG.buyPenalty(deal.share, 0.5);
-        const foldScale = deal.why && deal.why.seller
-          ? Math.min(1, deal.why.seller.damage / Math.max(1e-6, deal.why.seller.tolerance) / REP.CONST.UGLY_WALL)
-          : 0.5;
-        REP.act(joiner.rep, deal.standDown ? 'stood_down' : 'ceded',
-                { scale: foldScale, buyerId: t.principal.id, rivalIds: corpIds });
-        REP.act(t.principal.rep, 'bought_win',
-                { scale: Math.min(1, deal.share), rivalIds: corpIds });
-        /* §5.1 — your finish is fixed the moment your banner stops standing. */
-        recordFall(stats, joiner.id, day, 'ceded');
-        if (stats._rec) stats._rec({ t: 'deal', c: joiner.id, to: t.principal.id,
-                                     sh: Math.round(deal.share * 100), sd: deal.standDown ? 1 : 0 });
+        /* §6.2 THE PRINCIPAL ANSWERS. A MANAGER'S BANNER IS NOT BOUGHT FOR HIM: an OA that
+           wants in under his banner ASKS, and the ask waits on the window (it lapses if he
+           does not answer). An AI principal re-prices the proposal from its own side. */
+        if (t.principal.id === opts.human) {
+          (stats.asks = stats.asks || []).push({ joiner: joiner.id, deal: deal, day: day, answered: false });
+          stats.audit.asksToHuman = (stats.audit.asksToHuman || 0) + 1;
+          continue;
+        }
+        const answer = NEG.considerTake(t.principal, joiner, deal, ctx);
+        answer.accepted = decide('take', { corp: t.principal.id, joiner: joiner.id }, answer.accepted, [true, false]);
+        if (!answer.accepted) {
+          stats.refusals.push({ joiner: joiner.id, principal: t.principal.id, day: day,
+                                why: Object.assign({}, answer.range || {}, { reason: answer.reason, over: answer.over }),
+                                byPrincipal: answer.reason === 'principal_refused' });
+          stats.audit.principalRefused = (stats.audit.principalRefused || 0) + 1;
+          continue;
+        }
+        if (answer.beaten) REP.act(t.principal.rep, 'spared', { targetId: joiner.id });
+        if (answer.generous) REP.act(t.principal.rep, 'generous_terms', { targetId: joiner.id });
+        strike(deal, joiner, t.principal);
         break;                                  /* you cede once */
+      }
+    }
+
+    /* §6.8 PRINCIPALS REACH OUT. Each standing AI banner may court one OA a window that is
+       costing it — a spoiler worth real money — at a little over what it guesses that OA's
+       floor to be. The OA answers by its own arithmetic, and a manager's OA is courted
+       through the window he already has (`canJoin` rows), not here. */
+    for (const u of umbrellas) {
+      const p = u.principal;
+      if (p.id === opts.human || p.disqualified || p.joinedTo || sealed(p)) continue;
+      let invited = 0;
+      const candidates = corps.filter(j => j !== p && !j.joinedTo && !j.disqualified && !sealed(j) && j.id !== opts.human
+                                        && j.allBodies.some(b => b.status === 'active') && principalOf(j).id !== p.id)
+        .map(j => ({ j: j, r: NEG.offerRange(j, p, ctx) }))
+        /* §6.10 a principal does not court an OA its squads have never met: an invitation to a
+           stranger is a cold alliance by construction, and the crowd was seeing one deal in six
+           made that way (audit_table T3). A stranger may still ASK, and pay the cold price. */
+        .filter(x => x.r && x.r.viable && !x.r.cold)
+        /* §6.9 the OA you are on top of first — fought, hunting, beating — then by gain;
+           an OA you have not met is courted last, and dearly (§6.10) */
+        .sort((a, b) => (b.r.gain * (b.r.cold ? NEG.CONST.RANK_COLD : 1 + NEG.CONST.RANK_CONTACT * NEG.contactScore(b.r)))
+                      - (a.r.gain * (a.r.cold ? NEG.CONST.RANK_COLD : 1 + NEG.CONST.RANK_CONTACT * NEG.contactScore(a.r))))
+        .map(x => x.j);
+      for (const j of candidates) {
+        if (invited >= NEG.CONST.INVITES_PER_WINDOW) break;
+        const deal = NEG.considerInvite(rng, p, j, ctx);
+        if (!deal) continue;
+        invited++;
+        stats.audit.invites = (stats.audit.invites || 0) + 1;
+        const terms = { share: deal.share, credits: deal.credits, standDown: deal.standDown,
+                        resources: deal.resources, claims: deal.claims };
+        const verdict = NEG.evaluateOffer(j, p, terms, ctx);
+        if (!verdict || !verdict.accepted) {
+          stats.refusals.push({ joiner: j.id, principal: p.id, day: day, invited: true,
+                                why: Object.assign({}, (verdict && verdict.range) || {}, { reason: verdict && verdict.reason }) });
+          continue;
+        }
+        stats.audit.invitesTaken = (stats.audit.invitesTaken || 0) + 1;
+        if (deal.why && deal.why.beaten) REP.act(p.rep, 'spared', { targetId: j.id });
+        strike(deal, j, p);
       }
     }
 
@@ -1673,13 +1803,13 @@
    */
   /* ---- THE PICTURE: what a corp knows of everyone else's whereabouts ----
      `corp._picture[key]` = { sq, corpId, x, y, day, n, prestige } — where a foreign squad was
-     when it was last seen, by whom it does not matter. Written by the landing (every house,
+     when it was last seen, by whom it does not matter. Written by the landing (every OA,
      day 1), by contact (both sides, and their banners), and by the relay mast (everyone under
      the tower's banner). Read fresh: a sighting older than KNOWN_STALE is dropped, a landing
      after LANDING_KNOWN_DAYS. Nothing else hands a corp another's position. */
-  /** §MIND how near a house reads to this one: 5 pulls them in, 1 pushes them away, 3 is the
+  /** §MIND how near an OA reads to this one: 5 pulls them in, 1 pushes them away, 3 is the
       truth. The manager's second lever, and the AI's own standing preferences ride the same
-      wire — a house that hates another leans toward it without being told. */
+      wire — an OA that hates another leans toward it without being told. */
   function leanOf(corp, otherId) {
     const L = corp._leanings || {};
     const v = L[otherId];
@@ -1711,7 +1841,7 @@
     const dials = STANCE_DIALS[corp.policy];
     const coord = coordination(corp);
     const z = MAP.zoneOn(planet, day);
-    /* what this house knows, not where everyone is */
+    /* what this OA knows, not where everyone is */
     const foreign = pictureOf(corp, day);
 
     /* SHADOW AND SCREEN follow what they watch: their aim is recomputed each dawn from the
@@ -1752,10 +1882,10 @@
        is a large part of why three squads of one corp so often set off for the same dot.
        A sound is a different kind of information and a poorer one: you know something happened
        roughly there, you do not know who, how many, or whether they are still standing. What a
-       corp does about it is its temperament. A house that seeks fights goes and has a look; a
+       corp does about it is its temperament. An OA that seeks fights goes and has a look; a
        preservationist hears the same thing and puts distance between itself and it.
        Taken per squad rather than for the corp, so one squad going to look does not commit the
-       whole house — which is the other half of the convergence problem. */
+       whole OA — which is the other half of the convergence problem. */
     if (noises && noises.length) {
       for (const sq of free.slice()) {
         if (sq.intent) continue;
@@ -1867,7 +1997,7 @@
      in the corp's lap, which measured at 1.6%. Weighting the site chooser did almost nothing
      (1.6% → 2.7%), because a squad only looks at sites when it is already short of supplies.
      What was missing was not a weight. It was an intention. */
-  /* §MIND WHAT A SQUAD MAY BE DOING. The manager sets a stance and says which houses he would
+  /* §MIND WHAT A SQUAD MAY BE DOING. The manager sets a stance and says which OAs he would
      rather his people found; everything below is the squads' own. The list is long on purpose —
      it is invisible to a manager, so it costs nothing to be various, and a contest where every
      squad is doing one of four things reads as four squads. */
@@ -2192,7 +2322,7 @@
         break;
       }
       case 'rallying': {
-        /* to the middle of my own house, inside the wall: everyone rallying meets there */
+        /* to the middle of my own OA, inside the wall: everyone rallying meets there */
         const mates = corp.squads.filter(s => squadHead(s).length);
         if (mates.length > 1) {
           let cx = 0, cy = 0; for (const s of mates) { cx += s.x; cy += s.y; } cx /= mates.length; cy /= mates.length;
@@ -2506,7 +2636,7 @@
     if (!sq.movedToday) p += 0.15;              /* you had time to look at the ground */
     if (sq._hunted) p -= 0.10;                  /* you came looking: you take what is there */
     if (opts.sawFirst) p += 0.15;               /* you watched them walk into it */
-    if (opts.rivalEdge) p += opts.rivalEdge;    /* Gather Intel: you studied this house's game */
+    if (opts.rivalEdge) p += opts.rivalEdge;    /* Gather Intel: you studied this OA's game */
     const head = squadHead(sq);
     if (head.length) {
       const fc = head.reduce((s, b) => s + b.stats.fieldcraft, 0) / head.length / 10;
@@ -2836,7 +2966,7 @@
     const sectorCount = 6;
     /* §DROP THE DISPERSED DROP: opts.dropSlots = { corpId: [slotIndex per squad] } on a ring
        of opts.slotCount points. A corp's squads land where its picks put them — apart, if it
-       chose apart — and know where every other house came down (the draft is posted). A
+       chose apart — and know where every other OA came down (the draft is posted). A
        corp with no picks lands the old way, together in its sector. */
     const slotPicks = opts.dropSlots || null, slotCount = opts.slotCount || 24;
     for (let ci = 0; ci < corps.length; ci++) {
@@ -2872,14 +3002,14 @@
       const q = planet.nearestPassable ? planet.nearestPassable(p.x, p.y) : p;
       sq.x = q.x; sq.y = q.y;
     }
-    /* THE DRAFT IS POSTED: every house knows where every other came down */
+    /* THE DRAFT IS POSTED: every OA knows where every other came down */
     for (const c of corps) for (const oc of corps) if (oc !== c) for (const sq of oc.squads) recordSighting(c, sq, 1, true);
-    /* §5.3b THE FLEET'S REGARD FOR EACH HOUSE, read once and carried on the corp, so the
+    /* §5.3b THE FLEET'S REGARD FOR EACH OA, read once and carried on the corp, so the
        negotiation can price a banner by what it costs a joiner's people to fight under it */
     if (REP && opts.reputations) for (const c of corps) {
       const rp = opts.reputations[c.id];
       if (rp) c._fleetStanding = REP.standing(rp, 'fleet');
-      /* §MIND an AI house leans the way its own regard leans: it seeks out the houses it
+      /* §MIND an AI OA leans the way its own regard leans: it seeks out the OAs it
          thinks least of and gives the ones it respects a wider berth */
       if (rp && c.id !== opts.human) {
         c._leanings = c._leanings || {};
@@ -3209,6 +3339,7 @@
             if (t && squadHead(t).length >= 1) { tx = t.x; ty = t.y; }
             sq._why = it.role === 'flank' ? 'flank' : 'hunt';
             sq._hunted = true;
+            if (t && t.corp) { noteContact(sq.corp, t.corp, day, 'hunting'); noteContact(t.corp, sq.corp, day, 'huntedBy'); }
             if (it.role === 'flank') stats.audit.flankMoves = (stats.audit.flankMoves || 0) + 1;
             else stats.audit.huntMoves++;
           }
@@ -3350,7 +3481,7 @@
 
             const mx = (sqA.x + sqB.x) / 2, my = (sqA.y + sqB.y) / 2;
             if (rng() >= detectChance(rng, sqA, sqB, planet, day, night, mx, my, sep, stats)) continue;
-            /* seen: both houses learn where the other stands, and so do their banners */
+            /* seen: both OAs learn where the other stands, and so do their banners */
             for (const c of corps) { if (allied(c, sqA.corp)) recordSighting(c, sqB, day); if (allied(c, sqB.corp)) recordSighting(c, sqA, day); }
             stats.contactOffers++;
             stats.offersBy[sqA.corp.policy] = (stats.offersBy[sqA.corp.policy] || 0) + 1;
@@ -3499,7 +3630,7 @@
               prep: groups.map((g, gi) => {
                 const lead = g[0];
                 const theyKnewUs = g.some(s => Object.keys(s.known || {}).length > 0);
-                /* Gather Intel: if this side scouted the house it now faces, that dossier's
+                /* Gather Intel: if this side scouted the OA it now faces, that dossier's
                    freshness-scaled readiness applies against THEM specifically. With more than
                    two sides, credit the best-known opponent present. */
                 let rivalEdge = 0;
@@ -3582,10 +3713,10 @@
               return Math.atan2(my - lead.hy, mx - lead.hx);
             });
 
-            /* §GRUDGE A MAN FIGHTING THE HOUSE HE REMEMBERS. Grudge Holder's three hooks wanted
-               a fighter's memory of every house in the fleet, and the first design for it was a
+            /* §GRUDGE A MAN FIGHTING THE OA HE REMEMBERS. Grudge Holder's three hooks wanted
+               a fighter's memory of every OA in the fleet, and the first design for it was a
                relationship matrix — far more machinery than a trait that is mostly texture is
-               worth. A man remembers ONE house: the last that tried to buy him out from under
+               worth. A man remembers ONE OA: the last that tried to buy him out from under
                his own. It is set where that happens (events.js, the poach) and read in exactly
                two places — here, and at the market, which will not offer him to them. */
             for (const side of built) {
@@ -3670,6 +3801,14 @@
 
             const before = { d: stats.dead, i: stats.injured, c: stats.careerEnded };
             const recBefore = { d: stats.dead, c: stats.careerEnded };
+            /* §6.9 every corp on one side met every corp on the others */
+            {
+              const sideCorps = groups.map(g => { const out = []; for (const q of g) if (q.corp && out.indexOf(q.corp) < 0) out.push(q.corp); return out; });
+              for (let gi = 0; gi < groups.length; gi++) for (let hi = 0; hi < groups.length; hi++) {
+                if (gi === hi) continue;
+                for (const a of sideCorps[gi]) for (const b of sideCorps[hi]) noteContact(a, b, day, 'fight');
+              }
+            }
             for (let gi = 0; gi < groups.length; gi++) {
               const side = built[gi];
               for (const u of side.units) {
@@ -3703,6 +3842,8 @@
                     for (const q of groups[hi]) if (q.corpId === captorId) here.push(...squadHead(q));
                   }
                   victors = { corp: vc, bodies: here };
+                  /* §6.9 and who this side lost to, on the record both ways */
+                  for (const c of corpsHere) if (c && c !== vc) { noteContact(c, vc, day, 'lost'); noteContact(vc, c, day, 'beat'); }
                   /* §3.1 — a fight against somebody worth beating. Uses the same prestige
                      the day loop already hunts by, so "worth beating" has ONE definition. */
                   for (const c of corpsHere) {
@@ -3998,7 +4139,25 @@
              functions the AI is scored by, which is why they were split out in the first place.
              A parallel valuation for the human would be a second game. */
           const nctx = makeNegContext(rng, corps, planet, day, stats);
-          const table = { canJoin: [], wouldTake: [], pacts: [] };
+          const table = { canJoin: [], wouldTake: [], pacts: [], asks: [] };
+          /* §6.2 WHO IS ASKING TO COME IN under your banner, on what terms, and what it would
+             cost you to say no: their people you would still be fighting (the spoiler) and
+             the people THEY would lose for it. Priced by `offerRange`, same as everything. */
+          if (you && !you.disqualified) for (const a of (stats.asks || [])) {
+            if (a.answered) continue;
+            const j = corps.filter(c => c.id === a.joiner)[0];
+            if (!j || j.joinedTo || j.disqualified) { a.answered = true; continue; }
+            const range = NEG.offerRange(j, you, nctx);
+            if (!range) { a.answered = true; continue; }
+            table.asks.push({ corp: a.joiner, day: a.day, terms: a.deal, range: range,
+                              odds: board[a.joiner] || 0, viable: !!range.viable,
+                              askedShare: a.deal.share, askedCredits: a.deal.credits, standDown: !!a.deal.standDown,
+                              ifRefused: { yourLosses: range.spoiler, theirLosses: range.stayLosses },
+                              beaten: !!range.beaten,
+                              band: range.expectedTake > 0
+                                ? { minShare: range.joinerMin / range.expectedTake,
+                                    maxShare: range.principalMax / range.expectedTake } : null });
+          }
           if (you && !you.joinedTo && !you.disqualified && !sealed(you)) {
             for (const u of umbrellasOf(corps)) {
               if (u.principal.id === principalOf(you).id) continue;
@@ -4034,7 +4193,7 @@
             if (other.id === opts.human || other.disqualified) continue;
             if (pactHolds(you, other, day)) continue;
             /* A PACT IS ASKED FOR BY THE WEAKER SIDE, and the gate has more to it than that —
-               how far apart the odds are, and how much the other house cares. Asked of
+               how far apart the odds are, and how much the other OA cares. Asked of
                `negotiate.js`, which owns the rule, rather than re-derived here: two descriptions
                of one rule agree until somebody edits one of them. */
             const pv = (opts.edicts && opts.edicts.no_pacts) ? { possible: false, why: 'the Aleas forbid pacts this year', p: 0 } : NEG.pactChance(you, other, nctx, {});
@@ -4079,7 +4238,7 @@
               }
               return by;
             })(),
-            /* what is left in the ground that this house knows of, by category */
+            /* what is left in the ground that this OA knows of, by category */
             openBy: (function () {
               const by = {};
               for (const o of planet.objectives || []) {
@@ -4097,10 +4256,10 @@
           /* what came back: a stance, and any deals the manager chose to answer */
           if (answer && answer.stance) {
             const you = corps.filter(c => c.id === opts.human)[0];
-            /* NOT gated on `sealed`. That flag means a house refuses to NEGOTIATE — a permanent
+            /* NOT gated on `sealed`. That flag means an OA refuses to NEGOTIATE — a permanent
                cultural thing held in the profile — and §7.3 is explicit that no corp is ever
                locked out of any notch and that culture is not a stance. Guarding the dial with
-               it silently pinned Nevlon and every other no-negotiation house to whatever they
+               it silently pinned Nevlon and every other no-negotiation OA to whatever they
                dropped with, which is the exact conflation the ruling was written to end. It
                gates the negotiation half of the window below, where it belongs. */
             if (you) {
@@ -4114,7 +4273,7 @@
           }
 
           /* THE MANAGER'S SECOND LEVER. Not orders — a leaning, one to five, on each other
-             house: which of them he would rather his people found. It is a thumb on the scale
+             OA: which of them he would rather his people found. It is a thumb on the scale
              the squads are already weighing, never an instruction. Per-squad orders lived here
              for a step and were the wrong game: a manager sets a policy and a preference, and
              what a squad does with them is the squad's. */
@@ -4127,9 +4286,9 @@
              did not: only `answer.stance` was ever read, so a manager could be handed a window
              and had nothing to say in it but a notch. Prose describing work that was not done.
 
-             `sealed` gates HERE, and only here — a house that refuses to negotiate is a
+             `sealed` gates HERE, and only here — an OA that refuses to negotiate is a
              cultural fact and not a stance, and gating the dial with it pinned every
-             no-negotiation house to whatever it dropped with. */
+             no-negotiation OA to whatever it dropped with. */
           const you2 = corps.filter(c => c.id === opts.human)[0];
           if (answer && answer.deal && you2 && !sealed(you2)) {
             const d = answer.deal;
@@ -4154,12 +4313,35 @@
                   stats.audit.humanJoins = (stats.audit.humanJoins || 0) + 1;
                 } else if (verdict) stats.audit.humanRefused = (stats.audit.humanRefused || 0) + 1;
               }
-            } else if (d.kind === 'take') {
-              /* somebody comes in under YOUR banner on terms you set */
+            } else if (d.kind === 'take' || d.kind === 'accept' || d.kind === 'refuse') {
+              /* somebody comes in under YOUR banner — on terms you set ('take'), on the terms
+                 they asked ('accept'), or not at all ('refuse', which they remember if it
+                 kills them). A manager may be generous past his own arithmetic. */
               const joiner = corps.filter(c => c.id === d.corp)[0];
-              if (joiner && !joiner.joinedTo && !sealed(joiner)) {
-                const verdict = NEG.evaluateOffer(joiner, you2, d.terms || {}, nctx2);
-                stats._answerEcho = { kind: 'take', corp: d.corp,
+              const ask = (stats.asks || []).filter(a => a.joiner === d.corp && !a.answered)[0];
+              if (d.kind === 'refuse') {
+                if (ask) ask.answered = true;
+                if (joiner) {
+                  joiner._refusedBy = joiner._refusedBy || {};
+                  joiner._refusedBy[you2.id] = (joiner._refusedBy[you2.id] || 0) + 1;
+                  stats.refusals.push({ joiner: joiner.id, principal: you2.id, day: day, byPrincipal: true,
+                                        why: { reason: 'principal_refused', human: true } });
+                }
+                stats._answerEcho = { kind: 'refuse', corp: d.corp, accepted: false };
+              } else if (joiner && !joiner.joinedTo && !sealed(joiner)) {
+                const terms = d.kind === 'accept'
+                  ? (ask ? { share: ask.deal.share, credits: ask.deal.credits, standDown: ask.deal.standDown,
+                             resources: ask.deal.resources, claims: ask.deal.claims } : (d.terms || {}))
+                  : (d.terms || {});
+                nctx2.humanPrincipal = true;
+                const verdict = NEG.evaluateOffer(joiner, you2, terms, nctx2);
+                if (ask) ask.answered = true;
+                if (verdict && verdict.accepted && verdict.range) {
+                  if (verdict.range.beaten) REP.act(you2.rep, 'spared', { targetId: joiner.id });
+                  if (verdict.value >= verdict.range.joinerMin * NEG.CONST.GENEROUS_AT)
+                    REP.act(you2.rep, 'generous_terms', { targetId: joiner.id });
+                }
+                stats._answerEcho = { kind: d.kind, corp: d.corp,
                                       accepted: !!(verdict && verdict.accepted),
                                       reason: verdict && verdict.reason, note: verdict && verdict.note,
                                       value: verdict && verdict.value,
@@ -4298,6 +4480,24 @@
     }
 
     const corpIds = corps.map(c => c.id);
+
+    /* §6.3 LEFT TO DIE. An OA whose surrender was refused by a principal — an AI principal
+       at the table, or a manager who let an ask lapse — and which was then wiped, remembers
+       who did it, and so does the fleet. Once per pair, on the standing principal. */
+    {
+      const wiped = new Set((stats.fallen || []).filter(f => f.how === 'wiped').map(f => f.id));
+      const done = new Set();
+      const blame = (pid, jid) => {
+        if (!wiped.has(jid) || done.has(pid + '>' + jid)) return;
+        const p = corps.find(c => c.id === pid);
+        if (!p || !p.rep || p.disqualified) return;
+        done.add(pid + '>' + jid);
+        REP.act(p.rep, 'left_to_die', { targetId: jid });
+        stats.audit.leftToDie = (stats.audit.leftToDie || 0) + 1;
+      };
+      for (const r of (stats.refusals || [])) if (r.byPrincipal) blame(r.principal, r.joiner);
+      for (const a of (stats.asks || [])) if (!a.answered && opts.human) blame(opts.human, a.joiner);
+    }
 
     /* --- N10: captives left to the whims of their captor -------------------------------
        Anyone still held when the shooting stops. Killed, released, or kept — leaned by who
@@ -4476,6 +4676,30 @@
       pot: planet.pot.value, winnerId: stats.winner,
       deals: stats.deals, unclaimedHaul: unclaimedHaul
     });
+    /* §6.14 LEARNING INSIDE A CAREER. Every deal at the table was a promise about a take that
+       had not happened yet. Now it has: a joiner learns whether joining THAT banner paid what
+       it was promised (the take it got against the value it signed for), a principal learns
+       whether buying THAT OA's help won. Kept per pair on the season corp (`persist.dealRecord`)
+       and read into the price (`priceModifier`): an OA burned by a banner asks more of it next
+       year; one paid in full asks a little less. Private — nobody else's opinion moves. */
+    {
+      const take = stats.settlement.take || {};
+      const note = (who, other, good) => {
+        const rec = who.persist && who.persist.dealRecord; if (!rec) return;
+        const r = rec[other] = rec[other] || { good: 0, bad: 0 };
+        if (good) r.good++; else r.bad++;
+        stats.audit.lessons = (stats.audit.lessons || 0) + 1;
+      };
+      for (const dl of stats.deals) {
+        if (dl.kind !== 'share' && dl.kind !== 'flat') continue;
+        const j = corps.find(c => c.id === dl.joiner), p = corps.find(c => c.id === dl.principal);
+        if (!j || !p) continue;
+        const promised = (dl.why && dl.why.value) || 0;
+        const paid = (take[dl.joiner] || 0) + (dl.credits || 0);
+        note(j, dl.principal, promised <= 0 || paid >= NEG.CONST.DEAL_PAID_AT * promised);
+        note(p, dl.joiner, stats.winner === dl.principal);
+      }
+    }
 
     for (const pc of stats.perCorp) {
       const c = corps.find(x => x.id === pc.id);

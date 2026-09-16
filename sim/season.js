@@ -99,11 +99,11 @@
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
-    /* THE EIGHT (M8): one name per house, two teams of four seeded by standing, one fight,
+    /* THE EIGHT (M8): one name per OA, two teams of four seeded by standing, one fight,
        no retreat, no surrender, real deaths. A pot every entrant pays into, split by the
        winning side; fame to match. Declining is seen. */
     EIGHT_MONTH: 8,              // [S]
-    EIGHT_ENTRY: 10000,          // [C] what each house puts in the pot
+    EIGHT_ENTRY: 10000,          // [C] what each OA puts in the pot
     EIGHT_PURSE: 40000,          // [C] what the Aleas add to it
     EIGHT_FAME: 12,              // [C] fame for standing in it
     EIGHT_FAME_WIN: 14,          // [C] more for the winning four
@@ -129,7 +129,7 @@
        first, each depth level of a row costing INTEL_LEVEL_COST. A rival's rows decay a level
        each year and read by freshness; the planet's rows never age within a year, read by
        completeness, and reset when the next planet is announced. Payoff is preparedness at the
-       Divide: a rival sheet buys readiness against THAT house scaled by freshness; the planet
+       Divide: a rival sheet buys readiness against THAT OA scaled by freshness; the planet
        sheet buys readiness on the ground scaled by completeness. Informational-only by ruling:
        intel never reaches into resolution, only into what the manager can see and decide. */
     INTEL_PER_PIP: 2,            // [C] LEVELS one pip of focus buys
@@ -153,32 +153,50 @@
        one-pool window offered, and the year's supply stays where it was measured. */
     BASTILLE_LOT: 3,             // [S] volunteers in the wing each Bastille month (six a year, as before)
     BASTILLE_TERM: 3,            // [S] Divides to serve before the freedom clause opens
-    BASTILLE_WAGE_FRAC: 0.62,    // [H] of an open-market wage — cheaper, and that is the trade
+    /* §BASTILLE the wage, the fee and the price of remission are the Kier's, ruled in
+       recruitment.json; the 0.62 that lived here was a second discount on top of the data's,
+       and it read a stat total into a wage line on a sheet that is meant to be blind. What
+       lives here is how the OAs offer, which is the engine's business, not the paper's. */
+    BASTILLE_BUY_AT: [0.2, 0.5], // [H] need (share of the target roster still empty) at which an OA
+                                 //     buys one, then two, Divides off a volunteer's sentence
+    BASTILLE_YOUNG_BUY: 0.3,     // [H] chance an OA buys one more Divide for a young back, sight unseen
+    BASTILLE_HURT_LESS: 0.5,     // [H] chance it buys one fewer for a man who arrives carrying an injury
     MERC_LOT: 4,              // [S] professionals on the market each merc month (eight a year, as before)
     TRYOUT_LOT: 6,            // [S] Natties who turn up to trial each Natural-Born month — more of them than
                               //     mercs, cheaper, and further from what they might become
     MERC_HUNGER: 0.45,        // [H] how much harder a corp short of bodies bids
     SPONSORED_GATE: 1.12,     // [C] §QUIRKS what a marketable face is worth at the gate
-    /* §FOUNDING what a house founded at the desk opens with */
+    /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
     LEAN_TREASURY: 210000,    // [C] and the money to become something — measured against a
                               //     year: the entry, the wages, and a market worth entering
-    LEAN_GRANT: 150000,       // [C] a house nobody has heard of is not underwritten like one
+    /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
+       he founds at the desk, so its year is the year the game is tuned to, and the eight are
+       funded RELATIVE to it (`grantFor`). Measured with a careful founder — his own people from
+       the tryouts, prisoners at their sentence, a mercenary only to fill the last slot — a
+       grant of 150k cleared +₡100k a year before he fought and tripled his bank in three years.
+       At 90k, liked at home and unknown to the fleet, he runs ₡5k down in his first year, level
+       in his second, ₡8k up in his third before any fighting, the crowd doing the growing
+       (₡51k → ₡71k at the door): tight early, more choices as he grows. The kit pass to come
+       will eat into that first year; it is measured then, not guessed now. */
+    LEAN_GRANT: 90000,        // [C] an OA nobody has heard of is not underwritten like one
                               //     that has been paying out for a century
+    GRANT_PER_DIFFICULTY: 0.25, // [C] an established OA's grant is LEAN_GRANT × (2 − this × its
+                              //     difficulty rating): a 1 gets ₡158k a year, a 5 gets ₡68k
     LEAN_PIECES: 18,          // [C] guns and plate enough to put one drop on the ground badly
     /* §SPONSORS the appetite for a backer, and what tempers it */
-    /* NOT EVERY HOUSE IS IN THE MARKET IN JANUARY. At 0.30 every house courted from month
-       one, so they all crossed the bar together whatever else was tuned. A house courts when
+    /* NOT EVERY OA IS IN THE MARKET IN JANUARY. At 0.30 every OA courted from month
+       one, so they all crossed the bar together whatever else was tuned. An OA courts when
        a backer starts to matter to it, and a purse thins as a year's wages are paid — so the
        hungry are in early and the comfortable arrive later, if at all. */
-    COURT_APPETITE_BASE: 0.10,   // [C] a house with money and pride may never court at all
+    COURT_APPETITE_BASE: 0.10,   // [C] an OA with money and pride may never court at all
     COURT_APPETITE_NEED: 0.55,   // [C] and a thin purse makes it urgent
-    COURT_APPETITE_THRIFT: 0.25, // [C] a careful house courts rather than spends
+    COURT_APPETITE_THRIFT: 0.25, // [C] a careful OA courts rather than spends
     COURT_APPETITE_PRIDE: 0.30,  // [C] a showy one would rather not be seen asking
     COURT_APPETITE_HELD: 0.22,   // [C] off the appetite per backer already signed
     COURT_COMFORTABLE: 300000,   // [C] the purse above which nobody is hungry
-    /* §LOYALTY what a hand's regard for the house is worth at the table */
+    /* §LOYALTY what a hand's regard for the OA is worth at the table */
     SCAR_STRESS: [14, 52],       // [C] §FOUNDING what a year on the ground leaves on a hand.
                                  //     Was 4..34, which left almost everybody in the settled
                                  //     end of the scale and gave the calm side of rest as
@@ -188,7 +206,7 @@
     QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
     MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
     YOUNG_AT: 26,             // [C] who counts as young for that
-    MARKET_SWING: 0.25,       // [C] §MARKET the most a house's name moves what it is asked for
+    MARKET_SWING: 0.25,       // [C] §MARKET the most an OA's name moves what it is asked for
     MARKET_FLEET_SHARE: 0.4,  // [C] how much the fleet's regard counts beside its own people's
     /* the two pools of a window */
     POOL_PREMIUM:  { potential: 1.08, salary: 1.25, age: -2 },   // [C] the Natural-Born premium month
@@ -240,7 +258,7 @@
 
        It is now derived per corp from `difficulty`, which already encodes exactly this and is
        already read by the board's expectations: 1 is Violets Enterprise, richest in the fleet,
-       and 5 is Verdant Cradle, poorest. A stronger house opens with more people. Nobody opens
+       and 5 is Verdant Cradle, poorest. A stronger OA opens with more people. Nobody opens
        with enough — the ceiling is two short of a full drop force, so the first year is a real
        question about how many to add, who, and what is left for gear once you have.
 
@@ -298,7 +316,7 @@
        Divides, because the lock sorted on quality alone and they sit a little under
        the market. This is the weight of an unserved clause at the lock. */
     LOCK_TERM_W: 0.5,
-    HAGGLE_LOYALTY: 0.45,        // [C] §PAPER how far regard for the house bends a low offer
+    HAGGLE_LOYALTY: 0.45,        // [C] §PAPER how far regard for the OA bends a low offer
     OVER_ASK_LOYALTY: 18,        // [C] and what paying over the ask is remembered as
     HAGGLE_FLOOR: 0.85,       // [C] §RESIGN what a manager's low offer defaults to, of the ask
     HAGGLE_WALK: 2.2,         // [C] and how readily a fighter offered under it walks
@@ -323,7 +341,7 @@
 
   /* ------------------------------------------------------------------ the Corp */
 
-  /** How many people a house opens with, from how hard it is to run. Exported so the suite can
+  /** How many people an OA opens with, from how hard it is to run. Exported so the suite can
       check the spread rather than trusting the arithmetic here. */
   function foundingRoster(profile) {
     const d = (profile && profile.difficulty) || 3;
@@ -337,17 +355,73 @@
     for (const id of Object.keys(stock)) { if (left <= 0) break; out[id] = 1; left--; }
     return out;
   }
+  /** §MONEY what an established OA's board gives it a year, derived from the founder's grant
+      and the OA's difficulty rating (1 rich and liked, 5 poor and thin). The profiles carried
+      eight hand-written `funding_base` figures, sized against a wage bill that was read off a
+      broken instrument; they are gone. */
+  function grantFor(profile) {
+    const d = (profile && profile.difficulty) || 3;
+    return Math.round(CONST.LEAN_GRANT * (2 - CONST.GRANT_PER_DIFFICULTY * d) / 1000) * 1000;
+  }
+
+  /** §FOUNDING THE BLANK SLATE — the OA a manager founds at the desk, and the only one he
+      can play. The numeric average of the fleet leaf by leaf (numbers averaged, strings by
+      majority, race weights uniform, no relationships carried in), with two rulings on top:
+      it is LIKED AT HOME AND UNKNOWN TO THE FLEET. Its own people's standing comes from its
+      dials, as any undeclared OA's does; the wider fleet has no opinion yet (0), so the gate
+      is something a founder builds by fighting rather than inherits by being average. (The
+      average carried the eight's reputations with it, and an OA with no history took ₡93k a
+      year at the door before it had done anything.) Opening at zero on EVERY audience was tried
+      once and read as "your own crew hates you"; that is why home is kept warm. */
+  function founderProfile(profiles, name) {
+    const avg = vals => {
+      const nums = vals.filter(v => typeof v === 'number' && isFinite(v));
+      if (nums.length === vals.length && nums.length)
+        return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 1000) / 1000;
+      if (vals.every(v => typeof v === 'object' && v && !Array.isArray(v))) {
+        const keys = {}, out = {};
+        vals.forEach(v => Object.keys(v).forEach(k => { keys[k] = 1; }));
+        Object.keys(keys).forEach(k => { out[k] = avg(vals.filter(v => k in v).map(v => v[k])); });
+        return out;
+      }
+      const tally = {};
+      vals.forEach(v => { const k = JSON.stringify(v); tally[k] = (tally[k] || 0) + 1; });
+      const best = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+      return best !== undefined ? JSON.parse(best) : null;
+    };
+    const p = {};
+    ['dials', 'engagement_lean', 'finance', 'reputation', 'sponsor_style', 'difficulty', 'holds']
+      .forEach(k => { p[k] = avg(profiles.map(o => o[k])); });
+    const races = {};
+    profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
+    p.race_weights = {};
+    Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
+    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0 });
+    delete p.reputation.own;                  /* read from the dials: liked at home */
+    p.id = 'custom_house';
+    p.name = name || 'The Founded OA';
+    p.tag = 'The Founder';
+    p.motto = 'Unwritten.';
+    p.archetype = 'founder';
+    p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
+    p.no_negotiation = false;
+    p.relationships = [];
+    p.canon_status = 'player-founded';
+    p.founding = 'lean';
+    return p;
+  }
+
   function openFleet(rng, profiles, opts) {
     opts = opts || {};
     const corps = {};
     for (const profile of profiles) {
       const doc = ITEMS.doctrineForCorp(profile.id);
-      /* §FOUNDING A HOUSE FOUNDED BY A MANAGER STARTS WITH NOTHING BUT MONEY AND A FEW OLD
-         HANDS. The eight are old houses and open like old houses — twenty-one under contract,
+      /* §FOUNDING A OA FOUNDED BY A MANAGER STARTS WITH NOTHING BUT MONEY AND A FEW OLD
+         HANDS. The eight are old OAs and open like old OAs — twenty-one under contract,
          an armoury of thirty-nine lines, six hundred thousand between treasury and grant. A
          manager handed all of that has nothing left to decide: the roster is built, the guns
          are bought, and the first year is spent managing somebody else's choices. A founded
-         house opens with a skeleton crew whose paper is nearly up, guns enough to arm one
+         OA opens with a skeleton crew whose paper is nearly up, guns enough to arm one
          drop badly, and the money to make it into whatever it is going to be. */
       const lean = profile.founding === 'lean';
       const size = opts.rosterSize || (lean ? CONST.LEAN_ROSTER : foundingRoster(profile));
@@ -360,7 +434,7 @@
         left -= n;
       }
       for (const f of roster) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
-      /* the crew a founder inherits is at the end of its paper: nobody signed on for a house
+      /* the crew a founder inherits is at the end of its paper: nobody signed on for an OA
          that did not exist last year, and none of them are mercenaries — that market opens at
          the year's end, which is the first real choice a founder makes */
       if (lean) for (const f of roster) {
@@ -371,7 +445,8 @@
         roster: roster,
         armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
                       : ITEMS.foundingArmoury(doc.id, size, {}).stock,
-        account: LED.open(profile, lean ? { treasury: CONST.LEAN_TREASURY, grant: CONST.LEAN_GRANT } : {}),
+        account: LED.open(profile, lean ? { treasury: CONST.LEAN_TREASURY, grant: CONST.LEAN_GRANT }
+                                        : { grant: grantFor(profile) }),
         rep: REP.open(profile, profiles, { season: 1 }),
         doctrineId: doc.id,
         season: 0,
@@ -379,9 +454,9 @@
         history: []
       };
     }
-    /* §FOUNDING THE HANDS CARRY THE LOCKER. A house opened with people and a rack of kit and
+    /* §FOUNDING THE HANDS CARRY THE LOCKER. An OA opened with people and a rack of kit and
        no connection between them — every fighter walked around unequipped until a quartermaster
-       ran at the drop, which for a founded house meant seven veterans of last year's Divide
+       ran at the drop, which for a founded OA meant seven veterans of last year's Divide
        standing about with nothing on them. They are issued from what is on the shelf, best
        first, and what they take comes off it. */
     for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
@@ -664,15 +739,15 @@
   }
 
   /* ------------------------------------------------------------------------ THE EIGHT ---- */
-  /** who a house would send: its best standing body, by what the crowd and the fight both read */
+  /** who an OA would send: its best standing body, by what the crowd and the fight both read */
   function eightPick(corp) {
     const fit = corp.roster.filter(f => f.status === 'active' && !f._role && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
     const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
     return fit.slice().sort((a, b) => score(b) - score(a))[0];
   }
-  /** a manager names a fighter — a choice for the month's end. RULED: every house sends
-      someone; there is no declining. Unnamed, the house's best goes. */
+  /** a manager names a fighter — a choice for the month's end. RULED: every OA sends
+      someone; there is no declining. Unnamed, the OA's best goes. */
   function nameForEight(state, corpId, fighterId) {
     state.eight = state.eight || { names: {} };
     const c = state.corps[corpId], f = c && c.roster.find(x => x.id === fighterId && x.status === 'active' && !x._role);
@@ -681,14 +756,14 @@
   }
   function runEight(rng, corps, ids, season, state) {
     const E = state.eight = state.eight || { names: {} };
-    /* every house sends someone; unnamed, its best goes */
+    /* every OA sends someone; unnamed, its best goes */
     const entrants = [];
     for (const id of ids) {
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
       if (!f) f = eightPick(corps[id]);
       if (f) entrants.push({ corp: corps[id], f });
     }
-    if (entrants.length < 4) { E.result = { held: false, why: 'Too Few Houses Entered' }; return E.result; }
+    if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
     entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'fleet') : 0) - (a.corp.rep ? REP.standing(a.corp.rep, 'fleet') : 0));
     const n = entrants.length, A = [], B = [];
@@ -764,9 +839,9 @@
 
   /** What one fighter thinks of one offer. Higher is better; below zero they would rather not. */
   function weighOffer(f, corp, offer, best, state) {
-    /* §GRUDGE A MAN WILL NOT SIGN FOR THE HOUSE HE REMEMBERS. `refuses_grudged_corps` is the
+    /* §GRUDGE A MAN WILL NOT SIGN FOR THE OA HE REMEMBERS. `refuses_grudged_corps` is the
        third of Grudge Holder's hooks and the only one a manager meets across a table: whatever
-       is on offer, this name comes off that house's sheet. No ledger — one remembered house,
+       is on offer, this name comes off that OA's sheet. No ledger — one remembered OA,
        set when they tried to buy him. */
     if (f._grudge && corp.id === f._grudge && state && EVENTS.fighterHas(state, f, 'refuses_grudged_corps'))
       return -1;
@@ -797,7 +872,7 @@
    * A lot is now opened at the START of its window and hangs on the season, so every month of
    * the run-up shows the same faces, and an offer is made against a NAMED fighter.
    */
-  /* a lot never offers a house a name it already has aboard: the book of names the draw keeps
+  /* a lot never offers an OA a name it already has aboard: the book of names the draw keeps
      starts with the roster's own */
   function openLot(rng, kind, corpId, pool, corp) {
     const spec = {
@@ -822,9 +897,9 @@
   }
 
   /** What one fighter is asking for a year, before anybody bids. */
-  /** §MARKET WHAT A HOUSE IS ASKED FOR. A fighter signs with a house, not with a treasury:
+  /** §MARKET WHAT A OA IS ASKED FOR. A fighter signs with an OA, not with a treasury:
       one everybody wants to fight for is signed for less, and one nobody will work for has to
-      pay a premium. The house's standing with its own people is the discount, the fleet's
+      pay a premium. The OA's standing with its own people is the discount, the fleet's
       regard the rest of it. */
   function askingPrice(f, corp) {
     const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
@@ -854,8 +929,8 @@
     for (const f of lot) {
       /* --- who bids --- */
       const offers = [];
-      /* an open market: the fighter's flat ask is the reserve, and each house's own name moves
-         what THAT house must offer */
+      /* an open market: the fighter's flat ask is the reserve, and each OA's own name moves
+         what THAT OA must offer */
       const ask = askingPrice(f, null);
       for (const id of ids) {
         const c = corps[id];
@@ -921,7 +996,7 @@
   function runTryouts(rng, corps, ids, lots, tally, bids, human) {
     /* Natties sign FLAT: the listed salary for the listed years, the pension for the
        family, the Divide bonus on top — no premium, because there is no other bidder.
-       The manager marks who they want from their own sheet; every other house signs from
+       The manager marks who they want from their own sheet; every other OA signs from
        its own by the same budget test the Bastille uses, best ceiling first, capped at
        two a year (a provisional dial until a roster-target ruling exists). */
     for (const id of ids) {
@@ -935,7 +1010,7 @@
          AND THE DEPTH IS NEED-DRIVEN, ruled by measurement: probe_years.cjs played six
          fleet-years and found rosters troughing to twelve against a drop floor of sixteen,
          because the shared markets are scarcity-capped while departures are not. The
-         tryouts are the one supply a corp owns outright — its own ship — so a house bled
+         tryouts are the one supply a corp owns outright — its own ship — so an OA bled
          below the floor calls up more of its own, to two above the floor, budget willing. */
       const aliveNow = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
       const shortfall = Math.max(0, (CONST.DROP_MIN + 2) - aliveNow);
@@ -944,9 +1019,9 @@
       if (corp._nattieYear.season !== (tally.season || null)) corp._nattieYear = { season: tally.season || null, signed: 0 };
       const depth = Math.max(0, CONST.NATTIE_YEAR_CAP + shortfall - corp._nattieYear.signed);
       /* §TRYOUTS A MANAGER WHO MARKED NOBODY WANTED NOBODY. The fall-through here is the AI's
-         appetite: a house below the drop floor calls up its own ship to fill out, which is
-         right for the seven houses nobody is running. THE MANAGER'S OWN CORP FELL THROUGH IT
-         TOO. A founded house opens eleven under the floor, so ending the Natural-Born month
+         appetite: an OA below the drop floor calls up its own ship to fill out, which is
+         right for the seven OAs nobody is running. THE MANAGER'S OWN CORP FELL THROUGH IT
+         TOO. A founded OA opens eleven under the floor, so ending the Natural-Born month
          without marking anyone signed the ENTIRE SHEET on his behalf and billed him for it.
          The manager's sheet is his; an empty mark means an empty month. */
       const want = marked
@@ -988,64 +1063,104 @@
    * not re-armed, and `resignFreed` already decides whether you stay. What the fighter controls
    * is the exit, not the entrance.
    */
-  function bastilleIntake(rng, corps, ids, season, tally, openedLot) {
+  function bastilleIntake(rng, corps, ids, season, tally, openedLot, bids, state) {
     /* the lot is opened with the window now, so it can be walked before the intake day */
     const lot = openedLot && openedLot.length ? openedLot
               : ROSTER.generateSquad(rng, CONST.BASTILLE_LOT,
                                      { corpId: null, poolMix: [['prisoner', 1]] }).bodies;
     tally.lot += lot.length;
-    /* the shortest rosters get first refusal — a corp that can field is not desperate enough to
-       be at the Bastille, and this is the market of last resort by design */
-    /* A corp that WORKED THE BASTILLE WINDOW jumps the queue by as many places as the months it
-       put in — it has already walked the wing and knows which of them it wants. Effective
-       roster size is what sorts, so the work reads as being hungrier than you are. */
-    /* SORTED PER FIGHTER, NOT ONCE. This was computed once before the lot and then reused for
-       every body in it, so the single shortest roster was first in the queue for all six and
-       took all six — one corp hoovered the entire intake and every other corp, including the
-       player's, got nothing whatever it did. "The shortest rosters get first refusal" is a rule
-       about who is hungriest AT THAT MOMENT, and signing somebody makes you less hungry. */
-    const queue = () => ids.slice().sort((a, b) => {
-      const n = c => corps[c].roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
-      return n(a) - n(b);
-    });
+    bids = bids || {};
+    tally.results = [];          /* this month's placements; the counts above are the year's */
+    /* §BASTILLE OAs COMPETE ON THE WAY OUT. The intake allotted a volunteer to whoever was
+       shortest of people, so a good gamble cost what a bad one did. It was then rebuilt as an
+       AUCTION — OAs bidding credits, the highest taking the man — and struck again by
+       ruling: that had been struck once already at T4, and a lot of people bid for with
+       credits is chattel whatever the paper says. What OAs compete on now is HIS road out.
+       Each OA that wants him offers a term: the sentence as written, or release after
+       fewer Divides, and every Divide it forgives it buys from the Kier at
+       `remission_per_divide`. He takes the shortest road; between equal roads, the OA
+       whose people come home (`weighOffer`, money held constant). The Kier's flat processing
+       fee is paid by whoever takes him. Nobody is bought. THE OAs OFFER ON WHAT THE SHEET
+       SHOWS — need, a young back, an injury, a gut feeling; nothing in an AI offer reads a
+       stat, a ceiling or a trait, and `audit_bastille.cjs` fails if the Divides they buy come
+       out correlated with what they could not see. */
+    const pool = ROSTER.generator.rec.pools.prisoner;
+    const alive = c => c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
+    const wageYear = f => ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
     for (const f of lot) {
-      /* §BASTILLE A HOUSE MAY ASK FOR A BODY. The intake allotted prisoners purely by who was
-         shortest of people, so the sheet stood on the Roster with no way to take anybody off
-         it — a manager read six names and could do nothing. A house that has claimed somebody
-         is first in the queue for them; the rest are allotted as they always were. */
-      const order = queue();
-      const claimed = order.filter(id => ((corps[id]._bastilleClaims || {})[f.id]));
-      let taken = null;
-      for (const id of claimed.concat(order.filter(id => claimed.indexOf(id) < 0))) {
+      const sentence = (f.contract && f.contract.sentence) || (f.contract && f.contract.divides_required) || CONST.BASTILLE_TERM;
+      const fee = (f.contract && f.contract.signing_cost) || 0;
+      const costOf = term => fee + pool.remission_per_divide * (sentence - term);
+      const offers = [];
+      for (const id of ids) {
         const c = corps[id];
-        const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
-        if (alive.length >= CONST.ROSTER_TARGET) continue;
-        const spare = c.account.treasury + c.account.grant - LED.CONST.ALEAS_ENTRY
-                    - LED.wageBill(alive) - LED.CONST.RESERVE_FLOOR;
-        const salary = Math.round(((f.contract && f.contract.salary) || 0) * CONST.BASTILLE_WAGE_FRAC);
-        const year = salary * LED.CONST.SALARY_MONTHS;
-        if (Math.max(0, spare * CONST.SIGNING_SHARE) < year) continue;
-        f.contract = f.contract || {};
-        f.contract.salary = salary;                       /* cheaper, and that is the trade */
-        /* the clause was sampled per contract at generation (canon: freedom_divides_weights);
-           the intake used to flatten every lot to the same term, erasing the variance the
-           lot sheet is priced on. It now respects what the paper says. */
-        f.contract.divides_required = f.contract.divides_required || CONST.BASTILLE_TERM;
-        f.contract.divides_served = 0;
-        /* STATUS IS A BODY'S STATE; the prison term is the CONTRACT'S. Signing with
-           status 'prisoner' meant the squads' active-filter never fielded a single one:
-           the Bastille's people were dropped, equipped, and served out their clauses as
-           phantoms who never stood in a fight. They stand now. */
-        f.status = 'active';
-        f.divides = 0; f.seasonsHere = 0; f.retired = false;
-        f._fameAtSigning = f.fame || 0;
-        c.roster.push(f);
-        LED.post(c.account, 'expense', 'Bastille intake',
-                 -((f.contract && f.contract.signing_cost) || 0));
-        taken = c; tally.signed++;
-        break;
+        const roster = alive(c);
+        /* the same free-cash expression the markets use, less the year of Kier wages the man
+           would add — an OA offers with what is left after it can afford to keep him */
+        const budget = signingBudget(c) - wageYear(f);
+        const named = bids[id] && bids[id][f.id];
+        if (named != null) {
+          /* A HUMAN'S NAMED TERM is honoured as given if it is a legal term and the money for
+             the fee and the remission exists; the Kier does not release a man for nothing */
+          const term = Math.round(named);
+          if (term >= 1 && term <= sentence && budget >= costOf(term))
+            offers.push({ corp: c, term: term, human: true });
+          else if (term > 0) tally.unaffordable++;
+          continue;
+        }
+        if (roster.length >= CONST.ROSTER_TARGET) continue;        /* full, not interested */
+        if (budget < costOf(sentence)) continue;                    /* cannot cover the year */
+        const hunger = (CONST.ROSTER_TARGET - roster.length) / CONST.ROSTER_TARGET;
+        const race = ROSTER.raceById[f.race];
+        const young = race && f.age <= race.age.prime[0] + 4;
+        const hurt = !!((f.condition || {}).injuries || []).length;
+        let buy = 0;
+        /* A MANAGER'S MONEY IS NOT SPENT FOR HIM. His OA is in the room like the others
+           (the merc market bids his ask for him too), but it offers the sentence as written;
+           remission is a decision, and it is his to make on the card. */
+        const human = state && state.opts && state.opts.human === id;
+        if (!human && hunger >= CONST.BASTILLE_BUY_AT[0]) buy++;
+        if (!human && hunger >= CONST.BASTILLE_BUY_AT[1]) buy++;
+        if (!human && young && rng() < CONST.BASTILLE_YOUNG_BUY) buy++;
+        if (!human && hurt && rng() < CONST.BASTILLE_HURT_LESS) buy--;
+        let term = Math.max(1, sentence - Math.max(0, buy));
+        while (term < sentence && budget < costOf(term)) term++;   /* buys what it can afford */
+        offers.push({ corp: c, term: term });
       }
-      if (!taken) tally.unplaced++;
+      if (!offers.length) { tally.unplaced++; continue; }
+      tally.bids += offers.length;
+      /* HE CHOOSES: the shortest road out, and between equal roads the OA whose people
+         come home. An OA he holds a grudge against is off his list at any term. */
+      const scored = offers.map(o => ({ o: o, w: weighOffer(f, o.corp, 1, 1, state) }))
+                           .filter(x => x.w >= 0);
+      if (!scored.length) { tally.refused++; continue; }
+      scored.sort((a, b) => a.o.term - b.o.term || b.w - a.w);
+      const win = scored[0].o, c = win.corp;
+      f.contract = f.contract || {};
+      f.contract.sentence = sentence;
+      f.contract.divides_required = win.term;
+      f.contract.divides_served = 0;
+      /* STATUS IS A BODY'S STATE; the prison term is the CONTRACT'S. Signing with
+         status 'prisoner' meant the squads' active-filter never fielded a single one:
+         the Bastille's people were dropped, equipped, and served out their clauses as
+         phantoms who never stood in a fight. They stand now. */
+      f.status = 'active';
+      f.divides = 0; f.seasonsHere = 0; f.retired = false;
+      f._fameAtSigning = f.fame || 0;
+      c.roster.push(f);
+      LED.post(c.account, 'expense', 'Kier processing', -fee);
+      const bought = sentence - win.term;
+      if (bought > 0) {
+        LED.post(c.account, 'expense', 'Kier remission', -(pool.remission_per_divide * (sentence - win.term)));
+        tally.remission += bought;
+      }
+      tally.signed++;
+      /* who took him and on what terms — so a manager can be TOLD a shorter road was offered
+         than his, rather than watching a name fail to appear */
+      tally.results.push({
+        fighterId: f.id, name: f.name, to: c.id, term: win.term, sentence: sentence,
+        offers: offers.map(o => ({ corp: o.corp.id, term: o.term }))
+      });
     }
   }
 
@@ -1130,9 +1245,9 @@
       ['train', green.length * 0.5],
       ['scout', interest == null ? 0.5 : interest - CONST.SCOUT_APATHY],
       /* §SPONSORS HOW BADLY A HOUSE WANTS A BACKER IS A MATTER OF CHARACTER. This was a flat
-         0.55 for every house in the fleet, so all eight courted with the same weight from the
+         0.55 for every OA in the fleet, so all eight courted with the same weight from the
          same month and crossed the benchmark in the same month — four suppliers signing at
-         once, which reads as a formality rather than a race. A house that is short of money
+         once, which reads as a formality rather than a race. An OA that is short of money
          wants a backer badly; a thrifty one can wait; a proud one would rather not be seen
          asking. */
       ['court', courtAppetite(corp)]
@@ -1142,9 +1257,9 @@
     for (const [kind, w] of weights) {
       if (!left) break;
       /* §SPONSORS HOW MUCH, NOT ONLY WHETHER. Every track took the whole cap it could, so
-         every house that courted at all courted with the same three focus and reached the
+         every OA that courted at all courted with the same three focus and reached the
          benchmark in the same month. Courting takes what its appetite is worth — a hungry
-         house throws the cap at it, a lukewarm one puts a point in and waits. */
+         OA throws the cap at it, a lukewarm one puts a point in and waits. */
       const cap = kind === 'court'
         ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP)))
         : CONST.FOCUS_CAP;
@@ -1174,13 +1289,13 @@
    * left, because a verb you cannot afford this second is still a verb that exists.
    */
   /* §SPONSORS what a backer is worth to THIS house, this year: the thinner the purse the more
-     it matters, tempered by what the house thinks of itself. */
+     it matters, tempered by what the OA thinks of itself. */
   function courtAppetite(corp) {
     const d = (corp.profile && corp.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     const held = ((corp.sponsors || {}).contracts || []).length;
     const purse = (corp.account && corp.account.treasury) || 0;
-    /* a house with money in the bank is not hungry for an advance */
+    /* an OA with money in the bank is not hungry for an advance */
     const need = Math.max(0, 1 - purse / CONST.COURT_COMFORTABLE);
     return (CONST.COURT_APPETITE_BASE
             + need * CONST.COURT_APPETITE_NEED
@@ -1261,8 +1376,8 @@
         if (focus[k]) focus._boost[k] = true;
     }
     if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
-    /* courting's per-house map is a rider like trainTarget — carried through so the player's
-       painted houses reach the spend, and clamped to nothing exotic (it is read as data). */
+    /* courting's per-OA map is a rider like trainTarget — carried through so the player's
+       painted OAs reach the spend, and clamped to nothing exotic (it is read as data). */
     if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
       focus.courtTarget = wanted.courtTarget;
     return focus;
@@ -1318,7 +1433,7 @@
           const them = CORPS[p.oaId];
           gatherIntel(corp, 'rival', p.oaId, p.levels || 0, absMonth,
                       (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
-          /* §QUIET A SCOUT DEEP IN THEIR BOOKS may turn up what a house would rather nobody
+          /* §QUIET A SCOUT DEEP IN THEIR BOOKS may turn up what an OA would rather nobody
              knew. The row they were sent for lands either way — the dirt is a bonus, not a
              substitute — and only a dossier read nearly to the bottom is deep enough. */
           if (ILLICIT && STATE_REF) {
@@ -1413,7 +1528,7 @@
     return Math.max(0, 1 - yearsOld / CONST.INTEL_DECAY_YEARS);
   }
 
-  /* the preparedness a RIVAL sheet buys against that house: depth × freshness, averaged over
+  /* the preparedness a RIVAL sheet buys against that OA: depth × freshness, averaged over
      the rows, scaled to the cap. A blank or wholly-stale sheet buys nothing. */
   /** how full a rival's dossier is, 0 to 1, ignoring freshness: what a scout has read of
       their books, which is what decides whether the scout is deep enough to find the dirt */
@@ -1875,7 +1990,7 @@
         void intelNow;
       } else if (a.kind === 'court') {
         /* COURT SPONSORS. Focus is painted PER HOUSE, `courtTarget = { <houseId>:pips }`, and
-           each painted house is courted NOW — the effort accumulates on the corp toward the
+           each painted OA is courted NOW — the effort accumulates on the corp toward the
            lock, where each sponsor signs the highest-standing courter. No delay: courting is a
            relationship built across the year, read at its end. The map rides `focus` (the AI's
            chooser and the player's validated allocation both put it there), so one path. */
@@ -2040,7 +2155,7 @@
   /* §LOYALTY WHAT A HAND ASKS FOR DEPENDS ON WHETHER HE WANTS TO STAY. `f.loyalty` was carried
      on every fighter and read in three places, none of which a manager could see — a small term
      in one combat roll, and a captain's average. So the number existed, the traits that moved
-     it existed, and nothing anywhere turned it into a decision. A hand who likes the house asks
+     it existed, and nothing anywhere turned it into a decision. A hand who likes the OA asks
      for less to stay; one who does not asks for more, and asks for a lot more if he is only
      here for the wage. This is where `loyalty_cap_reduced` becomes a consequence rather than a
      system: a fighter who can never be fully loyal simply never reaches the discount. */
@@ -2074,7 +2189,7 @@
      an argument and a manager never had to decide whether a veteran was worth what he now asks.
      A manager answers his own paper in the Review; the fleet still answers its own. */
   /* the years a hand's paper would run if it were signed today, from the ruled range for his
-     kind; the low end, because a renewal is the shortest paper a house can get him to sign */
+     kind; the low end, because a renewal is the shortest paper an OA can get him to sign */
   function renewalTerm(f) {
     const kind = (f.contract || {}).kind || 'nattie';
     const range = ROSTER.seasonsRange && ROSTER.seasonsRange(kind);
@@ -2153,7 +2268,7 @@
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
           const asked = renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
-          /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE HOUSE. The further
+          /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE OA. The further
              under his ask, the likelier he walks — and a hand who likes it here will swallow a
              cut that one who does not would walk over. Loyalty runs 0..100 about an indifferent
              50, so it widens or narrows the same slope rather than replacing it. */
@@ -2162,7 +2277,7 @@
           if (call.how === 'haggle' && rng() < under * CONST.HAGGLE_WALK * Math.max(0.2, regard)) {
             gone.push(f); out.walked++; headroom--; continue;
           }
-          /* AND A HOUSE THAT PAYS OVER THE ASK IS REMEMBERED FOR IT. Nothing a manager could do
+          /* AND A OA THAT PAYS OVER THE ASK IS REMEMBERED FOR IT. Nothing a manager could do
              at this table ever moved a man's regard for him; being paid more than he asked is
              the plainest thing that would. */
           if (paying > asked) {
@@ -2241,13 +2356,13 @@
    *
    * The ruling names three, and a corp picks by culture:
    *
-   *   `fittest`   send the best available and worry about it later. Aggressive houses.
+   *   `fittest`   send the best available and worry about it later. Aggressive OAs.
    *   `rested`    leave anybody carrying a wound at home even when they could be dragged out,
-   *               and field a thinner, healthier force. Preservationist houses — and this only
+   *               and field a thinner, healthier force. Preservationist OAs — and this only
    *               became a real choice when the prep calendar stopped healing everybody to full
    *               (§3b), because before it there was never anybody hurt to rest.
    *   `prospect`  give a green fighter with a high ceiling the ground time they need to reach
-   *               it, ahead of a safer veteran. Houses that build rather than buy.
+   *               it, ahead of a safer veteran. OAs that build rather than buy.
    */
   function lockLean(corp) {
     const d = (corp.profile && corp.profile.dials) || {};
@@ -2545,20 +2660,19 @@
 
     const state = {
       rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
-      lots: {}, bids: { tryouts: {}, mercs: {} },
+      lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
       /* the seam: everything decided at M11 that the Divide will read */
       drop: { sectors: {}, pacts: {}, media: {} },
       dividend: { matches: 0, fought: 0, purses: 0, conversions: 0, draws: 0 },
       mercs: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
       tryouts: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
-      bastille: { lot: 0, signed: 0, unplaced: 0 },
+      bastille: { lot: 0, bids: 0, signed: 0, unplaced: 0, refused: 0, unaffordable: 0, remission: 0 },
       /* the year's sponsor board — one commitment per house, cost falls as it fills (Courting) */
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     if (ILLICIT) ILLICIT.clearYear(state);
-    for (const id of ids) delete corps[id]._bastilleClaims;
     for (const id of ids) delete corps[id]._eightDead;
     return state;
   }
@@ -2640,12 +2754,20 @@
   function apparentOnly(rec, f) {
     delete rec.stats; delete rec.potential; delete rec.traits;
     delete rec.record;          /* the service record is the very thing a prisoner has not got */
+    /* THE PRICE WAS THE SHEET. `ask` is the open-market wage, and that wage is a function of
+       the man's numbers (r = 0.92 against his stat total, measured) — so a blind sheet with an
+       ask on it was not blind. What the Kier shows is its own scale: the wage it pays every
+       volunteer, its processing fee, and what a Divide of remission costs. None reads him. */
+    delete rec.ask;
     rec.hidden = true;
-    /* what an auctioneer could not hide: the man is standing in front of you */
+    rec.fee = (f.contract && f.contract.signing_cost) || 0;
+    rec.sentence = (f.contract && (f.contract.sentence || f.contract.divides_required)) || 0;
+    rec.remission = ROSTER.generator.rec.pools.prisoner.remission_per_divide;
+    rec.wage = ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
+    /* what the Kier could not hide: the man is standing in front of you */
     rec.build = (f.race || '').replace('_', '-');
     rec.hurt = !!((f.condition || {}).injuries || []).length ||
                ((f.condition || {}).health != null && f.condition.health < 100);
-    rec.sentence = (f.contract && f.contract.sentence_remaining) || null;
     return rec;
   }
   function lotAt(state, corpId, kind, lot) {
@@ -2673,7 +2795,8 @@
   function placeBid(state, corpId, fighterId, amount) {
     const kind = (MONTHS[state.month] || {}).signing;
     if (!kind || !state.lots[kind]) return false;
-    if (kind === 'bastille') return false;      /* a prisoner's place is not negotiated */
+    /* §BASTILLE at the Kier the amount is a TERM — the Divides after which the OA would
+       release him — and it is the man who weighs it, in the intake */
     state.bids[kind] = state.bids[kind] || {};
     state.bids[kind][corpId] = state.bids[kind][corpId] || {};
     if (amount > 0) state.bids[kind][corpId][fighterId] = Math.round(amount);
@@ -2685,7 +2808,7 @@
      nobody else is bidding on it — and it still made a manager mark somebody, wait for the
      month to turn, and find out then whether he had a fighter. There is no auction to wait
      for: the paper is drawn, the money is committed and the hand is on the roster the moment
-     it is signed. (The mercenary market keeps its bidding: seven houses are bidding there and
+     it is signed. (The mercenary market keeps its bidding: seven OAs are bidding there and
      the fighter chooses.) */
   function signNow(state, corpId, fighterId) {
     const kind = (MONTHS[state.month] || {}).signing;
@@ -2749,20 +2872,20 @@
 
   /* ------------------------------------------------------------------------ THE DRAFT ---- */
   /** The 24 slots are drafted at the lock, strictly lowest standing first, three rounds. A
-      house picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
+      OA picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
       draftAdvance walks the AI turns until it is a human's turn or the draft is done. Every
       pick is public. */
-  /* §DRAFT A HOUSE DRAFTS ONE LANDING FOR EACH SQUAD IT FIELDS. The draft was three picks
-     apiece, which matched what every house happened to field — three squads of eight — and
-     matched NOTHING about the rule, which allows six. A house that split into six squads got
+  /* §DRAFT A OA DRAFTS ONE LANDING FOR EACH SQUAD IT FIELDS. The draft was three picks
+     apiece, which matched what every OA happened to field — three squads of eight — and
+     matched NOTHING about the rule, which allows six. An OA that split into six squads got
      three landings and the engine quietly stacked the other three onto the last one, so
      splitting was punished by a coincidence nobody had noticed. Rounds run to the largest
-     count in the fleet, and a house with fewer simply has no pick in the later rounds. The
+     count in the fleet, and an OA with fewer simply has no pick in the later rounds. The
      ring grows with the fleet's appetite so there is always ground to come down on. */
   /* THE GROUND DOES NOT SHRINK TO FIT THE FLEET. The ring grew with what the fleet meant to
-     field, which made the map a function of the houses on it; the planet has the landings it
+     field, which made the map a function of the OAs on it; the planet has the landings it
      has (`PRE.CONST.SLOTS`), and a light fleet simply leaves most of them unclaimed. Ground
-     going unused is the point — a house that scouted knows which of it was worth having. */
+     going unused is the point — an OA that scouted knows which of it was worth having. */
   const SLOT_MIN = 48;
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
@@ -2785,14 +2908,14 @@
     for (const id of state.ids) state.drop.draft.picks[id] = [];
     return state.drop.draft;
   }
-  /* a house's strength as the fleet reads it: the drop's worth and its standing */
+  /* an OA's strength as the fleet reads it: the drop's worth and its standing */
   function strengthRead(state, corpId) {
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
     return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
   }
-  /* whose turn it is — skipping any house that has already drafted a landing for every
+  /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
   function draftWhose(state) {
     const D = ensureDraft(state); if (D.done) return null;
@@ -2837,15 +2960,6 @@
     }
     return D;
   }
-  /** §BASTILLE a manager asks for a body off the sheet; the intake honours it if it can */
-  function claimPrisoner(state, corpId, fighterId, on) {
-    const c = state.corps[corpId];
-    c._bastilleClaims = c._bastilleClaims || {};
-    if (on === false) delete c._bastilleClaims[fighterId];
-    else c._bastilleClaims[fighterId] = true;
-    return true;
-  }
-  function claimsOf(state, corpId) { return (state.corps[corpId]._bastilleClaims) || {}; }
   function chooseDropSector(state, corpId, index) {
     if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
     state.drop.sectors = state.drop.sectors || {};
@@ -2954,7 +3068,10 @@
     if (win.event === 'bastille') {
       const lot = state.lots.bastille || [];
       bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season + 'm' + m)), state.corps, state.ids,
-                     state.season, state.bastille, lot);
+                     state.season, state.bastille, lot, state.bids.bastille, state);
+      /* the second window is a fresh intake: terms for a man who was carried over are offered
+         again, knowingly, not inherited from a month ago */
+      state.bids.bastille = {};
       /* whoever was not taken waits in the wing for the refresh; after it, the wing is closed */
       const signedIds = {}; for (const id of state.ids) for (const f of state.corps[id].roster) signedIds[f.id] = true;
       state.carry.bastille = win.pool === 'first' ? lot.filter(f => !signedIds[f.id]) : [];
@@ -3002,13 +3119,13 @@
     if (EVENTS && m === EVENTS.CONST.FLEET_MONTH) {
       const abs = (state.season || 0) * 100 + m;
       const outcome = EVENTS.settleFleet(state, (id) => {
-        /* the survey goes public: every house reads the planet to depth two */
+        /* the survey goes public: every OA reads the planet to depth two */
         const c = state.corps[id]; ensureIntel(c, state.season || 0);
         for (const k of INTEL_PLANET_ROWS) { const r = intelRow(c._intel.planet, k); if (r.depth < 2) { r.depth = 2; r.gathered = abs; } }
       });
       if (outcome) for (const id of state.ids) landed[id].push({ kind: 'fleet', text: outcome.withdrawn ? 'The Fleet Petitioned and the Edict Was Withdrawn' : outcome.title, fleet: outcome });
     }
-    /* §GATE THE FANS PAY, every month, to every house: what the crowd is worth is what the
+    /* §GATE THE FANS PAY, every month, to every OA: what the crowd is worth is what the
        crowd thinks of you, so a manager sees his popularity in the same recap as the choices
        that moved it. */
     for (const id of state.ids) {
@@ -3018,7 +3135,7 @@
       const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
       const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
-         were carried by people and read by nothing at all: a house with a marketable hand
+         were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
       const marketable = alive.some(f => hasHookF(f, 'sponsor_income_up') || hasHookF(f, 'rare_quote_fame_spike'));
       const gate2 = marketable ? Math.round(gate * CONST.SPONSORED_GATE) : gate;
@@ -3031,21 +3148,28 @@
          was computed, displayed, and not charged, so a prep year cleared +162,000 on average
          before the Divide was fought and every scarcity the Market, the Paper and the kit cap
          assume was a fiction. A roster is paid every month, for everybody on it. */
-      const payroll = Math.round(LED.wageBill(alive) / LED.CONST.SALARY_MONTHS);
+      /* §MONEY THE WAGES WERE PAID TWICE. That fix posted the FULL contract here, month by
+         month — and `settleSeason` at the lock still posted the S15 retainer, and `payPurse`
+         at the muster the S15 purse, so an OA paid every contract about twice over (₡292k
+         against a ₡178k bill, measured). RULED: the monthly line IS the retainer — the two
+         fifths a body is paid for being on the books — spread over the year; the purse is
+         paid at the muster to those who drop; the lock posts the Divide month's twelfth.
+         A contract is paid once, and a rested body still costs two fifths of a fielded one. */
+      const payroll = Math.round(LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS);
       if (payroll > 0) {
-        LED.post(c.account, 'expense', 'Wages', -payroll);
+        LED.post(c.account, 'expense', 'retainers', -payroll);
         landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
       }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
-    /* §QUIET the other houses have their own business to do, and it is the same window */
+    /* §QUIET the other OAs have their own business to do, and it is the same window */
     if (ILLICIT) {
       ILLICIT.ensure(state);
       for (const id of state.ids) {
         if (id === human) continue;
         const rngI = P.mulberry32(P.seedFrom('ill-ai' + state.season + m + id));
-        /* a house that holds something on another uses it, in its own character: the
+        /* an OA that holds something on another uses it, in its own character: the
            treacherous blackmail, the traditional report, the loud leak */
         const held = ILLICIT.evidenceOf(state, id).filter(e => !e.used);
         if (held.length && rngI() < 0.5) {
@@ -3058,14 +3182,15 @@
         if (want) {
           const res = ILLICIT.attempt(state, id, want.id, want.target, {});
           if (res.ok && res.exposed) for (const other of state.ids)
-            landed[other].push({ kind: 'exposed', text: 'A House Was Caught at Something', corp: id });
+            landed[other].push({ kind: 'exposed', text: 'An OA Was Caught at Something', corp: id });
         }
       }
     }
-    /* the other seven deal with each other too — see trade.js fleetTrades */
+    /* the other seven deal with each other too — see trade.js fleetTrades — on the books, and
+       never with the manager's OA (it was in the pool, and the deepest roster sells) */
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
-                        state.corps, state.ids, m, {});
+                        state.corps, state.ids, m, { post: LED.post, exclude: state.opts && state.opts.human });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
        month, and every supplier still open lowers what it wants — which is the discount the
        system always described and never delivered, because everything used to resolve at the
@@ -3074,7 +3199,7 @@
       const took = SPON.stepBoard(state.sponsorBoard, state.corps, state.ids, m);
       for (const id in took) {
         const c = state.corps[id];
-        (c._signedThisMonth = c._signedThisMonth || []).push({ month: m, houses: took[id] });
+        (c._signedThisMonth = c._signedThisMonth || []).push({ month: m, OAs: took[id] });
       }
     }
     state.month++;
@@ -3120,7 +3245,7 @@
         if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
       }
       state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken);
-      /* showmanship decides whether a house performs — the dial was already written */
+      /* showmanship decides whether an OA performs — the dial was already written */
       const show = ((c.profile || {}).dials || {}).showmanship || 50;
       if (rng() < show / 100) attendMediaDay(state, id);
       /* and a corp approaches ONE rival, the one it likes its chances with most */
@@ -3142,8 +3267,8 @@
     state.done = true;
     /* §MONEY AND THE ENTRY FEE WAS NEVER TAKEN EITHER. `ALEAS_ENTRY` is what it costs to be in
        the Divide at all — reserved against in `procurementBudget` beside the wages, named in
-       the ledger's own constants, and charged to nobody. A house entered the Divide free. It
-       is taken at the lock, from every house that is going. */
+       the ledger's own constants, and charged to nobody. An OA entered the Divide free. It
+       is taken at the lock, from every OA that is going. */
     for (const id of ids) {
       const c = corps[id];
       if (!c || c.standDown || c.disqualified) continue;
@@ -3151,7 +3276,7 @@
     }
     /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
        the highest standing (regard plus this year's effort) and pays its advance. Conditions
-       are judged after the Divide, in finishSeason. One commitment per house. The result lives
+       are judged after the Divide, in finishSeason. One commitment per OA. The result lives
        on each corp's `sponsors.contracts` — the page and the record read it from there. */
     /* §SPONSORS the board has been signing all year, the month each supplier was convinced;
        this is the sweep for anything still open at the lock, where the bar no longer matters
@@ -3193,12 +3318,13 @@
       c._committed = LED.wageBill(alive);
       if (state.fleet && state.fleet.levy) LED.post(c.account, 'expense', 'Aleas levy', -state.fleet.levy);
       LED.settleSeason(c.account, alive, {
-        injuries: c._off.injured || 0,
-        /* WHAT THE DEAD COST. `_lastDead` was read here and written by no code anywhere, so
-           the death benefit — the first of the five ledgers, and one of the three channels
-           by which a life is priced at all — has never been charged in any season of any
-           chain. Settlement sets it now. */
-        deaths: c._lastDead || 0
+        retainerMonths: 1,             /* eleven twelfths landed month by month; this is the Divide's */
+        injuries: c._off.injured || 0
+        /* §MONEY THE DEAD WERE PAID FOR TWICE. `deaths: c._lastDead` was passed here so that
+           settlement could charge a benefit "never charged in any season" — an estimate, the
+           mean contract times a multiplier, a year late — and then the families were paid
+           properly where the dead leave the books (`Death benefits`, off each contract's own
+           `death_benefit`, the same number ransoms are priced from). The estimate is gone. */
       });
       c._shortfall = c.account.treasury < 0 ? -c.account.treasury : 0;
     }
@@ -3234,7 +3360,7 @@
     for (const id of ids) {
       const c = corps[id];
       /* §QUIET SABOTAGE BITES AT THE DROP: a bad batch signed off on another ship means the
-         armour and the guns that go down are not the ones that were paid for. Every house that
+         armour and the guns that go down are not the ones that were paid for. Every OA that
          paid for it adds a share of the damage. */
       if (ILLICIT) {
         const bad = ILLICIT.sabotageOn(state, id);
@@ -3244,10 +3370,13 @@
         }
       }
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
+           Divide writes into the same object, so the lesson survives the lock */
+        dealRecord: (c._dealRecord = c._dealRecord || {}),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
-        /* per-rival readiness: what this corp knows about each other house, freshness-scaled,
-           so a squad that faces a house it scouted fights a little readier against THEM. */
+        /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
+           so a squad that faces an OA it scouted fights a little readier against THEM. */
         rivalIntel: (function () {
           const out = {};
           if (c._intel && c._intel.rivals) for (const oaId in c._intel.rivals) {
@@ -3377,8 +3506,6 @@
       });
       c._payout = pc.payout || 0;
       c._bonus = c.account.lastBonus || 0;
-      /* charged at the next season's books, which is when a benefit is actually paid */
-      c._lastDead = dead.length;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
@@ -3428,10 +3555,10 @@
           return actual / funded;
         })(),
         lossRate: dropped.length ? dead.length / dropped.length : 0,
-        /* §5.3 what the crowd thought of the house this year: its own people, and the fleet's
+        /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
         popularity: c.rep ? REP.standing(c.rep, 'own') + REP.standing(c.rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE : 0,
-        /* §3.1c and what the year said about the house to the people who work in it */
+        /* §3.1c and what the year said about the OA to the people who work in it */
         _own: (function () {
           if (!c.rep) return 0;
           if (dropped.length && !dead.length) REP.act(c.rep, 'everyone_came_home', {});
@@ -3454,8 +3581,8 @@
          highest by canon, which is part of what a corp owes its own ship. */
       const pensions = c.roster.filter(f => f.status === 'dead')
                         .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
-      /* §STORY A HOUSE THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
-         system and needs a sentence: when a Company Family man is buried, what his house pays
+      /* §STORY A OA THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
+         system and needs a sentence: when a Company Family man is buried, what his OA pays
          his people is noticed, and the fleet thinks a little better of it. The money was
          already leaving; nothing was ever made of it. */
       let told = 0;
@@ -3790,13 +3917,13 @@
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
   return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
-           renewalsFor, renewalTerm, answerRenewal, claimPrisoner, claimsOf, signNow, lotPeek,
+           renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
            evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
            useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },
            dossierFullness,
            illicitAttempt: (state, id, act, target, opts) => ILLICIT ? ILLICIT.attempt(state, id, act, target, opts) : { ok: false },
-           illicitDone: (state, id) => ((state.illicit || {}).done || {})[id] || [], openFleet, offseason, selectDrop, muster, grieve, renewRoster,
+           illicitDone: (state, id) => ((state.illicit || {}).done || {})[id] || [], openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,

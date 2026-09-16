@@ -1,22 +1,158 @@
-THE KIER BASTILLE SELLS THE MAN, NOT THE PAPER
+THE KIER BASTILLE: HOUSES COMPETE ON THE WAY OUT
 
-The Bastille's numbers were already the most distinct in the game — widest stat spread, lowest
-loyalty by a distance, half again the negative traits — and none of it was worth anything at
-the table, because a manager could READ ALL OF IT before signing. A high-variance market you
-can see into is not a gamble; it is a shopping list with a wider range.
+The blind sheet made the Bastille a gamble; nothing made it a market. A claim was free and
+first refusal went to whoever was shortest of people, so a good gamble cost what a bad one
+did. And the price was the sheet: the card carried the man's open-market wage, which reads
+his stat total at r = 0.92. The numbers were redacted and the wage said them.
 
-- A Natural-Born grew up on your ship and a mercenary has fought somewhere you can ask about:
-  both arrive with a SERVICE RECORD. A prisoner has not got one. So the Bastille tells you a
-  name, a people, an age, whether he is carrying an injury, his notoriety and the sentence
-  left — and nothing about what he can do.
-- season.js apparentOnly(): the lot record for `bastille` drops stats, potential, traits and
-  the service record, and adds what is apparent (build, visible injury, sentence).
-- The card does not blank the numbers as though something failed to load: "No Service Record —
-  The Bastille Sells the Man, Not the Paper", with what the auctioneer will actually tell you.
-- Everything is on the FIGHTER as before; only the SHEET is redacted, and it opens the moment
-  the man is yours. Claimed blind in a test: 510 in stats and four quirks including Bleeder.
-- Harness: the window opens, the sheet carries no stats/ceiling/record, and does carry a name,
-  a people and an age. (The probe opens its own season and steps to month five — a lot is only
-  drawn when its month arrives.)
+- The auction was built as the first answer and STRUCK A SECOND TIME. The prep calendar's
+  own comment records the T4 auction being moved by designer ruling; it was rebuilt past
+  that line. A lot of people bid for with credits is chattel whatever the paper says. The
+  ruling now lives in recruitment.json where it cannot be read past.
+- What houses compete on is HIS road out. Each offers a term — the sentence as written, or
+  release after fewer Divides — and every Divide forgiven is bought from the Kier
+  (remission_per_divide: 3,500, a starting point). He takes the shortest road; between
+  equal roads, the house whose people come home (weighOffer, money held constant).
+- The Kier's scale, ruled in data: a flat wage (kier_wage_monthly 120) and a flat
+  processing fee (600). Nothing on the sheet moves any price but the sentence; the
+  potential_premium that read the scout estimate into young lots is retired.
+- The manager's house is in the room like the others but never buys remission unasked.
+  The card: Honour the Sentence · Release After N · ₡. The recap names the road taken.
+- sim/audit_bastille.cjs gates it: the Divides AI houses buy must not track the hidden
+  stats (r = 0.04, bounded on the count of men); wage, fee and remission charged exactly.
+  Its first cut lied — a fresh fleet per pass is season one per pass, the same six men
+  forty times. One fleet, seasons advancing.
+- measure_value.cjs crashed on the blind record since the redaction, and multiplied a
+  yearly ask by twelve: the ₡27,612 Natural-Born year in PROJECT.md is ₡2,301. Ratios held.
+- claimPrisoner/claimsOf/_bastilleClaims and BASTILLE_WAGE_FRAC are gone; contract.sentence
+  is kept beside divides_required so the sheet can show both.
 
-regress 114/114 · fight shape ok · audit_code 0 · docs clean · ui audit clean · drive green
+Gates: regress --fast 114/114 · drive · audit_ui · audit_resize · audit_docs · audit_code ·
+audit_hooks · audit_quirks · audit_marks · audit_bastille · measure_fight · measure_economy.
+
+--- and the first money pass, same session ---
+
+THE BOOKS, READ THROUGH THE LOCK. Pay was charged about twice (the monthly wage line beside
+the S15 retainer and purse) and the entry fee twice (season loop beside settlement). Ruled:
+the monthly line is the retainer spread over the year, the purse lands at the muster, the
+lock posts the Divide month's twelfth; the entry fee is the season loop's alone. Measured
+whole, the fleet cleared +₡178k a house a year before it fought — two incomes, grant and
+gate, each sized to the same bill.
+
+Four levers, none all the way: founding_mix 70/10/20 ruled in recruitment.json (was 45/35/20
+in roster.js — a third of every founding roster mercenaries); salary_base 400→600 and the Kier
+wage 120→180 with it; board grants halved; the gate cut a quarter. Fleet average +₡12k before
+the Divide; hard houses negative; the Divide's money decides the year. Kit (₡8k a year, the
+allowance caps value not spend) is the next lever. measure_economy.cjs reads every house
+through the lock. Combat snapshots blessed; measure_fight holds. drive.cjs's training check
+read a cohort mean the drive's own trades moved; it reads each hand against itself now.
+
+--- and the founded house as the yardstick, same session ---
+
+The only house a manager can play is the one he founds. It opened as the fleet's average in
+every number, reputation included, and took ₡93k a year at the door before doing anything;
+its grant was the largest in the fleet. founderProfile now lives in the engine (the desk's
+blankSlate calls it): liked at home, unknown to the fleet. LEAN_GRANT 150k → 90k: a careful
+founder runs −₡5k, −₡1k, +₡8k over three years before any fighting, the crowd doing the
+growing. The eight are funded relative to him — grantFor = LEAN_GRANT × (2 − 0.25 ×
+difficulty) — and the hand-written funding_base figures are gone from the profiles.
+measure_economy.cjs founds a house as the desk does, plays it carefully, and reports it first.
+
+--- and the founder played through the fights, same session ---
+
+measure_founder.cjs follows a carefully played founded house through six careers of three
+years, the whole year. Three more double charges: the dead paid for twice (an estimate at the
+lock beside the per-contract pension — the estimate is gone); a trade's credits moved twice
+on the page (the poster moves them now); and the fleet's own trades were selling the manager's
+fighters, unasked and off the books (the fleet deals among the other seven, on the books).
+Measured: −₡22k, −₡17k, then the Divide decides, ±₡150k. What decides it is deaths — 37% of
+everyone dropped, every year — and ransoms, not wages. Kit is the same for everybody.
+
+--- and the table, same session ---
+
+THE PRINCIPAL IS A PARTY TO THE DEAL. A joiner computed both sides' limits — the principal's
+private ceiling included — and the deal was struck; the manager's banner was bought for him.
+Now the joiner asks from an estimate (±15%, once per pair) and can be refused; an AI principal
+answers (considerTake); a manager's banner waits on him — the ask stands on the window with
+their terms, what refusing costs each side, and three answers. Two small terms inside the
+valuation, by ruling small: spite (a fraction of what finishing them would cost THEM, by
+culture and grudge) and goodwill (a traditional house pays a little to take a beaten rival
+in). Three memories — spared, generous_terms, left_to_die — raised on the principal and
+remembered by the other house's people, and the living regard between houses now moves the
+price (±20%) where only the profiles' written relationships did before.
+
+--- and the table's second pass (Sep 15) ---
+
+Whom to approach: every banner ranked by its worth to THIS house, warmed by regard, discounted
+for a grudge, lifted for kingmaking (rankBanners) — not the two strongest, always. When: a
+patient house with a live chance sits a window out (actsThisWindow). What to ask for: terms
+composed from what each side values — a site or category the house wants more than the banner
+first, then credits, then share (composeTerms); the coin toss for a cut in kind is gone.
+Principals reach out: each AI banner courts the house that would lift its take most, at a
+little over its guessed floor (considerInvite); 20 invitations in eight Divides, 10 taken.
+The strike is one function. Measured on the way: the spoiler is a body or so against gains
+of ₡150k, and is not what moves anyone.
+
+--- and the table's third pass: the house you are engaged with ---
+
+RULED: the table is for the house hunting you or the one you are beating, not the
+leaderboard; and teaming up for alliance's sake is what the Aleas and the fans punish.
+Contact is recorded per pair (noteContact: fights, who lost to whom, who hunts whom) and
+read by the table summed over a banner. Whom to approach and whom to court is led by
+contact; a banner never met is worth half; regard is out of the ranking. A cold alliance
+costs both sides at the table and is remembered (cold_alliance). Measured: 23 of 24 deals
+between houses whose squads had met. The manager's strip says who is on him.
+
+--- and the regret instrument ---
+
+measure_regret.cjs: every AI decision at the table passes through `decide` (act or hold,
+which banner, accept or refuse); the instrument replays a Divide from its seed with one
+decision forced the other way and scores the house's outcome, signed. Its first cut could not
+go negative and read principals as overpaying; corrected. Finding: the principal's
+accept/refuse is the only decision that binds and the AI takes it ₡121k better than the
+alternative on average (8 of 14 right); the joiner's decisions are moot 20 of 20, because only
+~8% of house-pairs can ever close — a question about the table's shape, not the AI.
+
+--- and the word "house" removed ---
+
+They are OAs — corporations — and "house" had crept into some 700 places across the code's
+comments, the docs, the data notes and the page's copy before this session, and 200 more
+during it. Swept to "OA" everywhere it meant an OA. Left alone: sponsor houses (a separate
+concept in sponsors.js, unchanged), fighters' family houses in races.json, the OA named
+"Alliance House", and the `custom_house` id (saved games carry it). Three identifiers the
+sweep touched were restored by hand; the page helpers housePicker/shortHouse/houseNode are
+oaPicker/shortOA/oaNode.
+
+--- and appetite ---
+
+RULED: the decision to give up is variable on the board's expectations, interest in the
+planet's resources, the squads' health, the combats so far and strength now against
+strength at the drop. `appetite` builds one number from those five and reads it into the
+joiner's floor and gently the principal's ceiling; stance stays out (double-counting, per the
+STANCE_LIFE_MULT note). Median 1.00, falling over the Divide as squads wear down; deals per
+Divide unchanged. The strip says it as a word. The regret instrument shows appetite lets more
+marginal folds close and the principal's ceiling loses those narrowly (10/19 right pinned,
+8/22 live): the ceiling is too generous at the edge. Recorded, not tuned — it touches the
+settlement's scale.
+
+--- and one valuation for ransoms, captives and pacts ---
+
+A ransom is asked at the body's worth to lose (pension + replacement, as bodyMoney prices it)
+marked up and moved by regard; the owner pays up to 1.6× that, by appetite, from the treasury
+it carries. A captor's living regard colours a captive's fate. A hungry OA wants no truce; an
+OA that will not deal with you will not sign one. 129 ransoms in six Divides at a median ₡4.4k.
+
+--- and the table's scenario gate ---
+
+audit_table.cjs holds the table to nine rulings as a gate: whom a beaten OA approaches, whom a
+principal courts, how rare cold alliances are, what memory does to price, which culture spite
+and goodwill belong to, that a wounded OA wants out, that stance is not applied twice, that a
+manager's banner is never bought for him, that the principal both refuses and takes. Two
+behaviours fixed to pass it: contact now outranks a rich cold banner (RANK_CONTACT 1.0,
+RANK_COLD 0.4), and principals no longer invite strangers.
+
+--- and learning inside a career ---
+
+At the settlement a joiner learns whether joining that banner paid what it signed for and a
+principal learns whether buying that OA's help won; kept per pair across seasons
+(persist.dealRecord) and read into the price at 10% a lesson, capped ±30%. Gated (T10).

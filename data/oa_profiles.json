@@ -50,9 +50,8 @@
           270000,
           390000
         ],
-        "funding_base": 265000,
         "board_patience": 55,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 2,
       "relationships": [
@@ -84,7 +83,7 @@
       "id": "knights_star",
       "name": "The Knights' Star",
       "canon_status": "canon name and lore hint; profile proposed",
-      "tag": "The Marksman's House",
+      "tag": "The Marksman's OA",
       "motto": "One Shot, Witnessed.",
       "colors": {
         "primary": "#8e9db4",
@@ -111,9 +110,8 @@
           210000,
           300000
         ],
-        "funding_base": 215000,
         "board_patience": 65,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 2,
       "relationships": [
@@ -140,20 +138,20 @@
         "luxuries": 0.55,
         "foods": 0.65
       },
-      "colors_note": "primary re-ruled #dfe3ea → #8e9db4 at the colour pass: two near-white houses could not hold apart on any surface, the medics keep the white, and the Marksman’s House takes gunmetal steel — grown toward its own navy secondary"
+      "colors_note": "primary re-ruled #dfe3ea → #8e9db4 at the colour pass: two near-white OAs could not hold apart on any surface, the medics keep the white, and the Marksman’s OA takes gunmetal steel — grown toward its own navy secondary"
     },
     {
       "id": "violets_enterprise",
       "name": "Violet's Enterprise",
       "canon_status": "canon name and lore hint; profile proposed",
-      "tag": "The Old House",
+      "tag": "The Old OA",
       "motto": "As It Has Been.",
       "colors": {
         "primary": "#5b3d8f",
         "secondary": "#b08d3e"
       },
       "archetype": "old_house",
-      "lore": "Old money, old rooms, old ways — the corp that remembers the decennial Divides and quietly believes annualization cheapened them. Svalbard prides have served Violet's for generations; the name's resonance with the Violet Crux itself remains an unresolved hypothesis the House neither confirms nor discourages.",
+      "lore": "Old money, old rooms, old ways — the corp that remembers the decennial Divides and quietly believes annualization cheapened them. Svalbard prides have served Violet's for generations; the name's resonance with the Violet Crux itself remains an unresolved hypothesis the OA neither confirms nor discourages.",
       "dials": {
         "aggression": 40,
         "treachery": 30,
@@ -173,16 +171,15 @@
           360000,
           480000
         ],
-        "funding_base": 290000,
         "board_patience": 70,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 1,
       "relationships": [
         {
           "with": "alliance_house",
           "disposition": "disdain",
-          "note": "New money integrating mercenaries is, to Violet's, barely a house at all."
+          "note": "New money integrating mercenaries is, to Violet's, barely an OA at all."
         },
         {
           "with": "knights_star",
@@ -214,7 +211,7 @@
         "secondary": "#2b2f33"
       },
       "archetype": "broker",
-      "lore": "The newest of the great houses, built on a simple heresy: loyalty can be assembled. The Alliance House fields the fleet's best mercenaries on the fleet's shortest contracts, and its Ththyn contingent — ambitious, transactional, excellent — grows every season.",
+      "lore": "The newest of the great OAs, built on a simple heresy: loyalty can be assembled. The Alliance OA fields the fleet's best mercenaries on the fleet's shortest contracts, and its Ththyn contingent — ambitious, transactional, excellent — grows every season.",
       "dials": {
         "aggression": 60,
         "treachery": 55,
@@ -234,21 +231,20 @@
           240000,
           345000
         ],
-        "funding_base": 240000,
         "board_patience": 45,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 3,
       "relationships": [
         {
           "with": "violets_enterprise",
           "disposition": "friction",
-          "note": "The old house's disdain is returned as amused indifference."
+          "note": "The old OA's disdain is returned as amused indifference."
         },
         {
           "with": "new_line",
           "disposition": "poaching",
-          "note": "The House keeps offering New Line captains triple. The captains keep declining. The House keeps offering."
+          "note": "The OA keeps offering New Line captains triple. The captains keep declining. The OA keeps offering."
         }
       ],
       "sponsor_style": "Sponsors talent wherever it is; exclusivity costs extra and expires quickly.",
@@ -275,7 +271,7 @@
         "secondary": "#1d2f4a"
       },
       "archetype": "workers_banner",
-      "lore": "The fleet's oldest freight and ferry line — seized by its own crews in the Dockhands' Compact of VC 96, when the annualization boom made Divide seats too valuable for the old board to hold. The name was kept and repurposed: same ships, new line. Its squad exists because the Compact's charter demands the crews hold a seat at the table where planet rights are decided. Poor by great-house standards, beloved by the decks, and quietly the best logistics operation in the Divide: Olmac dockhands, Mon-Wa quartermaster pairs, and the fleet's most careful casualty ledger.",
+      "lore": "The fleet's oldest freight and ferry line — seized by its own crews in the Dockhands' Compact of VC 96, when the annualization boom made Divide seats too valuable for the old board to hold. The name was kept and repurposed: same ships, new line. Its squad exists because the Compact's charter demands the crews hold a seat at the table where planet rights are decided. Poor by great-OA standards, beloved by the decks, and quietly the best logistics operation in the Divide: Olmac dockhands, Mon-Wa quartermaster pairs, and the fleet's most careful casualty ledger.",
       "dials": {
         "aggression": 45,
         "treachery": 20,
@@ -296,9 +292,8 @@
           120000,
           180000
         ],
-        "funding_base": 165000,
         "board_patience": 75,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 4,
       "relationships": [
@@ -310,7 +305,7 @@
         {
           "with": "alliance_house",
           "disposition": "friction",
-          "note": "The House buys people. The Line grows them. Both are certain the other's model is doomed."
+          "note": "The OA buys people. The Line grows them. Both are certain the other's model is doomed."
         },
         {
           "with": "mercy_concern",
@@ -363,9 +358,8 @@
           255000,
           360000
         ],
-        "funding_base": 250000,
         "board_patience": 40,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 4,
       "relationships": [
@@ -426,9 +420,8 @@
           90000,
           135000
         ],
-        "funding_base": 130000,
         "board_patience": 80,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 5,
       "relationships": [
@@ -488,9 +481,8 @@
           225000,
           315000
         ],
-        "funding_base": 230000,
         "board_patience": 60,
-        "funding_note": "Annual board grant, credits. Rescaled at Step 5b-4 against a salary-anchored wage bill (PROCUREMENT.md 14.1); the old bands could not cover one season of pay."
+        "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
       },
       "difficulty": 3,
       "relationships": [

@@ -45,6 +45,15 @@ node sim/audit_marks.cjs       THE KIT'S GEOMETRY — every field and device mus
                               pivot it turns about, or it swings on a hinge beside itself.
 node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread constants,
                               helpers written twice. Answer everything or label it.
+node sim/audit_table.cjs      THE TABLE HELD TO ITS CHARACTER — nine rulings on whom an OA
+                              approaches, courts, remembers and folds to, as a gate.
+node sim/measure_regret.cjs   HOW WELL THE OAs DECIDE — a Divide replayed from its seed with
+                              one table decision forced the other way; signed, the other way
+                              minus the way taken.
+node sim/measure_founder.cjs  THE FOUNDER'S YEARS THROUGH THE FIGHTS — six careers of three
+                              years, the whole year, the OA a manager actually plays.
+node sim/audit_bastille.cjs   THE OAs OFFER BLIND — the remission an AI OA buys off a
+                              volunteer's sentence must not track the stats the sheet hides.
 node sim/measure_value.cjs     WHAT A FIGHTER COSTS AND WHAT HE BRINGS — the three markets
                               priced over the term of the paper each would sign.
 node sim/measure_economy.cjs   WHAT A YEAR COSTS AND WHAT IT PAYS — the books end to end.
@@ -60,7 +69,7 @@ node harness/audit_resize.cjs  WHAT A NARROWER WINDOW TAKES AWAY — every media
 node sim/audit_hooks.cjs       THE CATALOGUE'S HOOKS — every one either does something or
                               carries the reason it does not. Fails on a silent no-op.
 node sim/measure_kit.cjs       WHAT A FLEET CARRIES — primaries, armour, sidearms and
-                              consumables across every house. Fails on a bare hand.
+                              consumables across every OA. Fails on a bare hand.
 node sim/measure_energy.cjs    THE ENERGY BARGAIN — cost, power, heat and dry rate against
                               ballistic weapons of the same tier.
 node sim/measure_bands.cjs     WHERE A FIGHT IS FOUGHT — the range mix, lethality and length
@@ -77,7 +86,7 @@ node harness/audit_ui.cjs     THE UI AUDIT — after every change to viewers/cor
                                         "because", no dashes that teach — labels, values, verdicts
                                 COLOUR  colour comes from the conventions, never a hex at the
                                         point of use: stats STATCOL/gradeColour, credits crs(),
-                                        houses cSpan()/colFor(), fighters raceColour(), the
+                                        OAs cSpan()/colFor(), fighters raceColour(), the
                                         canvas from the TOK table, everything else a CSS var.
                                         A plain cr() in HTML, a bare nameOfCorp(), a name
                                         without its race colour all fail.
@@ -306,8 +315,8 @@ is open, and a proposal costs nothing to veto.
 - **A roster is 16 to 40**, and fielding fewer than a full force is legitimate: fewer purses,
   better-armed people, outnumbered. **The Aleas kit ceiling is a CORP ceiling** and does not
   shrink with the force, which is what makes quality-against-quantity a real trade.
-- **Nobody opens with a full squad, and no two houses open the same.** Founding size is derived
-  from a house's difficulty — 22 down to 16, against a drop force of 24 and a target of 28 — so
+- **Nobody opens with a full squad, and no two OAs open the same.** Founding size is derived
+  from an OA's difficulty — 22 down to 16, against a drop force of 24 and a target of 28 — so
   the first year is a question about how many to add, who, and what is left for gear.
 - **A broke corp always gets one more year.** The board foots the bill and its patience drains.
   **Nobody is ever struck from a Divide for poverty**; being carried and then sacked is the
@@ -319,7 +328,7 @@ is open, and a proposal costs nothing to veto.
   demand a resource that is not down there.
 - **The wounded are a thing you manage.** Injuries survive the year; mending runs across the prep
   months and treatment costs points you wanted elsewhere.
-- **A month's action can land later.** A survey reports in three months; a house courted now
+- **A month's action can land later.** A survey reports in three months; an OA courted now
   thinks better of you two months on. Outcomes are plain records dispatched by name, never stored
   callbacks, and none crosses the turn of the year. **The same point spent in two different
   months is two different decisions.**
@@ -834,7 +843,7 @@ Things that need a decision rather than a programmer.
   mechanism.
 - ~~**Nobody chooses what their people carry.**~~ **Answered.** The squads screen's shared
   detail panel has an equip picker wired to `plan.hand`, so the manager now arms each hand
-  directly rather than leaving it to house doctrine, the locker and the money left.
+  directly rather than leaving it to OA doctrine, the locker and the money left.
 - **No corp ever asks for a full force.** The bodies are there — 56 of 96 corp-seasons have 24
   or more fit at the lock — but the AI's appetite never reaches the ceiling, so drops land
   across 16–23. A human can still ask for 24. Recorded, not chased.
@@ -910,33 +919,33 @@ shadows means. **Twenty-two hooks remain inert**, most of them clustered on squa
 `rout_immune` — which is the argument for cohesion being the next step and taking most of them
 at once.
 
-## The colour pass — houses wear their own colours. *Ruled at this step.*
+## The colour pass — OAs wear their own colours. *Ruled at this step.*
 
 Every OA shows ONE display colour, derived from its canon pair in `oa_profiles.json` by
 `sim/palette_oa.cjs` and written to `data/oa_display.json` with its reasoning beside it. The
 rule: the canon primary unless the measurements refuse it, then the secondary, then a recorded
-nudge — bars of ΔE 12 against every other house, the nine race fills and the grounds they share
+nudge — bars of ΔE 12 against every other OA, the nine race fills and the grounds they share
 a canvas with, ΔE 10 against the interface's semantic voices, and L* 30 so nothing sinks into
 the night. `--check` mode verifies the written table still derives from canon. One canon colour
-was re-ruled on the way: two near-white houses could not hold apart on any surface, the medics
-kept the white, and the Marksman's House took gunmetal `#8e9db4` — the reason recorded in the
+was re-ruled on the way: two near-white OAs could not hold apart on any surface, the medics
+kept the white, and the Marksman's OA took gunmetal `#8e9db4` — the reason recorded in the
 canon file itself.
 
 The positional palettes died here: `SIDE` (three colours by seat) and `BANNER` (eight hexes by
 berth) are retired with WAS-HERE notes, replaced by `colFor(corpId)` on every surface that
-names or draws a house. **Cyan stays the interface's voice and no house may own it** — "you"
-are marked structurally (the edged row, the you-tag), never by hue. The founded house picks
+names or draws an OA. **Cyan stays the interface's voice and no OA may own it** — "you"
+are marked structurally (the edged row, the you-tag), never by hue. The founded OA picks
 its colour at founding from twelve swatches the instrument pre-vets against everything above,
 so a confusing pick is impossible rather than validated away; the pick rides on the profile
 and every surface honours it through the same `colFor`.
 
-**The marks.** *Ruled at the same pass.* One mark per house, drawn from its own tag, motto and
+**The marks.** *Ruled at the same pass.* One mark per OA, drawn from its own tag, motto and
 lore — the weight, the witnessed star, the nested years, the assembled frames, the new line,
 the drill in the seam, the sprout in the cradle, the open ring — stored as proposed art in
-`data/oa_marks.json` (24×24, `currentColor` so the house colour carries it) awaiting a human
+`data/oa_marks.json` (24×24, `currentColor` so the OA colour carries it) awaiting a human
 artist. Dosage: marks live where identity is the point — the banners, the encounter lines, the
 roster heads, the lock — and stay out of flowing prose, which keeps its colour-only names. The
-founded house flies the empty pennant: a house too new for a device.
+founded OA flies the empty pennant: an OA too new for a device.
 
 **The rest of the palette, audited. *Built since this was written.*** The same reading holds on
 every page: a fighter's NAME wears their race's fill (the colour of their circle on the field)
@@ -955,7 +964,7 @@ are the three.
 the Desk's head — the month's name and shape in a line ("Your Own Ship's Discount Pool Signs at
 the Month's End"), whether the table is open, what is coming and when as countdown chips
 (Natural-Born Refresh Next Month · The Dividend in 3 · The Table Closes in 8), and the AGENDA:
-what waits on the manager this month — a house that has written, the board asking, a signing
+what waits on the manager this month — an OA that has written, the board asking, a signing
 sheet with nothing marked, focus unspent, a roster under the drop floor, no squads set at the
 lock, hands incomplete — each a line that jumps to its tab. End the Month counts them ("End the
 Month · 2 Waiting"). Every month closes with THE RECAP, a page that stands between End the Month
@@ -969,18 +978,18 @@ resolve against you, Phase 2 fills the agenda with events.)
 
 **Reputation, made to read and made to buy. *Built since this was written.*** Four faults, one
 symptom ("everybody is nought and my own people hate me"):
-1. **A house built at the desk started nowhere.** The eight carry standings in their profiles;
+1. **An OA built at the desk started nowhere.** The eight carry standings in their profiles;
    a corporation made by a manager carried none, so it opened at zero on every audience and
-   could only go down. A house without declared standings is now read from its dials — its own
+   could only go down. An OA without declared standings is now read from its dials — its own
    people expect what it is, the fleet knows a showman, the Aleas mistrust the treacherous.
-2. **The scale saturated.** Raw feeling was clamped at a hundred, so four houses of eight sat
+2. **The scale saturated.** Raw feeling was clamped at a hundred, so four OAs of eight sat
    pinned there after three years and the number stopped carrying anything. Past `SOFT_AT` the
    scale compresses toward the ceiling over `SOFT_SCALE` and never reaches it.
 3. **Nothing drifted.** Residue never washes off, so every good year was carried for ever. Each
-   season the remembered feeling loses `DRIFT` of itself, while the house's own nature — the
+   season the remembered feeling loses `DRIFT` of itself, while the OA's own nature — the
    base it opened with — stays what it always was. (The first cut of this pulled the base toward
    the current standing, which is a ratchet, not a drift.)
-4. **A careful house was hated for it.** Nearly every act touching a house's own people took
+4. **A careful OA was hated for it.** Nearly every act touching an OA's own people took
    something away, and the ones that gave came only from fighting. A year now says what it was:
    everyone came home, few were lost, the wages were paid, a raise was granted, a debt was
    settled, a star rose, the purse was taken.
@@ -995,27 +1004,27 @@ Market's prices, and the illicit window — bribing the Aleas spends the standin
 dealing builds, with a small chance it comes to light and takes everything with it.
 
 **The quiet business. *Built since this was written.*** `sim/illicit.js`: a window, not a tab,
-open in the preparation and in the Divide, holding the things a house would rather nobody knew.
+open in the preparation and in the Divide, holding the things an OA would rather nobody knew.
 Standing with the Aleas is a currency here, not a scoreboard — honest dealing builds it and this
 spends it. Bribe an official (one ruling goes your way); buy a malfunction (one act this Divide
 is not seen); sabotage a rival's kit (their squads drop worse for it); a quiet word before the
 drop (a pact that holds from day one); buy a story (the postings print what they are paid to).
 Each has a price in credits AND in standing — paid whether it works or not, because the people
 you asked know what you asked for — and ONE FIGURE: the chance it goes off clean. It goes off
-clean, or it comes apart and is traced back to the house that paid for it; there is no quiet
+clean, or it comes apart and is traced back to the OA that paid for it; there is no quiet
 failure. (Two rolls, a chance of working and a separate chance of being caught, asked a manager
 to weigh two figures that meant nearly the same thing.) EACH ACT ANSWERS TO ITS OWN AUDIENCE: a bribe is the Aleas' business and the
 fleet shrugs; sabotage is the fleet's business; a quiet word is what your own people mind most.
-A house already under suspicion is likelier to be caught. The other houses work the same window
+An OA already under suspicion is likelier to be caught. The other OAs work the same window
 by their treachery, and the fleet hears when one of them is caught. Sabotage bites at the drop.
 
 **Standing buys a banner and a signature. *Built since this was written.*** WHO YOU FIGHT
-UNDER IS SEEN: a house's own people have to live with the banner their manager takes, so the
+UNDER IS SEEN: an OA's own people have to live with the banner their manager takes, so the
 fleet's regard for a banner moves what it costs to join it (`BANNER_SHAME` on `priceModifier`,
-read once at the drop onto each corp). WHAT A HOUSE IS ASKED FOR: a fighter signs with a house,
+read once at the drop onto each corp). WHAT A OA IS ASKED FOR: a fighter signs with an OA,
 not a treasury — `askingPrice` takes the corp, and standing with its own people plus a share of
 the fleet's moves every ask by up to `MARKET_SWING`. The shared merc market keeps the flat ask
-as its reserve, so a house's name moves what THAT house must offer rather than what the fighter
+as its reserve, so an OA's name moves what THAT OA must offer rather than what the fighter
 is worth. The acquisition window says it in a line: *Your Name: −18% on Every Ask*.
 
 **Three UI fixes. *Built since this was written.*** THE TURN STANDS IN THE BOTTOM RIGHT, where
@@ -1068,25 +1077,25 @@ own indices.
 **The days walk between windows. *Built since this was written.*** The Ground only ever
 animated the finished contest's replay; live, the comms windows drew complete. The window hands
 the page the record so far (`record`, the days with their tracks), the page keeps to its own
-house's squads on it and lays the picture on the latest day as sightings, and when the Ground
+OA's squads on it and lays the picture on the latest day as sightings, and when the Ground
 opens after a window the days since the last one play forward — the scrubber taking the days so
-far, the Play control theirs. The truth of the other houses' movement stays with the replay.
+far, the Play control theirs. The truth of the other OAs' movement stays with the replay.
 The Drop page fits a screen: the map bounded, the landings and the key beside it, the order
 strip compact.
 
 **Shadow, screen, and the rendezvous that ends in a strike. *Built since this was written.***
 Two manoeuvres the dispersed drop wanted and the mind did not have. SHADOW: a squad keeps a
 stronger known enemy in sight at `SHADOW_DIST` — outside contact, inside knowledge — its aim
-recomputed each dawn from the picture, done when the quarry goes out of it; the house's picture
+recomputed each dawn from the picture, done when the quarry goes out of it; the OA's picture
 stays current without a fight. SCREEN: a squad stands between a digging mate and the nearest
 known threat at `STAGE_RADIUS` from the mate. Both are approaches the planner can choose (leaned
 toward by the careful stances) and orders a manager can give (Shadow names a sighting; Screen
-names a squad). And a RALLY CARRIES A PURPOSE: when what drove a house together is something it
+names a squad). And a RALLY CARRIES A PURPOSE: when what drove an OA together is something it
 can beat together (`then`), the meet hands off into a hunt on arrival — meet, then strike — so
 a rendezvous is not the end of a plan but the middle of one.
 
 **The picture on the map. *Built since this was written.*** Live, the Ground shows what your
-house knows and nothing more: your own squads and your banner's as they are, every other house
+OA knows and nothing more: your own squads and your banner's as they are, every other OA
 as its last sighting — a hollow circle in its colour with the count inside and when it was seen
 beneath (Landed, or the day), fading with age and gone when the picture forgets — and nothing
 where you know nothing. Sight and contact rings draw only round your own. The map used to draw
@@ -1381,18 +1390,23 @@ carries. **TWO READINGS IN THE FIRST CUT WERE WRONG, and both flattered a conclu
 **THE TERM COMPARISON WAS NONSENSE.** It set a Natural-Born's ₡110,448 over four years against a
 mercenary's ₡94,368 over one and called the mercenary cheaper. A four-year paper BUYS FOUR YEARS;
 comparing it to a one-year bill is comparing a mortgage to a night's rent. And the term is not
-even a full liability — a hand who dies stops being paid, so the long paper is an OPTION the house
+even a full liability — a hand who dies stops being paid, so the long paper is an OPTION the OA
 holds, not a debt it owes. **Per year of service, which is the only honest measure:**
 
 | | Ask | Per year of service | Per stat point | Term |
 |---|---|---|---|---|
-| Natural-Born | ₡2,301/mo | **₡27,612** | ₡42/yr | 4y |
-| Mercenary | ₡7,864/mo | **₡94,368** | ₡125/yr | 1y |
-| Conscript | ₡1,679/mo | **₡20,148** | ₡34/yr | 3y |
+| Natural-Born | ₡2,301/yr | **₡2,301** | ₡3/yr | 4y |
+| Mercenary | ₡7,864/yr | **₡7,864** | ₡10/yr | 1y |
+| Conscript | ₡1,440/yr | **₡1,440** | ₡2/yr | 3y |
+
+*(Corrected at the Bastille auction pass: the ask on a sheet is already a YEAR — `askingPrice`
+is salary × 12 — and the instrument multiplied it by twelve again, so every figure in the first
+cut of this table was twelve times too large. The ratios survived the error, which is how it
+lasted. The Conscript row is the Kier's flat scale, see below.)*
 
 A mercenary costs **3.4× a Natural-Born for every year he serves** and carries **14% more stat** —
 **three times the price for the same quality.** The short term is his COST, not his discount: the
-house carries the risk of replacing him every year and holds no option on him if he comes good.
+OA carries the risk of replacing him every year and holds no option on him if he comes good.
 
 **AND THE POOLS ARE NOT IDENTICAL — MY PROBE WAS.** It reported the three kinds as nearly the same
 person, which was `generateSquad` TAKING A POOL OPTION AND IGNORING IT: it deals the standard mix
@@ -1413,6 +1427,411 @@ enough that buying one is rarely a gamble a manager notices taking.
 
 *Nothing has been changed. This is the number run, twice corrected.*
 
+## The Kier Bastille: OAs compete on the way out. *Ruled and built — and one ruling re-learned.*
+
+The blind sheet made the Bastille a gamble; nothing made it a market. A claim was free and first
+refusal went to whoever was shortest of people, so a good gamble cost what a bad one did. And —
+the thing the redaction had not caught — **the price was the sheet.** The card carried the man's
+wage, and the open-market wage is `salary_base × (quality/64)^2.2`: measured against his stat total
+it reads at **r = 0.92.** The numbers were redacted and the wage said them. The fee leaked too,
+through a `potential_premium` that multiplied the scout estimate into the price of young lots.
+
+**THE AUCTION WAS BUILT, AND STRUCK A SECOND TIME.** The first answer was to make the Kier an
+auction — seven OAs bidding credits, the highest taking the man. It ran, it measured clean, and
+it was wrong: the prep calendar's own comment says the T4 auction "was built and moved by designer
+ruling," and it was rebuilt past that line. The ruling stands and is now in `recruitment.json`
+where it cannot be read past: a lot of people bid for with credits is chattel whatever the paper
+says. Volunteers choosing a way out is the distance the setting needs; a hammer is not.
+
+**WHAT THE KIER CHARGES, ruled in `recruitment.json`:**
+
+- **The wage is the Kier's scale, flat:** `kier_wage_monthly: 120` (the pool's median open-market
+  wage at the old 0.62 discount, which was itself a second discount stacked on the data's 0.55 —
+  both gone). A diamond costs no more to keep than a bust. A freed man asks his own price at
+  renewal, as before.
+- **A flat processing fee:** `kier_processing_fee: 600`, five months of his wage, for the paperwork
+  on anybody an OA takes. Nothing about the man moves it.
+- **Remission, per Divide forgiven:** `remission_per_divide: 3500`.
+
+**OAs COMPETE ON HIS ROAD OUT.** Every OA that wants him offers a term: the sentence as
+written, or release after fewer Divides — and every Divide it forgives it buys from the Kier. He
+takes the shortest road; between equal roads, the OA whose people come home (`weighOffer`,
+money held constant; a grudged OA is off his list at any term). The prisoner's power was
+always the exit; now the exit is the whole market. `state.bids.bastille` carries a TERM, not a
+price, through the same `placeBid` the merc window uses. The manager's own OA is in the room
+like the others but offers the sentence as written unless told otherwise — remission is a
+decision, and the card is where it is made: *Honour the Sentence · Release After 2 · ₡3,500 ·
+Release After 1 · ₡7,000.* The recap says what road the man took and whether he was offered
+shorter or simply trusted the other OA more.
+
+**WHY REMISSION IS THE RIGHT SCREW.** With term as the only currency the dominant play was one
+Divide, everyone, every year. Priced, it stops being a policy: six men bought down to one off
+three- and four-Divide sentences is ~₡40,000 of a surplus that is ~₡110,000 today and coming
+down. Honouring the sentence is still the cheapest hand in the game, so *cheapest, blindest*
+survives as the Bastille's identity — and the gamble is exactly the one it should be: you pay to
+shorten a blind man's road, and if he is the diamond you paid to lose him sooner. Standing is the
+free lever: an OA nobody trusts must buy remission to win the man a respected OA gets at
+the sentence.
+
+**`sim/audit_bastille.cjs` is the gate.** Thirty seasons of one fleet: the Divides each AI OA
+buys off a man set against the stat total it could not see (bounded at two standard errors on
+the count of men; reads 0.04), every volunteer on the Kier wage and fee, remission charged for
+exactly the Divides forgiven. Measured shape at 3,500: 7.6 offers a man, sentences averaging
+2.9, roads taken 1.9, AI buying 0.66 Divides an offer — about ₡2,500 an OA a year in remission,
+which is to say the AI mostly honours the sentence and the price is there for the human who
+would not. **3,500 is a starting point, not a ruling on the number.**
+
+**THE PROBE LIED FIRST.** Its first cut opened a fresh fleet each pass, which is season one each
+pass, and a lot is seeded by kind, season and month — so it read the same six men forty times
+and found youth against stat total at −0.55 off six people. One fleet, seasons advancing.
+
+`claimPrisoner` / `claimsOf` / `_bastilleClaims` are gone; `BASTILLE_WAGE_FRAC` is gone;
+`contract.sentence` is kept beside `divides_required` so the sheet can show both.
+`measure_value.cjs` reads the man under the sheet (it had crashed on the blind record since the
+redaction).
+
+## The wages were paid twice, and so was the entry fee. *Fixed. The surplus is measured whole for the first time.*
+
+The instrument below read eleven months of one OA and stopped at the lock. Everything that
+decides the year lands AT the lock — the board grant, the entry fee, the retainer's last twelfth,
+the purse — so the surplus it reported was never the year's, and two of the lines it could not see
+were wrong:
+
+- **Pay was charged about twice.** "The wages were never paid" posted the FULL contract month by
+  month, while `settleSeason` still posted the S15 retainer at the lock and `payPurse` the S15
+  purse at the muster: ₡292k against a ₡178k wage bill, measured. RULED: the monthly line IS the
+  retainer, the two fifths a body is paid for being on the books, spread over the year; the purse
+  is paid at the muster to those who drop; the lock posts the Divide month's twelfth. A contract
+  is paid once and a rested body still costs two fifths of a fielded one. (G22 holds.)
+- **The entry fee was charged twice.** "The entry fee was never taken" put a line at the lock from
+  every OA that is going, beside the one `settleSeason` was already posting. ₡80k a year for a
+  ₡40k fee. The season loop's line is the one that knows who is going; the ledger's is gone.
+
+**`measure_economy.cjs` now reads every OA through the lock.** Three years, before any Divide
+is fought (the win bonus and ransoms land after and are not in this):
+
+| OA | diff | grant | gate | pay | entry | other | **net / yr** |
+|---|---|---|---|---|---|---|---|
+| Nevlon | 2 | 265k | 171k | −106k | −40k | −38k | **+284k** |
+| Knights' Star | 2 | 215k | 143k | −82k | −40k | −44k | **+217k** |
+| Violet's | 1 | 290k | 153k | −82k | −40k | −62k | **+271k** |
+| Alliance | 3 | 240k | 27k | −82k | −40k | −99k | **+66k** |
+| New Line | 4 | 165k | 147k | −78k | −40k | −41k | **+159k** |
+| Vantis | 4 | 250k | 109k | −71k | −40k | −85k | **+175k** |
+| Verdant | 5 | 130k | 68k | −70k | −40k | −62k | **+36k** |
+| Mercy | 3 | 230k | 120k | −68k | −40k | −56k | **+215k** |
+
+**The fleet clears +₡178k an OA a year before it fights.** The shape is two incomes each sized to
+the same bill: `ledger.js` says the grant "covers wages", and the gate — added later, §GATE — is a
+second income of the same order on top of it, so pay is a quarter of income. The gate is the only
+line that moves with anything a manager does (standing and fame: Alliance, loathed by the fleet,
+takes ₡27k where Nevlon takes ₡171k), and the difficulty ladder shows through it. Nothing here is
+re-priced yet; the ruling on where the surplus comes down is open, and salaries and acquisition
+are where the designer has said it should.
+
+## The first money pass. *Ruled; a starting point, not a settlement.*
+
+Four levers, none pulled all the way, as ruled: mercenaries are not the bulk of a team, the
+correction is not to be dumped into one thing, gear is a lever for later, and the grants were
+never facts. Everything below is in data or a `[C]` constant and can be moved again.
+
+- **The founding mix** moves into `recruitment.json` (`founding_mix`) at **70 / 10 / 20**
+  natties / mercenaries / prisoners; it was 45/35/20 in `roster.js`, a third of every founding
+  roster mercenaries at three times a Natural-Born's wage. Founding pay fell before anything else
+  rose, which is the right order. The five combat snapshots moved and were blessed;
+  `measure_fight` holds.
+- **`salary_base` 400 → 600**, and the Kier wage with it, 120 → 180 (the same 0.62 of the
+  pool's median). A Natural-Born year is ₡3,486; a mercenary's ₡11,795; a Conscript's ₡2,160.
+- **Board grants halved** in `oa_profiles.json` (₡65k–₡145k). The funding note's own history:
+  they were sized to a wage bill read off an instrument that multiplied a yearly ask by twelve.
+- **The gate cut a quarter** (`GATE_*` in `ledger.js`).
+
+**Measured, three years, before the Divide is fought:** fleet average **+₡12k** an OA a
+year (was +₡178k). Violet's +₡69k, Nevlon +₡75k, Knights' Star ±0, Mercy +₡6k, Vantis +₡8k,
+Verdant −₡27k, Alliance −₡89k. The Divide's own money (a win bonus averaging ₡70k across the
+fleet, mostly to the winner; death benefits ₡26k the other way) now decides whether a year
+was good. Pay is ~₡115k of ~₡250k income, not a quarter of ₡425k.
+
+**Open, noticed on the way:**
+- **The ladder is not monotone.** Knights' Star (diff 2) breaks even where New Line (diff 4)
+  clears ₡53k, because the gate follows *fleet standing* and New Line is liked. Difficulty
+  buys roster and grant; it does not buy a crowd. A profile question.
+- **Alliance burns ₡89k a year** on a ₡292k treasury: three years to the board unless it wins.
+  Loathed by the fleet, it takes ₡17k at a gate Nevlon takes ₡120k from. Whether that is the
+  intended feel of "buys people and breaks compacts" is for the designer.
+- **Kit is nearly free.** Procurement averages ₡8k an OA-year: the allowance caps the value
+  fielded, OAs fight out of their lockers, and nothing is charged for carrying. The next
+  lever, and it wants `items.js` read properly first.
+- **Opening treasuries** (₡270k–₡390k) are now four or five bad years deep. Not moved.
+
+`measure_economy.cjs` reads every OA through the lock and is the gate for all of this;
+`harness/drive.cjs`'s training check was reading a cohort mean that the drive's own trades
+moved — it reads each hand against itself now.
+
+## The founded OA is the yardstick. *Ruled and built.*
+
+The only OA a manager can play is the one he founds at the desk. The instruments were handing
+an established OA to the "human" and reading its books — no such game exists — and the
+founder's own money had not been touched by the pass above: a **₡150,000** grant, the largest in
+the fleet after the eight were halved, for an OA nobody has heard of. Played carefully (his own
+people from the tryouts, prisoners at their sentence, a mercenary only to fill the last slot) a
+founder cleared **+₡100,000 a year** before he fought and tripled his bank in three years. Two
+causes, and the second was the larger:
+
+- the grant, and
+- **the crowd liked him on day one.** The desk builds a founded OA as the fleet's average in
+  every number, reputation included, so an OA with no history opened at own 54 / fleet 42 and
+  took ₡93k a year at the door before it had done anything.
+
+**Ruled:**
+- `founderProfile` lives in the engine now (the page's `blankSlate` calls it), so the desk and the
+  instruments found the same OA. It is **liked at home and unknown to the fleet**: its own
+  people's standing comes from its dials, as any undeclared OA's does; the wider fleet has no
+  opinion yet. Opening at zero on every audience was tried once and read as "your own crew hates
+  you"; home stays warm.
+- **`LEAN_GRANT` 150k → 90k.** Measured, three years before any fighting: **−₡5k, −₡1k, +₡8k**,
+  the crowd doing the growing (₡51k → ₡71k at the door). Tight early, more choices as he grows,
+  which is the feel ruled. At 75k it was three losing years; the kit pass will make the first year
+  dearer still and is measured then.
+- **The eight are funded relative to the founder.** `grantFor(profile)` gives an established OA
+  `LEAN_GRANT × (2 − 0.25 × difficulty)`: ₡158k for a 1, ₡68k for a 5. The eight hand-written
+  `funding_base` figures are gone from the profiles. Established OAs open with full rosters and
+  armouries; the founder's ₡210k treasury is what he builds a passable team from, and the grant is
+  what keeps it standing.
+
+**The eight, same run:** Violet's +₡68k, New Line +₡40k, Nevlon +₡23k, Knights' Star +₡19k,
+Mercy −₡3k, Vantis −₡51k, Alliance −₡115k. Average +₡17k an OA a year before the Divide.
+Alliance is now a three-year OA unless it wins, on a gate of ₡17k; whether that is the intended
+feel of the fleet's least-liked OA is still the designer's call.
+
+`measure_economy.cjs` founds an OA as the desk does, plays it carefully, and reports it first.
+
+## The founder's years, played through the fights. *Measured; three more double charges found.*
+
+`measure_founder.cjs` founds an OA as the desk does, plays it carefully, and follows it
+through the Divide for six careers of three years. Reading the whole year rather than the year
+up to the lock turned up three more things paid twice or not at all:
+
+- **The dead were paid for twice.** Settlement charged an estimate (mean contract × a multiplier,
+  a year late) because the benefit had "never been charged"; the families were then paid properly
+  where the dead leave the books, off each contract's own `death_benefit`. The estimate is gone.
+- **A trade moved the credits twice** on the page: the treasuries were moved directly and then the
+  ledger lines moved them again. A manager paying ₡50k paid ₡100k. The poster moves the money now.
+- **The fleet was selling the manager's people.** `fleetTrades` — "the thinnest roster shops, the
+  deepest sells" — had the manager's OA in its pool, and a full roster is the deepest in the
+  fleet, so his fighters went to the thinnest OA for cash, unasked and off the books. The
+  fleet deals among the other seven, on the books; his table is his own.
+
+**What the founder's year looks like through the fights** (six careers). Before the fleet
+stopped selling his people he ran −₡22k, −₡17k, +₡106k and won one Divide in nine. With his
+roster his own:
+
+| | year 1 | year 2 | year 3 |
+|---|---|---|---|
+| average | +₡55k | +₡1k | +₡291k |
+| worst | −₡136k | −₡75k | −₡31k |
+| best | +₡198k | +₡71k | +₡627k |
+| Divides won | 3 of 6 | 0 of 6 | 3 of 6 |
+
+Five careers of six end above the opening bank; one ends at ₡1.1 million. **The prize for
+winning a Divide is the largest sum in the game by a distance** — a winning year is worth
+five or six of the board's grants — and the wage bill is not what decides anything. What does:
+
+- **Deaths.** The eight lose **6.4 of 17 dropped, every year** — 37% of everyone who goes down the
+  well — and the founder 7.3. The "bad year in which you lose half" is the ordinary year. Pensions
+  (~₡40k), the rebuild, and the churn through every market follow from it. A combat question, and
+  the largest open one in the money.
+- **The win.** `Divide bonus (the OA takes the rights)` and the settlement's bonuses: measured
+  before the trade fix, ₡125k on average in a year-three fleet and up to ₡600k in one OA's
+  year. The ruling that the planet is worth what it is worth stands; what reaches the operating
+  account as "a bonus on the win" is the number to look at next.
+- **Ransoms.** The eight roughly break even (₡49k in, ₡46k out); a losing founder paid ₡40k and
+  got ₡15k. One career took ₡295k in ransoms in a single year.
+- **Kit is the same for everybody** (~₡36k fielded, founder and eight alike): the cap is on value and
+  gear is nearly free, so the founder's empty armoury is not costing him anything yet. The gear
+  pass is where "a passable team from ₡210k" starts to mean something.
+
+## The table: a read, and the principal made a party to the deal. *Built.*
+
+**What was there.** A joining OA priced two futures — staying (its odds, the people it would
+lose) and joining (a share of the banner's improved odds, fewer losses, or its people sent home)
+— charged more for being seen to fold, more for greed, more for history; knew its worth as a
+spoiler; the buyer squeezed the beaten; the crowd forbade the ugliest deals at any price; the
+settlement paid cut-of-a-cut correctly. The best-thought-through system in the project. Three
+holes:
+
+- **No table.** A joiner computed BOTH sides' limits — the principal's private ceiling included,
+  off dials it could not know — picked a point by patience, and the deal was struck. The
+  principal decided nothing; nobody could be wrong. A calculator.
+- **The manager's banner was bought for him.** Only his ceding was protected. AI OAs joined
+  under his banner on terms they set, and he paid the crowd's price for buying a win.
+- **Nothing reached past the current Divide**, and the living opinion each OA holds of another
+  (which `reputation.js` tracks per rival) never touched a price: the table read only the
+  profiles' written relationships.
+
+**Ruled and built** (`negotiate.js` §6.2–6.4, `divide.js`, `reputation.js`). By ruling, money and
+odds stay the spine of the table; the rest are terms inside the valuation, and none is large.
+
+- **The principal answers** (`considerTake`). The joiner asks from an ESTIMATE of the ceiling
+  (±15%, drawn once per pair per Divide, so an OA is consistently over- or under-confident
+  about one banner) and can ask too much; refused, it comes down 10% a time. An AI principal
+  re-prices from its own side. Measured over eight Divides: 22 joins, 4 asks refused by the
+  principal, none struck on the manager's banner.
+- **A manager's banner waits on him.** An OA that wants in ASKS; the ask stands on the window
+  with their terms, what refusing costs each side (his people, theirs — the spoiler and their
+  expected losses, both already priced), and three answers: their terms, his own terms (he may be
+  generous past his arithmetic; the crowd's wall still stands), or refuse. An ask he lets lapse is
+  a refusal.
+- **Beyond this Divide** (`SPITE_WEIGHT` 0.15): a principal counts a fraction of what finishing a
+  OA would cost THEM — their pensions, their replacements, in their own money — against taking
+  them in, by aggression and treachery, ×1.5 with a grudge, nothing for an OA it is warm to.
+- **Mercy** (`GOODWILL_WEIGHT` 0.06): a traditional OA pays a little over the arithmetic to
+  take a beaten rival in.
+- **Three memories**, raised on the principal with the other OA as target so it is THAT OA's
+  people who remember, and the fleet: `spared` (took a beaten OA in: rival +9, fleet +4),
+  `generous_terms` (rival +6, fleet +2, own −1), `left_to_die` (refused its surrender, then it was
+  wiped: rival −20, fleet −8, aleas −3, slow to fade).
+- **Memory reaches the price** (`livingRegard`, `RIVAL_PRICE` 0.20): an OA's living regard for
+  another moves what it asks of it, ±20% at the extremes; a traditional OA left to die will not
+  deal with the OA that did it. Measured: Verdant, spared by Mercy, regards Mercy at +35 the next
+  year and asks a fifth less to deal with it. (The first cut read the memory from the wrong end
+  and moved the wrong OA's price.)
+
+**The second pass** (`negotiate.js` §6.5–6.8) took the rest of the list:
+
+- **Whom to approach** (`rankBanners`): every banner ranked by what joining it would be worth to
+  THIS OA at its guess, warmed by living regard (±15% at the extremes), discounted 30% for a
+  OA it holds a grudge against, lifted 15% for a banner that stands in a grudged favourite's
+  way (kingmaking). It used to go to the two strongest, always.
+- **When** (`actsThisWindow`): urgency is the worse of how far behind its banner is and how late
+  it is; patience holds an OA back while it still has a chance, to a floor of 15%. Measured:
+  OAs sat out 118 windows in eight Divides where before they offered in every one.
+- **What to ask for** (`composeTerms`): a site or a category the OA values at least a quarter
+  more than the banner does is asked for first — that is where the surplus at a table lives — the
+  balance in credits by how badly it wants cash and in a share of the take. The 22% coin toss for
+  a cut in kind and its fixed discount are gone. Measured: 23 of 26 deals now carry a term in kind
+  and 7 a named site, up from a handful; that is what the values say, and it is worth watching.
+- **Principals reach out** (`considerInvite`): each standing AI banner courts, once a window, the
+  OA whose joining would lift its take most, at a little over what it guesses that OA's
+  floor to be; the OA answers by its own arithmetic. Measured: 20 invitations in eight Divides,
+  10 taken. (The spoiler — what an OA costs a banner by staying — measured at a body or so, ₡3k
+  against gains of ₡150k; it is not what moves anyone, and the invitation does not wait on it.)
+- The strike is one function now (`strike`), the door an accepted ask and a taken invitation both
+  go through. The manager's window shows terms in kind on an ask.
+
+**The third pass — the table is for the OA you are engaged with.** RULED: not the
+leaderboard; the one hunting you, the one you are beating. And ruled with it: teaming up for
+alliance's sake, not circumstance, is what the Aleas and the fans punish — so what an OA
+thinks of another moves the PRICE, never the choice, and the "join a friend" note above is
+withdrawn as a wrong idea.
+
+- **Contact is recorded** (`noteContact`, §6.9): the engine counted engagements per OA and
+  never whom, and the hunting intent never told the hunted. Now each corp keeps, per other corp,
+  fights between them, who lost to whom, who is hunting whom, and the last day of contact; the
+  table reads it summed over a banner's members (`ctx.contact`).
+- **Whom to approach, whom to court:** a banner's value to a joiner is lifted up to 60% by
+  contact (fought, hunted by, lost to) and halved for a banner never met; a principal courts the
+  OA it is on top of first. Regard is out of the ranking. Measured, eight Divides: 23 of 24
+  deals between OAs whose squads had met; 20 with the OA that had beaten the joiner; 8
+  with the one hunting it.
+- **A cold alliance** (§6.10) — a deal between OAs that never met this Divide — costs the
+  folder 30% more to be worth the shame, the buyer 15% off his ceiling, and both are remembered
+  (`cold_alliance`: own −3, fleet −8, aleas −10). One in eight Divides, punished.
+- The manager's strip says who is on him: *Hunting You · Beat You · You Beat Them · Fought You.*
+
+**Can the OAs decide well at all?** Not "fully considered" — eight parties, hidden information
+and a fight nobody can predict; no human manager considers everything either. The target is
+LEGIBLE AND CONSISTENT, not correct: one valuation used everywhere, a few visible commitments
+(culture, position, contact, memory), an intention per Divide so the windows hang together, and
+lookahead only where it is one cheap step. The order: measure first, then intentions, then the
+valuation consolidated across ransoms, captives and pacts, then the settlement's scale.
+
+**`measure_regret.cjs` — the measurement.** Every AI decision at the table passes through
+`decide` (`divide.js` §6.11): act or hold, which banner, accept or refuse. The instrument runs a
+Divide, records them, and for a sample REPLAYS THE WHOLE DIVIDE FROM ITS SEED with one decision
+forced the other way, everything after left to the AI, and scores the OA's outcome — the
+settlement's take less its permanent losses at the table's own price for a body. Signed: the
+other way minus the way taken. (The first cut reported "best minus chosen", which cannot be
+negative, and read principals as overpaying for joiners when they were not. A one-sided ruler.)
+
+Six Divides, 36 decisions replayed:
+- **The principal's accept/refuse is the only decision that binds.** 14 live rows: the other way
+  was better in 6, and the way taken came out **₡121k better on average**. Mercy Concern decides
+  best (−₡325k for the other way, n=6); Knights' Star worst (+₡60k, n=5).
+- **The joiner's decisions are moot: 20 of 20.** Act or hold, this banner or that — the money is
+  identical, because the offer could not close either way. Only ~8% of OA-pairs are ever
+  viable (the crowd's wall and the floor-over-ceiling account for the rest), so a joiner's
+  "deciding" is mostly theatre. That is a finding about the table's SHAPE, not the AI: whether
+  viability should be that rare is a design question, and it is why the instrument had nothing to
+  measure on that side.
+
+**Appetite** (`negotiate.js` §6.12, `appetite`). RULED: the decision to give up is variable on
+what an OA knew going in and what has happened since — the board's expectations, its interest
+in the planet and its resources, the state of its squads' health, its combats through the
+Divide, and its strength now against its strength at the drop. One number, 1.0 indifferent,
+built from those five and read into the joiner's floor (hungry to stay, dear to fold) and,
+gently, the principal's ceiling. Stance is NOT in it: stance already governs how much Divide an
+OA goes looking for, and applying it at the table too double-counted it (the `STANCE_LIFE_MULT`
+note). Two readings were wrong in the first cut and are fixed: the resource term read every OA
+against a base and pinned all of them at the cap (it is relative to the fleet's interest now);
+the board term was a net push upward because nearly every board wants a win (a win demand now
+counts only while the OA can still win, and a board that wants money counts against). Measured:
+median 1.00, p10 0.61, p90 1.31, falling from 1.09 in the first six days to 0.92 in the last as
+squads wear down; deals per Divide unchanged at about five. The manager's strip says it as a
+word: *Hungry · Holding · Wavering · Wants Out.*
+
+**What the regret instrument said about it, and what it means.** With appetite pinned at 1, the
+principals' accept/refuse came out −₡38k (the way taken better) over 19 live rows, right 10 of 19;
+with appetite live, +₡74k over 22, right 8 of 22 — consistent over two sample sizes, so not
+noise. Appetite is not lying: the odds board reads real force. What it did was let more MARGINAL
+folds close (a wrecked OA now asks little), and every marginal accept is a coin flip the
+principal's ceiling was already losing narrowly. The ceiling is too generous at the edge; appetite
+exposed it. The calibration is the instrument's job and it touches the settlement's scale, which
+is the designer's — so it is recorded here and not tuned.
+
+**One valuation** (`negotiate.js` §6.13). Ransoms, captives and pacts priced from their own dials
+and fixed constants; none read the body price the table uses, the living regard between OAs, or
+appetite. Now: a ransom is asked at what the body is worth to lose — the contract's pension and
+the signing it takes to replace him, as `bodyMoney` prices a body for the table — marked up a
+quarter and moved by what the captor thinks of the owner; the owner pays up to 1.6× that worth,
+scaled by its appetite to keep fighting, from the treasury it actually has (the Divide's corp
+carries it under `persist`; the first cut read a field that was not there and closed nothing).
+A captor's living regard for the owner colours a captive's fate — an OA that was spared releases,
+one left to die kills. A hungry OA wants no truce; one that wants out wants one badly; an OA that
+will not deal with you will not sign a truce with you. Measured, six Divides: 129 ransoms (about
+four captives in ten bought back) at a median ₡4.4k; 12 pacts.
+
+**`sim/audit_table.cjs` — the table held to its character.** `measure_regret` says whether the
+OAs' decisions made money; this says whether they made sense, as a gate: a beaten OA approaches an
+OA its squads have met first, among those that could take it (18/18); a principal courts OAs it
+has fought (6/6); cold alliances are rare (1 in 23); an OA left to die asks more of the OA that did
+it and one spared asks less; spite is an aggressive OA's, goodwill a traditional one's; an OA with
+half its people down wants out and its floor falls; stance is not applied twice; a manager's
+banner is never bought for him; the principal both refuses and takes. Two behaviours were fixed to
+pass it: a rich cold banner could still outrank the OA on top of you a quarter of the time
+(`RANK_CONTACT` 0.6 → 1.0, `RANK_COLD` 0.5 → 0.4), and principals were inviting strangers — a cold
+alliance by construction, one deal in six (invitations now go only to OAs the banner has met; a
+stranger may still ask, and pay the cold price). One check was retired as a statistic and rebuilt
+as a mechanism: OAs that ceded and OAs that held read the same appetite at their last window
+(0.86 vs 0.85), which says appetite is not what decides WHO folds — viability is — only what it
+costs; that is reported now, not gated.
+
+**Learning inside a career** (`negotiate.js` §6.14). Every deal at the table was a promise about
+a take that had not happened yet. At the settlement a joiner learns whether joining THAT banner
+paid what it signed for (the take it got against the value it agreed, paid at 60% or better) and
+a principal learns whether buying THAT OA's help won; kept per pair on the season corp
+(`persist.dealRecord`, written by the Divide, carried across the lock) and read into
+`priceModifier` at 10% a lesson, capped at ±30%. Private: nobody else's opinion moves. Measured,
+three seasons of one fleet: 20 pairs with a lesson, 14 deals that paid, 12 that did not; an OA
+burned twice asks 30% more of that banner, one paid twice asks 20% less. Gated (`audit_table` T10).
+
+**Still open:** the manager's own ransoms are still decided for him by the AI's willingness roll
+("a bleak little decision the game should let managers make too"); the principal's ceiling at
+the margin (above); nobody bargains over the FORM of
+payment across rounds (a refused ask comes back lower, not different); the pot of a Divide is
+planet-scale while every cost at the table is body-scale, and that gap is why odds dominate
+everything.
+
 ## The wages were never paid. *Fixed, and the surplus is now a tuning question.*
 
 The money has been deferred as a balancing matter for a long time, and nothing had ever read the
@@ -1420,11 +1839,11 @@ books end to end. `sim/measure_economy.cjs` does. It found two costs the game CO
 AGAINST, DISPLAYS — and never charges:
 
 - **THE WAGE BILL.** `wageBill` has existed since the ledger did. `procurementBudget` subtracts
-  it before deciding what a house may spend on kit. The Roster prints it as *The Wage Bill*, in
+  it before deciding what an OA may spend on kit. The Roster prints it as *The Wage Bill*, in
   red, monthly. **No line was ever posted for it.** The single largest cost of running a
   corporation was a number on a screen.
 - **THE ALEAS ENTRY FEE.** `ALEAS_ENTRY`, forty thousand, *what it costs to be in the Divide at
-  all* — reserved beside the wages and charged to nobody. **A house entered the Divide free.**
+  all* — reserved beside the wages and charged to nobody. **An OA entered the Divide free.**
 
 Measured before: a prep year cleared **+₡162,428 on average**, against **₡103,504 a year** in
 costs that existed only as arithmetic. Every scarcity the Market, the Paper, the sponsors and the
@@ -1432,10 +1851,10 @@ kit cap assume was a fiction — and every balance pass measured against them wa
 a false constraint.
 
 Wages are posted monthly, for everybody on the roster; the entry fee is taken at the lock from
-every house that is going. A year now nets **+₡97,012** on the same seeds.
+every OA that is going. A year now nets **+₡97,012** on the same seeds.
 
 **THAT IS STILL A SURPLUS, AND IT IS NOW AN HONEST ONE.** The books balance and the dominant term
-is visible: **the gate at ₡158,864 a year** against a wage bill of sixty. Whether a house should
+is visible: **the gate at ₡158,864 a year** against a wage bill of sixty. Whether an OA should
 clear a hundred thousand for eleven months of preparation is a RULING, and it is one that can
 finally be made against real figures. The instrument fails outright if either charge ever goes
 missing again.
@@ -1597,7 +2016,7 @@ turn, found nobody, and did nothing. A name in a script is a hard edge against a
 to be rewritten.
 
 Every rebuilt quirk carries `story.hooks_into` — the things an event could hang on it — and
-`castFor(state, corp, tie)` returns whoever in the house has a quirk answering to it, whatever
+`castFor(state, corp, tie)` returns whoever in the OA has a quirk answering to it, whatever
 that quirk is called this year. *A fight in the barracks* finds the Hot Blooded man; retire him
 and write a different one, and the event follows. The `story` fields were documentation until
 this; now they are the casting call, which is the difference between a field that claims
@@ -1663,7 +2082,7 @@ list, so the page came out 84KB light with a portrait missing before the file wa
 near-neighbours hard to tell apart on a grid, saying nothing about the people wearing them. The
 ruled colours: Attorak BROWN, Etu GREEN, Gil PURPLE, Human TAN, Kellis BLUE, Mon-Wa WHITE
 (against black), Olmac GRANITE, Svalbard GOLD, Ththyn LIGHT PINK. Each is pitched clear of the
-houses' eight banners and the suppliers' eight, so a race never reads as somebody's flag, and the
+OAs' eight banners and the suppliers' eight, so a race never reads as somebody's flag, and the
 radius is untouched — that is build, not colour.
 
 BROWN AND PURPLE HAD TO BE LIFTED. At their honest values (`#8a5a2b`, `#8b4fc9`) they came to
@@ -1743,8 +2162,8 @@ origins were named, and each origin now wears its own colour here as it does eve
 
 **AN OFFER IS A NUMBER A MANAGER CHOOSES.** It was one button at one fixed step below the ask, so
 haggling had a single answer. He types a year's figure, and **A MAN WEIGHS IT AGAINST WHAT HE
-THINKS OF THE HOUSE**: the further under his ask, the likelier he walks, and a hand who likes it
-here will swallow a cut that one who does not would walk over (`HAGGLE_LOYALTY`). **AND A HOUSE
+THINKS OF THE OA**: the further under his ask, the likelier he walks, and a hand who likes it
+here will swallow a cut that one who does not would walk over (`HAGGLE_LOYALTY`). **AND A OA
 THAT PAYS OVER THE ASK IS REMEMBERED FOR IT** (`OVER_ASK_LOYALTY`) — nothing a manager could do
 at this table had ever moved a man's regard for him, and being paid more than he asked is the
 plainest thing that would.
@@ -1771,12 +2190,12 @@ it. An answered event goes back to grey, because a thing already dealt with is f
 ## A window that signed the whole sheet on your behalf. *Fixed, and three others with it.*
 
 **ENDING THE NATURAL-BORN MONTH SIGNED EVERY NATTIE ON THE SHEET.** `runTryouts` has a
-fall-through for a house that marked nobody: it calls up its own ship to fill out toward the drop
-floor, which is right for the seven houses nobody is running. THE MANAGER'S OWN CORP FELL THROUGH
-IT TOO — and a founded house opens eleven under the floor, so an unmarked month signed the entire
+fall-through for an OA that marked nobody: it calls up its own ship to fill out toward the drop
+floor, which is right for the seven OAs nobody is running. THE MANAGER'S OWN CORP FELL THROUGH
+IT TOO — and a founded OA opens eleven under the floor, so an unmarked month signed the entire
 sheet on his behalf and billed him for it. The state has known which corp is the manager's since
 the founding (`opts.human`); the tryouts never asked. A manager's sheet is his, and an empty mark
-is an empty month. Measured: his roster holds at 21 across both window months while a house
+is an empty month. Measured: his roster holds at 21 across both window months while an OA
 nobody runs still goes 21 → 23.
 
 **THE ROW PIPS IN REST AND RECOVERY PAINTED BOTH TRACKS AT ONCE** — a third control doing what
@@ -1808,23 +2227,23 @@ no error, which is the worst way for a lookup to fail. It was suppressing `poach
 `loyalty_cap_reduced` and `remembers_grudges` on any Review-screen read in a fresh career. It
 builds its own index now — and THE FIRST FIX FOR IT REACHED FOR `require`, which does not exist
 in the page, so the simulator was cured and the browser went on answering no. The fallback takes
-the roster's index, which both houses have.
+the roster's index, which both OAs have.
 
 **WHAT WAS BUILT, all of it on machinery that already existed:**
 - **LOYALTY DECIDES SOMETHING.** It was carried by every fighter and read in three places a
-  manager could never see. A hand who likes the house asks less to stay: measured 824 against
+  manager could never see. A hand who likes the OA asks less to stay: measured 824 against
   1,176 for one who does not. `loyalty_cap_reduced` is a consequence of that, not a system —
   a man who cannot be fully loyal never reaches the discount.
-- **THE GRUDGE IS ONE FIELD.** `f._grudge` holds the single house that tried to buy him, set at
-  the poach. Three readers: the merc market refuses that house, the Divide gives him composure
+- **THE GRUDGE IS ONE FIELD.** `f._grudge` holds the single OA that tried to buy him, set at
+  the poach. Three readers: the merc market refuses that OA, the Divide gives him composure
   against them, and the mark rides onto the ground with him. The first design was a
-  fighter-to-corp relationship matrix; a man remembers one house.
+  fighter-to-corp relationship matrix; a man remembers one OA.
 - **SIX STORY HOOKS ARE ONE MULTIPLIER** on `REP.act`, which already computed the whole swing in
   one place. The loudest name among a casualty list carries the notice.
-- **LUCK IS ONE MORE TERM** in a draw already weighted by who a house carries.
+- **LUCK IS ONE MORE TERM** in a draw already weighted by who an OA carries.
 - **PROMOTION LANDS ON PEOPLE** at the succession that already happens when a captain falls: the
   hungry steady, the passed-over take it badly.
-- A house that pays its dead well is seen to; a war-priest is called one.
+- An OA that pays its dead well is seen to; a war-priest is called one.
 
 **AND SIX HOOKS ARE LABELLED DECORATION IN THE DATA, WITH THE REASON.** Superstition wants a
 squad-belief state, Odds Watcher an odds board, Mimic Call a comms layer, Pressure-Read a manager
@@ -1880,9 +2299,9 @@ sheet as soon as this month begins, from the same seed it would have used — th
 arrive, only the moment they become visible has moved. A manager can want somebody a month
 before he can bid.
 
-**AND A FOUNDED HOUSE'S HANDS CARRY ITS LOCKER.** A house opened with people and a rack of kit
+**AND A FOUNDED OA'S HANDS CARRY ITS LOCKER.** An OA opened with people and a rack of kit
 and NO CONNECTION BETWEEN THEM — every fighter walked around unequipped until a quartermaster
-ran at the drop, which for a founded house meant seven veterans of last year's Divide standing
+ran at the drop, which for a founded OA meant seven veterans of last year's Divide standing
 about with nothing on them. They are issued from the shelf at the founding, best first, and what
 they take comes off it: the first hands get a rifle, plate and a pistol, the last get a rifle and
 what is left, which is what a thin locker should look like.
@@ -1944,13 +2363,13 @@ stays gold.
 
 **EIGHT SUPPLIERS, EIGHT COLOURS.** The board coloured them by a HASH into ten hues, and eight
 draws from ten do not risk collision, they guarantee it — several read identically. They are
-assigned BY POSITION now, so no two can collide, out of eight pitched away from the houses' own
-banners and the origin colours: paler and cooler where a house is deep, warmer where a house is
+assigned BY POSITION now, so no two can collide, out of eight pitched away from the OAs' own
+banners and the origin colours: paler and cooler where an OA is deep, warmer where an OA is
 cold. And the benchmark came off the head of the board — it threw the title's centring out, and
 every row already says how much more regard THAT supplier wants, which is the same fact in the
 place a manager is looking when he wants it.
 
-**AND A NAMELESS OA IS *AN UNNAMED OA*.** It was "The Unnamed House", naming a thing this game
+**AND A NAMELESS OA IS *AN UNNAMED OA*.** It was "The Unnamed OA", naming a thing this game
 does not have, and I replaced it with "An Unnamed Concern" — which names a DIFFERENT thing it does
 not have. A manager founds an Opes Arx; if he will not name it, the fleet calls it what it is.
 
@@ -1967,7 +2386,7 @@ of thing side by side, in the same grey, as though they were the same kind of th
   belongs to a year's opening summary, not to a standing line.
 - **WHAT IS LEFT IS WHAT THE ROSTER IS ABOUT:** the wage bill and the headcount, given room
   rather than a grey aside. The wage is RED, because it is money going out. The count is GREEN
-  when a house can field a drop and RED when it cannot, and says which.
+  when an OA can field a drop and RED when it cannot, and says which.
 
 **AND THE CLOCK WEARS THE MONTH'S OWN COLOUR**, the same one the year line gives that stop, so
 the two agree instead of the header being permanently gold.
@@ -1976,7 +2395,7 @@ the two agree instead of the header being permanently gold.
 two words that had quietly overwritten the name of the game in the browser tab. The title is
 *Opes Arx — The Capital Divide*. The corner carries the manager's own OA, its mark and its
 colour, which is where a manager's name should have been all along and was nowhere. And an
-unnamed founded corporation is *An Unnamed Concern*: **THE UNNAMED HOUSE** named a thing this
+unnamed founded corporation is *An Unnamed Concern*: **THE UNNAMED OA** named a thing this
 game does not have.
 
 ## The pad lines up, and the builder gets a room. *Built.*
@@ -1999,8 +2418,8 @@ own shape, which keeps the antennae, the ears and the crest that a circle would 
 has no corners, so the art's black rectangle vanishes into the stage and the three read as one
 piece rather than three images set side by side. The middle is raised and a touch smaller; the
 sides sit lower and further out, framing the title from beneath and beside rather than crowding
-it from above; each wears the light of its own art — cold blue, magenta, ember. THE TAGLINE IS GONE. *Eight Houses · One Year · One Divide* made three claims and all three
-were untrue: there are no houses, there are OAs; the game runs many YEARS, not one; and a year
+it from above; each wears the light of its own art — cold blue, magenta, ember. THE TAGLINE IS GONE. *Eight OAs · One Year · One Divide* made three claims and all three
+were untrue: there are no OAs, there are OAs; the game runs many YEARS, not one; and a year
 holds contests throughout, not one Divide. It was reworded once and should have been cut —
 a line that has to be argued into truth is a line that is not saying anything. The eight OAs'
 own marks stand under the title instead, which claims nothing and shows something.
@@ -2038,9 +2457,9 @@ not a task waiting on anybody.
 **WHAT COURTING ACTUALLY IS, since the screen never said.** Focus spent on a supplier is not a
 price and does not buy a contract. It builds REGARD (which persists, kept or lost) and records
 this year's EFFORT, and at the season's turn every still-open supplier signs whichever courting
-house has the highest standing with it — one supplier per house. So "cost 3" is the focus a
+OA has the highest standing with it — one supplier per OA. So "cost 3" is the focus a
 courting attempt costs, not what the contract costs; it falls as contracts are signed anywhere
-in the fleet (`COURT_COST_DROP`) and falls a little further for a house the supplier already
+in the fleet (`COURT_COST_DROP`) and falls a little further for an OA the supplier already
 regards, which is the 2.9. Losing a year's courting is not wasted: the regard stands.
 **AND "AT THE SEASON'S TURN" WAS THE FAULT, NOT THE EXPLANATION.** Everything resolved at the
 lock, simultaneously — which makes the discount at the centre of the system incoherent:
@@ -2051,7 +2470,7 @@ number move by a tenth for reasons nothing explained.
 
 **A SUPPLIER NOW SIGNS THE MONTH SOMEBODY CONVINCES IT.** Each carries a BENCHMARK — the
 standing it wants to see before it commits (`SIGN_BENCH_BASE`, about two months of steady
-courting, so a signature is a campaign and not one month's focus). The first house to reach it
+courting, so a signature is a campaign and not one month's focus). The first OA to reach it
 takes the contract THAT MONTH, and every supplier still open drops its bar (`SIGN_BENCH_DROP`,
 never below `SIGN_BENCH_FLOOR`) — a board that is emptying is a board where the rest get
 anxious. That is the fiction the focus discount always described, and now the two agree. The
@@ -2074,7 +2493,7 @@ again through `effort`, so a point of focus was worth four of whatever standing 
 and no screen could have explained the number. ONE FOCUS IS ONE REGARD, and standing IS regard —
 the same −60..+60 scale the board already showed, built a point at a time by courting, warmed by
 keeping a contract (+10) and soured hard by failing one (−22). Effort is still recorded, because
-a supplier only considers houses that actually courted it this year, but it is not counted twice.
+a supplier only considers OAs that actually courted it this year, but it is not counted twice.
 The benchmark is stated in that scale: `SIGN_BENCH_BASE` 8, falling 1.5 per contract signed
 anywhere, never below 3.
 
@@ -2084,31 +2503,31 @@ supplier needs before it signs you, or *Convinced* when it is there. WHAT IT DOE
 ruling, IS WHO ELSE IS COURTING: that is a thing to send a scout for, not a thing the desk hands
 over.
 
-**AND THE RACE IS A RACE NOW, because the houses no longer all want the same thing equally.**
-Courting was weighted at a FLAT 0.55 for every house in the fleet and every track took the whole
+**AND THE RACE IS A RACE NOW, because the OAs no longer all want the same thing equally.**
+Courting was weighted at a FLAT 0.55 for every OA in the fleet and every track took the whole
 focus cap it could reach — so all eight courted from month one, with the same three focus, and
 crossed the benchmark in the same month. No benchmark could have fixed that; it was not a board
 rule but eight identical appetites.
 
-A house's appetite for a backer is `courtAppetite`: it rises as the purse thins over a year of
-wages (`COURT_COMFORTABLE`), rises with thrift — a careful house courts rather than spends —
-falls with showmanship, because a showy house would rather not be seen asking, and falls for
-every backer already signed. AND THE APPETITE DECIDES HOW MUCH, NOT ONLY WHETHER: a hungry house
+An OA's appetite for a backer is `courtAppetite`: it rises as the purse thins over a year of
+wages (`COURT_COMFORTABLE`), rises with thrift — a careful OA courts rather than spends —
+falls with showmanship, because a showy OA would rather not be seen asking, and falls for
+every backer already signed. AND THE APPETITE DECIDES HOW MUCH, NOT ONLY WHETHER: a hungry OA
 throws the cap at it, a lukewarm one puts a point in and waits. The base is low enough that a
-house with money and pride may never court at all.
+OA with money and pride may never court at all.
 
 Measured over four fleets: the first supplier signs in month 4, two more around month 7, and ONE
 OF THE FOUR IS OFTEN NEVER TAKEN — a board that does not empty is a board a manager can win from
 late. Against the old reading, which was all four in a single month.
 
 *Still bunched, and honestly so: two suppliers commonly go in the same month, because there are
-only three focus to spend and eight houses' appetites round to the same handful of integers.
+only three focus to spend and eight OAs' appetites round to the same handful of integers.
 Finer staggering wants either more focus to divide or a reason to start in different months, and
 neither is worth inventing until the screen shows a manager what the race looks like.*
 
 **AND THE TIE-BREAK WAS ARBITRARY.** `st > bestStanding` meant an exact tie went to whichever
 house came first in the id list. A sponsor with two equal suitors now SPREADS ITS BETS: the
-house carrying fewer of its contracts takes it, and if they are level there too, the one with
+OA carrying fewer of its contracts takes it, and if they are level there too, the one with
 less standing in the fleet — a backer courted equally by a giant and an upstart gains more by
 backing the upstart.
 
@@ -2121,13 +2540,13 @@ A column of identical grey names was the one thing the fleet is never shown as.
 to five of them, ten exist in the catalogue from ninety credits, `useSidearm` has been in the
 fight since the beginning and `equipCorp` passes the slot through — and NO PHASE OF THE PLAN EVER
 BOUGHT ONE. The plan's essentials list was `[primary, armor]` and nothing else ever filled the
-slot. A sidearm phase sits after the essentials and before the upgrades, because a house buys
+slot. A sidearm phase sits after the essentials and before the upgrades, because an OA buys
 every hand a pistol before it buys anybody a better rifle; the cell-fed go first, since a flat
 cell is what ends a fighter's fight.
 
 **AND THE GUNS NOW RESPECT THE RESERVE THE MODS ALREADY HAD.** Muster and the buy that followed
 were capped at the WHOLE fielding allowance while the upgrade phase worked against `gunAllow` —
-so a house could field itself to the ceiling on rifles and plate and have nothing left for a
+so an OA could field itself to the ceiling on rifles and plate and have nothing left for a
 pistol or a grenade.
 
 **NO FIGHTER IN THE GAME EVER DEPLOYED UNARMED.** That state existed only in the PROBES, which
@@ -2135,11 +2554,11 @@ built `generateSquad` bodies and never equipped them. Measured across three flee
 100% carry a primary, 100% armour, 85% a sidearm, 88% a consumable, and NOBODY walks on unable
 to hurt anybody. `sim/measure_kit.cjs` is the gate, and it fails on a bare hand.
 
-**ONE HOUSE STILL ARMS NOBODY WITH A PISTOL: the Verdant Cradle, 0%.** It is the poorest house
+**ONE OA STILL ARMS NOBODY WITH A PISTOL: the Verdant Cradle, 0%.** It is the poorest OA
 in the fleet, its fielding allowance is small, and twelve per cent of a small allowance buys a
-ninety-credit holdout for the two roles that list one and nothing for the rest — while the house
+ninety-credit holdout for the two roles that list one and nothing for the rest — while the OA
 sits on thirty-one thousand credits it cannot field. THAT IS RECORDED AND NOT FIXED: whether a
-fielding cap should bind a poor house this hard is a ruling about what the allowance means, and
+fielding cap should bind a poor OA this hard is a ruling about what the allowance means, and
 it wants deciding rather than patching.
 
 *Re-measured with sidearms in play: the range gradient holds — 2.33 dead a fight at a short
@@ -2174,24 +2593,24 @@ the three bands of 1/0/0. Snapshots blessed once against it.
 
 ## The draft dealt three landings because everybody happened to field three. *Ruled and built.*
 
-The rule allows a house SIX squads. Every house packed its people eight to a squad and so
+The rule allows an OA SIX squads. Every OA packed its people eight to a squad and so
 fielded three — and the draft dealt three picks apiece, which looked correct because the two
-numbers matched BY COINCIDENCE. A house that split into six got three landings and the engine
+numbers matched BY COINCIDENCE. An OA that split into six got three landings and the engine
 quietly stacked the other three onto the last pick: splitting was punished by an accident nobody
 had noticed, including me.
 
-**A HOUSE DRAFTS A LANDING FOR EVERY SQUAD IT FIELDS.** Rounds run to the largest count in the
-fleet and a house with fewer simply has no pick in the later rounds. Measured: eight houses
+**A OA DRAFTS A LANDING FOR EVERY SQUAD IT FIELDS.** Rounds run to the largest count in the
+fleet and an OA with fewer simply has no pick in the later rounds. Measured: eight OAs
 wanting 5,5,3,5,4,4,3,3 landings drew exactly that, no slot dealt twice, nobody short.
 
 **THE GROUND DOES NOT SHRINK TO FIT THE FLEET.** The first cut grew the ring with what the fleet
-meant to field, which made the map a function of the houses standing on it. A planet has the
+meant to field, which made the map a function of the OAs standing on it. A planet has the
 landings it has — FORTY-EIGHT, always — and a light fleet leaves most of them unclaimed. Ground
-going unused is the point: a house that scouted knows which of the unused ground was worth
+going unused is the point: an OA that scouted knows which of the unused ground was worth
 having. Measured: thirty-two claimed, sixteen left.
 
 **AND THEY ARE SCATTERED, NOT STRUNG ON A RING.** A single circle at 0.82 of the radius meant the
-whole fleet came down at one depth, and which ground a house got was whatever happened to fall on
+whole fleet came down at one depth, and which ground an OA got was whatever happened to fall on
 that circle — so scouting the planet told a manager almost nothing, because the choice was only
 ever WHERE ROUND, never HOW DEEP. The landings lie across the whole ground on rings that THIN
 TOWARD THE CENTRE (`SLOT_BANDS`: eighteen at the rim, two in the middle), because the middle is
@@ -2204,11 +2623,11 @@ deals the same ground twice is a draft that lies. Each point is tried a few step
 inward before it is allowed to sit near another; measured across six planets, the closest pair is
 never nearer than a tenth of the radius.
 
-**AND A HOUSE NOW CHOOSES ITS SHAPE.** Six squads is a real decision with real terms — more
+**AND A OA NOW CHOOSES ITS SHAPE.** Six squads is a real decision with real terms — more
 landings drafted, more ground covered, more deposits worked at once, against squads thin enough
 to lose the fights they pick — and the AI had no way to make it, because `dealSizes` packed to
 the maximum and stopped. `squadCountFor` leans on the dials: ground-hunger and appetite for
-contact push a house wider, patience keeps it massed. From a drop of twenty: a greedy house
+contact push an OA wider, patience keeps it massed. From a drop of twenty: a greedy OA
 fields six, a plain one four, a careful one three. A manager's own call overrides it.
 
 ## A mark goes everywhere its fighter goes. *Built.*
@@ -2216,7 +2635,7 @@ fields six, a plain one four, a careful one three. A manager's own call override
 The marks reached the Squads portraits, the roster rows, the bench and the sheet, and stopped
 there — Training and Rest named a hand in plain text, and so did the Paper, the sheets on offer
 and the negotiation table, where a fighter is a TERM and most needs to be recognised as a person.
-All of them carry the mark now. A prospect wears one before they have a house, ringed in a
+All of them carry the mark now. A prospect wears one before they have an OA, ringed in a
 neutral line until they sign; a fighter on the table is ringed in the colour of whoever holds
 them, which says at a glance whose side of the deal they are on.
 
@@ -2291,16 +2710,16 @@ followed by WHO rather than by coloured dots.
 changes under them. Their people lean the draw — a Ththyn toward the wings and the wing-case,
 an Olmac toward the slab and the block, a Mon-Wa toward the halves and the tether, a Kellis
 toward the mantis-blade, an Attorak toward the claw, the Etu toward the flame and the
-candle-house, a Gil toward the goggles, a Svalbard toward the hoof-arch — and the people's own
+candle-OA, a Gil toward the goggles, a Svalbard toward the hoof-arch — and the people's own
 piece comes up more often than not, so a squad of Ththyn reads as one. EVERY PIECE THE DRAW CAN
 REACH IS IN THE KIT (`RACE_LEAN` indexes it), so nothing a fighter is born with cannot be made by
 hand: the kit is twelve fields, twenty devices and eight bars now.
 
-**THE FILL IS THEIRS; THE RING IS THE HOUSE'S.** The mark is filled in the fighter's race colour
+**THE FILL IS THEIRS; THE RING IS THE OA'S.** The mark is filled in the fighter's race colour
 by default and may be changed to any of the founder's swatches; the ring round it is always the
-house's colour, which is how the grid says whose they are. It reads on the Squads portraits (where
+OA's colour, which is how the grid says whose they are. It reads on the Squads portraits (where
 the silhouette stood), on the roster rows, on the bench cards, and on the sheet — where clicking
-it opens THE SAME PAD the house's mark was built with: *As Born* throws a change away, *Re-Roll*
+it opens THE SAME PAD the OA's mark was built with: *As Born* throws a change away, *Re-Roll*
 draws again from their people's kit, *Keep It* saves. Only what was changed is saved; a fighter
 never touched carries no mark at all.
 
@@ -2317,7 +2736,7 @@ OA*, and asked whose berth to take. What is left is a NAME, a COLOUR and a MARK,
 founding a corporation actually is.
 
 **WHOSE BERTH IS NOT A QUESTION.** It has no information behind it and no interesting answer.
-The weakest house canonically gives way — the highest declared difficulty, the thinnest treasury
+The weakest OA canonically gives way — the highest declared difficulty, the thinnest treasury
 breaking the tie — which today is the Verdant Cradle (difficulty 5). With several managers the
 weakest several give way in that order: three managers displace the Cradle, the New Line and
 Vantis Deepcore. That is the rule multiplayer will want, written now rather than retrofitted.
@@ -2334,8 +2753,8 @@ moves from its top point, so its ink sat high in the box while every transform t
 box's centre — the whole thing swung on a hinge above itself. Plotted from (12,12) outward, it
 turns about the point it looks like it turns about.
 
-**A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN.** A founded house wore the same borrowed device
-as every other founded house. The mark is BUILT: a FIELD (eight), a DEVICE (twelve) and a BAR
+**A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN.** A founded OA wore the same borrowed device
+as every other founded OA. The mark is BUILT: a FIELD (eight), a DEVICE (twelve) and a BAR
 (six), and each of the three CAN BE TURNED, all the way round in eighths. Stopping at 135° was
 a half-measure resting on the assumption that the upper half of the dial repeats the lower, and
 it does not: a chevron at 225° is not a chevron at 45°, and an asymmetric field has eight faces.
@@ -2347,7 +2766,7 @@ the kit for a manager who does not want to make one, and the preview draws the m
 16 and 12 pixels at once, because legibility at the small end is the only thing that can go
 wrong.
 
-**TWO HARNESS MEASUREMENTS WERE WRONG, and the founded house exposed them.** The training mean
+**TWO HARNESS MEASUREMENTS WERE WRONG, and the founded OA exposed them.** The training mean
 was taken across the whole roster while the drive SIGNS FIGHTERS between the two readings — on
 seven hands, two arrivals move the average more than a month of drilling does, which read as a
 painted column losing to an unpainted one. The mean is over a frozen cohort now. And the painted
@@ -2380,7 +2799,7 @@ full width, in the window's colour, in the same place whatever state the card is
 card takes the colour and wears a corner flag.
 
 **B · THE STANDING BID, for the mercenaries — the one window where waiting is the mechanic**,
-because seven houses are bidding and the fighter chooses. It keeps its bidding and loses its
+because seven OAs are bidding and the fighter chooses. It keeps its bidding and loses its
 moving buttons: THE BID IS A SLIDER against what the field is putting up (`MERC_FIELD`), and
 **Place, Raise and Withdraw all stand on every card at once** — none of them renames itself or
 takes another's place under the cursor. The reading beneath answers what a manager actually
@@ -2390,14 +2809,14 @@ all.
 
 ## The ring reaches the Talks and the Deal. *Ruled and built.*
 
-Both surfaces pick a house the way every other one now does: the mark large in a circle in the
-house's own colour, the name under it, laid on a ring with the manager's own house in the middle.
+Both surfaces pick an OA the way every other one now does: the mark large in a circle in the
+OA's own colour, the name under it, laid on a ring with the manager's own OA in the middle.
 Each carries under the name the one thing that surface's choice turns on — in THE DEAL, whether
 they are your banner or under you or in a pact with you, and their odds; in THE TALKS, what they
 think of you, or *Sealed* if they will not come to the table at all. These were the two emptiest
 menus in the game and the ring was designed for exactly that.
 
-*Still to take it: the leanings on the Table, which are a five-point scale per house rather than
+*Still to take it: the leanings on the Table, which are a five-point scale per OA rather than
 a choice of one, and want their own shape.*
 
 ## A signature is a signature. *Ruled and built.*
@@ -2407,7 +2826,7 @@ is bidding on it — and it still made a manager mark somebody, wait for the mon
 find out then whether he had a fighter. There is no auction to wait for: `signNow` draws the
 paper, commits the money and puts the hand on the roster the moment the button is pressed, and
 the name comes off the sheet. The re-signing answers land the same way, with a line in the log
-saying what was done. THE MERCENARY MARKET KEEPS ITS BIDDING, and only it: seven houses are
+saying what was done. THE MERCENARY MARKET KEEPS ITS BIDDING, and only it: seven OAs are
 bidding there and the fighter chooses, which is the one place where waiting is the mechanic
 rather than a delay. (Its moving-button problem is the acquisition mock-up's business.)
 
@@ -2417,18 +2836,18 @@ Clean88%* is what a card looks like with no stylesheet at all. Written back, wit
 given room: label left, figure right, rules above and below, and the offer set off in the
 signing colour.
 
-## One gesture for picking a house, and a fleet you can see. *Ruled and built.*
+## One gesture for picking an OA, and a fleet you can see. *Ruled and built.*
 
-**A HOUSE IS ITS MARK.** Every place a manager chose another house wore its own shape — long
+**A OA IS ITS MARK.** Every place a manager chose another OA wore its own shape — long
 rectangles at the founding, a strip in the Talks, chips in the Backroom — and none of them
-matched. `housePicker` is the single component: the emblem large inside a circle in the house's
+matched. `housePicker` is the single component: the emblem large inside a circle in the OA's
 own colour, the NAME UNDER IT, laid on a ring where there is room and a row where there is not.
 It fills the empty middles of the menus that use it, which was half the reason those menus read
 as thin. The founding berth and the Backroom's targets use it now; the Talks and the Deal are
 the next surfaces to take it.
 
-**AND THE BOARD SHOWS A FLEET, NOT A COLUMN OF BARS.** Seven bars said what each house thought
-of you and showed nothing. The fleet is a set of DISTANCES: each house stands on a ring around
+**AND THE BOARD SHOWS A FLEET, NOT A COLUMN OF BARS.** Seven bars said what each OA thought
+of you and showed nothing. The fleet is a set of DISTANCES: each OA stands on a ring around
 yours, the warmer they are the CLOSER and LARGER they sit, the colder the further out and the
 smaller, with a line drawn to you — green where they are warm, red where they are cold, its
 weight the strength of the feeling. Same disc-and-name as the pickers, so the fleet looks like
@@ -2451,16 +2870,16 @@ hit rate runs 0.226 against a human squad's 0.212, bought entirely by standing s
 thing a manager can play around. (The number lives once, in combat.js where the shot is priced —
 declaring it in both modules is how two numbers drift apart, and the suite caught me doing it.)
 
-**THE BASTILLE'S SHEET HAD NO BUTTON.** The intake allotted prisoners purely by which house was
+**THE BASTILLE'S SHEET HAD NO BUTTON.** The intake allotted prisoners purely by which OA was
 shortest of people, so a manager read six names on the Roster and could do nothing with any of
-them. A house ASKS for the ones it wants (`claimPrisoner`), and the claims are honoured first;
+them. An OA ASKS for the ones it wants (`claimPrisoner`), and the claims are honoured first;
 the Bastille still fills the rest of the lot its own way. CEILING is off every sheet at last —
 Natural-Born, Mercenary and Bastille all still carried it — replaced by the RATING, which is the
 number a hiring call actually turns on.
 
 **ROSTER SHORT IS GONE FROM THE AGENDA ENTIRELY.** Narrowing it to the signing months was not
 enough: it is a STATE, not a task, and it held the turn button up over a thing a manager
-frequently cannot act on. The Market says how short a house is where something can be done about
+frequently cannot act on. The Market says how short an OA is where something can be done about
 it; the lock stops a drop that cannot be fielded.
 
 **THE PORTRAITS LOST THEIR EASE, AND HAVE IT BACK.** The cross was the only way out of a squad
@@ -2504,7 +2923,7 @@ costs. Three answers — RE-SIGN at the ask, OFFER LESS (`HAGGLE_FLOOR`, and the
 the ask the likelier they walk, `HAGGLE_WALK`), or LET THEM GO. A prisoner who has served his
 sentence is marked, and signing him on makes him a free hand on ordinary wages. The fleet still
 answers its own paper by arithmetic; a manager's calls stand before it. This matters most to a
-founded house, whose seven hands ALL have a year left on their paper — the first year opens with
+founded OA, whose seven hands ALL have a year left on their paper — the first year opens with
 a decision about every one of them.
 
 **AND THE BOOST WAS DRAWN WHERE THE FOCUS IS NOT SPENT.** Labelling the button was the wrong fix
@@ -2525,8 +2944,8 @@ focus line says the price once. Nothing about the mechanic changed; a manager ca
 ## The Backroom, the holds, and the last drop-down. *Ruled and built.*
 
 **THERE ARE NO DROP-DOWN MENUS IN THE GAME.** There were two, and both are gone: the Quiet
-Business's targets and the founding screen's berth. Both are chips in their houses' own colours
-now, the way every house is shown on every other surface. This is a standing rule — a select
+Business's targets and the founding screen's berth. Both are chips in their OAs' own colours
+now, the way every OA is shown on every other surface. This is a standing rule — a select
 hides seven things behind one word.
 
 **THE BACKROOM** is a page with a rail tab, not a drawer opened by a button, and it carries the
@@ -2583,31 +3002,31 @@ knows they decide nothing without having to find out the hard way. The remaining
 module-local (`clamp`, `open`, `resolve`) and harmless. `divide.js` at 4,417 lines and `season.js`
 at 3,382 are noted, not split: a split is invasive and belongs to its own pass.
 
-## A manager founds a house. *Ruled and built.*
+## A manager founds an OA. *Ruled and built.*
 
-Taking one of the eight over was a difficulty selector wearing a house's name. A manager
+Taking one of the eight over was a difficulty selector wearing an OA's name. A manager
 inherited somebody else's roster, somebody else's armoury and somebody else's reputation, and
 spent the first year managing choices that had already been made. THE EIGHT ARE THE FLEET, and
-the fleet is not the player: their identities are for the houses across the strip. A manager —
-solo or otherwise — founds a house and takes a berth among them.
+the fleet is not the player: their identities are for the OAs across the strip. A manager —
+solo or otherwise — founds an OA and takes a berth among them.
 
-And a founded house opens with nothing but money and a few old hands:
+And a founded OA opens with nothing but money and a few old hands:
 
-| | A founded house | One of the eight |
+| | A founded OA | One of the eight |
 |---|---|---|
 | Roster | **7**, every one with a year left on the paper, no mercenaries among them | 20–21 under contract |
 | Armoury | **18 pieces** — one drop, armed badly | ~280 pieces across 35 lines |
 | Treasury | ₡210,000 | ₡255,000–330,000 |
-| Grant | ₡150,000 — nobody underwrites a house they have not heard of | ₡265,000 |
+| Grant | ₡150,000 — nobody underwrites an OA they have not heard of | ₡265,000 |
 | To build with, after the entry, the wages and the reserve | **₡260,600** | — |
 
 The old start handed a manager six hundred thousand AND a full roster AND a full armoury, which
 is why the first year never felt like a decision. The mercenary market opens at the year's end,
 so a founder's first real choice is what to spend the year becoming. (`profile.founding = 'lean'`
 → `LEAN_ROSTER`, `LEAN_DEPTH`, `LEAN_PIECES`, `LEAN_TREASURY`, `LEAN_GRANT`; the ledger takes a
-grant from opts now, since a founder is not underwritten like a century-old house.)
+grant from opts now, since a founder is not underwritten like a century-old OA.)
 
-TWO HARNESS CHECKS FELL, and neither was the engine. *The letter is gone and the house remembers
+TWO HARNESS CHECKS FELL, and neither was the engine. *The letter is gone and the OA remembers
 the snub* — the snub WAS remembered (memory 1→2); what failed was "gone", because the fleet
 writes every month and a new letter had already arrived. The check tests the letter that lapsed
 now, not that no letter stands. *The scalpel bit deeper than the column* — `dT` is the column's
@@ -2619,8 +3038,8 @@ not that it buries the broad spend.
 **The people you keep decide what happens to you. *Built since this was written.*** Fourteen
 quirks carry a `*_event_seed` hook — a hot head seeds a brawl, a clause reader a renegotiation, a
 superstitious hand an omen, a war debt the creditors — and the event draw asked none of them:
-every house drew from one flat pool whoever was aboard. A house with the people for an event now
-draws it far oftener (`SEEDED`) and a house with nobody who could cause it a little less
+every OA drew from one flat pool whoever was aboard. An OA with the people for an event now
+draws it far oftener (`SEEDED`) and an OA with nobody who could cause it a little less
 (`UNSEEDED`), which is what those hooks were written for. Wired beside them:
 `short_band_composure_bonus` (steadier the closer it gets), `early_disengage_bias` and
 `follows_bad_orders` (a squad with a bolter calls it sooner; one that does as it is told holds a
@@ -2730,9 +3149,9 @@ composure and movement changed, which is what wiring them means.
 
 **Four hanging jobs, closed. *Built since this was written.***
 
-**A joiner never priced its own nuisance.** The spoiler — what a house costs a banner by
+**A joiner never priced its own nuisance.** The spoiler — what an OA costs a banner by
 staying in the fight — was in the banner's CEILING (what it would pay to stop bleeding) and in
-nothing the joiner ASKED FOR, so a house that could see it was costing a banner a fortune sold
+nothing the joiner ASKED FOR, so an OA that could see it was costing a banner a fortune sold
 itself on its own odds alone and left the whole of that money on the table. A joiner now asks
 for `SPOILER_ASK_BASE` of it, more if it is greedy. Joins hold at four to six a Divide.
 
@@ -2756,19 +3175,19 @@ of them. The cuts follow the distribution now (0.78 / 0.66 / 0.44 / 0.33) and th
 the banner's odds × `CLAIM_FORECAST` × what that category is worth to each side, in the same
 credits as a haul. Nothing to build; the note was stale.
 
-**What a house paid to keep quiet can be found. *Built since this was written.*** An act that
+**What an OA paid to keep quiet can be found. *Built since this was written.*** An act that
 goes off clean is not an act nobody could ever prove: it leaves a trace in the year's paperwork.
-A scout sent into another house's books turns it up when the dossier is read past `DIRT_AT`
+A scout sent into another OA's books turns it up when the dossier is read past `DIRT_AT`
 (three quarters), at odds that read from the thing itself — more done this year is easier to
-find, a house already in bad odour with the Aleas is watched harder, and an act that was HUSHED
+find, an OA already in bad odour with the Aleas is watched harder, and an act that was HUSHED
 is much harder to turn up, which is what the hush was for. THE DIRT IS A BONUS, NOT A
-SUBSTITUTE: the row the scout was sent for lands either way, or scouting a dirty house would
+SUBSTITUTE: the row the scout was sent for lands either way, or scouting a dirty OA would
 punish you for its luck. What you hold, you can spend three ways, each answering to a different
 audience: BLACKMAIL (they pay a share of their purse and nobody else learns — they remember it
 against you), LEAK IT (the fleet reads it by morning and their standing craters; the fleet has a
-word for a house that prints another's business), or REPORT IT (the Aleas fine them and thank
+word for an OA that prints another's business), or REPORT IT (the Aleas fine them and thank
 you for it; the fleet likes an informer rather less). Evidence keeps for the year and the next.
-IT RUNS BOTH WAYS: an AI house that holds something on you uses it in its own character — the
+IT RUNS BOTH WAYS: an AI OA that holds something on you uses it in its own character — the
 treacherous blackmail, the traditional report, the loud leak — which is what makes your own
 quiet business a risk rather than a purchase.
 
@@ -2782,7 +3201,7 @@ Wounded, Low on Rounds — and the feed prints them beside the percentage on eve
 miss. WHAT DECIDED IT: under the result, a reading of the whole engagement side by side — shots
 taken, the share that hit, how many were put down, how many were shooting from overwatch, and
 what the shots were mostly taken against. A manager who loses a fight can now see that his
-people shot at hard cover forty times while the other house shot at men in the open.
+people shot at hard cover forty times while the other OA shot at men in the open.
 
 **The wall says when it moves. *Built since this was written.*** The dome is the clock the
 whole contest runs on and it existed as a dashed circle that told nobody anything until it had
@@ -2792,11 +3211,11 @@ ground), and the Ground draws the next beat's circle, dated, inside the one that
 manager plans against the second circle.
 
 **The stores while the contest runs, and rounds that can run out. *Built since this was
-written.*** Two things the Divide never showed a manager. THE STORES: the units a house works
+written.*** Two things the Divide never showed a manager. THE STORES: the units an OA works
 out of the ground are the point of the contest and the measure the board asks in, and they were
 visible only on next year's Board. The day head reads them now — *Worked Fuels 2/3 · +4 Open* —
 what is in hand by category, against what the board asked for, beside what is still open in the
-ground that the house knows of. AMMUNITION: it was a flag that made the next fight better and
+ground that the OA knows of. AMMUNITION: it was a flag that made the next fight better and
 was invisible until a squad was dry inside one. It is a store like rations now (`AMMO_LOAD`,
 spent an engagement at a time), it reads on the squad rows beside the rations bar, a dry squad
 shoots worse (`AMMO_DRY_AIM`), and a squad low on rounds *wants* a munitions drop — which is
@@ -2807,10 +3226,10 @@ what that site was always for.
 and "assay" is a surveyor's word for a thing a squad does with its hands. The type is
 `resource_site` now and a deposit is named for its category: a SEAM (minerals), a WELL (fuels),
 a STAND (foods), a VAULT (luxuries), each carrying its category on the objective itself. The
-verb is WORKING A DEPOSIT, not digging. And the settlement says what it is: the units a house
+verb is WORKING A DEPOSIT, not digging. And the settlement says what it is: the units an OA
 works out of the ground go to ITS OWN STORES — that is the point of the Divide, and the board's
 demand is written in those units — while the credits on the settlement line are the second half
-of it, the fleet buying what a house does not need at `HAUL_VALUE` a unit. The line is a sale,
+of it, the fleet buying what an OA does not need at `HAUL_VALUE` a unit. The line is a sale,
 not a fee for collecting. (`oreCredit` → `hauled`, `ASSAY_VALUE` → `HAUL_VALUE`, the ledger's
 `assay` → `haul`.)
 
@@ -2819,7 +3238,7 @@ weighed its choices with the same cold arithmetic, so a squad led by a brilliant
 behaved exactly like one led by a frightened corporal. A captain brings three things to a
 decision now: JUDGEMENT (tactics) — how sharply the weighing favours the strongest need, so a
 poor captain draws nearly at random from what seems reasonable and a great one almost always
-takes the best answer; SIGHT (fieldcraft) — how much of the house's picture the captain is
+takes the best answer; SIGHT (fieldcraft) — how much of the OA's picture the captain is
 actually weighing, a poor one reading only what is close; and NERVE (resolve and presence) —
 whether the numbers are read hopefully or fearfully, a frightened captain seeing more of them
 than there are and choosing accordingly. A good captain's plan also stands longer before it is
@@ -2832,11 +3251,11 @@ picture they can see.
 
 **Two levers, and the rest is the squads'. *Built since this was written.*** Per-squad orders
 were the wrong game — a manager does not tell a squad where to walk. He has TWO LEVERS: the
-stance, and a LEANING on each other house, one to five (three is nothing), saying which of them
+stance, and a LEANING on each other OA, one to five (three is nothing), saying which of them
 he would rather his people found. A leaning multiplies how near a rival READS when a squad
-chooses whom to seek or avoid — leaned toward, a house feels closer than it is; leaned away,
+chooses whom to seek or avoid — leaned toward, an OA feels closer than it is; leaned away,
 further — so it never forbids and never orders, it puts a thumb on a scale the squads are
-already weighing. An AI house leans by its own regard, seeking out the houses it thinks least
+already weighing. An AI OA leans by its own regard, seeking out the OAs it thinks least
 of. What a squad then does is entirely its own, and THE LIST OF WHAT IT MAY DO IS LONGER: with
 the manager out of it, variety costs nothing. Entrenching (good ground, a wall coming, let them
 come to it), baiting (be seen, on ground of our choosing), sweeping (walk the ground nobody has
@@ -2850,21 +3269,21 @@ loud ones still dominate and the quiet ones happen — measured across five cont
 the fourteen appear.
 
 **Orders at the window. *Built since this was written.*** A manager's squads take orders in
-the planner's own vocabulary — Hold, Move, Dig a site, Meet a squad, Hunt a squad the house has
-seen, Fall Back — on the Table's squad rows, each a menu built from what the house knows: the
-sites revealed, its own squads, the picture's sightings (with the house, the count, and when).
+the planner's own vocabulary — Hold, Move, Dig a site, Meet a squad, Hunt a squad the OA has
+seen, Fall Back — on the Table's squad rows, each a menu built from what the OA knows: the
+sites revealed, its own squads, the picture's sightings (with the OA, the count, and when).
 *(Retired one step later: see "Two levers" above. The squad rows still say what each squad is
 doing — holding, digging, shadowing, pressing — because watching them decide is the point.)*
 
 **The dispersed drop — step three, the picture and the squad mind. *Built since this was
-written.*** What a house knows of everyone else is a PICTURE now (`corp._picture`: where a
+written.*** What an OA knows of everyone else is a PICTURE now (`corp._picture`: where a
 foreign squad was when it was last seen), not the `flares` that handed every corp every live
-position every dawn. The picture is written by the posted landings (every house, day one, good
+position every dawn. The picture is written by the posted landings (every OA, day one, good
 for `LANDING_KNOWN_DAYS`), by contact (both sides and their banners, when detection passes),
 and by the relay mast (everyone under the tower's banner); it is read fresh, a sighting older
 than `KNOWN_STALE` dropped. The dawn planner — strikes, pincers, hunting, hiding, the rest —
-runs on the picture, so a squad hunts what its house has seen, not what exists. The squad mind
-gains RALLYING: a house spread by its draft, with a stronger known enemy within
+runs on the picture, so a squad hunts what its OA has seen, not what exists. The squad mind
+gains RALLYING: an OA spread by its draft, with a stronger known enemy within
 `RALLY_THREAT_RANGE`, gathers at its own centre inside the wall (`meet`), leaned toward by the
 careful stances and away from by death-or-glory. Measured with the picture and a random strict
 draft against today's grouped landing at today's radius: week-one fights the same (18–29 against
@@ -2874,24 +3293,24 @@ pass — half the drop dies — is the next piece, and it is now the only thing 
 dispersed drop and a contest that plays the way it was ruled.
 
 **The dispersed drop — step two, the draft. *Built since this was written.*** At the seam the
-twenty-four slots are drafted: the houses in order of strength as the fleet reads it
+twenty-four slots are drafted: the OAs in order of strength as the fleet reads it
 (`strengthRead`: the drop's quality and size, and standing with the fleet), weakest first,
 three rounds, strictly. An AI's pick (`chooseSlot`) values a free slot by what its survey lets
 it see — the prize and the cover by its greed — and by who has landed within two slots of it:
-a stronger neighbour it can beat draws an aggressive house, a stronger one it cannot repels a
-careful one; its own earlier picks draw a careful house together and push an aggressive one
+a stronger neighbour it can beat draws an aggressive OA, a stronger one it cannot repels a
+careful one; its own earlier picks draw a careful OA together and push an aggressive one
 apart to flank. Every pick is posted. The Drop page IS the draft now: the order strip with
-each house's picks, the map with every slot numbered and filled in its house's colour as it
+each OA's picks, the map with every slot numbered and filled in its OA's colour as it
 goes, your turn a click on a free slot, your three landings read at your survey's depth, every
 landing listed, Drop when it is done. A human picks through `draftPick`; a fleet without one
 finishes the draft itself at the seam; `choices[id].slots` carries a remote human's picks.
-Measured: a careful house takes three neighbours (6, 7, 8); an aggressive one spreads
+Measured: a careful OA takes three neighbours (6, 7, 8); an aggressive one spreads
 (2, 21, 13).
 
 **The dispersed drop — step one, the ground for it. *Built since this was written.*** Ruled:
-squads do not drop together. Twenty-four slots round the ring, drafted among the houses lowest
+squads do not drop together. Twenty-four slots round the ring, drafted among the OAs lowest
 standing first, strictly (no snake — a snake would let the strongest cluster two squads); every
-house knows where every other came down, and nothing after. Step one lays the ground: the ring
+OA knows where every other came down, and nothing after. Step one lays the ground: the ring
 has `slots(planet, n)` (dry footing, each reading like a sector); the Divide lands a corp's
 squads at its picks (`opts.dropSlots`, `opts.slotCount`) or the old way without them; the
 planet takes a radius and a wall hold (`opts.radius`, `opts.wallHold`) so the ring can be grown
@@ -2913,7 +3332,7 @@ year line, which reads titles only; the refresh months are named for their windo
 ABOVE the roster in its own key — green, the colour of signing — as a grid of prospects, not a
 rail. Events read as dispatches: a bar in the kind's colour, the kind named, the subject as a
 fighter card, the ways side by side with the cost under each. THE EIGHT cannot be declined —
-every house sends someone — and is named by clicking a fighter card; its result, both fours
+every OA sends someone — and is named by clicking a fighter card; its result, both fours
 with each fighter's fate, the purse and Watch, lives in the recap of the month it happened, not
 the next month's Desk. ELEVATION draws as CONTOURS: brightness alone could not carry the height
 across five hues of brown, so where the ground crosses a height line between one cell and the
@@ -2930,8 +3349,8 @@ strip (too crammed on a small screen) and a swimlane grid (the systems do not ov
 to need lanes yet); the brief's countdown chips came off, the line doing their job. It stands
 down for the Divide and on a phone.
 
-**The Eight. *Built since this was written.*** M8: one name from each house — the manager's
-choice on the Desk from the fit and unrole'd, or the house's best named for it; declining is
+**The Eight. *Built since this was written.*** M8: one name from each OA — the manager's
+choice on the Desk from the fit and unrole'd, or the OA's best named for it; declining is
 seen (`declined_the_eight`, the fleet and your own people). The eight are seeded by standing
 with the fleet, 1·4·5·8 against 2·3·6·7, and fight once on the tactical grid with real kit,
 death-or-glory policy, nobody able to call a withdrawal (`noWithdraw`), real deaths — under a
@@ -2939,18 +3358,18 @@ stun-grade edict the year's rule applies here too. Every entrant pays `EIGHT_ENT
 the Aleas top up (`EIGHT_PURSE`); the winning four split it, take `won_the_eight` and the
 fame; the dead of The Eight count against the board's Casualties like the Divide's. The Desk
 carries the seeding before, the result and a Watch after; the recap says how your fighter's
-four did. Measured: one to three of the eight die a year. Every house plays it through
+four did. Measured: one to three of the eight die a year. Every OA plays it through
 `choices[id].eight` / `nameForEight`, the AI naming by fame and stats.
 
 **The fleet's month. *Built since this was written.*** (Phase 2b.) M7 brings one thing with
-fleet-reaching scope, the same card to every house (`FLEET_POOL` in events.js, seeded by the
+fleet-reaching scope, the same card to every OA (`FLEET_POOL` in events.js, seeded by the
 world): the Aleas close the wall early (the dome's schedule compressed to `FAST_WALL` of its
 days); a stun-grade Divide (every fatal round converted, the way the Dividend's are); pacts
-forbidden (the Table's truce says so); the survey goes public (every house reads the planet to
+forbidden (the Table's truce says so); the survey goes public (every OA reads the planet to
 depth two); an Aleas levy at the lock; a glut or a shortage that moves the shelf's prices for
 the year (`priceMult`, the shelf tags it Glut or Shortage). An edict can be petitioned against
 for `PETITION_COST`; if `PETITION_SHARE` of the fleet petitions it is withdrawn. The AI
-petitions as a stance — a house the edict cuts against by temperament pays to say so — so an
+petitions as a stance — an OA the edict cuts against by temperament pays to say so — so an
 edict usually stands and sometimes falls (measured: two or three petitions of eight, one
 withdrawal in eight worlds). The edicts ride into the Divide as `opts.edicts`.
 
@@ -2983,7 +3402,7 @@ seasons. New acts: `sold_a_fighter`, `refused_an_offer`, `answered_a_slight`,
 
 **What is left waiting costs. *Built since this was written.*** (Phase 3.) The agenda's items
 each say what letting them slide does, and the recap's *Left Waiting* says it again in red where
-it bit. A house that wrote and got no answer: the letter lapses at the month's end and the house
+it bit. An OA that wrote and got no answer: the letter lapses at the month's end and the OA
 remembers being snubbed (`snubbed_letter`, on their regard for you). The board that asked after
 the Divide and heard nothing before the year turned: silence is the answer (`silent_before_board`,
 own people and the Aleas, and three points of patience). A sheet with nothing marked: the pool
@@ -3090,7 +3509,7 @@ cover or better, from `COVER_PROFILES`), how hidden a squad is (from `conceal`),
 `speed`), forage (from `forage`). These effects were always in play; nothing said so.
 
 **The Negotiation, in two facing columns. *Built since this was written.*** The Talks page
-is laid out as the genre lays it out: the two houses at the head with their treasuries and how
+is laid out as the genre lays it out: the two OAs at the head with their treasuries and how
 they regard you; the pressure bar across the page with a one-line verdict (They Would Sign ·
 Short by ₡N · They Would Not Entertain This); *Your Terms* and *Their Terms* as facing tables
 — type, name, value — with a filter (All · People · Gear · Intel) and credits TYPED into a
@@ -3098,7 +3517,7 @@ box, not clicked in lumps of ten thousand; gear grouped by type with its tier ba
 quantity of the stock to trade, where the old list moved the whole holding or nothing; the
 contract as it stands beneath, each line keeping what its row showed (the race-coloured name,
 the tier badge, the sub-line) with its value and a cross; Reset and Make the Offer at the foot.
-The placard about contracts travelling with the body is gone. THE OTHER HOUSE'S PURSE IS
+The placard about contracts travelling with the body is gone. THE OTHER OA'S PURSE IS
 PRIVATE: the page showed their treasury outright; it shows what your dossier's finances row
 knows, or Unknown, and an ask they cannot pay is refused without the number. Credits read gold,
 and red when negative, through one `crs()`.
@@ -3116,12 +3535,12 @@ one thing a kit can do about a planet the survey says is hard to keep fed. Money
 food; the supply row is worth knowing now.
 
 **Nothing on the Deal is closed by fiat. *Built since this was written.*** A pact has a
-CHANCE, never a wall (`pactChance`): a house ahead of you wants paying and credits pay — a
-sweetener up to `PACT_CREDIT_SCALE` of the pot — and a house behind you wants the quiet and
+CHANCE, never a wall (`pactChance`): an OA ahead of you wants paying and credits pay — a
+sweetener up to `PACT_CREDIT_SCALE` of the pot — and an OA behind you wants the quiet and
 mostly says yes. The old `pactViability` refused "too close to be worth their while" and "you
 are doing better than they are" outright; the first is a price now and the second was
-backwards. Only structure closes a way: a banner already joined, a house under another's, a
-house that does not deal. The beam is a verdict in one line — They Would Sign · Short by ₡N ·
+backwards. Only structure closes a way: a banner already joined, an OA under another's, a
+OA that does not deal. The beam is a verdict in one line — They Would Sign · Short by ₡N ·
 Over by ₡N · Their Fans Forbid It Today — with the figures beneath as label and value: their
 chance of winning alone and together, the least they would take, the most they would pay, your
 offer read to each side, their trust, the leverage, your fans' charge. "On the board" is gone;
@@ -3149,13 +3568,13 @@ it for free — and nothing on the sheet is snake_case any more.
 
 **A pact, said plainly. *Built since this was written.*** A pact is a truce: for
 `PACT_DAYS[1]` days neither banner's squads engage the other's. It has no price — the weaker
-banner asks, the stronger grants or refuses (a thrifty house more readily) — and it can be
+banner asks, the stronger grants or refuses (a thrifty OA more readily) — and it can be
 torn up, which the crowd sees. The Deal's pact card says all of this where it is offered; the
 word "pact" alone had said none of it.
 
 **The Table takes the Talks' shape. *Built since this was written.*** The negotiation has
 its own page on the Divide's rail, *The Deal*, beside the Table: a strip of every other
-house — mark, colour, odds on the board, and where it stands to you (Your Banner, Under You,
+OA — mark, colour, odds on the board, and where it stands to you (Your Banner, Under You,
 Pact) — and a composer for the one selected: Join Their Banner, Take Them Under Yours, Seek a
 Pact, laid out as the Talks are — *You Offer* | *The Beam* | *You Ask For*. Terms go on the
 table as chips (a cut of the take, credits, a stand-down; the banner itself is always there),
@@ -3166,10 +3585,10 @@ Would Take This as they stand, where the old two boxes offered a bare percentage
 category, paid down the chain at the settlement like the pot (`settleHaul`, roots first, so a
 joiner's joiner takes a share of a share), and nothing banked means nothing owed — which is
 what keeps a joiner digging. `when: 'win'` pays only under the winning banner. The Divide has
-no fixed price for a unit: each house values a category by its own WANT (`wantOf` — an empty
+no fixed price for a unit: each OA values a category by its own WANT (`wantOf` — an empty
 hold and a board that asks, doubly if it is the card's priority), so an offer reads two ways —
 worth to the joiner, cost to the principal — and `evaluateOffer` checks each against its own
-side's bound. A house short of food will sign for food a house stocked with food gives up
+side's bound. An OA short of food will sign for food an OA stocked with food gives up
 cheaply; that gap is the surplus a deal in credits cannot find. The AI's old `deal.resource`
 flag, which the settlement never paid, is a real term now, asking for the category it is
 shortest of. On the Table the four categories stand as pool rows with each side's want and
@@ -3186,9 +3605,9 @@ written against and what a joiner is courted for. **And the next three of the ar
 (`claims: [siteId]`): one revealed, undug site, dug by the banner but banked to the joiner,
 priced to each side like a share of the haul (`claimRates`, the site's units discounted by the
 banner's odds). THE SPOILER (`SPOILER_WEIGHT`): the share of the banner's expected losses this
-house accounts for while it stays out fighting, added to the banner's gain — a weak house's
+OA accounts for while it stays out fighting, added to the banner's gain — a weak OA's
 leverage, priced at nothing before; the beam reads it as "Their Leverage: Staying in the Fight
-Costs the Banner ₡N". HELD OUT (`held_out`): a house whose banner's odds fell under 0.15 and
+Costs the Banner ₡N". HELD OUT (`held_out`): an OA whose banner's odds fell under 0.15 and
 fought on from there, never sold and not the winner, is credited by its own fans and the fleet,
 scaled by how hopeless it was and how much fight it gave.
 
@@ -3503,11 +3922,11 @@ sits, and the bar shows the true position on the shared scale.
 seasons for every corp in the fleet, so it stops carrying information. That is a reputation
 calibration question, and calibration is deferred.
 
-## They are OAs, never Houses. *Ruled.*
+## They are OAs, never OAs. *Ruled.*
 
-An Opes Arx is a megacorporation. "House" was never established anywhere in the lore — it
+An Opes Arx is a megacorporation. "OA" was never established anywhere in the lore — it
 crept in through interface text and code shorthand and then read as canon. Interface copy says
-**OA**, or the OA's name, or megacorporation; never "house", singular or plural.
+**OA**, or the OA's name, or megacorporation; never "OA", singular or plural.
 
 Two things keep their own words and must not be swept up in this: the SUPPLIERS on the
 sponsorship board are suppliers or backers (the code's `houseName`/`houseIds` is internal

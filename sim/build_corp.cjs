@@ -71,7 +71,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       /* the manager's squads: the plan on the page, the groups honored by
                          the lock, and the named leader honored by the fielding */
                       'G.plan', 'persist.groups', 'captainId',
-                      /* identity: every house wears its own derived colour */
+                      /* identity: every OA wears its own derived colour */
                       'colFor(', 'markFor(',
                       /* time: the year opened, months stepped, and the calendar's own
                          signing windows bid into and closed */
@@ -96,7 +96,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       'handRefused', 'bySlot(',
                       /* the squads board: drag-drop, paper-doll, equip picker */
                       'data-slot', 'openPicker', 'leaderOf', 'renameSquad',
-                      /* the shell: menu, founding, the blank-slate house, and saves that
+                      /* the shell: menu, founding, the blank-slate OA, and saves that
                          continue identically through the engine's own career serializer */
                       'saveCareer(', 'loadCareer(', 'blankSlate', 'fleetchip', 'opesarx_saves'];
 const missing = MUST_CONTAIN.filter(t => out.indexOf(t) < 0);

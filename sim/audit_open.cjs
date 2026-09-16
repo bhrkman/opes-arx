@@ -137,7 +137,7 @@ claim('OPEN-N14', 'PROJECT.md', 'no corp declares death_or_glory', () => {
   const seen = {};
   for (const s of divides) for (const k in (s.audit || {}).approaches || {}) seen[k] = 1;
   const dog = per(s => ((s.perCorp || []).filter(c => c.stance === 'death_or_glory').length));
-  return stands('the far pole is reachable but unclaimed as a house style — it is a notch a ' +
+  return stands('the far pole is reachable but unclaimed as an OA style — it is a notch a ' +
                 'manager declares, not an identity. Unchanged, and arguably correct');
 });
 

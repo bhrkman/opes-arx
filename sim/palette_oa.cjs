@@ -16,7 +16,7 @@
  *   MEDIUM >= 10 — the interface's semantic voices: command cyan (--a), the old side
  *     blue (--b), danger magenta, good green, warn amber, red. An OA that dresses like
  *     "danger" makes every danger mark ambiguous.
- *   VISIBILITY: L* >= 30, so no house disappears into the night-ops ground. This is the
+ *   VISIBILITY: L* >= 30, so no OA disappears into the night-ops ground. This is the
  *     bar that turns dark navy secondaries away.
  *   SOFT — stat hues and chrome are reported (closest pair) but do not block: they live
  *     in bars and borders, a different shape in a different place.
@@ -123,9 +123,9 @@ function nudge(baseHex, chosen) {
 /* --------------------------------------------------------------------- derive ---- */
 const prof = JSON.parse(fs.readFileSync(D + '../data/oa_profiles.json', 'utf8'));
 const oas = prof[Object.keys(prof).filter(k => Array.isArray(prof[k]))[0]];
-const chosen = [];   /* [id, hex] in canon order — earlier houses keep their claim */
+const chosen = [];   /* [id, hex] in canon order — earlier OAs keep their claim */
 const table = {};
-console.log('OA DISPLAY COLOURS \u00b7 derived from canon, ' + oas.length + ' houses');
+console.log('OA DISPLAY COLOURS \u00b7 derived from canon, ' + oas.length + ' OAs');
 console.log('----------------------------------------------------------------------');
 for (const oa of oas) {
   const prim = oa.colors.primary, sec = oa.colors.secondary;
@@ -160,11 +160,11 @@ for (let i = 0; i < chosen.length; i++)
     if (!worst || d < worst.d) worst = { d, pair: chosen[i][0] + ' / ' + chosen[j][0] };
   }
 console.log('----------------------------------------------------------------------');
-console.log('  closest pair of houses: ' + worst.pair + ' \u0394' + worst.d.toFixed(1)
+console.log('  closest pair of OAs: ' + worst.pair + ' \u0394' + worst.d.toFixed(1)
   + '  (bar ' + HARD_MIN + ')');
 
-/* FOUNDER CHOICES — the founded house picks its colour from swatches that already pass
- * every bar against the eight houses, the races, the grounds and the interface. Chosen
+/* FOUNDER CHOICES — the founded OA picks its colour from swatches that already pass
+ * every bar against the eight OAs, the races, the grounds and the interface. Chosen
  * greedily for spread, so the row reads as a range and not eight cousins. */
 const cands = [];
 for (let h = 0; h < 360; h += 12)

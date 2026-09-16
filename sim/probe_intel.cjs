@@ -90,7 +90,7 @@ SEASON.gatherIntel(meC, 'rival', rivC, 18, 101, (k, d) => SEASON.snapshotRival(c
 check(Math.abs(SEASON.rivalPreparedness(meC, rivC, 1) - SEASON.CONST.INTEL_RIVAL_PREP) < 1e-9,
       'a full fresh rival sheet buys exactly the ceiling: ' + SEASON.rivalPreparedness(meC, rivC, 1).toFixed(3));
 check(SEASON.rivalPreparedness(meC, Object.keys(corps3)[3], 1) === 0,
-      'an unscouted house buys nothing');
+      'an unscouted OA buys nothing');
 check(SEASON.planetPreparedness(meB) > 0,
       'a complete planet sheet buys preparedness (by completeness, not age)');
 

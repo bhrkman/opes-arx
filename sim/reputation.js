@@ -29,9 +29,9 @@
     STANDING_CEIL: 100,                 // [S]
     SOFT_AT: 40,                        // [C] §2.2 past this the scale compresses toward the ceiling
     SOFT_SCALE: 150,                    // [C] how much raw feeling it takes to climb the last stretch:
-                                        //     a house with two hundred points of goodwill reads high,
+                                        //     an OA with two hundred points of goodwill reads high,
                                         //     not pinned, and can still be told from one with four
-    DRIFT: 0.22,                        // [C] §2.3 the share of the gap back to a house's resting
+    DRIFT: 0.22,                        // [C] §2.3 the share of the gap back to an OA's resting
                                         //     place that closes each season
 
     /* §2.1 the memory — recency and permanence together (R8) */
@@ -160,13 +160,13 @@
     ceded:             { own: [-4, -14], fleet: [-5, -18], aleas: 2, buyer: 3, residue: 0.15 },
     stood_down:        { own: [-1, -5], rival: 2, fleet: [-2, -6], aleas: 1, residue: 0.15 },
     bought_win:        { own: -2, rival: -6, fleet: [-4, -11], aleas: -3, residue: 0.15 },
-    /* §3.1a HOLDING OUT. A house whose odds fell through the floor and kept fighting is
+    /* §3.1a HOLDING OUT. An OA whose odds fell through the floor and kept fighting is
        what the crowd came to see; scaled by how hopeless it was and how much fight it gave. */
     held_out:          { own: [2, 9], fleet: [1, 6], aleas: 1, residue: 0.20 },
-    /* §3.1b WHAT IS LEFT WAITING. A house that wrote and got no answer noticed; a board that
+    /* §3.1b WHAT IS LEFT WAITING. An OA that wrote and got no answer noticed; a board that
        asked and heard nothing took the silence as the answer. */
     snubbed_letter:    { rival: -4, residue: 0.25 },
-    /* §3.1c WHAT A CAREFUL HOUSE EARNS. Nearly every act that touched a house's own people
+    /* §3.1c WHAT A CAREFUL OA EARNS. Nearly every act that touched an OA's own people
        took something away — ceding, selling, refusing, silence — and the ones that gave came
        only from fighting, so a manager who kept his people alive was hated for it. These are
        what a year of ordinary good management is worth to the crews and the fans. */
@@ -190,6 +190,17 @@
     abandoned_ours:    { own: -14, fleet: -3, residue: 0.30 },
     released_captives: { own: 2, rival: 11, fleet: 6, aleas: 1, residue: 0.15 },
     killed_captives:   { own: -4, rival: -26, fleet: -16, aleas: -5, residue: 0.85 },
+    /* §6.4 WHAT A PRINCIPAL DID WITH A OA THAT ASKED TO COME IN. Raised on the principal
+       with `targetId` the OA in question, so it is THAT OA's people who remember — and
+       the fleet, which watches how a winner treats the beaten. Side terms at a table whose
+       spine is money and odds; none of these is large. */
+    spared:            { own: 1, rival: 9, fleet: 4, residue: 0.20 },     // took a beaten OA in
+    generous_terms:    { own: -1, rival: 6, fleet: 2, residue: 0.20 },    // and gave it more than it had coming
+    left_to_die:       { own: 0, rival: -20, fleet: -8, aleas: -3, residue: 0.55 }, // refused its surrender, then wiped it
+    /* §6.10 an arrangement between two OAs whose squads never met this Divide. Teaming up
+       for alliance's sake — not circumstance — is what the Aleas and the fans punish. Raised
+       on both. */
+    cold_alliance:     { own: -3, rival: -2, fleet: -8, aleas: -10, residue: 0.30 },
     kept_captive:      { own: 1, rival: -9, fleet: -2, residue: 0.15 },
     our_dead:          { own: { per: -0.7 }, fleet: { per: -0.2 }, famousMult: 3, residue: 0.15 },
     their_dead:        { own: { per: 0.3 }, rival: { per: -0.5 }, fleet: { per: 0.2 },
@@ -250,12 +261,12 @@
   function open(profile, allProfiles, opts) {
     opts = opts || {};
     const rep = profile.reputation || {};
-    /* §2.0 A HOUSE STANDS SOMEWHERE BEFORE IT DOES ANYTHING. The eight carry their standings
+    /* §2.0 A OA STANDS SOMEWHERE BEFORE IT DOES ANYTHING. The eight carry their standings
        in their profiles; a corporation built at the desk carried none, so a manager opened at
        zero on every audience and could only ever go down from there — the whole first career
-       read "nobody has an opinion" and then "your own people hate you". A house without
+       read "nobody has an opinion" and then "your own people hate you". An OA without
        declared standings is read from its dials: its own people expect what it is (a bloody
-       house is loved for blood, a thrifty one starts cool with its crews), the fleet knows a
+       OA is loved for blood, a thrifty one starts cool with its crews), the fleet knows a
        showman, the Aleas mistrust the treacherous. */
     const d = (profile.dials || {});
     const dial = k => (d[k] != null ? d[k] : 50);
@@ -311,7 +322,7 @@
     return compress(v);
   }
 
-  /* §2.2 THE LAST POINTS COST THE MOST. The raw sum was clamped, so four houses of eight sat
+  /* §2.2 THE LAST POINTS COST THE MOST. The raw sum was clamped, so four OAs of eight sat
      pinned at the ceiling after three years and the number stopped carrying information. Past
      SOFT_AT the scale compresses toward the ceiling and never reaches it: the difference
      between adored and worshipped stays legible, and nothing saturates. */
@@ -641,8 +652,8 @@
      * "field small" behaviour bolted on, they are both just answering the same board.
      */
     const interest = planet && planet.pot ? clamp01((planet.pot.richness - 0.7) / 0.7) : 0.5;
-    /* §5.3 POPULARITY IS A STANDING DEMAND. The gate is the board's money too, and a house
-       the fleet will not watch is a house the board cannot sell: what the crowd thinks is
+    /* §5.3 POPULARITY IS A STANDING DEMAND. The gate is the board's money too, and an OA
+       the fleet will not watch is an OA the board cannot sell: what the crowd thinks is
        graded every year beside the spending and the casualties. */
     rep.goal.standing = [
       { kind: 'thrift', weight: CONST.STANDING_THRIFT_W * (1 - interest) + 0.35,
@@ -672,7 +683,7 @@
       return Math.max(-1, Math.min(1, (CONST.CARE_NEUTRAL_LOSS - r) / CONST.CARE_NEUTRAL_LOSS));
     }
     if (s.kind === 'popularity') {
-      /* what the crowd thought of the house this year: its own people and the fleet's,
+      /* what the crowd thought of the OA this year: its own people and the fleet's,
          against what a board takes for granted */
       const v = outcome.popularity != null ? outcome.popularity : (s.expected || 0);
       return Math.max(-1, Math.min(1, (v - (s.expected || 0)) / CONST.POPULARITY_SPAN));
@@ -999,9 +1010,9 @@
     return rep;
   }
 
-  /* §2.3 EVERY AUDIENCE DRIFTS BACK toward what it expects of a house. Without it the sums
+  /* §2.3 EVERY AUDIENCE DRIFTS BACK toward what it expects of an OA. Without it the sums
      ratchet: a good year is carried for ever and a bad one never forgiven, whatever happens
-     after. The drift moves the BASE, so it is the house's resting place that changes and the
+     after. The drift moves the BASE, so it is the OA's resting place that changes and the
      memory stays what it was. */
   /** §6.1 a month's share of the year's fall, so a hold empties in bites a manager can watch */
   function drainHolds(rep) {
@@ -1011,11 +1022,11 @@
     rep._drainedThisYear = true;
   }
   function drift(rep) {
-    /* THE RESTING PLACE IS WHERE A HOUSE STARTED. The first cut of this pulled the base
+    /* THE RESTING PLACE IS WHERE A OA STARTED. The first cut of this pulled the base
        toward the CURRENT standing, which is a ratchet, not a drift: every good year became
        permanent. What drifts is the memory — each season the accumulated feeling loses a
-       share of itself, so an old triumph stops carrying a house for ever and an old disgrace
-       stops damning it, while the house's own nature (the base) stays what it always was. */
+       share of itself, so an old triumph stops carrying an OA for ever and an old disgrace
+       stops damning it, while the OA's own nature (the base) stays what it always was. */
     rep.origin = rep.origin || { own: rep.base.own, fleet: rep.base.fleet, aleas: rep.base.aleas };
     for (const a of ['own', 'fleet', 'aleas']) rep.base[a] = rep.origin[a];
     for (const m of rep.memory) m.v *= (1 - CONST.DRIFT);

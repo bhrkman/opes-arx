@@ -2,7 +2,7 @@
  * Divide and then they walk, the freed and the expired genuinely leave, families are paid,
  * bonuses post, prisoners earn out. Each rule is right alone — this probe plays whole
  * fleet-years end to end (season, lock, full Divide, settlement, offseason) with every
- * house choosing for itself, and counts what the rules compound into: roster depth against
+ * OA choosing for itself, and counts what the rules compound into: roster depth against
  * the design's own drop floor, treasury drift, departures against signings. The economy is
  * blessed by measurement or its problem is named with numbers.
  *
@@ -43,8 +43,8 @@ for (let s = 1; s <= SEASONS; s++) {
     walked.retired += (off.retired || []).length;
     if (s === 2) y1Expired += (off.expired || []).length;
   }
-  /* STEP E — a boost-spending fleet, so the new money sink is measured. A house flush past
-     a comfort line doubles the focus on its own heaviest track that month; every house does
+  /* STEP E — a boost-spending fleet, so the new money sink is measured. An OA flush past
+     a comfort line doubles the focus on its own heaviest track that month; every OA does
      it, so the drain is fleet-wide and the treasury claim below covers a real spender. */
   while (state.month < SEASON.CONST.PREP_MONTHS && state.month < 12) {
     const choices = {};
@@ -132,7 +132,7 @@ check(woundedFills === 0,
 check(minTreasury > 0,
       'no treasury is ever driven below zero (worst: ' + Math.round(minTreasury / 1000) + 'k)');
 check(ids.every(id => corps[id].history.length === SEASONS),
-      'every house stood every one of the ' + SEASONS + ' Divides');
+      'every OA stood every one of the ' + SEASONS + ' Divides');
 
 console.log(failed ? '\n' + failed + ' CLAIM(S) FAILED — the economy has a problem, named above'
                    : '\nthe economy holds across ' + SEASONS + ' years — blessed by counting');

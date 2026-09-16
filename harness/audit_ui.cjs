@@ -8,7 +8,7 @@
                     that reads as a sentence (a full stop, a "because", a "so that", an
                     explaining dash) is a finding. Labels, values and verdicts are not.
      3. COLOUR    — colour comes from the conventions, not from a hex typed at the point of
-                    use. Stat colours from STATCOL/gradeColour, credits from crs(), houses from
+                    use. Stat colours from STATCOL/gradeColour, credits from crs(), OAs from
                     cSpan()/colFor(), names from raceColour(), everything else from a CSS var or
                     the named palette tables. A raw hex or rgba in the page's JS outside those
                     tables is a finding; so is a plain cr() spliced into HTML, a bare
@@ -163,8 +163,8 @@ lines.forEach((line, ln) => {
   }
   /* credits spliced plain */
   if (/\+ ?cr\(/.test(line) && /innerHTML|\+ ?'<|'<|h \+=|return '/.test(line) && !/var crs = |title=|class="(buy|gold|cr)"/.test(line)) add('colour', ln, line.trim().slice(0, 100), 'plain cr() in HTML — credits are gold: crs()');
-  /* a house by name without its colour */
-  if (/esc\(nameOfCorp\(/.test(line) && !/title="' \+ esc\(nameOfCorp/.test(line) && !/<option[^>]*colFor\(/.test(line)) add('colour', ln, line.trim().slice(0, 100), 'nameOfCorp() in HTML — houses are cSpan()');   /* a tooltip cannot carry colour */
+  /* an OA by name without its colour */
+  if (/esc\(nameOfCorp\(/.test(line) && !/title="' \+ esc\(nameOfCorp/.test(line) && !/<option[^>]*colFor\(/.test(line)) add('colour', ln, line.trim().slice(0, 100), 'nameOfCorp() in HTML — OAs are cSpan()');   /* a tooltip cannot carry colour */
   /* a fighter by name without the race colour (the two lines above may carry the style) */
   const near = lines.slice(Math.max(0, ln - 2), ln + 1).join(' ');
   if (/esc\((b|f|u|x)\.name\)/.test(line) && !/raceColour|nameSpan/.test(near) && !/label:|title=/.test(line) && /'<|innerHTML|h \+=|return '/.test(line))

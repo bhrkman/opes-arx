@@ -393,9 +393,9 @@
     /* ---- phase 1: muster from the locker ---- */
     /* Stock costs no money, so exhaust it before opening the wallet.
        THE GUNS RESPECT THE SAME RESERVE THE MODS DO. Muster and the buy that follows it were
-       capped at the WHOLE allowance while phase 4 upgraded against `gunAllow` — so a house
+       capped at the WHOLE allowance while phase 4 upgraded against `gunAllow` — so an OA
        with a full locker could field itself right up to the ceiling on rifles and plate and
-       have nothing left for a pistol or a grenade. The Verdant Cradle, the poorest house in
+       have nothing left for a pistol or a grenade. The Verdant Cradle, the poorest OA in
        the fleet, issued sidearms to NOBODY while sitting on thirty-one thousand credits it
        could not field. The essentials stop at the gun allowance; what is held back is what
        buys the rest of a fighter's kit. */
@@ -474,7 +474,7 @@
        NOBODY IN THE FLEET CARRIED ONE. Every role in the catalogue names two to five
        sidearms, ten exist from ninety credits, `useSidearm` has been in the fight since the
        beginning and `equipCorp` passes the slot through — and no phase of the plan ever
-       BOUGHT one, so the slot was empty on every fighter in every house. It showed up as a
+       BOUGHT one, so the slot was empty on every fighter in every OA. It showed up as a
        stalemate: five of eight hands carry an energy primary with twelve to eighteen shots
        in the cell, cells recharge at camp and not inside a fight, and when they ran flat
        their owners had nothing to draw and stood at knife range doing nothing until the

@@ -1,11 +1,11 @@
 /* ============================================================================================
-   THE QUIET BUSINESS — what a house does when it would rather nobody knew.
+   THE QUIET BUSINESS — what an OA does when it would rather nobody knew.
 
    Standing with the Aleas is a currency, not a scoreboard: honest dealing builds it, and this
    spends it. Every act has a price in credits, a price in standing (paid at once, because the
    people you deal with know what you asked for), and ONE NUMBER: the chance it goes off clean.
    It either goes off clean, or it comes apart — and a thing that comes apart is traced back to
-   the house that paid for it. There is no quiet failure: the two used to be separate rolls, a
+   the OA that paid for it. There is no quiet failure: the two used to be separate rolls, a
    chance of working and a chance of being caught, which asked a manager to weigh two figures
    that meant nearly the same thing.
 
@@ -15,7 +15,7 @@
    people mind more than anybody. The reactions are written per act rather than shared, because
    a shared reaction would make every crime the same crime.
 
-   SYMMETRY: an AI house works the same window through `consider()`, weighted by its treachery
+   SYMMETRY: an AI OA works the same window through `consider()`, weighted by its treachery
    and its need. Nothing here reads who is human.
    ============================================================================================ */
 (function (root, factory) {
@@ -27,19 +27,19 @@
 
   const CONST = {
     /* §QUIET WHAT A THING LEAVES BEHIND. An act that goes off clean is not an act nobody could
-       ever prove: it leaves a trace in the year's paperwork, and a rival who has read a house
+       ever prove: it leaves a trace in the year's paperwork, and a rival who has read an OA
        nearly to the bottom may turn it up. Evidence is the currency of that discovery —
        blackmail it, leak it, or hand it to the Aleas. */
     DIRT_AT: 0.75,                // [C] the share of a rival's dossier that must be filled before
                                   //     a scout is deep enough in their books to find anything
     DIRT_BASE: 0.20,              // [C] the chance of turning something up at that depth
     DIRT_PER_ACT: 0.10,           // [C] and what each thing they did this year adds
-    DIRT_SUSPICION: 0.25,         // [C] a house in bad odour with the Aleas is watched harder
+    DIRT_SUSPICION: 0.25,         // [C] an OA in bad odour with the Aleas is watched harder
     DIRT_HUSHED: 0.45,            // [C] what a hush is worth against a scout, as a multiplier
     EVIDENCE_YEARS: 1,            // [C] evidence keeps for the year it was found and the next
-    BLACKMAIL_SHARE: 0.08,        // [C] what a blackmailed house pays, as a share of its purse
+    BLACKMAIL_SHARE: 0.08,        // [C] what a blackmailed OA pays, as a share of its purse
     RISK_PER_ACT: 0.04,           // [C] what each thing already done this year adds to the risk
-    ALEAS_SUSPICION: 0.30,        // [C] how much a house in bad odour with the Aleas risks
+    ALEAS_SUSPICION: 0.30,        // [C] how much an OA in bad odour with the Aleas risks
     HUSH: 12000,                  // [C] what a hush costs on top, to halve what could go wrong
     HUSH_SHARE: 0.5               // [C] and how much of the risk it takes away
   };
@@ -76,7 +76,7 @@
     },
     {
       id: 'quiet_word', title: 'A Quiet Word Before the Drop',
-      text: 'A house can be reached before the Divide, and an understanding reached that the Aleas would not sanction.',
+      text: 'An OA can be reached before the Divide, and an understanding reached that the Aleas would not sanction.',
       offer: 'A Pact That Holds From Day One',
       cost: 9000, standing: { own: -3 }, clean: 0.92, needsTarget: true,
       caught: { own: -14, fleet: -18, aleas: -20 },
@@ -86,7 +86,7 @@
     },
     {
       id: 'buy_a_story', title: 'Buy a Story',
-      text: 'The fleet\u2019s postings will print what they are paid to print, and a house can be made to look better than its year.',
+      text: 'The fleet\u2019s postings will print what they are paid to print, and an OA can be made to look better than its year.',
       offer: '+' + 14 + ' With the Fleet, and Your Own People',
       cost: 15000, standing: {}, clean: 0.88,
       caught: { fleet: -26, own: -16, aleas: -4 },
@@ -101,7 +101,7 @@
     bought_a_story:   { fleet: 14, own: 8, residue: 0.15 },
     caught_at_it:     { own: -10, fleet: -14, aleas: -18, residue: 0.45 },
     was_blackmailed:  { rival: -12, residue: 0.30 },
-    /* the fleet does not love a house that prints another's business, and it likes one that
+    /* the fleet does not love an OA that prints another's business, and it likes one that
        runs to the referees rather less */
     leaked_a_story:   { fleet: -4, own: 2, residue: 0.20 },
     told_the_aleas:   { fleet: -9, aleas: 8, own: -2, residue: 0.25 }
@@ -114,7 +114,7 @@
     state.illicit.evidence = state.illicit.evidence || {};
     return state.illicit;
   }
-  /** §QUIET what a scout deep in another house's books might turn up, and how likely it is */
+  /** §QUIET what a scout deep in another OA's books might turn up, and how likely it is */
   function dirtChance(state, holderId, targetId) {
     const I = ensure(state), done = (I.done[targetId] || []).filter(d => d.season === state.season && !d.exposed);
     if (!done.length) return { p: 0, on: [] };
@@ -145,9 +145,9 @@
     return (I.evidence[holderId] || []).filter(e => state.season - e.season <= CONST.EVIDENCE_YEARS);
   }
   /** §QUIET WHAT YOU DO WITH IT. Three ways, and each answers to a different audience:
-      blackmail is between the two houses and nobody else learns; a leak is the fleet's
+      blackmail is between the two OAs and nobody else learns; a leak is the fleet's
       business and the crowd's; a report is the Aleas' and they are grateful to be told —
-      though the fleet has a word for a house that runs to the referees. */
+      though the fleet has a word for an OA that runs to the referees. */
   function useEvidence(rng, state, holderId, idx, how) {
     const I = ensure(state), list = evidenceOf(state, holderId), ev = list[idx];
     if (!ev || ev.used) return { ok: false, line: 'Nothing There' };
@@ -177,7 +177,7 @@
     ev.used = null;
     return { ok: false, line: 'No Such Use' };
   }
-  /** what a house may attempt right now, with its price and its risk read for that house */
+  /** what an OA may attempt right now, with its price and its risk read for that OA */
   function offered(state, corpId) {
     const I = ensure(state), done = (I.done[corpId] || []);
     const rep = state.corps[corpId].rep;
@@ -189,7 +189,7 @@
          the next, but nothing on the page said so, so it read as free and pointless at once.
          A thing arranged this month is arranged; the risk it added stands for the year. */
       const thisMonth = done.some(d => d.id === a.id && d.month === state.month);
-      /* the more a house has already had done this year, and the worse its odour with the
+      /* the more an OA has already had done this year, and the worse its odour with the
          Aleas, the likelier the next thing comes apart */
       const risk = (1 - a.clean) + CONST.RISK_PER_ACT * done.length + suspicion * CONST.ALEAS_SUSPICION;
       return { id: a.id, title: a.title, text: a.text, offer: a.offer, cost: a.cost, standing: a.standing,
@@ -236,7 +236,7 @@
              line: worked ? spec.title + ' \u00b7 Done, and Nobody the Wiser'
                           : spec.title + ' \u00b7 It Came Apart, and It Was Traced to You' };
   }
-  /** an AI house's appetite: its treachery, its need, and how much it can spare */
+  /** an AI OA's appetite: its treachery, its need, and how much it can spare */
   function consider(rng, state, corpId) {
     const c = state.corps[corpId], d = (c.profile && c.profile.dials) || {};
     const treachery = (d.treachery != null ? d.treachery : 50) / 100;
@@ -251,12 +251,12 @@
     }
     return { id: pick.id, target };
   }
-  /** does this house drop with a bad batch this year, and how bad */
+  /** does this OA drop with a bad batch this year, and how bad */
   function sabotageOn(state, corpId) {
     const I = state.illicit; if (!I) return 0;
     return (I.sabotage[corpId] || []).length;
   }
-  /** the favours a house bought, spent at the Divide */
+  /** the favours an OA bought, spent at the Divide */
   function favoursOf(state, corpId) { return (state.illicit && state.illicit.favours[corpId]) || {}; }
   function clearYear(state) { if (state.illicit) { state.illicit.favours = {}; state.illicit.sabotage = {}; } }
 

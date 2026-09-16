@@ -28,8 +28,8 @@
        eight backers and the board was colouring them by a HASH into ten hues — with eight
        draws from ten, collisions are not a risk but a certainty, and several read identically.
        They are assigned by POSITION now, so no two can ever collide. The eight are pitched
-       away from the houses' own (deep red, steel, violet, teal, gold, rust, olive, bone) and
-       from the origin colours: paler and cooler where a house is deep, warmer where a house
+       away from the OAs' own (deep red, steel, violet, teal, gold, rust, olive, bone) and
+       from the origin colours: paler and cooler where an OA is deep, warmer where an OA
        is cold, so a backer never reads as somebody's banner. */
     --spn-1:#7fd4c1;   /* sea green   */  --spn-2:#e8a0c8;   /* orchid      */
     --spn-3:#9fb8ff;   /* periwinkle  */  --spn-4:#f2d98a;   /* straw       */
@@ -469,7 +469,7 @@
   .notch .nn{font-size:11.5px;color:var(--ink)}
   .notch .nf{display:flex;gap:10px;font-size:9.5px;color:var(--dim);white-space:nowrap}
   .notch .nf b{color:var(--ink);font-weight:600}
-  /* the leanings: a five-point thumb on the scale, per house */
+  /* the leanings: a five-point thumb on the scale, per OA */
   .leans{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
   .leans .lh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
   .leanrow{display:grid;grid-template-columns:1fr auto 96px;gap:8px;align-items:center;border-left:3px solid var(--faint);padding:3px 0 3px 7px;margin-bottom:3px;font-size:11px}
@@ -1257,7 +1257,7 @@
   <div>
     <!-- §HEADER "One Corporation" sat here, and in the page's title, for no reason anybody
          could name — two words that had quietly overwritten the name of the game and the name
-         of the house a manager is running. The game is Opes Arx; the corner says whose it is. -->
+         of the OA a manager is running. The game is Opes Arx; the corner says whose it is. -->
     <h1 id="whoami"></h1>
     
   </div>
@@ -1294,7 +1294,7 @@
     <button class="menubtn" disabled title="not yet">Options</button>
     <button class="menubtn" id="mExit">Exit Game</button>
     <div class="m" id="mNote"></div>
-    <!-- the eight houses' own marks, the real ones, so the stage says what the game is -->
+    <!-- the eight OAs' own marks, the real ones, so the stage says what the game is -->
     <div class="menufleet" id="menufleet"></div>
   </div>
   <div class="menucol" id="loadpanel" style="display:none">
@@ -1310,7 +1310,7 @@
   <div class="menucol" style="max-width:760px">
     <!-- §FOUNDING THE SCREEN ASKS THREE THINGS. It listed the fleet twice, explained a blank
          slate, offered a seed almost nobody wants to type, and asked whose berth to take —
-         which is not a choice: the weakest house canonically makes way, and with several
+         which is not a choice: the weakest OA canonically makes way, and with several
          managers the weakest several do, in order. What is left is a name, a colour and a
          mark, which is what founding an OA actually is. -->
     <div id="oacards" style="display:none"></div>
@@ -1493,7 +1493,7 @@
 
 <!-- ================================ THE TABLE ================================
      The comms window is the seam. The page speaks the engine's vocabulary exactly — one stance
-     and at most one deal per window — in the Talks' shape: a strip of houses, a composer for
+     and at most one deal per window — in the Talks' shape: a strip of OAs, a composer for
      the one selected, the word that will ride out with the advance. -->
 <div class="page" data-tab="table">
   <div class="bar" style="margin-bottom:10px">
@@ -1523,7 +1523,7 @@
 </div>
 
 <!-- ================================ THE DEAL ================================
-     The negotiation has its own page on the Divide's rail: the strip of houses and the
+     The negotiation has its own page on the Divide's rail: the strip of OAs and the
      composer. The word and the echo stay on the Table, where the window is worked. -->
 <div class="page" data-tab="deal">
   <div class="dealhead" id="dealhead"></div>
@@ -1808,9 +1808,9 @@
 
   /* ---- ONE corporation in memory (one fleet around it, so the market is contested).
      G.oa is THIS GAME'S profile list — the stock eight, or seven of them plus the
-     player's own blank-slate house standing in a chosen berth. ---- */
+     player's own blank-slate OA standing in a chosen berth. ---- */
   var G = null;
-  var BERTH = null;          /* whose berth a founded house takes — a setup-screen choice, before G exists */
+  var BERTH = null;          /* whose berth a founded OA takes — a setup-screen choice, before G exists */
 
   function startGame(seedStr, meId, oaList, customDef) {
     if (G) { stop(); clearTween(); }   /* an orphaned timer would keep drawing a dead world */
@@ -1940,7 +1940,7 @@
     evasion_surge: 'Slips the Odd Certain Shot',
     squad_coordination_bonus: '+1 Aim for the Squad Around Them',
     psionic_broadcast_sensation: 'The Crowd Pays for a Psion',
-    loyalty_cap_reduced: 'Never Fully Loyal to a House',
+    loyalty_cap_reduced: 'Never Fully Loyal to an OA',
     succession_candidate_priority: 'First in Line for a Captaincy',
     injury_severity_risk_up: 'Wounds Run a Grade Worse',
     early_divide_penalty: 'Poor in a First Engagement',
@@ -2147,7 +2147,7 @@
        past tense and belongs to the year's opening, not to a permanent home. What is left is
        the two facts this page is actually about: WHAT THE ROSTER COSTS and HOW MANY ARE ON IT,
        said plainly, the wage in red because it is money going out, the count in green when a
-       house can field a drop and red when it cannot. */
+       OA can field a drop and red when it cannot. */
     var canField = alive.length >= SEASON.CONST.DROP_MIN;
     $('money').innerHTML =
       '<div class="rostsum">' +
@@ -2223,7 +2223,7 @@
   }
 
   /* THE WINDOW IS THE CALENDAR'S. A bid stands through the run-up and the signings land at
-     the deadline inside the month step, every house bidding through the same seam. */
+     the deadline inside the month step, every OA bidding through the same seam. */
   /* ---- THE OPEN WINDOW, in the Roster's rail. Three signings, three origins:
      tryouts sign your own Natural-Born prospects free; the merc window is an auction you
      bid in; the Bastille places Conscripts by need. Idle when no window is open. ---- */
@@ -2268,7 +2268,7 @@
               '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.year) + '</button>' +
               /* §PAPER AN OFFER IS A NUMBER A MANAGER CHOOSES. It was a single fixed step
                  below the ask, so haggling was one button with one answer. He types a year's
-                 figure; a man weighs it against what he thinks of the house, and one paid over
+                 figure; a man weighs it against what he thinks of the OA, and one paid over
                  his ask remembers it. */
               '<span class="rsoffer"><input class="rsin" type="text" inputmode="numeric" ' +
                 'data-rsoff="' + r.id + '" value="' + Math.round(r.year * SEASON.CONST.HAGGLE_FLOOR) + '">' +
@@ -2343,7 +2343,7 @@
     var lot = SEASON.lotFor(G.state, G.me);
     var meta = WIN_META[win.signing] || { name: win.signing, cls: 'none', kind: '', deadline: '' };
     var POOLWORD = { premium: 'Premium Pool', discount: 'Discount Pool', first: 'First Intake', second: 'Second Intake' };
-    /* §MARKET a house's name is a discount or a premium on every ask */
+    /* §MARKET an OA's name is a discount or a premium on every ask */
     var meRep = G.corps[G.me].rep;
     var nameGood = meRep ? REP.standing(meRep, 'own') + REP.standing(meRep, 'fleet') * SEASON.CONST.MARKET_FLEET_SHARE : 0;
     var namePct = Math.round(Math.max(-SEASON.CONST.MARKET_SWING, Math.min(SEASON.CONST.MARKET_SWING, nameGood / 100 * SEASON.CONST.MARKET_SWING)) * 100);
@@ -2389,7 +2389,7 @@
       b.onclick = function () {
         var fid = b.getAttribute('data-bidup');
         var lot = SEASON.lotFor(G.state, G.me).filter(function (x) { return x.id === fid; })[0];
-        var cur = (lot && lot.yourBid) || (lot ? lot.ask : 0);
+        var cur = (lot && lot.yourBid) || (lot ? (lot.ask || lot.reserve) : 0);
         SEASON.placeBid(G.state, G.me, fid, Math.round(cur * 1.08));
         renderRoster();
       };
@@ -2405,11 +2405,18 @@
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-nobid]'), function (b) {
       b.onclick = function () { SEASON.placeBid(G.state, G.me, b.getAttribute('data-nobid'), 0); renderRoster(); };
     });
+    /* the Kier: the amount placed is a TERM, the Divides after which the OA would release him */
+    Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-term]'), function (b) {
+      b.onclick = function () {
+        SEASON.placeBid(G.state, G.me, b.getAttribute('data-term'), +b.getAttribute('data-divides'));
+        renderRoster();
+      };
+    });
   }
   var WIN_META = {
     tryouts:  { name: 'Natural-Born',      cls: 'nat', kind: 'Natural-Born', deadline: 'Signing \u00b7 Month %d' },
     mercs:    { name: 'Mercenary Market',  cls: 'mer', kind: 'Mercenary',    deadline: 'Their Choice \u00b7 Month %d' },
-    bastille: { name: 'The Kier Bastille', cls: 'con', kind: 'Conscripts',   deadline: 'Intake \u00b7 Month %d' }
+    bastille: { name: 'The Kier Bastille', cls: 'con', kind: 'Conscripts',   deadline: 'Their Choice \u00b7 Month %d' }
   };
   /* the window's frame: an origin-coloured header, a deadline note, then the body */
   function winShell(cls, name, kind, deadline, body) {
@@ -2438,7 +2445,6 @@
         '<span class="seen">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') +
           (f.hurt ? ' \u00b7 <span class="bad">Carrying an Injury</span>' : '') +
           (f.fame ? ' \u00b7 Notoriety ' + Math.round(f.fame) : '') +
-          (f.sentence ? ' \u00b7 ' + f.sentence + ' to Serve' : '') +
         '</span></span>';
     } else {
     var cells = STAT_KEYS.map(function (k) { return statCell(k, STAT_ABBR[k], s[k]); }).join('') +
@@ -2454,7 +2460,7 @@
       foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '</button>';
     } else if (signing === 'mercs') {
       terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
-      /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven houses bid and the fighter
+      /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven OAs bid and the fighter
          chooses — so it keeps its bidding, but not its moving buttons. The bid is a slider set
          against what the field is putting up, and the reading answers the thing a manager
          actually wants to know: not how much, but whether it is enough. */
@@ -2472,14 +2478,31 @@
                '<button class="pcbtn" data-bidup="' + f.id + '">Raise</button>' +
                '<button class="pcbtn" data-nobid="' + f.id + '">Withdraw</button></div>';
     } else {   /* bastille */
-      var req = f.freedomReq || (f.contract && f.contract.divides_required);
-      terms = 'Serves ' + (req || '?') + ' Divide' + (req === 1 ? '' : 's') + ' to Earn Release' +
-              (f.ask ? ' \u00b7 Wage ' + crs(f.ask) : '');
-      foot = '';
+      /* §BASTILLE OAs COMPETE ON THE WAY OUT. The card once ended at the clause with nothing
+         a manager could do about a name; it was then a bid slider, and that was struck — a man
+         bid for with credits is chattel whatever the paper says. What an OA offers is HIS
+         road out: the sentence as written, or release after fewer Divides, each Divide
+         forgiven bought from the Kier. He takes the shortest road; between equal roads, the
+         OA whose people come home. The wage is the Kier's scale and says nothing about him. */
+      var sent = f.sentence || f.freedomReq || 0;
+      var mine = f.yourBid || 0;
+      terms = 'Sentence ' + sent + ' Divide' + (sent === 1 ? '' : 's') + ' to Earn Release' +
+              ' \u00b7 Kier Wage ' + crs(f.wage || 0) + '/yr \u00b7 Fee ' + crs(f.fee || 0);
+      var opts = [];
+      for (var k = 0; k <= 2 && sent - k >= 1; k++) {
+        var term = sent - k;
+        var label = k === 0 ? 'Honour the Sentence' : 'Release After ' + term +
+                    ' \u00b7 ' + crs(k * (f.remission || 0));
+        opts.push('<button class="pcbtn' + (mine === term ? ' on' : '') + '" data-term="' + f.id +
+                  '" data-divides="' + term + '">' + label + '</button>');
+      }
+      foot = '<div class="bidbtns">' + opts.join('') +
+             (mine ? '<button class="pcbtn" data-nobid="' + f.id + '">Withdraw</button>' : '') + '</div>';
     }
     return '<div class="pc' + (f.yourBid ? ' taken' : '') + '">' +
-      (f.yourBid ? '<div class="pc-flag">' + (signing === 'mercs' ? 'Bid ' + crs(f.yourBid) : 'Signing') + '</div>' : '') +
-      /* a prospect has a mark before they have a house: the ring is neutral until they sign */
+      (f.yourBid ? '<div class="pc-flag">' + (signing === 'tryouts' ? 'Signing' : signing === 'bastille'
+                     ? 'Offered ' + f.yourBid + ' Divide' + (f.yourBid === 1 ? '' : 's') : 'Bid ' + crs(f.yourBid)) + '</div>' : '') +
+      /* a prospect has a mark before they have an OA: the ring is neutral until they sign */
       '<div class="pc-top">' + fighterMark(f, 20, 'var(--line2)') +
         '<span class="pc-nm" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
         '<span class="pc-who">' + capRace(f.race) + ' \u00b7 ' + (f.age || '?') + '</span></div>' +
@@ -2642,7 +2665,7 @@
     if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', cost: 'Wasted' });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
        button up over a thing a manager frequently cannot act on — no window open, nobody to
-       sign, nothing to do but click around it. The Market says how short a house is where
+       sign, nothing to do but click around it. The Market says how short an OA is where
        something can be done about it, and the lock stops a drop that cannot be fielded.
        Nothing waits on the turn for it. */
     if (m === 11 && !Object.keys(G.plan.at || {}).length) items.push({ txt: 'No Squads Set', tab: 'squads', urgent: true, cost: 'Quartermaster\u2019s Deal' });
@@ -2668,7 +2691,7 @@
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
     host.innerHTML = '<div class="eightcard"><div class="eighthead"><div><div class="et">The Eight</div>' +
-        '<div class="m" style="font-size:11px">One From Each House \u00b7 One Fight \u00b7 No Retreat \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
+        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 No Retreat \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
         '<div class="teams"><div class="tm' + (sideOf === 'A' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'A' ? 'Your Four' : 'The First Four') + '</span>' + A.map(cSpan).join('') + '</div><span class="vs">vs</span>' +
           '<div class="tm' + (sideOf === 'B' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'B' ? 'Your Four' : 'The Second Four') + '</span>' + B.map(cSpan).join('') + '</div></div></div>' +
       '<div class="m" style="margin:8px 0 6px">' + (named ? 'Named' : 'Unnamed \u00b7 Your Best Goes') + '</div>' +
@@ -2720,7 +2743,7 @@
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival House', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -2809,10 +2832,10 @@
         '<div class="qf"><span class="k">Price</span><span class="v">' + crs(o.cost) + (st ? ' \u00b7 ' + st : '') + '</span>' +
           '<span class="k">Goes Off Clean</span><span class="v ' + (o.clean >= 0.88 ? 'good' : o.clean >= 0.75 ? 'warn' : 'bad') + '">' + Math.round(o.clean * 100) + '%</span></div>' +
         '<div class="m" style="font-size:10px;margin:2px 0 0">Otherwise \u00b7 Traced to You</div>' +
-        /* THE TARGETS ARE CHIPS. A drop-down hides seven houses behind one word and makes a
+        /* THE TARGETS ARE CHIPS. A drop-down hides seven OAs behind one word and makes a
            manager hunt for what he can already see everywhere else in the game. */
         (o.needsTarget ? '<div class="qtargets">' +
-            housePicker(others, pick, 'data-qid', { ring: false, size: 38 }).replace(/data-qid=/g, 'data-qpick="' + o.id + '" data-qid=') +
+            oaPicker(others, pick, 'data-qid', { ring: false, size: 38 }).replace(/data-qid=/g, 'data-qpick="' + o.id + '" data-qid=') +
             '</div>' : '') +
         (o.spent
           ? '<button class="qbtn" disabled>Arranged This Month</button>'
@@ -2915,7 +2938,7 @@
       '<div class="shape"><div class="mn">Month ' + m + ' \u00b7 ' + esc(win.name) + '<span class="m">Year ' + G.state.season + '</span></div>' +
         /* §BRIEF THE FIRST MONTH OF A CAREER SAID "TABLE CLOSED" AND NOTHING ELSE, and then
            said a sentence about inheriting a fleet, which was no better: prose where a manager
-           wants a reading. He has walked in on a house he did not build and needs to know what
+           wants a reading. He has walked in on an OA he did not build and needs to know what
            is in it — how many hands, how many can be fielded, who is hurt, what is on the rack
            and what is in the bank. Nothing here is simulated history; it is what he is holding,
            counted. Every other month keeps the table's state, which is what those months turn
@@ -3441,9 +3464,9 @@
     h += '<table class="itbl">';
     intelTargets().forEach(function (t) {
       var n = sel[t.id] || 0, st = intelStatus(t);
-      /* an intel row is an IDENTITY row: it names a house, so it wears that house's
-         colour and mark like every other place a house is named. The planet keeps its
-         own lozenge \u2014 it is not a house. */
+      /* an intel row is an IDENTITY row: it names an OA, so it wears that OA's
+         colour and mark like every other place an OA is named. The planet keeps its
+         own lozenge \u2014 it is not an OA. */
       h += '<tr class="' + (t.planet ? 'iplanet' : '') + (n > 0 ? ' lit' : '') + '">' +
         '<td class="iname"><span class="idoss ' + (n > 0 ? 'on' : '') + '" data-doss="' + t.id + '"' +
         (t.planet ? '' : ' style="color:' + colFor(t.id) + '"') + '>' +
@@ -3572,7 +3595,7 @@
       /* left: name, flavour tag, condition, pay line */
       /* §SPONSORS EACH HOUSE WEARS ITS OWN COLOUR, like every other body in the game: a
          column of identical grey names is the one thing the fleet is never shown as. The
-         colour is drawn from the house's own id, so it is the same every time it appears. */
+         colour is drawn from the OA's own id, so it is the same every time it appears. */
       h += '<td style="border-left:3px solid ' + sponsorColour(t.id) + '">' +
            '<span class="cname" style="color:' + sponsorColour(t.id) + '">' + esc(t.name) + '</span>' +
            '<span class="cflavor ' + t.flavor + '">' + (t.flavor.charAt(0).toUpperCase() + t.flavor.slice(1)) + '</span>' + signedTag +
@@ -3608,7 +3631,7 @@
   }
 
   /* THE FOUNDING SCREEN ASKS THIS BEFORE THERE IS A GAME: the picker runs on the setup screen
-     where G is still null, so a house's name falls back to the catalogue it was read from. */
+     where G is still null, so an OA's name falls back to the catalogue it was read from. */
   function nameOfCorp(id) {
     if (G && G.corps && G.corps[id] && G.corps[id].profile) return G.corps[id].profile.name;
     var p = (OA || []).filter(function (x) { return x.id === id; })[0];
@@ -3905,7 +3928,7 @@
     /* THE RECAP'S SNAPSHOT: what the month will be measured against */
     var snap = monthSnapshot(me);
     var agendaBefore = agendaItems();
-    /* WHAT IS LEFT WAITING RESOLVES AGAINST YOU. A letter unanswered lapses, and the house
+    /* WHAT IS LEFT WAITING RESOLVES AGAINST YOU. A letter unanswered lapses, and the OA
        that wrote it remembers being ignored. */
     if (G._tradeOffer && TRADE.tradingOpen(G.state.month) && !G._forceMonth) {
       if (me.rep) REP.act(me.rep, 'snubbed_letter', { targetId: G._tradeOffer.from });
@@ -3974,12 +3997,23 @@
       var t = G.state[res.event] || {};
       var mine = joined.length;
       var fleetLine = res.event === 'bastille'
-        ? (t.signed || 0) + ' Placed Across the Fleet'
+        ? (t.signed || 0) + ' Placed Across the Fleet of ' + (t.bids || 0) + ' Offers'
         : res.event === 'tryouts'
         ? (t.signed || 0) + ' Signed Across the Fleet'
         : (t.signed || 0) + ' Signed Across the Fleet of ' + (t.bids || 0) + ' Bids';
+      /* §BASTILLE a manager whose terms were not the ones taken is told what road the man
+         took instead: a choice he cannot see into is only a game if the answer comes back */
+      var lost = res.event === 'bastille' ? (t.results || []).filter(function (r) {
+        if (r.to === G.me) return false;
+        return (r.offers || []).some(function (o) { return o.corp === G.me; });
+      }).map(function (r) {
+        var mine2 = r.offers.filter(function (o) { return o.corp === G.me; })[0].term;
+        return esc(r.name) + ' Took ' + r.term + ' Divide' + (r.term === 1 ? '' : 's') + ' Elsewhere' +
+               (r.term < mine2 ? ' \u00b7 You Offered ' + mine2 : ' \u00b7 He Trusted Them More');
+      }) : [];
       lines.push('<b>' + esc(res.name) + '</b> \u2014 ' + fleetLine +
-                 (mine ? '' : ' \u00b7 <span class="warn">None Came to You</span>'));
+                 (mine ? '' : ' \u00b7 <span class="warn">None Came to You</span>') +
+                 (lost.length ? '<br><span class="warn">' + lost.join(' \u00b7 ') + '</span>' : ''));
       mlog('<b>month ' + res.month + '</b> \u00b7 the ' + esc(res.event) + ' window: ' + fleetLine +
            (joined.length ? ' \u00b7 <span class="good">yours: ' +
              joined.map(nameSpan).join(', ') + '</span>'
@@ -4732,11 +4766,11 @@
      they never overprint. Dragging the slider scrubs without animating: a scrub is
      somebody looking for a moment, not watching a fight. */
   /* SIDE WAS HERE — three colours by seat, cyan for whoever sat first. Retired with
-     BANNER at the colour pass; fights colour by house now. */
+     BANNER at the colour pass; fights colour by OA now. */
   /* §RACES THE PEOPLES WEAR THEIR OWN COLOURS, NOT ONE MUDDY PALETTE. Every race sat between
      slate and olive — a swamp of near-neighbours that were hard to tell apart on a grid and
      said nothing about the people wearing them. A Kellis is BLUE, an Etu GREEN, a Gil PURPLE.
-     Each is pitched clear of the houses' banners (#ca7272 #41c841 #4141c8 #29aeae #c8ad41
+     Each is pitched clear of the OAs' banners (#ca7272 #41c841 #4141c8 #29aeae #c8ad41
      #7284ca #c841ad #a3c28e) and of the suppliers' eight, so a race never reads as somebody's
      flag. The radius is unchanged: it is build, not colour.
 
@@ -4803,7 +4837,7 @@
         if (u.st === 'ok' || u.st === 'light') { g.fillStyle = TOK.bg; g.fill(); }
         g.lineWidth = 3; g.strokeStyle = col; g.stroke();
         /* §MARK the fighter's own mark on the disc, so a fight is followed by WHO: the fill is
-           theirs, the ring the house's. A body down keeps its mark, faded; the dead keep the
+           theirs, the ring the OA's. A body down keeps its mark, faded; the dead keep the
            cross over it. */
         if (u.id) {
           var fx = fighterOf(u), fillC = (fx.mark && fx.mark.color) || rc.fill;
@@ -5050,8 +5084,8 @@
      day by day. Every encounter the manager's people stood in is handed over by the engine
      with its frames and replays in The Firefight. */
   /* BANNER WAS HERE — eight arbitrary hexes keyed by seat. Retired at the colour pass:
-     every house now wears its own derived colour from data/oa_display.json, and the
-     founded house the one it picked at founding. */
+     every OA now wears its own derived colour from data/oa_display.json, and the
+     founded OA the one it picked at founding. */
   var OA_DISP = (window.ARX_DATA && ARX_DATA.oa_display && ARX_DATA.oa_display.colors) || {};
   function colFor(id) {
     var c = G && G.corps && G.corps[id];
@@ -5059,21 +5093,21 @@
     return (OA_DISP[id] && OA_DISP[id].color) || TOK.b;
   }
   function cSpan(id) { return '<span style="color:' + colFor(id) + '">' + esc(tName(id)) + '</span>'; }
-  /* the house's mark, at chip size, in whatever colour surrounds it. The founded house
-     (and only it — every fleet house has a mark) falls back to the empty pennant. */
+  /* the OA's mark, at chip size, in whatever colour surrounds it. The founded OA
+     (and only it — every fleet OA has a mark) falls back to the empty pennant. */
   var OA_MARKS = (window.ARX_DATA && ARX_DATA.oa_marks && ARX_DATA.oa_marks.marks) || {};
   function markFor(id, px) {
     var body = OA_MARKS[id] || OA_MARKS.__founder || '';
     return body ? '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px +
       '" style="vertical-align:-2px">' + body + '</svg>' : '';
   }
-  /* ============================ PICKING A HOUSE ============================
-     §PICKER ONE GESTURE, EVERYWHERE. Every place a manager chose another house wore its own
+  /* ============================ PICKING A OA ============================
+     §PICKER ONE GESTURE, EVERYWHERE. Every place a manager chose another OA wore its own
      shape — a row of long rectangles at the founding, a strip in the Talks, chips in the
-     Backroom — and none of them matched. A house is its MARK: the emblem large inside a
-     circle in the house's own colour, the name under it. The ring fills the empty middle of
+     Backroom — and none of them matched. An OA is its MARK: the emblem large inside a
+     circle in the OA's own colour, the name under it. The ring fills the empty middle of
      the menus that use it, and the same component answers everywhere. */
-  /* §PICKER the fleet round a house, distance and size carrying what they think of you */
+  /* §PICKER the fleet round an OA, distance and size carrying what they think of you */
   function constellation(ids, byId) {
     var box = 300, mid = box / 2;
     var h = '<div class="constel" style="width:' + box + 'px;height:' + box + 'px">' +
@@ -5092,20 +5126,20 @@
            (warm ? TOK.hit : TOK.red) + '" stroke-opacity="' + (0.14 + Math.abs(p.v) / 100 * 0.5).toFixed(2) +
            '" stroke-width="' + (1 + Math.abs(p.v) / 100 * 2.5).toFixed(1) + '"/>';
     });
-    h += '</svg><div class="chub">' + markFor(G.me, 22) + '<span>' + esc(shortHouse(G.me)) + '</span></div>';
+    h += '</svg><div class="chub">' + markFor(G.me, 22) + '<span>' + esc(shortOA(G.me)) + '</span></div>';
     pts.forEach(function (p) {
       h += '<div class="cnode" style="left:' + p.x + 'px;top:' + p.y + 'px;--c:' + colFor(p.id) + '" ' +
            'title="' + esc(nameOfCorp(p.id)) + ' \u00b7 ' + (p.v > 0 ? '+' : '') + p.v.toFixed(0) + '">' +
            '<span class="hn-disc" style="width:' + p.size + 'px;height:' + p.size + 'px">' + markFor(p.id, Math.round(p.size * 0.6)) + '</span>' +
-           '<span class="hn-name">' + esc(shortHouse(p.id)) + '</span></div>';
+           '<span class="hn-name">' + esc(shortOA(p.id)) + '</span></div>';
     });
     return h + '</div>';
   }
-  function housePicker(ids, chosen, attr, opts) {
+  function oaPicker(ids, chosen, attr, opts) {
     opts = opts || {};
     var n = ids.length;
     if (opts.ring === false || n <= 2) {
-      return '<div class="hpick row">' + ids.map(function (id) { return houseNode(id, id === chosen, attr, opts); }).join('') + '</div>';
+      return '<div class="hpick row">' + ids.map(function (id) { return oaNode(id, id === chosen, attr, opts); }).join('') + '</div>';
     }
     /* laid on a ring: the fleet around the manager, which is what it is */
     var R = opts.radius || 108, size = opts.size || 56, box = (R + size / 2 + 20) * 2;
@@ -5114,31 +5148,31 @@
     ids.forEach(function (id, i) {
       var a = (i / n) * Math.PI * 2 - Math.PI / 2;
       var x = box / 2 + Math.cos(a) * R, y = box / 2 + Math.sin(a) * R;
-      h += houseNode(id, id === chosen, attr, Object.assign({}, opts, {
+      h += oaNode(id, id === chosen, attr, Object.assign({}, opts, {
         style: 'position:absolute;left:' + x + 'px;top:' + y + 'px;transform:translate(-50%,-50%)' }));
     });
     return h + '</div>';
   }
-  function houseNode(id, on, attr, opts) {
+  function oaNode(id, on, attr, opts) {
     opts = opts || {};
     var col = colFor(id), size = opts.size || 56;
     return '<button type="button" class="hnode' + (on ? ' on' : '') + '" ' + attr + '="' + id + '"' +
       (opts.style ? ' style="' + opts.style + ';--c:' + col + '"' : ' style="--c:' + col + '"') +
       ' title="' + esc(nameOfCorp(id)) + '">' +
       '<span class="hn-disc" style="width:' + size + 'px;height:' + size + 'px">' + markFor(id, Math.round(size * 0.62)) + '</span>' +
-      '<span class="hn-name">' + esc(shortHouse(id)) + '</span>' +
+      '<span class="hn-name">' + esc(shortOA(id)) + '</span>' +
       (opts.sub ? '<span class="hn-sub">' + opts.sub(id) + '</span>' : '') + '</button>';
   }
-  /* a house's name without its article, so seven of them fit under seven circles */
-  function shortHouse(id) { return String(nameOfCorp(id)).replace(/^The\s+/i, ''); }
+  /* an OA's name without its article, so seven of them fit under seven circles */
+  function shortOA(id) { return String(nameOfCorp(id)).replace(/^The\s+/i, ''); }
   function mSpan(id) { return '<span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>'; }
   function oaIdOf(ci) { var L = (G && G.oa) || OA; return (L[ci % L.length] || {}).id; }
   function fCid(s) { return G.fight && G.fight.cids ? G.fight.cids[s] : null; }
   /* THE GROUND'S COLOURS: five terrains a manager can tell apart at a glance, muted so the
-     houses' colours stay on top. The legend beneath the map says what each does. */
+     OAs' colours stay on top. The legend beneath the map says what each does. */
   /* A PALETTE PER KIND OF WORLD. An ice shelf and a lava waste should not be the same five
      browns; each archetype colours the four common terrains in its own key and its special
-     terrain loudest. Muted throughout, so the houses' colours stay on top. */
+     terrain loudest. Muted throughout, so the OAs' colours stay on top. */
   var PALETTES = {
     ice_shelf:       { open_basin: '#5a6570', broken_ground: '#474f59', forest: '#3d4d4a', entrenched: '#4a4650', crevasse_field: '#232b36' },
     jungle_cradle:   { open_basin: '#4a4c2a', broken_ground: '#383a28', forest: '#243d26', entrenched: '#36301f', deep_canopy: '#12281a' },
@@ -5408,8 +5442,8 @@
     if (!w) return null;
     var live = gDays();
     if (live && live.length) return live[Math.max(0, Math.min(live.length - 1, G.gday - 1))];
-    /* THE PICTURE, NOT THE TRUTH. Live, the map shows what your house knows: your own squads
-       and your banner's as they are, every other house as its last sighting — where it was,
+    /* THE PICTURE, NOT THE TRUTH. Live, the map shows what your OA knows: your own squads
+       and your banner's as they are, every other OA as its last sighting — where it was,
        how many, how old — and nothing where you know nothing. The truth waits for the replay. */
     var sq = [];
     var myRoot = w.you.joinedTo || G.me;
@@ -5565,7 +5599,7 @@
      which is what made the first cut relocate the whole map on the first press. Live
      comms-window days carry no tracks, so they simply draw complete. */
   /* THE DAYS: the whole record once the contest is done; live, the record so far with only
-     your own house's (and your banner's) squads on it — their tracks walk between windows,
+     your own OA's (and your banner's) squads on it — their tracks walk between windows,
      the rest of the ground is the picture, laid on the latest day as sightings. */
   function gDays() {
     if (G.div && G.div.done && G.div.final && G.div.final.replay) return G.div.final.replay.days;
@@ -5835,7 +5869,7 @@
           continue;
         }
         if (v.t !== 'fight') continue;
-        /* who this fight belongs to — the nearest held squad of each named house */
+        /* who this fight belongs to — the nearest held squad of each named OA */
         for (var vc = 0; vc < (v.corps || []).length; vc++) {
           var vci = -1;
           for (var oi = 0; oi < D.corp.length; oi++)
@@ -6396,9 +6430,9 @@
     /* §PICKER THE TALKS PICK THE SAME WAY: the ring, and under each name what they think of
        you, which is the whole question when choosing whom to write to. */
     var tOthers = G.state.ids.filter(function (id) { return id !== G.me; });
-    $('tradestrip').innerHTML = housePicker(tOthers, TSEL, 'data-toa', {
+    $('tradestrip').innerHTML = oaPicker(tOthers, TSEL, 'data-toa', {
       size: 58, radius: 112,
-      hub: '<b>' + esc(shortHouse(G.me)) + '</b><span>Whom Do You Write To</span>',
+      hub: '<b>' + esc(shortOA(G.me)) + '</b><span>Whom Do You Write To</span>',
       sub: function (id) {
         var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
         var sealed = (G.corps[id].profile || {}).no_negotiation;
@@ -6408,7 +6442,7 @@
     });
 
     var W = $('negwrap');
-    if (!TSEL) { W.innerHTML = '<div class="box"><span class="m">Pick a House</span></div>'; renderTradeInbox(); return; }
+    if (!TSEL) { W.innerHTML = '<div class="box"><span class="m">Pick an OA</span></div>'; renderTradeInbox(); return; }
     var me = tradeMe(), them = G.corps[TSEL];
     var view = TRADE.appetite(me, them, bundleOf('give'), bundleOf('get'), tradeOpts());
     var empty = !TBL.give.length && !TBL.get.length;
@@ -6474,9 +6508,9 @@
 
     W.innerHTML =
       '<div class="neghead">' +
-        '<div class="house" style="border-left:3px solid ' + colFor(G.me) + '">' + markFor(G.me, 16) + cSpan(G.me) + '<span class="m">' + crs(me.account.treasury) + '</span></div>' +
+        '<div class="OA" style="border-left:3px solid ' + colFor(G.me) + '">' + markFor(G.me, 16) + cSpan(G.me) + '<span class="m">' + crs(me.account.treasury) + '</span></div>' +
         '<div class="mid">They Regard You<b>' + (view.regard > 0 ? '+' : '') + Math.round(view.regard) + ' \u00b7 ' + regardWord + '</b></div>' +
-        '<div class="house theirs" style="border-right:3px solid ' + colFor(TSEL) + '"><span class="m" title="what your dossier knows of their purse">Purse ' + theirPurse(TSEL) + '</span>' + cSpan(TSEL) + markFor(TSEL, 16) + '</div>' +
+        '<div class="OA theirs" style="border-right:3px solid ' + colFor(TSEL) + '"><span class="m" title="what your dossier knows of their purse">Purse ' + theirPurse(TSEL) + '</span>' + cSpan(TSEL) + markFor(TSEL, 16) + '</div>' +
       '</div>' +
       '<div class="pressure"><div class="tscale"><i style="left:' + pct + '%"></i></div>' +
         '<div class="pw"><span class="m">Your Side ' + crs(view.give) + '</span><span class="verdict ' + vcls + '">' + verdict + '</span><span class="m">Their Side ' + crs(view.ask) + '</span></div>' +
@@ -6604,7 +6638,7 @@
      answer, only moved. --- */
   var AUDNAME = {
     own:   { name: 'Your Own People', sub: 'The Crews and the Families' },
-    fleet: { name: 'The Fleet',       sub: 'The Other Houses' },
+    fleet: { name: 'The Fleet',       sub: 'The Other OAs' },
     aleas: { name: 'The Aleas',       sub: 'The Referees' }
   };
   /* THE WORD FOR A NUMBER IS NOT THE SAME WORD FOR EVERY AUDIENCE. All four run on the
@@ -6689,8 +6723,8 @@
                     '<span class="t">' + esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span></div>'; }).join('') + '</div>' : '') +
            '</div>';
     });
-    /* §PICKER THE FLEET AS A CONSTELLATION. Seven bars in a column said what each house thinks
-       of you and showed nothing: a fleet is a set of DISTANCES. Each house stands on a ring
+    /* §PICKER THE FLEET AS A CONSTELLATION. Seven bars in a column said what each OA thinks
+       of you and showed nothing: a fleet is a set of DISTANCES. Each OA stands on a ring
        round yours — the warmer they are the CLOSER and the LARGER they sit, the colder the
        further out and the smaller — with a line drawn to you in green where they are warm and
        red where they are cold, its weight the strength of the feeling. The same disc-and-name
@@ -7022,11 +7056,11 @@
      goes back with the advance. One stance and at most ONE deal per window — that is the
      engine's vocabulary, and the page speaks exactly it. Every offer is scored by the
      negotiation layer's own judgment: the other side can refuse, and the refusal comes
-     back on the next window with its numbers. A sealed house does not negotiate — a
+     back on the next window with its numbers. A sealed OA does not negotiate — a
      cultural fact, not a stance — so its deal sections say so and its ladder stays. */
   function tName(id) { return (G.corps[id] && G.corps[id].profile.name) || id; }
 
-  var TSEL_DIV = null;   /* the house selected on the Table's strip */
+  var TSEL_DIV = null;   /* the OA selected on the Table's strip */
   var TKIND = null;      /* join | take | pact */
   function stanceWords(n) { return capWords(n); }
 
@@ -7041,11 +7075,11 @@
     if (!G || m < 12 || G.div) { host.innerHTML = ''; $('tablegrid').style.display = ''; return; }
     $('tablegrid').style.display = 'none';
     /* THE DRAFT. Landings round the ring, drafted lowest standing first — ONE FOR EVERY SQUAD
-       A HOUSE FIELDS, so a house that spreads into six draws six — every pick posted. The AI's
+       A OA FIELDS, so an OA that spreads into six draws six — every pick posted. The AI's
        turns run; yours waits for a click on a free slot. */
     var pl = G.state.planet, me = G.corps[G.me];
     var D = SEASON.draftAdvance(G.state);
-    /* §DRAFT the ring is as wide as the fleet's appetite: a house drafts a landing for each
+    /* §DRAFT the ring is as wide as the fleet's appetite: an OA drafts a landing for each
        squad it fields, so the count is the draft's, not a constant */
     var slots = CDPREDIVIDE.slots(pl, (D && D.slots) || SEASON.SLOT_MIN);
     var depth = ((me._intel || {}).planet || { rows: {} }).rows.sectors; depth = depth ? depth.depth : 0;
@@ -7078,7 +7112,7 @@
         return '<span class="slotchip" style="background:' + colFor(D.taken[sl]) + '" title="' + esc(nameOfCorp(D.taken[sl])) + '">' + sl + '</span>'; }).join('') + '</div></div>' +
       '<div class="box" style="margin-top:0">' + terrainLegend(pl) + surveyNote() + '</div></div></div>';
     host.innerHTML = h;
-    /* the map: every slot on the ring; taken ones filled in their house's colour; yours lit;
+    /* the map: every slot on the ring; taken ones filled in their OA's colour; yours lit;
        free ones open to your click on your turn */
     var cv = $('dropmap'), base = drawPlanetBase(cv, pl, { depth: planetIntelDepth('terrain'), seen: [] });
     if (base) {
@@ -7135,10 +7169,10 @@
       (word ? '<div class="m" style="font-size:9.5px"><span class="' + wcls + '">' + word + '</span> \u00b7 ' + nerve +
               (m.sight != null ? ' \u00b7 Sees ' + Math.round(m.sight * 100) + '%' : '') + '</div>' : '');
   }
-  /* §STORES WHAT THE GROUND HAS GIVEN, while it is still giving. The units a house works out
+  /* §STORES WHAT THE GROUND HAS GIVEN, while it is still giving. The units an OA works out
      are the point of the contest and the measure the board asks in, and until now they were
      visible only on next year's Board. Each category reads: what is in hand, what the board
-     asked for, and what is still open on the ground that the house knows of. */
+     asked for, and what is still open on the ground that the OA knows of. */
   /* §THE CLOCK WHEN THE WALL MOVES NEXT, and to what. It is the thing every plan is made
      against, and it was a dashed circle that spoke only after the fact. */
   function wallWords(w) {
@@ -7199,7 +7233,7 @@
 
     /* ---- your squads: where they are, how they are, and what you tell them ----
        An order is the planner's own vocabulary with the manager's name on it: Hold, Move,
-       Dig a site, Meet a squad, Hunt a squad the house has seen, Fall Back. */
+       Dig a site, Meet a squad, Hunt a squad the OA has seen, Fall Back. */
     var INTENT_WORD = { hold: 'Holding', patrol: 'Moving', claim: 'Working a Deposit', meet: 'Meeting', hunt: 'Hunting', strike: 'Striking',
                         withdraw: 'Falling Back', sound: 'Going to the Sound', avoid: 'Avoiding', rescue: 'Rescuing',
                         shadow: 'Shadowing', screen: 'Screening' };
@@ -7232,7 +7266,7 @@
             '<span class="nn">' + stanceWords(n) + (dec ? ' <span class="gold">\u00b7 Declaring</span>' : '') + '</span>' +
             '<span class="nf"><span>Seek <b>' + Math.round(d.seek * 100) + '%</b></span><span>Take a Fight <b>' + Math.round(d.accept * 100) + '%</b></span><span>Risk the Wall <b>' + Math.round(d.zoneRisk * 100) + '%</b></span></span></div>';
     });
-    /* ---- WHO YOUR PEOPLE LOOK FOR. Not an order: a leaning, one to five, on each house.
+    /* ---- WHO YOUR PEOPLE LOOK FOR. Not an order: a leaning, one to five, on each OA.
        Three is nothing; higher and your squads find them sooner, lower and they find them
        later. The stance still decides what they do about it. ---- */
     var lean = Object.assign({}, w.leanings || {});
@@ -7267,41 +7301,53 @@
         (you.joinedTo ? ' \u00b7 You Fight Under ' + cSpan(you.joinedTo) : '') + '</span>' +
         '<span>' + (ans.deal ? 'A Word Rides With the Advance' : 'No Word Composed') + '</span>';
     }
-    /* ---- the strip: every other house, its odds, and where it stands to you ---- */
+    /* ---- the strip: every other OA, its odds, and where it stands to you ---- */
     var sealedMe = DIVIDE.sealedCorp(G.corps[G.me]);
     var byId = {};
     (w.table.canJoin || []).forEach(function (r) { byId[r.principal] = byId[r.principal] || {}; byId[r.principal].join = r; });
     (w.table.wouldTake || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].take = r; });
     (w.table.pacts || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].pact = r; });
+    (w.table.asks || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].ask = r; });
     var others = G.state.ids.filter(function (id) { return id !== G.me; });
     if (TSEL_DIV && others.indexOf(TSEL_DIV) < 0) TSEL_DIV = null;
-    /* §PICKER THE DEAL PICKS A HOUSE THE WAY EVERY OTHER SURFACE DOES: the ring, the mark
+    /* §PICKER THE DEAL PICKS A OA THE WAY EVERY OTHER SURFACE DOES: the ring, the mark
        large, the name under it — with what a manager needs to choose between them under the
        name, which is their odds and where they stand with you. */
-    $('tstrip').innerHTML = housePicker(others, TSEL_DIV, 'data-tsel', {
+    $('tstrip').innerHTML = oaPicker(others, TSEL_DIV, 'data-tsel', {
       size: 60, radius: 116,
-      hub: '<b>' + esc(shortHouse(G.me)) + '</b><span>' + Math.round(((byId[G.me] || {}).odds || you.odds || 0) * 100) + '% to Win</span>',
+      hub: '<b>' + esc(shortOA(G.me)) + '</b><span>' + Math.round(((byId[G.me] || {}).odds || you.odds || 0) * 100) + '% to Win</span>',
       sub: function (id) {
         var t = byId[id] || {}, rel = '';
         if (you.joinedTo === id) rel = 'Your Banner';
         else if (G.corps[id].joinedTo === G.me) rel = 'Under You';
+        else if (t.ask) rel = 'Asks to Come In';
         else if (t.pact && t.pact.live) rel = 'Pact';
         var odds = (t.join && t.join.odds) || (t.take && t.take.odds) || 0;
-        return (rel ? '<span class="gold">' + rel + '</span><br>' : '') + Math.round(odds * 100) + '%';
+        /* §6.9 who is on you: the table is for the OA you are engaged with */
+        var tc = ((t.join && t.join.range) || (t.take && t.take.range) || (t.ask && t.ask.range) || {}).contact || {};
+        var touch = tc.huntedBy ? 'Hunting You' : tc.lostTo ? 'Beat You' : tc.beat ? 'You Beat Them' : tc.fights ? 'Fought You' : '';
+        /* §6.12 how much they want to keep fighting, as a word: the board, the planet, their
+           squads' state, their combats and their strength now, read the same way the AI does */
+        var ap = ((t.join && t.join.range) || (t.take && t.take.range) || (t.ask && t.ask.range) || {}).appetite;
+        var apv = ap ? (t.join ? ap.principal : ap.joiner) : null;
+        var hunger = apv == null ? '' : apv >= 1.2 ? 'Hungry' : apv >= 0.95 ? 'Holding' : apv >= 0.75 ? 'Wavering' : 'Wants Out';
+        return (rel ? '<span class="gold">' + rel + '</span><br>' : '') + Math.round(odds * 100) + '%' +
+               (touch ? '<br><span class="warn">' + touch + '</span>' : '') +
+               (hunger ? '<br><span class="m">' + hunger + '</span>' : '');
       }
     });
     Array.prototype.forEach.call($('tstrip').querySelectorAll('[data-tsel]'), function (c) {
       c.onclick = function () { TSEL_DIV = TSEL_DIV === c.getAttribute('data-tsel') ? null : c.getAttribute('data-tsel'); TKIND = null; renderTable(); };
     });
 
-    /* ---- the composer for the selected house: the Talks' shape, You Offer | The Beam |
+    /* ---- the composer for the selected OA: the Talks' shape, You Offer | The Beam |
        You Ask For, and the beam values the terms by the SAME arithmetic the engine scores
        them with (termsValue: cut × expected take + credits, against joinerMin..principalMax).
        Terms the engine does not price yet stand in the pools marked so, unpickable — the
        structure is here for them, the pricing is not. ---- */
     var host = $('tdeal');
     if (sealedMe) host.innerHTML = '<div class="box"><span class="m">Sealed \u00b7 No Negotiation</span></div>';
-    else if (!TSEL_DIV) host.innerHTML = '<div class="box"><span class="m">Pick a House Above</span></div>';
+    else if (!TSEL_DIV) host.innerHTML = '<div class="box"><span class="m">Pick an OA Above</span></div>';
     else {
       var t = byId[TSEL_DIV] || {}, id = TSEL_DIV;
       var kinds = [];
@@ -7321,11 +7367,29 @@
         if (!G._tdiv || G._tdiv.id !== id || G._tdiv.kind !== TKIND) G._tdiv = { id: id, kind: TKIND, give: [], get: [] };
         var C = G._tdiv;
         var kh = '<div class="tkinds"><span class="with">' + markFor(id, 14) + ' ' + cSpan(id) + '</span></div>';
+        /* §6.2 THEY ASK TO COME IN. An OA that wants in under your banner asks, and the ask
+           waits on you: their terms, what saying no would cost each side, and two answers
+           beside the terms you can set yourself below. Nothing is struck on your banner for you.
+           If you let it lapse and they are wiped, they remember who let them die. */
+        if (t.ask && !you.joinedTo) {
+          var a = t.ask, ir = a.ifRefused || {};
+          kh += '<div class="box" style="margin-top:8px"><h2 style="margin-top:0">' + cSpan(id) + ' \u00b7 A Request to Join You</h2>' +
+            '<div class="m">' + (a.beaten ? 'They Are Beaten \u00b7 ' : '') + 'They Ask ' + Math.round((a.askedShare || 0) * 100) + '% of the Take' +
+              (a.askedCredits ? ' + ' + crs(a.askedCredits) : '') +
+              ((a.terms && a.terms.resources) || []).map(function (t) { return ' + ' + Math.round(t.share * 100) + '% of Your ' + CAT_NAME[t.category]; }).join('') +
+              ((a.terms && a.terms.claims) || []).map(function (cid) { return ' + The ' + claimResource(cid) + ' Claim'; }).join('') +
+              (a.standDown ? ' \u00b7 Standing Down' : '') + '</div>' +
+            beamFacts([['If You Refuse, You Lose', crs(ir.yourLosses || 0) + ' of People'], ['And They Lose', crs(ir.theirLosses || 0) + ' of People'],
+                       ['Their Chance Alone', Math.round((a.odds || 0) * 100) + '%']]) +
+            '<div class="bidbtns" style="margin-top:8px"><button data-task="accept">Accept Their Terms</button>' +
+              '<button data-task="refuse">Refuse Them</button></div>' +
+            '<div class="m" style="margin-top:6px">Or Your Own Terms, Below</div></div>';
+        }
         /* THE THREE WAYS stand at the top of You Offer; picking one greys the others. What each
            side can offer beneath depends on the way picked. */
         var ALLK = [['join', 'Join Their Banner', 'You Fight Under Theirs'], ['take', 'Take Them Under Yours', 'They Fight Under You'], ['pact', 'A Truce', 'Neither Engages the Other for ' + NEG.CONST.PACT_DAYS[1] + ' Days']];
-        /* only what is STRUCTURALLY closed is closed: a banner already joined, a house under
-           someone else's, a house that does not deal. Everything else is a question of price. */
+        /* only what is STRUCTURALLY closed is closed: a banner already joined, an OA under
+           someone else's, an OA that does not deal. Everything else is a question of price. */
         var whyNot = function (k) {
           if (you.joinedTo) return k === 'pact' ? (t.pact ? '' : 'They Do Not Deal') : 'You Fight Under ' + nameOfCorp(you.joinedTo);
           if (k === 'join') return t.join ? '' : (G.corps[id].joinedTo ? 'They Fight Under ' + nameOfCorp(G.corps[id].joinedTo) : 'They Do Not Deal');
@@ -7477,6 +7541,13 @@
         Array.prototype.forEach.call(host.querySelectorAll('[data-tkind]'), function (b) {
           b.onclick = function () { if (b.classList.contains('off')) return; TKIND = b.getAttribute('data-tkind'); renderTable(); };
         });
+        Array.prototype.forEach.call(host.querySelectorAll('[data-task]'), function (b) {
+          b.onclick = function () {
+            G.div.answer = G.div.answer || {};
+            G.div.answer.deal = { kind: b.getAttribute('data-task'), corp: id };
+            renderTable();
+          };
+        });
         var send = host.querySelector('[data-tsend]');
         if (send) send.onclick = function () {
           var k = send.getAttribute('data-tsend');
@@ -7497,6 +7568,8 @@
       ? '<span class="m">Nothing Composed \u00b7 <span class="act" data-godeal style="color:var(--a);cursor:pointer">Open the Deal</span></span>'
       : ('<b>' + (d.kind === 'join' ? 'Join ' + cSpan(d.principal) + '\u2019s Banner'
                 : d.kind === 'take' ? 'Take ' + cSpan(d.corp) + ' Under Yours'
+                : d.kind === 'accept' ? 'Take ' + cSpan(d.corp) + ' Under Yours, on Their Terms'
+                : d.kind === 'refuse' ? 'Refuse ' + cSpan(d.corp)
                 : 'Seek a Pact With ' + cSpan(d.corp)) + '</b>' +
          (d.terms ? '<div class="m">' + Math.round((d.terms.share || 0) * 100) + '% of the Take' +
            (d.terms.credits ? ' + ' + crs(d.terms.credits) : '') +
@@ -7512,6 +7585,8 @@
     $('techo').innerHTML = !e ? '<span class="m">No Answer Yet</span>'
       : e.accepted
       ? '<span class="good">' + (e.kind === 'pact' ? 'The Pact Formed' : 'The Deal Was Struck') + '</span> <span class="m">With ' + cSpan(e.corp) + '</span>'
+      : e.kind === 'refuse'
+      ? '<span class="warn">You Refused ' + cSpan(e.corp) + '</span> <span class="m">Remembered</span>'
       : '<span class="warn">Refused</span> <span class="m">by ' + cSpan(e.corp) +
         (e.note ? ' \u2014 ' + esc(capWords(e.note)) : '') +
         (e.short ? ' \u00b7 short by ' + crs(e.short) : '') +
@@ -7582,7 +7657,7 @@
   /* ============================== THE MENU & SAVES ==============================
      The engine owns the serialization (`saveCareer`/`loadCareer`, proven to continue a
      game IDENTICALLY to one that never stopped). The page wraps it with what the engine
-     cannot know: the seed's name, whose house you are, the manager's plan, and the
+     cannot know: the seed's name, whose OA you are, the manager's plan, and the
      blank-slate custom profile. Storage is localStorage when the browser allows it and a
      session shelf when it does not; either way a save exports as pasteable code. */
   var STORE = (function () {
@@ -7607,50 +7682,16 @@
     };
   })();
 
-  /* THE BLANK SLATE: the numeric average of the fleet, leaf by leaf — numbers averaged,
-     strings by majority, race weights uniform, no seal on the table, no relationships
-     carried in. The balance baseline, and one day the multiplayer face. */
+  /* THE BLANK SLATE lives in the engine now (`CDSEASON.founderProfile`), so the instruments
+     found the same OA the desk does; the page adds only its colours */
   function blankSlate(name) {
-    var avg = function (vals) {
-      var nums = vals.filter(function (v) { return typeof v === 'number' && isFinite(v); });
-      if (nums.length === vals.length && nums.length)
-        return Math.round(nums.reduce(function (a, b) { return a + b; }, 0) / nums.length * 1000) / 1000;
-      if (vals.every(function (v) { return typeof v === 'object' && v && !Array.isArray(v); })) {
-        var keys = {}, out = {};
-        vals.forEach(function (v) { Object.keys(v).forEach(function (k) { keys[k] = 1; }); });
-        Object.keys(keys).forEach(function (k) {
-          out[k] = avg(vals.filter(function (v) { return k in v; }).map(function (v) { return v[k]; }));
-        });
-        return out;
-      }
-      var tally = {};
-      vals.forEach(function (v) { var k = JSON.stringify(v); tally[k] = (tally[k] || 0) + 1; });
-      var best = Object.keys(tally).sort(function (a, b) { return tally[b] - tally[a]; })[0];
-      return best !== undefined ? JSON.parse(best) : null;
-    };
-    var p = {};
-    ['dials', 'engagement_lean', 'finance', 'reputation', 'sponsor_style', 'difficulty', 'holds']
-      .forEach(function (k) { p[k] = avg(OA.map(function (o) { return o[k]; })); });
-    var races = {};
-    OA.forEach(function (o) { Object.keys(o.race_weights || {}).forEach(function (r) { races[r] = 1; }); });
-    p.race_weights = {};
-    Object.keys(races).forEach(function (r) { p.race_weights[r] = 1; });
-    p.id = 'custom_house';
-    p.name = name;
-    p.tag = 'The Founder';
-    p.motto = 'Unwritten.';
-    p.archetype = 'founder';
+    var p = CDSEASON.founderProfile(OA, name);
     p.colors = { primary: TOK.a, secondary: TOK.slate };
-    p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
-    p.no_negotiation = false;
-    p.relationships = [];
-    p.canon_status = 'player-founded';
-    p.founding = 'lean';        /* §FOUNDING a founded house opens with money and old hands */
     return p;
   }
 
   /* §FOUNDING THE ORDER THE FLEET GIVES WAY IN: the highest declared difficulty first, the
-     thinnest treasury breaking the tie. One manager displaces one house; three managers
+     thinnest treasury breaking the tie. One manager displaces one OA; three managers
      displace the weakest three, which is what multiplayer will ask for. */
   function weakestBerths(n) {
     return OA.slice().sort(function (a, b) {
@@ -7773,7 +7814,7 @@
     var art = (window.ARX_DATA && ARX_DATA.art) || {};
     var set = function (id, key) { var el = $(id); if (el && art[key]) el.src = art[key]; };
     set('menuArtL', 'menu_kellis'); set('menuArtM', 'menu_ththyn'); set('menuArtR', 'menu_etu');
-    /* the row of the eight was in the mock-up as placeholder glyphs; here it is the houses'
+    /* the row of the eight was in the mock-up as placeholder glyphs; here it is the OAs'
        own marks in their own colours, which the game already knows how to draw */
     if ($('menufleet') && typeof markFor === 'function') {
       $('menufleet').innerHTML = OA.map(function (p) {
@@ -7785,10 +7826,10 @@
     $('menu').style.display = 'none';
     $('setup').style.display = 'flex';
     /* §FOUNDING THE EIGHT ARE THE FLEET, NOT THE PLAYER. Taking one of them over was a
-       difficulty selector wearing a house's name: a manager inherited somebody else's roster,
+       difficulty selector wearing an OA's name: a manager inherited somebody else's roster,
        armoury and reputation, and spent the first year managing choices already made. A
-       manager founds a house now. The eight stand here as what the fleet IS, and as the seat
-       this house takes among them. */
+       manager founds an OA now. The eight stand here as what the fleet IS, and as the seat
+       this OA takes among them. */
     var h = '<div class="m" style="margin-bottom:8px">The Fleet You Are Joining</div><div class="fleetrow">';
     OA.forEach(function (p) {
       var col = colFor(p.id);
@@ -7799,7 +7840,7 @@
     $('customform').style.display = '';
     /* §FOUNDING WHOSE BERTH IS NOT A CHOICE. A manager was asked which of the eight to
        displace, which is a question with no information behind it and no interesting answer:
-       the WEAKEST house canonically makes way — the one with the highest declared difficulty,
+       the WEAKEST OA canonically makes way — the one with the highest declared difficulty,
        and the thinnest treasury behind that. With several managers the weakest several make
        way, in the same order, which is the rule multiplayer will want. */
     BERTH = weakestBerths(1)[0];
@@ -7809,7 +7850,7 @@
 
   };
   /* the founder's colour: swatches pre-vetted by the palette instrument, so any pick
-     is already separable from every house, race, ground and interface voice */
+     is already separable from every OA, race, ground and interface voice */
   var FOUNDER_SW = (window.ARX_DATA && ARX_DATA.oa_display && ARX_DATA.oa_display.founderChoices) || [];
   var cpick = FOUNDER_SW[0] || TOK.b;
   FOUNDER_SW.forEach(function (hex, i) {
@@ -7823,8 +7864,8 @@
     };
     $('cswatches').appendChild(b);
   });
-  /* §FOUNDING A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN. A founded house wore the same
-     borrowed device as every other founded house. Twelve presets stand for a manager who does
+  /* §FOUNDING A MARK OF YOUR OWN, MADE RATHER THAN CHOSEN. A founded OA wore the same
+     borrowed device as every other founded OA. Twelve presets stand for a manager who does
      not care, and behind them a builder: a FIELD, a DEVICE and a BAR, each of which can be
      TURNED. Rotation is worth more than more shapes — a diamond turned is a square, a chevron
      turned is an arrow — so the kit stays small and every piece stays legible at twelve pixels,
@@ -7945,7 +7986,7 @@
      the wing-case, an Olmac toward the slab and the block, a Mon-Wa toward the halves — and
      every piece the draw can reach is in the kit, so nothing born cannot be made by hand.
      The fill is the fighter's race colour by default and may be changed; the RING is always
-     the house's, which is how the grid says whose they are. */
+     the OA's, which is how the grid says whose they are. */
   /* the field indices moved down one when the duplicate hexagon came out; the peoples' own
      pieces are 7 the wing-case, 8 the slab, 9 the halves, 10 the pentagon */
   var RACE_LEAN = {
@@ -8023,7 +8064,7 @@
     MARK_IMG[key] = im;
     return null;
   }
-  /* §MARK A MANAGER MAY CHANGE ANY OF HIS OWN PEOPLE'S MARKS through the same pad the house's
+  /* §MARK A MANAGER MAY CHANGE ANY OF HIS OWN PEOPLE'S MARKS through the same pad the OA's
      mark was built with. What is saved is only what was changed; a fighter never touched
      carries no mark at all and draws the one they were born with. */
   var MARK_EDIT = null;
@@ -8081,7 +8122,7 @@
       if (typeof renderRoster === 'function') renderRoster();
     };
   }
-  /** the mark as drawn: fill in the fighter's colour (race by default), ring in the house's */
+  /** the mark as drawn: fill in the fighter's colour (race by default), ring in the OA's */
   function fighterMark(f, size, ringCol) {
     var fill = (f.mark && f.mark.color) || raceColour(f);
     var ring = ringCol || (G && G.corps && f.corpId && G.corps[f.corpId] ? colFor(f.corpId) : (G ? colFor(G.me) : 'var(--line2)'));
@@ -8169,7 +8210,7 @@
   }
   paintMarks($('cmarks'));
   $('cfound').onclick = function () {
-    /* A NAMELESS OA IS STILL AN OA. It was "The Unnamed House" — naming a thing this game does
+    /* A NAMELESS OA IS STILL AN OA. It was "The Unnamed OA" — naming a thing this game does
        not have — and then "An Unnamed Concern", which names a different thing it does not have
        either. A manager founds an Opes Arx; if he will not name it, the fleet calls it what it
        is. */
@@ -8177,7 +8218,7 @@
     var rep = BERTH || weakestBerths(1)[0];
     var prof = blankSlate(nm);
     prof.displayColor = cpick;
-    OA_MARKS.__founder = markBody();                /* the mark a founded house wears */
+    OA_MARKS.__founder = markBody();                /* the mark a founded OA wears */
     $('setup').style.display = 'none';
     startGame($('seed').value, 'custom_house', gameOa(prof, rep),
               { profile: prof, replaced: rep });
@@ -8186,7 +8227,7 @@
     $('setup').style.display = 'none';
     $('menu').style.display = 'flex';
   };
-  /* no auto-boot: the menu is the front door now — the world begins when a house is chosen */
+  /* no auto-boot: the menu is the front door now — the world begins when an OA is chosen */
 })();
 </script>
 </body>

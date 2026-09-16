@@ -168,12 +168,17 @@
     const shift = (src, dst, bundle, dir) => {
       /* credits */
       if (bundle.credits) {
-        src.account.treasury -= bundle.credits;
-        dst.account.treasury += bundle.credits;
+        /* §MONEY THE CREDITS MOVED TWICE. This moved the treasuries directly and then, when a
+           ledger poster was supplied, posted lines that moved them again — a manager paying
+           ₡50k across the table paid ₡100k, and the OA he paid was given ₡100k. The poster
+           moves the money; without one (an instrument, a bare call) it moves here. */
         moved.credits += dir * bundle.credits;
         if (opts.post) {
           opts.post(src.account, 'expense', 'Trade with ' + dst.id, -bundle.credits);
           opts.post(dst.account, 'income', 'Trade with ' + src.id, bundle.credits);
+        } else {
+          src.account.treasury -= bundle.credits;
+          dst.account.treasury += bundle.credits;
         }
       }
       /* gear, off one armoury and onto the other */
@@ -322,8 +327,11 @@
     const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
     for (let n = 0; n < attempts; n++) {
       if (rng() > (opts.chance != null ? opts.chance : CONST.FLEET_TRADE_CHANCE)) continue;
-      /* the thinnest roster shops; the deepest sells */
-      const pool = ids.filter(id => corps[id] && !corps[id].disqualified);
+      /* the thinnest roster shops; the deepest sells — AMONG THE OTHER SEVEN. The manager's
+         OA was in this pool, and with a full roster it was the deepest in the fleet, so the
+         game sold his people to the thinnest OA for cash without asking him, off the books.
+         His table is his own; the fleet deals with him only through proposals he can refuse. */
+      const pool = ids.filter(id => corps[id] && !corps[id].disqualified && id !== opts.exclude);
       if (pool.length < 2) continue;
       const sorted = pool.slice().sort((x, y) => alive(corps[x]).length - alive(corps[y]).length);
       const buyer = corps[sorted[0]], seller = corps[sorted[sorted.length - 1]];

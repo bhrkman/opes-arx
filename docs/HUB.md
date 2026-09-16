@@ -10,7 +10,7 @@ cd <repo>/sim && node arx.cjs regress --fast       # 114 checks, the edit loop
 cd ../harness && npm install && node drive.cjs     # 143 checks, drives the built page for a year
 ```
 
-Read `docs/PROJECT.md` first — it holds every ruling and the house rules that govern how work is
+Read `docs/PROJECT.md` first — it holds every ruling and the OA rules that govern how work is
 done here. This file holds status and the queue. If the two ever disagree with the code, THE
 CODE IS RIGHT and the document is stale.
 
@@ -207,7 +207,7 @@ human's own corp carries, so for every AI rival it was empty by construction and
 **Six interface faults fixed, and one rule reversed.** A month now opens with nothing spent
 (it used to seed the board with the AI's own picks, and the painted intel map survived into
 the next month); skills read to one decimal instead of leaking raw floats; the Gather Intel
-screen wears the houses' colours and marks like every other place a house is named; the
+screen wears the OAs' colours and marks like every other place an OA is named; the
 contest's recap carries only the ground, with the summer's show-matches left on the Desk's
 shelf where they live; and the comms window can be advanced from any contest screen instead
 of only the Table. THE INTEL DELAY IS GONE by ruling — see PROJECT.md, "You focus on the
@@ -242,13 +242,13 @@ march speed obeys all four rules (size, people — pace rides reflex, the emptie
 wounds, terrain) and the terrain field draws on maps at last; own squads keep spacing. Across
 six measured contests the dome takes nobody. FULL-GATE VERDICT, diffed against the recorded ten: 235 passed, 9 failed — one old red HEALED (“only your own fights are kept” now passes), the other nine are the same pre-existing families with figures essentially unmoved (C7 still 48%, Dividend deaths 38→39), and nothing new is red. One latent crash was found and fixed on the way: a living joiner whose principal died under the dome dangled off the odds board (guarded in oddsWithJoin).
 
-**The colour pass (Divide UI passes 1–2) is in.** Every house wears one display colour derived
+**The colour pass (Divide UI passes 1–2) is in.** Every OA wears one display colour derived
 from canon by `sim/palette_oa.cjs` (ruling in PROJECT.md); the positional `SIDE`/`BANNER`
 palettes are retired; fights, rosters, the ground map, the banners, the encounters, the Table's
-deal lines and the talks all name houses in their colours; your row is edged in command cyan;
+deal lines and the talks all name OAs in their colours; your row is edged in command cyan;
 the founder picks from twelve pre-vetted swatches at founding. The ground's fight lines printed
-raw corp ids before — they name houses properly now. Full gate re-run after the wiring: the
-same ten pre-existing failures, none new, nothing moved. Pass 3 is in: every house wears its mark
+raw corp ids before — they name OAs properly now. Full gate re-run after the wiring: the
+same ten pre-existing failures, none new, nothing moved. Pass 3 is in: every OA wears its mark
 (picked from the mock — A everywhere, the witnessed star for the Knights), stored as proposed
 art in `data/oa_marks.json` for a human artist to succeed. Pass 4 is in: the Table leads the Divide's rail and holds the window recap, the Firefight is a replay room reached from recaps with a way back, the Dividend's lights stand on the Desk's shelf, and the scrim is deleted whole (ruling in PROJECT.md). The harness walked the new structure and honestly shrank, 104 → 85 checks — the retired checks audited the deleted scrim itself. One ledger correction: the_desk never named rival houses (its backing lines are sponsors), so the promised colour tidy there dissolved rather than completed.
 

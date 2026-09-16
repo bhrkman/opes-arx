@@ -30,10 +30,10 @@
     DEBT_CALL: 6000,             // [C] what a Debtor's creditors want
     FINE: 1500,                  // [C] a barracks fine, per brawler
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
-    SEEDED: 2.6,                 // [C] §QUIRKS what a house with the people for it draws instead
-    UNSEEDED: 0.7,               // [C] and what a house with nobody who could cause it draws
+    SEEDED: 2.6,                 // [C] §QUIRKS what an OA with the people for it draws instead
+    UNSEEDED: 0.7,               // [C] and what an OA with nobody who could cause it draws
     /* §STORY what a hand does to the loudness of a story told about him */
-    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts a house's draw
+    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts an OA's draw
     LUCK_CAP: 1.8,               // [C] and the furthest a roster of them can tilt it
     STORY_LOUD: 1.35,            // [C] a soundbite machine is quoted
     STORY_VILLAIN: 1.40,         // [C] a villain edit is cut against him
@@ -49,7 +49,7 @@
        the same card; a petition costs, and if half the fleet petitions the edict is withdrawn. */
     FLEET_MONTH: 7,              // [S]
     PETITION_COST: 4000,         // [C]
-    PETITION_SHARE: 0.5,         // [C] the share of houses that must petition to turn an edict back
+    PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
     LEVY: 12000,                 // [C] the Aleas' extra levy, when it comes
     FAST_WALL: 0.80,             // [C] the wall's schedule compressed to this share of its days
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
@@ -61,9 +61,9 @@
       cost: 'Nobody Dies \u00b7 the Crowd Cools', edict: true },
     { id: 'no_pacts',      w: 0.8, title: 'The Aleas Forbid Pacts',           text: 'No truces this year: the Aleas have ruled that a banner that will not fight another has no place on the ground.',
       cost: 'No Truces at the Table', edict: true },
-    { id: 'survey_public', w: 0.9, title: 'The Survey Goes Public',           text: 'A fleet clerk has posted the planet\u2019s survey where every house can read it.',
-      cost: 'Every House Reads the Ground', edict: false },
-    { id: 'levy',          w: 0.9, title: 'An Aleas Levy',                    text: 'The Aleas want ' + '\u20a1' + (12000).toLocaleString('en-US') + ' more from every house at the lock, for the wall\u2019s upkeep.',
+    { id: 'survey_public', w: 0.9, title: 'The Survey Goes Public',           text: 'A fleet clerk has posted the planet\u2019s survey where every OA can read it.',
+      cost: 'Every OA Reads the Ground', edict: false },
+    { id: 'levy',          w: 0.9, title: 'An Aleas Levy',                    text: 'The Aleas want ' + '\u20a1' + (12000).toLocaleString('en-US') + ' more from every OA at the lock, for the wall\u2019s upkeep.',
       cost: '\u2212\u20a112,000 at the Lock', edict: true },
     { id: 'crash',         w: 0.7, title: 'The Armourers Undercut Each Other', text: 'A glut of kit across the fleet: the shelf\u2019s prices fall a quarter for the rest of the year.',
       cost: 'Kit Is Cheap', edict: false },
@@ -81,7 +81,7 @@
      nobody and did nothing. A name in a script is a hard edge against a catalogue that is meant
      to be rewritten.
      Every rebuilt quirk carries `story.hooks_into`: the things an event could hang on it. An
-     event asks for one of those — "a fight in the barracks" — and gets whoever in the house has
+     event asks for one of those — "a fight in the barracks" — and gets whoever in the OA has
      a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
      and the events follow it. */
   function tiesOf(state, f) {
@@ -94,7 +94,7 @@
     }
     return out;
   }
-  /** whoever in this house a given tie can be hung on, or null */
+  /** whoever in this OA a given tie can be hung on, or null */
   function castFor(state, corp, tie, rng) {
     const want = String(tie).toLowerCase();
     const able = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -187,7 +187,7 @@
       id: 'raise', weight: 1.4,
       when: (c) => { const cand = alive(c).filter(f => (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked); return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
       make: (f, c, ctx) => {
-        /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the house asks louder */
+        /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the OA asks louder */
         let raiseMult = CONST.RAISE_FRAC;
         const st0 = ctx && ctx.state;
         if (fighterHas(st0, f, 'salary_anchoring_up')) raiseMult *= 1.35;
@@ -282,12 +282,12 @@
     {
       id: 'poach', weight: 1.1,
       when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
-      /* §QUIRKS a hand who does not listen to other houses costs more to tempt: poach_resistant
+      /* §QUIRKS a hand who does not listen to other OAs costs more to tempt: poach_resistant
          was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
       make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
                                  * (ctx && ctx.state && fighterHas(ctx.state, s.f, 'poach_resistant') ? CONST.POACH_LOYAL : 1));
         return { kind: 'poach', subject: s.f.id, from: s.from, price: price, title: 'An Offer for ' + s.f.name,
-          text: 'A house across the fleet wants ' + s.f.name + ', and has put ' + fmtCr(price) + ' on the table for the paper.',
+          text: 'An OA across the fleet wants ' + s.f.name + ', and has put ' + fmtCr(price) + ' on the table for the paper.',
           options: [
             { id: 'accept', label: 'Take the Money', cost: '+' + fmtCr(price) + ' \u00b7 Your People Notice' },
             { id: 'refuse', label: 'Refuse', cost: 'They Remember' },
@@ -297,8 +297,8 @@
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._poached = true;
         /* §GRUDGE ONE FIELD, NOT A LEDGER. Grudge Holder's three hooks wanted a fighter's memory
-           of other houses, and the first design for it was a relationship matrix — far more
-           machinery than a trait that is mostly texture is worth. A man remembers ONE house: the
+           of other OAs, and the first design for it was a relationship matrix — far more
+           machinery than a trait that is mostly texture is worth. A man remembers ONE OA: the
            last one that did something to him. It is set where something memorable happens and
            read in two places, and that is the whole of it. */
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
@@ -315,9 +315,9 @@
       id: 'insult', weight: 0.8,
       when: (c, ctx) => ctx.rivals.length && !ctx.corpFlags(c).insulted ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
       make: (from) => ({ kind: 'insult', from: from, title: 'A Slight in the Postings',
-        text: 'A rival house has said something in the fleet\u2019s postings about your people that your people have read.',
+        text: 'A rival OA has said something in the fleet\u2019s postings about your people that your people have read.',
         options: [
-          { id: 'answer', label: 'Answer It', cost: 'The Fleet Warms \u00b7 That House Cools' },
+          { id: 'answer', label: 'Answer It', cost: 'The Fleet Warms \u00b7 That OA Cools' },
           { id: 'ignore', label: 'Say Nothing', cost: 'Your Own People Cool' },
           { id: 'laugh', label: 'Laugh It Off', cost: 'Nothing Moves' }
         ], def: 'ignore' }),
@@ -388,9 +388,9 @@
      people and read by nobody. The trait index rides on the corp, where the roster keeps it. */
   /* §QUIRKS THE PEOPLE YOU KEEP DECIDE WHAT HAPPENS TO YOU. Fourteen quirks carry a
      `*_event_seed` hook — a hot head seeds a brawl, a clause reader seeds a renegotiation, a
-     superstitious hand seeds an omen — and the draw asked none of them: every house drew from
-     one flat pool whoever was aboard. A house with the seed for an event draws it far oftener,
-     and a house with nobody who could cause it draws it a little less. */
+     superstitious hand seeds an omen — and the draw asked none of them: every OA drew from
+     one flat pool whoever was aboard. An OA with the seed for an event draws it far oftener,
+     and an OA with nobody who could cause it draws it a little less. */
   const SEED_FOR = {
     brawl:  ['aggression_event_seed'],
     raise:  ['renegotiation_demand_seed', 'status_coupling_amplified'],
@@ -424,15 +424,15 @@
     const want = SEED_FOR[specId]; if (!want) return 1;
     const have = corpSeeds(state, corp);
     let w = want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
-    /* §LUCK A HOUSE WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
-       system and does not need one — the draw is already weighted by who a house is carrying,
-       and this is one more term in it. A favoured hand tilts the good events toward the house
+    /* §LUCK A OA WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
+       system and does not need one — the draw is already weighted by who an OA is carrying,
+       and this is one more term in it. A favoured hand tilts the good events toward the OA
        and the sour ones away; a bad omen does the reverse. No dice anywhere else change. */
     const luck = luckOf(state, corp);
     if (luck !== 1) w *= GOOD_EVENTS.has(specId) ? luck : 1 / luck;
     return w;
   }
-  /* the events a house would rather draw than not */
+  /* the events an OA would rather draw than not */
   const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
   const LUCK_CACHE = new WeakMap();
   function luckOf(state, corp) {
@@ -461,7 +461,7 @@
     if (TRAIT_INDEX) return TRAIT_INDEX;
     if (state && state.traitIndex) return state.traitIndex;
     if (OWN_INDEX) return OWN_INDEX;
-    /* THE FALLBACK HAS TO WORK IN BOTH HOUSES. The first cut reached for `require`, which does
+    /* THE FALLBACK HAS TO WORK IN BOTH OAs. The first cut reached for `require`, which does
        not exist in the page — so the fix worked in the simulator and the browser went on
        quietly answering no, which is the same fault one floor down. The roster module keeps
        the index the whole game uses; in the page it is a global, in node it is an export. */
@@ -541,7 +541,7 @@
       const d = k => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
       /* the dials a profile actually has: aggression, treachery, thrift, showmanship, tradition, patience */
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
-      /* a petition is a stance, not a reflex: only a house the edict cuts against by
+      /* a petition is a stance, not a reflex: only an OA the edict cuts against by
          temperament pays to say so, so an edict usually stands and sometimes falls */
       if (e.fleet === 'fast_wall') return d('patience') > 0.7 || d('aggression') < 0.3 ? 'petition' : 'accept';
       if (e.fleet === 'stun_grade') return d('aggression') > 0.75 ? 'petition' : 'accept';
@@ -586,7 +586,7 @@
     const rng = P.mulberry32(P.seedFrom('ev' + state.season + 'm' + state.month + corpId));
     const corp = state.corps[corpId], ctx = ctxFor(rng, state, corpId);
     const list = [];
-    /* the fleet's month: the same card for every house, first */
+    /* the fleet's month: the same card for every OA, first */
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};

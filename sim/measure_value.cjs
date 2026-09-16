@@ -17,14 +17,21 @@ for (let y = 1; y <= YEARS; y++) {
   const me = Object.keys(corps)[0];
   const st = S.beginSeason(rng, corps, oa, { human: me });
   while (st.month <= 11) {
-    for (const f of (S.lotFor(st, me) || [])) {
-      const k = f.kind || f.contractKind;
+    for (const rec of (S.lotFor(st, me) || [])) {
+      const k = rec.kind || rec.contractKind;
       if (!seen[k]) continue;
+      /* §BASTILLE the sheet a manager sees is blind for a prisoner; the instrument reads the
+         man underneath, because what it prices is what he IS, not what the auctioneer says.
+         The ask for a prisoner is the Kier's scale, the same for every one of them; the reserve
+         is a one-off paid at the hammer, and a year is a year. */
+      const f = k === 'bastille' ? (st.lots.bastille || []).filter(x => x.id === rec.id)[0] || rec : rec;
+      if (!f.stats) continue;
       const sum = ['aim', 'grit', 'reflex', 'fieldcraft', 'tactics', 'presence', 'resolve']
         .reduce((a, s2) => a + (f.stats[s2] || 0), 0);
-      seen[k].push({ ask: f.ask, age: f.age, pot: f.potential, sum: sum,
-                     aim: f.stats.aim, exp: (f.record && f.record.divides) || 0,
-                     years: f.seasons || (R.seasonsRange(k === 'tryouts' ? 'nattie'
+      seen[k].push({ ask: rec.ask != null ? rec.ask : (rec.wage || 0),
+                     age: f.age, pot: f.potential, sum: sum,
+                     aim: f.stats.aim, exp: (f.experience && f.experience.divides) || 0,
+                     years: rec.seasons || (R.seasonsRange(k === 'tryouts' ? 'nattie'
                             : k === 'mercs' ? 'mercenary' : 'prisoner') || [1])[0] });
     }
     S.stepMonth(st);
@@ -61,13 +68,17 @@ const rows = {};
 for (const k of Object.keys(seen)) {
   const a = seen[k]; if (!a.length) continue;
   const ask = mid(a, x => x.ask), yrs = mid(a, x => x.years), sum = mid(a, x => x.sum);
+  /* ASK IS A YEAR. `askingPrice` is salary × SALARY_MONTHS, so the ask on a sheet is already
+     twelve months; this multiplied it by twelve again and put a ₡27,612 Natural-Born year into
+     PROJECT.md that was ₡2,301. The ratios between the three pools survived the error, which
+     is how it lasted — every figure was wrong by the same factor. */
   rows[k] = { ask, yrs, sum,
-    year: ask * 12, term: ask * 12 * yrs,
-    perPoint: (ask * 12) / sum, age: mid(a, x => x.age), exp: mid(a, x => x.exp),
+    year: ask, term: ask * yrs,
+    perPoint: ask / sum, age: mid(a, x => x.age), exp: mid(a, x => x.exp),
     pot: mid(a, x => x.pot), n: a.length };
   const r = rows[k];
   console.log('  ' + NAME[k].padEnd(14) + 'n=' + String(r.n).padStart(3) +
-    '  ask ' + String(Math.round(ask)).padStart(5) + '/mo' +
+    '  ask ' + String(Math.round(ask)).padStart(5) + '/yr' +
     '  term ' + r.yrs + 'y' +
     '  age ' + String(r.age).padStart(2) +
     '  divides ' + r.exp +
@@ -79,7 +90,7 @@ for (const k of Object.keys(seen)) {
    man. That is nonsense: a four-year paper BUYS FOUR YEARS. Comparing a four-year bill to a
    one-year bill and calling the smaller number better is comparing a mortgage to a night's
    rent. And a long contract is not even a full liability, because a hand who dies stops being
-   paid: the term is an OPTION the house holds, not a debt it owes. */
+   paid: the term is an OPTION the OA holds, not a debt it owes. */
 console.log('\n== WHAT A YEAR OF HIM COSTS ==');
 for (const k of Object.keys(rows)) {
   const r = rows[k];
@@ -96,6 +107,6 @@ if (n && m) {
               Math.round(n.perPoint) + ' \u2014 ' + (m.perPoint / n.perPoint).toFixed(1) + 'x the price for the same quality.');
   console.log('  Measured worth of stat: +15 points on ONE stat is 54% wins against 46%,' +
               ' so ' + Math.round(m.sum - n.sum) + ' points spread over seven is a slim edge.');
-  console.log('  The short term is the mercenary\'s COST, not his discount: the house carries the');
+  console.log('  The short term is the mercenary\'s COST, not his discount: the OA carries the');
   console.log('  risk of replacing him every year, and holds no option on him if he comes good.');
 }

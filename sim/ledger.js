@@ -33,17 +33,18 @@
     SALARY_MONTHS: 12,               // [S] alias of SEASON_MONTHS; salary is per month
     /* Expense lines, all [C] and all provisional until Step 7 gives them income to sit against */
     MEDICAL_PER_INJURY: 900,         // [C] treating one wounded fighter between Divides
-    DEATH_BENEFIT_MULT: 5,           // [C] x monthly salary, averaged across pools
     ALEAS_ENTRY: 40000,              // [C] what it costs to be in the Divide at all
-    /* §GATE THE FANS PAY. A house's own people and the fleet's watchers buy tickets, kit and
+    /* §GATE THE FANS PAY. An OA's own people and the fleet's watchers buy tickets, kit and
        whatever else this fleet sells, and the money lands every month so a manager sees his
        popularity in the same recap as the choices that moved it. Fame on the roster draws a
        crowd; standing decides whether they come back. */
-    GATE_BASE: 2600,                 // [C] a month's gate for a house nobody minds
-    GATE_PER_STANDING: 55,           // [C] per point of standing with your own people
-    GATE_FLEET_SHARE: 0.35,          // [C] fans on other ships, per point of fleet standing
-    GATE_PER_FAME: 22,               // [C] per point of roster fame (the draw)
-    GATE_FLOOR: 0,                   // [C] a hated house sells nothing; it does not pay to play
+    /* §MONEY cut a quarter at the first money pass: with the grant the gate was a second
+       income of the same order, and pay sat at a quarter of what came in */
+    GATE_BASE: 1950,                 // [C] a month's gate for an OA nobody minds
+    GATE_PER_STANDING: 41,           // [C] per point of standing with your own people
+    GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
+    GATE_PER_FAME: 16,               // [C] per point of roster fame (the draw)
+    GATE_FLOOR: 0,                   // [C] a hated OA sells nothing; it does not pay to play
     ALEAS_WINDOW_FEE: 1200,          // [C] per unscheduled comms window
     /* S15 — what a fighter is paid for being on the books rather than for going down the
        well. The rest of the contract is the purse, and it is only paid to those who drop.
@@ -130,9 +131,9 @@
     return {
       corpId: profile.id,
       treasury: opts.treasury != null ? opts.treasury : Math.round((band[0] + band[1]) / 2),
-      /* §FOUNDING a house nobody has heard of is not underwritten like one that has been
-         paying out for a century: a founder's grant is what the opts say it is */
-      grant: opts.grant != null ? opts.grant : ((profile.finance && profile.finance.funding_base) || 200000),
+      /* §MONEY the grant is the season loop's to decide (`grantFor`, off the founder's grant and
+         the OA's difficulty); the profiles no longer carry one */
+      grant: opts.grant != null ? opts.grant : 100000,
       season: opts.season || 1,
       solvent: true,
       ledger: []                      // one line per movement, for the broadcast and for Step 8
@@ -208,16 +209,6 @@
     return Math.round(m * CONST.SALARY_MONTHS);
   }
 
-  /** The mean FULL contract on the books — what a life is worth, independent of who dropped.
-      The death benefit is priced off this and not off a participation-adjusted bill, or a corp
-      that rested people would owe less to the families of the ones it did not. */
-  function meanSalary(roster) {
-    if (!roster.length) return 0;
-    let m = 0;
-    for (const f of roster) m += (f.contract && f.contract.salary) || 0;
-    return m / roster.length;
-  }
-
   /**
    * §14 — what a corp can put into kit this season. Not the whole treasury: wages come
    * first, the Aleas takes its entry fee, and nobody spends the last credit on rifles.
@@ -272,17 +263,19 @@
   function settleSeason(acct, roster, spend) {
     spend = spend || {};
     post(acct, 'income', 'board grant', acct.grant);
-    post(acct, 'expense', 'retainers', -retainerBill(roster));
-    post(acct, 'expense', 'Aleas entry', -CONST.ALEAS_ENTRY);
+    /* the season loop lands the retainer month by month through the prep year and passes
+       `retainerMonths: 1` for the Divide month; a caller that has not is charged the year */
+    const months = spend.retainerMonths != null ? spend.retainerMonths : CONST.SALARY_MONTHS;
+    post(acct, 'expense', 'retainers', -Math.round(retainerBill(roster) * months / CONST.SALARY_MONTHS));
+    /* §MONEY THE ENTRY FEE WAS TAKEN TWICE. "The entry fee was never taken" put a line at the
+       lock in the season loop — from every OA that is going — while this one, in the
+       settlement the same lock calls, was already posting it: ₡80,000 a year against a fee of
+       ₡40,000. The season loop's is the one that knows who is going; this one is gone. */
     if (spend.procurement) post(acct, 'expense', 'procurement', -spend.procurement);
     if (spend.repairs) post(acct, 'expense', 'repairs', -spend.repairs);
     if (spend.injuries) post(acct, 'expense', 'medical', -spend.injuries * CONST.MEDICAL_PER_INJURY);
-    if (spend.deaths) {
-      /* Priced off the mean FULL contract, not the participation-adjusted bill: what a corp
-         owes a dead fighter's people does not depend on how many others it rested. */
-      const avg = meanSalary(roster);
-      post(acct, 'expense', 'death benefits', -Math.round(spend.deaths * avg * CONST.DEATH_BENEFIT_MULT));
-    }
+    /* the dead are paid for where they leave the books (season.js `Death benefits`, off each
+       contract's own death_benefit); the estimate that lived here charged them a second time */
     if (spend.windows) post(acct, 'expense', 'comms windows', -spend.windows * CONST.ALEAS_WINDOW_FEE);
     acct.season++;
     acct.solvent = acct.treasury > 0;
@@ -310,7 +303,7 @@
              short: Math.max(0, plan.shortfall - canRaise) };
   }
 
-  const api = { CONST, open, post, wageBill, gateFor, retainerBill, purseBill, payPurse, wageBillAt, meanSalary, procurementBudget, settleSeason,
+  const api = { CONST, open, post, wageBill, gateFor, retainerBill, purseBill, payPurse, wageBillAt, procurementBudget, settleSeason,
                 musterCheck, bookDivide, callOnBoard, squadBonus };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;
