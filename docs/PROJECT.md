@@ -2065,6 +2065,73 @@ agreed and then not built, which is the same fault as the wheel below and was ca
   MOCKUP and not in the page; the entry claimed it was gone. It is gone now. The log is a record
   of what is built, and an entry written from an intention is worse than no entry.
 
+## The replay: a picture, not a wall of text. *Built.*
+
+Watching a Divide was jerky, silent between presses, fixed at the whole planet, and covered in
+words. Four faults, four fixes:
+
+- **THE WHOLE TERRAIN WAS REDRAWN SIXTY TIMES A SECOND.** `seenBySquads` APPENDS to `G._seen`
+  on every call and `terrainLayer` keys its cache on that array's LENGTH — so calling it from
+  the frame loop grew the array, missed the cache, and rebuilt the 900×900 terrain layer every
+  frame. That was the stutter and the dead beat before a press did anything, and it survived
+  the first pass because that pass fixed the DOM writes and left this in place. Measured over
+  forty frames: **40 terrain rebuilds before, 0 after.** The vision is computed once a day now,
+  and a squad's walk is built once and kept on the record (0 path builds per 40 frames, where
+  every frame rebuilt every squad's arc-length table).
+- **A frame painted the page, not the canvas.** Every 16ms tick also rewrote the legend, the
+  planet box, the banner table, the event log and the whole record — five `innerHTML` writes per
+  frame. `renderGround(false)` paints the canvas alone; `renderGroundPanels` writes the page,
+  and only when the day or the state changes. The day walk runs on `requestAnimationFrame`.
+- **A fight was a sentence.** Each contact carried a made-up three-letter descriptor — the
+  pre-Divide tag, struck by ruling and still being used as a nameplate — and its result in
+  words, on a map that already has the OAs' own icons in its key. A fight is now **the two
+  marks, crossed, over a struck circle**. The words wait for the pointer: hovering names the
+  two OAs and how it came out, and **clicking opens the footage** in the grid.
+- **No zoom.** The ground is a picture and was fixed at the whole planet, so a contact was four
+  pixels wide. The wheel zooms about the pointer, a drag pans, three buttons sit on the map
+  (closer, wider, the whole ground), and the terrain layer is drawn once and scaled — a zoom
+  costs nothing. Everything goes through `gproj`, so one transform moves the whole picture.
+- **A press was a silent wait.** A day announces itself as a month does at the turn: the number
+  and what the day holds — *Day 7 · 3 Contacts · 46% Inside the Wall* — over the map.
+
+**A second pass, from watching it:**
+- **The walk began a whole slot late.** `setInterval` does not fire until its first interval has
+  passed, so playback opened on three seconds of YESTERDAY's positions before anything moved —
+  which read as a jump backwards and then a pause. The first day now begins at once.
+- **The walk fills the day.** It was sized to the longest march, so a quiet day was over in a
+  second and a half of a three-second slot and the rest was dead air. A day's walk takes the
+  day's whole time whatever distance it covers, eased at both ends, with the card ahead of it
+  rather than over it.
+- **You see who you are fighting.** The fog kept every other OA to a last sighting, which is
+  right for ground you are not standing on and wrong for a fight: whoever your people met that
+  day now stands on the map for that day, solid, counted and ringed. Watching a whole contest
+  without ever seeing another OA was the fog applied to a contact.
+- **The first window opens at the drop and waits.** It played straight through to the current
+  day, so a manager met his squads two days in with fights already fought and no directive
+  given. Later windows still play their days as they are watched.
+- **One Drop button.** The bar's and the draft's sat one above the other with nothing a manager
+  could do between them; the draft's is the one beside the landings it is about.
+**A third pass, traced rather than reasoned** — the flow was run in the harness and the state
+printed at every press, which found three things the reading had not:
+- **The first Drop press did nothing.** The corner's Drop switched to the Table and then looked
+  for the landing's own Drop button, which the Table had not drawn yet — so a manager pressed
+  twice. It calls the handler both buttons share. Guarded in `drive.cjs`.
+- **The window record is a LIVE array.** The advance derived "how much has been watched" from
+  `win.record.length`, but the engine keeps appending to that same array — so the day jumped to
+  the newest and played only that one, and pressing Next Comms Window on day 5 landed on day 7
+  with day 6 never shown. The day is left where the manager stands and the playback walks
+  FORWARD to the end of the record. The first window stands at the landing (guarded: day 1,
+  morning).
+- **Two reveals looked like omniscience.** Day one shows the whole fleet because the landings
+  are posted (`LANDING_KNOWN_DAYS`), and a day later in the contest shows everything under a
+  relay mast's banner — both real systems, neither labelled, so they read as the fog
+  arbitrarily lifting. A sighting now carries `via` and the map says which: *Posted Landing*,
+  *Mast · D5*, *Seen D3*, *Last Seen D9*.
+- **Rounds read "undefined".** `DIVIDE.CONST.AMMO_LOAD` does not exist — the constant was
+  removed and three readers kept naming it, so the share was NaN. Rounds are carried by the
+  PEOPLE (`combat.js LOADOUT_AMMO`, plus a bulk-carrier's hook): a squad's load is what its
+  standing bodies hold, and a resupplied squad reads over its own full.
+
 ## The wages were never paid. *Fixed, and the surplus is now a tuning question.*
 
 The money has been deferred as a balancing matter for a long time, and nothing had ever read the

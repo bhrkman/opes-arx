@@ -1850,11 +1850,16 @@
     if (v == null || v === 3) return 1;
     return 1 - (v - 3) / 2 * CONST.LEAN_PULL;
   }
-  function recordSighting(corp, other, day, live) {
+  /* §MAP HOW IT WAS SEEN, not only where. Three things write a sighting — the posted landings
+     on day 1, a relay mast under whose banner everything is read, and contact — and the map
+     showed all three the same way, so a manager who suddenly saw the whole fleet on day 5 had
+     nothing to tell him a mast had done it. `via` travels with the sighting. */
+  function recordSighting(corp, other, day, live, via) {
     if (!corp || !other || other.corpId === corp.id) return;
     corp._picture = corp._picture || {};
     corp._picture[other.corpId + ':' + other.sIdx] = { sq: other, corpId: other.corpId, x: other.x, y: other.y, day,
-      n: squadHead(other).length, strength: squadHead(other).length, prestige: prestigeOf(other), landing: !!live };
+      n: squadHead(other).length, strength: squadHead(other).length, prestige: prestigeOf(other),
+      landing: !!live, via: via || (live ? 'landing' : 'contact') };
   }
   function pictureOf(corp, day) {
     const out = [], P2 = corp._picture || {};
@@ -2624,7 +2629,7 @@
             for (const other of c.squads) {
               if (!squadHead(other).length) continue;
               mate.known[other.corpId + ':' + other.sIdx] = sq._day || 0;
-              recordSighting(holder, other, sq._day || 0);
+              recordSighting(holder, other, sq._day || 0, false, 'relay');
             }
           }
         }
@@ -4287,7 +4292,7 @@
             cadence: MAP.windowCadence(planet, day),
             odds: board, penned: penned, zone: zNow, table: table,
             weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
-            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, down: !!e.down, stale: !!e.stale })),
+            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
             leanings: Object.assign({}, you._leanings || {}),
             /* the wall's remaining beats, so a manager can plan against the clock */
             wall: MAP.wallSchedule(planet, day),

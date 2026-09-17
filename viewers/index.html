@@ -597,6 +597,24 @@
      `.sbar.onesided` carries its own gradient at the same specificity as `.audrow2 .sbar` and
      wins by coming later (#audiences outranks it); and the fill is an `i` that `.sbar i`
      otherwise turns into a 3px marker. The pickers keep `.sbar` exactly as it was. */
+  /* §GROUND ZOOM AND A POINTER. The ground is a picture and was fixed at the whole planet,
+     so a fight was four pixels wide; the wheel, a drag and three buttons move it, and the
+     pointer names what is under it — a fight's two OAs and how it came out — and opens the
+     footage on a click. */
+  #gmapwrap{position:relative}
+  #gmapwrap canvas{cursor:grab} #gmapwrap.dragging canvas{cursor:grabbing}
+  #gzoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+  #gzoom button{width:28px;height:26px;border:1px solid var(--line2);background:rgba(13,20,32,.85);color:var(--b);border-radius:5px;font:inherit;font-size:14px;cursor:pointer;padding:0}
+  #gzoom button:hover{border-color:var(--a);color:var(--a)}
+  #gtip{position:absolute;display:none;pointer-events:none;z-index:3;background:var(--panel);border:1px solid var(--line2);border-radius:5px;padding:5px 9px;font-size:10.5px;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  #gtip.on{display:block}
+  @keyframes gdaycard{0%{opacity:0;transform:translate(-50%,6px)}14%{opacity:1;transform:translate(-50%,0)}70%{opacity:1}100%{opacity:0}}
+  #gdaycard{position:absolute;left:50%;top:14%;transform:translate(-50%,0);text-align:center;pointer-events:none;
+    animation:gdaycard 1.4s ease-in-out forwards;text-shadow:0 2px 18px rgba(0,0,0,.9)}
+  #gdaycard .n{display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+  #gdaycard .d{display:block;font-size:44px;font-weight:800;line-height:1;color:var(--a)}
+  #gdaycard .w{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-top:4px}
+  #gtip .r{color:var(--dim);font-size:9.5px}
   .standfill{position:relative;display:block;width:100%;height:8px;border-radius:4px;background:var(--line)}
   .standfill i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--b)}
   .standfill .ago{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
@@ -1758,8 +1776,10 @@
     <label class="m"><input type="checkbox" id="gnoanim"> No Movement</label>
   </div>
   <div class="grid2">
-    <div><canvas id="gmap" width="900" height="900"
+    <div><div id="gmapwrap"><canvas id="gmap" width="900" height="900"
          style="width:100%;height:auto;display:block;background:#100e0c;border:1px solid var(--line);border-radius:3px"></canvas>
+      <div id="gtip"></div>
+      <div id="gzoom"><button data-zoom="in" title="Closer">+</button><button data-zoom="out" title="Wider">−</button><button data-zoom="fit" title="The Whole Ground">□</button></div></div>
       <div id="glegend" class="box" style="margin-top:8px"></div></div>
     <div>
       <div class="box" id="gplanet"><span class="m">No Contest On the Ground</span></div>
@@ -1781,7 +1801,10 @@
      the one selected, the word that will ride out with the advance. -->
 <div class="page" data-tab="table">
   <div class="bar" style="margin-bottom:10px">
-    <button id="begindiv" style="display:none">Drop</button>
+    <!-- §DROP ONE BUTTON. The bar's Drop and the draft's own Drop sat one above the other with
+         nothing a manager could do between them; the draft's is the one beside the landings it
+         is about, so the bar's is kept only as the handler both press. -->
+    <button id="begindiv" style="display:none" hidden>Drop</button>
     <button id="advwin" style="display:none">Next Comms Window</button>
     <span class="m" id="divstate" style="display:none"></span>
     <span class="m" id="tstate" style="display:none"></span></div>
@@ -20039,11 +20062,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (v == null || v === 3) return 1;
     return 1 - (v - 3) / 2 * CONST.LEAN_PULL;
   }
-  function recordSighting(corp, other, day, live) {
+  /* §MAP HOW IT WAS SEEN, not only where. Three things write a sighting — the posted landings
+     on day 1, a relay mast under whose banner everything is read, and contact — and the map
+     showed all three the same way, so a manager who suddenly saw the whole fleet on day 5 had
+     nothing to tell him a mast had done it. `via` travels with the sighting. */
+  function recordSighting(corp, other, day, live, via) {
     if (!corp || !other || other.corpId === corp.id) return;
     corp._picture = corp._picture || {};
     corp._picture[other.corpId + ':' + other.sIdx] = { sq: other, corpId: other.corpId, x: other.x, y: other.y, day,
-      n: squadHead(other).length, strength: squadHead(other).length, prestige: prestigeOf(other), landing: !!live };
+      n: squadHead(other).length, strength: squadHead(other).length, prestige: prestigeOf(other),
+      landing: !!live, via: via || (live ? 'landing' : 'contact') };
   }
   function pictureOf(corp, day) {
     const out = [], P2 = corp._picture || {};
@@ -20813,7 +20841,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             for (const other of c.squads) {
               if (!squadHead(other).length) continue;
               mate.known[other.corpId + ':' + other.sIdx] = sq._day || 0;
-              recordSighting(holder, other, sq._day || 0);
+              recordSighting(holder, other, sq._day || 0, false, 'relay');
             }
           }
         }
@@ -22476,7 +22504,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             cadence: MAP.windowCadence(planet, day),
             odds: board, penned: penned, zone: zNow, table: table,
             weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
-            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, down: !!e.down, stale: !!e.stale })),
+            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
             leanings: Object.assign({}, you._leanings || {}),
             /* the wall's remaining beats, so a manager can plan against the clock */
             wall: MAP.wallSchedule(planet, day),
@@ -27541,7 +27569,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       else if (tab === 'market') renderShelf();
       else if (tab === 'table' || tab === 'deal') renderTable();
       else if (tab === 'desk') renderDesk();
-      else if (tab === 'ground') { renderGround(); gPlayPending(); }
+      else if (tab === 'ground') { gWireMap(); renderGround(); gPlayPending(); }
       else if (tab === 'backroom') renderQuiet();
     }
   }
@@ -28643,7 +28671,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var D = G.state.drop && G.state.drop.draft;
       var mine = D ? (D.picks[G.me] || []).length : 0;
       if (D && !D.done) { shell('', 'The Draft', mine + ' of ' + ((D.want || {})[G.me] || 0) + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
-      shell('clear', 'Drop', 'The Draft Is Done', function () { if (TAB.table) TAB.table.click(); var b = $('dropbtn'); if (b) b.onclick(); }); return;
+      /* §DROP THE FIRST PRESS DID NOTHING. This switched to the Table and then looked for the
+         landing's own Drop button — which the Table had not rendered yet, so nothing happened
+         and a manager pressed twice. The handler both buttons share is called directly. */
+      shell('clear', 'Drop', 'The Landings Are Chosen', function () { if (TAB.table) TAB.table.click(); $('begindiv').onclick(); }); return;
     }
     if (G._dividendFloor) { shell('clear', 'Take the Floor', 'The Lights Are Up', function () { press('endmonth'); }); return; }
     /* the ordinary month: the agenda, and the button that leads to what waits */
@@ -31292,7 +31323,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         $('gday').value = '1';
       }
     } else {
-      var lastDayShown = G.div.win && G.div.win.record ? G.div.win.record.length : 0;
+      /* the record is a LIVE array the engine keeps appending to, so its length is never
+         "how much has been watched"; where the manager actually is, is G.gday. */
       G.div.win = step.value;
       G.div.windows++;
       $('advwin').style.display = '';
@@ -31304,9 +31336,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         $('gscrub').style.display = '';
         $('gday').max = String(rec.length); $('gday').value = String(rec.length);
         G._liveDays = null;
-        G.gday = Math.max(1, Math.min(rec.length, lastDayShown + 1)); G.gstage = 'morning'; G.gmi = 0;
-        $('gday').value = String(G.gday);
-        G._playTo = rec.length;
+        /* §GROUND PLAY FROM WHERE HE IS TO WHERE THE CONTEST IS. This jumped the day to the
+           newest and played only that one, so pressing Next Comms Window on day 5 landed on
+           day 7 and skipped day 6 entirely. The day is left where the manager stands; the
+           playback walks forward to the end of the record. The FIRST window opens at the drop
+           and waits, so squads are given a directive before they march. */
+        if (G.div.windows <= 1) { G.gday = 1; G.gstage = 'morning'; G.gmi = 0; $('gday').value = '1'; G._playTo = null; }
+        else {
+          if (G.gday > rec.length) { G.gday = rec.length; G.gstage = 'complete'; G.gmi = 0; }
+          $('gday').value = String(G.gday);
+          G._playTo = rec.length;
+        }
       }
       $('divstate').textContent = 'Day ' + step.value.day + ' of ' + step.value.lastDay +
         ' \u00b7 Comms Window ' + G.div.windows;
@@ -31334,6 +31374,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var days = gDays(); if (!days) return;
     if (G.gtimer) return gStopPlay();
     $('gplay').textContent = 'Pause';
+    gFwd(true);
     G.gtimer = setInterval(function () {
       if (G.gday >= days.length && G.gstage === 'complete') return gStopPlay();
       gFwd(true);
@@ -31348,6 +31389,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (G.gday >= to && G.gstage === 'complete') return;
     if (($('gnoanim') || {}).checked) { G.gday = to; G.gstage = 'complete'; G.gmi = 0; gLabel(); renderGround(); return; }
     $('gplay').textContent = 'Pause';
+    /* the first day begins AT ONCE: an interval waits a whole slot before its first tick, so
+       the walk opened on three seconds of yesterday's positions — which read as a jump back */
+    gFwd(true);
     G.gtimer = setInterval(function () {
       if (G.gday >= to && G.gstage === 'complete') return gStopPlay();
       gFwd(true);
@@ -31394,7 +31438,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     (w.picture || []).forEach(function (e) {
       var ci2 = -1; w.corps.forEach(function (c2, i) { if (c2.id === e.corpId) ci2 = i; });
       if (ci2 < 0) return;
-      sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, down: !!e.down, stale: !!e.stale });
+      sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, via: e.via, down: !!e.down, stale: !!e.stale });
+    });
+    /* §GROUND YOU SEE WHO YOU ARE FIGHTING. The fog kept every other OA to a last sighting,
+       which is right for ground you are not standing on — but a squad in contact is looking
+       at them. Whoever your people met that day stands on the map for that day, solid and
+       counted, at the place they met. Watching a whole contest without ever seeing another
+       OA was the fog applied to a fight. */
+    (w.fights || []).filter(function (f) { return f.day == null || f.day === w.day; }).forEach(function (f) {
+      if (!(f.corps || []).some(function (id) { return id === myRoot || id === G.me; })) return;
+      (f.corps || []).forEach(function (id, k) {
+        if (id === myRoot || id === G.me) return;
+        var ci3 = -1; w.corps.forEach(function (c2, i) { if (c2.id === id) ci3 = i; });
+        if (ci3 < 0) return;
+        var off = 0.008 * (k - ((f.corps || []).length - 1) / 2);
+        sq.push({ c: ci3, s: -1, x: f.x + off, y: f.y + off, n: f.n || 0, met: true, w: 'met' });
+      });
     });
     return { d: w.day, z: w.zone, zn: null, sq: sq,
              obj: (G.div.planet.objectives || []).filter(function (o) { return o.revealed; })
@@ -31409,9 +31468,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                si: c.sitesClaimed }; }) };
   }
 
+  /* the view: a zoom and a centre, in planet coordinates. Everything the ground draws goes
+     through here, so one transform moves the whole picture. */
+  function gview() { return (G && G.gv) || { z: 1, cx: 0.5, cy: 0.5 }; }
   function gproj(cv, x, y, planet) {
-    var R = (planet || G.div.planet).radius, sc = cv.width / (R * 2.12);
-    return [cv.width / 2 + (x - 0.5) * sc, cv.height / 2 + (y - 0.5) * sc];
+    var R = (planet || G.div.planet).radius, v = gview(), sc = cv.width / (R * 2.12) * v.z;
+    return [cv.width / 2 + (x - v.cx) * sc, cv.height / 2 + (y - v.cy) * sc];
+  }
+  function gunproj(cv, px, py, planet) {
+    var R = (planet || G.div.planet).radius, v = gview(), sc = cv.width / (R * 2.12) * v.z;
+    return [v.cx + (px - cv.width / 2) / sc, v.cy + (py - cv.height / 2) / sc];
   }
 
   /* WHAT THE SURVEY BOUGHT, in the map. The planet dossier's Terrain row is the resolution
@@ -31425,9 +31491,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   var SEEN_R = 0.055;   /* how far a squad reads the ground around it, in world units */
   function seenBySquads() {
-    /* accumulated across the contest: every place one of your squads stood */
-    if (!G.div) return [];
+    /* accumulated across the contest: every place one of your squads stood.
+       §GROUND ONCE A DAY, NOT ONCE A FRAME. This APPENDS to `G._seen` every time it is called,
+       and `terrainLayer` keys its cache on that array's LENGTH — so calling it from the frame
+       loop grew the array, missed the cache, and rebuilt the whole 900×900 terrain layer sixty
+       times a second. That, not the drawing, was the stutter and the dead beat before a press
+       did anything. The walk of a day is the same walk however many times it is painted. */
+    if (!G.div) return G._seen || [];
     G._seen = G._seen || []; G._seenLast = G._seenLast || {};
+    var dayKey = G.gday + ':' + G.gstage + ':' + G.gmi;
+    if (G._seenAt === dayKey) return G._seen;
+    G._seenAt = dayKey;
     var D = groundDay();
     if (D && D.sq) D.sq.forEach(function (q) {
       if (oaIdOf(q.c) !== G.me) return;
@@ -31512,10 +31586,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function drawPlanetBase(cv, planet, know) {
     var g = cv.getContext && cv.getContext('2d'); if (!g) return null;
     g.clearRect(0, 0, cv.width, cv.height);
-    var c = gproj(cv, 0.5, 0.5, planet), sc = cv.width / (planet.radius * 2.12);
+    var v = gview(), c = gproj(cv, 0.5, 0.5, planet), sc = cv.width / (planet.radius * 2.12) * v.z;
     var tl = terrainLayer(cv, planet, know);
     g.save(); g.beginPath(); g.arc(c[0], c[1], planet.radius * sc, 0, Math.PI * 2); g.clip();
-    if (tl) g.drawImage(tl, 0, 0);
+    /* the terrain is drawn once at the whole ground and SCALED here, so a zoom costs nothing:
+       the layer's own centre is the canvas centre at zoom 1, which maps to `c` at any zoom */
+    if (tl) { g.translate(c[0] - cv.width / 2 * v.z, c[1] - cv.height / 2 * v.z); g.scale(v.z, v.z); g.drawImage(tl, 0, 0); }
     g.restore();
     g.strokeStyle = TOK.rim; g.lineWidth = 2;
     g.beginPath(); g.arc(c[0], c[1], planet.radius * sc, 0, Math.PI * 2); g.stroke();
@@ -31543,14 +31619,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var sq = d.sq.filter(function (q) { return ours[q.c]; });
       if (di === w.record.length - 1) (w.picture || []).forEach(function (e) {
         var ci2 = -1; w.corps.forEach(function (c2, i) { if (c2.id === e.corpId) ci2 = i; });
-        if (ci2 >= 0) sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, down: !!e.down, stale: !!e.stale });
+        if (ci2 >= 0) sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, via: e.via, down: !!e.down, stale: !!e.stale });
       });
       return Object.assign({}, d, { sq: sq });
     });
     G._liveDays = { n: w.record.length, day: w.day, days: days };
     return days;
   }
+  /* a squad's walk is fixed once the day is recorded: built once and kept on the record,
+     not rebuilt for every one of the sixty frames that paint it */
   function gPathOf(q, dayIdx) {
+    if (q._path !== undefined) return q._path;
+    var out = gBuildPath(q, dayIdx);
+    try { q._path = out; } catch (e) {}
+    return out;
+  }
+  function gBuildPath(q, dayIdx) {
     var days = gDays(); if (!days) return null;
     var pts = [], prev = days[dayIdx - 1];
     if (prev) {
@@ -31593,8 +31677,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if ($('gplay')) $('gplay').textContent = 'Play';
   }
   /* how long a day takes on the Ground: long enough to read at Normal, a glance at Fast */
+  /* §GROUND THE DAY ANNOUNCES ITSELF, as a month does at the turn: the number and what the
+     day holds, over the map, gone before the walk is half done. A press used to be a silent
+     wait while the first frames were computed. */
+  function gDayCard(D) {
+    var wrap = $('gmapwrap'); if (!wrap || !D) return;
+    var old = $('gdaycard'); if (old) old.parentNode.removeChild(old);
+    var el = document.createElement('div'); el.id = 'gdaycard';
+    var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; }).length;
+    var wall = D.z ? (D.z.r / G.div.planet.radius * 100).toFixed(0) : null;
+    el.innerHTML = '<span class="n">Day</span><span class="d">' + D.d + '</span>' +
+      '<span class="w">' + (fights ? fights + (fights === 1 ? ' Contact' : ' Contacts') : 'No Contact') +
+      (wall ? ' \u00b7 ' + wall + '% Inside the Wall' : '') + '</span>';
+    wrap.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1400);
+  }
   function gSpeedMs() { var v = ($('gspeed') || {}).value; return v === 'slow' ? 4200 : v === 'fast' ? 900 : 2600; }
-  function gStepMs() { return ($('gbysquad') || {}).checked ? Math.max(450, gSpeedMs() / 4) : gSpeedMs() + 700; }
+  /* a day's slot: the card, the walk, and a breath to read what happened */
+  function gStepMs() { return ($('gbysquad') || {}).checked ? Math.max(450, gSpeedMs() / 4) : 900 + Math.max(600, gSpeedMs()) + 450; }
   function gAnimateDay() {
     gClearTween();
     G.gstage = 'complete';
@@ -31602,23 +31702,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (days && days[G.gday - 1])
       days[G.gday - 1].sq.forEach(function (q) {
         var ph = gPathOf(q, G.gday - 1); if (ph) longest = Math.max(longest, ph.total); });
-    var base = gSpeedMs();
-    var ms = Math.max(base * 0.6, Math.min(base * 1.4, base * (longest / 0.06))), t0 = Date.now();
+    /* §GROUND THE WALK FILLS THE DAY. The movement was sized to the longest march — a short
+       day was over in a second and a half of a three-second slot, so a day read as a wait and
+       then a jump. A day's walk takes the day's whole time, whatever distance it covers; the
+       card announces it first and the walk follows, so the two do not compete. */
+    var card = G.gcardMs = 900;
+    var ms = Math.max(600, gSpeedMs()), t0 = Date.now() + card;
     G.gtween = { mode: 'day', a: 0, ms: ms };
-    G.gtw = setInterval(function () {
-      var el = (Date.now() - t0) / ms, a = Math.min(1, el);
-      G.gtween.a = 1 - (1 - a) * (1 - a);
+    gDayCard(days[G.gday - 1]);
+    var frame = function () {
+      if (!G.gtween || G.gtween.mode !== 'day') return;
+      var el = (Date.now() - t0) / ms, a = Math.max(0, Math.min(1, el));
+      /* eased at both ends: a squad leans into its march and settles out of it */
+      G.gtween.a = a < 0.5 ? 2 * a * a : 1 - Math.pow(-2 * a + 2, 2) / 2;
       if (el >= 1) {
         gClearTween();
         G.gpulse = 0;
-        var p0 = Date.now(), pw = setInterval(function () {
+        var p0 = Date.now();
+        var pulse = function () {
           G.gpulse = (Date.now() - p0) / 500;
-          if (G.gpulse >= 1) { clearInterval(pw); G.gpulse = null; }
-          renderGround();
-        }, 16);
+          if (G.gpulse >= 1) { G.gpulse = null; renderGround(); return; }
+          renderGround(false); requestAnimationFrame(pulse);
+        };
+        requestAnimationFrame(pulse);
+        return;
       }
-      renderGround();
-    }, 16);
+      renderGround(false);
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
   }
   function gAnimateSquad(qi) {
     gClearTween();
@@ -31632,8 +31744,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (G.gstage === 'stepping' && G.gmi >= gMovers(G.gday).length) {
           G.gstage = 'complete'; G.gmi = 0; gLabel();
         }
+        renderGround(); return;
       }
-      renderGround();
+      renderGround(false);
     }, 16);
   }
   function gStepInto(animate) {
@@ -31732,15 +31845,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      step moves one squad and not the map */
   window.__gDisp = gDisp;
 
-  function renderGround() {
+  /* §GROUND A FRAME PAINTS THE CANVAS AND NOTHING ELSE. Every 16ms tick used to rewrite the
+     legend, the planet box, the board table, the event log and the whole record, and recompute
+     what the squads had seen — five innerHTML writes and a vision pass per frame, which is why
+     the walk stuttered and every press sat for a beat before anything moved. `renderGround`
+     paints; `renderGroundPanels` writes the page, when the day or the state changes. */
+  function renderGround(panelsToo) {
     if (!G.div) return;
     var D = groundDay();
     if (!D) return;
+    var stateKey = G.gday + ':' + G.gstage + ':' + G.gmi + ':' + (G.div.done ? 1 : 0);
+    if (panelsToo !== false && G._gpanelKey !== stateKey) { G._gpanelKey = stateKey; renderGroundPanels(D); }
     var cv = $('gmap');
     var g = cv.getContext && cv.getContext('2d');
     if (g) {
       var base = drawPlanetBase(cv, G.div.planet, { depth: planetIntelDepth('terrain'), seen: seenBySquads() }), c = base.c, sc = base.sc;
-      if ($('glegend')) $('glegend').innerHTML = terrainLegend(G.div.planet) + surveyNote();
       /* everything the wall has already swallowed */
       var zc = gproj(cv, D.z.cx, D.z.cy), zr = D.z.r * sc;
       g.save();
@@ -31792,6 +31911,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       /* §GROUND fights fire at their moment in the day: day fights spread through the march,
          night fights at its end; each bursts when it fires and keeps its label after */
+      /* §GROUND A FIGHT IS TWO MARKS, NOT A SENTENCE. Each contact was labelled with a made-up
+         three-letter descriptor and a result in words, on a map that already has the OAs' own
+         icons in its key: the marks stand at the place, crossed, and the words wait for a
+         hover. Clicking one opens the footage. */
+      G._gspots = [];
       if (G.gtween && G.gtween.mode === 'day') {
         var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; });
         var nDay = fights.filter(function (v) { return !v.night; }).length, di = 0;
@@ -31804,12 +31928,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             g.strokeStyle = rgba(TOK.blood, 1 - since); g.lineWidth = 2;
             g.beginPath(); g.arc(bp[0], bp[1], 4 + since * 26, 0, Math.PI * 2); g.stroke();
           }
-          g.fillStyle = TOK.blood; g.beginPath(); g.arc(bp[0], bp[1], 3.5, 0, Math.PI * 2); g.fill();
-          g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
-          g.fillText((v.corps || []).map(function (id) { return tagFor ? tagFor(id) : id.slice(0, 3); }).join(' \u00d7 '), bp[0], bp[1] - 11);
-          g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.dim;
-          g.fillText(shortResult(v), bp[0], bp[1] + 12);
-          g.textBaseline = 'alphabetic';
+          drawFightMark(g, bp, v);
         });
       }
       if (G.gstage === 'complete' || G.gpulse != null)
@@ -31825,12 +31944,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           continue;
         }
         if (v.t !== 'fight') continue;
-        /* the fight stays marked and named once the day is done */
-        g.fillStyle = TOK.blood; g.beginPath(); g.arc(fp[0], fp[1], 3.5, 0, Math.PI * 2); g.fill();
-        g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
-        g.fillText((v.corps || []).map(tagFor).join(' \u00d7 '), fp[0], fp[1] - 11);
-        g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.dim; g.fillText(shortResult(v), fp[0], fp[1] + 12);
-        g.textBaseline = 'alphabetic';
+        /* the fight keeps its marks once the day is done */
+        drawFightMark(g, fp, v);
         /* who this fight belongs to — the nearest held squad of each named OA */
         for (var vc = 0; vc < (v.corps || []).length; vc++) {
           var vci = -1;
@@ -31871,6 +31986,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             sp = [sp[0] + Math.cos(ang) * 11, sp[1] + Math.sin(ang) * 11];
             break;
           }
+        /* met in the open today: solid, in their colour, ringed — they are standing there */
+        if (sq2.met) {
+          g.strokeStyle = TOK.blood; g.lineWidth = 1.5;
+          g.beginPath(); g.arc(sp[0], sp[1], r + 4, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = col; g.beginPath(); g.arc(sp[0], sp[1], r, 0, Math.PI * 2); g.fill();
+          g.fillStyle = TOK.bg; g.font = '700 10px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+          if (sq2.n) g.fillText(String(sq2.n), sp[0], sp[1]);
+          g.fillStyle = TOK.ink; g.font = '9px ui-monospace, Menlo, monospace';
+          g.fillText('Met', sp[0], sp[1] + r + 9);
+          g.textBaseline = 'alphabetic';
+          continue;
+        }
         /* §MAP a sighting: where they were, how many, how long ago — hollow, fading with age.
            A foreign squad used to VANISH from the map three days after it was last seen and
            the moment it died; the engine still forgets it for planning, but the manager's map
@@ -31889,7 +32016,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           g.fillStyle = col; g.font = '700 10px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
           g.fillText(String(sq2.n), sp[0], sp[1]);
           g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.ink;
-          g.fillText(sq2.landing ? 'Landed' : sq2.stale ? 'Last Seen D' + (D.d - sq2.age) : (sq2.age ? 'D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
+          /* HOW it was seen, not only when: the posted landings, a relay mast's read, or a
+             squad of yours that met them */
+          g.fillText(sq2.landing ? 'Posted Landing'
+                   : sq2.via === 'relay' ? 'Mast \u00b7 D' + (D.d - sq2.age)
+                   : sq2.stale ? 'Last Seen D' + (D.d - sq2.age)
+                   : (sq2.age ? 'Seen D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
           g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
           continue;
         }
@@ -31967,6 +32099,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                       g.beginPath(); g.arc(sp[0], sp[1], r + 5, 0, Math.PI * 2); g.stroke(); }
       }
     }
+  }
+  function renderGroundPanels(D) {
+    if (!G.div) return;
+    D = D || groundDay(); if (!D) return;
+    var cv = $('gmap');
+    if ($('glegend')) $('glegend').innerHTML = terrainLegend(G.div.planet) + surveyNote();
     var pl = G.div.planet;
     $('gplanet').innerHTML = '<b>' + esc(pl.name || pl.archetype) + '</b><br>' +
       '<span class="m">Day ' + D.d + ' \u00b7 ' +
@@ -32008,6 +32146,124 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (/cap/.test(String(r))) return 'Held to Dark';
     if (v.lost) return v.lost + ' Down';
     return 'Fought';
+  }
+  /* the two OAs that met, drawn as their own marks over a struck circle; the spot is recorded
+     so the pointer can find it. Images are cached per OA and size. */
+  var MARK_IMG = {};
+  function markImage(id, px) {
+    var key = id + ':' + px;
+    if (MARK_IMG[key] !== undefined) return MARK_IMG[key];
+    /* an OA with no mark (and a browser with no Image, as the drive has) falls back to a disc */
+    var svg = markFor(id, px);
+    if (!svg || typeof Image !== 'function') { MARK_IMG[key] = null; return null; }
+    var img = new Image();
+    img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg.replace(/currentColor/g, colFor(id)));
+    MARK_IMG[key] = img;
+    return img;
+  }
+  function drawFightMark(g, p, v) {
+    /* which of the watchable battles this contact is: matched on the day and the two OAs,
+       which is what the record and the battle both carry */
+    if (v.bi === undefined) {
+      v.bi = null;
+      var list = (G.div && G.div.battles) || [];
+      for (var bi = 0; bi < list.length; bi++) {
+        var b = list[bi];
+        if (b.day !== v.day && b.day !== (groundDay() || {}).d) continue;
+        var same = (b.corps || []).length === (v.corps || []).length &&
+                   (b.corps || []).every(function (id) { return (v.corps || []).indexOf(id) >= 0; });
+        if (same) { v.bi = bi; break; }
+      }
+    }
+    var ids = (v.corps || []).slice(0, 2), R = 13;
+    g.save();
+    g.strokeStyle = TOK.blood; g.lineWidth = 1.5; g.globalAlpha = .9;
+    g.beginPath(); g.arc(p[0], p[1], R + 3, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = 1;
+    ids.forEach(function (id, i) {
+      var dx = (i === 0 ? -1 : 1) * (ids.length > 1 ? 8 : 0);
+      var im = markImage(id, 18);
+      if (im && im.complete && im.naturalWidth) g.drawImage(im, p[0] + dx - 9, p[1] - 9, 18, 18);
+      else { g.fillStyle = colFor(id); g.beginPath(); g.arc(p[0] + dx, p[1], 6, 0, Math.PI * 2); g.fill(); }
+    });
+    g.restore();
+    (G._gspots = G._gspots || []).push({ x: p[0], y: p[1], r: R + 6, ev: v });
+  }
+  /* the wheel, a drag, the buttons, and the pointer that names a fight and opens it */
+  function gWireMap() {
+    var cv = $('gmap'), wrap = $('gmapwrap'), tip = $('gtip');
+    if (!cv || cv._wired) return; cv._wired = true;
+    G.gv = G.gv || { z: 1, cx: 0.5, cy: 0.5 };
+    var clampView = function () {
+      var v = G.gv, span = 0.5 / v.z;
+      v.z = Math.max(1, Math.min(6, v.z));
+      v.cx = Math.max(0.5 - 0.5 + span, Math.min(0.5 + 0.5 - span, v.cx));
+      v.cy = Math.max(span, Math.min(1 - span, v.cy));
+      if (v.z <= 1.001) { v.cx = 0.5; v.cy = 0.5; }
+    };
+    var at = function (e) {
+      var r = cv.getBoundingClientRect();
+      return [(e.clientX - r.left) / r.width * cv.width, (e.clientY - r.top) / r.height * cv.height];
+    };
+    cv.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var p = at(e), before = gunproj(cv, p[0], p[1]);
+      G.gv.z *= e.deltaY < 0 ? 1.18 : 1 / 1.18;
+      clampView();
+      var after = gunproj(cv, p[0], p[1]);
+      G.gv.cx += before[0] - after[0]; G.gv.cy += before[1] - after[1];
+      clampView(); renderGround(false);
+    }, { passive: false });
+    var drag = null;
+    cv.addEventListener('pointerdown', function (e) { drag = { p: at(e), cx: G.gv.cx, cy: G.gv.cy, moved: 0 }; wrap.classList.add('dragging'); cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointerup', function (e) {
+      wrap.classList.remove('dragging');
+      var wasDrag = drag && drag.moved > 6; drag = null;
+      if (wasDrag) return;
+      var p = at(e), hit = gSpotAt(p);
+      if (hit && hit.ev && hit.ev.bi != null) { loadBattle(hit.ev.bi); openFight('ground'); }
+    });
+    cv.addEventListener('pointerleave', function () { drag = null; wrap.classList.remove('dragging'); tip.classList.remove('on'); });
+    cv.addEventListener('pointermove', function (e) {
+      var p = at(e);
+      if (drag) {
+        drag.moved += Math.abs(p[0] - drag.p[0]) + Math.abs(p[1] - drag.p[1]);
+        var R = G.div.planet.radius, sc = cv.width / (R * 2.12) * G.gv.z;
+        G.gv.cx = drag.cx - (p[0] - drag.p[0]) / sc; G.gv.cy = drag.cy - (p[1] - drag.p[1]) / sc;
+        clampView(); renderGround(false); return;
+      }
+      var hit = gSpotAt(p);
+      if (!hit) { tip.classList.remove('on'); cv.style.cursor = ''; return; }
+      var r = cv.getBoundingClientRect(), k = r.width / cv.width;
+      tip.style.left = (hit.x * k + 14) + 'px'; tip.style.top = (hit.y * k - 6) + 'px';
+      tip.innerHTML = (hit.ev.corps || []).map(cSpan).join(' \u00d7 ') +
+        '<div class="r">' + esc(fightWords(hit.ev)) + (hit.ev.bi != null ? ' \u00b7 Click to Watch' : '') + '</div>';
+      tip.classList.add('on'); cv.style.cursor = hit.ev.bi != null ? 'pointer' : 'default';
+    });
+    Array.prototype.forEach.call(($('gzoom') || document.createElement('div')).querySelectorAll('[data-zoom]'), function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-zoom');
+        if (k === 'in') G.gv.z *= 1.4; else if (k === 'out') G.gv.z /= 1.4; else { G.gv.z = 1; G.gv.cx = 0.5; G.gv.cy = 0.5; }
+        clampView(); renderGround(false);
+      };
+    });
+  }
+  function gSpotAt(p) {
+    var best = null;
+    (G._gspots || []).forEach(function (s2) {
+      var d = Math.hypot(s2.x - p[0], s2.y - p[1]);
+      if (d <= s2.r && (!best || d < best.d)) best = { x: s2.x, y: s2.y, d: d, ev: s2.ev };
+    });
+    return best;
+  }
+  /* what happened there, in words — for the pointer, not the map */
+  function fightWords(v) {
+    var r = (v.res && v.res.result) || v.res || v.result || '';
+    if (/^disengage_both/.test(String(r))) return 'Both Broke Off';
+    if (/^disengage/.test(String(r))) return 'One Side Broke Off';
+    if (/cap/.test(String(r))) return 'Neither Gave Way Before Dark';
+    if (v.lost) return v.lost + ' Went Down';
+    return 'They Met';
   }
   function tagFor(id) { var c = G && G.corps && G.corps[id]; return (c && c.profile && c.profile.tag) || String(id).slice(0, 3); }
   var REC_CACHE = { key: null, html: '' };
@@ -33398,8 +33654,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      how well they are reading the ground today. */
   /* what a squad has left to shoot with: dropped with a load, spent a fight at a time, and
      a dry squad shoots worse until it finds a munitions drop */
+  /* §SQUADS ROUNDS READ "undefined". `DIVIDE.CONST.AMMO_LOAD` does not exist — the constant
+     was removed and three readers kept naming it, so `n / undefined` was NaN and the cell
+     printed nothing at all. Rounds are carried by the PEOPLE (`combat.js LOADOUT_AMMO`, plus
+     what a bulk-carrier's hook adds): a squad's load is what its standing bodies hold. */
+  function squadAmmo(q) {
+    var live = (q.bodies || []).filter(function (b) { return b.status === 'active'; });
+    var have = 0, max = 0;
+    live.forEach(function (b) {
+      var base = (window.CDCOMBAT && CDCOMBAT.CONST && CDCOMBAT.CONST.LOADOUT_AMMO) || 16;
+      var full = base + ((b.hooks && b.hooks.has && b.hooks.has('carry_bulk_up_2')) ? 6 : 0);
+      max += full; have += (b.ammo == null ? full : b.ammo);
+    });
+    if (!live.length) return { have: 0, max: 0 };
+    /* a resupplied squad is carrying more than it left with, which the bar should not hide */
+    return { have: Math.round(have), max: Math.max(max, Math.round(have)) };
+  }
   function ammoCell(q) {
-    var max = DIVIDE.CONST.AMMO_LOAD, n = q.ammo == null ? max : q.ammo;
+    var a2 = squadAmmo(q), max = a2.max, n = a2.have;
+    if (!max) return '<span class="m">\u2014</span>';
     var share = Math.max(0, Math.min(1, n / max));
     var col = share > 0.5 ? 'var(--hit)' : share > 0.2 ? 'var(--cred)' : 'var(--red)';
     return '<span class="bar2"><i style="width:' + Math.round(share * 100) + '%;background:' + col + '"></i></span> ' +

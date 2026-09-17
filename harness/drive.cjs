@@ -995,6 +995,10 @@ setTimeout(() => {
     openRoster();
     check(/Bastille/.test(text('#rostmarket')) && /Conscript/.test(text('#rostmarket')),
           'months 5-6 show the Kier Bastille for Conscripts');
+    /* §GROUND the drop and the playback, guarded: the corner's Drop presses the handler both
+       buttons share (it used to hunt for a button the Table had not drawn, so the first press
+       did nothing), the first window stands at the landing, and a later window plays FORWARD
+       from where the manager is rather than jumping to the newest day. */
     /* §BASTILLE OAs compete on the way out: every card carries the sentence and a way to
        offer terms against it, and no wage of the man's own on a sheet that is meant to be blind */
     check(/Sentence \d/.test(text('#rostmarket')) && doc.querySelectorAll('#rostmarket [data-term]').length > 0
@@ -1527,6 +1531,10 @@ setTimeout(() => {
       check(!!(per && per.hand && per.hand[leadId]),
             'the manager\'s hand rode into the real Divide\'s options');
     })();
+    /* §GROUND the first window stands AT THE DROP: it used to play straight through to the
+       current day, so a manager met his squads two days in with fights already fought */
+    check(window.__G.gday === 1 && window.__G.gstage === 'morning',
+          'the first window opens at the landing, not two days into the contest (day ' + window.__G.gday + ')');
     check(/Comms Window/.test(text('#divstate')),
           'the Divide began and paused at a comms window: ' +
           text('#divstate').replace(/\s+/g, ' ').trim());

@@ -1,98 +1,34 @@
-THE TABLE'S EDGES: A MANAGER'S OWN RANSOMS, AND A REFUSED ASK THAT CHANGES FORM
+THE REPLAY: A PICTURE, NOT A WALL OF TEXT
 
-A manager answers his own ransoms on the window — pays or declines for his man, sells or keeps
-another OA's — where a willingness roll used to answer for him (§6.15). A refused ask comes
-back different as well as lower: in kind, then share and cash, then standing down (§6.16).
-The table is parked here: the ceiling at the margin waits on the settlement's scale.
+A frame painted the page, not the canvas: every 16ms tick rewrote five panels and recomputed
+vision. renderGround(false) paints the canvas alone, renderGroundPanels writes the page when
+the day or state changes, and the walk runs on requestAnimationFrame.
 
-Gates: regress --fast 114/114 · drive · audit_ui · audit_resize · audit_docs · audit_code ·
-audit_table · audit_bastille.
+A fight is the two OAs' marks, crossed — not a made-up three-letter tag and a result in words.
+The words wait for the pointer, and a click opens the footage.
 
---- and the corner and the turn (Sep 16) ---
+Zoom and pan: the wheel about the pointer, a drag, and three buttons; the terrain layer is
+drawn once and scaled, so a zoom costs nothing.
 
-THE BEACON: the Waiting on You control is a breathing gold circle with the count as a solid
-badge on its rim; the items are tabs at the screen's edge showing only their kind, sliding
-out on approach; clear, it goes hollow and cyan. HERE: an item already on this page reads
-Here in cyan and pings the one element it is about, once, every click. THE LEDGER TURN: a
-month ends with a band wiping across in the leaving month's colour into the arriving one,
-the number ticking over and changing colour, a rule drawn between them; then the summary.
-Ruled from four rounds of mockups.
+A day announces itself over the map as a month does at the turn, so a press is not a silent
+wait.
 
---- and the recap as a front page ---
+Gates: regress --fast 114/114 · drive · audit_ui · audit_resize · audit_docs · audit_code.
 
-The month's summary reads like a paper: the strip, one headline for the thing that mattered
-most, a deck line, a Decided list, three columns (Money as one figure over its lines, People as
-names with what happened, Standing as gauges with a tick for last month), Left Waiting on a red
-rule, what the next month opens in its colour, Continue as the Beacon. The turn hands off to it
-under the veil. The founder's own people open at 60 (29 read Mutinous on the page's bands) and
-LEAN_GRANT returns to 75k: −₡4k, −₡5k, +₡4k before the Divide. The Beacon's line is Next: <Tab>.
+And the real cost, found by counting rather than reasoning: seenBySquads appends to G._seen on
+every call and terrainLayer keys its cache on that array's length, so the frame loop rebuilt the
+whole 900x900 terrain layer every frame. 40 rebuilds per 40 frames before, 0 after; a squad's
+walk is built once and kept, 0 path builds per 40 frames.
 
---- and a first pass at the phone ---
+A second pass from watching it: the walk began a whole interval late (setInterval's first tick),
+which read as a jump back and a pause; a day's walk now fills the day's slot, eased both ends,
+with the card ahead of it. You see who you are fighting — whoever your people met that day
+stands on the map, solid and ringed — where the fog had hidden even a contact. The first window
+opens at the drop and waits for a directive. One Drop button. Rounds read "undefined" because
+DIVIDE.CONST.AMMO_LOAD does not exist; a squad's load is what its standing bodies carry.
 
-The menu's ovals took a percentage height a phone resolves to nothing (width-based under
-720px, a floor everywhere; dvh with a vh fallback). The corner was hidden under 900px — no
-Beacon on a phone; it shrinks now instead, and its tabs stand out fully where there is no
-pointer. Any script error is written onto the page as a red band with the message and line,
-so a phone can say what broke.
-The corner stands down while the recap is up (the recap's Beacon is the only Continue); on a
-phone nothing hangs past the right edge, which iOS turned into a pan that clipped the left;
-ledger labels keep their own capitals.
-
---- and the map, day by day ---
-
-measure_map.cjs reads the recording the page replays from. Squads never leave it; every squad
-that went down had a fight, a reform, or the wall beside it. The march was twice what it said
-(pace read reflex at the 10–20 scale; anchored at the median now, p90 day move 1.23 → 0.80
-marches). A reform is recorded folded, not down, and drawn Folded In. The run after a lost
-fight is a leg of the walk the page draws. The manager's map keeps stale and dead sightings as
-last-known and remnants (pictureForMap) where they used to vanish.
-The days between windows play as a record: a day takes 2.6s (a speed control), fights fire
-at their moment with a burst and a label that stays, and The Record beside the map lists each
-of your squads' days — where, why, how far, whom it met, how it came out — clickable back.
-The corner follows the page (a Here from the Desk stayed Here on the Roster and pinged instead
-of moving). DEV: Skip to Lock now arrives with four squads of five from the best of the roster,
-signed up to twenty if short, the steadiest leading each, a decent mid-tier hand on every body;
-DEV: Fill Squads does the same on its own.
-
---- and a work order from play ---
-
-A re-signed hand was never re-signed: the manager's branch of renewRoster set the salary and
-never reset the term, so he expired again every year (the AI's branch always did); calls are
-cleared once answered, and the card says a release walks at the turn. Ceiling off the market
-card. Chevrons are bordered buttons. Gather Intel reads like the drill grid. Recovery names
-open sheets. The market's columns are racks, whole, not one rack split. One shape for a
-sponsor reward. The corner follows the page. DEV: Skip to Lock fills and kits four squads.
-And the OA sheet: an OA's name opens a drawer anywhere it is written (cSpan carries the hook,
-one delegated listener answers) with its standing as gauges, how it reads you, what is public,
-the intel dossier, and its last six years.
-
---- and the Board ---
-
-The Card stands across the top, each demand its own object with a gauge that moves and the
-priority in the board's gold; the three that scale move below. A placement demand shows where
-the eight stand (the odds board in a Divide, last year's finishing order out of one —
-history.placement is recorded now) rather than a lit ordinal. The holds draw the month's loss
-in red.
-Fixes to that Board build: the holds' loss segments were absolutely placed in a bar that was
-not a positioning context, so four red bands painted down the whole page; and the fleet ledger
-had only been built in the mockup while the log said the wheel was gone. Both done now, the
-constellation removed with its styles.
-And the rest of the Board mockup, which had been agreed and not built: the boardroom strip with
-patience on a banded bar and a word for it, the three that scale as needle dials, the audiences
-with their band names, a month-ago tick and the change, the holds' tick and a foot that says
-which store runs short first and when, and the heading.
-Who Is Watching to the mock: three columns with the reading in its own right-hand column, the
-band names and month-ago tick on the bar, and one line of what moved each audience instead of a
-dated block; the three in one box. The audcard styles are removed.
-The audience bar is a fill on a plain track, coloured by its band, not a marker on a gradient:
-.sbar is a slider, which is right for a picker and wrong for a standing.
-The audience bar is its own class (.standfill): a block-level plain track filled to the reading
-and coloured by its band. Wearing the picker's .sbar meant wearing its gradient (which won on
-cascade order) and its inline display (which collapsed the bar to a stub and stacked the band
-names). Band names print only where there is room; the reading drops "of 100".
-And the colours: there is no global .bad rule in this stylesheet, so every band word came out
-white; the Board names its own (bottom band red, the one above amber, good green, a fall red),
-and the fill is one colour as the mock draws it — the bar says how much, the word how good.
-Who Is Watching, read off the mock at last: the Board's section heads in the command colour,
-the bar given the row's width, and two band names — the band below pulled left of its tick,
-the band above pulled right — which cannot meet at any width.
+A third pass, traced in the harness rather than reasoned: the corner's Drop hunted for a button
+the Table had not drawn (so the first press did nothing); the window advance derived "watched so
+far" from win.record.length, which the engine keeps appending to, so it jumped to the newest day
+and skipped everything between; and the posted landings and the relay mast — two real reveals —
+were unlabelled, so a sighting now carries `via` and the map says Posted Landing, Mast, or Seen.
