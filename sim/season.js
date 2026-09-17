@@ -176,14 +176,16 @@
        funded RELATIVE to it (`grantFor`). Measured with a careful founder — his own people from
        the tryouts, prisoners at their sentence, a mercenary only to fill the last slot — a
        grant of 150k cleared +₡100k a year before he fought and tripled his bank in three years.
-       At 90k, liked at home and unknown to the fleet, he runs ₡5k down in his first year, level
-       in his second, ₡8k up in his third before any fighting, the crowd doing the growing
-       (₡51k → ₡71k at the door): tight early, more choices as he grows. The kit pass to come
-       will eat into that first year; it is measured then, not guessed now. */
-    LEAN_GRANT: 90000,        // [C] an OA nobody has heard of is not underwritten like one
+       At 75k, warm at home (own 60) and unknown to the fleet, he runs ₡4k down in his first
+       year, ₡5k down in his second, ₡4k up in his third before any fighting, the crowd doing
+       the growing (₡65k → ₡85k at the door): tight early, more choices as he grows. (It was
+       90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
+       where "liked at home" reads, the grant came back down.) The kit pass to come will eat
+       into that first year; it is measured then, not guessed now. */
+    LEAN_GRANT: 75000,        // [C] an OA nobody has heard of is not underwritten like one
                               //     that has been paying out for a century
     GRANT_PER_DIFFICULTY: 0.25, // [C] an established OA's grant is LEAN_GRANT × (2 − this × its
-                              //     difficulty rating): a 1 gets ₡158k a year, a 5 gets ₡68k
+                              //     difficulty rating): a 1 gets ₡131k a year, a 5 gets ₡56k
     LEAN_PIECES: 18,          // [C] guns and plate enough to put one drop on the ground badly
     /* §SPONSORS the appetite for a backer, and what tempers it */
     /* NOT EVERY OA IS IN THE MARKET IN JANUARY. At 0.30 every OA courted from month
@@ -396,8 +398,11 @@
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
     p.race_weights = {};
     Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
-    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0 });
-    delete p.reputation.own;                  /* read from the dials: liked at home */
+    /* LIKED AT HOME means what the page's own-people bands mean by it: under 40 reads
+       Mutinous, 40–65 Strained, 65–85 Loyal. Read off the dials the founder came out at 29 —
+       a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
+       loyalty is earned by the year. The fleet has no opinion yet. */
+    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
     p.id = 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
@@ -2285,7 +2290,14 @@
             f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
           }
           f.contract.salary = paying;
-  
+          /* §PAPER THE TERM WAS NEVER RENEWED. A hand the manager re-signed kept the contract
+             that had just run out — `seasons_remaining` at zero — so the offseason expired him
+             again the next year, every year, and `fitBodies` had a man with no paper standing
+             in no squad. The branch below (the AI's own renewals) always reset the term; this
+             one, the one a manager reaches, never did. */
+          f.contract.seasons_remaining = renewalTerm(f);
+          f.contract.seasons_total = renewalTerm(f);
+
           /* a prisoner who has served signs on as anybody else does */
           if (f.contract.kind === 'prisoner') f.contract.kind = 'nattie';
           f._fameAtSigning = f.fame || 0;
@@ -3307,6 +3319,8 @@
       c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
                              c._off.expired, c._off.freed, state);
       c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
+      /* the calls are answered: they are this year's, not a standing instruction */
+      c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       /* S15 — this charges the RETAINER only. The purse is charged at the muster below, once
          there is a drop to pay it to. `c._wages` is completed there. */
@@ -3596,6 +3610,10 @@
       c.roster = c.roster.filter(f => f.status !== 'dead');
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
+                       /* §BOARD where it finished, so the Board can show the fleet's last
+                          standing beside a placement demand rather than a lit ordinal */
+                       placement: res.placement ? res.placement[id] : null,
+                       won: res.winner === id,
                        patience: c.rep ? Math.round(c.rep.patience) : null,
                        cardScore: c._close ? c._close.score : null,
                        card: c._close && c._close.score

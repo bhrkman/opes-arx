@@ -855,13 +855,16 @@
     const guessMax = range.principalMax * (1 + joiner._guess[principal.id]) * Math.pow(1 - CONST.REFUSED_SHADE, refused);
     const value = Math.max(range.joinerMin, range.joinerMin + (guessMax - range.joinerMin) * t);
 
-    const terms = composeTerms(joiner, principal, value, range);
+    /* §6.16 refused, it comes back DIFFERENT as well as lower: the first ask is in whatever
+       form the values favour; the second drops the terms in kind and asks in share and cash;
+       the third offers to stand its people down — cheaper for the banner, safer for them */
+    const terms = composeTerms(joiner, principal, value, range, refused);
     if (!terms) return null;
-    const deal = makeDeal(joiner, principal, terms.share, terms.credits, range.standDown, ctx,
+    const deal = makeDeal(joiner, principal, terms.share, terms.credits, terms.standDown, ctx,
                           terms.credits > 0 && terms.share <= 0.001 ? 'flat' : 'share');
     if (terms.resources.length) { deal.resources = terms.resources; deal.resource = terms.resources[0].category; }
     if (terms.claims.length) deal.claims = terms.claims;
-    deal.why = Object.assign({}, range, { value: Math.round(value), guessMax: Math.round(guessMax) });
+    deal.why = Object.assign({}, range, { value: Math.round(value), guessMax: Math.round(guessMax), variant: refused });
     return deal;
   }
 
@@ -872,18 +875,21 @@
    * credits by how badly the joiner wants cash (thrifty principals pay none); the balance in
    * a share of the take. Returns { share, credits, resources, claims } or null.
    */
-  function composeTerms(joiner, principal, value, range) {
+  function composeTerms(joiner, principal, value, range, variant) {
     let need = value;
     const claims = [], resources = [];
     const ratio = (j, p) => j / Math.max(1, p);
+    variant = variant || 0;
+    const inKind = variant % 3 !== 1;                     /* the second try asks in share and cash */
+    const standDown = variant % 3 === 2 ? true : range.standDown;   /* the third offers to go home */
     /* a NAMED SITE the joiner wants more than the banner does */
-    Object.keys(range.claims || {})
+    if (inKind) Object.keys(range.claims || {})
       .map(id => [id, range.claims[id]])
       .filter(([, c]) => c.joiner > 0 && c.joiner >= c.principal * CONST.KIND_PREFERENCE)
       .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
       .forEach(([id, c]) => { if (c.joiner <= need * 1.1) { claims.push(id); need -= c.joiner; } });
     /* a CUT IN KIND, in the category it is shortest of, sized to the need, capped */
-    Object.keys(range.resources || {})
+    if (inKind) Object.keys(range.resources || {})
       .map(cat => [cat, range.resources[cat]])
       .filter(([, r]) => r && r.units > 0 && r.joiner > 0 && r.joiner >= r.principal * CONST.KIND_PREFERENCE)
       .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
@@ -893,12 +899,12 @@
         if (share > 0.02) { resources.push({ category: cat, share: Math.round(share * 100) / 100, when: 'always' }); need -= share * r.joiner; }
       });
     need = Math.max(0, need);
-    const wantsCash = (1 - dial(joiner, 'patience')) * 0.5 + (1 - range.oddsJoined) * 0.5;
+    const wantsCash = (1 - dial(joiner, 'patience')) * 0.5 + (1 - range.oddsJoined) * 0.5 + (variant % 3 === 1 ? 0.2 : 0);
     const cashFraction = dial(principal, 'thrift') > 0.55 ? 0 : Math.max(0, Math.min(0.6, wantsCash - 0.35));
     const credits = Math.round(need * cashFraction);
     const share = Math.max(0, Math.min(0.90, (need - credits) / Math.max(1, range.expectedTake)));
     if (share <= 0.001 && credits <= 0 && !claims.length && !resources.length) return null;
-    return { share, credits, resources, claims };
+    return { share, credits, resources, claims, standDown: standDown };
   }
 
   /**
@@ -1192,26 +1198,33 @@
    * The captor is weighing cash now against a body they can kill, keep, or hand back later
    * for nothing. Thrift takes the money; aggression would rather have the prisoner.
    */
-  function considerRansom(rng, captor, owner, fighter, ctx) {
+  /* THE CAPTOR'S SIDE: will it sell him back, and for how much. Null when it will not. */
+  function ransomOffer(rng, captor, owner, fighter, ctx) {
     if (ctx.sealed(captor)) return null;          /* N11 — they do not do deals, of any size */
     if (refusesOutright(captor, owner)) return null;   /* §6.4 they will not deal with this OA */
     /* §6.13 asked at the body's worth marked up, moved by what the captor thinks of the owner */
     const price = Math.round(ransomPrice(fighter) * priceModifier(captor, owner));
     const keenToKeep = 0.5 * dial(captor, 'aggression') + 0.3 * (1 - dial(captor, 'thrift'));
     if (rng() < keenToKeep) return null;
-    /* The owner has to want them back at that price: up to a multiple of what the man costs
-       to replace, more when it means to keep fighting (appetite), less for a line fighter on
-       an OA that has already lost. A bleak little decision the game should let managers make
-       too, and does not yet. */
+    return { kind: 'ransom', captor: captor.id, owner: owner.id,
+             fighter: fighter.id, price: price, day: ctx.day, worth: Math.round(Math.max(300, bodyWorth(fighter))) };
+  }
+  /* THE OWNER'S SIDE: is he worth that to them — up to a multiple of what the man costs to
+     replace, more when it means to keep fighting (appetite), and only from money it has. A
+     manager answers this himself, on the window (divide.js). */
+  function ransomWorthPaying(owner, fighter, price, ctx) {
     const worth = Math.max(300, bodyWorth(fighter));
     const app = ctx.corps ? appetite(owner, ctx).value : 1;
     const ceiling = worth * CONST.RANSOM_PAYS_UP_TO * (0.5 + 0.5 * app);
-    if (price > ceiling) return null;
+    if (price > ceiling) return false;
     /* the Divide's corp carries its season account under `persist` (one treasury, SEASONS.md) */
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
-    if (acct && acct.treasury < price) return null;
-    return { kind: 'ransom', captor: captor.id, owner: owner.id,
-             fighter: fighter.id, price: price, day: ctx.day, worth: Math.round(worth) };
+    return !(acct && acct.treasury < price);
+  }
+  function considerRansom(rng, captor, owner, fighter, ctx) {
+    const deal = ransomOffer(rng, captor, owner, fighter, ctx);
+    if (!deal) return null;
+    return ransomWorthPaying(owner, fighter, deal.price, ctx) ? deal : null;
   }
 
   /**
@@ -1416,7 +1429,7 @@
     foldPenalty, buyPenalty, priceModifier, relationship, bodyMoney, seenDoing, TELEMETRY,
     considerJoin, considerTake, considerInvite, composeTerms, rankBanners, actsThisWindow, contactScore, livingRegard, appetite, bodyWorth, offerRange, evaluateOffer, termsValue, considerPact, pactViability, pactChance, wantsStandDown,
     wantOf, resourceRates, settleHaul,
-    ransomPrice, considerRansom, resolveCaptive,
+    ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     considerBetrayal, disqualificationRoll, aleasStandingOf,
     settle
   };

@@ -97,7 +97,7 @@
      allowed to grow, and there is one such row. */
   .menustage{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:center;
     justify-content:center;gap:clamp(6px,1.4vh,16px);background:#050810;
-    height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
+    height:100vh;max-height:100vh;height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
   .menustage::before{content:"";position:absolute;inset:0;
     background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
 
@@ -124,6 +124,7 @@
     text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
     padding:clamp(5px,1.1vh,11px) 14px}
   .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
+  #errband{display:none;position:fixed;left:0;right:0;top:0;z-index:90;background:var(--red);color:var(--bg);font-size:11px;padding:6px 12px;text-align:center;cursor:pointer}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
   /* §MONEY the two facts the Roster is about, given room rather than a grey aside */
@@ -146,6 +147,8 @@
     background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
   #skiptolock:hover{border-color:var(--bad);color:var(--bad)}
   body.yearline #skiptolock{left:18px}
+  #fillsquads{position:fixed;left:14px;bottom:44px;z-index:20;font:inherit;font-size:9.5px;letter-spacing:.1em;background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
+  body.yearline #fillsquads{left:18px}
   @media (max-width:900px){ #skiptolock{left:8px;bottom:8px} }
   /* §CHROME A GAME'S CHROME DOES NOT REFLOW. The tab rail wrapped onto a second line when the
      window narrowed, which is how a website behaves and not how a board does — the tabs move,
@@ -173,8 +176,16 @@
      shrink at six different rates. One unit needs no breakpoint. What is left is the one thing
      a small stage genuinely wants: a thinner ring, because a two-pixel border on a hundred-pixel
      oval is a different picture. */
+  /* §PHONE the ovals took their height as a PERCENTAGE of a flex row, which a phone's browser
+     resolves to nothing when the row's own height is still being worked out: three empty
+     rings. On a narrow screen they take a width instead and let the aspect give the height;
+     everywhere they have a floor so they are never empty. */
+  .moval{min-height:120px}
   @media (max-width:720px){
     .moval{border-width:1.5px;box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 34px var(--glow),inset 0 -36px 44px rgba(0,0,0,.6)}
+    .moval.left,.moval.right{height:auto;width:26vw;max-width:26vw}
+    .moval.mid{height:auto;width:32vw;max-width:32vw}
+    .menuovals{align-items:flex-end}
   }
   .menutitle{font-size:clamp(20px,5.2vh,52px);letter-spacing:.42em;color:var(--a);text-align:center;margin-left:.42em;
     text-shadow:0 0 22px rgba(58,216,224,.45),0 0 2px rgba(58,216,224,.9)}
@@ -433,7 +444,106 @@
   .eightcard .teams .tm.yours .tt{color:var(--a)}
   .eightpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px}
   .eightpick .fcard{--sq:var(--mag)} .eightpick .fcard.named{border-color:var(--mag);box-shadow:inset 0 0 0 1px var(--mag)}
-  /* THE RECAP */
+  /* §RECAP THE FRONT PAGE. The month was a grid of boxes — work, events, training, left
+     waiting, money, people, standing — each a list, none saying which of them mattered. Ruled
+     from mockups: it reads like a paper. A strip (the month ended, the month arriving in its
+     colour), ONE headline in large type for the thing that mattered most and a deck line for
+     the next two, three columns beneath — money as one figure over its lines, people as names
+     with what happened to each, standing as gauges with a tick for where each stood — and what
+     was left waiting on a red rule at the foot. Continue is the Beacon in the arriving month's
+     colour. Credits are gold, money leaving is red (crs), deltas in standing are good/bad. */
+  .rstrip{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:14px}
+  .rstrip b{color:var(--ink);font-weight:400}
+  .rstrip .nx{color:var(--nxc,var(--a))}
+  .rfront .kicker{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .rfront .hl{font-size:24px;font-weight:800;line-height:1.18;color:var(--ink);margin:4px 0 6px;max-width:34ch}
+  .rfront .hl b,.rfront .hl .gold{color:var(--cred)}
+  .rfront .deck{font-size:12px;color:var(--dim);max-width:78ch;margin-bottom:14px}
+  .rfront .rcards{margin-bottom:12px}
+  .rfront .decided{margin:0 0 14px;max-width:560px}
+  .rfront .cols{display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:22px;padding-top:10px}
+  .rfront h3{margin:0 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--a)}
+  /* R2's ledger inside R1's columns: every line a kind, a description and a figure on the
+     right, on dotted rules; stamps for what went wrong; the close under a double rule */
+  .rfront .sheethead{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:3px double var(--line2);padding-bottom:6px;margin-bottom:2px}
+  .rfront .ln{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line);font-size:11.5px;align-items:baseline}
+  .rfront .ln .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .ln .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rfront .ln .v .cr{font-size:11.5px}
+  .rfront .ln.open{color:var(--dim)}
+  .rfront .close{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:8px 0 0;font-size:12px;border-top:3px double var(--line2);margin-top:6px}
+  .rfront .close .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .close .v{text-align:right;white-space:nowrap} .rfront .close .v .cr{font-size:13px}
+  .rfront .stamp{display:inline-block;border:1.5px solid var(--red);color:var(--red);font-size:8px;letter-spacing:.16em;text-transform:uppercase;padding:0 5px;border-radius:2px;transform:rotate(-3deg);margin-left:8px;vertical-align:middle;line-height:1.5}
+  .rfront .stamp.amber{border-color:var(--bad);color:var(--bad)}
+  .rfront .stamp.good{border-color:var(--hit);color:var(--hit)}
+  .rfront .gauge{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:11px}
+  .rfront .gauge .lab{width:78px;color:var(--dim)}
+  .rfront .gauge .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;padding:0;border:none}
+  .rfront .gauge .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--b)}
+  .rfront .gauge .bar i.board{background:var(--cred)}
+  .rfront .gauge .bar em{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink)}
+  .rfront .gauge .d{width:64px;text-align:right;white-space:nowrap}
+  .rfront .none{color:var(--faint);font-size:11px;padding:4px 0}
+  .rfront .foot{margin-top:16px;border-top:1px solid var(--red);padding-top:4px;font-size:11.5px}
+  .rfront .foot .ln{border-bottom:1px dotted var(--line)} .rfront .foot .ln .k{color:var(--red)}
+  .rgo{display:flex;justify-content:flex-end;margin-top:14px}
+  .rbeacon{width:84px;height:84px;border-radius:50%;border:2px solid var(--nxc,var(--a));background:var(--panel);color:var(--nxc,var(--a));display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font:inherit;padding:0;box-shadow:0 0 18px color-mix(in srgb,var(--nxc,var(--a)) 30%,transparent)}
+  .rbeacon:hover{background:var(--nxc,var(--a));color:var(--bg)} .rbeacon:hover small{color:var(--bg)}
+  .rbeacon .w{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.2;text-align:center}
+  .rbeacon small{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:3px}
+  @media (max-width:900px){.rfront .cols{grid-template-columns:1fr}}
+  /* §GROUND THE RECORD. Two days pass between comms windows; watching them was a second a
+     day and a fight that simply appeared. A day now takes as long as it needs to be read, a
+     fight fires at its moment in the day with a burst and a label, and the record beside the
+     map lists every one of your squads' days — where it went and why, how far, whom it met and
+     how that came out — each line a scrub back to that day. */
+  #grecord{max-height:280px;overflow:auto}
+  #grecord .rq{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px}
+  #grecord .rl{display:grid;grid-template-columns:34px 1fr auto;gap:8px;font-size:10.5px;padding:3px 4px;border-bottom:1px dotted var(--line);cursor:pointer;align-items:baseline}
+  #grecord .rl:hover{background:var(--panel2)}
+  #grecord .rl.now{background:rgba(58,216,224,.08);border-left:2px solid var(--a)}
+  #grecord .rl .d{color:var(--dim)} #grecord .rl .v{text-align:right;color:var(--dim);white-space:nowrap}
+  #grecord .rl .f{color:var(--red)} #grecord .rl .f.ok{color:var(--hit)}
+  /* §BOARD THE CARD IS THE PAGE. The demands were rows in a box beside the holds, read as
+     loose data; they are what the OA is FOR. Each stands as its own object across the top —
+     the thing asked in large type, a gauge that moves, where it stands, the priority in the
+     board's gold — and everything under them is data and reads as data. */
+  #boarddemand .cardrow2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .obj{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+  .obj::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
+  .obj.pri{border-color:var(--cred);box-shadow:0 0 0 1px rgba(240,192,74,.25),0 0 26px rgba(240,192,74,.10)}
+  .obj.pri::before{background:var(--cred)}
+  .obj .ohead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .obj .tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .obj.pri .tag{color:var(--cred)}
+  .obj .state{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:1px 7px;white-space:nowrap}
+  .obj .ask{font-size:16px;font-weight:700;line-height:1.3}
+  .obj .ask b{color:var(--cred)}
+  .obj .who{font-size:10.5px;color:var(--dim);margin-top:2px}
+  .obj .ogauge{margin:14px 0 10px}
+  .obj .obar{display:block;height:10px;background:var(--line);border-radius:5px;position:relative}
+  .obj .obar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--b)}
+  .obj .obar i.met{background:var(--hit)} .obj .obar i.short{background:var(--bad)}
+  .obj .obar em{position:absolute;top:-4px;width:2px;height:18px;background:var(--ink)}
+  .obj .scale{position:relative;height:13px;font-size:9px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-top:5px}
+  .obj .scale .l{position:absolute;left:0} .obj .scale .r{position:absolute;right:0}
+  .obj .scale .n{position:absolute;transform:translateX(-50%);color:var(--dim);white-space:nowrap}
+  /* the placement demand needs THE LADDER OF THE FLEET, not a row of ordinals: a lit "5th"
+     never moves all year. Where the eight stand on strength today, the cut drawn at the
+     demand, and you on it. */
+  .obj .board8 .r{display:grid;grid-template-columns:14px 1fr 70px 26px;gap:6px;align-items:center;font-size:10px;padding:1.5px 0;color:var(--dim)}
+  .obj .board8 .r.me{color:var(--ink);font-weight:700}
+  .obj .board8 .r.cut{border-bottom:1px dashed var(--hit);padding-bottom:3px;margin-bottom:2px}
+  .obj .board8 .p{color:var(--faint);text-align:right}
+  .obj .board8 .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .obj .board8 .odds{height:5px;background:var(--line);border-radius:3px;position:relative}
+  .obj .board8 .odds i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+  .obj .board8 .v{text-align:right}
+  .obj .ofoot{font-size:11px;border-top:1px solid var(--line);padding-top:8px}
+  .obj .ofoot b{font-size:13px}
+  /* the stores only ever fall: the gap back to last month is what was lost, in red */
+  .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.8;border-radius:0 4px 4px 0}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
   .recaptot{border-top:1px solid var(--line2);margin-top:7px;padding-top:6px}
@@ -659,9 +769,12 @@
      the shelf is half as tall as it was. */
   #mktledger .msec{cursor:pointer}
   #mktledger .msec:hover .nm{color:var(--ink)}
-  #mktledger .msecrows{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
-  #mktledger .msecrows .mrow.open{grid-column:1/-1}
-  @media (max-width:900px){ #mktledger .msecrows{grid-template-columns:1fr} }
+  /* §MARKET THE COLUMNS ARE THE RACKS. Two columns held ONE rack's rows split down the
+     middle — carbines above, carbines beside carbines — where what the width was for is two
+     racks side by side: carbines here, close quarters there, each whole. */
+  #mktledger .mracks{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
+  #mktledger .mrack{min-width:0}
+  @media (max-width:900px){ #mktledger .mracks{grid-template-columns:1fr} }
   .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
     border-top:1px solid var(--line)}
   .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
@@ -708,9 +821,15 @@
      glyph at the page's body size — a few pixels of triangle to aim at — on the Desk's grids,
      the shelf's racks, the fold heads and the market rows alike. They are all the same target
      now, and all plainly clickable. */
+  /* §CHROME AND BIGGER STILL. Twenty-eight pixels with no edge to it still read as a hint
+     rather than a control: the fold is now a bordered button of a fingertip's width, lit at
+     the head it belongs to, so a manager can see there is something to open. */
   .tgchev,.tgchev2{display:inline-flex;align-items:center;justify-content:center;
-    width:28px;height:26px;flex:none;border-radius:5px;cursor:pointer;font-size:17px;line-height:1;color:var(--dim)}
-  .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a)}
+    width:34px;height:30px;flex:none;border:1px solid var(--line2);border-radius:6px;background:var(--panel);
+    cursor:pointer;font-size:18px;line-height:1;color:var(--b);transition:background .15s,color .15s,border-color .15s}
+  .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a);border-color:var(--a)}
+  .tghead .tgchev,.tghead .tgchev2,.msec .tgchev{border-color:var(--line2);color:var(--a)}
+  .mrow .tgchev{width:30px;height:26px;font-size:15px}
   .tghead .tgchev2{margin-left:auto}
   #mktledger .msec .tgchev{font-size:16px}
   .tgcount{color:var(--gold);font-size:10.5px}
@@ -756,7 +875,8 @@
   .itbl tr.lit{background:var(--a-deep)}
   .itbl tr.iplanet{border-bottom:2px solid var(--line2)}
   .itbl td{padding:5px 6px;vertical-align:middle}
-  .itbl .iname{white-space:nowrap}
+  .itbl .iname{white-space:nowrap;text-align:center}
+  .itbl .iname .tgname{display:inline-block;flex:none}
   .itbl .iname span.on{color:var(--a)}
   .itbl .isub{color:var(--dim);font-size:9.5px}
   .itbl .ipips{width:70px}
@@ -817,20 +937,66 @@
   /* THE TURN STANDS IN THE BOTTOM RIGHT, where a turn stands: what is waiting above it, and
      beneath, the one button — which leads to the next unfinished thing while anything is
      unfinished, and becomes End the Month when nothing is. */
-  #agenda{display:none;position:fixed;right:0;bottom:0;width:290px;z-index:20}
-  body.yearline #agenda,body.turnon #agenda{display:block}
-  #agenda .items{max-height:44vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:4px 10px;box-shadow:-10px 6px 26px rgba(0,0,0,.45)}
-  #agenda.shut .items{display:none}
-  #agenda .ah{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 4px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);cursor:pointer}
-  #agenda .ah b{background:var(--cred);color:var(--bg);border-radius:9px;padding:0 6px;font-size:10px}
-  #agenda .ah b.clear{background:var(--hit)}
+  /* §CORNER THE BEACON. The most-clicked control in the game was a gold rectangle over a flat
+     list, and the eye did not go to it. Ruled from four rounds of mockups: a circle, breathing,
+     the words inside it and the count as a solid gold badge on its rim; the items as tabs that
+     sit at the screen's edge showing only their kind and slide out when the pointer comes near;
+     clear, it goes hollow and cyan and says End the Month. When the item you click is already
+     the page you are on, its tab reads Here in cyan and the one element the item is about gets
+     a single cyan pulse — never the pips, only the line that says what is left. */
+  #agenda{display:none;position:fixed;right:0;bottom:0;z-index:20;padding:0 16px 16px;flex-direction:column;align-items:flex-end;gap:10px}
+  body.yearline #agenda,body.turnon #agenda{display:flex}
+  body.recapon #agenda{display:none}
+  #agenda .items{display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-height:44vh;overflow:visible}
+  #agenda .atab{position:relative;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:5px 12px 5px 14px;margin-right:-16px;transform:translateX(calc(100% - 46px));transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s;cursor:pointer;min-width:240px;font-size:11px;white-space:nowrap;box-shadow:-6px 4px 18px rgba(0,0,0,.4)}
+  #agenda .atab::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cred);border-radius:8px 0 0 8px;transition:background .3s}
+  #agenda .atab.urgent::before{background:var(--red)}
+  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9px;color:var(--cred);letter-spacing:.12em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
+  #agenda .atab.urgent .k{color:var(--red)}
+  #agenda .atab .t{padding-left:48px;color:var(--ink)}
+  #agenda .atab .c{color:var(--dim);font-size:10px;margin-left:8px}
+  #agenda:hover .atab,#agenda .atab:hover,#agenda.open .atab{transform:none}
+  #agenda .atab.here{border-color:var(--a)} #agenda .atab.here::before{background:var(--a)} #agenda .atab.here .k{color:var(--a)}
+  @keyframes cornerbreathe{0%,100%{box-shadow:0 0 0 0 rgba(240,192,74,.55),0 0 18px 2px rgba(240,192,74,.25)}60%{box-shadow:0 0 0 16px rgba(240,192,74,0),0 0 34px 8px rgba(240,192,74,.4)}}
+  @keyframes cornerbreathecyan{0%,100%{box-shadow:0 0 0 0 rgba(58,216,224,.35)}60%{box-shadow:0 0 0 12px rgba(58,216,224,0)}}
+  #agenda .beacon{position:relative;width:96px;height:96px;border-radius:50%;border:2px solid var(--cred);background:radial-gradient(circle at 50% 35%,#2a2410,var(--panel) 70%);color:var(--cred);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;animation:cornerbreathe 2.4s ease-in-out infinite;font:inherit;padding:0}
+  #agenda .beacon:hover{background:var(--cred);color:var(--bg)} #agenda .beacon:hover small{color:var(--bg)}
+  #agenda .beacon .w{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.2;text-align:center}
+  #agenda .beacon small{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:3px;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #agenda .beacon small.here{color:var(--a)}
+  #agenda .beacon .badge{position:absolute;top:-6px;right:-6px;width:30px;height:30px;border-radius:50%;background:var(--cred);color:var(--bg);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);box-shadow:0 0 14px rgba(240,192,74,.6)}
+  #agenda .beacon.clear{border-color:var(--a);color:var(--a);background:var(--panel);animation:cornerbreathecyan 3s ease-in-out infinite}
+  #agenda .beacon.clear:hover{background:var(--a);color:var(--bg)}
+  #agenda .beacon.clear .badge{display:none}
+  @keyframes cornerping{0%{box-shadow:0 0 0 0 rgba(58,216,224,.75);outline:1px solid var(--a)}100%{box-shadow:0 0 0 14px rgba(58,216,224,0);outline:1px solid transparent}}
+  .pinged{animation:cornerping .8s ease-out 1;border-radius:6px}
+  /* §TURN THE LEDGER TURN. A month is an event: a band wipes across the screen carrying the
+     month leaving at its leading edge and the month arriving behind it; the number ticks over
+     in the middle and turns from the old colour to the new; a rule draws under the name as a
+     gradient from one to the other; then the month's summary stands up. Every colour is the
+     year line's own. */
+  #turnwipe{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden;--from:var(--b);--to:var(--b);--fromb:color-mix(in srgb,var(--from) 32%,transparent);--tob:color-mix(in srgb,var(--to) 32%,transparent)}
+  #turnwipe .veil{position:absolute;inset:0;background:var(--bg);animation:turnveil 3.6s ease-in-out forwards}
+  #turnwipe .band{position:absolute;top:0;bottom:0;left:-60%;width:60%;background:linear-gradient(90deg,transparent 0%,var(--tob) 30%,var(--fromb) 70%,transparent 100%);animation:turnband 1.5s ease-in-out forwards}
+  #turnwipe .tick{position:absolute;left:0;right:0;top:36%;text-align:center;animation:turntick 3.6s ease-in-out forwards}
+  #turnwipe .n{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+  #turnwipe .mno{font-size:clamp(48px,14vw,72px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--from);text-shadow:0 0 26px var(--fromb);animation:turncolour 1.2s .7s ease-in-out forwards}
+  #turnwipe .wn{font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);margin-top:8px}
+  #turnwipe .rule{width:0;height:1px;background:linear-gradient(90deg,var(--from),var(--to));margin:10px auto;animation:turnrule .9s .9s ease-out forwards}
+  #turnwipe .op{font-size:11px;color:var(--dim)}
+  @keyframes turnveil{0%{opacity:0}10%{opacity:1}72%{opacity:1}100%{opacity:0}}
+  @keyframes turnband{0%{left:-60%}100%{left:100%}}
+  @keyframes turntick{0%{opacity:0;transform:translateY(8px)}12%{opacity:1;transform:none}84%{opacity:1}100%{opacity:0}}
+  @keyframes turncolour{to{color:var(--to);text-shadow:0 0 30px var(--tob)}}
+  @keyframes turnrule{to{width:220px}}
+  @media (prefers-reduced-motion:reduce){#agenda .beacon,#turnwipe *{animation-duration:.01s!important}}
   #agenda .turn{display:flex;flex-direction:column;gap:5px;padding:0 12px 12px}
   #agenda .turnbtn{padding:13px 16px;border-radius:8px;border:1px solid var(--cred);background:var(--panel);color:var(--cred);font:inherit;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:-8px 6px 22px rgba(0,0,0,.5);text-align:center}
   #agenda .turnbtn:hover{background:var(--cred);color:var(--bg)}
   #agenda .turnbtn.clear{border-color:var(--a);color:var(--a)}
   #agenda .turnbtn.clear:hover{background:var(--a);color:var(--bg)}
   #agenda .turnbtn .sub{display:block;font-size:9.5px;font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--dim);margin-top:3px}
-  #agenda .anyway{background:none;border:none;color:var(--faint);font-size:10px;cursor:pointer;padding:2px;text-decoration:underline;text-underline-offset:2px}
+  #agenda .anyway{background:none;border:none;color:var(--faint);font-size:10px;cursor:pointer;padding:2px;text-decoration:underline;text-underline-offset:2px;font-family:inherit}
   #agenda .anyway:hover{color:var(--dim)}
   body.yearline header,body.yearline #rail,body.yearline .page{margin-left:212px}
   #yearline .yl{position:relative;padding-left:20px}
@@ -845,7 +1011,18 @@
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
-  @media (max-width: 900px){ body.yearline #yearline{display:none} body.yearline #agenda{display:none} body.yearline header,body.yearline #rail,body.yearline .page{margin-left:0} }
+  /* §PHONE the year line folds on a narrow screen (the clock and the recap carry the month);
+     the corner does NOT — it is the most-used control in the game, and hiding it under 900px
+     left a phone with no way to end a month but the header. It shrinks instead. */
+  @media (max-width: 900px){ body.yearline #yearline{display:none} body.yearline header,body.yearline #rail,body.yearline .page{margin-left:0}
+    #agenda{padding:0 10px 10px;gap:8px}
+    #agenda .beacon{width:72px;height:72px} #agenda .beacon .w{font-size:9.5px} #agenda .beacon .badge{width:26px;height:26px;font-size:13px}
+    #agenda .atab{min-width:0;max-width:72vw;font-size:10.5px;margin-right:-10px} #agenda .atab .t{display:inline-block;max-width:calc(72vw - 60px);overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+    #agenda{max-width:100vw}
+    html,body{overflow-x:hidden}
+    body{padding-bottom:110px} }
+  /* no pointer to come near with: the tabs stand out fully, and a tap goes where it says */
+  @media (hover:none){ #agenda .atab{transform:none} }
   .page.on{display:block}
   table{border-collapse:collapse;width:100%;font-size:11.5px}
   th{color:var(--faint);font-weight:600;text-align:left;padding:3px 8px 3px 0;
@@ -1009,7 +1186,31 @@
   .drawer.on{transform:none}
   .drawer .close{position:absolute;top:10px;right:12px;color:var(--dim);cursor:pointer;font-size:14px;z-index:1}
   .drawer .close:hover{color:var(--a)}
+  /* §OA THE OA SHEET. Everything the intel dossier held and more, in the drawer a fighter's
+     sheet uses, opened by an OA's name anywhere it is written. */
+  #oapanel{width:380px}
+  #oapanel .oahead{display:flex;align-items:center;gap:10px;margin:0 22px 8px 0}
+  #oapanel .oahead .nm{font-size:15px;font-weight:700}
+  #oapanel .oamotto{color:var(--dim);font-size:10.5px;font-style:italic;margin-bottom:10px}
+  #oapanel h3{margin:14px 0 4px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--a)}
+  #oapanel .orow{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:3px 0;border-bottom:1px dotted var(--line)}
+  #oapanel .orow span:last-child{color:var(--ink);white-space:nowrap;text-align:right}
+  #oapanel .ohist{display:grid;grid-template-columns:34px 1fr auto;gap:8px;font-size:10.5px;padding:3px 0;border-bottom:1px dotted var(--line)}
+  #oapanel .ohist .y{color:var(--dim)}
+  #oapanel .dtbl{width:100%;border-collapse:collapse;font-size:10.5px}
+  #oapanel .dtbl td{padding:3px 4px;border-bottom:1px dotted var(--line);vertical-align:top}
+  #oapanel .dtbl .dlab{color:var(--dim);white-space:nowrap}
+  #oapanel .dtbl .dage{text-align:right;white-space:nowrap;font-size:9.5px}
+  #oapanel .gaugeline{display:flex;align-items:center;gap:8px;font-size:11px;padding:3px 0}
+  #oapanel .gaugeline .lab{width:84px;color:var(--dim)}
+  #oapanel .gaugeline .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative}
+  #oapanel .gaugeline .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--b)}
+  #oapanel .gaugeline .v{width:52px;text-align:right}
+  .oaname{cursor:pointer;text-decoration:underline dotted 1px;text-underline-offset:3px}
+  .oaname:hover{filter:brightness(1.25)}
+  @media (max-width:900px){ #oapanel{width:100vw} }
   .scrim{position:fixed;inset:0;z-index:29;display:none} .scrim.on{display:block}
+  #oascrim{z-index:31} #oapanel{z-index:32}
   @media (prefers-reduced-motion:reduce){.drawer{transition:none}}
   /* the quiet business: a card per act, its price, its odds, and what it costs if it comes out */
   .kit{display:flex;flex-direction:column;gap:4px}
@@ -1340,7 +1541,8 @@
 <!-- §DEV a test control, and it says so. It sat at the foot of the Desk where it was both hard
      to reach and easy to mistake for a thing the game offers; under the year line it is on
      every tab and unmistakably not part of the game. -->
-<button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock">DEV: Skip to Lock</button>
+<button id="skiptolock" title="dev: resolve every month at the corp's own judgement until the Lock, then set four squads of five, decently kitted">DEV: Skip to Lock</button>
+<button id="fillsquads" title="dev: four squads of five from the best of the roster, decently kitted">DEV: Fill Squads</button>
 <!-- WAITING ON YOU: a standing panel under the year line, on every preparation page -->
 <aside id="agenda"></aside>
 
@@ -1377,9 +1579,9 @@
      The month's own result, standing between End the Month and the next brief. It is not on
      the rail: it appears when a month ends and Continue puts it away. -->
 <div class="page" data-tab="recap">
-  <div class="dayhead" id="recaphead"></div>
-  <div class="grid2" id="recapbody"></div>
-  <div class="bar" style="justify-content:center;margin-top:14px"><button id="recapgo" class="primary" style="padding:8px 22px;font-size:12px;border-color:var(--a);color:var(--a)">Continue</button></div>
+  <div class="rstrip" id="recaphead"></div>
+  <div class="rfront" id="recapbody"></div>
+  <div class="rgo"><button id="recapgo" class="beacon rbeacon"><span class="w" id="recapgow">Continue</span><small id="recapgos">The Next Month</small></button></div>
 </div>
 
 <!-- ================================ THE ROSTER ================================ -->
@@ -1423,6 +1625,9 @@
   <div id="backroom"></div>
 </div>
 <div class="drawer" id="unitpanel"></div>
+<!-- THE OA SHEET, a drawer any tab may open: an OA's name opens it the way a fighter's does -->
+<div class="scrim" id="oascrim"></div>
+<div class="drawer" id="oapanel"></div>
 <!-- §MARK THE EDITOR IS NOT A DRAWER. It was opened in the 340px rail beside the sheet, and a
      builder — a preview, three rows of pieces and a pad — cannot be folded into a sliver: the
      rows wrapped to one column apiece and the whole thing became unusable. It stands in the
@@ -1471,6 +1676,7 @@
     <button id="gfwd">&rsaquo;</button>
     <span class="t" id="gdayLbl">&mdash;</span>
     <button id="gplay">Play</button>
+    <select id="gspeed" class="m" title="How Long a Day Takes"><option value="slow">Slow</option><option value="normal" selected>Normal</option><option value="fast">Fast</option></select>
     <label class="m"><input type="checkbox" id="gbysquad"> By Squad</label>
     <label class="m"><input type="checkbox" id="greach"> Show Reach</label>
     <label class="m"><input type="checkbox" id="gnoanim"> No Movement</label>
@@ -1485,6 +1691,8 @@
       <div class="box" id="tground"><span class="m">&mdash;</span></div>
       <h2>The Banners</h2>
       <div class="box"><table id="gboard"></table></div>
+      <h2>The Record</h2>
+      <div class="box log" id="grecord"><div class="m">&mdash;</div></div>
       <h2>Since the Last Window</h2>
       <div class="box log" id="gevents"><div class="m">&mdash;</div></div>
     </div>
@@ -1581,17 +1789,19 @@
     <h2>They Are Asking</h2>
     <div class="box" id="boardq"></div>
   </div>
-  <div class="grid2">
-    <div>
-      <h2>The Card</h2>
-      <div class="box" id="boarddemand"></div>
-      <h2>The Holds</h2>
-      <div class="box" id="boardholds"></div>
-    </div>
+  <h2 id="cardhead">The Card</h2>
+  <div id="boarddemand"></div>
+  <h2>Also Watched · Settled at the Divide</h2>
+  <div class="box" id="boardscales"></div>
+  <div class="grid2" style="margin-top:14px">
     <div>
       <h2>Who Is Watching</h2>
       <div id="audiences"></div>
       <div id="boardwhy" style="display:none"></div>
+    </div>
+    <div>
+      <h2>The Holds</h2>
+      <div class="box" id="boardholds"></div>
     </div>
   </div>
 </div>
@@ -16560,13 +16770,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const guessMax = range.principalMax * (1 + joiner._guess[principal.id]) * Math.pow(1 - CONST.REFUSED_SHADE, refused);
     const value = Math.max(range.joinerMin, range.joinerMin + (guessMax - range.joinerMin) * t);
 
-    const terms = composeTerms(joiner, principal, value, range);
+    /* §6.16 refused, it comes back DIFFERENT as well as lower: the first ask is in whatever
+       form the values favour; the second drops the terms in kind and asks in share and cash;
+       the third offers to stand its people down — cheaper for the banner, safer for them */
+    const terms = composeTerms(joiner, principal, value, range, refused);
     if (!terms) return null;
-    const deal = makeDeal(joiner, principal, terms.share, terms.credits, range.standDown, ctx,
+    const deal = makeDeal(joiner, principal, terms.share, terms.credits, terms.standDown, ctx,
                           terms.credits > 0 && terms.share <= 0.001 ? 'flat' : 'share');
     if (terms.resources.length) { deal.resources = terms.resources; deal.resource = terms.resources[0].category; }
     if (terms.claims.length) deal.claims = terms.claims;
-    deal.why = Object.assign({}, range, { value: Math.round(value), guessMax: Math.round(guessMax) });
+    deal.why = Object.assign({}, range, { value: Math.round(value), guessMax: Math.round(guessMax), variant: refused });
     return deal;
   }
 
@@ -16577,18 +16790,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * credits by how badly the joiner wants cash (thrifty principals pay none); the balance in
    * a share of the take. Returns { share, credits, resources, claims } or null.
    */
-  function composeTerms(joiner, principal, value, range) {
+  function composeTerms(joiner, principal, value, range, variant) {
     let need = value;
     const claims = [], resources = [];
     const ratio = (j, p) => j / Math.max(1, p);
+    variant = variant || 0;
+    const inKind = variant % 3 !== 1;                     /* the second try asks in share and cash */
+    const standDown = variant % 3 === 2 ? true : range.standDown;   /* the third offers to go home */
     /* a NAMED SITE the joiner wants more than the banner does */
-    Object.keys(range.claims || {})
+    if (inKind) Object.keys(range.claims || {})
       .map(id => [id, range.claims[id]])
       .filter(([, c]) => c.joiner > 0 && c.joiner >= c.principal * CONST.KIND_PREFERENCE)
       .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
       .forEach(([id, c]) => { if (c.joiner <= need * 1.1) { claims.push(id); need -= c.joiner; } });
     /* a CUT IN KIND, in the category it is shortest of, sized to the need, capped */
-    Object.keys(range.resources || {})
+    if (inKind) Object.keys(range.resources || {})
       .map(cat => [cat, range.resources[cat]])
       .filter(([, r]) => r && r.units > 0 && r.joiner > 0 && r.joiner >= r.principal * CONST.KIND_PREFERENCE)
       .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
@@ -16598,12 +16814,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (share > 0.02) { resources.push({ category: cat, share: Math.round(share * 100) / 100, when: 'always' }); need -= share * r.joiner; }
       });
     need = Math.max(0, need);
-    const wantsCash = (1 - dial(joiner, 'patience')) * 0.5 + (1 - range.oddsJoined) * 0.5;
+    const wantsCash = (1 - dial(joiner, 'patience')) * 0.5 + (1 - range.oddsJoined) * 0.5 + (variant % 3 === 1 ? 0.2 : 0);
     const cashFraction = dial(principal, 'thrift') > 0.55 ? 0 : Math.max(0, Math.min(0.6, wantsCash - 0.35));
     const credits = Math.round(need * cashFraction);
     const share = Math.max(0, Math.min(0.90, (need - credits) / Math.max(1, range.expectedTake)));
     if (share <= 0.001 && credits <= 0 && !claims.length && !resources.length) return null;
-    return { share, credits, resources, claims };
+    return { share, credits, resources, claims, standDown: standDown };
   }
 
   /**
@@ -16897,26 +17113,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * The captor is weighing cash now against a body they can kill, keep, or hand back later
    * for nothing. Thrift takes the money; aggression would rather have the prisoner.
    */
-  function considerRansom(rng, captor, owner, fighter, ctx) {
+  /* THE CAPTOR'S SIDE: will it sell him back, and for how much. Null when it will not. */
+  function ransomOffer(rng, captor, owner, fighter, ctx) {
     if (ctx.sealed(captor)) return null;          /* N11 — they do not do deals, of any size */
     if (refusesOutright(captor, owner)) return null;   /* §6.4 they will not deal with this OA */
     /* §6.13 asked at the body's worth marked up, moved by what the captor thinks of the owner */
     const price = Math.round(ransomPrice(fighter) * priceModifier(captor, owner));
     const keenToKeep = 0.5 * dial(captor, 'aggression') + 0.3 * (1 - dial(captor, 'thrift'));
     if (rng() < keenToKeep) return null;
-    /* The owner has to want them back at that price: up to a multiple of what the man costs
-       to replace, more when it means to keep fighting (appetite), less for a line fighter on
-       an OA that has already lost. A bleak little decision the game should let managers make
-       too, and does not yet. */
+    return { kind: 'ransom', captor: captor.id, owner: owner.id,
+             fighter: fighter.id, price: price, day: ctx.day, worth: Math.round(Math.max(300, bodyWorth(fighter))) };
+  }
+  /* THE OWNER'S SIDE: is he worth that to them — up to a multiple of what the man costs to
+     replace, more when it means to keep fighting (appetite), and only from money it has. A
+     manager answers this himself, on the window (divide.js). */
+  function ransomWorthPaying(owner, fighter, price, ctx) {
     const worth = Math.max(300, bodyWorth(fighter));
     const app = ctx.corps ? appetite(owner, ctx).value : 1;
     const ceiling = worth * CONST.RANSOM_PAYS_UP_TO * (0.5 + 0.5 * app);
-    if (price > ceiling) return null;
+    if (price > ceiling) return false;
     /* the Divide's corp carries its season account under `persist` (one treasury, SEASONS.md) */
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
-    if (acct && acct.treasury < price) return null;
-    return { kind: 'ransom', captor: captor.id, owner: owner.id,
-             fighter: fighter.id, price: price, day: ctx.day, worth: Math.round(worth) };
+    return !(acct && acct.treasury < price);
+  }
+  function considerRansom(rng, captor, owner, fighter, ctx) {
+    const deal = ransomOffer(rng, captor, owner, fighter, ctx);
+    if (!deal) return null;
+    return ransomWorthPaying(owner, fighter, deal.price, ctx) ? deal : null;
   }
 
   /**
@@ -17121,7 +17344,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     foldPenalty, buyPenalty, priceModifier, relationship, bodyMoney, seenDoing, TELEMETRY,
     considerJoin, considerTake, considerInvite, composeTerms, rankBanners, actsThisWindow, contactScore, livingRegard, appetite, bodyWorth, offerRange, evaluateOffer, termsValue, considerPact, pactViability, pactChance, wantsStandDown,
     wantOf, resourceRates, settleHaul,
-    ransomPrice, considerRansom, resolveCaptive,
+    ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     considerBetrayal, disqualificationRoll, aleasStandingOf,
     settle
   };
@@ -18028,7 +18251,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the march rides it rather than crowning an already-loaded one. Squad pace is
        the AVERAGE over its standing bodies, trainable like anything else; race
        flavour arrives through race stat spreads, never through a race multiplier. */
-    PACE_PER_REFLEX: 0.012,
+    /* §MAP THE MARCH WAS TWICE WHAT IT SAID. This read (reflex − 10) × 0.012 from the days
+       when stats ran 10–20. Stats run 10–200 with a median near 90, so the MEDIAN squad
+       marched at 1.9× DAY_MARCH and a quick one at 2.5× — past contact range in a day, which
+       is most of why squads seemed to leap past each other between frames. Anchored at the
+       median now: reflex 46 walks at 0.91, 133 at 1.09, the trainable difference kept, the
+       day's march meaning what it says. (measure_map.cjs) */
+    PACE_PIVOT: 90,                     // [C] the reflex at which a squad marches exactly DAY_MARCH
+    PACE_PER_REFLEX: 0.002,             // [C] per point off the pivot
+    PACE_MIN: 0.8, PACE_MAX: 1.25,      // [C]
     /* --- SHOOTING IS HEARD ---
        Until now the only way a squad learned where anybody was, was `flares`: every live
        squad's exact position handed to every corp's planner. Perfect knowledge, gated by
@@ -18138,6 +18369,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        was rebuilt. The doc entry goes with it. */
     WITHDRAW_RUN_FRAC: 0.60,            // [C] and you can only fall back into room you have
     KNOWN_STALE: 3,                     // [S] a sighting older than this is not information
+    MAP_STALE: 8,                       // [S] but the manager's map keeps it, as last-known, this long
     /* §KNOW THE PICTURE. Ruled with the dispersed drop: every OA knows where every other
        came down — the draft is posted — and after that only what its own squads (and its
        banner's) have seen, where they saw it, until it goes stale. */
@@ -19006,6 +19238,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return pick;
     };
 
+    /* a ransom paid: he comes home hurt, the money moves at the books, both crowds notice */
+    function settleRansom(deal, f, owner, captor) {
+      f.status = 'injured';                     /* they come home, and they come home hurt */
+      f._capturedBy = null;
+      owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
+      captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
+      /* §3.1 — buying your people back is the thing your own ships care about most, and
+         the captor's fanbase notices you dealt straight with them. */
+      if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
+      stats.deals.push(deal);
+      stats.ransoms = (stats.ransoms || 0) + 1;
+      if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
+    }
+    stats._settleRansom = settleRansom;
+
     /* Offers, in a fixed order so the stream is deterministic. */
     for (const joiner of corps) {
       if (joiner.joinedTo || joiner.disqualified || sealed(joiner)) continue;
@@ -19147,24 +19394,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
 
-    /* N10 — prisoners bought back, as their own small deal at the same window. */
+    /* N10 — prisoners bought back, as their own small deal at the same window. §6.15 A MANAGER
+       ANSWERS HIS OWN: when his man is held, the captor's price waits on the window and he pays
+       or does not; when he holds another OA's man, their offer to buy him back waits there and
+       he sells or keeps. The willingness roll that used to answer for him answers only the AI. */
+    stats.ransomAsks = (stats.ransomAsks || []).filter(a => !a.answered);
     for (const owner of corps) {
       for (const f of owner.allBodies) {
         if (f.status !== 'captured' || !f._capturedBy) continue;
         const captor = corps.find(c => c.id === f._capturedBy);
         if (!captor || captor.disqualified) continue;
+        if (stats.ransomAsks.some(a => a.fighter === f.id)) continue;   /* already on his window */
+        if (owner.id === opts.human) {
+          const offer = NEG.ransomOffer(rng, captor, owner, f, ctx);
+          if (offer) stats.ransomAsks.push({ side: 'owner', fighter: f.id, name: f.name, captor: captor.id, owner: owner.id,
+                                             price: offer.price, worth: offer.worth, day: day, answered: false });
+          continue;
+        }
+        if (captor.id === opts.human) {
+          /* what they would pay: the manager's asking price, read from his own OA's regard */
+          const price = Math.round(NEG.ransomPrice(f) * NEG.priceModifier(captor, owner));
+          if (NEG.ransomWorthPaying(owner, f, price, ctx))
+            stats.ransomAsks.push({ side: 'captor', fighter: f.id, name: f.name, captor: captor.id, owner: owner.id,
+                                    price: price, worth: Math.round(NEG.bodyWorth(f)), day: day, answered: false });
+          continue;
+        }
         const deal = NEG.considerRansom(rng, captor, owner, f, ctx);
         if (!deal) continue;
-        f.status = 'injured';                     /* they come home, and they come home hurt */
-        f._capturedBy = null;
-        owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
-        captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
-        /* §3.1 — buying your people back is the thing your own ships care about most, and
-           the captor's fanbase notices you dealt straight with them. */
-        if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
-        stats.deals.push(deal);
-        stats.ransoms = (stats.ransoms || 0) + 1;
-        if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
+        settleRansom(deal, f, owner, captor);
       }
     }
 
@@ -19724,6 +19981,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     return out;
   }
+  /* §MAP WHAT THE MANAGER'S MAP MAY KEEP. The planner drops a sighting after KNOWN_STALE days
+     and the moment the squad dies ("the dead do not need watching") — right for deciding,
+     wrong for a map, where a foreign squad simply vanished. The map keeps a sighting to
+     MAP_STALE days as last-known, with its age, and a squad known to be down as a remnant. */
+  function pictureForMap(corp, day) {
+    const out = [], P2 = corp._picture || {};
+    for (const k in P2) {
+      const e = P2[k];
+      const age = day - e.day, limit = e.landing ? CONST.LANDING_KNOWN_DAYS : CONST.MAP_STALE;
+      if (age > limit) continue;
+      if (allied(corp, e.sq.corp)) continue;
+      out.push(Object.assign({}, e, { down: !squadHead(e.sq).length, stale: age > (e.landing ? CONST.LANDING_KNOWN_DAYS : CONST.KNOWN_STALE) }));
+    }
+    return out;
+  }
   function planCorp(rng, corp, planet, day, flares, stats, noises) {
     const zNow = MAP.zoneOn(planet, day);
     const mine = corp.squads.filter(sq => squadHead(sq).length >= 1);
@@ -20250,8 +20522,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const head = squadHead(sq);
     if (!head.length) return 1;
     let sum = 0;
-    for (const b of head) sum += (b.stats && b.stats.reflex) || 10;
-    return 1 + (sum / head.length - 10) * CONST.PACE_PER_REFLEX;
+    for (const b of head) sum += (b.stats && b.stats.reflex) || CONST.PACE_PIVOT;
+    return Math.max(CONST.PACE_MIN, Math.min(CONST.PACE_MAX, 1 + (sum / head.length - CONST.PACE_PIVOT) * CONST.PACE_PER_REFLEX));
   }
   function sizeDetectMult(sq) {
     return 1 + (squadHead(sq).length - CONST.SIZE_PIVOT) * CONST.SIZE_DETECT_PER_BODY;
@@ -21845,7 +22117,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   const run = Math.min(CONST.BREAK_DISTANCE * (0.8 + rng() * 0.5),
                                        roomNow * CONST.WITHDRAW_RUN_FRAC);
                   const p = MAP.clampInside(planet, day, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
+                  /* §MAP the break for it is a leg of the day's walk: without it the marker
+                     finished its animated march and then jumped to where the run had put it */
+                  if (!sq._track || !sq._track.length) sq._track = [Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000];
                   sq.x = p.x; sq.y = p.y;
+                  sq._track.push(Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000);
                   const cornered = roomNow <= planet.radius * CONST.CORNERED_ZONE_FRAC;
                   sq.intent = cornered ? null
                     : { type: 'withdraw', tx: sq.x + (dx / len) * run,
@@ -21991,6 +22267,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             });
             for (const h of hosts) h.rations += share;
             q.bodies = []; q.rations = 0; q.intent = null;
+            /* §MAP the emptied squad is recorded as FOLDED, not down: on the map a squad with
+               nobody left read as a death with no fight beside it, and this was most of those */
+            q._reformed = day;
+            q._downAt = { x: Math.round(q.x * 1000) / 1000, y: Math.round(q.y * 1000) / 1000 };
             stats.audit.reforms = (stats.audit.reforms || 0) + 1;
             rec({ t: 'reform', x: q.x, y: q.y, c: c.id, n, into: hosts.length });
           }
@@ -22029,7 +22309,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              functions the AI is scored by, which is why they were split out in the first place.
              A parallel valuation for the human would be a second game. */
           const nctx = makeNegContext(rng, corps, planet, day, stats);
-          const table = { canJoin: [], wouldTake: [], pacts: [], asks: [] };
+          const table = { canJoin: [], wouldTake: [], pacts: [], asks: [], ransoms: [] };
+          /* §6.15 his ransoms: his people held for a price, and other OAs' people he holds */
+          for (const a of (stats.ransomAsks || [])) {
+            if (a.answered) continue;
+            const f = corps.reduce((found, c) => found || c.allBodies.find(b => b.id === a.fighter), null);
+            if (!f || f.status !== 'captured') { a.answered = true; continue; }
+            table.ransoms.push({ side: a.side, fighter: a.fighter, name: a.name, corp: a.side === 'owner' ? a.captor : a.owner,
+                                 price: a.price, worth: a.worth, day: a.day });
+          }
           /* §6.2 WHO IS ASKING TO COME IN under your banner, on what terms, and what it would
              cost you to say no: their people you would still be fighting (the spoiler) and
              the people THEY would lose for it. Priced by `offerRange`, same as everything. */
@@ -22112,7 +22400,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             cadence: MAP.windowCadence(planet, day),
             odds: board, penned: penned, zone: zNow, table: table,
             weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
-            picture: pictureOf(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing })),
+            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, down: !!e.down, stale: !!e.stale })),
             leanings: Object.assign({}, you._leanings || {}),
             /* the wall's remaining beats, so a manager can plan against the clock */
             wall: MAP.wallSchedule(planet, day),
@@ -22202,6 +22490,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   if (deal.standDown) stats.standDowns = (stats.standDowns || 0) + 1;
                   stats.audit.humanJoins = (stats.audit.humanJoins || 0) + 1;
                 } else if (verdict) stats.audit.humanRefused = (stats.audit.humanRefused || 0) + 1;
+              }
+            } else if (d.kind === 'ransom_pay' || d.kind === 'ransom_decline' || d.kind === 'ransom_sell' || d.kind === 'ransom_keep') {
+              /* §6.15 his own ransoms */
+              const a = (stats.ransomAsks || []).filter(x => x.fighter === d.fighter && !x.answered)[0];
+              if (a) {
+                a.answered = true;
+                const f = corps.reduce((found, c) => found || c.allBodies.find(b => b.id === a.fighter), null);
+                const owner = corps.filter(c => c.id === a.owner)[0], captor = corps.filter(c => c.id === a.captor)[0];
+                const yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
+                if (yes && f && f.status === 'captured' && owner && captor)
+                  stats._settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: a.price, day: day, worth: a.worth }, f, owner, captor);
+                stats._answerEcho = { kind: d.kind, corp: a.side === 'owner' ? a.captor : a.owner, accepted: yes, name: a.name, price: a.price };
               }
             } else if (d.kind === 'take' || d.kind === 'accept' || d.kind === 'refuse') {
               /* somebody comes in under YOUR banner — on terms you set ('take'), on the terms
@@ -22311,7 +22611,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                       y: alive ? Math.round(q.y * 1000) / 1000 : q._downAt.y,
                       ax: alive && q._aim ? Math.round(q._aim.x * 1000) / 1000 : null,
                       ay: alive && q._aim ? Math.round(q._aim.y * 1000) / 1000 : null,
-                      w: alive ? (q._why || 'drift') : 'down', n: alive,
+                      w: alive ? (q._why || 'drift') : (q._reformed ? 'folded' : 'down'), n: alive,
                       st: Math.round(squadStress(q)),
                       rat: Math.round(Math.min(30, q.rations / demand)),
                       g: q.crates, cl: q.claiming ? 1 : 0,
@@ -23181,14 +23481,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        funded RELATIVE to it (`grantFor`). Measured with a careful founder — his own people from
        the tryouts, prisoners at their sentence, a mercenary only to fill the last slot — a
        grant of 150k cleared +₡100k a year before he fought and tripled his bank in three years.
-       At 90k, liked at home and unknown to the fleet, he runs ₡5k down in his first year, level
-       in his second, ₡8k up in his third before any fighting, the crowd doing the growing
-       (₡51k → ₡71k at the door): tight early, more choices as he grows. The kit pass to come
-       will eat into that first year; it is measured then, not guessed now. */
-    LEAN_GRANT: 90000,        // [C] an OA nobody has heard of is not underwritten like one
+       At 75k, warm at home (own 60) and unknown to the fleet, he runs ₡4k down in his first
+       year, ₡5k down in his second, ₡4k up in his third before any fighting, the crowd doing
+       the growing (₡65k → ₡85k at the door): tight early, more choices as he grows. (It was
+       90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
+       where "liked at home" reads, the grant came back down.) The kit pass to come will eat
+       into that first year; it is measured then, not guessed now. */
+    LEAN_GRANT: 75000,        // [C] an OA nobody has heard of is not underwritten like one
                               //     that has been paying out for a century
     GRANT_PER_DIFFICULTY: 0.25, // [C] an established OA's grant is LEAN_GRANT × (2 − this × its
-                              //     difficulty rating): a 1 gets ₡158k a year, a 5 gets ₡68k
+                              //     difficulty rating): a 1 gets ₡131k a year, a 5 gets ₡56k
     LEAN_PIECES: 18,          // [C] guns and plate enough to put one drop on the ground badly
     /* §SPONSORS the appetite for a backer, and what tempers it */
     /* NOT EVERY OA IS IN THE MARKET IN JANUARY. At 0.30 every OA courted from month
@@ -23401,8 +23703,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
     p.race_weights = {};
     Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
-    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0 });
-    delete p.reputation.own;                  /* read from the dials: liked at home */
+    /* LIKED AT HOME means what the page's own-people bands mean by it: under 40 reads
+       Mutinous, 40–65 Strained, 65–85 Loyal. Read off the dials the founder came out at 29 —
+       a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
+       loyalty is earned by the year. The fleet has no opinion yet. */
+    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
     p.id = 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
@@ -25290,7 +25595,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
           }
           f.contract.salary = paying;
-  
+          /* §PAPER THE TERM WAS NEVER RENEWED. A hand the manager re-signed kept the contract
+             that had just run out — `seasons_remaining` at zero — so the offseason expired him
+             again the next year, every year, and `fitBodies` had a man with no paper standing
+             in no squad. The branch below (the AI's own renewals) always reset the term; this
+             one, the one a manager reaches, never did. */
+          f.contract.seasons_remaining = renewalTerm(f);
+          f.contract.seasons_total = renewalTerm(f);
+
           /* a prisoner who has served signs on as anybody else does */
           if (f.contract.kind === 'prisoner') f.contract.kind = 'nattie';
           f._fameAtSigning = f.fame || 0;
@@ -26312,6 +26624,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
                              c._off.expired, c._off.freed, state);
       c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
+      /* the calls are answered: they are this year's, not a standing instruction */
+      c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       /* S15 — this charges the RETAINER only. The purse is charged at the muster below, once
          there is a drop to pay it to. `c._wages` is completed there. */
@@ -26601,6 +26915,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       c.roster = c.roster.filter(f => f.status !== 'dead');
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
+                       /* §BOARD where it finished, so the Board can show the fleet's last
+                          standing beside a placement demand rather than a lit ordinal */
+                       placement: res.placement ? res.placement[id] : null,
+                       won: res.winner === id,
                        patience: c.rep ? Math.round(c.rep.patience) : null,
                        cardScore: c._close ? c._close.score : null,
                        card: c._close && c._close.score
@@ -27131,6 +27449,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     Array.prototype.forEach.call(document.querySelectorAll('.page'), function (p) {
       p.classList.toggle('on', p.getAttribute('data-tab') === tab);
     });
+    /* §RECAP the corner is the NEW month's business and the recap is the old month's; while
+       the recap is up the corner stands down and the recap's own Beacon is the only Continue */
+    document.body.classList.toggle('recapon', tab === 'recap');
+    /* §CORNER the corner reads which page is on, so it is redrawn when that changes: a Here
+       from the Desk used to stay Here on the Roster, and the Beacon pinged instead of moving */
+    if (G && G.state && document.body.classList.contains('yearline') && tab !== 'recap') renderBrief();
     /* refresh the tab's live view on open, so the board and roster always tell the truth */
     if (G) {
       if (tab === 'squads') renderSquads();
@@ -27235,6 +27559,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       '<div class="colblk"><div class="clab">Contract</div><div class="paperline">' + paper + '</div></div>';
   }
   function capWords(t) { return String(t).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+  /* a label written with its own capitals ("Gate and Merchandise") is already in Title Case
+     and keeps its small words; only an all-lower-case key is capitalised word by word */
+  function titleOf(t) { t = String(t).replace(/_/g, ' '); return /[A-Z]/.test(t) ? t : capWords(t); }
 
   /* ======================= WHAT A QUIRK DOES =======================
      A quirk was a word on a card. What it MEANS is in the data — a stat it moves, and the
@@ -27602,7 +27929,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
             '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
-            ? '<div class="rsdone">' + ({ sign: 'Re-Signed', haggle: 'Offered ' + crs(r.called.offer || low), release: 'Let Go' })[r.called.how] +
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at the Turn', haggle: 'Offered ' + crs(r.called.offer || low) + ' \u00b7 Answered at the Turn', release: 'Let Go \u00b7 Walks at the Turn' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
             : '<div class="rsways">' +
               '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.year) + '</button>' +
@@ -27788,7 +28115,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         '</span></span>';
     } else {
     var cells = STAT_KEYS.map(function (k) { return statCell(k, STAT_ABBR[k], s[k]); }).join('') +
-      '<span class="pc-pot">Ceiling ' + (f.potential != null ? f.potential : '\u2014') + (f.carried ? ' <span class="ktag">Carried Over</span>' : '') + '</span>';
+      /* CEILING is gone from the card everywhere: training runs to the scale's ceiling for
+         everyone, so a person's own potential decides nothing a manager can see or move, and
+         naming it promised a mechanic that is not there. What a scout THINKS of a prospect
+         still prices him; it is not a stat. */
+      (f.carried ? '<span class="pc-pot"><span class="ktag">Carried Over</span></span>' : '');
     }
 
 
@@ -27983,18 +28314,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function agendaItems() {
     var items = [], me = G.corps[G.me], m = G.state.month;
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
-    if (G._tradeOffer && TRADE.tradingOpen(m)) items.push({ txt: cSpan(G._tradeOffer.from) + ' Has Written', tab: 'talks', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
-    if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', urgent: true, cost: 'Silence Is an Answer' });
+    if (G._tradeOffer && TRADE.tradingOpen(m)) items.push({ txt: cSpan(G._tradeOffer.from) + ' Has Written', tab: 'talks', kind: 'Letter', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
+    if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', kind: 'Board', urgent: true, cost: 'Silence Is an Answer' });
     if (m === SEASON.CONST.EIGHT_MONTH) {
       var E8 = G.state.eight || { names: {}, declined: {} };
-      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', urgent: true, cost: 'Best Named for You' });
+      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', kind: 'Eight', ping: '#eight', urgent: true, cost: 'Best Named for You' });
     }
     var dirt = (SEASON.evidenceOf(G.state, G.me) || []).filter(function (e) { return !e.used; });
-    if (dirt.length) items.push({ txt: 'You Hold Something on ' + cSpan(dirt[0].against), tab: 'desk', cost: 'It Goes Stale' });
+    if (dirt.length) items.push({ txt: 'You Hold Something on ' + cSpan(dirt[0].against), tab: 'desk', kind: 'Dirt', cost: 'It Goes Stale' });
     (SEASON.eventsFor(G.state, G.me) || []).forEach(function (e) {
       if (e.resolved) return;
       var d = e.options.filter(function (o) { return o.id === e.def; })[0];
-      items.push({ txt: esc(e.title), tab: 'desk', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
+      items.push({ txt: esc(e.title), tab: 'desk', kind: 'Event', ping: '#events', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
     });
     /* "NOTHING MARKED IN THE NATURAL-BORN WINDOW · 6 ON THE SHEET" stood here and said
        nothing: marking is not a thing any more (a Natural-Born signs when you sign them), the
@@ -28002,16 +28333,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        not a task waiting on anybody. Removed rather than reworded. */
     var spent = 0; for (var k in (G._focusSel || {})) if (k !== '_m' && typeof G._focusSel[k] === 'number') spent += G._focusSel[k];
     spent = Math.max(spent, trainPips() + restPips() + intelPips() + courtPips());
-    if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', cost: 'Wasted' });
+    if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', kind: 'Focus', ping: '.focusdeskline', cost: 'Wasted' });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
        button up over a thing a manager frequently cannot act on — no window open, nobody to
        sign, nothing to do but click around it. The Market says how short an OA is where
        something can be done about it, and the lock stops a drop that cannot be fielded.
        Nothing waits on the turn for it. */
-    if (m === 11 && !Object.keys(G.plan.at || {}).length) items.push({ txt: 'No Squads Set', tab: 'squads', urgent: true, cost: 'Quartermaster\u2019s Deal' });
+    if (m === 11 && !Object.keys(G.plan.at || {}).length) items.push({ txt: 'No Squads Set', tab: 'squads', kind: 'Drop', urgent: true, cost: 'Quartermaster\u2019s Deal' });
     if (m === 11) {
       var bad = 0; alive.forEach(function (b) { if (G.plan.at[b.id] != null && G.plan.hand[b.id] && !handStands(b)) bad++; });
-      if (bad) items.push({ txt: bad + ' Hand' + (bad === 1 ? '' : 's') + ' Incomplete', tab: 'squads', cost: 'Overridden' });
+      if (bad) items.push({ txt: bad + ' Hand' + (bad === 1 ? '' : 's') + ' Incomplete', tab: 'squads', kind: 'Kit', cost: 'Overridden' });
     }
     return items;
   }
@@ -28268,6 +28599,37 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       bit(crs(me.account.treasury), 'In the Bank', 'cr') +
       '</div>';
   }
+  /* §CORNER one pulse on the one element an agenda item is about; the page itself when the
+     item has no element of its own */
+  function pingFor(it) {
+    var el = null;
+    if (it && it.ping) el = document.querySelector(it.ping);
+    if (!el) { var pg = document.querySelector('.page.on'); el = pg && (pg.querySelector('.box, .card, .panel, h2') || pg); }
+    if (!el) return;
+    el.classList.remove('pinged'); void el.offsetWidth; el.classList.add('pinged');
+    setTimeout(function () { el.classList.remove('pinged'); }, 900);
+  }
+  /* §TURN the band, the number, the rule, then whatever follows; skipped when the dev skip is
+     on or the harness asks for speed */
+  function playTurn(from, to, then) {
+    if ((G && G._devSkip) || window.__noTurn || !document.body) { then(); return; }
+    var kf = monthKind(from), kt = monthKind(to);
+    var old = $('turnwipe'); if (old) old.parentNode.removeChild(old);
+    var w = document.createElement('div'); w.id = 'turnwipe';
+    /* the tints are derived in the stylesheet from these two, at a third */
+    w.style.setProperty('--from', kf.c); w.style.setProperty('--to', kt.c);
+    var name = to >= 12 ? 'The Divide' : ((SEASON.MONTHS[to] || {}).name || 'Month ' + to);
+    var opens = to >= 12 ? 'Twenty-Four Go Down the Well' : ((SEASON.MONTHS[to] || {}).opens || '');
+    w.innerHTML = '<div class="veil"></div><div class="band"></div><div class="tick"><div class="n">Month</div><div class="mno">' + from + '</div>' +
+                  '<div class="wn">' + esc(name) + '</div><div class="rule"></div><div class="op">' + esc(opens) + '</div></div>';
+    document.body.appendChild(w);
+    setTimeout(function () { var n = w.querySelector('.mno'); if (n) n.textContent = String(to); renderYearLine(); }, 1000);
+    /* THE HAND-OFF. The recap is stood up while the veil is still opaque, so that when the veil
+       fades the summary is already there beneath it; the veil going and the recap arriving are
+       one motion, not a cut to an empty frame and a jump. */
+    setTimeout(function () { then(); }, 2700);
+    setTimeout(function () { if (w.parentNode) w.parentNode.removeChild(w); }, 3600);
+  }
   function renderBrief() {
     renderYearLine(); renderEvents(); renderEight();
     var host = $('brief'); if (!host || !G || !G.state) return;
@@ -28293,30 +28655,39 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var ag = $('agenda');
     if (ag && (G.div || G.state.month >= 12 || G._dividendFloor)) { renderTurn(); return; }
     if (ag) {
-      if (G._agendaShut == null) G._agendaShut = false;
-      ag.className = G._agendaShut ? 'shut' : '';
-      /* the button leads to the next unfinished thing, and ends the month only when there is
-         nothing left — with a way past it, because a manager may choose to let something
-         lapse and the recap will say that he did */
+      var TABNAME = { desk: 'Desk', roster: 'Roster', board: 'Board', talks: 'Talks', squads: 'Squads', lights: 'Lights', sponsors: 'Sponsors' };
+      var cur = (document.querySelector('.page.on') || {}).getAttribute ? document.querySelector('.page.on').getAttribute('data-tab') : null;
       var first = items[0];
-      var turn = items.length
-        ? '<button class="turnbtn" id="turnnext">Waiting on You \u00b7 ' + items.length +
-            '<span class="sub">' + esc(String(first.txt).replace(/<[^>]*>/g, '')) + ' \u2192</span></button>' +
+      var plain = function (t) { return String(t).replace(/<[^>]*>/g, ''); };
+      var tabsHtml = items.map(function (it, i) {
+        var here = it.tab === cur;
+        return '<div class="atab' + (it.urgent ? ' urgent' : '') + (here ? ' here' : '') + '" data-agenda="' + it.tab + '" data-idx="' + i + '">' +
+               '<span class="k">' + (here ? 'Here' : esc(it.kind || TABNAME[it.tab] || it.tab)) + '</span>' +
+               '<span class="t">' + it.txt + (it.cost ? '<span class="c">' + esc(it.cost) + '</span>' : '') + '</span></div>';
+      }).join('');
+      var beacon = items.length
+        ? '<button class="beacon" id="turnnext" title="Waiting on You \u00b7 ' + items.length + '"><span class="badge">' + items.length + '</span>' +
+            '<span class="w">Waiting <br>on You</span><small>Next: ' + esc(TABNAME[first.tab] || first.tab) + '</small></button>' +
           '<button class="anyway" id="turnanyway">End the Month Anyway</button>'
-        : '<button class="turnbtn clear" id="turnend">End the Month<span class="sub">Nothing Waiting</span></button>';
-      ag.innerHTML = '<div class="items">' + (items.length ? items.map(function (it) {
-          return '<div class="agi' + (it.urgent ? ' urgent' : '') + '" data-agenda="' + it.tab + '"><span class="dot"></span><span class="at">' + it.txt + (it.cost ? '<div class="m" style="font-size:10px">' + it.cost + '</div>' : '') + '</span><span class="go">' + (SURFACES[it.tab] ? SURFACES[it.tab].name : '') + ' \u2192</span></div>'; }).join('')
-                     : '<div class="clear">Nothing Waiting</div>') + '</div>' +
-        '<div class="ah" id="agendahead"><span>Waiting on You</span><b' + (items.length ? '' : ' class="clear"') + '>' + items.length + '</b></div>' +
-        '<div class="turn">' + turn + '</div>';
+        : '<button class="beacon clear" id="turnend"><span class="w">End the <br>Month</span><small>Nothing Waiting on You</small></button>';
+      ag.className = '';
+      ag.innerHTML = '<div class="items">' + tabsHtml + '</div>' + beacon;
       var endIt = function () { var em2 = $('endmonth'); if (em2 && em2.style.display !== 'none') em2.onclick(); };
-      if ($('turnnext')) $('turnnext').onclick = function () { var t = first.tab; if (TAB[t]) TAB[t].click(); else show(t); };
+      /* an item already on this page: say Here, and ping the one element it is about */
+      var goTo = function (it) {
+        if (!it) return;
+        var pg = document.querySelector('.page.on'), now = pg ? pg.getAttribute('data-tab') : null;
+        if (it.tab === now) { pingFor(it); return; }
+        if (TAB[it.tab]) TAB[it.tab].click(); else show(it.tab);
+        /* arriving on the page, the item's element is pinged once so the eye lands on it */
+        setTimeout(function () { pingFor(it); renderBrief(); }, 60);
+      };
+      if ($('turnnext')) $('turnnext').onclick = function () { goTo(first); };
       if ($('turnanyway')) $('turnanyway').onclick = endIt;
       if ($('turnend')) $('turnend').onclick = endIt;
-      document.body.classList.toggle('agendaopen', !G._agendaShut);
-      $('agendahead').onclick = function () { G._agendaShut = !G._agendaShut; renderBrief(); };
+      document.body.classList.toggle('agendaopen', true);
       Array.prototype.forEach.call(ag.querySelectorAll('[data-agenda]'), function (el) {
-        el.onclick = function () { var t = el.getAttribute('data-agenda'); if (TAB[t]) TAB[t].click(); else show(t); };
+        el.onclick = function () { goTo(items[+el.getAttribute('data-idx')]); };
       });
     }
     var em = $('endmonth');
@@ -28673,7 +29044,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               control doing what the two beside it already do — and a manager reading three
               sets of pips on one line has no way to know that. Wounds and stress are the two
               things rest answers; they are the two things a manager paints. */
-           '<span class="tgnum' + (rn > 0 ? ' on' : '') + '" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
+           /* §DESK a name opens a sheet on every screen: the recovery grid's names were the
+              one list on the Desk that did not, and they read the same as the drill's */
+           '<span class="tgnum tgname' + (rn > 0 ? ' on' : '') + '" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + esc(f.name) + '</span>' +
            '</td>';
       RTRACKS.forEach(function (tr) {
         var key = f.id + '|' + tr.id, cn = rgGet('cell', key);
@@ -28808,10 +29181,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          colour and mark like every other place an OA is named. The planet keeps its
          own lozenge \u2014 it is not an OA. */
       h += '<tr class="' + (t.planet ? 'iplanet' : '') + (n > 0 ? ' lit' : '') + '">' +
-        '<td class="iname"><span class="idoss ' + (n > 0 ? 'on' : '') + '" data-doss="' + t.id + '"' +
+        /* §DESK the intel row reads like a drill row: the name centred and underlined as the
+           link it is, and nothing else in the cell. The subtitle said what the dossier says. */
+        '<td class="iname"><span class="idoss tgname ' + (n > 0 ? 'on' : '') + '" ' +
+        (t.planet ? 'data-doss="' + t.id + '"' : 'data-oa="' + t.id + '"') +
         (t.planet ? '' : ' style="color:' + colFor(t.id) + '"') + '>' +
-        (t.planet ? '\u25c8 ' : markFor(t.id, 13) + ' ') + esc(t.name) + '</span>' +
-        ' <span class="isub">' + t.sub + '</span></td>' +
+        (t.planet ? '\u25c8 ' : markFor(t.id, 13) + ' ') + esc(t.name) + '</span></td>' +
         '<td class="ipips">' + (canGather ? intelPipTrack(t.id, n) : '') + '</td>' +
         '<td class="istat" style="color:' + st.color + '">' + st.word + '</td></tr>';
       /* the dossier opens beneath its own row, the Training grid's habit */
@@ -28856,12 +29231,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                text: cond.text, reward: cond.reward };
     });
   }
+  /* ONE SHAPE FOR A REWARD: "Reward on Completion · X", cash or kind, so a manager reading
+     down the board compares like with like instead of "2× Medical Kit" against "₡40,000". */
   function rewardWords(rw) {
     if (!rw || rw.kind === 'cash')
-      return 'Reward ' + crs(SEASON.SPON.CONST.SPONSOR_REWARD) + ' on Completion';
+      return 'Reward on Completion \u00b7 ' + crs(SEASON.SPON.CONST.SPONSOR_REWARD);
+    var n = rw.count || 1;
     var tag = rw.tag === 'energy' ? 'Energy Kit' : rw.tag === 'medical' ? 'Medical Kit'
             : (rw.tag.charAt(0).toUpperCase() + rw.tag.slice(1) + ' Kit');
-    return 'Reward <span class="kit">' + (rw.count || 1) + '&times; ' + tag + '</span> on Completion';
+    return 'Reward on Completion \u00b7 <span class="kit">' + n + ' ' + tag + (n === 1 ? '' : 's') + '</span>';
   }
   function courtPipTrack(house, n) {
     var s = '<span class="piptrack">';
@@ -29375,14 +29753,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       G._dividendFloor = true;
       applyPhase();
       renderDividend();
-      if (!G._devSkip) { G._recapThen = 'lights'; showRecap(); }
+      if (!G._devSkip) { G._recapThen = 'lights'; playTurn(res.month, G.state.month, showRecap); }
       return;
     }
     applyPhase();
     if (G.state.month >= 12)
       dlog('<b>the lock</b> \u2014 eleven months are spent. The Divide has the floor.');
     /* the month's own result stands before the next brief; only the dev skip passes it by */
-    if (!G._devSkip) showRecap();
+    if (!G._devSkip) playTurn(res.month, G.state.month, showRecap);
   };
   /* ============================ THE RECAP ============================ */
   function monthSnapshot(me) {
@@ -29398,52 +29776,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
     var sgn = function (v, dp) { var r = dp ? v.toFixed(dp) : Math.round(v); return (v > 0 ? '+' : '') + r; };
     var cls = function (v) { return v > 0 ? 'good' : v < 0 ? 'bad' : 'm'; };
-    var row = function (k, v, c) { return '<div class="row"><span class="k">' + k + '</span><span class="v' + (c ? ' ' + c : '') + '">' + v + '</span></div>'; };
     /* money: the ledger's lines since the snapshot */
     var led = (me.account.ledger || []).slice(snap.ledgerN);
     var dT = me.account.treasury - snap.treasury;
-    /* §RECAP THE MONTH'S MONEY MUST ADD UP. The change stood at the TOP, computed across the
-       whole month, above a list showing only the LAST SIX ledger lines — so the figures could
-       not agree by construction and a manager was asked to trust an arithmetic he could not
-       follow. Every line the month wrote is shown, in the order it was written, and the total
-       is at the FOOT where a total belongs, with the opening and closing purse beside it. */
-    /* §RECAP WHAT YOU HAD, WHAT MOVED, WHAT YOU HAVE. The total was at the head over an
-       itemisation that could not reach it; then the total went to the foot and the OPENING
-       purse went with it, so the foot read "The Month ₡210,000 → ₡219,594 +₡9,594" — the whole
-       sum crammed into one line under the one line it summarised. A month reads down: the
-       purse you started with, then every line that moved it, then the purse you have. */
-    var money = row('At the Start', '<span class="m">' + crs(snap.treasury) + '</span>');
-    led.forEach(function (l) {
-      money += row(esc(capWords(l.label || l.kind)),
-                   '<span class="' + cls(l.amount) + '">' + (l.amount >= 0 ? '+' : '\u2212') +
-                   crs(Math.abs(l.amount)) + '</span>');
-    });
-    if (!led.length) money += row('Nothing Moved', '<span class="m">\u2014</span>');
-    money += '<div class="recaptot">' + row('At the End',
-      '<b>' + crs(me.account.treasury) + '</b> ' +
-      '<span class="' + cls(dT) + '">' + (dT >= 0 ? '+' : '\u2212') + crs(Math.abs(dT)) + '</span>') + '</div>';
     /* people: who came, who left, who changed status */
-    var people = '', came = R.joined.map(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; return b ? nameSpan(b) : ''; }).filter(Boolean);
-    if (came.length) people += row('Signed', came.join(', '));
+    var came = R.joined.map(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; return b ? nameSpan(b) : ''; }).filter(Boolean);
     /* §QUIET WHAT WAS ARRANGED, TOLD RATHER THAN LISTED. The Backroom used to print every
        quiet act of the year in a column under the things a manager might arrange next, and
        report each outcome the instant it landed. A month's work is read when the month is
        read, in a sentence: what was asked for, and whether it held. */
     var quiet = (SEASON.illicitDone(G.state, G.me) || []).filter(function (d) { return d.month === G.state.month - 1 || d.month === G.state.month; });
-    quiet.forEach(function (d) {
-      people += row(esc(capWords(String(d.id).replace(/_/g, ' '))),
-        d.worked ? '<span class="good">Went Off Clean</span>'
-                 : '<span class="bad">Came Apart \u00b7 Traced to You</span>');
-    });
     var gone = [], changed = [];
     Object.keys(snap.stats).forEach(function (id) {
       var b = me.roster.filter(function (x) { return x.id === id; })[0], was = snap.stats[id];
       if (!b) { gone.push(esc(was.name)); return; }
       if (b.status !== was.status) changed.push('<span style="color:' + raceColour(b) + '">' + esc(b.name) + '</span> <span class="m">' + capWords(was.status) + ' \u2192 ' + capWords(b.status) + '</span>');
     });
-    if (gone.length) people += row('Left', gone.join(', '));
-    if (changed.length) people += row('Changed', changed.join('<br>'));
-    if (!people) people = '<div class="none">No Comings or Goings</div>';
     /* training: the biggest gains */
     var gains = [];
     me.roster.forEach(function (b) {
@@ -29451,32 +29799,89 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       STAT_KEYS.forEach(function (k) { var d = (b.stats[k] || 0) - (was.s[k] || 0); if (d >= 0.5) gains.push({ b: b, k: k, d: d }); });
     });
     gains.sort(function (a, b) { return b.d - a.d; });
-    var train = gains.length ? gains.slice(0, 6).map(function (g) {
-      return row('<span style="color:' + raceColour(g.b) + '">' + esc(g.b.name) + '</span> <span style="color:' + STATCOL[g.k] + '">' + STAT_ABBR[g.k] + '</span>', '<span class="good">' + sgn(g.d, 1) + '</span>'); }).join('')
-      + (gains.length > 6 ? row('<span class="m">And ' + (gains.length - 6) + ' More</span>', '') : '')
-      : '<div class="none">No Training Took</div>';
-    /* standing */
-    var st = row('Own People', standBand(read.own || 0, 'own').word + ' <span class="' + cls((read.own || 0) - snap.own) + '">' + sgn((read.own || 0) - snap.own, 1) + '</span>') +
-             row('The Fleet', standBand(read.fleet || 0, 'fleet').word + ' <span class="' + cls((read.fleet || 0) - snap.fleet) + '">' + sgn((read.fleet || 0) - snap.fleet, 1) + '</span>') +
-             (snap.patience != null && me.rep ? row('Patience', Math.round(me.rep.patience) + ' <span class="' + cls(me.rep.patience - snap.patience) + '">' + sgn(me.rep.patience - snap.patience) + '</span>') : '');
     /* the month's work and its window, from the lines the log already has */
-    var work = R.lines.length ? R.lines.map(function (l) { return '<div class="row"><span class="v" style="text-align:left">' + l + '</span></div>'; }).join('') : '<div class="none">A Quiet Month</div>';
-    var evs = (R.events || []).map(function (x) { return row(esc(x.line), x.defaulted ? '<span class="bad">By Default</span>' : '<span class="good">Your Call</span>'); }).join('');
     var eight = R.event === 'eight' ? eightRecapHtml() : '';
     var lights = R.event === 'dividend' ? dividendRecapHtml() : '';
-    var left = R.agendaLeft.length ? R.agendaLeft.map(function (it) { return row(it.txt, '<span class="' + (it.urgent ? 'bad' : 'm') + '">' + (it.cost || 'Let Slide') + '</span>'); }).join('') : '<div class="none">Nothing Left Waiting</div>';
     var nextWin = SEASON.MONTHS[nextM];
-    $('recaphead').innerHTML = '<div class="dl"><span>Month <b>' + m + '</b> \u00b7 ' + esc(R.name) + ' \u00b7 Ended</span>' +
-      (nextM <= 11 && nextWin ? '<span>Next <b>Month ' + nextM + ' \u00b7 ' + esc(nextWin.name) + '</b></span>' : '<span><b>The Lock</b></span>') + '</div><span></span>';
+    /* §RECAP the arriving month's colour runs through the strip, the next-month box and Continue */
+    var nk = monthKind(nextM);
+    var page = document.querySelector('.page[data-tab="recap"]'); if (page) page.style.setProperty('--nxc', nk.c);
+    var nextName = nextM <= 11 && nextWin ? 'Month ' + nextM + ' \u00b7 ' + nextWin.name : 'The Lock';
+    $('recaphead').innerHTML = '<span>Month <b>' + m + ' \u00b7 ' + esc(R.name) + '</b> \u00b7 Ended</span>' +
+      '<span class="nx">Next \u00b7 ' + esc(nextName) + '</span>';
+    /* THE HEADLINE: the one thing that mattered most this month, in this order — the show
+       that was held, an event you answered, who came and went, the money, the standing */
+    var plainOf = function (h) { return String(h).replace(/<[^>]*>/g, ''); };
+    var headline = '', deck = [];
+    /* the log's lines less the money (the money column has every ledger line already) */
+    var lineTexts = (R.lines || []).filter(function (l) { return !/landed:|Gate and Merchandise/.test(l); });
+    if (R.event === 'eight' && G.state.eight && G.state.eight.result && G.state.eight.result.held) {
+      var ER = G.state.eight.result, mineSide = ER.winner && ER.teams && ER.teams[ER.winner] && ER.teams[ER.winner].some(function (t) { return t.corp === G.me; });
+      headline = 'The Eight Was Fought \u00b7 ' + (ER.winner ? (mineSide ? '<b>Your Four Took It</b>' : 'Your Four <b>Lost</b>') : '<b>Drawn</b>');
+    } else if (R.event === 'dividend') {
+      headline = 'The Dividend Paid \u00b7 <b>The Lights Came Up</b>';
+    } else if ((R.events || []).length) {
+      headline = esc(R.events[0].line) + ' \u00b7 ' + (R.events[0].defaulted ? '<b>By Default</b>' : '<b>Your Call</b>');
+    } else if (came.length) {
+      headline = came.slice(0, 2).join(' and ') + (came.length > 2 ? ' and ' + (came.length - 2) + ' More' : '') + ' <b>Signed</b>';
+    } else if (gone.length) {
+      headline = gone.slice(0, 2).join(' and ') + ' <b>Left</b>';
+    } else if (lineTexts.length) {
+      headline = lineTexts.shift();
+    } else if (Math.abs(dT) >= 5000) {
+      headline = (dT > 0 ? 'The Month Made ' : 'The Month Cost ') + '<b>' + crs(Math.abs(dT)) + '</b>';
+    } else {
+      headline = 'A <b>Quiet Month</b> \u00b7 ' + esc(R.name);
+    }
+    deck = lineTexts.slice(0, 2).map(plainOf).filter(function (t) { return t && t !== plainOf(headline); });
+    if (R.agendaLeft.length) deck.push(R.agendaLeft.length + ' Left Waiting');
+    /* DECIDED: every event the month put to you, and whether you answered it */
+    var decided = (R.events || []).map(function (x) { return '<div class="ln"><span class="k">Event</span><span>' + esc(x.line) + '</span><span class="v ' + (x.defaulted ? 'bad' : 'good') + '">' + (x.defaulted ? 'By Default' : 'Your Call') + '</span></div>'; }).join('');
+    var ln = function (k, text, v, open) { return '<div class="ln' + (open ? ' open' : '') + '"><span class="k">' + k + '</span><span>' + text + '</span><span class="v">' + (v || '') + '</span></div>'; };
+    var stamp = function (t, c) { return '<span class="stamp' + (c ? ' ' + c : '') + '">' + t + '</span>'; };
+    /* MONEY: the purse you started with, every line that moved it, the purse you have */
+    var moneyCol = '<h3>Money</h3>' + ln('Open', 'At the Start', crs(snap.treasury), true);
+    led.forEach(function (l) { moneyCol += ln(esc(capWords(l.kind || '')), esc(titleOf(l.label || l.kind)), crs(l.amount)); });
+    if (!led.length) moneyCol += ln('', 'Nothing Moved', '');
+    moneyCol += '<div class="close"><span class="k">Close</span><span>At the End</span><span class="v">' + crs(me.account.treasury) +
+                ' <span class="' + cls(dT) + '" style="font-size:11px">' + (dT === 0 ? '\u00b10' : crs(dT)) + '</span></span></div>';
+    /* PEOPLE: who came, who went, who changed, what was arranged, who was drilled */
+    var peopleCol = '<h3>People</h3>';
+    R.joined.forEach(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; if (!b) return;
+      var ct = b.contract || {};
+      peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
+    gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
+    changed.forEach(function (c) { peopleCol += ln('Changed', c + (/Injured/.test(c) ? stamp('Mending', 'amber') : ''), ''); });
+    quiet.forEach(function (d) { peopleCol += ln('Arranged', esc(capWords(String(d.id).replace(/_/g, ' '))) + (d.worked ? stamp('Clean', 'good') : stamp('Traced')), d.worked ? '<span class="good">Held</span>' : '<span class="bad">Came Apart</span>'); });
+    gains.slice(0, 4).forEach(function (g) { peopleCol += ln('Drilled', '<span style="color:' + raceColour(g.b) + '">' + esc(g.b.name) + '</span> <span style="color:' + STATCOL[g.k] + '">' + STAT_ABBR[g.k] + '</span>', '<span class="good">' + sgn(g.d, 1) + '</span>'); });
+    if (gains.length > 4) peopleCol += ln('', '<span class="m">And ' + (gains.length - 4) + ' More Drilled</span>', '');
+    if (peopleCol === '<h3>People</h3>') peopleCol += ln('', '<span class="m">No Comings or Goings</span>', '');
+    /* STANDING: gauges with a tick for a month ago, the figure and its change on the right */
+    var gauge = function (lab, now, was, boardish) {
+      var pct = Math.max(0, Math.min(100, boardish ? now : 50 + now / 2)), wpct = Math.max(0, Math.min(100, boardish ? was : 50 + was / 2));
+      var d = now - was;
+      var dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, boardish ? 0 : 1);
+      return '<div class="gauge"><span class="lab">' + lab + '</span><span class="bar"><i' + (boardish ? ' class="board"' : '') + ' style="width:' + pct.toFixed(0) + '%"></i><em style="left:' + wpct.toFixed(0) + '%"></em></span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
+    };
+    var standCol = '<h3>Standing</h3>' +
+      gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
+      gauge('The Aleas', read.aleas || 0, snap.aleas) +
+      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '') +
+      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet \u00b7 ' + standBand(read.aleas || 0, 'aleas').word + ' by the Aleas', '', true);
+    /* THE FOOT: what was left waiting, stamped */
+    var foot = R.agendaLeft.length
+      ? '<div class="foot">' + R.agendaLeft.map(function (it) { return ln('Waiting', it.txt + stamp(esc(it.cost || 'Let Slide'), it.urgent ? '' : 'amber'), ''); }).join('') + '</div>'
+      : '';
     $('recapbody').innerHTML =
-      '<div>' + (eight ? '<h2>The Eight</h2>' + eight : '') + (lights ? '<h2>The Dividend</h2>' + lights : '') +
-           '<h2>The Month\u2019s Work</h2><div class="rcp">' + work + '</div>' +
-           (evs ? '<h2>Events</h2><div class="rcp">' + evs + '</div>' : '') +
-           '<h2>Training</h2><div class="rcp">' + train + '</div>' +
-           '<h2>Left Waiting</h2><div class="rcp">' + left + '</div></div>' +
-      '<div><h2>Money</h2><div class="rcp">' + money + '</div>' +
-           '<h2>People</h2><div class="rcp">' + people + '</div>' +
-           '<h2>Standing</h2><div class="rcp">' + st + '</div></div>';
+      '<div class="kicker">The Month in Brief</div><div class="hl">' + headline + '</div>' +
+      (deck.length ? '<div class="deck">' + deck.map(esc).join(' \u00b7 ') + '</div>' : '') +
+      (decided ? '<div class="decided"><h3>Decided</h3>' + decided + '</div>' : '') +
+      (eight || lights ? '<div class="rcards">' + eight + lights + '</div>' : '') +
+      '<div class="sheethead"><span>' + esc(me.profile.name || me.name || '') + ' \u00b7 Year ' + G.state.season + ' \u00b7 Month ' + m + '</span><span>Credits \u00b7 People \u00b7 Standing</span></div>' +
+      '<div class="cols"><div>' + moneyCol + '</div><div>' + peopleCol + '</div><div>' + standCol + '</div></div>' +
+      foot;
+    if ($('recapgow')) $('recapgow').textContent = nextM <= 11 ? 'Month ' + nextM : 'The Lock';
+    if ($('recapgos')) $('recapgos').textContent = 'Continue';
     show('recap');
     wireEightWatch();
     wireLights();
@@ -29501,7 +29906,61 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     while (G.state.month < 12 && guard++ < 24) $('endmonth').onclick();
     G._forceMonth = false; G._devSkip = false;
     dlog('<span class="m">\\u00bb skipped to the Lock (dev)</span>');
+    /* §DEV arrive with a team worth testing on, not an empty plan and the quartermaster's deal */
+    devFillSquads();
   };
+
+  /* §DEV FOUR SQUADS OF FIVE, DECENTLY KITTED. A testing tool: the Divide's pages are where
+     the work is, and arriving there with no squads set and the quartermaster's default kit
+     showed nothing that a real drop would. The twenty best of the roster by their stats, dealt
+     into four squads in snake order so the squads are even, the steadiest hand leading each,
+     and a named hand on every body — the strongest mid-tier primary, armour and sidearm the
+     doctrine allows, one store item — bought at the lock the way a manager's own hand is. */
+  function devFillSquads() {
+    if (!G || !G.state) return;
+    var me = G.corps[G.me];
+    var fitFor = function (b) { return b.status === 'active' && !b._role && !(b.condition && (b.condition.injuries || []).length); };
+    var alive = me.roster.filter(fitFor);
+    /* a founded OA on autopilot reaches the Lock with ten hands; a testing drop wants twenty.
+       The shortfall is signed as Natural-Born at the yard's own generator, marked dev. */
+    if (alive.length < 20) {
+      var extra = ROSTER.generateSquad(G.rng, 20 - alive.length, { corpId: G.me, poolMix: [['nattie', 1]] }).bodies;
+      extra.forEach(function (b, i) { b.status = 'active'; b._dev = true; b.id = 'dev' + Date.now().toString(36) + i + '_' + b.id; me.roster.push(b); });
+      alive = me.roster.filter(fitFor);
+      dlog('<span class="m">\\u00bb ' + extra.length + ' signed for the test drop (dev)</span>');
+    }
+    var tot = function (b) { var s2 = 0; for (var k in (b.stats || {})) s2 += b.stats[k] || 0; return s2; };
+    alive.sort(function (a, b) { return tot(b) - tot(a); });
+    var pick = alive.slice(0, 20);
+    if (!pick.length) return;
+    G.plan = { at: {}, leaderOf: {}, names: (G.plan && G.plan.names) || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: {} };
+    var N = 4;
+    pick.forEach(function (b, i) {
+      var round = Math.floor(i / N), pos = i % N;
+      var si = round % 2 === 0 ? pos : N - 1 - pos;           /* snake: 0 1 2 3 3 2 1 0 ... */
+      G.plan.at[b.id] = si;
+    });
+    for (var si2 = 0; si2 < N; si2++) {
+      var members = pick.filter(function (b) { return G.plan.at[b.id] === si2; });
+      members.sort(function (a, b) { return ((b.stats.tactics || 0) + (b.stats.presence || 0)) - ((a.stats.tactics || 0) + (a.stats.presence || 0)); });
+      if (members[0]) G.plan.leaderOf[members[0].id] = true;   /* leadership follows the person */
+    }
+    var doc = ITEMS.doctrineForCorp(G.me) || {};
+    var cap = Math.min(doc.armoury_max_tier || 5, 3);          /* decent, not the best the yard sells */
+    var best = function (slot, tier, key) {
+      var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= tier; });
+      items.sort(function (x, y) { return (y.tier - x.tier) || (((y.effects || {})[key] || 0) - ((x.effects || {})[key] || 0)); });
+      return items[0] ? items[0].id : null;
+    };
+    var primary = best('primary', cap, 'power'), armor = best('armor', cap, 'protection'), sidearm = best('sidearm', Math.min(cap, 2), 'power'), store = best('consumable', 3, 'power');
+    pick.forEach(function (b) { G.plan.hand[b.id] = { primary: primary, armor: armor, sidearm: sidearm, mods: [], consumables: store ? [store] : [] }; });
+    G._wantSquads = N;
+    dlog('<span class="m">\\u00bb four squads of five set and kitted (dev)</span>');
+    if (typeof renderSquads === 'function') renderSquads();
+    if (typeof renderRoster === 'function') renderRoster();
+    renderBrief();
+  }
+  $('fillsquads').onclick = devFillSquads;
 
   $('nextyear').onclick = function () {
     if (!G || !G.state || G.state.month < 12) return;
@@ -29845,6 +30304,78 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   /* ================= THE FIGHTER SHEET (the drawer) ================= */
+  /* §OA WHO THEY ARE, WHAT THEY HAVE DONE, AND WHAT YOU KNOW. An OA was readable only through
+     the Desk's intel row, one dossier at a time, on one screen. Its name opens this anywhere:
+     the banner and the motto, how its people and the fleet read it and how it reads YOU, the
+     dossier the scouts have paid for, and the years it has behind it. */
+  function oaSheet(id) { G._oaSheet = (G._oaSheet === id) ? null : id; renderOaPanel(); }
+  function closeOaSheet() { G._oaSheet = null; renderOaPanel(); }
+  function renderOaPanel() {
+    var panel = $('oapanel'), scrim = $('oascrim');
+    var id = G._oaSheet, c = id && G.corps ? G.corps[id] : null;
+    panel.classList.toggle('on', !!c); scrim.classList.toggle('on', !!c);
+    if (!c) { panel.innerHTML = ''; return; }
+    var p = c.profile || {}, me = G.corps[G.me], mine = id === G.me;
+    var row = function (k, v) { return '<div class="orow"><span>' + k + '</span><span>' + v + '</span></div>'; };
+    var gauge = function (lab, v) {
+      var pct = Math.max(0, Math.min(100, 50 + (v || 0) / 2));
+      return '<div class="gaugeline"><span class="lab">' + lab + '</span><span class="bar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
+             '<span class="v">' + Math.round(v || 0) + '</span></div>';
+    };
+    var h = '<span class="close" id="oaclose">\u2715</span>' +
+      '<div class="oahead"><span style="color:' + colFor(id) + '">' + markFor(id, 26) + '</span>' +
+      '<span class="nm" style="color:' + colFor(id) + '">' + esc(p.name || id) + '</span></div>' +
+      (p.motto ? '<div class="oamotto">' + esc(p.motto) + '</div>' : '');
+    /* WHAT ANYBODY CAN SEE: the fleet's own reading of them, and what they think of you */
+    h += '<h3>Standing</h3>';
+    if (c.rep) {
+      h += gauge('Their People', REP.standing(c.rep, 'own')) + gauge('The Fleet', REP.standing(c.rep, 'fleet')) +
+           gauge('The Aleas', REP.standing(c.rep, 'aleas'));
+      if (!mine) h += gauge('Toward You', REP.standing(c.rep, 'rival', G.me));
+      h += row('Read', standBand(REP.standing(c.rep, 'fleet'), 'fleet').word + ' in the Fleet' +
+               (mine ? '' : ' \u00b7 ' + standBand(REP.standing(c.rep, 'rival', G.me), 'rival').word + ' Toward You'));
+    }
+    /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
+    h += '<h3>The OA</h3>';
+    var alive = (c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; });
+    h += row('Bodies on the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
+    if (p.archetype) h += row('Archetype', capWords(p.archetype));
+    if (p.difficulty != null && !mine) h += row('Standing in the Fleet', 'Tier ' + p.difficulty);
+    if (p.engagement_lean) h += row('How They Fight', capWords(String(p.engagement_lean).replace(/_/g, ' ')));
+    /* WHAT YOU PAID FOR: the dossier, exactly as the Desk reads it */
+    if (!mine) { h += '<h3>The Dossier</h3>' + dossierHtml(id); }
+    /* WHAT THEY HAVE DONE: the years behind them */
+    var hist = (c.history || []).slice(-6).reverse();
+    if (hist.length) {
+      h += '<h3>Their Years</h3>';
+      hist.forEach(function (y) {
+        h += '<div class="ohist"><span class="y">Y' + y.season + '</span>' +
+             '<span>' + (y.dropped || 0) + ' Dropped \u00b7 <span class="' + (y.dead ? 'bad' : 'm') + '">' + (y.dead || 0) + ' Lost</span></span>' +
+             '<span class="m">' + (y.card || (y.cardScore != null ? 'Scored ' + y.cardScore : '')) + '</span></div>';
+      });
+    } else h += '<h3>Their Years</h3><div class="m" style="font-size:11px">Nothing Behind Them Yet</div>';
+    panel.innerHTML = h;
+    $('oaclose').onclick = closeOaSheet;
+    scrim.onclick = closeOaSheet;
+  }
+  /* every OA name on the page opens the sheet; called after a render, like the fighter sheets */
+  function wireOaNames(host) {
+    Array.prototype.forEach.call((host || document).querySelectorAll('[data-oa]'), function (el) {
+      el.classList.add('oaname');
+      el.onclick = function (e) { e.stopPropagation(); oaSheet(el.getAttribute('data-oa')); };
+    });
+  }
+
+  /* one listener for the page: an OA name drawn by any renderer opens the sheet, so no
+     renderer has to remember to wire it (the intel row's dossier keeps its own behaviour) */
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t !== document.body) {
+      if (t.getAttribute && t.getAttribute('data-oa')) { e.stopPropagation(); oaSheet(t.getAttribute('data-oa')); return; }
+      t = t.parentNode;
+    }
+  }, true);
+
   function inspect(id) {
     G._inspect = (G._inspect === id) ? null : id;
     G._pickSlot = null;
@@ -30432,7 +30963,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (c && c.profile && c.profile.displayColor) return c.profile.displayColor;
     return (OA_DISP[id] && OA_DISP[id].color) || TOK.b;
   }
-  function cSpan(id) { return '<span style="color:' + colFor(id) + '">' + esc(tName(id)) + '</span>'; }
+  /* §OA an OA's name is a door, wherever it is written — the same rule a fighter's name follows */
+  function cSpan(id) { return '<span class="oaname" data-oa="' + esc(id) + '" style="color:' + colFor(id) + '">' + esc(tName(id)) + '</span>'; }
   /* the OA's mark, at chip size, in whatever colour surrounds it. The founded OA
      (and only it — every fleet OA has a mark) falls back to the empty pennant. */
   var OA_MARKS = (window.ARX_DATA && ARX_DATA.oa_marks && ARX_DATA.oa_marks.marks) || {};
@@ -30729,6 +31261,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     renderGround(); renderEncounters(); renderTable();
     renderBench(); renderSquads();
+    /* §GROUND the walk to this window plays whether the Ground is opened after or is ALREADY
+       open: it used to play only on opening the tab, so a manager watching the contest and
+       pressing Next Comms Window saw the map jump to the new day and nothing move */
+    var pg = document.querySelector('.page.on');
+    if (pg && pg.getAttribute('data-tab') === 'ground') gPlayPending();
   }
 
   /* scrubbing lands on a finished day and never animates — a scrub is somebody
@@ -30748,8 +31285,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     G.gtimer = setInterval(function () {
       if (G.gday >= days.length && G.gstage === 'complete') return gStopPlay();
       gFwd(true);
-    }, $('gbysquad').checked ? 560 : 980);
+    }, gStepMs());
   };
+  $('gspeed').onchange = function () { if (G.gtimer) { gStopPlay(); $('gplay').onclick(); } };
   /* the walk from the last window to this one, played on the Ground when it opens */
   function gPlayPending() {
     if (!G || !G._playTo || G.gtimer) return;
@@ -30761,7 +31299,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     G.gtimer = setInterval(function () {
       if (G.gday >= to && G.gstage === 'complete') return gStopPlay();
       gFwd(true);
-    }, $('gbysquad').checked ? 560 : 980);
+    }, gStepMs());
   }
   /* toggling mid-day settles the day rather than rewinding it */
   $('gbysquad').onchange = function () {
@@ -30804,7 +31342,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     (w.picture || []).forEach(function (e) {
       var ci2 = -1; w.corps.forEach(function (c2, i) { if (c2.id === e.corpId) ci2 = i; });
       if (ci2 < 0) return;
-      sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing });
+      sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, down: !!e.down, stale: !!e.stale });
     });
     return { d: w.day, z: w.zone, zn: null, sq: sq,
              obj: (G.div.planet.objectives || []).filter(function (o) { return o.revealed; })
@@ -30953,7 +31491,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var sq = d.sq.filter(function (q) { return ours[q.c]; });
       if (di === w.record.length - 1) (w.picture || []).forEach(function (e) {
         var ci2 = -1; w.corps.forEach(function (c2, i) { if (c2.id === e.corpId) ci2 = i; });
-        if (ci2 >= 0) sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing });
+        if (ci2 >= 0) sq.push({ c: ci2, s: -1, x: e.x, y: e.y, n: e.n, ghost: true, age: w.day - e.day, landing: !!e.landing, down: !!e.down, stale: !!e.stale });
       });
       return Object.assign({}, d, { sq: sq });
     });
@@ -31002,6 +31540,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     G.gtimer = null;
     if ($('gplay')) $('gplay').textContent = 'Play';
   }
+  /* how long a day takes on the Ground: long enough to read at Normal, a glance at Fast */
+  function gSpeedMs() { var v = ($('gspeed') || {}).value; return v === 'slow' ? 4200 : v === 'fast' ? 900 : 2600; }
+  function gStepMs() { return ($('gbysquad') || {}).checked ? Math.max(450, gSpeedMs() / 4) : gSpeedMs() + 700; }
   function gAnimateDay() {
     gClearTween();
     G.gstage = 'complete';
@@ -31009,8 +31550,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (days && days[G.gday - 1])
       days[G.gday - 1].sq.forEach(function (q) {
         var ph = gPathOf(q, G.gday - 1); if (ph) longest = Math.max(longest, ph.total); });
-    var ms = Math.max(450, Math.min(1100, 620 * (longest / 0.06))), t0 = Date.now();
-    G.gtween = { mode: 'day', a: 0 };
+    var base = gSpeedMs();
+    var ms = Math.max(base * 0.6, Math.min(base * 1.4, base * (longest / 0.06))), t0 = Date.now();
+    G.gtween = { mode: 'day', a: 0, ms: ms };
     G.gtw = setInterval(function () {
       var el = (Date.now() - t0) / ms, a = Math.min(1, el);
       G.gtween.a = 1 - (1 - a) * (1 - a);
@@ -31176,7 +31718,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var DISP = D.sq.map(function (q, qi) { return gDisp(q, qi); });
       if ($('greach') && $('greach').checked) {
         for (var rq = 0; rq < D.sq.length; rq++) {
-          if (D.sq[rq].w === 'down' && G.gstage === 'complete') continue;
+          if ((D.sq[rq].w === 'down' || D.sq[rq].w === 'folded') && G.gstage === 'complete') continue;
           if (D.sq[rq].ghost) continue;
           var rp = gproj(cv, DISP[rq].pos[0], DISP[rq].pos[1]);
           g.strokeStyle = colFor(oaIdOf(D.sq[rq].c));
@@ -31196,6 +31738,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (o.h) g.fill();
         g.stroke();
       }
+      /* §GROUND fights fire at their moment in the day: day fights spread through the march,
+         night fights at its end; each bursts when it fires and keeps its label after */
+      if (G.gtween && G.gtween.mode === 'day') {
+        var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; });
+        var nDay = fights.filter(function (v) { return !v.night; }).length, di = 0;
+        fights.forEach(function (v) {
+          var f = v.night ? 0.96 : 0.25 + 0.6 * ((++di) / (nDay + 1));
+          if (G.gtween.a < f) return;
+          var since = (G.gtween.a - f) / 0.18;
+          var bp = gproj(cv, v.x, v.y);
+          if (since < 1) {
+            g.strokeStyle = rgba(TOK.blood, 1 - since); g.lineWidth = 2;
+            g.beginPath(); g.arc(bp[0], bp[1], 4 + since * 26, 0, Math.PI * 2); g.stroke();
+          }
+          g.fillStyle = TOK.blood; g.beginPath(); g.arc(bp[0], bp[1], 3.5, 0, Math.PI * 2); g.fill();
+          g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
+          g.fillText((v.corps || []).map(function (id) { return tagFor ? tagFor(id) : id.slice(0, 3); }).join(' \u00d7 '), bp[0], bp[1] - 11);
+          g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.dim;
+          g.fillText(shortResult(v), bp[0], bp[1] + 12);
+          g.textBaseline = 'alphabetic';
+        });
+      }
       if (G.gstage === 'complete' || G.gpulse != null)
       for (var e = 0; e < (D.ev || []).length; e++) {
         var v = D.ev[e];
@@ -31209,6 +31773,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           continue;
         }
         if (v.t !== 'fight') continue;
+        /* the fight stays marked and named once the day is done */
+        g.fillStyle = TOK.blood; g.beginPath(); g.arc(fp[0], fp[1], 3.5, 0, Math.PI * 2); g.fill();
+        g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
+        g.fillText((v.corps || []).map(tagFor).join(' \u00d7 '), fp[0], fp[1] - 11);
+        g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.dim; g.fillText(shortResult(v), fp[0], fp[1] + 12);
+        g.textBaseline = 'alphabetic';
         /* who this fight belongs to — the nearest held squad of each named OA */
         for (var vc = 0; vc < (v.corps || []).length; vc++) {
           var vci = -1;
@@ -31249,23 +31819,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             sp = [sp[0] + Math.cos(ang) * 11, sp[1] + Math.sin(ang) * 11];
             break;
           }
-        /* a sighting: where they were, how many, how long ago — hollow, and fading with age */
+        /* §MAP a sighting: where they were, how many, how long ago — hollow, fading with age.
+           A foreign squad used to VANISH from the map three days after it was last seen and
+           the moment it died; the engine still forgets it for planning, but the manager's map
+           keeps it as last-known (fainter, dated) or as a remnant where it went down. */
         if (sq2.ghost) {
-          var fade = Math.max(0.3, 1 - (sq2.age || 0) / 3);
-          g.globalAlpha = fade; g.strokeStyle = col; g.lineWidth = 2; g.setLineDash(sq2.landing ? [2, 3] : []);
+          if (sq2.down) {
+            g.globalAlpha = .35; g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+            g.beginPath(); g.arc(sp[0], sp[1], 6, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+            g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+            g.fillText('Down', sp[0], sp[1] + 15); g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
+            continue;
+          }
+          var fade = sq2.stale ? 0.22 : Math.max(0.35, 1 - (sq2.age || 0) / 3);
+          g.globalAlpha = fade; g.strokeStyle = col; g.lineWidth = sq2.stale ? 1.2 : 2; g.setLineDash(sq2.landing ? [2, 3] : (sq2.stale ? [1, 3] : []));
           g.beginPath(); g.arc(sp[0], sp[1], r, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
           g.fillStyle = col; g.font = '700 10px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
           g.fillText(String(sq2.n), sp[0], sp[1]);
           g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.ink;
-          g.fillText(sq2.landing ? 'Landed' : (sq2.age ? 'D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
+          g.fillText(sq2.landing ? 'Landed' : sq2.stale ? 'Last Seen D' + (D.d - sq2.age) : (sq2.age ? 'D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
           g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
           continue;
         }
-        /* a squad with nobody left is a remnant, frozen where it went down */
-        if (sq2.w === 'down' && !DQ.moving) {
-          g.globalAlpha = .35; g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+        /* a squad with nobody left is a remnant, frozen where it went down; one FOLDED into
+           the OA's other squads at a comms window is not a loss and is not drawn as one */
+        if ((sq2.w === 'down' || sq2.w === 'folded') && !DQ.moving) {
+          g.globalAlpha = .35; g.strokeStyle = col; g.lineWidth = 1.5; g.setLineDash(sq2.w === 'folded' ? [1, 3] : [3, 3]);
           g.beginPath(); g.arc(sp[0], sp[1], 6, 0, Math.PI * 2); g.stroke();
-          g.setLineDash([]); g.globalAlpha = 1;
+          g.setLineDash([]);
+          if (sq2.w === 'folded') { g.font = '9px ui-monospace, Menlo, monospace'; g.fillStyle = TOK.ink; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Folded In', sp[0], sp[1] + 15); g.textBaseline = 'alphabetic'; }
+          g.globalAlpha = 1;
           continue;
         }
         /* the walk so far, drawn by distance — an overnight leg dashed, because a deal
@@ -31358,10 +31941,66 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              (v.ex != null ? ' \u00b7 ' + v.ex + ' Exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
     });
     $('gevents').innerHTML = out || '<div class="ev m">Quiet Since the Last Window</div>';
+    renderRecord();
     /* the label is gLabel's job now — it says which day AND how far into it — so this
        only speaks for a live contest that has not dropped yet */
     if (G.gday === 1 && !G.div.done) $('gdayLbl').textContent = '\u2014';
     else gLabel();
+  }
+
+  /* §GROUND THE RECORD: every one of your squads, every day since the drop or the last
+     window, as lines a manager can read and click back to */
+  function shortResult(v) {
+    var r = (v.res && v.res.result) || v.res || v.result || '';
+    if (/^disengage/.test(String(r))) return 'Broke Off';
+    if (/cap/.test(String(r))) return 'Held to Dark';
+    if (v.lost) return v.lost + ' Down';
+    return 'Fought';
+  }
+  function tagFor(id) { var c = G && G.corps && G.corps[id]; return (c && c.profile && c.profile.tag) || String(id).slice(0, 3); }
+  var REC_CACHE = { key: null, html: '' };
+  function renderRecord() {
+    var box = $('grecord'); if (!box || !G || !G.div) return;
+    var days = gDays(); if (!days || !days.length) { box.innerHTML = '<div class="m">\u2014</div>'; return; }
+    var w = G.div.win, corpsList = (w && w.corps) || (G.div.final && G.div.final.replay && G.div.final.replay.corps) || [];
+    var meIdx = -1; corpsList.forEach(function (c, i) { if ((c.id || c) === G.me) meIdx = i; });
+    var key = days.length + ':' + G.gday + ':' + meIdx;
+    if (REC_CACHE.key === key) { markNow(); return; }
+    var MARCH = DIVIDE.CONST.DAY_MARCH, REACH = DIVIDE.CONST.ENGAGE_RANGE * 1.3;
+    var squads = {};
+    days.forEach(function (D, di) {
+      var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; });
+      D.sq.forEach(function (q) {
+        if (q.c !== meIdx || q.ghost) return;
+        var prev = di > 0 ? days[di - 1].sq.filter(function (p) { return p.c === q.c && p.s === q.s; })[0] : null;
+        var dist = prev && prev.n && q.n ? Math.hypot(q.x - prev.x, q.y - prev.y) / MARCH : 0;
+        var mine = fights.filter(function (v) { return Math.hypot(v.x - q.x, v.y - q.y) < REACH * (q.hb ? 1.6 : 1); });
+        (squads[q.s] = squads[q.s] || []).push({ d: D.d, why: q.w, dist: dist, fights: mine, n: q.n, st: q.st, rat: q.rat, hb: q.hb, di: di });
+      });
+    });
+    var h = '';
+    Object.keys(squads).sort(function (a, b) { return +a - +b; }).forEach(function (si) {
+      h += '<div class="rq">Squad ' + (+si + 1) + '</div>';
+      squads[si].forEach(function (r) {
+        var what = r.n ? capWords(r.why) + (r.dist >= 0.05 ? ' \u00b7 ' + r.dist.toFixed(1) + ' March' + (r.dist >= 1.05 ? 'es' : '') : ' \u00b7 Held') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
+        var f = r.fights.map(function (v) {
+          var others = (v.corps || []).filter(function (id) { return id !== G.me; }).map(cSpan).join(', ');
+          return '<span class="f' + (v.lost ? '' : ' ok') + '">Met ' + (others || 'the Enemy') + ' \u00b7 ' + shortResult(v) + '</span>';
+        }).join(' ');
+        h += '<div class="rl" data-recday="' + r.di + '"><span class="d">D' + r.d + '</span><span>' + what + (f ? ' \u00b7 ' + f : '') + '</span>' +
+             '<span class="v">' + (r.n ? 'Stress ' + r.st + ' \u00b7 ' + r.rat + 'd Food' : '') + '</span></div>';
+      });
+    });
+    box.innerHTML = h || '<div class="m">No Squads on the Ground</div>';
+    REC_CACHE.key = key;
+    Array.prototype.forEach.call(box.querySelectorAll('[data-recday]'), function (el) {
+      el.onclick = function () { gStopPlay(); gClearTween(); G.gday = +el.getAttribute('data-recday') + 1; G.gstage = 'complete'; G.gmi = 0; $('gday').value = String(G.gday); gLabel(); renderGround(); };
+    });
+    markNow();
+    function markNow() {
+      Array.prototype.forEach.call(box.querySelectorAll('[data-recday]'), function (el) { el.classList.toggle('now', +el.getAttribute('data-recday') === G.gday - 1); });
+      var cur = box.querySelector('.rl.now'); if (cur && !G.gtimer) { /* keep the current day in view when scrubbing */ }
+    }
   }
 
   /* the Market's clicks: the stepper adds and removes, the row opens */
@@ -31510,7 +32149,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the one rack he came for. Sections are shut until asked for — the same fold the Desk's
        grids use — and the shelf runs two columns wide, which is what that space was for. */
     MKT.shut = MKT.shut || {};
-    var h = '', sec = null, hidden = false, openRows = false;
+    var h = '<div class="mracks">', sec = null, hidden = false, openRows = false;
     items.forEach(function (i) {
       var s2 = mktSection(i);
       if (s2 !== sec) {
@@ -31520,10 +32159,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         hidden = MKT.shut[s2];
         if (openRows) h += '</div>';          /* close the rack before opening the next */
         openRows = false;
-        h += '<div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
+        h += '<div class="mrack"><div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
              '<span class="tgchev">' + (hidden ? '\u25b8' : '\u25be') + '</span>' +
              '<span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
-        if (!hidden) { h += '<div class="msecrows">'; openRows = true; }
+        openRows = true;
       }
       if (hidden) return;
       var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
@@ -31556,6 +32195,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     });
     if (openRows) h += '</div>';           /* the last rack on the shelf closes too */
+    h += '</div>';                         /* and the two-column frame the racks sit in */
     $('mktledger').innerHTML = h;
     var over = total > me.account.treasury;
     $('mktnote').innerHTML = over ? 'This Order Costs More Than You Hold.' : '';
@@ -32131,25 +32771,55 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var w = G.div.win, p = (w.odds || {})[w.you.joinedTo || G.me] || 0;
     return { txt: 'Chance of Winning ' + Math.round(p * 100) + '%', good: p >= 0.5, bad: p < 0.1 };
   }
+  /* WHERE THE EIGHT STAND, for a placement demand. A lit "5th" in a row of ordinals never
+     moves all year and says nothing. What does: the odds board itself while a Divide is being
+     fought, and out of one the fleet's LAST finishing order — real, and it moves year to year.
+     Before any Divide has been fought there is no order to show, and the gauge says so. */
+  function strengthBoard(me) {
+    var ids = G.state.ids.slice();
+    var live = G.div && G.div.win && !G.div.done ? (G.div.win.odds || null) : null;
+    if (live) {
+      var rows = ids.map(function (id) { return { id: id, v: (live[id] || 0) * 100 }; });
+      rows.sort(function (a, b) { return b.v - a.v; });
+      return { rows: rows, top: Math.max(1, rows[0].v), live: true, unit: 'Chance' };
+    }
+    var last = ids.map(function (id) {
+      var hs = G.corps[id].history || [], hy = hs[hs.length - 1];
+      return { id: id, place: hy && hy.placement ? hy.placement : null, dropped: hy ? hy.dropped : 0 };
+    }).filter(function (r) { return r.place; });
+    if (!last.length) return null;
+    last.sort(function (a, b) { return a.place - b.place; });
+    return { rows: last.map(function (r) { return { id: r.id, v: (ids.length + 1 - r.place) }; }),
+             top: ids.length, live: false, unit: 'Last Year' };
+  }
   function renderCard(me, rep) {
     var g = rep.goal || {}, demands = g.demands || [];
     var scored = G._boardOutcome && me._close && me._close.score ? me._close.score.lines : null;
     var byKind = {};
     (scored || []).forEach(function (l) { byKind[l.demand.kind + (l.demand.audience || '')] = l; });
-    var pat = rep.patience != null ? Math.round(rep.patience) : null;
-    var h = '';
-    if (!demands.length) { $('boarddemand').innerHTML = '<div class="m">No Card This Year</div>'; return; }
-    h += '<div class="cardrows">';
+    if (!demands.length) { $('boarddemand').innerHTML = '<div class="box m">No Card This Year</div>'; $('boardscales').innerHTML = ''; return; }
+    var TAGS = { standing: 'Standing', placement: 'The Divide', win: 'The Divide', resource: 'The Holds',
+                 surplus: 'The Books', losses: 'The Drop', stipend: 'The Books' };
+    var h = '<div class="cardrow2">';
     demands.forEach(function (d, i) {
       var pri = i === g.priority, line = byKind[d.kind + (d.audience || '')];
       var now = line ? { txt: line.met ? 'Met' : 'Missed', good: line.met, bad: !line.met } : demandNow(d, me, rep);
-      h += '<div class="cardrow' + (pri ? ' pri' : '') + '"><span class="pri">' + (pri ? '\u2605' : '') + '</span>' +
-           '<span class="dw">' + demandWords(d) + (pri ? ' <span class="ktag hand">Priority</span>' : '') + '</span>' +
-           '<span class="dn' + (now && now.good ? ' good' : now && now.bad ? ' bad' : now && now.dim ? ' m' : '') + '">' + (now ? now.txt : '') + '</span></div>';
+      var state = line ? (line.met ? 'Met' : 'Missed') : shortState(d, me, rep, now);
+      var cls2 = (now && now.good) ? 'good' : (now && now.bad) ? 'bad' : 'm';
+      h += '<div class="obj' + (pri ? ' pri' : '') + '">' +
+           '<div class="ohead"><span class="tag">' + (pri ? 'The Priority' : (TAGS[d.kind] || 'The Board')) + '</span>' +
+           '<span class="state ' + cls2 + '">' + esc(state) + '</span></div>' +
+           '<div class="ask">' + demandWords(d) + '</div>' +
+           '<div class="who">' + esc(demandWho(d)) + '</div>' +
+           '<div class="ogauge">' + demandGauge(d, me, rep) + '</div>' +
+           '<div class="ofoot">' + (now ? '<b class="' + cls2 + '">' + now.txt + '</b>' : '<span class="m">\u2014</span>') + '</div></div>';
     });
+    h += '</div>';
+    $('boarddemand').innerHTML = h;
     /* THE THREE THAT SCALE. Spending, Casualties and Popularity are not met or missed: each
        reads on a spectrum from displeased to pleased, and the marker lands where the year
        lands. Popularity reads live, because the crowd does not wait for the Divide. */
+    var sh = '<div class="cardrows">';
     (g.standing || []).forEach(function (sd) {
       var line = byKind[sd.kind];
       var v = line ? line.value : null;
@@ -32158,21 +32828,91 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         v = Math.max(-1, Math.min(1, (pop - sd.expected) / REP.CONST.POPULARITY_SPAN));
       }
       var pos = v == null ? 50 : Math.round((v + 1) / 2 * 100);
-      var word = v == null ? 'Settled at the Divide'
+      var word = v == null ? 'Not Yet Settled'
                : v > 0.5 ? 'Delighted' : v > 0.15 ? 'Pleased' : v > -0.15 ? 'Unremarkable' : v > -0.5 ? 'Displeased' : 'Angry';
-      var sub = sd.kind === 'thrift'
-        ? (line ? '' : 'Under the Stipend Pleases; Over It Does Not')
-        : sd.kind === 'popularity'
-        ? (line ? '' : 'The Gate, and the Board\u2019s Cut')
-        : (line ? '' : 'Fewer Than ' + Math.round(REP.CONST.CARE_NEUTRAL_LOSS * 100) + '% of the Drop Lost Pleases');
-      h += '<div class="cardrow standing"><span class="pri"></span><span class="dw">' + demandWords(sd) +
-           (sub ? '<div class="m" style="font-size:10px">' + sub + '</div>' : '') + '</span>' +
-           '<span class="spec' + (v == null ? ' unset' : '') + '" title="' + word + '"><span class="spl">Displeased</span>' +
-           '<span class="sbar"><i style="left:' + pos + '%"></i></span><span class="spr">Pleased</span>' +
-           '<span class="sw ' + (v == null ? 'm' : v > 0.15 ? 'good' : v < -0.15 ? 'bad' : '') + '">' + word + '</span></span></div>';
+      var sub = sd.kind === 'thrift' ? 'Under the Stipend'
+              : sd.kind === 'popularity' ? 'The Gate and the Board\u2019s Cut'
+              : 'Under ' + Math.round(REP.CONST.CARE_NEUTRAL_LOSS * 100) + '% of the Drop Lost';
+      sh += '<div class="cardrow standing"><span class="pri"></span><span class="dw">' + demandWords(sd) +
+            '<div class="m" style="font-size:10px">' + sub + '</div></span>' +
+            '<span class="spec' + (v == null ? ' unset' : '') + '" title="' + word + '"><span class="spl">Displeased</span>' +
+            '<span class="sbar"><i style="left:' + pos + '%"></i></span><span class="spr">Pleased</span>' +
+            '<span class="sw ' + (v == null ? 'm' : v > 0.15 ? 'good' : v < -0.15 ? 'bad' : '') + '">' + word + '</span></span></div>';
     });
-    h += '</div>';
-    $('boarddemand').innerHTML = h;
+    $('boardscales').innerHTML = sh + '</div>';
+  }
+  /* who is actually asking, under the ask */
+  function demandWho(d) {
+    if (d.kind === 'standing') return d.audience === 'own' ? 'The Crews and the Families'
+                                    : d.audience === 'fleet' ? 'The Other Seven\u2019s Regard' : 'The Referees';
+    if (d.kind === 'placement' || d.kind === 'win' || d.kind === 'losses') return 'Settled on the Ground';
+    if (d.kind === 'resource') return 'The Holds at the Divide';
+    return 'The Books';
+  }
+  /* the state chip: a phrase, not a sentence */
+  function shortState(d, me, rep, now) {
+    if (d.kind === 'standing') { var v = REP.standing(rep, d.audience), gap = Math.round(d.above - v);
+      return gap <= 0 ? 'Met' : gap + ' Short'; }
+    if (d.kind === 'placement' || d.kind === 'win') {
+      if (G._boardOutcome) return now && now.good ? 'Met' : 'Missed';
+      var b = strengthBoard(me);
+      if (!b) return 'Not Yet Fought';
+      var at = 0;
+      b.rows.forEach(function (r, i) { if (r.id === G.me) at = i + 1; });
+      if (!at) return 'Not Yet Fought';
+      var want = d.kind === 'win' ? 1 : (d.at || 5);
+      return at <= want ? (b.live ? 'On Course' : 'Held It Last Year') : (at - want) + ' Place' + (at - want === 1 ? '' : 's') + ' Short';
+    }
+    return now && now.good ? 'Met' : now && now.bad ? 'Short' : 'Not Yet Settled';
+  }
+  /* the gauge that fits the demand */
+  function demandGauge(d, me, rep) {
+    if (d.kind === 'standing') {
+      var v = REP.standing(rep, d.audience), lo = -100, hi = 100;
+      var pct = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
+      var met = v >= d.above;
+      return '<span class="obar"><i class="' + (met ? 'met' : 'short') + '" style="width:' + pct(v).toFixed(0) + '%"></i>' +
+             '<em style="left:' + pct(d.above).toFixed(0) + '%"></em></span>' +
+             '<div class="scale"><span class="l">\u2212100</span><span class="n" style="left:' + pct(d.above).toFixed(0) + '%">Needs ' + Math.round(d.above) + '</span><span class="r">100</span></div>';
+    }
+    if (d.kind === 'placement' || d.kind === 'win') {
+      var b = strengthBoard(me), want = d.kind === 'win' ? 1 : (d.at || 5);
+      if (!b) return '<div class="m" style="font-size:11px;padding:6px 0">No Divide Fought Yet \u00b7 The Ground Decides It</div>';
+      return '<div class="board8">' + b.rows.map(function (r, i) {
+        var mine = r.id === G.me;
+        return '<div class="r' + (mine ? ' me' : '') + (i + 1 === want ? ' cut' : '') + '">' +
+               '<span class="p">' + (i + 1) + '</span>' +
+               '<span class="n"' + (mine ? '' : ' style="color:' + colFor(r.id) + '"') + '>' + (mine ? 'You' : esc(tName(r.id))) + '</span>' +
+               '<span class="odds"><i style="width:' + Math.max(4, Math.round(r.v / b.top * 100)) + '%;background:' + (mine ? 'var(--cred)' : 'var(--b)') + '"></i></span>' +
+               '<span class="v">' + (b.live ? Math.round(r.v) : ordinal(i + 1)) + '</span></div>';
+      }).join('') + '</div>';
+    }
+    if (d.kind === 'resource') {
+      var SC3 = REP.CONST.UNIT_SCALE, want2 = (d.units || Math.round(REP.CONST.UNITS_PER_STORE * 0.25)) * SC3;
+      var got = G._boardOutcome && G._boardOutcome.banked ? Math.round((G._boardOutcome.banked[d.category] || 0) * SC3) : 0;
+      var w = Math.max(0, Math.min(100, got / want2 * 100));
+      return '<span class="obar"><i class="' + (got >= want2 ? 'met' : 'short') + '" style="width:' + w.toFixed(0) + '%"></i><em style="left:100%"></em></span>' +
+             '<div class="scale"><span class="l">0</span><span class="r">Needs ' + want2.toLocaleString('en-US') + '</span></div>';
+    }
+    if (d.kind === 'losses') {
+      var out2 = G._boardOutcome;
+      var dead = out2 ? out2.permanentLosses : me.roster.filter(function (f) { return f.status === 'dead'; }).length;
+      var w2 = Math.max(0, Math.min(100, dead / Math.max(1, d.max) * 100));
+      return '<span class="obar"><i class="' + (dead <= d.max ? 'met' : 'short') + '" style="width:' + w2.toFixed(0) + '%"></i><em style="left:100%"></em></span>' +
+             '<div class="scale"><span class="l">None Lost</span><span class="r">' + d.max + ' Is the Most</span></div>';
+    }
+    if (d.kind === 'surplus') {
+      var up = Math.round(me.account.treasury - (me._openingTreasury != null ? me._openingTreasury : me.account.treasury));
+      var w3 = Math.max(0, Math.min(100, up / Math.max(1, d.amount) * 100));
+      return '<span class="obar"><i class="' + (up >= d.amount ? 'met' : 'short') + '" style="width:' + w3.toFixed(0) + '%"></i><em style="left:100%"></em></span>' +
+             '<div class="scale"><span class="l">Level</span><span class="r">Needs ' + crs(d.amount) + '</span></div>';
+    }
+    if (d.kind === 'stipend') {
+      var c2 = rep.calls || 0;
+      return '<span class="obar"><i class="' + (c2 ? 'short' : 'met') + '" style="width:' + (c2 ? 100 : 0) + '%"></i></span>' +
+             '<div class="scale"><span class="l">No Calls</span><span class="r">Any Call Fails It</span></div>';
+    }
+    return '';
   }
   /* THE HOLDS: the four stores, as shares of full. They drain every season and the Divide
      tops them up; the card asks for what is shortest that the planet carries. */
@@ -32195,7 +32935,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         var came = Math.round((banked[c] || 0) * SC);
         return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
                (came ? '<div class="m">Came Home This Year: ' + came.toLocaleString('en-US') + '</div>' : '') + '</span>' +
-               '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i></span>' +
+               '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i>' +
+               '<span class="lost" style="left:' + Math.round(v * 100) + '%;width:' + Math.min(100 - Math.round(v * 100), Math.round(REP.CONST.HOLDS_DRAIN * 100)) + '%"></span></span>' +
                '<span class="hv" style="color:' + col + '">' + units.toLocaleString('en-US') + '</span></div>';
       }).join('');
     $('boardholds').innerHTML = h + '<div class="m" style="margin-top:6px">The Stores Fall ' + Math.round(drain / REP.CONST.HOLDS_DRAIN_MONTHS).toLocaleString('en-US') + ' a Month</div>';
@@ -32648,6 +33389,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     (w.table.wouldTake || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].take = r; });
     (w.table.pacts || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].pact = r; });
     (w.table.asks || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; byId[r.corp].ask = r; });
+    (w.table.ransoms || []).forEach(function (r) { byId[r.corp] = byId[r.corp] || {}; (byId[r.corp].ransoms = byId[r.corp].ransoms || []).push(r); });
     var others = G.state.ids.filter(function (id) { return id !== G.me; });
     if (TSEL_DIV && others.indexOf(TSEL_DIV) < 0) TSEL_DIV = null;
     /* §PICKER THE DEAL PICKS A OA THE WAY EVERY OTHER SURFACE DOES: the ring, the mark
@@ -32661,6 +33403,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (you.joinedTo === id) rel = 'Your Banner';
         else if (G.corps[id].joinedTo === G.me) rel = 'Under You';
         else if (t.ask) rel = 'Asks to Come In';
+        else if (t.ransoms) rel = 'A Ransom';
         else if (t.pact && t.pact.live) rel = 'Pact';
         var odds = (t.join && t.join.odds) || (t.take && t.take.odds) || 0;
         /* §6.9 who is on you: the table is for the OA you are engaged with */
@@ -32711,6 +33454,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            waits on you: their terms, what saying no would cost each side, and two answers
            beside the terms you can set yourself below. Nothing is struck on your banner for you.
            If you let it lapse and they are wiped, they remember who let them die. */
+        /* §6.15 his ransoms with this OA: his people they hold, priced; their people he holds,
+           with what they would pay. One answer a window, like any deal. */
+        if (t.ransoms && t.ransoms.length) {
+          kh += '<div class="box" style="margin-top:8px"><h2 style="margin-top:0">Ransoms \u00b7 ' + cSpan(id) + '</h2>' +
+            t.ransoms.map(function (r) {
+              return '<div class="m" style="margin-top:6px">' + (r.side === 'owner'
+                ? 'They Hold <b>' + esc(r.name) + '</b> \u00b7 Asking ' + crs(r.price) + ' \u00b7 Worth ' + crs(r.worth) + ' to Replace' +
+                  '<div class="bidbtns" style="margin-top:4px"><button data-transom="ransom_pay" data-fighter="' + r.fighter + '">Pay</button>' +
+                  '<button data-transom="ransom_decline" data-fighter="' + r.fighter + '">Decline</button></div>'
+                : 'You Hold <b>' + esc(r.name) + '</b> \u00b7 They Offer ' + crs(r.price) +
+                  '<div class="bidbtns" style="margin-top:4px"><button data-transom="ransom_sell" data-fighter="' + r.fighter + '">Sell Him Back</button>' +
+                  '<button data-transom="ransom_keep" data-fighter="' + r.fighter + '">Keep Him</button></div>') + '</div>';
+            }).join('') + '</div>';
+        }
         if (t.ask && !you.joinedTo) {
           var a = t.ask, ir = a.ifRefused || {};
           kh += '<div class="box" style="margin-top:8px"><h2 style="margin-top:0">' + cSpan(id) + ' \u00b7 A Request to Join You</h2>' +
@@ -32881,6 +33638,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         Array.prototype.forEach.call(host.querySelectorAll('[data-tkind]'), function (b) {
           b.onclick = function () { if (b.classList.contains('off')) return; TKIND = b.getAttribute('data-tkind'); renderTable(); };
         });
+        Array.prototype.forEach.call(host.querySelectorAll('[data-transom]'), function (b) {
+          b.onclick = function () {
+            G.div.answer = G.div.answer || {};
+            G.div.answer.deal = { kind: b.getAttribute('data-transom'), corp: id, fighter: b.getAttribute('data-fighter') };
+            renderTable();
+          };
+        });
         Array.prototype.forEach.call(host.querySelectorAll('[data-task]'), function (b) {
           b.onclick = function () {
             G.div.answer = G.div.answer || {};
@@ -32910,6 +33674,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                 : d.kind === 'take' ? 'Take ' + cSpan(d.corp) + ' Under Yours'
                 : d.kind === 'accept' ? 'Take ' + cSpan(d.corp) + ' Under Yours, on Their Terms'
                 : d.kind === 'refuse' ? 'Refuse ' + cSpan(d.corp)
+                : d.kind === 'ransom_pay' ? 'Pay the Ransom to ' + cSpan(d.corp)
+                : d.kind === 'ransom_decline' ? 'Decline the Ransom From ' + cSpan(d.corp)
+                : d.kind === 'ransom_sell' ? 'Sell Their Man Back to ' + cSpan(d.corp)
+                : d.kind === 'ransom_keep' ? 'Keep Their Man From ' + cSpan(d.corp)
                 : 'Seek a Pact With ' + cSpan(d.corp)) + '</b>' +
          (d.terms ? '<div class="m">' + Math.round((d.terms.share || 0) * 100) + '% of the Take' +
            (d.terms.credits ? ' + ' + crs(d.terms.credits) : '') +
@@ -32925,6 +33693,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     $('techo').innerHTML = !e ? '<span class="m">No Answer Yet</span>'
       : e.accepted
       ? '<span class="good">' + (e.kind === 'pact' ? 'The Pact Formed' : 'The Deal Was Struck') + '</span> <span class="m">With ' + cSpan(e.corp) + '</span>'
+      : e.kind === 'ransom_pay' || e.kind === 'ransom_sell'
+      ? '<span class="good">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">' + (e.kind === 'ransom_pay' ? 'Paid, He Comes Home Hurt' : 'Sold Back') + '</span>'
+      : e.kind === 'ransom_decline' || e.kind === 'ransom_keep'
+      ? '<span class="warn">' + esc(e.name || '') + '</span> <span class="m">' + (e.kind === 'ransom_decline' ? 'Left With Them' : 'Kept') + '</span>'
       : e.kind === 'refuse'
       ? '<span class="warn">You Refused ' + cSpan(e.corp) + '</span> <span class="m">Remembered</span>'
       : '<span class="warn">Refused</span> <span class="m">by ' + cSpan(e.corp) +
@@ -33162,6 +33934,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }).join('');
     }
   })();
+  /* §PHONE WHEN SOMETHING BREAKS, SAY SO. A script error on a phone is silent: the ovals go
+     empty, the buttons do nothing, and nobody can open a console to read why. Any error the
+     page throws is written onto the page, small, at the top, where a thumb can dismiss it and
+     a screenshot can carry it back. */
+  window.addEventListener('error', function (e) {
+    try {
+      var b = document.getElementById('errband');
+      if (!b) { b = document.createElement('div'); b.id = 'errband'; document.body.appendChild(b); b.onclick = function () { b.style.display = 'none'; }; }
+      b.textContent = 'Something Broke \u00b7 ' + (e.message || 'Script Error') + (e.lineno ? ' \u00b7 line ' + e.lineno : '');
+      b.style.display = 'block';
+    } catch (x) {}
+  });
   $('mNew').onclick = function () {
     $('menu').style.display = 'none';
     $('setup').style.display = 'flex';

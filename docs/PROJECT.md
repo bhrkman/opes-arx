@@ -47,6 +47,8 @@ node sim/audit_code.cjs        THE HOUSEKEEPING AUDIT — dead functions, unread
                               helpers written twice. Answer everything or label it.
 node sim/audit_table.cjs      THE TABLE HELD TO ITS CHARACTER — nine rulings on whom an OA
                               approaches, courts, remembers and folds to, as a gate.
+node sim/measure_map.cjs      THE MAP DAY BY DAY — moves against the march, deaths against
+                              fights, squads against the record.
 node sim/measure_regret.cjs   HOW WELL THE OAs DECIDE — a Divide replayed from its seed with
                               one table decision forced the other way; signed, the other way
                               minus the way taken.
@@ -1589,12 +1591,16 @@ causes, and the second was the larger:
   people's standing comes from its dials, as any undeclared OA's does; the wider fleet has no
   opinion yet. Opening at zero on every audience was tried once and read as "your own crew hates
   you"; home stays warm.
-- **`LEAN_GRANT` 150k → 90k.** Measured, three years before any fighting: **−₡5k, −₡1k, +₡8k**,
-  the crowd doing the growing (₡51k → ₡71k at the door). Tight early, more choices as he grows,
-  which is the feel ruled. At 75k it was three losing years; the kit pass will make the first year
-  dearer still and is measured then.
+- **`LEAN_GRANT` 150k → 75k**, and **the founder's own people open at 60.** The first cut read
+  home standing off the dials and got 29 — which the page's own-people bands call *Mutinous*, a
+  crew close to walking off on the first morning; the grant was held at 90k against it for a week.
+  "Liked at home" is ruled to mean what the bands mean: 60, warm, not yet loyal. Measured with
+  that, three years before any fighting: **−₡4k, −₡5k, +₡4k**, the crowd doing the growing (₡65k
+  → ₡85k at the door). Tight early, more choices as he grows, which is the feel ruled. The kit pass
+  will make the first year dearer still and is measured then.
 - **The eight are funded relative to the founder.** `grantFor(profile)` gives an established OA
-  `LEAN_GRANT × (2 − 0.25 × difficulty)`: ₡158k for a 1, ₡68k for a 5. The eight hand-written
+  `LEAN_GRANT × (2 − 0.25 × difficulty)`: ₡131k for a 1, ₡56k for a 5. At 75k the eight average
+  about break-even before the Divide is fought; the Divide's money decides their year too. The eight hand-written
   `funding_base` figures are gone from the profiles. Established OAs open with full rosters and
   armouries; the founder's ₡210k treasury is what he builds a passable team from, and the grant is
   what keeps it standing.
@@ -1825,12 +1831,176 @@ a principal learns whether buying THAT OA's help won; kept per pair on the seaso
 three seasons of one fleet: 20 pairs with a lesson, 14 deals that paid, 12 that did not; an OA
 burned twice asks 30% more of that banner, one paid twice asks 20% less. Gated (`audit_table` T10).
 
-**Still open:** the manager's own ransoms are still decided for him by the AI's willingness roll
-("a bleak little decision the game should let managers make too"); the principal's ceiling at
-the margin (above); nobody bargains over the FORM of
-payment across rounds (a refused ask comes back lower, not different); the pot of a Divide is
-planet-scale while every cost at the table is body-scale, and that gap is why odds dominate
-everything.
+**The edges** (§6.15–6.16). *A manager answers his own ransoms:* when his man is held, the
+captor's price waits on the window — the man's name, the price, what he costs to replace — and he
+pays or declines; when he holds another OA's man, their offer waits there and he sells or keeps.
+The willingness roll answers only the AI now. Sixteen asks in three Divides, none settled for
+him. *A refused ask comes back different as well as lower:* the first in whatever form the values
+favour, the second dropping the terms in kind for share and cash, the third offering to stand its
+people down. (Principal refusals are rare — two in six Divides — so this fires seldom; it is
+there for when the guess is wrong.)
+
+**Still open on the table:** the principal's ceiling at the margin, which waits on the settlement's
+scale — the pot of a Divide is planet-scale while every cost at the table is body-scale, and that
+gap is why odds dominate everything. Parked here to move on.
+
+## The corner and the turn. *Ruled from four rounds of mockups; built.*
+
+The most-clicked control in the game — *Waiting on You / End the Month* — was a gold rectangle
+over a flat list at the bottom right, and the eye did not go to it. Nine treatments were mocked
+in the game's own palette, then combinations, then the winners in place on a Desk at its real
+density. Ruled:
+
+- **The Beacon.** A circle, breathing gold, the words inside it, the count as a solid gold badge on
+  its rim, the next page named beneath. Clear, it goes hollow and cyan: *End the Month · Nothing
+  Waiting on You.* The items are tabs at the screen's edge showing only their kind — *Focus, Letter,
+  Board, Event, Eight, Drop, Kit, Dirt* — that slide out when the pointer comes near. Clicking a
+  tab goes to its page; the Beacon goes to the first item's.
+- **Here.** When the item you click is already the page you are on, its tab reads *Here* in cyan,
+  the Beacon's line says *You're Here · Desk*, and the one element the item is about gets a single
+  cyan pulse (`pingFor`): the focus tally, not the pips; the events box; the Eight's card; the
+  page's first box when an item has no element of its own. Every click pings again. Three-pulse
+  pings and docking tabs were mocked and rejected as too much.
+- **The Ledger Turn** (`playTurn`). Ending a month is an event: a band wipes across the screen
+  carrying the month leaving at its leading edge and the month arriving behind it; the number
+  ticks over in the middle and turns from the old colour to the new; a rule draws under the name
+  as a gradient from one to the other; the year line's stop lights; then the month's summary
+  stands up. Every colour is the year line's own (`monthKind`), so after a couple of years a
+  manager knows what month it is from the colour of the wipe. 3.5 seconds; skipped under the dev
+  skip and by the harness (`__noTurn`).
+- **The Flare** — a cyan radar sweep round the rim — is reserved for waiting on another manager
+  (multiplayer) and not built.
+
+## The recap is a front page. *Ruled from mockups; built; to be carved.*
+
+The month's summary was a grid of seven boxes — work, events, training, left waiting, money,
+people, standing — each a list, none saying which of them mattered. Three shapes were mocked (a
+front page, a ledger sheet, a five-sentence wire); the front page was ruled the shape and the
+ledger the substance, the wire rejected. Built: a strip (the month ended; the month arriving, in
+its own colour), **one headline** in large type for the thing that mattered most — the show held,
+an event answered, who signed or left, the money, or *A Quiet Month* — and a deck line for the
+rest; a *Decided* list of every event with *Your Call* or *By Default*; a sheet head (the OA, the
+year, the month) over three ruled columns, every line a kind, a description and a figure on the
+right on dotted rules — **Money** from *At the Start* through every ledger line to *At the End*
+under a double rule, **People** as *Signed, Left, Changed, Arranged, Drilled* with stamps
+(*Mending, Clean, Traced*), **Standing** as gauges with a tick for a month ago and the figure and
+its change beside each; what was **Left Waiting** stamped on a red rule at the foot; *Continue*
+as the Beacon in the arriving month's colour. Credits are gold and money leaving is red (`crs`); standing deltas are good/bad and read
+*±0* when nothing moved. Copy is in the conventions (Title Case phrases; `audit_ui` clean). The
+turn hands off to it under the veil, so the veil fading and the summary arriving are one motion.
+
+## The page on a phone. *A first pass; the desk is still the desk.*
+
+The menu's three ovals opened empty on a phone and New Game seemed to do nothing. Two causes
+found without a device to hand, and one aid added because there was no device to hand:
+
+- **The ovals took their height as a percentage of a flex row**, which a phone's browser resolves
+  to nothing while the row's own height is still being worked out. Under 720px they take a width
+  and let the aspect give the height; everywhere they have a floor, so they are never empty. The
+  stage's `100dvh` has a `100vh` fallback beside it.
+- **The corner was hidden under 900px** (`body.yearline #agenda{display:none}`), so a phone had no
+  Beacon and no way to end a month but the header — a "destroyed by a resize" the audit did not
+  catch because the rule was on a body class. It shrinks now instead: a 72px Beacon, tabs that
+  stand out fully where there is no pointer to come near with, room under the page for it.
+- **Errors are written onto the page.** A script error on a phone is silent. Any error the page
+  throws now shows as a red band at the top — the message and the line — which a thumb dismisses
+  and a screenshot carries back. If New Game still does nothing, the band will say why.
+
+The turn's number scales with the screen; the recap's columns already stacked under 900px.
+
+## The map, day by day: how much was the engine and how much the page. *Measured; both fixed.*
+
+A manager skipping days and watching his squads saw them jump, vanish, and die without a fight.
+`measure_map.cjs` reads the same recording the page replays from and checks the engine's half:
+how far each squad moved in a day against the day's march, whether a squad that went down had a
+fight (or the wall, or a hazard, or a reform) beside it, and whether any squad ever left the
+record. Three Divides, 1,778 squad-days:
+
+- **Squads never leave the record.** Zero vanishings. "Disappearing" was the page's.
+- **Every squad that went down had a reason beside it.** 62 fights, 7 reforms, 2 to the wall,
+  none unexplained — once the fight radius was widened to what a fight can span and reforms
+  were counted. "Dying without a fight" was two things: a fight recorded at its midpoint up to
+  two marches from a participant, and a **reform** — a spent squad broken up at a comms window
+  and its people spread across the OA's other squads, recorded as *down* and drawn as a death.
+- **The march was twice what it said.** Pace read `(reflex − 10) × 0.012` from the days when
+  stats ran 10–20; at today's scale the median squad marched at **1.9× DAY_MARCH** and a quick
+  one at 2.5× — past contact range in a day, which is most of "jumping." Anchored at the median
+  reflex now (`PACE_PIVOT` 90, `PACE_PER_REFLEX` 0.002, 0.8–1.25): a day's move p90 fell from 1.23
+  marches to 0.80. What remains over budget is honest — a march on salt flats plus the run after
+  a lost fight.
+- **The run after a lost fight** was set on the squad directly, so the marker finished its
+  animated march and then jumped. It is a leg of the day's walk now, and the page draws it.
+
+**The record, played.** Two days pass between comms windows and watching them was a second a
+day with fights that simply appeared. RULED: a full record of every squad's movements and
+engagements over the segment, at a pace to parse. A day on the Ground takes 2.6 seconds at
+Normal (4.2 Slow, 0.9 Fast; a speed control on the scrubber), scaled to the longest walk; day
+fights fire at their moment in the march and night fights at its end, each with a burst and a
+label — the two OAs' tags and *Broke Off / Held to Dark / N Down* — that stays once the day is
+done; and **The Record** beside the map lists every one of your squads' days: *D4 · Hunting ·
+0.8 Marches · Met Nevlon · 2 Down · Stress 31 · 6d Food*, each line a scrub back to that day.
+
+**On the page besides:** a squad broken up is recorded *folded* and drawn *Folded In*, not as a remnant;
+a foreign squad the engine has stopped tracking for planning (three days stale, or dead) is
+kept on the manager's map as last-known — fainter, dated *Last Seen D<n>* — or as a *Down*
+remnant, to eight days (`pictureForMap`, `MAP_STALE`), where it used to vanish the moment the
+planner forgot it. Fights per day 4.3 → 4.0; Divide length unchanged.
+
+## A work order from play. *First pass.*
+
+- **A re-signed hand was never actually re-signed.** `answerRenewal` records the call and
+  `renewRoster` honours it — but the branch a MANAGER reaches set the new salary and never reset
+  the term, so `seasons_remaining` stayed at zero and the offseason expired him again, every
+  year. The AI's own branch always reset it. Fixed, and the calls are cleared once answered
+  (they were a standing instruction). A released hand walks at the turn, as he always did; the
+  card says so now (*Let Go · Walks at the Turn*) rather than looking as though nothing happened.
+- **CEILING came off the market card too.** The prospect card lost it when the hidden ceiling was
+  ruled out; this one was missed, and was still naming a mechanic that is not there.
+- **A chevron is a button.** 28px with no edge still read as a hint; the fold is a bordered
+  34×30 control now, lit at the head it belongs to.
+- **Gather Intel reads like the drill grid:** the name centred and underlined as the link it is,
+  the subtitle gone (it said what the dossier says).
+- **A recovery name opens a sheet**, the one list on the Desk that did not.
+- **The market's columns are the racks.** Two columns held ONE rack's rows split down the middle
+  — carbines above carbines beside carbines. A rack is a column now, whole, beside the next.
+- **One shape for a reward:** *Reward on Completion · ₡40,000* and *Reward on Completion · 2
+  Medical Kits*, so the board compares like with like.
+- **The corner follows the page.** It was drawn once and remembered which page had been open, so
+  a *Here* from the Desk stayed *Here* on the Roster and pinged instead of moving.
+- **DEV: Skip to Lock** arrives with a team worth testing: four squads of five from the best of
+  the roster (signing the shortfall up to twenty fit bodies), the steadiest hand leading each,
+  a decent mid-tier hand on every body. **DEV: Fill Squads** does the same on its own.
+
+**The OA sheet** (`renderOaPanel`). An OA was readable only through the Desk's intel row, one
+dossier at a time, on one screen. Its name now opens a drawer — the fighter sheet's own — from
+anywhere it is written, because `cSpan` carries the hook and one delegated listener answers for
+the whole page: the banner and the motto; its people's, the fleet's and the Aleas' reading of it
+as gauges, and how it reads YOU; what is public (bodies on the books once scouted, archetype,
+tier, how it fights); **the dossier** exactly as the Desk shows it; and its last six years, what
+it dropped and what it lost. The intel row's rival name opens the sheet now rather than an inline
+dossier — the planet keeps its own, being no OA.
+
+## The Board is the Card. *Mocked, ruled, built.*
+
+The Card was rows in a box beside the holds, read as loose data; it is what an OA is FOR. Ruled
+from mockups: it stands across the top and each demand is its own object — the ask in large type
+with its number in gold, who is asking, a gauge that MOVES, where it stands, and a state chip
+(*Met · 3 Short · Not Yet Fought*). The priority carries the board's gold on its spine and frame
+instead of a chip mid-sentence. The three that scale — Spending, Casualties, Popularity — move
+below as *Also Watched · Settled at the Divide*, being conditions the board weighs rather than
+objectives to chase.
+
+**A gauge that fits the demand.** A standing demand gets a bar from −100 to 100 with the
+threshold ticked and named. A resource demand fills toward what was asked. Losses fill toward
+the most the board will forgive. A placement demand was a row of ordinals with 5th lit, which
+never moves all year and says nothing: it shows **where the eight stand** — the odds board itself
+while a Divide is fought, the fleet's last finishing order out of one (`history.placement`,
+recorded now), with the cut drawn at the place asked for and you on it. Before any Divide has
+been fought there is no order, and it says so.
+
+**The rest reads as data.** The wheel of marks is gone: the fleet is a ledger of seven, each a
+door to its OA sheet. The audiences keep their gauges and their memory lines. The holds draw the
+gap back to last month **in red**, because a store only ever falls.
 
 ## The wages were never paid. *Fixed, and the surplus is now a tuning question.*
 

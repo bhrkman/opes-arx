@@ -27,6 +27,8 @@ vc.forwardTo(console, { jsdomErrors: 'none' });   /* jsdom 30: forwardTo, not se
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true,
                               virtualConsole: vc,
                               url: 'http://opesarx.test/' });   /* a url so localStorage lives */
+/* the ledger turn is three seconds of animation the drive does not need to sit through */
+dom.window.__noTurn = true;
 const { window } = dom;
 const doc = window.document;
 
@@ -494,8 +496,8 @@ setTimeout(() => {
     (doc.getElementById('turnanyway') || doc.getElementById('turnend') || doc.getElementById('endmonth')).click();
     check(doc.querySelector('.page[data-tab="recap"]').classList.contains('on') && /Month 1/.test(text('#recaphead')) && /Next/.test(text('#recaphead')),
           'ending the month stands the recap up: ' + text('#recaphead').replace(/\s+/g, ' ').trim().slice(0, 70));
-    check(/Money/.test(text('#recapbody')) && /Standing/.test(text('#recapbody')) && /Training/.test(text('#recapbody')),
-          'the recap reads the month\'s work, money, people, training, standing');
+    check(/Money/.test(text('#recapbody')) && /Standing/.test(text('#recapbody')) && /People/.test(text('#recapbody')),
+          'the recap reads the month\'s money, people and standing');
     doc.getElementById('recapgo').click();
     check(doc.querySelector('.page[data-tab="desk"]').classList.contains('on'), 'Continue returns to the Desk and the next brief');
     /* YOU FOCUS ON THE INTEL, YOU GET THE INTEL (ruled). The gather used to be scheduled
@@ -524,8 +526,9 @@ setTimeout(() => {
             !doc.querySelector('#mktledger .mrow'),
             'the shelf opens with every rack shut (' + secs.length + ' racks)');
       doc.querySelector('#mktledger .msec').click();
-      check(!!doc.querySelector('#mktledger .msecrows .mrow'),
-            'and a rack opens into a two-column grid when it is asked for');
+      /* the columns are the RACKS now: a rack is one column, whole, beside another rack */
+      check(!!doc.querySelector('#mktledger .mracks .mrack .mrow'),
+            'and a rack opens whole, in its own column beside the next');
       check(secs.length >= 5 && secs[0] === 'Carbines',
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
@@ -542,14 +545,16 @@ setTimeout(() => {
             (window.__G.state.planet.composition || []).length + ' resources)');
       /* THE CARD READS OUT: every demand named, the priority starred, the holds barred */
       [...doc.querySelectorAll('.tab')].filter(x => /Board/.test(x.textContent))[0].click();
-      const cardRows = doc.querySelectorAll('#boarddemand .cardrow:not(.standing)').length;
+      /* §BOARD each demand is its own object across the top now, and the three that scale
+         stand under them in their own box */
+      const cardRows = doc.querySelectorAll('#boarddemand .obj').length;
       const rep0 = window.__G.corps[window.__G.me].rep;
       check(cardRows === rep0.goal.demands.length && cardRows >= 3,
             'the Board names every demand on the card (' + cardRows + '): ' +
             [...doc.querySelectorAll('#boarddemand .cardrow:not(.standing) .dw')].map(e => e.textContent.replace(/\s+/g, ' ').trim()).join(' | '));
-      check(doc.querySelectorAll('#boarddemand .cardrow.pri').length === 1, 'one demand is starred as the priority');
-      check(doc.querySelectorAll('#boarddemand .cardrow.standing').length === 3 && /Popularity/.test(text('#boarddemand')),
-            'the three standing demands stand under it: spending, casualties, popularity');
+      check(doc.querySelectorAll('#boarddemand .obj.pri').length === 1, 'one demand carries the board\u2019s gold as the priority');
+      check(doc.querySelectorAll('#boardscales .cardrow.standing').length === 3 && /Popularity/.test(text('#boardscales')),
+            'the three that scale stand under it: spending, casualties, popularity');
       check(doc.querySelectorAll('#boardholds .holdrow:not(.hh)').length === 4 &&
             /Units of 9,000/.test(text('#boardholds')) && /a Month/.test(text('#boardholds')),
             'the four holds are barred in a fleet\'s own units, falling monthly');
@@ -1006,14 +1011,20 @@ setTimeout(() => {
     (function () {
       const GI = window.__G;
       deskTab().click();
+      /* §OA a rival's name on the intel row opens its OA SHEET now, in the drawer, where the
+         dossier is one section among its standing, its shape and its years; the planet keeps
+         the inline dossier, being no OA */
       const link = [...doc.querySelectorAll('#intelgrid .idoss')]
-                     .find(d => d.getAttribute('data-doss') === intelWatched);
-      check(!!link, 'the watched rival is on the intel section for its dossier to open');
+                     .find(d => d.getAttribute('data-oa') === intelWatched);
+      check(!!link, 'the watched rival is on the intel section for its sheet to open');
       if (link) {
         link.click();
-        check(!!doc.querySelector('#dossier .dtbl') && /\bmo\b|This month/.test(text('#dossier')),
-              'the dossier reads on the page, honestly dated');
-        GI._dossier = null;
+        check(doc.getElementById('oapanel').classList.contains('on') && !!doc.querySelector('#oapanel .dtbl') &&
+              (/\d\s*mo|This month|Not Yet Scouted/.test(text('#oapanel'))),
+              'the OA sheet opens and carries the dossier, dated or plainly unscouted');
+        check(/Standing/.test(text('#oapanel')) && /Their Years/.test(text('#oapanel')),
+              'and its standing and its years beside it');
+        doc.getElementById('oaclose').click();
       }
       /* THE PLANET'S DOSSIER READS AS FIGURES. Force the sheet full and read every row: the
          veins named with their category, the sites in units, the hazards as shares, supply as

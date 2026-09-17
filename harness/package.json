@@ -8,6 +8,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "acorn": "^8.18.0",
     "canvas": "^3.2.3",
     "jsdom": "^30.0.1"
   },

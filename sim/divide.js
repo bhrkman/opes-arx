@@ -138,7 +138,15 @@
        the march rides it rather than crowning an already-loaded one. Squad pace is
        the AVERAGE over its standing bodies, trainable like anything else; race
        flavour arrives through race stat spreads, never through a race multiplier. */
-    PACE_PER_REFLEX: 0.012,
+    /* §MAP THE MARCH WAS TWICE WHAT IT SAID. This read (reflex − 10) × 0.012 from the days
+       when stats ran 10–20. Stats run 10–200 with a median near 90, so the MEDIAN squad
+       marched at 1.9× DAY_MARCH and a quick one at 2.5× — past contact range in a day, which
+       is most of why squads seemed to leap past each other between frames. Anchored at the
+       median now: reflex 46 walks at 0.91, 133 at 1.09, the trainable difference kept, the
+       day's march meaning what it says. (measure_map.cjs) */
+    PACE_PIVOT: 90,                     // [C] the reflex at which a squad marches exactly DAY_MARCH
+    PACE_PER_REFLEX: 0.002,             // [C] per point off the pivot
+    PACE_MIN: 0.8, PACE_MAX: 1.25,      // [C]
     /* --- SHOOTING IS HEARD ---
        Until now the only way a squad learned where anybody was, was `flares`: every live
        squad's exact position handed to every corp's planner. Perfect knowledge, gated by
@@ -248,6 +256,7 @@
        was rebuilt. The doc entry goes with it. */
     WITHDRAW_RUN_FRAC: 0.60,            // [C] and you can only fall back into room you have
     KNOWN_STALE: 3,                     // [S] a sighting older than this is not information
+    MAP_STALE: 8,                       // [S] but the manager's map keeps it, as last-known, this long
     /* §KNOW THE PICTURE. Ruled with the dispersed drop: every OA knows where every other
        came down — the draft is posted — and after that only what its own squads (and its
        banner's) have seen, where they saw it, until it goes stale. */
@@ -1116,6 +1125,21 @@
       return pick;
     };
 
+    /* a ransom paid: he comes home hurt, the money moves at the books, both crowds notice */
+    function settleRansom(deal, f, owner, captor) {
+      f.status = 'injured';                     /* they come home, and they come home hurt */
+      f._capturedBy = null;
+      owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
+      captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
+      /* §3.1 — buying your people back is the thing your own ships care about most, and
+         the captor's fanbase notices you dealt straight with them. */
+      if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
+      stats.deals.push(deal);
+      stats.ransoms = (stats.ransoms || 0) + 1;
+      if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
+    }
+    stats._settleRansom = settleRansom;
+
     /* Offers, in a fixed order so the stream is deterministic. */
     for (const joiner of corps) {
       if (joiner.joinedTo || joiner.disqualified || sealed(joiner)) continue;
@@ -1257,24 +1281,34 @@
       }
     }
 
-    /* N10 — prisoners bought back, as their own small deal at the same window. */
+    /* N10 — prisoners bought back, as their own small deal at the same window. §6.15 A MANAGER
+       ANSWERS HIS OWN: when his man is held, the captor's price waits on the window and he pays
+       or does not; when he holds another OA's man, their offer to buy him back waits there and
+       he sells or keeps. The willingness roll that used to answer for him answers only the AI. */
+    stats.ransomAsks = (stats.ransomAsks || []).filter(a => !a.answered);
     for (const owner of corps) {
       for (const f of owner.allBodies) {
         if (f.status !== 'captured' || !f._capturedBy) continue;
         const captor = corps.find(c => c.id === f._capturedBy);
         if (!captor || captor.disqualified) continue;
+        if (stats.ransomAsks.some(a => a.fighter === f.id)) continue;   /* already on his window */
+        if (owner.id === opts.human) {
+          const offer = NEG.ransomOffer(rng, captor, owner, f, ctx);
+          if (offer) stats.ransomAsks.push({ side: 'owner', fighter: f.id, name: f.name, captor: captor.id, owner: owner.id,
+                                             price: offer.price, worth: offer.worth, day: day, answered: false });
+          continue;
+        }
+        if (captor.id === opts.human) {
+          /* what they would pay: the manager's asking price, read from his own OA's regard */
+          const price = Math.round(NEG.ransomPrice(f) * NEG.priceModifier(captor, owner));
+          if (NEG.ransomWorthPaying(owner, f, price, ctx))
+            stats.ransomAsks.push({ side: 'captor', fighter: f.id, name: f.name, captor: captor.id, owner: owner.id,
+                                    price: price, worth: Math.round(NEG.bodyWorth(f)), day: day, answered: false });
+          continue;
+        }
         const deal = NEG.considerRansom(rng, captor, owner, f, ctx);
         if (!deal) continue;
-        f.status = 'injured';                     /* they come home, and they come home hurt */
-        f._capturedBy = null;
-        owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
-        captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
-        /* §3.1 — buying your people back is the thing your own ships care about most, and
-           the captor's fanbase notices you dealt straight with them. */
-        if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
-        stats.deals.push(deal);
-        stats.ransoms = (stats.ransoms || 0) + 1;
-        if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
+        settleRansom(deal, f, owner, captor);
       }
     }
 
@@ -1834,6 +1868,21 @@
     }
     return out;
   }
+  /* §MAP WHAT THE MANAGER'S MAP MAY KEEP. The planner drops a sighting after KNOWN_STALE days
+     and the moment the squad dies ("the dead do not need watching") — right for deciding,
+     wrong for a map, where a foreign squad simply vanished. The map keeps a sighting to
+     MAP_STALE days as last-known, with its age, and a squad known to be down as a remnant. */
+  function pictureForMap(corp, day) {
+    const out = [], P2 = corp._picture || {};
+    for (const k in P2) {
+      const e = P2[k];
+      const age = day - e.day, limit = e.landing ? CONST.LANDING_KNOWN_DAYS : CONST.MAP_STALE;
+      if (age > limit) continue;
+      if (allied(corp, e.sq.corp)) continue;
+      out.push(Object.assign({}, e, { down: !squadHead(e.sq).length, stale: age > (e.landing ? CONST.LANDING_KNOWN_DAYS : CONST.KNOWN_STALE) }));
+    }
+    return out;
+  }
   function planCorp(rng, corp, planet, day, flares, stats, noises) {
     const zNow = MAP.zoneOn(planet, day);
     const mine = corp.squads.filter(sq => squadHead(sq).length >= 1);
@@ -2360,8 +2409,8 @@
     const head = squadHead(sq);
     if (!head.length) return 1;
     let sum = 0;
-    for (const b of head) sum += (b.stats && b.stats.reflex) || 10;
-    return 1 + (sum / head.length - 10) * CONST.PACE_PER_REFLEX;
+    for (const b of head) sum += (b.stats && b.stats.reflex) || CONST.PACE_PIVOT;
+    return Math.max(CONST.PACE_MIN, Math.min(CONST.PACE_MAX, 1 + (sum / head.length - CONST.PACE_PIVOT) * CONST.PACE_PER_REFLEX));
   }
   function sizeDetectMult(sq) {
     return 1 + (squadHead(sq).length - CONST.SIZE_PIVOT) * CONST.SIZE_DETECT_PER_BODY;
@@ -3955,7 +4004,11 @@
                   const run = Math.min(CONST.BREAK_DISTANCE * (0.8 + rng() * 0.5),
                                        roomNow * CONST.WITHDRAW_RUN_FRAC);
                   const p = MAP.clampInside(planet, day, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
+                  /* §MAP the break for it is a leg of the day's walk: without it the marker
+                     finished its animated march and then jumped to where the run had put it */
+                  if (!sq._track || !sq._track.length) sq._track = [Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000];
                   sq.x = p.x; sq.y = p.y;
+                  sq._track.push(Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000);
                   const cornered = roomNow <= planet.radius * CONST.CORNERED_ZONE_FRAC;
                   sq.intent = cornered ? null
                     : { type: 'withdraw', tx: sq.x + (dx / len) * run,
@@ -4101,6 +4154,10 @@
             });
             for (const h of hosts) h.rations += share;
             q.bodies = []; q.rations = 0; q.intent = null;
+            /* §MAP the emptied squad is recorded as FOLDED, not down: on the map a squad with
+               nobody left read as a death with no fight beside it, and this was most of those */
+            q._reformed = day;
+            q._downAt = { x: Math.round(q.x * 1000) / 1000, y: Math.round(q.y * 1000) / 1000 };
             stats.audit.reforms = (stats.audit.reforms || 0) + 1;
             rec({ t: 'reform', x: q.x, y: q.y, c: c.id, n, into: hosts.length });
           }
@@ -4139,7 +4196,15 @@
              functions the AI is scored by, which is why they were split out in the first place.
              A parallel valuation for the human would be a second game. */
           const nctx = makeNegContext(rng, corps, planet, day, stats);
-          const table = { canJoin: [], wouldTake: [], pacts: [], asks: [] };
+          const table = { canJoin: [], wouldTake: [], pacts: [], asks: [], ransoms: [] };
+          /* §6.15 his ransoms: his people held for a price, and other OAs' people he holds */
+          for (const a of (stats.ransomAsks || [])) {
+            if (a.answered) continue;
+            const f = corps.reduce((found, c) => found || c.allBodies.find(b => b.id === a.fighter), null);
+            if (!f || f.status !== 'captured') { a.answered = true; continue; }
+            table.ransoms.push({ side: a.side, fighter: a.fighter, name: a.name, corp: a.side === 'owner' ? a.captor : a.owner,
+                                 price: a.price, worth: a.worth, day: a.day });
+          }
           /* §6.2 WHO IS ASKING TO COME IN under your banner, on what terms, and what it would
              cost you to say no: their people you would still be fighting (the spoiler) and
              the people THEY would lose for it. Priced by `offerRange`, same as everything. */
@@ -4222,7 +4287,7 @@
             cadence: MAP.windowCadence(planet, day),
             odds: board, penned: penned, zone: zNow, table: table,
             weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
-            picture: pictureOf(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing })),
+            picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, down: !!e.down, stale: !!e.stale })),
             leanings: Object.assign({}, you._leanings || {}),
             /* the wall's remaining beats, so a manager can plan against the clock */
             wall: MAP.wallSchedule(planet, day),
@@ -4312,6 +4377,18 @@
                   if (deal.standDown) stats.standDowns = (stats.standDowns || 0) + 1;
                   stats.audit.humanJoins = (stats.audit.humanJoins || 0) + 1;
                 } else if (verdict) stats.audit.humanRefused = (stats.audit.humanRefused || 0) + 1;
+              }
+            } else if (d.kind === 'ransom_pay' || d.kind === 'ransom_decline' || d.kind === 'ransom_sell' || d.kind === 'ransom_keep') {
+              /* §6.15 his own ransoms */
+              const a = (stats.ransomAsks || []).filter(x => x.fighter === d.fighter && !x.answered)[0];
+              if (a) {
+                a.answered = true;
+                const f = corps.reduce((found, c) => found || c.allBodies.find(b => b.id === a.fighter), null);
+                const owner = corps.filter(c => c.id === a.owner)[0], captor = corps.filter(c => c.id === a.captor)[0];
+                const yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
+                if (yes && f && f.status === 'captured' && owner && captor)
+                  stats._settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: a.price, day: day, worth: a.worth }, f, owner, captor);
+                stats._answerEcho = { kind: d.kind, corp: a.side === 'owner' ? a.captor : a.owner, accepted: yes, name: a.name, price: a.price };
               }
             } else if (d.kind === 'take' || d.kind === 'accept' || d.kind === 'refuse') {
               /* somebody comes in under YOUR banner — on terms you set ('take'), on the terms
@@ -4421,7 +4498,7 @@
                       y: alive ? Math.round(q.y * 1000) / 1000 : q._downAt.y,
                       ax: alive && q._aim ? Math.round(q._aim.x * 1000) / 1000 : null,
                       ay: alive && q._aim ? Math.round(q._aim.y * 1000) / 1000 : null,
-                      w: alive ? (q._why || 'drift') : 'down', n: alive,
+                      w: alive ? (q._why || 'drift') : (q._reformed ? 'folded' : 'down'), n: alive,
                       st: Math.round(squadStress(q)),
                       rat: Math.round(Math.min(30, q.rations / demand)),
                       g: q.crates, cl: q.claiming ? 1 : 0,
