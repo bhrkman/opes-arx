@@ -288,14 +288,9 @@
   #backroom .qhh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
   #backroom .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:16px;padding-top:10px;line-height:1.7}
   #backroom .qdone .out{color:var(--bad)}
-  .constel{position:relative;margin:4px auto 8px}
-  .constel .cwires{position:absolute;inset:0;width:100%;height:100%}
-  .constel .chub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;
     border:1px solid var(--a);background:var(--a-deep);display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:2px;color:var(--a);font-size:9px;text-align:center;line-height:1.1;padding:6px}
-  .constel .cnode{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;
     gap:2px;color:var(--c)}
-  .constel .cnode .hn-name{font-size:9px;color:var(--c);text-align:center}
   .hpick{position:relative}
   .hpick.row{display:flex;flex-wrap:wrap;gap:10px}
   .hpick-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:112px;height:112px;border-radius:50%;
@@ -509,6 +504,22 @@
      loose data; they are what the OA is FOR. Each stands as its own object across the top —
      the thing asked in large type, a gauge that moves, where it stands, the priority in the
      board's gold — and everything under them is data and reads as data. */
+  /* §BOARD the section heads read in the command colour, as the mock drew them; the rest of
+     the page's h2s stay dim — this page is the one that is read top-down by its headings */
+  .page[data-tab="board"] h2,.page[data-tab="board"] .audhead{color:var(--a);letter-spacing:.16em;font-size:9.5px}
+  #boardhead{display:flex;align-items:center;gap:22px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:12px 16px;margin-bottom:12px;flex-wrap:wrap}
+  #boardhead .byr{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  #boardhead .byr b{display:block;font-size:20px;color:var(--ink);letter-spacing:0}
+  #boardhead .bpat{display:flex;align-items:center;gap:12px;flex:1;min-width:280px}
+  #boardhead .bpat .lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  #boardhead .pbar{flex:1;height:10px;border-radius:5px;position:relative;
+    background:linear-gradient(90deg,var(--red) 0 25%,var(--bad) 25% 50%,var(--line) 50%)}
+  #boardhead .pbar i{position:absolute;top:-4px;width:3px;height:18px;background:var(--ink);border-radius:1px}
+  #boardhead .pbar em{position:absolute;top:-4px;width:1px;height:18px;background:var(--faint)}
+  #boardhead .pv{font-size:19px;font-weight:700;min-width:44px;text-align:right}
+  #boardhead .pw{font-size:10.5px;color:var(--dim);min-width:130px}
+  #boardhead .bkv{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-align:right}
+  #boardhead .bkv b{display:block;font-size:14px;color:var(--ink);letter-spacing:0}
   #boarddemand .cardrow2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
   .obj{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
   .obj::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
@@ -540,10 +551,64 @@
   .obj .board8 .odds{height:5px;background:var(--line);border-radius:3px;position:relative}
   .obj .board8 .odds i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
   .obj .board8 .v{text-align:right}
+  #boardscales .dials{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  #boardscales .dial{text-align:center}
+  #boardscales .dial .lab{font-size:11px;letter-spacing:.06em;color:var(--ink)}
+  #boardscales .dial .arc{width:118px;margin:6px auto 2px}
+  #boardscales .dial .arc svg{width:118px;height:78px;display:block}
+  #boardscales .dial .arc path{fill:none;stroke-width:9;stroke-linecap:butt}
+  #boardscales .dial .arc .track{stroke:var(--line)}
+  #boardscales .dial .arc .cold{stroke:var(--red)} #boardscales .dial .arc .warm{stroke:var(--hit)}
+  #boardscales .dial .arc .needle{stroke:var(--ink);stroke-width:2.5}
+  #boardscales .dial .arc .hub{fill:var(--ink)}
+  #boardscales .dial .dw{font-size:12px;font-weight:700}
+  #boardscales .dial .sub{font-size:9.5px;color:var(--dim)}
+  @media (max-width:900px){ #boardscales .dials{grid-template-columns:1fr} }
+  .fleetbox .fleetrow{display:grid;grid-template-columns:22px 1fr 110px 92px 86px;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);font-size:11.5px}
+  .fleetbox .fleetrow:last-child{border-bottom:none}
+  .fleetbox .fleetrow.hd{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
+  .fleetbox .nm small{display:block;font-size:9.5px;color:var(--dim)}
+  .fleetbox .fbar{position:relative;height:6px;background:var(--line);border-radius:3px}
+  .fleetbox .fbar i{position:absolute;top:0;bottom:0;border-radius:3px}
+  .fleetbox .fbar .c{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--faint)}
+  .fleetbox .frd{white-space:nowrap} .fleetbox .frd b{margin-right:6px}
+  .fleetbox .flast{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
+  /* narrow: the row folds to two lines rather than dropping the reading and the year — nothing
+     on this page is destroyed by a resize */
+  @media (max-width:900px){
+    .fleetbox .fleetrow{grid-template-columns:22px 1fr 88px;grid-template-areas:"mk nm rd" ". bar last"}
+    .fleetbox .fleetrow.hd{font-size:8.5px;grid-template-columns:22px 1fr 88px}   /* the head keeps its words, narrower */
+    .fleetbox .fleetrow>span:nth-child(1){grid-area:mk} .fleetbox .nm{grid-area:nm}
+    .fleetbox .fbar{grid-area:bar} .fleetbox .frd{grid-area:rd} .fleetbox .flast{grid-area:last}
+  }
   .obj .ofoot{font-size:11px;border-top:1px solid var(--line);padding-top:8px}
   .obj .ofoot b{font-size:13px}
   /* the stores only ever fall: the gap back to last month is what was lost, in red */
-  .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.8;border-radius:0 4px 4px 0}
+  /* §HOLDS the month's loss, drawn as the gap back to where the store stood — absolutely
+     placed INSIDE the bar, which has to be a positioning context to hold it. It was not, so
+     the segments escaped to the page and painted four red bands down the whole screen. */
+  .holdrow .hbar{position:relative}
+  .holdrow .hbar .ago{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
+  /* §BOARD THE AUDIENCE BAR IS A FILL, not a marker on a gradient. `.sbar` reads as a slider —
+     a dot at a position on a red-to-green wash — which is right for a picker and wrong for a
+     standing: an audience's regard is a QUANTITY, drawn filled along a plain track with the
+     bands ticked on it. Three things had to be said out loud for that to hold: `.sbar` is
+     INLINE, so nested in a grid cell it collapses to a stub (display:block, width:100%);
+     `.sbar.onesided` carries its own gradient at the same specificity as `.audrow2 .sbar` and
+     wins by coming later (#audiences outranks it); and the fill is an `i` that `.sbar i`
+     otherwise turns into a 3px marker. The pickers keep `.sbar` exactly as it was. */
+  .standfill{position:relative;display:block;width:100%;height:8px;border-radius:4px;background:var(--line)}
+  .standfill i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--b)}
+  .standfill .ago{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
+  .standfill .bt{position:absolute;top:-3px;width:1px;height:14px;background:var(--faint)}
+  .standfill .btw{position:absolute;top:12px;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+  .standfill .btw.lo{transform:translateX(calc(-100% - 4px))}
+  .standfill .btw.hi{transform:translateX(4px)}
+  .sbar .bt{position:absolute;top:-2px;width:1px;height:12px;background:var(--faint)}
+  .sbar .btw{position:absolute;top:13px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);transform:translateX(-50%);white-space:nowrap}
+  .sbar .ago{position:absolute;top:-2px;width:1px;height:12px;background:var(--ink)}
+  .holdfoot{font-size:10.5px;color:var(--dim);margin-top:8px}
+  .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.85}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
   .recaptot{border-top:1px solid var(--line2);margin-top:7px;padding-top:6px}
@@ -640,19 +705,30 @@
   .legend td{padding:3px 6px;border-top:1px solid #16233a}
   .legend td i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid var(--line2)}
   .legend tr.special td{color:var(--ink)}
-  .audcard{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 11px;margin-bottom:8px}
-  .audcard .audrow{border-bottom:none;padding:0}
-  .audcard .why{margin-top:6px;border-top:1px solid #16233a;padding-top:5px;font-size:10.5px}
-  .audcard .why div{display:flex;gap:8px;align-items:baseline;padding:1px 0}
-  .audcard .why .v{width:40px;text-align:right;flex-shrink:0}
-  .audcard .why .s{color:var(--faint);flex-shrink:0}
-  .audcard .why .t{color:var(--dim)}
+  #audiences .audbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+  .audrow2{display:grid;grid-template-columns:118px 1fr 96px;gap:14px;align-items:center;padding:10px 2px 4px}
+  .audrow2 .an{font-size:12.5px} .audrow2 .an small{display:block;font-size:10px;color:var(--dim)}
+  .audrow2 .ab{padding-bottom:14px}
+  .audrow2 .ard{text-align:right;font-size:11px;white-space:nowrap}
+  .audrow2 .ard b{display:block;font-size:13px;color:var(--ink)}
+  /* THE BAND WORD CARRIES ITS BAND'S COLOUR. `.bad` has no global rule in this stylesheet
+     (only `.rostsum b.bad` and the like), so a word classed `bad` inherited ink and came out
+     white. Named here, for this row, rather than adding a global rule the rest of the page
+     has never had: the bottom band red, the one above it amber, the good ones green. */
+  .audrow2 .ard b.bad{color:var(--red)} .audrow2 .ard b.warn{color:var(--bad)}
+  .audrow2 .ard b.good{color:var(--hit)}
+  .audrow2 .ard .af{margin-right:6px;color:var(--ink);font-size:12px}
+  .audrow2 .ard .d{font-size:10.5px} .audrow2 .ard .d.dn{color:var(--red)}
+  .amem{font-size:10.5px;color:var(--dim);padding:0 2px 10px 132px;border-bottom:1px solid var(--line)}
+  .amem span{margin-right:12px} .amem .up{color:var(--hit)} .amem .dn{color:var(--red)}
+  #audiences .audbox .amem:last-child{border-bottom:none;padding-bottom:2px}
+  @media (max-width:900px){ .audrow2{grid-template-columns:1fr auto;grid-template-areas:"an rd" "ab ab"} 
+    .audrow2 .an{grid-area:an} .audrow2 .ab{grid-area:ab} .audrow2 .ard{grid-area:rd} .amem{padding-left:2px} }
   .rivals{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 11px}
   .rivals .audrow{padding:5px 0}
   .audrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #16233a}
   .audname{flex:1 1 auto;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .audname .m{flex:1 0 100%;font-size:10.5px}
-  .audbar{flex:0 0 210px;display:flex;align-items:center;gap:8px;justify-content:flex-end}
   .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
     background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
   /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
@@ -5532,33 +5608,9 @@
      circle in the OA's own colour, the name under it. The ring fills the empty middle of
      the menus that use it, and the same component answers everywhere. */
   /* §PICKER the fleet round an OA, distance and size carrying what they think of you */
-  function constellation(ids, byId) {
-    var box = 300, mid = box / 2;
-    var h = '<div class="constel" style="width:' + box + 'px;height:' + box + 'px">' +
-      '<svg class="cwires" viewBox="0 0 ' + box + ' ' + box + '">';
-    var pts = ids.map(function (id, i) {
-      var v = Math.max(-100, Math.min(100, byId[id] || 0));
-      var near = (v + 100) / 200;                       /* 0 cold and far, 1 warm and close */
-      var R = 118 - near * 46;                          /* the warm stand closer */
-      var a = (i / ids.length) * Math.PI * 2 - Math.PI / 2;
-      return { id: id, v: v, x: mid + Math.cos(a) * R, y: mid + Math.sin(a) * R,
-               size: Math.round(34 + near * 20) };
-    });
-    pts.forEach(function (p) {
-      var warm = p.v >= 0;
-      h += '<line x1="' + mid + '" y1="' + mid + '" x2="' + p.x + '" y2="' + p.y + '" stroke="' +
-           (warm ? TOK.hit : TOK.red) + '" stroke-opacity="' + (0.14 + Math.abs(p.v) / 100 * 0.5).toFixed(2) +
-           '" stroke-width="' + (1 + Math.abs(p.v) / 100 * 2.5).toFixed(1) + '"/>';
-    });
-    h += '</svg><div class="chub">' + markFor(G.me, 22) + '<span>' + esc(shortOA(G.me)) + '</span></div>';
-    pts.forEach(function (p) {
-      h += '<div class="cnode" style="left:' + p.x + 'px;top:' + p.y + 'px;--c:' + colFor(p.id) + '" ' +
-           'title="' + esc(nameOfCorp(p.id)) + ' \u00b7 ' + (p.v > 0 ? '+' : '') + p.v.toFixed(0) + '">' +
-           '<span class="hn-disc" style="width:' + p.size + 'px;height:' + p.size + 'px">' + markFor(p.id, Math.round(p.size * 0.6)) + '</span>' +
-           '<span class="hn-name">' + esc(shortOA(p.id)) + '</span></div>';
-    });
-    return h + '</div>';
-  }
+  /* THE CONSTELLATION IS STRUCK. Eight marks on spokes at a distance said who was warm only
+     by how near they sat, and nothing about why or what they had done; the Board reads the
+     fleet as a ledger now (renderBoard). Removed rather than left to rot. */
   function oaPicker(ids, chosen, attr, opts) {
     opts = opts || {};
     var n = ids.length;
@@ -7210,15 +7262,58 @@
     aleas: { lo: -100, hi: 100, signed: true },
     rival: { lo: -100, hi: 100, signed: true }
   };
-  function standBar(v, aud) {
+  function standBar(v, aud, was, bare) {
     var sc = STAND_SCALE[aud] || STAND_SCALE.rival;
-    var pct = Math.max(0, Math.min(100, ((v - sc.lo) / (sc.hi - sc.lo)) * 100));
+    var at = function (x) { return Math.max(0, Math.min(100, ((x - sc.lo) / (sc.hi - sc.lo)) * 100)); };
+    var pct = at(v);
     var b = standBand(v, aud);
     var num = sc.signed ? ((v > 0 ? '+' : '') + Math.round(v))
                         : (Math.round(v) + ' of ' + sc.hi);
-    return '<span class="sbar' + (sc.signed ? '' : ' onesided') + '">' +
-           '<i style="left:' + pct.toFixed(1) + '%"></i></span>' +
-           '<span class="swrd ' + b.cls + '">' + b.word + ' \u00b7 ' + num + '</span>';
+    /* the bands named on the bar, so the figure has a scale a manager can read */
+    /* the bands are named at the THRESHOLD each begins at, so a tick sits where a reading
+       crosses from one word to the next; the first band has no threshold below it and the
+       last has none above, so both are named at their own edge */
+    /* TWO NAMES, NEVER TOUCHING. Every threshold gets a tick. Only the band you are in is
+       named — by its neighbours: the band BELOW at the lower boundary, anchored to the left
+       of its tick, and the band ABOVE at the upper boundary, anchored to the right of its. Two
+       words pulling away from each other cannot overlap at any width. (Three names crowded
+       onto one bar printed "MUTINGBBAINEDVAL".) */
+    var bands = STAND_BANDS[aud] || [], bi = 0;
+    bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
+    var ticks = bands.slice(0, -1).map(function (t, i) {
+      var p = at(t[0]); if (p <= 2 || p >= 98) return '';
+      var word = '';
+      /* at the bottom band there is nothing below to name, so the two boundaries ABOVE are
+         named (as the mock does for the Fleet at zero: WATCHED · RESPECTED); at the top band,
+         the two below */
+      var lower = bi === 0 ? -1 : bi === bands.length - 1 ? bi - 2 : bi - 1;
+      var upper = bi === 0 ? 1 : bi === bands.length - 1 ? bi - 1 : bi;
+      /* the lower name pulls left of its tick, the upper pulls right: they cannot meet.
+         A lower tick too close to the bar's start has no room on its left and pulls right
+         instead, which the upper's distance then covers. */
+      if (i === lower || (bi === 0 && i === 0))
+        word = '<span class="btw ' + (p >= 18 ? 'lo' : 'hi') + '" style="left:' + p.toFixed(1) + '%">' + (bi === 0 ? bands[i + 1][1] : bands[i][1]) + '</span>';
+      else if (i === upper && bands[i + 1])
+        word = '<span class="btw hi" style="left:' + p.toFixed(1) + '%">' + (bi === bands.length - 1 ? bands[i][1] : bands[i + 1][1]) + '</span>';
+      return '<span class="bt" style="left:' + p.toFixed(1) + '%"></span>' + word;
+    }).join('');
+    var d = was != null ? v - was : 0;
+    var dtxt = was == null || Math.abs(d) < 0.05 ? '\u00b10' : (d > 0 ? '+' : '\u2212') + Math.abs(d).toFixed(1);
+    if (bare) {
+      /* the Board's bar: filled to where the standing stands, coloured by the band it is in */
+      /* NOT `.sbar`: the Board's bar is its own class. Wearing the picker's class meant wearing
+         the picker's gradient, and beating it took a specificity argument that a stylesheet
+         should never have to have. One colour, as the mock drew it: the BAR says how much, the
+         WORD beside it says how good. */
+      return '<span class="standfill">' + ticks +
+             (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
+             '<i style="width:' + pct.toFixed(1) + '%"></i></span>';
+    }
+    var bar = '<span class="sbar' + (sc.signed ? '' : ' onesided') + '">' + ticks +
+              (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
+              '<i style="left:' + pct.toFixed(1) + '%"></i></span>';
+    return bar + '<span class="swrd ' + b.cls + '">' + b.word + ' \u00b7 ' + num +
+           ' <span class="' + (d > 0.05 ? 'good' : d < -0.05 ? 'bad' : 'm') + '">' + dtxt + '</span></span>';
   }
   function renderBoard() {
     if (!G || !$('audiences')) return;
@@ -7230,38 +7325,85 @@
     /* ---- the head: the year, patience, interest, and the verdict once there is one ---- */
     var g = rep.goal || {}, pat = rep.patience != null ? Math.round(rep.patience) : null;
     var verdict = G._boardOutcome && me._close && me._close.board && me._close.board.band ? capWords(me._close.board.band) : null;
-    $('boardhead').innerHTML = '<div class="dl"><span>Year <b>' + G.state.season + '</b></span>' +
-      (pat != null ? '<span>Patience <b>' + pat + '</b></span>' : '') +
-      (g.interest != null ? '<span>Interest <b>' + Math.round(g.interest * 100) + '%</b></span>' : '') +
-      (verdict ? '<span>Their Verdict <b>' + esc(verdict) + '</b></span>' : '') +
-      '<span>Own People <b>' + standBand(read.own || 0, 'own').word + '</b></span>' +
-      '<span>The Fleet <b>' + standBand(read.fleet || 0, 'fleet').word + '</b></span></div><span></span>';
+    /* §BOARD THE BOARDROOM STRIP. Patience is the number a manager lives or dies by — at zero
+       the board takes the OA off him — and it was one figure in a row of five, beside two
+       standings the audiences below already give. It is the biggest thing on the page now: a
+       bar with the danger drawn on it (red to 25, amber to 50), the figure, and what the board
+       is at the moment. The verdict joins it once the year has one. */
+    var patWord = pat == null ? '' : pat < 15 ? 'Out of Patience' : pat < 25 ? 'Close to Sacking You'
+                : pat < 50 ? 'Losing Faith' : pat < 75 ? 'Content' : 'Behind You';
+    var patCls = pat == null ? '' : pat < 25 ? 'bad' : pat < 50 ? 'warn' : 'good';
+    $('boardhead').innerHTML =
+      '<span class="byr">Year<b>' + G.state.season + '</b></span>' +
+      (pat != null ? '<span class="bpat"><span class="lab">Patience</span>' +
+        '<span class="pbar"><em style="left:25%"></em><em style="left:50%"></em><i style="left:' + pat + '%"></i></span>' +
+        '<span class="pv ' + patCls + '">' + pat + '</span><span class="pw">' + patWord + '</span></span>' : '') +
+      (g.interest != null ? '<span class="bkv">Interest<b>' + Math.round(g.interest * 100) + '%</b></span>' : '') +
+      '<span class="bkv">Grant<b>' + crs(me.account.grant || 0) + '</b></span>' +
+      (verdict ? '<span class="bkv">Their Verdict<b>' + esc(verdict) + '</b></span>' : '');
 
+    if ($('cardhead')) $('cardhead').textContent = 'The Card \u00b7 Year ' + G.state.season;
     renderCard(me, rep);
     renderHolds(me, rep);
 
     /* ---- who is watching: each audience a card, its own memory inside it. A standing with no
        story behind it is a number a manager cannot act on; the story sits under the number. ---- */
-    var h = '';
+    /* §BOARD a standing means nothing without its scale or its direction: the bands are named
+       on the bar itself, a tick shows where the audience stood a month ago, and the change
+       stands beside the figure. The Board keeps the month's reading for the comparison. */
+    if (!G._audAt || G._audAt !== G.state.season + ':' + G.state.month) {
+      G._audWas = { own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0 };
+      G._audAt = G.state.season + ':' + G.state.month;
+    }
+    var audWas = G._audWas || {};
+    var h = '<div class="audbox">';
     ['own', 'fleet', 'aleas'].forEach(function (a) {
       var v = read[a] || 0, d = AUDNAME[a];
+      /* THREE COLUMNS: who is watching, the bar with its bands and its month-ago tick, and
+         the reading on the right — the word in its own colour over the figure and the change.
+         Under it, ONE line of what moved them: an arrow and the act, not a dated ledger. */
       var why = (REP.why(rep, a, null, 3) || []);
-      h += '<div class="audcard"><div class="audrow"><div class="audname">' + d.name +
-           '<span class="m">' + d.sub + '</span></div>' +
-           '<div class="audbar">' + standBar(v, a) + '</div></div>' +
-           (why.length ? '<div class="why">' + why.map(function (m) {
-             var sign = m.now > 0 ? 'good' : m.now < 0 ? 'bad' : 'm';
-             return '<div><span class="v ' + sign + '">' + (m.now > 0 ? '+' : '') + m.now.toFixed(1) + '</span><span class="s">Y' + m.season + '</span>' +
-                    '<span class="t">' + esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span></div>'; }).join('') + '</div>' : '') +
-           '</div>';
+      var sc = STAND_SCALE[a] || STAND_SCALE.rival;
+      var band = standBand(v, a), was = audWas[a];
+      /* the lowest band of a scale is red; the next one up is a warning, not a disaster */
+      var bands = STAND_BANDS[a] || [], bi = 0;
+      bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
+      var wcls = band.cls === 'good' ? 'good' : band.cls === 'bad' ? (bi === 0 ? 'bad' : 'warn') : '';
+      var dv = was != null ? v - was : 0;
+      var dtxt = was == null || Math.abs(dv) < 0.05 ? '\u00b10' : (dv > 0 ? '+' : '\u2212') + Math.abs(dv).toFixed(1);
+      h += '<div class="audrow2"><span class="an">' + d.name + '<small>' + d.sub + '</small></span>' +
+           '<span class="ab">' + standBar(v, a, was, true) + '</span>' +
+           '<span class="ard"><b class="' + wcls + '">' + band.word + '</b>' +
+           '<span class="af">' + (sc.signed && v > 0 ? '+' : '') + Math.round(v) + '</span>' +
+           '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span></div>' +
+           '<div class="amem">' + (why.length
+             ? why.map(function (m) {
+                 var up = m.now > 0;
+                 return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
+                        esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span>';
+               }).join('')
+             : '<span class="m">Nothing Has Moved Them Yet</span>') + '</div>';
     });
-    /* §PICKER THE FLEET AS A CONSTELLATION. Seven bars in a column said what each OA thinks
-       of you and showed nothing: a fleet is a set of DISTANCES. Each OA stands on a ring
-       round yours — the warmer they are the CLOSER and the LARGER they sit, the colder the
-       further out and the smaller — with a line drawn to you in green where they are warm and
-       red where they are cold, its weight the strength of the feeling. The same disc-and-name
-       the pickers use, so the fleet looks like itself everywhere. */
-    h += '<div class="audhead">The Other OAs</div>' + constellation(rivalIds, read.rival) + '</div>';
+    /* §BOARD THE FLEET AS A LEDGER. The wheel of marks put each OA on a spoke at a distance
+       and said nothing a manager could read: who is warm, who is cold, why, and what they did.
+       Seven rows: the mark, the name (a door to its sheet), how they fight, what they think of
+       you as a bar about a centre line, the word, and their last year. */
+    h += '</div><div class="audhead">The Fleet</div><div class="box fleetbox">' +
+      '<div class="fleetrow hd"><span></span><span>OA</span><span>Toward You</span><span>Read</span><span>Last Year</span></div>' +
+      rivalIds.map(function (id) {
+        var c = G.corps[id], p = (c && c.profile) || {}, v = Math.max(-100, Math.min(100, read.rival[id] || 0));
+        var band = standBand(v, 'rival');
+        var hs = (c.history || []), hy = hs[hs.length - 1];
+        var last = hy ? ((hy.won ? 'Won' : hy.placement ? ordinal(hy.placement) : '\u2014') + ' \u00b7 ' + (hy.dead || 0) + ' Lost') : 'No Year Yet';
+        var w = Math.abs(v) / 2;
+        return '<div class="fleetrow"><span style="color:' + colFor(id) + '">' + markFor(id, 18) + '</span>' +
+               '<span class="nm">' + cSpan(id) + '<small>' + esc(capWords(p.archetype || '')) +
+               (p.engagement_lean ? ' \u00b7 ' + esc(capWords(String(p.engagement_lean).replace(/_/g, ' '))) : '') + '</small></span>' +
+               '<span class="fbar"><span class="c"></span><i style="' + (v >= 0 ? 'left:50%' : 'right:50%') + ';width:' + w.toFixed(0) + '%;background:' +
+               (v > 15 ? 'var(--hit)' : v < -15 ? 'var(--red)' : 'var(--b)') + '"></i></span>' +
+               '<span class="frd"><b class="' + (band.cls || '') + '">' + band.word + '</b>' + (v > 0 ? '+' : '') + Math.round(v) + '</span>' +
+               '<span class="flast">' + esc(last) + '</span></div>';
+      }).join('') + '</div>';
     $('audiences').innerHTML = h;
 
     renderBoardQuestion();
@@ -7371,7 +7513,7 @@
     /* THE THREE THAT SCALE. Spending, Casualties and Popularity are not met or missed: each
        reads on a spectrum from displeased to pleased, and the marker lands where the year
        lands. Popularity reads live, because the crowd does not wait for the Divide. */
-    var sh = '<div class="cardrows">';
+    var sh = '<div class="dials">';
     (g.standing || []).forEach(function (sd) {
       var line = byKind[sd.kind];
       var v = line ? line.value : null;
@@ -7385,11 +7527,19 @@
       var sub = sd.kind === 'thrift' ? 'Under the Stipend'
               : sd.kind === 'popularity' ? 'The Gate and the Board\u2019s Cut'
               : 'Under ' + Math.round(REP.CONST.CARE_NEUTRAL_LOSS * 100) + '% of the Drop Lost';
-      sh += '<div class="cardrow standing"><span class="pri"></span><span class="dw">' + demandWords(sd) +
-            '<div class="m" style="font-size:10px">' + sub + '</div></span>' +
-            '<span class="spec' + (v == null ? ' unset' : '') + '" title="' + word + '"><span class="spl">Displeased</span>' +
-            '<span class="sbar"><i style="left:' + pos + '%"></i></span><span class="spr">Pleased</span>' +
-            '<span class="sw ' + (v == null ? 'm' : v > 0.15 ? 'good' : v < -0.15 ? 'bad' : '') + '">' + word + '</span></span></div>';
+      /* a DIAL, not a strip: the needle swings from displeased to pleased across a red-to-green
+         arc, which is what a board's mood is */
+      var ang = -90 + (pos / 100) * 180, rad = ang * Math.PI / 180;
+      var nx = 55 + Math.sin(rad) * 40, ny = 60 - Math.cos(rad) * 40;
+      sh += '<div class="dial"><div class="lab">' + demandWords(sd) + '</div>' +
+            '<div class="arc"><svg viewBox="0 0 110 72">' +
+            '<path class="track" d="M10 60 A45 45 0 0 1 100 60"/>' +
+            '<path class="cold" d="M10 60 A45 45 0 0 1 32 24"/>' +
+            '<path class="warm" d="M78 24 A45 45 0 0 1 100 60"/>' +
+            (v == null ? '' : '<path class="needle" d="M55 60 L' + nx.toFixed(1) + ' ' + ny.toFixed(1) + '"/>') +
+            '<circle class="hub" cx="55" cy="60" r="3"/></svg></div>' +
+            '<div class="dw ' + (v == null ? 'm' : v > 0.15 ? 'good' : v < -0.15 ? 'bad' : '') + '">' + word + '</div>' +
+            '<div class="sub">' + sub + '</div></div>';
     });
     $('boardscales').innerHTML = sh + '</div>';
   }
@@ -7472,6 +7622,14 @@
      against that, so a demand for units and a hold's reading share one measure and a manager
      can add them. The year's drain is said in units too. */
   function renderHolds(me, rep) {
+    /* §HOLDS WHERE EACH STORE STOOD A MONTH AGO, so the red loss has something to run back to.
+       The recap already takes a snapshot each month; the Board keeps its own for the stores. */
+    var was = G._holdsWas || null;
+    if (!G._holdsAt || G._holdsAt !== G.state.season + ':' + G.state.month) {
+      G._holdsWas = Object.assign({}, rep.holds || {});
+      G._holdsAt = G.state.season + ':' + G.state.month;
+      if (!was) was = G._holdsWas;
+    }
     var holds = rep.holds || {}, g = rep.goal || {};
     /* §6.1 THE HOLDS IN THE FLEET'S OWN SCALE. "The ship has 4 food" is a silly sentence: a
        store is units of a thousand, so a full hold is nine thousand and the board asks three.
@@ -7483,15 +7641,24 @@
     var h = '<div class="holdrow hh"><span class="hn">Store</span><span class="hbar"></span><span class="hv">Units of ' + per.toLocaleString('en-US') + '</span></div>' +
       REP.CATEGORIES.map(function (c) {
         var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per);
+        var wasV = was && was[c] != null ? Math.max(0, Math.min(1, was[c])) : v;
         var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
         var came = Math.round((banked[c] || 0) * SC);
         return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
                (came ? '<div class="m">Came Home This Year: ' + came.toLocaleString('en-US') + '</div>' : '') + '</span>' +
                '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i>' +
-               '<span class="lost" style="left:' + Math.round(v * 100) + '%;width:' + Math.min(100 - Math.round(v * 100), Math.round(REP.CONST.HOLDS_DRAIN * 100)) + '%"></span></span>' +
+               (wasV > v ? '<span class="lost" style="left:' + Math.round(v * 100) + '%;width:' + Math.round((wasV - v) * 100) + '%"></span>' +
+                           '<span class="ago" style="left:' + Math.round(wasV * 100) + '%"></span>' : '') + '</span>' +
                '<span class="hv" style="color:' + col + '">' + units.toLocaleString('en-US') + '</span></div>';
       }).join('');
-    $('boardholds').innerHTML = h + '<div class="m" style="margin-top:6px">The Stores Fall ' + Math.round(drain / REP.CONST.HOLDS_DRAIN_MONTHS).toLocaleString('en-US') + ' a Month</div>';
+    /* WHICH RUNS SHORT FIRST, and when: the one thing the four bars cannot say on their own */
+    var perMonth = Math.round(drain / REP.CONST.HOLDS_DRAIN_MONTHS);
+    var low = null;
+    REP.CATEGORIES.forEach(function (c) { var v = holds[c] || 0; if (!low || v < low.v) low = { c: c, v: v }; });
+    var months = low && perMonth > 0 ? Math.floor(low.v * per / perMonth) : null;
+    $('boardholds').innerHTML = h + '<div class="holdfoot">Of ' + per.toLocaleString('en-US') +
+      ' \u00b7 <span class="bad">Falling ' + perMonth.toLocaleString('en-US') + ' a Month</span>' +
+      (low && months != null ? ' \u00b7 ' + CAT_NAME[low.c] + ' Run Short First, in ' + months + ' Month' + (months === 1 ? '' : 's') : '') + '</div>';
   }
   /* THE QUESTION. After a Divide the board asks one, and the manager answers in a register.
      Six registers, always all six; none is correct, each is right somewhere and wrong

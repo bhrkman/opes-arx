@@ -73,3 +73,26 @@ priority in the board's gold; the three that scale move below. A placement deman
 the eight stand (the odds board in a Divide, last year's finishing order out of one —
 history.placement is recorded now) rather than a lit ordinal. The holds draw the month's loss
 in red.
+Fixes to that Board build: the holds' loss segments were absolutely placed in a bar that was
+not a positioning context, so four red bands painted down the whole page; and the fleet ledger
+had only been built in the mockup while the log said the wheel was gone. Both done now, the
+constellation removed with its styles.
+And the rest of the Board mockup, which had been agreed and not built: the boardroom strip with
+patience on a banded bar and a word for it, the three that scale as needle dials, the audiences
+with their band names, a month-ago tick and the change, the holds' tick and a foot that says
+which store runs short first and when, and the heading.
+Who Is Watching to the mock: three columns with the reading in its own right-hand column, the
+band names and month-ago tick on the bar, and one line of what moved each audience instead of a
+dated block; the three in one box. The audcard styles are removed.
+The audience bar is a fill on a plain track, coloured by its band, not a marker on a gradient:
+.sbar is a slider, which is right for a picker and wrong for a standing.
+The audience bar is its own class (.standfill): a block-level plain track filled to the reading
+and coloured by its band. Wearing the picker's .sbar meant wearing its gradient (which won on
+cascade order) and its inline display (which collapsed the bar to a stub and stacked the band
+names). Band names print only where there is room; the reading drops "of 100".
+And the colours: there is no global .bad rule in this stylesheet, so every band word came out
+white; the Board names its own (bottom band red, the one above amber, good green, a fall red),
+and the fill is one colour as the mock draws it — the bar says how much, the word how good.
+Who Is Watching, read off the mock at last: the Board's section heads in the command colour,
+the bar given the row's width, and two band names — the band below pulled left of its tick,
+the band above pulled right — which cannot meet at any width.

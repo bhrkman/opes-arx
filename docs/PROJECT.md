@@ -1998,9 +1998,72 @@ while a Divide is fought, the fleet's last finishing order out of one (`history.
 recorded now), with the cut drawn at the place asked for and you on it. Before any Divide has
 been fought there is no order, and it says so.
 
-**The rest reads as data.** The wheel of marks is gone: the fleet is a ledger of seven, each a
-door to its OA sheet. The audiences keep their gauges and their memory lines. The holds draw the
-gap back to last month **in red**, because a store only ever falls.
+**The rest reads as data.** The audiences keep their gauges and their memory lines. The holds
+draw the gap back to last month **in red**, because a store only ever falls. The constellation is
+struck: eight marks on spokes said who was warm only by how near they sat and nothing about why
+or what they had done. The fleet is a **ledger** of seven — mark, name (a door to its OA sheet),
+how they fight, what they think of you as a bar about a centre line, the word, and their last
+year. The function and its styles are removed, not left to rot.
+
+**Built from the mockup, in full** — the strip, the dials, the ticks and the deltas were mocked,
+agreed and then not built, which is the same fault as the wheel below and was called out in play:
+- **The boardroom strip.** Patience is the number a manager lives or dies by (at zero the board
+  takes the OA off him) and it was one figure in a row of five, beside two standings the
+  audiences already give. It is the page's biggest element now: a bar with the danger drawn on
+  it (red to 25, amber to 50), the figure, and what the board is at — *Losing Faith · Content ·
+  Behind You* — with the year, the interest and the grant beside it.
+- **The three that scale are dials**, needle and hub on a red-to-green arc, not left-to-right
+  strips.
+- **The audiences carry their scale and their direction:** three columns — who is watching, the
+  bar with its band names printed on it (*Mutinous · Strained · Loyal*) and a tick where they
+  stood a month ago, and the reading on the right: the word in its own colour over the figure and
+  the change. Under each, ONE line of what moved them — *▲ Bram Ilyes Re-Signed · ▼ Grakk Let Go*
+  — where a dated ledger of three rows in a bordered card sat before; the three sit in one box
+  divided by rules rather than three cards. **The bar is a FILL** on a plain track, coloured by
+  the band it is in, in its own class (`.standfill`). Four passes, and each fixed a different
+  thing while the bar still looked wrong, which is worth writing down:
+  1. the ticks and the delta were added inside the old layout;
+  2. the layout was rebuilt to the mock's three columns — around the old bar;
+  3. the bar was told to fill, as `.audrow2 .sbar` — but `.sbar` is the PICKER's class: a
+     marker on a red-to-green wash, which is right for choosing a point on a scale and wrong
+     for a standing, which is a quantity. `.sbar.onesided` carries its own gradient at the
+     same specificity and later in the sheet, so the wash won and the row still read as
+     before; and `.sbar` is inline, so nested in a grid cell it collapsed to a stub with three
+     band names printed on top of each other;
+  4. the Board's bar became its own class. Wearing the picker's class meant wearing the
+     picker's gradient, and beating it took a specificity argument a stylesheet should never
+     have to have.
+  5. the colours. **There is no global `.bad` rule in this stylesheet** — only scoped ones
+     (`.rostsum b.bad`, `.tgnum.bad`) — so every band word classed `bad` inherited ink and came
+     out white; and the fill was coloured red/green when the mock draws one colour. Named for
+     this row rather than adding a global rule the page has never had: the bottom band red, the
+     one above it amber, the good ones green, a fall in the reading red. **The bar says how
+     much; the word beside it says how good.**
+  Band names print only where there is room (every threshold keeps its tick) — three crowded
+  into a stub had printed "MUTINGBBAINEDVAL" — and the reading drops "of 100".
+  6. what was left after all that, from the two screenshots side by side: the section heads
+     were dim where the mock's are cyan (the Board's h2s read in the command colour now, only
+     the Board's); the bar was still narrow because the name and reading columns took the
+     width (118px and 96px now, the bar gets the rest); and the band names still touched. THE
+     NAMES ARE TWO: the band below you at the lower boundary of the band you are in, pulled
+     left of its tick, and the band above you at the upper boundary, pulled right — two words
+     pulling away from each other cannot meet at any width. That is the mock's own scheme
+     (*MUTINOUS · LOYAL* around Strained, *WATCHED · APPROVED* around Tolerated), read off it
+     at last instead of approximated.
+  The lesson for the next mock: compare the STYLESHEETS, not the markup, and read the computed
+  values off the rendered element rather than the diff.
+- **The holds** have the tick the red loss runs back to, and a foot that says what the four bars
+  cannot: *Of 9,000 · Falling 98 a Month · Luxuries Run Short First, in 42 Months*.
+- The heading reads *The Card · Year 1*.
+
+**Two faults shipped in the first build of this, both caught in play:**
+- **The holds' red segments escaped the page.** `.lost` is absolutely placed inside the bar, and
+  `.hbar` was not a positioning context — so four red bands painted down the whole screen, over
+  everything. The bar is `position:relative` now. A rule of this kind belongs beside the element
+  it positions against, and did not check it.
+- **The ledger above was written in this log before it existed.** The wheel was replaced in the
+  MOCKUP and not in the page; the entry claimed it was gone. It is gone now. The log is a record
+  of what is built, and an entry written from an intention is worse than no entry.
 
 ## The wages were never paid. *Fixed, and the surplus is now a tuning question.*
 

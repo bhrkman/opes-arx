@@ -553,8 +553,8 @@ setTimeout(() => {
             'the Board names every demand on the card (' + cardRows + '): ' +
             [...doc.querySelectorAll('#boarddemand .cardrow:not(.standing) .dw')].map(e => e.textContent.replace(/\s+/g, ' ').trim()).join(' | '));
       check(doc.querySelectorAll('#boarddemand .obj.pri').length === 1, 'one demand carries the board\u2019s gold as the priority');
-      check(doc.querySelectorAll('#boardscales .cardrow.standing').length === 3 && /Popularity/.test(text('#boardscales')),
-            'the three that scale stand under it: spending, casualties, popularity');
+      check(doc.querySelectorAll('#boardscales .dial').length === 3 && /Popularity/.test(text('#boardscales')),
+            'the three that scale stand under it as dials: spending, casualties, popularity');
       check(doc.querySelectorAll('#boardholds .holdrow:not(.hh)').length === 4 &&
             /Units of 9,000/.test(text('#boardholds')) && /a Month/.test(text('#boardholds')),
             'the four holds are barred in a fleet\'s own units, falling monthly');
@@ -1727,20 +1727,23 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      /* §PICKER the four audiences keep their rows; the fleet is a constellation now */
-      check(doc.querySelectorAll('#audiences .audrow').length >= 3 &&
-            doc.querySelectorAll('#audiences .constel .cnode').length === 7,
-            'the Board reads four audiences and the rivals (' +
-            doc.querySelectorAll('#audiences .audrow').length + ' rows, 7 OAs on the ring)');
-      check(doc.querySelectorAll('#audiences .cnode svg').length >= 7 &&
-            doc.querySelectorAll('#audiences .cwires line').length === 7,
-            'each rival stands on the Board in its own colour and mark');
+      /* §BOARD the three audiences keep their rows; the fleet is a LEDGER now, seven rows */
+      check(doc.querySelectorAll('#audiences .audrow2').length === 3 &&
+            doc.querySelectorAll('#audiences .fleetbox .fleetrow:not(.hd)').length === 7,
+            'the Board reads three audiences and the seven (' +
+            doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 in the ledger)');
+      check(doc.querySelectorAll('#audiences .fleetbox .fleetrow svg').length >= 7 &&
+            doc.querySelectorAll('#audiences .fleetbox [data-oa]').length === 7,
+            'each OA carries its own mark and opens its sheet');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
-      check(doc.querySelectorAll('#audiences .audcard').length === 3 && /\d/.test(text('#audiences')),
-            'each audience is a card that carries what it remembers');
-      check(/Year \d+/.test(text('#boardhead')) && /Patience/.test(text('#boardhead')),
-            'the Board\'s head reads the year and the patience');
+      check(doc.querySelectorAll('#audiences .amem').length === 3 && /\d/.test(text('#audiences')),
+            'each audience carries one line of what moved it');
+      /* §BOARD the head is a strip now: the year and patience are figures under their labels,
+         patience with a bar and a word for what the board is at */
+      check(/Year/.test(text('#boardhead')) && /Patience/.test(text('#boardhead')) &&
+            !!doc.querySelector('#boardhead .pbar i'),
+            'the Board\'s strip reads the year and the patience, on a bar');
       const rivals = GB.state.ids.filter(x => x !== GB.me);
       const before = REPM.readAll(GB.corps[GB.me].rep, rivals);
       const regs = [...doc.querySelectorAll('.regbtn')];
