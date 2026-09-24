@@ -51,7 +51,10 @@
     QUOTA_SATCHEL_PER_BODY: 1,      // [S] Step 9 owns the violation
     QUOTA_CELL_PER_BODY: 1,         // [S]
 
+    DEVICE_SHARE: 0.34,             // [C] §DEVICES share of a force the richest OA fits with a device
+    MOD_OVERWATCH_AIM: 20,          // [C] a target link's reaction-shot steadiness, in sheet Aim (the overwatch trait's size)
     FOUNDING_DEPTH: 1.25,           // [H] spares a corp arrives with, over one force's worth
+    FOUNDING_SPARES: 0.35,          // [H] cheap spares per body per slot (ruled smaller)
     /* §14a — HOW MUCH A CORP ACTUALLY FIELDS (Step 6b).
        The Aleas cap is one number for every corp and always will be — that is P1 and it is
        not negotiable. What varies is how close to it a corp gets, and that turned out to be
@@ -78,6 +81,12 @@
                                     //     to spread
     KIT_BUDGET_REFERENCE: 4.8,      // [C] budget-per-body, in caps, at which a corp can
                                     //     comfortably field to the ceiling
+    KIT_TASTE_SWING: 12,            // [C] §QUARTERMASTER the doctrine's favourite gun is worth this much Aim in the choosing
+    KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
+    KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
+    KIT_BUY_MARGIN: 4,
+    KIT_MUSTER_SLACK: 1.35,         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
+    MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
     CONSUMABLE_SLOTS: 2,            // [S] §3
@@ -118,10 +127,10 @@
     CATALOG = data.items.slice();
     INDEX = {};
     for (const it of CATALOG) INDEX[it.id] = it;
+    if (typeof fillSkillTypes === 'function') fillSkillTypes();
     QUIRKS = {};
     for (const q of data.quirks) QUIRKS[q.id] = q;
     DOCTRINES = (data.doctrines || []).slice();
-    ROLES = (data.roles || []).slice();
     PRICING = data.constants.pricing;
     TIER_MULT = data.constants.TIER_MULT;
     return api;
@@ -186,21 +195,45 @@
     const a = byId(lo.armor);
     const s = lo.sidearm ? byId(lo.sidearm) : null;
     const pe = (p && p.effects) || {}, ae = (a && a.effects) || {};
-    const tags = (pe.tags || []).slice();
+    let tags = (pe.tags || []).slice();
+    /* §MODS A MOD DOES WHAT IT SAYS. This read exactly one field from a mod — `grants`, a tag — and
+       dropped every other effect on the floor: eleven of eighteen mods did nothing when fitted,
+       ₡3,190 of kit at list price (audit 2), and two more lost their power penalty. Every effect a
+       mod declares is now folded into the kit, and combat reads `kit.mod`. Two remain inert because
+       the system they act on is gone: the heat sink (heat) and the field kit (gear damage). */
+    const mod = { power: 0, charge: 0, ammo: 0, aim: 0, aimHolding: 0, aimMoving: 0,
+                  overwatchAim: 0, bandMult: 1, suppressCost: 0 };
+    const cancels = [];
     for (const id of lo.mods) {
       const m = byId(id);
-      if (m && m.effects && m.effects.grants) tags.push(m.effects.grants);
+      const e = (m && m.effects) || {};
+      if (e.grants) tags.push(e.grants);
+      /* a mod's `tags` reach the gun as its `grants` do */
+      for (const t of (e.tags || [])) tags.push(t);
+      mod.power += e.power || 0;
+      mod.charge += e.charge || 0;
+      mod.ammo += e.ammo || 0;
+      mod.aim += e.gear_accuracy || 0;
+      mod.aimHolding += e.aim_holding || 0;
+      mod.aimMoving += e.aim_moving || 0;
+      /* "waits better than you do": sized as the overwatch trait is (+2 on a reaction shot) */
+      if (e.overwatch_mult) mod.overwatchAim += CONST.MOD_OVERWATCH_AIM;
+      if (e.band_mismatch_mult) mod.bandMult *= e.band_mismatch_mult;
+      /* "holds the line down": suppressing fire costs a round less */
+      if (e.suppress_drain) mod.suppressCost += 1;
+      if (e.cancels) cancels.push(e.cancels);
     }
+    if (cancels.length) tags = tags.filter(t => cancels.indexOf(t) < 0);
     return {
       unarmed: !p,
       /* `id` and `name` are carried so a viewer can say WHICH gun fired. The resolver never
          reads them; the shot log does, and a log that cannot name the weapon is useless for
          judging weapons. */
-      weapon: { power: pe.power || 0, range: pe.range || "medium", tier: p ? p.tier : 1,
+      weapon: { power: Math.max(0, (pe.power || 0) + (p ? mod.power : 0)), range: pe.range || "medium", tier: p ? p.tier : 1,
                 id: p ? p.id : null, name: p ? p.name : "unarmed",
                 /* the trade this weapon belongs to — combat reads effective aim through it,
-                   and the fold has ONE home: skillFamilyOf, above */
-                skillFamily: skillFamilyOf(p),
+                   and the class and type have ONE home each: skillClassOf, skillTypeOf */
+                skillClass: skillClassOf(p), skillType: skillTypeOf(p),
                 mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
@@ -217,7 +250,9 @@
                      damage: (s.effects || {}).damage || s.family,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
-      heat: pe.heat || 0, heatCap: pe.heat_cap || 0, charge: pe.charge || 0,
+      heat: pe.heat || 0, heatCap: pe.heat_cap || 0,
+      charge: (pe.charge || 0) + ((pe.charge || 0) > 0 ? mod.charge : 0),
+      mod: mod,
       /* §10 — what this fighter is carrying to spend. Single use, each with an action. */
       consumables: lo.consumables.map(function (id) {
         const c = byId(id);
@@ -258,7 +293,6 @@
       if (!c) { errs.push("unknown consumable " + id); continue; }
       if (c.slot !== "consumable") errs.push(c.id + " is not a consumable");
     }
-    for (const it of itemsOf(lo)) if (it.legality === "contraband") errs.push(it.id + " is contraband (no acquisition path before Step 9)");
     /* quotas (§2.4) */
     const n = (id) => lo.consumables.filter(c => c === id).length;
     if (n("itm_ammo_satchel") > CONST.QUOTA_SATCHEL_PER_BODY) errs.push("over the ammunition satchel quota");
@@ -275,50 +309,6 @@
   /* §15 — composition, then lean                                        */
   /* ------------------------------------------------------------------ */
 
-  let ROLES = [];
-  const roleById = (id) => ROLES.find(r => r.id === id) || null;
-
-  /** Baseline counts scaled to the force, then the doctrine's bias, then reconciled to size. */
-  function composition(doctrineId, bodyCount) {
-    const d = api.doctrine(doctrineId), bias = (d && d.composition) || {};
-    const per8 = ROLES.reduce((s, r) => s + r.share_per_8, 0);
-    const squads = Math.max(1, Math.round(bodyCount / 8));
-    const counts = {};
-    let assigned = 0;
-    for (const r of ROLES) {
-      const n = Math.round(bodyCount * r.share_per_8 / per8) + (bias[r.id] || 0);
-      /* Every SQUAD keeps every role. A doctrine leans by what its people carry, not by
-         deleting the marksman — otherwise two of three squads deploy without one. */
-      counts[r.id] = Math.max(squads, n);
-      assigned += counts[r.id];
-    }
-    /* reconcile to exactly bodyCount, taking from and giving to `line` first — it is the
-       role that absorbs slack in a real squad too. */
-    const order = ['line', 'scout', 'point', 'support', 'medic', 'marksman'];
-    let i = 0;
-    while (assigned !== bodyCount && i < 400) {
-      const k = order[i % order.length];
-      if (assigned > bodyCount) { if (counts[k] > squads) { counts[k]--; assigned--; } }
-      else { counts[k]++; assigned++; }
-      i++;
-    }
-    /* A drop can be smaller than one-of-every-role-per-squad — a spent corp fields five.
-       The floor above then jams the loop against its bail-out and the plan arms MORE
-       bodies than exist, which no deal downstream can conserve: the extra kit is drawn,
-       paid for, and carried by nobody. When the floor is infeasible it gives: trim below
-       it, rarest roles first, because a scratch force is riflemen before it is a marksman
-       section. Found by probe_plan_stock.cjs counting, not by reading. */
-    if (assigned > bodyCount) {
-      const trim = order.slice().reverse();
-      let j = 0;
-      while (assigned > bodyCount && j < 400) {
-        const k = trim[j % trim.length];
-        if (counts[k] > 0) { counts[k]--; assigned--; }
-        j++;
-      }
-    }
-    return counts;
-  }
 
   /** How well an item matches a doctrine's taste. Deterministic; no RNG anywhere. */
   function tasteScore(item, taste) {
@@ -351,158 +341,181 @@
    * doctrine's priority order: preferred primary, then armor, then mods. A corp with
    * expensive taste upgrades fewer bodies; nobody ends up with two unit types.
    */
+  /* §QUARTERMASTER (ruled) ONE QUARTERMASTER, FOR EVERY OA, BUILT AROUND THE FIGHTERS. The kit used to be
+     planned by ROLE — point, line, marksman, support, medic, scout: templates in the first upload, never
+     discussed, that the fight never read and the page never named — so many of each kit, each from its own
+     list, dealt out afterwards to whoever fit the role. Now each fighter is kitted as themselves: a gun from
+     the types they shoot best (the doctrine's taste the tiebreak), armour and a sidearm by the doctrine, the
+     first consumable a medkit for the best-Fieldcraft share of the force and the doctrine's favourite for the
+     rest. Every OA's un-kitted fighters go through this, a manager's included (his own hand-kit comes first).
+     With no fighters named (the suite, the founding), bodies take the doctrine's favourite guns in turn.
+     The phases and the economics are the old planner's, unchanged: the Aleas' cap, the reserve kept for
+     sidearms and consumables, sponsor discounts, the muster before any upgrade, upgrades from the locker. */
+  function shotOf(f, g) {
+    const a = (f && f.stats && f.stats.aim) || 100, sk = (f && f.skills) || {};
+    const c = sk[skillClassOf(g)], t = sk[skillTypeOf(g)];
+    return (a + (c != null ? c : a) + (t != null ? t : a)) / 3;
+  }
+  const DEVICE_IDS = ['itm_spotter_drone', 'itm_auto_turret'];
   function planForce(doctrineId, bodyCount, opts) {
     opts = (typeof opts === 'number') ? { season: opts } : (opts || {});
     const d = api.doctrine(doctrineId);
-    if (!d || !ROLES.length) return null;
+    if (!d) return null;
     /* Two different numbers, and conflating them was a design error worth naming:
        `allowance` is the Aleas CEILING, shared by every corp and bought by nobody.
        `budget` is treasury credits, which is what actually buys the kit (§14).
        A corp fields min(budget, allowance) — the rich are cap-bound, the poor wallet-bound. */
     const allow = opts.allowance != null ? opts.allowance : allowanceFor(opts.season);
-    const budget = Math.max(0, opts.budget || 0);      /* treasury credits for NEW kit */
+    const budget = Math.max(0, opts.budget || 0);
     const armoury = opts.armoury || foundingArmoury(doctrineId, bodyCount, opts).stock;
-    const counts = composition(doctrineId, bodyCount);
     const taste = d.taste || [];
-    /* §2.2 — locker depth. A corp does not field what it does not own, however much
-       allowance is left. This is the poor corp's real constraint, not thrift. */
     const maxTier = d.armoury_max_tier || 5;
-    const owned = (ids) => ids.map(byId).filter(it => it && it.tier <= maxTier).map(it => it.id);
-
-      /* Two phases, and the order matters.
-       MUSTER first: every body must leave with a weapon and armor. You cannot deploy a
-       fighter with nothing in their hands (ruled) — if the locker and the wallet together
-       cannot cover the muster, this function does not invent kit and does not field a
-       cripple. It reports a SHORTFALL and stops. Raising that money — liquidating kit,
-       selling contracts, borrowing — is the manager's decision at §14, and failing to
-       raise it is the OA's ruling, not procurement's.
-       UPGRADE second: whatever cash is left buys better, in the doctrine's priority order. */
+    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0);
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
     const take = (id) => { if (stock[id] > 0) { stock[id]--; return true; } return false; };
     const give = (id) => { if (id) stock[id] = (stock[id] || 0) + 1; };
-
+    const fighters = (opts.fighters || []).slice(0, bodyCount);
     const bodies = [];
-    for (const r of ROLES) for (let i = 0; i < (counts[r.id] || 0); i++) bodies.push({ role: r.id, loadout: normalise(UNARMED) });
+    for (let i = 0; i < bodyCount; i++) bodies.push({ i: i, f: fighters[i] || null, loadout: normalise(UNARMED) });
 
+    const disc = (item) => {
+      if (!item || !opts || typeof opts.discount !== 'function') return 0;
+      const fam = item.slot === 'armor' ? 'armor'
+                : (item.damage === 'energy' || item.family === 'energy') ? 'energy' : 'ballistic';
+      return Math.max(0, Math.min(0.6, opts.discount(fam) || 0));
+    };
+    const priceOf = (item) => Math.round((item.cost || 0) * (1 - disc(item)));
+    const cheapFirst = (items) => items.slice().sort((x, y) => x.cost - y.cost);
     let spent = 0, money = budget, cash = 0;
-    const bodyCount2 = bodyCount;
-    const order = (d.spend_priority || ROLES.map(r => r.id));
-    const cheapestOf = (r, listKey) => owned(r[listKey]).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
+
+    /* what this body would carry, best first */
+    const gunTaste = rankBy(ofSlot('primary').map(g => g.id), taste);
+    const tasteBonus = {};
+    gunTaste.forEach((g, k) => { tasteBonus[g.id] = CONST.KIT_TASTE_SWING * (1 - k / Math.max(1, gunTaste.length - 1)); });
+    const gunsFor = (b) => {
+      if (!b.f || !b.f.skills) {                  /* no fighter named: the doctrine's favourites in turn */
+        const top = gunTaste.slice(0, Math.min(CONST.KIT_SPREAD, gunTaste.length)), k = b.i % Math.max(1, top.length);
+        return top.slice(k).concat(top.slice(0, k)).concat(gunTaste.slice(top.length));
+      }
+      return gunTaste.slice().sort((x, y) => (shotOf(b.f, y) + tasteBonus[y.id]) - (shotOf(b.f, x) + tasteBonus[x.id]));
+    };
+    const armours = rankBy(ofSlot('armor').map(a => a.id), taste);
+    const sidearms = rankBy(ofSlot('sidearm').map(a => a.id), taste);
+    const listFor = (b, slot) => slot === 'primary' ? gunsFor(b) : slot === 'armor' ? armours : sidearms;
 
     /* ---- phase 1: muster from the locker ---- */
-    /* Stock costs no money, so exhaust it before opening the wallet.
-       THE GUNS RESPECT THE SAME RESERVE THE MODS DO. Muster and the buy that follows it were
-       capped at the WHOLE allowance while phase 4 upgraded against `gunAllow` — so an OA
-       with a full locker could field itself right up to the ceiling on rifles and plate and
-       have nothing left for a pistol or a grenade. The Verdant Cradle, the poorest OA in
-       the fleet, issued sidearms to NOBODY while sitting on thirty-one thousand credits it
-       could not field. The essentials stop at the gun allowance; what is held back is what
-       buys the rest of a fighter's kit. */
-    const mustAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
-    const SLOTS = [['primary', 'primaries'], ['armor', 'armors']];
-    for (const roleId of order) for (const b of bodies.filter(x => x.role === roleId)) {
-      const r = roleById(b.role);
-      for (const [slot, listKey] of SLOTS) {
-        /* CHEAPEST available, not best: muster is about arming everyone, and taking the
-           good rifles here would spend the cap before the medic gets a medkit. Phase 4
-           upgrades from the same locker once the essentials are covered. */
-        const cheap = owned(r[listKey]).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
-        const got = cheap.find(c => spent + c.cost <= mustAllow && take(c.id));
-        if (got) { b.loadout[slot] = got.id; spent += got.cost; }
+    /* Stock costs no money, so exhaust it before opening the wallet — and the guns respect the same
+       reserve the mods do (the essentials stop at the gun allowance). CHEAPEST available, not best: muster
+       is about arming everyone. A named fighter takes the cheapest gun of the few they shoot best. */
+    /* THE ESSENTIALS ARE HELD BACK FIRST: a medkit for the carriers and the doctrine's first consumable for everyone
+       else. The gun allowance kept a share back for them, but the purchase's last resort — buy the cheapest gun
+       anyway — ignored it, and one OA armed its force with ₡67 of the cap left and sent its squads out with no
+       medkit at all. The arming now stops short of the essentials' price, last resort included. */
+    const consRanked = rankBy(ofSlot('consumable').map(c => c.id).filter(id => DEVICE_IDS.indexOf(id) < 0), taste);
+    const firstOther = consRanked.find(c => c.id !== 'itm_medkit');
+    const medN = Math.max(1, Math.round(bodies.length * CONST.MEDKIT_SHARE));
+    const medkit = byId('itm_medkit');
+    const essentials = medN * ((medkit && medkit.cost) || 0) + Math.max(0, bodies.length - medN) * ((firstOther && firstOther.cost) || 0);
+    const mustAllow = Math.min(Math.round(allow * (1 - CONST.MOD_RESERVE)), allow - essentials);
+    const SLOTS = ['primary', 'armor'];
+    /* the CHEAP END of the rack arms everyone — and among the guns there (no more than a third over the cheapest
+       one in stock), a named fighter takes the one they shoot best, not simply the cheapest */
+    /* AND THE MUSTER KEEPS BACK ENOUGH TO ARM EVERYONE STILL WAITING, at the cheapest price there is — the purchase
+       below always did; the muster did not, and a locker of mostly favourites armed eleven of nineteen, left too
+       little to buy the rest, and the buying ate the medkits */
+    const floorOf = (slot) => { const c = cheapFirst(slot === 'primary' ? gunTaste : armours); return c.length ? c[0].cost : 0; };
+    let floorLeft = bodies.length * (floorOf('primary') + floorOf('armor')), bareFloor = 0;
+    for (const b of bodies) for (const slot of SLOTS) {
+      floorLeft -= floorOf(slot);
+      /* a slot left bare still has to be bought below, so its floor stays held */
+      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      if (slot === 'primary' && b.f && b.f.skills && order2.length) {
+        const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
+        const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => shotOf(b.f, y) - shotOf(b.f, x));
+        order2 = cheapEnd.concat(order2.filter(c => c.cost > floor));
       }
+      const got = order2.find(c => spent + priceOf(c) <= mustAllow && take(c.id));
+      if (got) { b.loadout[slot] = got.id; spent += priceOf(got); }
+      else bareFloor += floorOf(slot);
     }
-
     /* ---- phase 2: buy what the locker could not cover, once ---- */
-    /* Each purchase must leave enough behind to muster everybody still bare, so nobody is
-       upgraded into someone else's rifle. Buy the best the reserve allows, not the cheapest
-       followed by a replacement — a corp does not buy a gun twice. */
-    const bare = () => { const out = []; for (const b of bodies) for (const [slot, listKey] of SLOTS)
-      if (!b.loadout[slot]) out.push({ b, slot, listKey }); return out; };
-    const floorCost = (roleId, listKey) => {
-      const c = owned(roleById(roleId)[listKey]).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
-      return c.length ? c[0].cost : Infinity;
-    };
+    /* Each purchase leaves enough behind to muster everybody still bare, money AND allowance. */
+    const bare = () => { const out = []; for (const b of bodies) for (const slot of SLOTS) if (!b.loadout[slot]) out.push({ b, slot }); return out; };
+    const floorCost = (slot) => { const c = cheapFirst(slot === 'primary' ? gunTaste : armours); return c.length ? c[0].cost : Infinity; };
     let queue = bare();
-    let reserve = queue.reduce((s2, q) => s2 + floorCost(q.b.role, q.listKey), 0);
+    let reserve = queue.reduce((s2, q) => s2 + floorCost(q.slot), 0);
     let shortfall = 0;
     if (reserve > money) shortfall = reserve - money;
     if (!shortfall) {
-      queue.sort((p, q) => order.indexOf(p.b.role) - order.indexOf(q.b.role));
       for (const q of queue) {
-        const mine = floorCost(q.b.role, q.listKey);
-        reserve -= mine;
-        /* Reserve BOTH currencies for the bodies still bare: enough money to buy them
-           something, and enough allowance to field it. Reserving only the money let an
-           early buyer eat the cap and leave the last man unfieldable. */
+        reserve -= floorCost(q.slot);
         const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve);
-        const ranked = rankBy(owned(roleById(q.b.role)[q.listKey]), taste);
+        const ranked = listFor(q.b, q.slot);
         const fits = ranked.filter(c => spent + c.cost <= mustAllow);
-        const pick = fits.find(c => c.cost <= ceilingHere) ||
-                     fits.slice().sort((x, y) => x.cost - y.cost)[0] ||
-                     ranked.slice().sort((x, y) => x.cost - y.cost)[0];
+        /* never past the cap for a gun this hand merely prefers: if nothing they would rather carry fits, they take
+           what the rack holds before anything is bought over the Aleas' line */
+        let pick = fits.find(c => c.cost <= ceilingHere);
+        if (!pick) {
+          /* the rack before any purchase — but short of the essentials too, like everything else here */
+          const onRack = cheapFirst(q.slot === 'primary' ? gunTaste : armours)
+            .find(c => stock[c.id] > 0 && spent + priceOf(c) <= allow - essentials && take(c.id));
+          if (onRack) { q.b.loadout[q.slot] = onRack.id; spent += priceOf(onRack); continue; }
+          pick = cheapFirst(fits)[0] || cheapFirst(ranked).find(c => spent + c.cost <= allow - essentials) || cheapFirst(ranked)[0];
+        }
         money -= pick.cost; cash += pick.cost; spent += pick.cost;
         q.b.loadout[q.slot] = pick.id;
       }
     }
     if (shortfall > 0) {
       for (const b of bodies) { give(b.loadout.primary); give(b.loadout.armor); b.loadout = normalise(UNARMED); }
-      return { doctrine: d, mustered: false, shortfall: shortfall, bodies: [], counts: counts,
+      return { doctrine: d, mustered: false, shortfall: shortfall, bodies: [], counts: {},
                allowance: allow, budget: budget, musterCash: reserve, total: 0, unarmed: bodyCount,
                bands: {}, primaries: {}, distinctPrimaries: 0, headroom: allow, spentCash: 0, boundBy: 'muster' };
     }
-
-    /* ---- phase 3: essentials ---- */
-    /* One consumable per body before a single upgrade. A squad that spends its last credit
-       on a fifth marksman rifle and deploys without a medkit loses people it did not have
-       to, and no quartermaster in the fleet buys in that order. */
-    for (const roleId of order) {
-      const r = roleById(roleId);
-      if (!r) continue;
-      const cId = (r.consumables || [])[0];
-      const c = cId ? byId(cId) : null;
-      if (!c) continue;
-      for (const b of bodies.filter(x => x.role === roleId)) {
-        if (b.loadout.consumables.length) continue;
-        if (spent + c.cost > allow) continue;
-        if (take(cId)) { b.loadout.consumables = [cId]; spent += c.cost; }
-        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [cId]; spent += c.cost; }
-      }
+    /* ---- phase 3: essentials — one consumable a body before a single upgrade ---- */
+    /* A medkit for the best-Fieldcraft share of the force (Fieldcraft is what treating a wound reads); the
+       doctrine's favourite consumable for everyone else. */
+    /* EVERY SQUAD FIRST: its best-Fieldcraft hand carries one (when the squads are known — `opts.squadOf`), then
+       the rest of the share by Fieldcraft across the force. By the force alone, medkits bunched into whichever
+       squads held the good hands, and a squad could go out with none. */
+    const fcOf = (b) => (b.f && b.f.stats && b.f.stats.fieldcraft) || 0;
+    const byFc = bodies.slice().sort((x, y) => (fcOf(y) - fcOf(x)) || (x.i - y.i));
+    const medics = new Set();
+    if (typeof opts.squadOf === 'function') {
+      const firstIn = {};
+      for (const b of byFc) { const q = b.f ? opts.squadOf(b.f) : null; if (q != null && firstIn[q] == null) firstIn[q] = b.i; }
+      for (const q in firstIn) medics.add(firstIn[q]);
     }
-
-    /* ---- phase 3b: A SIDEARM IS NOT A LUXURY ----------------------------------------
-       NOBODY IN THE FLEET CARRIED ONE. Every role in the catalogue names two to five
-       sidearms, ten exist from ninety credits, `useSidearm` has been in the fight since the
-       beginning and `equipCorp` passes the slot through — and no phase of the plan ever
-       BOUGHT one, so the slot was empty on every fighter in every OA. It showed up as a
-       stalemate: five of eight hands carry an energy primary with twelve to eighteen shots
-       in the cell, cells recharge at camp and not inside a fight, and when they ran flat
-       their owners had nothing to draw and stood at knife range doing nothing until the
-       clock ran out.
-
-       The cell-fed go first, because a flat cell is what ends a fighter's fight; then
-       everybody else, cheapest first, because this is insurance and not armament. It sits
-       after the essentials and before the upgrades: a corp buys every hand a pistol before
-       it buys anybody a better rifle. */
+    for (const b of byFc) {
+      if (medics.size >= medN) break;
+      if (b.f ? true : (b.i % Math.max(1, Math.round(1 / CONST.MEDKIT_SHARE)) === 0)) medics.add(b.i);
+    }
+    /* the medkits first — each squad's before any second — and only then everyone else's first consumable: in
+       body order, early grenades spent the cap a later squad's medkit needed */
+    const firstMedics = [...medics];
+    const essentialOrder = firstMedics.map(i => bodies[i]).concat(bodies.filter(b => !medics.has(b.i)));
+    for (const b of essentialOrder) {
+      if (b.loadout.consumables.length) continue;
+      const c = medics.has(b.i) ? byId('itm_medkit') : firstOther;
+      if (!c || spent + c.cost > allow) continue;
+      if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
+      else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [c.id]; spent += c.cost; }
+    }
+    /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
     {
       const needsSide = bodies.filter(b => !b.loadout.sidearm);
       const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && (pr.effects.heat_cap || pr.effects.charge)); };
       needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
-      for (const b of needsSide) {
-        const r = roleById(b.role);
-        const list = (r.sidearms || []).map(byId).filter(Boolean).sort((x, y) => x.cost - y.cost);
-        for (const c of list) {
-          if (spent + c.cost > allow) continue;
-          if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
-          if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
-        }
+      const list = cheapFirst(sidearms);
+      for (const b of needsSide) for (const c of list) {
+        if (spent + c.cost > allow) continue;
+        if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
+        if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
       }
     }
-
-    /* ---- phase 4: upgrade ---- */
-    /* Upgrades draw from the LOCKER only. Phase 2 already bought the best the reserve
-       allowed; buying a second weapon for the same body would be paying twice for one
-       fighter, which no quartermaster does and no invariant should permit. */
+    /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
+    const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
     const swap = (b, slot, next) => {
       const prev = b.loadout[slot] ? byId(b.loadout[slot]) : null;
       if (spent - (prev ? prev.cost : 0) + next.cost > gunAllow) return false;
@@ -512,68 +525,85 @@
       spent += next.cost - (prev ? prev.cost : 0);
       return true;
     };
-    /* RESERVE for mods and consumables. Weapons and armour are bought first and used to eat
-       the whole allowance, so mods and consumables were bought with whatever happened to be
-       left — which at a 2500/body cap against a 2020 standard loadout was nothing. Two thirds
-       of the mod and consumable catalog was therefore unreachable for ECONOMIC reasons even
-       once every entry was referenced by a role. A quartermaster does not spend the last
-       credit on rifles and then wonder why nobody has a grenade. */
-    const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
-    const allowFor = key => (key === 'mods' || key === 'consumables') ? allow : gunAllow;
-    for (const slotKey of ['primary', 'armor', 'sidearm']) {
-      const listKey = slotKey === 'primary' ? 'primaries' : slotKey === 'armor' ? 'armors' : 'sidearms';
-      for (const roleId of order) {
-        const r = roleById(roleId);
-        if (!r) continue;
-        const ranked = rankBy(owned(r[listKey]), taste);
-        const crew = bodies.filter(x => x.role === roleId);
-        for (let bi = 0; bi < crew.length; bi++) {
-          const b = crew[bi];
-          const want = (crew.length >= 3 && ranked.length > 1 && bi % 3 === 2) ? ranked[1] : ranked[0];
-          if (want && want.id !== b.loadout[slotKey]) swap(b, slotKey, want);
-        }
+    for (const slot of ['primary', 'armor', 'sidearm']) for (const b of bodies) {
+      if (slot === 'primary') {               /* the best gun on the rack this hand would rather carry */
+        for (const g of gunsFor(b)) { if (g.id === b.loadout.primary) break; if (stock[g.id] > 0 && swap(b, slot, g)) break; }
+      } else {
+        const ranked = listFor(b, slot);
+        const want = (ranked.length > 1 && b.i % 3 === 2) ? ranked[1] : ranked[0];
+        if (want && want.id !== b.loadout[slot]) swap(b, slot, want);
       }
     }
-
+    /* ---- phase 4b: BUY FOR THE SPECIALIST ---- */
+    /* Everyone is armed and the rack has given what it can; now the money left buys hands the gun they shoot
+       best — the biggest improvement first, only while the money and the gun allowance both hold, the muster gun
+       going back on the rack. (Letting a specialist wait at the muster for the right gun instead let one OA spend
+       its whole gun allowance arming nine people.) */
+    {
+      const want = [];
+      for (const b of bodies) {
+        if (!b.f || !b.f.skills || !b.loadout.primary) continue;
+        const cur = byId(b.loadout.primary), base = shotOf(b.f, cur);
+        const best = gunsFor(b).slice(0, CONST.KIT_GOOD).find(g => shotOf(b.f, g) >= base + CONST.KIT_BUY_MARGIN);
+        if (best) want.push({ b, cur, best, gain: shotOf(b.f, best) - base });
+      }
+      want.sort((x, y) => y.gain - x.gain);
+      for (const w of want) {
+        const g = w.best, p2 = priceOf(g);
+        if (p2 > money || spent - (w.cur.cost || 0) + g.cost > gunAllow) continue;
+        money -= p2; cash += p2; spent += g.cost - (w.cur.cost || 0);
+        give(w.cur.id); w.b.loadout.primary = g.id;
+      }
+    }
     /* mods are durable, consumables are bought fresh for the drop */
-    for (const roleId of order) {
-      const r = roleById(roleId);
-      if (!r) continue;
-      for (const b of bodies.filter(x => x.role === roleId)) {
-        for (const modId of (d.mod_wishlist || [])) {
-          if (b.loadout.mods.length >= CONST.MOD_SLOTS) break;
-          const m = byId(modId);
-          if (!m || m.tier > maxTier || b.loadout.mods.includes(modId)) continue;
-          const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
-          if (validate(next).length || spent + m.cost > allow) continue;
-          if (take(modId)) { b.loadout = next; spent += m.cost; }
-          else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; }
-        }
-        /* Rank the role's consumables by what this DOCTRINE likes, then fill the slots from
-           the top. It used to take the first two entries of the list verbatim, so anything
-           further down could never be bought however much a corp wanted it — which is why
-           auto-turrets, drone jammers and every tier-5 charge were unreachable even after
-           they were added to a role. A hard positional priority is not a preference. */
-        const wanted = rankBy(r.consumables, taste).map(c => c.id);
-        for (const cId of wanted) {
-          if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
-          const c = byId(cId);
-          if (!c || spent + c.cost > allow) continue;
-          const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([cId]) });
-          if (validate(next).length) continue;
-          if (take(cId)) { b.loadout = next; spent += c.cost; }
-          else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; }
-        }
+    for (const b of bodies) {
+      for (const modId of (d.mod_wishlist || [])) {
+        if (b.loadout.mods.length >= CONST.MOD_SLOTS) break;
+        const m = byId(modId);
+        if (!m || m.tier > maxTier || b.loadout.mods.includes(modId)) continue;
+        const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
+        if (validate(next).length || spent + m.cost > allow) continue;
+        if (take(modId)) { b.loadout = next; spent += m.cost; }
+        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; }
+      }
+      for (const c of consRanked) {
+        if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
+        if (spent + c.cost > allow) continue;
+        const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([c.id]) });
+        if (validate(next).length) continue;
+        if (take(c.id)) { b.loadout = next; spent += c.cost; }
+        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; }
       }
     }
-
+    /* §DEVICES an OA whose money runs to it fits devices, spread through the force (ruled) */
+    {
+      const want = Math.round(bodies.length * CONST.DEVICE_SHARE * Math.max(0, Math.min(1, opts.wealth || 0)));
+      const step = want > 0 ? bodies.length / want : 0;
+      for (let k = 0; k < want; k++) {
+        const b = bodies[Math.floor(k * step)]; if (!b) continue;
+        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv) continue;
+        if ((b.loadout.consumables || []).indexOf(dId) >= 0) continue;
+        const cons = (b.loadout.consumables || []).slice();
+        if (cons.length >= CONST.CONSUMABLE_SLOTS) {
+          let cheap = -1, cv = Infinity;
+          cons.forEach((c, i) => { const it = byId(c); const v = it ? it.cost : 0; if (v < cv) { cv = v; cheap = i; } });
+          if (cheap < 0) continue;
+          give(cons[cheap]); cons.splice(cheap, 1);
+        }
+        const next = Object.assign({}, b.loadout, { consumables: cons.concat([dId]) });
+        if (validate(next).length) continue;
+        if (take(dId)) b.loadout = next;
+        else if (dv.cost <= money) { money -= dv.cost; cash += dv.cost; b.loadout = next; }
+      }
+    }
     const prim = {}, band = {};
     for (const b of bodies) {
       prim[b.loadout.primary] = (prim[b.loadout.primary] || 0) + 1;
       const r = resolve(b.loadout).weapon.range;
       band[r] = (band[r] || 0) + 1;
     }
-    return { doctrine: d, bodies, counts, mustered: true, shortfall: 0, unarmed: 0,
+    return { doctrine: d, bodies: bodies.map(b => ({ loadout: b.loadout, fighter: b.f ? b.f.id : null })), counts: {},
+             mustered: true, shortfall: 0, unarmed: 0,
              allowance: allow, budget: budget, spentCash: cash,
              boundBy: (spent >= allow - 400 ? 'cap' : (money < 400 ? 'wallet' : 'armoury')),
              total: spent, headroom: allow - spent, stockLeft: stock,
@@ -590,52 +620,45 @@
   function foundingArmoury(doctrineId, bodyCount, opts) {
     opts = opts || {};
     const d = api.doctrine(doctrineId);
-    if (!d || !ROLES.length) return { stock: {}, value: 0 };
+    if (!d) return { stock: {}, value: 0 };
     const depth = opts.depth == null ? CONST.FOUNDING_DEPTH : opts.depth;
     const maxTier = d.armoury_max_tier || 5, taste = d.taste || [];
-    const counts = composition(doctrineId, bodyCount);
+    const n = bodyCount;
     const stock = {};
-    const add = (id, n) => { if (id) stock[id] = (stock[id] || 0) + n; };
-    for (const r of ROLES) {
-      const n = counts[r.id] || 0;
-      for (const listKey of ['primaries', 'armors', 'sidearms']) {
-        const ranked = rankBy((r[listKey] || []).filter(id => { const it = byId(id); return it && it.tier <= maxTier; }), taste);
-        if (!ranked.length) continue;
-        const main = Math.ceil(n * 2 / 3), alt = n - main;
-        add(ranked[0].id, Math.ceil(main * depth));
-        if (alt > 0 && ranked[1]) add(ranked[1].id, Math.ceil(alt * depth));
-        /* A real locker also holds the old cheap kit — the rifles nobody wants but that
-           arm a body when the good ones are spoken for. Muster reaches for these first. */
-        const cheapest2 = ranked.slice().sort((a2, b2) => a2.cost - b2.cost)[0];
-        /* The junk does NOT thin out with the locker. A poor corp is short of good rifles,
-           not of old ones — its problem is quality, not whether everyone has something to
-           carry. Scaling this with depth made the two poorest corps fail muster outright
-           every Divide, which is the ledger's verdict on a corp that cannot arm itself, not
-           something a thin history should cause on its own. */
-        add(cheapest2.id, Math.ceil(n * Math.max(1, depth)));
-      }
+    const add = (id, k) => { if (id && k > 0) stock[id] = (stock[id] || 0) + k; };
+    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0).map(it => it.id);
+    const cheapest = (items) => items.slice().sort((a, b) => a.cost - b.cost)[0];
+    /* §QUARTERMASTER a locker a force of specialists can be armed from: the doctrine's favourite guns,
+       SPREAD across several of them rather than two per role, so there is a type on the rack for more than
+       one kind of hand — and, as ever, the old cheap kit that arms a body when the good ones are spoken for */
+    const guns = rankBy(ofSlot('primary'), taste), top = guns.slice(0, Math.min(CONST.KIT_SPREAD, guns.length));
+    for (const g of top) add(g.id, Math.ceil(n / top.length * depth));
+    if (guns.length) add(cheapest(guns).id, Math.ceil(n * CONST.FOUNDING_SPARES));
+    for (const slot of ['armor', 'sidearm']) {
+      const ranked = rankBy(ofSlot(slot), taste);
+      if (!ranked.length) continue;
+      const main = Math.ceil(n * 2 / 3), alt = n - main;
+      add(ranked[0].id, Math.ceil(main * depth));
+      if (alt > 0 && ranked[1]) add(ranked[1].id, Math.ceil(alt * depth));
+      add(cheapest(ranked).id, Math.ceil(n * CONST.FOUNDING_SPARES));
     }
     for (const modId of (d.mod_wishlist || [])) {
       const m = byId(modId);
-      if (m && m.tier <= maxTier) add(modId, Math.ceil(bodyCount * 0.5 * depth));
+      if (m && m.tier <= maxTier) add(modId, Math.ceil(n * 0.5 * depth));
     }
-    /* Consumables are single-use, but a corp with a history arrives holding a store of
-       them — the locker has grenades and medkits in it, and they deplete rather than
-       appearing from nowhere each season. */
-    for (const r of ROLES) {
-      const n = counts[r.id] || 0;
-      for (const cId of (r.consumables || []).slice(0, CONST.CONSUMABLE_SLOTS)) add(cId, Math.ceil(n * depth));
-    }
+    /* consumables deplete rather than appearing each season: medkits for the share that carries them, and
+       the doctrine's two favourites for everyone */
+    add('itm_medkit', Math.ceil(n * CONST.MEDKIT_SHARE * depth));
+    rankBy(ofSlot('consumable').filter(id => DEVICE_IDS.indexOf(id) < 0 && id !== 'itm_medkit'), taste)
+      .slice(0, CONST.CONSUMABLE_SLOTS).forEach(c => add(c.id, Math.ceil(n * depth)));
     let value = 0;
     for (const id in stock) value += byId(id).cost * stock[id];
+    /* §DEVICES a rich OA founds with devices in the rack, in proportion to its wealth (ruled) */
+    const devN = Math.round(n * CONST.DEVICE_SHARE * Math.max(0, Math.min(1, (opts && opts.wealth) || 0)));
+    for (let k = 0; k < devN; k++) add(k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone', 1);
     return { stock, value };
   }
 
-  /** §3 — what it costs to put a weapon and armor on every body. The ledger's question. */
-  function musterCost(doctrineId, bodyCount, opts) {
-    const p = planForce(doctrineId, bodyCount, Object.assign({}, opts || {}, { budget: 1e9 }));
-    return p ? { cash: p.spentCash, fielded: p.total } : null;
-  }
 
   /**
    * §2.2 — THE ALEAS CEILING. One number per corp per season, and it does NOT move with how
@@ -673,7 +696,6 @@
   function allowancePerBody(bodyCount, season) {
     return allowanceFor(season) / Math.max(1, bodyCount || CONST.DROP_MAX);
   }
-  function forceValue(bodies) { return bodies.reduce((s, b) => s + value(b.loadout), 0); }
 
   /** §2.3 — bulk pools at the squad, so light bodies pay for the gunner. */
   function squadBulk(bodies, carryBonus) {
@@ -716,35 +738,34 @@
      crossed with reach, long guns against everything nearer. Four trades a hand can be
      trained in — this function is the single home of that fold; roster births skills by
      it and combat reads effective aim through it. */
-  const SKILL_FAMILIES = [
-    { id: 'ballistic_long',   name: 'long ballistics' },
-    { id: 'ballistic_medium', name: 'medium ballistics' },
-    { id: 'ballistic_close',  name: 'close ballistics' },
-    { id: 'energy_long',   name: 'long energy' },
-    { id: 'energy_medium', name: 'medium energy' },
-    { id: 'energy_close',  name: 'close energy' }
-  ];
-  function skillFamilyOf(item) {
-    if (!item || !item.family) return null;
-    /* three ranges, three trades: a long gun, a workhorse at medium, and close-in work.
-       Anything not long or medium (i.e. short) reads as close — the same fold as before, now
-       with the middle band given its own trade instead of being swept into close. */
-    var r = (item.effects || {}).range;
-    var range = r === 'long' ? 'long' : r === 'medium' ? 'medium' : 'close';
-    return item.family + '_' + range;
+  /* §SKILLS (ruled) A SHOT IS AIM, A DAMAGE CLASS AND A WEAPON TYPE. The six "families" (ballistic/energy ×
+     long/medium/close) matched nothing a manager sees — a sidearm could be any of four, a scattergun three.
+     Now a fighter has Aim, a skill with each damage CLASS (ballistic, energy) and a skill with each weapon
+     TYPE — the shop's own sections — and a shot is the average of the three. */
+  const SKILL_CLASSES = [{ id: 'ballistic', name: 'Ballistic' }, { id: 'energy', name: 'Energy' }];
+  const typeId = t => String(t || '').toLowerCase().replace(/[^a-z]+/g, '_').replace(/^_|_$/g, '');
+  /* filled when the catalogue loads (init), in the shop's own order */
+  const SKILL_TYPES = [];
+  function fillSkillTypes() {
+    SKILL_TYPES.length = 0;
+    const seen = {};
+    for (const it of CATALOG || []) if ((it.slot === 'primary' || it.slot === 'sidearm') && it.type && !seen[it.type]) {
+      seen[it.type] = true; SKILL_TYPES.push({ id: typeId(it.type), name: it.type });
+    }
   }
+  function skillClassOf(item) { return item && (item.family === 'ballistic' || item.family === 'energy') ? item.family : null; }
+  function skillTypeOf(item) { return item && item.type ? typeId(item.type) : null; }
 
-  const api = { SKILL_FAMILIES, skillFamilyOf,
+  const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, musterCost,
-    allowanceFor, allowancePerBody, forceValue, squadBulk, equip, equipForce,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury,
+    allowanceFor, allowancePerBody, squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },
     get doctrines() { return DOCTRINES; },
-    get roles() { return ROLES; },
-    composition, tasteScore,
+    tasteScore, shotOf,
     doctrine(id) { return DOCTRINES.find(d => d.id === id) || null; }
   };
   if (isNode) { autoInit(); module.exports = api; }

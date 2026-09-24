@@ -42,29 +42,19 @@
     POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
-    ROLE_ONCE: true,             // [C] the veteran's fork comes once a career
-    SPY_LEVELS: 1,               // [C] intel levels a Spy gathers a month, free
-    DRILL_GAIN: 1.2,             // [C] the Drill Sergeant's free drill, per month, on the greenest stat
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
        the same card; a petition costs, and if half the fleet petitions the edict is withdrawn. */
     FLEET_MONTH: 7,              // [S]
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
-    LEVY: 12000,                 // [C] the Aleas' extra levy, when it comes
-    FAST_WALL: 0.80,             // [C] the wall's schedule compressed to this share of its days
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
   };
+  /* §ALEAS THE ALEAS' RULINGS ARE CUT (ruled). Four of this pool were the Aleas changing the year's rules —
+     the wall closed early, a stun-grade Divide, no truces, a levy — invasive, rarely noticed and not much
+     fun. What is left is the fleet's weather: a survey gone public, and the armourers' prices. */
   const FLEET_POOL = [
-    { id: 'fast_wall',     w: 1.0, title: 'The Aleas Close the Wall Early',   text: 'The Aleas have posted this year\u2019s schedule: the dome closes a fifth faster than it did.',
-      cost: 'The Ground Runs Out Sooner', edict: true },
-    { id: 'stun_grade',    w: 0.8, title: 'A Stun-Grade Divide',              text: 'The Aleas have ruled this year\u2019s Divide stun-grade: every blow the medics can catch, they catch.',
-      cost: 'Nobody Dies \u00b7 the Crowd Cools', edict: true },
-    { id: 'no_pacts',      w: 0.8, title: 'The Aleas Forbid Pacts',           text: 'No truces this year: the Aleas have ruled that a banner that will not fight another has no place on the ground.',
-      cost: 'No Truces at the Table', edict: true },
     { id: 'survey_public', w: 0.9, title: 'The Survey Goes Public',           text: 'A fleet clerk has posted the planet\u2019s survey where every OA can read it.',
       cost: 'Every OA Reads the Ground', edict: false },
-    { id: 'levy',          w: 0.9, title: 'An Aleas Levy',                    text: 'The Aleas want ' + '\u20a1' + (12000).toLocaleString('en-US') + ' more from every OA at the lock, for the wall\u2019s upkeep.',
-      cost: '\u2212\u20a112,000 at the Lock', edict: true },
     { id: 'crash',         w: 0.7, title: 'The Armourers Undercut Each Other', text: 'A glut of kit across the fleet: the shelf\u2019s prices fall a quarter for the rest of the year.',
       cost: 'Kit Is Cheap', edict: false },
     { id: 'boom',          w: 0.7, title: 'The Armourers Close Ranks',        text: 'A shortage of kit across the fleet: the shelf\u2019s prices rise a third for the rest of the year.',
@@ -73,8 +63,9 @@
 
   const alive = c => c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
   const fmtCr = n => '\u20a1' + Math.round(n).toLocaleString('en-US');
-  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11) *
-                                  (1 + Math.max(0, ((f.potential || 50) - 50) / 100)));
+  /* §POTENTIAL a fighter's worth is their wage over a season; the hidden potential that scaled
+     it is struck (ruled: no unit ceilings) */
+  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11));
   /* §STORY AN EVENT ASKS FOR A TIE, NOT A TRAIT ID. Five events cast their subject by naming a
      trait — `hasQuirk(f, 'hot_headed')` — and the moment those traits were retired all five
      went quiet with no error anywhere: the event stayed in the pool, drew its turn, found
@@ -104,7 +95,11 @@
         if (t.tie.toLowerCase().indexOf(want) >= 0 || want.indexOf(t.tie.toLowerCase()) >= 0)
           { fit.push({ f: f, tone: t.tone, trait: t.trait }); break; }
     if (!fit.length) return null;
-    return fit[Math.floor((rng ? rng() : Math.random()) * fit.length)];
+    /* §DETERMINISM never unseeded: with no dice passed, the cast is drawn from dice seeded by the season, the month,
+       the OA and the tie — the same every time the same moment is played, as every other draw in the engine is */
+    const dice = rng || P.mulberry32(P.seedFrom('cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
+                                                ((corp && corp.id) || '') + ':' + tie));
+    return fit[Math.floor(dice() * fit.length)];
   }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
@@ -175,7 +170,7 @@
         if (kind === 'stress') stress(f, amount);
         else if (kind === 'health') { f.condition = f.condition || {}; f.condition.health = Math.min(100, (f.condition.health == null ? 100 : f.condition.health) + amount); }
         else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
-        else if (kind === 'fame') f.fame = Math.max(0, (f.fame || 0) + amount);
+        else if (kind === 'fame') { if (amount > 0) REP.earnFame(f, amount); else f.fame = Math.max(0, (f.fame || 0) + amount); }
         else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
         return pick[3](shortName(f));
       },
@@ -204,7 +199,8 @@
       resolve: (c, e, opt) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._raiseAsked = true;
-        if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); return f.name + ' Got the Raise'; }
+        /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
+        if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
         if (opt === 'release') { f.status = 'retired'; f._released = true; return f.name + ' Was Released'; }
         stress(f, 18); f._discontent = (f._discontent || 0) + 1; return f.name + ' Was Refused, and Soured';
       },
@@ -224,7 +220,7 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._debtCalled = true;
-        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
+        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
         if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
         f.condition.injuries.push({ type: 'inj_arm', severity: 'minor', days_remaining: P.int(ctx.rng, 6, 14), untreated: false });
         f.status = 'injured'; f._recovery = P.int(ctx.rng, 6, 14); f._untreatedDays = 0; stress(f, 12);
@@ -348,26 +344,6 @@
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
       ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
-    },
-    {
-      id: 'role', weight: 0.7,
-      when: (c, ctx) => { if (CONST.ROLE_ONCE && ctx.corpFlags(c).role) return null; const vets = alive(c).filter(f => ((f.experience || {}).divides || 0) >= 2 && (f.age || 0) >= 32); return vets.length ? vets.sort((a, b) => (b.age || 0) - (a.age || 0))[0] : null; },
-      make: (f) => ({ kind: 'role', subject: f.id, title: f.name + ' Has a Talent',
-        text: f.name + ' has been on more grounds than anybody left on the ship, and it shows off the line as much as on it.',
-        options: [
-          { id: 'spy', label: 'Make Them Your Spy', cost: 'Free Intel Each Month \u00b7 Off the Line' },
-          { id: 'drill', label: 'Make Them Drill Sergeant', cost: 'Free Training Each Month \u00b7 Off the Line' },
-          { id: 'fight', label: 'Keep Them Fighting', cost: 'Nothing Changes' }
-        ], def: 'fight' }),
-      resolve: (c, e, opt, ctx) => {
-        ctx.corpFlags(c).role = true;
-        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
-        c._roles = c._roles || {};
-        if (opt === 'spy') { c._roles.spy = f.id; f._role = 'spy'; return f.name + ' Is Your Spy'; }
-        if (opt === 'drill') { c._roles.drill = f.id; f._role = 'drill'; return f.name + ' Is Your Drill Sergeant'; }
-        return f.name + ' Stays on the Line';
-      },
-      ai: (c) => alive(c).length >= 18 ? 'drill' : 'fight'
     }
   ];
   /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
@@ -491,6 +467,7 @@
      about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
      one worse, a blame magnet wears whatever went wrong, and a company family's dead are
      mourned louder. These were six hooks wanting a press office; they are one multiplier. */
+  /* PARKED (ruled): nothing calls this yet — it waits for authored stories, which will raise acts through it */
   function storyMult(state, f, good) {
     if (!f) return 1;
     let m = 1;
@@ -508,7 +485,7 @@
     });
   }
   function fleetEventFor(state) {
-    state.fleet = state.fleet || { edicts: {}, priceMult: 1, levy: 0 };
+    state.fleet = state.fleet || { priceMult: 1 };
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
     /* seeded by the world, not the year alone: two fleets on two planets meet two different months */
     const world = state.planet ? (state.planet.archetype || '') + (state.planet.patches || []).map(q => (q.type || '')[0]).join('') : '';
@@ -543,10 +520,6 @@
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
       /* a petition is a stance, not a reflex: only an OA the edict cuts against by
          temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'fast_wall') return d('patience') > 0.7 || d('aggression') < 0.3 ? 'petition' : 'accept';
-      if (e.fleet === 'stun_grade') return d('aggression') > 0.75 ? 'petition' : 'accept';
-      if (e.fleet === 'no_pacts') return d('treachery') < 0.3 || d('tradition') > 0.7 ? 'petition' : 'accept';
-      if (e.fleet === 'levy') return d('thrift') > 0.6 ? 'petition' : 'accept';
       if (e.fleet === 'boom') return d('thrift') > 0.6 ? 'petition' : 'accept';
       return 'accept';
     }
@@ -559,11 +532,9 @@
     const need = Math.ceil(state.ids.length * CONST.PETITION_SHARE);
     pend.withdrawn = !!spec.edict && pend.petitions >= need;
     if (!pend.withdrawn) {
-      if (spec.id === 'levy') state.fleet.levy = CONST.LEVY;
-      else if (spec.id === 'crash') state.fleet.priceMult = CONST.PRICE_CRASH;
+      if (spec.id === 'crash') state.fleet.priceMult = CONST.PRICE_CRASH;
       else if (spec.id === 'boom') state.fleet.priceMult = CONST.PRICE_BOOM;
       else if (spec.id === 'survey_public') { for (const id of state.ids) gatherIntelFor(id); }
-      else state.fleet.edicts[spec.id] = true;
     }
     return { id: spec.id, title: spec.title, withdrawn: pend.withdrawn, petitions: pend.petitions, need };
   }
@@ -630,36 +601,10 @@
     }
     return out;
   }
-  /** The roles earn their keep each month: a Spy gathers, a Drill Sergeant drills. */
-  function roles(corp, season, month, gatherIntel, rivals) {
-    const r = corp._roles; if (!r) return [];
-    const out = [];
-    const still = id => alive(corp).some(f => f.id === id);
-    if (r.spy && still(r.spy)) {
-      const rng = P.mulberry32(P.seedFrom('spy' + season + month + corp.id));
-      const target = rivals.length && rng() < 0.6 ? rivals[Math.floor(rng() * rivals.length)] : null;
-      gatherIntel(target ? 'rival' : 'planet', target, CONST.SPY_LEVELS);
-      out.push('The Spy Reported' + (target ? ' on a Rival' : ' on the Planet'));
-    } else if (r.spy) delete r.spy;
-    if (r.drill && still(r.drill)) {
-      const green = alive(corp).filter(f => f.id !== r.drill && f.stats);
-      if (green.length) {
-        const rng = P.mulberry32(P.seedFrom('drill' + season + month + corp.id));
-        const f = green[Math.floor(rng() * green.length)];
-        const keys = ['aim', 'grit', 'reflex', 'fieldcraft', 'tactics', 'presence', 'resolve'];
-        const k = keys.sort((a, b) => (f.stats[a] || 0) - (f.stats[b] || 0))[0];
-        f.stats[k] = Math.min(f.potential || 100, (f.stats[k] || 0) + CONST.DRILL_GAIN);
-        out.push('The Drill Sergeant Worked ' + f.name);
-      }
-    } else if (r.drill) delete r.drill;
-    return out;
-  }
-  /* the roles' fighters do not field: the Divide's drop reads this */
-  function offTheLine(corp) { const r = corp._roles || {}; return [r.spy, r.drill].filter(Boolean); }
 
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
-  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, roles, offTheLine, settleFleet,
+  const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
                 fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;

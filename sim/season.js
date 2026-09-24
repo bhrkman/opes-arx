@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./illicit.js'));
+    require('./trade.js'), require('./events.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDILLICIT);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, ILLICIT) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
   'use strict';
 
   const CONST = {
@@ -211,8 +211,8 @@
     MARKET_SWING: 0.25,       // [C] §MARKET the most an OA's name moves what it is asked for
     MARKET_FLEET_SHARE: 0.4,  // [C] how much the fleet's regard counts beside its own people's
     /* the two pools of a window */
-    POOL_PREMIUM:  { potential: 1.08, salary: 1.25, age: -2 },   // [C] the Natural-Born premium month
-    POOL_DISCOUNT: { potential: 0.92, salary: 0.75, age: 3 },    // [C] the Natural-Born discount month
+    POOL_PREMIUM:  { salary: 1.25, age: -2 },   // [C] the Natural-Born premium month
+    POOL_DISCOUNT: { salary: 0.75, age: 3 },    // [C] the Natural-Born discount month
     CARRY_MARKDOWN: 0.90,     // [C] what a body nobody took asks the second month, as a share of the first
     NATTIE_YEAR_CAP: 2,       // [C] the AI signs this many of its own a year beyond its shortfall, across both months
     MERC_W_MONEY: 0.45,       // [H] weight a fighter puts on the purse
@@ -250,6 +250,12 @@
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
+    SITE_CASH: 5000,         /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled) */
+    /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
+       people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
+       that turns on fatality, which is deliberately untouched, and a reason drawn from it is
+       not a reason. */
+    AI_CASH_SHARE: 0.25,
     /* SQUAD_MAX / SQUAD_MIN are NOT declared here. They belong to `divide.js`, which is what
        actually deals a drop force into squads; this file had a second copy and divide.js had
        a third as a local with a comment admitting it was a mirror. */
@@ -284,6 +290,8 @@
     DECLINE_RATE: 6.5,           // [C] body-stat loss per year past `decline` (×10 scale)
     RETIRE_AT_DECLINE: 0.10,     // [C] chance of hanging them up in the first year past it
     RETIRE_SPAN: 4,              // [S] years past decline by which retirement is certain
+    DIVIDE_TYPE_GROWTH: 3,      // [C] §SKILLS what a Divide fought with a gun teaches of its type
+    DIVIDE_CLASS_GROWTH: 1.5,   // [C] and of its damage class
     MIND: ['tactics', 'presence', 'resolve', 'fieldcraft'],
     BODY: ['grit', 'reflex'],
 
@@ -449,9 +457,17 @@
         id: profile.id, profile,
         roster: roster,
         armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
-                      : ITEMS.foundingArmoury(doc.id, size, {}).stock,
+                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile) }).stock,
+        /* §FOUNDING ONE KIND OF WEALTH, SPENT DIFFERENTLY (ruled). An AI OA founded with its
+           profile's whole band IN CASH as well as a full roster and a decade of kit, so it began
+           the game with one and a half to two and a half times the manager's wealth. It arrives
+           with its people and its kit because that is what most of its founding money BOUGHT:
+           it keeps `AI_CASH_SHARE` of its band as cash, and a manager keeps his as cash to spend
+           on people and kit his own way. The profiles' relative wealth is kept — a rich OA is
+           still richer than a poor one — only the share still liquid changes. */
         account: LED.open(profile, lean ? { treasury: CONST.LEAN_TREASURY, grant: CONST.LEAN_GRANT }
-                                        : { grant: grantFor(profile) }),
+                                        : { grant: grantFor(profile),
+                                            treasury: Math.round(LED.bandMid(profile) * CONST.AI_CASH_SHARE) }),
         rep: REP.open(profile, profiles, { season: 1 }),
         doctrineId: doc.id,
         season: 0,
@@ -730,23 +746,38 @@
         f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
         f.experience.dividends = (f.experience.dividends || 0) + 1;
         f.experience.battles = (f.experience.battles || 0) + 1;
-        f.fame = Math.min(100, (f.fame || 0) + CONST.DIVIDEND_FAME);
+        REP.earnFame(f, CONST.DIVIDEND_FAME);   /* §PRESENCE visible hands are made famous faster */
         tally.fought++;
       }
       if (winner) {
         LED.post(winner.account, 'income', 'Dividend purse', CONST.DIVIDEND_PURSE);
+        /* §HALF-BUILT the Dividend taken is a thing the fleet and your own people notice (`took_the_purse`,
+           written and never raised) */
+        if (winner.rep) REP.act(winner.rep, 'took_the_purse', {});
         tally.purses++;
         for (const f of (winner === A ? bodiesA : bodiesB)) {
-          f.fame = Math.min(100, (f.fame || 0) + CONST.DIVIDEND_FAME_WIN);
+          REP.earnFame(f, CONST.DIVIDEND_FAME_WIN);
         }
       }
     }
   }
 
   /* ------------------------------------------------------------------------ THE EIGHT ---- */
+  /* §SKILLS what a hand learns with the gun in their hands: its damage class and its weapon type rise with
+     Aim when Aim is trained, and with a Divide fought carrying it (closeSeason) */
+  function trainCarried(f, gain, cap) {
+    const gun = f.loadout && ITEMS.byId(f.loadout.primary);
+    if (!gun) return;
+    f.skills = f.skills || {};
+    for (const k of [ITEMS.skillClassOf(gun), ITEMS.skillTypeOf(gun)]) {
+      if (!k) continue;
+      const cur = f.skills[k] != null ? f.skills[k] : f.stats.aim;
+      f.skills[k] = Math.min(cap || 200, cur + gain);
+    }
+  }
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
   function eightPick(corp) {
-    const fit = corp.roster.filter(f => f.status === 'active' && !f._role && !(f.condition && (f.condition.injuries || []).length));
+    const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
     const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
     return fit.slice().sort((a, b) => score(b) - score(a))[0];
@@ -755,7 +786,7 @@
       someone; there is no declining. Unnamed, the OA's best goes. */
   function nameForEight(state, corpId, fighterId) {
     state.eight = state.eight || { names: {} };
-    const c = state.corps[corpId], f = c && c.roster.find(x => x.id === fighterId && x.status === 'active' && !x._role);
+    const c = state.corps[corpId], f = c && c.roster.find(x => x.id === fighterId && x.status === 'active');
     if (!f) return false;
     state.eight.names[corpId] = fighterId; return true;
   }
@@ -778,7 +809,7 @@
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
       units: team.map((e, i) => C.makeCombatant(e.f, { traitIndex: ROSTER.traitById, isCaptain: i === 0, day: 1 })) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
-    const stun = !!(state.fleet && state.fleet.edicts && state.fleet.edicts.stun_grade);
+    const stun = false;   /* §ALEAS the stun-grade ruling is cut: The Eight is fought to the end */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
     const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB,
@@ -795,7 +826,7 @@
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
       f.experience.battles = (f.experience.battles || 0) + 1; f.experience.eights = (f.experience.eights || 0) + 1;
-      f.fame = Math.min(100, (f.fame || 0) + CONST.EIGHT_FAME);
+      REP.earnFame(f, CONST.EIGHT_FAME);
     });
     land(sA, A); land(sB, B);
     const standing = S => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
@@ -806,7 +837,7 @@
     const win = winner === 'A' ? A : winner === 'B' ? B : null;
     if (win) {
       const share = Math.round(pot / win.length);
-      for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); e.f.fame = Math.min(100, (e.f.fame || 0) + CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
+      for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); REP.earnFame(e.f, CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
     }
     E.result = { held: true, season, teams: { A: A.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })), B: B.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })) },
                  winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy, stun,
@@ -893,7 +924,6 @@
        year of it — dearer and greener, or cheaper and nearer the ceiling */
     const shape = pool === 'premium' ? CONST.POOL_PREMIUM : pool === 'discount' ? CONST.POOL_DISCOUNT : null;
     if (shape) for (const f of lot) {
-      if (f.potential != null) f.potential = Math.max(1, Math.round(f.potential * shape.potential));
       if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary * shape.salary);
       if (f.age != null) f.age = Math.max(16, f.age + shape.age);
       f._pool = pool;
@@ -910,7 +940,15 @@
     const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
     if (!corp || !corp.rep) return flat;
     const good = REP.standing(corp.rep, 'own') + REP.standing(corp.rep, 'fleet') * CONST.MARKET_FLEET_SHARE;
-    const mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
+    let mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
+    /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
+       what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
+       keeps its people alive hires cheaper. `mercPriceMult` was written for this and never called. */
+    if (f.pool === 'mercenary' && STATE_REF && STATE_REF.ids) {
+      const idx = STATE_REF.ids.map(id => STATE_REF.corps[id]).filter(x => x && x.rep).map(x => REP.mercIndex(x.rep));
+      const fleetMean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : 0;
+      if (fleetMean > 0) mult *= REP.mercPriceMult(corp.rep, fleetMean);
+    }
     return Math.round(flat * mult);
   }
 
@@ -946,17 +984,10 @@
            overpay for somebody may; a manager who lowballs will watch them sign elsewhere. The
            only thing checked is that the money exists — the roster ceiling is the AI's
            appetite, not a rule, and a player who wants a deep bench may build one. */
-        const named = bids[id] && bids[id][f.id];
-        if (named != null) {
-          if (budget >= named && named > 0) offers.push({ corp: c, bid: Math.round(named), human: true });
-          continue;
-        }
-
-        if (alive.length >= CONST.ROSTER_TARGET) continue;           /* full, not interested */
-        if (budget < ask) continue;                                  /* cannot cover the year */
-        /* a corp short of bodies bids harder — need is the only lever now */
-        const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
-        offers.push({ corp: c, bid: Math.round(ask * (1 + hunger * CONST.MERC_HUNGER)) });
+        /* §CHOICES a person's seat bids what they named, or nothing; an engine seat bids by its policy */
+        const human = isHuman(state, id);
+        const named = human ? (bids[id] && bids[id][f.id]) : aiMercBid(c, f);
+        if (named != null && named > 0 && budget >= named) offers.push({ corp: c, bid: Math.round(named), human: human });
       }
       if (!offers.length) { tally.unbid++; continue; }
       tally.bids += offers.length;
@@ -989,6 +1020,41 @@
   }
 
   /** The merc deadline, over the lot opened at the start of its window. */
+  /* §CHOICES (ruled: eight players) AN ENGINE SEAT MAKES THE SAME CHOICE A PERSON MAKES, and one function applies
+     everyone's. The three hiring markets decided for the engine's OAs INSIDE themselves, and two of them fell
+     through to that for a manager who had named nothing — bidding on mercenaries and offering for prisoners on
+     his behalf, with his money. A seat a person holds acts on that person's choices alone; an engine seat's
+     choice comes from its policy, below — the old rules, lifted out unchanged. */
+  /* a mercenary: bid if short of the roster target and the year is covered — more, the thinner the roster */
+  function aiMercBid(c, f) {
+    const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
+    const ask = askingPrice(f, null);
+    if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
+    const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
+    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER));
+  }
+  /* the tryouts: the best of its own sheet by what they ARE, up to its need */
+  function aiTryoutMarks(lot, depth) {
+    return lot.slice().sort((a, b) => lotQuality(b) - lotQuality(a)).slice(0, depth).map(f => f.id);
+  }
+  /* a prisoner: the sentence as written, shortened for need and a young back, lengthened for an injury — on what
+     the sheet shows, never a stat, a ceiling or a trait — and only as far as the money reaches */
+  function aiBastilleTerm(rng, c, f, sentence, budget, costOf) {
+    const roster = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
+    if (roster.length >= CONST.ROSTER_TARGET || budget < costOf(sentence)) return null;
+    const hunger = (CONST.ROSTER_TARGET - roster.length) / CONST.ROSTER_TARGET;
+    const race = ROSTER.raceById[f.race];
+    const young = race && f.age <= race.age.prime[0] + 4;
+    const hurt = !!((f.condition || {}).injuries || []).length;
+    let buy = 0;
+    if (hunger >= CONST.BASTILLE_BUY_AT[0]) buy++;
+    if (hunger >= CONST.BASTILLE_BUY_AT[1]) buy++;
+    if (young && rng() < CONST.BASTILLE_YOUNG_BUY) buy++;
+    if (hurt && rng() < CONST.BASTILLE_HURT_LESS) buy--;
+    let term = Math.max(1, sentence - Math.max(0, buy));
+    while (term < sentence && budget < costOf(term)) term++;
+    return term;
+  }
   function runMercMarket(rng, corps, ids, lot, tally, bids, state) {
     return runOfferMarket(rng, corps, ids, lot, tally, bids, 'mercs', state);
   }
@@ -998,7 +1064,9 @@
       read it, because there was no tryouts event of any kind. Two of the six window-months in
       the year were guaranteed to do nothing. Prospects rather than professionals — younger,
       cheaper, further from their ceiling. */
-  function runTryouts(rng, corps, ids, lots, tally, bids, human) {
+  const lotQuality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 4;
+  function runTryouts(rng, corps, ids, lots, tally, bids, isHuman) {
+    isHuman = typeof isHuman === 'function' ? isHuman : () => false;
     /* Natties sign FLAT: the listed salary for the listed years, the pension for the
        family, the Divide bonus on top — no premium, because there is no other bidder.
        The manager marks who they want from their own sheet; every other OA signs from
@@ -1008,7 +1076,7 @@
       const corp = corps[id];
       const lot = (lots || {})[id] || [];
       tally.lot += lot.length;
-      const marked = bids && bids[id] ? Object.keys(bids[id]) : null;
+      let marked = bids && bids[id] ? Object.keys(bids[id]) : null;
       /* working the tryout window runs a longer bench trial: a corp that spent its points
          here signs deeper from its own sheet. Without this the verb bought nothing at the
          very window it names — the fault the old market comment mocked, reborn.
@@ -1029,10 +1097,10 @@
          TOO. A founded OA opens eleven under the floor, so ending the Natural-Born month
          without marking anyone signed the ENTIRE SHEET on his behalf and billed him for it.
          The manager's sheet is his; an empty mark means an empty month. */
-      const want = marked
-        ? lot.filter(f => marked.indexOf(f.id) >= 0)
-        : (id === human ? []
-           : lot.slice().sort((a, b) => (b.potential || 0) - (a.potential || 0)).slice(0, depth));
+      /* §CHOICES an engine seat marks its own sheet by its policy; a person's unmarked sheet is an empty month */
+      const byPolicy = !marked && !isHuman(id);
+      if (byPolicy) marked = aiTryoutMarks(lot, depth);
+      const want = marked ? lot.filter(f => marked.indexOf(f.id) >= 0) : [];
       let took = 0;
       for (const f of want) {
         if (signingBudget(corp) < askingPrice(f, corp)) { tally.refused++; continue; }
@@ -1041,7 +1109,7 @@
         corp.roster.push(f);
         lots[id] = lots[id].filter(x => x !== f);
         tally.signed++; took++;
-        if (!marked) corp._nattieYear.signed++;
+        if (byPolicy) corp._nattieYear.signed++;   /* the year's cap is the policy's appetite, not a rule for a person */
       }
       tally.bids += want.length;
     }
@@ -1099,38 +1167,19 @@
       const offers = [];
       for (const id of ids) {
         const c = corps[id];
-        const roster = alive(c);
         /* the same free-cash expression the markets use, less the year of Kier wages the man
            would add — an OA offers with what is left after it can afford to keep him */
         const budget = signingBudget(c) - wageYear(f);
-        const named = bids[id] && bids[id][f.id];
-        if (named != null) {
-          /* A HUMAN'S NAMED TERM is honoured as given if it is a legal term and the money for
-             the fee and the remission exists; the Kier does not release a man for nothing */
-          const term = Math.round(named);
-          if (term >= 1 && term <= sentence && budget >= costOf(term))
-            offers.push({ corp: c, term: term, human: true });
-          else if (term > 0) tally.unaffordable++;
-          continue;
-        }
-        if (roster.length >= CONST.ROSTER_TARGET) continue;        /* full, not interested */
-        if (budget < costOf(sentence)) continue;                    /* cannot cover the year */
-        const hunger = (CONST.ROSTER_TARGET - roster.length) / CONST.ROSTER_TARGET;
-        const race = ROSTER.raceById[f.race];
-        const young = race && f.age <= race.age.prime[0] + 4;
-        const hurt = !!((f.condition || {}).injuries || []).length;
-        let buy = 0;
-        /* A MANAGER'S MONEY IS NOT SPENT FOR HIM. His OA is in the room like the others
-           (the merc market bids his ask for him too), but it offers the sentence as written;
-           remission is a decision, and it is his to make on the card. */
-        const human = state && state.opts && state.opts.human === id;
-        if (!human && hunger >= CONST.BASTILLE_BUY_AT[0]) buy++;
-        if (!human && hunger >= CONST.BASTILLE_BUY_AT[1]) buy++;
-        if (!human && young && rng() < CONST.BASTILLE_YOUNG_BUY) buy++;
-        if (!human && hurt && rng() < CONST.BASTILLE_HURT_LESS) buy--;
-        let term = Math.max(1, sentence - Math.max(0, buy));
-        while (term < sentence && budget < costOf(term)) term++;   /* buys what it can afford */
-        offers.push({ corp: c, term: term });
+        /* §CHOICES a person's seat offers the term they named, or nothing; an engine seat offers by its policy. Every
+           term is honoured the same way: a legal term, and the money for the fee and the remission. (A manager's OA
+           used to offer the full sentence for him here, "in the room like the others" — an engine deciding for a
+           seat a person holds.) */
+        const human = isHuman(state, id);
+        const named = human ? (bids[id] && bids[id][f.id]) : aiBastilleTerm(rng, c, f, sentence, budget, costOf);
+        if (named == null) continue;
+        const term = Math.round(named);
+        if (term >= 1 && term <= sentence && budget >= costOf(term)) offers.push({ corp: c, term: term, human: human });
+        else if (human && term > 0) tally.unaffordable++;
       }
       if (!offers.length) { tally.unplaced++; continue; }
       tally.bids += offers.length;
@@ -1390,75 +1439,10 @@
 
   /* --------------------------------------------------------- consequences that land later */
 
-  /**
-   * A MONTH'S ACTION CAN HAVE AN OUTCOME THAT ARRIVES LATER. Everything used to resolve the
-   * instant it was spent, which quietly forbade a whole class of decision: a survey that reports
-   * in three months, a contract talk that needs two sittings, a treatment that might not take.
-   * None of those were expressible, and none of them are content — they are a property of the
-   * frame. Built now, with four verbs, because retrofitting it across a dozen is worse.
-   *
-   * A pending outcome is a plain record on the corp: what it is, when it lands, and what it
-   * carries. It is resolved at the START of the month it is due, before anybody spends, so a
-   * manager opens the month already knowing what the last one bought them.
-   *
-   * Two things this deliberately does NOT do. It does not fire a callback — a saved career
-   * would have to store a function — so an outcome is a `kind` string dispatched here, and a
-   * save file stays plain data. And it does not survive the turn of the year: an outcome due
-   * after M11 is dropped when the season closes rather than landing into a season it was not
-   * bought in. Both are the sort of thing that looks like a limitation and is a decision.
-   */
-  function schedule(corp, kind, monthsAhead, payload) {
-    const due = (corp._month || 1) + monthsAhead;
-    if (due > CONST.PREP_MONTHS) return null;          /* it would land after the lock */
-    corp._pending = corp._pending || [];
-    const item = { kind: kind, due: due, payload: payload || {} };
-    corp._pending.push(item);
-    return item;
-  }
 
   /** Everything due this month, applied. Returns what landed, so an interface can say so. */
   /* the state a pending outcome belongs to, so a scout's find has somewhere to be written */
   let STATE_REF = null;
-  function resolvePending(corp, month, tally, season, CORPS) {
-    if (!corp._pending || !corp._pending.length) return [];
-    const landed = [], keep = [];
-    for (const item of corp._pending) {
-      if (item.due > month) { keep.push(item); continue; }
-      /* DISPATCH BY STRING, not by stored function — see above. An unknown kind is dropped and
-         reported rather than thrown: a save from a build that knew a verb this one does not
-         should degrade, not die. */
-      if (item.kind === 'intel') {
-        /* the scouts report. Spend the points onto the dossier, blank-and-thinnest first; for a
-           rival, freeze a characterized reading of exactly the rows touched, stamped this month,
-           so it is honestly dated and never silently updates. */
-        const intel = ensureIntel(corp, season || 0);
-        const p = item.payload;
-        const absMonth = (season || 0) * 100 + month;   /* absolute stamp: freshness decodes season from /100 */
-        if (p.target === 'rival' && p.oaId && CORPS && CORPS[p.oaId]) {
-          const them = CORPS[p.oaId];
-          gatherIntel(corp, 'rival', p.oaId, p.levels || 0, absMonth,
-                      (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
-          /* §QUIET A SCOUT DEEP IN THEIR BOOKS may turn up what an OA would rather nobody
-             knew. The row they were sent for lands either way — the dirt is a bonus, not a
-             substitute — and only a dossier read nearly to the bottom is deep enough. */
-          if (ILLICIT && STATE_REF) {
-            const full = dossierFullness(corp, p.oaId);
-            const rngD = P.mulberry32(P.seedFrom('dirt' + (season || 0) + month + corp.id + p.oaId));
-            const found = ILLICIT.maybeUncover(rngD, STATE_REF, corp.id, p.oaId, full);
-            if (found) landed.push({ kind: 'dirt', text: 'The Scouts Found Something Else', against: p.oaId });
-          }
-        } else {
-          gatherIntel(corp, 'planet', null, p.levels || 0, absMonth, null);
-        }
-        landed.push({ kind: 'intel', text: 'The Scouts Reported Back' });
-        if (tally) tally.surveysLanded = (tally.surveysLanded || 0) + 1;
-      } else {
-        landed.push({ kind: item.kind, text: 'An Outcome This Build Does Not Know Arrived', unknown: true });
-      }
-    }
-    corp._pending = keep;
-    return landed;
-  }
 
   /* ======================= GATHER INTEL — the dossier model =======================
      A corp keeps `_intel = { season, planet:{rows}, rivals:{ oaId:{rows} } }`. Every row is
@@ -1535,15 +1519,6 @@
 
   /* the preparedness a RIVAL sheet buys against that OA: depth × freshness, averaged over
      the rows, scaled to the cap. A blank or wholly-stale sheet buys nothing. */
-  /** how full a rival's dossier is, 0 to 1, ignoring freshness: what a scout has read of
-      their books, which is what decides whether the scout is deep enough to find the dirt */
-  function dossierFullness(corp, oaId) {
-    const sheet = corp._intel && corp._intel.rivals && corp._intel.rivals[oaId];
-    if (!sheet) return 0;
-    let sum = 0;
-    for (const k of INTEL_RIVAL_ROWS) { const r = sheet.rows[k]; if (r && r.depth) sum += r.depth / CONST.INTEL_MAX_DEPTH; }
-    return sum / INTEL_RIVAL_ROWS.length;
-  }
   function rivalPreparedness(corp, oaId, season) {
     const sheet = corp._intel && corp._intel.rivals && corp._intel.rivals[oaId];
     if (!sheet) return 0;
@@ -1777,7 +1752,9 @@
     /* --- and then the corp spends what it has --- */
     /* WHAT THE LAST FEW MONTHS BOUGHT, before anybody spends this one. */
     corp._month = month;
-    const landed = resolvePending(corp, month, tally, season, corps);
+    /* §HALF-BUILT the delayed-intel queue (`schedule`/`resolvePending`) is gone: intel lands when it is read,
+       and nothing had queued anything since — the queue was emptied every month and never filled */
+    const landed = [];
     if (landedOut) for (const l of landed) landedOut.push(l);
 
     /* ONE PATH. A human's list is filtered by the same availability and the same budget the AI
@@ -1852,7 +1829,10 @@
           if (wB > 0) {
             const have = woundOf(f);
             if (have < 100) {
-              const room = 100 - have, want = CONST.WOUND_FOCUS * wB;
+              /* §SPONSORS a backer's ward mends faster, for good: `med_recovery` is a standing
+                 the OA keeps, so every month of every later career is treated in it */
+              const ward = 1 + SPON.standingValue(corp, 'med_recovery');
+              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
               tally.treated++;
@@ -1899,8 +1879,8 @@
            so a scout has something true to find. */
         corp._drill = { month: month, points: fpts,
                         col: Object.assign({}, map.col || {}) };
-        const STATS = CONST.MIND.concat(CONST.BODY || ['grit', 'reflex']);
-        const isFam = id => CONST.MIND.indexOf(id) < 0 && (CONST.BODY || []).indexOf(id) < 0;
+        /* §SKILLS Aim trains now (ruled), and carries the gun's class and type with it (`trainCarried`) */
+        const STATS = ['aim'].concat(CONST.MIND, CONST.BODY || ['grit', 'reflex']);
         /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
         /* §QUIRKS A QUICK STUDY LEARNS QUICKER, and a mentor's presence lifts the young.
@@ -1918,26 +1898,24 @@
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
-          /* the stats this hand can be drilled on: the seven core stats, plus any weapon
-             family that appears as a cell target for this fighter (aim is a talent, untrained) */
-          const fams = {};
-          for (const key in map.cell) { const p = key.split(':');
-            if (p[0] === f.id && isFam(p[1])) fams[p[1]] = true; }
-          const targets = STATS.filter(k => k !== 'aim').concat(Object.keys(fams));
+          /* §SKILLS (ruled) the seven core stats — AIM among them now, which was held to be "a talent,
+             untrained" while the training grid offered it anyway. Weapon skills are not painted cell by cell:
+             whatever Aim gains, the damage class and weapon type of the gun this hand CARRIES gain with it. */
+          const targets = STATS.slice();
           for (const k of targets) {
-            const fam = isFam(k);
-            const store = fam ? (f.skills = f.skills || {}) : f.stats;
-            const cur = store[k] != null ? store[k] : (fam ? f.stats.aim : null);
+            const store = f.stats;
+            const cur = store[k];
             if (cur == null || cur >= cap - CONST.TRAIN_GREEN_GAP) continue;
             /* stack every tier that covers this (fighter, stat) */
             let gain = 0;
-            if (!fam) gain += w(map.all, CONST.TRAIN_W_ALL);
+            gain += w(map.all, CONST.TRAIN_W_ALL);
             gain += w(map.col[k] || 0, CONST.TRAIN_W_COL);
-            if (!fam) gain += w(map.row[f.id] || 0, CONST.TRAIN_W_ROW);
+            gain += w(map.row[f.id] || 0, CONST.TRAIN_W_ROW);
             gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
             if (gain <= 0) continue;
             gain *= learn;                       /* §QUIRKS a quick study, and the mentored young */
             store[k] = Math.min(cap, cur + gain);
+            if (k === 'aim') trainCarried(f, gain, cap);
             tally.trained++;
             drilled = true;
           }
@@ -1975,13 +1953,6 @@
             const them = corps[key];
             gatherIntel(corp, 'rival', key, levels, absMonth,
                         (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
-            /* §QUIET a scout deep in their books may turn up more than the row they were sent
-               for — the dirt is a bonus, and only a dossier read nearly to the bottom finds it */
-            if (ILLICIT && STATE_REF) {
-              const rngD = P.mulberry32(P.seedFrom('dirt' + (season || 0) + month + corp.id + key));
-              const found = ILLICIT.maybeUncover(rngD, STATE_REF, corp.id, key, dossierFullness(corp, key));
-              if (found && landedOut) landedOut.push({ kind: 'dirt', text: 'The Scouts Found Something Else', against: key });
-            }
           } else {
             gatherIntel(corp, 'planet', null, levels, absMonth, null);
           }
@@ -2023,6 +1994,10 @@
 
   function offseason(rng, corp) {
     const out = { developed: 0, declined: 0, injured: 0, retired: [], expired: [], freed: [] };
+    /* §HALF-BUILT BETWEEN DIVIDES THE FLEET FORGETS A PERSON (REPUTATION.md §4.2). `decayFame` was written for
+       exactly this and never called, so fame only ever grew: a name made once was made for good. Once a year,
+       before anything else, every living fighter's fame fades by the same share. */
+    if (REP && REP.decayFame) REP.decayFame(corp.roster.filter(f => f.status !== 'dead'));
     const keep = [];
     for (const f of corp.roster) {
       if (f.status === 'dead') continue;                       /* gone, and stays gone */
@@ -2387,7 +2362,7 @@
 
   function selectDrop(corp, opts) {
     opts = opts || {};
-    const fit = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && !f._role
+    const fit = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired'
                                      && !(f.condition && (f.condition.injuries || []).length));
     if (opts.manual && opts.manual.length) {
       const byId = {}; for (const f of fit) byId[f.id] = f;
@@ -2406,9 +2381,10 @@
         if (left > 0) v += CONST.LOCK_TERM_W;
       }
       if (lean === 'prospect') {
-        /* room to grow, and the ground time is what closes it */
-        const cap = typeof f.potential === 'number' ? f.potential : quality(f);
-        v += Math.max(0, cap - quality(f)) * CONST.LOCK_PROSPECT_W
+        /* §POTENTIAL a prospect is the young and the green, not a hidden ceiling read early:
+           room to grow is youth, and the ground time is what closes it */
+        const young = Math.max(0, 30 - (f.age || 30));
+        v += young * CONST.LOCK_PROSPECT_W
            - Math.min(4, f.divides || 0) * CONST.LOCK_PROSPECT_W;
       }
       if (lean === 'rested') v -= ((f.condition || {}).fatigue || 0) / 100 * CONST.LOCK_RESTED_W;
@@ -2580,7 +2556,96 @@
    * nothing new: `stepMonth` already waits for a choice per corp, and waiting for two is the
    * same shape as waiting for one.
    */
+  /* §CONTROLLER (ruled) THE GAME IS BUILT FOR EIGHT PLAYERS; AN AI FILLS AN EMPTY SEAT. Every OA is controlled by a
+     person or by the engine, recorded per OA, and every check asks that — not "is this THE human?", which assumed
+     exactly one among eight. `opts.humans` lists the seats people hold; `opts.human`, one id, still works. */
+  function humansOf(opts) {
+    opts = opts || {};
+    return (opts.humans && opts.humans.length) ? opts.humans.slice() : (opts.human ? [opts.human] : []);
+  }
+  function isHuman(state, id) {
+    if (state && state.controllers) return state.controllers[id] === 'human';
+    return humansOf(state && state.opts).indexOf(id) >= 0;
+  }
+  /* STEP 6 (the comms window for several people) is not built: the few places that still need ONE manager
+     — the window's single "you" — ask for him here, and are marked for it */
+  function theManager(state) { return humansOf(state && state.opts)[0] || null; }
+
+  /* §TRADE (ruled: eight players) ONE MARKET. There were two: the engine's OAs traded among themselves inside the
+     season with the manager shut out, and his table ran in the PAGE — which even wrote the letters the engine's
+     OAs sent him, with the page's own dice. Now every offer is posted here by anyone to anyone: an OA the engine
+     runs answers at once by its own pricing (`appetite`, as ever); a person answers in their own time, and a
+     letter left unanswered past its month lapses — and the writer remembers the snub. */
+  function tradeBook(state) { return (state.trade = state.trade || { offers: [], seq: 0 }); }
+  function tradeOpts() {
+    return { focusPointPrice: CONST.BOOST_PER_POINT, rowsPerPip: CONST.INTEL_PER_PIP,
+             post: (acct, kind, label, amt) => LED.post(acct, kind, label, amt) };
+  }
+  function postTrade(state, fromId, toId, offer, ask) {
+    if (!TRADE || !TRADE.tradingOpen(state.month)) return { ok: false, why: 'The Table Is Closed' };
+    const a = state.corps[fromId], b = state.corps[toId];
+    if (!a || !b || a === b) return { ok: false, why: 'No Such Party' };
+    offer = offer || {}; ask = ask || {};
+    if ((offer.credits || 0) > a.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
+    if ((ask.credits || 0) > b.account.treasury) return { ok: false, why: 'They Cannot Pay That' };
+    const T = tradeBook(state);
+    const o = { id: 't' + (++T.seq), from: fromId, to: toId, offer: offer, ask: ask, month: state.month, status: 'open' };
+    T.offers.push(o);
+    if (!isHuman(state, toId)) {
+      const view = TRADE.appetite(a, b, offer, ask, tradeOpts());
+      o.word = view.word;
+      if (view.accept) { o.moved = TRADE.execute(a, b, offer, ask, tradeOpts()); o.status = 'accepted'; }
+      else o.status = 'declined';
+    }
+    return { ok: true, offer: o };
+  }
+  function answerTrade(state, offerId, yes) {
+    const o = tradeBook(state).offers.find(x => x.id === offerId && x.status === 'open');
+    if (!o) return { ok: false, why: 'That Letter Is Gone' };
+    const a = state.corps[o.from], b = state.corps[o.to];
+    if (yes) {
+      if ((o.offer.credits || 0) > a.account.treasury || (o.ask.credits || 0) > b.account.treasury)
+        { o.status = 'lapsed'; return { ok: false, why: 'The Money Is No Longer There' }; }
+      o.moved = TRADE.execute(a, b, o.offer, o.ask, tradeOpts()); o.status = 'accepted';
+    } else o.status = 'declined';
+    return { ok: true, offer: o };
+  }
+  function tradeLetters(state, id) { return tradeBook(state).offers.filter(o => o.to === id && o.status === 'open'); }
+  /* the month turns: a letter nobody answered lapses, and its writer remembers being ignored */
+  function lapseTrades(state) {
+    for (const o of tradeBook(state).offers) {
+      if (o.status !== 'open' || o.month > state.month) continue;   /* written for this month: it closes with it */
+      o.status = 'lapsed';
+      const b = state.corps[o.to];
+      if (b && b.rep) REP.act(b.rep, 'snubbed_letter', { targetId: o.from });
+    }
+  }
+  /* the engine's OAs write their letters for the month: one at most to each OA — a person's or the engine's —
+     from whichever writer has cause (`proposeFrom` keeps its own pace: a cooldown per writer, a quiet spell
+     per reader) */
+  function writeLetters(state) {
+    if (!TRADE || !TRADE.tradingOpen(state.month)) return;
+    const rng = P.mulberry32(P.seedFrom('letters' + state.season + ':' + state.month));
+    for (const toId of state.ids) {
+      if (tradeLetters(state, toId).length) continue;
+      const writers = state.ids.filter(id => id !== toId && !isHuman(state, id));
+      for (let k = writers.length - 1; k > 0; k--) { const j = Math.floor(rng() * (k + 1)); const t = writers[k]; writers[k] = writers[j]; writers[j] = t; }
+      for (const w of writers) {
+        const prop = TRADE.proposeFrom(rng, state.corps[w], state.corps[toId], state.month, tradeOpts());
+        if (prop) { postTrade(state, w, toId, prop.offer, prop.ask); break; }
+      }
+    }
+  }
   function beginSeason(rng, corps, profiles, opts) {
+    /* §AUTHORITY a board question left unanswered when the year turns was silence, and silence costs */
+    for (const id in corps) {
+      const c = corps[id];
+      if (c && c._board && !c._board.answered && c.rep) {
+        REP.act(c.rep, 'silent_before_board', {});
+        c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3);
+      }
+      if (c) delete c._board;
+    }
     opts = opts || {};
     const ids = Object.keys(corps);
     const season = (corps[ids[0]].season || 0) + 1;
@@ -2613,7 +2678,6 @@
          land after M11, so this cannot normally be non-empty — it is cleared anyway, because
          the one thing that could carry a stale outcome in is a save file written by a build
          with different rules, and inheriting somebody else's promise is worse than losing it. */
-      c._pending = [];
       c._month = 1;
       /* NOTHING FROM LAST YEAR'S DIVIDE CROSSES INTO THIS ONE. These are all scratch state a
          contest writes and the same contest reads; carried across the turn of the year they
@@ -2670,11 +2734,14 @@
                        thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low' });
     }
 
+    const seats = humansOf(opts);
     const state = {
       rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      /* §CONTROLLER who holds each seat: a person, or the engine */
+      controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
       /* the seam: everything decided at M11 that the Divide will read */
-      drop: { sectors: {}, pacts: {}, media: {} },
+      drop: { sectors: {}, media: {} },
       dividend: { matches: 0, fought: 0, purses: 0, conversions: 0, draws: 0 },
       mercs: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
       tryouts: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
@@ -2684,7 +2751,6 @@
     };
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
-    if (ILLICIT) ILLICIT.clearYear(state);
     for (const id of ids) delete corps[id]._eightDead;
     return state;
   }
@@ -2764,7 +2830,7 @@
      Everything is on the fighter as before; only the SHEET is redacted, and it opens the moment
      the man is his. */
   function apparentOnly(rec, f) {
-    delete rec.stats; delete rec.potential; delete rec.traits;
+    delete rec.stats; delete rec.traits;
     delete rec.record;          /* the service record is the very thing a prisoner has not got */
     /* THE PRICE WAS THE SHEET. `ask` is the open-market wage, and that wage is a function of
        the man's numbers (r = 0.92 against his stat total, measured) — so a blind sheet with an
@@ -2787,7 +2853,8 @@
     return lot.map(f => {
       const rec = {
       id: f.id, name: f.name, age: f.age, race: f.race,
-      potential: f.potential, stats: f.stats, fame: f.fame || 0,
+      stats: f.stats, fame: f.fame || 0,
+      skills: f.skills || {},   /* §SKILLS a prospect's trade, so a manager can hire for it */
       ask: askingPrice(f, corp), yourBid: mine[f.id] || 0, kind: kind,
       /* the paper's terms, so a display never has to guess them */
       contractKind: (f.contract && f.contract.kind) || kind,
@@ -2844,10 +2911,6 @@
     LED.post(c.account, 'expense', 'A Contract Signed', -year);
     return { ok: true, name: f.name, cost: year };
   }
-  function bidsFor(state, corpId) {
-    const kind = (MONTHS[state.month] || {}).signing;
-    return (kind && (state.bids[kind] || {})[corpId]) || {};
-  }
 
   /* ------------------------------------------------------------------------- the seam ---- */
 
@@ -2903,7 +2966,7 @@
     const c = state.corps[corpId];
     if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
     const alive = c.roster.filter(f => f.status === 'active').length;
-    const n = DIVIDE.squadCountFor(alive, c.profile || {}, (state.opts || {}).human === corpId ? (c._wantSquads || 0) : 0);
+    const n = DIVIDE.squadCountFor(alive, c.profile || {}, isHuman(state, corpId) ? (c._wantSquads || 0) : 0);
     c._squadPlan = { season: state.season, n };
     return n;
   }
@@ -2953,8 +3016,41 @@
     return true;
   }
   /** walk the AI's turns; stop at a human's turn or the end */
-  function draftAdvance(state, choices) {
-    const D = ensureDraft(state), human = (state.opts || {}).human;
+  /* §TIME (ruled: nobody absent stalls the game) A MONTH MOVES ON WHEN EVERY PERSON HAS ACTED — or when it is forced
+     (a deadline is the server's; the engine says who it waits on, and what forcing means). A person submits their
+     month's choices; the month advances once every seat a person holds has submitted, or on force, when an absent
+     seat's month is simply empty: nothing is decided for it, because an engine never plays a seat a person holds. */
+  /* §SEATS (ruled: a seat can change hands) A PERSON LEAVES AND THE ENGINE TAKES THE SEAT, OR THE REVERSE. The seat's
+     plans are game state (`_seat`, `_lock`), so whoever holds it next has them; a month a person already submitted
+     stands, because they made it; an engine seat's policies cover every decision, so nothing new is needed to play
+     it. Who holds each seat is `state.controllers`, and the Divide's options follow it. */
+  function setController(state, id, who) {
+    if (!state.corps[id]) return { ok: false, why: 'No Such OA' };
+    state.controllers = state.controllers || {};
+    state.controllers[id] = who === 'human' ? 'human' : 'ai';
+    const seats = state.ids.filter(x => state.controllers[x] === 'human');
+    state.opts = state.opts || {};
+    state.opts.humans = seats; state.opts.human = seats[0] || null;
+    if (state._divideOpts) { state._divideOpts.humans = seats.slice(); state._divideOpts.human = seats[0] || null; }
+    return { ok: true, humans: seats };
+  }
+  function waitingOn(state) { return state.ids.filter(id => isHuman(state, id) && !(state._submitted || {})[id]); }
+  function submitMonth(state, corpId, choices) {
+    if (!isHuman(state, corpId)) return { ok: false, why: 'Not a Seat a Person Holds' };
+    (state._submitted = state._submitted || {})[corpId] = choices || {};
+    return { ok: true, waitingOn: waitingOn(state) };
+  }
+  function advanceMonth(state, opts) {
+    const wait = waitingOn(state);
+    if (wait.length && !(opts && opts.force)) return { ok: false, waitingOn: wait };
+    const choices = Object.assign({}, state._submitted || {});
+    state._submitted = {};
+    return { ok: true, res: stepMonth(state, choices), forced: wait };
+  }
+  /* the draft: a person's turn waits for their pick; forced, the Aleas assign the next free landing — a rule, not a
+     choice made for them */
+  function draftAdvance(state, choices, opts) {
+    const D = ensureDraft(state);
     const slots = PRE.slots(state.planet, D.slots);
     const strengthOf = id => strengthRead(state, id);
     let guard = 0;
@@ -2962,7 +3058,12 @@
       const who = draftWhose(state);
       const given = choices && choices[who] && Array.isArray(choices[who].slots) ? choices[who].slots[D.round] : undefined;
       if (given != null && D.taken[given] == null) { draftPick(state, who, given); continue; }
-      if (who === human && given == null) break;
+      if (isHuman(state, who) && given == null) {
+        if (!(opts && opts.force)) break;
+        const free = slots.find(sl => D.taken[sl.index] == null);
+        if (!free) break;
+        draftPick(state, who, free.index); D.assigned = (D.assigned || 0) + 1; continue;
+      }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
       const rng = P.mulberry32(P.seedFrom('draft' + state.season + who + D.round));
@@ -2979,29 +3080,7 @@
     return { ok: true };
   }
 
-  /** Rivals you could still approach, and how they are likely to take it. */
-  function pactTargets(state, corpId) {
-    const from = state.corps[corpId];
-    return state.ids.filter(id => id !== corpId).map(id => ({
-      corp: id,
-      standing: Math.round(REP.standing(state.corps[id].rep, 'rival', corpId) || 0),
-      already: !!(state.drop.pacts || {})[corpId + '>' + id],
-      /* the chance is SHOWN. A blind bet on a rival's character is a decision; a blind bet on
-         a hidden number is a coin the game refuses to let you look at. */
-      chance: PRE.pactChance(from, state.corps[id])
-    }));
-  }
 
-  function offerPact(state, corpId, toId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Nobody Talks Terms Before the Lock' };
-    state.drop.pacts = state.drop.pacts || {};
-    const key = corpId + '>' + toId;
-    if (state.drop.pacts[key]) return { ok: false, why: 'Already Spoken to Them' };
-    const r = PRE.proposePact(P.mulberry32(P.seedFrom('pact' + state.season + key)),
-                              state.corps[corpId], state.corps[toId]);
-    state.drop.pacts[key] = r;
-    return { ok: true, agreed: r.agreed, chance: r.chance };
-  }
 
   /** Perform, or don't. Paid in standing, charged in concealment. */
   function attendMediaDay(state, corpId) {
@@ -3025,6 +3104,7 @@
    * a second human player would wait on.
    */
   function stepMonth(state, choices) {
+    lapseTrades(state);   /* §TRADE the month closes: a letter left unanswered lapses */
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
     STATE_REF = state;
     /* §QUIRKS the events read the catalogue's hooks through an index handed in here — never
@@ -3032,7 +3112,6 @@
     if (EVENTS && EVENTS.useTraitIndex) EVENTS.useTraitIndex(ROSTER && ROSTER.traitById);
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
-    const human = (state.opts || {}).human;
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -3041,15 +3120,7 @@
       if (EVENTS) {
         const ans = (choices && choices[id] && choices[id].events) || {};
         for (const evId in ans) EVENTS.answer(state, id, evId, ans[evId]);
-        eventsOut[id] = EVENTS.settle(state, id, id !== human);
-        /* the roles earn their keep: the spy gathers, the drill sergeant drills */
-        const intel = ensureIntel(state.corps[id], state.season || 0);
-        const abs = (state.season || 0) * 100 + m;
-        EVENTS.roles(state.corps[id], state.season, m, (target, oaId, levels) => {
-          if (target === 'rival' && oaId && state.corps[oaId])
-            gatherIntel(state.corps[id], 'rival', oaId, levels, abs, (rk, d) => snapshotRival(state.corps[oaId], rk, d, state.season || 0));
-          else gatherIntel(state.corps[id], 'planet', null, levels, abs, null);
-        }, state.ids.filter(x => x !== id)).forEach(t => landed[id].push({ kind: 'role', text: t }));
+        eventsOut[id] = EVENTS.settle(state, id, !isHuman(state, id));
       }
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
@@ -3074,7 +3145,7 @@
       state.tryouts.season = state.season;
       runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts,
-                 (state.opts || {}).human || null);
+                 (id) => isHuman(state, id));
       state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
@@ -3140,6 +3211,7 @@
     /* §GATE THE FANS PAY, every month, to every OA: what the crowd is worth is what the
        crowd thinks of you, so a manager sees his popularity in the same recap as the choices
        that moved it. */
+    const gatesThisMonth = [];
     for (const id of state.ids) {
       const c = state.corps[id];
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
@@ -3152,8 +3224,13 @@
       const marketable = alive.some(f => hasHookF(f, 'sponsor_income_up') || hasHookF(f, 'rare_quote_fame_spike'));
       const gate2 = marketable ? Math.round(gate * CONST.SPONSORED_GATE) : gate;
       if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
+      /* §SPONSORS a lender's stipend is a STANDING line, not a lump: it arrives every month of
+         every year the OA holds it, which is what makes it comparable to a permanent discount */
+      const stip = SPON.standingValue(c, 'stipend');
+      if (stip > 0) LED.post(c.account, 'income', 'Sponsor Stipend', Math.round(stip));
       c._lastGate = gate2;
       landed[id].push({ kind: 'gate', text: 'Gate and Merchandise', amount: gate2 });
+      gatesThisMonth.push({ c: c, gate: gate2 });
       /* §MONEY THE WAGES WERE NEVER PAID. `wageBill` has existed since the ledger did, is
          reserved against in `procurementBudget`, and is printed on the Roster as THE WAGE BILL
          — and no line was ever posted for it. The single largest cost of running a corporation
@@ -3175,34 +3252,19 @@
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
-    /* §QUIET the other OAs have their own business to do, and it is the same window */
-    if (ILLICIT) {
-      ILLICIT.ensure(state);
-      for (const id of state.ids) {
-        if (id === human) continue;
-        const rngI = P.mulberry32(P.seedFrom('ill-ai' + state.season + m + id));
-        /* an OA that holds something on another uses it, in its own character: the
-           treacherous blackmail, the traditional report, the loud leak */
-        const held = ILLICIT.evidenceOf(state, id).filter(e => !e.used);
-        if (held.length && rngI() < 0.5) {
-          const d2 = (state.corps[id].profile && state.corps[id].profile.dials) || {};
-          const how = (d2.treachery || 50) > 55 ? 'blackmail' : (d2.tradition || 50) > 60 ? 'report' : 'leak';
-          const out = ILLICIT.useEvidence(rngI, state, id, ILLICIT.evidenceOf(state, id).indexOf(held[0]), how);
-          if (out.ok) landed[id].push({ kind: 'evidence', text: out.line, against: held[0].against });
-        }
-        const want = ILLICIT.consider(rngI, state, id);
-        if (want) {
-          const res = ILLICIT.attempt(state, id, want.id, want.target, {});
-          if (res.ok && res.exposed) for (const other of state.ids)
-            landed[other].push({ kind: 'exposed', text: 'An OA Was Caught at Something', corp: id });
-        }
-      }
+    /* §HALF-BUILT THE MONTH'S BEST GATE is one the fleet notices: `the_gate_was_good`, written and never raised.
+       The whole fleet takes a gate every month, so "above the average" handed half of it a little standing
+       every month — a drip for the already popular, not a good gate */
+    if (gatesThisMonth.length) {
+      const best = gatesThisMonth.reduce((a, b) => b.gate > a.gate ? b : a);
+      if (best.gate > 0 && best.c.rep) REP.act(best.c.rep, 'the_gate_was_good', {});
     }
-    /* the other seven deal with each other too — see trade.js fleetTrades — on the books, and
-       never with the manager's OA (it was in the pool, and the deepest roster sells) */
+    /* §TRADE the engine's OAs shop too — see trade.js fleetTrades — by POSTING offers to the market, a person's
+       OA included, who answers it rather than being sold from */
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
-                        state.corps, state.ids, m, { post: LED.post, exclude: state.opts && state.opts.human });
+                        state.corps, state.ids, m, { post: LED.post, isHuman: (id) => isHuman(state, id),
+                          postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask) });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
        month, and every supplier still open lowers what it wants — which is the discount the
        system always described and never delivered, because everything used to resolve at the
@@ -3215,6 +3277,7 @@
       }
     }
     state.month++;
+    writeLetters(state);   /* §TRADE and the new month's letters are written */
     ensureLot(state);
     /* the next month draws its events for every corp */
     if (EVENTS && state.month <= CONST.PREP_MONTHS) for (const id of state.ids) EVENTS.draw(state, id);
@@ -3242,13 +3305,12 @@
    * later, and it is the one this project keeps producing.
    */
   function fleetTakesTheSeam(state) {
-    const human = (state.opts || {}).human;
     /* THE DRAFT opens at the seam: the AI's turns run; a human's turn waits for the page (or
        for choices[id].slots when the closing is driven without one) */
     draftAdvance(state, state._draftChoices || null);
     const secs = PRE.sectors(state.planet);
     for (const id of state.ids) {
-      if (id === human) continue;
+      if (isHuman(state, id)) continue;
       const c = state.corps[id];
       const rng = P.mulberry32(P.seedFrom('seam' + state.season + id));
       const taken = {};
@@ -3260,11 +3322,7 @@
       /* showmanship decides whether an OA performs — the dial was already written */
       const show = ((c.profile || {}).dials || {}).showmanship || 50;
       if (rng() < show / 100) attendMediaDay(state, id);
-      /* and a corp approaches ONE rival, the one it likes its chances with most */
-      const targets = state.ids.filter(o => o !== id)
-        .map(o => ({ o, p: PRE.pactChance(c, state.corps[o]) }))
-        .sort((a, b) => b.p - a.p);
-      if (targets.length && rng() < 0.6) offerPact(state, id, targets[0].o);
+      /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
     }
   }
 
@@ -3273,6 +3331,179 @@
    * `closeSeason` runs this, then the contest, then the settlement; a caller that means to sit
    * through the contest runs this, takes `prepareDivide`, and calls `finishSeason` itself.
    */
+  /* §CONTEST the Divide's options, built from the season as it stands at the drop — by closing the season, and
+     again when a contest is RESUMED from a saved career, so both build exactly the same contest */
+  /* §CONTEST (ruled: one authority; resumable) THE ENGINE OWNS THE CONTEST. The page used to create the Divide and drive
+     it; now the engine holds it: each seat's answer is held (`answerContest`), the contest moves on once every seat a
+     person holds has answered or it is forced (`advanceContest`), and every reply is written to a JOURNAL. The running
+     contest lives in memory and is never saved; what is saved is where it began — the career and the season's fields
+     at the drop — and the journal. The engine is deterministic from its seed, so a contest is RESUMED by rebuilding
+     the season from where it began and replaying the journal (`resumeContest`). Each seat's view is handed out as
+     PLAIN DATA — a tree, not the engine's objects, which point at each other and cannot travel. */
+  const LIVE = new WeakMap(), HOOKS = new WeakMap();
+  function toPlain(v) {
+    const onPath = new Set();
+    const walk = (x) => {
+      if (x === null || typeof x !== 'object') return typeof x === 'function' ? undefined : x;
+      if (onPath.has(x)) return undefined;                /* a back-reference: the tree keeps the first way in */
+      onPath.add(x);
+      let out;
+      if (Array.isArray(x)) out = x.map(walk);
+      else { out = {}; for (const k of Object.keys(x)) { const y = walk(x[k]); if (y !== undefined) out[k] = y; } }
+      onPath.delete(x);
+      return out;
+    };
+    return walk(v);
+  }
+  function startLive(state, hooks) {
+    const pd = prepareDivide(state);
+    const o = Object.assign({}, pd.opts, hooks || {}, { humans: humansOf(state.opts), human: theManager(state) });
+    const gen = DIVIDE.divideCore(pd.rng, o);
+    const live = { gen: gen, step: gen.next(), hooks: hooks || {} };
+    LIVE.set(state, live);
+    return live;
+  }
+  function beginContest(state, hooks) {
+    state._contestStart = { career: saveCareer(state), season: state.season, month: state.month,
+                            planet: JSON.parse(JSON.stringify(state.planet)), drop: JSON.parse(JSON.stringify(state.drop)),
+                            humans: humansOf(state.opts), draftChoices: state._draftChoices || null };
+    state._contestJournal = [];
+    state._contestPending = {};
+    HOOKS.set(state, hooks || {});                        /* display hooks (a battle feed): kept, never saved */
+    return contestStatus(state);
+  }
+  function contestStatus(state) {
+    const live = LIVE.get(state) || (state._contestStart ? startLive(state, HOOKS.get(state) || null) : null);
+    if (!live) return null;
+    const v = live.step.value || {};
+    return { done: !!live.step.done, day: v.day, seats: live.step.done ? [] : Object.keys(v.seats || {}),
+             waitingOn: live.step.done ? [] : Object.keys(v.seats || {}).filter(id => !(id in (state._contestPending || {}))) };
+  }
+  function contestView(state, seatId) {
+    const live = LIVE.get(state);
+    if (!live || live.step.done) return null;
+    const v = live.step.value || {};
+    return toPlain((v.seats && v.seats[seatId]) || null);
+  }
+  function contestResult(state) { const live = LIVE.get(state); return live && live.step.done ? live.step.value : null; }
+  function answerContest(state, seatId, answer) {
+    const st = contestStatus(state);
+    if (!st || st.done || st.seats.indexOf(seatId) < 0) return { ok: false, why: 'Not a Seat in This Window' };
+    (state._contestPending = state._contestPending || {})[seatId] = toPlain(answer || {});
+    return { ok: true, waitingOn: contestStatus(state).waitingOn };
+  }
+  function advanceContest(state, opts) {
+    const live = LIVE.get(state), st = contestStatus(state);
+    if (!live || st.done) return { ok: false, why: 'No Contest Running' };
+    if (st.waitingOn.length && !(opts && opts.force)) return { ok: false, waitingOn: st.waitingOn };
+    const reply = { bySeat: state._contestPending || {} };
+    if (opts && opts.seats) reply.seats = opts.seats;
+    state._contestJournal.push(toPlain(reply));
+    state._contestPending = {};
+    live.step = live.gen.next(reply);
+    return { ok: true, done: !!live.step.done };
+  }
+  /* a contest resumed: the season rebuilt from where it began, the Divide started again, and every reply replayed */
+  function resumeContest(saved, profiles, hooks) {
+    /* the season rebuilt from where the contest began — `loadCareer` rebuilds the open year, its planet regenerated
+       from the world's seed (it carries functions); what the season changed on the planet is laid back over it */
+    const loaded = loadCareer(saved.start.career, profiles);
+    const state = loaded.state;
+    state.corps = loaded.corps; state.ids = state.ids || Object.keys(loaded.corps); state.profiles = state.profiles || profiles;
+    for (const k of Object.keys(saved.start.planet || {})) if (typeof state.planet[k] !== 'function') state.planet[k] = saved.start.planet[k];
+    state.drop = saved.start.drop;
+    state.opts = Object.assign({}, state.opts || {}, { humans: saved.start.humans.slice(), human: saved.start.humans[0] || null });
+    state.controllers = state.ids.reduce((m, id) => { m[id] = saved.start.humans.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {});
+    state.rec = state.rec || { log: [] };
+    buildDivideOpts(state, state.rec);
+    state._contestStart = saved.start;
+    state._contestJournal = [];
+    state._contestPending = {};
+    const live = startLive(state, hooks);
+    for (const reply of saved.journal) { state._contestJournal.push(reply); live.step = live.gen.next(JSON.parse(JSON.stringify(reply))); if (live.step.done) break; }
+    return state;
+  }
+  function saveContest(state) {
+    return state._contestStart ? JSON.parse(JSON.stringify({ start: state._contestStart, journal: state._contestJournal || [] })) : null;
+  }
+  /* §SECRECY (ruled: each seat sees only what it knows) A SEAT'S VIEW OF THE SEASON — what a server sends one person
+     between contests. Its own OA as plain data (its intel on rivals included: it scouted that); every other OA as a
+     public shell — its name, its standing at home and in the fleet (the Board shows those), how many people it has;
+     the planet's public face and only the sites revealed; and what is addressed to this seat — its lot, its letters, its
+     board question, the draft as it stands. Never a rival's roster, treasury, armoury, plans or intel. */
+  function seatView(state, id) {
+    const c = state.corps[id];
+    if (!c) return null;
+    const lite = (x) => x && x.profile ? { id: x.profile.id, name: x.profile.name } : null;
+    const pl = state.planet || {};
+    const D = state.drop && state.drop.draft;
+    return toPlain({
+      season: state.season, month: state.month, done: !!state.done, priceMult: priceMult(state),
+      you: Object.assign({}, c, { profile: lite(c) }),
+      fleet: state.ids.filter(x => x !== id).map(x => {
+        const r = state.corps[x];
+        return { id: x, profile: lite(r),
+                 standing: r.rep ? { own: Math.round(REP.standing(r.rep, 'own')), fleet: Math.round(REP.standing(r.rep, 'fleet')) } : null,
+                 people: r.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length };
+      }),
+      planet: { archetype: pl.archetype, archetypeName: pl.archetypeName, radius: pl.radius, cycle: pl.cycle, pot: pl.pot,
+                objectives: (pl.objectives || []).filter(o => o.revealed) },
+      lot: lotFor(state, id), letters: tradeLetters(state, id), board: c._board || null,
+      draft: D ? { picks: D.picks, done: !!D.done, whose: draftWhose(state) } : null,
+      waitingOn: waitingOn(state)
+    });
+  }
+  function buildDivideOpts(state, rec) {
+    const corps = state.corps, ids = state.ids, season = state.season, profiles = state.profiles, opts = state.opts;
+    rec = rec || { log: [] };
+    const persist = state._persist = {};
+    for (const id of ids) {
+      const c = corps[id];
+      persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
+           Divide writes into the same object, so the lesson survives the lock */
+        dealRecord: (c._dealRecord = c._dealRecord || {}),
+        /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
+        intel: planetPreparedness(c),
+        /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
+           so a squad that faces an OA it scouted fights a little readier against THEM. */
+        rivalIntel: (function () {
+          const out = {};
+          if (c._intel && c._intel.rivals) for (const oaId in c._intel.rivals) {
+            const v = rivalPreparedness(c, oaId, c.season || 0);
+            if (v > 0) out[oaId] = v;
+          }
+          return out;
+        })(),
+        /* the rack, not the wallet. Called from inside the lock, where the real number is. */
+        onMuster: function (shortfall) {
+          const got = raise(c, shortfall, REP, rec.log, 'cannot arm the drop');
+          c._muster.called += got.called;
+          c._muster.underwritten = c._muster.underwritten || got.underwritten;
+          c._calls = (c._muster.called > 0 ? 1 : 0) + (c._muster.underwritten ? 1 : 0);
+          return got.raised;
+        } };
+    }
+    const reps = {}; for (const id of ids) reps[id] = corps[id].rep;
+    state._divideOpts = {
+      oaProfiles: profiles, corpCount: ids.length,
+      season: season, reputations: reps, corps: persist,
+      /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
+         second card over the one the manager spent the year working against, which is the same
+         bug in the other direction. */
+      openSeason: false, groundTruth: state.planet,
+      /* the edict's own share, from where the edict is written, rather than a number typed
+         again in the Divide where nobody would think to change it */
+      /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
+         whom before anyone had seen anything. */
+      dropSectors: state.drop.sectors,
+      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: (state.drop.draft && state.drop.draft.slots) || SLOT_MIN,
+      mediaRevealed: state.drop.media,
+      human: theManager({ opts: opts }),
+      humans: humansOf(opts)
+    };
+    return state._divideOpts;
+  }
   function closeSeasonToDrop(state) {
     const corps = state.corps, profiles = state.profiles, opts = state.opts;
     const ids = state.ids, season = state.season, rec = state.rec;
@@ -3283,7 +3514,7 @@
        is taken at the lock, from every OA that is going. */
     for (const id of ids) {
       const c = corps[id];
-      if (!c || c.standDown || c.disqualified) continue;
+      if (!c) continue;
       LED.post(c.account, 'expense', 'Aleas entry', -LED.CONST.ALEAS_ENTRY);
     }
     /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
@@ -3330,7 +3561,6 @@
          so it must be captured here rather than recomputed at scoring time off a roster the
          Divide has already thinned. */
       c._committed = LED.wageBill(alive);
-      if (state.fleet && state.fleet.levy) LED.post(c.account, 'expense', 'Aleas levy', -state.fleet.levy);
       LED.settleSeason(c.account, alive, {
         retainerMonths: 1,             /* eleven twelfths landed month by month; this is the Divide's */
         injuries: c._off.injured || 0
@@ -3370,64 +3600,7 @@
     }
 
     /* ---- THE DIVIDE: borrow, and take them back changed ---- */
-    const persist = state._persist = {};
-    for (const id of ids) {
-      const c = corps[id];
-      /* §QUIET SABOTAGE BITES AT THE DROP: a bad batch signed off on another ship means the
-         armour and the guns that go down are not the ones that were paid for. Every OA that
-         paid for it adds a share of the damage. */
-      if (ILLICIT) {
-        const bad = ILLICIT.sabotageOn(state, id);
-        if (bad) for (const f of (c._drop || [])) {
-          if (f.condition) f.condition.fatigue = Math.min(100, (f.condition.fatigue || 0) + 6 * bad);
-          f._sabotaged = bad;
-        }
-      }
-      persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
-        /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
-           Divide writes into the same object, so the lesson survives the lock */
-        dealRecord: (c._dealRecord = c._dealRecord || {}),
-        /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
-        intel: planetPreparedness(c),
-        /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
-           so a squad that faces an OA it scouted fights a little readier against THEM. */
-        rivalIntel: (function () {
-          const out = {};
-          if (c._intel && c._intel.rivals) for (const oaId in c._intel.rivals) {
-            const v = rivalPreparedness(c, oaId, c.season || 0);
-            if (v > 0) out[oaId] = v;
-          }
-          return out;
-        })(),
-        /* the rack, not the wallet. Called from inside the lock, where the real number is. */
-        onMuster: function (shortfall) {
-          const got = raise(c, shortfall, REP, rec.log, 'cannot arm the drop');
-          c._muster.called += got.called;
-          c._muster.underwritten = c._muster.underwritten || got.underwritten;
-          c._calls = (c._muster.called > 0 ? 1 : 0) + (c._muster.underwritten ? 1 : 0);
-          return got.raised;
-        } };
-    }
-    const reps = {}; for (const id of ids) reps[id] = corps[id].rep;
-    state._divideOpts = {
-      oaProfiles: profiles, corpCount: ids.length,
-      season: season, reputations: reps, corps: persist,
-      /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
-         second card over the one the manager spent the year working against, which is the same
-         bug in the other direction. */
-      openSeason: false, groundTruth: state.planet,
-      edicts: (state.fleet && state.fleet.edicts) || {},
-      /* the edict's own share, from where the edict is written, rather than a number typed
-         again in the Divide where nobody would think to change it */
-      fastWallShare: EVENTS ? EVENTS.CONST.FAST_WALL : 0.80,
-      /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
-         whom before anyone had seen anything. */
-      dropSectors: state.drop.sectors,
-      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: (state.drop.draft && state.drop.draft.slots) || SLOT_MIN,
-      preDividePacts: state.drop.pacts,
-      mediaRevealed: state.drop.media,
-      human: (opts || {}).human || null
-    };
+    buildDivideOpts(state, rec);
 
     /* THE SEASON SPLITS AT THE DROP. Everything above assembles the contest — the lock, the
        muster, the purses, the seam — and everything below settles what came back. `closeSeason`
@@ -3453,14 +3626,116 @@
   }
 
   /** The assembled contest, for a caller that means to sit through it. */
+  /* §AUTHORITY (ruled: one authority) THE ENGINE DOES THE GAME'S WORK; A PAGE ONLY ASKS. The page priced and booked
+     its own market purchases, wrote its Dividend pick straight onto its OA, and wrote its squads, leaders, drop and
+     hand-kit straight into the Divide's options — a client doing an authority's job. These are the calls it makes
+     instead; each checks what it is given. */
+  /** the market: priced here, at the season's price, and booked here */
+  function buyItems(state, corpId, cart) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    let total = 0, lines = 0, pieces = 0;
+    const clean = {};
+    for (const id in (cart || {})) {
+      const it = ITEMS.byId(id), n = Math.floor(cart[id] || 0);
+      if (!it || n <= 0 || !(it.cost > 0) || it.price_model === 'none') continue;
+      clean[id] = n; total += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
+    }
+    if (!lines) return { ok: false, why: 'Nothing to Buy' };
+    if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
+    c.armoury = c.armoury || {};
+    for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
+    LED.post(c.account, 'expense', 'The Market', -total);
+    return { ok: true, total: total, lines: lines, pieces: pieces };
+  }
+  /** the Dividend's card: the OA's own fit fighters, no more than eight */
+  function pickDividend(state, corpId, ids) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    const ok = dividendEligible(c).map(f => f.id);
+    const picks = (ids || []).filter((id, i, a) => ok.indexOf(id) >= 0 && a.indexOf(id) === i).slice(0, 8);
+    c._dividendPick = picks;
+    return { ok: true, picks: picks };
+  }
+  /** the lock: a seat's squads, their leaders and its hand-kit, recorded here and applied as the Divide is prepared */
+  function lockSquads(state, corpId, plan) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    const own = new Set(c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').map(f => f.id));
+    const groups = ((plan && plan.groups) || []).slice(0, 6).map(g => (g || []).filter(id => own.has(id)));
+    const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
+    const hand = {};
+    for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
+    c._lock = { groups: groups, leaders: leaders, hand: hand };
+    return { ok: true, lock: c._lock };
+  }
+  function applyLocks(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id], L = c && c._lock, p = per[id];
+      if (!L || !p) continue;
+      if (Object.keys(L.hand).length) p.hand = L.hand;
+      const ids = [].concat.apply([], L.groups);
+      if (!ids.length) continue;
+      const drop = selectDrop(c, { manual: ids });
+      if (!drop.length) continue;
+      const kept = {}; drop.forEach(b => { kept[b.id] = true; });
+      p.drop = drop; p.groups = []; p.leaders = [];
+      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
+    }
+  }
   function prepareDivide(state) {
     if (!state._divideOpts) throw new Error('prepareDivide: call closeSeasonToDrop first');
+    /* §CONTEST the options are built from the season AS IT STANDS NOW — a draft finished after the season closed used to
+       be missed (the contest ran with no drafted landings) — and so a resumed contest builds exactly what the first did */
+    buildDivideOpts(state, state.rec);
+    applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
+  /* §AUTHORITY (ruled: eight players) EVERY OA'S BOARD ASKS AFTER A CONTEST. It asked the manager alone, and the page
+     built the question, applied his answer and charged his silence. Now each OA's board asks (`_board`); a person
+     answers on the page (`answerBoard`), an engine seat at once with the answer that does its standing the most good,
+     and a question left unanswered when the year turns is silence, which costs (`beginSeason`). */
+  function boardOutcomeFor(res, id) {
+    const mine = (res.perCorp || []).filter(p => p.id === id)[0] || {};
+    return {
+      won: res.winner === id, placement: mine.placement != null ? mine.placement : null,
+      ceded: !!mine.ceded, cededDay: mine.cededDay || 99,
+      permanentLosses: mine.dead != null ? mine.dead : (mine.permanentLosses || 0),
+      famousLosses: mine.famousLosses || 0, payout: mine.payout || 0,
+      banked: (res.banked || {})[id] || {},
+      haul: (res.haulLines || []).filter(l => l.from === id || l.to === id),
+      claims: (res.claimLines || []).filter(l => l.from === id || l.to === id),
+      promises: (res.promises || []).slice()
+    };
+  }
+  function answerBoard(state, corpId, register) {
+    const c = (state.corps || state)[corpId], b = c && c._board;
+    if (!b || b.answered) return { ok: false, why: 'Nothing Asked' };
+    const opts = REP.addressOptions(c.rep, b.outcome), o = opts.find(x => x.register === register);
+    if (!o) return { ok: false, why: 'No Such Answer' };
+    REP.address(c.rep, register, { outcome: b.outcome });
+    b.answered = { register: register, ask: REP.question(b.outcome).ask };
+    return { ok: true, answered: b.answered };
+  }
+  function askBoards(state, res) {
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      if (!c || !c.rep || !REP.question || !REP.addressOptions) continue;
+      c._board = { season: state.season, outcome: boardOutcomeFor(res, id), answered: null };
+      if (!isHuman(state, id)) {
+        const opts = REP.addressOptions(c.rep, c._board.outcome);
+        const worth = o => ((o.moves || {}).own || 0) + ((o.moves || {}).fleet || 0) * CONST.MARKET_FLEET_SHARE;
+        const best = opts.slice().sort((x, y) => worth(y) - worth(x))[0];
+        if (best) answerBoard(state, id, best.register);
+      }
+    }
+  }
   function finishSeason(state, res) {
+    askBoards(state, res);
     /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
        it walks onto the ground, does its work, and is gone at the settlement. Cleared here
        rather than at the drop so a replayed or halted contest still sees it. */
@@ -3481,6 +3756,17 @@
       let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
+        /* §SKILLS (ruled) A DIVIDE FOUGHT WITH A GUN teaches that gun: its type, and a little of its class */
+        if (f.status !== 'dead') {
+          const gun = f.loadout && ITEMS.byId(f.loadout.primary);
+          if (gun) {
+            f.skills = f.skills || {};
+            const grow = (k, by) => { if (!k) return; const cur = f.skills[k] != null ? f.skills[k] : f.stats.aim;
+                                      f.skills[k] = Math.min(CONST.STAT_CEIL || 200, cur + by); };
+            grow(ITEMS.skillTypeOf(gun), CONST.DIVIDE_TYPE_GROWTH);
+            grow(ITEMS.skillClassOf(gun), CONST.DIVIDE_CLASS_GROWTH);
+          }
+        }
         if (f.contract && f.contract.divides_required != null)
           f.contract.divides_served = (f.contract.divides_served || 0) + 1;
         /* the OR-A-WIN half of the freedom clause lives in the winner's settlement
@@ -3519,6 +3805,25 @@
         ransomTaken: pc.ransomTaken || 0
       });
       c._payout = pc.payout || 0;
+      /* §WITHDRAWAL the debt for ground it could not pay for: charged against the treasury at
+         the close, and paid to the OA that conceded, so a concession is never free */
+      /* §PRIZE A SITE PAYS A QUICK BUCK (ruled). The main reward of a dug site is its stores;
+         beside them it pays a small flat sum, guaranteed, win or lose — the grab a squad runs
+         for. Removing the haul's double payment had taken this away entirely, and measured it
+         cost every losing OA about fifteen thousand a year. Paid straight to the books: it is
+         the squad's, not the parent organisation's share of a settlement. */
+      /* §CONTRABAND the Aleas' price for lost footage, paid at the close */
+      if (pc.bribes) LED.post(c.account, 'expense', 'The Aleas, Paid', -pc.bribes);
+      c._sitesDug = pc.sitesDug || 0;
+      if (c._sitesDug) LED.post(c.account, 'income', 'Sites Dug', c._sitesDug * CONST.SITE_CASH);
+      c._owed = pc.owed || 0;
+      c._owedTo = pc.owedTo || [];
+      for (const d of c._owedTo) {
+        const owedTo = corps[d.to];
+        if (!d.amount) continue;
+        LED.post(c.account, 'expense', 'Ground Bought on Credit', -d.amount);
+        if (owedTo) LED.post(owedTo.account, 'income', 'Ground Conceded, Paid Late', d.amount);
+      }
       c._bonus = c.account.lastBonus || 0;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
@@ -3587,6 +3892,16 @@
         oreCredit: dc.oreCredit || 0,
         engagements: dc.engagements || 0
       });
+      /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
+         the one place a haul becomes credits, and only for what spilled over */
+      {
+        const spilled = (c.rep && c.rep._spilled) || {};
+        let units = 0;
+        for (const cat in spilled) units += spilled[cat];
+        const sale = Math.round(units * NEG.CONST.SURPLUS_VALUE);
+        if (sale > 0) LED.post(c.account, 'income', 'Surplus Sold to the Fleet', sale);
+        c._surplusSold = sale;
+      }
       c._close = close;
       /* THE FAMILIES ARE PAID. Every contract has carried a death benefit since the pools
          were ratified, and the negotiation layer has been pricing RANSOMS off that number
@@ -3683,10 +3998,18 @@
       rec.corps[id].sponsors = {
         advance: verdict.advance || 0, paid: verdict.paid || 0,
         kept: verdict.kept.length, broken: verdict.broken.map(b => b.house),
-        rewards: verdict.rewards || []
+        rewards: verdict.rewards || [],
+        /* §SPONSORS what a kept contract LEFT BEHIND: the standings granted this close. They
+           were granted on the corp and never reported, so nothing downstream — the season's
+           record, the recap, the suite's gate — could see that a reward had been paid at all. */
+        standings: verdict.standings || []
       };
-      /* IN-KIND REWARDS land in the armoury. The sponsor module names a tag (it must not know
-         item ids); the mapping to a concrete piece lives here, beside the armoury it fills. A
+      /* IN-KIND REWARDS land in the armoury. No sponsor offers one now — a crate never stood
+         beside forty thousand credits, since a manager could simply buy 285 of the medical kits
+         with the other offer, so every backer pays in STANDINGS. The path is kept because the
+         shape is sound and a future backer may pay in goods. The sponsor module names a tag (it
+         must not know item ids); the mapping to a concrete piece lives here, beside the armoury
+         it fills. A
          kept energy contract arms you a little further toward being the corp that fits them. */
       const KIT_FOR_TAG = { energy: 'itm_pulse_carbine', medical: 'itm_medkit' };
       for (const r of (verdict.rewards || [])) {
@@ -3842,10 +4165,13 @@
         dividend: state.dividend
           ? Object.assign({}, state.dividend, { watch: undefined }) : state.dividend,
         mercs: state.mercs, tryouts: state.tryouts,
-        bastille: state.bastille, bids: state.bids, rec: state.rec, drop: state.drop,
+        /* §CONTEST the record keeps a live reference to the Dividend, footage and all (combat sides point back at
+           their units), so a save at the drop — which the page never made, and a resumable contest must — crashed on
+           it; the record is history, and it rides as plain data */
+        bastille: state.bastille, bids: state.bids, rec: toPlain(state.rec), drop: state.drop,
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
-                manual: (state.opts || {}).manual, human: (state.opts || {}).human },
+                manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
         lotSpent: !state.lots[(MONTHS[state.month] || {}).signing]
       };
     }
@@ -3905,7 +4231,7 @@
       ids: Object.keys(corps), season: o.season, rec: o.rec,
       month: o.month, done: o.done,
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
-      drop: o.drop || { sectors: {}, pacts: {}, media: {} },
+      drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
       planet: null
     };
@@ -3934,21 +4260,22 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+  return { isHuman, humansOf, theManager, seatView,
+     beginContest, contestStatus, contestView, contestResult, answerContest,
+    advanceContest, resumeContest, saveContest, toPlain,
+     setController,
+     waitingOn, submitMonth, advanceMonth,
+     buyItems, pickDividend, lockSquads, answerBoard,
+     postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
+     CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
-           illicitOffered: (state, id) => ILLICIT ? ILLICIT.offered(state, id) : [],
-           evidenceOf: (state, id) => ILLICIT ? ILLICIT.evidenceOf(state, id) : [],
-           useEvidence: (state, id, idx, how) => ILLICIT ? ILLICIT.useEvidence(P.mulberry32(P.seedFrom('use' + id + idx + how)), state, id, idx, how) : { ok: false },
-           dossierFullness,
-           illicitAttempt: (state, id, act, target, opts) => ILLICIT ? ILLICIT.attempt(state, id, act, target, opts) : { ok: false },
-           illicitDone: (state, id) => ((state.illicit || {}).done || {})[id] || [], openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
+           openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           schedule, resolvePending, sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, pactTargets,
-           offerPact, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid, bidsFor,
+           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,

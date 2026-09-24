@@ -45,10 +45,6 @@
     return h >>> 0;
   }
 
-  /** Derive an independent child rng from a parent rng (stream splitting). */
-  function child(rng) {
-    return mulberry32(Math.floor(rng() * 4294967296) >>> 0);
-  }
 
   /** Standard normal via Box–Muller (two rng() draws). */
   function normal(rng, mean, sd) {
@@ -96,7 +92,7 @@
   /** Round to nearest multiple. */
   function roundTo(x, m) { return Math.round(x / m) * m; }
 
-  const api = { mulberry32, seedFrom, child, normal, clamp, int, pick, weightedPick, chance, shuffle, roundTo };
+  const api = { mulberry32, seedFrom, normal, clamp, int, pick, weightedPick, chance, shuffle, roundTo };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   global.CDPRNG = api;

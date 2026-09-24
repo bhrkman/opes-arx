@@ -45,7 +45,6 @@
        12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
        break-even instead of every body being a bargain or a burden. */
     CREDITS_PER_QUALITY: 33,
-    POTENTIAL_SLICE: 0.35,        // [H] of the gap between what they are and what they could be
     FAME_LIFT: 0.01,              // [H] per point of fame, on worth
     SALARY_MONTHS: 12,            // [S] a season of wages, matching the ledger
     INTEL_PREMIUM: 1.35,          // [H] over the raw focus price, for the edge it carries
@@ -87,11 +86,11 @@
 
   /** What a body is worth over the life of the contract that travels with them. */
   function worthOf(f) {
+    /* §POTENTIAL a body is worth what it IS, and how famous it is — a hidden ceiling no longer
+       adds a premium for growth nobody can see (ruled: no unit ceilings) */
     const q = qualityOf(f);
-    const pot = typeof f.potential === 'number' ? f.potential : q;
     const seasons = Math.max(1, (f.contract && f.contract.seasons_remaining) || 1);
-    const per = q * CONST.CREDITS_PER_QUALITY * (1 + CONST.FAME_LIFT * (f.fame || 0))
-              + Math.max(0, pot - q) * CONST.CREDITS_PER_QUALITY * CONST.POTENTIAL_SLICE;
+    const per = q * CONST.CREDITS_PER_QUALITY * (1 + CONST.FAME_LIFT * (f.fame || 0));
     return Math.round(per * seasons);
   }
   /** What the receiving corp takes on: the rest of the contract. */
@@ -101,7 +100,9 @@
     return Math.round((c.salary || 0) * CONST.SALARY_MONTHS * seasons);
   }
   /** The number that actually changes hands. Negative means they are doing you a favour. */
-  function netOf(f) { return worthOf(f) - wageOf(f); }
+  /* §MON-WA a pair is one being at one wage: the mirrored half carries no separate worth and
+     no separate salary, so a table that priced both halves valued the same life twice */
+  function netOf(f) { return f && f.mirror_of ? 0 : worthOf(f) - wageOf(f); }
 
   function gearPrice(itemId) {
     const it = ITEMS.byId(itemId);
@@ -192,7 +193,15 @@
         moved.gear.push({ id: g.id, n: n, to: dst.id });
       }
       /* people, WITH THEIR CONTRACTS (ruled) — and being sold costs them something */
-      for (const id of (bundle.units || [])) {
+      /* §MON-WA A PAIR IS NOT SPLIT. One being, one roster slot: a trade that moved one half
+         and left the other behind made two halves of nobody. Whoever is named brings their
+         partner across with them. */
+      const named = (bundle.units || []).slice();
+      for (const id of named.slice()) {
+        const f0 = (src.roster || []).filter(x => x.id === id)[0];
+        if (f0 && f0.bond_partner && named.indexOf(f0.bond_partner) < 0) named.push(f0.bond_partner);
+      }
+      for (const id of named) {
         const i = (src.roster || []).findIndex(x => x.id === id);
         if (i < 0) continue;
         const f = src.roster[i];
@@ -331,10 +340,17 @@
          OA was in this pool, and with a full roster it was the deepest in the fleet, so the
          game sold his people to the thinnest OA for cash without asking him, off the books.
          His table is his own; the fleet deals with him only through proposals he can refuse. */
-      const pool = ids.filter(id => corps[id] && !corps[id].disqualified && id !== opts.exclude);
-      if (pool.length < 2) continue;
-      const sorted = pool.slice().sort((x, y) => alive(corps[x]).length - alive(corps[y]).length);
-      const buyer = corps[sorted[0]], seller = corps[sorted[sorted.length - 1]];
+      /* §TRADE (eight players) THE SHOPPING IS AN OFFER, not a sale: the thinnest roster among the engine's OAs
+         writes to the deepest in the WHOLE fleet — a person's OA included — and the seller answers it the way
+         any OA answers any offer (the engine's by its pricing, a person in their own time). The manager was
+         taken out of this pool because it used to sell his people without asking; it asks now. */
+      const isHuman = typeof opts.isHuman === 'function' ? opts.isHuman : () => false;
+      const pool = ids.filter(id => corps[id]);
+      const buyers = pool.filter(id => !isHuman(id));
+      if (pool.length < 2 || !buyers.length) continue;
+      const thin = buyers.slice().sort((x, y) => alive(corps[x]).length - alive(corps[y]).length)[0];
+      const sorted = pool.filter(id => id !== thin).sort((x, y) => alive(corps[x]).length - alive(corps[y]).length);
+      const buyer = corps[thin], seller = corps[sorted[sorted.length - 1]];
       if (!buyer || !seller || buyer === seller) continue;
       if (alive(seller).length <= CONST.FLEET_TRADE_KEEP) continue;
       /* the seller parts with the best paper they can spare: positive net, lowest quality */
@@ -344,10 +360,8 @@
       const price = netOf(spare);
       if (buyer.account.treasury < price) continue;
       const offer = { credits: Math.round(price) }, ask = { units: [spare.id] };
-      const view = appetite(buyer, seller, offer, ask, opts);
-      if (!view.accept) continue;
-      execute(buyer, seller, offer, ask, opts);
-      done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price) });
+      const r = typeof opts.postTrade === 'function' ? opts.postTrade(buyer.id, seller.id, offer, ask) : null;
+      if (r && r.offer) done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price), status: r.offer.status });
     }
     return done;
   }

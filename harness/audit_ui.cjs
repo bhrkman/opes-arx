@@ -93,11 +93,14 @@ function checkCase(run, ln) {
     return;
   }
 }
-const VERBISH = /\b(Is|Are|Was|Were|Signs?|Chooses?|Read|Sets?|Comes?|Opens?|Closes?|Runs?|Makes?|Does|Do|Will|Cannot|Can|Has|Have|Takes?|Gets?|Goes|Stands?|Means|Wants?|Sees|Says)\b/;
+/* §COPY the verbs a line uses when it is EXPLAINING rather than naming. It was a short list,
+   and lines like "Dug for Your Own Stores, Win or Lose" and "Rounds for Whoever Reaches It"
+   walked straight past it — the page describing its own mechanics in every hover. */
+const VERBISH = /\b(Is|Are|Was|Were|Be|Been|Signs?|Chooses?|Reads?|Sets?|Comes?|Opens?|Closes?|Runs?|Makes?|Does|Do|Will|Would|Should|Cannot|Can|Could|Has|Have|Had|Takes?|Gets?|Goes|Stands?|Means|Wants?|Sees|Says|Dug|Digs?|Mended|Mends?|Reaches|Reach|Win|Wins|Lose|Loses|Keeps?|Kept|Buys?|Bought|Pays?|Paid|Gives?|Holds?|Held|Emptied|Leaves?|Left|Lands?|Falls?|Finds?|Found|Moves?|Needs?|Knows?|Answers?|Fights?)\b/;
 function checkProse(run, ln) {
   const words = run.split(/\s+/).filter(Boolean);
   /* a clause built around a verb is the page explaining itself, however short */
-  if (words.length >= 6 && VERBISH.test(run) && !/^\d|\d%|₡/.test(run)) { add('prose', ln, run, 'a clause: ' + words.length + ' words around a verb'); return; }
+  if (words.length >= 5 && VERBISH.test(run) && !/^\d|\d%|₡/.test(run)) { add('prose', ln, run, 'a clause: ' + words.length + ' words around a verb'); return; }
   if (words.length < 10) return;
   if (/\.\s|\.$|\bbecause\b|\bso that\b|\bwhich means\b|\bmeans\b|\bthis is\b|\bthat is\b|\bnote\b/i.test(run) || (words.length >= 14))
     add('prose', ln, run, words.length + ' words');

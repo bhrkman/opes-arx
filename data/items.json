@@ -1336,7 +1336,7 @@
    "cost": 380,
    "bulk": 0,
    "effects": {
-    "gear_accuracy": 1,
+    "gear_accuracy": 10,
     "tags": []
    },
    "price_model": "fixed",
@@ -1354,8 +1354,8 @@
    "cost": 220,
    "bulk": 1,
    "effects": {
-    "aim_holding": 2,
-    "aim_moving": -2,
+    "aim_holding": 20,
+    "aim_moving": -10,
     "tags": []
    },
    "price_model": "fixed",
@@ -1434,25 +1434,6 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "Halves the argument about distance.",
-   "type": "Mods"
-  },
-  {
-   "id": "itm_mod_field_kit",
-   "name": "Armourer's Field Kit",
-   "category": "mod",
-   "slot": "mod",
-   "family": "any",
-   "tier": 3,
-   "cost": 260,
-   "bulk": 1,
-   "effects": {
-    "gear_damage_mult": 0.5,
-    "cancels": "fragile",
-    "tags": []
-   },
-   "price_model": "fixed",
-   "legality": "legal",
-   "identity": "Keeps it honest.",
    "type": "Mods"
   },
   {
@@ -1538,7 +1519,7 @@
    "cost": 340,
    "bulk": 0,
    "effects": {
-    "grants": "pierce_1",
+    "grants": "pierce_2",
     "power": -1,
     "tags": []
    },
@@ -1581,24 +1562,6 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "Terrible against plate.",
-   "type": "Mods"
-  },
-  {
-   "id": "itm_mod_heat_sink",
-   "name": "Heat Sink",
-   "category": "mod",
-   "slot": "mod",
-   "family": "energy",
-   "tier": 3,
-   "cost": 300,
-   "bulk": 1,
-   "effects": {
-    "heat_shed": 4,
-    "tags": []
-   },
-   "price_model": "fixed",
-   "legality": "legal",
-   "identity": "Buys you the fourth shot.",
    "type": "Mods"
   },
   {
@@ -1676,7 +1639,8 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 6
   },
   {
    "id": "itm_smoke_canister",
@@ -1694,8 +1658,9 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Own side +1 cover step for 2 exchanges; blocks overwatch both ways.",
-   "type": "Consumables"
+   "identity": "Own side a step more cover for three turns; blocks overwatch both ways.",
+   "type": "Consumables",
+   "charges": 8
   },
   {
    "id": "itm_incendiary_charge",
@@ -1717,7 +1682,8 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 4
   },
   {
    "id": "itm_medkit",
@@ -1735,8 +1701,9 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "P(stabilize) +0.15, consumed on use.",
-   "type": "Consumables"
+   "identity": "A downed fighter gets back up more often (+15%).",
+   "type": "Consumables",
+   "charges": 5
   },
   {
    "id": "itm_stim_shot",
@@ -1755,7 +1722,8 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 4
   },
   {
    "id": "itm_spotter_drone",
@@ -1773,8 +1741,9 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Enemy side loses unspotted status; squad detection +0.30 for the day.",
-   "type": "Consumables"
+   "identity": "Goes up when the enemy is lost; everything within seven tiles of it is seen for four turns.",
+   "type": "Consumables",
+   "charges": 2
   },
   {
    "id": "itm_auto_turret",
@@ -1792,8 +1761,9 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Fires each exchange at aim 9 from hard cover for 4 exchanges; cannot rout.",
-   "type": "Consumables"
+   "identity": "Set down where you stand; fires once a turn for four turns at Aim 130. A machine: it does not flinch.",
+   "type": "Consumables",
+   "charges": 2
   },
   {
    "id": "itm_ammo_satchel",
@@ -1812,7 +1782,8 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "+8 rounds at drop. Quota: 1 per body.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 6
   },
   {
    "id": "itm_power_cell",
@@ -1831,7 +1802,8 @@
    "price_model": "fixed",
    "legality": "legal",
    "identity": "+20 charge. Quota: 1 per body.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 6
   },
   {
    "id": "itm_missile_launcher",
@@ -1983,33 +1955,13 @@
    "type": "Armour"
   },
   {
-   "id": "itm_chem_rounds",
-   "name": "Toxin Loads",
-   "category": "mod",
-   "slot": "mod",
-   "family": "ballistic",
-   "tier": 5,
-   "cost": 0,
-   "bulk": 0,
-   "effects": {
-    "tags": [
-     "pierce_1"
-    ]
-   },
-   "price_model": "none",
-   "legality": "contraband",
-   "acquisition": "step9",
-   "identity": "Severity +14, internal-injury bias. Banned outright.",
-   "type": "Mods"
-  },
-  {
    "id": "itm_thermobaric_charge",
    "name": "Thermobaric Charge",
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
    "tier": 5,
-   "cost": 0,
+   "cost": 3470,
    "bulk": 1,
    "effects": {
     "tags": [
@@ -2017,11 +1969,12 @@
      "incendiary"
     ]
    },
-   "price_model": "none",
-   "legality": "contraband",
+   "price_model": "formula",
+   "legality": "legal",
    "acquisition": "step9",
-   "identity": "Destroys a cover pool outright. Banned outright.",
-   "type": "Consumables"
+   "identity": "Takes every scrap of cover in reach down to the bare ground.",
+   "type": "Consumables",
+   "charges": 1
   },
   {
    "id": "itm_cortical_scrambler",
@@ -2030,36 +1983,19 @@
    "slot": "consumable",
    "family": "any",
    "tier": 5,
-   "cost": 0,
+   "cost": 2240,
    "bulk": 1,
    "effects": {
     "tags": [
      "disorient"
     ]
    },
-   "price_model": "none",
-   "legality": "contraband",
+   "price_model": "formula",
+   "legality": "legal",
    "acquisition": "step9",
    "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
-   "type": "Consumables"
-  },
-  {
-   "id": "itm_drone_jammer",
-   "name": "Broadcast Jammer",
-   "category": "consumable",
-   "slot": "consumable",
-   "family": "any",
-   "tier": 5,
-   "cost": 0,
-   "bulk": 2,
-   "effects": {
-    "tags": []
-   },
-   "price_model": "none",
-   "legality": "contraband",
-   "acquisition": "step9",
-   "identity": "The engagement does not air. The Aleas' first commandment, broken.",
-   "type": "Consumables"
+   "type": "Consumables",
+   "charges": 1
   },
   {
    "id": "itm_stun_carbine",
@@ -2358,233 +2294,6 @@
    "type": "Submachine Guns"
   }
  ],
- "roles": [
-  {
-   "id": "point",
-   "label": "Point",
-   "band": "short",
-   "share_per_8": 1,
-   "band_note": "short",
-   "primaries": [
-    "itm_scattergun",
-    "itm_drum_shotgun",
-    "itm_riot_autogun",
-    "itm_arc_projector",
-    "itm_breachgun",
-    "itm_plasma_thrower",
-    "itm_pdw",
-    "itm_rotary_cannon",
-    "itm_scrapgun_smg",
-    "itm_alley_smg",
-    "itm_whipcord_smg",
-    "itm_seraph_smg"
-   ],
-   "armors": [
-    "itm_plate_carrier",
-    "itm_sealed_hardplate",
-    "itm_flak_vest",
-    "itm_assault_frame"
-   ],
-   "sidearms": [
-    "itm_machine_pistol",
-    "itm_service_pistol"
-   ],
-   "consumables": [
-    "itm_frag_grenade",
-    "itm_smoke_canister",
-    "itm_incendiary_charge",
-    "itm_thermobaric_charge"
-   ],
-   "note": "First through the gap. Short band, high power, armoured.",
-   "picks_for": "grit"
-  },
-  {
-   "id": "line",
-   "label": "Line",
-   "band": "medium",
-   "share_per_8": 3,
-   "band_note": "medium",
-   "primaries": [
-    "itm_carbine",
-    "itm_bullpup",
-    "itm_battle_rifle",
-    "itm_pulse_carbine",
-    "itm_needler",
-    "itm_gyrojet",
-    "itm_fusion_repeater",
-    "itm_caroms",
-    "itm_riot_autogun",
-    "itm_scattergun",
-    "itm_las_surplus",
-    "itm_disintegrator",
-    "itm_phase_lance",
-    "itm_militia_autorifle",
-    "itm_pattern_auto",
-    "itm_vanguard_rifle",
-    "itm_stormline_rifle",
-    "itm_ardent_rifle",
-    "itm_sovereign_auto"
-   ],
-   "armors": [
-    "itm_plate_carrier",
-    "itm_flak_vest",
-    "itm_ablative_harness",
-    "itm_scout_weave"
-   ],
-   "sidearms": [
-    "itm_service_pistol",
-    "itm_las_sidearm",
-    "itm_compact_plasma"
-   ],
-   "consumables": [
-    "itm_frag_grenade",
-    "itm_medkit"
-   ],
-   "note": "The body of the squad. Medium band, unremarkable, everywhere.",
-   "picks_for": null
-  },
-  {
-   "id": "marksman",
-   "label": "Marksman",
-   "band": "long",
-   "share_per_8": 1,
-   "band_note": "long",
-   "primaries": [
-    "itm_marksman_rifle",
-    "itm_whisper",
-    "itm_coilgun",
-    "itm_amr",
-    "itm_beam_lance",
-    "itm_photon_marksman",
-    "itm_accumulator",
-    "itm_hunting_rifle",
-    "itm_surplus_rifle",
-    "itm_railgun",
-    "itm_kinetic_driver"
-   ],
-   "armors": [
-    "itm_flak_vest",
-    "itm_scout_weave",
-    "itm_plate_carrier"
-   ],
-   "sidearms": [
-    "itm_service_pistol",
-    "itm_las_sidearm"
-   ],
-   "consumables": [
-    "itm_smoke_canister",
-    "itm_medkit"
-   ],
-   "note": "Holds the long band and punishes the open ground.",
-   "picks_for": "aim"
-  },
-  {
-   "id": "support",
-   "label": "Support",
-   "band": "medium",
-   "share_per_8": 1,
-   "band_note": "medium",
-   "primaries": [
-    "itm_machine_gun",
-    "itm_hardpoint",
-    "itm_las_repeater",
-    "itm_drum_shotgun",
-    "itm_grenade_carbine",
-    "itm_plasma_caster",
-    "itm_missile_launcher",
-    "itm_rotary_cannon",
-    "itm_stormline_rifle"
-   ],
-   "armors": [
-    "itm_plate_carrier",
-    "itm_sealed_hardplate",
-    "itm_flak_vest"
-   ],
-   "sidearms": [
-    "itm_heavy_revolver",
-    "itm_machine_pistol"
-   ],
-   "consumables": [
-    "itm_ammo_satchel",
-    "itm_power_cell",
-    "itm_auto_turret",
-    "itm_drone_jammer"
-   ],
-   "note": "Buys the ground for everyone else. Heavy, suppressive, hungry.",
-   "picks_for": "grit"
-  },
-  {
-   "id": "medic",
-   "label": "Medic",
-   "band": "medium",
-   "share_per_8": 1,
-   "band_note": "medium",
-   "primaries": [
-    "itm_bullpup",
-    "itm_carbine",
-    "itm_pulse_carbine",
-    "itm_pdw",
-    "itm_alley_smg",
-    "itm_militia_autorifle",
-    "itm_pattern_auto"
-   ],
-   "armors": [
-    "itm_scout_weave",
-    "itm_flak_vest",
-    "itm_plate_carrier"
-   ],
-   "sidearms": [
-    "itm_service_pistol",
-    "itm_holdout"
-   ],
-   "consumables": [
-    "itm_medkit",
-    "itm_stim_shot"
-   ],
-   "note": "Carries the kit that decides whether the downed get up.",
-   "picks_for": "resolve"
-  },
-  {
-   "id": "scout",
-   "label": "Scout",
-   "band": "flex",
-   "share_per_8": 1,
-   "band_note": "flex",
-   "primaries": [
-    "itm_needler",
-    "itm_whisper",
-    "itm_bullpup",
-    "itm_gyrojet",
-    "itm_resonance",
-    "itm_cryo_lance",
-    "itm_ion_carbine",
-    "itm_las_surplus",
-    "itm_pdw",
-    "itm_hunting_rifle",
-    "itm_whipcord_smg",
-    "itm_seraph_smg",
-    "itm_scrapgun_smg"
-   ],
-   "armors": [
-    "itm_scout_weave",
-    "itm_flak_vest"
-   ],
-   "sidearms": [
-    "itm_needle_derringer",
-    "itm_holdout",
-    "itm_arc_pistol",
-    "itm_flare_pistol",
-    "itm_gyro_pistol"
-   ],
-   "consumables": [
-    "itm_smoke_canister",
-    "itm_spotter_drone",
-    "itm_cortical_scrambler"
-   ],
-   "note": "Finds them first. Light, quiet, and not meant to be shot at.",
-   "picks_for": "fieldcraft"
-  }
- ],
  "doctrines": [
   {
    "id": "std_issue",
@@ -2592,21 +2301,12 @@
    "flavor": "—",
    "note": "No lean at all: the baseline every other doctrine is measured against.",
    "corp_id": null,
-   "composition": {},
    "taste": [],
    "mod_wishlist": [
     "itm_mod_optic",
     "itm_mod_grip",
     "itm_mod_extended_mag",
     "itm_mod_suppressor"
-   ],
-   "spend_priority": [
-    "line",
-    "marksman",
-    "point",
-    "support",
-    "medic",
-    "scout"
    ],
    "armoury_max_tier": 5
   },
@@ -2616,12 +2316,6 @@
    "flavor": "suppression-weight loadouts",
    "note": "Closes the distance and fills it with noise.",
    "corp_id": "nevlon_collective",
-   "composition": {
-    "point": 2,
-    "support": 2,
-    "marksman": -2,
-    "scout": -2
-   },
    "taste": [
     "spread",
     "suppressive",
@@ -2633,16 +2327,7 @@
     "itm_mod_recoil_comp",
     "itm_mod_incendiary",
     "itm_mod_optic",
-    "itm_mod_ap_rounds",
-    "itm_chem_rounds"
-   ],
-   "spend_priority": [
-    "point",
-    "support",
-    "line",
-    "medic",
-    "marksman",
-    "scout"
+    "itm_mod_ap_rounds"
    ],
    "armoury_max_tier": 5
   },
@@ -2652,12 +2337,6 @@
    "flavor": "overwatch-heavy; quality over volume",
    "note": "Buys the shot, not the volume.",
    "corp_id": "knights_star",
-   "composition": {
-    "marksman": 2,
-    "scout": 1,
-    "point": -2,
-    "support": -1
-   },
    "taste": [
     "silent",
     "pierce_2",
@@ -2670,14 +2349,6 @@
     "itm_mod_bipod",
     "itm_mod_hollowpoint"
    ],
-   "spend_priority": [
-    "marksman",
-    "scout",
-    "line",
-    "support",
-    "medic",
-    "point"
-   ],
    "armoury_max_tier": 5
   },
   {
@@ -2686,12 +2357,6 @@
    "flavor": "fortify-and-outlast; veteran rosters",
    "note": "Slow, sealed, and still there on day 30.",
    "corp_id": "violets_enterprise",
-   "composition": {
-    "support": 2,
-    "line": 1,
-    "scout": -2,
-    "point": -1
-   },
    "taste": [
     "mob_down",
     "suppressive",
@@ -2701,16 +2366,7 @@
    "mod_wishlist": [
     "itm_mod_bipod",
     "itm_mod_optic",
-    "itm_mod_field_kit",
     "itm_mod_broadcast_tag"
-   ],
-   "spend_priority": [
-    "support",
-    "line",
-    "point",
-    "marksman",
-    "medic",
-    "scout"
    ],
    "armoury_max_tier": 5
   },
@@ -2720,12 +2376,6 @@
    "flavor": "supply mastery; sponsor-drop efficiency",
    "note": "No ammunition, no supply line, no argument about rations.",
    "corp_id": "new_line",
-   "composition": {
-    "scout": 1,
-    "medic": 1,
-    "support": -1,
-    "point": -1
-   },
    "taste": [
     "energy",
     "daylight",
@@ -2734,16 +2384,7 @@
    ],
    "mod_wishlist": [
     "itm_mod_capacitor",
-    "itm_mod_heat_sink",
     "itm_mod_light_frame"
-   ],
-   "spend_priority": [
-    "line",
-    "scout",
-    "medic",
-    "marksman",
-    "support",
-    "point"
    ],
    "armoury_max_tier": 5
   },
@@ -2753,12 +2394,6 @@
    "flavor": "smallest loadout budgets in the fleet",
    "note": "Cheap iron, one good optic, and nothing spare.",
    "corp_id": "verdant_cradle",
-   "composition": {
-    "medic": 1,
-    "scout": 1,
-    "point": -1,
-    "support": -1
-   },
    "taste": [
     "ballistic",
     "sustained",
@@ -2769,14 +2404,6 @@
     "itm_mod_extended_mag",
     "itm_mod_focusing_array"
    ],
-   "spend_priority": [
-    "medic",
-    "line",
-    "marksman",
-    "scout",
-    "point",
-    "support"
-   ],
    "armoury_max_tier": 3
   },
   {
@@ -2785,12 +2412,6 @@
    "flavor": "evac mastery",
    "note": "Reaches the downed and gets them back up.",
    "corp_id": "mercy_concern",
-   "composition": {
-    "medic": 3,
-    "scout": 1,
-    "support": -2,
-    "point": -2
-   },
    "taste": [
     "mob_up",
     "stabilized",
@@ -2798,16 +2419,7 @@
    ],
    "mod_wishlist": [
     "itm_mod_grip",
-    "itm_mod_optic",
-    "itm_mod_field_kit"
-   ],
-   "spend_priority": [
-    "medic",
-    "scout",
-    "line",
-    "marksman",
-    "point",
-    "support"
+    "itm_mod_optic"
    ],
    "armoury_max_tier": 5
   },
@@ -2817,12 +2429,6 @@
    "flavor": "position-and-pressure",
    "note": "Sees you first, then makes the ground expensive.",
    "corp_id": "vantis_deepcore",
-   "composition": {
-    "scout": 2,
-    "marksman": 1,
-    "point": -2,
-    "medic": -1
-   },
    "taste": [
     "cover_shred",
     "disorient",
@@ -2835,14 +2441,6 @@
     "itm_mod_target_link",
     "itm_mod_diffuser"
    ],
-   "spend_priority": [
-    "scout",
-    "marksman",
-    "line",
-    "support",
-    "medic",
-    "point"
-   ],
    "armoury_max_tier": 5
   },
   {
@@ -2851,7 +2449,6 @@
    "flavor": "flexible postures; merc-heavy",
    "note": "Whatever was on the shelf, fitted properly.",
    "corp_id": "alliance_house",
-   "composition": {},
    "taste": [
     "stabilized",
     "smart_link",
@@ -2862,15 +2459,8 @@
     "itm_mod_grip",
     "itm_mod_rangefinder"
    ],
-   "spend_priority": [
-    "line",
-    "point",
-    "marksman",
-    "support",
-    "scout",
-    "medic"
-   ],
    "armoury_max_tier": 5
   }
- ]
+ ],
+ "_charges_note": "RULED: a consumable is not spent once and gone, nor free every fight. It carries CHARGES for the whole Divide, and at most ONE charge a fight; the stronger the item the fewer the charges (smoke 8, frag 6, medkit 5, stim and incendiary 4, drone and turret 2, contraband 1). A munitions drop restocks them."
 }

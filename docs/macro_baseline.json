@@ -1,0 +1,100 @@
+{
+ "curve": [
+  {
+   "day": 2,
+   "sides": 8,
+   "corps": 8
+  },
+  {
+   "day": 4,
+   "sides": 7,
+   "corps": 8
+  },
+  {
+   "day": 6,
+   "sides": 6.5,
+   "corps": 8
+  },
+  {
+   "day": 8,
+   "sides": 4,
+   "corps": 8
+  },
+  {
+   "day": 9,
+   "sides": 3,
+   "corps": 8
+  },
+  {
+   "day": 10,
+   "sides": 4,
+   "corps": 8
+  },
+  {
+   "day": 11,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 12,
+   "sides": 3.5,
+   "corps": 6.5
+  },
+  {
+   "day": 13,
+   "sides": 3.5,
+   "corps": 6.5
+  },
+  {
+   "day": 14,
+   "sides": 1.5,
+   "corps": 6
+  },
+  {
+   "day": 15,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 16,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 17,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 18,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 19,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 20,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 21,
+   "sides": 2,
+   "corps": 7
+  },
+  {
+   "day": 22,
+   "sides": 2,
+   "corps": 4
+  },
+  {
+   "day": 23,
+   "sides": 1,
+   "corps": 1
+  }
+ ],
+ "lateSides": 2
+}

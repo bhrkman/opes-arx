@@ -19,6 +19,8 @@
   const isNode = typeof module !== "undefined" && module.exports;
 
   const CONST = {
+    WEALTH_LOW: 100000,   // [C] §DEVICES a founding band this poor fits no devices
+    WEALTH_HIGH: 400000,  // [C] and this rich fits them across a third of its force
     /* [S] A season is ONE YEAR OF TWELVE MONTHS — an ordinary Earth calendar, kept in space.
        This was 13 and the calendar it came from had thirteen months, which also gave the Divide
        two months while C1 says it runs the LAST MONTH of the year, singular. Both wrong, and the
@@ -125,6 +127,16 @@
   }
 
   /** A corp's account at the start of a season. `profile` is an oa_profiles entry. */
+  /* the middle of a profile's founding band: what it would open with, all in cash */
+  function bandMid(profile) {
+    const band = (profile.finance && profile.finance.treasury_band) || [80000, 120000];
+    return Math.round((band[0] + band[1]) / 2);
+  }
+  /* §DEVICES how rich an OA is, 0 to 1, by its founding band — who it is, not what is in the bank this
+     month (a kit budget swings from nothing to fifteen thousand a fighter season to season) */
+  function wealthOf(profile) {
+    return Math.max(0, Math.min(1, (bandMid(profile) - CONST.WEALTH_LOW) / (CONST.WEALTH_HIGH - CONST.WEALTH_LOW)));
+  }
   function open(profile, opts) {
     opts = opts || {};
     const band = (profile.finance && profile.finance.treasury_band) || [80000, 120000];
@@ -182,15 +194,22 @@
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }
+  /* §MON-WA ONE BEING, ONE WAGE. A pair is two bodies and ONE roster slot (races.json
+     `roster_slots: 1`, and the generator's own note: "one roster slot · one salary line ·
+     contract mirrored on both halves") — but the contract was mirrored onto both records and
+     every bill summed both, so a pair was charged twice for the life it costs once. The
+     mirrored half is marked and skipped wherever money is counted; it keeps the figure on its
+     record so a sheet can still show what the pair is paid. */
+  function paid(f) { return !(f.contract && f.contract.mirrored); }
   function wageBill(roster) {
     let m = 0;
-    for (const f of roster) m += (f.contract && f.contract.salary) || 0;
+    for (const f of roster) if (paid(f)) m += (f.contract && f.contract.salary) || 0;
     return Math.round(m * CONST.SALARY_MONTHS);
   }
 
   function retainerBill(roster) {
     let m = 0;
-    for (const f of roster) m += ((f.contract && f.contract.salary) || 0) * CONST.WAGE_RETAINER_SHARE;
+    for (const f of roster) if (paid(f)) m += ((f.contract && f.contract.salary) || 0) * CONST.WAGE_RETAINER_SHARE;
     return Math.round(m * CONST.SALARY_MONTHS);
   }
 
@@ -204,7 +223,7 @@
   function purseBill(dropped) {
     let m = 0;
     for (const f of (dropped || [])) {
-      m += ((f.contract && f.contract.salary) || 0) * (1 - CONST.WAGE_RETAINER_SHARE);
+      if (paid(f)) m += ((f.contract && f.contract.salary) || 0) * (1 - CONST.WAGE_RETAINER_SHARE);
     }
     return Math.round(m * CONST.SALARY_MONTHS);
   }
@@ -243,18 +262,8 @@
     return out;
   }
 
-  /**
-   * §11 — what the mercenary market charges this corp, against what it charges the fleet.
-   * A corp that spends people pays more for the next ones. Not an audience: a price.
-   */
-  function wageBillAt(roster, mercMult) {
-    let m = 0;
-    for (const f of roster) {
-      const sal = (f.contract && f.contract.salary) || 0;
-      m += f.pool === 'mercenary' ? sal * (mercMult || 1) : sal;
-    }
-    return Math.round(m * CONST.SALARY_MONTHS);
-  }
+  /* §11 the mercenary market's charge by reputation is made at the HIRE (season.js askingPrice): a signed
+     contract is not repriced, so the wage-bill version of it (`wageBillAt`) is gone */
 
   /** Book a season: the grant lands, the retainers land, and we see who is still standing.
       The PURSE is not charged here — it is charged at the muster by `payPurse`, because the
@@ -303,7 +312,7 @@
              short: Math.max(0, plan.shortfall - canRaise) };
   }
 
-  const api = { CONST, open, post, wageBill, gateFor, retainerBill, purseBill, payPurse, wageBillAt, procurementBudget, settleSeason,
+  const api = { CONST, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, procurementBudget, settleSeason,
                 musterCheck, bookDivide, callOnBoard, squadBonus };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;

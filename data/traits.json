@@ -346,8 +346,7 @@
     ]
    },
    "conflicts": [
-    "psion_squad_link",
-    "psion_pressure_read"
+    "psion_squad_link"
    ],
    "notes": "Psionics scope per RACES.md: rare line, one expression per psion. Rolled per races.json psionics rates."
   },
@@ -373,39 +372,8 @@
     ]
    },
    "conflicts": [
-    "psion_battle_sense",
-    "psion_pressure_read"
+    "psion_battle_sense"
    ]
-  },
-  {
-   "id": "psion_pressure_read",
-   "name": "Psion: Pressure-Read",
-   "draw": "special",
-   "rarity": "special",
-   "description": "Sits in on negotiations. Tells you, afterward, which offers were bluffs.",
-   "tags": [
-    "racial",
-    "psionic",
-    "negotiation",
-    "positive"
-   ],
-   "race_locked": [
-    "gil"
-   ],
-   "effects": {
-    "hooks": [
-     "negotiation_bluff_detection",
-     "manager_facing_utility"
-    ],
-    "decoration": {
-     "manager_facing_utility": "a reading of a manager, with nothing for it to read"
-    }
-   },
-   "conflicts": [
-    "psion_battle_sense",
-    "psion_squad_link"
-   ],
-   "notes": "The manager-facing expression — feeds the Step 6 negotiation engine."
   },
   {
    "id": "cradleborn_resentment",

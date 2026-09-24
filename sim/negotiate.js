@@ -24,7 +24,10 @@
        immense AFTER the deals, or the deals are not worth making. */
     POT_BASE: 1400000,                  // [H] credits, a whole planet
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
-    HAUL_VALUE: 22000,                 // [H] §2.2 what the fleet pays for a unit an OA sells on
+    HAUL_VALUE: 22000,
+    /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
+       surplus of a store already full. Sized so a won planet's overflow is worth having. */
+    SURPLUS_VALUE: 220000,                 // [H] §2.2 what the fleet pays for a unit an OA sells on
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary
@@ -41,13 +44,11 @@
     /* §5.4 anchors — opening asks as a share of the principal's take */
 
     /* §6 the table */
-    OFFERS_PER_WINDOW: 2,               // [S] how many a corp may send in one window
     BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for a banner moves its price
     PACT_CREDIT_SCALE: 0.06,            // [C] §4.1 credits equal to this share of the pot buy the full sweetener
     PACT_DAYS: [2, 5],                  // [C] §4 how long a truce runs. NEGOTIATION.md quoted
                                         //     this by name and the code had it inlined — the
                                         //     doc described a constant that did not exist
-    PATIENCE_HOLDOUT: 0.0045,           // [C] per point of patience, how much better a number
                                         //     a corp waits for rather than closing now
     /* §7 the crowd counterweight — REPLACED IN STEP 7.
 
@@ -86,17 +87,9 @@
     MIN_ASK_FRAC: 0.12,                 // [C] §10.2 nobody hands over a claim for nothing,
                                         //     however hopeless. The floor the deleted
                                         //     additive penalty used to supply by accident
-    ATTRITION_PER_DAY: 0.010,           // [C] share of a standing force lost per day of Divide
-    CRUSH_ATTRITION: 0.32,              // [C] and what meeting the last ground costs on top
-    JOIN_ATTRITION_RELIEF: 0.42,        // [C] fewer enemies, and it ends sooner
-    STANDDOWN_ATTRITION_RELIEF: 0.86,   // [C] §3.3 — you are behind their line, not in it
     FOLD_BASE: 0.06,                    // [H] the crowd's charge for quitting, at its worst
-    QUIT_BASELINE: 0.25,                // [S] fans never like a quitter — the floor under it,
                                         //     paid even by a corp cut down to three people
-    BUY_BASE: 0.07,                     // [H] buying a win rather than earning it
-    STAND_DOWN_LENIENCY: 0.35,          // [C] getting your people home reads better than
                                         //     selling a contest you could have won
-    BETRAY_PENALTY: 0.45,               // [H] the largest single crowd movement in the design
 
     /* §5.3a GREED — the appetite that got these corporations into this business.
 
@@ -117,12 +110,8 @@
        standing, the crowd's wall now the main refusal (the design working). 0.10 overshoots:
        a seed collapsed under the favourite on day 8. */
     GREED_HOLDOUT: 0.25,
-    GREED_MERCY: 0.28,                  // [H] how much less a buyer pays a beaten rival
 
     /* §8 the Aleas */
-    DQ_BASE: 0.70,                      // [C] chance of disqualification for a betrayal
-    DQ_STANDING: 0.45,                  // [C] what being in good odour buys you
-    SPITE_P: 0.0055,                    // [C] per window, per point of treachery over a hostile
                                         //     grudge. Checked at EVERY window by every allied
                                         //     pair, so the per-Divide rate is ~20x this.
 
@@ -149,7 +138,6 @@
     RESOURCE_WANT_SHORT: 1.10,          // [C] added at an empty hold, scaling with the shortage
     RESOURCE_WANT_ASKED: 0.80,          // [C] added when the board's card asks for the category
     RESOURCE_WANT_PRIORITY: 1.60,       // [C] instead of ASKED, when it is the card's priority
-    RESOURCE_AI_SHARE: 0.25,            // [C] the most of a haul the AI asks in kind in one term
     /* §6.6 WHOM TO APPROACH. A joiner went to the two strongest banners, always. RULED: the
        table is for the OA you are actually engaged with — the one hunting you, the one you
        are beating — not the leaderboard. A banner's value to a joiner is scaled by CONTACT
@@ -158,18 +146,17 @@
        grudged favourite from winning — is a circumstance and stays, small. What an OA
        THINKS of another is not a reason to join it: teaming up for alliance's sake is what
        the Aleas and the fans punish (COLD_ALLIANCE), so regard moves the price, not the choice. */
-    RANK_CONTACT: 1.0,                  // [H] lift at full contact (fought, hunted by, lost to) — was 0.6, at
                                         //     which a rich cold banner still outranked the OA on top of you a
                                         //     quarter of the time (audit_table T1)
-    RANK_COLD: 0.4,                     // [H] a banner you have not met this Divide, relative
-    RANK_KINGMAKER: 0.15,               // [H] lift for a banner that stands in a grudged favourite's way
-    RANK_GRUDGE: 0.7,                   // [H] and the discount on a banner the joiner holds a grudge against
     /* §6.10 A COLD ALLIANCE. A deal between two OAs whose squads have not met this Divide is
        an arrangement, not a surrender, and the crowd knows the difference: the folder needs more
        to be worth the shame, the buyer will pay less for a win nobody watched him earn, and both
        are remembered for it (reputation.js: cold_alliance). Ruled strongly frowned upon. */
-    COLD_JOINER: 1.30,                  // [H] on the joiner's floor with no contact
-    COLD_PRINCIPAL: 0.85,               // [H] on the principal's ceiling with no contact
+    /* [H] §6 what the rest of the contest is worth to the OA giving it up: at the drop a
+       concession costs the buyer this much again, at the last day nothing extra. */
+    /* [H] §6 how heavily an OA weighs what a leaver ASKS against the odds his going buys it:
+       above 1 it is stingy, below 1 it buys peace cheaply. */
+    CONCESSION_ASK_WEIGHT: 1.0,                  // [H] on the joiner's floor with no contact
     /* §6.12 APPETITE — how much an OA wants to keep fighting THIS Divide, one number from what
        it knew going in and what has happened since: the board's demands, its interest in the
        planet's resources, its squads' health, its combats so far, and its strength now against
@@ -190,32 +177,21 @@
     APPETITE_COMBAT: 0.12,              // [H] at ±3 net fights won this Divide
     APPETITE_STRENGTH: 0.15,            // [H] at half or one-and-a-half the odds it dropped with
     APPETITE_FLOOR: 0.45, APPETITE_CAP: 1.8,
-    APPETITE_ON_CEILING: 0.15,          // [H] how much of appetite reaches the principal's ceiling
     /* §6.7 WHEN TO ACT. An OA offered whenever the numbers said yes. Now a patient OA with
        a live chance waits — for a better window, or for the field to thin — and an impatient or
        sinking one acts at once. */
-    ACT_FLOOR: 0.15,                    // [H] the least chance a viable OA acts in a window
     /* §6.8 PRINCIPALS REACH OUT. Nobody courted anyone: every deal began with a joiner. A
        principal now invites, each window, the OA whose joining would improve its odds most
        (measured: the spoiler — what an OA costs a banner by staying — is a body or so, ₡3k
        against gains of ₡150k, so it is not the trigger), at a little over what it guesses that
        OA's floor to be; the OA answers by its own arithmetic. */
-    INVITE_GAIN: 0.05,                  // [H] the join must lift the banner's expected take by this share, to bother
-    KIND_PREFERENCE: 1.25,              // [C] a site or category is asked in kind only when the joiner values it
                                         //     this much more than the banner does
-    INVITE_MARGIN: 0.08,                // [H] over the guessed floor, so a guess a little low still lands
-    INVITES_PER_WINDOW: 1,              // [S] a principal courts one OA a window
-    RESOURCE_FORECAST_SITES: 0.5,       // [C] how much of the still-open ground a banner expects to dig, scaled by its odds
     /* §4.2 THE SPOILER. An OA that stays out and keeps fighting costs the banner people. The
        share of the banner's expected losses this OA accounts for — its force against
        everything else still standing — is worth paying to take off the board, whatever the
        OA's own odds. This is a weak OA's leverage, and it was priced at nothing. */
-    SPOILER_ASK_BASE: 0.35,             // [C] §4.2b the share of its nuisance value a joiner asks for
-    SPOILER_ASK_GREED: 0.30,            // [C] and how much more a greedy one asks
-    SPOILER_WEIGHT: 0.60,               // [C] how much of the avoided losses the banner will pay for
     /* §4.3 A NAMED CLAIM: one revealed site, dug by the banner but banked to the joiner. Priced
        like a share of the haul — the site's units, discounted by the chance the banner digs it. */
-    CLAIM_FORECAST: 0.7,                // [C] the chance a banner digs a site it has claimed, scaled by its odds
     CAPTIVE_KEEP: 0.34, CAPTIVE_RELEASE: 0.42, CAPTIVE_KILL: 0.24,  // [C] base weights
 
     /* §6.2 THE PRINCIPAL IS A PARTY TO THE DEAL. Until this pass a joiner computed BOTH sides'
@@ -226,21 +202,15 @@
        and can ask too much; the principal answers, and shades its ceiling by two things beside
        the money — small things, by ruling: the money and the odds are the spine of the table,
        these are terms inside it. */
-    ESTIMATE_ERROR: 0.15,               // [H] half-width of a joiner's guess at a principal's ceiling
-    REFUSED_SHADE: 0.10,                // [C] how much a joiner lowers its ask after being refused
     /* §6.3 BEYOND THIS DIVIDE. An OA can be left out to dry: refuse its surrender and finish
        it, and next year it is paying pensions and replacing bodies while you are not. A
        principal counts a fraction of what finishing them would cost THEM against what taking
        them is worth — more the more aggressive and treacherous its culture, more with a grudge,
        nothing at all for an OA it is warm to. The joiner's expected losses are priced in the
        joiner's own real money, the same way the joiner prices them itself. */
-    SPITE_WEIGHT: 0.15,                 // [H] of the joiner's expected losses if refused
     /* §6.4 MERCY IS WORTH SOMETHING TOO. A traditional or kindly OA pays a little over the
        arithmetic to take a beaten rival in, and is remembered for it — by that OA, by its
        fans, by the fleet (reputation.js: spared, generous_terms, left_to_die). */
-    GOODWILL_WEIGHT: 0.06,              // [H] of the gain, at the most beaten, most traditional
-    GENEROUS_AT: 1.25,                  // [C] terms this far over the joiner's floor are remembered as generous
-    BEATEN_AT: 0.5,                     // [C] a joiner at under half the principal's odds is beaten
     RIVAL_PRICE: 0.20,                  // [C] what an OA's LIVING opinion of you moves its price, at ±100
     /* §6.14 what its own dealings with you came to, learned inside a career */
     DEAL_PAID_AT: 0.6,                  // [C] a joiner counts a deal paid when the take reaches this much of the promise
@@ -371,43 +341,7 @@
    * This is deliberately thin. The full model — standing with your own OA, with each rival's
    * fanbase, with the non-OA public, and with the Aleas — is its own system and is deferred.
    */
-  /**
-   * What the crowd charges you for quitting.
-   *
-   * REBUILT. This was a statistical instrument: a penalty proportional to your probability of
-   * winning. That is not how a crowd thinks, and it produced the wrong answer twice over — a
-   * full-strength corp on day one was charged almost nothing, because with eight banners
-   * nobody's odds look good; and a corp that took a sensible deal was treated as having done
-   * nothing much wrong.
-   *
-   * Fans never like a quitter. There is a floor under this whatever the circumstances
-   * (QUIT_BASELINE), and above the floor the charge is about INVESTMENT rather than
-   * arithmetic: how much of your force you still have, and how little of it you have spent
-   * trying. A "shot" is not a percentage — it is having one person left who could still win
-   * it. A team that walks off at nil-nil is not forgiven because the bookmakers had them at
-   * 12%; a team that loses nine players and then concedes is.
-   *
-   * There is no calendar term any more. Day-one folding is punished because a day-one corp is
-   * untouched and has spent nothing, which is the same statement made honestly.
-   */
-  function foldPenalty(pWin, day, lastDay, standDown, opts) {
-    opts = opts || {};
-    const left = opts.intact != null ? opts.intact : 1;      /* still on their feet */
-    const bled = opts.bled != null ? opts.bled : 0;          /* lost for good */
-    const fought = opts.fought != null ? opts.fought : 0;    /* fights taken, normalised */
 
-    const invested = Math.max(0, Math.min(1, 1.15 * bled + 0.55 * fought));
-    const throwing = 0.55 * left + 0.45 * (1 - invested);
-
-    let pen = CONST.FOLD_BASE * (CONST.QUIT_BASELINE + (1 - CONST.QUIT_BASELINE) * throwing);
-    if (standDown) pen *= CONST.STAND_DOWN_LENIENCY;
-    return pen;
-  }
-
-  /** The cost of buying a win rather than earning it. Real, and smaller. */
-  function buyPenalty(share, leadFraction) {
-    return CONST.BUY_BASE * share * (0.5 + leadFraction);
-  }
 
   /* ------------------------------------------------------------------ */
   /* §5.3 valuation, §6 the table                                        */
@@ -420,19 +354,6 @@
 
   const dial = (c, k) => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
 
-  /**
-   * §10 — what being seen doing this costs THIS corp right now, as a multiplier on its price
-   * and a wall past which it will not deal. There is deliberately no credit figure in here.
-   *
-   * A corp with no reputation record is a caller that has not opened one (a bare unit test);
-   * it gets a neutral answer rather than an exception, but the day loop always supplies one.
-   */
-  function seenDoing(corp, actType, ctx) {
-    if (!corp.rep || !REP) return { damage: 0, tolerance: 1, ratio: 0, wall: false, premium: 1 };
-    return REP.priceOfBeingSeen(corp.rep, actType, ctx,
-                                (corp.profile && corp.profile.dials) || null,
-                                corp.goalAtRisk || 0);
-  }
 
   /* §5.3 — STANCE IS NOT APPLIED HERE, and the reason is a correction worth keeping.
      
@@ -460,30 +381,7 @@
    * its own banner to the end. Bodies on their feet, times the share of them the rest of the
    * Divide takes, times what this corp thinks a body is worth.
    */
-  /**
-   * §10.3 — what ONE of this corp's people costs it, in money the ledger actually pays.
-   * No universal figure: a corp fielding expensive mercenaries loses more per body than a
-   * corp fielding Natties, and that is a real difference the deleted constant flattened.
-   */
-  function bodyMoney(corp) {
-    let n = 0, sum = 0;
-    for (const b of corp.allBodies) {
-      const c = b.contract || {};
-      sum += (c.death_benefit || 0) + (c.signing_cost || 0) * (1 + CONST.REPLACEMENT_SIGNING);
-      n++;
-    }
-    return n ? sum / n : 0;
-  }
 
-  function expectedLosses(corp, day, lastDay, pWin, relief) {
-    let standing = 0;
-    for (const b of corp.allBodies) if (b.status === 'active') standing++;
-    const daysLeft = Math.max(0, lastDay - day);
-    /* Everyone who stays meets the last ground; how badly depends on who is winning. */
-    const frac = CONST.ATTRITION_PER_DAY * daysLeft + CONST.CRUSH_ATTRITION * (1 - pWin);
-    const mult = STANCE_LIFE_MULT[corp.policy] != null ? STANCE_LIFE_MULT[corp.policy] : 1;
-    return standing * Math.min(1, frac) * (1 - (relief || 0)) * bodyMoney(corp) * mult;
-  }
 
   function relationship(a, b) {
     const rs = (a.profile && a.profile.relationships) || [];
@@ -547,16 +445,7 @@
      since. Dead code that reads like live design is worse than no code at all — someone
      reasoning about how a joiner is valued would have read the wrong function. */
 
-  /** What fraction of its banner's take this corp actually keeps, after its own signatories. */
-  function chainShare(corp, ctx) {
-    const owed = (ctx.owedBy && ctx.owedBy(corp)) || 0;
-    return Math.max(0, 1 - owed);
-  }
 
-  /** N4 — a cut of a cut. What the principal receives is already diluted by ITS own joins. */
-  function chainDilution(principal, ctx) {
-    return chainShare(principal, ctx);
-  }
 
   /* ------------------------------------------------------------------ */
   /* §6 forming and answering an offer                                   */
@@ -579,129 +468,6 @@
    * that scores an AI's. If they ran down separate paths the claim that a reasonable offer
    * gets a reasonable answer would be untestable, which it was until now.
    */
-  function offerRange(joiner, principal, ctx) {
-    if (joiner === principal || joiner.id === principal.id) return null;
-    if (joiner.joinedTo || joiner.disqualified || principal.disqualified) return null;
-    if (ctx.sealed(joiner) || ctx.sealed(principal)) return null;              /* N11 */
-    if (ctx.principalOf(principal).id === ctx.principalOf(joiner).id) return null;  /* N4 */
-    if (refusesOutright(joiner, principal)) return null;
-
-    const pot = ctx.pot;
-    const jP = ctx.principalOf(joiner), pP = ctx.principalOf(principal);
-    const oddsNow = ctx.odds[jP.id] || 0;
-    const oddsPrincipal = ctx.odds[pP.id] || 0;
-    const oddsJoined = ctx.oddsWithJoin(joiner, principal);
-
-    const standDown = wantsStandDown(joiner, ctx);
-    const stayLosses = expectedLosses(joiner, ctx.day, ctx.lastDay, oddsNow, 0);
-    const joinLosses = expectedLosses(joiner, ctx.day, ctx.lastDay, oddsJoined,
-      standDown ? CONST.STANDDOWN_ATTRITION_RELIEF : CONST.JOIN_ATTRITION_RELIEF);
-    const stayValue = oddsNow * pot * chainShare(joiner, ctx) - stayLosses + joinLosses;
-
-    let standingNow = 0, gone = 0, everyone = 0;
-    for (const b of joiner.allBodies) {
-      everyone++;
-      if (b.status === 'active') standingNow++;
-      else if (b.status === 'dead' || b.status === 'retired') gone++;
-    }
-    /* §10.2 — the fold penalty no longer becomes credits. It becomes a SCALE: how much of
-       what you had you are throwing away, which is what the audiences react to and what
-       `reputation.js` prices as ugliness. */
-    const foldScale = Math.min(1, foldPenalty(oddsNow, ctx.day, ctx.lastDay, standDown, {
-      intact: everyone ? standingNow / everyone : 1,
-      bled: everyone ? gone / everyone : 0,
-      fought: Math.min(1, (joiner.engagements || 0) / 8)
-    }) / CONST.FOLD_BASE);
-    const seenJ = seenDoing(joiner, standDown ? 'stood_down' : 'ceded', { scale: foldScale });
-    if (seenJ.wall) TELEMETRY.wallsSeller++;
-    /* §5.3a — greed, by culture. Aggression wants the whole planet; thrift hates being on
-       the paying side of anything. Neither was reaching the table before. */
-    const greedOf = c => 0.60 + 0.50 * dial(c, 'aggression') + 0.30 * dial(c, 'thrift');
-    const jGreed = greedOf(joiner), pGreed = greedOf(principal);
-
-    const aggressionHold = 1 + 0.55 * dial(joiner, 'aggression');
-    let relPrice = priceModifier(joiner, principal);
-    /* `pact_reputation_up` — a corp known for keeping its word is dealt with more generously,
-       so its asking price is met rather than haggled down. */
-    if (ctx.hasHook && ctx.hasHook(joiner, 'pact_reputation_up')) relPrice *= 0.92;
-    /* §10.2 — the premium MULTIPLIES the asking price rather than adding a converted
-       reputation cost to it. And a corp always asks for something: nobody hands over a claim
-       for nothing, however hopeless the position, which is the floor the additive penalty
-       used to supply. */
-    const expectedTake0 = Math.max(1, oddsJoined * pot * chainDilution(principal, ctx));
-    if (stayValue * aggressionHold < expectedTake0 * CONST.MIN_ASK_FRAC) TELEMETRY.floorBinds++;
-    TELEMETRY.valuations++;
-    const keep = chainDilution(principal, ctx);
-    /* §4.2 the spoiler: what the banner would lose to this OA staying in the fight */
-    let spoiler = 0;
-    if (ctx.umbrellas) {
-      const fJ = corpForce(joiner), fP = corpForce(principal);
-      let fAll = 0;
-      for (const u of ctx.umbrellas) for (const m of u.members) fAll += corpForce(m);
-      const others = Math.max(1e-6, fAll - fP);
-      spoiler = expectedLosses(principal, ctx.day, ctx.lastDay, oddsPrincipal, 0) * Math.min(1, fJ / others) * CONST.SPOILER_WEIGHT;
-    }
-    /* §4.2b A JOINER KNOWS WHAT IT IS WORTH AS A NUISANCE. The spoiler was in the banner's
-       ceiling — what it would pay to stop bleeding — and in nothing the joiner asked for, so a
-       OA that could see it was costing a banner a fortune sold itself on its own odds alone
-       and left the whole of that money on the table. A joiner asks for a share of it, more of a
-       share the harder it holds out. */
-    const nuisance = spoiler * (CONST.SPOILER_ASK_BASE + CONST.SPOILER_ASK_GREED * jGreed);
-    const bareMin = Math.max(stayValue * aggressionHold, expectedTake0 * CONST.MIN_ASK_FRAC) + nuisance;
-    /* §6.10 have these two actually met on the ground? */
-    const touch = ctx.contact ? ctx.contact(joiner, principal) : null;
-    const cold = !!(touch && touch.fights === 0 && !touch.huntedBy && !touch.hunting && ctx.day > 1);
-    /* §6.12 how much each side wants to keep fighting */
-    const jApp = appetite(joiner, ctx), pApp = appetite(principal, ctx);
-    const joinerMin = bareMin * relPrice * (1 + CONST.GREED_HOLDOUT * jGreed) * seenJ.premium
-                    * (cold ? CONST.COLD_JOINER : 1) * jApp.value;
-    const gain = (oddsJoined - oddsPrincipal) * pot * keep + spoiler;
-    const buyScale = Math.min(1, buyPenalty(0.30, Math.max(0, oddsPrincipal - oddsNow))
-                                 / (CONST.BUY_BASE * 0.30 * 1.5));
-    const seenP = seenDoing(principal, 'bought_win', { scale: buyScale });
-    if (seenP.wall) TELEMETRY.wallsBuyer++;
-    /* And the buyer is no more generous. A corp that can see you are finished pays you like
-       it: the worse your position, the harder they squeeze. */
-    const overMatch = Math.max(0, Math.min(1, 1 - oddsNow / Math.max(1e-6, oddsPrincipal)));
-    /* §6.3 the value of leaving them out to dry: a fraction of what finishing them costs THEM,
-       by the principal's culture and its history with them. Warmth cancels it. */
-    const rel = relationship(principal, joiner);
-    const grudge = rel && HOSTILE.indexOf(rel) >= 0 ? 1.5 : rel && WARM.indexOf(rel) >= 0 ? 0 : 1;
-    const livingP = livingRegard(joiner, principal);          /* how THEY feel about the principal */
-    const soured = livingP != null && livingP < 0 ? 1 + Math.min(0.5, -livingP / 200) : 1;
-    const spite = stayLosses * CONST.SPITE_WEIGHT
-                * ((dial(principal, 'aggression') + dial(principal, 'treachery')) / 2) * grudge * soured;
-    /* §6.4 and what mercy is worth to an OA that values it: a little over the arithmetic for
-       a beaten rival, more the more traditional the OA and the warmer the history */
-    const beaten = oddsNow < oddsPrincipal * CONST.BEATEN_AT ? 1 : 0;
-    const goodwill = gain * CONST.GOODWILL_WEIGHT * dial(principal, 'tradition')
-                   * (rel && WARM.indexOf(rel) >= 0 ? 1.5 : 1) * overMatch * beaten;
-    const principalMax = (gain * (1 - CONST.GREED_MERCY * pGreed * overMatch) / seenP.premium - spite + goodwill)
-                       * (cold ? CONST.COLD_PRINCIPAL : 1)
-                       * (1 + CONST.APPETITE_ON_CEILING * (pApp.value - 1));
-    const expectedTake = Math.max(1, oddsJoined * pot * keep);
-
-    return {
-      oddsNow, oddsPrincipal, oddsJoined,
-      resources: resourceRates(joiner, principal, ctx),
-      claims: claimRates(joiner, principal, ctx),
-      spoiler: Math.round(spoiler), nuisance: Math.round(nuisance),
-      spite: Math.round(spite), goodwill: Math.round(goodwill), beaten: !!beaten, cold: cold, contact: touch,
-      appetite: { joiner: Math.round(jApp.value * 100) / 100, principal: Math.round(pApp.value * 100) / 100, why: jApp.why },
-      stayValue: Math.round(stayValue),
-      stayLosses: Math.round(stayLosses), joinLosses: Math.round(joinLosses),
-      joinerMin: Math.round(joinerMin), principalMax: Math.round(principalMax),
-      expectedTake: Math.round(expectedTake), gain: Math.round(gain),
-      relPrice, standDown,
-      /* §10.2 the wall: past what a corp can afford to be hated for, no price is enough.
-         This is where the corp that will not deal at all lives — the far end of one scale
-         rather than a flag on a profile. */
-      seller: seenJ, buyer: seenP,
-      /* counted so a guard can prove the wall is reachable, not decorative */
-      wall: seenJ.wall ? 'seller' : seenP.wall ? 'buyer' : null,
-      viable: gain > 0 && joinerMin <= principalMax && !seenJ.wall && !seenP.wall
-    };
-  }
 
   /** What a set of terms is actually worth to the joiner, in credits. */
   /* §4.1 what a category is worth to an OA, per unit banked, in credits */
@@ -716,50 +482,7 @@
     });
     return w * CONST.HAUL_VALUE;
   }
-  /* what a banner can expect to have banked in a category by the end: what it holds now,
-     plus the open ground of that category discounted by its odds */
-  function expectedBank(corp, category, ctx) {
-    let units = ((corp._banked || {})[category] || 0);
-    const planet = ctx.planet;
-    if (planet && ctx.categoryOf) {
-      const pOdds = ctx.odds[ctx.principalOf(corp).id] || 0;
-      let open = 0;
-      for (const o of planet.objectives || []) {
-        if (o.type !== 'resource_site' || o.looted || !o.resource) continue;
-        if (ctx.categoryOf(o.resource) !== category) continue;
-        open += Math.round(o.potency || 1);
-      }
-      units += open * pOdds * CONST.RESOURCE_FORECAST_SITES;
-    }
-    return units;
-  }
-  /* the credit value of a 100% share of the principal's haul in each category, to each side */
-  function resourceRates(joiner, principal, ctx) {
-    const out = {};
-    for (const cat of (ctx.categories || ['minerals', 'fuels', 'luxuries', 'foods'])) {
-      const units = expectedBank(principal, cat, ctx);
-      out[cat] = { units: Math.round(units * 10) / 10,
-                   joiner: Math.round(units * wantOf(joiner, cat)),
-                   principal: Math.round(units * wantOf(principal, cat)) };
-    }
-    return out;
-  }
   /* §4.3 the value of each revealed, undug site as a claim, to each side */
-  function claimRates(joiner, principal, ctx) {
-    const out = {};
-    const planet = ctx.planet;
-    if (!planet || !ctx.categoryOf) return out;
-    const pOdds = ctx.odds[ctx.principalOf(principal).id] || 0;
-    for (const o of planet.objectives || []) {
-      if (o.type !== 'resource_site' || !o.revealed || o.looted || !o.resource) continue;
-      const cat = ctx.categoryOf(o.resource); if (!cat) continue;
-      const units = Math.round(o.potency || 1) * pOdds * CONST.CLAIM_FORECAST;
-      out[o.id] = { resource: o.resource, category: cat, units: Math.round(units * 10) / 10,
-                    joiner: Math.round(units * wantOf(joiner, cat)),
-                    principal: Math.round(units * wantOf(principal, cat)) };
-    }
-    return out;
-  }
   function termsValue(terms, range, side) {
     let v = (terms.share || 0) * range.expectedTake + (terms.credits || 0);
     const rates = range.resources || {};
@@ -780,93 +503,11 @@
    * arithmetic, and a refusal that says WHICH side was short and by how much, because "no"
    * with no number attached is useless to a manager and hides bugs from us.
    */
-  function evaluateOffer(joiner, principal, terms, ctx) {
-    const range = offerRange(joiner, principal, ctx);
-    if (!range) return { accepted: false, reason: 'no_deal_possible', range: null };
-    if (range.gain <= 0) {
-      return { accepted: false, reason: 'no_gain', range,
-               note: 'adding them does not improve the banner\'s chances' };
-    }
-    /* TWO READINGS OF ONE OFFER: what it is worth to the joiner, what it costs the principal.
-       Credits and the cut read the same to both; a share of the haul does not, and that
-       asymmetry is where a deal in kind finds room that a deal in credits cannot. */
-    const value = termsValue(terms, range, 'joiner');
-    const cost = termsValue(terms, range, 'principal');
-    if (value < range.joinerMin) {
-      return { accepted: false, reason: 'too_little_for_joiner', range, value: Math.round(value),
-               short: Math.round(range.joinerMin - value),
-               note: 'they would rather take their chances' };
-    }
-    /* a MANAGER may be generous past his own arithmetic — that is his to decide, and the
-       audiences remember it (§6.4); the crowd's wall still stands above him */
-    if (cost > range.principalMax && !ctx.humanPrincipal) {
-      return { accepted: false, reason: 'too_much_for_principal', range, value: Math.round(value),
-               over: Math.round(cost - range.principalMax),
-               note: 'the banner would be paying more than the help is worth' };
-    }
-    /* AN ACCEPTED OFFER MUST BE A DEAL, not a verdict about one. This returned only
-       `{accepted, range, value}` — no share, no credits, no standDown, no day — so a human's
-       accepted offer produced an object the settlement could not read, and pushing it onto
-       `stats.deals` would have put a hole in the ledger that showed up seasons later as a
-       banner owed nothing by somebody who joined it. The AI's path builds a full deal; so does
-       this one, from the same fields, so the two are indistinguishable downstream. */
-    return {
-      accepted: true, range, value: Math.round(value),
-      deal: {
-        joiner: joiner.id, principal: principal.id,
-        share: Math.max(0, Math.min(0.95, terms.share || 0)),
-        credits: Math.max(0, Math.round(terms.credits || 0)),
-        standDown: !!terms.standDown,
-        resources: cleanResources(terms.resources),
-        claims: (terms.claims || []).filter(id => typeof id === 'string'),
-        debt: terms.debt || 0,
-        day: ctx.day, kind: terms.standDown ? 'stand_down' : 'join',
-        why: { human: true }
-      }
-    };
-  }
 
   /**
    * The AI's own offer. Finds the range, then picks a point inside it — patience holds out
    * for better, thrift pushes percentage rather than cash.
    */
-  function considerJoin(rng, joiner, principal, ctx) {
-    const range = offerRange(joiner, principal, ctx);
-    if (!range) return null;
-    if (range.gain <= 0) return null;
-    if (!range.viable) {
-      if (ctx.refusals) ctx.refusals.push({
-        joiner: joiner.id, principal: principal.id, day: ctx.day, why: range,
-        short: Math.round(range.joinerMin - range.principalMax)
-      });
-      return null;
-    }
-
-    const jPull = 0.5 + CONST.PATIENCE_HOLDOUT * ((joiner.profile.dials.patience || 50)
-                                                - (principal.profile.dials.patience || 50));
-    const t = Math.max(0.05, Math.min(0.95, jPull));
-    /* §6.2 THE JOINER GUESSES THE CEILING. It cannot read the principal's greed, its spite or
-       its goodwill; it has a picture of the banner's gain and an error around it, drawn once
-       per pair per Divide so an OA is consistently over- or under-confident about one
-       banner rather than rolling a new guess every window. Refused, it comes down. */
-    joiner._guess = joiner._guess || {};
-    if (joiner._guess[principal.id] == null) joiner._guess[principal.id] = (rng() * 2 - 1) * CONST.ESTIMATE_ERROR;
-    const refused = (joiner._refusedBy && joiner._refusedBy[principal.id]) || 0;
-    const guessMax = range.principalMax * (1 + joiner._guess[principal.id]) * Math.pow(1 - CONST.REFUSED_SHADE, refused);
-    const value = Math.max(range.joinerMin, range.joinerMin + (guessMax - range.joinerMin) * t);
-
-    /* §6.16 refused, it comes back DIFFERENT as well as lower: the first ask is in whatever
-       form the values favour; the second drops the terms in kind and asks in share and cash;
-       the third offers to stand its people down — cheaper for the banner, safer for them */
-    const terms = composeTerms(joiner, principal, value, range, refused);
-    if (!terms) return null;
-    const deal = makeDeal(joiner, principal, terms.share, terms.credits, terms.standDown, ctx,
-                          terms.credits > 0 && terms.share <= 0.001 ? 'flat' : 'share');
-    if (terms.resources.length) { deal.resources = terms.resources; deal.resource = terms.resources[0].category; }
-    if (terms.claims.length) deal.claims = terms.claims;
-    deal.why = Object.assign({}, range, { value: Math.round(value), guessMax: Math.round(guessMax), variant: refused });
-    return deal;
-  }
 
   /**
    * §6.5 COMPOSE THE TERMS for a value the joiner wants, in the form that costs the principal
@@ -875,37 +516,6 @@
    * credits by how badly the joiner wants cash (thrifty principals pay none); the balance in
    * a share of the take. Returns { share, credits, resources, claims } or null.
    */
-  function composeTerms(joiner, principal, value, range, variant) {
-    let need = value;
-    const claims = [], resources = [];
-    const ratio = (j, p) => j / Math.max(1, p);
-    variant = variant || 0;
-    const inKind = variant % 3 !== 1;                     /* the second try asks in share and cash */
-    const standDown = variant % 3 === 2 ? true : range.standDown;   /* the third offers to go home */
-    /* a NAMED SITE the joiner wants more than the banner does */
-    if (inKind) Object.keys(range.claims || {})
-      .map(id => [id, range.claims[id]])
-      .filter(([, c]) => c.joiner > 0 && c.joiner >= c.principal * CONST.KIND_PREFERENCE)
-      .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
-      .forEach(([id, c]) => { if (c.joiner <= need * 1.1) { claims.push(id); need -= c.joiner; } });
-    /* a CUT IN KIND, in the category it is shortest of, sized to the need, capped */
-    if (inKind) Object.keys(range.resources || {})
-      .map(cat => [cat, range.resources[cat]])
-      .filter(([, r]) => r && r.units > 0 && r.joiner > 0 && r.joiner >= r.principal * CONST.KIND_PREFERENCE)
-      .sort((a, b) => ratio(b[1].joiner, b[1].principal) - ratio(a[1].joiner, a[1].principal))
-      .slice(0, 1)
-      .forEach(([cat, r]) => {
-        const share = Math.min(CONST.RESOURCE_AI_SHARE, Math.max(0, need) / r.joiner);
-        if (share > 0.02) { resources.push({ category: cat, share: Math.round(share * 100) / 100, when: 'always' }); need -= share * r.joiner; }
-      });
-    need = Math.max(0, need);
-    const wantsCash = (1 - dial(joiner, 'patience')) * 0.5 + (1 - range.oddsJoined) * 0.5 + (variant % 3 === 1 ? 0.2 : 0);
-    const cashFraction = dial(principal, 'thrift') > 0.55 ? 0 : Math.max(0, Math.min(0.6, wantsCash - 0.35));
-    const credits = Math.round(need * cashFraction);
-    const share = Math.max(0, Math.min(0.90, (need - credits) / Math.max(1, range.expectedTake)));
-    if (share <= 0.001 && credits <= 0 && !claims.length && !resources.length) return null;
-    return { share, credits, resources, claims, standDown: standDown };
-  }
 
   /**
    * §6.6 RANK THE BANNERS a joiner might approach: each viable banner's value to it at its
@@ -913,41 +523,11 @@
    * best first; non-viable banners are still returned last, scored zero, so a refusal is
    * recorded for the one the joiner would most have wanted.
    */
-  function rankBanners(joiner, umbrellas, ctx) {
-    const myP = ctx.principalOf(joiner).id;
-    const board = umbrellas.filter(u => u.principal.id !== myP);
-    const favourite = board.slice().sort((a, b) => (ctx.odds[b.principal.id] || 0) - (ctx.odds[a.principal.id] || 0))[0];
-    const grudged = id => { const r = relationship(joiner, { id: id }); return r && HOSTILE.indexOf(r) >= 0; };
-    return board.map(u => {
-      const p = u.principal;
-      const range = offerRange(joiner, p, ctx);
-      if (!range || range.gain <= 0) return { principal: p, umbrella: u, score: 0, range: range };
-      const guess = (joiner._guess && joiner._guess[p.id]) || 0;
-      let score = Math.max(0, range.principalMax * (1 + guess) - range.joinerMin) + range.joinerMin;
-      /* §6.9 the OA on top of you first: fought, hunted by, beaten by */
-      const t = range.contact || {};
-      const contact = Math.min(1, (t.fights || 0) / 2) * 0.5 + (t.huntedBy ? 0.25 : 0) + Math.min(1, (t.lostTo || 0)) * 0.25;
-      score *= range.cold ? CONST.RANK_COLD : 1 + CONST.RANK_CONTACT * contact;
-      if (grudged(p.id)) score *= CONST.RANK_GRUDGE;
-      else if (favourite && favourite.principal.id !== p.id && grudged(favourite.principal.id)) score *= 1 + CONST.RANK_KINGMAKER;
-      if (!range.viable) score = 0;
-      return { principal: p, umbrella: u, score: score, range: range };
-    }).sort((a, b) => b.score - a.score);
-  }
 
   /**
    * §6.7 DOES THE OA ACT THIS WINDOW. Urgency is the worse of how far behind its banner is
    * and how late it is; patience holds it back while it still has a chance.
    */
-  function actsThisWindow(rng, joiner, ctx) {
-    const mine = ctx.odds[ctx.principalOf(joiner).id] || 0;
-    const best = Math.max.apply(null, Object.keys(ctx.odds).map(k => ctx.odds[k]).concat([1e-6]));
-    const behind = 1 - Math.min(1, mine / Math.max(1e-6, best));
-    const late = ctx.lastDay ? Math.min(1, ctx.day / ctx.lastDay) : 1;
-    const urgency = Math.max(behind, late);
-    const p = Math.max(CONST.ACT_FLOOR, Math.min(1, 0.35 + 0.65 * urgency - 0.3 * (dial(joiner, 'patience') - 0.5) * (1 - urgency) * 2));
-    return rng() < p;
-  }
 
   /**
    * §6.8 A PRINCIPAL INVITES an OA that is costing it: when the OA's spoiler value to the
@@ -1027,30 +607,7 @@
     return { value: a, why: why };
   }
 
-  /* §6.9 how much a banner has had to do with an OA, 0..1, from the banner's side: fought,
-     hunting it, beating it */
-  function contactScore(range) {
-    const t = (range && range.contact) || {};
-    return Math.min(1, (t.fights || 0) / 2) * 0.5 + (t.hunting ? 0.25 : 0) + Math.min(1, (t.beat || 0)) * 0.25;
-  }
 
-  function considerInvite(rng, principal, joiner, ctx) {
-    const range = offerRange(joiner, principal, ctx);
-    if (!range || range.gain <= 0 || !range.viable) return null;
-    if (range.gain < CONST.INVITE_GAIN * range.expectedTake) return null;
-    principal._guessFloor = principal._guessFloor || {};
-    if (principal._guessFloor[joiner.id] == null) principal._guessFloor[joiner.id] = (rng() * 2 - 1) * CONST.ESTIMATE_ERROR;
-    const value = Math.min(range.principalMax,
-                           range.joinerMin * (1 + principal._guessFloor[joiner.id]) * (1 + CONST.INVITE_MARGIN));
-    const terms = composeTerms(joiner, principal, value, range);
-    if (!terms) return null;
-    const deal = makeDeal(joiner, principal, terms.share, terms.credits, range.standDown, ctx,
-                          terms.credits > 0 && terms.share <= 0.001 ? 'flat' : 'share');
-    if (terms.resources.length) { deal.resources = terms.resources; deal.resource = terms.resources[0].category; }
-    if (terms.claims.length) deal.claims = terms.claims;
-    deal.why = Object.assign({}, range, { value: Math.round(value), invited: true });
-    return deal;
-  }
 
   /**
    * §6.2 THE PRINCIPAL ANSWERS. Given a joiner's proposal, re-price it from the principal's
@@ -1058,73 +615,13 @@
    * A refusal is remembered by the joiner (it asks less next time) and, if the joiner is later
    * wiped, by everybody (`left_to_die`). Returns { accepted, reason, over, range, generous, beaten }.
    */
-  function considerTake(principal, joiner, deal, ctx) {
-    const range = offerRange(joiner, principal, ctx);
-    if (!range || range.gain <= 0) return { accepted: false, reason: 'no_gain', range };
-    if (range.buyer && range.buyer.wall) return { accepted: false, reason: 'crowd_wall', range };
-    const terms = { share: deal.share, credits: deal.credits, standDown: deal.standDown,
-                    resources: deal.resources, claims: deal.claims };
-    const cost = termsValue(terms, range, 'principal');
-    const value = termsValue(terms, range, 'joiner');
-    if (cost > range.principalMax) {
-      joiner._refusedBy = joiner._refusedBy || {};
-      joiner._refusedBy[principal.id] = (joiner._refusedBy[principal.id] || 0) + 1;
-      return { accepted: false, reason: 'principal_refused', over: Math.round(cost - range.principalMax), range };
-    }
-    return { accepted: true, range, generous: value >= range.joinerMin * CONST.GENEROUS_AT, beaten: !!range.beaten };
-  }
 
-  /** §3.3 — a corp that wants its people home rather than a percentage. */
-  function wantsStandDown(joiner, ctx) {
-    const active = joiner.allBodies.filter(b => b.status === 'active').length;
-    const frac = active / Math.max(1, joiner.allBodies.length);
-    const careful = 1 - dial(joiner, 'aggression');
-    return frac < 0.45 && careful > 0.5;
-  }
 
-  function cleanResources(list) {
-    return (list || []).filter(t => t && t.category && t.share > 0).map(t => ({
-      category: t.category, share: Math.max(0, Math.min(0.95, t.share)),
-      when: t.when === 'win' ? 'win' : 'always' }));
-  }
-  function makeDeal(joiner, principal, share, credits, standDown, ctx, kind) {
-    /* N9 — debts after the games ride only as a clause inside a joining deal. */
-    let debt = null;
-    if (kind === 'share' && share > 0.20 && ctx.rng && ctx.rng() < 0.25) {
-      debt = { fighters: 1 + Math.floor(ctx.rng() * 3) };
-    }
-    return {
-      joiner: joiner.id, principal: principal.id,
-      share: Math.max(0, Math.min(0.95, share)),
-      credits: Math.max(0, Math.round(credits || 0)),
-      standDown: !!standDown,
-      resources: [],
-      claims: [],
-      debt: debt,
-      day: ctx.day, kind: kind
-    };
-  }
 
   /* ------------------------------------------------------------------ */
   /* §4 non-aggression pacts                                             */
   /* ------------------------------------------------------------------ */
 
-  /**
-   * WOULD THEY EVEN CONSIDER IT, and how likely are they to say yes? An interface that shows a
-   * manager a pact row has to know the answer without rolling for it, and the alternative —
-   * an interface guessing at the gate below — is two descriptions of one rule that agree until
-   * one of them is edited. Returns the deterministic part and the actual probability.
-   */
-  function pactViability(a, b, ctx) {
-    if (ctx.sealed(a) || ctx.sealed(b)) return { possible: false, why: 'they do not deal', p: 0 };
-    if (ctx.principalOf(a).id === ctx.principalOf(b).id)
-      return { possible: false, why: 'same banner', p: 0 };
-    const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
-    if (oa >= ob) return { possible: false, why: 'you are doing better than they are', p: 0 };
-    const want = (ob - oa) * (1 - dial(a, 'aggression'));
-    if (want < 0.05) return { possible: false, why: 'too close to be worth their while', p: 0 };
-    return { possible: true, p: Math.max(0, Math.min(1, 0.35 + 0.4 * dial(b, 'thrift'))) };
-  }
 
   /**
    * §4.1 THE CHANCE OF A PACT, for a manager's offer. Nothing here is impossible short of a
@@ -1258,25 +755,9 @@
   /* ------------------------------------------------------------------ */
 
   /** N17 — a corp may break a deal out of spite, against its own interest. */
-  function considerBetrayal(rng, corp, target, ctx) {
-    if (!corp.joinedTo && !target.joinedTo) return false;
-    if (ctx.principalOf(corp).id !== ctx.principalOf(target).id) return false;
-    const d = relationship(corp, target);
-    const grudge = HOSTILE.indexOf(d) >= 0 ? 1 : 0.25;
-    const p = CONST.SPITE_P * dial(corp, 'treachery') * grudge;
-    return rng() < p;
-  }
 
   /** The Aleas rules on it. Being in good odour buys you what an unpopular corp cannot. */
-  function disqualificationRoll(rng, corp, aleasStanding) {
-    const p = CONST.DQ_BASE - CONST.DQ_STANDING * Math.max(0, Math.min(1, aleasStanding));
-    return rng() < p;
-  }
 
-  /** Placeholder until Step 9 makes this earnable and bribable. */
-  function aleasStandingOf(corp) {
-    return Math.max(0, Math.min(1, 0.35 + 0.5 * dial(corp, 'tradition') - 0.45 * dial(corp, 'treachery')));
-  }
 
   /* ------------------------------------------------------------------ */
   /* §10.3 settlement                                                    */
@@ -1304,7 +785,9 @@
       (byPrincipal[d.principal] = byPrincipal[d.principal] || []).push(d);
     }
     const lines = [];
-    const rootOf = id => { const c = corps.find(x => x.id === id); return c && c.joinedTo ? rootOf(c.joinedTo) : id; };
+    /* §WITHDRAWAL nobody stands under anybody: an OA that conceded took its people off the
+       planet, it did not become part of the buyer. Every corp answers for itself. */
+    const rootOf = id => id;
     const paid = {};
     function payChain(pid) {
       if (paid[pid]) return; paid[pid] = true;
@@ -1342,18 +825,13 @@
        is settled here is the second half of it: the fleet buys whatever an OA does not need
        at the going rate, and that is the money on this line. The stores are filled from
        `banked` at the season's close, not here; this is the sale, not the haul. */
-    let haulPaid = 0;
-    for (const c of corps) {
-      const v = (c.hauled || 0) * CONST.HAUL_VALUE;
-      if (v > 0) { take[c.id] += v; haulPaid += v; lines.push({ corp: c.id, kind: 'haul', amount: v, units: c.hauled || 0 }); }
-    }
-    if (winnerId != null) {
-      const unclaimed = (opts.unclaimedHaul || 0) * CONST.HAUL_VALUE;
-      if (unclaimed > 0) {
-        take[winnerId] += unclaimed;
-        lines.push({ corp: winnerId, kind: 'haul_unclaimed', amount: unclaimed });
-      }
-    }
+    /* §PRIZE THE HAUL IS NOT SOLD HERE ANY MORE. It paid every dug unit in credits at the
+       settlement AND stored it in the digger's holds, so a site paid twice for one haul; and it
+       paid the winner the credit value of every UNDUG site on top of the pot, which the pot's
+       resources now carry instead. What is dug goes to the digger's stores, and only what a
+       full store cannot hold is sold on — at the season's close, where the holds are (see
+       reputation.js `fillHolds`). */
+    const haulPaid = 0;
 
     if (winnerId == null) {
       return { lines: lines, take: take, pot: pot, winnerId: null, paidFromPot: 0, bonuses: {} };
@@ -1375,9 +853,23 @@
       if (paid[pid]) return; paid[pid] = true;
       const list = (byPrincipal[pid] || []).slice().sort((a, b) => a.day - b.day);
       for (const d of list) {
+        /* §WITHDRAWAL (stage 3) A CONCESSION IS PAID, NOT WAGERED. Under the old deal the loser
+           fought on under the buyer's flag, so being paid a share of what the buyer won was
+           right: it was on their side. A withdrawal is the opposite — the ground was conceded
+           and the people went home — so the CREDITS agreed are a debt owed for that ground and
+           are paid first, before any share of winnings. Paying them last made a concession a
+           wager on the buyer: measured, two of three withdrawing OAs were paid NOTHING because
+           their buyer did not win, which is also part of why the price is wrong. */
         const held = take[pid];
-        const shareAmt = Math.round(held * d.share);
-        const cash = Math.min(d.credits, Math.max(0, take[pid] - shareAmt));
+        let cash, shareAmt;
+        if (d.withdraws) {
+          cash = Math.min(d.credits, Math.max(0, held));
+          shareAmt = Math.round(Math.max(0, held - cash) * d.share);
+          if (cash < d.credits) lines.push({ corp: pid, kind: 'owed', amount: -(d.credits - cash), to: d.joiner });
+        } else {
+          shareAmt = Math.round(held * d.share);
+          cash = Math.min(d.credits, Math.max(0, take[pid] - shareAmt));
+        }
         const amt = shareAmt + cash;
         if (amt <= 0) continue;
         take[pid] -= amt; take[d.joiner] += amt;
@@ -1425,12 +917,9 @@
 
   const api = {
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard,
-    foldPenalty, buyPenalty, priceModifier, relationship, bodyMoney, seenDoing, TELEMETRY,
-    considerJoin, considerTake, considerInvite, composeTerms, rankBanners, actsThisWindow, contactScore, livingRegard, appetite, bodyWorth, offerRange, evaluateOffer, termsValue, considerPact, pactViability, pactChance, wantsStandDown,
-    wantOf, resourceRates, settleHaul,
+    corpForce, believedForce, oddsBoard, priceModifier, relationship, TELEMETRY, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
+    wantOf, settleHaul,
     ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
-    considerBetrayal, disqualificationRoll, aleasStandingOf,
     settle
   };
   if (isNode) module.exports = api;

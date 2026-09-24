@@ -54,11 +54,17 @@ const CONST = {
    */
   TEMPO: { single_shot: 0.5, burst: 2.0, suppressive: 1.6, suppressive_2: 2.4 },
   TEMPO_DEFAULT: 1.0,                     // [S]
-  TEMPO_AIM: 5.0,                         // [C] aim swing between the most deliberate and the loosest
+  TEMPO_AIM: 50,                         // [C] aim swing between the most deliberate and the loosest
   TEMPO_PIERCE: 1.6,                      // [C] protection a deliberate weapon defeats, per point under rate
 
   /* §3.5 shot resolution */
-  HIT_SLOPE: 0.04,                        // [C]
+  HIT_SLOPE: 0.004, HIT_PIVOT: 100,
+  /* §ONE AIM what a trait adds to a shot, in AIM ON THE SHEET — the same points a manager reads on
+     a fighter, and the same yardstick as the quirks ("+15 is where a person starts to feel it").
+     These were bare numbers in aimEff, written on the invisible copy's scale. */
+  TRAIT_AIM: { accuracy: 20, squadLink: 10, overwatch: 20, firstStrike: 30, firstShotLong: 40, optics: 10 },
+  FATIGUE_AIM_STEP: 10,                   // [C] aim lost per 25 fatigue, three steps at most
+  LIGHT_WOUND_AIM: 10,                    // [C] aim a light wound costs                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
   HIT_MIN: 0.04, HIT_MAX: 0.72,           // [C]
   /* WHAT YOUR EXPOSURE DOES TO A SHOT AT YOU. The open case used to be 1.00, which made it the
@@ -115,7 +121,7 @@ const CONST = {
      is false every time. Every concealed shot would have missed, silently, and fog would have
      measured as a penalty — the project has already lost a courting delay to exactly this and
      `audit_cross` was given a check for undeclared reads because of it. */
-  UNSPOTTED_AIM: 3,                                            // [H]
+  UNSPOTTED_AIM: 30,                                            // [H]
   BAND_HIT_MULT: [0.80, 1.00, 1.32],      // [C] §3.2 long / medium / short
   BAND_SEV_BONUS: [-7, 0, 6],             // [C] §3.2 lethality by band
   BAND_COMP_DRAIN: [0, -1, -2],           // [ABSTRACT] [C] §3.2 "composure collapses fast" at short
@@ -151,7 +157,7 @@ const CONST = {
   MOB_STEP: 1,                            // [ABSTRACT] [S] what mob_up / mob_down move a weapon's mobility by
 
   BAND_CLOSE_BIAS: 1.55,                  // [ABSTRACT] [C] closing is marginally easier than opening under fire
-  BAND_MISMATCH_PENALTY: 1.5,             // [S] per band off optimal — softened from 2 in Step 3b
+  BAND_MISMATCH_PENALTY: 15,             // [S] per band off optimal — softened from 2 in Step 3b
   /* A SPECIALIST IS SPECIALISED. On the grid, fights settle toward medium, so a medium-band
      weapon is in its element about half the time whatever happens while a long or short weapon
      is in its element only when it wins the argument about range. Measured, that put the three
@@ -160,7 +166,7 @@ const CONST = {
      A generalist should be ok all the time; a specialist should be good sometimes and bad
      sometimes, and this is what pays for the sometimes. Medium weapons get nothing: never
      being out of your element also means never being in it. */
-  BAND_SPECIALIST_BONUS: 2.5,             // [C] aim, for a long or short weapon at its own band
+  BAND_SPECIALIST_BONUS: 25,             // [C] aim, for a long or short weapon at its own band
   /* [C] AND THE SHORT SHELF IS PAID MORE FOR THE SAME THING, because it is not the same thing.
      A long weapon begins the fight in its own band — contact is made at range and it simply
      stands there. A short weapon has to CROSS GROUND under fire to reach its band, spend a
@@ -179,14 +185,14 @@ const CONST = {
      and +0.004 at 4, over 225 fights a cell across two populations. 6 is no better than 4.
      The original number was right and the change was wrong twice over: wrong resolver, and
      underpowered. */
-  SUPPRESSED_AIM_PENALTY: 4,
+  SUPPRESSED_AIM_PENALTY: 40,
   SUPPRESSED_HARDER_TO_HIT: 0.85,         // [C]
-  NIGHT_AIM_PENALTY: 2,                   // [OPEN-C1] proposed
+  NIGHT_AIM_PENALTY: 20,                   // [OPEN-C1] proposed
 
   /* §3.6 severity */
   SEV_POWER_MULT: 1.15,                   // [H] C12: retuned again in v1.2 (2 → 1.4 → 1.15)
   SEV_PROTECTION_MULT: 1.90,              // [H] C12: retuned again in v1.2 (3 → 2.0 → 1.65)
-  SEV_GRIT_DIVISOR: 2,                    // [H]
+  SEV_GRIT_DIVISOR: 20,                    // [H]
   SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 94.2 },  // [C] >critical = killed outright
 
   /* --- THE WOUND POOL (ruled) ---
@@ -208,7 +214,7 @@ const CONST = {
      drops against a ruling of about a quarter; the two are the same problem and are tuned
      together rather than one at a time. */
   HP_BASE: 7,                     // [H] a body's wound pool before grit
-  HP_PER_GRIT: 0.35,              // [H] what being hard to put down is worth
+  HP_PER_GRIT: 0.035,              // [H] what being hard to put down is worth
   DMG_PER_POINT: 6,               // [H] severity points above a graze per point of damage
   DMG_MIN: 1,                     // [S] a hit that lands does something
   HP_OVERKILL: 5,                 // [H] past empty, the round did not merely put them down
@@ -219,12 +225,12 @@ const CONST = {
 
   /* §3.7 downed */
   BLEED_SERIOUS: 6, BLEED_CRITICAL: 3,    // [ABSTRACT] [C] exchanges
-  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.02,  // [C]
+  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
   /* MEDKIT_RATE deleted at Step 5b-2: whether a squad has medical kit is no longer a
      coin flip, it is whether somebody bought one and is carrying it (PROCUREMENT.md §10). */
 
   /* §4 composure */
-  COMP_BASE: 30, COMP_MORALE: 0.20, COMP_RESOLVE: 2.0,          // [C]
+  COMP_BASE: 30, COMP_MORALE: 0.20, COMP_RESOLVE: 0.2,          // [C]
   COMP_STRESS: 0.20,   // [C] persistent stress costs composure: at the cap of 100 it costs
                        //     what a serious wound costs (-20) — the fought-out break sooner.
                        //     Zero at zero, so a fresh world's fights are untouched.
@@ -235,7 +241,7 @@ const CONST = {
     nearMiss: -1.2, quiet: +4, cover: +7, enemyDown: +5
   },
   COMP_BANDS: { steady: 70, shaken: 45, rattled: 25 },           // [S]
-  AIM_PENALTY_BY_BAND: { steady: 0, shaken: 1, rattled: 3, broken: 5 },  // [S]
+  AIM_PENALTY_BY_BAND: { steady: 0, shaken: 10, rattled: 30, broken: 50 },  // [S]
   ROUT_SLOPE: 0.018, ROUT_MAX: 0.60, ROUT_THRESHOLD: 25,         // [ABSTRACT] [C] aligned to §4.3's broken band
   /* §6 energy weapons: heat inside the fight, charge across the day. A ballistic weapon
      is limited by supply; an energy weapon is limited by tempo. */
@@ -254,22 +260,12 @@ const CONST = {
   GRENADE_COVER_P: 0.16,                  // [C] each grade of cover this much less likely to matter
   SMOKE_EXCHANGES: 2,                     // [ABSTRACT] [S] how long a screen lasts
   STIM_COMPOSURE: 25,                     // [ABSTRACT] [C]
-  /* §10 `deploy` — a turret is not a body: it shoots, it cannot be routed, it is not a
-     casualty and it does not count toward a squad breaking. A drone does not shoot at all;
-     it takes the dark away from the people you are shooting at. */
-  TURRET_EXCHANGES: 4,                    // [ABSTRACT] [S]
-  TURRET_AIM: 9,                          // [ABSTRACT] [C] steady, unimaginative, never flinches
-  TURRET_COVER: 1,                        // [ABSTRACT] [C] emplaced, but a machine that cannot duck.
-                                          //     At hard cover nothing but an EMP could kill
-                                          //     one, which made it a consumable with no
-                                          //     counter — 2.60 inflicted against 1.40.
-  TURRET_HP: 2,                           // [ABSTRACT] [C] hits it takes before it stops working
-  TURRET_TARGET_P: 0.40,                  // [ABSTRACT] [C] share of fire that goes at the gun instead
-                                          //     of the people — it is the loudest thing there
-  TURRET_EMP_MULT: 3,                     // [ABSTRACT] [S] §4.2 `emp`: built to kill machines
-  DRONE_EXCHANGES: 4,                     // [ABSTRACT] [S] how long the sky stays lit
+  /* §DEVICES the abstract model's turret and drone constants lived here — designed, tuned and never
+     run once the grid replaced that resolver. The turret and the drone are the grid's now
+     (tactical.js, §DEVICES). Two ideas from this block are recorded in PROJECT.md for the grid's
+     turret: it can be shot and destroyed, and it draws fire, being the loudest thing there. */
   /* REMOVED in the Step 6 audit: SIDEARM_TIER_FLOOR. Declared, never read. */
-  MOTION_AIM_RECOVERY: 2,                 // [C] what `stabilized` gives back when firing on the move
+  MOTION_AIM_RECOVERY: 20,                 // [C] what `stabilized` gives back when firing on the move
   WITHDRAW_ROUT_MULT: 0.62,               // [ABSTRACT] [C] a called withdrawal is not a rout — bounding, not scattering
   CAPTAIN_STEADY_MAX: 0.72,               // [ABSTRACT] [C] floor on the multiplier a standing captain can apply
 
@@ -280,13 +276,6 @@ const CONST = {
   /* §8.1 (DIVIDE.md) captain judgment — replaces the deleted policy notch table.
      `own_down` is a COUNT, so HOLD_BASE is calibrated up from the spec's 1.4. */
   BASE_COVER_BIAS: 0.35,                  // [ABSTRACT] [C] was POLICY.coverBias; now flat (D1)
-  CAP_THREAT_DOWN: 1.0,                   // [C] per own fighter down
-  CAP_THREAT_COMPOSURE: 3.0,              // [C] × (1 − avg composure/100)
-  CAP_THREAT_AMMO: 2.0,                   // [C] × dry fraction
-  CAP_THREAT_RATIONS: 1.0,                // [C] starving squads leave sooner
-  CAP_THREAT_ENEMY_DOWN: 0.35,            // [C] subtracted; 0.6 cancelled own losses in symmetric fights
-  CAP_HOLD_BASE: 1.9,                     // [C] see note above; tuned against the real day loop
-  CAP_HOLD_TACTICS: 0.10,                 // [C] judgment accuracy, not stubbornness
   RECOVERY_BASE_P: 0.72,                  // [ABSTRACT] [C] eagerness to go to a downed squadmate
   TREAT_EXPOSURE_MULT: 1.30,              // [S] §3.7 worse than open ground; see hitChance
 
@@ -299,14 +288,14 @@ const CONST = {
   MONWA_TETHER_COMP: -25,                 // [S]
   THYTHYN_HOVER_P: 0.22,                  // [C] share of Ththyn repositions that hover
   GIL_GOGGLE_DAMAGE_P: 0.40,              // [S] on head-location hit
-  GIL_GOGGLE_AIM_PENALTY: 5,              // [S]
+  GIL_GOGGLE_AIM_PENALTY: 50,              // [S]
   ATTORAK_INTENSITY_COMP: 4,              // [S]
   ETU_DEVOUT_COMP: 8, ETU_ZEALOT_COMP: 15,// [S]
 
   /* §9 gear */
   DEFAULT_WEAPON: { power: 5, range: 'medium', tier: 3 },        // [C] tier-3 median kit
   DEFAULT_ARMOR: { protection: 3 },                              // [C]
-  GEAR_TIER_ACCURACY: 0.50                                       // [S] per tier from 3 (1 → 0.6 → 0.50)
+  GEAR_TIER_ACCURACY: 5.0                                       // [S] per tier from 3 (1 → 0.6 → 0.50)
 };
 
 /* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives
@@ -402,7 +391,7 @@ function seedComposure(f, hooks, opts) {
   );
   let c = CONST.COMP_BASE
     + CONST.COMP_MORALE * ((f.condition && f.condition.morale) || 50)
-    + CONST.COMP_RESOLVE * (f.stats.resolve / 10)   /* roster-scale caller */
+    + CONST.COMP_RESOLVE * f.stats.resolve
     + experienceBonus
     /* the third reader of the one store: what a career of Divides has left in a person
        walks into every fight with them */
@@ -423,6 +412,18 @@ function seedComposure(f, hooks, opts) {
   return clamp(Math.round(c), 5, 100);
 }
 
+function chargedCarry(fighter, kit) {
+  const ids = (kit && kit.consumables) ? kit.consumables.map(x => x.id) : [];
+  const ch = fighter && fighter._charges;
+  if (!ch) return ids;
+  const seen = {}, out = [];
+  for (const id of ids) {
+    if (seen[id]) continue;                 /* one of each item a fight */
+    seen[id] = true;
+    if ((ch[id] || 0) > 0) out.push(id);
+  }
+  return out;
+}
 function makeCombatant(fighter, opts) {
   opts = opts || {};
   const hooks = hooksOf(fighter, opts.traitIndex);
@@ -436,10 +437,6 @@ function makeCombatant(fighter, opts) {
   const armor = kit ? kit.armor : (fighter.loadout && fighter.loadout.armor) || CONST.DEFAULT_ARMOR;
   return {
     ref: fighter, id: fighter.id, race: fighter.race,
-    /* ×10 migration: roster stats live at ten times the founding scale; combat's whole
-       formula body was written for the old one, so the unit takes a DIVIDED COPY at this
-       one boundary — one seam instead of thirty swept constants, and float-exact while
-       births are multiples of ten. The roster object is never touched. */
     /* §QUIRKS A SITUATIONAL BONUS IS THE POINT OF A QUIRK. "+25 Grit in a squad of four or
        fewer" is a thing a manager can BUILD AROUND; a flat bonus is a thing he reads once. The
        conditions are a small, closed vocabulary, and each one is answerable from what the
@@ -447,22 +444,30 @@ function makeCombatant(fighter, opts) {
        condition, it is a wish. Points are REAL points, on the 10..200 scale, added before the
        division combat works in. */
     /* STEP D — EFFECTIVE AIM: the hand and the trade, averaged. The weapon carries its
-       skillFamily (stamped at resolve, one home in items.js); a fighter without skills, or
+       skillClass and skillType (stamped at resolve, from items.js); a fighter without skills, or
        a weapon without a trade, reads as pure aim — so fixtures and defaults are
        untouched. */
-    stats: { aim: (fighter.stats.aim + (sit.aim || 0) +
-                   (weapon.skillFamily && fighter.skills &&
-                    fighter.skills[weapon.skillFamily] != null
-                      ? fighter.skills[weapon.skillFamily] : fighter.stats.aim)) / 2 / 10,
+    /* §ONE AIM a fighter's combat stats ARE the sheet's stats. They were the sheet ÷ 10, and every
+       constant downstream was tuned to that invisible copy — so a mod's "+1 Aim" meant ten points of
+       the Aim a manager can see, and `tactical.js sightRange`, written for the sheet, read the copy
+       and gave every fighter the same seven tiles. One scale now (docs/STAT_SCALE_MIGRATION.md). */
+    stats: { aim: (() => {
+               /* §SKILLS the shot: the average of Aim, the damage class and the weapon type (a fighter with
+                  no skill in one yet reads as their Aim there) */
+               const a = fighter.stats.aim + (sit.aim || 0), sk = fighter.skills || {};
+               const cls = weapon.skillClass && sk[weapon.skillClass] != null ? sk[weapon.skillClass] : fighter.stats.aim;
+               const typ = weapon.skillType && sk[weapon.skillType] != null ? sk[weapon.skillType] : fighter.stats.aim;
+               return (a + cls + typ) / 3;
+             })(),
              /* a rested body walks on harder, and a settled one steadier — both spent here */
              grit: (fighter.stats.grit + (sit.grit || 0) +
-                    ((fighter._conditioned && fighter._conditioned.grit) || 0)) / 10,
-             reflex: (fighter.stats.reflex + (sit.reflex || 0)) / 10,
-             fieldcraft: (fighter.stats.fieldcraft + (sit.fieldcraft || 0)) / 10,
-             tactics: (fighter.stats.tactics + (sit.tactics || 0)) / 10,
-             presence: (fighter.stats.presence + (sit.presence || 0)) / 10,
+                    ((fighter._conditioned && fighter._conditioned.grit) || 0)),
+             reflex: (fighter.stats.reflex + (sit.reflex || 0)),
+             fieldcraft: (fighter.stats.fieldcraft + (sit.fieldcraft || 0)),
+             tactics: (fighter.stats.tactics + (sit.tactics || 0)),
+             presence: (fighter.stats.presence + (sit.presence || 0)),
              resolve: (fighter.stats.resolve + (sit.resolve || 0) +
-                       ((fighter._conditioned && fighter._conditioned.resolve) || 0)) / 10 }, hooks,
+                       ((fighter._conditioned && fighter._conditioned.resolve) || 0)) }, hooks,
     /* the wound pool, carried but not yet deciding anything — see `damageOf` */
     hpMax: hpFor(fighter), hp: hpFor(fighter),
     weapon, armor,
@@ -477,11 +482,20 @@ function makeCombatant(fighter, opts) {
        entire job is sustained fire was the one that could not sustain it.
        A weapon is issued ammunition in proportion to how fast it eats it. That is not a
        balance patch, it is what a quartermaster does. */
-    ammo: loadoutFor(weapon) + (hooks.has('carry_bulk_up_2') ? 6 : 0),
+    ammo: loadoutFor(weapon) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    /* §MODS what the fitted mods add to the shot (items.js resolve) */
+    mod: (kit && kit.mod) || null,
     /* §6 — an energy weapon carries its own resources; a ballistic one leaves these at 0
        and the whole heat path is skipped. */
     /* §10 — carried consumables, spent once each. */
-    carried: (kit && kit.consumables) ? kit.consumables.map(x => x.id) : [],
+    /* §CHARGES A CONSUMABLE HAS CHARGES FOR THE DIVIDE, AT MOST ONE A FIGHT (ruled). This was a
+       fresh copy of the kit every fight and nothing ever came off the fighter: measured, 169 uses
+       from about 85 items across 76 fights — one per fight, forever, never bought again. A fighter
+       now carries ONE of each item it still has charges for (`fighter._charges`, set at the drop),
+       and the fight's spend is taken off the fighter afterwards (divide.js). With no charges table
+       — outside a Divide — it carries its kit as before. */
+    carried: chargedCarry(fighter, kit),
+    _carriedIn: null,
     /* §ENERGY WHAT MAKES A WEAPON CELL-FED is that it has a cell, not that it runs hot.
        `isEnergy` tested `heatCap > 0`, so taking the overheat out of the catalogue would have
        stopped cells being spent at all and quietly turned every energy weapon into a ballistic
@@ -562,7 +576,8 @@ function spendShot(u, kind) {
        last unit of charge spent two and left the cell at MINUS ONE. Latent while cells were
        small and fights short; the moment cells grew and hands fired half again as often, it
        showed up on seven of every eight energy fighters. */
-    const draw = hasQuirk(u, 'heavy_draw') ? 2 : 1;
+    /* §LIGHT a sun-fed weapon DREADS THE NIGHT: in the planet's dark every shot costs it double */
+    const draw = (hasQuirk(u, 'heavy_draw') ? 2 : 1) * (u._dark && hasQuirk(u, 'daylight') ? 2 : 1);
     if (u.charge < draw) return false;
     u.charge -= draw;
     /* §ENERGY THE OVERHEAT IS GONE, AND `heatCap` IS NOW ONLY THE MARK OF A CELL-FED WEAPON.
@@ -581,8 +596,10 @@ function spendShot(u, kind) {
        weapon that cannot be resupplied should do. */
     return true;
   }
-  const cost = ammoCost(u, kind === 'suppress' ? CONST.AMMO.suppress
+  let cost = ammoCost(u, kind === 'suppress' ? CONST.AMMO.suppress
                          : kind === 'overwatch' ? CONST.AMMO.overwatch : CONST.AMMO.shot);
+  /* §MODS a recoil compensator holds suppressing fire down for a round less */
+  if (kind === 'suppress' && u.mod && u.mod.suppressCost) cost = Math.max(1, cost - u.mod.suppressCost);
   if (u.ammo < cost) return false;
   u.ammo -= cost;
   return true;
@@ -627,19 +644,19 @@ const QUIRK = {
      `weaponBandOf(s)` — the shooter's WEAPON band — which is `short` for every weapon that carries
      spread, so the condition was always true and a shotgun ignored a grade of cover from
      across the map. It measured 8-1 in the league and this is most of why. */
-  spread: { aim: (c, b) => b === 0 ? -3 : 0,
+  spread: { aim: (c, b) => b === 0 ? -30 : 0,
             cover: (s, t, i, b) => (b === 2 ? Math.max(0, i - 1) : i) },
   stabilized: { aim: (c, b, ctx) => c.repositioning ? CONST.MOTION_AIM_RECOVERY : 0 },
   /* Capped at two, not three. In the abstraction "the same side" changed often enough for a
      cap of three to be an achievement; on a grid, keeping your fire on one person is easy and
      the tag became a flat, unconditional +3 aim — better than the specialist bonus and with
      none of the conditions. What is cheap to achieve is worth less. */
-  sustained: { aim: (c, b, ctx) => Math.min(CONST.SUSTAINED_CAP, c._sustain || 0) },
+  sustained: { aim: (c, b, ctx) => 10 * Math.min(CONST.SUSTAINED_CAP, c._sustain || 0) },
   smart_link: { aim: (c, b) => bandMismatch(c, b) },              /* refunds the whole penalty */
-  min_band_medium: { aim: (c, b) => b === 2 ? -99 : 0 },          /* cannot engage at short */
+  min_band_medium: { aim: (c, b) => b === 2 ? -990 : 0 },          /* cannot engage at short */
   single_shot: {},                                                 /* handled in the action loop */
   spool: {},                                                       /* handled in the action loop */
-  recoil_heavy: { aim: (c) => c._movedLast ? -2 : 0 },
+  recoil_heavy: { aim: (c) => c._movedLast ? -20 : 0 },
   burst: {},                                                       /* handled in the action loop */
 
   /* --- cover --- */
@@ -803,20 +820,29 @@ function bandMismatch(c, bandIdx) {
 
 function aimEff(c, bandIdx, ctx) {
   let a = c.stats.aim;
-  if (c.hooks.has('accuracy_bonus')) a += 2;
-  if (ctx.squadLink || (ctx.side && ctx.side._psi && ctx.side._psi.link)) a += 1;   // Gil psion_squad_link
+  if (c.hooks.has('accuracy_bonus')) a += CONST.TRAIT_AIM.accuracy;
+  if (ctx.squadLink || (ctx.side && ctx.side._psi && ctx.side._psi.link)) a += CONST.TRAIT_AIM.squadLink;   // Gil psion_squad_link
   /* §QUIRKS a fighter who shoots better waiting than moving, when the shot is a reaction */
-  if (ctx.overwatch && c.hooks.has('overwatch_bonus')) a += 2;
-  if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += 3;
+  if (ctx.overwatch && c.hooks.has('overwatch_bonus')) a += CONST.TRAIT_AIM.overwatch;
+  if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += CONST.TRAIT_AIM.firstStrike;
   /* Shooting before they know where you are. The grid sets this when the target's side has
      neither eyes on the shooter nor a recent shot to look toward; nothing else passes it, so
      an abstract-model caller is unaffected. Sized against `first_strike_bonus` above, which
      is +3 for a closely related reason, rather than picked to hit a casualty figure. */
   if (ctx.unseen) a += CONST.UNSPOTTED_AIM;
-  if (c.hooks.has('first_shot_long_range_bonus') && ctx.exchange === 1 && bandIdx === 0) a += 4;
+  if (c.hooks.has('first_shot_long_range_bonus') && ctx.exchange === 1 && bandIdx === 0) a += CONST.TRAIT_AIM.firstShotLong;
   a += Math.round(CONST.GEAR_TIER_ACCURACY * ((c.weapon.tier || 3) - 3) * 10) / 10;
-  if (c.hooks.has('optics_gear_synergy')) a += 1;
-  a -= bandMismatch(c, bandIdx);
+  if (c.hooks.has('optics_gear_synergy')) a += CONST.TRAIT_AIM.optics;
+  /* §MODS an optic steadies every shot; a bipod steadies a held shot and fouls a moving one;
+     a target link steadies a reaction; a rangefinder halves the cost of the wrong distance */
+  const md = c.mod;
+  if (md) {
+    a += md.aim || 0;
+    a += c.repositioning ? (md.aimMoving || 0) : (md.aimHolding || 0);
+    if (ctx.overwatch) a += md.overwatchAim || 0;
+  }
+  const mis = bandMismatch(c, bandIdx);
+  a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
   a += tempoAim(c);                                   /* COMPOSITION.md §4 */
   if (c.suppressed) a -= CONST.SUPPRESSED_AIM_PENALTY;
@@ -825,15 +851,15 @@ function aimEff(c, bandIdx, ctx) {
   const kellisNerve = c.hooks.has('aim_bonus_under_pressure') && cb !== 'broken';
   if (!kellisNerve) a -= CONST.AIM_PENALTY_BY_BAND[cb];
 
-  a -= Math.min(3, Math.floor(c.fatigue / 25));
-  if (c.state === 'light') a -= 1;
+  a -= CONST.FATIGUE_AIM_STEP * Math.min(3, Math.floor(c.fatigue / 25));
+  if (c.state === 'light') a -= CONST.LIGHT_WOUND_AIM;
   if (c.gogglesBroken) a -= CONST.GIL_GOGGLE_AIM_PENALTY;
   if (ctx.night && !c.hooks.has('night_encounter_bonus')) a -= CONST.NIGHT_AIM_PENALTY;
   return a;
 }
 
 function hitChance(shooter, target, bandIdx, ctx, overwatch) {
-  const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - 10) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
+  const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - CONST.HIT_PIVOT) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
   let coverIdx = target.cover;
   if (target._bulwarked) coverIdx = Math.min(3, coverIdx + 1);        // Olmac walking_bulwark
   if (target.hovering) coverIdx = Math.max(0, coverIdx - 1);            // hover ignores a step of cover
@@ -904,7 +930,7 @@ function hpFor(fighter) {
      `_conditioned` is a month's rest spent on somebody with nothing to mend — it rides
      beside the stats rather than in them, and it is spent in this Divide. */
   const cond = (fighter._conditioned && fighter._conditioned.grit) || 0;
-  const grit = (((fighter.stats && fighter.stats.grit) || 100) + cond) / 10;
+  const grit = ((fighter.stats && fighter.stats.grit) || 100) + cond;
   return Math.round(CONST.HP_BASE + CONST.HP_PER_GRIT * grit);
 }
 
@@ -974,32 +1000,7 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
 /* ------------------------------------------------------------------ */
 
 function active(sq) { return sq.units.filter(u => u.state === 'ok' || u.state === 'light'); }
-function avgComp(sq) { const a = active(sq); return a.length ? a.reduce((s, u) => s + u.comp, 0) / a.length : 0; }
 
-/* DIVIDE.md §8.1 — the captain reads the fight. Replaces the deleted policy notch table.
-   Tactics buys ACCURACY OF JUDGMENT, not stubbornness: a high-tactics captain breaks when
-   the fight is actually lost, a low-tactics one breaks on panic or far too late. */
-function captainReadsFight(S, E, ctx) {
-  const a = active(S);
-  const downs = S.units.filter(u => u.state === 'down' || u.state === 'dead').length;
-  const enemyDowns = E.units.filter(u => u.state === 'down' || u.state === 'dead').length;
-  const dry = a.length ? a.filter(u => u.ammo < CONST.AMMO.shot).length / a.length : 1;
-
-  const threat = CONST.CAP_THREAT_DOWN * downs
-    + CONST.CAP_THREAT_COMPOSURE * (1 - avgComp(S) / 100)
-    + CONST.CAP_THREAT_AMMO * dry
-    + CONST.CAP_THREAT_RATIONS * (S.squadRef.rationDry ? 1 : 0)
-    - CONST.CAP_THREAT_ENEMY_DOWN * enemyDowns;
-
-  const cap = a.find(u => u.isCaptain);
-  const hold = CONST.CAP_HOLD_BASE
-    + CONST.CAP_HOLD_TACTICS * (cap ? cap.stats.tactics : 8)
-    + (ctx && ctx.objectiveValue ? ctx.objectiveValue : 0)
-    + (S.stance.holdNudge || 0)
-    + (S.squadRef.directiveNudge || 0);
-
-  return threat > hold;
-}
 
 /* `makeSide` WAS HERE — the abstract resolver's side-builder, the last function of that
    family. It survived the Step 8.9 cut because two page templates still called it (the
@@ -1133,21 +1134,6 @@ function persistCharge(S, tel) {
   }
 }
 
-function tallySide(rng, S) {
-  const out = { dead: [], captured: [], injured: [], light: [], intact: [] };
-  for (const u of S.units) {
-    if (u.state === 'dead') { out.dead.push(u); continue; }
-    if (u.state === 'captured') { out.captured.push(u); continue; }
-    const worst = u.wounds.reduce((a, w) => (w.sev === 'critical' ? 'critical' : (w.sev === 'serious' && a !== 'critical' ? 'serious' : a)), null);
-    if (worst) {
-      const inj = rollInjury(rng, u, worst);
-      u.injury = inj;
-      out.injured.push(u);
-    } else if (u.wounds.length) { out.light.push(u); }
-    else out.intact.push(u);
-  }
-  return out;
-}
 
 function rollInjury(rng, u, worst) {
   let roll = 1 + Math.floor(rng() * 100);
@@ -1194,7 +1180,7 @@ function captainFidelity(fighter, traitIndex) {
   if (!fighter) return 0.8;
   const hooks = hooksOf(fighter, traitIndex);
   /* ×10 migration: roster-called (the captain is a roster body), so tactics normalizes */
-  let f = 0.030 * (fighter.stats.tactics / 10) + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
+  let f = 0.003 * fighter.stats.tactics + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
   if (hooks.has('captain_fidelity_up')) f += 0.15;
   if (fighter.race === 'human') f += 0.05;
   f -= 0.006 * (fighter._stress || 0);
@@ -1204,7 +1190,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, tallySide, persistCharge, coolWeapons, POLICY, STANCE, BANDS, captainReadsFight, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, persistCharge, coolWeapons, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed

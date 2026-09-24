@@ -14,7 +14,7 @@ const D = __dirname + '/';
 
 /* ORDER MATTERS — each module captures its dependencies at load time. The season needs the
    sponsor and pre-Divide modules too; the desk's list is the precedent. */
-const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js', 'illicit.js',
+const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
                  'divide.js', 'trade.js', 'season.js'];
 /* planets.json RIDES TOO. It did not, and the map module only reads it from disk under node —
@@ -79,7 +79,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       /* the focus chassis: tracks, the cap, and the corp's own prefill */
                       'monthTracks(', 'chooseFocus(', 'data-focus',
                       /* the training menu: the drill can be aimed */
-                      'trainTarget', 'SKILL_FAMILIES',
+                      'trainTarget', 'SKILL_TYPES', 'shootsAt',
                       /* boost: pay to double the focus on a track */
                       '_boost', 'BOOST_PER_POINT', 'data-boost',
                       /* the ground and the firefight, tied: the season closed to the drop,
@@ -88,7 +88,7 @@ const MUST_CONTAIN = ['openFleet(', 'runMercMarket(', 'selectDrop(', 'buildCorp(
                       'closeSeasonToDrop(', 'divideCore(', 'onBattle', 'finishSeason(',
                       /* the Table: the window's answer composed and sent, the stance
                          ladder, and the verdict echo read back with its numbers */
-                      'G.div.answer', 'NOTCHES', 'canJoin', 'techo',
+                      'G.div.answer', 'NOTCHES', 'A Truce', 'techo',
                       /* the Dividend's lights: the season keeps every match whole and
                          the firefight replays them all year */
                       'dividend.watch', 'data-watchl',

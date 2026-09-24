@@ -119,31 +119,50 @@
      The reward is cash by default; some houses pay in kind, which is both more thematic and a
      nudge toward being the sort of corp that fits them. Kit rewards are granted in Pass B; the
      shape is here so the model is whole. */
+  /* §SPONSORS WHAT A BACKER LEAVES BEHIND. RULED after a manager read the board and found
+     "2 Medical Kits" (₡280) against "₡40,000": no count of kit can stand beside a cash reward,
+     because credits buy the kit and 285 of them. The answer is not to price the kit up but to
+     stop paying in things a manager could simply buy. A kept contract now changes how the OA
+     WORKS, permanently: a STANDING. The medical backer speeds what your infirmary mends for
+     good; the arms house discounts its own family of weapons for good; the victualler cuts what
+     the drop eats; the lender pays a monthly stipend rather than a lump. Standings accumulate
+     across careers — an old OA is old partly in what it has been given — and every one of them
+     is a line a manager can read on the Board. */
+  const STANDINGS = {
+    med_recovery:  { name: 'The Thorne Ward',        what: 'Wounds Mend a Quarter Faster, for Good', key: 'recovery', per: 0.25, cap: 0.75 },
+    energy_yard:   { name: "Helion's Account",       what: 'Energy Weapons Cost a Fifth Less, for Good', key: 'discount', slot: 'energy', per: 0.20, cap: 0.5 },
+    ballistic_yard:{ name: "Ferrous & Daughters' Account", what: 'Ballistic Weapons Cost a Fifth Less, for Good', key: 'discount', slot: 'ballistic', per: 0.20, cap: 0.5 },
+    victualler:    { name: "Greywater's Standing Order", what: 'The Drop Eats a Sixth Less, for Good', key: 'supply', per: 0.16, cap: 0.4 },
+    stipend:       { name: 'The Meridian Stipend',   what: 'A Standing ₡2,600 a Month, for Good', key: 'stipend', per: 2600, cap: 10400 },
+    armourer:      { name: "Castellan's Armourer",   what: 'Armour Costs a Fifth Less, for Good', key: 'discount', slot: 'armor', per: 0.20, cap: 0.5 },
+    scoutwork:     { name: "Arrowline's Survey Fee", what: 'A Survey Reads a Step Deeper, for Good', key: 'survey', per: 1, cap: 2 },
+    schooling:     { name: "The Almsdesk School",    what: 'The Unproven Learn a Quarter Faster, for Good', key: 'training', per: 0.25, cap: 0.75 }
+  };
   const CONDITIONS = {
     spn_helion:      { flavor: 'limitation',   key: 'mostly_energy',
                           text: 'Field a Drop of 75% Energy Weapons or More',
-                          reward: { kind: 'kit', tag: 'energy', count: 2 } },
+                          reward: { kind: 'standing', standing: 'energy_yard' } },
     spn_castellan:        { flavor: 'outcome',      key: 'no_scandal',
                           text: 'Bury No More Than a Third of the Fighters You Field',
-                          reward: { kind: 'cash' } },
+                          reward: { kind: 'standing', standing: 'armourer' } },
     spn_ferrous:    { flavor: 'prerequisite', key: 'keep_policy',
                           text: 'Keep Your Declared Engagement Policy All Year',
-                          reward: { kind: 'cash' } },
+                          reward: { kind: 'standing', standing: 'ballistic_yard' } },
     spn_meridian:       { flavor: 'outcome',      key: 'field_talent',
                           text: 'Field a Fighter Who Ends the Year at Fame 25 or Better',
-                          reward: { kind: 'cash' } },
+                          reward: { kind: 'standing', standing: 'stipend' } },
     spn_arrowline:            { flavor: 'limitation',   key: 'stay_lean',
                           text: 'Field No More Than 20 Fighters',
-                          reward: { kind: 'cash' } },
+                          reward: { kind: 'standing', standing: 'scoutwork' } },
     spn_greywater:     { flavor: 'outcome',      key: 'accept_terms',
                           text: 'End the Year With a Treasury Above Zero',
-                          reward: { kind: 'cash' } },
+                          reward: { kind: 'standing', standing: 'victualler' } },
     spn_thorne:         { flavor: 'outcome',      key: 'bring_them_home',
                           text: 'Lose No More Than a Fifth to Death or Capture',
-                          reward: { kind: 'kit', tag: 'medical', count: 2 } },
+                          reward: { kind: 'standing', standing: 'med_recovery' } },
     spn_almsdesk:        { flavor: 'limitation',   key: 'blood_the_green',
                           text: 'Field a Drop That Is a Third Unproven Fighters',
-                          reward: { kind: 'cash' } }
+                          reward: { kind: 'standing', standing: 'schooling' } }
   };
 
 
@@ -406,14 +425,58 @@
       bumpRegard(corp, c.house, CONST.SPONSOR_KEPT_REGARD);
       /* PAY THE REWARD. Cash posts to the ledger now; an in-kind reward is granted in Pass B
          (the seam is here — the reward object is carried out for the granter to honour). */
+      /* PAY THE REWARD. A standing is granted to the OA and kept; cash still posts, for any
+         contract that asks for it. A standing already held deepens by one step, to its cap. */
       const rw = c.reward || { kind: 'cash' };
       if (rw.kind === 'cash') {
         LED.post(corp.account, 'income', 'sponsor reward (' + c.house + ')', CONST.SPONSOR_REWARD);
         out.paid += CONST.SPONSOR_REWARD;
+      } else if (rw.kind === 'standing') {
+        const got = grantStanding(corp, rw.standing, c.house);
+        if (got) out.standings = (out.standings || []).concat([got]);
       }
       out.rewards.push({ house: c.house, reward: rw });
     }
     S.contracts = [];                    /* one-season terms: the board is fresh every year */
+    return out;
+  }
+
+  /* §SPONSORS THE STANDINGS AN OA HOLDS. `corp.standings[id] = { steps, house, since }`, and
+     every reader asks for the VALUE rather than the record: one place decides what a step is
+     worth and what it can never exceed. */
+  function grantStanding(corp, id, house) {
+    const def = STANDINGS[id]; if (!def) return null;
+    corp.standings = corp.standings || {};
+    const held = corp.standings[id] || { steps: 0, house: house, since: null };
+    const maxSteps = Math.max(1, Math.round(def.cap / def.per));
+    if (held.steps >= maxSteps) return { id: id, steps: held.steps, capped: true, name: def.name };
+    held.steps += 1; held.house = house;
+    corp.standings[id] = held;
+    return { id: id, steps: held.steps, name: def.name, what: def.what };
+  }
+  /** What a standing is worth to this OA right now: 0 when it holds none. */
+  function standingValue(corp, id) {
+    const def = STANDINGS[id], held = corp && corp.standings && corp.standings[id];
+    if (!def || !held) return 0;
+    return Math.min(def.cap, def.per * held.steps);
+  }
+  /** A discount on one slot of the yard's catalogue, from whichever standings speak to it. */
+  function standingDiscount(corp, slot) {
+    let d = 0;
+    for (const id in STANDINGS) {
+      const def = STANDINGS[id];
+      if (def.key === 'discount' && def.slot === slot) d += standingValue(corp, id);
+    }
+    return Math.min(0.6, d);
+  }
+  /** Every standing an OA holds, as lines a manager can read. */
+  function standingsOf(corp) {
+    const out = [];
+    for (const id in (corp && corp.standings) || {}) {
+      const def = STANDINGS[id]; if (!def) continue;
+      out.push({ id: id, name: def.name, what: def.what, steps: corp.standings[id].steps,
+                 house: corp.standings[id].house, value: standingValue(corp, id), key: def.key, slot: def.slot });
+    }
     return out;
   }
 
@@ -471,7 +534,8 @@
     }
   }
 
-  return { CONST, STYLES, OBLIGATION_TEXT, CONDITIONS, HOUSE_NAMES, houseIds, houseName,
+  return { CONST, STYLES, OBLIGATION_TEXT, CONDITIONS, STANDINGS, HOUSE_NAMES, houseIds, houseName,
+           grantStanding, standingValue, standingDiscount, standingsOf,
            contractStatus,
            fit, regardOf, bumpRegard,
            openBoard, courtCost, court, courtStanding, resolveBoard, stepBoard, benchmarkFor,

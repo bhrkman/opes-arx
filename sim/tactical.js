@@ -154,6 +154,18 @@
     COVERING_FIRE_MIN: 2,            // [C] bodies it must put down to be worth an action
     SMOKE_RADIUS: 2,                 // [C] tiles a screen covers
     SMOKE_TURNS: 3,                  // [S] how long before it drifts away
+    /* §DEVICES the spotter drone and the auto-turret (their catalogue lines: the drone strips
+       the enemy's concealment, the turret fires from cover for four exchanges) */
+    DRONE_TURNS: 4,                  // [S] how long a drone stays up
+    DRONE_RADIUS: 7,                 // [S] tiles under it that it sees
+    DRONE_WEIGHT: 0.6,               // [H] how readily a blind squad sends one up
+    TURRET_TURNS: 4,                 // [S] exchanges it fires for (the catalogue's four)
+    TURRET_RANGE: 15,                // [S] tiles it can reach: as far as a good eye (EYE_FAR), since
+                                     //     contact on this grid happens at 7-15 tiles and at 10 it
+                                     //     was set down in range of an enemy five times in 3,000
+    TURRET_AIM: 130,                 // [S] its steady aim, on the sheet's scale — a good fighter's
+    TURRET_POWER: 5,                 // [H] a light automatic's punch
+    TURRET_WEIGHT: 0.5,              // [H] how readily it is set down when an enemy is in reach
     SMOKE_COVER_CAP: 2,              // [C] smoke is concealment, never hard cover
     SMOKE_MIN_EXPOSED: 2,            // [S] thrown for a squad in the open, not for one man
     SMOKE_WEIGHT: 0.5,               // [H] how readily somebody reaches for one
@@ -220,6 +232,15 @@
        (how much of the picture a captain weighs), and the suite catches a constant declared
        twice with two values before the two can drift into each other. */
     SIGHT_STAT_LOW: 40, SIGHT_STAT_HIGH: 150,   // [C] the useful span of the stat
+    STIM_COMP: 25,                   // [C] §CONSUMABLES composure a stim gives (its catalogue line)
+    STIM_REACH: 6,                   // [C] tiles to the squadmate it is given to ("in band": short)
+    STIM_BELOW: 70,                  // [C] given only to one whose nerve is going (below steady)
+    THERMO_RADIUS: 3,                // [C] §CONTRABAND the thermobaric blast's reach, a tile wider than a frag
+    THERMO_POWER: 2,                 // [C] and how much harder it hits
+    SCRAMBLE_TURNS: 3,               // [C] turns a scrambled Mon-Wa pair pays the tether's price
+    TETHER_STRAIN: 25,               // [C] composure a turn: the ratified cost of separation
+    SOLAR_TURN_GAIN: 2,              // [C] §LIGHT charge a sun-fed weapon takes back each turn in daylight
+    NIGHT_SIGHT: 0.55,               // [C] §LIGHT how far a fighter sees in the dark, as a share (ruled: greatly cut)
     EYE_NEAR: 7, EYE_FAR: 15,                   // [C] tiles: a poor scout, and a superb one
     /* SIGHT_TILES and SIGHT_MIN were the old rule's dials — a base plus a per-point slope —
        and the slope is what broke it. EYE_NEAR and EYE_FAR replace both; these are removed
@@ -242,7 +263,7 @@
        falls back by bounds — half moving while the other half fires to cover them.
        PANIC is rare and individual: one fighter's nerve goes and they run. */
     WITHDRAW_AT: 0.35,               // [C] share of the squad lost before the order is given
-    PANIC_RESOLVE_DIV: 26,           // [C] high resolve almost never breaks
+    PANIC_RESOLVE_DIV: 260,           // [C] high resolve almost never breaks
     PANIC_FLOOR: 0.04,               // [C] anyone can break, rarely
     BOUND_SHARE: 0.5,                // [S] how much of a withdrawing squad moves each turn
     EXIT_COLS: 1                     // [S] reaching your own edge takes you off the field
@@ -429,6 +450,11 @@
     return v;
   }
   let _screens = [];
+  let _night = false;   /* §LIGHT whether this fight is fought in the planet's dark */
+  /* §DEVICES what is standing on the ground besides the fighters: a spotter drone overhead, an
+     auto-turret on its tile. Both were sold, carried and charged and did NOTHING — their action
+     (`deploy`) was handled nowhere, which is why neither ever appeared on a replay. */
+  let _drones = [], _turrets = [];
 
   function hasLOS(map, a, b) {
     const k = _key(a.x, a.y, b.x, b.y) * 2 + 1;
@@ -548,9 +574,15 @@
    * that mean something on this board: a poor scout picks a body out at SIGHT_NEAR, a superb
    * one at SIGHT_FAR, and neither of them sees the far corner. */
   function sightRange(u) {
-    const fc = (u.stats && u.stats.fieldcraft) || 10;
+    /* §ONE AIM FIELDCRAFT REACHES SIGHT. This was written for the sheet scale (fieldcraft 40 → seven
+       tiles, 150 → fifteen) and read a copy divided by ten, so every value sat below 40 and every
+       fighter on the grid saw exactly seven tiles: fieldcraft 52 and 165 were the same pair of eyes.
+       It reads the sheet now, and a good scout sees twice as far as a poor one. */
+    const fc = (u.stats && u.stats.fieldcraft) || 100;
     const t = Math.max(0, Math.min(1, (fc - CONST.SIGHT_STAT_LOW) / (CONST.SIGHT_STAT_HIGH - CONST.SIGHT_STAT_LOW)));
-    return CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR);
+    /* §LIGHT in the planet's dark a fighter sees a good deal less far — unless at home in the dark */
+    const nightCut = _night && !(u.hooks && u.hooks.has('night_encounter_bonus')) ? CONST.NIGHT_SIGHT : 1;
+    return (CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR)) * nightCut;
   }
 
   /**
@@ -602,6 +634,10 @@
             if (!hasLOS(map, u, f)) continue;
             have = true; break;
           }
+          /* §DEVICES a drone overhead sees what is under it: no line of sight wanted, and
+             concealment does not hide a body from above */
+          if (!have) for (const dr of _drones)
+            if (dr.side === side.tag && Math.hypot(dr.x - f.x, dr.y - f.y) <= CONST.DRONE_RADIUS) { have = true; break; }
           if (have) seen.add(f.id);
           /* fired recently: they know roughly where, not exactly where */
           else if ((f._revealedUntil || -1) >= turn) heard.add(f.id);
@@ -1065,8 +1101,9 @@
     }
     /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
        reaction — both were wanted by hooks that had no way to ask */
+    /* §LIGHT the planet's dark reaches every shot: aim suffers at night unless the fighter is at home in it */
     const p = C.hitChance(shooter, target, band,
-                          { unseen: !!unseen, overwatch: !!react, side: shooter._side }, !!react)
+                          { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
@@ -1287,7 +1324,7 @@
     if (u.comp <= C.CONST.COMP_BANDS.rattled && u.state !== 'panicked' && rng) {
       /* a fighter who does not rout, does not rout */
       if (u.hooks && u.hooks.has('rout_immune')) return;
-      const res = (u.stats && u.stats.resolve) || 10;
+      const res = (u.stats && u.stats.resolve) || 100;
       /* how far past rattled they are, times how badly their resolve is failing them */
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
       const p = Math.max(CONST.PANIC_FLOOR, 1 - res / CONST.PANIC_RESOLVE_DIV) * depth * 0.5;
@@ -1333,7 +1370,9 @@
     const gone = S.units.filter(u => u.state !== 'ok' && u.state !== 'light').length;
     /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
        holds a bad order longer */
-    if (gone / total >= CONST.WITHDRAW_AT - withdrawShift(S)) { S.withdrawing = true; return true; }
+    /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
+    const at = S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT;
+    if (gone / total >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
     return false;
   }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
@@ -1477,7 +1516,8 @@
            sense grants `evasion_surge` and the broadcast; the pressure reader's own hooks are
            manager-facing, so the fight reads its broadcast instead. */
         if (u.hooks.has('squad_coordination_bonus')) S._psi.link = true;
-        if (u.hooks.has('ambush_avoidance_slight') || u.hooks.has('night_ambush_warning_bonus')) S._psi.sense = true;
+        /* §LIGHT the night-ambush warning is a NIGHT sense: it worked day and night alike */
+        if (u.hooks.has('ambush_avoidance_slight') || (ctx.night && u.hooks.has('night_ambush_warning_bonus'))) S._psi.sense = true;
         if (u.hooks.has('psionic_broadcast_sensation')) S._psi.read = true;
       }
     }
@@ -1501,6 +1541,16 @@
     /* smoke on the ground, not on the people. Decays at the turn boundary. */
     const screens = [];
     _screens = screens;
+    _night = !!ctx.night;
+    const drones = [], turrets = [];
+    _drones = drones; _turrets = turrets;
+    /* what the replay draws besides the fighters: smoke, drones, turrets. Smoke had worked on the
+       grid and never been drawn, because a frame recorded only the fighters. */
+    const fxRec = () => ({
+      sm: screens.map(z => ({ x: z.x, y: z.y })),
+      dr: drones.map(z => ({ x: Math.round(z.x), y: Math.round(z.y), s: z.si })),
+      tu: turrets.map(z => ({ x: z.x, y: z.y, s: z.si }))
+    });
     const gap = deployGap(openingBand);
     /* ONE OCCUPANCY REGISTER FOR THE WHOLE FIGHT. It used to be per call, which was harmless
        with two sides deploying into opposite edges and is not once a third side arrives on a
@@ -1616,7 +1666,8 @@
     });
     const snap = () => frames.push({
       turn: tel.turn,
-      units: sides.flatMap((S, si) => S.units.map(u => unitRec(u, si)))
+      units: sides.flatMap((S, si) => S.units.map(u => unitRec(u, si))),
+      fx: fxRec()
     });
     tel.first = first;
     tel.openingBand = openingBand;
@@ -1626,12 +1677,21 @@
        edge with identical rosters — a structural advantage nothing in the game was meant to
        confer. A round is now every fighter in one order, fastest first, so being ready
        shows up as acting early rather than as belonging to the lucky team. */
-    const initiative = (u) => (u.stats.reflex || 10) * 1.6 + (u.stats.tactics || 10) * 0.5
+    const initiative = (u) => (u.stats.reflex || 100) * 0.16 + (u.stats.tactics || 100) * 0.05
                             + (prep[u.side] || 0.5) * 6;
 
     /* a fight with no way out runs past the ordinary backstop: it ends when a side is done */
     const MAXT = ctx.toTheEnd ? CONST.MAX_TURNS * 3 : CONST.MAX_TURNS;
+    for (const S of sides) for (const u of S.units) u._dark = _night;
     for (tel.turn = 1; tel.turn <= MAXT; tel.turn++) {
+      for (const S of sides) for (const u of S.units) if (u._scrambled > 0) {
+        u.comp = Math.max(0, (u.comp || 0) - CONST.TETHER_STRAIN); u._scrambled--;
+      }
+      /* §LIGHT a sun-fed weapon DRINKS THE DAY: in the planet's light it takes back charge every turn */
+      if (!_night) for (const S of sides) for (const u of S.units) {
+        if (u.chargeMax > 0 && C.hasQuirk && C.hasQuirk(u, 'daylight') && (u.state === 'ok' || u.state === 'light'))
+          u.charge = Math.min(u.chargeMax, u.charge + CONST.SOLAR_TURN_GAIN);
+      }
       _geo = new Map();           /* the map does not move; positions do, once a turn */
       if (fog) {
         sides[0]._fog.turn = tel.turn;
@@ -1641,6 +1701,42 @@
       }
       for (let i = screens.length - 1; i >= 0; i--) {
         if (--screens[i].left <= 0) screens.splice(i, 1);
+      }
+      for (let i = drones.length - 1; i >= 0; i--) {
+        if (--drones[i].left <= 0) { drones.splice(i, 1); if (fog) sides[0]._fog.dirty = true; }
+      }
+      /* §DEVICES AN AUTO-TURRET FIRES ONCE A TURN, on its own, at the nearest enemy it has a line
+         to, for as long as it lasts. Cover counts against it as it does against anyone; its hits
+         wound by the same rule as a fighter's and are credited to whoever set it down. It is an
+         emplacement, not a fighter — it does not count toward who is still standing. */
+      for (let i = turrets.length - 1; i >= 0; i--) {
+        const T = turrets[i];
+        let mark = null, md = 1e9, Emark = null;
+        for (const E of sides) {
+          if (E.tag === T.side) continue;
+          for (const g of E.units) {
+            if (g.state !== 'ok' && g.state !== 'light') continue;
+            const d = Math.hypot(g.x - T.x, g.y - T.y);
+            if (d > CONST.TURRET_RANGE || d >= md) continue;
+            if (!hasLOS(map, T, g)) continue;
+            md = d; mark = g; Emark = E;
+          }
+        }
+        if (mark) {
+          /* §ONE AIM IT SHOOTS AS A FIGHTER SHOOTS: its aim, on the sheet's scale, through the same hit
+             curve, the same cover and the same bands as anyone's. It had its own private chance and
+             an aim nothing read — set, at that, in the wrong unit. */
+          const cov = coverAgainst(map, mark, T);
+          const sc = mark.cover; mark.cover = cov;
+          const hit = rng() < C.hitChance(T.gun, mark, bandOf(md), { exchange: 2 }, false) * CONST.SHOT_HIT_MULT;
+          if (hit) applyHit(rng, mark, C.resolveSeverity(rng, T.gun, mark, 'standard', bandOf(md), null, tel.turn),
+                            tel, log, T.gun, Emark);
+          mark.cover = sc;
+          tel.turretShots = (tel.turretShots || 0) + 1;
+          if (hit) tel.turretHits = (tel.turretHits || 0) + 1;
+          if (log) log.push({ t: tel.turn, type: 'turret_shot', by: T.by, at: mark.id, x: T.x, y: T.y, hit: hit });
+        }
+        if (--T.left <= 0) turrets.splice(i, 1);
       }
       /* ---- ANYBODY WALKING IN ----
          A firefight was a closed room: everyone standing on the ground when it started, and
@@ -1868,7 +1964,7 @@
               let pr = C.CONST.TREAT_BASE
                      + (S.hasMedkit ? C.CONST.TREAT_MEDKIT : 0)
                      + (u.hooks.has('field_treatment_bonus') ? C.CONST.TREAT_TRAIT : 0)
-                     + C.CONST.TREAT_FIELDCRAFT * (u.stats.fieldcraft - 10);
+                     + C.CONST.TREAT_FIELDCRAFT * (u.stats.fieldcraft - 100);
               pr = Math.max(0.05, Math.min(0.95, pr));
               if ((u.state === 'ok' || u.state === 'light') && rng() < pr) {
                 patient.state = 'stable'; patient.bleed = null;
@@ -1890,9 +1986,19 @@
              On a grid a grenade does not want "medium band and a crowd"; it wants a crowd
              standing within a real blast radius, which is a thing the map can answer. */
           if (u.ap > 0 && u.carried && u.carried.length) {
-            const grenade = u.carried.indexOf('itm_frag_grenade') >= 0 ? 'itm_frag_grenade'
+            /* a thermobaric charge is for ground that will not be shot off: it goes first when
+               what is in reach is dug in, and otherwise a frag does. Reaching for the frag first meant a
+               fighter carrying both never threw the banned one. */
+            const dugIn = seen.some(f => (f.state === 'ok' || f.state === 'light') &&
+                                         dist(u, f) <= CONST.GRENADE_RANGE && coverAgainst(map, f, u) >= 2);
+            const grenade = (dugIn && u.carried.indexOf('itm_thermobaric_charge') >= 0) ? 'itm_thermobaric_charge'
+                          : u.carried.indexOf('itm_frag_grenade') >= 0 ? 'itm_frag_grenade'
                           : u.carried.indexOf('itm_incendiary_charge') >= 0 ? 'itm_incendiary_charge'
+                          : u.carried.indexOf('itm_thermobaric_charge') >= 0 ? 'itm_thermobaric_charge'
                           : null;
+            /* §CONTRABAND a thermobaric charge is the same throw made worse: a wider blast, a harder hit,
+               and it does not chip the ground — it takes every scrap of cover in reach away */
+            const thermo = grenade === 'itm_thermobaric_charge';
             if (grenade) {
               let mark = null, best = 0;
               for (const f of seen) {
@@ -1907,15 +2013,15 @@
               if (mark && best >= CONST.GRENADE_MIN_CROWD &&
                   rng() < C.CONST.GRENADE_WEIGHT * best) {
                 u.carried.splice(u.carried.indexOf(grenade), 1);
-                const hot = grenade === 'itm_incendiary_charge';
+                const hot = grenade === 'itm_incendiary_charge' || thermo;
                 const save = u.weapon;
-                u.weapon = { power: C.CONST.GRENADE_POWER, range: u.weapon.range, tier: 3,
-                             damage: 'explosive', name: hot ? 'Incendiary Charge' : 'Frag Grenade',
+                u.weapon = { power: C.CONST.GRENADE_POWER + (thermo ? CONST.THERMO_POWER : 0), range: u.weapon.range, tier: 3,
+                             damage: 'explosive', name: thermo ? 'Thermobaric Charge' : hot ? 'Incendiary Charge' : 'Frag Grenade',
                              tags: hot ? ['area', 'incendiary'] : ['area'] };
                 let caught = 0;
                 for (const g of foes) {
                   if (g.state !== 'ok' && g.state !== 'light') continue;
-                  if (dist(g, mark) > CONST.GRENADE_RADIUS) continue;
+                  if (dist(g, mark) > (thermo ? CONST.THERMO_RADIUS : CONST.GRENADE_RADIUS)) continue;
                   const cov = coverAgainst(map, g, u);
                   /* thrown, not aimed: cover still helps, but counts for one grade less */
                   if (rng() > C.CONST.GRENADE_LAND_P - cov * C.CONST.GRENADE_COVER_P) continue;
@@ -1927,6 +2033,12 @@
                 }
                 /* AND THE GROUND IT LANDED ON. A grenade is the answer to a wall, so
                    it works the tiles around the burst regardless of who it caught. */
+                if (thermo) {
+                  for (let oy = -CONST.THERMO_RADIUS; oy <= CONST.THERMO_RADIUS; oy++)
+                    for (let ox = -CONST.THERMO_RADIUS; ox <= CONST.THERMO_RADIUS; ox++)
+                      while (chipTile(map, mark.x + ox, mark.y + oy, tel)) { /* to the bare ground */ }
+                  tel.thermobarics = (tel.thermobarics || 0) + 1;
+                } else
                 for (let oy = -CONST.COVER_BLAST_RADIUS; oy <= CONST.COVER_BLAST_RADIUS; oy++)
                   for (let ox = -CONST.COVER_BLAST_RADIUS; ox <= CONST.COVER_BLAST_RADIUS; ox++)
                     if (rng() < CONST.COVER_BLAST_P) chipTile(map, mark.x + ox, mark.y + oy, tel);
@@ -1957,6 +2069,89 @@
                 tel.consumables = (tel.consumables || 0) + 1;
                 tel.smoke = (tel.smoke || 0) + 1;
                 if (log) log.push({ t: tel.turn, type: 'smoke', by: u.id, n: bare.length });
+                if (u.ap <= 0) continue;
+              }
+            }
+
+            /* §CONSUMABLES A STIM SHOT: +25 composure to one squadmate in reach whose nerve is going.
+               It had an action (`dose`) nothing answered. Its cost comes that night: less recovery. */
+            if (u.ap > 0 && u.carried.indexOf('itm_stim_shot') >= 0) {
+              let m = null;
+              for (const x of S.units) {
+                if (x === u || (x.state !== 'ok' && x.state !== 'light')) continue;
+                if (dist(u, x) > CONST.STIM_REACH || (x.comp || 0) >= CONST.STIM_BELOW) continue;
+                if (!m || (x.comp || 0) < (m.comp || 0)) m = x;
+              }
+              if (m) {
+                u.carried.splice(u.carried.indexOf('itm_stim_shot'), 1);
+                m.comp = Math.min(100, (m.comp || 0) + CONST.STIM_COMP);
+                if (m.ref) m.ref._stimmed = true;
+                u.ap--;
+                tel.consumables = (tel.consumables || 0) + 1; tel.stims = (tel.stims || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'stim', by: u.id, at: m.id });
+                if (u.ap <= 0) continue;
+              }
+            }
+
+            /* A CORTICAL SCRAMBLER forces a Mon-Wa pair's tether strain at range — both halves pay the
+               price of separation for a few turns, however close they stand. Built to break one species. */
+            if (u.ap > 0 && u.carried.indexOf('itm_cortical_scrambler') >= 0) {
+              const mark = seen.find(f => f.pair && (f.state === 'ok' || f.state === 'light') &&
+                                          dist(u, f) <= CONST.GRENADE_RANGE && !(f._scrambled > 0));
+              if (mark) {
+                u.carried.splice(u.carried.indexOf('itm_cortical_scrambler'), 1);
+                for (const h of mark.pair.halves) if (h.state !== 'dead') h._scrambled = CONST.SCRAMBLE_TURNS;
+                u.ap--;
+                tel.consumables = (tel.consumables || 0) + 1; tel.scrambles = (tel.scrambles || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'scramble', by: u.id, at: mark.id });
+                if (u.ap <= 0) continue;
+              }
+            }
+
+            /* §DEVICES A SPOTTER DRONE goes up when the squad has lost the enemy: nobody in
+               sight, but somebody out there. It hovers over the last place anybody was seen and
+               everything under it is seen for the next few turns. */
+            if (u.ap > 0 && u.carried.indexOf('itm_spotter_drone') >= 0 && fog &&
+                !drones.some(dr => dr.side === S.tag)) {
+              const blind = !(S._seen && S._seen.size);
+              const out = allFoes.some(f => f.state === 'ok' || f.state === 'light');
+              if (blind && out && rng() < CONST.DRONE_WEIGHT) {
+                u.carried.splice(u.carried.indexOf('itm_spotter_drone'), 1);
+                const at = S._lastContact || searchPoint(S, map, tel.turn) || { x: u.x, y: u.y };
+                drones.push({ x: at.x, y: at.y, left: CONST.DRONE_TURNS, side: S.tag, si: sides.indexOf(S) });
+                sides[0]._fog.dirty = true; ensureSpot(sides[0]);
+                u.ap--;
+                tel.consumables = (tel.consumables || 0) + 1;
+                tel.drones = (tel.drones || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'drone', by: u.id, x: Math.round(at.x), y: Math.round(at.y) });
+                if (u.ap <= 0) continue;
+              }
+            }
+
+            /* §DEVICES AN AUTO-TURRET is set down where the fighter stands when there is an enemy
+               in its reach — ground worth holding — and it fires on its own from then on. */
+            if (u.ap > 0 && u.carried.indexOf('itm_auto_turret') >= 0 && foes.length &&
+                !turrets.some(tu => tu.by === u.id)) {
+              const inReach = foes.some(f => dist(u, f) <= CONST.TURRET_RANGE && hasLOS(map, u, f));
+              if (inReach && rng() < CONST.TURRET_WEIGHT) {
+                u.carried.splice(u.carried.indexOf('itm_auto_turret'), 1);
+                /* the gun it fires with: the fighter's own frame for crediting, a turret's barrel
+                   and a turret's steady aim */
+                /* credited to whoever set it down (its id), but a machine: its own aim on the sheet
+                   scale, none of the fighter's traits, never tired, never rattled, never moving */
+                const gun = Object.assign({}, u, {
+                  weapon: { power: CONST.TURRET_POWER, range: 'medium', tier: 3,
+                            damage: 'ballistic', name: 'Auto-Turret', tags: [] },
+                  stats: Object.assign({}, u.stats, { aim: CONST.TURRET_AIM }),
+                  hooks: new Set(), mod: null, comp: 100, fatigue: 0, state: 'ok',
+                  repositioning: false, suppressed: false, _sustain: 0, _movedLast: false
+                });
+                turrets.push({ x: u.x, y: u.y, left: CONST.TURRET_TURNS, side: S.tag, si: sides.indexOf(S),
+                               by: u.id, gun: gun });
+                u.ap--;
+                tel.consumables = (tel.consumables || 0) + 1;
+                tel.turrets = (tel.turrets || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'turret', by: u.id, x: u.x, y: u.y });
                 if (u.ap <= 0) continue;
               }
             }
@@ -2263,7 +2458,8 @@
               from: beforeXY,
               via: (midXY && (midXY.x !== u.x || midXY.y !== u.y)) ? midXY : null,
               did: log.slice(logMark),
-              units: sides.flatMap((SS, ssi) => SS.units.map(x => unitRec(x, ssi)))
+              units: sides.flatMap((SS, ssi) => SS.units.map(x => unitRec(x, ssi))),
+              fx: fxRec()
             });
           }
         }

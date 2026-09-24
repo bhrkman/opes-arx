@@ -278,6 +278,16 @@
   /* Core generator                                                      */
   /* ------------------------------------------------------------------ */
 
+  /* §SKILLS what a fighter's weapon families look like at birth: one strong, sometimes two, one or two poor */
+  const CONST = {
+    CLASS_LEAN: [5, 25],      // [C] the favoured damage class over Aim, the other as far under
+    TYPE_STRONG: [40, 80],    // [C] a fighter's standout weapon type, over Aim — wide, so a specialist is one
+    TYPE_SECOND_P: 0.35,      // [C] the chance of a second strong type
+    TYPE_SECOND: [15, 40],    // [C] and how strong it is
+    TYPE_WEAK: [35, 65],      // [C] a type they are poor with, under Aim
+    TYPE_TWO_WEAK_P: 0.40,    // [C] the chance of two
+    TYPE_NEAR: 10             // [C] the rest sit this close to Aim, each with its own grain
+  };
   function Generator(data) {
     this.races = data.races.races;
     this.traits = data.traits.traits;
@@ -304,10 +314,14 @@
     return this.raceById[P.weightedPick(rng, entries)];
   };
 
-  /** One 1–20 stat: normal(base_mean + qualityShift) + race lean, floored & clamped. */
+  /* §ONE AIM A STAT IS ROLLED ON THE SHEET. It was rolled on an old 1–20 scale and multiplied by ten
+     afterwards — with its model, the pools' quality, the races' leans and floors and the trades' leans
+     all written in that invisible unit. Every number is the sheet's now (recruitment.json, races.json):
+     the stat's DECADE is rolled from the model (mean 85, spread 28), the race's lean and floor are added
+     in sheet points, and the grain within the decade is nudged in afterwards (generate). */
   Generator.prototype.rollStat = function (rng, race, statName, qualityShift) {
     const m = this.rec.stat_model;
-    let v = Math.round(P.normal(rng, m.base_mean + qualityShift, m.base_sd));
+    let v = Math.round(P.normal(rng, m.base_mean + qualityShift, m.base_sd) / 10) * 10;
     v += (race.stat_leans && race.stat_leans[statName]) || 0;
     if (race.stat_floor) v = Math.max(v, race.stat_floor);
     return P.clamp(v, m.clamp[0], m.clamp[1]);
@@ -334,25 +348,6 @@
     }
     // Prisoner: recruit_min+3 .. decline+4, wide and flat-ish.
     return P.int(rng, a.recruit_min + 3, a.decline + 4);
-  };
-
-  /** Hidden potential: gap above current max shrinks with age. */
-  Generator.prototype.rollPotential = function (rng, race, age, stats) {
-    const pm = this.rec.potential_model;
-    const a = race.age;
-    const t = P.clamp((age - a.recruit_min) / Math.max(1, a.prime[1] - a.recruit_min), 0, 1);
-    const mean = pm.gap_start_mean * (1 - t) + pm.gap_end_mean * t;
-    const gap = Math.max(0, Math.round(P.normal(rng, mean, pm.gap_sd)));
-    const maxStat = Math.max.apply(null, STATS.map((k) => stats[k]));
-    return P.clamp(maxStat + gap, Math.max(1, maxStat), 20);
-  };
-
-  Generator.prototype.scoutView = function (rng, potential) {
-    const sm = this.rec.scout_model;
-    const est = P.clamp(Math.round(potential + P.normal(rng, 0, sm.estimate_sd)), 1, 20);
-    const starsLow = P.clamp(Math.round((est - 2) / sm.star_divisor), 1, 5);
-    const starsHigh = P.clamp(Math.round((est + 2) / sm.star_divisor), 1, 5);
-    return { estimate: est, starsLow, starsHigh };
   };
 
   /* ---------------------------- Traits ------------------------------ */
@@ -492,28 +487,20 @@
     const qualityShift = P.normal(rng, poolCfg.quality_shift.mean, poolCfg.quality_shift.sd);
     const age = opts.age !== undefined ? opts.age : this.rollAge(rng, race, pool);
     const stats = this.rollStats(rng, race, qualityShift);
-    let potential = this.rollPotential(rng, race, age, stats);
-    const scout = this.scoutView(rng, potential);
-    /* ×10 — THE SCALE MIGRATION (ruled). Everything ABOVE this line computes at the
-       founding 1–20 scale, so every draw, clamp and rounding is bit-identical to the old
-       world; here the three player-facing numbers scale together, exactly. Births are
-       therefore always multiples of ten — the fine grain between them belongs to TRAINING,
-       which is the entire point of the scale. Every consumer below and in every other
-       module was swept to match, and the proof is the untouched snapshot gate: the same
-       seeds fight the same fights to the same frame. */
-    for (const k of STATS) stats[k] *= 10;
-    potential *= 10;
-    scout.estimate *= 10;
-    /* AND THEN THE GRAIN BETWEEN THE TENS. The migration left every birth on a multiple of
-       ten — 80/90/120/40 — which reads as a rounded-off number rather than a person. Each
+    /* §POTENTIAL STRUCK (ruled: no unit ceilings). It capped every drill and every lot without a
+       manager ever seeing it. The two draws below are KEPT, unused, because removing them would
+       move the random stream and re-roll every fighter in the game; nothing is stored. */
+    P.normal(rng, 0, 1);   /* the retired potential's draw, kept so the random stream does not move */
+    P.normal(rng, 0, 1);   /* the retired scouting estimate's draw, kept for the same reason */
+    const scout = null;
+    /* THE GRAIN WITHIN THE DECADE. A stat's decade is rolled (rollStat) — 80/90/120/40 — which
+       reads as a rounded-off number rather than a person. Each
        stat is nudged within its own decade and the nudges are then BALANCED to sum to zero,
        so the roll's shape is untouched: the same pools produce the same average fighter,
        and nobody is quietly stronger than the draw intended. Only the texture changes. */
     {
-      /* the clamp is written on the FOUNDING 1-20 scale, so it has to be lifted with the
-         stats it guards — applied raw it crushed every birth to twenty */
-      const jitter = {}, floor = this.rec.stat_model.clamp[0] * 10,
-            ceil = this.rec.stat_model.clamp[1] * 10;
+      const jitter = {}, floor = this.rec.stat_model.clamp[0],
+            ceil = this.rec.stat_model.clamp[1];
       let sum = 0;
       for (const k of STATS) { jitter[k] = P.int(rng, -9, 9); sum += jitter[k]; }
       /* hand the rounding remainder back, one point at a time, to whoever can take it */
@@ -529,45 +516,63 @@
     }
     const traitIds = opts.traits || this.rollTraits(rng, race, pool === "mercenary" ? "mercenary" : pool, opts.batchTally);
     /* STEP D — TWO BIRTHS, ZERO NEW DRAWS (the stream must not move):
-       TRAIT STAT_MODS MADE LIVE. The data has carried them since the traits were written
-       and nothing ever read them — marksman's eye worked only through its hook. They apply
-       here, ×10 for the scale, and a gift can raise the ceiling: potential follows the
-       best stat up.
+       A QUIRK'S STAT CHANGES apply here, in real points as the sheet reads them.
        WEAPON-FAMILY SKILLS, born from origin. A hand's skill in a trade starts at the
        fighter's aim, leaned by where they learned to shoot — the leans live in
        recruitment.json beside the rest of the generation's numbers. Effective aim with a
        carried weapon is (aim + trade) / 2, read at combat's boundary. */
-    /* §QUIRKS TWO WAYS TO WRITE A STAT CHANGE, AND ONLY ONE OF THEM IS HONEST. The old
-       `stat_mods` is in TENTHS — a catalogue entry of `aim: 1` became TEN POINTS on a scale
-       that runs 10..200. So the numbers a person read in the data file were a tenth of what
-       the engine did, which is how a trait called Marksman's Eye came to look like +1 and be
-       +10. `effects.stats` is in REAL POINTS, applied as written, and is what every new quirk
-       uses; `stat_mods` is honoured for what is left of the old catalogue and nothing new
-       should use it. Measured worth, for anyone writing one: +15 is where a person starts to
-       feel it, +25 is a good trait, +40 is a defining one and wants a penalty against it. */
+    /* §QUIRKS A STAT CHANGE IS WRITTEN IN REAL POINTS, as the sheet reads it. The old `stat_mods`
+       were in TENTHS (a catalogue `aim: 1` became ten points), and no trait carries them any more,
+       so that path is gone with the second scale (§ONE AIM). Measured worth, for anyone writing
+       one: +15 is where a person starts to feel it, +25 is a good trait, +40 is a defining one and
+       wants a penalty against it. */
     for (const tid of traitIds) {
       const tdef = this.traitById[tid];
       const eff = (tdef && tdef.effects) || {};
-      const tm = eff.stat_mods;
-      if (tm) for (const k in tm)
-        if (stats[k] != null)
-          stats[k] = Math.max(10, Math.min(200, stats[k] + tm[k] * 10));
       const st = eff.stats;
       if (st) for (const k in st)
         if (stats[k] != null)
           stats[k] = Math.max(10, Math.min(200, stats[k] + st[k]));
     }
-    potential = Math.max(potential,
-                         Math.max.apply(null, STATS.map(k => stats[k])));
-    const leans = ((this.rec.origin_family_leans || {})[pool]) || {};
+    const leans = ((this.rec.origin_type_leans || {})[pool]) || {};
     /* items resolved lazily: by the first birth, every module is loaded in both worlds */
     const IT = typeof ITEMS !== 'undefined' && ITEMS ? ITEMS
              : (typeof __req === 'function' ? __req('items')
                 : (typeof window !== 'undefined' ? window : globalThis).CDITEMS);
+    /* §SKILLS (ruled) AIM, A DAMAGE CLASS, A WEAPON TYPE. A fighter leans to one class (ballistic or energy) and
+       is poorer with the other; has a standout weapon TYPE (sometimes two) — a wide gulf, so a scattergun
+       specialist is one — and one or two they are poor with; the rest sit near their Aim, each with its own
+       grain. Where they learned leans which types. Drawn from the fighter's own make-up, not the birth
+       stream, so everything else about them is exactly as it was. */
     const skills = {};
-    for (const fam of IT.SKILL_FAMILIES)
-      skills[fam.id] = Math.max(10, Math.min(200,
-                                             stats.aim + (leans[fam.id] || 0) * 10));
+    const srng = P.mulberry32(P.seedFrom('skills:' + race.id + ':' + age + ':' + JSON.stringify(stats) + ':' + traitIds.join(',') + ':' + pool));
+    const between = (r) => Math.round(r[0] + srng() * (r[1] - r[0]));
+    /* the two classes: one favoured, one not */
+    const favoured = srng() < 0.5 ? 'ballistic' : 'energy';
+    for (const cl of IT.SKILL_CLASSES)
+      skills[cl.id] = Math.max(10, Math.min(200, stats.aim + (cl.id === favoured ? 1 : -1) * between(CONST.CLASS_LEAN)));
+    /* the types */
+    const types = IT.SKILL_TYPES.map(t => t.id);
+    const w = types.map(id => Math.max(0.2, 1 + (leans[id] || 0) / 10));
+    const pickType = (exclude) => {
+      let tot = 0; types.forEach((id, i) => { if (!exclude.includes(id)) tot += w[i]; });
+      let r = srng() * tot;
+      for (let i = 0; i < types.length; i++) { if (exclude.includes(types[i])) continue; r -= w[i]; if (r <= 0) return types[i]; }
+      return types.find(id => !exclude.includes(id));
+    };
+    const off = {};
+    for (const id of types) off[id] = Math.round((srng() * 2 - 1) * CONST.TYPE_NEAR);
+    const strong = pickType([]); off[strong] = between(CONST.TYPE_STRONG);
+    const used = [strong];
+    if (srng() < CONST.TYPE_SECOND_P) { const second = pickType(used); used.push(second); off[second] = between(CONST.TYPE_SECOND); }
+    const weakN = srng() < CONST.TYPE_TWO_WEAK_P ? 2 : 1;
+    for (let k = 0; k < weakN; k++) {
+      const rest = types.filter(id => !used.includes(id));
+      const weak = rest[Math.floor(srng() * rest.length)]; used.push(weak);
+      off[weak] = -between(CONST.TYPE_WEAK);
+    }
+    for (const id of types)
+      skills[id] = Math.max(10, Math.min(200, stats.aim + (leans[id] || 0) + off[id]));
 
     // Name (Et- honorific for etu clergy/zealots — ratified).
     let named = opts.named || NG.generateName(rng, race, opts.taken);
@@ -656,7 +661,6 @@
       age,
       stats,
       skills,                    /* the four trades — see the step-d birth above */
-      potential,
       experience: exp,
       traits: traitIds,
       condition,
@@ -721,8 +725,20 @@
     // One roster slot, one contract: pair salary on both records, flagged shared.
     const pairContract = mon.fighter.contract;
     wa.fighter.contract = JSON.parse(JSON.stringify(pairContract));
+    /* the Wa half's copy is a MIRROR, not a second wage: the ledger skips it (ledger.paid),
+       so a pair costs one salary, one signing and one pension — the life it is */
+    wa.fighter.contract.mirrored = true;
+    wa.fighter.mirror_of = mon.fighter.id;
     mon.fighter.bond_partner = wa.fighter.id;
     wa.fighter.bond_partner = mon.fighter.id;
+    /* §MON-WA A PAIR IS ADDRESSED TOGETHER. Each half's `name` is its own syllable, which is
+       right — and every screen reads `name`, so a pair showed as two strangers called Fen and
+       Nan instead of Fen-Nan. The pair's name and the two halves travel on both records. */
+    for (const f of [mon.fighter, wa.fighter]) {
+      f.pair_name = named.name;
+      f.pair_halves = { mon: named.parts.mon, wa: named.parts.wa };
+      f.half = f === mon.fighter ? 'mon' : 'wa';
+    }
     if (mon.fighter.callsign) wa.fighter.callsign = mon.fighter.callsign;
     else delete wa.fighter.callsign;
 
@@ -863,12 +879,8 @@
     { key: "famous", tier: 3, register: "hype",
       when: c => c.f.fame >= 35 && !c.f.callsign,
       text: c => `Fame ${c.f.fame} before signing day — the chants come pre-installed with this one.` },
-    { key: "bargain", tier: 3, register: "dry",
-      when: c => c.rec.meta.scout.estimate >= 150 && c.f.contract.salary <= 300,
-      text: c => `Priced like filler, scouted like a find. Someone in a back office can't do arithmetic, and it isn't yours.` },
-    { key: "rich_ask", tier: 3, register: "dry",
-      when: c => c.f.contract.salary >= 900 && c.rec.meta.scout.estimate <= 110,
-      text: c => `That salary asks for a ceiling the scouts can't see. The broadcast loves a gamble. Treasuries don't.` },
+    /* §POTENTIAL two lines struck here that reacted to a scouted ceiling ("scouted like a find",
+       "a ceiling the scouts can't see") — the ceiling is gone (ruled), so is its gossip. */
     { key: "veteran_count", tier: 3, register: "dry",
       when: c => c.f.experience.divides >= 6,
       text: c => `${c.f.experience.divides} Divides survived. In this sport that number is the résumé, the reference, and the warning.` },
@@ -904,8 +916,7 @@
       text: c => `Moves a heartbeat before the trigger. The Aleas insists its drones don't leak. The drones decline to comment.` },
     { key: "t_psi_link", tier: 2, register: "dry", when: c => c.has("psion_squad_link"),
       text: c => `Squads report they simply know where ${c.name} is. A whisper of the Mon-Wa gift, in a body that bills as one.` },
-    { key: "t_psi_read", tier: 2, register: "dry", when: c => c.has("psion_pressure_read"),
-      text: c => `Sits in on negotiations. Tells you, afterward, which offers were bluffs. Worth more than the rifle, frankly.` },
+    /* §TRAITS the pressure-read psion is cut (ruled), and its line with it */
     { key: "t_resent", tier: 2, register: "dry", when: c => c.has("cradleborn_resentment"),
       text: c => `Serves the fleet. Hasn't forgiven it. The loyalty line prices that in — the camp chemistry is your problem.` },
     { key: "t_keshu", tier: 2, register: "dry", when: c => c.has("keshu_grudge"),
@@ -1088,7 +1099,8 @@
 
     for (let i = 0; i < slots; i++) {
       const pool = P.weightedPick(rng, mix);
-      const rec = gen.generateRecruit(rng, { pool, corpId: opts.corpId, batchTally, taken: opts.taken });
+      /* a requested race is passed down (tests and fixtures ask for one; the game never does) */
+      const rec = gen.generateRecruit(rng, { pool, corpId: opts.corpId, batchTally, taken: opts.taken, race: opts.race });
       recruits.push(rec);
       for (const f of rec.fighters) bodies.push(f);
       for (const id of rec.fighters[0].traits) batchTally[id] = (batchTally[id] || 0) + 1;

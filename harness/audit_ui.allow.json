@@ -1,1 +1,27 @@
-{ "case": [], "prose": [], "colour": [] }
+{
+ "case": [
+  "throws smoke",
+  "sends up a drone",
+  "sets a turret",
+  "turret fires at",
+  "scrambles the tether of",
+  "clears a jam",
+  "kills the broadcast"
+ ],
+ "prose": [
+  "Reads a Bluff at the Table",
+  "The Crowd Pays for a Psion",
+  "Wounds Run a Grade Worse",
+  "Steadies as a Fight Worsens",
+  "Steadier the Worse It Gets",
+  "Finds More on the Ground",
+  "Holds a Bad Order Too Long",
+  "The Holds at the Divide",
+  "% of the Ground Left",
+  "Buy Them Off the Ground",
+  "A Cut of the Take"
+ ],
+ "colour": [],
+ "_why_prose": "Deliberate: the trait table states each trait's effect (a trait IS its effect); 'Holds' and 'Left' are nouns the verb rule mistakes; the deal kinds and a term are names.",
+ "_why_case": "Deliberate: the fight replay's play-by-play is a SENTENCE — 'Blomp throws smoke', 'Rys sends up a drone' — so its verbs are lower-case mid-sentence, as 'misses' and 'puts down' already are."
+}

@@ -101,13 +101,22 @@
   const OBJECTIVE_TYPES = [
     { id: "sponsor_cache",  label: "Sponsor Cache",  weight: 22, claimDays: 2 },
     { id: "munitions_drop", label: "Munitions Drop", weight: 22, claimDays: 2 },
-    { id: "ration_site",    label: "Water & Forage", weight: 20, claimDays: 2 },
+    /* §SITES a rest site: food and shelter. It fed a squad and did nothing for its hurt, so a
+       wounded squad had no place on the map to go to — now it mends them too, which gives a
+       beaten squad a reason to walk somewhere and a hunter a place to look for it */
+    { id: "ration_site",    label: "Rest Site",      weight: 20, claimDays: 2 },
     /* §7.4 A SITE IS NAMED FOR WHAT IS IN IT. It was an "ore assay" whatever the ground held,
        which read as mining even where the haul was grain or water, and "assay" is a surveyor's
        word for a thing a squad does with its hands. A deposit is a seam, a well, a stand or a
        vault by its category, and a squad WORKS it. */
     { id: "resource_site",  label: "Deposit",       weight: 34, claimDays: 2 },
-    { id: "relay_mast",     label: "Relay Mast",     weight: 14, claimDays: 2 }
+    { id: "relay_mast",     label: "Relay Mast",     weight: 14, claimDays: 2 },
+    /* §SITES A STRONGPOINT: ground worth fighting FROM. It is held, not emptied — a squad that
+       stands on one fights from better ground for as long as it stays — and it is placed only
+       in the EARLY waves, on the outer ground, so the closing wall retires it. That makes it a
+       middle-game prize to hold while you can and then leave, rather than a place to sit out
+       the contest (ruled: not in the centre). */
+    { id: "strongpoint",    label: "Strongpoint",    weight: 16, claimDays: 1, maxWave: 1 }
   ];
 
   /* §7 what a planet is made of. Loaded from planets.json in node; a viewer injects it with
@@ -117,6 +126,7 @@
   function setResourcePool(pool) { POOL = pool || null; return POOL; }
 
   const CONST = {
+    PCD_MAX: 4,                         // [S] §LIGHT cycles per day at the fast end (and 1/4 at the slow end)
     FINAL_DAY: 30,                       // [S] C1
     /* §7.2 how deep a world runs. A poor one carries two or three things worth having and a
        rich one five or six, leaned by archetype. */
@@ -196,9 +206,21 @@
 
        LAST_GROUND_FRAC is asserted against ENGAGE_RANGE in arx.cjs from the live values of
        both, so moving either without the other fails. */
-    ZONE_STEP_DAYS: [1, 7, 13, 19, 24, 28],       // [S]
-    ZONE_STEPS: [1, 0.8, 0.52, 0.28, 0.16, 0.115],  // [C] x PLANET_RADIUS
-    LAST_GROUND_DAY: 30,                  // [S] N18 — the ring stops closing; the fight does not
+    /* §MACRO THE WALL CLOSED ON A FIELD THAT HAD STOPPED FIGHTING. Measured across a contest
+       (audit_macro.cjs), contacts peaked on days 4-9 and died to near nothing by day 19, where
+       a battle royale RISES into its last third: a scattered opening, a busy middle, and an
+       end where the ring puts everybody on the same ground. The wall was arriving after the
+       contest had been decided. It closes sooner and harder now, and the last ground is small
+       enough that squads on it cannot avoid each other. */
+    ZONE_STEP_DAYS: [1, 5, 9, 13, 17, 21],        // [S]
+    /* §ENDGAME THE LAST GROUND MUST FORCE A MEETING. With contact cut to 0.020 (§MACRO), a last
+       ring of 0.085 R is 0.0247 across — and two squads dropped at random in that disc sit on
+       average 0.0223 apart, WIDER than contact. So the last two survivors could dodge each
+       other indefinitely: measured, the field was down to two OAs by day 19 and still running
+       at day 36, a long quiet tail that dragged the whole last third down. 0.05 R is 0.0145,
+       comfortably inside contact, so the ground itself ends the contest. */
+    ZONE_STEPS: [1, 0.72, 0.46, 0.27, 0.15, 0.050],  // [C] x PLANET_RADIUS
+    LAST_GROUND_DAY: 24,                  // [S] N18 — the ring stops closing; the fight does not
     LAST_GROUND_FRAC: 0.045,              // [S] the ground a Divide is decided on
     ZONE_DRIFT: 0.85,                     // [C] how far a new centre may sit off the old
     /* The line is a wall, not a hazard (ruled). Nothing survives outside it because
@@ -401,7 +423,9 @@
           if (ok) { p = q; break; }
         }
         if (!p) p = nearestPassable(...Object.values(pointIn(rng, ring.cx, ring.cy, ring.r * 0.6)).slice(0, 2));
-        const type = P.weightedPick(rng, OBJECTIVE_TYPES.map(t => [t, t.weight]));
+        /* a site type may be barred from the later waves, which sit nearer the centre */
+        const type = P.weightedPick(rng, OBJECTIVE_TYPES
+          .filter(t => t.maxWave == null || w <= t.maxWave).map(t => [t, t.weight]));
         const res = type.id === 'resource_site' && composition.length
           ? P.weightedPick(rng, composition.map(r => [r.id, r.density])) : null;
         const cat = res ? resourceCategory(res) : null;
@@ -417,13 +441,29 @@
           resource: res,
           x: p.x, y: p.y, place: patchAt(p.x, p.y).name,
           wave: w, tier: Math.min(5, 2 + w), potency: 1 + w * 0.35,
-          revealed: w === 0, revealDay: day0,
+          /* §SITES a rest site is shelter and water — part of the ground, known from the drop,
+             not a crate that falls later: traced, nearly every one was still unrevealed on the
+             days squads were being hurt, so a wounded squad had nowhere to go */
+          revealed: w === 0 || type.id === 'ration_site', revealDay: day0,
           looted: false, lootedBy: null, work: {}, dark: 0
         });
       }
     }
 
+    /* §LIGHT TERMS (ruled). A DAY is the fleet's: twenty-four Earth hours, the unit of its calendar and
+       of the Divide. A CYCLE is the planet's: one full turn, light and then dark. A planet's stat is its
+       PCD — planetary CYCLES PER DAY — from 0.25 (one cycle every four days: two days of light, two of
+       dark) to 4 (four cycles in a day), any value between, and likeliest near one. It has nothing to do
+       with the fleet's clock. Drawn as a triangle in log space, so PCD 4 is exactly as rare as PCD 0.25;
+       derived from the planet's own make-up rather than the generation stream, so the rest of the
+       planet is exactly as it was. */
+    const lightRng = P.mulberry32(P.seedFrom('light:' + archKey + ':' + JSON.stringify(composition) + ':' + richness));
+    const lnPcd = Math.log(CONST.PCD_MAX) * (lightRng() + lightRng() - 1);
+    const pcd = Math.round(Math.exp(lnPcd) * 100) / 100;
+    const hours = 24 / pcd;
+    const cycle = { pcd, hours, phase: lightRng() * hours };
     return {
+      cycle,
       archetype: archKey, archetypeName: arch.name,
       composition, richness,             // §7.2, §7.3 — one source for how good this world is
       supplyStrain: arch.supplyStrain, salvage: !!arch.salvage,
@@ -435,6 +475,15 @@
     };
   }
 
+  /* §LIGHT whether the planet is dark at an hour of the contest (hour 0 = the drop), and how many
+     hours until it turns — the planet's cycle, not the fleet's day */
+  function lightAt(planet, hour) {
+    const c = (planet && planet.cycle) || { pcd: 1, hours: 24, phase: 0 };
+    const t = (((hour + c.phase) % c.hours) + c.hours) % c.hours;
+    const half = c.hours / 2;
+    const dark = t >= half;
+    return { dark, toChange: dark ? c.hours - t : half - t, hours: c.hours, pcd: c.pcd };
+  }
   function zoneOn(planet, day) {
     /* THE DOME CLOSES CONTINUOUSLY. The schedule's entries are anchors now, not steps:
        between one and the next, centre and radius interpolate day by day, so the daily
@@ -525,6 +574,12 @@
     const r = zoneOn(planet, day).r / Math.max(1e-9, planet.radius);
     return r <= CONST.DAILY_WINDOW_AT_RADIUS ? 1 : 2;
   }
+  /* §CLOCK whether a comms window falls on this day. The window stands at DAWN, before the march
+     (divide.js), and is counted FROM THE LANDING: day 1 — the drop itself — then every other day while the
+     ground is wide, then every day. */
+  function isWindowDay(planet, day) {
+    return (day - 1) % windowCadence(planet, day) === 0;
+  }
 
   /* ------------------------------------------------------------------ */
   /* §7 what a planet is made of                                         */
@@ -574,12 +629,6 @@
     return P.roundTo(out[0] + (out[1] - out[0]) * t, 0.001);
   }
 
-  /** §7.1 — what one unit of a resource is worth, relative to a middling mineral. */
-  function resourceValue(id) {
-    if (!POOL) return 1;
-    for (const r of (POOL.resources || [])) if (r.id === id) return r.value;
-    return 1;
-  }
   function resourceCategory(id) {
     if (!POOL) return null;
     for (const r of (POOL.resources || [])) if (r.id === id) return r.category;
@@ -588,9 +637,9 @@
 
   const api = {
     CONST, ARCHETYPES, OBJECTIVE_TYPES, DEPOSIT_LABEL, TERRAIN, TERRAIN_NAMES,
-    generatePlanet, zoneOn, zoneNext, wallSchedule, tighteningTomorrow, inZone, outsideBy, towardZone,
-    revealObjectives, siteLive, windowCadence, dist, pointIn, clampInside,
-    setResourcePool, rollComposition, richnessOf, resourceValue, resourceCategory,
+    generatePlanet, lightAt, zoneOn, zoneNext, wallSchedule, tighteningTomorrow, inZone, outsideBy, towardZone,
+    revealObjectives, siteLive, windowCadence, isWindowDay, dist, pointIn, clampInside,
+    setResourcePool, rollComposition, richnessOf, resourceCategory,
     get pool() { return POOL; }
   };
   if (isNode) {

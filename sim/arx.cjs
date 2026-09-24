@@ -117,63 +117,63 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_A",
-    "exchanges": 16,
+    "exchanges": 18,
     "band": "medium",
     "aDead": 1,
-    "aDown": 3,
-    "bDead": 1,
-    "bDown": 0,
-    "shots": 227,
-    "hits": 30,
-    "downs": 5
-  },
-  "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 8,
-    "band": "medium",
-    "aDead": 2,
     "aDown": 2,
     "bDead": 0,
-    "bDown": 0,
-    "shots": 85,
-    "hits": 14,
+    "bDown": 1,
+    "shots": 223,
+    "hits": 33,
     "downs": 4
+  },
+  "short band, both aggressive": {
+    "result": "disengage_B",
+    "exchanges": 9,
+    "band": "medium",
+    "aDead": 1,
+    "aDown": 0,
+    "bDead": 3,
+    "bDown": 2,
+    "shots": 120,
+    "hits": 32,
+    "downs": 6
   },
   "long band, both cautious": {
     "result": "disengage_A",
-    "exchanges": 12,
+    "exchanges": 14,
     "band": "medium",
-    "aDead": 1,
-    "aDown": 1,
+    "aDead": 0,
+    "aDown": 3,
     "bDead": 1,
     "bDown": 0,
     "shots": 200,
-    "hits": 17,
-    "downs": 3
+    "hits": 22,
+    "downs": 4
   },
   "forest, standard v unyielding": {
-    "result": "disengage_A",
-    "exchanges": 7,
+    "result": "disengage_both",
+    "exchanges": 4,
     "band": "medium",
     "aDead": 1,
     "aDown": 1,
     "bDead": 0,
-    "bDown": 1,
-    "shots": 115,
-    "hits": 22,
-    "downs": 3
+    "bDown": 3,
+    "shots": 75,
+    "hits": 21,
+    "downs": 5
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
-    "exchanges": 13,
+    "exchanges": 6,
     "band": "medium",
-    "aDead": 2,
+    "aDead": 3,
     "aDown": 1,
-    "bDead": 1,
-    "bDown": 2,
-    "shots": 130,
-    "hits": 34,
-    "downs": 6
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 63,
+    "hits": 26,
+    "downs": 4
   }
 };
 
@@ -831,7 +831,7 @@ function theSeam() {
     const counts = {};
     for (const id in st.drop.sectors) counts[st.drop.sectors[id]] = 1;
     sectorSpread.push(Object.keys(counts).length);
-    for (const k in st.drop.pacts) { asked++; if (st.drop.pacts[k].agreed) agreed++; }
+    asked += Object.keys(st.drop.pacts || {}).length;   /* there is no such list now: this stays 0 */
     performed += Object.keys(st.drop.media).length;
     corpSeasons += st.ids.length;
   }
@@ -841,10 +841,8 @@ function theSeam() {
      meanSpread >= 2, meanSpread.toFixed(1) + ' distinct sectors used a season');
   ok('nor does it spread so evenly that nothing is contested',
      meanSpread < PRE.CONST.SECTORS, meanSpread.toFixed(1) + ' of ' + PRE.CONST.SECTORS);
-  ok('pacts are asked for and sometimes agreed', asked > 0 && agreed > 0,
-     agreed + ' agreed of ' + asked + ' asked');
-  ok('and sometimes refused — a pact that is always taken is not a bet',
-     agreed < asked, (asked - agreed) + ' refused');
+  /* §TRUCE no truce is struck before the drop (ruled): only at the table, on the ground */
+  ok('no truce is struck before the drop', asked === 0, asked + ' asked');
   ok('some corps perform at media day and some do not',
      performed > 0 && performed < corpSeasons,
      performed + ' of ' + corpSeasons + ' corp-seasons performed');
@@ -854,11 +852,17 @@ function theSeam() {
   const c2 = SEASONMOD.openFleet(rng2, oa, {});
   const me = Object.keys(c2)[0];
   const blind = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
+  /* §ALEAS the fleet's month is pinned away from the public survey: with the Aleas' four rulings cut, that
+     event is far likelier, and it reveals the ground to everybody — which is exactly what this asks about */
+  const pinFleet = (st, id) => { st.fleet = st.fleet || { priceMult: 1 };
+    st.fleet.pending = { season: st.season, id: id, petitions: 0, applied: false, withdrawn: false }; };
+  pinFleet(blind, 'crash');
   while (blind.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(blind, { [me]: {} });   /* focus shape: nothing committed */
   const unseen = SEASONMOD.sectorsFor(blind, me);
   SEASONMOD.closeSeason(blind);
 
   const seen2 = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
+  pinFleet(seen2, 'crash');
   while (seen2.month <= SEASONMOD.CONST.PREP_MONTHS - 1)
     SEASONMOD.stepMonth(seen2, { [me]: { scout: 3 } });   /* focus shape: the cap on surveys */
   const seen = SEASONMOD.sectorsFor(seen2, me);
@@ -907,7 +911,7 @@ function sponsorship() {
      Object.keys(attracted).length + ' distinct OAs lead the field');
 
   /* --- play six seasons and read what the new board produces --- */
-  let advance = 0, reward = 0, breaches = 0, kept = 0, signedTotal = 0;
+  let advance = 0, reward = 0, breaches = 0, kept = 0, signedTotal = 0, standings = 0;
   for (let s = 0; s < 6; s++) {
     const st = SEASONMOD.beginSeason(rng, corps, oa, {});
     while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
@@ -915,6 +919,7 @@ function sponsorship() {
     for (const id of ids) {
       const sp = (rec.corps[id] || {}).sponsors || {};
       advance += sp.advance || 0; reward += sp.paid || 0;
+      standings += (sp.standings || []).length;
       breaches += (sp.broken || []).length; kept += sp.kept || 0;
     }
     for (const h in (st.sponsorBoard || {}).signedBy || {}) signedTotal++;
@@ -924,8 +929,11 @@ function sponsorship() {
      signedTotal + ' contracts signed across six seasons');
   ok('the advance is paid on signing', advance > 0,
      Math.round(advance).toLocaleString() + ' in advances');
-  ok('completion rewards are paid for kept conditions', reward > 0,
-     Math.round(reward).toLocaleString() + ' in rewards');
+  /* §SPONSORS a kept contract now leaves a STANDING behind — a permanent change to how the OA
+     works — rather than a lump or a crate, so what proves the reward is paid is a standing
+     granted, with cash still counted for any contract that asks for it. */
+  ok('completion rewards are honoured for kept conditions', reward > 0 || standings > 0,
+     Math.round(reward).toLocaleString() + ' in cash, ' + standings + ' standings granted');
   ok('a condition can be FAILED, not just kept', breaches > 0,
      breaches + ' broken across six seasons');
   ok('conditions are also kept \u2014 failing is not the only outcome', kept > 0,
@@ -2090,6 +2098,33 @@ function seasonRules() {
       const l = bank.corps[id]._lockLean || 'none';
       leans[l] = (leans[l] || 0) + 1;
     }
+    /* §DROP A PICK IS THE GROUND IT POINTS AT. The draft deals the numbered landings
+       predivide.slots() lays out; the drop used to recompute an angle from the slot's INDEX
+       on a ring of its own, so five landings chosen together came down scattered round the
+       rim and a manager's whole drafting decision was thrown away between the two. */
+    {
+      const PRE2 = require(findFile('predivide.js'));
+      const st4 = SEASONMOD.openFleet(makeRng('slot-fleet'), oaAll, {});
+      const sst = SEASONMOD.beginSeason(makeRng('slot-season'), st4, oaAll, {});
+      while (sst.month <= 11) SEASONMOD.stepMonth(sst);
+      SEASONMOD.closeSeasonToDrop(sst);
+      const pd2 = SEASONMOD.prepareDivide(sst), pl2 = pd2.opts.groundTruth;
+      const dr = sst.drop && sst.drop.draft;
+      if (dr && pl2) {
+        const sl = PRE2.slots(pl2, dr.slots || 24), a0 = sl[0];
+        const near = sl.slice(1).sort((x, y) => Math.hypot(x.x - a0.x, x.y - a0.y) - Math.hypot(y.x - a0.x, y.y - a0.y)).slice(0, 4);
+        const chosen = [a0].concat(near);
+        dr.picks[sst.ids[0]] = chosen.map(x => x.index); dr.done = true;
+        const pd3 = SEASONMOD.prepareDivide(sst);
+        const w3 = DIV.divideCore(pd3.rng, Object.assign({}, pd3.opts, { replay: true })).next().value;
+        const me3 = (w3.corps || []).find(c => c.id === sst.ids[0]) || { squads: [] };
+        const far = (me3.squads || []).map(q => Math.min.apply(null, chosen.map(c => Math.hypot(q.hx - c.x, q.hy - c.y))));
+        const worst = far.length ? Math.max.apply(null, far) : 99;
+        ok('G34a a squad lands on the landing its OA drafted, not an angle from its index',
+           worst < pl2.radius * 0.12,
+           'the worst squad sits ' + (worst / pl2.radius).toFixed(3) + ' of a radius from its nearest chosen landing');
+      }
+    }
     ok('G34 corps lock their drop force by culture, and not all of them the same way',
        Object.keys(leans).length >= 2,
        Object.keys(leans).map(k => k + ' ' + leans[k]).join(', '));
@@ -2595,7 +2630,10 @@ function catalogIntegrity() {
   ok('catalog: formula prices regenerate exactly', drift.length === 0, drift.slice(0, 4).join(', '));
 
   /* §11.1 — exotica are hand-priced, and held only to the scarcity floor */
-  const formulaMax = Math.max(...cat.filter(i => i.price_model === 'formula').map(i => i.cost));
+  /* §ALEAS held against ordinary GEAR — the weapons and armour exotica are — not against a one-charge grenade:
+     the thermobaric, legal now and priced by the formula, is dearer than any ordinary gun, and that is no
+     reason for a railgun to cost more */
+  const formulaMax = Math.max(...cat.filter(i => i.price_model === 'formula' && (i.slot === 'primary' || i.slot === 'armor' || i.slot === 'sidearm')).map(i => i.cost));
   const exotics = cat.filter(i => i.price_model === 'scarcity').map(i => i.cost);
   const ratio = Math.min(...exotics) / formulaMax;
   /* A fallback that out-guns the primary inverts §7 entirely: squads vent on purpose and
@@ -2628,12 +2666,11 @@ function catalogIntegrity() {
   const laddered = Object.keys(byName).filter(n => byName[n].length > 1);
   ok('catalog: no model appears at more than one tier', laddered.length === 0, laddered.join(', '));
 
-  /* contraband exists as data and is unreachable (§11.2) */
-  const contra = cat.filter(i => i.legality === 'contraband');
-  const reachable = contra.filter(i => ITEMS.validate({ primary: 'itm_carbine', armor: 'itm_plate_carrier',
-    consumables: i.slot === 'consumable' ? [i.id] : [], mods: i.slot === 'mod' ? [i.id] : [] }).length === 0);
-  ok('catalog: contraband exists but cannot be equipped before Step 9',
-     contra.length > 0 && reachable.length === 0, contra.length + ' items, ' + reachable.length + ' reachable');
+  /* §ALEAS nothing on the ground is banned (ruled: it is a blood sport), and nothing the shop sells is free */
+  const banned = cat.filter(i => i.legality === 'contraband');
+  const free = cat.filter(i => i.price_model !== 'none' && !(i.cost > 0));
+  ok('catalog: nothing is banned, and nothing sold is free', banned.length === 0 && free.length === 0,
+     banned.length + ' banned, ' + free.length + ' free' + (free.length ? ': ' + free.map(i => i.id).join(', ') : ''));
 }
 
 function loadoutRules() {
@@ -2645,7 +2682,7 @@ function loadoutRules() {
   ok('loadout: three mods are rejected',
      V({ primary: 'itm_carbine', mods: ['itm_mod_optic', 'itm_mod_bipod', 'itm_mod_grip'] }).length > 0);
   ok('loadout: an energy mod on a ballistic primary is rejected',
-     V({ primary: 'itm_carbine', mods: ['itm_mod_heat_sink'] }).length > 0);
+     V({ primary: 'itm_carbine', mods: ['itm_mod_capacitor'] }).length > 0);
   ok('loadout: a ballistic mod on an energy primary is rejected',
      V({ primary: 'itm_pulse_carbine', mods: ['itm_mod_suppressor'] }).length > 0);
   ok('loadout: a sidearm cannot be fitted as a primary',
@@ -2736,30 +2773,41 @@ function ledgerRules() {
      !/struck from the Divide/.test(fs.readFileSync(findFile('ledger.js'), 'utf8')));
 }
 
+const FOUNDING_KIT_BUDGET = 40000;   /* what a new OA can put toward arming its first force */
 function doctrineRules() {
-  const ds = ITEMS.doctrines, roles = ITEMS.roles;
+  const ds = ITEMS.doctrines;
   ok('doctrines: nine procurement identities present', ds.length === 9, ds.length + ' found');
-  ok('roles: six, spanning short, medium and long', roles.length === 6 &&
-     new Set(roles.map(r => r.band)).size >= 3, roles.length + ' roles');
+  /* §QUARTERMASTER roles are gone (ruled): a force is planned from the fighters themselves, so it is tested
+     with real ones — a generated twenty-four, each with their own trade */
+  const RO = req('roster.js');
+  const crew = RO.generateSquad(makeRng('doctrine-crew'), 24, { corpId: null }).bodies;
 
   const bad = [], thin = [], over = [], gap = [];
   for (const d of ds) {
-    const p = ITEMS.planForce(d.id, 24);
+    /* §FOUNDING a doctrine musters from its founding armoury AND the money to buy what a thinner
+       locker cannot arm — which is how the game musters (procurement, then the board) and how a
+       manager arms his own force from nothing. This asked for a muster with no money at all,
+       which the game never does. */
+    const p = ITEMS.planForce(d.id, 24, { budget: FOUNDING_KIT_BUDGET, fighters: crew });
     if (!p) { bad.push(d.id + ': no plan'); continue; }
-    if (!p.mustered) { thin.push(d.id + ' cannot muster from its own founding armoury'); continue; }
+    if (!p.mustered) { thin.push(d.id + ' cannot muster from its founding armoury and budget'); continue; }
     for (const b of p.bodies) {
       const e = ITEMS.validate(b.loadout);
-      if (e.length) { bad.push(d.id + '/' + b.role + ': ' + e[0]); break; }
+      if (e.length) { bad.push(d.id + '/' + (b.fighter || 'a body') + ': ' + e[0]); break; }
     }
     if (p.total > p.allowance) over.push(d.id + ' ' + p.total + '>' + p.allowance);
-    for (const r of roles) if ((p.counts[r.id] || 0) < 3) gap.push(d.id + ' has ' + (p.counts[r.id] || 0) + ' ' + r.id);
-    if (p.distinctPrimaries < 6) thin.push(d.id + ' fields only ' + p.distinctPrimaries + ' weapons');
+    const medkits = p.bodies.filter(b => (b.loadout.consumables || []).indexOf('itm_medkit') >= 0).length;
+    if (medkits < 3) gap.push(d.id + ' carries only ' + medkits + ' medkits');
+    /* §QUARTERMASTER six was a number the ROLES guaranteed (each role its own list); variety now follows the
+       fighters and the budget, and an elite, cap-bound doctrine (Vantis) concentrates on four of its favourites.
+       Four, across all three bands, is the floor that says a doctrine is not one gun (flagged to the designer). */
+    if (p.distinctPrimaries < 4) thin.push(d.id + ' fields only ' + p.distinctPrimaries + ' weapons');
     for (const band of ['short', 'medium', 'long']) if (!(p.bands[band] > 0)) thin.push(d.id + ' fields no ' + band + ' band');
   }
   ok('doctrines: every planned loadout is legal', bad.length === 0, bad.slice(0, 3).join(' | '));
   ok('doctrines: no plan exceeds the Kit Allowance', over.length === 0, over.slice(0, 3).join(', '));
-  ok('doctrines: every squad keeps every role', gap.length === 0, gap.slice(0, 3).join(', '));
-  ok('doctrines: every force spans all three bands with \u22656 distinct weapons',
+  ok('doctrines: every force carries medkits (a quarter of it, by Fieldcraft)', gap.length === 0, gap.slice(0, 3).join(', '));
+  ok('doctrines: every force spans all three bands with \u22654 distinct weapons',
      thin.length === 0, thin.slice(0, 3).join(' | '));
 
   /* Every corp in the field must map to a doctrine, or procurement silently defaults. */
@@ -3081,45 +3129,9 @@ function negotiationRules() {
   ok('negotiation: a joined corp shares its principal\'s banner', allyFights === 0,
      allyFights + ' mismatched');
 
-  /* --- N-T8: a reasonable offer gets a reasonable answer ----------------------------
-     The claim this whole step rests on: a human is scored by the SAME function as an AI.
-     Now testable, because the range is computed once and both go through it. We stand in
-     for the human by composing offers directly and checking the verdict is sane. */
-  let inRange = 0, inRangeOk = 0, below = 0, belowRefused = 0, above = 0, aboveRefused = 0, mute = 0;
-  for (let i = 0; i < 3; i++) {
-    const s = DIV.runDivide(makeRng('t8-' + i), {
-      oaProfiles: OA, raceById: gen.raceById,
-      onWindow: function (ctx, corps) {
-        for (const j of corps) {
-          for (const p of corps) {
-            const range = NEG.offerRange(j, p, ctx);
-            if (!range || !range.viable) continue;
-            const mid = (range.joinerMin + range.principalMax) / 2;
-            const asShare = v => ({ share: v / range.expectedTake, credits: 0 });
-            /* dead centre of the overlap — must be accepted */
-            inRange++;
-            if (NEG.evaluateOffer(j, p, asShare(mid), ctx).accepted) inRangeOk++;
-            /* insultingly low — must be refused, and must say who was short */
-            below++;
-            const lo = NEG.evaluateOffer(j, p, asShare(range.joinerMin * 0.4), ctx);
-            if (!lo.accepted && lo.reason === 'too_little_for_joiner' && lo.short > 0) belowRefused++;
-            else if (!lo.accepted) mute++;
-            /* wildly generous — must also be refused, from the other side */
-            above++;
-            const hi = NEG.evaluateOffer(j, p, asShare(range.principalMax * 2.5 + 1e5), ctx);
-            if (!hi.accepted && hi.reason === 'too_much_for_principal' && hi.over > 0) aboveRefused++;
-          }
-        }
-      }
-    });
-    void s;
-  }
-  ok('N-T8: an offer inside the range is accepted (human path == AI path)',
-     inRange > 50 && inRangeOk === inRange, inRangeOk + ' of ' + inRange);
-  ok('N-T8: an offer under the floor is refused, and names who was short',
-     below > 50 && belowRefused === below, belowRefused + ' of ' + below + ', mute refusals: ' + mute);
-  ok('N-T8: an offer over the ceiling is refused from the buyer\'s side',
-     above > 50 && aboveRefused === above, aboveRefused + ' of ' + above);
+  /* §JOINING RETIRED N-T8 asked whether an offer inside the join price range was accepted and one outside
+     refused. The join table, its price range and `evaluateOffer` are gone with joining; what is priced at
+     the table now is a truce and a ransom, and `sim/audit_table.cjs` rules on those. */
 
   /* --- agreements are honoured on the ground, not just written at the table ---------
      Added because they were not. Pacts were signed, logged, and then ignored by the contact
@@ -3194,18 +3206,17 @@ function negotiationRules() {
     for (const x of (d.mod_wishlist || [])) referenced.add(x);
     for (const x of (d.taste || [])) referenced.add(x);
   }
-  for (const r of ITEMS.roles) {
-    for (const k of ['primaries', 'armors', 'sidearms', 'consumables', 'mods']) {
-      for (const x of (r[k] || [])) referenced.add(x);
-    }
-  }
+  /* §QUARTERMASTER with roles gone, the quartermaster may buy ANY gun, armour, sidearm or consumable within a
+     doctrine's tier — so everything priced in a slot it buys from is reachable that way */
+  for (const it of ITEMS.all()) if (['primary', 'armor', 'sidearm', 'consumable'].indexOf(it.slot) >= 0 && (it.cost || 0) > 0 &&
+      ITEMS.doctrines.some(d => (it.tier || 1) <= (d.armoury_max_tier || 5))) referenced.add(it.id);
   /* `nonlethal` arms are reachable through the DIVIDEND, not through a role or doctrine — no
      corp buys them and no squad drops with them; `season.js` issues them for the show-match and
      takes them back afterwards. That is a real path, so they are not unreachable; it is simply
      not this list's kind of path. */
   const unreachable = ITEMS.all().filter(i => !referenced.has(i.id) &&
       !((i.effects && i.effects.tags || []).indexOf('nonlethal') >= 0)).map(i => i.id);
-  ok('catalog: every item is reachable by some role or doctrine',
+  ok('catalog: every item is reachable by the quartermaster or a doctrine',
      unreachable.length === 0, unreachable.slice(0, 6).join(', '));
 
   /* --- trait hooks whose system exists must be read by it -----------------------------

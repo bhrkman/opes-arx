@@ -44,6 +44,10 @@
     FAME_FLOOR: 0,                      // [S]
     FAME_CEIL: 100,                     // [S]
     FAME_DECAY: 0.88,                   // [C] per season; the fleet forgets a person faster
+    PRESENCE_FAME: 1.5,                 // [C] §PRESENCE fame earned, across the stat's spread (was 0.5, kills only)
+    PRESENCE_FAME_MIN: 0.25,            // [C] the least visible hand earns this share
+    PRESENCE_FAME_MAX: 2.5,             // [C] the most visible, this
+    PRESENCE_FAME_KEEP: 0.06,           // [C] and how much longer (or shorter) the fleet remembers them
                                         //     than it forgets a corp, which is the right way round
     FAME_KILL_TRANSFER: 0.22,           // [C] §4.2 share of a famous victim's fame that moves
                                         //     to whoever put them down. Beating a nobody moves
@@ -158,7 +162,6 @@
     won_planet:        { own: 18, rival: -4, fleet: 6, aleas: 4, residue: 0.55 },
     finished:          { own: { per: 1.6 }, fleet: { per: 0.5 }, residue: 0.15 },
     ceded:             { own: [-4, -14], fleet: [-5, -18], aleas: 2, buyer: 3, residue: 0.15 },
-    stood_down:        { own: [-1, -5], rival: 2, fleet: [-2, -6], aleas: 1, residue: 0.15 },
     bought_win:        { own: -2, rival: -6, fleet: [-4, -11], aleas: -3, residue: 0.15 },
     /* §3.1a HOLDING OUT. An OA whose odds fell through the floor and kept fighting is
        what the crowd came to see; scaled by how hopeless it was and how much fight it gave. */
@@ -183,9 +186,7 @@
     silent_before_board: { own: -3, aleas: -1, residue: 0.20 },
     refused_all:       { own: 6, rival: -5, fleet: 9, aleas: -4, residue: 0.30 },
     kept_truce:        { own: 1, rival: 7, fleet: 3, aleas: 1, residue: 0.15 },
-    broke_truce:       { own: -1, rival: -22, fleet: -9, aleas: -3, residue: 0.55 },
     betrayed:          { own: -25, rival: -60, fleet: -45, aleas: -70, residue: 0.85 },
-    betrayed_covered:  { own: -3, rival: -18, fleet: -6, residue: 0.85 },
     ransomed_home:     { own: 9, rival: 5, fleet: 2, residue: 0.15 },
     abandoned_ours:    { own: -14, fleet: -3, residue: 0.30 },
     released_captives: { own: 2, rival: 11, fleet: 6, aleas: 1, residue: 0.15 },
@@ -194,13 +195,10 @@
        with `targetId` the OA in question, so it is THAT OA's people who remember — and
        the fleet, which watches how a winner treats the beaten. Side terms at a table whose
        spine is money and odds; none of these is large. */
-    spared:            { own: 1, rival: 9, fleet: 4, residue: 0.20 },     // took a beaten OA in
     generous_terms:    { own: -1, rival: 6, fleet: 2, residue: 0.20 },    // and gave it more than it had coming
-    left_to_die:       { own: 0, rival: -20, fleet: -8, aleas: -3, residue: 0.55 }, // refused its surrender, then wiped it
     /* §6.10 an arrangement between two OAs whose squads never met this Divide. Teaming up
        for alliance's sake — not circumstance — is what the Aleas and the fans punish. Raised
        on both. */
-    cold_alliance:     { own: -3, rival: -2, fleet: -8, aleas: -10, residue: 0.30 },
     kept_captive:      { own: 1, rival: -9, fleet: -2, residue: 0.15 },
     our_dead:          { own: { per: -0.7 }, fleet: { per: -0.2 }, famousMult: 3, residue: 0.15 },
     their_dead:        { own: { per: 0.3 }, rival: { per: -0.5 }, fleet: { per: 0.2 },
@@ -349,6 +347,7 @@
   }
 
   /** §2.3 — a fanbase that hates you is a fanbase that watches you. */
+  /* PARKED (ruled): nothing calls this yet — it belongs to the media system, not yet designed */
   function attention(rep, rivalIds) {
     let a = 0;
     for (const id of (rivalIds || Object.keys(rep.base.rival))) a += Math.abs(standing(rep, 'rival', id));
@@ -471,9 +470,26 @@
   }
 
   /** §4.2 — between Divides the fleet forgets a person. */
+  /* §PRESENCE (ruled) PRESENCE IS THE FAME STAT. A hand the crowd can see is made famous faster by the same
+     work — every source of fame, not only a kill on the ground — and forgotten slower: at the top of the
+     scale nearly twice the fame and held longer, at the bottom a third of it and gone sooner. */
+  function presenceFameMult(f) {
+    const pres = (f && f.stats && f.stats.presence) || 90;
+    return clamp(1 + ((pres - 90) / 110) * CONST.PRESENCE_FAME, CONST.PRESENCE_FAME_MIN, CONST.PRESENCE_FAME_MAX);
+  }
+  /** fame a fighter earns, for any reason: what the work is worth, times how visible they are */
+  function earnFame(f, amount) {
+    if (!f) return 0;
+    const got = amount > 0 ? amount * presenceFameMult(f) : amount;
+    f.fame = clamp((f.fame || 0) + got, CONST.FAME_FLOOR, CONST.FAME_CEIL);
+    return got;
+  }
   function decayFame(roster) {
-    for (const f of roster) f.fame = clamp((f.fame || 0) * CONST.FAME_DECAY,
-                                           CONST.FAME_FLOOR, CONST.FAME_CEIL);
+    for (const f of roster) {
+      const pres = (f.stats && f.stats.presence) || 90;
+      const keep = clamp(CONST.FAME_DECAY + ((pres - 90) / 110) * CONST.PRESENCE_FAME_KEEP, 0.70, 0.97);
+      f.fame = clamp((f.fame || 0) * keep, CONST.FAME_FLOOR, CONST.FAME_CEIL);
+    }
     return roster;
   }
 
@@ -526,25 +542,25 @@
     return rep.holds;
   }
 
-  /**
-   * §6.1 — units dug out of the ground converted to a share of a full store. ONE definition,
-   * because the board's demand is written in the same units the Divide pays out in and two
-   * conversions would drift. A Divide tops a store up; it does not fill one.
-   * [OPEN-R1] — no calibration anchor until seasons run in numbers. A handle, not a measure.
-   */
-  function bankedShare(bankedUnits) {
-    const out = {};
-    for (const c of CATEGORIES) {
-      out[c] = Math.min(CONST.HOLDS_CEIL, ((bankedUnits && bankedUnits[c]) || 0) / CONST.UNITS_PER_STORE);
-    }
-    return out;
-  }
 
-  /** What a Divide brought home. `banked` is { category: share of a full store }. */
+  /** What a Divide brought home. §UNITS `banked` is { category: SHARE OF A HOLD } — the thing
+      a manager actually receives, with no invented middle unit between the ground and the
+      store. It was a count of "crates" read here as though it were already a share, so one
+      crate filled a warehouse that takes eight years to drain; the crate is gone and the sites
+      yield the share directly (see `divide.js yieldOf`). */
+  /* §PRIZE and what a store cannot hold is SOLD. The haul goes to the OA's own stores; only
+     what spills over a full hold is sold on to the fleet — which is what the settlement's own
+     comment always said, and not what it did: every dug unit was stored AND sold in full, so a
+     site paid twice for the same haul. `fillHolds` returns the overflow, by store, and the
+     season sells it. */
   function fillHolds(rep, banked) {
+    const spilled = {};
     for (const c of CATEGORIES) {
-      rep.holds[c] = clamp((rep.holds[c] || 0) + ((banked && banked[c]) || 0), 0, CONST.HOLDS_CEIL);
+      const want = (rep.holds[c] || 0) + ((banked && banked[c]) || 0);
+      rep.holds[c] = clamp(want, 0, CONST.HOLDS_CEIL);
+      if (want > CONST.HOLDS_CEIL) spilled[c] = want - CONST.HOLDS_CEIL;
     }
+    rep._spilled = spilled;
     return rep.holds;
   }
 
@@ -1047,9 +1063,9 @@
   const api = {
     CONST, ACTS, AUDIENCES, CATEGORIES, REGISTERS, DISPOSITION,
     open, standing, readAll, attention, act, why, decay, foldTail, compress, drift, drainHolds,
-    fameTransfer, addFame, decayFame,
+    fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,
-    drainHolds, fillHolds, bankedShare, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
+    drainHolds, fillHolds, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
     recordCasualties, mercIndex, mercPriceMult,
     damageOf, tolerance, priceOfBeingSeen,
     QUESTIONS, question, address, addressOptions, standingScore,

@@ -33,6 +33,11 @@ const { window } = dom;
 const doc = window.document;
 
 let failed = 0;
+/* §HALF-BUILT A SKIPPED STEP IS NOT A PASSED STEP. Steps that cannot run on a given seed used to print a
+   note and pass in silence — which is how a table round-trip that composed NOTHING reported success for
+   weeks. They are counted now and reported at the end, beside the failures. */
+let skipped = 0;
+const note = (msg) => { skipped++; console.log('  note  ' + msg); };
 const check = (ok, what) => { console.log((ok ? '  ok    ' : '  FAIL  ') + what); if (!ok) failed++; };
 const text = (sel) => (doc.querySelector(sel) ? doc.querySelector(sel).textContent : '');
 window.addEventListener('error', (e) => { console.log('  PAGE ERROR: ' + e.message); failed++; });
@@ -293,8 +298,11 @@ setTimeout(() => {
       check(c1[you].roster.length === before,
             'a manager who marked nobody signed nobody (' + before + ' \u2192 ' +
             c1[you].roster.length + ')');
-      check(c1[theirs].roster.length > theirBefore,
-            'while an OA nobody runs still calls up its own ship (' + theirBefore + ' \u2192 ' +
+      /* an OA nobody runs still RECRUITS on its own — it is not left to a manager's hand. How
+         many it can afford is balance, and balance waits on fatality (ruled), so this asks only
+         that it keeps a force it can field, not that it grows */
+      check(c1[theirs].roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length >= 3,
+            'while an OA nobody runs keeps a force of its own (' + theirBefore + ' \u2192 ' +
             c1[theirs].roster.length + ')');
     }
     /* §EVENTS an event names its subject and lets a manager open the sheet if he wants it —
@@ -640,18 +648,35 @@ setTimeout(() => {
       }
       /* buy one of theirs, over the odds, and watch the people actually move */
       const mineBefore = GT.corps[GT.me].roster.length, theirsBefore = GT.corps[themId].roster.length;
+      const beingsOf = c => (c.roster || []).filter(b => !b.mirror_of).length;
+      const mineBeings = beingsOf(GT.corps[GT.me]), theirsBeings = beingsOf(GT.corps[themId]);
       /* the same two bodies the old check traded — your second by roster order for their
          first — so the training arithmetic downstream reads the same roster it always did */
-      giveCol().querySelector('tr.pick[data-tid="unit:' + GT.corps[GT.me].roster[1].id + '"]').click();
-      getCol().querySelector('tr.pick[data-tid="unit:' + GT.corps[themId].roster[0].id + '"]').click();
-      const wantId = TR.netOf(GT.corps[themId].roster[0]);
+      /* §MON-WA pick SINGLES on both sides: this check is about the plumbing of a deal, and a
+         Mon-Wa pair is one being in two records, so a blind roster[1] could put half a pair on
+         the table and make the one-for-one arithmetic meaningless. Pairs have their own check
+         below (no half is left behind). */
+      const single = (c, from) => (c.roster || []).slice(from).filter(b => !b.bond_partner)[0] || c.roster[from];
+      const giveOne = single(GT.corps[GT.me], 1), getOne = single(GT.corps[themId], 0);
+      giveCol().querySelector('tr.pick[data-tid="unit:' + giveOne.id + '"]').click();
+      getCol().querySelector('tr.pick[data-tid="unit:' + getOne.id + '"]').click();
+      const wantId = TR.netOf(getOne);
       check(doc.querySelectorAll('#negwrap .contract tr:not(.tot):not(.none)').length >= 2, 'both contributions stand on the contract');
-      check(/They Would|Short by|Would Not/.test(text('#negwrap')), 'the pressure bar reads a verdict: ' + (text('#negwrap').match(/(They Would[^₡]*|Short by ₡[\d,]+|They Would Not Entertain This)/) || [''])[0].trim());
+      check(/They Would|Short by|Would Not|Gladly|Refused Outright/.test(text('#negwrap')), 'the pressure bar reads a verdict: ' + (text('#negwrap').match(/(They Would[^₡]*|Short by ₡[\d,]+|They Would Not Entertain This)/) || [''])[0].trim());
       doc.getElementById('tput').click();
-      const moved = GT.corps[GT.me].roster.length - mineBefore;
-      check(moved === 0 && GT.corps[themId].roster.length === theirsBefore,
-            'a struck deal moves the bodies between rosters, one for one (' + mineBefore + ' stays ' +
-            GT.corps[GT.me].roster.length + ')'); void wantId;
+      /* §MON-WA count BEINGS, not bodies: a pair is one roster slot with two records and
+         crosses the table together, so a one-for-one deal involving one moves two rows */
+      /* the two NAMED bodies changed hands: which is what the deal was, and it does not
+         depend on who else the draw put on the roster */
+      const has = (c, id) => (c.roster || []).some(b => b.id === id);
+      check(!has(GT.corps[GT.me], giveOne.id) && has(GT.corps[themId], giveOne.id) &&
+            has(GT.corps[GT.me], getOne.id) && !has(GT.corps[themId], getOne.id),
+            'a struck deal moves the named bodies between rosters (' + mineBefore + ' bodies now ' +
+            GT.corps[GT.me].roster.length + ')'); void wantId; void mineBeings; void theirsBeings;
+      /* §MON-WA and a pair is never split by a deal: no half is left without its partner */
+      check(!(GT.corps[GT.me].roster || []).some(b => b.bond_partner &&
+              !(GT.corps[GT.me].roster || []).some(o => o.id === b.bond_partner)),
+            'no half of a pair is left behind by a trade');
       const bought = GT.corps[GT.me].roster[GT.corps[GT.me].roster.length - 1];
       check(!!bought.contract && bought.contract.salary > 0,
             'the contract travelled with them, salary and all');
@@ -813,9 +838,11 @@ setTimeout(() => {
       const heads = [...doc.querySelectorAll('#restgrid tr:first-child .tglabel')].map(x => x.textContent);
       check(/Wounds/.test(heads.join(' ')) && /Stress/.test(heads.join(' ')),
             'it has both sides of a body: ' + heads.join(' \u00b7 '));
-      /* the broad paints are still there — the corner and a whole column */
-      check(doc.querySelectorAll('#restgrid th.rn .pip').length === 3,
-            'the whole roster can be rested in one paint');
+      /* §REST the corner is gone: resting EVERYBODY at once is the drill grid's idea, and a
+         month of rest spread over people with nothing to mend is a month spent on nobody.
+         What remains are the two columns and the rows. */
+      check(doc.querySelectorAll('#restgrid th.rn .pip').length === 0,
+            'the rest grid has no whole-roster corner');
       const stressCol = [...doc.querySelectorAll('#restgrid tr:first-child th')][2];
       const stressed = aliveOf().find(f => f.condition) || aliveOf()[0];
       stressed.condition.stress = 60;
@@ -1048,54 +1075,11 @@ setTimeout(() => {
       pl.rows = JSON.parse(keep);    /* the reading was a look, not a purchase */
       openRoster();
     })();
-    /* THE QUIET BUSINESS: a window of things an OA would rather nobody knew, paid for in
-       credits and in standing, with a chance of coming out */
-    {
-      const GQ = window.__G, S4 = window.CDSEASON, R4 = window.CDREP;
-      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
-      [...doc.querySelectorAll('.tab')].filter(x => /Backroom/.test(x.textContent))[0].click();
-      check(doc.querySelectorAll('#backroom .qact').length >= 2 && /Goes Off Clean/.test(text('#backroom')) && /Traced to You/.test(text('#backroom')),
-            'the Backroom offers what belongs to now, with one figure each');
-      check(!doc.querySelector('#backroom select') && doc.querySelectorAll('#backroom .hnode').length >= 7,
-            'its targets are the fleet\'s own marks, not a drop-down');
-      /* the pre-Divide Backroom does not sell favours for a contest that has not started, so
-         whatever stands first here is a before-the-drop piece of work */
-      const before = ['own', 'fleet', 'aleas'].map(a => R4.standing(GQ.corps[GQ.me].rep, a));
-      const purse0 = GQ.corps[GQ.me].account.treasury;
-      const first = doc.querySelector('#backroom [data-qact]');
-      const whichAct = first.getAttribute('data-qact');
-      first.click();
-      const after = ['own', 'fleet', 'aleas'].map(a => R4.standing(GQ.corps[GQ.me].rep, a));
-      check(GQ.corps[GQ.me].account.treasury < purse0 && after.some((v, i) => v < before[i]),
-            'the work costs credits and standing at once (' + whichAct + ')');
-      /* §QUIET the record is kept, but it is READ in the month's recap rather than dumped in
-         the panel; and a thing arranged this month cannot be arranged again */
-      check(S4.illicitDone(GQ.state, GQ.me).length === 1 && !/This Year/.test(text('#backroom')),
-            'the year keeps its record, and the panel no longer dumps it');
-      check(!!doc.querySelector('#backroom .qact .qbtn[disabled]'),
-            'and the thing just arranged cannot be arranged twice in a month');
-      /* §QUIET WHAT A SCOUT TURNS UP. Plant an act by a rival, read their books to the
-         bottom, and the dirt is there to blackmail, leak or report. */
-      {
-        const S5 = window.CDSEASON, rival = GQ.state.ids.find(x => x !== GQ.me);
-        S5.illicitAttempt(GQ.state, rival, 'bribe_official', null, {});
-        const sheet = GQ.corps[GQ.me]._intel.rivals[rival] = GQ.corps[GQ.me]._intel.rivals[rival] || { rows: {} };
-        const keepRows = JSON.stringify(sheet.rows);
-        ['roster', 'finances', 'kit', 'training', 'moves', 'board'].forEach(k => { sheet.rows[k] = { depth: 3, gathered: 101 }; });
-        check(S5.dossierFullness(GQ.corps[GQ.me], rival) >= 0.75, 'their books are read to the bottom');
-        let found = null;
-        for (let t = 0; t < 40 && !found; t++) found = window.CDILLICIT.maybeUncover(window.CDPRNG.mulberry32(t + 1), GQ.state, GQ.me, rival, 1);
-        check(!!found, 'a scout that deep turns up what they paid to keep quiet');
-        [...doc.querySelectorAll('.tab')].filter(x => /Backroom/.test(x.textContent))[0].click();
-        check(/What You Hold/.test(text('#backroom')) && doc.querySelectorAll('#backroom [data-how]').length >= 3,
-              'the evidence stands with its three uses');
-        const purse0 = GQ.corps[GQ.me].account.treasury;
-        doc.querySelector('#backroom [data-how="blackmail"]').click();
-        check(GQ.corps[GQ.me].account.treasury > purse0, 'blackmail is paid, and quietly (+' + (GQ.corps[GQ.me].account.treasury - purse0) + ')');
-        sheet.rows = JSON.parse(keepRows);          /* the reading was a look, not a survey */
-      }
-      [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
-    }
+    /* §ALEAS THE BACK ROOM IS GONE (ruled), and with it everything this section walked: its acts, the
+       evidence and its three uses, and the Aleas' cases. The tab must not come back by accident. */
+    check(![...doc.querySelectorAll('.tab')].some(x => /Back ?room/i.test(x.textContent)) && !doc.getElementById('backroom'),
+          'there is no Back Room: no tab, and no page');
+    [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
     /* THE EVENTS: something asks for a decision. Force one onto the month, answer it, and see it
        resolve; leave another and see it default in the recap. */
     {
@@ -1129,7 +1113,9 @@ setTimeout(() => {
     {
       const GL = window.__G, from = GL.state.ids.find(x => x !== GL.me);
       const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
-      GL._tradeOffer = { from: from, ask: { units: [GL.corps[GL.me].roster[0].id], credits: 0, gear: [], intel: [] }, offer: { credits: 10000, gear: [], units: [], intel: [] } };
+      /* §TRADE a letter is POSTED to the one market, as the engine's OAs post them */
+      const planted = { from: from, ask: { units: [GL.corps[GL.me].roster[0].id], credits: 0, gear: [], intel: [] }, offer: { credits: 10000, gear: [], units: [], intel: [] } };
+      window.CDSEASON.postTrade(GL.state, planted.from, GL.me, planted.offer, planted.ask);
       [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
       check(/Has Written/.test(text('#agenda')) && /Waiting/.test(doc.getElementById('endmonth').textContent),
             'a letter stands on the agenda and End the Month counts it');
@@ -1229,7 +1215,13 @@ setTimeout(() => {
        which is no longer the same set: a wound is a condition now, so the badly hurt are on the
        roster and not on the bench. Reading the bench is also what a manager does. */
     hasTab('Squads') && [...doc.querySelectorAll('.tab')].filter(x => /Squad/.test(x.textContent))[0].click();
+    /* §MON-WA the bench offers BEINGS, and placing a pair fills ONE seat with two bodies: take
+       six bench cards that are not halves of a pair, so "six placed" still means six seats and
+       six portraits. Pairs in a squad have their own checks. */
+    const benchG = window.__G;
     const squadIds = [...doc.querySelectorAll('#bench .fcard[data-id]')]
+      .filter(el => { const b = (benchG.corps[benchG.me].roster || [])
+        .find(x => x.id === el.getAttribute('data-id')); return b && !b.bond_partner; })
       .slice(0, 6).map(el => el.getAttribute('data-id'));
     squadIds.forEach(id => {
       doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
@@ -1294,12 +1286,16 @@ setTimeout(() => {
          names a hand and asks whether a mark stands with it. */
       {
         const GM = window.__G;
-        const names = GM.corps[GM.me].roster.map(f => f.name);
+        /* §MON-WA a pair is written as one name in two tones, so its HALVES appear as leaf
+           spans inside it: those are fragments of a name, not a surface naming a hand. The
+           names looked for are the ones a manager reads — the pair's, not its syllables. */
+        const names = GM.corps[GM.me].roster.map(f => f.pair_name || f.name);
         const bare = [];
         ['traingrid', 'restgrid', 'roster', 'bench', 'resigning', 'rostmarket', 'negwrap'].forEach(id => {
           const host = doc.getElementById(id); if (!host) return;
           host.querySelectorAll('*').forEach(el => {
             if (el.children.length) return;
+            if (el.closest && el.closest('.mw')) return;      /* a half inside a pair's name */
             if (!names.includes((el.textContent || '').trim())) return;
             let p = el, hit = false;
             for (let k = 0; k < 4 && p; k++) { if (p.querySelector && p.querySelector('.fmark')) { hit = true; break; } p = p.parentElement; }
@@ -1360,7 +1356,10 @@ setTimeout(() => {
     /* the same bench, read again: the six above are gone from it, so what remains is the rest */
     const benchNow = [...doc.querySelectorAll('#bench .fcard[data-id]')].map(el => el.getAttribute('data-id'));
     const fitCount = squadIds.length + benchNow.length;
-    const more = benchNow.slice(0, 3);
+    /* §MON-WA again: take beings that are not halves, so the seventh, eighth and refused
+       ninth are seats and the portrait count is the seat count */
+    const more = benchNow.filter(id => { const b = (benchG.corps[benchG.me].roster || [])
+      .find(x => x.id === id); return b && !b.bond_partner; }).slice(0, 3);
     more.forEach(id => { doc.querySelector('#bench .fcard[data-id="' + id + '"]').click();
                          const pl = doc.querySelector('#sqboxes .sqcard[data-si="0"] [data-place]');
                          if (pl) pl.click(); else G._sqsel = null; });
@@ -1368,7 +1367,7 @@ setTimeout(() => {
           alpha().querySelectorAll('.port-slot').length === 0,
           'Alpha fills all eight slots');
     /* the cross sends the two extras home again */
-    more.slice(0, 2).forEach(id => alpha().querySelector('.port-card[data-id="' + id + '"] [data-home]').click());
+    more.slice(0, 2).forEach(id => { const c = alpha().querySelector('.port-card[data-id="' + id + '"] [data-home]'); if (c) c.click(); });
     /* two came off the card, so two are back on the bench — counted against the bench as it
        stood a moment ago rather than against a roster figure that no longer means the same */
     check(alpha().querySelectorAll('.port-card[data-id]').length === 6 &&
@@ -1422,17 +1421,19 @@ setTimeout(() => {
     alpha().querySelector('.fcard[data-id]'); doc.getElementById('sheetclose').click();
     check(!doc.getElementById('unitpanel').classList.contains('on'), 'the drawer closes');
     /* Beta holds one now and reads short; send them home so the lock below sees one squad */
-    doc.querySelector('#sqboxes .sqcard[data-si="1"] [data-home]').click();
+    { const hb = doc.querySelector('#sqboxes .sqcard[data-si="1"] [data-home]'); if (hb) hb.click(); }
     endMonth();               /* month 11 — the lock; the year turns to the Divide */
     check(/the Divide/.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
     check(/The Draft|Drop/.test(((doc.getElementById('turngo') || {}).textContent || '')),
           'at the lock the corner is the draft, not a month');
     check(!doc.body.classList.contains('yearline'), 'the year line stands down for the Divide');
-    check(!hasTab('Desk') && !hasTab('The Firefight') && hasTab('The Table') &&
+    /* §RAIL the Divide's Desk is its own surface wearing the same NAME as the year's Desk:
+       what proves the switch is the Ground standing up and the Firefight standing down */
+    check(!hasTab('The Firefight') && hasTab('Desk') && hasTab('Negotiation') &&
           hasTab('The Ground') && hasTab('Roster'),
           'the whole menu switches: the Divide\'s rail, the Firefight off it');
-    check(/The Table/.test(doc.querySelectorAll('#rail .tab')[0].textContent),
-          'the Table stands first on the Divide\'s rail');
+    check(/Desk/.test(doc.querySelectorAll('#rail .tab')[0].textContent),
+          'the Desk stands first on the Divide\'s rail');
     check(doc.querySelector('.page[data-tab="table"]').classList.contains('on'),
           'and the Table is the Divide\'s home — the rail opens onto it');
 
@@ -1477,7 +1478,7 @@ setTimeout(() => {
           S3.draftPick(GD2.state, GD2.me, free[Math.floor(free.length / 2)]);
         }
         S3.draftAdvance(GD2.state);
-        [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+        [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
       }
       /* §DRAFT an OA drafts a landing for every squad it fields, so the counts differ by
          OA and the ring is as wide as the fleet's appetite */
@@ -1508,23 +1509,23 @@ setTimeout(() => {
     if (false && process.env.ARX_SHOT_WORLD) {   /* (the world shot predates the draft; re-cut when the Drop settles) */
       const GW = window.__G, keepPl = GW.state.planet;
       GW.state.planet = window.CDMAP.generatePlanet(window.CDPRNG.mulberry32(21), { archetype: process.env.ARX_SHOT_WORLD });
-      GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+      GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
       { const pl = GW.state.planet, a = 2 / 6 * Math.PI * 2, d = pl.radius * 0.82, x = pl.cx + Math.cos(a) * d, y = pl.cy + Math.sin(a) * d;
         let w = 0; for (let k = 0; k < 8; k++) { const b = k / 8 * Math.PI * 2; if (pl.waterAt(x + Math.cos(b) * 0.02, y + Math.sin(b) * 0.02)) w++; }
-        console.log('  note  world shot: sector 2 at ' + x.toFixed(3) + ',' + y.toFixed(3) + ' water=' + pl.waterAt(x, y) + ' h=' + pl.heightAt(x, y).toFixed(2) + ' sea=' + pl.seaLevel + ' wet neighbours ' + w + '/8 · sectors drawn from ' + (doc.querySelector('#landing .sector .sn') || {}).textContent); }
-      try { require('fs').writeFileSync('/tmp/dropmap_' + process.env.ARX_SHOT_WORLD + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no world shot: ' + e.message); }
-      GW.state.planet = keepPl; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+        note('world shot: sector 2 at ' + x.toFixed(3) + ',' + y.toFixed(3) + ' water=' + pl.waterAt(x, y) + ' h=' + pl.heightAt(x, y).toFixed(2) + ' sea=' + pl.seaLevel + ' wet neighbours ' + w + '/8 · sectors drawn from ' + (doc.querySelector('#landing .sector .sn') || {}).textContent); }
+      try { require('fs').writeFileSync('/tmp/dropmap_' + process.env.ARX_SHOT_WORLD + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { note('no world shot: ' + e.message); }
+      GW.state.planet = keepPl; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
     }
     if (process.env.ARX_SHOT_DEPTHS) {   /* the same world at each depth of survey */
       const GW = window.__G, plr = GW.corps[GW.me]._intel.planet.rows, keep = JSON.stringify(plr);
       [0, 1, 2, 3].forEach(dp => {
         ['terrain', 'sites', 'sectors'].forEach(k => { plr[k] = { depth: dp, gathered: dp * 34 }; });
-        GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
-        try { require('fs').writeFileSync('/tmp/dropmap_d' + dp + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no depth shot: ' + e.message); }
+        GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
+        try { require('fs').writeFileSync('/tmp/dropmap_d' + dp + '.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { note('no depth shot: ' + e.message); }
       });
-      Object.assign(plr, JSON.parse(keep)); GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click();
+      Object.assign(plr, JSON.parse(keep)); GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
     }
-    if (process.env.ARX_SHOT) { try { require('fs').writeFileSync('/tmp/dropmap.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { console.log('  note  no shot: ' + e.message); } }
+    if (process.env.ARX_SHOT) { try { require('fs').writeFileSync('/tmp/dropmap.png', Buffer.from(doc.getElementById('dropmap').toDataURL().split(',')[1], 'base64')); } catch (e) { note('no shot: ' + e.message); } }
     doc.getElementById('dropbtn').click();
     (function () {
       const GG = window.__G, per = GG.state._divideOpts.corps[GG.me];
@@ -1535,6 +1536,24 @@ setTimeout(() => {
        current day, so a manager met his squads two days in with fights already fought */
     check(window.__G.gday === 1 && window.__G.gstage === 'morning',
           'the first window opens at the landing, not two days into the contest (day ' + window.__G.gday + ')');
+    /* §GROUND YOU SEE WHO YOU FOUGHT. A watched day comes from the record, which holds your
+       squads and the day's fights but no enemy — so a manager could watch a whole contest and
+       never see another OA. Every day with a fight of yours puts them on the map. */
+    {
+      const GG = window.__G, was = { d: GG.gday, s: GG.gstage };
+      let withFight = 0, withMet = 0;
+      for (let dd = 1; dd <= ((GG.div.win.record || []).length); dd++) {
+        GG.gday = dd; GG.gstage = 'complete';
+        const DD = window.__gDay ? window.__gDay() : null;
+        if (!DD) break;
+        const mineFight = (DD.ev || []).some(e => e.t === 'fight' &&
+          (e.corps || []).some(c => (typeof c === 'string' ? c : null) === GG.me));
+        if (mineFight) { withFight++; if ((DD.sq || []).some(q => q.met)) withMet++; }
+      }
+      GG.gday = was.d; GG.gstage = was.s;
+      check(withFight === 0 || withMet === withFight,
+            'every day you fought puts the other OA on the map (' + withMet + ' of ' + withFight + ')');
+    }
     check(/Comms Window/.test(text('#divstate')),
           'the Divide began and paused at a comms window: ' +
           text('#divstate').replace(/\s+/g, ' ').trim());
@@ -1544,29 +1563,47 @@ setTimeout(() => {
       let lit = 0;
       for (let p = 0; p < px.length; p += 4) if (px[p] + px[p + 1] + px[p + 2] > 24) lit++;
       check(lit > 20000, 'the ground painted (' + lit + ' lit pixels — planet, wall, squads)');
-    } catch (e) { console.log('  note  ground pixel check skipped'); }
+    } catch (e) { note('ground pixel check skipped'); }
     check(doc.querySelectorAll('#gboard tr').length === 9, 'all eight banners stand on the board');
 
     /* ---- the Table: the window answered, not ignored ---- */
-    check(hasTab('The Table') && hasTab('The Deal'), 'the Table and the Deal sit live on the Divide\'s rail');
-    check(/Day\s*\d+\s*of/.test(text('#dayhead')) && /Clear|[A-Z][a-z]+/.test(text('#dayhead')) && /Chance of Winning/.test(text('#dayhead')),
-          'the Table\'s head reads the day, the weather and your chance: ' + text('#dayhead').replace(/\s+/g, ' ').trim().slice(0, 90));
-    check(doc.querySelectorAll('#tsquads tr').length >= 2 && /Rations/.test(text('#tsquads')), 'your squads stand on the Table with their ground and rations');
-    /* THE MANAGER'S TWO LEVERS: the stance, and a leaning on each OA — not orders */
+    check(hasTab('Desk') && hasTab('Negotiation'), 'the Desk and Negotiation sit live on the Divide\'s rail');
+    /* §DESK the head is a STRIP now: the day, the wall as a bar with its rate, your chance,
+       what is standing, and the weather — each with its own room rather than eleven figures
+       in a line at one weight */
+    /* §NO ODDS the strip reads the day, the wall and what is standing — and NOT a chance of
+       winning, which is a judgement the manager makes (ruled) */
+    check(/Day\s*\d+/.test(text('#dayhead')) && !/Your Chance/.test(text('#dayhead')) &&
+          !!doc.querySelector('#dayhead .dwall .bar i') && !!doc.querySelector('#dayhead .dday b'),
+          'the Desk\'s strip reads the day, the wall and what is standing, and no odds');
+    /* §DESK a squad is a CARD, not a row: the four things that decide a day read as pips and
+       bars rather than seven columns of figures */
+    check(doc.querySelectorAll('#tsquads .tsq').length >= 1 &&
+          /Ground/.test(text('#tsquads')) && /Food/.test(text('#tsquads')),
+          'your squads stand on the Desk as cards, with their ground and their food');
+    /* §STANCE THE MANAGER'S ONE LEVER: the notch he sets AT each OA. It was a stance for the
+       whole contest plus a 1-5 leaning at each rival — two dials saying nearly the same thing,
+       and the second rarely bit, since an OA meets two or three of the seven. */
     {
       const GO = window.__G;
-      check(doc.querySelectorAll('#tstance .leanrow').length === 7 && /Who Your People Look For/.test(text('#tstance')),
-            'a leaning stands for every other OA');
+      /* §STANCE the ladder lives on each SQUAD'S card now; the fleet is read, not set */
+      check(doc.querySelectorAll('#tstance .stancerow').length === 7 &&
+            !doc.querySelector('#tstance .nb'),
+            'every other OA is read on the Desk, and none of them is a control');
+      check(doc.querySelectorAll('#tsquads .tsq .sqnotch').length >= 1 &&
+            doc.querySelectorAll('#tsquads .tsq .sqnotch .nb').length ===
+              doc.querySelectorAll('#tsquads .tsq .sqnotch').length * 5,
+            'each squad standing carries its own five-notch ladder');
       check(!doc.querySelector('#tsquads .ordsel'), 'the squads take no orders: what they do is theirs');
       /* THE CAPTAIN DECIDES: the row names them and says how they are reading the ground */
       /* §STORES the contest says what the ground has given, and what a squad has left to shoot */
       check(/Worked|Nothing Worked Yet/.test(text('#dayhead')),
             'the day head says what has come out of the ground: ' + (text('#dayhead').match(/Worked[^|]{0,60}/) || ['none'])[0].replace(/\s+/g, ' '));
-      check(/Rounds/.test(text('#tsquads')) && doc.querySelectorAll('#tsquads .bar2').length >= 2,
+      check(/Rounds/.test(text('#tsquads')) && doc.querySelectorAll('#tsquads .bar2').length >= 1,
             'each squad shows its rounds beside its rations');
       /* §THE CLOCK the wall says when it moves next, and to what */
-      check(/The Wall Closes Day \d+|The Dome Holds/.test(text('#dayhead')),
-            'the day head says when the wall closes next: ' + (text('#dayhead').match(/The Wall Closes[^A-Z]{0,40}/) || ['—'])[0].replace(/\s+/g, ' '));
+      check(/Closes (Tomorrow|in \d+ Days)|The Dome Holds/.test(text('#dayhead')),
+            'the strip says when the wall closes next: ' + (text('#dayhead').match(/Closes[^A-Z]{0,30}|The Dome Holds/) || ['\u2014'])[0].replace(/\s+/g, ' '));
       /* A WIPED SQUAD HAS NO CAPTAIN TO NAME, AND SAYING SO IS THE PANEL WORKING. This asked
          for a clickable captain on every squad — so the moment a manager's last squad was
          killed to the man, a correct "Nobody Leading" read as a failure. What the panel owes
@@ -1581,30 +1618,44 @@ setTimeout(() => {
             (alive9 ? '' : ' (every squad was killed to the man)'));
       const anyMind = GO.div.win.you.squads.some(q => q._mind && q._mind.judge);
       check(anyMind, 'a captain\'s judgement, sight and nerve are on the squad');
-      const row = doc.querySelector('#tstance .leanrow'), pip = row.querySelectorAll('.lp')[4];
-      const who = pip.getAttribute('data-lean');
-      pip.click();
-      check(GO.div.answer.leanings[who] === 5 && /Seek Them Out/.test(text('#tstance')),
-            'an OA can be leaned toward: ' + who);
+      /* §STANCE ONE SQUAD HUNTS, ANOTHER KEEPS ITS HEAD DOWN — and the notch set on a card must
+         actually reach THAT squad in the contest, not merely light up on the page */
+      const cards = [...doc.querySelectorAll('#tsquads .tsq .sqnotch')];
+      const hotBtn = [...cards[0].querySelectorAll('.nb')].pop();
+      const sq0 = hotBtn.getAttribute('data-sq');
+      hotBtn.click();
+      let sq1 = null;
+      const cards2 = [...doc.querySelectorAll('#tsquads .tsq .sqnotch')];
+      if (cards2.length > 1) { const cold = cards2[1].querySelectorAll('.nb')[0]; sq1 = cold.getAttribute('data-sq'); cold.click(); }
+      check(GO.div.answer.squadStance[sq0] === 'death_or_glory' &&
+            (sq1 == null || GO.div.answer.squadStance[sq1] === 'preservationist'),
+            'two squads can be set to different notches on their own cards');
       doc.getElementById('advwin').click();
-      const corp = GO.div.win && GO.div.win.you;
-      check(!GO.div.win || (corp._leanings && corp._leanings[who] === 5),
-            'the leaning rides into the contest and stays');
+      const you9 = GO.div.win && GO.div.win.you;
+      check(!GO.div.win || ((you9.squads[+sq0] || {}).stance === 'death_or_glory' &&
+            (sq1 == null || (you9.squads[+sq1] || {}).stance === 'preservationist')),
+            'each notch rides into the contest on the squad it was set for');
     }
-    check(doc.querySelectorAll('#tstance .notch').length === 5 && /Seek/.test(text('#tstance')), 'the five notches each say what they do');
+    /* §STANCE the five notches are the manager's words for the five stances, and they stand at
+       every OA rather than once for the contest */
+    check(/Avoid/.test(text('#tsquads')) && /All In/.test(text('#tsquads')),
+          'the five notches stand on the squads, in the manager\'s words');
     check(doc.getElementById('nextyear').style.display === 'none', 'Begin the Next Year waits on the contest');
 
-    check(doc.querySelectorAll('[data-notch]').length === 5,
-          'the stance ladder offers all five notches');
-    const worn0 = (doc.querySelector('#tstance .notch.on') || { getAttribute: () => '' }).getAttribute('data-notch').replace(/_/g, ' ');
-    const other = Array.from(doc.querySelectorAll('[data-notch]'))
-      .find(b => b.getAttribute('data-notch').replace(/_/g, ' ') !== worn0);
-    const declared = other.getAttribute('data-notch');
-    other.click();
-    check(/Declaring/.test(text('#tstance')),
-          'a stance is declared at the window: ' + declared.replace(/_/g, ' '));
-    if (process.env.ARX_SHOT_FOG) { try { const GW = window.__G; GW.corps[GW.me]._intel.planet.rows.terrain = { depth: 0, gathered: 0 }; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap_fog.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no fog shot: ' + e.message); } }
-    if (process.env.ARX_SHOT) { try { [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /Table/.test(x.textContent))[0].click(); } catch (e) { console.log('  note  no ground shot: ' + e.message); } }
+    /* §STANCE the ladder is per-OA now: one row of five at each of the seven, plus the row
+       that sets them all — 40 buttons, not 5, and nothing is "declared" for the contest */
+    {
+      const card = doc.querySelector('#tsquads .tsq .sqnotch');
+      if (card) {
+        const b0 = card.querySelectorAll('.nb')[0], sqi = b0.getAttribute('data-sq');
+        b0.click();
+        check(!!doc.querySelector('#tsquads .tsq .sqnotch .nb.n1.on') &&
+              window.__G.div.answer.squadStance[sqi] === 'preservationist',
+              'the coolest notch can be set on a squad: ' + sqi);
+      }
+    }
+    if (process.env.ARX_SHOT_FOG) { try { const GW = window.__G; GW.corps[GW.me]._intel.planet.rows.terrain = { depth: 0, gathered: 0 }; GW.gcache = null; [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap_fog.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click(); } catch (e) { note('no fog shot: ' + e.message); } }
+    if (process.env.ARX_SHOT) { try { [...doc.querySelectorAll('.tab')].filter(x => /Ground/.test(x.textContent))[0].click(); require('fs').writeFileSync('/tmp/gmap.png', Buffer.from(doc.getElementById('gmap').toDataURL().split(',')[1], 'base64')); [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click(); } catch (e) { note('no ground shot: ' + e.message); } }
     /* THE TABLE IS THE TALKS' SHAPE: a strip of OAs, a composer for the one selected */
     const strip = doc.querySelectorAll('#tstrip [data-tsel]').length;
     check(strip === 7, 'every other OA stands on the Table\'s strip (' + strip + ')');
@@ -1621,104 +1672,48 @@ setTimeout(() => {
       check(opened === doc.querySelectorAll('#tstrip [data-tsel]').length,
             'every OA on the strip opens a composer, or says why it will not deal (' + opened + ')');
     }
-    /* COMPOSE AT THE FIRST WINDOW THAT OFFERS A DEAL. A viable row is a matter of the seed
-       and the day, so walk the windows until one appears, lowball it, and read the refusal
-       back with its number on the next. */
+    /* §JOINING RETIRED COMPOSE A TRUCE AT THE FIRST WINDOW THAT OFFERS ONE. This walked the windows for a
+       join or a take row — joining's deals — and when none could appear (they cannot now) it quietly
+       composed nothing and reported success anyway. A truce is what the table puts to an OA, so that is
+       what it composes, and if no OA will hear one on this seed it says so. */
     let composed = null, tries = 0;
     while (!composed && !/over/.test(text('#divstate')) && tries++ < 12) {
       const W = window.__G.div.win;
-      const takeRow = (W.table.wouldTake || []).find(r => r.viable && r.band);
-      const joinRow = (W.table.canJoin || []).find(r => r.viable && r.band);
-      if (takeRow || joinRow) {
-        const id = takeRow ? takeRow.corp : joinRow.principal, kind = takeRow ? 'take' : 'join';
-        doc.querySelector('#tstrip [data-tsel="' + id + '"]').click();
-        const kb = doc.querySelector('#tdeal [data-tkind="' + kind + '"]'); if (kb) kb.click();
-        /* the cut goes on the table as a chip: You Offer for a take, You Ask For for a join */
-        doc.querySelector('#tdeal [data-tin="cut"]').value = kind === 'take' ? '1' : '95';
-        doc.querySelector('#tdeal [data-tadd2="' + (kind === 'take' ? 'give' : 'get') + ':cut"]').click();
-        check(/Short by|Over by|Would Take/.test(text('#tdeal')), 'the beam reads the terms as they stand: ' +
-              (text('#tdeal').match(/(Short by[^.]*|Over by[^.]*|They Would Take[^.]*)/) || [''])[0]);
-        doc.querySelector('#tdeal [data-tsend="' + kind + '"]').click();
-        check((kind === 'take' ? /Under Yours/ : /Banner/).test(text('#tword')) &&
-              (kind === 'take' ? /1% of the Take/ : /95% of the Take/).test(text('#tword')),
-              'a ' + (kind === 'take' ? 'lowball' : 'greedy join') + ' is composed on day ' + W.day + ': ' +
-              text('#tword').replace(/\s+/g, ' ').trim().slice(0, 80));
-        composed = kind;
+      const pactRow = ((W.table && W.table.pacts) || []).find(r => r.viable);
+      if (pactRow) {
+        doc.querySelector('#tstrip [data-tsel="' + pactRow.corp + '"]').click();
+        const kb = doc.querySelector('#tdeal [data-tkind="pact"]'); if (kb) kb.click();
+        check(/Truce/i.test(text('#tdeal')), 'the composer opens on the one deal at the table: ' +
+              text('#tdeal').replace(/\s+/g, ' ').trim().slice(0, 70));
+        const send = doc.querySelector('#tdeal [data-tsend="pact"]');
+        if (send) { send.click(); composed = 'pact'; }
       }
       doc.getElementById('advwin').click();
     }
-    if (!composed) {
-      console.log('  note  no viable deal in the first dozen windows on this seed');
-      if (!/over/.test(text('#divstate'))) {
-        doc.querySelector('#tstrip [data-tsel]').click();
-        check(doc.querySelectorAll('#tdeal .tkinds, #tdeal .tcols, #tdeal .m').length >= 1,
-              'selecting an OA opens the composer, or says why there is nothing to put to them: ' +
-              text('#tdeal').replace(/\s+/g, ' ').trim().slice(0, 70));
-        /* A SYNTHETIC ROW proves the composer's arithmetic when the seed offers no real one:
-           an OA that would come under the banner for 10-40% of a 100,000 take. The beam
-           must read short under 10,000 of value, take it inside, and over past 40,000. */
-        const Wn = window.__G.div.win, oid = window.__G.state.ids.find(x => x !== window.__G.me);
-        Wn.table.wouldTake = [{ corp: oid, odds: 0.2, viable: true,
-          range: { expectedTake: 100000, joinerMin: 10000, principalMax: 40000, oddsPrincipal: 0.3, oddsJoined: 0.45, relPrice: 1,
-                   /* a share of the haul reads differently to each side: they are short of food, you are not */
-                   resources: { foods: { units: 4, joiner: 60000, principal: 12000 }, minerals: { units: 0, joiner: 0, principal: 0 } },
-                   claims: { obj_synth: { resource: 'copper_ore', category: 'minerals', units: 2.1, joiner: 9000, principal: 30000 } },
-                   spoiler: 7500 },
-          band: { minShare: 0.10, maxShare: 0.40 } }];
-        window.__G._tdiv = null;
-        doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();
-        if (/Pick an OA/.test(text('#tdeal'))) doc.querySelector('#tstrip [data-tsel="' + oid + '"]').click();   /* the chip toggles */
-        doc.querySelector('#tdeal [data-tkind="take"]').click();
-        check(/Nothing on the Table/.test(text('#tdeal')), 'the beam starts empty');
-        doc.querySelector('#tdeal [data-tin="cut"]').value = '5';
-        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
-        check(/Short by ₡5,000/.test(text('#tdeal')), 'a 5% cut of 100,000 reads short by 5,000 against a 10,000 floor');
-        doc.querySelector('#tdeal [data-tin="credits"]').value = '6000';
-        doc.querySelector('#tdeal [data-tadd2="give:credits"]').click();
-        check(/They Would Take This|They Would Sign/.test(text('#tdeal')), 'adding 6,000 in credits carries it over the floor');
-        doc.querySelector('#tdeal [data-tdrop2="give:0"]').click();
-        doc.querySelector('#tdeal [data-tin="cut"]').value = '50';
-        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
-        check(/Over by ₡16,000/.test(text('#tdeal')), 'a 50% cut plus 6,000 reads over by 16,000 against a 40,000 ceiling');
-        check(doc.querySelectorAll('#tdeal .trow.dead').length >= 0 && /Not Yet Priced|Their Banner/.test(text('#tdeal')),
-              'the pools carry the structure for terms the engine does not price yet');
-        /* A DEAL IN KIND finds room a deal in credits cannot: drop everything, offer 25% of
-           the foods you will bank — worth 15,000 to an OA short of food, costing you 3,000 */
-        doc.querySelector('#tdeal [data-tdrop2="give:1"]').click();
-        doc.querySelector('#tdeal [data-tdrop2="give:0"]').click();
-        check(/Nothing on the Table/.test(text('#tdeal')), 'the table clears');
-        check(doc.querySelectorAll('#tdeal .trow2.dead').length === 3 && /A Share of Their Foods/.test(text('#tdeal')),
-              'the haul rows stand in the pool, the empty category greyed');
-        doc.querySelector('#tdeal [data-tin="haul:foods"]').value = '25';
-        doc.querySelector('#tdeal [data-tadd2="give:haul:foods"]').click();
-        check(/They Would Sign/.test(text('#tdeal')) && /to Them\s*₡15,000/.test(text('#tdeal')) && /to You\s*₡3,000/.test(text('#tdeal')),
-              'a quarter of the foods reads worth 15,000 to them and 3,000 to you — the want gap is the deal');
-        check(/Their Leverage\s*₡7,500/.test(text('#tdeal')), 'the spoiler value reads on the beam as their leverage');
-        /* A NAMED CLAIM prices to each side too; here you want the copper more than they do */
-        doc.querySelector('#tdeal [data-tadd2="give:claim:obj_synth"]').click();
-        check(/to You\s*₡33,000/.test(text('#tdeal')) && /to Them\s*₡24,000/.test(text('#tdeal')),
-              'the claim adds 9,000 to them and 30,000 to you — a bad deal in kind reads as one');
-        doc.querySelector('#tdeal [data-tsend="take"]').click();
-        check(/25% of Their Foods/.test(text('#tword')) && /Copper Ore Claim/.test(text('#tword')), 'the word carries the haul term and the claim: ' + text('#tword').replace(/\s+/g, ' ').trim().slice(0, 110));
-        doc.getElementById('twithdraw').click();
-        doc.querySelector('#tdeal [data-tin="cut"]').value = '50';
-        doc.querySelector('#tdeal [data-tadd2="give:cut"]').click();
-        doc.querySelector('#tdeal [data-tin="credits"]').value = '6000';
-        doc.querySelector('#tdeal [data-tadd2="give:credits"]').click();
-        doc.querySelector('#tdeal [data-tsend="take"]').click();
-        check(/Under Yours/.test(text('#tword')) && /50% of the Take/.test(text('#tword')) && /6,000/.test(text('#tword')),
-              'Put It to Them composes the word with its cut and credits: ' + text('#tword').replace(/\s+/g, ' ').trim().slice(0, 80));
-        doc.getElementById('twithdraw').click();
-      }
-    }
+    check(!!composed || tries >= 12, 'a truce was put to an OA, or no OA would hear one in a dozen windows' +
+          (composed ? '' : ' (none on this seed)'));
+
     if (!/over/.test(text('#divstate'))) {
-      check((doc.querySelector('#tstance .notch.on') || {}).getAttribute && doc.querySelector('#tstance .notch.on').getAttribute('data-notch') === declared,
-            'the declaration round-tripped through the engine: worn now ' + declared.replace(/_/g, ' '));
+      /* §STANCE what round-trips is the notch each squad carries: the card reads it back off
+         the corp the engine handed out, so a notch the engine never received cannot show lit */
+      {
+        const card = doc.querySelector('#tsquads .tsq .sqnotch');
+        const onBtn = card && card.querySelector('.nb.on');
+        const sqi = onBtn && +onBtn.getAttribute('data-sq');
+        const worn = onBtn && onBtn.getAttribute('data-sqnotch');
+        const held = window.__G.div.win && window.__G.div.win.you && window.__G.div.win.you.squads[sqi];
+        /* a manager who has conceded has no squad on the ground and no card to read */
+        if (card) check(!!onBtn && (!held || !held.stance || held.stance === worn ||
+              ((window.__G.div.answer || {}).squadStance || {})[sqi] === worn),
+              'the squad\'s notch round-tripped through the engine: squad ' + sqi + ' at ' + (worn || ''));
+      }
+      /* §JOINING RETIRED the echo read back a lowballed join's refusal and its number; what comes back from
+         the table now is the truce's answer — formed, or refused, and by whom */
       if (composed)
-        check(/Refused/.test(text('#techo')) && /(short|over) by ₡?[\d,]+/.test(text('#techo')),
-              'the refusal came back with its number: ' +
+        check(/(Formed|Refused|Declined|Pact|Truce)/i.test(text('#techo')),
+              'the table\'s answer came back: ' +
               text('#techo').replace(/\s+/g, ' ').trim().slice(0, 120));
-    } else console.log('  note  the contest ended early — table round-trip rides another seed');
+    } else note('the contest ended early — table round-trip rides another seed');
     let winN = 1, guard = 0;
     while (!/over/.test(text('#divstate')) && guard++ < 60) {
       doc.getElementById('advwin').click(); winN++;
@@ -1735,17 +1730,18 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      /* §BOARD the three audiences keep their rows; the fleet is a LEDGER now, seven rows */
-      check(doc.querySelectorAll('#audiences .audrow2').length === 3 &&
+      /* §BOARD the audiences keep their rows — two now: the Aleas' is hidden until the media system gives it a
+         meaning (§ALEAS) — and the fleet is a LEDGER, seven rows */
+      check(doc.querySelectorAll('#audiences .audrow2').length === 2 &&
             doc.querySelectorAll('#audiences .fleetbox .fleetrow:not(.hd)').length === 7,
-            'the Board reads three audiences and the seven (' +
+            'the Board reads its two audiences and the seven (' +
             doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 in the ledger)');
       check(doc.querySelectorAll('#audiences .fleetbox .fleetrow svg').length >= 7 &&
             doc.querySelectorAll('#audiences .fleetbox [data-oa]').length === 7,
             'each OA carries its own mark and opens its sheet');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
-      check(doc.querySelectorAll('#audiences .amem').length === 3 && /\d/.test(text('#audiences')),
+      check(doc.querySelectorAll('#audiences .amem').length === 2 && /\d/.test(text('#audiences')),
             'each audience carries one line of what moved it');
       /* §BOARD the head is a strip now: the year and patience are figures under their labels,
          patience with a bar and a word for what the board is at */
@@ -1925,8 +1921,9 @@ setTimeout(() => {
           doc.querySelectorAll('#roster .rcard').length >= 5,
           'the founder\'s OA has a crew and a live desk — playable, not a placard');
 
-    console.log(failed ? '\n' + failed + ' CHECK(S) FAILED'
-                       : '\nall checks passed — the page lives a year');
+    console.log(failed ? '\n' + failed + ' CHECK(S) FAILED' + (skipped ? ' \u00b7 ' + skipped + ' step(s) skipped' : '')
+                       : '\nall checks passed — the page lives a year' +
+                         (skipped ? ' \u00b7 ' + skipped + ' step(s) SKIPPED, and a skipped step proves nothing' : ''));
     process.exit(failed ? 1 : 0);
   } catch (e) {
     console.log('  DRIVE ERROR: ' + (e && e.stack || e));

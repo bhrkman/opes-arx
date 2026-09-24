@@ -29,8 +29,8 @@
     "baseline"
    ],
    "stat_leans": {
-    "tactics": 1,
-    "resolve": 1
+    "tactics": 10,
+    "resolve": 10
    },
    "lean_notes": "Mild leans per RACES.md; widest trait variety and captain premium carried in 'special'.",
    "age": {
@@ -48,11 +48,11 @@
     60
    ],
    "loyalty_texture": null,
-   "supply_mult": 1,
+   "supply_mult": 1.0,
    "pool_weights": {
     "nattie": 30,
     "merc": 16,
-    "prisoner": 22
+    "prisoner": 30
    },
    "market": {
     "cost_mult": 1,
@@ -170,7 +170,15 @@
      "register": "casual",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "abundant",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 0.55,
+    "prisoner": 1.0
+   },
+   "supply_note": "Baseline. Every other ration is read against this one."
   },
   {
    "id": "kellis",
@@ -187,8 +195,8 @@
     "light_frame"
    ],
    "stat_leans": {
-    "aim": 3,
-    "reflex": 2
+    "aim": 30,
+    "reflex": 20
    },
    "lean_notes": "++aim / +reflex per RACES.md — lore precision maps onto the all-ranged canon.",
    "age": {
@@ -206,11 +214,11 @@
     80
    ],
    "loyalty_texture": null,
-   "supply_mult": 1,
+   "supply_mult": 1.0,
    "pool_weights": {
-    "nattie": 8,
-    "merc": 8,
-    "prisoner": 3
+    "nattie": 10,
+    "merc": 10,
+    "prisoner": 10
    },
    "pool_note": "Rare in the Kier Bastille — honor culture (proposed).",
    "market": {
@@ -314,7 +322,15 @@
      "register": "formal",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "settled",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 1.0,
+    "prisoner": 1.0
+   },
+   "supply_note": "A light frame on a high idle — the insectoid metabolism spends what the frame saves."
   },
   {
    "id": "mon_wa",
@@ -330,12 +346,14 @@
     "small"
    ],
    "stat_leans": {
-    "fieldcraft": 2,
-    "tactics": 2,
-    "aim": -1,
-    "grit": -2
+    "fieldcraft": 20,
+    "tactics": 20,
+    "aim": -10,
+    "grit": -40,
+    "reflex": -10,
+    "resolve": -10
    },
-   "lean_notes": "+fieldcraft/+tactics per RACES.md; the aim/grit offsets encode 'modest combat output for two bodies' (proposed).",
+   "lean_notes": "ONE SEAT, TWO BODIES (ruled): a pair holds a single place in a squad and fights as two guns, so it is leaned DOWN to pay for the second body — grit −4 (fewer hit points a head, through hpFor), reflex −1 and resolve −1 on top of the existing aim −1. A jumping-off point for balance, not a settled number. +fieldcraft/+tactics per RACES.md; the aim/grit offsets encode 'modest combat output for two bodies' (proposed).",
    "age": {
     "recruit_min": 16,
     "prime": [
@@ -351,17 +369,18 @@
     70
    ],
    "loyalty_texture": null,
-   "supply_mult": 1,
+   "supply_mult": 1.2,
    "pool_weights": {
-    "nattie": 5,
-    "merc": 4,
-    "prisoner": 2
+    "nattie": 4,
+    "merc": 3,
+    "prisoner": 4
    },
    "pool_note": "Rare in the Bastille — least hostile species in the fleet (proposed).",
    "market": {
     "cost_mult": 1.2,
-    "salary_mult": 1.1,
-    "rarity_note": "One salary line buys two bodies; priced for the utility, not the firepower."
+    "salary_mult": 1.75,
+    "rarity_note": "One salary line buys two bodies; priced for the utility, not the firepower.",
+    "salary_note": "Two bodies in ONE seat: a pair is paid one wage, and that wage carries more than a single life because it puts two guns in the line and eats two people's rations. 1.10 → 1.75 when the one-seat ruling landed, which lands a pair at about 1.4× a human's wage (measured) — a premium, not the doubling it used to be by accident."
    },
    "oa_lean": [],
    "resentment_rate": 0.08,
@@ -449,7 +468,15 @@
      "register": "warm",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "scarce",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 0.8,
+    "prisoner": 1.0
+   },
+   "supply_note": "TWO BODIES, both of them about three feet tall — a pair eats a little more than one adult, not two. In scale with Olmac, who is one large person, rather than the 1.6 first written when the one-seat ruling landed and the wage and the rations were raised together without reading this table."
   },
   {
    "id": "olmac",
@@ -466,11 +493,11 @@
     "leathery"
    ],
    "stat_leans": {
-    "grit": 3,
-    "aim": 1,
-    "resolve": 1,
-    "tactics": -2,
-    "fieldcraft": -3
+    "grit": 30,
+    "aim": 10,
+    "resolve": 10,
+    "tactics": -20,
+    "fieldcraft": -30
    },
    "lean_notes": "++grit / −tactics / −fieldcraft per RACES.md ('nothing that size hides' pushed fieldcraft to −3); the aim/resolve nudges encode smothering fire and unsentimental steadiness (proposed).",
    "age": {
@@ -489,11 +516,11 @@
    ],
    "loyalty_texture": null,
    "supply_mult": 1.15,
-   "supply_note": "Big bodies eat (proposed).",
+   "supply_note": "A wall of a person. The mass is granite-skinned and slow-burning rather than hungry, so the cost is less than the size suggests.",
    "pool_weights": {
-    "nattie": 14,
-    "merc": 18,
-    "prisoner": 18
+    "nattie": 4,
+    "merc": 5,
+    "prisoner": 4
    },
    "pool_note": "Demographic ubiquity is canon: present in every corp's pools and the merc market.",
    "market": {
@@ -569,7 +596,14 @@
      "register": "final",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "scarce",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 1.3,
+    "prisoner": 1.0
+   }
   },
   {
    "id": "ththyn",
@@ -586,10 +620,10 @@
     "light_frame"
    ],
    "stat_leans": {
-    "reflex": 2,
-    "aim": 2,
-    "fieldcraft": 2,
-    "grit": -2
+    "reflex": 20,
+    "aim": 20,
+    "fieldcraft": 20,
+    "grit": -20
    },
    "lean_notes": "+reflex/+aim/+fieldcraft per RACES.md; the grit offset encodes light frames and fragile wings (proposed).",
    "age": {
@@ -612,7 +646,7 @@
    "pool_weights": {
     "nattie": 10,
     "merc": 20,
-    "prisoner": 8
+    "prisoner": 10
    },
    "pool_note": "Overrepresented in the merc pool (canon).",
    "market": {
@@ -710,7 +744,15 @@
      "register": "insult",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "settled",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 2.0,
+    "prisoner": 1.0
+   },
+   "supply_note": "Hollow-boned and built to fly, which is cheap to carry and dear to fuel; the two nearly cancel."
   },
   {
    "id": "svalbard",
@@ -728,13 +770,13 @@
     "massive"
    ],
    "stat_leans": {
-    "grit": 2,
-    "reflex": 2,
-    "tactics": 2,
-    "presence": 2
+    "grit": 20,
+    "reflex": 20,
+    "tactics": 20,
+    "presence": 20
    },
    "lean_notes": "Strong across grit/reflex/tactics/presence with high floors (ratified) — the culls mean weak Svalbard mostly don't exist.",
-   "stat_floor": 7,
+   "stat_floor": 70,
    "age": {
     "recruit_min": 20,
     "prime": [
@@ -751,11 +793,11 @@
    ],
    "loyalty_texture": null,
    "supply_mult": 1.2,
-   "supply_note": "Six limbs to feed (proposed).",
+   "supply_note": "Six limbs and the mass of a horse: the largest ration on the sheet.",
    "pool_weights": {
-    "nattie": 3,
-    "merc": 4,
-    "prisoner": 2
+    "nattie": 4,
+    "merc": 5,
+    "prisoner": 4
    },
    "pool_note": "The pool skews elite, rare, and expensive (ratified).",
    "market": {
@@ -839,7 +881,14 @@
      "register": "stoic",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "scarce",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 1.2,
+    "prisoner": 1.0
+   }
   },
   {
    "id": "etu",
@@ -856,10 +905,10 @@
     "cold_blooded"
    ],
    "stat_leans": {
-    "grit": 2,
-    "fieldcraft": 2,
-    "resolve": 2,
-    "presence": -1
+    "grit": 20,
+    "fieldcraft": 20,
+    "resolve": 20,
+    "presence": -10
    },
    "lean_notes": "+grit/+fieldcraft/+resolve per RACES.md (faith under fire); the presence offset encodes stoicism (proposed).",
    "age": {
@@ -878,10 +927,10 @@
    ],
    "loyalty_texture": null,
    "supply_mult": 0.75,
-   "supply_note": "Cold-blooded low metabolism → reduced field supply consumption (canon management hook).",
+   "supply_note": "Cold-blooded: an Etu at rest costs almost nothing, which is why they are cheap to keep and slow to start.",
    "pool_weights": {
-    "nattie": 12,
-    "merc": 9,
+    "nattie": 10,
+    "merc": 8,
     "prisoner": 10
    },
    "market": {
@@ -974,7 +1023,14 @@
      "register": "grief",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "settled",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 0.75,
+    "prisoner": 1.0
+   }
   },
   {
    "id": "attorak",
@@ -990,9 +1046,9 @@
     "powerful_jaws"
    ],
    "stat_leans": {
-    "grit": 2,
-    "resolve": 2,
-    "presence": 1
+    "grit": 20,
+    "resolve": 20,
+    "presence": 10
    },
    "lean_notes": "+grit/+resolve per RACES.md (fearless in the fight); the presence nudge encodes crowd-legible savagery (proposed).",
    "age": {
@@ -1012,9 +1068,9 @@
    "loyalty_texture": null,
    "supply_mult": 1.05,
    "pool_weights": {
-    "nattie": 12,
-    "merc": 12,
-    "prisoner": 16
+    "nattie": 10,
+    "merc": 10,
+    "prisoner": 10
    },
    "pool_note": "Overrepresented in the Bastille — battle-joy finds trouble between Divides (proposed).",
    "market": {
@@ -1085,7 +1141,15 @@
      "register": "grief",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "settled",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 1.0,
+    "prisoner": 1.0
+   },
+   "supply_note": "Heavy through the shoulder and jaw, and they eat like it."
   },
   {
    "id": "gil",
@@ -1103,9 +1167,9 @@
     "impaired_vision_corrected"
    ],
    "stat_leans": {
-    "fieldcraft": 3,
-    "reflex": 3,
-    "grit": -2
+    "fieldcraft": 30,
+    "reflex": 30,
+    "grit": -20
    },
    "lean_notes": "++fieldcraft / ++reflex per RACES.md; the grit offset encodes small frames (proposed).",
    "age": {
@@ -1126,9 +1190,9 @@
    "loyalty_texture_note": "Canon: they stay while you serve their goals.",
    "supply_mult": 0.9,
    "pool_weights": {
-    "nattie": 8,
-    "merc": 9,
-    "prisoner": 12
+    "nattie": 10,
+    "merc": 11,
+    "prisoner": 10
    },
    "pool_note": "Bastille lean: patient hunters get caught holding other people's property (proposed).",
    "market": {
@@ -1145,8 +1209,7 @@
      "latent_rate": 0.05,
      "expressions": {
       "psion_battle_sense": 0.4,
-      "psion_squad_link": 0.35,
-      "psion_pressure_read": 0.25
+      "psion_squad_link": 0.35
      },
      "note": "Scope defined here per RACES.md: rare trait line, one expression per psion. Rates proposed."
     }
@@ -1227,7 +1290,16 @@
      "register": "transactional",
      "provenance": "proposed"
     }
-   ]
+   ],
+   "rarity": "settled",
+   "rarity_note": "RULED: how often this people turns up in a draw at all. Three tiers — abundant (humans, who fill the fleet), settled (the five peoples with a place in it) and scarce (the three seldom seen). The tier sets the base weight (30 / 10 / 4) and `pool_lean` keeps each people's own character within it. THE BASTILLE DRAWS FROM EVERYONE ALIKE: `pool_lean.prisoner` is 1.0 for every people, so who is in the Kier's cells reflects who is alive, and nothing else. A per-race prisoner weight was in the first cut — some peoples turned up among the condemned more than their numbers — and with no narrative in the game to carry it, the only thing it could say is that some peoples are more prone to crime. If the prison industry is ever written as what it is, something that hunts the people it can reach, the lean belongs to the KIER and its recruiters, not to the blood.",
+   "pool_lean": {
+    "nattie": 1.0,
+    "merc": 1.1,
+    "prisoner": 1.0
+   },
+   "supply_note": "Small and light, and they burn it fast: a little under a human."
   }
- ]
+ ],
+ "supply_note": "RATIONS ARE READ OFF THE BODY, not off the balance sheet: size, frame and metabolism, against a human at 1.00. Cold-blooded is cheap, mass is dear, and a light frame that flies is nearly a wash. Where a people costs more or less to feed it is because of what they are."
 }

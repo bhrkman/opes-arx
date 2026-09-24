@@ -1,34 +1,841 @@
-THE REPLAY: A PICTURE, NOT A WALL OF TEXT
+ONE CONTROL INSTEAD OF TWO, AND A DESK THAT IS NOT A SPREADSHEET
 
-A frame painted the page, not the canvas: every 16ms tick rewrote five panels and recomputed
-vision. renderGround(false) paints the canvas alone, renderGroundPanels writes the page when
-the day or state changes, and the walk runs on requestAnimationFrame.
+THE STANCE IS THE LEANING. A stance for the whole contest plus a 1-5 leaning at each rival were
+two dials saying nearly the same thing, and the second rarely bit. A manager sets a notch AT each
+OA now — Avoid · Wary · Engage · Press · All In — and those are the five stances the game already
+had, read against one OA instead of the world. Every opponent-facing read goes through
+stanceToward/dialsToward; an OA's own conduct still reads off its declared policy, so temperament,
+board demands and profiles are untouched. The AI sets the same control. Old saves read their 1-5
+leanings as notches.
 
-A fight is the two OAs' marks, crossed — not a made-up three-letter tag and a result in words.
-The words wait for the pointer, and a click opens the footage.
+THE DESK: one strip for the day (the wall as a closing bar with its rate, your chance, what is
+standing, the weather and what it does), squads as cards in their own colours with pips and bars
+and no buttons, and the fleet as the spine with the five-notch ladder at each OA.
 
-Zoom and pan: the wheel about the pointer, a drag, and three buttons; the terrain layer is
-drawn once and scaled, so a zoom costs nothing.
+Gates: regress --fast 114/114 · measure_fight · drive · audit_ui · audit_resize · audit_docs ·
+audit_code.
 
-A day announces itself over the map as a month does at the turn, so a press is not a silent
-wait.
+AND PASSIVE SIGHTING (§7.6)
 
-Gates: regress --fast 114/114 · drive · audit_ui · audit_resize · audit_docs · audit_code.
+A sighting was written only by the landings, a relay mast, and contact — so no stance could buy
+information and Scout/Hide were labels with nothing under them. A squad now notices the squads
+around it at day's end, on how far it marched, the cover they are in, how big they are, its
+fieldcraft and the weather. Measured: 64-70 sightings earned per contest against ~20 fights —
+and the picture a manager can act on barely moved (fresh sightings 2.02 -> 2.07 of seven),
+because twenty fights already write twenty sightings and MAP_STALE keeps them eight days. Built
+and working; recorded as not yet mattering, with the two things that must be true before it
+does.
 
-And the real cost, found by counting rather than reasoning: seenBySquads appends to G._seen on
-every call and terrainLayer keys its cache on that array's length, so the frame loop rebuilt the
-whole 900x900 terrain layer every frame. 40 rebuilds per 40 frames before, 0 after; a squad's
-walk is built once and kept, 0 path builds per 40 frames.
+AND THE MACRO AUDIT (first report)
 
-A second pass from watching it: the walk began a whole interval late (setInterval's first tick),
-which read as a jump back and a pause; a day's walk now fills the day's slot, eased both ends,
-with the card ahead of it. You see who you are fighting — whoever your people met that day
-stands on the map, solid and ringed — where the fog had hidden even a contact. The first window
-opens at the drop and waits for a directive. One Drop button. Rounds read "undefined" because
-DIVIDE.CONST.AMMO_LOAD does not exist; a squad's load is what its standing bodies carry.
+audit_macro.cjs states the Divide's geometry against the genre it imitates. The map is NOT too
+small: 26 squads sit 20% of the field apart, the same as a Fortnite or Apex lobby. The REACH is
+too long — contact happens within 11.7% of the width where those games use 3-6%, so the median
+nearest enemy (0.065) is already inside contact range (0.068) and 53% of squad-days are. There
+is no room in which to be undiscovered, which is why stealth and the cold stances could never
+bite. And the arc runs backwards: contacts peak on days 4-9 and die by day 19, where a battle
+royale rises into its last third — the wall closes on a field that has stopped fighting.
 
-A third pass, traced in the harness rather than reasoned: the corner's Drop hunted for a button
-the Table had not drawn (so the first press did nothing); the window advance derived "watched so
-far" from win.record.length, which the engine keeps appending to, so it jumped to the newest day
-and skipped everything between; and the posted landings and the relay mast — two real reveals —
-were unlabelled, so a sighting now carries `via` and the map says Posted Landing, Mast, or Seen.
+THE REACH IS CUT AND THE WALL BITES
+
+Contact 0.068 -> 0.020 (11.7% -> 3.4% of the map's width), sight 0.105 -> 0.048, watching 0.090
+-> 0.042 — a little over twice contact, the shape the genre uses. The wall steps on days
+1/5/9/13/17/21 instead of 1/7/13/19/24/28, down to 0.085 of the radius, last ground on day 24.
+Measured: median nearest enemy 0.065 -> 0.037, squad-days inside contact range 53% -> 16%. There
+is ground to be undiscovered in now.
+
+Second finding, recorded not fixed: the table settles the contest before the wall does. Squads
+standing fall to 6 by day 17 and those six cannot avoid each other on the final ring — but they
+do not fight, because by then most of what survives is under one banner. A battle royale's last
+third is loud because everyone left is an enemy; here everyone left is an ally.
+
+STAGE 0 OF THE WITHDRAWAL MIGRATION: THE INSTRUMENT, AND THE BASELINE
+
+audit_macro.cjs counts SIDES rather than corps — a corp that has joined another is not a side of
+its own — read at each comms window off the live corps, since the recording does not carry
+joinedTo. Two fixes were needed to get a reading at all: the generator only yields for a MANAGER
+(a contest with no human ran straight through with no windows), and the earlier "5.7 sides" was
+counting corps.
+
+The baseline, recorded in docs/macro_baseline.json before any withdrawal work: eight sides on
+day 2, four by day 8, TWO BY DAY 11 — the middle — and two for the whole second half with all
+eight OAs still alive. From day 13 on the field averages 2.00 sides. The last third is not a
+battle royale; it is two alliances holding ground. Stage 7 passes when this curve rises and
+tracks the OAs actually still on the field.
+
+Recorded in the plan as a standing instruction: no stage bends a number to hold a fatality rate.
+
+STAGE 1: THE VOCABULARY, INERT BY DESIGN
+
+corp.withdrawn stands beside joinedTo, written and read by nothing; NEG.considerWithdraw stands
+beside considerJoin and returns the same deal marked withdraws:true, because the price of getting
+an enemy off the board is the price the surrender table already computes. The pass condition is
+that nothing plays differently: audit_macro's sides curve is bit-for-bit identical to the Stage 0
+baseline, and every other gate is unmoved. That identity proves the naming is inert, so whatever
+the curve does at Stage 2 is the behaviour.
+
+STAGE 2: THE MERGE IS GONE; THE GATE FAILS AND THAT IS THE FINDING
+
+strike now writes `withdrawn` and takes the beaten OA's people off the planet — its squads empty
+by the road a folded squad already takes, so the recording, map and replay need nothing new — and
+principalOf returns a withdrawn OA to itself. Sides now track the OAs actually alive, exactly:
+day 8 4.00 -> 5.50, day 11 2.00 -> 3.00. Nobody is under anybody else's flag.
+
+The gate (sides >= 7 until day 13) fails: 5.5 by day 8, 3.0 by day 11, the field empty by day 24,
+five withdrawals a contest starting on day 4. The price was set for a deal that kept the loser
+fighting; the same money now buys a way home, which is strictly better, so everyone takes it
+early. A valuation problem, carried to stage 4 rather than patched here — patching it now would
+hide whether the structure works, and it does.
+
+STAGE 3: THE PEOPLE COME HOME, AND A CONCESSION IS PAID RATHER THAN WAGERED
+
+A withdrawing OA's survivors stay active, carry a _withdrew day, and appear in neither dead nor
+captured — 9, 6 and 12 bodies home on a measured contest, with nothing built for it, because
+stage 2 used the road a folded squad already takes. The credits agreed are now a debt for the
+ground and are paid BEFORE any share of winnings, with a shortfall recorded as `owed`: two of
+three withdrawing OAs had been paid nothing because their buyer did not win.
+
+Second finding for stage 4: after the fix those two are still paid nothing, because their terms
+contained no credits at all — composeTerms writes sites, resources and a share, which suited a
+vassal and means a conceding OA gives up its ground for a claim it will never see. Withdrawal is
+not only too cheap, it is frequently free. A concession must be cash-shaped.
+
+Gates: bodies home; measure_economy unmoved; regress 114/114; measure_fight; audit_table; drive;
+audit_ui; audit_code; audit_docs.
+
+STAGE 4: A CONCESSION IS CASH-SHAPED, AND IT COSTS THE REST OF THE CONTEST
+
+composeTerms wrote sites, ore and a share of the buyer's winnings — right for a vassal, absurd
+for an OA leaving the planet that will never see them. A concession is paid in credits in full,
+and the thrifty may not refuse to pay for ground they are taking. And the floor carried no sense
+of time, because a join gave up nothing but a name: CONCESSION_EARLY (2.20) makes conceding on
+day 4 — twenty more days of chances — cost three times what it costs on the last day.
+
+Sides at day 8: 4.00 (join) -> 5.50 (stage 2) -> 7.00. At day 11: 2.00 -> 3.00 -> 6.00. At day
+17: 2.00 -> 1.50 -> 4.00. Concessions fall on days 6, 8, 12, 13, 14 — 2.5 a contest instead of 5,
+none before day 6 — and contacts are back to 34.0 from 24.5.
+
+STAGE 5: THE PAGES STOP DESCRIBING A THING THE GAME NO LONGER DOES
+
+Join Their Banner -> Concede and Go (You Leave the Planet). Take Them Under Yours -> Buy Them Off
+the Ground. A Request to Join Your Banner -> Asks to Concede. You/They Fight Under <OA> -> You/They
+Have Conceded to <OA>. The Desk's day strip reads Conceded To. The Ground's board is Still on the
+Ground, and its column is OA rather than Banner.
+
+harness/scan_withdrawal.cjs is kept as the gate: it opens the game, plays to the lock, drops, runs
+five comms windows, and reads every live surface at three points for any word that still speaks of
+banners. Clean at the lock, after the drop, and mid-contest.
+
+STAGE 6: THE BANNER IS STRUCK
+
+joinedTo is gone from the corp's state, the engine's 24 readers, the settlement and the page's
+32. What replaced it is the question the game now asks — has this OA conceded and gone — not
+whose flag is it under. principalOf and the settlement's rootOf are the identity (kept as
+functions: two hundred lines call them, and a later ruling may bring a chain back); the page has
+one accessor, concededTo(c). The manager's own two write sites record a concession.
+
+The gate for a pure deletion is that it changes nothing, and it does: the sides curve is
+identical to stage 4 at every window (8.00 8.00 7.50 7.00 6.00 7.00 6.00 6.50 5.00; 1.44 late;
+34.0 contacts), with regress 114/114, measure_fight, audit_table, the drive, scan_withdrawal and
+every audit green.
+
+STAGE 7: THE MIGRATION IS DONE, AND IT BOUGHT WHAT IT COST
+
+The pass condition needed correcting first: contacts per DAY falls through any contest (26 squads
+at the drop, a handful at the end), so by that measure no battle royale would pass. What a last
+third feels like is contacts per SQUAD STILL STANDING, which audit_macro now reports by thirds.
+
+  now                              0.120  ->  0.171  ->  0.202   hotter than the drop
+  with the concession price removed 0.084  ->  0.141  ->  0.139   flat, and sagging
+
+The contest gets hotter as it goes — not more fights (34.0 a contest, much as before) but a
+thinning field whose survivors keep finding each other — and the intensity is bought specifically
+by making an early concession dear.
+
+Sides standing, joining -> withdrawal: day 4 7.00 -> 8.00, day 8 4.00 -> 7.00, day 11 2.00 ->
+6.00, day 17 2.00 -> 4.00. Eight OAs no longer become two flags by the middle.
+
+Left recorded, not carried: the last third is thin in absolute terms (four OAs from day 15), and
+a buyer that cannot afford a concession still gets one — the shortfall is an `owed` line and no
+money moves, because the settlement does not reach the accounts.
+
+THE BUYER WAS PAYING FOR GUNS IT NEVER GETS
+
+oddsWithJoin merged the seller's squads into the buyer's umbrella and read the buyer's odds off
+the result — right when a beaten OA fought on behind the flag, wrong the moment it started taking
+its people off the planet. It reads the board with the seller REMOVED now, so the buyer's gain is
+the difference between winning against seven and against six. Shape unmoved (0.120/0.171/0.202 by
+thirds; sides 8, 8, 7.5, 7, 6), median price paid ₡90,846.
+
+A CRATE FILLED A WAREHOUSE (units, §UNITS)
+
+The Divide banks { category: CRATES }, an integer count of what the squads carried off the ground,
+and fillHolds read it as though it were already a SHARE OF A FULL STORE — ceiling 1.0, drain 0.12
+a year. One crate filled a store that takes eight years to empty, and every crate after the first
+was thrown away against the ceiling. A contest banks about four crates of foods across the whole
+fleet, so this was the resource economy, not a rounding error. CRATE_SHARE (0.08) converts: a haul
+of four or five covers a few years of the drain. Holds sit at 0.42-0.52 after a season;
+measure_economy unmoved; all gates green.
+
+AND THE CRATE IS STRUCK, NOT CONVERTED
+
+A crate meant nothing at either end: the ground yielded Math.round(potency) of them and
+fillHolds read that as a share of a store, so one filled a warehouse. A site now yields a SHARE
+OF A HOLD directly. The scale is the ruling: a planet RICH in a resource can fill a hold from
+empty, a moderate one ~40%, a slim one ~20% — which is `richness`, already derived in map.js from
+the composition, spread across the sites carrying that category and weighted by depth (yieldOf,
+HOLD_RICH). Measured: a rich planet (1.09) gave the whole field 0.61 of a minerals hold; a
+poorer one (0.78) gave 0.24. Holds 0.42-0.52 after a season, measure_economy unmoved, gates green.
+
+The hold categories are FOUR — minerals, fuels, luxuries, foods — and everything the ground
+carries rolls into them (water and nectar sap are foods, gemstone is luxuries, rare earth and
+ferrite are minerals). The mock's eight terms were offering deposits that are not stores.
+
+ONE CLOCK FOR EVERYBODY
+
+Negotiation had three timings: AI-to-AI settled in the same breath, AI-to-manager waited a
+window, manager-to-AI answered instantly — so the AI field could restructure itself between two
+of a manager's windows while he paid latency for every move. An offer now TRAVELS: posted in one
+window, answered at the next, whoever is on either end. stats.pending carries it and the post is
+delivered at the top of the table pass, in the order sent, before any new offer goes out.
+
+Measured: 4.5 offers in flight a contest; withdrawals on days 6, 9, 12, 19, 24 — later and more
+spread, because a deal takes a window to land. Gates green.
+
+Noted: audit_macro's thirds are computed off the longest day ANY run reached, so a short contest
+beside a long one reports an empty last third. The instrument needs each contest's own length.
+
+THE INSTRUMENT WAS WRONG, AND FIXING IT CHANGED THE VERDICT
+
+audit_macro cut its thirds off the longest day ANY run reached, and counted the recording's
+padding after a contest was decided as quiet days. Each contest is now banded in its own length,
+ending on the last day anybody was standing. Stage 7's 0.202 was measured with the broken banding
+and should not be trusted.
+
+Properly measured: instant deals give 0.066 / 0.249 / 0.184 (hotter than the drop); the one-window
+clock gives 0.100 / 0.166 / 0.052 (it sags). The cause is not the clock — contests now run 23-36
+days and the field is down to 2 OAs by day 19 and 1.5 by day 22, then runs on. A decided contest
+does not END; that quiet tail drags the last third down, and the old clock merely hid it by
+finishing sooner. RULED for the next pass: the contest ends when it is decided. The clock stays.
+
+THE LAST GROUND WAS NEVER CUT TO MATCH THE REACH
+
+The contest does end when one banner stands, so the quiet tail was not a missing end condition —
+it was arithmetic. With contact cut to 0.020, the last ring at 0.085 R is 0.0247 across, and two
+squads dropped at random in that disc sit 0.0223 apart on average: WIDER than contact. The last
+two survivors could dodge each other indefinitely, and did (two OAs by day 19, still running at
+day 36).
+
+ZONE_STEPS now ends at 0.050 R — 0.0145 across, inside contact — so the ground ends the contest.
+Arc on the corrected instrument and the one-window clock: 0.100 / 0.160 / 0.173, hotter than the
+drop, where it was 0.100 / 0.166 / 0.052. The field falls away cleanly (6 OAs at day 13, 4 at 17,
+2 at 19, one at 21) and contacts are up to 36.0 a contest. All gates green.
+
+THE WITHDRAWAL RUNS END TO END
+
+probe_withdraw.cjs drives the loop: a manager posts one public offer, the field answers at the
+next window, he stands down on the replies he has, and the winner answers for its word at the
+settlement. Four contests: 4 offers logged, 24 replies, 4 withdrawals, 24 promises carried.
+
+Three faults fixed getting there: the answer reached the engine empty; `sealed` was gating the
+offer (an OA that refuses to negotiate refuses to bargain for ADVANTAGE — conceding the ground to
+take its people home is not that, and such a manager had no way off the planet at all); and
+corpIds was out of scope at the withdrawal.
+
+Open: the contest stops when the manager withdraws, so winner comes back (none) and every promise
+is moot — it must play on without him. And every OA says yes to everything, even a 40% ask;
+CONCESSION_ASK_WEIGHT wants measuring once a winner exists to pay.
+
+BOTH OPEN FAULTS FIXED
+
+The contest did not stop because the manager left: bannersStanding counted any corp with a LIVING
+BODY, and a withdrawn OA's people are all alive, at home, off the planet — so a conceded OA went
+on counting as a banner in the contest it had left. The field could never reach one banner, every
+contest a manager withdrew from ran to overtime with NO WINNER, and every promise was moot.
+Standing now means standing on the ground. A winner exists; promises are kept and paid.
+
+And the ask is weighed against the whole take: an OA that says yes expects mine+gain of the pot
+and hands back `asked` of it, so it agrees when (mine+gain)(1-asked) beats mine. Measured: 6 of 6
+yes at 5%, 6 at 25%, 4 at 50%, none at 80%. A long shot still promises freely, which is why a
+manager must read WHO said yes.
+
+Arc unharmed and better: 0.056 / 0.181 / 0.375, 36.0 contacts a contest. All gates green.
+
+THE WITHDRAWAL TAB
+
+Its own surface on Negotiation: credits across the top (one pot), the four hold categories
+beneath (four stores), every term present at 0% and dragged — no dropdown, no add step. One row
+per OA still on the ground: how they stand (coloured by how much of the roster is left, no odds),
+their word as a five-section scale read out of persist.wordRecord, and the answer carrying the
+row. Send in one window, the field answers at the next.
+
+Gated as harness/drive_withdraw.cjs — it works the tab as a manager does and fails if the field
+never answers or the withdrawal cannot be taken. Live: five terms, seven rows, credits at 20%,
+and Yes/Yes/Yes/Waiting/Yes/Waiting/Yes back the following window. All gates green.
+
+AND THE WORD GIVEN, AT THE RECAP
+
+Every promise made to an OA that stood down, by name: who promised what to whom, and whether the
+winner Kept it (with the sum) or Broke it. Promises from OAs that did not win are moot and are
+gathered into one quiet line. The point of a word that binds nobody is that everybody sees what
+it was worth, so it belongs on the page a manager reads at the close.
+
+The withdrawal is complete end to end: offer, replies, decision, concession, payment, the
+winner's choice, the record it writes, and the trust scale that reads it back. All gates green.
+
+A CONCESSION A BUYER CANNOT AFFORD IS A DEBT
+
+The shortfall was written as an `owed` line and no money moved, so an OA with nothing in the pot
+bought an enemy off the board for free. The debt rides home with the payout (perCorp.owed,
+owedTo) and the season charges it: "Ground Bought on Credit" against the buyer's treasury,
+"Ground Conceded, Paid Late" to the OA that stood down. Proven at the boundary — a broke buyer
+owes the full 90,000, a buyer with a pot owes nothing — and it never arose across three contests,
+because the concession price and cash-first payment usually leave the take able to cover it.
+measure_economy unmoved; all gates green.
+
+PATIENCE BUYS SIGHT, AND ENOUGH OF IT TO ACT ON
+
+The suspected cause (MAP_STALE 8 against KNOWN_STALE 3) was aimed at the wrong reader: the planner
+already reads a three-day window; MAP_STALE only governs the manager's map. The question the
+per-squad stance depends on — does a squad that holds still see more than one that marches — had
+never been measured. It did (5x), but faintly: one sighting every 67 squad-days even sitting
+still, because the typical neighbour stood at 88% of the watch's reach, where a linear falloff
+gave ~7%. Sight is now strong through most of its reach and falls away only at the rim (a cubic
+edge), and reaches three times contact (0.060).
+
+Held still 0.015 -> 0.126 a squad-day (about every eight days), still 4.4x a hard march. Gated as
+probe_watch.cjs, which fails if patience stops buying clearly more sight. Arc held and sharpened
+(0.065 / 0.239 / 0.440, 40.5 contacts). All gates green.
+
+THE PER-SQUAD STANCE IS BUILT, AND IT STILL DOES NOT DECIDE OUTCOMES
+
+Every stance read now reads the squad's own notch (squadStance/squadDials). A manager sets one
+per squad; an AI spreads its squads around its declared stance. A careful squad that SEES an
+enemy first now slips away — the planner used to turn only from fights it could hear.
+
+Six contests per end, every squad of one OA held to the notch: Avoid fights 18.2 / sees 69.0 /
+dead 14.3; All In fights 17.3 / sees 57.8 / dead 12.7. The sight trade is real; fights and deaths
+do not follow, and the ends sit inside each other's noise.
+
+Structural: the macro layer now forces contact — the wall closes hard and the last ground is
+smaller than contact range — so the fights that decide a contest happen where no stance can
+decline them. Three directions recorded for a designer's call; the plumbing for all is in place.
+
+CORRECTION: THE STANCE WAS INVERTED, AND IT WAS A BUG
+
+Reported as "within noise", Avoid was in MORE fights and lost MORE people. Per OA: Avoid was found
+11.2 times a contest and went looking 6.6; All In went looking 13 and was never found. The seeker
+at a meeting was simply the bolder squad, so a careful squad that SAW the hunter coming was still
+treated as caught unawares. Now the squad with a fresh sighting has the initiative, and a careful
+squad that saw them coming is simply not there.
+
+A second fault, the one-clock pass's: offers travelled but principals' INVITATIONS still settled
+on the spot, so ten of eleven offers arrived to find their OA already gone, and T9 broke.
+Invitations travel now; T9 back (7 taken, 5 refused), all nine rulings hold.
+
+Five contests per end: Avoid 13.6 fights / 12.0 dead / sees 152; All In 17.2 / 15.4 / 110. Arc
+still rises (0.042 / 0.157 / 0.365). All gates green.
+
+A ROUND FROM PLAY
+
+"29 of 29 Standing" counted the season roster, not the drop. Withdrawal sliders moved one step and
+stopped because every tick redrew the page; a drag now updates its own tile, and drive_withdraw
+drags twenty steps and fails if the slider is thrown away. The withdrawal is always open under
+the word Withdraw; store tiles say what the whole planet holds to be won. Every win chance handed
+to the manager is gone. One advance button, the good one, on every page. The picker ring is
+centred and every disc sits the same distance from the hub.
+
+An OA's word is its character: the settlement read a dials.honesty that does not exist, so every
+OA kept its word at one coin-flip rate. It reads treachery now (Knights' Star 10, Vantis 90), and
+the tab shows it as a reputation before any promise is tested.
+
+And THE SITES AUDIT, traced and recorded for a ruling: a dug site pays twice (stored AND sold in
+full); the pot is rolled and never moved by the ground; the winner's resources are only what it
+dug itself, and an undug site's resources go to nobody. A coherent shape is offered, not built.
+
+THE PRIZE AND THE GRAB
+
+Two figures, ruled: the sites are the quick grab (what you dig is yours, win or lose), the planet is
+the prize (the winner takes the rolled credits AND the planet's endowment in every store it carries).
+Sites now carry a quarter of the endowment between them. The winner takes about a full hold of each
+store; everyone else together digs 0.05-0.10. Withdrawal store terms are paid from the winner's share
+of the planet. And a haul is no longer paid twice — it was stored AND sold in full, and the winner
+was paid for undug sites on top of the pot; now only what spills over a full hold is sold.
+
+A STRONGPOINT, built and fought over: held not emptied, a better start to fight from, only in the
+first two waves so the wall retires it. 1.7 placed a contest, taken 6.7 times.
+
+THE REST SITE, built and NOT reached: it feeds and now mends, but 10 of 12 are never touched and
+nobody stands back up, despite three fixes. Recorded as open, to be traced one squad at a time.
+
+THE REST SITE, TRACED — AND IT WORKS
+
+Traced one wounded squad day by day. Three causes, none of them the ones guessed: nearly every
+rest site was still UNREVEALED on the days squads were hurt (it is shelter and water, known from
+the drop now); a fixed six-day mend against 20-95 day wounds could never stand anyone up (shelter
+halves what is left and stands up anything it brings under twelve days); and the squads were sent
+with an intent of type `site`, which the engine silently ignores — its verb is `claim`, carrying
+the objective. Rest sites used 0.7 -> 4.0 a contest, beaten squads run for shelter 1.3, fighters
+stand back up. Arc held (0.035 / 0.162 / 0.261). All gates green.
+
+THE DESK SETS THE CONTROL THAT MATTERS
+
+Every real decision read the squad's notch; the Desk offered only the per-OA ladder, read in one
+place. Each squad's card now carries its own Avoid-to-All-In ladder, riding into the contest on
+that squad at the next window; the fleet section is read, not set. leanOf reads neutral, and
+LEAN_PULL (read by nothing) is struck. Gated: two squads set to different notches, and each notch
+proven to reach the squad it was set for, off the corp the engine hands back. All gates green.
+
+THE MAP SAYS WHAT IS ON IT
+
+Every site was the same square because the live window recorded a site as a position and a holder
+only — the map was never told a strongpoint from a crate. Each kind has its own mark now (shield,
+cross, eye, box, round, diamond), a spent site fades, a held strongpoint wears its holder's colour,
+and hover names it. Your squads are ringed in their squad colour and carry their letter; clicking
+opens the leader's sheet; hover lists who is in the squad and how each is, as of today. Checked on
+a rendered image. Gated as harness/drive_map.cjs. All gates green.
+
+THE COPY RULE HAD A HOLE; AND THE RECAP SHOWS THE STORES
+
+audit_ui passed "Dug for Your Own Stores, Win or Lose": its verb list was short and its floor was
+six words. Widened, floor five — and it found 35 explanatory lines across the page. Each judged:
+the explanations cut to what they name, eleven allowed deliberately with the reason recorded (the
+trait table, nouns the rule mistakes for verbs, the names of the deal kinds). Site hovers name the
+site and the facts that change, nothing more.
+
+The recap lists the stores an OA came home with under the credits, in the withdrawal tiles' words,
+and a kept promise names the stores it moved. Gated as harness/drive_recap.cjs. All gates green.
+
+THE DEFERRED THREE, MEASURED (nothing tuned)
+
+sim/measure_year.cjs reads the whole year, Divide included — measure_economy stopped at the lock.
+Winner +680,000 a year (as ruled: 34% of the settlement reaches the books, a win worth 2.5 years of
+costs). Losers -65,000; A/B shows the prize/grab change cost them ~15,000 a year (the haul credits),
+but death benefits (~48,600 a season) are nearly the whole deficit — fatality cost, not tuned under
+the standing instruction. Kit: 6,850 a season spent against a 122,934 allowance; the AI founds with
+166-240 pieces, a founded OA with 3. Rulings needed, recorded.
+
+THE FOUNDING, MEASURED
+
+A dug site pays 5,000 beside its stores (ruled, in) — small in effect, since squads dig ~0.4 sites
+an OA a season. AI founding cash cut to a quarter (ruled) and REVERTED: wealth lined up, but boards
+rescued the AI twice as often and AI rosters collapsed from 19 to 7 in year one, because an AI
+funds recruiting from cash. AI armouries cut (ruled) and REVERTED: some doctrines could no longer
+muster, because the spares are what muster arms a force with. Both cushions are load-bearing;
+removing them is a change to how the AI recruits and arms, recorded for a ruling. The claim that
+the Meridian stipend alone grows with how early it is won is struck — every standing does.
+
+AND THE CASH RULING RE-APPLIED
+
+The revert was justified by AI rosters falling over years — deaths outrunning signings, which is
+fatality, deliberately untouched. AI_CASH_SHARE is 0.25 as ruled. Standing instruction extended in
+the log: economic rulings are implemented as given; nothing is reverted or re-tuned for where
+balance lands while fatality is open, only for a real break. The recruiting check no longer
+asserts affordability. All gates green.
+
+THE ARMOURY RULING, AND AUDIT 1
+
+AI armouries 121-192 (were 166-240): good kit keeps its depth so every doctrine fields a varied
+force; the cheap spares are cut. What a thinner locker cannot arm, muster buys (procurement, then
+the board). The doctrine gate now musters with a founding budget — it had asked for a muster with no
+money, which the game never does. Three seasons: every OA fielded its force every time.
+
+Audit 1 (docs/AUDIT_HIDDEN.md, harness/audit_hidden.cjs): disqualification, fighter morale and
+loyalty, squad medkits and starving all change outcomes and appear nowhere on the page. Four more
+need a ruling.
+
+AUDIT 1's FIVE ARE SHOWN
+
+Morale and loyalty on the fighter sheet; medkits and short-of-food / starving on the squad card;
+disqualification as a red band on your own day strip, on a rival's fleet row, and in the log; tenure
+last and quiet on the sheet. Gated as harness/drive_shown.cjs.
+
+Two findings for rulings: potential is still a live ceiling on drilling (only its display was
+removed); and consumables are never spent — a fresh copy each fight, 169 uses from ~85 items across
+76 fights, never needing to be bought again.
+
+POTENTIAL STRUCK; CONSUMABLE CHARGES; AUDIT 2 OPENS
+
+Potential removed (ruled): no drill cap, no hidden trade premium, market sorts by what a lot is,
+"prospect" means young. Its two random draws are kept unused so no fighter re-rolls.
+
+Consumables carry charges for the Divide, at most one a fight, fewer the stronger (smoke 8 ... drone
+and turret 2, contraband 1); a munitions drop restocks them; medkits fold in. Grenades thrown 70 ->
+38 over 78 fights; 122 charges spent; 6 restocks.
+
+Audit 2's first finding (docs/AUDIT_SHOWN.md): the spotter drone, auto-turret, stim shot and all
+three contraband items do nothing — their actions are handled nowhere. The medkit half-works.
+
+THE DRONE AND THE TURRET WORK, AND THE REPLAY SHOWS THEM
+
+Spotter drone: up when a side has lost the enemy, over the last contact; everything within seven
+tiles is seen for four turns, no line of sight wanted, through the spotting pass. Auto-turret: set
+on the fighter's tile with an enemy in reach; fires once a turn for four turns, calibrated to a good
+fighter's rate (22%); an emplacement, not a fighter. Forty fights: 119 put down against 83 without.
+Gated as harness/probe_devices.cjs.
+
+Replay frames now carry smoke (which had worked and never been drawn), drones and turrets; the
+play-by-play names them. The abstract model's dead turret/drone constants are retired. Open for a
+ruling: roles pack only their first two consumables, so the AI never packs a turret.
+
+AUDIT 2, PASS ONE — items and traits
+
+harness/audit_shown.cjs, docs/AUDIT_SHOWN.md. Weapon tags work on the grid. Eleven of eighteen mods
+do nothing when fitted (resolve reads only a mod's `grants`), 3,190 of kit at list price; two lose
+their power penalty. The Solar Accumulator Rifle sells a day/night identity for a cut system.
+Psion: Pressure-Read promises to reveal bluffs and does nothing; two flavour traits carry dead hooks.
+
+MODS DO WHAT THEY SAY; THE PSION READS THE BLUFF
+
+resolve folds every mod effect into kit.mod and combat reads it: sixteen of eighteen mods now work
+(probe_mods.cjs); the heat sink and field kit stay inert, their systems gone. The psion's promise was
+written for concession asks, which went with joining — the manager is offered only pacts and ransoms,
+so three negotiation panels can never fill. Re-aimed: a psion reads each YES to a withdrawal as
+Meant, Doubtful or A Bluff, from the settlement's own chance.
+
+CUTS, MODS MEASURED, AND WHAT NIGHT IS
+
+Cut (ruled): the pressure-read psion and everything built on it; the heat sink and field kit; the
+joining panels and deals. The OA picker had labelled every OA "0%" off those dead tables; it reads
+live contact now. The drive's fake "would take you" test is gone.
+
+"+1 aim" is +10 on the stat scale and +4 points of hit chance (~12% more hits). Measured over sixty
+fights, the aim mods put down 9-14% more enemies. AP rounds were a trap (never better than a bare
+gun); now pierce_2 — +21% kills vs flak, +25% vs plate. The bipod's moving penalty cancelled it;
+now +2 held / -1 moving (+11%).
+
+Day and night: six blocks each. Night costs marching fatigue and tags the fight; the night aim
+penalty never reaches the grid. Recorded, not changed.
+
+ONE AIM — PLANNED
+
+Ruled: one set of stats, the sheet's; combat reads them. makeCombatant divided all seven by ten and
+everything downstream was tuned to the copy. Found while planning: fieldcraft has never changed grid
+sight (sightRange is sheet-scale but reads the /10 copy — every fighter sees 7 tiles); the turret's
+aim was set on the wrong scale. docs/STAT_SCALE_MIGRATION.md stages the fix so the core unit change is
+provable: record every quantity a stat feeds, change units, reproduce them exactly; then turn
+fieldcraft on for sight as the one measured change.
+
+ONE AIM, STAGES 0 AND 1 — PROVEN
+
+Baseline recorded from untouched code (harness/stat_scale_proof.cjs). The /10 at makeCombatant came
+out with every inline /10 in combat, the grid and the Divide; every stat-unit constant went x10 (hit
+curve pivots at Aim 100; a trait's +2 is +20; a mod's +1 is +10 — the optic reads +10 Aim). Every
+quantity reproduced exactly: 768 aims, 1,536 hit chances, composures, wound pools, 640 severity rolls,
+30/30 fights log for log, 2/2 whole contests. Sight held broken on purpose for Stage 2.
+probe_stat_scale.cjs, which asserted the copy was one tenth, asserts one scale. All gates green.
+
+ONE AIM, STAGE 2 — FIELDCRAFT SEES
+
+sightRange reads the sheet's fieldcraft. A/B, sides identical but for fieldcraft: 150 vs 50 went from +2
+wins over an even match to +16 (230 put down, 98 lost); 120 vs 80 is +9. The field sees ~10 tiles at
+typical fieldcraft instead of a flat 7. Five combat snapshots re-blessed (recorded fights, no invariant
+broken); the arc holds. Gated as probe_fieldcraft.cjs; the proof baseline re-recorded on one scale.
+
+ONE AIM, STAGES 3-5
+
+The turret shoots as a fighter shoots (Aim 130, the real hit curve). Trait aim bonuses are named
+constants in sheet points. The market shows a mod's effect for the first time — Aim +10 on the optic
+(drive_market.cjs). Stage 5 found a /10 Stage 1 missed: squadStat served squad means divided by ten.
+Three consumers converted, proven exact; the fourth — the passive sighting from an earlier pass — was
+written for the sheet and fed the copy, so fieldcraft never varied anyone's watch and every watch was
+cut by a third. Fixed: a still squad's sightings 0.20 -> 0.47 a day. Open: careful squads caught by the
+closing wall (Avoid 3.8 wall deaths a contest vs 0), tipping their total above All In's.
+
+THE DEATH WALL KILLS NOBODY
+
+Every wall death traced: none was a slow squad. Each had been ordered at dawn to walk in and stood still
+all day — on the last ring the order's target sat inside the arrival slack, so movement called them
+"arrived" a hair outside. Now checked every day-tick: a squad outside breaks off anything (a fight
+included) and sprints for safe ground just inside, whatever its stance, rest or burden, no arrival slack;
+the wounded drag themselves in. Five contests: 0 living people taken (from ~30 in one). A near-the-line
+guard band was tried and removed — it sent careful squads charging into the middle. Every wall death is
+recorded (stats.wallDeaths); gated by harness/probe_wall.cjs. Open: Avoid and All In deaths now nearly
+even — being found has grown costly since the sight changes.
+
+WHY A CAREFUL SQUAD DIES MORE — TRACED
+
+harness/probe_avoid.cjs over a fight recorder. Ruled out: being outnumbered, panic/overrun (All In runs
+more), abandoned wounded. What is left is the shot: Avoid's fighters are killed outright 0.53 a fight vs
+0.25, hit at close range 38% vs 20%, and each hit kills 7.0% vs 3.9%. Leading explanation: the grid plays
+an early break-off as fighters leaving cover while the enemy closes to point-blank. Fix next, against this.
+
+LOOSE ENDS TIED; THE CAREFUL-SQUAD CAUSE STILL OPEN
+
+The retreat explanation was wrong: a grid withdrawal is not lethal, and the grid does not read stance at
+all. Ruled out: numbers, panic, wounded, terrain, opening range, preparedness, flanking, sites, weapons.
+Still true: careful squads' fights drift to close range and close hits kill. Next: watch fights turn by turn.
+
+Tied off: every charge shows on the squad card and in the market; smoke's and the medkit's descriptions
+corrected; a missing Presence defaulted to 900 and now 90; the dead stat_mods-in-tenths path struck; the
+two stale generation claims rewritten to test what they meant. All gates green.
+
+ONE AIM AT BIRTH
+
+The generator rolled on the old 1-20 scale and multiplied by ten, with its model, the pools' quality
+shifts, the races' leans and floors, and the trades' leans all in that unit. All on the sheet now (mean
+85, spread 28, clamp 10-200); a stat's decade is rolled directly, the grain nudged in after. Retired
+potential and scout models removed; their draws kept for the stream. Proven: 630/630 fighters identical
+across squads, all three lots and the founding fleets (harness/gen_scale_proof.cjs). All gates green.
+
+THE CAREFUL-SQUAD DEATHS — FOUND, HALF FIXED
+
+Traced turn by turn: a close hit looks the same for both stances; what differed was fight LENGTH — a careful
+squad's one-on-one fights ran 11.3 turns to All In's 5.0. The grid never read a squad's stance: every side
+withdrew at 35% down, so a caught careful squad fought on and then walked out under fire. Each stance now has
+its own threshold (Avoid 10% ... All In 65%; Engage unchanged). Per fight, Avoid now dies less than All In
+(0.58 vs 0.63). Open: over a contest deaths are level, because a careful squad that survives is found again
+(9.5 a contest) — it needs to get clear after breaking off. Next.
+
+THE PLANET'S DAY
+
+Each planet turns at its own speed (8 hours to 6 days a full turn), apart from the fleet's Earth calendar.
+`camp` is the fleet's clock (unchanged); `night` is the planet's dark, driving spotting, the fight and the
+replay. Virtually no fight was ever fought at night before; now 46% are. The night aim penalty reaches the
+grid (14.9% -> 11.7% hits), night_encounter_bonus exempts, and the night-ambush warning is a night sense.
+The Desk strip shows the light, when it turns, and today's blocks; the Hazards row scouts the planet's day.
+All gates green.
+
+TERMS LOCKED; NIGHT IS DIFFERENT
+
+A day is the fleet's 24 Earth hours; a cycle is the planet's turn; PCD (cycles per day) runs 0.25-4, any
+value, likeliest near one (log-space triangle; median 1.03 over 400 planets). The Hazards row scouts it.
+Night: detection cut to a quarter (and the compression floor with it, which had overridden the dark), the
+watch cut by the dark share of the march, grid sight 55%, marches 85% (never the wall sprint). Fights in
+the dark fell from 50% to 28% of all fights against half the march. Arc holds; all gates green.
+
+SOLAR RIFLE, THE STIM AND CONTRABAND, DEVICES BY WEALTH, CONTRABAND'S SENTENCE, AND THE BACK-ROOM AUDIT
+
+Solar Accumulator Rifle: +2 charge a turn in daylight, shots cost double at night, camp charge by the day's
+light (40 fights: 152 put down by day, 54 at night). Stim, thermobaric, cortical scrambler and broadcast
+jammer built on the grid (probe_contraband.cjs). Contraband was bought but never fieldable (a stale validate
+rule) and sold free; now fieldable and priced by formula (price model `contraband`). Footage of contraband
+opens a case: pay the Aleas at the next window or be disqualified — off the field, not executed; standings
+from everybody; digging and site earnings forfeit; every deal cancelled. AI OAs carry contraband only at
+treachery 60+ (none yet does — open). Devices by wealth: a rich OA founds with and fits drones and turrets
+across its force, whatever the role (84 carriers in four contests, from two turrets in two fleets).
+docs/AUDIT_ALEAS.md: two Quiet Business acts do nothing, joining still runs, betrayal and asks never fire,
+the Aleas standing's headline consequence sits on a dead path, edicts never shown, footage-losing built twice.
+Not published: the manager's case has no panel yet.
+
+JOINING RETIRED PROPERLY; THE ALEAS' RULINGS CUT; THE BACK ROOM NAMED
+
+Joining's machinery removed at the source (AI join pass, invitations, the post, the manager's two ways and
+their answers, three unread window tables, betrayal, asks, left-to-die) and its dead pricing with it: 0 joins
+and 0 stand-downs, truces up to 45 from 26, audit_code back to 0 after 4 dead functions and 32 constants.
+audit_table's twelve rulings were all joining's — it now rules on truces and ransom; the page drive composed
+nothing and passed, and now composes a truce. The Aleas' four season rulings are cut. "Quiet Business" is
+gone from the code: it is The Back Room. Queued: the half-built audit.
+
+SABOTAGE BITES, TRUCES BIND, THE BACK ROOM'S FAVOURS WORK, AND THE ALEAS' CASE REACHES THE MANAGER
+
+Sabotage is a bad batch: a jam per shot (6% a payer), clearing it costs the turn (~2.6 jams a fight, losses
+117 -> 125) instead of fatigue at the drop. A truce is binding: breaking one opens a case at 4x the price,
+and no OA signs meaning to break one it could not pay to bury — breaks fell 9 -> 3, both cases paid. Buy a
+Malfunction keeps a case from opening; Bribe an Official turns a verdict; both spent once. The manager
+answers a case on the day strip (drive_case.cjs) — pay, or let it stand. The Aleas gauge says what the
+number buys. All gates green.
+
+WHY NO AI CARRIED CONTRABAND — THREE THINGS IN A ROW
+
+The quartermaster buys it when allowed and funded, but the OAs whose character allows it are the poor ones,
+so none was bought: an OA that runs to banned kit now keeps some in the rack from founding. The muster then
+never reached for it (slots fill with smoke and frags first): it fits it from its own rack, never bought.
+And it still was not thrown, because the frag was picked first: the thermobaric goes first against dug-in
+ground. End to end: 25 carriers in four contests, a scrambler used, a case opened, ₡31,000 paid.
+
+AUDIT — HALF-BUILT
+
+harness/audit_halfbuilt.cjs checks six junctions where the visible end can stop matching the running end.
+Clean: no dead window fields, no unread switches, and every x10 seam left is benign (no second scale hiding).
+Found: eight page-drive steps could pass by doing nothing (the joining shape) — skips are counted and
+reported now; and four hooks the engine reads that no trait declares (camp morale, supply efficiency) —
+the mirror of Audit 1, ruling wanted. domeDeaths never firing is the wall ruling holding.
+
+THE UNREACHABLE HOOKS STRUCK (ruled)
+
+camp_morale_aura, camp_morale_bonus_meals, squad_supply_efficiency_up and supply_consumption_down were read
+by the engine and declared by no trait: struck, to be rebuilt with the quirks. Two counters never fire now
+and both are correct (domeDeaths, relayEscapeUsed).
+
+THE CAREFUL SQUAD FIXED — TWO LINES IN THE WRONG ORDER
+
+On identical seeds a careful squad fought more (19.5 vs 16.0) and died more (13.0 vs 10.8) than All In.
+Going to ground measured as nothing and was removed. The cause: a meeting recorded each side's sighting
+before asking who saw first, so all 262 meetings with a careful squad were "both saw" and boldness decided
+every initiative. Reordered, plus careful squads turn away from mutual stumbles. Same seeds after: Avoid
+22.5 fights / 10.5 dead, All In 32.3 / 12.8 — right way on both counts. Gated by probe_initiative.cjs.
+Chem rounds made to do what it says (pierce, +14 severity). All gates green.
+
+FOUL PLAY, STAGE 1 — ONE CASE, PAY OR SUFFER
+
+One case per OA that grows with every filmed offence, counted per use and per fighter. Price = severity x
+₡4,000 x the OA's Aleas file, dearer for repeat offenders. Suffering it is sized: minor costs standing,
+serious disqualifies, grave costs more standing. Filmed half the time in the dark. A bought official halves
+the price; a bought malfunction keeps a case from opening. The band names what they have; a rival's unpaid
+verdict is logged. Exercised by probe_cases.cjs: nine cases in six sizes, ₡15,000 to ₡96,000.
+
+FOUL PLAY, STAGE 2 — THE BACK ROOM PAYS OR SUFFERS TOO; EVIDENCE REMOVED
+
+A Back Room act that comes apart opens a case (severity from the act's own reckoning, priced as on the
+ground), answered on the Back Room page: pay the Aleas or let it stand; unanswered, it stands at the month's
+end; AI OAs pay if they can. Only unpaid cases are news. Evidence removed (ruled): the intel dirt paths, AI
+blackmail/leak/report, the API, the page section and Desk item, six constants, three acts. renderQuiet and
+openQuiet renamed. The page drive exercises a case. All gates green.
+
+CORRECTED: EVIDENCE RESTORED; REPORT IT OPENS A CASE (ruled)
+
+The evidence system was removed on a misreading of the ruling (which was about cases being public only when
+unpaid, not about scouts finding dirt). Restored in full — intel paths, AI use, API, page section, Desk item,
+constants, acts. Report It now opens a case against the rival (paid or suffered, public only if unpaid) and
+gives the reporter +10 with the Aleas. One openCase for failed acts and reports. Drive walks it end to end.
+
+FROM A PLAY-THROUGH: CASES ARRIVE NEXT MONTH; THE CONTRABAND TAG; NO "OF 24"
+
+A Back Room case (an act come apart, or a report) is delivered the month after and answered in that month —
+AI and manager alike; unpaid cases are news when settled; last month's cases are answered at the lock. The
+market's Contraband tag is styled on the market row. The day strip and status line no longer give the
+Divide's length. OPEN: the first comms window is still the end of day 2 — the fix is a window at the drop,
+before day 1's march (the day loop), next. A tried re-count was backed out as a half-fix.
+
+THE COMMS WINDOW AT DAWN, BEFORE THE MARCH
+
+The window was taken at dusk, after the day's march and fights, so squads walked two days undirected and the
+Divide opened on day 2. The whole window section (363 lines, dependent on nothing the day defines later) now
+runs at dawn before planning; windows count from the landing (1, 3, 5 …). The first window is the drop.
+Captains' readings are taken at the drop; the Ground stands at the landing on an empty record. "Day N of 24"
+was the wall's timetable, not the contest's length (contests ended on days 23-36). All gates green.
+
+THE BACK ROOM, CASES AND CONTRABAND REMOVED; TRUCES UNBREAKABLE (ruled)
+
+Removed whole: the Back Room (tab, page, acts, AI use), evidence and its uses, bribery, favours, sabotage,
+the Aleas' cases and disqualification, contraband as a category (the thermobaric and scrambler are ordinary
+kit). Cut: the Broadcast Jammer and chem rounds. A truce cannot be broken — no code could; the drones would
+annihilate the squad, so nobody dares. The Aleas gauge is hidden until a media system gives it a meaning.
+illicit.js out of the build. Five never-fired reputation acts recorded for the half-built list. All gates green.
+
+EXPORTED AND NEVER CALLED; A TRUCE THE MANAGER NEVER SAW
+
+New half-built check (section G): 29 exported functions nothing calls. Removed the leftovers of replaced
+systems — the abstract fight model (its captain's hold still tuned to the old /10 scale), joining's pricing,
+the Aleas/evidence era, unused helpers — with their dead settings; the combat proof reproduces exactly. Bug:
+AI OAs could offer the manager a pre-drop truce and roll his answer for him, binding him invisibly and (truces
+unbreakable) permanently; they no longer do. Never-connected features recorded for a ruling.
+
+THE NEVER-CONNECTED: PRE-DROP TRUCES REMOVED, THE REST WIRED IN
+
+Pre-drop trucing removed entirely (ruled). storyMult and attention parked. Wired: fame fades yearly;
+mercenaries priced by an OA's recent losses; five reputation acts raised at their moments (raise, debt,
+Dividend, the month's best gate, a bought win). Found wiring offTheLine: the drop read a combat-role mark
+the Divide never cleared, so fighters not fielded once were benched for good (4 of 68) and vanished from the
+squad builder; the drop, the Dividend, the Eight and the page now read the OA's spy and drill sergeant.
+The idle delayed-intel queue removed. All gates green.
+
+PRESENCE THE FAME STAT; THE STAT HOVER; WEAPON SKILLS STAGE 1
+
+Presence now scales every fame gain (1.82x at 150, 0.45x at 50) and how long fame lasts; same seeds, 2.2x
+the fame earned. Every stat cell has a few-word hover card. Weapon skills: every fighter born with a real
+trade (one strong family, sometimes two; one or two poor; grain on each) — median spread 79 from 0 — and the
+quartermaster hands each kit to whoever is best with its gun (25% carry their best family, +8 over Aim).
+Proofs re-recorded. Next: buy for specialists, show the trade at hiring, let skills grow, family names.
+
+WEAPON SKILLS STAGE 2: AIM, A DAMAGE CLASS, A WEAPON TYPE
+
+A shot is the average of Aim, the gun's class (Ballistic/Energy) and its type (the shop's twelve sections).
+Every fighter leans to a class and has a real trade across types (median spread 107), leaned by origin.
+Growth: a Divide fought teaches the carried gun's type and class; training Aim trains them too. The
+quartermaster deals kit to whoever shoots it best, swaps from the rack, and buys the specialist's gun within
+budget and cap (mean shot over Aim +0.9 from -2.2). Sheet: Shoots At, classes, best three and worst two
+types; hiring card: Best With / Poor With. Fixed: a crash on the first gun swap, left by a discarded attempt.
+
+THE SPY AND THE DRILL SERGEANT CUT (ruled)
+
+The unauthored "Has a Talent" event, its two roles and their monthly work, the role-holder list and every
+off-the-line check (drop, Dividend, the Eight, the squad builder) removed. Nobody is held back from the drop.
+
+EIGHT PLAYERS, STEP 1: THE CONTROLLER
+
+Each OA's seat is a person's or the engine's (state.controllers); every check goes through isHuman/isHumanOA.
+opts.humans lists human seats (opts.human still works). One-manager spots (the comms window) marked for step 6.
+Proved identical with one human (new fingerprint harness) and with none; two human seats run to the end.
+
+EIGHT PLAYERS, STEP 2: ONE QUARTERMASTER, ROLES GONE
+
+The planner kits each fighter as themselves, for every OA: cheap-end muster chosen by skill, rack upgrades,
+then specialist purchases within money and cap; medkits to the best-Fieldcraft quarter; devices for any OA.
+Roles removed from code and data, with the Divide's role deal. Same spend as before, cap held, nobody unarmed.
+Doctrine variety floor 4 (was 6, a role guarantee). Proofs and fingerprint re-recorded.
+
+EIGHT PLAYERS, STEP 3: WITHDRAWAL FOR ANY OA
+
+One offer per OA; the field answers each (AI by weighing, a person at their window); one standDown for all.
+AI OAs post and leave when beaten (odds <4%, <35% standing): about one a contest, fatality unchanged.
+The Withdraw tab shows the others' offers (They Want Out) with Promise / Refuse. Fixed before shipping: a
+data-attribute collision that would have hijacked the offer's own terms. Proofs and fingerprint re-recorded.
+
+WITHDRAWAL AS AN ECONOMIC DECISION; oddsWithout
+
+An AI OA weighs staying (odds x pot, less the assets it expects to lose) against leaving (the best ask's
+promises, valued by rivals' odds with it gone and their word, less its standing at 2,000/pt x pride); posts
+when leaving pays and stands down only on promises actually made. Rivals value a departure as odds gained
+plus losses spared, so strong OAs hold strong hands. Fixed: the table's odds merged a leaver into each rival
+(joining arithmetic); both copies now remove it from the board. Rulings recorded: quartermaster a default,
+doctrine floor four. Correction recorded: fatality is not to be considered at all.
+
+EIGHT PLAYERS, STEP 4: ONE TRADE MARKET
+
+Every offer is posted to one engine-side market by any OA to any other: the engine's OAs answer at once by
+their pricing, a person answers in their own time, unanswered letters lapse at month's close (the snub
+remembered). Letters to every OA are written in the engine, not the page. Fleet shopping posts offers, a
+person's OA included. The page reads and answers through the market. All gates green.
+
+EIGHT PLAYERS, STEP 5: CHOICES, NOT BRANCHES
+
+Hiring: engine seats bid, mark and offer terms through named policies (the old rules, lifted out); every
+market honours everyone's choices one way. A manager's OA no longer bids or offers on his behalf when he
+names nothing. Ransoms: two-sided cases, each side answering by policy or at its window. Fixed: the
+manager's ransom answers (Pay, Decline, Sell, Keep) were never read by the engine. All gates green.
+
+EIGHT PLAYERS, STEP 6: EVERY PERSON'S WINDOW; THE QUARTERMASTER SET STRAIGHT
+
+The comms window is built per human seat and the Divide pauses once holding every view; answers apply to
+their own OAs (bySeat). One human: identical. Two: proved (probe_seats). The squad card always shows its
+medkits; the planner reserves the essentials, the muster keeps the floor for everyone waiting, medkits go
+one to each squad first. Noted: all-AI runs never pause, so "first window" measurements there were end
+states. All gates green.
+
+MULTIPLAYER STEPS 1-2: ONE AUTHORITY, PLANS AS GAME STATE; THE HOTSEAT (dev)
+
+Engine calls replace the page's game work: buyItems, pickDividend, lockSquads, answerBoard; truce credits
+paid by the engine; every OA's board asks after a contest (AI seats answer by policy; silence charged at the
+year's turn). Squad board, pending focus/boosts and Dividend picks live on the seat's OA (corp._seat).
+DEV: Super holds two OAs in one Divide and switches between them (drive_super.cjs). All gates green.
+
+MULTIPLAYER STEPS 3-4: TIME; SEATS THAT CHANGE HANDS
+
+The month advances when every person has submitted, or on force (absent seats' months empty); the draft's
+forced turn takes the next free landing; unanswered ransoms lapse after two windows. setController moves a
+seat between person and engine in the season; a window reply's `seats` does it mid-contest. Proved with two
+seats (probe_time, probe_handover). All gates green.
+
+MULTIPLAYER STEP 5: SEALED SEAT VIEWS (the Divide)
+
+A seat's window holds its own OA as a snapshot and rivals as public shells; no internal state, no true
+ground; the record trimmed to its own squads. The seat's live OA had been a back door (squads held the
+contest state; sightings held live rival squads) — cut. probe_secrecy proves it; the game is unchanged.
+The page no longer reads a rival's treasury. Views are not yet plain JSON; that and the season's view
+come with step 6.
+
+MULTIPLAYER STEP 6: THE ENGINE OWNS THE CONTEST; RESUMABLE; PLAIN VIEWS
+
+beginContest / answerContest / advanceContest / contestView / contestResult; replies journaled; saveContest
+keeps where it began and the journal, resumeContest rebuilds and replays — proved identical to the end
+(probe_resume). Fixed: saving at the drop crashed (the record held the Dividend's circular footage); the
+Divide's options are rebuilt when the contest is prepared (a late draft was missed). The page uses the
+engine's contest. All gates green.
+
+MULTIPLAYER: THE SEASON'S SEAT VIEW; DETERMINISM (step 7) — the audit's engine work complete
+
+seatView(state, id): own OA as plain data, rivals as public shells, the planet's public face, what is
+addressed to the seat; proved sealed over a season (probe_season_secrecy). No unseeded randomness left in the
+engine; the page keeps its own dice. Remaining is client work: the page rendering from the seat views.

@@ -65,10 +65,6 @@
     MEDIA_REVEAL: 0.35,          // [H] how much of your true strength rivals learn by watching
     /* [H] Pacts struck blind. Cheaper to agree than an in-Divide truce because neither side
        knows yet what they are giving up, and correspondingly easier to regret. */
-    PACT_DAYS: 4,                // [C] days a pre-Divide understanding is meant to hold
-    PACT_BASE_P: 0.42,           // [H] baseline willingness before anything is known
-    PACT_REGARD: 0.004,          // [H] per point of standing with that rival's fanbase
-    PACT_FEAR: 0.5               // [H] how much being outgunned makes a rival want the pact
   };
 
   /**
@@ -240,36 +236,7 @@
     return { gain: CONST.MEDIA_BASE * scale, reveal: CONST.MEDIA_REVEAL };
   }
 
-  /**
-   * Would this rival agree to an understanding before anybody lands? They cannot see your
-   * force, so they go on what they think of you and how the odds look — which is exactly the
-   * information a pre-Divide pact is a bet on.
-   */
-  function pactChance(from, to) {
-    let p = CONST.PACT_BASE_P;
-    /* WHAT THEY THINK OF YOU, read through `standing` with a target id. `rep.base.rival` is a
-       MAP keyed by corp, not a number — adding it directly gave NaN, and the NaN then survived
-       every clamp because `Math.max`/`Math.min` pass it straight through. It showed as a pact
-       chance of NaN% on the seam screen, which is at least loud; had it been multiplied into a
-       larger expression it would have shown as a quietly impossible probability. */
-    const theirView = (to.rep && REP && REP.standing)
-      ? (REP.standing(to.rep, 'rival', from.id) || 0) : 0;
-    p += theirView * CONST.PACT_REGARD;
-    /* somebody who thinks they are outgunned wants the pact more */
-    const mine = ((from.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired')).length;
-    const theirs = ((to.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired')).length;
-    if (theirs < mine) p += ((mine - theirs) / Math.max(1, mine)) * CONST.PACT_FEAR;
-    /* a corp that has broken a pact before is not asked twice as easily */
-    if (from._pactBreaches) p -= 0.12 * from._pactBreaches;
-    return Math.max(0.02, Math.min(0.95, p));
-  }
 
-  function proposePact(rng, from, to) {
-    const p = pactChance(from, to);
-    const agreed = rng() < p;
-    return { with: to.id, agreed: agreed, chance: p };
-  }
 
-  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector, mediaDay,
-           pactChance, proposePact };
+  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector, mediaDay };
 }));
