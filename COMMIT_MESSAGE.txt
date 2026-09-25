@@ -839,3 +839,57 @@ MULTIPLAYER: THE SEASON'S SEAT VIEW; DETERMINISM (step 7) — the audit's engine
 seatView(state, id): own OA as plain data, rivals as public shells, the planet's public face, what is
 addressed to the seat; proved sealed over a season (probe_season_secrecy). No unseeded randomness left in the
 engine; the page keeps its own dice. Remaining is client work: the page rendering from the seat views.
+
+THE WEAPON SKILL BLOCK RE-LAID; THE SQUADS PICKER LISTS THE ARMOURY ONLY
+
+"Aim With the <gun> N" centred across the top (the fighter's aim with the carried gun), Ballistic and Energy
+side by side, best types left and worst right. The equip picker offers only what the armoury holds (and the
+current selection); buying is the market's. Drive checks both.
+
+"Total Aim (<gun>)"; MARKET MOCK-UPS
+
+The weapon skill line is named Total Aim (<gun>). A Market mock-up page (outputs/market_mock.html) compares
+three layouts, three slot bars and three item specs, combinable, on real items, with no flavour text.
+
+GUNS STAGE 1: DAMAGE, RATE OF FIRE, MAGAZINE AND RELOAD, RANGE IN TILES
+
+Every gun and sidearm carries rof, mag, reload, reach, near, falloff. Rate drives the tempo; shots come from
+the magazine, reloads cost rounds between exchanges, spares before dry (a reload is not dry); reach and
+near in tiles replace the band step; the shot scorer sees the distance. Reaches authored at the band tops.
+Sidearm test runs without spares; snapshots re-blessed; proofs re-recorded. Page shows the new stats.
+
+GUNS STAGE 2: HANDLING, PENETRATION, SUPPRESSION
+
+handling, snap, pen, suppress authored on every gun; the tags retired (pen/suppress priced at their points).
+Fixed on the way: the essentials step handed out a doctrine's favourite consumable whatever it cost (the
+thermobaric charge emptied Vantis's cap); a force of nine carries every band; a fair-share muster limit;
+no body is bought two guns. Snapshots re-blessed; proofs re-recorded.
+
+GUNS STAGE 3: SPREAD AND NOISE
+
+spread (0-2): the ones beside the one hit, at reduced chance and power; noise (0-3): a shot reveals the
+shooter only within eight tiles a point, and a fight on the planet is as loud as its guns. silent retired
+into noise 0, priced as it was. Snapshots re-blessed; proofs re-recorded; the page shows both.
+
+ARMOUR STAGE 4: SPLIT BY CLASS, WITH COVERAGE; THIRTEEN NEW ARMOURS
+
+Armour stops by class and covers what it covers (a hit outside it gets none); coverage rolled from the injury
+table's odds; price softly follows coverage. Thirteen new pieces across tiers 1-5, formula-priced. Snapshots
+re-blessed; proofs re-recorded; the page describes armour by class and cover.
+
+THE MARKET, REBUILT: THE WALL
+
+Underline tabs with counts; centred type titles with rules that fold their sections; tiles carrying bars
+coloured by kind (a gun's damage, rate, magazine, reach; an armour's three classes and cover) and chips for
+the rest; a tile opens to every stat. Cart, held counts and price tags kept. Old shelf styles removed.
+
+UNIFYING THE UI
+
+One item description (itemFigures/itemChips): Market bars, picker bars and chips, coloured kit-slot figures;
+itemDesc removed. One tier badge; one negative money style; one small-caps label metric (34 rules); 123
+dead style rules removed. Drive checks the kit slot and picker.
+
+ONE SECTION TITLE
+
+Desk sections and Market type titles share one centred look: capitals with rules either side, the Desk's
+fold mark at the right edge (now on the Market's titles too).

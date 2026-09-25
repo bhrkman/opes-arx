@@ -85,7 +85,10 @@
     KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
     KIT_BUY_MARGIN: 4,
-    KIT_MUSTER_SLACK: 1.35,         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
+    KIT_MUSTER_SLACK: 1.35,
+    KIT_BAND_MIN_FORCE: 9,
+    ESSENTIAL_MAX_COST: 300,        // [C] the most the essential consumable everyone gets first may cost
+    KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster          // [C] a force this size carries a gun of every band         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
     MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
@@ -139,9 +142,21 @@
   function byId(id) { return INDEX[id] || null; }
   function all() { return CATALOG.slice(); }
   function bySlot(slot) { return CATALOG.filter(i => i.slot === slot); }
-  function quirkPoints(tags) {
+  const COVER_SHARE = { torso: 0.26, head: 0.10, arms: 0.18, legs: 0.18 };
+  function coverageShare(covers) {
+    if (!covers || !covers.length) return 1;
+    let s = 0.28;                                    /* the wounds no location on the body owns */
+    for (const c of covers) s += COVER_SHARE[c] || 0;
+    return Math.min(1, Math.round(s * 100) / 100);
+  }
+  function quirkPoints(tags, effects) {
     let p = 0;
     for (const t of tags || []) if (QUIRKS[t]) p += QUIRKS[t].points;
+    /* §GUNS penetration and suppression are a gun's own numbers now, priced at the points their tags carried */
+    const e = effects || {};
+    if (e.pen) p += (QUIRKS['pierce_' + Math.min(3, e.pen)] || {}).points || 0;
+    if (e.suppress) p += (QUIRKS[e.suppress >= 2 ? 'suppressive_2' : 'suppressive'] || {}).points || 0;
+    if (e.noise === 0) p += (QUIRKS.silent || {}).points || 0;      /* a silenced gun is priced as `silent` was */
     return p;
   }
 
@@ -149,10 +164,11 @@
       hand-edited cost fails the suite rather than quietly rebalancing the game. */
   function formulaCost(item) {
     const P = PRICING, m = TIER_MULT[String(item.tier)];
-    const e = item.effects || {}, qp = quirkPoints(e.tags);
+    const e = item.effects || {}, qp = quirkPoints(e.tags, e);
     let raw;
     if (item.slot === "sidearm") raw = P.SIDEARM_BASE + P.SIDEARM_POWER * (e.power || 0) + P.SIDEARM_QUIRK * qp;
-    else if (item.slot === "armor") raw = P.ARMOR_BASE + P.PROTECTION_COST * (e.protection || 0)
+    /* §ARMOUR what it covers moves the price, softly: a torso vest is not worth half a full weave */
+    else if (item.slot === "armor") raw = (P.ARMOR_BASE + P.PROTECTION_COST * (e.protection || 0)) * (0.6 + 0.4 * coverageShare(e.covers))
                                        + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
     else raw = P.WEAPON_BASE + P.POWER_COST * (e.power || 0)
              + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
@@ -234,9 +250,20 @@
                 /* the trade this weapon belongs to — combat reads effective aim through it,
                    and the class and type have ONE home each: skillClassOf, skillTypeOf */
                 skillClass: skillClassOf(p), skillType: skillTypeOf(p),
-                mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
+                mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic"),
+                /* §GUNS (ruled) what a gun IS on the grid: shots a round, rounds a magazine, rounds to reload, the
+                   tiles it is made for, the tiles it is too close at, and how the aim falls off beyond its reach */
+                rof: pe.rof, mag: pe.mag, reload: pe.reload, reach: pe.reach, near: pe.near, falloff: pe.falloff,
+                /* §GUNS stage 2: its own precision and the cost of a snap shot; what armour it goes through; how hard it pins */
+                handling: pe.handling, snap: pe.snap, pen: pe.pen, suppress: pe.suppress,
+                /* §GUNS stage 3: how many more it catches beside the one it hits, and how far a shot of it carries */
+                spread: pe.spread, noise: pe.noise },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
-               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
+               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },
+               /* §ARMOUR what it covers, and the share of hits that land on it — from the injury table's own odds
+                  (arm 18, leg 18, torso and chest 26, head 10, the rest 28 — the internal, burns, spinal and
+                  catastrophic, which any armour is reckoned to stand between). Nothing listed means full. */
+               covers: ae.covers || null, coverage: coverageShare(ae.covers) },
       /* THE SAME FIELDS AS THE PRIMARY, which it did not have. The note three lines above says
          `id` and `name` are carried so a viewer can say WHICH gun fired — and the sidearm built
          directly beneath it carried neither, nor `mobility`. When a fighter runs dry,
@@ -248,6 +275,10 @@
                      tier: s.tier, id: s.id, name: s.name,
                      mobility: (s.effects || {}).mobility || 0,
                      damage: (s.effects || {}).damage || s.family,
+                     rof: (s.effects || {}).rof, mag: (s.effects || {}).mag, reload: (s.effects || {}).reload,
+                     reach: (s.effects || {}).reach, near: (s.effects || {}).near, falloff: (s.effects || {}).falloff,
+                     handling: (s.effects || {}).handling, snap: (s.effects || {}).snap, pen: (s.effects || {}).pen, suppress: (s.effects || {}).suppress,
+                     spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
       heat: pe.heat || 0, heatCap: pe.heat_cap || 0,
@@ -413,7 +444,11 @@
        anyway — ignored it, and one OA armed its force with ₡67 of the cap left and sent its squads out with no
        medkit at all. The arming now stops short of the essentials' price, last resort included. */
     const consRanked = rankBy(ofSlot('consumable').map(c => c.id).filter(id => DEVICE_IDS.indexOf(id) < 0), taste);
-    const firstOther = consRanked.find(c => c.id !== 'itm_medkit');
+    /* the first consumable everyone gets is an ESSENTIAL, so it is the cheapest of the doctrine's three favourites and never
+       dearer than a grenade's kind: a doctrine whose favourite was the ₡3,470 thermobaric charge handed one to each of
+       nineteen fighters and spent the whole cap on them */
+    const firstOther = cheapFirst(consRanked.filter(c => c.id !== 'itm_medkit').slice(0, 3)).find(c => c.cost <= CONST.ESSENTIAL_MAX_COST)
+                    || cheapFirst(consRanked.filter(c => c.id !== 'itm_medkit'))[0];
     const medN = Math.max(1, Math.round(bodies.length * CONST.MEDKIT_SHARE));
     const medkit = byId('itm_medkit');
     const essentials = medN * ((medkit && medkit.cost) || 0) + Math.max(0, bodies.length - medN) * ((firstOther && firstOther.cost) || 0);
@@ -429,7 +464,10 @@
     for (const b of bodies) for (const slot of SLOTS) {
       floorLeft -= floorOf(slot);
       /* a slot left bare still has to be bought below, so its floor stays held */
-      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      /* and nobody takes a rack piece worth more than a fair share of the allowance until everyone is kitted: a rack of
+         favourite armour, handed to two-thirds of a force at the muster, spent the whole cap before a gun was chosen */
+      const fairShare = mustAllow / bodies.length * CONST.KIT_MUSTER_BODY_SHARE;
+      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
         const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => shotOf(b.f, y) - shotOf(b.f, x));
@@ -465,6 +503,7 @@
         }
         money -= pick.cost; cash += pick.cost; spent += pick.cost;
         q.b.loadout[q.slot] = pick.id;
+        if (q.slot === 'primary') q.b.boughtPrimary = true;   /* a corp does not buy one body two guns */
       }
     }
     if (shortfall > 0) {
@@ -514,8 +553,30 @@
         if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
       }
     }
-    /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
+    /* ---- phase 3c: EVERY BAND ANSWERED ---- */
+    /* A force of nine or more carries at least one gun of each band — somebody for close work, somebody who reaches —
+       whatever its doctrine's tastes: the fighter who shoots that band's types best takes the cheapest gun of the band,
+       from the rack or bought, within the money and the gun allowance. (A cap-bound doctrine bought no short gun at
+       all once its cheap ones grew dearer — and running this after the upgrades found the cap already spent.) */
+    if (bodies.length >= CONST.KIT_BAND_MIN_FORCE) {
+      for (const band of ['short', 'medium', 'long']) {
+        if (bodies.some(b => { const g = byId(b.loadout.primary); return g && (g.effects || {}).range === band; })) continue;
+        const guns = cheapFirst(gunTaste.filter(g => (g.effects || {}).range === band));
+        if (!guns.length) continue;
+        /* of the four best hands for the band, the one holding the costliest gun — the swap must free cap, not spend it */
+        const costOf = (b) => { const g = byId(b.loadout.primary); return g ? (g.cost || 0) : 0; };
+        const hands = bodies.filter(b => b.f && b.f.skills).sort((x, y) => shotOf(y.f, guns[0]) - shotOf(x.f, guns[0])).slice(0, 4);
+        const pickBody = (hands.length ? hands : bodies.slice(0, 4)).sort((x, y) => costOf(y) - costOf(x))[0];
+        for (const g of guns) {
+          const cur = byId(pickBody.loadout.primary), curCost = cur ? (cur.cost || 0) : 0;
+          if (spent - curCost + g.cost > gunAllow) continue;
+          if (take(g.id)) { give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; break; }
+          if (!pickBody.boughtPrimary && priceOf(g) <= money) { money -= priceOf(g); cash += priceOf(g); give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; pickBody.boughtPrimary = true; break; }
+        }
+      }
+    }
+    /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
     const swap = (b, slot, next) => {
       const prev = b.loadout[slot] ? byId(b.loadout[slot]) : null;
       if (spent - (prev ? prev.cost : 0) + next.cost > gunAllow) return false;
@@ -542,7 +603,7 @@
     {
       const want = [];
       for (const b of bodies) {
-        if (!b.f || !b.f.skills || !b.loadout.primary) continue;
+        if (!b.f || !b.f.skills || !b.loadout.primary || b.boughtPrimary) continue;   /* one gun bought a body */
         const cur = byId(b.loadout.primary), base = shotOf(b.f, cur);
         const best = gunsFor(b).slice(0, CONST.KIT_GOOD).find(g => shotOf(b.f, g) >= base + CONST.KIT_BUY_MARGIN);
         if (best) want.push({ b, cur, best, gain: shotOf(b.f, best) - base });
@@ -552,7 +613,7 @@
         const g = w.best, p2 = priceOf(g);
         if (p2 > money || spent - (w.cur.cost || 0) + g.cost > gunAllow) continue;
         money -= p2; cash += p2; spent += g.cost - (w.cur.cost || 0);
-        give(w.cur.id); w.b.loadout.primary = g.id;
+        give(w.cur.id); w.b.loadout.primary = g.id; w.b.boughtPrimary = true;
       }
     }
     /* mods are durable, consumables are bought fresh for the drop */
@@ -765,7 +826,7 @@
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },
     get doctrines() { return DOCTRINES; },
-    tasteScore, shotOf,
+    tasteScore, shotOf, coverageShare,
     doctrine(id) { return DOCTRINES.find(d => d.id === id) || null; }
   };
   if (isNode) { autoInit(); module.exports = api; }

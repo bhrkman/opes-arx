@@ -527,16 +527,21 @@ setTimeout(() => {
     {
       const GM = window.__G, meM = GM.corps[GM.me];
       [...doc.querySelectorAll('#rail .tab')].find(t => /Market/.test(t.textContent)).click();
-      /* §MARKET the shelf's sections start SHUT — a manager opens the rack he came for rather
-         than scrolling a mile of half-empty rows. Open the first to read its rows. */
-      const secs = [...doc.querySelectorAll('#mktledger .msec .nm')].map(x => x.textContent);
-      check(doc.querySelectorAll('#mktledger .msec.shut').length === secs.length &&
-            !doc.querySelector('#mktledger .mrow'),
-            'the shelf opens with every rack shut (' + secs.length + ' racks)');
-      doc.querySelector('#mktledger .msec').click();
-      /* the columns are the RACKS now: a rack is one column, whole, beside another rack */
-      check(!!doc.querySelector('#mktledger .mracks .mrack .mrow'),
-            'and a rack opens whole, in its own column beside the next');
+      /* §MARKET THE WALL (ruled): underline tabs with counts, centred titles with rules, tiles by type carrying bars
+         coloured by kind and chips for the rest; a title folds its section */
+      const secs = [...doc.querySelectorAll('#mktledger .mwall-title .t')].map(x => x.textContent);
+      check(doc.querySelectorAll('#mktslots .mtab').length === 5 && !!doc.querySelector('#mktslots .mtab.on .c'),
+            'the slots are underlined tabs, each with how many the shelf holds');
+      const tiles = doc.querySelectorAll('#mktledger .mwall .mtile').length;
+      check(tiles >= 40 && doc.querySelectorAll('#mktledger .mtile .mbar').length >= tiles * 3,
+            'the wall: ' + tiles + ' tiles, each carrying its bars');
+      check(!!doc.querySelector('#mktledger .mbar b.damage') && !!doc.querySelector('#mktledger .mchips .range'),
+            'the bars are coloured by kind, and the chips too');
+      const firstTitle = doc.querySelector('#mktledger .mwall-title');
+      firstTitle.click();
+      check(doc.querySelector('#mktledger .mwall-title').classList.contains('shut') && doc.querySelectorAll('#mktledger .mtile').length < tiles,
+            'a title folds its section');
+      doc.querySelector('#mktledger .mwall-title').click();
       check(secs.length >= 5 && secs[0] === 'Carbines',
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
@@ -570,9 +575,9 @@ setTimeout(() => {
       check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
       const focusBefore = text('#focusdesk');
       const t0 = meM.account.treasury;
-      const id = doc.querySelector('#mktledger .mrow').getAttribute('data-mopen');
+      const id = doc.querySelector('#mktledger .mtile').getAttribute('data-mopen');
       const held0 = (meM.armoury || {})[id] || 0;
-      const add = () => doc.querySelector('#mktledger .mrow [data-madd]').click();
+      const add = () => doc.querySelector('#mktledger .mtile [data-madd]').click();
       add(); add();
       check(doc.querySelector('#mktledger .stepn').textContent === '2',
             'the stepper counts what is on the order without moving');
@@ -586,14 +591,11 @@ setTimeout(() => {
             'the spend is in the books, not conjured');
       check(text('#focusdesk') === focusBefore,
             'buying kit costs no focus \u2014 shopping is not attention');
-      doc.querySelector('#mktledger .mrow').click();
+      doc.querySelector('#mktledger .mtile').click();
       const panel = text('#mktledger .mpanel');
-      check(/Type/.test(panel) && /Band/.test(panel) && !/legality/i.test(panel),
-            'the panel names what a piece is, without repeating the tag on the row');
-      /* the flavour line is a SENTENCE and keeps sentence case; what must be capitalised is
-         every label and value the shelf itself writes */
-      check(/Band [A-Z]/.test(panel) && /Family [A-Z]/.test(panel) && /Type [A-Z]/.test(panel) &&
-            (!/Traits/.test(panel) || /Traits: [A-Z]/.test(panel)),
+      check(/Type/.test(panel) && /Damage/.test(panel) && /Reach/.test(panel) && !/legality/i.test(panel),
+            'a tile opens to every stat, without repeating the tag on the row');
+      check(/Type [A-Z]/.test(panel) && (!/Traits/.test(panel) || /Traits: [A-Z]/.test(panel)),
             'and its labels and values read in the game\'s own capitals');
       /* leave the rail where the checks below expect it — they read the Desk's own sections */
       [...doc.querySelectorAll('#rail .tab')].find(t => /Desk/.test(t.textContent)).click();
@@ -1395,14 +1397,36 @@ setTimeout(() => {
     check(!!G.plan.leaderOf[leadId] && G._inspect === leadId &&
           doc.getElementById('unitpanel').classList.contains('on'),
           'and on again, the drawer staying on the inspected fighter through the rerender');
+    /* §SKILLS the weapon skill block: their aim with the gun they carry, centred across the top; the two classes side
+       by side beneath it */
+    {
+      const tal = doc.querySelector('#unitpanel .talrow');
+      const cells = tal ? [...tal.children] : [];
+      const line = tal && tal.querySelector('.shootline');
+      check(!!line && cells[0] === line && /Total Aim \(/.test(line.textContent) &&
+            /Ballistic/.test((cells[1] || {}).textContent || '') && /Energy/.test((cells[2] || {}).textContent || ''),
+            'the weapon skill block: ' + (line ? line.textContent.replace(/\s+/g, ' ').trim() : 'no aim line') +
+            ', then Ballistic and Energy side by side');
+    }
+    /* §ITEMS one way an item is described: a kit slot writes the first figures in their colours, the picker draws the
+       Market's bars and chips under each row */
+    {
+      const kt = doc.querySelector('#unitpanel .slot[data-slot="primary"] .kt');
+      check(!!kt && !!kt.querySelector('.fig.damage') && /Damage \d/.test(kt.textContent),
+            'a kit slot writes its figures in their colours: ' + (kt ? kt.textContent.trim() : 'none'));
+    }
     doc.querySelector('#unitpanel [data-slot="primary"]').click();
+    check(!!doc.querySelector('.picker .prow .pspec .mbar b.damage') && !!doc.querySelector('.picker .prow .pspec .mchips'),
+          'the picker draws the Market\'s bars and chips under each row');
     check(doc.querySelectorAll('.picker .prow').length > 1,
           'the equip picker lists options: ' + doc.querySelectorAll('.picker .prow').length + ' rows');
     check(doc.querySelectorAll('.picker .prow .tierb').length >= doc.querySelectorAll('.picker .prow').length - 1,
           'every item in the picker wears its tier badge');
+    /* §SQUADS the picker lists what the armoury holds — buying is the market's (ruled) */
+    check(![...doc.querySelectorAll('.picker .prow')].some(r => /Buy /.test(r.textContent)),
+          'the equip picker offers nothing to buy: the armoury only');
     const rackRow = [...doc.querySelectorAll('.picker .prow')].find(r => /Rack /.test(r.textContent));
-    const buyRow = [...doc.querySelectorAll('.picker .prow')].find(r => /Buy /.test(r.textContent));
-    const pickRow = rackRow || buyRow;
+    const pickRow = rackRow || [...doc.querySelectorAll('.picker .prow')][1];
     const handPrim = pickRow.querySelector('.pn').firstChild.textContent.trim();
     check(/Power|Range|Long|Short|Medium|Protect|Ballistic|Energy/.test(pickRow.textContent),
           'a picker row shows what the item does: ' +

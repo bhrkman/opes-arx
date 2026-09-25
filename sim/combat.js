@@ -33,6 +33,12 @@ const CONST = {
 
   /* §3.4 actions */
   AMMO: { shot: 1, suppress: 3, overwatch: 1 },        // [S]
+  /* §GUNS the magazine is the gun's own (`mag`); a fighter carries SPARE magazines, and a reload costs rounds */
+  LOADOUT_MAGS: 3,                        // [C] spare magazines a fighter carries into a Divide
+  LOADOUT_MAGS_SIDEARM: 2,                // [C] and spare magazines for the sidearm
+  LOADOUT_CELLS: 1,                       // [C] spare cells for a cell-fed weapon (it used to carry none)
+  NEAR_FALLOFF: 5,                        // [C] aim lost per tile inside a gun's `near` — a long gun in a knife fight
+  FALLOFF_DEFAULT: 3,                     // [C] aim lost per tile beyond a gun's reach, when a gun names none
   LOADOUT_AMMO: 16,                       // [C] NEW in v1 — COMBAT.md v0.3 should adopt this
   LOADOUT_RATE_CAP: 1.5,                  // [C] a fast weapon is issued more, but not unboundedly
   LOADOUT_BELT: 6,                        // [C] what a belt-fed weapon carries beyond a magazine
@@ -482,7 +488,11 @@ function makeCombatant(fighter, opts) {
        entire job is sustained fire was the one that could not sustain it.
        A weapon is issued ammunition in proportion to how fast it eats it. That is not a
        balance patch, it is what a quartermaster does. */
-    ammo: loadoutFor(weapon) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    /* §GUNS the first magazine is loaded; `ammo` is every round the fighter carries BEYOND it (spare magazines,
+       a bulk hand's extra, a mod's) — a gun that names no magazine keeps the old flat issue */
+    magLeft: weapon.mag || loadoutFor(weapon),
+    ammo: (weapon.mag ? weapon.mag * (weapon.damage === 'energy' ? CONST.LOADOUT_CELLS : CONST.LOADOUT_MAGS) : loadoutFor(weapon)) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    reloading: 0,
     /* §MODS what the fitted mods add to the shot (items.js resolve) */
     mod: (kit && kit.mod) || null,
     /* §6 — an energy weapon carries its own resources; a ballistic one leaves these at 0
@@ -535,8 +545,10 @@ function isEnergy(u) { return !!u.cellFed || u.heatCap > 0; }
 /** Can this fighter fire their PRIMARY this exchange? */
 function primaryReady(u) {
   if (u.venting > 0) return false;
-  if (isEnergy(u)) return u.charge > 0;
-  return u.ammo >= ammoCost(u, CONST.AMMO.shot);
+  /* §GUNS a gun with a magazine going in, or rounds still carried for it, is not dry — dry is what the sidearm is for */
+  if (u.reloading > 0) return true;
+  if (isEnergy(u)) return u.charge > 0 || u.ammo > 0;
+  return u.magLeft >= ammoCost(u, CONST.AMMO.shot) || u.ammo > 0;
 }
 
 /**
@@ -549,7 +561,11 @@ function primaryReady(u) {
 function useSidearm(u) {
   if (!u.sidearm || u.onSidearm) return false;
   u.primary = u.weapon;
+  u._primaryRounds = { magLeft: u.magLeft, ammo: u.ammo, reloading: u.reloading };
   u.weapon = Object.assign({}, u.sidearm, { tags: u.sidearm.tags || [] });
+  /* §GUNS the sidearm has a magazine of its own, and spares of its own */
+  const sm = u.weapon.mag || CONST.LOADOUT_AMMO;
+  u.magLeft = sm; u.ammo = sm * CONST.LOADOUT_MAGS_SIDEARM; u.reloading = 0;
   u.onSidearm = true;
   u._justSwapped = true;
   return true;
@@ -557,6 +573,17 @@ function useSidearm(u) {
 function backToPrimary(u) {
   if (!u.onSidearm || !u.primary) return;
   u.weapon = u.primary; u.primary = null; u.onSidearm = false;
+  if (u._primaryRounds) { u.magLeft = u._primaryRounds.magLeft; u.ammo = u._primaryRounds.ammo; u.reloading = u._primaryRounds.reloading; u._primaryRounds = null; }
+}
+/** Between exchanges a reload counts down; when it is done the next magazine goes in. */
+function tickReload(u) {
+  if (!(u.reloading > 0)) return;
+  u.reloading--;
+  if (u.reloading > 0) return;
+  const cap = (u.weapon && u.weapon.mag) || CONST.LOADOUT_AMMO;
+  const load = Math.min(cap, u.ammo);
+  if (isEnergy(u) && !u.onSidearm) u.charge = load; else u.magLeft = load;
+  u.ammo -= load;
 }
 
   /* Removed at this step: spendConsumable, pairSync, preferredBand, bandMobility, claimRandom, initCover, downedUnits — defined here and called from nowhere in the tree.
@@ -578,7 +605,12 @@ function spendShot(u, kind) {
        showed up on seven of every eight energy fighters. */
     /* §LIGHT a sun-fed weapon DREADS THE NIGHT: in the planet's dark every shot costs it double */
     const draw = (hasQuirk(u, 'heavy_draw') ? 2 : 1) * (u._dark && hasQuirk(u, 'daylight') ? 2 : 1);
-    if (u.charge < draw) return false;
+    if (u.reloading > 0) return false;
+    if (u.charge < draw) {
+      /* §GUNS the cell is spent: a spare goes in, and that takes the gun's reload rounds */
+      if (u.ammo > 0 && !(u.reloading > 0)) u.reloading = Math.max(1, u.weapon.reload || 1);
+      return false;
+    }
     u.charge -= draw;
     /* §ENERGY THE OVERHEAT IS GONE, AND `heatCap` IS NOW ONLY THE MARK OF A CELL-FED WEAPON.
        Every one of the fifteen cell-fed primaries fired two or three shots and then lost an
@@ -600,8 +632,15 @@ function spendShot(u, kind) {
                          : kind === 'overwatch' ? CONST.AMMO.overwatch : CONST.AMMO.shot);
   /* §MODS a recoil compensator holds suppressing fire down for a round less */
   if (kind === 'suppress' && u.mod && u.mod.suppressCost) cost = Math.max(1, cost - u.mod.suppressCost);
-  if (u.ammo < cost) return false;
-  u.ammo -= cost;
+  /* §GUNS a shot comes out of the MAGAZINE; an empty magazine means a reload, which costs the gun's rounds, and only
+     when the spares are gone too is the fighter dry */
+  if (u.reloading > 0) return false;
+  if (u.magLeft == null) u.magLeft = u.ammo;             /* an older combatant with no magazine */
+  if (u.magLeft < cost) {
+    if (u.ammo > 0) u.reloading = Math.max(1, (u.weapon && u.weapon.reload) || 1);
+    return false;
+  }
+  u.magLeft -= cost;
   return true;
 }
 
@@ -739,6 +778,8 @@ function act(u, S, what) {
    with damage. So the marksman's rifle beats the rock somebody is behind and the plate they
    are wearing, which is the fiction anyway. */
 function tempoOf(c) {
+  /* §GUNS a gun's RATE OF FIRE is its own stat — shots a round; the tags decide it only for a gun that names none */
+  if (c.weapon && c.weapon.rof != null) return c.weapon.rof;
   let t = null;
   for (const q of quirksOf(c)) {
     const v = CONST.TEMPO[q];
@@ -764,6 +805,12 @@ function effectiveProtection(shooter, target) {
   return Math.max(0, (target.armor.protection || 0) + r);
 }
 function quirksOf(c) { return (c.weapon && c.weapon.tags) || []; }
+/** §GUNS how hard a gun pins: 0 not at all, 1 the man it fires at, 2 him and whoever stands near — the gun's own
+    number, the old tags deciding it only for a gun that names none */
+function suppressOf(c) {
+  if (c.weapon && c.weapon.suppress != null) return c.weapon.suppress;
+  return hasQuirk(c, 'suppressive_2') ? 2 : hasQuirk(c, 'suppressive') ? 1 : 0;
+}
 function hasQuirk(c, q) { return quirksOf(c).indexOf(q) >= 0; }
 
 function quirkAim(c, bandIdx, ctx) {
@@ -783,6 +830,8 @@ function quirkCover(shooter, target, idx, bandIdx) {
 function quirkSev(shooter, target, bandIdx) {
   let s = 0;
   for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.sev) s += h.sev(shooter, target, bandIdx) || 0; }
+  /* §GUNS PENETRATION: what armour the round goes through, as the gun's own number — the `pierce_N` tags stay for a mod */
+  if (shooter.weapon && shooter.weapon.pen) s += Math.round(CONST.SEV_PROTECTION_MULT * Math.min(shooter.weapon.pen, effectiveProtection(shooter, target)));
   return s;
 }
 function degradeCover(side, target) {
@@ -841,9 +890,23 @@ function aimEff(c, bandIdx, ctx) {
     a += c.repositioning ? (md.aimMoving || 0) : (md.aimHolding || 0);
     if (ctx.overwatch) a += md.overwatchAim || 0;
   }
-  const mis = bandMismatch(c, bandIdx);
+  /* §GUNS RANGE IN TILES: beyond a gun's reach the aim falls off per tile; inside its `near` a long gun suffers per
+     tile; within them, a specialist's gun (not a medium one) keeps its bonus. A gun that names no reach, or a shot
+     that does not know its distance, keeps the band step. */
+  let mis;
+  if (c.weapon && c.weapon.reach != null && ctx.dist != null && !(c.race === 'ththyn')) {
+    const far = Math.max(0, ctx.dist - c.weapon.reach) * (c.weapon.falloff != null ? c.weapon.falloff : CONST.FALLOFF_DEFAULT);
+    const near = Math.max(0, (c.weapon.near || 0) - ctx.dist) * CONST.NEAR_FALLOFF;
+    mis = far + near;
+    if (mis === 0 && (c.weapon.range || 'medium') !== 'medium')
+      mis = -CONST.BAND_SPECIALIST_BONUS * (c.weapon.range === 'short' ? CONST.BAND_SPECIALIST_SHORT : 1);
+  } else mis = bandMismatch(c, bandIdx);
   a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
+  /* §GUNS HANDLING is the gun's own precision, apart from the hand that holds it; and a SNAP SHOT — shooting in the same
+     turn as moving — costs a gun what it costs, a pistol little and a belt-fed gun a great deal. Nothing charged a
+     moving shooter before: `stabilized` gave twenty aim back for firing on the move, and there was nothing to give back. */
+  if (c.weapon) { a += c.weapon.handling || 0; if (c.repositioning || ctx.snap) a -= c.weapon.snap || 0; }
   a += tempoAim(c);                                   /* COMPOSITION.md §4 */
   if (c.suppressed) a -= CONST.SUPPRESSED_AIM_PENALTY;
 
@@ -956,7 +1019,10 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
      vest has an answer to one kind of enemy. */
   const dmgType = (shooter.weapon && shooter.weapon.damage) || 'ballistic';
   const resist = (target.armor.resist && target.armor.resist[dmgType]) || 0;
-  const effProt = Math.max(0, (target.armor.protection || 0) + resist);
+  /* §ARMOUR COVERAGE: a hit that lands where the armour is not — a bare arm under a vest — gets none of it */
+  const covered = target.armor.coverage == null || rng() < target.armor.coverage;
+  const effProt = covered ? Math.max(0, (target.armor.protection || 0) + resist) : 0;
+  if (!covered) target._uncoveredHit = true;
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
@@ -1190,7 +1256,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, persistCharge, coolWeapons, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed

@@ -123,14 +123,14 @@
   .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
     text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
     padding:clamp(5px,1.1vh,11px) 14px}
-  .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
+  
   #errband{display:none;position:fixed;left:0;right:0;top:0;z-index:90;background:var(--red);color:var(--bg);font-size:11px;padding:6px 12px;text-align:center;cursor:pointer}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
   /* §MONEY the two facts the Roster is about, given room rather than a grey aside */
   .rostsum{display:flex;gap:26px;align-items:flex-end}
   .rostsum .rsfig{display:flex;flex-direction:column;line-height:1.25}
-  .rostsum .lab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .rostsum .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .rostsum b{font-size:19px;letter-spacing:.02em}
   .rostsum b.good{color:var(--hit)} .rostsum b.bad{color:var(--red)}
   /* §REST one scale for both tracks: green whole, grey through the middle, red at the end */
@@ -209,7 +209,9 @@
   .mksizes{display:flex;gap:9px;align-items:flex-end}
   .mkkit{display:flex;flex-direction:column;gap:9px}
   .mkrow{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
-  .mklab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  /* §ITEMS ONE LABEL: every small-caps label over a block is 9.5px at .16em — they had drifted across six sizes and
+     spacings; its colour says its role (faint a label, the command colour a section inside a panel) */
+  .mklab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .mkopts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
   .mkopt{width:34px;height:34px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:var(--c);padding:0}
@@ -231,7 +233,7 @@
      pair was nudged six pixels right of the first, and no pair on the pad lined up. The gap is
      the group's own, in the direction the group actually runs. */
   .mkgrp{display:flex;flex-direction:column;align-items:center;gap:5px}
-  .mkgrp .gl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .mkgrp .gl{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   /* MOVE is the only thing on its row, so it stands in the middle of the pad */
   .mkgrp.move{grid-column:1/-1;justify-self:center}
   /* EVERY BUTTON THE SAME SIZE. They were sized by their contents — one glyph or two, a wide
@@ -253,7 +255,7 @@
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
   .foundgo:hover{background:var(--a);color:var(--bg)}
-  .berthrow{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  
   .berth{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line2);background:transparent;
     border-radius:12px;padding:2px 9px;font:inherit;font-size:10px;cursor:pointer}
   /* §PICKER the mark large, the name under it */
@@ -261,33 +263,29 @@
      page's with them, so the Backroom rendered as unspaced white text — "Price₡15,000Goes Off
      Clean88%" — which is what a card looks like with no stylesheet at all. Written back, and
      the price grid given room to breathe: label left, figure right, a line between them. */
-  #backroom .qhead{display:flex;justify-content:space-between;align-items:baseline;
-    border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:4px}
-  #backroom .qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:10px}
-  #backroom .qact,#backroom .qev{background:var(--panel);border:1px solid var(--line2);
-    border-left:3px solid var(--red);border-radius:7px;padding:12px 14px}
-  #backroom .qev{border-left-color:var(--warn)}
-  #backroom .qt{font-size:13px;color:var(--ink);font-weight:bold;margin-bottom:4px}
-  #backroom .qx{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:9px}
-  #backroom .qo{font-size:11px;color:var(--hit);border-left:2px solid var(--hit);padding-left:7px;margin-bottom:10px}
-  #backroom .qf{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:11px;
-    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 0;margin-bottom:4px}
-  #backroom .qf .k{color:var(--dim)}
-  #backroom .qf .v{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-  #backroom .qtargets{margin:10px 0 4px}
-  #backroom .qbtn{width:100%;padding:8px;margin-top:8px;border:1px solid var(--red);color:var(--red);
-    background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.04em}
-  #backroom .qbtn:hover{background:var(--red);color:var(--bg)}
-  #backroom .qbtn:disabled{border-color:var(--line2);color:var(--faint);cursor:default;background:transparent}
-  #backroom .qways{display:grid;gap:6px;margin-top:10px}
-  #backroom .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;margin-top:0;padding:7px 10px}
-  #backroom .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
-  #backroom .qways .sub{display:block;font-size:9.5px;color:var(--dim);margin-top:2px}
-  #backroom .qways .qbtn:hover .sub{color:var(--bg)}
-  #backroom .qheld{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
-  #backroom .qhh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
-  #backroom .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:16px;padding-top:10px;line-height:1.7}
-  #backroom .qdone .out{color:var(--bad)}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /* (the constellation's rules stood here and were struck with it; their CONTINUATION lines
      were left behind by a line-by-line deletion and were read as a selector, which swallowed
      `.hpick` — the OA ring on Negotiation and the Deal — and threw the wheel off the screen.) */
@@ -308,33 +306,30 @@
   .hnode .hn-sub{font-size:9px;color:var(--faint)}
   .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
-  .oacard{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0;
-    cursor:pointer;background:var(--panel);text-align:center;
-    border-left:3px solid var(--line)}
-  .oacard:hover{border-color:var(--a)}
-  .oacard .m{display:block}
-  .oacard .oaname{display:flex;align-items:center;justify-content:center;gap:6px;
-    font-weight:600;margin-bottom:3px}
-  .oacard .oaname svg{flex:0 0 auto}
+  
+  
+  
+  
+  
   /* the Board: a standing is a position between two directions, so it reads as a bar with
      a centre, not a bare number */
   /* the card and the holds */
   .cardhead{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px;font-size:11.5px}
   .cardhead b{color:var(--ink)}
-  .cardrow{display:grid;grid-template-columns:14px 1fr minmax(150px,auto);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .cardrow.standing{align-items:start}
-  .cardrow:last-child{border-bottom:none}
-  .cardrow .pri{color:var(--mag);font-size:11px}
-  .cardrow.pri .dw{color:var(--ink)} .cardrow .dw b{color:var(--ink)}
-  .cardrow.standing .dw{color:var(--dim)}
-  .cardrow .dn{font-size:10.5px;white-space:nowrap;text-align:right}
-  .spec{display:grid;grid-template-columns:auto 110px auto;gap:5px;align-items:center;font-size:9px;color:var(--faint);row-gap:3px}
-  .spec .sw{grid-column:1/-1;text-align:center;font-size:10px;white-space:nowrap}
+  
+  
+  
+  
+   .cardrow .dw b{color:var(--ink)}
+  
+  
+  
+  
   .sbar{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),#4a4f58 50%,var(--hit))}
   .sbar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
-  .spec.unset .sbar i{background:var(--dim)}
+  
   .holdrow{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+  .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .holdrow.hh .hv{color:var(--faint)}
   .holdrow:last-child{border-bottom:none}
   .hbar{height:8px;background:#0b111c;border:1px solid var(--line);border-radius:4px;overflow:hidden;display:block}
@@ -364,9 +359,9 @@
   .sector.yours{border-color:var(--a);background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a)}
   .sector .sn{font-size:12.5px;color:var(--ink);font-weight:bold;display:flex;justify-content:space-between}
   .sector .sn .you{color:var(--a);font-size:10px;font-weight:normal}
-  .sector .sr{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:6px;font-size:10.5px}
-  .sector .sr .k{color:var(--dim)} .sector .sr .v{color:var(--ink)}
-  .sector .sr .v.m{color:var(--faint)}
+  
+   .sector .sr .v{color:var(--ink)}
+  
   .landhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .landhead .m b{color:var(--ink)}
   /* THE BRIEF: the month at the head of the Desk — its shape, what is coming, what waits */
@@ -377,13 +372,13 @@
   .brief .shape .what{font-size:11.5px;color:var(--dim);margin-top:3px}
   .brief .coming{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
   .cd{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line2);border-radius:12px;font-size:10.5px;color:var(--dim);background:var(--a-deep)}
-  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)} .cd.soon b{color:var(--cred)} .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
+  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)}  .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
   .agenda{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 12px}
-  .agi{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #16233a;font-size:11.5px;cursor:pointer}
-  .agi:hover .at{color:var(--a)}
-  .agi .dot{width:8px;height:8px;border-radius:50%;background:var(--cred);flex-shrink:0}
-  .agi.urgent .dot{background:var(--red)}
-  .agi .at{flex:1;color:var(--ink)} .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
+  
+  
+  
+  
+   .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
   .agenda .clear{color:var(--hit);font-size:11px;padding:6px 0}
   #endmonth.waiting{border-color:var(--cred);color:var(--cred)}
   /* THE EVENTS: cards with a situation and two or three options, each with its cost */
@@ -399,11 +394,11 @@
   .brief .stk b.cr{color:var(--cred)}
   .brief .stk b .good{color:var(--hit)} .brief .stk b .bad{color:var(--red)}
   .brief .stk b .of{color:var(--dim);font-size:13px}
-  .brief .stk .lab{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+  .brief .stk .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .evgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-bottom:12px}
   .evcard{--k:var(--cred);background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--k);border-radius:8px;padding:0;overflow:hidden}
   .evcard.done{opacity:.6}
-  .evcard .evk{display:flex;justify-content:space-between;align-items:baseline;padding:6px 12px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--k)}
+  .evcard .evk{display:flex;justify-content:space-between;align-items:baseline;padding:6px 12px 0;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--k)}
   .evcard .et{font-size:14px;color:var(--ink);font-weight:bold;padding:2px 12px 0}
   /* §EVENTS AN EVENT IS THE ONE THING ON THE DESK THAT MUST BE READ. It was set in the same
      receding dim as every aside on the page, inside the same quiet border as every box — so
@@ -433,7 +428,7 @@
   .eightcard .teams .vs{color:var(--faint);align-self:center;font-size:14px}
   .eightcard .teams .tm{display:flex;flex-direction:column;gap:3px}
   .eightcard .teams .tm.win .tt{color:var(--hit)}
-  .eightcard .tt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .eightcard .tt{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .eightcard .eighthead{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
   .eightcard .teams{margin-top:0}
   .eightcard .teams .tm.yours .tt{color:var(--a)}
@@ -460,14 +455,14 @@
   .rfront h3{margin:0 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--a)}
   /* R2's ledger inside R1's columns: every line a kind, a description and a figure on the
      right, on dotted rules; stamps for what went wrong; the close under a double rule */
-  .rfront .sheethead{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:3px double var(--line2);padding-bottom:6px;margin-bottom:2px}
+  .rfront .sheethead{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);border-bottom:3px double var(--line2);padding-bottom:6px;margin-bottom:2px}
   .rfront .ln{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line);font-size:11.5px;align-items:baseline}
-  .rfront .ln .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .ln .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .rfront .ln .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .rfront .ln .v .cr{font-size:11.5px}
   .rfront .ln.open{color:var(--dim)}
   .rfront .close{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:8px 0 0;font-size:12px;border-top:3px double var(--line2);margin-top:6px}
-  .rfront .close .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .close .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .rfront .close .v{text-align:right;white-space:nowrap} .rfront .close .v .cr{font-size:13px}
   .rfront .stamp{display:inline-block;border:1.5px solid var(--red);color:var(--red);font-size:8px;letter-spacing:.16em;text-transform:uppercase;padding:0 5px;border-radius:2px;transform:rotate(-3deg);margin-left:8px;vertical-align:middle;line-height:1.5}
   .rfront .stamp.amber{border-color:var(--bad);color:var(--bad)}
@@ -494,7 +489,7 @@
      map lists every one of your squads' days — where it went and why, how far, whom it met and
      how that came out — each line a scrub back to that day. */
   #grecord{max-height:280px;overflow:auto}
-  #grecord .rq{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px}
+  #grecord .rq{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px}
   #grecord .rl{display:grid;grid-template-columns:34px 1fr auto;gap:8px;font-size:10.5px;padding:3px 4px;border-bottom:1px dotted var(--line);cursor:pointer;align-items:baseline}
   #grecord .rl:hover{background:var(--panel2)}
   #grecord .rl.now{background:rgba(58,216,224,.08);border-left:2px solid var(--a)}
@@ -526,9 +521,9 @@
   .obj.pri{border-color:var(--cred);box-shadow:0 0 0 1px rgba(240,192,74,.25),0 0 26px rgba(240,192,74,.10)}
   .obj.pri::before{background:var(--cred)}
   .obj .ohead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-  .obj .tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .obj .tag{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .obj.pri .tag{color:var(--cred)}
-  .obj .state{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:1px 7px;white-space:nowrap}
+  .obj .state{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:1px 7px;white-space:nowrap}
   .obj .ask{font-size:16px;font-weight:700;line-height:1.3}
   .obj .ask b{color:var(--cred)}
   .obj .who{font-size:10.5px;color:var(--dim);margin-top:2px}
@@ -537,7 +532,7 @@
   .obj .obar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--b)}
   .obj .obar i.met{background:var(--hit)} .obj .obar i.short{background:var(--bad)}
   .obj .obar em{position:absolute;top:-4px;width:2px;height:18px;background:var(--ink)}
-  .obj .scale{position:relative;height:13px;font-size:9px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-top:5px}
+  .obj .scale{position:relative;height:13px;font-size:9.5px;color:var(--faint);letter-spacing:.16em;text-transform:uppercase;margin-top:5px}
   .obj .scale .l{position:absolute;left:0} .obj .scale .r{position:absolute;right:0}
   .obj .scale .n{position:absolute;transform:translateX(-50%);color:var(--dim);white-space:nowrap}
   /* the placement demand needs THE LADDER OF THE FLEET, not a row of ordinals: a lit "5th"
@@ -566,7 +561,7 @@
   @media (max-width:900px){ #boardscales .dials{grid-template-columns:1fr} }
   .fleetbox .fleetrow{display:grid;grid-template-columns:22px 1fr 110px 92px 86px;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);font-size:11.5px}
   .fleetbox .fleetrow:last-child{border-bottom:none}
-  .fleetbox .fleetrow.hd{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
+  .fleetbox .fleetrow.hd{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
   .fleetbox .nm small{display:block;font-size:9.5px;color:var(--dim)}
   .fleetbox .fbar{position:relative;height:6px;background:var(--line);border-radius:3px}
   .fleetbox .fbar i{position:absolute;top:0;bottom:0;border-radius:3px}
@@ -631,10 +626,10 @@
   .tglabel.rt-stress{color:var(--wall)} .tglabel.rt-stress.on{color:#c3a9ee}
   /* §STANCE the notch a manager sets at each OA: five even steps from keeping clear to
      bleeding them, cool through hot, wide enough that All In sits on one line with the rest */
-  #tstance .stanceall{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:4px 0 10px;border-bottom:1px solid var(--line2);margin-bottom:6px}
-  #tstance .stanceall .lab{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  #tstance .stanceall .lab b{display:block;color:var(--ink);letter-spacing:0;text-transform:none;font-weight:400;font-size:11px}
-  #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
+  
+  
+  
+  #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
   #tstance .stancehd span:last-child{text-align:right}
   #tstance .stancerow{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
   #tstance .stancerow:last-of-type{border-bottom:none}
@@ -646,7 +641,7 @@
   .notch5 .nb.on{color:var(--bg);font-weight:700;border-color:transparent}
   .notch5 .nb.n1.on{background:#5b8fd0} .notch5 .nb.n2.on{background:#3ab8c9} .notch5 .nb.n3.on{background:#4fd6a0}
   .notch5 .nb.n4.on{background:#e0a848} .notch5 .nb.n5.on{background:#e05a5a}
-  #tstance .stancelegend{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:8px 0 0;max-width:214px;margin-left:auto}
+  
   @media (max-width:900px){ #tstance .stancerow,#tstance .stancehd{grid-template-columns:22px 1fr;grid-template-areas:"mk nm" "nc nc"} 
     #tstance .stancerow .mk{grid-area:mk} #tstance .stancerow .nm{grid-area:nm} #tstance .notch5{grid-area:nc;justify-self:start} }
   /* §DESK the squad card */
@@ -658,7 +653,7 @@
   #tsquads .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
   #tsquads .head .nm{font-size:14px;font-weight:700;color:var(--sq,var(--ink))}
   #tsquads .head .nm small{font-size:10px;color:var(--dim);font-weight:400;margin-left:8px}
-  #tsquads .doing{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border:1px solid currentColor;border-radius:3px;color:var(--a);white-space:nowrap}
+  #tsquads .doing{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 8px;border:1px solid currentColor;border-radius:3px;color:var(--a);white-space:nowrap}
   #tsquads .doing.hunt{color:var(--red)} #tsquads .doing.hold{color:var(--b)}
   #tsquads .doing.claim{color:var(--cred)} #tsquads .doing.rest{color:var(--hit)}
   #tsquads .row{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:14px;align-items:center;font-size:10.5px}
@@ -666,7 +661,7 @@
   #tsquads .who i{width:12px;height:18px;border-radius:3px;background:var(--b);display:block}
   #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.out{background:var(--line)}
   #tsquads .g{display:flex;flex-direction:column;gap:2px;min-width:0}
-  #tsquads .g .lab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  #tsquads .g .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   #tsquads .g .bar{height:6px;border-radius:3px;background:var(--line);position:relative}
   #tsquads .g .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
   #tsquads .g .v{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -700,10 +695,9 @@
   @media (max-width:900px){ #dayhead .dstrip{grid-template-columns:1fr 1fr;gap:12px} #dayhead .dwall{grid-column:1/-1} }
   /* §WITHDRAWAL the tab: what you ask above, who would pay below */
   #withdraw{margin-bottom:12px}
-  .wtabs{display:flex;gap:4px;margin-bottom:-1px}
-  .wtabs .wt{padding:7px 14px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);
-    border-bottom:none;border-radius:6px 6px 0 0;background:var(--panel2);color:var(--dim);cursor:pointer}
-  .wtabs .wt.on{background:var(--panel);color:var(--red);border-color:var(--red);border-bottom:1px solid var(--panel)}
+  
+  
+  
   .wbody{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px;background:var(--panel)}
   .whd{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:10px}
   .whd .t{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.04em}
@@ -730,7 +724,7 @@
   .wterm.on .is{color:var(--ink)}
   .wreps{margin-top:18px}
   .wreps .hrow,.wreps .row{display:grid;grid-template-columns:200px 140px 150px 1fr;gap:14px;align-items:center}
-  .wreps .hrow{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding-bottom:6px}
+  .wreps .hrow{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding-bottom:6px}
   .wreps .hrow .last{text-align:right}
   .wreps .row{padding:10px 0;border-top:1px solid var(--line)}
   .wstr{font-size:11px} .wstr b{font-weight:400} .wstr small{display:block;font-size:9.5px;color:var(--dim)}
@@ -742,7 +736,7 @@
   .wtrust.t3 .segs i:nth-child(-n+3){background:#e0c04a}
   .wtrust.t4 .segs i:nth-child(-n+4){background:#9ec860}
   .wtrust.t5 .segs i{background:#4fd6a0}
-  .wtrust .w{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+  .wtrust .w{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .wtrust.t1 .w{color:#e05a5a} .wtrust.t2 .w{color:#e08a4a} .wtrust.t3 .w{color:#e0c04a}
   .wtrust.t4 .w{color:#9ec860} .wtrust.t5 .w{color:#4fd6a0} .wtrust.none .w{color:var(--faint)}
   .wans{justify-self:end;font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -782,8 +776,8 @@
   .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.85}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
-  .recaptot{border-top:1px solid var(--line2);margin-top:7px;padding-top:6px}
-  .recaptot .row .v{font-size:12.5px}
+  
+  
   .rcp{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:11.5px}
   .rcp .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #16233a}
   .rcp .row:first-child{border-top:none}
@@ -796,16 +790,16 @@
   .dayhead .dl .wx{color:var(--ink)}
   .dayhead button.primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .dayhead button.primary:hover{background:var(--a);color:var(--bg)}
-  .sqtbl{width:100%;border-collapse:collapse;font-size:11px}
-  .sqtbl th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-bottom:1px solid var(--line)}
-  .sqtbl td{padding:4px 6px;border-bottom:1px solid #16233a;vertical-align:middle}
-  .sqtbl tr:last-child td{border-bottom:none}
-  .sqtbl td.n{color:var(--sq);font-weight:bold}
-  .sqtbl .r{text-align:right;white-space:nowrap}
-  .sqtbl .bar2{display:inline-block;width:60px;height:6px;background:#0b111c;border:1px solid var(--line);border-radius:3px;vertical-align:middle;overflow:hidden}
-  .sqtbl .bar2 i{display:block;height:100%}
-  .sqtbl .ordsel{background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:2px 4px;font:inherit;font-size:10.5px;max-width:170px}
-  .sqtbl .ordwrap .x{color:var(--faint);cursor:pointer;margin-left:4px} .sqtbl .ordwrap .x:hover{color:var(--bad)}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   .sqtbl .ordwrap .x:hover{color:var(--bad)}
   /* the stance: five notches, each with its three figures */
   .notch{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;margin-bottom:4px;cursor:pointer;background:var(--a-deep)}
   .notch:hover{border-color:var(--a)}
@@ -813,19 +807,19 @@
   .notch.declared{border-style:dashed;border-color:var(--cred)}
   .notch .dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--dim)}
   .notch .nn{font-size:11.5px;color:var(--ink)}
-  .notch .nf{display:flex;gap:10px;font-size:9.5px;color:var(--dim);white-space:nowrap}
-  .notch .nf b{color:var(--ink);font-weight:600}
+  
+  
   /* the leanings: a five-point thumb on the scale, per OA */
   .leans{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
-  .leans .lh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
-  .leanrow{display:grid;grid-template-columns:1fr auto 96px;gap:8px;align-items:center;border-left:3px solid var(--faint);padding:3px 0 3px 7px;margin-bottom:3px;font-size:11px}
-  .leanrow .lsc{display:flex;gap:3px}
-  .leanrow .lp{width:13px;height:13px;border-radius:50%;border:1px solid var(--line2);cursor:pointer;background:transparent}
-  .leanrow .lp:hover{border-color:var(--a)}
-  .leanrow .lp.on{background:var(--dim);border-color:var(--dim)}
-  .leanrow .lp.on.hot{background:var(--red);border-color:var(--red)}
-  .leanrow .lp.on.cold{background:var(--b);border-color:var(--b)}
-  .leanrow .lw{text-align:right;font-size:10px}
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /* the Table's composer and the ground's assay */
   .dealhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:11.5px;color:var(--dim)}
   .dealhead b{color:var(--ink)}
@@ -862,17 +856,17 @@
   #tdeal .tcols{margin-top:0;grid-template-columns:1fr 280px 1fr} #tdeal .tpool{max-height:340px}
   #tdeal .tcols .box{padding:10px 12px}
   .tkinds .pcbtn.on{border-color:var(--a);color:var(--a)}
-  .tterm{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .tterm:last-child{border-bottom:none}
-  .tterm .tl{color:var(--dim)} .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
-  .tterm input[type=range]{width:100%}
-  .tterm input.bid{width:90px}
+  
+  
+   .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
+  
+  
   .assay{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:baseline;font-size:11px}
   .assay .an{white-space:nowrap} .assay .ac{color:var(--dim);font-size:10px} .assay .ah{text-align:right;white-space:nowrap}
-  .oachip2 .odds{margin-left:auto;font-size:10px;color:var(--dim)}
-  .oachip2 .rel{font-size:9px;color:var(--mag);margin-left:6px}
+  
+  
   .legend{width:100%;border-collapse:collapse;font-size:10.5px}
-  .legend th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px}
+  .legend th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 6px}
   .legend td{padding:3px 6px;border-top:1px solid #16233a}
   .legend td i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid var(--line2)}
   .legend tr.special td{color:var(--ink)}
@@ -896,10 +890,10 @@
   @media (max-width:900px){ .audrow2{grid-template-columns:1fr auto;grid-template-areas:"an rd" "ab ab"} 
     .audrow2 .an{grid-area:an} .audrow2 .ab{grid-area:ab} .audrow2 .ard{grid-area:rd} .amem{padding-left:2px} }
   .rivals{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 11px}
-  .rivals .audrow{padding:5px 0}
-  .audrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #16233a}
-  .audname{flex:1 1 auto;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .audname .m{flex:1 0 100%;font-size:10.5px}
+  
+  
+  
+  
   .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
     background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
   /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
@@ -934,7 +928,7 @@
   .negfilt .cash{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--dim)}
   .negfilt .cash input{width:84px;text-align:right;padding:2px 4px}
   .ntbl{width:100%;border-collapse:collapse;font-size:11px}
-  .ntbl th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;border-bottom:1px solid var(--line)}
+  .ntbl th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:3px 6px;border-bottom:1px solid var(--line)}
   .ntbl th.r,.ntbl td.r{text-align:right;white-space:nowrap}
   .ntbl td{padding:4px 6px;border-bottom:1px solid #16233a;vertical-align:middle}
   .ntbl tr.pick{cursor:pointer} .ntbl tr.pick:hover td{background:var(--a-deep)}
@@ -955,22 +949,20 @@
   .negact button.primary:hover:not(:disabled){background:var(--a);color:var(--bg)}
   .negact button:disabled{opacity:.35;cursor:default}
   .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
-  .trow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid #16233a;
-    cursor:pointer;font-size:11.5px}
-  .trow:hover{background:#132033}
-  .trow.dead{opacity:.45;cursor:default}
-  .trow .nm{flex:1 1 auto}
-  .trow .val{text-align:right;white-space:nowrap;font-size:11px}
-  .trow .val b{display:block;font-size:12px}
+  
+  
+  
+  
+  
+  
   .tscale{height:8px;border-radius:4px;position:relative;margin:8px 0;
     background:linear-gradient(90deg,#8f4a3e,#1c2c44 50%,#3f7a55)}
   .tscale i{position:absolute;top:-4px;width:2px;height:16px;background:var(--fg);transform:translateX(-1px)}
   /* §PICKER the ring sits in the middle of the page, not against its left edge */
   .oastrip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
-  .oachip2{border:1px solid var(--line);border-left:3px solid;border-radius:3px;padding:5px 9px;
-    cursor:pointer;display:flex;align-items:center;gap:6px;font-size:11.5px;background:var(--panel)}
-  .oachip2:hover{border-color:var(--a)}
-  .oachip2.on{background:#132033}
+  
+  
+  
   /* a tab with something waiting on the manager says so */
   .tab.urgent{color:var(--warn);font-weight:600}
   .tab.urgent:after{content:' \2022'}
@@ -1004,7 +996,6 @@
   /* MONEY LEAVING IS RED, AND `--bad` IS NOT RED — it is amber (#e0a848), a warning colour,
      within a few points of the gold `--cred` it was supposed to contrast with. Every loss in
      the game has been painted as a caution rather than a cost. */
-  .cr.neg{color:var(--red)}
   .cr.bad{color:var(--red)}                 /* the form `crs` emits for a negative figure */
   .cr.pos{color:var(--hit)}
   .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
@@ -1015,26 +1006,21 @@
      with one rack open put everything in the first column and left the second empty. A rack's
      rows are a two-column GRID: each row is a cell, the head is its own full-width line, and
      the shelf is half as tall as it was. */
-  #mktledger .msec{cursor:pointer}
-  #mktledger .msec:hover .nm{color:var(--ink)}
+  
+  
   /* §MARKET THE COLUMNS ARE THE RACKS. Two columns held ONE rack's rows split down the
      middle — carbines above, carbines beside carbines — where what the width was for is two
      racks side by side: carbines here, close quarters there, each whole. */
-  #mktledger .mracks{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
-  #mktledger .mrack{min-width:0}
+  
+  
   @media (max-width:900px){ #mktledger .mracks{grid-template-columns:1fr} }
-  .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
-    border-top:1px solid var(--line)}
-  .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
-  .mrow{display:flex;align-items:center;gap:8px;padding:3px 6px;border-bottom:1px solid #16233a;
-    font-size:11.5px;cursor:pointer}
-  .mrow:hover{background:#132033}
-  .mrow.open{background:#101b2b}
-  .mrow .nm{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mrow .held{color:var(--dim);font-size:10.5px;white-space:nowrap}
-  .mrow .pr{white-space:nowrap;min-width:76px;text-align:right;margin-right:10px}
+  
+  
   /* §STATS the stat's hover card: a few words, in a small panel above the cell */
-  .talrow .st.shoots .v{color:var(--cred,#f0c04a)}
+  .talrow .st.shootline{grid-column:1/-1;display:block;text-align:center;padding:2px 0 5px;margin-bottom:2px;
+    border-bottom:1px solid var(--line,#1c2c44);color:var(--dim,#7d95b4)}
+  .talrow .st.shootline b{color:var(--ink,#c4d4e8);font-weight:600}
+  .talrow .st.shootline .v{color:var(--cred,#f0c04a);font-weight:700;margin-left:6px}
   .talrow .st.best .k{color:#4fd6a0}
   .talrow .st.worst .k{color:#ef8a8a}
   .pc-trade{display:block;margin-top:6px;font-size:11px;color:var(--dim)}
@@ -1052,6 +1038,38 @@
     box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:60;pointer-events:none}
   .st[data-tip]:hover::before{content:'';position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);
     border:5px solid transparent;border-top-color:#2a4460;z-index:60;pointer-events:none}
+  /* §MARKET the wall */
+  #mktslots{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .mtab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--dim);padding:8px 2px 10px;letter-spacing:.04em;cursor:pointer;font:inherit}
+  .mtab .c{font-size:10px;color:var(--faint);margin-left:6px}
+  .mtab.on{color:var(--a);border-bottom-color:var(--a)}.mtab.on .c{color:var(--a)}
+  .mwall-title{margin-top:14px;cursor:pointer;border-radius:5px;transition:background .12s}
+  .mwall-title:hover{background:var(--a-deep)}.mwall-title:hover .tgchev2{color:var(--a)}
+  .mwall-title::before,.mwall-title::after{content:'';flex:1;height:1px;background:var(--line2,#2a4460)}
+  .mwall-title .c{font-size:10px;letter-spacing:.06em;color:var(--dim);margin-left:8px}
+  .mwall-title.shut{color:var(--dim)}
+  .mwall{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+  .mtile{background:var(--panel,#0d1420);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+  .mtile.incart{border-color:var(--cred)}.mtile.open{border-color:var(--a)}
+  .mtile .mtop{display:flex;align-items:baseline;gap:6px}.mtile .mtop .nm{flex:1}.mtile .mtop .pr{color:var(--cred);white-space:nowrap}
+  .mtile .mfoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+  .mtile .held{color:var(--hit,#4fd6a0);font-size:10.5px}
+  .pspec{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+  .pspec .mbar{grid-template-columns:62px 1fr 34px}
+  .fig{font-size:10.5px;white-space:nowrap}
+  .fig.damage,.fig.ballistic{color:#e0a848}.fig.rate,.fig.range{color:#3ad8e0}.fig.mag,.fig.charges{color:#c792ea}.fig.reach,.fig.cover,.fig.effect{color:#4fd6a0}
+  .fig.energy{color:#e84393}.fig.explosive,.fig.loud{color:#e05a5a}.fig.quiet,.fig.trait{color:#8ea3bd}
+  .mbars{display:flex;flex-direction:column;gap:4px;font-size:11px}
+  .mbar{display:grid;grid-template-columns:64px 1fr 40px;gap:8px;align-items:center;color:var(--dim)}
+  .mbar i{display:block;height:6px;background:#111c2e;border-radius:3px;overflow:hidden}
+  .mbar i b{display:block;height:6px;background:var(--a)}
+  .mbar i b.damage{background:linear-gradient(90deg,#e0a848,#e05a5a)}.mbar i b.rate{background:#3ad8e0}.mbar i b.mag{background:#c792ea}.mbar i b.reach{background:#4fd6a0}
+  .mbar i b.ballistic{background:#e0a848}.mbar i b.energy{background:#e84393}.mbar i b.explosive{background:#e05a5a}.mbar i b.cover{background:#4fd6a0}
+  .mbar .v{text-align:right;color:var(--ink)}
+  .mchips{display:flex;gap:5px;flex-wrap:wrap}
+  .mchips span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--line2,#2a4460);border-radius:3px;color:var(--dim)}
+  .mchips .range{border-color:#3ad8e0;color:#3ad8e0}.mchips .ballistic{border-color:#e0a848;color:#e0a848}.mchips .energy{border-color:#e84393;color:#e84393}.mchips .explosive{border-color:#e05a5a;color:#e05a5a}
+  .mchips .effect{border-color:#4fd6a0;color:#4fd6a0}.mchips .cover{border-color:#4fd6a0;color:#4fd6a0}.mchips .charges{border-color:#c792ea;color:#c792ea}.mchips .quiet{border-color:#8ea3bd;color:#8ea3bd}.mchips .loud{border-color:#e05a5a;color:#e05a5a}
   .mpanel{padding:5px 8px 9px 26px;background:#0b111b;border-bottom:1px solid #16233a;font-size:11.5px}
   .mpanel .st{display:inline-block;margin-right:14px}
   .mpanel .flav{color:var(--dim);font-style:italic;margin-top:4px}
@@ -1095,10 +1113,9 @@
     width:34px;height:30px;flex:none;border:1px solid var(--line2);border-radius:6px;background:var(--panel);
     cursor:pointer;font-size:18px;line-height:1;color:var(--b);transition:background .15s,color .15s,border-color .15s}
   .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a);border-color:var(--a)}
-  .tghead .tgchev,.tghead .tgchev2,.msec .tgchev{border-color:var(--line2);color:var(--a)}
-  .mrow .tgchev{width:30px;height:26px;font-size:15px}
+  .tghead .tgchev,.tghead .tgchev2{border-color:var(--line2);color:var(--a)}
   .tghead .tgchev2{margin-left:auto}
-  #mktledger .msec .tgchev{font-size:16px}
+  
   .tgcount{color:var(--gold);font-size:10.5px}
   .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
   .tgpanel table{border-collapse:collapse}
@@ -1108,11 +1125,13 @@
   #dvpick .sqbody{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:start}
   #dvcard .ev.you{box-shadow:inset 3px 0 0 var(--a);padding-left:6px}
   .tgchev:hover{color:var(--a)}
-  .tgread{text-align:left;font-size:11px;color:var(--dim)}
-  .tghead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
-  .tgtitle{color:var(--a);font-size:14px;letter-spacing:.04em}
-  /* §DESK a folded section is its name, centred, and the word that opens it */
-  .tghead{justify-content:center;position:relative}
+  
+  /* §UI (ruled: centred) ONE SECTION TITLE, on every page: the name centred in capitals with a rule running out either side,
+     and the word that folds it at the right edge — the Desk's sections and the Market's type titles alike */
+  .tghead,.mwall-title{display:flex;align-items:center;justify-content:center;gap:14px;position:relative;
+    padding:3px 70px 7px;margin:0 0 7px}
+  .tghead::before,.tghead::after{content:'';flex:1;height:1px;background:var(--line2,#2a4460)}
+  .tgtitle,.mwall-title .t{color:var(--ink);font-size:14px;letter-spacing:.18em;text-transform:uppercase}
   .tghead.foldable{cursor:pointer;border-radius:5px;padding:3px 8px;transition:background .12s}
   .tghead.foldable:hover{background:var(--a-deep)}
   .tgchev2{position:absolute;right:8px;color:var(--dim);font-size:11px}
@@ -1136,7 +1155,7 @@
   .pip i{display:inline-block;width:12px;height:16px;border-radius:2px;background:var(--a-deep);border:1px solid var(--line2);transition:background .08s}
   .pip i.f{background:var(--a);border-color:var(--a)}
   .pip:hover i{border-color:var(--a)}
-  .tgread{margin-top:8px;padding:7px 9px;background:var(--a-deep);border:1px solid var(--line2);border-radius:6px;color:#8fa8c4;font-size:10.5px;line-height:1.55;min-height:15px}
+  
   .itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
   .itbl tr{border-bottom:1px solid #131f30}
   .itbl tr.lit{background:var(--a-deep)}
@@ -1145,7 +1164,7 @@
   .itbl .iname{white-space:nowrap;text-align:center}
   .itbl .iname .tgname{display:inline-block;flex:none}
   .itbl .iname span.on{color:var(--a)}
-  .itbl .isub{color:var(--dim);font-size:9.5px}
+  
   .itbl .ipips{width:70px}
   .itbl .istat{text-align:right;font-size:10.5px;white-space:nowrap}
   .itbl .idossrow td{padding:6px 10px 10px 22px;background:#0b111c}
@@ -1160,29 +1179,29 @@
   .ctbl td{padding:6px 6px;vertical-align:top}
   .ctbl .cname{color:var(--b);font-weight:bold;white-space:nowrap}
   .ctbl .cflavor{display:inline-block;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
-  .ctbl .cflavor.limitation{color:var(--mag);border:1px solid var(--mag)}
-  .ctbl .cflavor.prerequisite{color:var(--bad);border:1px solid var(--bad)}
+  
+  
   .ctbl .cflavor.outcome{color:var(--hit);border:1px solid var(--hit)}
   .ctbl .ccond{color:var(--dim);font-size:10px;margin-top:3px}
   .ctbl .cpay{color:var(--dim);font-size:9.5px;margin-top:3px}
   .ctbl .cpay b{color:var(--ink)} .ctbl .cpay .kit{color:var(--mag)}
   .ctbl .cpips{width:70px;white-space:nowrap;text-align:right}
   .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
-  .ctbl .ccost{color:var(--dim);font-size:10px} .ctbl .ccost b{color:var(--ink)} .ctbl .ccost .drop{color:var(--hit)}
+   .ctbl .ccost b{color:var(--ink)} 
   .ctbl .cregard{font-size:10px;margin-top:2px}
   /* §SPONSORS the bar the board judges by, and each supplier's distance from it */
-  .cbench{font-size:11px;color:var(--dim);margin-top:3px}
-  .cbench b{color:var(--cred)}
+  
+  
   .ctbl .cgap{font-size:10.5px;color:var(--dim)}
   .ctbl .cgap b{color:var(--ink);font-size:13px}
   .ctbl .cgap b.good{color:var(--hit)}
   .ctbl .cregard .warm{color:var(--hit)} .ctbl .cregard .cold{color:var(--bad)} .ctbl .cregard .neutral{color:var(--dim)}
-  .ctbl .csigned{color:var(--warn);font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+  .ctbl .csigned{color:var(--warn);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;margin-left:6px}
   .ctbl .csigned.you{color:var(--hit)}
   .ctbl .cstatus{font-size:10px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line2)}
-  .ctbl .cstatus.holding{color:var(--hit);border-color:var(--hit)}
+  
   .ctbl .cstatus.met{color:var(--hit);border-color:var(--hit)}
-  .ctbl .cstatus.atrisk{color:var(--bad);border-color:var(--bad)}
+  
   .ctbl .cstatus.pending{color:var(--dim);border-color:var(--line2)}
   .dtbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
   .dtbl tr{border-bottom:1px solid #131f30}
@@ -1218,7 +1237,7 @@
   #agenda .atab{position:relative;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:5px 12px 5px 14px;margin-right:-16px;transform:translateX(calc(100% - 46px));transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s;cursor:pointer;min-width:240px;font-size:11px;white-space:nowrap;box-shadow:-6px 4px 18px rgba(0,0,0,.4)}
   #agenda .atab::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cred);border-radius:8px 0 0 8px;transition:background .3s}
   #agenda .atab.urgent::before{background:var(--red)}
-  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9px;color:var(--cred);letter-spacing:.12em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
+  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9.5px;color:var(--cred);letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
   #agenda .atab.urgent .k{color:var(--red)}
   #agenda .atab .t{padding-left:48px;color:var(--ink)}
   #agenda .atab .c{color:var(--dim);font-size:10px;margin-left:8px}
@@ -1274,7 +1293,7 @@
   .ystop.past{opacity:.38}
   .ystop .yn{font-size:9px;color:var(--faint);letter-spacing:.06em} .ystop.now .yn{color:var(--a)}
   .ystop .yt{font-size:11.5px;color:var(--k);line-height:1.3} .ystop.now .yt{color:var(--a)}
-  .ystop .yw{font-size:9.5px;color:var(--dim);line-height:1.35}
+  
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
@@ -1318,7 +1337,7 @@
   /* what decided the fight, read off its own log */
   .whatdecided{margin-top:8px;border-top:1px solid var(--line);padding-top:7px;font-size:10.5px}
   .whatdecided .wd,.whatdecided .wdh{display:grid;grid-template-columns:1fr 74px 74px;gap:6px;padding:2px 0}
-  .whatdecided .wdh{color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #16233a;margin-bottom:3px}
+  .whatdecided .wdh{color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid #16233a;margin-bottom:3px}
   .whatdecided .k{color:var(--dim)} .whatdecided .a,.whatdecided .b{text-align:right;color:var(--ink)}
   .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .unit{display:flex;justify-content:space-between;gap:6px;padding:3px 0;
@@ -1327,9 +1346,8 @@
   .unit.act{background:#111c2e;margin:0 -6px;padding:3px 6px;border-radius:2px}
   .log{max-height:180px;overflow:auto}
   .log div{padding:2px 0;border-bottom:1px solid #16233a}
-  .sqbox{background:#0d1420;border:1px solid var(--line);border-radius:3px;
-         padding:8px 10px;margin-bottom:8px}
-  .sqbox.badct{border-color:var(--bad)}
+  
+  
   .tiny{padding:1px 5px;font-size:10px;margin-left:3px}
   .poolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
            padding:2px 0;border-bottom:1px solid #16233a;font-size:11.5px}
@@ -1427,7 +1445,7 @@
   .mkedit .markrow{grid-template-columns:200px 1fr;max-width:none;gap:18px}
   @media (max-width:720px){ .mkedit .markrow{grid-template-columns:1fr} }
   .fmark{vertical-align:middle;flex:none}
-  .tghand .fmark,.trow .fmark{margin-right:5px}
+  .tghand .fmark{margin-right:5px}
   .rsn .fmark{margin-right:5px}
   .pc-top .fmark{margin-right:5px}
   .rc-top .rowmark{margin-right:6px;display:inline-flex;cursor:pointer;border-radius:50%}
@@ -1484,7 +1502,7 @@
   .slot{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;background:var(--a-deep);cursor:pointer}
   .slot:hover,.slot.open{border-color:var(--a)}
   .slot.empty{border-style:dashed;background:transparent}
-  .slot .sl{color:var(--dim);font-size:9px;letter-spacing:.06em;text-transform:uppercase;width:58px;flex-shrink:0}
+  .slot .sl{color:var(--dim);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;width:58px;flex-shrink:0}
   .slot .it{flex:1;color:var(--b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
   .slot.empty .it{color:var(--faint)}
   .slot .kt{color:var(--faint);font-size:9.5px;white-space:nowrap}
@@ -1501,7 +1519,6 @@
   .prow:hover{background:var(--a-deep)}
   .prow.on{box-shadow:inset 2px 0 0 var(--a)}
   .prow .pn{flex:1;min-width:0} .prow .pd{color:var(--dim);font-size:9.5px}
-  .cr.bad{color:var(--red)}
   .rack{color:var(--hit);font-size:10px;white-space:nowrap}
   .buy{color:var(--cred);font-size:10px;white-space:nowrap}
   .moves{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:4px}
@@ -1547,7 +1564,7 @@
   .focusdeskline{text-align:center;margin:4px 0 12px;font-size:13px;letter-spacing:.06em;width:100%}
   .focusdeskline b{font-size:16px} .focusdeskline b.left{color:var(--bad)} .focusdeskline b.done{color:var(--hit)}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
-  .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
+   .acq.w-mer{--o:var(--o-mer)} 
   .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wtitle{border-bottom-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wnm{color:var(--o)} .acq .wtitle .dot{background:var(--o)}
@@ -1598,7 +1615,7 @@
   .rc-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
   .rc-name{color:var(--ink);font-weight:bold;font-size:12.5px}
   .rc-name .lead{color:var(--mag)}
-  .rc-sq{font-size:9px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .rc-sq{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
   .rc-sq.sqA{color:var(--sqA)} .rc-sq.sqB{color:var(--sqB)} .rc-sq.sqC{color:var(--sqC)}
   .rc-sq.sqD{color:var(--sqD)} .rc-sq.sqE{color:var(--sqE)} .rc-sq.sqF{color:var(--sqF)} .rc-sq.none{color:var(--faint)}
   .rc-orig{font-size:10px;margin-top:2px}
@@ -1621,7 +1638,7 @@
   .railhead .sub.sqD{color:var(--sqD)} .railhead .sub.sqE{color:var(--sqE)} .railhead .sub.sqF{color:var(--sqF)} .railhead .sub.none{color:var(--dim)}
   .colblk{margin-bottom:9px}
   .colblk:last-child{margin-bottom:0}
-  .colblk .clab{color:var(--faint);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+  .colblk .clab{color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px}
   .statrow{display:grid;grid-template-columns:repeat(2,1fr);gap:3px 14px;font-size:10.5px}
   .statrow .st,.talrow .st{display:flex;justify-content:space-between}
   .statrow .st .k,.talrow .st .k{color:var(--s-name)}
@@ -1654,7 +1671,7 @@
   .wtitle .dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .wtitle .wnm{font-weight:bold;font-size:12px}
   .wtitle .deadline{font-size:9.5px;color:var(--dim);margin-left:6px}
-  .wtitle .kind{margin-left:auto;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+  .wtitle .kind{margin-left:auto;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .wnat .wnm{color:var(--o-nat)} .wnat .dot{background:var(--o-nat)}
   .wmer .wnm{color:var(--o-mer)} .wmer .dot{background:var(--o-mer)}
   .wcon .wnm{color:var(--o-con)} .wcon .dot{background:var(--o-con)}
@@ -1674,7 +1691,7 @@
   .pcbtn:hover{border-color:var(--a);color:var(--a)}
   .pcbtn.on{border-color:var(--hit);color:var(--hit)}
   .pcbtn.x{padding:3px 7px;color:var(--dim);margin-left:3px}
-  .pcbid{width:54px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:4px;padding:3px 5px;font-family:inherit;font-size:10px;margin-right:4px}
+  
   /* a prospect you have marked wears it: the card takes the signing colour and says so, and
      the button keeps its place and its word */
   .acq .pc.taken{background:#12332b;border-color:var(--hit);position:relative}
@@ -1706,7 +1723,7 @@
     .grid2,.grid3,.negcols,.landcols,.ring{grid-template-columns:1fr}
     .tcols,#tdeal .tcols{grid-template-columns:1fr}
     .sqcols,.rostcols{flex-direction:column}
-    .benchcol,.rostrail{width:100%}
+    .benchcol{width:100%}
     .bcards{max-height:none}
     .sqgrid{grid-template-columns:1fr}
     #dvpick .sqbody{grid-template-columns:1fr}
@@ -4880,7 +4897,19 @@
     "power": 4,
     "range": "long",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 16,
+    "near": 4,
+    "falloff": 2,
+    "handling": -3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -4902,7 +4931,19 @@
     "tags": [
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 5,
+    "reload": 1,
+    "reach": 17,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -4916,7 +4957,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 760,
+   "cost": 960,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -4924,7 +4965,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 7,
+    "near": 0,
+    "falloff": 4,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -4944,10 +4997,21 @@
     "power": 6,
     "range": "short",
     "tags": [
-     "suppressive",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 40,
+    "reload": 2,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -4969,7 +5033,19 @@
     "tags": [
      "spread"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 6,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 0,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -4991,7 +5067,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5014,7 +5102,19 @@
      "stabilized",
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 3,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5037,7 +5137,19 @@
      "sustained",
      "mob_down"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5059,7 +5171,19 @@
     "tags": [
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 8,
+    "reload": 1,
+    "reach": 19,
+    "near": 5,
+    "falloff": 1,
+    "handling": 8,
+    "snap": 8,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5078,10 +5202,20 @@
    "effects": {
     "power": 4,
     "range": "medium",
-    "tags": [
-     "suppressive"
-    ],
-    "damage": "ballistic"
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 50,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -10,
+    "snap": 10,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5095,7 +5229,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1590,
+   "cost": 1880,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -5104,7 +5238,19 @@
      "spread",
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 12,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5126,7 +5272,19 @@
     "tags": [
      "flechette"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 9,
+    "near": 0,
+    "falloff": 3,
+    "handling": 3,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5149,7 +5307,19 @@
      "smart_link",
      "min_band_medium"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 13,
+    "near": 3,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5171,7 +5341,19 @@
     "tags": [
      "ricochet"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 25,
+    "reload": 1,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5190,10 +5372,20 @@
    "effects": {
     "power": 5,
     "range": "long",
-    "tags": [
-     "silent"
-    ],
-    "damage": "ballistic"
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 8,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5213,11 +5405,22 @@
     "power": 7,
     "range": "medium",
     "tags": [
-     "suppressive_2",
      "spool",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 100,
+    "reload": 3,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 14,
+    "pen": 0,
+    "suppress": 2,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5239,7 +5442,19 @@
     "tags": [
      "area"
     ],
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 1,
+    "mag": 6,
+    "reload": 2,
+    "reach": 12,
+    "near": 3,
+    "falloff": 2,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5259,10 +5474,21 @@
     "power": 8,
     "range": "long",
     "tags": [
-     "pierce_2",
      "spool"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 3,
+    "reload": 2,
+    "reach": 20,
+    "near": 8,
+    "falloff": 1,
+    "handling": -5,
+    "snap": 12,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5282,10 +5508,21 @@
     "power": 9,
     "range": "long",
     "tags": [
-     "pierce_2",
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 5,
+    "reload": 2,
+    "reach": 22,
+    "near": 8,
+    "falloff": 1,
+    "handling": -5,
+    "snap": 12,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5305,10 +5542,21 @@
     "power": 9,
     "range": "short",
     "tags": [
-     "pierce_1",
      "cover_shred"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -3,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5331,7 +5579,19 @@
      "burst"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 2,
+    "mag": 18,
+    "reload": 2,
+    "reach": 12,
+    "near": 1,
+    "falloff": 2,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5355,7 +5615,19 @@
      "heavy_draw"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 2,
+    "mag": 21,
+    "reload": 2,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5375,11 +5647,22 @@
     "power": 4,
     "range": "medium",
     "tags": [
-     "suppressive",
      "heavy_draw"
     ],
     "damage": "energy",
-    "charge": 27
+    "charge": 27,
+    "rof": 2,
+    "mag": 27,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -8,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5403,7 +5686,19 @@
      "disorient"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 1.5,
+    "mag": 21,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5426,7 +5721,19 @@
      "daylight"
     ],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 17,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 0,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5449,7 +5756,19 @@
      "arc_chain"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 1,
+    "mag": 18,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 0,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5469,11 +5788,22 @@
     "power": 4,
     "range": "medium",
     "tags": [
-     "chill",
-     "pierce_1"
+     "chill"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 1.5,
+    "mag": 18,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5487,7 +5817,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 1960,
+   "cost": 2470,
    "bulk": 4,
    "effects": {
     "power": 5,
@@ -5496,7 +5826,19 @@
      "sustained"
     ],
     "damage": "energy",
-    "charge": 24
+    "charge": 24,
+    "rof": 1.5,
+    "mag": 24,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -8,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5515,11 +5857,21 @@
    "effects": {
     "power": 5,
     "range": "long",
-    "tags": [
-     "silent"
-    ],
+    "tags": [],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 6,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5543,7 +5895,19 @@
      "cover_shred"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 1.5,
+    "mag": 21,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5562,11 +5926,21 @@
    "effects": {
     "power": 7,
     "range": "long",
-    "tags": [
-     "pierce_1"
-    ],
+    "tags": [],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 18,
+    "near": 5,
+    "falloff": 1.5,
+    "handling": 0,
+    "snap": 6,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5590,7 +5964,19 @@
      "vent_2"
     ],
     "damage": "energy",
-    "charge": 12
+    "charge": 12,
+    "rof": 1,
+    "mag": 12,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5615,7 +6001,19 @@
      "vent_2"
     ],
     "damage": "explosive",
-    "charge": 12
+    "charge": 12,
+    "rof": 1,
+    "mag": 12,
+    "reload": 2,
+    "reach": 11,
+    "near": 3,
+    "falloff": 2,
+    "handling": -8,
+    "snap": 8,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5639,7 +6037,19 @@
      "spread"
     ],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5659,7 +6069,19 @@
     "power": 2,
     "range": "short",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 6,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 5,
+    "handling": 10,
+    "snap": 0,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5682,7 +6104,19 @@
      "incendiary",
      "crowd_pleaser"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 1,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 0,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5702,7 +6136,19 @@
     "power": 3,
     "range": "short",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 8,
+    "snap": 1,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5722,7 +6168,19 @@
     "power": 3,
     "range": "medium",
     "tags": [],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 4,
+    "handling": 6,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5745,7 +6203,19 @@
      "single_shot",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 6,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 4,
+    "handling": 3,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5767,7 +6237,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5790,7 +6272,19 @@
      "smart_link",
      "min_band_medium"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 9,
+    "near": 2,
+    "falloff": 3,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5812,7 +6306,19 @@
     "tags": [
      "disorient"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 6,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5832,10 +6338,21 @@
     "power": 3,
     "range": "short",
     "tags": [
-     "flechette",
-     "silent"
+     "flechette"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 4,
+    "reload": 1,
+    "reach": 4,
+    "near": 0,
+    "falloff": 6,
+    "handling": 10,
+    "snap": 0,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5857,7 +6374,19 @@
     "tags": [
      "incendiary"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5871,7 +6400,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 380,
+   "cost": 370,
    "bulk": 1,
    "effects": {
     "protection": 1,
@@ -5883,7 +6412,12 @@
      "ballistic": 0,
      "energy": 0,
      "explosive": -1
-    }
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5897,7 +6431,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 460,
+   "cost": 370,
    "bulk": 1,
    "effects": {
     "protection": 2,
@@ -5907,7 +6441,10 @@
      "ballistic": 0,
      "energy": 0,
      "explosive": 2
-    }
+    },
+    "covers": [
+     "torso"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5921,7 +6458,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 560,
+   "cost": 450,
    "bulk": 2,
    "effects": {
     "protection": 3,
@@ -5931,7 +6468,10 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 0
-    }
+    },
+    "covers": [
+     "torso"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5945,7 +6485,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1210,
+   "cost": 1060,
    "bulk": 2,
    "effects": {
     "protection": 4,
@@ -5955,7 +6495,11 @@
      "ballistic": -2,
      "energy": 3,
      "explosive": 0
-    }
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -5981,7 +6525,8 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 1
-    }
+    },
+    "covers": null
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6483,7 +7028,19 @@
     ],
     "power": 10,
     "range": "medium",
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 0.5,
+    "mag": 2,
+    "reload": 3,
+    "reach": 14,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 10,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6502,12 +7059,23 @@
    "bulk": 7,
    "effects": {
     "tags": [
-     "suppressive_2",
      "spool"
     ],
     "power": 8,
     "range": "medium",
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 120,
+    "reload": 3,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 15,
+    "pen": 0,
+    "suppress": 2,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6526,12 +7094,23 @@
    "bulk": 6,
    "effects": {
     "tags": [
-     "pierce_3",
      "spool"
     ],
     "power": 12,
     "range": "long",
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 3,
+    "reload": 2,
+    "reach": 24,
+    "near": 9,
+    "falloff": 1,
+    "handling": -8,
+    "snap": 15,
+    "pen": 3,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6555,7 +7134,19 @@
     ],
     "power": 10,
     "range": "medium",
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 0.5,
+    "mag": 4,
+    "reload": 2,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -12,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6574,13 +7165,24 @@
    "bulk": 5,
    "effects": {
     "tags": [
-     "pierce_3",
      "single_shot"
     ],
     "power": 13,
     "range": "long",
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 0.5,
+    "mag": 18,
+    "reload": 2,
+    "reach": 23,
+    "near": 8,
+    "falloff": 1,
+    "handling": -8,
+    "snap": 14,
+    "pen": 3,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6608,7 +7210,8 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 1
-    }
+    },
+    "covers": null
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6675,7 +7278,19 @@
      "nonlethal",
      "burst"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 11,
+    "near": 0,
+    "falloff": 2.5,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6698,7 +7313,19 @@
      "nonlethal",
      "disorient"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6718,10 +7345,21 @@
     "power": 3,
     "range": "medium",
     "tags": [
-     "nonlethal",
-     "suppressive"
+     "nonlethal"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2.5,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6743,7 +7381,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 25,
+    "reload": 1,
+    "reach": 12,
+    "near": 1,
+    "falloff": 2.5,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6765,7 +7415,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6788,7 +7450,19 @@
      "burst",
      "stabilized"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6808,10 +7482,21 @@
     "power": 6,
     "range": "medium",
     "tags": [
-     "burst",
-     "pierce_1"
+     "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6834,7 +7519,19 @@
      "burst",
      "heavy_draw"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 24,
+    "reload": 2,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6855,10 +7552,21 @@
     "range": "medium",
     "tags": [
      "burst",
-     "pierce_1",
      "stabilized"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 40,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 1.5,
+    "handling": 5,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -6872,7 +7580,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 490,
+   "cost": 620,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -6880,7 +7588,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 25,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 4,
+    "handling": 0,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6894,7 +7614,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 760,
+   "cost": 960,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -6902,7 +7622,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 7,
+    "near": 0,
+    "falloff": 4,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6916,7 +7648,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1420,
+   "cost": 1700,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -6925,7 +7657,19 @@
      "burst",
      "smart_link"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 8,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -6939,21 +7683,396 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2450,
+   "cost": 2950,
    "bulk": 2,
    "effects": {
     "power": 5,
     "range": "short",
     "tags": [
-     "burst",
-     "silent"
+     "burst"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 8,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_padded_jacket",
+   "name": "Padded Jacket",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 1,
+   "cost": 130,
+   "bulk": 1,
+   "effects": {
+    "protection": 1,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_scrap_plates",
+   "name": "Scrap Plates",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 1,
+   "cost": 150,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": -1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_riot_suit",
+   "name": "Riot Suit",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 290,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_reflective_weave",
+   "name": "Reflective Weave",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 280,
+   "bulk": 1,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": 2,
+     "explosive": -1
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_blast_apron",
+   "name": "Blast Apron",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 260,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": -1,
+     "explosive": 3
+    },
+    "covers": [
+     "torso",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_helmeted_flak",
+   "name": "Flak Vest and Helmet",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 360,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 2
+    },
+    "covers": [
+     "torso",
+     "head"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_ceramic_vest",
+   "name": "Ceramic Vest",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 450,
+   "bulk": 2,
+   "effects": {
+    "protection": 3,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 2,
+     "energy": 0,
+     "explosive": 0
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_field_coat",
+   "name": "Field Coat",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 410,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_kinetic_harness",
+   "name": "Kinetic Harness",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1060,
+   "bulk": 2,
+   "effects": {
+    "protection": 4,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 2,
+     "energy": -1,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_mirror_suit",
+   "name": "Mirror Suit",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1160,
+   "bulk": 3,
+   "effects": {
+    "protection": 4,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": 3,
+     "explosive": -1
+    },
+    "covers": null
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_trooper_shell",
+   "name": "Trooper Shell",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1060,
+   "bulk": 3,
+   "effects": {
+    "protection": 4,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "head",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_siege_plate",
+   "name": "Siege Plate",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 5,
+   "cost": 2940,
+   "bulk": 4,
+   "effects": {
+    "protection": 6,
+    "mobility": -3,
+    "tags": [
+     "mob_down"
+    ],
+    "resist": {
+     "ballistic": 2,
+     "energy": 1,
+     "explosive": 2
+    },
+    "covers": null
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_ghost_weave",
+   "name": "Ghost Weave",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 5,
+   "cost": 2230,
+   "bulk": 1,
+   "effects": {
+    "protection": 3,
+    "mobility": 2,
+    "tags": [
+     "mob_up"
+    ],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
   }
  ],
  "doctrines": [
@@ -8528,7 +9647,10 @@
     KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
     KIT_BUY_MARGIN: 4,
-    KIT_MUSTER_SLACK: 1.35,         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
+    KIT_MUSTER_SLACK: 1.35,
+    KIT_BAND_MIN_FORCE: 9,
+    ESSENTIAL_MAX_COST: 300,        // [C] the most the essential consumable everyone gets first may cost
+    KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster          // [C] a force this size carries a gun of every band         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
     MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
@@ -8582,9 +9704,21 @@
   function byId(id) { return INDEX[id] || null; }
   function all() { return CATALOG.slice(); }
   function bySlot(slot) { return CATALOG.filter(i => i.slot === slot); }
-  function quirkPoints(tags) {
+  const COVER_SHARE = { torso: 0.26, head: 0.10, arms: 0.18, legs: 0.18 };
+  function coverageShare(covers) {
+    if (!covers || !covers.length) return 1;
+    let s = 0.28;                                    /* the wounds no location on the body owns */
+    for (const c of covers) s += COVER_SHARE[c] || 0;
+    return Math.min(1, Math.round(s * 100) / 100);
+  }
+  function quirkPoints(tags, effects) {
     let p = 0;
     for (const t of tags || []) if (QUIRKS[t]) p += QUIRKS[t].points;
+    /* §GUNS penetration and suppression are a gun's own numbers now, priced at the points their tags carried */
+    const e = effects || {};
+    if (e.pen) p += (QUIRKS['pierce_' + Math.min(3, e.pen)] || {}).points || 0;
+    if (e.suppress) p += (QUIRKS[e.suppress >= 2 ? 'suppressive_2' : 'suppressive'] || {}).points || 0;
+    if (e.noise === 0) p += (QUIRKS.silent || {}).points || 0;      /* a silenced gun is priced as `silent` was */
     return p;
   }
 
@@ -8592,10 +9726,11 @@
       hand-edited cost fails the suite rather than quietly rebalancing the game. */
   function formulaCost(item) {
     const P = PRICING, m = TIER_MULT[String(item.tier)];
-    const e = item.effects || {}, qp = quirkPoints(e.tags);
+    const e = item.effects || {}, qp = quirkPoints(e.tags, e);
     let raw;
     if (item.slot === "sidearm") raw = P.SIDEARM_BASE + P.SIDEARM_POWER * (e.power || 0) + P.SIDEARM_QUIRK * qp;
-    else if (item.slot === "armor") raw = P.ARMOR_BASE + P.PROTECTION_COST * (e.protection || 0)
+    /* §ARMOUR what it covers moves the price, softly: a torso vest is not worth half a full weave */
+    else if (item.slot === "armor") raw = (P.ARMOR_BASE + P.PROTECTION_COST * (e.protection || 0)) * (0.6 + 0.4 * coverageShare(e.covers))
                                        + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
     else raw = P.WEAPON_BASE + P.POWER_COST * (e.power || 0)
              + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
@@ -8677,9 +9812,20 @@
                 /* the trade this weapon belongs to — combat reads effective aim through it,
                    and the class and type have ONE home each: skillClassOf, skillTypeOf */
                 skillClass: skillClassOf(p), skillType: skillTypeOf(p),
-                mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic") },
+                mobility: pe.mobility || 0, damage: pe.damage || (p ? p.family : "ballistic"),
+                /* §GUNS (ruled) what a gun IS on the grid: shots a round, rounds a magazine, rounds to reload, the
+                   tiles it is made for, the tiles it is too close at, and how the aim falls off beyond its reach */
+                rof: pe.rof, mag: pe.mag, reload: pe.reload, reach: pe.reach, near: pe.near, falloff: pe.falloff,
+                /* §GUNS stage 2: its own precision and the cost of a snap shot; what armour it goes through; how hard it pins */
+                handling: pe.handling, snap: pe.snap, pen: pe.pen, suppress: pe.suppress,
+                /* §GUNS stage 3: how many more it catches beside the one it hits, and how far a shot of it carries */
+                spread: pe.spread, noise: pe.noise },
       armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
-               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 } },
+               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },
+               /* §ARMOUR what it covers, and the share of hits that land on it — from the injury table's own odds
+                  (arm 18, leg 18, torso and chest 26, head 10, the rest 28 — the internal, burns, spinal and
+                  catastrophic, which any armour is reckoned to stand between). Nothing listed means full. */
+               covers: ae.covers || null, coverage: coverageShare(ae.covers) },
       /* THE SAME FIELDS AS THE PRIMARY, which it did not have. The note three lines above says
          `id` and `name` are carried so a viewer can say WHICH gun fired — and the sidearm built
          directly beneath it carried neither, nor `mobility`. When a fighter runs dry,
@@ -8691,6 +9837,10 @@
                      tier: s.tier, id: s.id, name: s.name,
                      mobility: (s.effects || {}).mobility || 0,
                      damage: (s.effects || {}).damage || s.family,
+                     rof: (s.effects || {}).rof, mag: (s.effects || {}).mag, reload: (s.effects || {}).reload,
+                     reach: (s.effects || {}).reach, near: (s.effects || {}).near, falloff: (s.effects || {}).falloff,
+                     handling: (s.effects || {}).handling, snap: (s.effects || {}).snap, pen: (s.effects || {}).pen, suppress: (s.effects || {}).suppress,
+                     spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
       heat: pe.heat || 0, heatCap: pe.heat_cap || 0,
@@ -8856,7 +10006,11 @@
        anyway — ignored it, and one OA armed its force with ₡67 of the cap left and sent its squads out with no
        medkit at all. The arming now stops short of the essentials' price, last resort included. */
     const consRanked = rankBy(ofSlot('consumable').map(c => c.id).filter(id => DEVICE_IDS.indexOf(id) < 0), taste);
-    const firstOther = consRanked.find(c => c.id !== 'itm_medkit');
+    /* the first consumable everyone gets is an ESSENTIAL, so it is the cheapest of the doctrine's three favourites and never
+       dearer than a grenade's kind: a doctrine whose favourite was the ₡3,470 thermobaric charge handed one to each of
+       nineteen fighters and spent the whole cap on them */
+    const firstOther = cheapFirst(consRanked.filter(c => c.id !== 'itm_medkit').slice(0, 3)).find(c => c.cost <= CONST.ESSENTIAL_MAX_COST)
+                    || cheapFirst(consRanked.filter(c => c.id !== 'itm_medkit'))[0];
     const medN = Math.max(1, Math.round(bodies.length * CONST.MEDKIT_SHARE));
     const medkit = byId('itm_medkit');
     const essentials = medN * ((medkit && medkit.cost) || 0) + Math.max(0, bodies.length - medN) * ((firstOther && firstOther.cost) || 0);
@@ -8872,7 +10026,10 @@
     for (const b of bodies) for (const slot of SLOTS) {
       floorLeft -= floorOf(slot);
       /* a slot left bare still has to be bought below, so its floor stays held */
-      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      /* and nobody takes a rack piece worth more than a fair share of the allowance until everyone is kitted: a rack of
+         favourite armour, handed to two-thirds of a force at the muster, spent the whole cap before a gun was chosen */
+      const fairShare = mustAllow / bodies.length * CONST.KIT_MUSTER_BODY_SHARE;
+      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
         const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => shotOf(b.f, y) - shotOf(b.f, x));
@@ -8908,6 +10065,7 @@
         }
         money -= pick.cost; cash += pick.cost; spent += pick.cost;
         q.b.loadout[q.slot] = pick.id;
+        if (q.slot === 'primary') q.b.boughtPrimary = true;   /* a corp does not buy one body two guns */
       }
     }
     if (shortfall > 0) {
@@ -8957,8 +10115,30 @@
         if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
       }
     }
-    /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
+    /* ---- phase 3c: EVERY BAND ANSWERED ---- */
+    /* A force of nine or more carries at least one gun of each band — somebody for close work, somebody who reaches —
+       whatever its doctrine's tastes: the fighter who shoots that band's types best takes the cheapest gun of the band,
+       from the rack or bought, within the money and the gun allowance. (A cap-bound doctrine bought no short gun at
+       all once its cheap ones grew dearer — and running this after the upgrades found the cap already spent.) */
+    if (bodies.length >= CONST.KIT_BAND_MIN_FORCE) {
+      for (const band of ['short', 'medium', 'long']) {
+        if (bodies.some(b => { const g = byId(b.loadout.primary); return g && (g.effects || {}).range === band; })) continue;
+        const guns = cheapFirst(gunTaste.filter(g => (g.effects || {}).range === band));
+        if (!guns.length) continue;
+        /* of the four best hands for the band, the one holding the costliest gun — the swap must free cap, not spend it */
+        const costOf = (b) => { const g = byId(b.loadout.primary); return g ? (g.cost || 0) : 0; };
+        const hands = bodies.filter(b => b.f && b.f.skills).sort((x, y) => shotOf(y.f, guns[0]) - shotOf(x.f, guns[0])).slice(0, 4);
+        const pickBody = (hands.length ? hands : bodies.slice(0, 4)).sort((x, y) => costOf(y) - costOf(x))[0];
+        for (const g of guns) {
+          const cur = byId(pickBody.loadout.primary), curCost = cur ? (cur.cost || 0) : 0;
+          if (spent - curCost + g.cost > gunAllow) continue;
+          if (take(g.id)) { give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; break; }
+          if (!pickBody.boughtPrimary && priceOf(g) <= money) { money -= priceOf(g); cash += priceOf(g); give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; pickBody.boughtPrimary = true; break; }
+        }
+      }
+    }
+    /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
     const swap = (b, slot, next) => {
       const prev = b.loadout[slot] ? byId(b.loadout[slot]) : null;
       if (spent - (prev ? prev.cost : 0) + next.cost > gunAllow) return false;
@@ -8985,7 +10165,7 @@
     {
       const want = [];
       for (const b of bodies) {
-        if (!b.f || !b.f.skills || !b.loadout.primary) continue;
+        if (!b.f || !b.f.skills || !b.loadout.primary || b.boughtPrimary) continue;   /* one gun bought a body */
         const cur = byId(b.loadout.primary), base = shotOf(b.f, cur);
         const best = gunsFor(b).slice(0, CONST.KIT_GOOD).find(g => shotOf(b.f, g) >= base + CONST.KIT_BUY_MARGIN);
         if (best) want.push({ b, cur, best, gain: shotOf(b.f, best) - base });
@@ -8995,7 +10175,7 @@
         const g = w.best, p2 = priceOf(g);
         if (p2 > money || spent - (w.cur.cost || 0) + g.cost > gunAllow) continue;
         money -= p2; cash += p2; spent += g.cost - (w.cur.cost || 0);
-        give(w.cur.id); w.b.loadout.primary = g.id;
+        give(w.cur.id); w.b.loadout.primary = g.id; w.b.boughtPrimary = true;
       }
     }
     /* mods are durable, consumables are bought fresh for the drop */
@@ -9208,7 +10388,7 @@
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },
     get doctrines() { return DOCTRINES; },
-    tasteScore, shotOf,
+    tasteScore, shotOf, coverageShare,
     doctrine(id) { return DOCTRINES.find(d => d.id === id) || null; }
   };
   if (isNode) { autoInit(); module.exports = api; }
@@ -11922,6 +13102,12 @@ const CONST = {
 
   /* §3.4 actions */
   AMMO: { shot: 1, suppress: 3, overwatch: 1 },        // [S]
+  /* §GUNS the magazine is the gun's own (`mag`); a fighter carries SPARE magazines, and a reload costs rounds */
+  LOADOUT_MAGS: 3,                        // [C] spare magazines a fighter carries into a Divide
+  LOADOUT_MAGS_SIDEARM: 2,                // [C] and spare magazines for the sidearm
+  LOADOUT_CELLS: 1,                       // [C] spare cells for a cell-fed weapon (it used to carry none)
+  NEAR_FALLOFF: 5,                        // [C] aim lost per tile inside a gun's `near` — a long gun in a knife fight
+  FALLOFF_DEFAULT: 3,                     // [C] aim lost per tile beyond a gun's reach, when a gun names none
   LOADOUT_AMMO: 16,                       // [C] NEW in v1 — COMBAT.md v0.3 should adopt this
   LOADOUT_RATE_CAP: 1.5,                  // [C] a fast weapon is issued more, but not unboundedly
   LOADOUT_BELT: 6,                        // [C] what a belt-fed weapon carries beyond a magazine
@@ -12371,7 +13557,11 @@ function makeCombatant(fighter, opts) {
        entire job is sustained fire was the one that could not sustain it.
        A weapon is issued ammunition in proportion to how fast it eats it. That is not a
        balance patch, it is what a quartermaster does. */
-    ammo: loadoutFor(weapon) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    /* §GUNS the first magazine is loaded; `ammo` is every round the fighter carries BEYOND it (spare magazines,
+       a bulk hand's extra, a mod's) — a gun that names no magazine keeps the old flat issue */
+    magLeft: weapon.mag || loadoutFor(weapon),
+    ammo: (weapon.mag ? weapon.mag * (weapon.damage === 'energy' ? CONST.LOADOUT_CELLS : CONST.LOADOUT_MAGS) : loadoutFor(weapon)) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    reloading: 0,
     /* §MODS what the fitted mods add to the shot (items.js resolve) */
     mod: (kit && kit.mod) || null,
     /* §6 — an energy weapon carries its own resources; a ballistic one leaves these at 0
@@ -12424,8 +13614,10 @@ function isEnergy(u) { return !!u.cellFed || u.heatCap > 0; }
 /** Can this fighter fire their PRIMARY this exchange? */
 function primaryReady(u) {
   if (u.venting > 0) return false;
-  if (isEnergy(u)) return u.charge > 0;
-  return u.ammo >= ammoCost(u, CONST.AMMO.shot);
+  /* §GUNS a gun with a magazine going in, or rounds still carried for it, is not dry — dry is what the sidearm is for */
+  if (u.reloading > 0) return true;
+  if (isEnergy(u)) return u.charge > 0 || u.ammo > 0;
+  return u.magLeft >= ammoCost(u, CONST.AMMO.shot) || u.ammo > 0;
 }
 
 /**
@@ -12438,7 +13630,11 @@ function primaryReady(u) {
 function useSidearm(u) {
   if (!u.sidearm || u.onSidearm) return false;
   u.primary = u.weapon;
+  u._primaryRounds = { magLeft: u.magLeft, ammo: u.ammo, reloading: u.reloading };
   u.weapon = Object.assign({}, u.sidearm, { tags: u.sidearm.tags || [] });
+  /* §GUNS the sidearm has a magazine of its own, and spares of its own */
+  const sm = u.weapon.mag || CONST.LOADOUT_AMMO;
+  u.magLeft = sm; u.ammo = sm * CONST.LOADOUT_MAGS_SIDEARM; u.reloading = 0;
   u.onSidearm = true;
   u._justSwapped = true;
   return true;
@@ -12446,6 +13642,17 @@ function useSidearm(u) {
 function backToPrimary(u) {
   if (!u.onSidearm || !u.primary) return;
   u.weapon = u.primary; u.primary = null; u.onSidearm = false;
+  if (u._primaryRounds) { u.magLeft = u._primaryRounds.magLeft; u.ammo = u._primaryRounds.ammo; u.reloading = u._primaryRounds.reloading; u._primaryRounds = null; }
+}
+/** Between exchanges a reload counts down; when it is done the next magazine goes in. */
+function tickReload(u) {
+  if (!(u.reloading > 0)) return;
+  u.reloading--;
+  if (u.reloading > 0) return;
+  const cap = (u.weapon && u.weapon.mag) || CONST.LOADOUT_AMMO;
+  const load = Math.min(cap, u.ammo);
+  if (isEnergy(u) && !u.onSidearm) u.charge = load; else u.magLeft = load;
+  u.ammo -= load;
 }
 
   /* Removed at this step: spendConsumable, pairSync, preferredBand, bandMobility, claimRandom, initCover, downedUnits — defined here and called from nowhere in the tree.
@@ -12467,7 +13674,12 @@ function spendShot(u, kind) {
        showed up on seven of every eight energy fighters. */
     /* §LIGHT a sun-fed weapon DREADS THE NIGHT: in the planet's dark every shot costs it double */
     const draw = (hasQuirk(u, 'heavy_draw') ? 2 : 1) * (u._dark && hasQuirk(u, 'daylight') ? 2 : 1);
-    if (u.charge < draw) return false;
+    if (u.reloading > 0) return false;
+    if (u.charge < draw) {
+      /* §GUNS the cell is spent: a spare goes in, and that takes the gun's reload rounds */
+      if (u.ammo > 0 && !(u.reloading > 0)) u.reloading = Math.max(1, u.weapon.reload || 1);
+      return false;
+    }
     u.charge -= draw;
     /* §ENERGY THE OVERHEAT IS GONE, AND `heatCap` IS NOW ONLY THE MARK OF A CELL-FED WEAPON.
        Every one of the fifteen cell-fed primaries fired two or three shots and then lost an
@@ -12489,8 +13701,15 @@ function spendShot(u, kind) {
                          : kind === 'overwatch' ? CONST.AMMO.overwatch : CONST.AMMO.shot);
   /* §MODS a recoil compensator holds suppressing fire down for a round less */
   if (kind === 'suppress' && u.mod && u.mod.suppressCost) cost = Math.max(1, cost - u.mod.suppressCost);
-  if (u.ammo < cost) return false;
-  u.ammo -= cost;
+  /* §GUNS a shot comes out of the MAGAZINE; an empty magazine means a reload, which costs the gun's rounds, and only
+     when the spares are gone too is the fighter dry */
+  if (u.reloading > 0) return false;
+  if (u.magLeft == null) u.magLeft = u.ammo;             /* an older combatant with no magazine */
+  if (u.magLeft < cost) {
+    if (u.ammo > 0) u.reloading = Math.max(1, (u.weapon && u.weapon.reload) || 1);
+    return false;
+  }
+  u.magLeft -= cost;
   return true;
 }
 
@@ -12628,6 +13847,8 @@ function act(u, S, what) {
    with damage. So the marksman's rifle beats the rock somebody is behind and the plate they
    are wearing, which is the fiction anyway. */
 function tempoOf(c) {
+  /* §GUNS a gun's RATE OF FIRE is its own stat — shots a round; the tags decide it only for a gun that names none */
+  if (c.weapon && c.weapon.rof != null) return c.weapon.rof;
   let t = null;
   for (const q of quirksOf(c)) {
     const v = CONST.TEMPO[q];
@@ -12653,6 +13874,12 @@ function effectiveProtection(shooter, target) {
   return Math.max(0, (target.armor.protection || 0) + r);
 }
 function quirksOf(c) { return (c.weapon && c.weapon.tags) || []; }
+/** §GUNS how hard a gun pins: 0 not at all, 1 the man it fires at, 2 him and whoever stands near — the gun's own
+    number, the old tags deciding it only for a gun that names none */
+function suppressOf(c) {
+  if (c.weapon && c.weapon.suppress != null) return c.weapon.suppress;
+  return hasQuirk(c, 'suppressive_2') ? 2 : hasQuirk(c, 'suppressive') ? 1 : 0;
+}
 function hasQuirk(c, q) { return quirksOf(c).indexOf(q) >= 0; }
 
 function quirkAim(c, bandIdx, ctx) {
@@ -12672,6 +13899,8 @@ function quirkCover(shooter, target, idx, bandIdx) {
 function quirkSev(shooter, target, bandIdx) {
   let s = 0;
   for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.sev) s += h.sev(shooter, target, bandIdx) || 0; }
+  /* §GUNS PENETRATION: what armour the round goes through, as the gun's own number — the `pierce_N` tags stay for a mod */
+  if (shooter.weapon && shooter.weapon.pen) s += Math.round(CONST.SEV_PROTECTION_MULT * Math.min(shooter.weapon.pen, effectiveProtection(shooter, target)));
   return s;
 }
 function degradeCover(side, target) {
@@ -12730,9 +13959,23 @@ function aimEff(c, bandIdx, ctx) {
     a += c.repositioning ? (md.aimMoving || 0) : (md.aimHolding || 0);
     if (ctx.overwatch) a += md.overwatchAim || 0;
   }
-  const mis = bandMismatch(c, bandIdx);
+  /* §GUNS RANGE IN TILES: beyond a gun's reach the aim falls off per tile; inside its `near` a long gun suffers per
+     tile; within them, a specialist's gun (not a medium one) keeps its bonus. A gun that names no reach, or a shot
+     that does not know its distance, keeps the band step. */
+  let mis;
+  if (c.weapon && c.weapon.reach != null && ctx.dist != null && !(c.race === 'ththyn')) {
+    const far = Math.max(0, ctx.dist - c.weapon.reach) * (c.weapon.falloff != null ? c.weapon.falloff : CONST.FALLOFF_DEFAULT);
+    const near = Math.max(0, (c.weapon.near || 0) - ctx.dist) * CONST.NEAR_FALLOFF;
+    mis = far + near;
+    if (mis === 0 && (c.weapon.range || 'medium') !== 'medium')
+      mis = -CONST.BAND_SPECIALIST_BONUS * (c.weapon.range === 'short' ? CONST.BAND_SPECIALIST_SHORT : 1);
+  } else mis = bandMismatch(c, bandIdx);
   a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
+  /* §GUNS HANDLING is the gun's own precision, apart from the hand that holds it; and a SNAP SHOT — shooting in the same
+     turn as moving — costs a gun what it costs, a pistol little and a belt-fed gun a great deal. Nothing charged a
+     moving shooter before: `stabilized` gave twenty aim back for firing on the move, and there was nothing to give back. */
+  if (c.weapon) { a += c.weapon.handling || 0; if (c.repositioning || ctx.snap) a -= c.weapon.snap || 0; }
   a += tempoAim(c);                                   /* COMPOSITION.md §4 */
   if (c.suppressed) a -= CONST.SUPPRESSED_AIM_PENALTY;
 
@@ -12845,7 +14088,10 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
      vest has an answer to one kind of enemy. */
   const dmgType = (shooter.weapon && shooter.weapon.damage) || 'ballistic';
   const resist = (target.armor.resist && target.armor.resist[dmgType]) || 0;
-  const effProt = Math.max(0, (target.armor.protection || 0) + resist);
+  /* §ARMOUR COVERAGE: a hit that lands where the armour is not — a bare arm under a vest — gets none of it */
+  const covered = target.armor.coverage == null || rng() < target.armor.coverage;
+  const effProt = covered ? Math.max(0, (target.armor.protection || 0) + resist) : 0;
+  if (!covered) target._uncoveredHit = true;
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
@@ -13079,7 +14325,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, persistCharge, coolWeapons, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed
@@ -13177,6 +14423,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        grid resolver had no suppression of any kind, so every weapon whose entire purpose is
        to hold an arc down was, on the model that actually matters, a worse rifle. */
     SUPPRESS_RADIUS: 2,              // [C] tiles either side of the mark that also go to ground
+    SPREAD_HIT_MULT: 0.6,            // [C] §GUNS the chance a round's edge catches somebody beside the target, of the shot's
+    SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
+    NOISE_TILES_PER_POINT: 8,        // [C] how far a shot carries, a point of noise
     SUPPRESS_MIN_P: 0.04,            // [C] you can hose a position you could barely hit
     SUPPRESSED_MOVE_COST: 0.32,      // [C] what leaving cover is worth while under fire
     /* §5.1 — THE TRAIT VOCABULARY OF SUPPRESSION, wired at Step 8.10. Three hooks named a
@@ -13619,7 +14868,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const movingThere = (spot.x !== victim.x || spot.y !== victim.y);
     victim.cover = cov; victim.flanked = false; victim.x = spot.x; victim.y = spot.y;
     if (movingThere && _motionOn) victim.repositioning = true;
-    const p = C.hitChance(shooter, victim, bandOf(Math.hypot(shooter.x - spot.x, shooter.y - spot.y)), {}, false)
+    const dSpot = Math.hypot(shooter.x - spot.x, shooter.y - spot.y);
+    const p = C.hitChance(shooter, victim, bandOf(dSpot), { dist: dSpot }, false)
               * CONST.SHOT_HIT_MULT;
     victim.cover = sc; victim.flanked = sf; victim.x = sx; victim.y = sy;
     victim.repositioning = sr;
@@ -13730,7 +14980,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (dr.side === side.tag && Math.hypot(dr.x - f.x, dr.y - f.y) <= CONST.DRONE_RADIUS) { have = true; break; }
           if (have) seen.add(f.id);
           /* fired recently: they know roughly where, not exactly where */
-          else if ((f._revealedUntil || -1) >= turn) heard.add(f.id);
+          else if ((f._revealedUntil || -1) >= turn &&
+                   (f._revealRange == null || side.units.some(m => (m.state === 'ok' || m.state === 'light') && dist(m, f) <= f._revealRange)))
+            heard.add(f.id);   /* §GUNS heard only within the gun's carry */
         }
       }
       side._seen = seen;
@@ -13798,9 +15050,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** You fired. Unless you are carrying something quiet, that is a place people now look. */
   function revealByFiring(u, turn) {
-    if (C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
+    /* §GUNS NOISE: a shot carries as far as the gun is loud — so many tiles a point; a silenced gun barely past the
+       muzzle. The gun's number decides; the `silent` tag keeps its old rule only for a gun that names none. */
+    const w = u.weapon || {};
+    if (w.noise == null && C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
     u._firedOnce = true;
     u._revealedUntil = turn + CONST.REVEAL_TURNS;
+    u._revealRange = w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
     return true;
   }
 
@@ -14145,6 +15401,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* Every shot is a ROUND, not a volley. This is the whole argument for the tactical
        model over the abstract one: a magazine now runs out in front of you, an energy
        weapon cooks, and a fighter with neither finishes the fight on a pistol. */
+    /* §GUNS A RELOAD IS NOT RUNNING DRY: the round goes on the magazine, the sidearm stays holstered — treating a
+       reloading gun as an empty one drew pistols across the whole field, shooting at ranges no pistol reaches */
+    if (shooter.reloading > 0) { tel.reloading = (tel.reloading || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
     if (!C.primaryReady(shooter)) {
       if (!shooter.onSidearm && !C.useSidearm(shooter)) { tel.dry++; target.cover = saveCover; target.flanked = saveFlank; return false; }
       if (!shooter._drewFlag) { shooter._drewFlag = true; tel.sidearmDraws++; }
@@ -14193,7 +15452,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        reaction — both were wanted by hooks that had no way to ask */
     /* §LIGHT the planet's dark reaches every shot: aim suffers at night unless the fighter is at home in it */
     const p = C.hitChance(shooter, target, band,
-                          { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night }, !!react)
+                          { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night, dist: d }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
@@ -14225,6 +15484,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (C.hasQuirk(shooter, 'chill')) {
         target._chilled = true;                    /* they are not going anywhere next turn */
         tel.chills = (tel.chills || 0) + 1;
+      }
+      /* §GUNS SPREAD: pellets, a blast — the gun catches up to `spread` more beside the one it hit, each with a reduced
+         chance and at reduced power (the round's edge, not its centre) */
+      const spreadN = (shooter.weapon && shooter.weapon.spread) || 0;
+      if (spreadN > 0) {
+        const beside = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && dist(f, target) <= 1);
+        let caught = 0;
+        for (const f of beside) {
+          if (caught >= spreadN) break;
+          if (rng() >= p * CONST.SPREAD_HIT_MULT) continue;
+          const edge = Object.assign({}, shooter, { weapon: Object.assign({}, shooter.weapon, { power: Math.round((shooter.weapon.power || 0) * CONST.SPREAD_POWER_MULT) }) });
+          applyHit(rng, f, C.resolveSeverity(rng, edge, f, S.policy, band, null, tel.turn), tel, log, shooter, E);
+          caught++; tel.spreadHits = (tel.spreadHits || 0) + 1;
+          if (log) log.push({ t: tel.turn, type: 'spread', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+        }
       }
       if (C.hasQuirk(shooter, 'arc_chain')) {
         const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light')
@@ -14274,7 +15548,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §5.1 — a suppressive weapon suppresses what it fires at whether it hits or not, and the
        heavier tag catches whoever is standing near them. A suppressed fighter on a grid does
        not just aim worse: they will not cross open ground, which is the whole point. */
-    if (C.hasQuirk(shooter, 'suppressive') || C.hasQuirk(shooter, 'suppressive_2')) {
+    if (C.suppressOf(shooter) >= 1) {
       pin(target, tel, rng);
       /* `suppression_output_up` GRANTS the spread rather than merely widening it. Widening was
          the wrong wiring: only `suppressive_2` weapons have a spread to widen, and Trigger Itch
@@ -14282,7 +15556,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          mostly holding an ordinary machine gun, which is `suppressive` and pins one man. So the
          hook was live, referenced, and reached almost nothing; the suite measured 4610 against
          4720 and correctly called it noise. Shooting at everywhere you might be is the trait. */
-      const spreads = C.hasQuirk(shooter, 'suppressive_2') ||
+      const spreads = C.suppressOf(shooter) >= 2 ||
                       (shooter.hooks && shooter.hooks.has('suppression_output_up'));
       if (spreads) {
         const reach = suppressReach(shooter);
@@ -14818,7 +16092,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              an aim nothing read — set, at that, in the wrong unit. */
           const cov = coverAgainst(map, mark, T);
           const sc = mark.cover; mark.cover = cov;
-          const hit = rng() < C.hitChance(T.gun, mark, bandOf(md), { exchange: 2 }, false) * CONST.SHOT_HIT_MULT;
+          const hit = rng() < C.hitChance(T.gun, mark, bandOf(md), { exchange: 2, dist: md }, false) * CONST.SHOT_HIT_MULT;
           if (hit) applyHit(rng, mark, C.resolveSeverity(rng, T.gun, mark, 'standard', bandOf(md), null, tel.turn),
                             tel, log, T.gun, Emark);
           mark.cover = sc;
@@ -14995,7 +16269,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               const cov = coverAgainst(map, f, u);
               const sc = f.cover, sf = f.flanked;
               f.cover = cov; f.flanked = cov === 0 && sc > 0;
-              const p = C.hitChance(u, f, bandOf(dist(u, f)), {}, false) * CONST.SHOT_HIT_MULT;
+              /* §GUNS the scorer sees the shot as the shot will be taken: at its distance, with its gun's reach */
+              const p = C.hitChance(u, f, bandOf(dist(u, f)), { dist: dist(u, f) }, false) * CONST.SHOT_HIT_MULT;
               f.cover = sc; f.flanked = sf;
               if (p > bestp) { bestp = p; cover = f; }
             }
@@ -15275,7 +16550,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              Covering fire spends an action and three rounds, kills nobody, and puts everyone
              near the mark on the ground. It is taken when it pins more people than the shot
              would have hurt, which is a decision the shooter can actually evaluate. */
-          if (u.ap > 0 && (C.hasQuirk(u, 'suppressive') || C.hasQuirk(u, 'suppressive_2'))) {
+          if (u.ap > 0 && C.suppressOf(u) >= 1) {   /* §GUNS a gun that pins may hold an arc down */
             let bestMark = null, bestCount = 0;
             for (const f of seen) {
               let n = 0;
@@ -15479,7 +16754,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   const cov = coverAgainst(map, f, { x: cand.x, y: cand.y });
                   const sc = f.cover, sf = f.flanked;
                   f.cover = cov; f.flanked = cov === 0 && sc > 0;
-                  const p = C.hitChance(u, f, bandOf(dist(cand, f)), {}, false) * CONST.SHOT_HIT_MULT;
+                  /* §GUNS a shot from where the dash ends is a SNAP shot, at that distance — the scorer sees it as it will be */
+                  const p = C.hitChance(u, f, bandOf(dist(cand, f)), { dist: dist(cand, f), snap: true }, false) * CONST.SHOT_HIT_MULT;
                   f.cover = sc; f.flanked = sf;
                   if (p > best) best = p;
                 }
@@ -15623,6 +16899,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          granted nothing until now, on either resolver. */
       for (const S of sides) for (const u of S.units) {
         if (C.hasQuirk(u, 'mobile_cover')) u.hooks.add('mobile_cover_provider');
+        C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
         u.suppressed = false;                      /* pinning lasts until your next turn */
@@ -17791,6 +19068,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        Two and a half days' march is a sound you can do something about. DAY_MARCH is declared
        below and hoisted for the same reason ENGAGE_RANGE is: one number, two readers. */
     NOISE_RANGE: DAY_MARCH * 2.5,       // [H] how far an ordinary firefight carries
+    NOISE_NOMINAL: 2,                   // [C] §GUNS an ordinary rifle's noise: a fight of them carries NOISE_RANGE
+    NOISE_LOUD_CAP: 1.3,                // [C] and a battery of support guns carries this much further
     NOISE_QUIET_FLOOR: 0.45,            // [H] what a force shooting entirely silenced weapons
                                         //     still gives away — muzzle flash, shouting, bodies
     NOISE_EXCHANGE_SPAN: 8,             // [C] exchanges by which a fight is at full volume
@@ -18457,7 +19736,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * has been priced in the catalogue since the beginning and delivered nothing.
    */
   function loudnessOf(bodies, exchanges) {
-    let armed = 0, quiet = 0;
+    let armed = 0, quiet = 0, noiseSum = null;
     for (const f of bodies) {
       /* THE RESOLVED KIT IS `loadout.kit`, NOT `loadout`. `loadout` holds the item ids a
          fighter was issued; `kit` is what those ids resolve to, and the tags live there. Read
@@ -18469,9 +19748,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!kit || kit.unarmed) continue;
       armed++;
       if ((kit.tags || []).indexOf('silent') >= 0) quiet++;
+      if (kit.weapon && kit.weapon.noise != null) noiseSum = (noiseSum || 0) + kit.weapon.noise;
     }
+    /* §GUNS a fight is as loud as the guns in it: the mean of their noise against an ordinary rifle's, floored where a
+       force of silenced guns used to sit and capped where a battery of support guns does */
     const quietFrac = armed ? quiet / armed : 0;
-    const volume = CONST.NOISE_QUIET_FLOOR + (1 - CONST.NOISE_QUIET_FLOOR) * (1 - quietFrac);
+    let volume = CONST.NOISE_QUIET_FLOOR + (1 - CONST.NOISE_QUIET_FLOOR) * (1 - quietFrac);
+    if (noiseSum != null && armed) volume = Math.max(CONST.NOISE_QUIET_FLOOR, Math.min(CONST.NOISE_LOUD_CAP, (noiseSum / armed) / CONST.NOISE_NOMINAL));
     /* a longer fight is heard further, levelling off — you do not hear a battle twice as far
        away because it lasted twice as long */
     const length = Math.min(1, (exchanges || 1) / CONST.NOISE_EXCHANGE_SPAN);
@@ -26737,6 +28020,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function saveContest(state) {
     return state._contestStart ? JSON.parse(JSON.stringify({ start: state._contestStart, journal: state._contestJournal || [] })) : null;
   }
+  /* §SECRECY (ruled: each seat sees only what it knows) A SEAT'S VIEW OF THE SEASON — what a server sends one person
+     between contests. Its own OA as plain data (its intel on rivals included: it scouted that); every other OA as a
+     public shell — its name, its standing at home and in the fleet (the Board shows those), how many people it has;
+     the planet's public face and only the sites revealed; and what is addressed to this seat — its lot, its letters, its
+     board question, the draft as it stands. Never a rival's roster, treasury, armoury, plans or intel. */
+  function seatView(state, id) {
+    const c = state.corps[id];
+    if (!c) return null;
+    const lite = (x) => x && x.profile ? { id: x.profile.id, name: x.profile.name } : null;
+    const pl = state.planet || {};
+    const D = state.drop && state.drop.draft;
+    return toPlain({
+      season: state.season, month: state.month, done: !!state.done, priceMult: priceMult(state),
+      you: Object.assign({}, c, { profile: lite(c) }),
+      fleet: state.ids.filter(x => x !== id).map(x => {
+        const r = state.corps[x];
+        return { id: x, profile: lite(r),
+                 standing: r.rep ? { own: Math.round(REP.standing(r.rep, 'own')), fleet: Math.round(REP.standing(r.rep, 'fleet')) } : null,
+                 people: r.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length };
+      }),
+      planet: { archetype: pl.archetype, archetypeName: pl.archetypeName, radius: pl.radius, cycle: pl.cycle, pot: pl.pot,
+                objectives: (pl.objectives || []).filter(o => o.revealed) },
+      lot: lotFor(state, id), letters: tradeLetters(state, id), board: c._board || null,
+      draft: D ? { picks: D.picks, done: !!D.done, whose: draftWhose(state) } : null,
+      waitingOn: waitingOn(state)
+    });
+  }
   function buildDivideOpts(state, rec) {
     const corps = state.corps, ids = state.ids, season = state.season, profiles = state.profiles, opts = state.opts;
     rec = rec || { log: [] };
@@ -27544,7 +28854,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { isHuman, humansOf, theManager, beginContest, contestStatus, contestView, contestResult, answerContest,
+  return { isHuman, humansOf, theManager, seatView,
+     beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
      setController,
      waitingOn, submitMonth, advanceMonth,
@@ -27891,10 +29202,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var carried = b.loadout && ITEM_BY_ID[b.loadout.primary];
     var types = (ITEMS.SKILL_TYPES || []).map(function (t) { return { name: t.name, v: skills[t.id] != null ? skills[t.id] : s.aim }; })
                   .sort(function (x, y) { return y.v - x.v; });
-    var talCells = (carried ? skCell('Shoots At \u00b7 ' + esc(carried.name), shootsAt(b, carried), 'shoots') : '') +
+    /* the gun they carry, said plainly and centred across the block: their Aim with THIS gun — Aim, its damage class and
+       its weapon type averaged, the number a hit is decided by. Then the two classes side by side, and the types they
+       stand out at in two columns: the best three down the left, the worst two down the right. */
+    var shootLine = carried
+      ? '<span class="st shootline" data-tip="Aim, Its Class and Its Type, Averaged: What a Hit Is Decided By">Total Aim (' +
+        esc(carried.name) + ') <span class="v">' + fmtStat(shootsAt(b, carried)) + '</span></span>'
+      : '';
+    var best = types.slice(0, 3), worst = types.slice(-2), paired = [];
+    for (var ti = 0; ti < 3; ti++) {
+      if (best[ti]) paired.push(skCell(best[ti].name, best[ti].v, 'best'));
+      paired.push(worst[ti] ? skCell(worst[ti].name, worst[ti].v, 'worst') : '<span class="st"></span>');
+    }
+    var talCells = shootLine +
       (ITEMS.SKILL_CLASSES || []).map(function (c) { return skCell(c.name, skills[c.id] != null ? skills[c.id] : s.aim); }).join('') +
-      types.slice(0, 3).map(function (t) { return skCell(t.name, t.v, 'best'); }).join('') +
-      types.slice(-2).map(function (t) { return skCell(t.name, t.v, 'worst'); }).join('');
+      paired.join('');
 
     /* the contract block, per origin */
     var termTxt = ct.seasons_remaining != null
@@ -29970,7 +31292,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     renderShelf();
     $('mktnote').innerHTML = 'Bought ' + pieces + ' piece' + (pieces === 1 ? '' : 's') +
       ' across ' + lines + ' line' + (lines === 1 ? '' : 's') + ' \u00b7 ' +
-      '<span class="cr neg">\u2212\u20a1' + Math.round(total).toLocaleString() + '</span>';
+      crs(-total);   /* §ITEMS one negative figure, through the shared formatter */
   };
   if ($('mktclear')) $('mktclear').onclick = function () { MKT.cart = {}; renderShelf(); };
 
@@ -30498,10 +31820,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       '</div>' + stripHtml(b) + (opts.extra || '') + '</div>';
   }
   /* THE TIER BADGE, the one standard: 1 grey, 2 green, 3 blue, 4 orange, 5 red */
+  /* §ITEMS one tier badge — `tierBadge` takes a tier, `tierHtml` an item's id (and draws the empty badge for none) */
   function tierHtml(id) {
     var it = ITEM_BY_ID[id];
-    return it ? '<span class="tierb t' + it.tier + '" title="tier ' + it.tier + '">' + it.tier + '</span>'
-              : '<span class="tierb none"></span>';
+    return it ? tierBadge(it.tier) : '<span class="tierb none"></span>';
   }
 
   function moveTo(id, si) {         /* si null = home */
@@ -30802,17 +32124,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* a hand stands only with a primary AND armor; otherwise the Divide refuses it whole */
   function handStands(b) { var h = G.plan.hand[b.id]; return !!(h && h.primary && h.armor); }
   /* one line about an item, capitalised the way the page speaks */
-  function itemDesc(it) {
-    var e = it.effects || {}, d = [];
-    if (e.power != null) d.push('Power ' + e.power);
-    if (e.range) d.push(capWords(e.range));
-    if (e.protection != null) d.push('Protect ' + e.protection);
-    if (e.mobility) d.push('Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility);
-    if (e.damage) d.push(capWords(e.damage));
-    if (e.ration_days) d.push('+' + e.ration_days + ' Days of Rations');
-    (e.tags || []).slice(0, 2).forEach(function (t) { d.push(capWords(t)); });
-    return d.join(' \u00b7 ');
-  }
   var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'], ['consumable', 'Store']];
 
   function renderPanel() {
@@ -30834,7 +32145,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return '<div class="slot' + (it ? '' : ' empty') + (G._pickSlot === p[0] ? ' open' : '') + '" data-slot="' + p[0] + '">' +
              '<span class="sl">' + p[1] + '</span>' + tierHtml(id) +
              '<span class="it">' + (it ? esc(it.name) : 'Nothing') + '</span>' +
-             '<span class="kt">' + (it ? esc(itemDesc(it).split(' \u00b7 ')[0]) : 'Choose') + '</span></div>';
+             '<span class="kt">' + (it ? itemFigureLine(it, 2) : 'Choose') + '</span></div>';
     }).join('');
 
     var moves = '<div class="moves">' + G.plan.names.map(function (nm, i) {
@@ -30915,8 +32226,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              rerender: renderPanel };
   }
 
-  /* ================= THE EQUIP PICKER ================= one list: the rack first, in
-     green, then what the shelf sells, in gold; tier badges throughout */
+  /* ================= THE EQUIP PICKER ================= what the armoury HOLDS, and nothing it would have to
+     buy (ruled: buying is the market's) — with whatever the fighter has selected kept on the list so it can be taken
+     off; tier badges throughout */
   function openPicker(slot) {
     G._pickSlot = slot;
     var ctx = activeInspect();
@@ -30930,7 +32242,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
     var label = (KIT_SLOTS.filter(function (p) { return p[0] === slot; })[0] || [slot, capWords(slot)])[1];
 
-    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier; });
+    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -30945,12 +32257,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var have = (rack[it.id] || 0) > 0;
       /* §SKILLS what THIS fighter would shoot at with this gun: the average of their Aim, its class and its type */
       var shoots = shootsAt(b, it);
-      var desc = itemDesc(it) + (shoots != null ? ' \u00b7 Shoots At <b>' + shoots + '</b>' : '');
+      var desc = (shoots != null ? 'Total Aim <b>' + shoots + '</b>' : '');
       rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + '" data-pick="' + it.id + '">' + tierHtml(it.id) +
-              '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') + '</span>' +
-              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>'
-                    : '<span class="buy">Buy ' + cr(it.cost) + '</span>') + '</div>';
+              '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
+              '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
+              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
+    if (!items.length) rows += '<div class="prow"><span class="tierb none"></span><span class="pn"><span class="m">Nothing in the Armoury for This</span>' +
+                               '<div class="pd">The Market Sells It</div></span></div>';
 
     host.innerHTML =
       '<div class="pickhead"><span class="gold">' + label + ' for </span>' + nameSpan(b) +
@@ -33218,7 +34532,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return String(s2).replace(/_/g, ' ')
                      .replace(/(^|[ -])([a-z])/g, function (m, a, c) { return a + c.toUpperCase(); });
   }
-  function tierBadge(t) { return '<span class="tierb t' + t + '">' + t + '</span>'; }
+  function tierBadge(t) { return '<span class="tierb t' + t + '" title="Tier ' + t + '">' + t + '</span>'; }
   function mktCatalogue() {
     return ITEMS.all().filter(function (i) { return i.slot === MKT.slot; });
   }
@@ -33238,6 +34552,66 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* NAMED FOR THE SHELF, not for markets in general: the roster's signing window has owned
      `renderMarket` since long before this page existed, and defining a second one silently
      replaced it — the tryouts window went blank and nothing threw. */
+  /* §ITEMS (ruled: one way an item is described, everywhere) WHAT AN ITEM IS, ONCE. `itemFigures` is the headline figures
+     of a piece, each with its kind (the colour it is drawn in) and the best of that figure on its slot's shelf;
+     `itemChips` is everything else, in words. The Market draws the figures as bars on a tile, the equip picker draws
+     the same bars under each row, and a kit slot on the Squads board writes the first two in their colours. */
+  function itemMax(slot, key) {
+    var m = 0;
+    ITEMS.all().forEach(function (x) { if (x.slot !== slot) return; var e = x.effects || {}; var v = key === 'ballistic' || key === 'energy' || key === 'explosive'
+      ? (e.protection != null ? e.protection + ((e.resist || {})[key] || 0) : 0) : (e[key] || 0); if (v > m) m = v; });
+    return m || 1;
+  }
+  function itemFigures(i) {
+    var e = i.effects || {}, f = [];
+    if (e.power != null && (i.slot === 'primary' || i.slot === 'sidearm')) {
+      f.push({ k: 'Damage', v: e.power, max: itemMax(i.slot, 'power'), kind: 'damage' });
+      if (e.rof != null) f.push({ k: 'Rate', v: e.rof, max: itemMax(i.slot, 'rof'), kind: 'rate' });
+      if (e.mag != null) f.push({ k: 'Magazine', v: e.mag, max: itemMax(i.slot, 'mag'), kind: 'mag' });
+      if (e.reach != null) f.push({ k: 'Reach', v: e.reach, max: itemMax(i.slot, 'reach'), kind: 'reach' });
+    } else if (e.protection != null) {
+      var pr = e.protection, rs = e.resist || {};
+      f.push({ k: 'Ballistic', v: pr + (rs.ballistic || 0), max: itemMax('armor', 'ballistic'), kind: 'ballistic' });
+      f.push({ k: 'Energy', v: pr + (rs.energy || 0), max: itemMax('armor', 'energy'), kind: 'energy' });
+      f.push({ k: 'Explosive', v: pr + (rs.explosive || 0), max: itemMax('armor', 'explosive'), kind: 'explosive' });
+      var cov = ITEMS.coverageShare ? ITEMS.coverageShare(e.covers) : 1;
+      f.push({ k: 'Cover', v: cov, max: 1, kind: 'cover', shown: Math.round(cov * 100) + '%' });
+    }
+    return f;
+  }
+  function itemBars(i) {
+    var f = itemFigures(i);
+    return f.length ? '<div class="mbars">' + f.map(function (x) {
+      return '<div class="mbar"><span class="k">' + x.k + '</span><i><b class="' + x.kind + '" style="width:' +
+             Math.max(2, Math.round(100 * Math.max(0, x.v) / x.max)) + '%"></b></i><span class="v">' + (x.shown != null ? x.shown : x.v) + '</span></div>';
+    }).join('') + '</div>' : '';
+  }
+  /* the first figures in a line of text, each in its kind's colour — where a bar has no room */
+  function itemFigureLine(i, n) {
+    var f = itemFigures(i).slice(0, n || 2);
+    if (!f.length) { var c = itemChipList(i)[0]; return c ? '<span class="fig ' + c[0] + '">' + c[1] + '</span>' : ''; }
+    return f.map(function (x) { return '<span class="fig ' + x.kind + '">' + x.k + ' ' + (x.shown != null ? x.shown : x.v) + '</span>'; }).join(' ');
+  }
+  function itemChipList(i) {
+    var e = i.effects || {}, c = [];
+    if (e.range) c.push(['range', titleWords(e.range) + ' Range']);
+    if (e.damage && i.slot !== 'armor') c.push([e.damage, titleWords(e.damage)]);
+    if (e.pen) c.push(['effect', 'Pierces ' + e.pen]);
+    if (e.suppress) c.push(['effect', e.suppress >= 2 ? 'Pins All Near' : 'Pins']);
+    if (e.spread) c.push(['effect', 'Spread ' + e.spread]);
+    if (e.noise === 0) c.push(['quiet', 'Silenced']); else if (e.noise >= 3) c.push(['loud', 'Loud']);
+    if (e.snap >= 10) c.push(['loud', 'Slow to Snap']);
+    if (e.covers && e.covers.length) c.push(['cover', e.covers.map(capWords).join(', ')]);
+    if (e.mobility) c.push([e.mobility > 0 ? 'effect' : 'loud', 'Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility]);
+    if (e.ration_days) c.push(['effect', '+' + e.ration_days + ' Days of Rations']);
+    if (i.charges) c.push(['charges', i.charges + ' Charges']);
+    (e.tags || []).forEach(function (t) { c.push(['trait', titleWords(t)]); });
+    return c;
+  }
+  function itemChips(i) {
+    var c = itemChipList(i);
+    return c.length ? '<div class="mchips">' + c.map(function (x) { return '<span class="' + x[0] + '">' + x[1] + '</span>'; }).join('') + '</div>' : '';
+  }
   function renderShelf() {
     if (!G || !$('mktledger')) return;
     var me = G.corps[G.me], arm = me.armoury || {};
@@ -33246,14 +34620,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* the treasury is in the top line on every page now; what belongs HERE is what this
        order costs and what is left after it */
     $('mktsum').innerHTML =
-      (total ? '<span>Order <span class="cr neg">\u2212\u20a1' +
-               Math.round(total).toLocaleString() + '</span></span>' +
+      (total ? '<span>Order ' + crs(-total) + '</span>' +
                '<span>' + crs(left) + ' After</span>' : '');
     /* the slot picker is a rail, and should look like one: it was five grey `tiny` buttons
        doing the same job the tabs at the top of the screen do */
+    /* §MARKET (ruled) THE TABS, UNDERLINED: the slots on one rule, the one you are shopping for underlined in the command
+       colour, with how many the shelf holds in small */
     $('mktslots').innerHTML = MSLOTS.map(function (sl) {
-      return '<button class="tab' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
-             titleWords(sl) + '</button>';
+      var n = ITEMS.all().filter(function (i) { return i.slot === sl; }).length;
+      return '<button class="mtab' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
+             titleWords(sl) + '<span class="c">' + n + '</span></button>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.mgrp'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-mgrp') === MKT.grp);
@@ -33268,56 +34644,67 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        a line across the whole width, so a manager scrolled a mile of half-empty rows to reach
        the one rack he came for. Sections are shut until asked for — the same fold the Desk's
        grids use — and the shelf runs two columns wide, which is what that space was for. */
+    /* §MARKET (ruled) THE WALL: tiles by type under centred titles, each tile carrying the figures that matter for its
+       kind as BARS against the best on the shelf, coloured by kind, and chips for the rest; a tile opens to every stat.
+       The sections still fold from their titles. */
     MKT.shut = MKT.shut || {};
-    var h = '<div class="mracks">', sec = null, hidden = false, openRows = false;
+    var h = '', sec = null, hidden = false, openTiles = false;
     items.forEach(function (i) {
       var s2 = mktSection(i);
       if (s2 !== sec) {
         sec = s2;
         var n = items.filter(function (x) { return mktSection(x) === s2; }).length;
-        if (MKT.shut[s2] == null) MKT.shut[s2] = true;      /* shut until a manager opens it */
+        if (MKT.shut[s2] == null) MKT.shut[s2] = false;      /* a wall is for looking at: open unless shut */
         hidden = MKT.shut[s2];
-        if (openRows) h += '</div>';          /* close the rack before opening the next */
-        openRows = false;
-        h += '<div class="mrack"><div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
-             '<span class="tgchev">' + (hidden ? '\u25b8' : '\u25be') + '</span>' +
-             '<span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
-        openRows = true;
+        if (openTiles) h += '</div>';
+        openTiles = false;
+        h += '<h4 class="mwall-title' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '"><span class="t">' + esc(s2) + '</span><span class="c">' + n + '</span>' +
+             '<span class="tgchev2">' + (hidden ? '\u25be' : '\u25b4') + '</span></h4>';   /* the Desk's fold mark, exactly */
+        if (!hidden) { h += '<div class="mwall">'; openTiles = true; }
       }
       if (hidden) return;
-      var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
-      h += '<div class="mrow' + (open ? ' open' : '') + '" data-mopen="' + i.id + '">' +
-        '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
-        tierBadge(i.tier) +
-        '<span class="nm">' + esc(i.name) +
-        '</span>' +
-        (held ? '<span class="held">' + held + ' Held</span>' : '') +
-        '<span class="pr">' + crs(Math.round((i.cost || 0) * SEASON.priceMult(G.state))) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) < 1 ? 'Glut' : 'Shortage') + '</span>' : '') + '</span>' +
+      var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0, e = i.effects || {};
+      var price = Math.round((i.cost || 0) * SEASON.priceMult(G.state));
+      h += '<div class="mtile t' + i.tier + (open ? ' open' : '') + (n2 ? ' incart' : '') + '" data-mopen="' + i.id + '">' +
+        '<div class="mtop">' + tierBadge(i.tier) + '<span class="nm">' + esc(i.name) + '</span>' +
+        '<span class="pr">' + crs(price) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) > 1 ? 'Boom' : 'Crash') + '</span>' : '') + '</span></div>' +
+        itemBars(i) + itemChips(i) +
+        '<div class="mfoot">' + (held ? '<span class="held">' + held + ' Held</span>' : '<span class="m">None Held</span>') +
         '<span class="step">' +
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
           '<button class="stepbtn" data-madd="' + i.id + '">+</button>' +
         '</span></div>';
       if (open) {
-        var e = i.effects || {};
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +
-          (e.power ? '<span class="st">Power <b>' + e.power + '</b></span>' : '') +
-          (e.range ? '<span class="st">Band <b>' + titleWords(e.range) + '</b></span>' : '') +
+          (e.protection != null ? '<span class="st">Ballistic <b>' + (e.protection + ((e.resist || {}).ballistic || 0)) + '</b></span>' +
+                                   '<span class="st">Energy <b>' + (e.protection + ((e.resist || {}).energy || 0)) + '</b></span>' +
+                                   '<span class="st">Explosive <b>' + (e.protection + ((e.resist || {}).explosive || 0)) + '</b></span>' +
+                                   '<span class="st">Covers <b>' + (e.covers && e.covers.length ? e.covers.map(function (c) { return capWords(c); }).join(', ') : 'All') + '</b></span>' : '') +
+          (e.power ? '<span class="st">Damage <b>' + e.power + '</b></span>' : '') +
+          (e.rof != null ? '<span class="st">Rate <b>' + e.rof + '</b></span>' : '') +
+          (e.mag != null ? '<span class="st">Magazine <b>' + e.mag + '</b></span>' : '') +
+          (e.reload != null ? '<span class="st">Reload <b>' + e.reload + '</b></span>' : '') +
+          (e.reach != null ? '<span class="st">Reach <b>' + e.reach + (e.near ? ' \u00b7 Near ' + e.near : '') + '</b></span>' : '') +
+          (e.handling != null ? '<span class="st">Handling <b>' + (e.handling > 0 ? '+' : '') + e.handling + '</b></span>' : '') +
+          (e.snap ? '<span class="st">Snap <b>\u2212' + e.snap + '</b></span>' : '') +
+          (e.pen ? '<span class="st">Penetration <b>' + e.pen + '</b></span>' : '') +
+          (e.suppress ? '<span class="st">Suppression <b>' + e.suppress + '</b></span>' : '') +
+          (e.spread ? '<span class="st">Spread <b>' + e.spread + '</b></span>' : '') +
+          (e.noise != null ? '<span class="st">Noise <b>' + (e.noise === 0 ? 'Silenced' : e.noise) + '</b></span>' : '') +
+          (e.mobility ? '<span class="st">Mobility <b>' + (e.mobility > 0 ? '+' : '') + e.mobility + '</b></span>' : '') +
           (i.bulk ? '<span class="st">Bulk <b>' + i.bulk + '</b></span>' : '') +
-          /* §CHARGES how many uses it carries through a Divide (one a fight, restocked at a munitions drop) */
           (i.charges ? '<span class="st">Charges <b>' + i.charges + '</b></span>' : '') +
-          (i.family ? '<span class="st">Family <b>' + titleWords(i.family) + '</b></span>' : '') +
           '<span class="st">Type <b>' + esc(i.type || 'Other') + '</b></span>' +
           ((e.tags || []).length
             ? '<div class="m" style="margin-top:3px">Traits: ' + e.tags.map(titleWords).join(', ') + '</div>'
             : '') +
-          modEffects(e) +
-          (i.identity ? '<div class="flav">' + esc(i.identity) + '</div>' : '') + '</div>';
+          modEffects(e) + '</div>';
       }
+      h += '</div>';
     });
-    if (openRows) h += '</div>';           /* the last rack on the shelf closes too */
-    h += '</div>';                         /* and the two-column frame the racks sit in */
+    if (openTiles) h += '</div>';
     $('mktledger').innerHTML = h;
     var over = total > me.account.treasury;
     $('mktnote').innerHTML = over ? 'Over Your Treasury' : '';

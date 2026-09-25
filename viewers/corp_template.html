@@ -123,14 +123,14 @@
   .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
     text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
     padding:clamp(5px,1.1vh,11px) 14px}
-  .menufoot{margin-top:14px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);text-align:center}
+  
   #errband{display:none;position:fixed;left:0;right:0;top:0;z-index:90;background:var(--red);color:var(--bg);font-size:11px;padding:6px 12px;text-align:center;cursor:pointer}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
   /* §MONEY the two facts the Roster is about, given room rather than a grey aside */
   .rostsum{display:flex;gap:26px;align-items:flex-end}
   .rostsum .rsfig{display:flex;flex-direction:column;line-height:1.25}
-  .rostsum .lab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .rostsum .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .rostsum b{font-size:19px;letter-spacing:.02em}
   .rostsum b.good{color:var(--hit)} .rostsum b.bad{color:var(--red)}
   /* §REST one scale for both tracks: green whole, grey through the middle, red at the end */
@@ -209,7 +209,9 @@
   .mksizes{display:flex;gap:9px;align-items:flex-end}
   .mkkit{display:flex;flex-direction:column;gap:9px}
   .mkrow{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:center}
-  .mklab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  /* §ITEMS ONE LABEL: every small-caps label over a block is 9.5px at .16em — they had drifted across six sizes and
+     spacings; its colour says its role (faint a label, the command colour a section inside a panel) */
+  .mklab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .mkopts{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
   .mkopt{width:34px;height:34px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:var(--c);padding:0}
@@ -231,7 +233,7 @@
      pair was nudged six pixels right of the first, and no pair on the pad lined up. The gap is
      the group's own, in the direction the group actually runs. */
   .mkgrp{display:flex;flex-direction:column;align-items:center;gap:5px}
-  .mkgrp .gl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .mkgrp .gl{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   /* MOVE is the only thing on its row, so it stands in the middle of the pad */
   .mkgrp.move{grid-column:1/-1;justify-self:center}
   /* EVERY BUTTON THE SAME SIZE. They were sized by their contents — one glyph or two, a wide
@@ -253,7 +255,7 @@
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
   .foundgo:hover{background:var(--a);color:var(--bg)}
-  .berthrow{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  
   .berth{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line2);background:transparent;
     border-radius:12px;padding:2px 9px;font:inherit;font-size:10px;cursor:pointer}
   /* §PICKER the mark large, the name under it */
@@ -261,33 +263,29 @@
      page's with them, so the Backroom rendered as unspaced white text — "Price₡15,000Goes Off
      Clean88%" — which is what a card looks like with no stylesheet at all. Written back, and
      the price grid given room to breathe: label left, figure right, a line between them. */
-  #backroom .qhead{display:flex;justify-content:space-between;align-items:baseline;
-    border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:4px}
-  #backroom .qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px;margin-top:10px}
-  #backroom .qact,#backroom .qev{background:var(--panel);border:1px solid var(--line2);
-    border-left:3px solid var(--red);border-radius:7px;padding:12px 14px}
-  #backroom .qev{border-left-color:var(--warn)}
-  #backroom .qt{font-size:13px;color:var(--ink);font-weight:bold;margin-bottom:4px}
-  #backroom .qx{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:9px}
-  #backroom .qo{font-size:11px;color:var(--hit);border-left:2px solid var(--hit);padding-left:7px;margin-bottom:10px}
-  #backroom .qf{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:11px;
-    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 0;margin-bottom:4px}
-  #backroom .qf .k{color:var(--dim)}
-  #backroom .qf .v{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-  #backroom .qtargets{margin:10px 0 4px}
-  #backroom .qbtn{width:100%;padding:8px;margin-top:8px;border:1px solid var(--red);color:var(--red);
-    background:transparent;border-radius:5px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.04em}
-  #backroom .qbtn:hover{background:var(--red);color:var(--bg)}
-  #backroom .qbtn:disabled{border-color:var(--line2);color:var(--faint);cursor:default;background:transparent}
-  #backroom .qways{display:grid;gap:6px;margin-top:10px}
-  #backroom .qways .qbtn{border-color:var(--warn);color:var(--warn);text-align:left;margin-top:0;padding:7px 10px}
-  #backroom .qways .qbtn:hover{background:var(--warn);color:var(--bg)}
-  #backroom .qways .sub{display:block;font-size:9.5px;color:var(--dim);margin-top:2px}
-  #backroom .qways .qbtn:hover .sub{color:var(--bg)}
-  #backroom .qheld{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
-  #backroom .qhh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
-  #backroom .qdone{font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);margin-top:16px;padding-top:10px;line-height:1.7}
-  #backroom .qdone .out{color:var(--bad)}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /* (the constellation's rules stood here and were struck with it; their CONTINUATION lines
      were left behind by a line-by-line deletion and were read as a selector, which swallowed
      `.hpick` — the OA ring on Negotiation and the Deal — and threw the wheel off the screen.) */
@@ -308,33 +306,30 @@
   .hnode .hn-sub{font-size:9px;color:var(--faint)}
   .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
-  .oacard{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0;
-    cursor:pointer;background:var(--panel);text-align:center;
-    border-left:3px solid var(--line)}
-  .oacard:hover{border-color:var(--a)}
-  .oacard .m{display:block}
-  .oacard .oaname{display:flex;align-items:center;justify-content:center;gap:6px;
-    font-weight:600;margin-bottom:3px}
-  .oacard .oaname svg{flex:0 0 auto}
+  
+  
+  
+  
+  
   /* the Board: a standing is a position between two directions, so it reads as a bar with
      a centre, not a bare number */
   /* the card and the holds */
   .cardhead{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px;font-size:11.5px}
   .cardhead b{color:var(--ink)}
-  .cardrow{display:grid;grid-template-columns:14px 1fr minmax(150px,auto);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .cardrow.standing{align-items:start}
-  .cardrow:last-child{border-bottom:none}
-  .cardrow .pri{color:var(--mag);font-size:11px}
-  .cardrow.pri .dw{color:var(--ink)} .cardrow .dw b{color:var(--ink)}
-  .cardrow.standing .dw{color:var(--dim)}
-  .cardrow .dn{font-size:10.5px;white-space:nowrap;text-align:right}
-  .spec{display:grid;grid-template-columns:auto 110px auto;gap:5px;align-items:center;font-size:9px;color:var(--faint);row-gap:3px}
-  .spec .sw{grid-column:1/-1;text-align:center;font-size:10px;white-space:nowrap}
+  
+  
+  
+  
+   .cardrow .dw b{color:var(--ink)}
+  
+  
+  
+  
   .sbar{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),#4a4f58 50%,var(--hit))}
   .sbar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
-  .spec.unset .sbar i{background:var(--dim)}
+  
   .holdrow{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+  .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .holdrow.hh .hv{color:var(--faint)}
   .holdrow:last-child{border-bottom:none}
   .hbar{height:8px;background:#0b111c;border:1px solid var(--line);border-radius:4px;overflow:hidden;display:block}
@@ -364,9 +359,9 @@
   .sector.yours{border-color:var(--a);background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a)}
   .sector .sn{font-size:12.5px;color:var(--ink);font-weight:bold;display:flex;justify-content:space-between}
   .sector .sn .you{color:var(--a);font-size:10px;font-weight:normal}
-  .sector .sr{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:6px;font-size:10.5px}
-  .sector .sr .k{color:var(--dim)} .sector .sr .v{color:var(--ink)}
-  .sector .sr .v.m{color:var(--faint)}
+  
+   .sector .sr .v{color:var(--ink)}
+  
   .landhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .landhead .m b{color:var(--ink)}
   /* THE BRIEF: the month at the head of the Desk — its shape, what is coming, what waits */
@@ -377,13 +372,13 @@
   .brief .shape .what{font-size:11.5px;color:var(--dim);margin-top:3px}
   .brief .coming{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
   .cd{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line2);border-radius:12px;font-size:10.5px;color:var(--dim);background:var(--a-deep)}
-  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)} .cd.soon b{color:var(--cred)} .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
+  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)}  .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
   .agenda{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 12px}
-  .agi{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #16233a;font-size:11.5px;cursor:pointer}
-  .agi:hover .at{color:var(--a)}
-  .agi .dot{width:8px;height:8px;border-radius:50%;background:var(--cred);flex-shrink:0}
-  .agi.urgent .dot{background:var(--red)}
-  .agi .at{flex:1;color:var(--ink)} .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
+  
+  
+  
+  
+   .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
   .agenda .clear{color:var(--hit);font-size:11px;padding:6px 0}
   #endmonth.waiting{border-color:var(--cred);color:var(--cred)}
   /* THE EVENTS: cards with a situation and two or three options, each with its cost */
@@ -399,11 +394,11 @@
   .brief .stk b.cr{color:var(--cred)}
   .brief .stk b .good{color:var(--hit)} .brief .stk b .bad{color:var(--red)}
   .brief .stk b .of{color:var(--dim);font-size:13px}
-  .brief .stk .lab{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+  .brief .stk .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .evgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:10px;margin-bottom:12px}
   .evcard{--k:var(--cred);background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--k);border-radius:8px;padding:0;overflow:hidden}
   .evcard.done{opacity:.6}
-  .evcard .evk{display:flex;justify-content:space-between;align-items:baseline;padding:6px 12px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--k)}
+  .evcard .evk{display:flex;justify-content:space-between;align-items:baseline;padding:6px 12px 0;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--k)}
   .evcard .et{font-size:14px;color:var(--ink);font-weight:bold;padding:2px 12px 0}
   /* §EVENTS AN EVENT IS THE ONE THING ON THE DESK THAT MUST BE READ. It was set in the same
      receding dim as every aside on the page, inside the same quiet border as every box — so
@@ -433,7 +428,7 @@
   .eightcard .teams .vs{color:var(--faint);align-self:center;font-size:14px}
   .eightcard .teams .tm{display:flex;flex-direction:column;gap:3px}
   .eightcard .teams .tm.win .tt{color:var(--hit)}
-  .eightcard .tt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .eightcard .tt{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
   .eightcard .eighthead{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
   .eightcard .teams{margin-top:0}
   .eightcard .teams .tm.yours .tt{color:var(--a)}
@@ -460,14 +455,14 @@
   .rfront h3{margin:0 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--a)}
   /* R2's ledger inside R1's columns: every line a kind, a description and a figure on the
      right, on dotted rules; stamps for what went wrong; the close under a double rule */
-  .rfront .sheethead{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:3px double var(--line2);padding-bottom:6px;margin-bottom:2px}
+  .rfront .sheethead{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);border-bottom:3px double var(--line2);padding-bottom:6px;margin-bottom:2px}
   .rfront .ln{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line);font-size:11.5px;align-items:baseline}
-  .rfront .ln .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .ln .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .rfront .ln .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .rfront .ln .v .cr{font-size:11.5px}
   .rfront .ln.open{color:var(--dim)}
   .rfront .close{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:8px 0 0;font-size:12px;border-top:3px double var(--line2);margin-top:6px}
-  .rfront .close .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .rfront .close .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .rfront .close .v{text-align:right;white-space:nowrap} .rfront .close .v .cr{font-size:13px}
   .rfront .stamp{display:inline-block;border:1.5px solid var(--red);color:var(--red);font-size:8px;letter-spacing:.16em;text-transform:uppercase;padding:0 5px;border-radius:2px;transform:rotate(-3deg);margin-left:8px;vertical-align:middle;line-height:1.5}
   .rfront .stamp.amber{border-color:var(--bad);color:var(--bad)}
@@ -494,7 +489,7 @@
      map lists every one of your squads' days — where it went and why, how far, whom it met and
      how that came out — each line a scrub back to that day. */
   #grecord{max-height:280px;overflow:auto}
-  #grecord .rq{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px}
+  #grecord .rq{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px}
   #grecord .rl{display:grid;grid-template-columns:34px 1fr auto;gap:8px;font-size:10.5px;padding:3px 4px;border-bottom:1px dotted var(--line);cursor:pointer;align-items:baseline}
   #grecord .rl:hover{background:var(--panel2)}
   #grecord .rl.now{background:rgba(58,216,224,.08);border-left:2px solid var(--a)}
@@ -526,9 +521,9 @@
   .obj.pri{border-color:var(--cred);box-shadow:0 0 0 1px rgba(240,192,74,.25),0 0 26px rgba(240,192,74,.10)}
   .obj.pri::before{background:var(--cred)}
   .obj .ohead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-  .obj .tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .obj .tag{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .obj.pri .tag{color:var(--cred)}
-  .obj .state{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:1px 7px;white-space:nowrap}
+  .obj .state{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:1px 7px;white-space:nowrap}
   .obj .ask{font-size:16px;font-weight:700;line-height:1.3}
   .obj .ask b{color:var(--cred)}
   .obj .who{font-size:10.5px;color:var(--dim);margin-top:2px}
@@ -537,7 +532,7 @@
   .obj .obar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--b)}
   .obj .obar i.met{background:var(--hit)} .obj .obar i.short{background:var(--bad)}
   .obj .obar em{position:absolute;top:-4px;width:2px;height:18px;background:var(--ink)}
-  .obj .scale{position:relative;height:13px;font-size:9px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-top:5px}
+  .obj .scale{position:relative;height:13px;font-size:9.5px;color:var(--faint);letter-spacing:.16em;text-transform:uppercase;margin-top:5px}
   .obj .scale .l{position:absolute;left:0} .obj .scale .r{position:absolute;right:0}
   .obj .scale .n{position:absolute;transform:translateX(-50%);color:var(--dim);white-space:nowrap}
   /* the placement demand needs THE LADDER OF THE FLEET, not a row of ordinals: a lit "5th"
@@ -566,7 +561,7 @@
   @media (max-width:900px){ #boardscales .dials{grid-template-columns:1fr} }
   .fleetbox .fleetrow{display:grid;grid-template-columns:22px 1fr 110px 92px 86px;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);font-size:11.5px}
   .fleetbox .fleetrow:last-child{border-bottom:none}
-  .fleetbox .fleetrow.hd{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
+  .fleetbox .fleetrow.hd{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
   .fleetbox .nm small{display:block;font-size:9.5px;color:var(--dim)}
   .fleetbox .fbar{position:relative;height:6px;background:var(--line);border-radius:3px}
   .fleetbox .fbar i{position:absolute;top:0;bottom:0;border-radius:3px}
@@ -631,10 +626,10 @@
   .tglabel.rt-stress{color:var(--wall)} .tglabel.rt-stress.on{color:#c3a9ee}
   /* §STANCE the notch a manager sets at each OA: five even steps from keeping clear to
      bleeding them, cool through hot, wide enough that All In sits on one line with the rest */
-  #tstance .stanceall{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:4px 0 10px;border-bottom:1px solid var(--line2);margin-bottom:6px}
-  #tstance .stanceall .lab{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  #tstance .stanceall .lab b{display:block;color:var(--ink);letter-spacing:0;text-transform:none;font-weight:400;font-size:11px}
-  #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
+  
+  
+  
+  #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
   #tstance .stancehd span:last-child{text-align:right}
   #tstance .stancerow{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
   #tstance .stancerow:last-of-type{border-bottom:none}
@@ -646,7 +641,7 @@
   .notch5 .nb.on{color:var(--bg);font-weight:700;border-color:transparent}
   .notch5 .nb.n1.on{background:#5b8fd0} .notch5 .nb.n2.on{background:#3ab8c9} .notch5 .nb.n3.on{background:#4fd6a0}
   .notch5 .nb.n4.on{background:#e0a848} .notch5 .nb.n5.on{background:#e05a5a}
-  #tstance .stancelegend{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:8px 0 0;max-width:214px;margin-left:auto}
+  
   @media (max-width:900px){ #tstance .stancerow,#tstance .stancehd{grid-template-columns:22px 1fr;grid-template-areas:"mk nm" "nc nc"} 
     #tstance .stancerow .mk{grid-area:mk} #tstance .stancerow .nm{grid-area:nm} #tstance .notch5{grid-area:nc;justify-self:start} }
   /* §DESK the squad card */
@@ -658,7 +653,7 @@
   #tsquads .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
   #tsquads .head .nm{font-size:14px;font-weight:700;color:var(--sq,var(--ink))}
   #tsquads .head .nm small{font-size:10px;color:var(--dim);font-weight:400;margin-left:8px}
-  #tsquads .doing{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border:1px solid currentColor;border-radius:3px;color:var(--a);white-space:nowrap}
+  #tsquads .doing{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 8px;border:1px solid currentColor;border-radius:3px;color:var(--a);white-space:nowrap}
   #tsquads .doing.hunt{color:var(--red)} #tsquads .doing.hold{color:var(--b)}
   #tsquads .doing.claim{color:var(--cred)} #tsquads .doing.rest{color:var(--hit)}
   #tsquads .row{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:14px;align-items:center;font-size:10.5px}
@@ -666,7 +661,7 @@
   #tsquads .who i{width:12px;height:18px;border-radius:3px;background:var(--b);display:block}
   #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.out{background:var(--line)}
   #tsquads .g{display:flex;flex-direction:column;gap:2px;min-width:0}
-  #tsquads .g .lab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  #tsquads .g .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   #tsquads .g .bar{height:6px;border-radius:3px;background:var(--line);position:relative}
   #tsquads .g .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
   #tsquads .g .v{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -700,10 +695,9 @@
   @media (max-width:900px){ #dayhead .dstrip{grid-template-columns:1fr 1fr;gap:12px} #dayhead .dwall{grid-column:1/-1} }
   /* §WITHDRAWAL the tab: what you ask above, who would pay below */
   #withdraw{margin-bottom:12px}
-  .wtabs{display:flex;gap:4px;margin-bottom:-1px}
-  .wtabs .wt{padding:7px 14px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);
-    border-bottom:none;border-radius:6px 6px 0 0;background:var(--panel2);color:var(--dim);cursor:pointer}
-  .wtabs .wt.on{background:var(--panel);color:var(--red);border-color:var(--red);border-bottom:1px solid var(--panel)}
+  
+  
+  
   .wbody{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px;background:var(--panel)}
   .whd{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:10px}
   .whd .t{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.04em}
@@ -730,7 +724,7 @@
   .wterm.on .is{color:var(--ink)}
   .wreps{margin-top:18px}
   .wreps .hrow,.wreps .row{display:grid;grid-template-columns:200px 140px 150px 1fr;gap:14px;align-items:center}
-  .wreps .hrow{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding-bottom:6px}
+  .wreps .hrow{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding-bottom:6px}
   .wreps .hrow .last{text-align:right}
   .wreps .row{padding:10px 0;border-top:1px solid var(--line)}
   .wstr{font-size:11px} .wstr b{font-weight:400} .wstr small{display:block;font-size:9.5px;color:var(--dim)}
@@ -742,7 +736,7 @@
   .wtrust.t3 .segs i:nth-child(-n+3){background:#e0c04a}
   .wtrust.t4 .segs i:nth-child(-n+4){background:#9ec860}
   .wtrust.t5 .segs i{background:#4fd6a0}
-  .wtrust .w{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+  .wtrust .w{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .wtrust.t1 .w{color:#e05a5a} .wtrust.t2 .w{color:#e08a4a} .wtrust.t3 .w{color:#e0c04a}
   .wtrust.t4 .w{color:#9ec860} .wtrust.t5 .w{color:#4fd6a0} .wtrust.none .w{color:var(--faint)}
   .wans{justify-self:end;font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -782,8 +776,8 @@
   .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.85}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
-  .recaptot{border-top:1px solid var(--line2);margin-top:7px;padding-top:6px}
-  .recaptot .row .v{font-size:12.5px}
+  
+  
   .rcp{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:11.5px}
   .rcp .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #16233a}
   .rcp .row:first-child{border-top:none}
@@ -796,16 +790,16 @@
   .dayhead .dl .wx{color:var(--ink)}
   .dayhead button.primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .dayhead button.primary:hover{background:var(--a);color:var(--bg)}
-  .sqtbl{width:100%;border-collapse:collapse;font-size:11px}
-  .sqtbl th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-bottom:1px solid var(--line)}
-  .sqtbl td{padding:4px 6px;border-bottom:1px solid #16233a;vertical-align:middle}
-  .sqtbl tr:last-child td{border-bottom:none}
-  .sqtbl td.n{color:var(--sq);font-weight:bold}
-  .sqtbl .r{text-align:right;white-space:nowrap}
-  .sqtbl .bar2{display:inline-block;width:60px;height:6px;background:#0b111c;border:1px solid var(--line);border-radius:3px;vertical-align:middle;overflow:hidden}
-  .sqtbl .bar2 i{display:block;height:100%}
-  .sqtbl .ordsel{background:var(--bg);color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:2px 4px;font:inherit;font-size:10.5px;max-width:170px}
-  .sqtbl .ordwrap .x{color:var(--faint);cursor:pointer;margin-left:4px} .sqtbl .ordwrap .x:hover{color:var(--bad)}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   .sqtbl .ordwrap .x:hover{color:var(--bad)}
   /* the stance: five notches, each with its three figures */
   .notch{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;margin-bottom:4px;cursor:pointer;background:var(--a-deep)}
   .notch:hover{border-color:var(--a)}
@@ -813,19 +807,19 @@
   .notch.declared{border-style:dashed;border-color:var(--cred)}
   .notch .dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--dim)}
   .notch .nn{font-size:11.5px;color:var(--ink)}
-  .notch .nf{display:flex;gap:10px;font-size:9.5px;color:var(--dim);white-space:nowrap}
-  .notch .nf b{color:var(--ink);font-weight:600}
+  
+  
   /* the leanings: a five-point thumb on the scale, per OA */
   .leans{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
-  .leans .lh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
-  .leanrow{display:grid;grid-template-columns:1fr auto 96px;gap:8px;align-items:center;border-left:3px solid var(--faint);padding:3px 0 3px 7px;margin-bottom:3px;font-size:11px}
-  .leanrow .lsc{display:flex;gap:3px}
-  .leanrow .lp{width:13px;height:13px;border-radius:50%;border:1px solid var(--line2);cursor:pointer;background:transparent}
-  .leanrow .lp:hover{border-color:var(--a)}
-  .leanrow .lp.on{background:var(--dim);border-color:var(--dim)}
-  .leanrow .lp.on.hot{background:var(--red);border-color:var(--red)}
-  .leanrow .lp.on.cold{background:var(--b);border-color:var(--b)}
-  .leanrow .lw{text-align:right;font-size:10px}
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /* the Table's composer and the ground's assay */
   .dealhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:11.5px;color:var(--dim)}
   .dealhead b{color:var(--ink)}
@@ -862,17 +856,17 @@
   #tdeal .tcols{margin-top:0;grid-template-columns:1fr 280px 1fr} #tdeal .tpool{max-height:340px}
   #tdeal .tcols .box{padding:10px 12px}
   .tkinds .pcbtn.on{border-color:var(--a);color:var(--a)}
-  .tterm{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-  .tterm:last-child{border-bottom:none}
-  .tterm .tl{color:var(--dim)} .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
-  .tterm input[type=range]{width:100%}
-  .tterm input.bid{width:90px}
+  
+  
+   .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
+  
+  
   .assay{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:baseline;font-size:11px}
   .assay .an{white-space:nowrap} .assay .ac{color:var(--dim);font-size:10px} .assay .ah{text-align:right;white-space:nowrap}
-  .oachip2 .odds{margin-left:auto;font-size:10px;color:var(--dim)}
-  .oachip2 .rel{font-size:9px;color:var(--mag);margin-left:6px}
+  
+  
   .legend{width:100%;border-collapse:collapse;font-size:10.5px}
-  .legend th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px}
+  .legend th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 6px}
   .legend td{padding:3px 6px;border-top:1px solid #16233a}
   .legend td i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid var(--line2)}
   .legend tr.special td{color:var(--ink)}
@@ -896,10 +890,10 @@
   @media (max-width:900px){ .audrow2{grid-template-columns:1fr auto;grid-template-areas:"an rd" "ab ab"} 
     .audrow2 .an{grid-area:an} .audrow2 .ab{grid-area:ab} .audrow2 .ard{grid-area:rd} .amem{padding-left:2px} }
   .rivals{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 11px}
-  .rivals .audrow{padding:5px 0}
-  .audrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #16233a}
-  .audname{flex:1 1 auto;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .audname .m{flex:1 0 100%;font-size:10.5px}
+  
+  
+  
+  
   .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
     background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
   /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
@@ -934,7 +928,7 @@
   .negfilt .cash{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--dim)}
   .negfilt .cash input{width:84px;text-align:right;padding:2px 4px}
   .ntbl{width:100%;border-collapse:collapse;font-size:11px}
-  .ntbl th{text-align:left;color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;border-bottom:1px solid var(--line)}
+  .ntbl th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:3px 6px;border-bottom:1px solid var(--line)}
   .ntbl th.r,.ntbl td.r{text-align:right;white-space:nowrap}
   .ntbl td{padding:4px 6px;border-bottom:1px solid #16233a;vertical-align:middle}
   .ntbl tr.pick{cursor:pointer} .ntbl tr.pick:hover td{background:var(--a-deep)}
@@ -955,22 +949,20 @@
   .negact button.primary:hover:not(:disabled){background:var(--a);color:var(--bg)}
   .negact button:disabled{opacity:.35;cursor:default}
   .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
-  .trow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid #16233a;
-    cursor:pointer;font-size:11.5px}
-  .trow:hover{background:#132033}
-  .trow.dead{opacity:.45;cursor:default}
-  .trow .nm{flex:1 1 auto}
-  .trow .val{text-align:right;white-space:nowrap;font-size:11px}
-  .trow .val b{display:block;font-size:12px}
+  
+  
+  
+  
+  
+  
   .tscale{height:8px;border-radius:4px;position:relative;margin:8px 0;
     background:linear-gradient(90deg,#8f4a3e,#1c2c44 50%,#3f7a55)}
   .tscale i{position:absolute;top:-4px;width:2px;height:16px;background:var(--fg);transform:translateX(-1px)}
   /* §PICKER the ring sits in the middle of the page, not against its left edge */
   .oastrip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
-  .oachip2{border:1px solid var(--line);border-left:3px solid;border-radius:3px;padding:5px 9px;
-    cursor:pointer;display:flex;align-items:center;gap:6px;font-size:11.5px;background:var(--panel)}
-  .oachip2:hover{border-color:var(--a)}
-  .oachip2.on{background:#132033}
+  
+  
+  
   /* a tab with something waiting on the manager says so */
   .tab.urgent{color:var(--warn);font-weight:600}
   .tab.urgent:after{content:' \2022'}
@@ -1004,7 +996,6 @@
   /* MONEY LEAVING IS RED, AND `--bad` IS NOT RED — it is amber (#e0a848), a warning colour,
      within a few points of the gold `--cred` it was supposed to contrast with. Every loss in
      the game has been painted as a caution rather than a cost. */
-  .cr.neg{color:var(--red)}
   .cr.bad{color:var(--red)}                 /* the form `crs` emits for a negative figure */
   .cr.pos{color:var(--hit)}
   .summary{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:6px 8px;
@@ -1015,26 +1006,21 @@
      with one rack open put everything in the first column and left the second empty. A rack's
      rows are a two-column GRID: each row is a cell, the head is its own full-width line, and
      the shelf is half as tall as it was. */
-  #mktledger .msec{cursor:pointer}
-  #mktledger .msec:hover .nm{color:var(--ink)}
+  
+  
   /* §MARKET THE COLUMNS ARE THE RACKS. Two columns held ONE rack's rows split down the
      middle — carbines above, carbines beside carbines — where what the width was for is two
      racks side by side: carbines here, close quarters there, each whole. */
-  #mktledger .mracks{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
-  #mktledger .mrack{min-width:0}
+  
+  
   @media (max-width:900px){ #mktledger .mracks{grid-template-columns:1fr} }
-  .msec{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px;padding-top:6px;
-    border-top:1px solid var(--line)}
-  .msec .nm{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--a)}
-  .mrow{display:flex;align-items:center;gap:8px;padding:3px 6px;border-bottom:1px solid #16233a;
-    font-size:11.5px;cursor:pointer}
-  .mrow:hover{background:#132033}
-  .mrow.open{background:#101b2b}
-  .mrow .nm{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mrow .held{color:var(--dim);font-size:10.5px;white-space:nowrap}
-  .mrow .pr{white-space:nowrap;min-width:76px;text-align:right;margin-right:10px}
+  
+  
   /* §STATS the stat's hover card: a few words, in a small panel above the cell */
-  .talrow .st.shoots .v{color:var(--cred,#f0c04a)}
+  .talrow .st.shootline{grid-column:1/-1;display:block;text-align:center;padding:2px 0 5px;margin-bottom:2px;
+    border-bottom:1px solid var(--line,#1c2c44);color:var(--dim,#7d95b4)}
+  .talrow .st.shootline b{color:var(--ink,#c4d4e8);font-weight:600}
+  .talrow .st.shootline .v{color:var(--cred,#f0c04a);font-weight:700;margin-left:6px}
   .talrow .st.best .k{color:#4fd6a0}
   .talrow .st.worst .k{color:#ef8a8a}
   .pc-trade{display:block;margin-top:6px;font-size:11px;color:var(--dim)}
@@ -1052,6 +1038,38 @@
     box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:60;pointer-events:none}
   .st[data-tip]:hover::before{content:'';position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);
     border:5px solid transparent;border-top-color:#2a4460;z-index:60;pointer-events:none}
+  /* §MARKET the wall */
+  #mktslots{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .mtab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--dim);padding:8px 2px 10px;letter-spacing:.04em;cursor:pointer;font:inherit}
+  .mtab .c{font-size:10px;color:var(--faint);margin-left:6px}
+  .mtab.on{color:var(--a);border-bottom-color:var(--a)}.mtab.on .c{color:var(--a)}
+  .mwall-title{margin-top:14px;cursor:pointer;border-radius:5px;transition:background .12s}
+  .mwall-title:hover{background:var(--a-deep)}.mwall-title:hover .tgchev2{color:var(--a)}
+  .mwall-title::before,.mwall-title::after{content:'';flex:1;height:1px;background:var(--line2,#2a4460)}
+  .mwall-title .c{font-size:10px;letter-spacing:.06em;color:var(--dim);margin-left:8px}
+  .mwall-title.shut{color:var(--dim)}
+  .mwall{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+  .mtile{background:var(--panel,#0d1420);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+  .mtile.incart{border-color:var(--cred)}.mtile.open{border-color:var(--a)}
+  .mtile .mtop{display:flex;align-items:baseline;gap:6px}.mtile .mtop .nm{flex:1}.mtile .mtop .pr{color:var(--cred);white-space:nowrap}
+  .mtile .mfoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+  .mtile .held{color:var(--hit,#4fd6a0);font-size:10.5px}
+  .pspec{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+  .pspec .mbar{grid-template-columns:62px 1fr 34px}
+  .fig{font-size:10.5px;white-space:nowrap}
+  .fig.damage,.fig.ballistic{color:#e0a848}.fig.rate,.fig.range{color:#3ad8e0}.fig.mag,.fig.charges{color:#c792ea}.fig.reach,.fig.cover,.fig.effect{color:#4fd6a0}
+  .fig.energy{color:#e84393}.fig.explosive,.fig.loud{color:#e05a5a}.fig.quiet,.fig.trait{color:#8ea3bd}
+  .mbars{display:flex;flex-direction:column;gap:4px;font-size:11px}
+  .mbar{display:grid;grid-template-columns:64px 1fr 40px;gap:8px;align-items:center;color:var(--dim)}
+  .mbar i{display:block;height:6px;background:#111c2e;border-radius:3px;overflow:hidden}
+  .mbar i b{display:block;height:6px;background:var(--a)}
+  .mbar i b.damage{background:linear-gradient(90deg,#e0a848,#e05a5a)}.mbar i b.rate{background:#3ad8e0}.mbar i b.mag{background:#c792ea}.mbar i b.reach{background:#4fd6a0}
+  .mbar i b.ballistic{background:#e0a848}.mbar i b.energy{background:#e84393}.mbar i b.explosive{background:#e05a5a}.mbar i b.cover{background:#4fd6a0}
+  .mbar .v{text-align:right;color:var(--ink)}
+  .mchips{display:flex;gap:5px;flex-wrap:wrap}
+  .mchips span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--line2,#2a4460);border-radius:3px;color:var(--dim)}
+  .mchips .range{border-color:#3ad8e0;color:#3ad8e0}.mchips .ballistic{border-color:#e0a848;color:#e0a848}.mchips .energy{border-color:#e84393;color:#e84393}.mchips .explosive{border-color:#e05a5a;color:#e05a5a}
+  .mchips .effect{border-color:#4fd6a0;color:#4fd6a0}.mchips .cover{border-color:#4fd6a0;color:#4fd6a0}.mchips .charges{border-color:#c792ea;color:#c792ea}.mchips .quiet{border-color:#8ea3bd;color:#8ea3bd}.mchips .loud{border-color:#e05a5a;color:#e05a5a}
   .mpanel{padding:5px 8px 9px 26px;background:#0b111b;border-bottom:1px solid #16233a;font-size:11.5px}
   .mpanel .st{display:inline-block;margin-right:14px}
   .mpanel .flav{color:var(--dim);font-style:italic;margin-top:4px}
@@ -1095,10 +1113,9 @@
     width:34px;height:30px;flex:none;border:1px solid var(--line2);border-radius:6px;background:var(--panel);
     cursor:pointer;font-size:18px;line-height:1;color:var(--b);transition:background .15s,color .15s,border-color .15s}
   .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a);border-color:var(--a)}
-  .tghead .tgchev,.tghead .tgchev2,.msec .tgchev{border-color:var(--line2);color:var(--a)}
-  .mrow .tgchev{width:30px;height:26px;font-size:15px}
+  .tghead .tgchev,.tghead .tgchev2{border-color:var(--line2);color:var(--a)}
   .tghead .tgchev2{margin-left:auto}
-  #mktledger .msec .tgchev{font-size:16px}
+  
   .tgcount{color:var(--gold);font-size:10.5px}
   .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
   .tgpanel table{border-collapse:collapse}
@@ -1108,11 +1125,13 @@
   #dvpick .sqbody{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:start}
   #dvcard .ev.you{box-shadow:inset 3px 0 0 var(--a);padding-left:6px}
   .tgchev:hover{color:var(--a)}
-  .tgread{text-align:left;font-size:11px;color:var(--dim)}
-  .tghead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
-  .tgtitle{color:var(--a);font-size:14px;letter-spacing:.04em}
-  /* §DESK a folded section is its name, centred, and the word that opens it */
-  .tghead{justify-content:center;position:relative}
+  
+  /* §UI (ruled: centred) ONE SECTION TITLE, on every page: the name centred in capitals with a rule running out either side,
+     and the word that folds it at the right edge — the Desk's sections and the Market's type titles alike */
+  .tghead,.mwall-title{display:flex;align-items:center;justify-content:center;gap:14px;position:relative;
+    padding:3px 70px 7px;margin:0 0 7px}
+  .tghead::before,.tghead::after{content:'';flex:1;height:1px;background:var(--line2,#2a4460)}
+  .tgtitle,.mwall-title .t{color:var(--ink);font-size:14px;letter-spacing:.18em;text-transform:uppercase}
   .tghead.foldable{cursor:pointer;border-radius:5px;padding:3px 8px;transition:background .12s}
   .tghead.foldable:hover{background:var(--a-deep)}
   .tgchev2{position:absolute;right:8px;color:var(--dim);font-size:11px}
@@ -1136,7 +1155,7 @@
   .pip i{display:inline-block;width:12px;height:16px;border-radius:2px;background:var(--a-deep);border:1px solid var(--line2);transition:background .08s}
   .pip i.f{background:var(--a);border-color:var(--a)}
   .pip:hover i{border-color:var(--a)}
-  .tgread{margin-top:8px;padding:7px 9px;background:var(--a-deep);border:1px solid var(--line2);border-radius:6px;color:#8fa8c4;font-size:10.5px;line-height:1.55;min-height:15px}
+  
   .itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
   .itbl tr{border-bottom:1px solid #131f30}
   .itbl tr.lit{background:var(--a-deep)}
@@ -1145,7 +1164,7 @@
   .itbl .iname{white-space:nowrap;text-align:center}
   .itbl .iname .tgname{display:inline-block;flex:none}
   .itbl .iname span.on{color:var(--a)}
-  .itbl .isub{color:var(--dim);font-size:9.5px}
+  
   .itbl .ipips{width:70px}
   .itbl .istat{text-align:right;font-size:10.5px;white-space:nowrap}
   .itbl .idossrow td{padding:6px 10px 10px 22px;background:#0b111c}
@@ -1160,29 +1179,29 @@
   .ctbl td{padding:6px 6px;vertical-align:top}
   .ctbl .cname{color:var(--b);font-weight:bold;white-space:nowrap}
   .ctbl .cflavor{display:inline-block;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
-  .ctbl .cflavor.limitation{color:var(--mag);border:1px solid var(--mag)}
-  .ctbl .cflavor.prerequisite{color:var(--bad);border:1px solid var(--bad)}
+  
+  
   .ctbl .cflavor.outcome{color:var(--hit);border:1px solid var(--hit)}
   .ctbl .ccond{color:var(--dim);font-size:10px;margin-top:3px}
   .ctbl .cpay{color:var(--dim);font-size:9.5px;margin-top:3px}
   .ctbl .cpay b{color:var(--ink)} .ctbl .cpay .kit{color:var(--mag)}
   .ctbl .cpips{width:70px;white-space:nowrap;text-align:right}
   .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
-  .ctbl .ccost{color:var(--dim);font-size:10px} .ctbl .ccost b{color:var(--ink)} .ctbl .ccost .drop{color:var(--hit)}
+   .ctbl .ccost b{color:var(--ink)} 
   .ctbl .cregard{font-size:10px;margin-top:2px}
   /* §SPONSORS the bar the board judges by, and each supplier's distance from it */
-  .cbench{font-size:11px;color:var(--dim);margin-top:3px}
-  .cbench b{color:var(--cred)}
+  
+  
   .ctbl .cgap{font-size:10.5px;color:var(--dim)}
   .ctbl .cgap b{color:var(--ink);font-size:13px}
   .ctbl .cgap b.good{color:var(--hit)}
   .ctbl .cregard .warm{color:var(--hit)} .ctbl .cregard .cold{color:var(--bad)} .ctbl .cregard .neutral{color:var(--dim)}
-  .ctbl .csigned{color:var(--warn);font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+  .ctbl .csigned{color:var(--warn);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;margin-left:6px}
   .ctbl .csigned.you{color:var(--hit)}
   .ctbl .cstatus{font-size:10px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line2)}
-  .ctbl .cstatus.holding{color:var(--hit);border-color:var(--hit)}
+  
   .ctbl .cstatus.met{color:var(--hit);border-color:var(--hit)}
-  .ctbl .cstatus.atrisk{color:var(--bad);border-color:var(--bad)}
+  
   .ctbl .cstatus.pending{color:var(--dim);border-color:var(--line2)}
   .dtbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
   .dtbl tr{border-bottom:1px solid #131f30}
@@ -1218,7 +1237,7 @@
   #agenda .atab{position:relative;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:5px 12px 5px 14px;margin-right:-16px;transform:translateX(calc(100% - 46px));transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s;cursor:pointer;min-width:240px;font-size:11px;white-space:nowrap;box-shadow:-6px 4px 18px rgba(0,0,0,.4)}
   #agenda .atab::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cred);border-radius:8px 0 0 8px;transition:background .3s}
   #agenda .atab.urgent::before{background:var(--red)}
-  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9px;color:var(--cred);letter-spacing:.12em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
+  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9.5px;color:var(--cred);letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
   #agenda .atab.urgent .k{color:var(--red)}
   #agenda .atab .t{padding-left:48px;color:var(--ink)}
   #agenda .atab .c{color:var(--dim);font-size:10px;margin-left:8px}
@@ -1274,7 +1293,7 @@
   .ystop.past{opacity:.38}
   .ystop .yn{font-size:9px;color:var(--faint);letter-spacing:.06em} .ystop.now .yn{color:var(--a)}
   .ystop .yt{font-size:11.5px;color:var(--k);line-height:1.3} .ystop.now .yt{color:var(--a)}
-  .ystop .yw{font-size:9.5px;color:var(--dim);line-height:1.35}
+  
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
@@ -1318,7 +1337,7 @@
   /* what decided the fight, read off its own log */
   .whatdecided{margin-top:8px;border-top:1px solid var(--line);padding-top:7px;font-size:10.5px}
   .whatdecided .wd,.whatdecided .wdh{display:grid;grid-template-columns:1fr 74px 74px;gap:6px;padding:2px 0}
-  .whatdecided .wdh{color:var(--faint);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #16233a;margin-bottom:3px}
+  .whatdecided .wdh{color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid #16233a;margin-bottom:3px}
   .whatdecided .k{color:var(--dim)} .whatdecided .a,.whatdecided .b{text-align:right;color:var(--ink)}
   .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .unit{display:flex;justify-content:space-between;gap:6px;padding:3px 0;
@@ -1327,9 +1346,8 @@
   .unit.act{background:#111c2e;margin:0 -6px;padding:3px 6px;border-radius:2px}
   .log{max-height:180px;overflow:auto}
   .log div{padding:2px 0;border-bottom:1px solid #16233a}
-  .sqbox{background:#0d1420;border:1px solid var(--line);border-radius:3px;
-         padding:8px 10px;margin-bottom:8px}
-  .sqbox.badct{border-color:var(--bad)}
+  
+  
   .tiny{padding:1px 5px;font-size:10px;margin-left:3px}
   .poolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
            padding:2px 0;border-bottom:1px solid #16233a;font-size:11.5px}
@@ -1427,7 +1445,7 @@
   .mkedit .markrow{grid-template-columns:200px 1fr;max-width:none;gap:18px}
   @media (max-width:720px){ .mkedit .markrow{grid-template-columns:1fr} }
   .fmark{vertical-align:middle;flex:none}
-  .tghand .fmark,.trow .fmark{margin-right:5px}
+  .tghand .fmark{margin-right:5px}
   .rsn .fmark{margin-right:5px}
   .pc-top .fmark{margin-right:5px}
   .rc-top .rowmark{margin-right:6px;display:inline-flex;cursor:pointer;border-radius:50%}
@@ -1484,7 +1502,7 @@
   .slot{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;background:var(--a-deep);cursor:pointer}
   .slot:hover,.slot.open{border-color:var(--a)}
   .slot.empty{border-style:dashed;background:transparent}
-  .slot .sl{color:var(--dim);font-size:9px;letter-spacing:.06em;text-transform:uppercase;width:58px;flex-shrink:0}
+  .slot .sl{color:var(--dim);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;width:58px;flex-shrink:0}
   .slot .it{flex:1;color:var(--b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
   .slot.empty .it{color:var(--faint)}
   .slot .kt{color:var(--faint);font-size:9.5px;white-space:nowrap}
@@ -1501,7 +1519,6 @@
   .prow:hover{background:var(--a-deep)}
   .prow.on{box-shadow:inset 2px 0 0 var(--a)}
   .prow .pn{flex:1;min-width:0} .prow .pd{color:var(--dim);font-size:9.5px}
-  .cr.bad{color:var(--red)}
   .rack{color:var(--hit);font-size:10px;white-space:nowrap}
   .buy{color:var(--cred);font-size:10px;white-space:nowrap}
   .moves{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:4px}
@@ -1547,7 +1564,7 @@
   .focusdeskline{text-align:center;margin:4px 0 12px;font-size:13px;letter-spacing:.06em;width:100%}
   .focusdeskline b{font-size:16px} .focusdeskline b.left{color:var(--bad)} .focusdeskline b.done{color:var(--hit)}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
-  .acq.w-nat{--o:var(--o-nat)} .acq.w-mer{--o:var(--o-mer)} .acq.w-con{--o:var(--o-con)}
+   .acq.w-mer{--o:var(--o-mer)} 
   .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wtitle{border-bottom-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wnm{color:var(--o)} .acq .wtitle .dot{background:var(--o)}
@@ -1598,7 +1615,7 @@
   .rc-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
   .rc-name{color:var(--ink);font-weight:bold;font-size:12.5px}
   .rc-name .lead{color:var(--mag)}
-  .rc-sq{font-size:9px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .rc-sq{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
   .rc-sq.sqA{color:var(--sqA)} .rc-sq.sqB{color:var(--sqB)} .rc-sq.sqC{color:var(--sqC)}
   .rc-sq.sqD{color:var(--sqD)} .rc-sq.sqE{color:var(--sqE)} .rc-sq.sqF{color:var(--sqF)} .rc-sq.none{color:var(--faint)}
   .rc-orig{font-size:10px;margin-top:2px}
@@ -1621,7 +1638,7 @@
   .railhead .sub.sqD{color:var(--sqD)} .railhead .sub.sqE{color:var(--sqE)} .railhead .sub.sqF{color:var(--sqF)} .railhead .sub.none{color:var(--dim)}
   .colblk{margin-bottom:9px}
   .colblk:last-child{margin-bottom:0}
-  .colblk .clab{color:var(--faint);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+  .colblk .clab{color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px}
   .statrow{display:grid;grid-template-columns:repeat(2,1fr);gap:3px 14px;font-size:10.5px}
   .statrow .st,.talrow .st{display:flex;justify-content:space-between}
   .statrow .st .k,.talrow .st .k{color:var(--s-name)}
@@ -1654,7 +1671,7 @@
   .wtitle .dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .wtitle .wnm{font-weight:bold;font-size:12px}
   .wtitle .deadline{font-size:9.5px;color:var(--dim);margin-left:6px}
-  .wtitle .kind{margin-left:auto;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+  .wtitle .kind{margin-left:auto;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   .wnat .wnm{color:var(--o-nat)} .wnat .dot{background:var(--o-nat)}
   .wmer .wnm{color:var(--o-mer)} .wmer .dot{background:var(--o-mer)}
   .wcon .wnm{color:var(--o-con)} .wcon .dot{background:var(--o-con)}
@@ -1674,7 +1691,7 @@
   .pcbtn:hover{border-color:var(--a);color:var(--a)}
   .pcbtn.on{border-color:var(--hit);color:var(--hit)}
   .pcbtn.x{padding:3px 7px;color:var(--dim);margin-left:3px}
-  .pcbid{width:54px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:4px;padding:3px 5px;font-family:inherit;font-size:10px;margin-right:4px}
+  
   /* a prospect you have marked wears it: the card takes the signing colour and says so, and
      the button keeps its place and its word */
   .acq .pc.taken{background:#12332b;border-color:var(--hit);position:relative}
@@ -1706,7 +1723,7 @@
     .grid2,.grid3,.negcols,.landcols,.ring{grid-template-columns:1fr}
     .tcols,#tdeal .tcols{grid-template-columns:1fr}
     .sqcols,.rostcols{flex-direction:column}
-    .benchcol,.rostrail{width:100%}
+    .benchcol{width:100%}
     .bcards{max-height:none}
     .sqgrid{grid-template-columns:1fr}
     #dvpick .sqbody{grid-template-columns:1fr}
@@ -2414,10 +2431,21 @@
     var carried = b.loadout && ITEM_BY_ID[b.loadout.primary];
     var types = (ITEMS.SKILL_TYPES || []).map(function (t) { return { name: t.name, v: skills[t.id] != null ? skills[t.id] : s.aim }; })
                   .sort(function (x, y) { return y.v - x.v; });
-    var talCells = (carried ? skCell('Shoots At \u00b7 ' + esc(carried.name), shootsAt(b, carried), 'shoots') : '') +
+    /* the gun they carry, said plainly and centred across the block: their Aim with THIS gun — Aim, its damage class and
+       its weapon type averaged, the number a hit is decided by. Then the two classes side by side, and the types they
+       stand out at in two columns: the best three down the left, the worst two down the right. */
+    var shootLine = carried
+      ? '<span class="st shootline" data-tip="Aim, Its Class and Its Type, Averaged: What a Hit Is Decided By">Total Aim (' +
+        esc(carried.name) + ') <span class="v">' + fmtStat(shootsAt(b, carried)) + '</span></span>'
+      : '';
+    var best = types.slice(0, 3), worst = types.slice(-2), paired = [];
+    for (var ti = 0; ti < 3; ti++) {
+      if (best[ti]) paired.push(skCell(best[ti].name, best[ti].v, 'best'));
+      paired.push(worst[ti] ? skCell(worst[ti].name, worst[ti].v, 'worst') : '<span class="st"></span>');
+    }
+    var talCells = shootLine +
       (ITEMS.SKILL_CLASSES || []).map(function (c) { return skCell(c.name, skills[c.id] != null ? skills[c.id] : s.aim); }).join('') +
-      types.slice(0, 3).map(function (t) { return skCell(t.name, t.v, 'best'); }).join('') +
-      types.slice(-2).map(function (t) { return skCell(t.name, t.v, 'worst'); }).join('');
+      paired.join('');
 
     /* the contract block, per origin */
     var termTxt = ct.seasons_remaining != null
@@ -4493,7 +4521,7 @@
     renderShelf();
     $('mktnote').innerHTML = 'Bought ' + pieces + ' piece' + (pieces === 1 ? '' : 's') +
       ' across ' + lines + ' line' + (lines === 1 ? '' : 's') + ' \u00b7 ' +
-      '<span class="cr neg">\u2212\u20a1' + Math.round(total).toLocaleString() + '</span>';
+      crs(-total);   /* §ITEMS one negative figure, through the shared formatter */
   };
   if ($('mktclear')) $('mktclear').onclick = function () { MKT.cart = {}; renderShelf(); };
 
@@ -5021,10 +5049,10 @@
       '</div>' + stripHtml(b) + (opts.extra || '') + '</div>';
   }
   /* THE TIER BADGE, the one standard: 1 grey, 2 green, 3 blue, 4 orange, 5 red */
+  /* §ITEMS one tier badge — `tierBadge` takes a tier, `tierHtml` an item's id (and draws the empty badge for none) */
   function tierHtml(id) {
     var it = ITEM_BY_ID[id];
-    return it ? '<span class="tierb t' + it.tier + '" title="tier ' + it.tier + '">' + it.tier + '</span>'
-              : '<span class="tierb none"></span>';
+    return it ? tierBadge(it.tier) : '<span class="tierb none"></span>';
   }
 
   function moveTo(id, si) {         /* si null = home */
@@ -5325,17 +5353,6 @@
   /* a hand stands only with a primary AND armor; otherwise the Divide refuses it whole */
   function handStands(b) { var h = G.plan.hand[b.id]; return !!(h && h.primary && h.armor); }
   /* one line about an item, capitalised the way the page speaks */
-  function itemDesc(it) {
-    var e = it.effects || {}, d = [];
-    if (e.power != null) d.push('Power ' + e.power);
-    if (e.range) d.push(capWords(e.range));
-    if (e.protection != null) d.push('Protect ' + e.protection);
-    if (e.mobility) d.push('Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility);
-    if (e.damage) d.push(capWords(e.damage));
-    if (e.ration_days) d.push('+' + e.ration_days + ' Days of Rations');
-    (e.tags || []).slice(0, 2).forEach(function (t) { d.push(capWords(t)); });
-    return d.join(' \u00b7 ');
-  }
   var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'], ['consumable', 'Store']];
 
   function renderPanel() {
@@ -5357,7 +5374,7 @@
       return '<div class="slot' + (it ? '' : ' empty') + (G._pickSlot === p[0] ? ' open' : '') + '" data-slot="' + p[0] + '">' +
              '<span class="sl">' + p[1] + '</span>' + tierHtml(id) +
              '<span class="it">' + (it ? esc(it.name) : 'Nothing') + '</span>' +
-             '<span class="kt">' + (it ? esc(itemDesc(it).split(' \u00b7 ')[0]) : 'Choose') + '</span></div>';
+             '<span class="kt">' + (it ? itemFigureLine(it, 2) : 'Choose') + '</span></div>';
     }).join('');
 
     var moves = '<div class="moves">' + G.plan.names.map(function (nm, i) {
@@ -5438,8 +5455,9 @@
              rerender: renderPanel };
   }
 
-  /* ================= THE EQUIP PICKER ================= one list: the rack first, in
-     green, then what the shelf sells, in gold; tier badges throughout */
+  /* ================= THE EQUIP PICKER ================= what the armoury HOLDS, and nothing it would have to
+     buy (ruled: buying is the market's) — with whatever the fighter has selected kept on the list so it can be taken
+     off; tier badges throughout */
   function openPicker(slot) {
     G._pickSlot = slot;
     var ctx = activeInspect();
@@ -5453,7 +5471,7 @@
     var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
     var label = (KIT_SLOTS.filter(function (p) { return p[0] === slot; })[0] || [slot, capWords(slot)])[1];
 
-    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier; });
+    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -5468,12 +5486,14 @@
       var have = (rack[it.id] || 0) > 0;
       /* §SKILLS what THIS fighter would shoot at with this gun: the average of their Aim, its class and its type */
       var shoots = shootsAt(b, it);
-      var desc = itemDesc(it) + (shoots != null ? ' \u00b7 Shoots At <b>' + shoots + '</b>' : '');
+      var desc = (shoots != null ? 'Total Aim <b>' + shoots + '</b>' : '');
       rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + '" data-pick="' + it.id + '">' + tierHtml(it.id) +
-              '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') + '</span>' +
-              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>'
-                    : '<span class="buy">Buy ' + cr(it.cost) + '</span>') + '</div>';
+              '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
+              '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
+              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
+    if (!items.length) rows += '<div class="prow"><span class="tierb none"></span><span class="pn"><span class="m">Nothing in the Armoury for This</span>' +
+                               '<div class="pd">The Market Sells It</div></span></div>';
 
     host.innerHTML =
       '<div class="pickhead"><span class="gold">' + label + ' for </span>' + nameSpan(b) +
@@ -7741,7 +7761,7 @@
     return String(s2).replace(/_/g, ' ')
                      .replace(/(^|[ -])([a-z])/g, function (m, a, c) { return a + c.toUpperCase(); });
   }
-  function tierBadge(t) { return '<span class="tierb t' + t + '">' + t + '</span>'; }
+  function tierBadge(t) { return '<span class="tierb t' + t + '" title="Tier ' + t + '">' + t + '</span>'; }
   function mktCatalogue() {
     return ITEMS.all().filter(function (i) { return i.slot === MKT.slot; });
   }
@@ -7761,6 +7781,66 @@
   /* NAMED FOR THE SHELF, not for markets in general: the roster's signing window has owned
      `renderMarket` since long before this page existed, and defining a second one silently
      replaced it — the tryouts window went blank and nothing threw. */
+  /* §ITEMS (ruled: one way an item is described, everywhere) WHAT AN ITEM IS, ONCE. `itemFigures` is the headline figures
+     of a piece, each with its kind (the colour it is drawn in) and the best of that figure on its slot's shelf;
+     `itemChips` is everything else, in words. The Market draws the figures as bars on a tile, the equip picker draws
+     the same bars under each row, and a kit slot on the Squads board writes the first two in their colours. */
+  function itemMax(slot, key) {
+    var m = 0;
+    ITEMS.all().forEach(function (x) { if (x.slot !== slot) return; var e = x.effects || {}; var v = key === 'ballistic' || key === 'energy' || key === 'explosive'
+      ? (e.protection != null ? e.protection + ((e.resist || {})[key] || 0) : 0) : (e[key] || 0); if (v > m) m = v; });
+    return m || 1;
+  }
+  function itemFigures(i) {
+    var e = i.effects || {}, f = [];
+    if (e.power != null && (i.slot === 'primary' || i.slot === 'sidearm')) {
+      f.push({ k: 'Damage', v: e.power, max: itemMax(i.slot, 'power'), kind: 'damage' });
+      if (e.rof != null) f.push({ k: 'Rate', v: e.rof, max: itemMax(i.slot, 'rof'), kind: 'rate' });
+      if (e.mag != null) f.push({ k: 'Magazine', v: e.mag, max: itemMax(i.slot, 'mag'), kind: 'mag' });
+      if (e.reach != null) f.push({ k: 'Reach', v: e.reach, max: itemMax(i.slot, 'reach'), kind: 'reach' });
+    } else if (e.protection != null) {
+      var pr = e.protection, rs = e.resist || {};
+      f.push({ k: 'Ballistic', v: pr + (rs.ballistic || 0), max: itemMax('armor', 'ballistic'), kind: 'ballistic' });
+      f.push({ k: 'Energy', v: pr + (rs.energy || 0), max: itemMax('armor', 'energy'), kind: 'energy' });
+      f.push({ k: 'Explosive', v: pr + (rs.explosive || 0), max: itemMax('armor', 'explosive'), kind: 'explosive' });
+      var cov = ITEMS.coverageShare ? ITEMS.coverageShare(e.covers) : 1;
+      f.push({ k: 'Cover', v: cov, max: 1, kind: 'cover', shown: Math.round(cov * 100) + '%' });
+    }
+    return f;
+  }
+  function itemBars(i) {
+    var f = itemFigures(i);
+    return f.length ? '<div class="mbars">' + f.map(function (x) {
+      return '<div class="mbar"><span class="k">' + x.k + '</span><i><b class="' + x.kind + '" style="width:' +
+             Math.max(2, Math.round(100 * Math.max(0, x.v) / x.max)) + '%"></b></i><span class="v">' + (x.shown != null ? x.shown : x.v) + '</span></div>';
+    }).join('') + '</div>' : '';
+  }
+  /* the first figures in a line of text, each in its kind's colour — where a bar has no room */
+  function itemFigureLine(i, n) {
+    var f = itemFigures(i).slice(0, n || 2);
+    if (!f.length) { var c = itemChipList(i)[0]; return c ? '<span class="fig ' + c[0] + '">' + c[1] + '</span>' : ''; }
+    return f.map(function (x) { return '<span class="fig ' + x.kind + '">' + x.k + ' ' + (x.shown != null ? x.shown : x.v) + '</span>'; }).join(' ');
+  }
+  function itemChipList(i) {
+    var e = i.effects || {}, c = [];
+    if (e.range) c.push(['range', titleWords(e.range) + ' Range']);
+    if (e.damage && i.slot !== 'armor') c.push([e.damage, titleWords(e.damage)]);
+    if (e.pen) c.push(['effect', 'Pierces ' + e.pen]);
+    if (e.suppress) c.push(['effect', e.suppress >= 2 ? 'Pins All Near' : 'Pins']);
+    if (e.spread) c.push(['effect', 'Spread ' + e.spread]);
+    if (e.noise === 0) c.push(['quiet', 'Silenced']); else if (e.noise >= 3) c.push(['loud', 'Loud']);
+    if (e.snap >= 10) c.push(['loud', 'Slow to Snap']);
+    if (e.covers && e.covers.length) c.push(['cover', e.covers.map(capWords).join(', ')]);
+    if (e.mobility) c.push([e.mobility > 0 ? 'effect' : 'loud', 'Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility]);
+    if (e.ration_days) c.push(['effect', '+' + e.ration_days + ' Days of Rations']);
+    if (i.charges) c.push(['charges', i.charges + ' Charges']);
+    (e.tags || []).forEach(function (t) { c.push(['trait', titleWords(t)]); });
+    return c;
+  }
+  function itemChips(i) {
+    var c = itemChipList(i);
+    return c.length ? '<div class="mchips">' + c.map(function (x) { return '<span class="' + x[0] + '">' + x[1] + '</span>'; }).join('') + '</div>' : '';
+  }
   function renderShelf() {
     if (!G || !$('mktledger')) return;
     var me = G.corps[G.me], arm = me.armoury || {};
@@ -7769,14 +7849,16 @@
     /* the treasury is in the top line on every page now; what belongs HERE is what this
        order costs and what is left after it */
     $('mktsum').innerHTML =
-      (total ? '<span>Order <span class="cr neg">\u2212\u20a1' +
-               Math.round(total).toLocaleString() + '</span></span>' +
+      (total ? '<span>Order ' + crs(-total) + '</span>' +
                '<span>' + crs(left) + ' After</span>' : '');
     /* the slot picker is a rail, and should look like one: it was five grey `tiny` buttons
        doing the same job the tabs at the top of the screen do */
+    /* §MARKET (ruled) THE TABS, UNDERLINED: the slots on one rule, the one you are shopping for underlined in the command
+       colour, with how many the shelf holds in small */
     $('mktslots').innerHTML = MSLOTS.map(function (sl) {
-      return '<button class="tab' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
-             titleWords(sl) + '</button>';
+      var n = ITEMS.all().filter(function (i) { return i.slot === sl; }).length;
+      return '<button class="mtab' + (MKT.slot === sl ? ' on' : '') + '" data-mslot="' + sl + '">' +
+             titleWords(sl) + '<span class="c">' + n + '</span></button>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.mgrp'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-mgrp') === MKT.grp);
@@ -7791,56 +7873,67 @@
        a line across the whole width, so a manager scrolled a mile of half-empty rows to reach
        the one rack he came for. Sections are shut until asked for — the same fold the Desk's
        grids use — and the shelf runs two columns wide, which is what that space was for. */
+    /* §MARKET (ruled) THE WALL: tiles by type under centred titles, each tile carrying the figures that matter for its
+       kind as BARS against the best on the shelf, coloured by kind, and chips for the rest; a tile opens to every stat.
+       The sections still fold from their titles. */
     MKT.shut = MKT.shut || {};
-    var h = '<div class="mracks">', sec = null, hidden = false, openRows = false;
+    var h = '', sec = null, hidden = false, openTiles = false;
     items.forEach(function (i) {
       var s2 = mktSection(i);
       if (s2 !== sec) {
         sec = s2;
         var n = items.filter(function (x) { return mktSection(x) === s2; }).length;
-        if (MKT.shut[s2] == null) MKT.shut[s2] = true;      /* shut until a manager opens it */
+        if (MKT.shut[s2] == null) MKT.shut[s2] = false;      /* a wall is for looking at: open unless shut */
         hidden = MKT.shut[s2];
-        if (openRows) h += '</div>';          /* close the rack before opening the next */
-        openRows = false;
-        h += '<div class="mrack"><div class="msec' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '">' +
-             '<span class="tgchev">' + (hidden ? '\u25b8' : '\u25be') + '</span>' +
-             '<span class="nm">' + esc(s2) + '</span><span class="m">' + n + '</span></div>';
-        openRows = true;
+        if (openTiles) h += '</div>';
+        openTiles = false;
+        h += '<h4 class="mwall-title' + (hidden ? ' shut' : '') + '" data-msec="' + esc(s2) + '"><span class="t">' + esc(s2) + '</span><span class="c">' + n + '</span>' +
+             '<span class="tgchev2">' + (hidden ? '\u25be' : '\u25b4') + '</span></h4>';   /* the Desk's fold mark, exactly */
+        if (!hidden) { h += '<div class="mwall">'; openTiles = true; }
       }
       if (hidden) return;
-      var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0;
-      h += '<div class="mrow' + (open ? ' open' : '') + '" data-mopen="' + i.id + '">' +
-        '<span class="tgchev">' + (open ? '\u25be' : '\u25b8') + '</span>' +
-        tierBadge(i.tier) +
-        '<span class="nm">' + esc(i.name) +
-        '</span>' +
-        (held ? '<span class="held">' + held + ' Held</span>' : '') +
-        '<span class="pr">' + crs(Math.round((i.cost || 0) * SEASON.priceMult(G.state))) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) < 1 ? 'Glut' : 'Shortage') + '</span>' : '') + '</span>' +
+      var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0, e = i.effects || {};
+      var price = Math.round((i.cost || 0) * SEASON.priceMult(G.state));
+      h += '<div class="mtile t' + i.tier + (open ? ' open' : '') + (n2 ? ' incart' : '') + '" data-mopen="' + i.id + '">' +
+        '<div class="mtop">' + tierBadge(i.tier) + '<span class="nm">' + esc(i.name) + '</span>' +
+        '<span class="pr">' + crs(price) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) > 1 ? 'Boom' : 'Crash') + '</span>' : '') + '</span></div>' +
+        itemBars(i) + itemChips(i) +
+        '<div class="mfoot">' + (held ? '<span class="held">' + held + ' Held</span>' : '<span class="m">None Held</span>') +
         '<span class="step">' +
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
           '<button class="stepbtn" data-madd="' + i.id + '">+</button>' +
         '</span></div>';
       if (open) {
-        var e = i.effects || {};
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +
-          (e.power ? '<span class="st">Power <b>' + e.power + '</b></span>' : '') +
-          (e.range ? '<span class="st">Band <b>' + titleWords(e.range) + '</b></span>' : '') +
+          (e.protection != null ? '<span class="st">Ballistic <b>' + (e.protection + ((e.resist || {}).ballistic || 0)) + '</b></span>' +
+                                   '<span class="st">Energy <b>' + (e.protection + ((e.resist || {}).energy || 0)) + '</b></span>' +
+                                   '<span class="st">Explosive <b>' + (e.protection + ((e.resist || {}).explosive || 0)) + '</b></span>' +
+                                   '<span class="st">Covers <b>' + (e.covers && e.covers.length ? e.covers.map(function (c) { return capWords(c); }).join(', ') : 'All') + '</b></span>' : '') +
+          (e.power ? '<span class="st">Damage <b>' + e.power + '</b></span>' : '') +
+          (e.rof != null ? '<span class="st">Rate <b>' + e.rof + '</b></span>' : '') +
+          (e.mag != null ? '<span class="st">Magazine <b>' + e.mag + '</b></span>' : '') +
+          (e.reload != null ? '<span class="st">Reload <b>' + e.reload + '</b></span>' : '') +
+          (e.reach != null ? '<span class="st">Reach <b>' + e.reach + (e.near ? ' \u00b7 Near ' + e.near : '') + '</b></span>' : '') +
+          (e.handling != null ? '<span class="st">Handling <b>' + (e.handling > 0 ? '+' : '') + e.handling + '</b></span>' : '') +
+          (e.snap ? '<span class="st">Snap <b>\u2212' + e.snap + '</b></span>' : '') +
+          (e.pen ? '<span class="st">Penetration <b>' + e.pen + '</b></span>' : '') +
+          (e.suppress ? '<span class="st">Suppression <b>' + e.suppress + '</b></span>' : '') +
+          (e.spread ? '<span class="st">Spread <b>' + e.spread + '</b></span>' : '') +
+          (e.noise != null ? '<span class="st">Noise <b>' + (e.noise === 0 ? 'Silenced' : e.noise) + '</b></span>' : '') +
+          (e.mobility ? '<span class="st">Mobility <b>' + (e.mobility > 0 ? '+' : '') + e.mobility + '</b></span>' : '') +
           (i.bulk ? '<span class="st">Bulk <b>' + i.bulk + '</b></span>' : '') +
-          /* §CHARGES how many uses it carries through a Divide (one a fight, restocked at a munitions drop) */
           (i.charges ? '<span class="st">Charges <b>' + i.charges + '</b></span>' : '') +
-          (i.family ? '<span class="st">Family <b>' + titleWords(i.family) + '</b></span>' : '') +
           '<span class="st">Type <b>' + esc(i.type || 'Other') + '</b></span>' +
           ((e.tags || []).length
             ? '<div class="m" style="margin-top:3px">Traits: ' + e.tags.map(titleWords).join(', ') + '</div>'
             : '') +
-          modEffects(e) +
-          (i.identity ? '<div class="flav">' + esc(i.identity) + '</div>' : '') + '</div>';
+          modEffects(e) + '</div>';
       }
+      h += '</div>';
     });
-    if (openRows) h += '</div>';           /* the last rack on the shelf closes too */
-    h += '</div>';                         /* and the two-column frame the racks sit in */
+    if (openTiles) h += '</div>';
     $('mktledger').innerHTML = h;
     var over = total > me.account.treasury;
     $('mktnote').innerHTML = over ? 'Over Your Treasury' : '';

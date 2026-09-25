@@ -87,6 +87,9 @@
        grid resolver had no suppression of any kind, so every weapon whose entire purpose is
        to hold an arc down was, on the model that actually matters, a worse rifle. */
     SUPPRESS_RADIUS: 2,              // [C] tiles either side of the mark that also go to ground
+    SPREAD_HIT_MULT: 0.6,            // [C] §GUNS the chance a round's edge catches somebody beside the target, of the shot's
+    SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
+    NOISE_TILES_PER_POINT: 8,        // [C] how far a shot carries, a point of noise
     SUPPRESS_MIN_P: 0.04,            // [C] you can hose a position you could barely hit
     SUPPRESSED_MOVE_COST: 0.32,      // [C] what leaving cover is worth while under fire
     /* §5.1 — THE TRAIT VOCABULARY OF SUPPRESSION, wired at Step 8.10. Three hooks named a
@@ -529,7 +532,8 @@
     const movingThere = (spot.x !== victim.x || spot.y !== victim.y);
     victim.cover = cov; victim.flanked = false; victim.x = spot.x; victim.y = spot.y;
     if (movingThere && _motionOn) victim.repositioning = true;
-    const p = C.hitChance(shooter, victim, bandOf(Math.hypot(shooter.x - spot.x, shooter.y - spot.y)), {}, false)
+    const dSpot = Math.hypot(shooter.x - spot.x, shooter.y - spot.y);
+    const p = C.hitChance(shooter, victim, bandOf(dSpot), { dist: dSpot }, false)
               * CONST.SHOT_HIT_MULT;
     victim.cover = sc; victim.flanked = sf; victim.x = sx; victim.y = sy;
     victim.repositioning = sr;
@@ -640,7 +644,9 @@
             if (dr.side === side.tag && Math.hypot(dr.x - f.x, dr.y - f.y) <= CONST.DRONE_RADIUS) { have = true; break; }
           if (have) seen.add(f.id);
           /* fired recently: they know roughly where, not exactly where */
-          else if ((f._revealedUntil || -1) >= turn) heard.add(f.id);
+          else if ((f._revealedUntil || -1) >= turn &&
+                   (f._revealRange == null || side.units.some(m => (m.state === 'ok' || m.state === 'light') && dist(m, f) <= f._revealRange)))
+            heard.add(f.id);   /* §GUNS heard only within the gun's carry */
         }
       }
       side._seen = seen;
@@ -708,9 +714,13 @@
 
   /** You fired. Unless you are carrying something quiet, that is a place people now look. */
   function revealByFiring(u, turn) {
-    if (C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
+    /* §GUNS NOISE: a shot carries as far as the gun is loud — so many tiles a point; a silenced gun barely past the
+       muzzle. The gun's number decides; the `silent` tag keeps its old rule only for a gun that names none. */
+    const w = u.weapon || {};
+    if (w.noise == null && C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
     u._firedOnce = true;
     u._revealedUntil = turn + CONST.REVEAL_TURNS;
+    u._revealRange = w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
     return true;
   }
 
@@ -1055,6 +1065,9 @@
     /* Every shot is a ROUND, not a volley. This is the whole argument for the tactical
        model over the abstract one: a magazine now runs out in front of you, an energy
        weapon cooks, and a fighter with neither finishes the fight on a pistol. */
+    /* §GUNS A RELOAD IS NOT RUNNING DRY: the round goes on the magazine, the sidearm stays holstered — treating a
+       reloading gun as an empty one drew pistols across the whole field, shooting at ranges no pistol reaches */
+    if (shooter.reloading > 0) { tel.reloading = (tel.reloading || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
     if (!C.primaryReady(shooter)) {
       if (!shooter.onSidearm && !C.useSidearm(shooter)) { tel.dry++; target.cover = saveCover; target.flanked = saveFlank; return false; }
       if (!shooter._drewFlag) { shooter._drewFlag = true; tel.sidearmDraws++; }
@@ -1103,7 +1116,7 @@
        reaction — both were wanted by hooks that had no way to ask */
     /* §LIGHT the planet's dark reaches every shot: aim suffers at night unless the fighter is at home in it */
     const p = C.hitChance(shooter, target, band,
-                          { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night }, !!react)
+                          { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night, dist: d }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
     tel.shots++;
@@ -1135,6 +1148,21 @@
       if (C.hasQuirk(shooter, 'chill')) {
         target._chilled = true;                    /* they are not going anywhere next turn */
         tel.chills = (tel.chills || 0) + 1;
+      }
+      /* §GUNS SPREAD: pellets, a blast — the gun catches up to `spread` more beside the one it hit, each with a reduced
+         chance and at reduced power (the round's edge, not its centre) */
+      const spreadN = (shooter.weapon && shooter.weapon.spread) || 0;
+      if (spreadN > 0) {
+        const beside = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && dist(f, target) <= 1);
+        let caught = 0;
+        for (const f of beside) {
+          if (caught >= spreadN) break;
+          if (rng() >= p * CONST.SPREAD_HIT_MULT) continue;
+          const edge = Object.assign({}, shooter, { weapon: Object.assign({}, shooter.weapon, { power: Math.round((shooter.weapon.power || 0) * CONST.SPREAD_POWER_MULT) }) });
+          applyHit(rng, f, C.resolveSeverity(rng, edge, f, S.policy, band, null, tel.turn), tel, log, shooter, E);
+          caught++; tel.spreadHits = (tel.spreadHits || 0) + 1;
+          if (log) log.push({ t: tel.turn, type: 'spread', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+        }
       }
       if (C.hasQuirk(shooter, 'arc_chain')) {
         const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light')
@@ -1184,7 +1212,7 @@
     /* §5.1 — a suppressive weapon suppresses what it fires at whether it hits or not, and the
        heavier tag catches whoever is standing near them. A suppressed fighter on a grid does
        not just aim worse: they will not cross open ground, which is the whole point. */
-    if (C.hasQuirk(shooter, 'suppressive') || C.hasQuirk(shooter, 'suppressive_2')) {
+    if (C.suppressOf(shooter) >= 1) {
       pin(target, tel, rng);
       /* `suppression_output_up` GRANTS the spread rather than merely widening it. Widening was
          the wrong wiring: only `suppressive_2` weapons have a spread to widen, and Trigger Itch
@@ -1192,7 +1220,7 @@
          mostly holding an ordinary machine gun, which is `suppressive` and pins one man. So the
          hook was live, referenced, and reached almost nothing; the suite measured 4610 against
          4720 and correctly called it noise. Shooting at everywhere you might be is the trait. */
-      const spreads = C.hasQuirk(shooter, 'suppressive_2') ||
+      const spreads = C.suppressOf(shooter) >= 2 ||
                       (shooter.hooks && shooter.hooks.has('suppression_output_up'));
       if (spreads) {
         const reach = suppressReach(shooter);
@@ -1728,7 +1756,7 @@
              an aim nothing read — set, at that, in the wrong unit. */
           const cov = coverAgainst(map, mark, T);
           const sc = mark.cover; mark.cover = cov;
-          const hit = rng() < C.hitChance(T.gun, mark, bandOf(md), { exchange: 2 }, false) * CONST.SHOT_HIT_MULT;
+          const hit = rng() < C.hitChance(T.gun, mark, bandOf(md), { exchange: 2, dist: md }, false) * CONST.SHOT_HIT_MULT;
           if (hit) applyHit(rng, mark, C.resolveSeverity(rng, T.gun, mark, 'standard', bandOf(md), null, tel.turn),
                             tel, log, T.gun, Emark);
           mark.cover = sc;
@@ -1905,7 +1933,8 @@
               const cov = coverAgainst(map, f, u);
               const sc = f.cover, sf = f.flanked;
               f.cover = cov; f.flanked = cov === 0 && sc > 0;
-              const p = C.hitChance(u, f, bandOf(dist(u, f)), {}, false) * CONST.SHOT_HIT_MULT;
+              /* §GUNS the scorer sees the shot as the shot will be taken: at its distance, with its gun's reach */
+              const p = C.hitChance(u, f, bandOf(dist(u, f)), { dist: dist(u, f) }, false) * CONST.SHOT_HIT_MULT;
               f.cover = sc; f.flanked = sf;
               if (p > bestp) { bestp = p; cover = f; }
             }
@@ -2185,7 +2214,7 @@
              Covering fire spends an action and three rounds, kills nobody, and puts everyone
              near the mark on the ground. It is taken when it pins more people than the shot
              would have hurt, which is a decision the shooter can actually evaluate. */
-          if (u.ap > 0 && (C.hasQuirk(u, 'suppressive') || C.hasQuirk(u, 'suppressive_2'))) {
+          if (u.ap > 0 && C.suppressOf(u) >= 1) {   /* §GUNS a gun that pins may hold an arc down */
             let bestMark = null, bestCount = 0;
             for (const f of seen) {
               let n = 0;
@@ -2389,7 +2418,8 @@
                   const cov = coverAgainst(map, f, { x: cand.x, y: cand.y });
                   const sc = f.cover, sf = f.flanked;
                   f.cover = cov; f.flanked = cov === 0 && sc > 0;
-                  const p = C.hitChance(u, f, bandOf(dist(cand, f)), {}, false) * CONST.SHOT_HIT_MULT;
+                  /* §GUNS a shot from where the dash ends is a SNAP shot, at that distance — the scorer sees it as it will be */
+                  const p = C.hitChance(u, f, bandOf(dist(cand, f)), { dist: dist(cand, f), snap: true }, false) * CONST.SHOT_HIT_MULT;
                   f.cover = sc; f.flanked = sf;
                   if (p > best) best = p;
                 }
@@ -2533,6 +2563,7 @@
          granted nothing until now, on either resolver. */
       for (const S of sides) for (const u of S.units) {
         if (C.hasQuirk(u, 'mobile_cover')) u.hooks.add('mobile_cover_provider');
+        C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
         u.suppressed = false;                      /* pinning lasts until your next turn */

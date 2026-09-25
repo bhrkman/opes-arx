@@ -3808,6 +3808,117 @@ shared the season's stream, so anything it drew moved every roll after; the seas
 **What remains is the client, not the engine:** the page still renders from the whole season it hosts; in a networked
 build it renders from `seatView` and `contestView`, which exist and are proved sealed.
 
+**TWO PAGE RULINGS.** (1) **The weapon skill block, re-laid.** "Shoots At · Sidewinder PDW" read as an unclear stat and
+broke the grid (it took the first cell, pushing Energy under Ballistic). It is not a total: it is the fighter's aim WITH
+THE GUN THEY CARRY — Aim, its damage class and its weapon type, averaged — so it is said that way, centred across the top
+of the block: *Aim With the Belt Machine Gun 60*, with a hover card; Ballistic and Energy sit side by side beneath it, and
+the types in two columns, the best three down the left and the worst two down the right. The picker's rows say *Aim With
+It*. (2) **The Squads picker lists the armoury only** (ruled: buying is the market's) — what the rack holds, plus whatever
+a fighter has selected so it can be taken off, and a line pointing to the market when the rack holds nothing for a slot.
+The page drive checks both.
+
+**"Total Aim (Belt Machine Gun)"** is the name of the line across the weapon skill block (a stat name is not a
+sentence); *Total Aim* in the picker too.
+
+**THE MARKET — MOCK-UPS (in progress).** The Market kept its first UI: five plain slot tabs, folding type sections, one
+row an item, and an open row showing a scatter of bare figures over an unauthored line. A mock-up page in the game's
+layout (`outputs/market_mock.html`, real items from the catalogue) switches between three options for each of three
+aspects, combinable: LAYOUT — Shelf (now), Catalogue (a type rail, the list, a spec panel for the selected item), Wall
+(tiles by type with the spec on each, a compare tray); SLOT BAR — Tabs (now), Segments (glyph, slot, count), Tiles
+(the slot and what the armoury holds in it); ITEM SPEC — Strip (labelled figures in a row), Card (a two-column table),
+Bars (figures as bars against the slot's best). No flavour text in any of them. Narrowing down from these is next;
+whatever the spec becomes reaches every other place items are shown (the picker, the sheet, the recap).
+
+**THE MARKET MOCK-UP, NARROWED:** Wall + Tabs (the Underline look) + Bars coloured By Kind, section titles centred and
+larger. Choosing it showed how little a gun IS: a power figure, one of three bands, a few tags — the rest of the tile was
+the price again and the weight.
+
+**GUNS, STAGE 1 — DAMAGE, RATE OF FIRE, MAGAZINE AND RELOAD, RANGE IN TILES (ruled; done, sidearms included).** Every
+gun (52 primaries, 10 sidearms) carries six authored stats: `rof` (shots a round, 0.5–3), `mag` (rounds a magazine; a
+cell-fed gun's is its cell), `reload` (rounds a reload costs), `reach` (the tiles it is made for), `near` (the tiles a
+long gun is too close at) and `falloff` (aim lost per tile beyond its reach). On the grid: the rate DRIVES the tempo
+(banked extra shots, the deliberate-aims-better swing and the pierce it already had; the tags decide it only for a gun
+that names none); a shot comes out of the MAGAZINE, an empty one costs the reload's rounds (`tickReload` between
+exchanges), and only when the spare magazines (3; a sidearm's 2; a cell-fed gun's one spare cell, where it carried
+none) are gone is a fighter dry and on the sidearm — a reload is NOT dry (treating it so drew pistols across the
+field); beyond a gun's reach the aim falls off per tile and inside its `near` a long gun suffers, the band step kept
+for a gun that names none, and the scorer that weighs a shot against a dash sees the shot at its distance. Authored
+with reaches at the TOP of each band (a medium gun 12–14, a scattergun 6, a marksman rifle 17–19, a railgun 24) so the
+differences are between guns and not a general nerf: the first cut had them mid-band and cost every shot. Measured on
+the same 16 fights: hit rate 19% → 15%, the four points split between the two rules working as designed (fast guns hit
+less per shot, out-of-reach shots miss); half of all shots within the gun's reach, short guns firing on the way in;
+contest arc 0.048 / 0.133 / 0.371. The sidearm test runs its fighters with no spares (the end of a long day). Two
+snapshots re-blessed; proofs re-recorded. The page shows Damage, Rate, Magazine, Reload and Reach for a gun. NEXT:
+handling, penetration and suppression; then spread and noise; then armour split by class and coverage; then the Market.
+
+**GUNS, STAGE 2 — HANDLING, PENETRATION, SUPPRESSION (done).** Four more authored stats on every gun: `handling` (the
+gun's own aim, −15 for a rotary cannon to +10 for a holdout), `snap` (aim lost shooting in the same turn as a move —
+nothing had charged a moving shooter before; `stabilized` gave back twenty aim that was never taken), `pen` (the
+armour a round goes through, 0–3 — the `pierce_N` tags' number, the tags kept only for a mod) and `suppress` (0 none, 1
+the man fired at, 2 him and his neighbours — the `suppressive` tags' meaning, spread a little further: the submachine
+guns and the drum shotgun pin). The shot scorer sees a dash's shot as the snap shot it will be. Snap was authored, then
+HALVED: at full it was a general nerf, since most shots in a mobile fight follow a move. Same 16 fights: 10.9 turns
+(8.9), hit rate 13% (15%), every fight still ending by a break — the new physics, kept. Suppression as a stat measured
+no different from none in those fights; noted, not chased. **Found:** the price formula priced the retired tags, so it
+now prices the stats at the same points (seven guns that GAINED suppression repriced by the formula, +₡130 to +₡510);
+Vantis then fielded no short gun — the essentials step handed nineteen fighters its favourite consumable, the ₡3,470
+THERMOBARIC CHARGE, and spent the cap (the essential is the cheapest of the doctrine's three favourites now, never over
+₡300); a force of nine or more carries a gun of every band (`KIT_BAND_MIN_FORCE`); the muster takes no rack piece worth
+more than a fair share of the allowance; and the specialist purchase bought a body a SECOND gun (an invariant caught it;
+a body whose gun was bought swaps only for the rack). Snapshots re-blessed, proofs and fingerprint re-recorded. The page
+shows Handling, Snap, Penetration and Suppression. NEXT: spread and noise; then armour split by class, with coverage.
+
+**GUNS, STAGE 3 — SPREAD AND NOISE (done).** `spread` (0–2): the ones beside the one hit — pellets, a blast — each caught
+at 0.6 of the shot's chance and 0.6 of its power (scatterguns and launchers 2, close-quarters guns and the needler 1);
+logged as `spread`. `noise` (0–3): how far a shot carries. In a fight a shot reveals the shooter for the usual turns but
+only to enemies within eight tiles a point — a silenced gun (noise 0: the Whisper, the Photon Marksman, the Seraph, the
+needle derringer) barely past the muzzle, where every shot used to reveal to everyone at any distance; the `silent` tag
+retires into it, priced as it was. On the planet a fight is as loud as the mean noise of the guns in it against an
+ordinary rifle's (2), floored where all-silenced forces sat and capped above a battery of support guns (3). Same 16
+fights: 8.6 turns, 46 down (36) — spread makes a close fight sharper — every fight ending by a break; contest arc 0.038 /
+0.111 / 0.339; fights heard by others carry 0.11 against a rifle fight's 0.13. Snapshots re-blessed, proofs and
+fingerprint re-recorded; the page shows Spread and Noise (Silenced). NEXT: armour split by damage class, with coverage.
+
+**ARMOUR, STAGE 4 — SPLIT BY CLASS, WITH COVERAGE, AND A FULLER CATALOGUE (done).** Armour reads as what it stops against
+BALLISTIC, ENERGY and EXPLOSIVE (its base and its per-class resistances, which the data carried and never showed) and
+WHAT IT COVERS: torso, head, arms, legs. A hit rolls where it lands from the injury table's own odds (torso and chest 26,
+arms 18, legs 18, head 10, the wounds no location owns 28) and a hit outside the armour gets none of it — a torso-only
+vest covers 54% of hits, vest and helmet 64%, a full suit all. The price softly follows coverage (60% the piece, 40%
+what it covers). **Thirteen new armours** join the six: Padded Jacket and Scrap Plates (T1), Riot Suit, Reflective Weave
+and Blast Apron (T2), Flak Vest and Helmet, Ceramic Vest and Field Coat (T3), Kinetic Harness, Mirror Suit and Trooper
+Shell (T4), Siege Plate and Ghost Weave (T5) — a ladder from ₡130 to ₡2,940 under the Assault Frame, formula-priced, no
+flavour text; the old vests reprice slightly (Flak ₡460 → ₡370, Plate Carrier ₡560 → ₡450). Nine doctrines field five
+different armours between them. Fight shape 9.2 turns, all by a break. Snapshots re-blessed, proofs re-recorded; the
+page describes armour by class and cover. NEXT: the Market itself (Wall + Underline tabs + Bars by kind).
+
+**THE MARKET, REBUILT (ruled: Wall + Underline tabs + Bars by kind).** The shelf kept its bones — the catalogue, the
+sections by type, the cart's stepper, held counts, the boom/crash price tag, folding sections — and swapped its face:
+the slots are underlined TABS on one rule with how many each holds; each type is a centred TITLE with rules either
+side and a count, and folds from its title (open by default: a wall is for looking at); every item is a TILE carrying
+the figures that matter for its kind as BARS against the best on that shelf, coloured by kind — a gun's Damage
+(amber into red), Rate (cyan), Magazine (violet) and Reach (green); an armour's Ballistic (amber), Energy (magenta),
+Explosive (red) and Cover (green) — and CHIPS for the rest (range in cyan, the damage class in its colour, pierces,
+pins, spread, Silenced, Loud, Slow to Snap, what it covers, mobility, charges, traits). A tile in the cart is edged gold;
+a tile opens to every stat. No flavour text anywhere on the wall. The old shelf's styles are gone; the drive checks
+the tabs, the bars and chips, the fold, and the opened tile. What the spec became here reaches the picker and the
+sheet next, when they are next touched.
+
+**UNIFYING THE UI (asked for).** (1) **One way an item is described.** `itemFigures` (a piece's headline figures, each with
+its kind and the best of it on its shelf) and `itemChips` (the rest, in words) are the one source: the Market draws the
+figures as bars on a tile, the equip picker draws the same bars and chips under every row (its text line is gone), and
+a Squads kit slot writes the first two figures in their kind's colour (*Damage 5 Rate 2*, where it wrote "Damage 5").
+The old text describer, `itemDesc`, had no callers left and is gone. (2) **One tier badge** (the picker had its own).
+(3) **One negative figure:** the two hand-written `cr neg` sums go through `crs`; `.cr.neg` and a second `.cr.bad`
+are gone. (4) **One label:** 34 small-caps label rules had drifted across 9 and 9.5 px and five letter-spacings; all are
+9.5px at .16em, the colour saying the role. (5) **Dead styles:** 123 rules for things that no longer exist — the Back
+Room, the old shelf, retired event cards and more — removed, after checking none is built at run time. The drive checks
+the kit slot's colours and the picker's bars. **Left for a ruling:** the Desk's folding section titles (left, chevron,
+the command colour) and the Market's (centred, ruled, uppercase) are two designs for one job.
+
+**ONE SECTION TITLE (ruled: centred, in general).** The Desk's folding sections and the Market's type titles take one
+look: the name centred in capitals (14px, .18em, ink) with a rule running out either side, and the Desk's fold mark (▾
+folded, ▴ open) at the right edge — added to the Market's titles, which had none. The Desk's underline is gone.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

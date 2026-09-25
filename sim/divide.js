@@ -296,6 +296,8 @@
        Two and a half days' march is a sound you can do something about. DAY_MARCH is declared
        below and hoisted for the same reason ENGAGE_RANGE is: one number, two readers. */
     NOISE_RANGE: DAY_MARCH * 2.5,       // [H] how far an ordinary firefight carries
+    NOISE_NOMINAL: 2,                   // [C] §GUNS an ordinary rifle's noise: a fight of them carries NOISE_RANGE
+    NOISE_LOUD_CAP: 1.3,                // [C] and a battery of support guns carries this much further
     NOISE_QUIET_FLOOR: 0.45,            // [H] what a force shooting entirely silenced weapons
                                         //     still gives away — muzzle flash, shouting, bodies
     NOISE_EXCHANGE_SPAN: 8,             // [C] exchanges by which a fight is at full volume
@@ -962,7 +964,7 @@
    * has been priced in the catalogue since the beginning and delivered nothing.
    */
   function loudnessOf(bodies, exchanges) {
-    let armed = 0, quiet = 0;
+    let armed = 0, quiet = 0, noiseSum = null;
     for (const f of bodies) {
       /* THE RESOLVED KIT IS `loadout.kit`, NOT `loadout`. `loadout` holds the item ids a
          fighter was issued; `kit` is what those ids resolve to, and the tags live there. Read
@@ -974,9 +976,13 @@
       if (!kit || kit.unarmed) continue;
       armed++;
       if ((kit.tags || []).indexOf('silent') >= 0) quiet++;
+      if (kit.weapon && kit.weapon.noise != null) noiseSum = (noiseSum || 0) + kit.weapon.noise;
     }
+    /* §GUNS a fight is as loud as the guns in it: the mean of their noise against an ordinary rifle's, floored where a
+       force of silenced guns used to sit and capped where a battery of support guns does */
     const quietFrac = armed ? quiet / armed : 0;
-    const volume = CONST.NOISE_QUIET_FLOOR + (1 - CONST.NOISE_QUIET_FLOOR) * (1 - quietFrac);
+    let volume = CONST.NOISE_QUIET_FLOOR + (1 - CONST.NOISE_QUIET_FLOOR) * (1 - quietFrac);
+    if (noiseSum != null && armed) volume = Math.max(CONST.NOISE_QUIET_FLOOR, Math.min(CONST.NOISE_LOUD_CAP, (noiseSum / armed) / CONST.NOISE_NOMINAL));
     /* a longer fight is heard further, levelling off — you do not hear a battle twice as far
        away because it lasted twice as long */
     const length = Math.min(1, (exchanges || 1) / CONST.NOISE_EXCHANGE_SPAN);

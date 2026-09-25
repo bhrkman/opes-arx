@@ -218,7 +218,19 @@
     "power": 4,
     "range": "long",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 16,
+    "near": 4,
+    "falloff": 2,
+    "handling": -3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -240,7 +252,19 @@
     "tags": [
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 5,
+    "reload": 1,
+    "reach": 17,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -254,7 +278,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 760,
+   "cost": 960,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -262,7 +286,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 7,
+    "near": 0,
+    "falloff": 4,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -282,10 +318,21 @@
     "power": 6,
     "range": "short",
     "tags": [
-     "suppressive",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 40,
+    "reload": 2,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -307,7 +354,19 @@
     "tags": [
      "spread"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 6,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 0,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -329,7 +388,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -352,7 +423,19 @@
      "stabilized",
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 3,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -375,7 +458,19 @@
      "sustained",
      "mob_down"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -3,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -397,7 +492,19 @@
     "tags": [
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 8,
+    "reload": 1,
+    "reach": 19,
+    "near": 5,
+    "falloff": 1,
+    "handling": 8,
+    "snap": 8,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -416,10 +523,20 @@
    "effects": {
     "power": 4,
     "range": "medium",
-    "tags": [
-     "suppressive"
-    ],
-    "damage": "ballistic"
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 50,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -10,
+    "snap": 10,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -433,7 +550,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1590,
+   "cost": 1880,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -442,7 +559,19 @@
      "spread",
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 12,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -464,7 +593,19 @@
     "tags": [
      "flechette"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 9,
+    "near": 0,
+    "falloff": 3,
+    "handling": 3,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -487,7 +628,19 @@
      "smart_link",
      "min_band_medium"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 1,
+    "reach": 13,
+    "near": 3,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -509,7 +662,19 @@
     "tags": [
      "ricochet"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 25,
+    "reload": 1,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -528,10 +693,20 @@
    "effects": {
     "power": 5,
     "range": "long",
-    "tags": [
-     "silent"
-    ],
-    "damage": "ballistic"
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 8,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -551,11 +726,22 @@
     "power": 7,
     "range": "medium",
     "tags": [
-     "suppressive_2",
      "spool",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 100,
+    "reload": 3,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 14,
+    "pen": 0,
+    "suppress": 2,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -577,7 +763,19 @@
     "tags": [
      "area"
     ],
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 1,
+    "mag": 6,
+    "reload": 2,
+    "reach": 12,
+    "near": 3,
+    "falloff": 2,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -597,10 +795,21 @@
     "power": 8,
     "range": "long",
     "tags": [
-     "pierce_2",
      "spool"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 3,
+    "reload": 2,
+    "reach": 20,
+    "near": 8,
+    "falloff": 1,
+    "handling": -5,
+    "snap": 12,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -620,10 +829,21 @@
     "power": 9,
     "range": "long",
     "tags": [
-     "pierce_2",
      "single_shot"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 5,
+    "reload": 2,
+    "reach": 22,
+    "near": 8,
+    "falloff": 1,
+    "handling": -5,
+    "snap": 12,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -643,10 +863,21 @@
     "power": 9,
     "range": "short",
     "tags": [
-     "pierce_1",
      "cover_shred"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -3,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 3
    },
    "price_model": "formula",
    "legality": "legal",
@@ -669,7 +900,19 @@
      "burst"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 2,
+    "mag": 18,
+    "reload": 2,
+    "reach": 12,
+    "near": 1,
+    "falloff": 2,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -693,7 +936,19 @@
      "heavy_draw"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 2,
+    "mag": 21,
+    "reload": 2,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -713,11 +968,22 @@
     "power": 4,
     "range": "medium",
     "tags": [
-     "suppressive",
      "heavy_draw"
     ],
     "damage": "energy",
-    "charge": 27
+    "charge": 27,
+    "rof": 2,
+    "mag": 27,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -8,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -741,7 +1007,19 @@
      "disorient"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 1.5,
+    "mag": 21,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -764,7 +1042,19 @@
      "daylight"
     ],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 17,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 0,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -787,7 +1077,19 @@
      "arc_chain"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 1,
+    "mag": 18,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 0,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -807,11 +1109,22 @@
     "power": 4,
     "range": "medium",
     "tags": [
-     "chill",
-     "pierce_1"
+     "chill"
     ],
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 1.5,
+    "mag": 18,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -825,7 +1138,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 1960,
+   "cost": 2470,
    "bulk": 4,
    "effects": {
     "power": 5,
@@ -834,7 +1147,19 @@
      "sustained"
     ],
     "damage": "energy",
-    "charge": 24
+    "charge": 24,
+    "rof": 1.5,
+    "mag": 24,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -8,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -853,11 +1178,21 @@
    "effects": {
     "power": 5,
     "range": "long",
-    "tags": [
-     "silent"
-    ],
+    "tags": [],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 6,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -881,7 +1216,19 @@
      "cover_shred"
     ],
     "damage": "energy",
-    "charge": 21
+    "charge": 21,
+    "rof": 1.5,
+    "mag": 21,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -900,11 +1247,21 @@
    "effects": {
     "power": 7,
     "range": "long",
-    "tags": [
-     "pierce_1"
-    ],
+    "tags": [],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 18,
+    "near": 5,
+    "falloff": 1.5,
+    "handling": 0,
+    "snap": 6,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -928,7 +1285,19 @@
      "vent_2"
     ],
     "damage": "energy",
-    "charge": 12
+    "charge": 12,
+    "rof": 1,
+    "mag": 12,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -953,7 +1322,19 @@
      "vent_2"
     ],
     "damage": "explosive",
-    "charge": 12
+    "charge": 12,
+    "rof": 1,
+    "mag": 12,
+    "reload": 2,
+    "reach": 11,
+    "near": 3,
+    "falloff": 2,
+    "handling": -8,
+    "snap": 8,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -977,7 +1358,19 @@
      "spread"
     ],
     "damage": "energy",
-    "charge": 15
+    "charge": 15,
+    "rof": 1,
+    "mag": 15,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": -5,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -997,7 +1390,19 @@
     "power": 2,
     "range": "short",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 6,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 5,
+    "handling": 10,
+    "snap": 0,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1020,7 +1425,19 @@
      "incendiary",
      "crowd_pleaser"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 1,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 0,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1040,7 +1457,19 @@
     "power": 3,
     "range": "short",
     "tags": [],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 8,
+    "snap": 1,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1060,7 +1489,19 @@
     "power": 3,
     "range": "medium",
     "tags": [],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 4,
+    "handling": 6,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1083,7 +1524,19 @@
      "single_shot",
      "recoil_heavy"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 6,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 4,
+    "handling": 3,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1105,7 +1558,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1128,7 +1593,19 @@
      "smart_link",
      "min_band_medium"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 9,
+    "near": 2,
+    "falloff": 3,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1150,7 +1627,19 @@
     "tags": [
      "disorient"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 6,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1170,10 +1659,21 @@
     "power": 3,
     "range": "short",
     "tags": [
-     "flechette",
-     "silent"
+     "flechette"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 4,
+    "reload": 1,
+    "reach": 4,
+    "near": 0,
+    "falloff": 6,
+    "handling": 10,
+    "snap": 0,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1195,7 +1695,19 @@
     "tags": [
      "incendiary"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 8,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1209,7 +1721,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 380,
+   "cost": 370,
    "bulk": 1,
    "effects": {
     "protection": 1,
@@ -1221,7 +1733,12 @@
      "ballistic": 0,
      "energy": 0,
      "explosive": -1
-    }
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1235,7 +1752,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 460,
+   "cost": 370,
    "bulk": 1,
    "effects": {
     "protection": 2,
@@ -1245,7 +1762,10 @@
      "ballistic": 0,
      "energy": 0,
      "explosive": 2
-    }
+    },
+    "covers": [
+     "torso"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1259,7 +1779,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 560,
+   "cost": 450,
    "bulk": 2,
    "effects": {
     "protection": 3,
@@ -1269,7 +1789,10 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 0
-    }
+    },
+    "covers": [
+     "torso"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1283,7 +1806,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1210,
+   "cost": 1060,
    "bulk": 2,
    "effects": {
     "protection": 4,
@@ -1293,7 +1816,11 @@
      "ballistic": -2,
      "energy": 3,
      "explosive": 0
-    }
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1319,7 +1846,8 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 1
-    }
+    },
+    "covers": null
    },
    "price_model": "formula",
    "legality": "legal",
@@ -1821,7 +2349,19 @@
     ],
     "power": 10,
     "range": "medium",
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 0.5,
+    "mag": 2,
+    "reload": 3,
+    "reach": 14,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 10,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -1840,12 +2380,23 @@
    "bulk": 7,
    "effects": {
     "tags": [
-     "suppressive_2",
      "spool"
     ],
     "power": 8,
     "range": "medium",
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 120,
+    "reload": 3,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -15,
+    "snap": 15,
+    "pen": 0,
+    "suppress": 2,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -1864,12 +2415,23 @@
    "bulk": 6,
    "effects": {
     "tags": [
-     "pierce_3",
      "spool"
     ],
     "power": 12,
     "range": "long",
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 3,
+    "reload": 2,
+    "reach": 24,
+    "near": 9,
+    "falloff": 1,
+    "handling": -8,
+    "snap": 15,
+    "pen": 3,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -1893,7 +2455,19 @@
     ],
     "power": 10,
     "range": "medium",
-    "damage": "explosive"
+    "damage": "explosive",
+    "rof": 0.5,
+    "mag": 4,
+    "reload": 2,
+    "reach": 14,
+    "near": 3,
+    "falloff": 1.5,
+    "handling": -12,
+    "snap": 9,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 3
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -1912,13 +2486,24 @@
    "bulk": 5,
    "effects": {
     "tags": [
-     "pierce_3",
      "single_shot"
     ],
     "power": 13,
     "range": "long",
     "damage": "energy",
-    "charge": 18
+    "charge": 18,
+    "rof": 0.5,
+    "mag": 18,
+    "reload": 2,
+    "reach": 23,
+    "near": 8,
+    "falloff": 1,
+    "handling": -8,
+    "snap": 14,
+    "pen": 3,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -1946,7 +2531,8 @@
      "ballistic": 1,
      "energy": 1,
      "explosive": 1
-    }
+    },
+    "covers": null
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -2013,7 +2599,19 @@
      "nonlethal",
      "burst"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 11,
+    "near": 0,
+    "falloff": 2.5,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2036,7 +2634,19 @@
      "nonlethal",
      "disorient"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2056,10 +2666,21 @@
     "power": 3,
     "range": "medium",
     "tags": [
-     "nonlethal",
-     "suppressive"
+     "nonlethal"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 20,
+    "reload": 1,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2.5,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2081,7 +2702,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 25,
+    "reload": 1,
+    "reach": 12,
+    "near": 1,
+    "falloff": 2.5,
+    "handling": -3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2103,7 +2736,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 13,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2126,7 +2771,19 @@
      "burst",
      "stabilized"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 3,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2146,10 +2803,21 @@
     "power": 6,
     "range": "medium",
     "tags": [
-     "burst",
-     "pierce_1"
+     "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 30,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2172,7 +2840,19 @@
      "burst",
      "heavy_draw"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 2,
+    "mag": 24,
+    "reload": 2,
+    "reach": 14,
+    "near": 1,
+    "falloff": 2,
+    "handling": 0,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2193,10 +2873,21 @@
     "range": "medium",
     "tags": [
      "burst",
-     "pierce_1",
      "stabilized"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 40,
+    "reload": 1,
+    "reach": 14,
+    "near": 1,
+    "falloff": 1.5,
+    "handling": 5,
+    "snap": 4,
+    "pen": 1,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
    },
    "price_model": "scarcity",
    "legality": "legal",
@@ -2210,7 +2901,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 490,
+   "cost": 620,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -2218,7 +2909,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 25,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 4,
+    "handling": 0,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2232,7 +2935,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 760,
+   "cost": 960,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -2240,7 +2943,19 @@
     "tags": [
      "burst"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 7,
+    "near": 0,
+    "falloff": 4,
+    "handling": 5,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2254,7 +2969,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1420,
+   "cost": 1700,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -2263,7 +2978,19 @@
      "burst",
      "smart_link"
     ],
-    "damage": "ballistic"
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 8,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
    },
    "price_model": "formula",
    "legality": "legal",
@@ -2277,21 +3004,396 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2450,
+   "cost": 2950,
    "bulk": 2,
    "effects": {
     "power": 5,
     "range": "short",
     "tags": [
-     "burst",
-     "silent"
+     "burst"
     ],
-    "damage": "energy"
+    "damage": "energy",
+    "rof": 3,
+    "mag": 30,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 8,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 0
    },
    "price_model": "formula",
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_padded_jacket",
+   "name": "Padded Jacket",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 1,
+   "cost": 130,
+   "bulk": 1,
+   "effects": {
+    "protection": 1,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_scrap_plates",
+   "name": "Scrap Plates",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 1,
+   "cost": 150,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": -1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_riot_suit",
+   "name": "Riot Suit",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 290,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_reflective_weave",
+   "name": "Reflective Weave",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 280,
+   "bulk": 1,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": 2,
+     "explosive": -1
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_blast_apron",
+   "name": "Blast Apron",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 2,
+   "cost": 260,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": -1,
+     "explosive": 3
+    },
+    "covers": [
+     "torso",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_helmeted_flak",
+   "name": "Flak Vest and Helmet",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 360,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 0,
+     "explosive": 2
+    },
+    "covers": [
+     "torso",
+     "head"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_ceramic_vest",
+   "name": "Ceramic Vest",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 450,
+   "bulk": 2,
+   "effects": {
+    "protection": 3,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 2,
+     "energy": 0,
+     "explosive": 0
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_field_coat",
+   "name": "Field Coat",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 3,
+   "cost": 410,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_kinetic_harness",
+   "name": "Kinetic Harness",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1060,
+   "bulk": 2,
+   "effects": {
+    "protection": 4,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 2,
+     "energy": -1,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_mirror_suit",
+   "name": "Mirror Suit",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1160,
+   "bulk": 3,
+   "effects": {
+    "protection": 4,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": 3,
+     "explosive": -1
+    },
+    "covers": null
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_trooper_shell",
+   "name": "Trooper Shell",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 4,
+   "cost": 1060,
+   "bulk": 3,
+   "effects": {
+    "protection": 4,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "head",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_siege_plate",
+   "name": "Siege Plate",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 5,
+   "cost": 2940,
+   "bulk": 4,
+   "effects": {
+    "protection": 6,
+    "mobility": -3,
+    "tags": [
+     "mob_down"
+    ],
+    "resist": {
+     "ballistic": 2,
+     "energy": 1,
+     "explosive": 2
+    },
+    "covers": null
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
+  },
+  {
+   "id": "itm_ghost_weave",
+   "name": "Ghost Weave",
+   "category": "armor",
+   "slot": "armor",
+   "family": "armor",
+   "tier": 5,
+   "cost": 2230,
+   "bulk": 1,
+   "effects": {
+    "protection": 3,
+    "mobility": 2,
+    "tags": [
+     "mob_up"
+    ],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "",
+   "type": "Armour"
   }
  ],
  "doctrines": [
