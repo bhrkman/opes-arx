@@ -607,11 +607,14 @@
        to 21 while the weakest climbed to the ceiling and stayed there, because neither card
        ever moved. */
     const anchor = opts.expect || 5;
-    const ambition = clamp(Math.round(anchor - (rep.patience - CONST.AMBITION_PIVOT) / CONST.AMBITION_SCALE),
+    let ambition = clamp(Math.round(anchor - (rep.patience - CONST.AMBITION_PIVOT) / CONST.AMBITION_SCALE),
                            1, 8);
+    /* §SNOWBALL A CHAMPION'S BOARD RAISES THE BAR: an OA that finished in the top three last year is asked to finish
+       at least as high again — the champion's board wants the title again — so defending is harder than winning */
+    if (opts.lastPlace && opts.lastPlace <= 3) ambition = Math.min(ambition, opts.lastPlace);
     rep.ambition = ambition; rep.anchor = anchor;
     pool.push({ weight: 2.4, demand: { kind: 'placement', at: ambition } });
-    pool.push({ weight: ambition <= 2 ? 0.9 : 0.25, demand: { kind: 'win' } });
+    pool.push({ weight: opts.lastPlace === 1 ? 2.0 : ambition <= 2 ? 0.9 : 0.25, demand: { kind: 'win' } });
     /* THE SURPLUS DEMAND LEFT THE CARD. "End the year N up" and the standing Spending demand
        read the same money two ways, and a card that asks twice for one thing is a card with
        one fewer ask. Spending grades it every year on its own spectrum. */

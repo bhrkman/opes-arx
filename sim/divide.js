@@ -522,6 +522,15 @@
     STANCE_PULL_AHEAD: 0.7,             // [C] an opening is worth taking
     RANSOM_ANSWER_WINDOWS: 2,           // [C] §TIME the windows a person has to answer a ransom before it lapses
     LEAVE_OVERTIME_GUESS: 6,
+    CHAMPION_PREY: 0.35,                // [C] §SNOWBALL every hunter values last year's champion this much more
+    CONTENDER_SHARE: 0.7,               // [C] a contender: its force at least this share of the strongest on the ground
+    CONTENDER_FOCUS: 0.35,              // [C] and it values the champion and the front-runner this much more again
+    CONTENDER_SMALL_FRY: 0.6,           // [C] and a small, weak OA only this much
+    UNDERDOG_FAME_PER_PLACE: 0.12,      // [C] §SNOWBALL fame for a kill, per place the victim's OA finished above the killer's
+    UNDERDOG_FAME_FLOOR: 0.4,           // [C] and the least it falls to, hitting all the way down
+    CHAMPION_FAME_BONUS: 0.5,           // [C] and half again on top for one of the champion's own
+    BANNER_PULL_AT: 0.45,
+    PULL_MARGIN: 0.25,                  // [C] §MARKET how far above the line a force's staying starts to lose its worth               // [C] §BASELINE (temporary) below this share standing, an OA's banner is pulled
     LEAVE_EARLIEST_DAY: 3,              // [C] before this an OA has seen too little of its own losses to price them            // [C] the days past the last ground an OA expects a contest to run
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,              // [H] a point of it in credits: about a year of gate (₡68/month) and its pull
@@ -945,6 +954,24 @@
     return Math.max(CONST.STANDING_MIN, Math.min(CONST.STANDING_MAX, v));
   }
 
+  /* §SNOWBALL THE CHAMPION IS A MARK, and a contender hunts the top. Every hunter values last year's champion more — the
+     fame of taking down the champ. A CONTENDER (its force near the strongest on the ground) values the champion and the
+     current front-runner more again, and a small, weak OA less — beating those does not bring the title nearer, and a
+     patient front-runner left alone is the one that outlasts everyone. */
+  function prestigeFor(seeker, sq) {
+    let p = prestigeOf(sq);
+    const tc = sq && sq.corp, sc = seeker && seeker.corp;
+    if (!tc || !sc || tc === sc) return p;
+    if (lastPlaceOf(tc) === 1) p *= 1 + CONST.CHAMPION_PREY;
+    const live = (c) => (c.allBodies || []).filter(b => b.status === 'active').length;
+    const onG = CORPS_REF.filter(c => !c.withdrawn);
+    const top = Math.max(1, ...onG.map(live));
+    if (live(sc) >= CONST.CONTENDER_SHARE * top) {
+      if (lastPlaceOf(tc) === 1 || live(tc) >= top) p *= 1 + CONST.CONTENDER_FOCUS;
+      else if (live(tc) < 0.5 * live(sc)) p *= CONST.CONTENDER_SMALL_FRY;
+    }
+    return p;
+  }
   /** What a hunter stands to gain from this particular squad. */
   function prestigeOf(sq) {
     const strength = squadHead(sq).length / Math.max(1, sq.bodies.length);
@@ -1124,7 +1151,19 @@
      offer in a contest, his, and nothing an AI OA could post. Now every OA may have an offer out, the field
      answers each (an AI by its weighing, a person at their window), and standing down is one act for everyone:
      whoever said yes is on record, and the winner decides each promise at the settlement. */
+  /* §MARKET (ruled: the Divide is a negotiation) WHO KEEPS THEIR WORD. A promise was kept at one minus treachery, less
+     half the share — an average OA (treachery 50) at ~45% — so every promise a leaver weighed was worth under half its
+     face, and the market it was meant to drive barely traded: in six contests one exit by deal, 1.3% of the pot to
+     anyone but the winner, one promise in six kept. Breaking a promise costs the breaker standing that scales with the
+     promise, on a stage the whole fleet watches, so keeping it is the ordinary course and character bends that: an
+     honest OA keeps ~90%, an average one ~70%, a treacherous one ~50%, a little less for a larger promise. One formula,
+     for what a leaver expects and for what the winner does. */
+  function keepChance(j, share) {
+    const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
+    return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
+  }
   function standDown(c, day, stats, corps) {
+    if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
@@ -1233,10 +1272,7 @@
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
     const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;
-    const keepOf = (j, share) => {
-      const t = (j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
-      return Math.max(0.05, Math.min(0.95, (1 - t / 100) - share * 0.5));
-    };
+    const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
        the strength on the ground, of what fighting on would have cost it. A BIG THREAT GOING spares a lot, which
@@ -1322,9 +1358,27 @@
        still do; otherwise it takes the offer back and fights on. (It replaced "leave below 4% odds" — ruled an
        oversimplification, and chosen for keeping a fatality rate steady, which the standing instruction says
        is not to be considered at all.) */
+    /* §BASELINE THE ALEAS PULL A SPENT BANNER (temporary, ruled; a rule for every seat alike): an OA with fewer than
+       this share of its people still standing is out of the contest, and those still standing come home. Measured:
+       of 32 OA-contests 28 were eliminated and none left — a fighter is worth ₡3–10k and the pot ₡1.28M, so fighting
+       to the last is the rational play — and the fallen lost 60% of those they fielded dead. No tuning of a hit moved
+       that below ~42%: gentler hits only meant more fights. This rule, with severity's power weight at 0.75, puts
+       a Divide at ~31% (six fresh Divides, 24–35% each); contests run ~21 days, not 28. */
+    if (day >= CONST.LEAVE_EARLIEST_DAY) for (const c of corps) {
+      if (!onGround(c)) continue;
+      const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
+      if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
+        stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
+        standDown(c, day, stats, corps);
+      }
+    }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
-      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) - stayCost(c), cost = standingCost(c);
+      /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
+         shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
+      const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
+      const margin = Math.max(0, Math.min(1, (upShare - CONST.BANNER_PULL_AT) / CONST.PULL_MARGIN));
+      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) * margin - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         const ask = (off.terms && off.terms.credits) || 0;
@@ -1338,6 +1392,17 @@
           if (ask <= 0) continue;
           const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask);
           if (ev > best.ev) best = { ask: ask, ev: ev };
+        }
+        /* §WITHDRAWAL AN OA CAN WALK AWAY WITH NOTHING. It could leave only through a deal — an offer some rival
+           promised against — so a beaten OA with no buyer for its exit fought on until it was eliminated, whatever
+           staying cost it: in four contests 28 of 32 OAs fell, none left, and the fallen lost 60% of those they
+           fielded dead. Walking off is the plain economic choice when staying is worth less than the standing it
+           costs to go — the same Withdraw Now a manager has. It is weighed before any offer, and a deal worth more
+           than walking still wins. */
+        if (-cost > stay && !(best.ask > 0 && best.ev - cost > -cost)) {
+          stats.audit.walkedAway = (stats.audit.walkedAway || 0) + 1;
+          standDown(c, day, stats, corps);
+          continue;
         }
         if (best.ask > 0 && best.ev - cost > stay) {
           postWithdrawOffer(c, { credits: best.ask }, day, stats);
@@ -3035,8 +3100,20 @@
    * That is the honest resolution at this granularity: the squad that took them down gets
    * the credit, not a name drawn out of a hat.
    */
-  function transferFame(victim, takers) {
-    const gain = REP.fameTransfer(victim.fame || 0, 1);
+  /* §SNOWBALL EVERYONE LOVES AN UNDERDOG: fame for a kill scales with how far UP it was aimed — against an OA that
+     finished above yours last year it pays more, against one below less — and one of last year's champion's own is
+     worth the most of all. The places are last year's (1 the champion); a first year has none. */
+  let CORPS_REF = [];                    /* the contest being run, for the hunters' view of the field */
+  const lastPlaceOf = (c) => c ? ((c.persist && c.persist.lastPlace) || c._lastPlace || null) : null;
+  function underdogMult(victimCorp, takerCorp) {
+    const vp = lastPlaceOf(victimCorp), tp = lastPlaceOf(takerCorp);
+    if (!vp || !tp) return 1;
+    let m = 1 + CONST.UNDERDOG_FAME_PER_PLACE * (tp - vp);           /* places climbed: positive hitting up */
+    if (vp === 1) m += CONST.CHAMPION_FAME_BONUS;
+    return Math.max(CONST.UNDERDOG_FAME_FLOOR, m);
+  }
+  function transferFame(victim, takers, victimCorp, takerCorp) {
+    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp);
     if (!(gain > 0) || !takers.length) return 0;
     const each = gain / takers.length;
     for (const t of takers) {
@@ -3085,7 +3162,9 @@
           const e = (bag[f._oaId || sq.corpId] = bag[f._oaId || sq.corpId] || { n: 0, famous: 0 });
           e.n++;
           if ((f.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++;
-          transferFame(f, victors.bodies || []);
+          /* the victim's OA: a combined side hands each fighter back to the squad they marched in with */
+          const vsq = owner[u.id] || sq;
+          transferFame(f, victors.bodies || [], vsq && vsq.corp, victors.corp);
         }
       }
       else if (u.state === 'captured') {
@@ -3164,6 +3243,7 @@
     if (!planet.pot) planet.pot = NEG.rollPot(rng, planet.archetype, planet.richness);
 
     const corps = [];
+    CORPS_REF = corps;                  /* §SNOWBALL the hunters’ view of who is on the ground */
     _humans = new Set((opts.humans && opts.humans.length) ? opts.humans : (opts.human ? [opts.human] : []));
     _manager = (opts.humans && opts.humans.length) ? opts.humans[0] : (opts.human || null);
     corpsRef = corps;
@@ -3451,6 +3531,10 @@
 
     while (true) {
       day++;
+      /* §PLACEMENT WHEN AN OA LEAVES THE GROUND is its place: the day it withdrew, had its banner pulled or lost its last
+         fighter. Nothing recorded it, so every OA but the winner was ranked in LIST ORDER — the board's "place Nth or
+         better" was decided by where an OA sat in the fleet's list; it only showed once most OAs left by withdrawal. */
+      for (const c of corps) if (c._downedOn == null && (c.withdrawn || !(c.squads || []).some(q => squadHead(q).length))) c._downedOn = day - 1;
       stats.days = day;
       rollWeather(rng, planet, stats, day);
       overtime = day > MAP.CONST.LAST_GROUND_DAY;
@@ -4353,7 +4437,7 @@
               const late = overtime ? 1
                 : 1 - Math.min(1, Math.max(0, (room - minFrac) / (0.55 - minFrac)));
               const worth = Math.min(1, CONST.PRESTIGE_FLOOR
-                + (1 - CONST.PRESTIGE_FLOOR) * prestigeOf(other) + 0.55 * late);
+                + (1 - CONST.PRESTIGE_FLOOR) * prestigeFor(seeker, other) + 0.55 * late);
               if (rng() >= worth) {
                 stats.passedOver++; stats.audit.passedOver++;
                 rec({ t: 'pass', x: mx, y: my, c: seeker.corpId, on: other.corpId });
@@ -5246,7 +5330,9 @@
        read categories. */
     stats.haulLines = NEG.settleHaul(stats.banked, corps, stats.deals, stats.winner, REP.CATEGORIES);
 
-    const fellIds = (stats.fallen || []).slice().sort((a, b) => a.day - b.day).map(f => f.id);
+    /* earliest off the ground places lowest; on the same day, the one with fewer people still standing */
+    const upOf = (id) => { const c = corps.find(x => x.id === id); return c ? c.allBodies.filter(b => b.status === 'active' || b.status === 'injured').length : 0; };
+    const fellIds = (stats.fallen || []).slice().sort((a, b) => (a.day - b.day) || (upOf(a.id) - upOf(b.id))).map(f => f.id);
     stats.placement = REP.placements(fellIds, stats.winner, [], corps.length);
 
     /* --- §3.1 the finish, and the planet ----------------------------------------------- */
@@ -5324,7 +5410,7 @@
         /* the settlement is past the last window, so this is not a manager's choice to make
            and takes no `decide` hook: an OA answers for its word out of its own character. */
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
-        const keep = rng() < Math.max(0.05, Math.min(0.95, straight - (share + storesAsked / 4) * 0.5));
+        const keep = rng() < keepChance(w, share + storesAsked / 4);   /* §MARKET the same trust the leaver priced */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});

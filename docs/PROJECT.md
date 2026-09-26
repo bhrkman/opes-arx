@@ -3919,6 +3919,50 @@ the command colour) and the Market's (centred, ruled, uppercase) are two designs
 look: the name centred in capitals (14px, .18em, ink) with a rule running out either side, and the Desk's fold mark (▾
 folded, ▴ open) at the right edge — added to the Market's titles, which had none. The Desk's underline is gone.
 
+**A BASELINE FOR FATALITY AND THE ECONOMY (temporary, ruled — not the final balance).** Measured first: a Divide killed
+~53% of those fielded. 28 of 32 OAs were ELIMINATED, none withdrew; the fallen lost 60% dead, the winners 32%. No tuning
+of a hit moved that below ~42% — gentler hits only meant more fights — because a fighter is worth ₡3–10k and the pot
+₡1.28M, so fighting to the last was the rational play. Two levers: **the Aleas pull a spent banner** (an OA below 45%
+standing is out and its survivors come home — every seat alike; `BANNER_PULL_AT`) and **severity's power weight 1.15 →
+0.75**. An AI OA may also **walk away with nothing** when staying is worth less than its standing (it could only leave
+by deal). **The market was the failure (ruled: the Divide is a negotiation, fix it before placement shares).** In six
+contests: one offer a contest, ONE exit by deal, 1.3% of the pot to anyone but the winner, one promise in six kept. A
+rival promises exactly what an exit gains it, so there was never surplus, and two things sank every deal: trust (a
+promise kept at 1 − treachery − share/2, an average OA ~45%) and a leaver that priced staying as if it could fight on
+while the banner rule was about to pull it with nothing. Now **trust is grounded in reputation** (`keepChance`, one
+formula for what a leaver expects and what the winner does: honest ~90%, average ~70%, treacherous ~50%) and **the
+deadline is priced** (staying's worth shrinks to nothing at the line, `PULL_MARGIN` 0.25 above it). Six contests: 4.7
+offers a contest, 14 exits by deal, 28 banners pulled (41), 18.3% of the pot to OAs that did not win, fatality 28.3%.
+Eight seasons (seed B): every non-winner earns ₡73–323k from the market where it earned nothing, nobody goes negative,
+the founded OA (played by the AI's own policies) ₡210k → ₡441k where it went broke. **Left:** one OA still wins about
+half the Divides (Mercy Concern 4 of 8, ₡3.2M) — a strength snowball, not money (winners cannot spend past the kit cap),
+so placement shares were held back; winners' money needs somewhere to go. `harness/probe_market.cjs` measures the market.
+Snapshots re-blessed; proofs re-recorded.
+
+**ANTI-SNOWBALL (ruled).** In multiplayer a dynasty is miserable, so the top is pushed on and the bottom lifted, on
+STRENGTH more than money (money cannot buy power past the kit cap, so a money handicap mostly bites the middle).
+**THE DRAFT** (ruled; a fourth way to take on fighters): in Month 1 the Aleas present sixteen fighters they raised,
+spread wide (each stat 1.8x further from the pool's average: totals ~240 to ~690), two to an OA, picked in straight
+reverse order of last year's placement — last place first in both rounds — free, on a two-season contract. An engine
+seat takes the best available; a person's pick waits, and Month 1 closing has the Aleas assign the best remaining; a
+first year's order is drawn. A Mon-Wa pair is one being and one pick, and crosses whole (the first build split pairs —
+the page's trade check caught a half left behind). A panel on the Desk in Month 1: the order, the pool's seven stats,
+Pick. **THE DROP:** the landing-slot pick before the drop is renamed wherever a player sees it. **THE CHAMPION'S
+PREMIUM:** a hired gun charges last year's champion +30%, last place about −10% (the losses discount had rewarded the
+careful OAs, which are the ones that win). **UNDERDOG FAME:** fame for a kill +12% a place the victim's OA finished above
+the killer's, less hitting down (floor 0.4x), +50% for one of the champion's own. **THE CHAMPION'S BOARD:** a top-three
+OA is asked to finish at least as high again; the champion's board wants the title again. **THE CHAMPION AS A MARK**
+(ruled: a tactical consideration, not a bounty): every hunter values the champion's squads more (+35%), and a CONTENDER
+(its force at least 70% of the strongest) values the champion and the front-runner more again and passes over small,
+weak OAs. **FOUND: PLACEMENT WAS LIST ORDER.** Nothing recorded the day an OA left the ground, so at the end every OA
+but the winner fell on the last day, tied, and was ranked by where it sat in the fleet's list — the board's "place Nth
+or better" was decided by that. It showed once most OAs left by withdrawal (New Line fifth eight seasons running). Now
+the day an OA withdraws, is pulled or loses its last fighter is its place; ties go to the one with more standing.
+**MEASURED** (eight seasons, seed B): six different champions, none more than twice (was one OA 6 of 8); fatality 27%;
+exits by deal 18 in six contests, 21.5% of the pot to non-winners. A season can end with no winner. The seat test picks
+a scenario where both seats still stand at its third window (a pulled banner leaves with its offer — the rule). Proofs
+and fingerprint re-recorded; `harness/drive_draft.cjs` drives the Draft on the page.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

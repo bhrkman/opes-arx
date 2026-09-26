@@ -49,7 +49,8 @@
        calibration that kept the fleet's year recognizable: THREE FOCUS EQUALS ONE OLD
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
-    FOCUS_POINTS: 8,             // [H] focus a corp gets each month
+    FOCUS_POINTS: 8,
+    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%             // [H] focus a corp gets each month
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
                                  //     drill block toward their ceiling monthly, unfocused —
@@ -948,6 +949,13 @@
       const idx = STATE_REF.ids.map(id => STATE_REF.corps[id]).filter(x => x && x.rep).map(x => REP.mercIndex(x.rep));
       const fleetMean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : 0;
       if (fleetMean > 0) mult *= REP.mercPriceMult(corp.rep, fleetMean);
+      /* §SNOWBALL THE CHAMPION'S PREMIUM: a hired gun charges last year's champion most — its fights will be the
+         hardest and its purse is deep — and the foot of the table a little less. The losses discount above rewards
+         careful OAs, which are also the ones that win, so on its own it fed the leader; this answers it. */
+      if (corp._lastPlace) {
+        const n = STATE_REF.ids.length, top = (n - corp._lastPlace) / Math.max(1, n - 1);   /* 1 the champion, 0 last */
+        mult *= 1 + CONST.CHAMPION_MERC_PREMIUM * top - CONST.CHAMPION_MERC_PREMIUM * 0.33 * (1 - top);
+      }
     }
     return Math.round(flat * mult);
   }
@@ -2636,6 +2644,79 @@
       }
     }
   }
+  /* §DRAFT (ruled) THE DRAFT: fighters raised and trained by the Aleas, sixteen of them in Month 1, two to an OA, picked
+     in straight reverse order of last year's placement — last place first in both rounds — for free, on a two-season
+     rookie contract at ordinary wages. The Aleas want a contest worth watching, and a league where last place gets first
+     pick is one. The pool is spread WIDE (each stat pushed 1.8x further from the pool's average) so the first pick is
+     worth having. An engine seat takes the best available; a person's turn waits, and when Month 1 closes the Aleas
+     assign the best remaining — a rule, not a choice made for them. A first year has no placements, so its order is
+     drawn. (The landing-slot pick before the drop is the Drop.) */
+  const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
+  function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
+  function openRecruitDraft(state) {
+    const ws = state.corps[state.ids[0]] && state.corps[state.ids[0]]._worldSeed;
+    const rng = P.mulberry32(P.seedFrom('recruit-draft' + state.season + ':' + (ws || 0)));
+    /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
+    const pool = ROSTER.generateSquad(rng, DRAFT.POOL, { corpId: null, poolMix: [['nattie', 1]] }).bodies;
+    const keys = Object.keys((pool[0] && pool[0].stats) || {});
+    for (const k of keys) {
+      const m = pool.reduce((t, f) => t + (f.stats[k] || 0), 0) / pool.length;
+      for (const f of pool) f.stats[k] = Math.max(15, Math.min(195, Math.round(m + ((f.stats[k] || 0) - m) * DRAFT.SPREAD)));
+    }
+    for (const f of pool) {
+      f.draftee = true; f.status = 'active';
+      f.contract = Object.assign({}, f.contract || {}, { seasons_remaining: DRAFT.SEASONS, seasons_total: DRAFT.SEASONS });
+    }
+    const placed = state.ids.some(id => state.corps[id]._lastPlace);
+    const base = state.ids.slice();
+    if (placed) base.sort((a, b) => (state.corps[b]._lastPlace || 99) - (state.corps[a]._lastPlace || 99));
+    else for (let i = base.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = base[i]; base[i] = base[j]; base[j] = t; }
+    const order = [];
+    for (let r = 0; r < DRAFT.ROUNDS; r++) order.push.apply(order, base);
+    state.recruitDraft = { pool: pool, order: order, picks: [], i: 0, done: false, byPlacement: placed };
+    recruitDraftAdvance(state);
+  }
+  function recruitDraftWhose(state) {
+    const R = state.recruitDraft;
+    return R && !R.done ? R.order[R.i] : null;
+  }
+  const draftLeads = (R) => R.pool.filter(x => !x.mirror_of);
+  function takeDraftee(state, corpId, f, how) {
+    const R = state.recruitDraft, c = state.corps[corpId];
+    const both = [f].concat(R.pool.filter(x => x.mirror_of === f.id));   /* a pair crosses together */
+    R.pool = R.pool.filter(x => both.indexOf(x) < 0);
+    for (const b of both) {
+      b.divides = 0; b.seasonsHere = 0; b.retired = false; b._fameAtSigning = b.fame || 0;
+      c.roster.push(b);
+    }
+    R.picks.push({ corp: corpId, fighter: f.id, name: f.name, round: Math.floor(R.i / state.ids.length) + 1, pick: R.i + 1, how: how });
+    R.i++;
+    if (R.i >= R.order.length || !draftLeads(R).length) R.done = true;
+  }
+  function recruitDraftPick(state, corpId, fighterId) {
+    const R = state.recruitDraft;
+    if (!R || R.done) return { ok: false, why: 'No Draft Open' };
+    if (recruitDraftWhose(state) !== corpId) return { ok: false, why: 'Not Your Pick' };
+    const f = draftLeads(R).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not in the Pool' };
+    takeDraftee(state, corpId, f, 'chose');
+    recruitDraftAdvance(state);
+    return { ok: true };
+  }
+  function recruitDraftAdvance(state, opts) {
+    const R = state.recruitDraft;
+    if (!R) return null;
+    while (!R.done) {
+      const who = R.order[R.i];
+      const best = draftLeads(R).sort((a, b) => draftScore(b) - draftScore(a))[0];
+      if (!best) { R.done = true; break; }
+      if (isHuman(state, who)) {
+        if (!(opts && opts.force)) break;
+        takeDraftee(state, who, best, 'assigned');
+      } else takeDraftee(state, who, best, 'policy');
+    }
+    return R;
+  }
   function beginSeason(rng, corps, profiles, opts) {
     /* §AUTHORITY a board question left unanswered when the year turns was silence, and silence costs */
     for (const id in corps) {
@@ -2731,7 +2812,8 @@
       REP.openSeason(c.rep, planet,
                      P.mulberry32(P.seedFrom('goal' + season + id)),
                      { expect: Math.max(2, 3 + ((c.profile || {}).difficulty || 3)),
-                       thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low' });
+                       thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low',
+                       lastPlace: c._lastPlace || null });      /* §SNOWBALL the champion's board raises the bar */
     }
 
     const seats = humansOf(opts);
@@ -2752,6 +2834,7 @@
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
+    openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
     return state;
   }
 
@@ -3104,6 +3187,8 @@
    * a second human player would wait on.
    */
   function stepMonth(state, choices) {
+    /* §DRAFT the month the draft is held closes it: any pick not made is the Aleas' to assign */
+    if (state.recruitDraft && !state.recruitDraft.done) recruitDraftAdvance(state, { force: true });
     lapseTrades(state);   /* §TRADE the month closes: a letter left unanswered lapses */
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
     STATE_REF = state;
@@ -3460,6 +3545,7 @@
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
         /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
            Divide writes into the same object, so the lesson survives the lock */
         dealRecord: (c._dealRecord = c._dealRecord || {}),
@@ -3736,6 +3822,8 @@
   }
   function finishSeason(state, res) {
     askBoards(state, res);
+    /* §DRAFT where each OA finished is next year's draft order, last place first */
+    for (const id of state.ids) if (res.placement && res.placement[id] != null) state.corps[id]._lastPlace = res.placement[id];
     /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
        it walks onto the ground, does its work, and is gone at the settlement. Cleared here
        rather than at the drop so a replayed or halted contest still sees it. */
@@ -4260,7 +4348,8 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { isHuman, humansOf, theManager, seatView,
+  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose,
+     seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
      setController,
