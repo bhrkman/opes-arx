@@ -4042,6 +4042,24 @@ tempered, 25.9% funded, 23.8% canon. **FOUND: ONLY ONE OA COULD BE FOUNDED.** `f
 `custom_house`). A founded profile may carry `rigidity`. Eight founded seats run through the seat API (months
 submitted, the draft and contest forced) for two seasons, clean.
 
+**CAUTION OR COMPOSITION? (measured).** An aggressive OA splits into more, smaller squads, so "caution wins" might only
+be "big squads win". `sim/measure_composition.cjs` gives identical founded OAs a temperament and a FORCED squad count,
+96 fresh contests each, list rotated. Win rate per seat (even is 12.5%):
+
+| test | result |
+|---|---|
+| natural (each picks its own squads) | preservationist 20.8% (2.4 squads of 7.3) · unyielding 3.4% (4.9 squads of 3.9) |
+| crossed, 2 squads each | preservationist 18.2% · unyielding 17.7% |
+| crossed, 5 squads each | preservationist 8.9% · unyielding 3.6% |
+| stance varied, 3 squads each | preservationist 20.3% · measured 10.4% · standard 13.0% · unyielding 4.7% |
+| squad count varied, one stance | 2 squads 20.3% · 3 10.4% · 4 6.2% · 5 7.8% |
+
+**Mostly composition, and the rest is an interaction.** Concentrated in two squads of about nine, stance makes no
+difference at all; the bold OA's whole deficit in the natural fleet is chiefly its spread. Stance matters only once
+squads are small (six or under): there caution still pays two to four times over, because a small squad's best fight
+is the one it avoids. Splitting wide never pays for anyone — the ground it buys (more sites: 5.9 against 3.0 for the
+careful, split five ways) does not win a Divide.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
