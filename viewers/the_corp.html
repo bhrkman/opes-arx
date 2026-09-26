@@ -1054,6 +1054,12 @@
   .mtile .mtop{display:flex;align-items:baseline;gap:6px}.mtile .mtop .nm{flex:1}.mtile .mtop .pr{color:var(--cred);white-space:nowrap}
   .mtile .mfoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
   .mtile .held{color:var(--hit,#4fd6a0);font-size:10.5px}
+  .rsvrow{display:flex;align-items:center;gap:6px}.rsvrow > :nth-child(2){flex:1;min-width:0}
+  .rsvrow .rsvn{width:16px;text-align:right;color:var(--cred,#f0c04a);font-size:11px}
+  .rsvrow .rsvmv{display:flex;flex-direction:column;gap:2px}.rsvrow .rsvmv button{padding:0 5px;line-height:1.2}
+  .rsvrow.home{opacity:.55}
+  .rsvsplit{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);text-align:center;margin:8px 0 4px;border-top:1px solid var(--line);padding-top:6px}
+  .ev.land{color:var(--hit,#4fd6a0)}
   .rdraft{background:var(--panel,#0d1420);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 12px}
   .rdorder{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:10.5px;margin:8px 0 4px}
   .rdorder .done{opacity:.4}.rdorder .now{outline:1px solid var(--a);border-radius:3px;padding:0 4px}
@@ -10505,7 +10511,8 @@
      words twice over — both belong to somebody who was here first, and nobody was. */
   const DEPOSIT_LABEL = { minerals: 'Seam', fuels: 'Well', foods: 'Bloom', luxuries: 'Bed' };
   const OBJECTIVE_TYPES = [
-    { id: "sponsor_cache",  label: "Sponsor Cache",  weight: 22, claimDays: 2 },
+    /* §RESERVE a cache is a LANDING BEACON: held, not looted, and an OA's reserve lands on it (divide.js) */
+    { id: "sponsor_cache",  label: "Landing Beacon", weight: 34, claimDays: 2 },   /* 22 → 34: two a planet were brawls, not landings */
     { id: "munitions_drop", label: "Munitions Drop", weight: 22, claimDays: 2 },
     /* §SITES a rest site: food and shelter. It fed a squad and did nothing for its hurt, so a
        wounded squad had no place on the map to go to — now it mends them too, which gives a
@@ -18913,6 +18920,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     return best;
   }
+  /* §RESERVE A BEATEN SQUAD FALLS BACK TO A BEACON when its OA has fighters in orbit and one is within reach: falling
+     back and being made whole are the same move. (The plan lottery could not do this: a bloodied squad is ordered to
+     break contact the moment it loses, and was usually pulled or finished before it chose again.) */
+  function beaconFor(sq, planet, day, reach) {
+    const c = sq.corp;
+    if (!c || !c.reserve || !c.reserve.length) return null;
+    if (squadHead(sq).length >= (sq._startN || 0)) return null;
+    let best = null, bd = reach;
+    for (const o of planet.objectives || []) {
+      if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day)) continue;
+      if (!MAP.inZone(planet, day, o.x, o.y)) continue;
+      const d = MAP.dist(sq.x, sq.y, o.x, o.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    return best;
+  }
   function setStance(corp, otherId, notch) {
     if (!STANCE_DIALS[notch]) return false;
     corp._stance = corp._stance || {};
@@ -19282,8 +19305,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §9 objectives */
     CLAIM_CACHE_TIER: 4,                // [S] a crate's tier when the wave did not set one
     INTEL_CAP: 0.18,                    // [S] most readiness a season of scouting can buy
-    CACHE_EXOTIC_P: 0.12,               // [S] chance a tier-5 crate holds an exotic
-    CACHE_CONSUMABLES: 2,               // [S] supplies in every crate, +1 with a quartermaster
+    REINFORCE_NEED: 0.45,               // [C] §RESERVE the pull of a beacon on a squad with any loss to replace
+    REINFORCE_PER_LOSS: 1.1,            // [C] and how much more for each share of its drop it has lost
+    BEACON_FALLBACK_MARCHES: 3,         // [C] how many days' march a beaten squad will fall back to reach a beacon
+    BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
+    BEACON_CONTEST_RADIUS: 0.04,        // [C] an enemy squad this near a beacon stops anything landing (0.06 made every beacon a standoff)        // [C] an enemy squad this near a beacon stops anything landing
     RELAY_INTEL_DAYS: 5,                // [C]
     RESUPPLY_MULT: 1.75,                // [C] §9 what a claimed munitions site is worth
 
@@ -19665,7 +19691,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         _intel: (persist && persist.intel) || 0,
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
-        claiming: null, movedToday: false, foughtToday: false, engagements: 0
+        claiming: null, movedToday: false, foughtToday: false, engagements: 0,
+        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
@@ -19682,7 +19709,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        ground. `kitIntent` decides how near the cap this corp gets, from its wealth and from
        whether it fancies this particular planet. The cap itself is still one number for
        everyone (P1). */
+    /* §RESERVE the fighters held in orbit are kitted with the force, inside the same cap, and wait to land */
+    corp.reserve = (persist && persist.reserve) ? persist.reserve.slice() : [];
+    corp.reserveStart = corp.reserve.filter(f => !f.mirror_of).length;
+    corp.landed = 0;
+    const onGroundBodies = corp.allBodies;
+    if (corp.reserve.length) corp.allBodies = onGroundBodies.concat(corp.reserve);
     equipCorp(corp, profile, loadout, planet, season);
+    corp.allBodies = onGroundBodies;
     return corp;
   }
 
@@ -20381,7 +20415,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        It was pre-catalog by construction: a five-row tier table is how you model kit before
        86 real items exist. PROCUREMENT.md §13 has said "that scalar is deleted" since Step 5
        and described the bundle that replaces it; this is that bundle, landed at last.
-       See `openCrate`. */
+       (A crate once upgraded kit from the catalogue; a cache is a Landing Beacon now.) */
     const byId = {};
     for (const u of units) byId[u.id] = u;
     for (const u of units) {
@@ -21039,7 +21073,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      rather his people found; everything below is the squads' own. The list is long on purpose —
      it is invisible to a manager, so it costs nothing to be various, and a contest where every
      squad is doing one of four things reads as four squads. */
-  const APPROACHES = ['resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
+  const APPROACHES = ['reinforcing', 'resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
                       'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening',
                       'entrenching', 'baiting', 'sweeping', 'pressing'];
 
@@ -21051,7 +21085,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   function approachValid(sq, planet, day) {
-    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day));
+    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day) && o.type !== 'sponsor_cache');
+    /* §RESERVE reinforcing is over when the reserve is empty or no beacon stands */
+    if (sq.approach === 'reinforcing') return !!(sq.corp && sq.corp.reserve && sq.corp.reserve.length)
+      && planet.objectives.some(o => o.type === 'sponsor_cache' && MAP.siteLive(o, day));
     /* nothing left to dig means nothing to prospect for */
     if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'resource_site' && MAP.siteLive(o, day));
     return true;
@@ -21081,7 +21118,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                     : 1;
     let site = null, sd = 9;
     for (const o of planet.objectives) {
-      if (!MAP.siteLive(o, day) || o.type === 'relay_mast') continue;
+      if (!MAP.siteLive(o, day) || o.type === 'relay_mast' || o.type === 'sponsor_cache') continue;
       if (o.type === 'strongpoint' && o.heldBy === sq.corpId) continue;
       const dd = MAP.dist(sq.x, sq.y, o.x, o.y) * pull(o);
       if (dd < sd) { sd = dd; site = o; }
@@ -21093,6 +21130,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const mateD = mates.length ? Math.min.apply(null, mates.map(s => MAP.dist(sq.x, sq.y, s.x, s.y))) : 9;
 
     switch (ap) {
+      /* §RESERVE A SQUAD WITH LOSSES TO REPLACE, and fighters waiting in orbit to replace them, goes to a beacon — the
+         more it has lost the more it wants to — and a nearer beacon pulls harder. A squad at full strength never does. */
+      case 'reinforcing': {
+        const left = corp.reserve ? corp.reserve.length : 0;
+        const lost = Math.max(0, (sq._startN || head) - head) / Math.max(1, sq._startN || head);
+        if (!left || lost <= 0) return 0;
+        let bd = 9;
+        for (const o of planet.objectives)
+          if (o.type === 'sponsor_cache' && MAP.siteLive(o, day) && MAP.inZone(planet, day, o.x, o.y)) bd = Math.min(bd, MAP.dist(sq.x, sq.y, o.x, o.y));
+        if (bd > z.r * 1.3) return 0;
+        return Math.min(1, CONST.REINFORCE_NEED + lost * CONST.REINFORCE_PER_LOSS);
+      }
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
@@ -21306,8 +21355,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       case 'hunting':
         if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
         break;
+      case 'reinforcing': {
+        /* §RESERVE to the nearest beacon inside the ring, and hold it while there is anyone left to land */
+        let b = null, bd = 9;
+        for (const o of planet.objectives) {
+          if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day) || !MAP.inZone(planet, day, o.x, o.y)) continue;
+          const dd = MAP.dist(sq.x, sq.y, o.x, o.y);
+          if (dd < bd) { bd = dd; b = o; }
+        }
+        if (b) return { type: 'claim', obj: b, tx: b.x, ty: b.y, expires: day + CONST.PLAN_LIFE };
+        break;
+      }
       case 'resupplying': {
-        const o = site(o2 => o2.type !== 'relay_mast');
+        const o = site(o2 => o2.type !== 'relay_mast' && o2.type !== 'sponsor_cache');
         if (o) return { type: 'claim', obj: o, tx: o.x, ty: o.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
@@ -21525,103 +21585,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * map, then it goes dark for a few days and anyone may use it next. Staying at one would
    * waste the freedom it just handed you.
    */
-  /**
-   * PROCUREMENT.md §13 — what is actually in a sponsor's crate.
-   *
-   * One primary or armour piece at the crate's tier, plus supplies, and on a late crate
-   * sometimes an exotic. The piece goes to whoever gains most by it and is only taken if it
-   * is genuinely an upgrade — a tier-2 crate holds nothing a fielded squad wants, which is
-   * what makes the ring's escalating waves matter: early crates are supplies, late crates
-   * are weapons, and `DIVIDE.md` §2.5's "a late crate is where the exotica live" becomes
-   * true rather than aspirational.
-   *
-   * It is equipped onto the BODY, not onto the per-engagement combatant, so it survives the
-   * fight, keeps its tags, damage type and resistances like any other catalog item, and is
-   * carried home into the armoury by `season.js` if its owner lives. That is the honest path
-   * to a railgun: you win it, you keep it, and then you spend seasons deciding whether it is
-   * worth seven bodies' allowance to bring back.
-   *
-   * `sponsor_drop_handling_bonus` (the Mon-Wa quartermaster) reads HERE at last, closing half
-   * of `[OPEN-E3]` — it was declared at Step 2 and read nowhere in the project.
-   */
-  function openCrate(rng, sq, obj, stats) {
-    const bodies = squadHead(sq);
-    if (!bodies.length) return false;
-    const tier = Math.max(1, Math.min(5, obj.tier || CONST.CLAIM_CACHE_TIER));
-    const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
-    if (knack && stats.audit) stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
-    let took = false;
-
-    /* ---- the piece ----
-       The ordinary shelf STOPS AT TIER 4: every tier-5 primary and armour piece in the catalog
-       is exotic (§11.1), by design. So an exact-tier filter left the best crates in the game
-       holding nothing 88% of the time — the one branch that most needed to fire, wired to a
-       condition almost never true, written while cutting a system for that exact fault and
-       caught by measuring rather than reading. The pool is therefore "the best ordinary grade
-       AT OR BELOW the crate's tier": a tier-5 crate holds a tier-4 piece unless it rolls the
-       exotic, and a tier-2 crate holds a tier-2 piece that a fielded squad will refuse. */
-    const wantExotic = tier >= 5 && rng() < CONST.CACHE_EXOTIC_P * (knack ? 2 : 1);
-    let pool = ITEMS.catalog.filter(i =>
-      (i.slot === 'primary' || i.slot === 'armor') && i.legality === 'legal' &&
-      (wantExotic ? !!i.exotic : (!i.exotic && i.tier <= tier)));
-    if (!wantExotic && pool.length) {
-      const top = Math.max.apply(null, pool.map(i => i.tier));
-      pool = pool.filter(i => i.tier === top);
-    }
-    if (pool.length) {
-      const pick = pool[Math.floor(rng() * pool.length)];
-      const slot = pick.slot === 'armor' ? 'armor' : 'primary';
-      /* to whoever gains most: the lowest tier currently in that slot */
-      let best = null, bestTier = 99;
-      for (const f of bodies) {
-        const cur = ITEMS.byId((f.loadout || {})[slot]);
-        const t = cur ? cur.tier : 0;
-        if (t < bestTier) { bestTier = t; best = f; }
-      }
-      if (best && pick.tier > bestTier) {
-        const lo = best.loadout || {};
-        ITEMS.equip(best, {
-          primary: slot === 'primary' ? pick.id : lo.primary,
-          armor:   slot === 'armor'   ? pick.id : lo.armor,
-          mods: lo.mods, sidearm: lo.sidearm, consumables: lo.consumables
-        });
-        took = true;
-        if (pick.exotic) stats.audit.cacheExotics = (stats.audit.cacheExotics || 0) + 1;
-        stats.audit.cachePieces = (stats.audit.cachePieces || 0) + 1;
-      }
-    }
-
-    /* ---- the supplies ----
-       THE ALEAS CAPS CONSUMABLE SLOTS (`CONSUMABLE_SLOTS 2`, PROCUREMENT.md §2.4), and the first
-       version of this appended to `consumables` without looking — so a squad that emptied two
-       crates walked around with three and four, over a quota the Aleas is broadcasting. Five
-       fighters in a four-season career. Found by the corp schema at Step 8.5b, which is the
-       first thing in the project ever to walk a live fighter against its own declared shape.
-       Supplies now go to somebody who has a free slot, and a full squad simply cannot take
-       them — which is a real cost of having looted already, not a validation error. */
-    const want = CONST.CACHE_CONSUMABLES + (knack ? 1 : 0);
-    const shelf = ITEMS.catalog.filter(i => i.slot === 'consumable' && i.legality === 'legal');
-    for (let k = 0; k < want && shelf.length; k++) {
-      const room = bodies.filter(f => ((f.loadout || {}).consumables || []).length
-                                      < ITEMS.CONST.CONSUMABLE_SLOTS);
-      if (!room.length) break;
-      const item = shelf[Math.floor(rng() * shelf.length)];
-      const f = room[Math.floor(rng() * room.length)];
-      const lo = f.loadout || {};
-      ITEMS.equip(f, { primary: lo.primary, armor: lo.armor, mods: lo.mods, sidearm: lo.sidearm,
-                       consumables: (lo.consumables || []).concat([item.id]) });
-      took = true;
-      stats.audit.cacheSupplies = (stats.audit.cacheSupplies || 0) + 1;
-    }
-
-    /* a medkit in the crate is a medkit in the squad — the tally is built at the muster and
-       has to be rebuilt when the squad's consumables change, or the crate is invisible to it */
-    for (const f of bodies) chargeUp(f, true);
-    sq.medkits = medkitCharges(bodies);
-    sq.hasMedkit = sq.medkits > 0;
-    sq.crates++;
-    return took;
-  }
 
   function awardObjective(rng, sq, obj, stats) {
     stats.audit.awarded[obj.type] = (stats.audit.awarded[obj.type] || 0) + 1;
@@ -21687,7 +21650,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     sq.corp.sitesClaimed++;
     stats.claims++;
     switch (obj.type) {
-      case 'sponsor_cache':  if (openCrate(rng, sq, obj, stats)) stats.audit.gearUpgraded++; break;
       case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
@@ -21981,6 +21943,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       addStress(sq, CONST.STRESS.killed * killed + CONST.STRESS.downed * downed, stats);
     }
     if (!killed && !downed) addStress(sq, CONST.STRESS.cleanWin, stats);
+    /* §RESERVE A SQUAD THAT LOST PEOPLE THINKS AGAIN. A plan is only remade when it runs out, and the first one is
+       made at the drop, before anyone is lost — so a squad bled in a fight went on with the plan it had, and never
+       weighed walking to a beacon to be made whole. If its OA still has fighters in orbit, its plan is set aside. */
+    if (killed + downed > 0) {
+      const squads = side._parts ? side._parts.map(p => p._sq) : [sq];
+      for (const q of squads) if (q && q.corp && q.corp.reserve && q.corp.reserve.length) {   /* a strike is spent once fought */
+        q.intent = null; q.approachUntil = 0;
+      }
+    }
     return killed + downed;
   }
 
@@ -22225,7 +22196,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         passedOver: 0,
         huntMoves: 0, evadeMoves: 0, driftMoves: 0, objectiveMoves: 0,
         awarded: {}, hazardKind: {}, terrainUsed: {}, bandOpen: [0, 0, 0],
-        relayIntelUsed: 0, relayEscapeUsed: 0, gearUpgraded: 0, ammoResupply: 0,
+        relayIntelUsed: 0, relayEscapeUsed: 0, landed: 0, beaconContested: 0, ammoResupply: 0,
         weakDiscount: 0, lateReveals: 0,
         stressApplied: 0, successions: 0, rationDryDays: 0, degradeChecks: 0,
         nightEngagements: 0, objectiveFights: 0, capturedAlive: 0
@@ -22563,6 +22534,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
+              /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
+              landings: (stats.landings || []).filter(l => l.corp === seatId),
+              reserveLeft: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(f => !f.mirror_of).length,
               /* §WITHDRAWAL what the field has said about your offer, and the offer itself */
               withdrawOffer: (stats.withdrawOffers || {})[you.id] ? { terms: stats.withdrawOffers[you.id].terms,
                                                      sentDay: stats.withdrawOffers[you.id].sentDay } : null,
@@ -22817,7 +22791,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           sq,
           obj: planet.objectives.filter(o => o.revealed).map(o => ({
                  x: Math.round(o.x * 1000) / 1000, y: Math.round(o.y * 1000) / 1000,
-                 h: o.heldBy, t: o.type, lbl: o.label })),
+                 h: o.heldBy, t: o.type, lbl: o.label,
+                 on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),   /* §RESERVE a beacon lit today, and by whom */
           corp: corps.map(c => ({
             e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length,
             a: c.allBodies.filter(b => b.status === 'active').length,
@@ -23725,8 +23700,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                      almost always `withdraw` — running from the fight straight away, which
                      overrode everything else it wanted — so it never walked to a rest site even
                      when one was close. When there is shelter within reach, it runs THERE. */
-                  const shel = cornered ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  const bea = cornered ? null : beaconFor(sq, planet, day, CONST.DAY_MARCH * CONST.BEACON_FALLBACK_MARCHES);
+                  const shel = cornered || bea ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  if (bea) stats.audit.ranForBeacon = (stats.audit.ranForBeacon || 0) + 1;
                   sq.intent = cornered ? null
+                    : bea ? { type: 'claim', obj: bea, tx: bea.x, ty: bea.y, expires: day + CONST.PLAN_LIFE }
                     : shel ? { type: 'claim', obj: shel, tx: shel.x, ty: shel.y, expires: day + CONST.PLAN_LIFE }
                     : { type: 'withdraw', tx: sq.x + (dx / len) * run,
                         ty: sq.y + (dy / len) * run, expires: day + CONST.WITHDRAW_DAYS };
@@ -23830,6 +23808,48 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
       /* --- objective claim clocks (§9) --- */
       const tickedToday = new Set();
+      /* §RESERVE (ruled) A LANDING BEACON. A squad standing on one draws its OA's reserve down: every BEACON_TICKS
+         blocks held with no enemy squad in reach, one fighter lands (a Mon-Wa pair whole) into the smallest of that OA's
+         squads on the beacon, up to the squad maximum. Leave and come back as often as you like; once the reserve is
+         empty the beacon is nothing to you. While it is in use it fires: every other OA knows where you are, and whose
+         you are. An enemy squad in reach stops the landing in progress. */
+      const beaconDrawn = new Set();
+      const beaconTick = (sq, o, day) => {
+        const corp = sq.corp;
+        if (!corp || !corp.reserve || !corp.reserve.length) { sq.claiming = null; return; }
+        sq.claiming = o.id;
+        const key = o.id + ':' + corp.id;
+        if (beaconDrawn.has(key)) return;                   /* one draw a block, an OA, a beacon */
+        beaconDrawn.add(key);
+        o.litBy = corp.id; o.litDay = day; o.heldBy = corp.id;
+        for (const c of (stats._corps || [])) if (!allied(c, corp)) recordSighting(c, sq, day, false, 'beacon');
+        o.draw = o.draw || {};
+        const rival = liveSquads().some(s => !allied(s.corp, corp) &&
+          MAP.dist(s.x, s.y, o.x, o.y) <= CONST.BEACON_CONTEST_RADIUS);
+        if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
+        const mine = liveSquads().filter(s => s.corpId === corp.id && MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS
+                                           && squadHead(s).length < CONST.SQUAD_MAX);
+        if (!mine.length) return;
+        const knack = mine.some(s => squadHasHook(s, 'sponsor_drop_handling_bonus'));   /* the quartermaster brings them in faster */
+        o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
+        if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
+        o.draw[corp.id] = 0;
+        const into = mine.sort((a, b) => squadHead(a).length - squadHead(b).length)[0];
+        const lead = corp.reserve.shift(), group = [lead];
+        if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
+        for (const f of group) {
+          f.status = 'active'; f._squadIdx = into.sIdx; f._landedDay = day;
+          into.bodies.push(f); corp.allBodies.push(f);
+          if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(f) < 0) corp.persist.drop.push(f);
+        }
+        if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);   /* paid on landing */
+        into.rations += CONST.RATION_DROP_DAYS * group.length;
+        into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
+        corp.landed += group.length; stats.audit.landed += group.length;
+        (stats.landings = stats.landings || []).push({ day: day, corp: corp.id, squad: into.sIdx, fighter: lead.id,
+          name: lead.name, pair: group.length > 1, site: o.label, place: o.place, left: corp.reserve.filter(f => !f.mirror_of).length });
+        if (stats._rec) stats._rec({ t: 'landed', x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
+      };
       /* Emptying a crate takes a tick or two, not two days, and a rival standing on it
          interrupts the work rather than freezing a claim clock. */
       for (const sq of liveSquads()) {
@@ -23839,6 +23859,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           if (MAP.dist(sq.x, sq.y, cand.x, cand.y) <= MAP.CONST.CLAIM_RADIUS) { o = cand; break; }
         }
         if (!o || sq.foughtToday) { sq.claiming = null; continue; }
+        if (o.type === 'sponsor_cache') { beaconTick(sq, o, day); continue; }   /* §RESERVE a beacon is held, not looted */
         const rival = liveSquads().some(s => s.corpId !== sq.corpId &&
           MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS);
         if (rival) { sq.claiming = o.id; o.work = {}; continue; }
@@ -24303,7 +24324,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      way the replay's two frame builders drifted. */
   const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES,
                 /* §STANCE the notch a manager sets at each OA, and what it is worth */
-                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
+                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
     /* the size reads on the ground, exported so the probe that keeps them honest can
        measure them and any surface can show a manager the cost of the squad they shaped */
     sizeMarchMult, sizeDetectMult, squadStress, WEATHER };
@@ -24741,6 +24762,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
     FOCUS_POINTS: 8,
+    RESERVE_MAX: 10,
+    RESERVE_AI_HOLD: 3,           // [C] §RESERVE what an engine seat holds back from its drop to land later              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
     CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%             // [H] focus a corp gets each month
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
@@ -27094,7 +27117,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the corp answers its own board. This read `opts.want || DROP_MAX`, so absent a harness
        override it always wanted the maximum and the small-force build could never be taken. */
     const asked = opts.want != null ? opts.want : wantedDropSize(corp);
-    const want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    let want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK to land at a beacon later: the same few for every OA, never dropping below
+       the floor to do it. (It was sized by caution — a cautious OA holding most — and the cautious OAs are already the
+       ones that win: measured over eight seasons it fed them.) */
+    if (opts.want == null && !opts.noReserve) {
+      const keep = CONST.RESERVE_AI_HOLD;
+      const fitLeads = fit.filter(f => !f.mirror_of).length;
+      want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
+    }
     const picked = fit.slice().sort((a, b) => score(b) - score(a)).slice(0, Math.min(want, fit.length));
     /* THE WALKING WOUNDED. A roster can hold twenty and still not field sixteen, because the
        drop takes only the uninjured — and S14 caught a force of fifteen going down. A corp
@@ -28443,8 +28474,44 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
-    c._lock = { groups: groups, leaders: leaders, hand: hand };
+    const reserve = ((plan && plan.reserve) || []).filter(id => own.has(id));
+    c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve };
     return { ok: true, lock: c._lock };
+  }
+  /* §RESERVE (ruled) THE RESERVE: an OA's fit fighters left off the drop wait in orbit, up to ten (beings: a Mon-Wa
+     pair is one, and lands whole), in an order its manager sets on the Squads board — the engine orders its own by
+     quality. They are kitted at the drop with everyone else, inside the kit cap, and land one at a time at a Landing
+     Beacon; each one's purse is paid when it lands. A reserve that never lands costs its kit's place in the cap and no
+     lives. What did not land comes home with its kit. */
+  function reserveOf(c) {
+    const inDrop = new Set((c._drop || []).map(f => f.id));
+    const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
+      && !inDrop.has(f.id) && !(f.condition && (f.condition.injuries || []).length));
+    const leads = fit.filter(f => !f.mirror_of);
+    const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+    const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
+    const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
+    /* §RESERVE THE DROP AND THE RESERVE SHARE ONE LIMIT: a reserve is force held BACK, not force added — an OA that drops
+       the full twenty-four holds nobody, one that drops sixteen may hold eight. Stacked on a full drop it let the richest
+       OAs (the deepest rosters) put the most people on the ground, and last year's winner is the richest. */
+    const dropLeads = (c._drop || []).filter(f => !f.mirror_of).length;
+    const room = Math.max(0, CONST.DROP_MAX - dropLeads);
+    const out = [];
+    for (const f of asked.concat(rest).slice(0, Math.min(CONST.RESERVE_MAX, room))) {
+      out.push(f);
+      const mate = fit.find(x => x.mirror_of === f.id);
+      if (mate) out.push(mate);
+    }
+    return out;
+  }
+  function assignReserves(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      if (!c || !per[id]) continue;
+      c._reserve = reserveOf(c);
+      per[id].reserve = c._reserve.slice();
+    }
   }
   function applyLocks(state) {
     const per = (state._divideOpts || {}).corps || {};
@@ -28457,6 +28524,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const drop = selectDrop(c, { manual: ids });
       if (!drop.length) continue;
       const kept = {}; drop.forEach(b => { kept[b.id] = true; });
+      /* §RESERVE THE LOCKED DROP IS THE DROP. The muster pays purses to the engine's default drop and records it as
+         `c._drop`; a manager's lock then put HIS fighters on the ground without touching `c._drop`, so he paid purses
+         for the wrong people and the season settled the wrong people's kit and service afterwards. The lock's drop
+         is recorded, and the purses are put right by the difference. */
+      const old = c._drop || [], oldIds = old.map(f => f.id).sort().join(','), newIds = drop.map(f => f.id).sort().join(',');
+      if (oldIds !== newIds) {
+        const diff = LED.purseBill(drop) - LED.purseBill(old);
+        if (diff) LED.post(c.account, 'expense', 'purses', -diff);
+        c._purses = (c._purses || 0) + diff; c._wages = (c._retainers || 0) + c._purses;
+        for (const f of old) f._droppedLastSeason = false;
+        for (const f of drop) f._droppedLastSeason = true;
+      }
+      c._drop = drop;
       p.drop = drop; p.groups = []; p.leaders = [];
       L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
     }
@@ -28467,6 +28547,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        be missed (the contest ran with no drafted landings) — and so a resumed contest builds exactly what the first did */
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
+    assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
@@ -28607,8 +28688,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
+      /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
+      const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
       c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
-                                 c, dropped, dead, heldGround);
+                                 c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
       /* ---- THE BOARD CLOSES ----
@@ -32075,6 +32158,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     renderSquads();
   }
 
+  /* §RESERVE the fit fighters in no squad, in the landing order the manager set (new arrivals at the foot) */
+  function reserveBodies(fit) {
+    var home = fit.filter(function (b) { return G.plan.at[b.id] == null; });
+    var order = (G.plan.reserve || []), byId = {};
+    home.forEach(function (b) { byId[b.id] = b; });
+    var out = order.filter(function (id) { return byId[id]; }).map(function (id) { return byId[id]; });
+    home.forEach(function (b) { if (out.indexOf(b) < 0) out.push(b); });
+    return out;
+  }
+  function reserveIds() { return reserveBodies(fitBodies()).map(function (b) { return b.id; }); }
   function renderSquads() {
     if (!G) return;
     var fit = fitBodies();
@@ -32087,25 +32180,50 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var sel = G._sqsel ? bodyById(G._sqsel) : null;
     var MAX = DIVIDE.CONST.SQUAD_MAX, MIN = DIVIDE.CONST.SQUAD_MIN;
 
-    /* ---- the bench ---- */
-    var home = fit.filter(function (b) { return G.plan.at[b.id] == null; });
-    home.sort(function (a, b) {
-      var x = rosterSortVal(a, BENCH_SORT.key), y = rosterSortVal(b, BENCH_SORT.key);
-      var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
-      return BENCH_SORT.asc ? c : -c;
-    });
-    var bh = '<div class="benchhead"><span class="t">At Home</span><span class="n">' + home.length + ' Fit, Unassigned</span></div>' +
-      '<div class="sortbar bsort"><span class="lbl">Sort</span>' + BENCH_SORTS.map(function (o) {
+    /* ---- the bench IS THE RESERVE (§RESERVE, ruled) ----
+       Everyone fit who is not in a squad waits in orbit, and the first ten land at a Landing Beacon in the order they
+       stand here — one for every four hours a squad of yours holds a beacon unchallenged. The sort buttons set the order
+       in one click; the arrows move one fighter. Past the tenth, they stay home. */
+    var home = reserveBodies(fit);
+    var RMAX = SEASON.CONST.RESERVE_MAX;
+    var bh = '<div class="benchhead"><span class="t">In Reserve</span><span class="n">' + Math.min(RMAX, home.length) + ' of ' + RMAX +
+      ' \u00b7 Land in This Order</span></div>' +
+      '<div class="sortbar bsort"><span class="lbl">Order By</span>' + BENCH_SORTS.map(function (o) {
         return '<span class="sortopt' + (BENCH_SORT.key === o.k ? ' on' : '') + '" data-bsort="' + o.k + '">' + o.lbl + '</span>'; }).join('') + '</div>' +
       '<div class="bcards">';
-    if (!home.length) bh += '<div class="none">Everyone Fit Is Fielding</div>';
-    home.forEach(function (b) { bh += fighterCard(b, false); });
+    if (!home.length) bh += '<div class="none">Everyone Fit Is Fielding \u00b7 No Reserve</div>';
+    home.forEach(function (b, k) {
+      if (k === RMAX) bh += '<div class="rsvsplit">Stays Home</div>';
+      bh += '<div class="rsvrow' + (k >= RMAX ? ' home' : '') + '"><span class="rsvn">' + (k < RMAX ? k + 1 : '') + '</span>' +
+            fighterCard(b, false) +
+            '<span class="rsvmv"><button class="tiny" data-rsvup="' + b.id + '"' + (k ? '' : ' disabled') + ' title="Land Sooner">\u25b2</button>' +
+            '<button class="tiny" data-rsvdn="' + b.id + '"' + (k < home.length - 1 ? '' : ' disabled') + ' title="Land Later">\u25bc</button></span></div>';
+    });
     $('bench').innerHTML = bh + '</div>';
     Array.prototype.forEach.call($('bench').querySelectorAll('[data-bsort]'), function (o) {
       o.onclick = function () {
         var k = o.getAttribute('data-bsort');
         if (BENCH_SORT.key === k) BENCH_SORT.asc = !BENCH_SORT.asc;
         else { BENCH_SORT.key = k; BENCH_SORT.asc = (k === 'name' || k === 'origin'); }
+        /* a sort SETS the landing order */
+        var all = reserveBodies(fitBodies());
+        all.sort(function (a, b) {
+          var x = rosterSortVal(a, BENCH_SORT.key), y = rosterSortVal(b, BENCH_SORT.key);
+          var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
+          return BENCH_SORT.asc ? c : -c;
+        });
+        G.plan.reserve = all.map(function (b) { return b.id; });
+        renderSquads();
+      };
+    });
+    Array.prototype.forEach.call($('bench').querySelectorAll('[data-rsvup],[data-rsvdn]'), function (bt) {
+      bt.onclick = function (e) {
+        e.stopPropagation();
+        var up = bt.hasAttribute('data-rsvup'), id = bt.getAttribute(up ? 'data-rsvup' : 'data-rsvdn');
+        var ids = reserveIds(), i = ids.indexOf(id), j = up ? i - 1 : i + 1;
+        if (i < 0 || j < 0 || j >= ids.length) return;
+        var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+        G.plan.reserve = ids;
         renderSquads();
       };
     });
@@ -33087,7 +33205,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §AUTHORITY the manager's squads, leaders and hand-kit are LOCKED through the engine, which checks them and
        applies them as it prepares the Divide — the page used to write them straight into its options */
     var planned = plannedGroups();
-    SEASON.lockSquads(G.state, G.me, { groups: planned ? planned.groups : [], leaders: planned ? planned.leaders : [],
+    SEASON.lockSquads(G.state, G.me, { reserve: reserveIds(), groups: planned ? planned.groups : [], leaders: planned ? planned.leaders : [],
                                        hand: G.plan.hand || {} });
     /* §SUPER in hotseat both seats are people: the second is handed to a person for the contest */
     if (G.super && G.super.on) G.super.seats.forEach(function (id) { SEASON.setController(G.state, id, 'human'); });
@@ -33376,7 +33494,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return { d: w.day, z: w.zone, zn: null, sq: sq,
              obj: (G.div.planet.objectives || []).filter(function (o) { return o.revealed; })
                     .map(function (o) { return { x: o.x, y: o.y, h: o.heldBy, t: o.type, lbl: o.label,
-                                                 l: !!o.looted, id: o.id }; }),
+                                                 l: !!o.looted, id: o.id,
+                                                 on: o.type === 'sponsor_cache' && o.litDay === w.day ? o.litBy : null }; }),
              ev: (w.fights || []).map(function (f) {
                     return { t: 'fight', x: f.x, y: f.y, corps: f.corps, ex: f.exchanges,
                              result: f.result }; }),
@@ -33973,6 +34092,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              squad of yours that met them */
           g.fillText(sq2.landing ? 'Posted Landing'
                    : sq2.via === 'relay' ? 'Mast \u00b7 D' + (D.d - sq2.age)
+                   : sq2.via === 'beacon' ? 'Beacon \u00b7 D' + (D.d - sq2.age)
                    : sq2.stale ? 'Last Seen D' + (D.d - sq2.age)
                    : (sq2.age ? 'Seen D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
           g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
@@ -34075,7 +34195,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     $('gplanet').innerHTML = '<b>' + esc(pl.name || pl.archetype) + '</b><br>' +
       '<span class="m">Day ' + D.d + ' \u00b7 ' +
       (D.z.r / pl.radius * 100).toFixed(1) + '% of the Ground Inside the Wall \u00b7 ' +
-      (D.obj || []).length + ' Sites Revealed</span>' +
+      (D.obj || []).length + ' Sites Revealed' +
+      (G.div.win && G.div.win.reserveLeft != null ? ' \u00b7 ' + G.div.win.reserveLeft + ' in Reserve' : '') + '</span>' +
       (G.div.win && G.div.win.weather && G.div.win.day === D.d ? '<div style="margin-top:4px">' + weatherWords(G.div.win.weather) + '</div>' : '');
     /* §WITHDRAWAL (stage 5) the column is the OA, not a banner: nobody stands under anybody
        else's flag now — an OA is on the ground or it has conceded and gone */
@@ -34097,6 +34218,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              (v.corps || []).map(cSpan).join(' Met ') +
              '</b>' + (v.result ? ' \u2014 ' + esc(capWords(v.result)) : '') +
              (v.ex != null ? ' \u00b7 ' + v.ex + ' Exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
+    });
+    /* §RESERVE your landings that day */
+    ((G.div.win && G.div.win.landings) || []).forEach(function (l) {
+      if (l.day !== D.d) return;
+      out += '<div class="ev land">Day ' + D.d + ' \u00b7 <b>' + esc(l.name) + (l.pair ? ' (a Pair)' : '') + '</b> Landed at the ' +
+             esc(l.site || 'Landing Beacon') + ' \u2014 ' + esc((G.plan && G.plan.names && G.plan.names[l.squad]) || ('Squad ' + squadLetter(l.squad))) + '</div>';
     });
     $('gevents').innerHTML = out || '<div class="ev m">Quiet Since the Last Window</div>';
     renderRecord();
@@ -34460,7 +34587,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     strongpoint:    { word: 'Strongpoint', col: TOK.warn },
     ration_site:    { word: 'Rest Site',   col: TOK.hit },
     relay_mast:     { word: 'Vision Site', col: TOK.a },
-    sponsor_cache:  { word: 'Cache',       col: TOK.cred },
+    sponsor_cache:  { word: 'Landing Beacon', col: TOK.cred },
     munitions_drop: { word: 'Munitions',   col: TOK.shell },
     resource_site:  { word: 'Deposit',     col: TOK.wall }
   };
@@ -34483,9 +34610,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       g.moveTo(x - 9, y); g.quadraticCurveTo(x, y - 8, x + 9, y); g.quadraticCurveTo(x, y + 8, x - 9, y);
       g.fill(); g.stroke();
       g.fillStyle = look.col; g.beginPath(); g.arc(x, y, 2.8, 0, Math.PI * 2); g.fill();
-    } else if (o.t === 'sponsor_cache') {   /* a box */
-      g.rect(x - 7, y - 6, 14, 12); g.fill(); g.stroke();
-      g.beginPath(); g.moveTo(x - 7, y - 1); g.lineTo(x + 7, y - 1); g.stroke();
+    } else if (o.t === 'sponsor_cache') {   /* §RESERVE a beacon: a mast, and its signal when lit */
+      g.moveTo(x, y - 8); g.lineTo(x + 6, y + 7); g.lineTo(x - 6, y + 7); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = look.col; g.beginPath(); g.arc(x, y - 8, 2.2, 0, Math.PI * 2); g.fill();
+      if (o.on) {
+        g.strokeStyle = colFor(o.on); g.lineWidth = 2;
+        g.beginPath(); g.arc(x, y - 8, 7, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+        g.beginPath(); g.arc(x, y - 8, 11, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+        g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.globalAlpha = 0.5; g.stroke();
+      }
     } else if (o.t === 'munitions_drop') {  /* a round */
       g.moveTo(x, y - 8); g.lineTo(x + 5, y - 2); g.lineTo(x + 5, y + 7); g.lineTo(x - 5, y + 7); g.lineTo(x - 5, y - 2);
       g.closePath(); g.fill(); g.stroke();
@@ -34502,6 +34635,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        kind of site is FOR is learned once from its mark and belongs in no hover. */
     return '<b style="color:' + look.col + '">' + esc(name) + '</b>' +
       (o.t === 'strongpoint' && o.h ? '<div class="r">' + cSpan(o.h) + '</div>' : '') +
+      (o.t === 'sponsor_cache' && o.on ? '<div class="r">Lit by ' + cSpan(o.on) + '</div>' : '') +
       (o.l ? '<div class="r">Spent</div>' : '');
   }
   /* who is standing in a squad of yours, and how they are: read off the window when it is

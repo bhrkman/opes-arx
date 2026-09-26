@@ -50,6 +50,8 @@
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
     FOCUS_POINTS: 8,
+    RESERVE_MAX: 10,
+    RESERVE_AI_HOLD: 3,           // [C] §RESERVE what an engine seat holds back from its drop to land later              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
     CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%             // [H] focus a corp gets each month
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
@@ -2403,7 +2405,15 @@
        the corp answers its own board. This read `opts.want || DROP_MAX`, so absent a harness
        override it always wanted the maximum and the small-force build could never be taken. */
     const asked = opts.want != null ? opts.want : wantedDropSize(corp);
-    const want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    let want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK to land at a beacon later: the same few for every OA, never dropping below
+       the floor to do it. (It was sized by caution — a cautious OA holding most — and the cautious OAs are already the
+       ones that win: measured over eight seasons it fed them.) */
+    if (opts.want == null && !opts.noReserve) {
+      const keep = CONST.RESERVE_AI_HOLD;
+      const fitLeads = fit.filter(f => !f.mirror_of).length;
+      want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
+    }
     const picked = fit.slice().sort((a, b) => score(b) - score(a)).slice(0, Math.min(want, fit.length));
     /* THE WALKING WOUNDED. A roster can hold twenty and still not field sixteen, because the
        drop takes only the uninjured — and S14 caught a force of fifteen going down. A corp
@@ -3752,8 +3762,44 @@
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
-    c._lock = { groups: groups, leaders: leaders, hand: hand };
+    const reserve = ((plan && plan.reserve) || []).filter(id => own.has(id));
+    c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve };
     return { ok: true, lock: c._lock };
+  }
+  /* §RESERVE (ruled) THE RESERVE: an OA's fit fighters left off the drop wait in orbit, up to ten (beings: a Mon-Wa
+     pair is one, and lands whole), in an order its manager sets on the Squads board — the engine orders its own by
+     quality. They are kitted at the drop with everyone else, inside the kit cap, and land one at a time at a Landing
+     Beacon; each one's purse is paid when it lands. A reserve that never lands costs its kit's place in the cap and no
+     lives. What did not land comes home with its kit. */
+  function reserveOf(c) {
+    const inDrop = new Set((c._drop || []).map(f => f.id));
+    const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
+      && !inDrop.has(f.id) && !(f.condition && (f.condition.injuries || []).length));
+    const leads = fit.filter(f => !f.mirror_of);
+    const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+    const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
+    const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
+    /* §RESERVE THE DROP AND THE RESERVE SHARE ONE LIMIT: a reserve is force held BACK, not force added — an OA that drops
+       the full twenty-four holds nobody, one that drops sixteen may hold eight. Stacked on a full drop it let the richest
+       OAs (the deepest rosters) put the most people on the ground, and last year's winner is the richest. */
+    const dropLeads = (c._drop || []).filter(f => !f.mirror_of).length;
+    const room = Math.max(0, CONST.DROP_MAX - dropLeads);
+    const out = [];
+    for (const f of asked.concat(rest).slice(0, Math.min(CONST.RESERVE_MAX, room))) {
+      out.push(f);
+      const mate = fit.find(x => x.mirror_of === f.id);
+      if (mate) out.push(mate);
+    }
+    return out;
+  }
+  function assignReserves(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      if (!c || !per[id]) continue;
+      c._reserve = reserveOf(c);
+      per[id].reserve = c._reserve.slice();
+    }
   }
   function applyLocks(state) {
     const per = (state._divideOpts || {}).corps || {};
@@ -3766,6 +3812,19 @@
       const drop = selectDrop(c, { manual: ids });
       if (!drop.length) continue;
       const kept = {}; drop.forEach(b => { kept[b.id] = true; });
+      /* §RESERVE THE LOCKED DROP IS THE DROP. The muster pays purses to the engine's default drop and records it as
+         `c._drop`; a manager's lock then put HIS fighters on the ground without touching `c._drop`, so he paid purses
+         for the wrong people and the season settled the wrong people's kit and service afterwards. The lock's drop
+         is recorded, and the purses are put right by the difference. */
+      const old = c._drop || [], oldIds = old.map(f => f.id).sort().join(','), newIds = drop.map(f => f.id).sort().join(',');
+      if (oldIds !== newIds) {
+        const diff = LED.purseBill(drop) - LED.purseBill(old);
+        if (diff) LED.post(c.account, 'expense', 'purses', -diff);
+        c._purses = (c._purses || 0) + diff; c._wages = (c._retainers || 0) + c._purses;
+        for (const f of old) f._droppedLastSeason = false;
+        for (const f of drop) f._droppedLastSeason = true;
+      }
+      c._drop = drop;
       p.drop = drop; p.groups = []; p.leaders = [];
       L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
     }
@@ -3776,6 +3835,7 @@
        be missed (the contest ran with no drafted landings) — and so a resumed contest builds exactly what the first did */
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
+    assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
@@ -3916,8 +3976,10 @@
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
+      /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
+      const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
       c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
-                                 c, dropped, dead, heldGround);
+                                 c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
       /* ---- THE BOARD CLOSES ----

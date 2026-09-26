@@ -99,7 +99,8 @@
      words twice over — both belong to somebody who was here first, and nobody was. */
   const DEPOSIT_LABEL = { minerals: 'Seam', fuels: 'Well', foods: 'Bloom', luxuries: 'Bed' };
   const OBJECTIVE_TYPES = [
-    { id: "sponsor_cache",  label: "Sponsor Cache",  weight: 22, claimDays: 2 },
+    /* §RESERVE a cache is a LANDING BEACON: held, not looted, and an OA's reserve lands on it (divide.js) */
+    { id: "sponsor_cache",  label: "Landing Beacon", weight: 34, claimDays: 2 },   /* 22 → 34: two a planet were brawls, not landings */
     { id: "munitions_drop", label: "Munitions Drop", weight: 22, claimDays: 2 },
     /* §SITES a rest site: food and shelter. It fed a squad and did nothing for its hurt, so a
        wounded squad had no place on the map to go to — now it mends them too, which gives a

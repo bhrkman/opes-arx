@@ -3963,6 +3963,32 @@ exits by deal 18 in six contests, 21.5% of the pot to non-winners. A season can 
 a scenario where both seats still stand at its third window (a pulled banner leaves with its offer — the rule). Proofs
 and fingerprint re-recorded; `harness/drive_draft.cjs` drives the Draft on the page.
 
+**THE RESERVE AND THE LANDING BEACONS (ruled).** Caches handed out catalogue gear onto squads that already had full,
+varied kit — nothing an aggressive OA wanted enough to fight for. Now: **THE RESERVE** — an OA's fit fighters left off the
+drop wait in orbit, up to ten beings (a Mon-Wa pair is one and lands whole), in an order the manager sets on the Squads
+board (the bench is "In Reserve · Land in This Order": the sort buttons set the order, arrows move one fighter, past the
+tenth they stay home); an engine seat orders its own by quality. **THE DROP AND THE RESERVE SHARE ONE LIMIT** (24): a
+reserve is force held back, not force added — stacked on a full drop it let the deepest (richest) rosters field the
+most. An engine seat holds three back (it was sized by caution, and the cautious OAs are the ones that win). The reserve
+is kitted at the drop with everyone, inside the kit cap; each fighter's purse is paid when they land; unlanded reserve
+kit comes home. **LANDING BEACONS** (the cache site, relabelled, weight 22 → 34: two a planet were brawls): held, not
+looted — every two blocks (four hours) a squad holds one with no enemy squad within 0.04, one reserve fighter lands into
+the smallest of that OA's squads on it (up to eight); leave and return as often as you like; an empty reserve makes a
+beacon nothing to you; a lit beacon reveals its holder to every other OA (sightings "Beacon · Dn"). The Mon-Wa
+quartermaster hook (`sponsor_drop_handling_bonus`) now lands them a block faster. **THE AI:** a beaten squad whose OA has
+a reserve FALLS BACK TO A BEACON within three days' march (falling back and being made whole are one move); a squad that
+lost people in a fight sets its plan aside and chooses again, with a new REINFORCING approach (to the nearest beacon,
+held while there is anyone to land). **FOUND: THE LOCKED DROP WAS NOT THE DROP.** The muster paid purses to the engine's
+default drop and recorded it as `c._drop`; a manager's lock then put his fighters on the ground without touching it, so
+he paid purses for the wrong people and the season settled the wrong people's kit and service. The lock's drop is
+recorded and the purses put right by the difference. **MEASURED:** twelve contests, fatality ~25% (24.3%, 25.8%); six
+contests, 31 landings, 28% of the reserve used, 11 of 48 OA-contests landing someone; the market unchanged (17% of the pot
+to non-winners). Eight seasons: seed A four champions (Violets 4 of 8), seed B five (none past 3). A control with no
+reserve at all still gave seed B two champions (the two most cautious OAs): the cautious-OA advantage predates the
+reserve and is open. The page draws a beacon as a mast with its signal in the holder's colour while lit, lists your
+landings on the Ground, and counts who is still in reserve. `the_crate.html` (a standalone demonstration of the old crate
+reward) is obsolete. `harness/probe_reserve.cjs` and `harness/drive_reserve.cjs` guard the rules and the board.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

@@ -130,6 +130,22 @@
     }
     return best;
   }
+  /* §RESERVE A BEATEN SQUAD FALLS BACK TO A BEACON when its OA has fighters in orbit and one is within reach: falling
+     back and being made whole are the same move. (The plan lottery could not do this: a bloodied squad is ordered to
+     break contact the moment it loses, and was usually pulled or finished before it chose again.) */
+  function beaconFor(sq, planet, day, reach) {
+    const c = sq.corp;
+    if (!c || !c.reserve || !c.reserve.length) return null;
+    if (squadHead(sq).length >= (sq._startN || 0)) return null;
+    let best = null, bd = reach;
+    for (const o of planet.objectives || []) {
+      if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day)) continue;
+      if (!MAP.inZone(planet, day, o.x, o.y)) continue;
+      const d = MAP.dist(sq.x, sq.y, o.x, o.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    return best;
+  }
   function setStance(corp, otherId, notch) {
     if (!STANCE_DIALS[notch]) return false;
     corp._stance = corp._stance || {};
@@ -499,8 +515,11 @@
     /* §9 objectives */
     CLAIM_CACHE_TIER: 4,                // [S] a crate's tier when the wave did not set one
     INTEL_CAP: 0.18,                    // [S] most readiness a season of scouting can buy
-    CACHE_EXOTIC_P: 0.12,               // [S] chance a tier-5 crate holds an exotic
-    CACHE_CONSUMABLES: 2,               // [S] supplies in every crate, +1 with a quartermaster
+    REINFORCE_NEED: 0.45,               // [C] §RESERVE the pull of a beacon on a squad with any loss to replace
+    REINFORCE_PER_LOSS: 1.1,            // [C] and how much more for each share of its drop it has lost
+    BEACON_FALLBACK_MARCHES: 3,         // [C] how many days' march a beaten squad will fall back to reach a beacon
+    BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
+    BEACON_CONTEST_RADIUS: 0.04,        // [C] an enemy squad this near a beacon stops anything landing (0.06 made every beacon a standoff)        // [C] an enemy squad this near a beacon stops anything landing
     RELAY_INTEL_DAYS: 5,                // [C]
     RESUPPLY_MULT: 1.75,                // [C] §9 what a claimed munitions site is worth
 
@@ -882,7 +901,8 @@
         _intel: (persist && persist.intel) || 0,
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
-        claiming: null, movedToday: false, foughtToday: false, engagements: 0
+        claiming: null, movedToday: false, foughtToday: false, engagements: 0,
+        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
@@ -899,7 +919,14 @@
        ground. `kitIntent` decides how near the cap this corp gets, from its wealth and from
        whether it fancies this particular planet. The cap itself is still one number for
        everyone (P1). */
+    /* §RESERVE the fighters held in orbit are kitted with the force, inside the same cap, and wait to land */
+    corp.reserve = (persist && persist.reserve) ? persist.reserve.slice() : [];
+    corp.reserveStart = corp.reserve.filter(f => !f.mirror_of).length;
+    corp.landed = 0;
+    const onGroundBodies = corp.allBodies;
+    if (corp.reserve.length) corp.allBodies = onGroundBodies.concat(corp.reserve);
     equipCorp(corp, profile, loadout, planet, season);
+    corp.allBodies = onGroundBodies;
     return corp;
   }
 
@@ -1598,7 +1625,7 @@
        It was pre-catalog by construction: a five-row tier table is how you model kit before
        86 real items exist. PROCUREMENT.md §13 has said "that scalar is deleted" since Step 5
        and described the bundle that replaces it; this is that bundle, landed at last.
-       See `openCrate`. */
+       (A crate once upgraded kit from the catalogue; a cache is a Landing Beacon now.) */
     const byId = {};
     for (const u of units) byId[u.id] = u;
     for (const u of units) {
@@ -2256,7 +2283,7 @@
      rather his people found; everything below is the squads' own. The list is long on purpose —
      it is invisible to a manager, so it costs nothing to be various, and a contest where every
      squad is doing one of four things reads as four squads. */
-  const APPROACHES = ['resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
+  const APPROACHES = ['reinforcing', 'resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
                       'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening',
                       'entrenching', 'baiting', 'sweeping', 'pressing'];
 
@@ -2268,7 +2295,10 @@
   }
 
   function approachValid(sq, planet, day) {
-    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day));
+    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day) && o.type !== 'sponsor_cache');
+    /* §RESERVE reinforcing is over when the reserve is empty or no beacon stands */
+    if (sq.approach === 'reinforcing') return !!(sq.corp && sq.corp.reserve && sq.corp.reserve.length)
+      && planet.objectives.some(o => o.type === 'sponsor_cache' && MAP.siteLive(o, day));
     /* nothing left to dig means nothing to prospect for */
     if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'resource_site' && MAP.siteLive(o, day));
     return true;
@@ -2298,7 +2328,7 @@
                     : 1;
     let site = null, sd = 9;
     for (const o of planet.objectives) {
-      if (!MAP.siteLive(o, day) || o.type === 'relay_mast') continue;
+      if (!MAP.siteLive(o, day) || o.type === 'relay_mast' || o.type === 'sponsor_cache') continue;
       if (o.type === 'strongpoint' && o.heldBy === sq.corpId) continue;
       const dd = MAP.dist(sq.x, sq.y, o.x, o.y) * pull(o);
       if (dd < sd) { sd = dd; site = o; }
@@ -2310,6 +2340,18 @@
     const mateD = mates.length ? Math.min.apply(null, mates.map(s => MAP.dist(sq.x, sq.y, s.x, s.y))) : 9;
 
     switch (ap) {
+      /* §RESERVE A SQUAD WITH LOSSES TO REPLACE, and fighters waiting in orbit to replace them, goes to a beacon — the
+         more it has lost the more it wants to — and a nearer beacon pulls harder. A squad at full strength never does. */
+      case 'reinforcing': {
+        const left = corp.reserve ? corp.reserve.length : 0;
+        const lost = Math.max(0, (sq._startN || head) - head) / Math.max(1, sq._startN || head);
+        if (!left || lost <= 0) return 0;
+        let bd = 9;
+        for (const o of planet.objectives)
+          if (o.type === 'sponsor_cache' && MAP.siteLive(o, day) && MAP.inZone(planet, day, o.x, o.y)) bd = Math.min(bd, MAP.dist(sq.x, sq.y, o.x, o.y));
+        if (bd > z.r * 1.3) return 0;
+        return Math.min(1, CONST.REINFORCE_NEED + lost * CONST.REINFORCE_PER_LOSS);
+      }
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
@@ -2523,8 +2565,19 @@
       case 'hunting':
         if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
         break;
+      case 'reinforcing': {
+        /* §RESERVE to the nearest beacon inside the ring, and hold it while there is anyone left to land */
+        let b = null, bd = 9;
+        for (const o of planet.objectives) {
+          if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day) || !MAP.inZone(planet, day, o.x, o.y)) continue;
+          const dd = MAP.dist(sq.x, sq.y, o.x, o.y);
+          if (dd < bd) { bd = dd; b = o; }
+        }
+        if (b) return { type: 'claim', obj: b, tx: b.x, ty: b.y, expires: day + CONST.PLAN_LIFE };
+        break;
+      }
       case 'resupplying': {
-        const o = site(o2 => o2.type !== 'relay_mast');
+        const o = site(o2 => o2.type !== 'relay_mast' && o2.type !== 'sponsor_cache');
         if (o) return { type: 'claim', obj: o, tx: o.x, ty: o.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
@@ -2742,103 +2795,6 @@
    * map, then it goes dark for a few days and anyone may use it next. Staying at one would
    * waste the freedom it just handed you.
    */
-  /**
-   * PROCUREMENT.md §13 — what is actually in a sponsor's crate.
-   *
-   * One primary or armour piece at the crate's tier, plus supplies, and on a late crate
-   * sometimes an exotic. The piece goes to whoever gains most by it and is only taken if it
-   * is genuinely an upgrade — a tier-2 crate holds nothing a fielded squad wants, which is
-   * what makes the ring's escalating waves matter: early crates are supplies, late crates
-   * are weapons, and `DIVIDE.md` §2.5's "a late crate is where the exotica live" becomes
-   * true rather than aspirational.
-   *
-   * It is equipped onto the BODY, not onto the per-engagement combatant, so it survives the
-   * fight, keeps its tags, damage type and resistances like any other catalog item, and is
-   * carried home into the armoury by `season.js` if its owner lives. That is the honest path
-   * to a railgun: you win it, you keep it, and then you spend seasons deciding whether it is
-   * worth seven bodies' allowance to bring back.
-   *
-   * `sponsor_drop_handling_bonus` (the Mon-Wa quartermaster) reads HERE at last, closing half
-   * of `[OPEN-E3]` — it was declared at Step 2 and read nowhere in the project.
-   */
-  function openCrate(rng, sq, obj, stats) {
-    const bodies = squadHead(sq);
-    if (!bodies.length) return false;
-    const tier = Math.max(1, Math.min(5, obj.tier || CONST.CLAIM_CACHE_TIER));
-    const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
-    if (knack && stats.audit) stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
-    let took = false;
-
-    /* ---- the piece ----
-       The ordinary shelf STOPS AT TIER 4: every tier-5 primary and armour piece in the catalog
-       is exotic (§11.1), by design. So an exact-tier filter left the best crates in the game
-       holding nothing 88% of the time — the one branch that most needed to fire, wired to a
-       condition almost never true, written while cutting a system for that exact fault and
-       caught by measuring rather than reading. The pool is therefore "the best ordinary grade
-       AT OR BELOW the crate's tier": a tier-5 crate holds a tier-4 piece unless it rolls the
-       exotic, and a tier-2 crate holds a tier-2 piece that a fielded squad will refuse. */
-    const wantExotic = tier >= 5 && rng() < CONST.CACHE_EXOTIC_P * (knack ? 2 : 1);
-    let pool = ITEMS.catalog.filter(i =>
-      (i.slot === 'primary' || i.slot === 'armor') && i.legality === 'legal' &&
-      (wantExotic ? !!i.exotic : (!i.exotic && i.tier <= tier)));
-    if (!wantExotic && pool.length) {
-      const top = Math.max.apply(null, pool.map(i => i.tier));
-      pool = pool.filter(i => i.tier === top);
-    }
-    if (pool.length) {
-      const pick = pool[Math.floor(rng() * pool.length)];
-      const slot = pick.slot === 'armor' ? 'armor' : 'primary';
-      /* to whoever gains most: the lowest tier currently in that slot */
-      let best = null, bestTier = 99;
-      for (const f of bodies) {
-        const cur = ITEMS.byId((f.loadout || {})[slot]);
-        const t = cur ? cur.tier : 0;
-        if (t < bestTier) { bestTier = t; best = f; }
-      }
-      if (best && pick.tier > bestTier) {
-        const lo = best.loadout || {};
-        ITEMS.equip(best, {
-          primary: slot === 'primary' ? pick.id : lo.primary,
-          armor:   slot === 'armor'   ? pick.id : lo.armor,
-          mods: lo.mods, sidearm: lo.sidearm, consumables: lo.consumables
-        });
-        took = true;
-        if (pick.exotic) stats.audit.cacheExotics = (stats.audit.cacheExotics || 0) + 1;
-        stats.audit.cachePieces = (stats.audit.cachePieces || 0) + 1;
-      }
-    }
-
-    /* ---- the supplies ----
-       THE ALEAS CAPS CONSUMABLE SLOTS (`CONSUMABLE_SLOTS 2`, PROCUREMENT.md §2.4), and the first
-       version of this appended to `consumables` without looking — so a squad that emptied two
-       crates walked around with three and four, over a quota the Aleas is broadcasting. Five
-       fighters in a four-season career. Found by the corp schema at Step 8.5b, which is the
-       first thing in the project ever to walk a live fighter against its own declared shape.
-       Supplies now go to somebody who has a free slot, and a full squad simply cannot take
-       them — which is a real cost of having looted already, not a validation error. */
-    const want = CONST.CACHE_CONSUMABLES + (knack ? 1 : 0);
-    const shelf = ITEMS.catalog.filter(i => i.slot === 'consumable' && i.legality === 'legal');
-    for (let k = 0; k < want && shelf.length; k++) {
-      const room = bodies.filter(f => ((f.loadout || {}).consumables || []).length
-                                      < ITEMS.CONST.CONSUMABLE_SLOTS);
-      if (!room.length) break;
-      const item = shelf[Math.floor(rng() * shelf.length)];
-      const f = room[Math.floor(rng() * room.length)];
-      const lo = f.loadout || {};
-      ITEMS.equip(f, { primary: lo.primary, armor: lo.armor, mods: lo.mods, sidearm: lo.sidearm,
-                       consumables: (lo.consumables || []).concat([item.id]) });
-      took = true;
-      stats.audit.cacheSupplies = (stats.audit.cacheSupplies || 0) + 1;
-    }
-
-    /* a medkit in the crate is a medkit in the squad — the tally is built at the muster and
-       has to be rebuilt when the squad's consumables change, or the crate is invisible to it */
-    for (const f of bodies) chargeUp(f, true);
-    sq.medkits = medkitCharges(bodies);
-    sq.hasMedkit = sq.medkits > 0;
-    sq.crates++;
-    return took;
-  }
 
   function awardObjective(rng, sq, obj, stats) {
     stats.audit.awarded[obj.type] = (stats.audit.awarded[obj.type] || 0) + 1;
@@ -2904,7 +2860,6 @@
     sq.corp.sitesClaimed++;
     stats.claims++;
     switch (obj.type) {
-      case 'sponsor_cache':  if (openCrate(rng, sq, obj, stats)) stats.audit.gearUpgraded++; break;
       case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
@@ -3198,6 +3153,15 @@
       addStress(sq, CONST.STRESS.killed * killed + CONST.STRESS.downed * downed, stats);
     }
     if (!killed && !downed) addStress(sq, CONST.STRESS.cleanWin, stats);
+    /* §RESERVE A SQUAD THAT LOST PEOPLE THINKS AGAIN. A plan is only remade when it runs out, and the first one is
+       made at the drop, before anyone is lost — so a squad bled in a fight went on with the plan it had, and never
+       weighed walking to a beacon to be made whole. If its OA still has fighters in orbit, its plan is set aside. */
+    if (killed + downed > 0) {
+      const squads = side._parts ? side._parts.map(p => p._sq) : [sq];
+      for (const q of squads) if (q && q.corp && q.corp.reserve && q.corp.reserve.length) {   /* a strike is spent once fought */
+        q.intent = null; q.approachUntil = 0;
+      }
+    }
     return killed + downed;
   }
 
@@ -3442,7 +3406,7 @@
         passedOver: 0,
         huntMoves: 0, evadeMoves: 0, driftMoves: 0, objectiveMoves: 0,
         awarded: {}, hazardKind: {}, terrainUsed: {}, bandOpen: [0, 0, 0],
-        relayIntelUsed: 0, relayEscapeUsed: 0, gearUpgraded: 0, ammoResupply: 0,
+        relayIntelUsed: 0, relayEscapeUsed: 0, landed: 0, beaconContested: 0, ammoResupply: 0,
         weakDiscount: 0, lateReveals: 0,
         stressApplied: 0, successions: 0, rationDryDays: 0, degradeChecks: 0,
         nightEngagements: 0, objectiveFights: 0, capturedAlive: 0
@@ -3780,6 +3744,9 @@
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
+              /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
+              landings: (stats.landings || []).filter(l => l.corp === seatId),
+              reserveLeft: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(f => !f.mirror_of).length,
               /* §WITHDRAWAL what the field has said about your offer, and the offer itself */
               withdrawOffer: (stats.withdrawOffers || {})[you.id] ? { terms: stats.withdrawOffers[you.id].terms,
                                                      sentDay: stats.withdrawOffers[you.id].sentDay } : null,
@@ -4034,7 +4001,8 @@
           sq,
           obj: planet.objectives.filter(o => o.revealed).map(o => ({
                  x: Math.round(o.x * 1000) / 1000, y: Math.round(o.y * 1000) / 1000,
-                 h: o.heldBy, t: o.type, lbl: o.label })),
+                 h: o.heldBy, t: o.type, lbl: o.label,
+                 on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),   /* §RESERVE a beacon lit today, and by whom */
           corp: corps.map(c => ({
             e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length,
             a: c.allBodies.filter(b => b.status === 'active').length,
@@ -4942,8 +4910,11 @@
                      almost always `withdraw` — running from the fight straight away, which
                      overrode everything else it wanted — so it never walked to a rest site even
                      when one was close. When there is shelter within reach, it runs THERE. */
-                  const shel = cornered ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  const bea = cornered ? null : beaconFor(sq, planet, day, CONST.DAY_MARCH * CONST.BEACON_FALLBACK_MARCHES);
+                  const shel = cornered || bea ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  if (bea) stats.audit.ranForBeacon = (stats.audit.ranForBeacon || 0) + 1;
                   sq.intent = cornered ? null
+                    : bea ? { type: 'claim', obj: bea, tx: bea.x, ty: bea.y, expires: day + CONST.PLAN_LIFE }
                     : shel ? { type: 'claim', obj: shel, tx: shel.x, ty: shel.y, expires: day + CONST.PLAN_LIFE }
                     : { type: 'withdraw', tx: sq.x + (dx / len) * run,
                         ty: sq.y + (dy / len) * run, expires: day + CONST.WITHDRAW_DAYS };
@@ -5047,6 +5018,48 @@
 
       /* --- objective claim clocks (§9) --- */
       const tickedToday = new Set();
+      /* §RESERVE (ruled) A LANDING BEACON. A squad standing on one draws its OA's reserve down: every BEACON_TICKS
+         blocks held with no enemy squad in reach, one fighter lands (a Mon-Wa pair whole) into the smallest of that OA's
+         squads on the beacon, up to the squad maximum. Leave and come back as often as you like; once the reserve is
+         empty the beacon is nothing to you. While it is in use it fires: every other OA knows where you are, and whose
+         you are. An enemy squad in reach stops the landing in progress. */
+      const beaconDrawn = new Set();
+      const beaconTick = (sq, o, day) => {
+        const corp = sq.corp;
+        if (!corp || !corp.reserve || !corp.reserve.length) { sq.claiming = null; return; }
+        sq.claiming = o.id;
+        const key = o.id + ':' + corp.id;
+        if (beaconDrawn.has(key)) return;                   /* one draw a block, an OA, a beacon */
+        beaconDrawn.add(key);
+        o.litBy = corp.id; o.litDay = day; o.heldBy = corp.id;
+        for (const c of (stats._corps || [])) if (!allied(c, corp)) recordSighting(c, sq, day, false, 'beacon');
+        o.draw = o.draw || {};
+        const rival = liveSquads().some(s => !allied(s.corp, corp) &&
+          MAP.dist(s.x, s.y, o.x, o.y) <= CONST.BEACON_CONTEST_RADIUS);
+        if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
+        const mine = liveSquads().filter(s => s.corpId === corp.id && MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS
+                                           && squadHead(s).length < CONST.SQUAD_MAX);
+        if (!mine.length) return;
+        const knack = mine.some(s => squadHasHook(s, 'sponsor_drop_handling_bonus'));   /* the quartermaster brings them in faster */
+        o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
+        if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
+        o.draw[corp.id] = 0;
+        const into = mine.sort((a, b) => squadHead(a).length - squadHead(b).length)[0];
+        const lead = corp.reserve.shift(), group = [lead];
+        if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
+        for (const f of group) {
+          f.status = 'active'; f._squadIdx = into.sIdx; f._landedDay = day;
+          into.bodies.push(f); corp.allBodies.push(f);
+          if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(f) < 0) corp.persist.drop.push(f);
+        }
+        if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);   /* paid on landing */
+        into.rations += CONST.RATION_DROP_DAYS * group.length;
+        into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
+        corp.landed += group.length; stats.audit.landed += group.length;
+        (stats.landings = stats.landings || []).push({ day: day, corp: corp.id, squad: into.sIdx, fighter: lead.id,
+          name: lead.name, pair: group.length > 1, site: o.label, place: o.place, left: corp.reserve.filter(f => !f.mirror_of).length });
+        if (stats._rec) stats._rec({ t: 'landed', x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
+      };
       /* Emptying a crate takes a tick or two, not two days, and a rival standing on it
          interrupts the work rather than freezing a claim clock. */
       for (const sq of liveSquads()) {
@@ -5056,6 +5069,7 @@
           if (MAP.dist(sq.x, sq.y, cand.x, cand.y) <= MAP.CONST.CLAIM_RADIUS) { o = cand; break; }
         }
         if (!o || sq.foughtToday) { sq.claiming = null; continue; }
+        if (o.type === 'sponsor_cache') { beaconTick(sq, o, day); continue; }   /* §RESERVE a beacon is held, not looted */
         const rival = liveSquads().some(s => s.corpId !== sq.corpId &&
           MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS);
         if (rival) { sq.claiming = o.id; o.work = {}; continue; }
@@ -5520,7 +5534,7 @@
      way the replay's two frame builders drifted. */
   const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES,
                 /* §STANCE the notch a manager sets at each OA, and what it is worth */
-                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
+                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
     /* the size reads on the ground, exported so the probe that keeps them honest can
        measure them and any surface can show a manager the cost of the squad they shaped */
     sizeMarchMult, sizeDetectMult, squadStress, WEATHER };
