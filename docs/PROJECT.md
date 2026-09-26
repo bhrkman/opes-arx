@@ -4011,6 +4011,37 @@ The page draws a beacon as a mast with its signal in the holder's colour while l
 landings on the Ground, and counts who is still in reserve. `the_crate.html` (a standalone demonstration of the old crate
 reward) is obsolete. `harness/probe_reserve.cjs` and `harness/drive_reserve.cjs` guard the rules and the board.
 
+**EIGHT FOUNDED SEATS: WHAT THE CANON OAs CARRY (measured).** A full multiplayer table is eight founded OAs, and the
+fleet's results were measured with the canon eight. Asked: is the "cautious OAs win" result caution, or baggage?
+`sim/measure_baggage.cjs` plays four fleets, every seat engine-run, the fleet list ROTATED each career (so no OA keeps a
+list position), 96 careers × 4 seasons = 384 seasons each: **blank** (eight identical Human Player starts), **tempered**
+(founded, each given one canon OA's temperament only), **funded** (tempered + that OA's difficulty and finance) and
+**canon**. Wins by temperament (most cautious first):
+
+| temperament | aggr · lean · difficulty | tempered | funded | canon |
+|---|---|---|---|---|
+| Verdant | 30 · preservationist · 5 | 89 | 29 | 15 |
+| Mercy | 35 · preservationist · 3 | 61 | 67 | 66 |
+| Violets | 40 · standard · 1 | 51 | 99 | 124 |
+| New Line | 45 · preservationist · 4 | 65 | 31 | 20 |
+| Vantis | 50 · measured · 4 | 38 | 37 | 25 |
+| Knights | 55 · measured · 2 | 29 | 70 | 71 |
+| Alliance | 60 · standard · 3 | 10 | 12 | 5 |
+| Nevlon | 85 · unyielding · 2 | 14 | 22 | 39 |
+
+**Both, and they had been hiding each other.** Temperament alone: caution wins, steeply — the most cautious take a
+quarter of the titles, the two most aggressive 3–4% each. The DIFFICULTY GRADIENT (grant, cash, founding roster) is the
+largest baggage and nearly reorders the table: Violets 51 → 99, Knights 29 → 70, Verdant 89 → 29. The rest of identity
+(reputation, relationships, doctrine, holds, race weights) moves less: Violets 99 → 124, Nevlon 22 → 39, Verdant 29 → 15.
+In the canon fleet the rich OAs happen to be cautious, so it read as caution alone. **On an all-founded table there is
+no gradient, so caution is all that is left.** Blank founders with a rotated list: wins spread evenly across positions
+(no list-order bias worth the name; the last slot perhaps a third of a place better, inside the noise); an early,
+unrotated six careers looked like the last two slots dominating, which was two long title streaks. Fatality 27.7%
+tempered, 25.9% funded, 23.8% canon. **FOUND: ONLY ONE OA COULD BE FOUNDED.** `founderProfile` hard-wrote the id
+`custom_house`, so a second founder overwrote the first; it takes an `id` now (the page still founds one, as
+`custom_house`). A founded profile may carry `rigidity`. Eight founded seats run through the seat API (months
+submitted, the draft and contest forced) for two seasons, clean.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

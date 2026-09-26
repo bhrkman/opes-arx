@@ -386,7 +386,9 @@
       average carried the eight's reputations with it, and an OA with no history took ₡93k a
       year at the door before it had done anything.) Opening at zero on EVERY audience was tried
       once and read as "your own crew hates you"; that is why home is kept warm. */
-  function founderProfile(profiles, name) {
+  /* §SEATS `id` lets more than one OA be founded into one fleet — every manager who joins founds his own, and they
+     cannot all be `custom_house`. Left out, it is the one founder the page has always made. */
+  function founderProfile(profiles, name, id) {
     const avg = vals => {
       const nums = vals.filter(v => typeof v === 'number' && isFinite(v));
       if (nums.length === vals.length && nums.length)
@@ -414,7 +416,7 @@
        a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
        loyalty is earned by the year. The fleet has no opinion yet. */
     p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
-    p.id = 'custom_house';
+    p.id = id || 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
     p.motto = 'Unwritten.';

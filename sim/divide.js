@@ -858,7 +858,7 @@
                 : split === '2x12' ? [12, 12] : split === '4x6' ? [6, 6, 6, 6] : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance, declaredAt: stance,
-      rigidity: rigidity != null ? rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
+      rigidity: rigidity != null ? rigidity : profile.rigidity != null ? profile.rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
       squads: [], allBodies: [], stanceChanges: 0, hauled: 0, sitesClaimed: 0, engagements: 0,
       /* §WITHDRAWAL Step 6 — every corp drops holding its own claim, and keeps it until it
          concedes. The join stood here: the corp this one ceded its claim to and then fought
