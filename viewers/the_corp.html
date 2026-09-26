@@ -19308,8 +19308,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     REINFORCE_NEED: 0.45,               // [C] §RESERVE the pull of a beacon on a squad with any loss to replace
     REINFORCE_PER_LOSS: 1.1,            // [C] and how much more for each share of its drop it has lost
     BEACON_FALLBACK_MARCHES: 3,         // [C] how many days' march a beaten squad will fall back to reach a beacon
+    BEACON_SIGNAL_RANGE: DAY_MARCH * 5,  // [C] §RESERVE how far a lit beacon is heard: twice an ordinary firefight's carry
+    BEACON_PREY: 0.5,                   // [C] §RESERVE how much more a squad on a lit beacon is worth going after
+    BEACON_CALL: 2.0,                   // [C] §RESERVE a lit beacon doubles a busy squad's taste for going to look
+    BEACON_CALL_FIT: 0.6,               // [C] §RESERVE the share of its landing strength a squad needs to answer the call
+    BEACON_CALL_SQUADS: 2,              // [C] §RESERVE the most squads one OA sends to one beacon
+    BEACON_DETECT: 0.9,                // [C] §RESERVE the chance an enemy in reach finds a squad on a lit beacon
     BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
-    BEACON_CONTEST_RADIUS: 0.04,        // [C] an enemy squad this near a beacon stops anything landing (0.06 made every beacon a standoff)        // [C] an enemy squad this near a beacon stops anything landing
+    /* §RESERVE only an enemy ON the beacon stops a landing — the same radius as standing on a site — and any two enemy
+       squads on one lit beacon are in contact (below). The first cut blocked from 0.04 against an engage range of 0.02,
+       so a rival parked beside a beacon blocked every landing and could never be fought: a standoff by geometry. */
+    BEACON_CONTEST_RADIUS: 0.026,        // [C] an enemy squad this near a beacon stops anything landing
     RELAY_INTEL_DAYS: 5,                // [C]
     RESUPPLY_MULT: 1.75,                // [C] §9 what a claimed munitions site is worth
 
@@ -19792,8 +19801,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /** What a hunter stands to gain from this particular squad. */
   function prestigeOf(sq) {
     const strength = squadHead(sq).length / Math.max(1, sq.bodies.length);
-    const weak = strength < 0.55 ? CONST.WEAK_TARGET_DISCOUNT : 1;
-    return standing(sq.corp) * weak;
+    /* §RESERVE A SQUAD DRAWING ON A BEACON IS THE ONE TO STOP. A weak squad is discounted as not worth hunting — and a
+       squad on a beacon is weak by definition, since it went there to replace its losses, so the hunters rated the one
+       squad about to be made whole among the least worth their time. Lit today or yesterday, it is a mark, not a
+       discount: stop it before it is whole again. */
+    const lit = sq._beaconLit != null && sq._beaconLit >= (sq._day || 0) - 1;
+    const weak = !lit && strength < 0.55 ? CONST.WEAK_TARGET_DISCOUNT : 1;
+    return standing(sq.corp) * weak * (lit ? 1 + CONST.BEACON_PREY : 1);
   }
 
   /**
@@ -20911,6 +20925,58 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
     for (const sq of mine) if (!intentValid(sq, planet, day)) sq.intent = null;
+
+    /* ---- §RESERVE A LIT BEACON IS A CALL TO ARMS ----
+       The beacon was heard like shooting, and shooting only moves a squad with nothing to do —
+       measured, of the rival squads in range of a lit beacon on a given day, nine in ten were
+       already busy (mostly pulling back after a fight, or walking to a site), so the OA
+       reinforcing in plain sight was left alone and the patient OAs landed their reserves for
+       free. Reinforcing is meant to be the loud, risky thing. So a lit beacon reaches squads
+       that have a plan, not only idle ones: a squad still fit to fight, not under a manager's
+       order and not on a beacon of its own, may drop what it is doing and go — how readily is
+       its seek, raised by the call. A squad walking in from outside the dome line goes only if
+       the walk toward the beacon brings it inside. An OA sends at most BEACON_CALL_SQUADS to
+       one beacon; the rest carry on. A truce partner does not answer (a truce is never broken).
+       Measured over twenty contests, the cautious OAs that reinforce the most now lose more
+       fighters on beacons than they land there (Mercy 16 landed, 58 lost; Violets 33, 46);
+       before, they landed about as many as they lost, and were fought there a third as often. */
+    if (noises && noises.length) {
+      const sent = {};
+      const byId = {}; for (const c of (stats._corps || [])) byId[c.id] = c;
+      for (const sq of mine) {
+        const it = sq.intent;
+        if (it && it.ordered) continue;                                    /* a manager's order */
+        const domeRun = !!(it && !it.expires);                             /* walking in from outside the line */
+        if (it && (it.type === 'hunt' || it.type === 'strike' || it.type === 'sound')) continue;   /* already going to a fight */
+        if (it && it.obj && it.obj.type === 'sponsor_cache') continue;     /* on its own beacon run */
+        if (sq._beaconLit != null && sq._beaconLit >= day - 1) continue;   /* holding one itself */
+        const head = squadHead(sq).length;
+        if (head < Math.max(2, Math.ceil((sq._startN || head) * CONST.BEACON_CALL_FIT))) continue;   /* too hurt to go */
+        let call = null, cd = Infinity;
+        for (const nz of noises) {
+          if (!nz.beacon || nz.day < day - 1 || nz.corps.indexOf(corp.id) >= 0) continue;
+          const holder = byId[nz.corps[0]];
+          if (holder && (allied(corp, holder) || pactHolds(corp, holder, day))) continue;   /* a truce is never broken */
+          const d = MAP.dist(sq.x, sq.y, nz.x, nz.y);
+          if (d > nz.r || d >= cd) continue;
+          if ((sent[nz.x + ':' + nz.y] || 0) >= CONST.BEACON_CALL_SQUADS) continue;
+          if (domeRun) {
+            /* the dome still comes first: a squad outside the line goes to the beacon only if the
+               day's walk toward it brings it inside with room to spare */
+            const step = Math.min(d, CONST.DAY_MARCH * 0.8);
+            const px = sq.x + (nz.x - sq.x) / Math.max(1e-9, d) * step, py = sq.y + (nz.y - sq.y) / Math.max(1e-9, d) * step;
+            if (MAP.dist(px, py, zNow.cx, zNow.cy) > zNow.r - Math.max(0.03, zNow.r * 0.2)) continue;
+          }
+          call = nz; cd = d;
+        }
+        if (!call) continue;
+        const sd = squadDials(sq);
+        if (rng() >= Math.min(0.95, sd.seek * CONST.BEACON_CALL)) continue;
+        const k = call.x + ':' + call.y; sent[k] = (sent[k] || 0) + 1;
+        sq.intent = { type: 'hunt', tx: call.x, ty: call.y, expires: day + CONST.PLAN_LIFE, beacon: true };
+        stats.audit.beaconCalled = (stats.audit.beaconCalled || 0) + 1;
+      }
+    }
     /* a manager's order stands until it is done or runs out; the noises and the strikes below
        do not overwrite it */
     const free = mine.filter(sq => !sq.intent);
@@ -20937,6 +21003,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           heard = nz; hd = d;
         }
         if (!heard) continue;
+        if (heard.beacon) stats.audit.beaconHeard = (stats.audit.beaconHeard || 0) + 1;
         /* seek is the taste for finding a fight; it runs 0.15 for a preservationist to 0.80
            for death-or-glory, so this is the dial deciding it and not a new one. */
         const sd = squadDials(sq);
@@ -20952,6 +21019,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           expires: day + CONST.PLAN_LIFE
         };
         stats.audit.soundMoves = (stats.audit.soundMoves || 0) + (go ? 1 : 0);
+        if (heard.beacon) { stats.audit.beaconGo = (stats.audit.beaconGo || 0) + (go ? 1 : 0); stats.audit.beaconAvoid = (stats.audit.beaconAvoid || 0) + (go ? 0 : 1); }
         stats.audit.soundAvoided = (stats.audit.soundAvoided || 0) + (go ? 0 : 1);
       }
     }
@@ -20970,6 +21038,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const pic = pictureOf(corp, day).filter(e => day - e.day <= 1);
       for (const sq of mine) {
         if (sq.intent && sq.intent.type === 'avoid') continue;
+        if (sq.intent && sq.intent.beacon) continue;                  /* it answered a beacon: seeing the holder is the point */
         const sd = squadDials(sq);
         if (sd.seek >= 0.45) continue;                        /* it wants the fight, or does not mind */
         let near = null, nd = 9;
@@ -21289,7 +21358,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const out = [];
     for (const f of foreign) {
       const d = MAP.dist(sq.x, sq.y, f.x, f.y);
-      if (d > mind.sight) continue;
+      /* §RESERVE a lit beacon is broadcast, not glimpsed: its holder can be chosen from as far as the beacon is heard */
+      if (d > mind.sight && !(f.via === 'beacon' && d <= CONST.BEACON_SIGNAL_RANGE)) continue;
       const fear = 1 + (0.5 - mind.nerve) * CONST.NERVE_SWING * 2;
       out.push(Object.assign({}, f, { n: Math.max(1, Math.round((f.n || 1) * fear)) }));
     }
@@ -21517,6 +21587,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* closer is easier to notice: full weight at contact, tailing off to nothing at range */
     p *= 1.35 - 0.9 * Math.min(1, sep / CONST.ENGAGE_RANGE);
     if (night) p *= CONST.DETECT_NIGHT;
+    /* §RESERVE A LIT BEACON GIVES ITS HOLDER AWAY. Detection scales with how much each squad wants a fight, so two careful
+       squads could stand on the same beacon side by side and never notice each other — measured, in 106 of 239 blocked
+       landings the blocker was itself on the beacon, and no fight came of it. A squad transmitting its position is
+       found by anyone in reach, whatever its temperament: that is the risk a beacon is meant to carry. */
+    if (sqA._beaconLit === day || sqB._beaconLit === day) return Math.max(Math.min(0.95, p), CONST.BEACON_DETECT);
     /* `pre_battle_intel_bonus` — an augur reads the ground before anyone else does. */
     if (squadHasHook(sqA, 'pre_battle_intel_bonus') || squadHasHook(sqB, 'pre_battle_intel_bonus')) p *= 1.25;
     p *= compressionFactor(planet, day);
@@ -23089,7 +23164,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (squadHead(sqA).length < 1 || squadHead(sqB).length < 1) continue;
 
             const sep = MAP.dist(sqA.x, sqA.y, sqB.x, sqB.y);
-            if (sep > CONST.ENGAGE_RANGE) continue;
+            /* §RESERVE two enemy squads on one lit beacon are in reach of each other, however it is they stand on it */
+            const onOneBeacon = (sqA._beaconLit === day || sqB._beaconLit === day) && planet.objectives.some(o => o.type === 'sponsor_cache'
+              && MAP.dist(sqA.x, sqA.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS && MAP.dist(sqB.x, sqB.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS);
+            if (sep > CONST.ENGAGE_RANGE && !onOneBeacon) continue;
             /* NOBODY STARTS A FIGHT IN THE DOME'S PATH. Ground outside today's line is
                dead ground by dusk; hunter and prey both know it, and a squad walking in
                off it is walking, not fighting. Without this, evaders were intercepted on
@@ -23822,19 +23900,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (beaconDrawn.has(key)) return;                   /* one draw a block, an OA, a beacon */
         beaconDrawn.add(key);
         o.litBy = corp.id; o.litDay = day; o.heldBy = corp.id;
+        for (const q of liveSquads()) if (q.corpId === corp.id && MAP.dist(q.x, q.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS) q._beaconLit = day;
         for (const c of (stats._corps || [])) if (!allied(c, corp)) recordSighting(c, sq, day, false, 'beacon');
+        /* §RESERVE THE BEACON IS HEARD. The sighting above reached every rival OA's picture and stopped there: a squad
+           only weighs rivals within its captain's sight, so a lit beacon moved nobody who could not already see it —
+           measured, 640 blocks of beacons lit in six contests and 33 fights on them. It carries like a firefight, only
+           further: every rival squad in range weighs it as it weighs shooting it hears — a squad that seeks a fight goes
+           to it, one that does not keeps clear. Once a day a beacon. */
+        if (o._heardDay !== day) {
+          o._heardDay = day;
+          noises.push({ x: o.x, y: o.y, r: CONST.BEACON_SIGNAL_RANGE, day: day, corps: [corp.id], beacon: true });
+        }
         o.draw = o.draw || {};
-        const rival = liveSquads().some(s => !allied(s.corp, corp) &&
+        /* an OA under a truce with you is not an enemy: it cannot fight you there, so it does not stop the landing */
+        const rival = liveSquads().some(s => !allied(s.corp, corp) && !pactHolds(s.corp, corp, day) &&
           MAP.dist(s.x, s.y, o.x, o.y) <= CONST.BEACON_CONTEST_RADIUS);
-        if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
+        if (rival) {
+          o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
+        /* the squad maximum is in seats, as the dealing counts it: a Mon-Wa pair takes one */
+        const seats = s => squadHead(s).filter(b => !b.mirror_of).length;
         const mine = liveSquads().filter(s => s.corpId === corp.id && MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS
-                                           && squadHead(s).length < CONST.SQUAD_MAX);
+                                           && seats(s) < CONST.SQUAD_MAX);
         if (!mine.length) return;
         const knack = mine.some(s => squadHasHook(s, 'sponsor_drop_handling_bonus'));   /* the quartermaster brings them in faster */
         o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
         if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
         o.draw[corp.id] = 0;
-        const into = mine.sort((a, b) => squadHead(a).length - squadHead(b).length)[0];
+        const into = mine.sort((a, b) => seats(a) - seats(b))[0];
         const lead = corp.reserve.shift(), group = [lead];
         if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
         for (const f of group) {
@@ -23847,7 +23939,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
         corp.landed += group.length; stats.audit.landed += group.length;
         (stats.landings = stats.landings || []).push({ day: day, corp: corp.id, squad: into.sIdx, fighter: lead.id,
-          name: lead.name, pair: group.length > 1, site: o.label, place: o.place, left: corp.reserve.filter(f => !f.mirror_of).length });
+          name: lead.name, pair: group.length > 1, seats: seats(into), site: o.label, place: o.place, left: corp.reserve.filter(f => !f.mirror_of).length });
         if (stats._rec) stats._rec({ t: 'landed', x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
       };
       /* Emptying a crate takes a tick or two, not two days, and a rival standing on it
@@ -24761,10 +24853,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        calibration that kept the fleet's year recognizable: THREE FOCUS EQUALS ONE OLD
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
-    FOCUS_POINTS: 8,
-    RESERVE_MAX: 10,
-    RESERVE_AI_HOLD: 3,           // [C] §RESERVE what an engine seat holds back from its drop to land later              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
-    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%             // [H] focus a corp gets each month
+    FOCUS_POINTS: 8,             // [H] focus a corp gets each month
+    RESERVE_MAX: 10,              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
+    RESERVE_AI_MAX: 7,            // [C] §RESERVE what a wholly unaggressive engine seat would hold back (×(1 − aggression))
+    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
                                  //     drill block toward their ceiling monthly, unfocused —
@@ -27118,11 +27210,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        override it always wanted the maximum and the small-force build could never be taken. */
     const asked = opts.want != null ? opts.want : wantedDropSize(corp);
     let want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
-    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK to land at a beacon later: the same few for every OA, never dropping below
-       the floor to do it. (It was sized by caution — a cautious OA holding most — and the cautious OAs are already the
-       ones that win: measured over eight seasons it fed them.) */
+    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK (ruled): the less aggressive, the more it keeps in orbit to land at a beacon
+       later — a cautious OA about five, an aggressive one about one — never dropping below the floor to do it */
     if (opts.want == null && !opts.noReserve) {
-      const keep = CONST.RESERVE_AI_HOLD;
+      const agg = ((corp.profile && corp.profile.dials && corp.profile.dials.aggression) != null ? corp.profile.dials.aggression : 50) / 100;
+      const keep = Math.round(CONST.RESERVE_AI_MAX * (1 - agg));
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
@@ -28491,13 +28583,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
     const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
     const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
-    /* §RESERVE THE DROP AND THE RESERVE SHARE ONE LIMIT: a reserve is force held BACK, not force added — an OA that drops
-       the full twenty-four holds nobody, one that drops sixteen may hold eight. Stacked on a full drop it let the richest
-       OAs (the deepest rosters) put the most people on the ground, and last year's winner is the richest. */
-    const dropLeads = (c._drop || []).filter(f => !f.mirror_of).length;
-    const room = Math.max(0, CONST.DROP_MAX - dropLeads);
+    /* the reserve is force ON TOP of the drop, not carved out of it (ruled): a reserve carved out of the drop's limit
+       would only ever cost an OA its starting strength, and nobody would hold one */
     const out = [];
-    for (const f of asked.concat(rest).slice(0, Math.min(CONST.RESERVE_MAX, room))) {
+    for (const f of asked.concat(rest).slice(0, CONST.RESERVE_MAX)) {
       out.push(f);
       const mate = fit.find(x => x.mirror_of === f.id);
       if (mate) out.push(mate);

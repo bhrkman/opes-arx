@@ -49,10 +49,10 @@
        calibration that kept the fleet's year recognizable: THREE FOCUS EQUALS ONE OLD
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
-    FOCUS_POINTS: 8,
-    RESERVE_MAX: 10,
-    RESERVE_AI_HOLD: 3,           // [C] §RESERVE what an engine seat holds back from its drop to land later              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
-    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%             // [H] focus a corp gets each month
+    FOCUS_POINTS: 8,             // [H] focus a corp gets each month
+    RESERVE_MAX: 10,              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
+    RESERVE_AI_MAX: 7,            // [C] §RESERVE what a wholly unaggressive engine seat would hold back (×(1 − aggression))
+    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
                                  //     drill block toward their ceiling monthly, unfocused —
@@ -2406,11 +2406,11 @@
        override it always wanted the maximum and the small-force build could never be taken. */
     const asked = opts.want != null ? opts.want : wantedDropSize(corp);
     let want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
-    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK to land at a beacon later: the same few for every OA, never dropping below
-       the floor to do it. (It was sized by caution — a cautious OA holding most — and the cautious OAs are already the
-       ones that win: measured over eight seasons it fed them.) */
+    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK (ruled): the less aggressive, the more it keeps in orbit to land at a beacon
+       later — a cautious OA about five, an aggressive one about one — never dropping below the floor to do it */
     if (opts.want == null && !opts.noReserve) {
-      const keep = CONST.RESERVE_AI_HOLD;
+      const agg = ((corp.profile && corp.profile.dials && corp.profile.dials.aggression) != null ? corp.profile.dials.aggression : 50) / 100;
+      const keep = Math.round(CONST.RESERVE_AI_MAX * (1 - agg));
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
@@ -3779,13 +3779,10 @@
     const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
     const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
     const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
-    /* §RESERVE THE DROP AND THE RESERVE SHARE ONE LIMIT: a reserve is force held BACK, not force added — an OA that drops
-       the full twenty-four holds nobody, one that drops sixteen may hold eight. Stacked on a full drop it let the richest
-       OAs (the deepest rosters) put the most people on the ground, and last year's winner is the richest. */
-    const dropLeads = (c._drop || []).filter(f => !f.mirror_of).length;
-    const room = Math.max(0, CONST.DROP_MAX - dropLeads);
+    /* the reserve is force ON TOP of the drop, not carved out of it (ruled): a reserve carved out of the drop's limit
+       would only ever cost an OA its starting strength, and nobody would hold one */
     const out = [];
-    for (const f of asked.concat(rest).slice(0, Math.min(CONST.RESERVE_MAX, room))) {
+    for (const f of asked.concat(rest).slice(0, CONST.RESERVE_MAX)) {
       out.push(f);
       const mate = fit.find(x => x.mirror_of === f.id);
       if (mate) out.push(mate);

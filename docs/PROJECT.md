@@ -3967,13 +3967,15 @@ and fingerprint re-recorded; `harness/drive_draft.cjs` drives the Draft on the p
 varied kit — nothing an aggressive OA wanted enough to fight for. Now: **THE RESERVE** — an OA's fit fighters left off the
 drop wait in orbit, up to ten beings (a Mon-Wa pair is one and lands whole), in an order the manager sets on the Squads
 board (the bench is "In Reserve · Land in This Order": the sort buttons set the order, arrows move one fighter, past the
-tenth they stay home); an engine seat orders its own by quality. **THE DROP AND THE RESERVE SHARE ONE LIMIT** (24): a
-reserve is force held back, not force added — stacked on a full drop it let the deepest (richest) rosters field the
-most. An engine seat holds three back (it was sized by caution, and the cautious OAs are the ones that win). The reserve
+tenth they stay home); an engine seat orders its own by quality. **THE RESERVE IS ON TOP OF THE DROP (ruled).** A
+shared limit was tried and reverted: sharing the 24 made a reserve pure cost — field the 24 and you start where a
+reinforcing rival can only climb back to, by sitting in the open for days. An engine seat keeps back more the less
+aggressive it is (`RESERVE_AI_MAX` 7 × (1 − aggression)), as agreed. The reserve
 is kitted at the drop with everyone, inside the kit cap; each fighter's purse is paid when they land; unlanded reserve
 kit comes home. **LANDING BEACONS** (the cache site, relabelled, weight 22 → 34: two a planet were brawls): held, not
-looted — every two blocks (four hours) a squad holds one with no enemy squad within 0.04, one reserve fighter lands into
-the smallest of that OA's squads on it (up to eight); leave and return as often as you like; an empty reserve makes a
+looted — every two blocks (four hours) a squad holds one with no enemy squad within 0.026 (a truce partner is not an
+enemy: it cannot fight you, so it does not stop a landing), one reserve fighter lands into the smallest of that OA's squads
+on it (up to eight seats; a Mon-Wa pair takes one); leave and return as often as you like; an empty reserve makes a
 beacon nothing to you; a lit beacon reveals its holder to every other OA (sightings "Beacon · Dn"). The Mon-Wa
 quartermaster hook (`sponsor_drop_handling_bonus`) now lands them a block faster. **THE AI:** a beaten squad whose OA has
 a reserve FALLS BACK TO A BEACON within three days' march (falling back and being made whole are one move); a squad that
@@ -3985,7 +3987,27 @@ recorded and the purses put right by the difference. **MEASURED:** twelve contes
 contests, 31 landings, 28% of the reserve used, 11 of 48 OA-contests landing someone; the market unchanged (17% of the pot
 to non-winners). Eight seasons: seed A four champions (Violets 4 of 8), seed B five (none past 3). A control with no
 reserve at all still gave seed B two champions (the two most cautious OAs): the cautious-OA advantage predates the
-reserve and is open. The page draws a beacon as a mast with its signal in the holder's colour while lit, lists your
+reserve and is open. **A LIT BEACON IS PUNISHED — THE AI WAS AT FAULT (ruled: reinforcing is the loud, risky move; a
+cautious OA reinforcing unpunished is a tactics failure, not a design one).** Traced per OA, the cautious OAs held lit
+beacons for hundreds of blocks and were fought there a handful of times. Five faults, all tactical: (1) a GEOMETRY
+STANDOFF — the contest radius (0.04) was wider than contact (0.02), so a rival could stop the landing without ever
+meeting the holder: now 0.026, and two rival squads on one beacon, either lit, are in contact; (2) a lit holder was found
+at the ordinary detection odds: now at least 0.9 (`BEACON_DETECT`); (3) the beacon reached rival pictures but no squad
+acted on it: it is now heard like a firefight twice as far (`BEACON_SIGNAL_RANGE`), a beacon sighting passes a captain's
+sight inside that range, and a lit holder is prey worth half again (`BEACON_PREY`, and never discounted as a weak
+target); (4) the noise moved only IDLE squads, and nine in ten rivals in range already had a plan: A LIT BEACON IS NOW A
+CALL TO ARMS — a squad fit to fight (60% of its landing strength), not under a manager's order and not on a beacon of
+its own may drop its plan and go, at twice its seek (`BEACON_CALL`), at most two squads an OA a beacon; a squad walking
+in from outside the dome goes only if the walk brings it inside; (5) the slip-away rule turned a cautious squad that had
+answered the call away from the very holder it went to find. Truce partners neither block nor answer. **MEASURED**
+(twenty contests): the two cautious OAs that reinforce the most now lose more fighters on beacons than they land there
+(Mercy 16 landed, 58 lost; Violets 33, 46) where before they came out even and were fought there a third as often; the
+aggressive OAs land more than they lose (Nevlon 26, 8). Fatality 28.8% and 26.0% (two sets of twelve); the market 12.8%
+of the pot to non-winners. Eight seasons, four seed sets, with the call and without: 3/3/4/4 champions against 3/4/3/3
+— no difference, and Mercy and Violets take about half the titles either way. The beacons were not what fed them;
+the cautious-OA advantage stands open. Also found: a landing took a squad of eight seats to nine bodies' worth when
+the squad maximum is counted in seats (fixed: seats); the secrecy probe now lets a captor know the prisoner it holds.
+The page draws a beacon as a mast with its signal in the holder's colour while lit, lists your
 landings on the Ground, and counts who is still in reserve. `the_crate.html` (a standalone demonstration of the old crate
 reward) is obsolete. `harness/probe_reserve.cjs` and `harness/drive_reserve.cjs` guard the rules and the board.
 

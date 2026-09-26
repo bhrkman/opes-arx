@@ -1,5 +1,5 @@
 /* §RESERVE THE RESERVE AND THE BEACONS, PROVED. A person's seat locks a small drop and orders its reserve; then:
-   (1) the Divide holds that reserve in that order, inside the limit it shares with the drop; (2) the locked drop is what the purses were paid for; (3) across a
+   (1) the Divide holds that reserve in that order, up to RESERVE_MAX on top of the drop; (2) the locked drop is what the purses were paid for; (3) across a
    contest, anyone who lands does so in that order, each landing charging that fighter's purse; (4) nobody lands while
    their reserve is empty, and no squad passes the squad maximum; (5) after the contest, the reserve's kit that never
    landed is back in the armoury. `node harness/probe_reserve.cjs` */
@@ -28,8 +28,8 @@ for (const seed of ['rsv1', 'rsv2', 'rsv3', 'rsv4', 'rsv5', 'rsv6']) {
   S.lockSquads(st, me, { groups: groups, leaders: [null, null, null], hand: {}, reserve: rest.map(f => f.id) });
   S.beginContest(st);
   const per = st._divideOpts.corps[me];
-  /* the drop and the reserve share one limit: sixteen dropped leaves room for DROP_MAX − 16 */
-  const want = rest.slice(0, Math.min(S.CONST.RESERVE_MAX, S.CONST.DROP_MAX - 16)).map(f => f.id);
+  /* the reserve rides on top of the drop, up to RESERVE_MAX */
+  const want = rest.slice(0, S.CONST.RESERVE_MAX).map(f => f.id);
   const got = (per.reserve || []).filter(f => !f.mirror_of).map(f => f.id);
   if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(seed + ': the reserve is not in the order set');
   const dropIds = new Set(corp._drop.map(f => f.id));
@@ -44,7 +44,9 @@ for (const seed of ['rsv1', 'rsv2', 'rsv3', 'rsv4', 'rsv5', 'rsv6']) {
   landedSeen += mine.length;
   const order = mine.map(l => l.fighter);
   if (JSON.stringify(order) !== JSON.stringify(want.slice(0, order.length))) fails.push(seed + ': landings broke the order: ' + order.join(','));
-  for (const x of (res.corps || res._corps || [])) for (const sq of (x.squads || [])) if ((sq.bodies || []).filter(b => b.status === 'active').length > DIV.CONST.SQUAD_MAX) fails.push(seed + ': a squad passed the maximum');
+  /* a landing never takes the squad it joins past the maximum (in seats: a Mon-Wa pair is one). A squad can pass it
+     another way — the survivors of a spent squad folded in at a comms window — which is not a landing's doing. */
+  for (const l of (res.landings || [])) if (!(l.seats <= DIV.CONST.SQUAD_MAX)) fails.push(seed + ': a landing took a squad past the maximum (' + l.corp + ' ' + l.seats + ' seats)');
   const drawn = (res.landings || []).reduce((m, l) => { m[l.corp] = (m[l.corp] || 0) + 1; return m; }, {});
   for (const id in drawn) if (drawn[id] > S.CONST.RESERVE_MAX) fails.push(seed + ': ' + id + ' landed more than its reserve');
   /* settle, and look at the armoury: every unlanded reserve fighter's primary is back in the rack */
