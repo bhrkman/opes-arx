@@ -341,6 +341,10 @@
     PROSPECT_REACH_MARCHES: 2.5,        // [C] §SITES how far (in days' march) a deposit is worth walking to for it
     STRIKE_FIT: 0.7,
     /* §COMMAND the OA's operation (stage 1 of the AI rebuild) */
+    NAV_ROUTES: true,                   // [C] §ROUTES squads route round water and peaks, over the faster ground
+    NAV_CELL: 0.01,                     // [C] §ROUTES the route grid's cell
+    MARCH_IN_COMPANY: true,             // [C] §ROUTES a group on one operation marches together, at its slowest pace, abreast
+    FORM_SPACING: 0.018,                // [C] §ROUTES the gap between squads marching abreast (just over OWN_SPACING)
     COMMAND: 'oa',                      // [C] §COMMAND 'oa' — the OA plans an operation and gives squads roles; 'squad' — the old per-squad planner
     CMD_HORIZON: 2.0,                   // [C] §COMMAND the furthest an objective may be, in days' march of the OA's main body
     CMD_THREAT_R: 0.05,                 // [C] §COMMAND how near a seen enemy must be to count against an objective
@@ -2210,6 +2214,121 @@
     return out;
   }
   /* ======================================================================================================
+     §ROUTES (stage 2 of the AI rebuild) A SQUAD WALKS A ROUTE, NOT A RULER LINE. It stepped straight at its aim and,
+     meeting water or a peak, swung its heading a little either way and took the first open footing — or stood still
+     if there was none — so it bumped along lake shores and stalled against ridges. Now a squad whose straight line is
+     blocked is given a route: a grid over the planet (`NAV_CELL`), the fastest way round by the ground's own pace
+     (open plain before broken ground, the flat before the steep), pulled tight so it walks the corners and not the
+     cells. Routes are kept until the aim moves or the day turns; the grid is rebuilt only when a flood changes what
+     is passable.
+     ====================================================================================================== */
+  const NAV = new WeakMap();
+  function navGrid(planet) {
+    const flood = planet.floodNow ? planet.floodNow() : 0;
+    let g = NAV.get(planet);
+    if (g && g.flood === flood) return g;
+    const cell = CONST.NAV_CELL, R = planet.radius * 1.02;
+    const x0 = planet.cx - R, y0 = planet.cy - R, n = Math.ceil(2 * R / cell);
+    const cost = new Float32Array(n * n);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const x = x0 + (i + 0.5) * cell, y = y0 + (j + 0.5) * cell;
+      if (MAP.dist(x, y, planet.cx, planet.cy) > R || (planet.passableAt && !planet.passableAt(x, y))) { cost[j * n + i] = Infinity; continue; }
+      const sp = planet.speedAt(x, y) * (planet.slopeAt ? (1 - CONST.HEIGHT_CLIMB * planet.slopeAt(x, y)) : 1);
+      cost[j * n + i] = 1 / Math.max(0.2, sp);
+    }
+    g = { flood, cell, x0, y0, n, cost };
+    NAV.set(planet, g);
+    return g;
+  }
+  function clearLine(planet, ax, ay, bx, by) {
+    const d = MAP.dist(ax, ay, bx, by), steps = Math.ceil(d / (CONST.NAV_CELL * 0.5));
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      if (planet.passableAt && !planet.passableAt(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+    }
+    return true;
+  }
+  function findRoute(planet, ax, ay, bx, by) {
+    const g = navGrid(planet), n = g.n;
+    const cellOf = (x, y) => { const i = Math.max(0, Math.min(n - 1, Math.floor((x - g.x0) / g.cell))), j = Math.max(0, Math.min(n - 1, Math.floor((y - g.y0) / g.cell))); return j * n + i; };
+    const nearOpen = (c) => {                      /* the nearest open cell, if the point itself sits in the blocked */
+      if (g.cost[c] < Infinity) return c;
+      const ci = c % n, cj = (c / n) | 0;
+      for (let r = 1; r < 6; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+        const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= n || j >= n) continue;
+        if (g.cost[j * n + i] < Infinity) return j * n + i;
+      }
+      return -1;
+    };
+    const s = nearOpen(cellOf(ax, ay)), t = nearOpen(cellOf(bx, by));
+    if (s < 0 || t < 0) return null;
+    const G = new Float32Array(n * n).fill(Infinity), from = new Int32Array(n * n).fill(-1);
+    const heap = [];                                /* binary heap of [f, cell] */
+    const push = (f, c) => { heap.push([f, c]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k;
+      if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+    const ti = t % n, tj = (t / n) | 0, h = (c) => Math.hypot((c % n) - ti, ((c / n) | 0) - tj) * 0.8;   /* 0.8: the fastest ground costs 1/1.25 */
+    G[s] = 0; push(h(s), s);
+    let found = false, guard = 0;
+    while (heap.length && guard++ < n * n * 4) {
+      const [, c] = pop();
+      if (c === t) { found = true; break; }
+      const ci = c % n, cj = (c / n) | 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue;
+        const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= n || j >= n) continue;
+        const c2 = j * n + i, w = g.cost[c2]; if (w === Infinity) continue;
+        if (di && dj && (g.cost[cj * n + i] === Infinity || g.cost[j * n + ci] === Infinity)) continue;   /* no corner-cutting */
+        const ng = G[c] + w * (di && dj ? Math.SQRT2 : 1);
+        if (ng < G[c2]) { G[c2] = ng; from[c2] = c; push(ng + h(c2), c2); }
+      }
+    }
+    if (!found) return null;
+    const cells = []; for (let c = t; c >= 0; c = from[c]) { cells.push(c); if (c === s) break; }
+    cells.reverse();
+    const pts = cells.map(c => ({ x: g.x0 + ((c % n) + 0.5) * g.cell, y: g.y0 + (((c / n) | 0) + 0.5) * g.cell }));
+    pts[pts.length - 1] = { x: bx, y: by };
+    /* pulled tight: from each point, jump to the furthest one it can see */
+    const out = []; let k = 0, px = ax, py = ay;
+    while (k < pts.length) {
+      let far = k;
+      for (let m = pts.length - 1; m > k; m--) if (clearLine(planet, px, py, pts[m].x, pts[m].y)) { far = m; break; }
+      out.push(pts[far]); px = pts[far].x; py = pts[far].y; k = far + 1;
+    }
+    return out;
+  }
+  /* §ROUTES the nearest open ground that is also inside the given day's line — never out of a lake and into the wall */
+  function footing(planet, day, x, y) {
+    const z = MAP.zoneOn(planet, day);
+    const ok = (a, b) => (!planet.passableAt || planet.passableAt(a, b)) && MAP.dist(a, b, z.cx, z.cy) <= z.r * MAP.CONST.EDGE_MARGIN;
+    const c0 = MAP.clampInside(planet, day, x, y);
+    if (ok(c0.x, c0.y)) return c0;
+    for (let k = 1; k <= 40; k++) {
+      const r = k * CONST.NAV_CELL * 0.5, m = 8 + k * 2;
+      for (let i = 0; i < m; i++) {
+        const a = i / m * Math.PI * 2, px = c0.x + Math.cos(a) * r, py = c0.y + Math.sin(a) * r;
+        if (ok(px, py)) return { x: px, y: py };
+      }
+    }
+    return c0;
+  }
+  /* the next point on this squad's way to its aim: the aim itself when the way is clear */
+  function wayPoint(planet, sq, tx, ty, day, stats) {
+    if (!CONST.NAV_ROUTES || !planet.passableAt) return { x: tx, y: ty };
+    const r = sq._route;
+    if (!(r && r.day === day && MAP.dist(r.tx, r.ty, tx, ty) < CONST.NAV_CELL * 2)) {
+      if (clearLine(planet, sq.x, sq.y, tx, ty)) { sq._route = { day, tx, ty, pts: [] }; return { x: tx, y: ty }; }
+      const pts = findRoute(planet, sq.x, sq.y, tx, ty);
+      sq._route = { day, tx, ty, pts: pts || [] };
+      stats.audit.routes = (stats.audit.routes || 0) + 1;
+      if (!pts) stats.audit.noRoute = (stats.audit.noRoute || 0) + 1;
+    }
+    const pts = sq._route.pts;
+    while (pts.length > 1 && (MAP.dist(sq.x, sq.y, pts[0].x, pts[0].y) < CONST.NAV_CELL * 0.75 || clearLine(planet, sq.x, sq.y, pts[1].x, pts[1].y))) pts.shift();
+    return pts.length ? pts[0] : { x: tx, y: ty };
+  }
+
+  /* ======================================================================================================
      §COMMAND THE OA COMMANDS (stage 1 of the AI rebuild, ruled). Every squad used to plan for itself: a weighted draw
      from fifteen approaches, re-drawn whenever its captain wavered, and rewritten by any of half a dozen things it
      heard or saw — gunfire, a lit beacon, a sighting, a strike being planned, a fight's losses. Measured over sixteen
@@ -3240,6 +3359,8 @@
   }
 
   /* the two ways size reads on the ground — see the RULED comment on the constants */
+  /* §ROUTES the roles a company marches in (a squad's own rate, `rateOf`, lives in the day loop) */
+  const COMPANY_ROLES = { take: 1, reinforce: 1, mend: 1, join: 1, advance: 1, hold: 1, support: 1, close: 1 };
   function sizeMarchMult(sq) {
     return 1 + (CONST.SIZE_PIVOT - squadHead(sq).length) * CONST.SIZE_MARCH_PER_BODY;
   }
@@ -4681,6 +4802,29 @@
         const dW = MAP.dist(sq.x, sq.y, zW.cx, zW.cy);
         if (dW > zW.r * (1 - CONST.WALL_EDGE)) wallRun(planet, day + 1, sq, zW, dW, CONST.WALL_CRAWL, stats);
       }
+      const rateOf = (sq) => {
+        let r = squadDials(sq).ground * sizeMarchMult(sq) * carryMult(sq) * paceMult(sq);
+        if (squadHooks(sq).has('march_efficiency_up')) r *= 1.12;
+        if (sq._lostDay) r *= 0.3;
+        if (!overtime && sq.restUntil && day <= sq.restUntil) r *= CONST.REST_MARCH_MULT;
+        return r;
+      };
+      /* §ROUTES the companies marching this block: each operation's squads, their centre, their slowest pace, their order */
+      const company = CONST.COMMAND === 'oa' && CONST.MARCH_IN_COMPANY ? new Map() : null;
+      if (company) {
+        for (const sq of liveSquads()) {
+          if (!sq._op || !COMPANY_ROLES[sq._role] || !sq.intent || sq.intent.role !== sq._role) continue;
+          if ((sq._busyUntil || 0) > absTick) continue;
+          const C2 = company.get(sq._op) || { n: 0, rate: Infinity, sx: 0, sy: 0, w: 0, members: [] };
+          const r2 = rateOf(sq), w = squadHead(sq).length;
+          C2.n++; C2.rate = Math.min(C2.rate, r2); C2.sx += sq.x * w; C2.sy += sq.y * w; C2.w += w; C2.members.push(sq);
+          company.set(sq._op, C2);
+        }
+        for (const C2 of company.values()) {
+          C2.cx = C2.sx / Math.max(1, C2.w); C2.cy = C2.sy / Math.max(1, C2.w);
+          C2.slot = new Map(); C2.members.sort((a, b) => a.sIdx - b.sIdx).forEach((q, i) => C2.slot.set(q, i));
+        }
+      }
       for (const sq of liveSquads()) {
         const dials = squadDials(sq);
         const hooks = squadHooks(sq);
@@ -4831,16 +4975,34 @@
            the past and implies nothing; this is the thing a manager would want to see. */
         sq._aim = { x: tx, y: ty, why: sq._why };
 
+        /* §ROUTES IN COMPANY. Squads of one group on one operation march together: at the pace of the slowest of them,
+           and abreast — each a formation step to the side of the line of march — until they close on the objective. */
+        if (company && sq._op && company.has(sq._op) && COMPANY_ROLES[sq._role]) {
+          const C2 = company.get(sq._op);
+          if (C2.n > 1) {
+            budget *= Math.min(1, C2.rate / Math.max(1e-9, rateOf(sq)));
+            const dgo = MAP.dist(C2.cx, C2.cy, tx, ty);
+            if (dgo > CONST.FORM_SPACING * 3 && sq._role !== 'take' && sq._role !== 'mend' && sq._role !== 'reinforce' || dgo > CONST.FORM_SPACING * 6) {
+              const hx = (tx - C2.cx) / Math.max(1e-9, dgo), hy = (ty - C2.cy) / Math.max(1e-9, dgo);
+              const slot = C2.slot.get(sq) - (C2.n - 1) / 2;
+              const fx = tx + -hy * slot * CONST.FORM_SPACING, fy = ty + hx * slot * CONST.FORM_SPACING;
+              if (!planet.passableAt || planet.passableAt(fx, fy)) { tx = fx; ty = fy; }
+            }
+          }
+        }
         const d = MAP.dist(sq.x, sq.y, tx, ty);
         if (d > CONST.ARRIVE_SLACK) {
-          const step = Math.min(budget, d);
-          let nx = sq.x + (tx - sq.x) / d * step, ny = sq.y + (ty - sq.y) / d * step;
+          const wp = wayPoint(planet, sq, tx, ty, day, stats);
+          const dw = Math.max(1e-9, MAP.dist(sq.x, sq.y, wp.x, wp.y));
+          const step = Math.min(budget, dw);
+          let nx = sq.x + (wp.x - sq.x) / dw * step, ny = sq.y + (wp.y - sq.y) / dw * step;
+          const base0 = Math.atan2(wp.y - sq.y, wp.x - sq.x);
           /* §7.6 WATER AND PEAKS ARE NOT CROSSED. If the step lands in either, swing the
              heading — a little, then more, either way — and take the first open footing.
              Nothing open in a half-circle means standing where they are: a squad against a
              lake with the wall behind it is the chokepoint doing its work. */
           if (planet.passableAt && !planet.passableAt(nx, ny)) {
-            const base = Math.atan2(ty - sq.y, tx - sq.x);
+            const base = base0;
             let found = null;
             for (const off of [0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) {
               const qx = sq.x + Math.cos(base + off) * step, qy = sq.y + Math.sin(base + off) * step;
@@ -4862,6 +5024,16 @@
         }
       }
 
+      /* §ROUTES NOBODY STANDS IN A LAKE. A push (the spacing below, a beaten squad's run, the wall's sprint) could leave
+         a squad on water or a peak, where every step it tried was blocked too and it stood there for days — measured,
+         every step the ground held back was a squad already standing where it could not be. It wades out to the
+         nearest footing at the end of the block. */
+      if (planet.passableAt && planet.nearestPassable) for (const q of liveSquads()) {
+        if (planet.passableAt(q.x, q.y)) continue;
+        const f = footing(planet, day + 1, q.x, q.y);
+        q.x = f.x; q.y = f.y;
+        stats.audit.wadedOut = (stats.audit.wadedOut || 0) + 1;
+      }
       /* --- OWN LINES DO NOT STACK (§6.1 OWN_SPACING) ---
          After the tick's marches, own-corp pairs standing inside a body's-breadth of each
          other are pushed apart symmetrically, then held inside the wall. Squads held in a
@@ -4881,6 +5053,7 @@
             const half = (CONST.OWN_SPACING - sep) / 2;
             const pa = MAP.clampInside(planet, day + 1, a.x - ux * half, a.y - uy * half);
             const pb = MAP.clampInside(planet, day + 1, b.x + ux * half, b.y + uy * half);
+            if (planet.passableAt && (!planet.passableAt(pa.x, pa.y) || !planet.passableAt(pb.x, pb.y))) continue;   /* §ROUTES not into the water */
             a.x = pa.x; a.y = pa.y; b.x = pb.x; b.y = pb.y;
             stats.audit.ownSpacingPush = (stats.audit.ownSpacingPush || 0) + 1;
           }

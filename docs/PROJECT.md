@@ -4203,6 +4203,20 @@ bold-then-careful 7.8%, flat bold 6.2%, hurt-then-careful 6.2% (balance is parke
 a truce struck late can leave its two partners as the last banners, unable to fight, until the overtime rail ends the
 contest with no winner (three in thirty-two contests).
 
+**THE AI REBUILD, STAGE 2: ROUTES AND MARCHING IN COMPANY.** A squad stepped straight at its aim and, meeting water or a
+peak, swung its heading a little either way or stood still — measured, 57 steps a contest held by the ground, and every
+one of them a squad already STANDING on water or a peak (a push had put it there: the spacing pass, a beaten squad's
+run, the wall's sprint), where every step it tried was blocked too. **ROUTES:** a squad whose straight line is blocked
+walks a route — a grid over the planet (`NAV_CELL` 0.01), the fastest way round by the ground's own pace, pulled tight
+to its corners, kept until the aim moves or the day turns, the grid rebuilt only when a flood changes what is
+passable. **FOOTING:** nobody is left standing in a lake: the spacing pass will not push into water, and at the end of
+every block a squad on water or a peak wades to the nearest open ground that is also inside tomorrow's line (`footing`;
+a first cut that did not look at the line put a squad outside it, and the wall probe caught it). Blocked steps 57 → 2 a
+contest. **IN COMPANY:** squads of one group on one operation march at the pace of the slowest of them and abreast, a
+formation step (`FORM_SPACING`) to the side of the line of march, closing up as they reach the objective; an
+operation's squads keep within a third of a day's march of each other (median; 90% within 0.8). Fatality ~29%, contests
+~17 days; the wall took nobody in twenty contests.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
