@@ -4088,6 +4088,37 @@ no longer moves the result; stance still does (at three squads each, preservatio
 from 20.3% and 4.7%): in a last-banner-standing contest every fight costs people, and a fight fought well only costs
 fewer. Fatality 28.3%; market 15.1% of the pot to non-winners.
 
+**LOOTING (ruled).** A won fight cost people and gave nothing that helps an OA last. Now the one side left holding the
+field (`lootField`: several sides standing, or none, and nobody loots) strips today's enemy dead: their medkit charges,
+the share of their squads' rations they were carrying, and their guns — a fighter takes a dead man's gun when it is the
+better piece (it cost more) and he shoots it at least as well as his own (Total Aim within `LOOT_AIM_SLACK`), carrying
+his own home; a gun nobody takes is carried off as a spare often enough (`LOOT_RECOVERY_P`, one a fighter, its own
+seeded draw so the fight's stream is untouched). The armoury settles it: a spare comes home with a living fighter; a
+gun taken off a corpse is no longer its OA's to recover. Twelve contests: 134 fights looted, 155 guns taken up, 172
+carried off, 581 medkit charges.
+
+**CAUTION AGAINST AGGRESSION: THE BEHAVIOUR, TRACED.** Identical founded OAs differing only in stance (two each),
+128 contests, every squad-day, meeting, fight and exit recorded. **FOUR BEHAVIOUR FAULTS, FIXED:** (1) the walk in from
+outside the dome line carried no end and a withdrawal is never marked arrived, so a squad once caught outside held it
+for the rest of the contest, standing where it walked in to — a third to nearly half of all squad-days (it now lasts
+the day, and a pull-back that has arrived is done); (2) the strike planner sent squads just bled in a fight straight
+out on the next strike, so a bold OA's hurt squads almost never reached a beacon (`STRIKE_FIT` 0.7 of landing strength);
+(3) having planned one strike it returned, and every squad left out of it stood idle that day; (4) a squad whose
+approach still stood but whose step was done waited on the spot until the approach lapsed (it takes the next step).
+**TRIED AND RULED OUT** (no measurable effect): slipping away by the odds for every stance; answering a beacon only with
+the odds; pursuit; the AI reserve rising or flat with aggression; the weak-target discount; an OA judging its own odds
+by the truth rather than the public board (everyone left more, the gap unchanged); the weight of its own loss rate.
+**FOUND, NOT CHANGED:** the stance table's `holdNudge` and `recoveryUrgency` are read by nothing. **WHAT REMAINS IS
+TIMING.** The boldest stance wins its fights (per contest it loses 19 and inflicts 42; the most careful loses 26 and
+inflicts 35) but takes its losses early (8 by day 8 against 5.5) because it goes looking (seeker 2.8 a contest against
+1.2); what it inflicts is spread over several rivals while its losses are all its own, and the bystanders gain. So it
+reaches the market's line first: it leaves by deal or on foot in about half its contests (the careful in under a third),
+for about ₡60k against ₡1.1M for a win. Nearly every OA ends a contest standard or bolder (the stance drifts toward
+aggression as the ring closes), so the difference is an early-game one. The careful live near the ring's edge (62% of
+squad-days within 12% of it) and are found more, but their losses come after most rivals are gone. Tempered founders,
+384 seasons (flank → +loot → +these fixes): Verdant 68 → 60 → 53, Mercy 36 → 38 → 38, Violets 28 → 32 → 35, New Line
+80 → 76 → 80, Vantis 42 → 59 → 61, Knights 58 → 62 → 44, Alliance 25 → 19 → 27, Nevlon 29 → 17 → 27. Fatality 28.6%.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

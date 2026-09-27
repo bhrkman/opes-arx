@@ -2512,8 +2512,10 @@
 
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
-      const ids = idsOf(f);
-      if (f.status !== 'dead') { carried(ids); continue; }      /* home, and back in the rack */
+      /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
+      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
+      if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
          recovered whether or not their side held the ground. The hook was declared at Step 2,
          repurposed in writing at Step 5, and read by nothing until the gear-damage cut went

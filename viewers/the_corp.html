@@ -19179,6 +19179,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRIKE_ODDS_BASE: 1.25,             // [C] §FLANK the head-count edge a strike party wants: base − seek × below
     STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
     STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
+    LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
+    STRIKE_FIT: 0.7,                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
+    LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
 
     /* §8.3 coordination — how well a corp runs a planned attack */
@@ -20203,7 +20206,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
       const lost = Math.max(0, all.length - alive.length);
       const daysLeft = Math.max(1, MAP.CONST.LAST_GROUND_DAY + CONST.LEAVE_OVERTIME_GUESS - day);
-      const rate = 0.5 * (lost / Math.max(1, all.length) / Math.max(1, day)) + 0.5 * fieldRate;
+      const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / Math.max(1, day)) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
       const expect = Math.min(alive.length, rate * all.length * daysLeft);
       const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.salary) || 0) *
                     LED.CONST.SALARY_MONTHS + kitWorth(b.loadout), 0) / alive.length : 0;
@@ -20518,6 +20521,80 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /** Build one SIDE of a fight from one or more squads of the same corp. Two squads that
       arrived together fight as one body — that is what the pincer was for. */
+  /* §LOOT (ruled) THE GROUND GOES TO WHOEVER HOLDS IT. A won fight cost the winner people and gave it nothing that
+     helps it last, so in a contest won by the last banner standing every fight was a loss, only a smaller one for the
+     side that fought better. Now the one side left holding the field strips today's enemy dead: their medkits, the
+     rations their squads were carrying for them, and their guns — a fighter takes a dead man's gun when it is the
+     better piece (it cost more) and he shoots it at least as well as his own, and carries his own home. What nobody
+     takes up is carried off as spoils often enough (`LOOT_RECOVERY_P`), one spare a fighter, and comes home to the
+     armoury if they do. Several sides still standing, or nobody: nobody loots. */
+  function lootField(groups, broke, arrivals, deadBefore, day, stats, mx, my) {
+    const tagOf = gi => String.fromCharCode(65 + gi);
+    const holding = groups.map((g, gi) => gi).filter(gi => !broke[tagOf(gi)] && groups[gi].some(q => squadHead(q).length));
+    if (holding.length !== 1) return;
+    const wi = holding[0], winners = groups[wi].filter(q => squadHead(q).length);
+    const wCorp = groups[wi][0].corp;
+    for (const A of arrivals) if (A.gi === wi && squadHead(A.sq).length) winners.push(A.sq);
+    const losers = [];
+    groups.forEach((g, gi) => { if (gi !== wi) for (const q of g) losers.push(q); });
+    for (const A of arrivals) if (A.gi !== wi && (A.gi < 0 || broke[tagOf(A.gi)])) losers.push(A.sq);
+    const fallen = [];
+    const L = stats.audit.loot = stats.audit.loot || { fights: 0, medkits: 0, rations: 0, guns: 0, spares: 0 };
+    let took = false;
+    for (const q of losers) {
+      const here = q.bodies.filter(b => b.status === 'dead' && !deadBefore.has(b) && !b._stripped);
+      if (!here.length) continue;
+      /* the rations the dead were carrying: their share of the squad's */
+      const alive = q.bodies.filter(b => b.status === 'active' || b.status === 'injured').length;
+      const share = q.rations * here.length / Math.max(1, here.length + alive);
+      if (share > 0) {
+        q.rations -= share;
+        const to = winners.slice().sort((a, b) => a.rations / Math.max(1, squadHead(a).length) - b.rations / Math.max(1, squadHead(b).length))[0];
+        to.rations += share; L.rations += share; took = true;
+      }
+      for (const b of here) { b._stripped = true; fallen.push(b); }
+    }
+    if (!fallen.length) return;
+    const standing = []; for (const q of winners) for (const b of squadHead(q)) standing.push({ b, q });
+    if (!standing.length) return;
+    /* medkits */
+    for (const f of fallen) {
+      const n = (f._charges && f._charges.itm_medkit) || 0;
+      if (!n) continue;
+      f._charges.itm_medkit = 0;
+      const t = standing[0].b; t._charges = t._charges || {}; t._charges.itm_medkit = (t._charges.itm_medkit || 0) + n;
+      L.medkits += n; took = true;
+    }
+    for (const q of winners) { q.medkits = medkitCharges(q.bodies); q.hasMedkit = q.medkits > 0; }
+    /* guns: the best pieces first, each to the fighter it upgrades most */
+    const costOf = id => { const it = id && ITEMS.byId(id); return it ? (it.cost || 0) : 0; };
+    const guns = fallen.filter(f => f.loadout && f.loadout.primary && !C.hooksOf(f, ROSTER.traitById).has('never_drops_gear'))
+      .map(f => ({ f, id: f.loadout.primary })).sort((a, b) => costOf(b.id) - costOf(a.id));
+    for (const g of guns) {
+      const it = ITEMS.byId(g.id); if (!it) continue;
+      let best = null, gain = 0;
+      for (const s of standing) {
+        const lo = s.b.loadout || {}; if (!lo.primary) continue;
+        const mine = ITEMS.byId(lo.primary);
+        const up = costOf(g.id) - costOf(lo.primary);
+        if (up <= 0) continue;
+        if (ITEMS.shotOf(s.b, it) + CONST.LOOT_AIM_SLACK < ITEMS.shotOf(s.b, mine)) continue;   /* not a gun he shoots well */
+        if (up > gain) { gain = up; best = s; }
+      }
+      g.f._lootedPrimary = true;
+      if (best) {
+        const lo = best.b.loadout;
+        best.b._spareKit = [lo.primary].concat(lo.mods || []);       /* his own comes home on his back */
+        ITEMS.equip(best.b, { primary: g.id, mods: [], sidearm: lo.sidearm, armor: lo.armor, consumables: lo.consumables || [] });
+        L.guns++; took = true;
+        stats._rec && stats._rec({ t: 'loot', x: mx, y: my, c: best.q.corpId, name: best.b.name, gun: it.name || g.id });
+      } else if (P.mulberry32(P.seedFrom('loot' + day + g.f.id))() < ITEMS.CONST.LOOT_RECOVERY_P) {   /* its own draw: the fight's stream is untouched */
+        const carrier = standing.find(s => !s.b._spareKit || !s.b._spareKit.length);
+        if (carrier) { carrier.b._spareKit = [g.id]; L.spares++; took = true; }
+      }
+    }
+    if (took) { L.fights++; if (wCorp) wCorp._lootFights = (wCorp._lootFights || 0) + 1; }
+  }
   function liveSquadGroup(rng, squads, day, engagementNo, traitIndex) {
     const parts = squads.map(sq => liveSquad(rng, sq.corp, sq, day, engagementNo, traitIndex))
                         .filter(Boolean);
@@ -21016,7 +21093,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       for (const sq of mine) {
         const it = sq.intent;
         if (it && it.ordered) continue;                                    /* a manager's order */
-        const domeRun = !!(it && !it.expires);                             /* walking in from outside the line */
+        const domeRun = !!(it && it.dome);                                 /* walking in from outside the line */
         if (it && (it.type === 'hunt' || it.type === 'strike' || it.type === 'sound')) continue;   /* already going to a fight */
         if (it && it.obj && it.obj.type === 'sponsor_cache') continue;     /* on its own beacon run */
         if (sq._beaconLit != null && sq._beaconLit >= day - 1) continue;   /* holding one itself */
@@ -21110,14 +21187,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (sq.intent && sq.intent.type === 'avoid') continue;
         if (sq.intent && sq.intent.beacon) continue;                  /* it answered a beacon: seeing the holder is the point */
         const sd = squadDials(sq);
-        if (sd.seek >= 0.45) continue;                        /* it wants the fight, or does not mind */
         let near = null, nd = 9;
         for (const e of pic) {
           const d = MAP.dist(sq.x, sq.y, e.x, e.y);
           if (d < nd) { nd = d; near = e; }
         }
         if (!near || nd > CONST.SEE_RANGE) continue;
-        if (rng() >= (1 - sd.seek)) continue;
+          if (sd.seek >= 0.45) continue;                        /* it wants the fight, or does not mind */
+          if (rng() >= (1 - sd.seek)) continue;
         const a = Math.atan2(sq.y - near.y, sq.x - near.x);
         const step = CONST.SEE_RANGE * 1.2;
         sq.intent = { type: 'avoid', tx: sq.x + Math.cos(a) * step, ty: sq.y + Math.sin(a) * step,
@@ -21127,16 +21204,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
 
     /* ---- 1. a coordinated strike, if there is a target worth it ---- */
-    if (free.length >= 2 && foreign.length && rng() < dials.seek * (0.45 + coord)) {
+    /* §TACTICS WHO IS FIT FOR A STRIKE. The planner took any free squad — including one just bled in a fight, whose plan
+       had been set aside precisely so it could choose to go and be made whole (or to mend) — and sent it straight back
+       out on the next strike, so a bold OA's hurt squads almost never reached a beacon. A squad down to less than
+       `STRIKE_FIT` of the strength it landed with is left to choose its own approach. */
+    const fit = free.filter(q => squadHead(q).length >= Math.ceil((q._startN || squadHead(q).length) * CONST.STRIKE_FIT));
+    if (fit.length >= 2 && foreign.length && rng() < dials.seek * (0.45 + coord)) {
       let best = null, bs = 0;
       /* §FLANK A PARTY THAT CAN WIN IT. The target was chosen on prestige and distance alone, so three small squads
          set off after one bigger than all of them together. A pincer is worth going at even numbers (coming from two
          sides wins those); a careful OA wants more than that, a bold one takes a little less. */
-      const partyHead = free.slice().sort((a, b) => squadHead(b).length - squadHead(a).length).slice(0, 3)
+      const partyHead = fit.slice().sort((a, b) => squadHead(b).length - squadHead(a).length).slice(0, 3)
         .reduce((t, q) => t + squadHead(q).length, 0);
       const needOdds = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * dials.seek;
       for (const f of foreign) {
-        const d = Math.min.apply(null, free.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
+        const d = Math.min.apply(null, fit.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
         if (d > CONST.PLAN_RANGE) continue;
         if (CONST.STRIKE_ODDS_BASE && partyHead < (f.n || 1) * needOdds) continue;
         const sc = f.prestige / (0.05 + d);
@@ -21144,7 +21226,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       if (best) {
         /* the closest free squad fixes them; the others come round the sides */
-        const sorted = free.slice().sort((a, b) =>
+        const sorted = fit.slice().sort((a, b) =>
           MAP.dist(a.x, a.y, best.x, best.y) - MAP.dist(b.x, b.y, best.x, best.y));
         const party = sorted.slice(0, Math.min(3, sorted.length));
         const fixer = party[0];
@@ -21189,7 +21271,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         stats.audit.strikes = (stats.audit.strikes || 0) + 1;
         if (party.length > 1) stats.audit.pincers = (stats.audit.pincers || 0) + 1;
         if (sync && party.length > 1) stats.audit.synced = (stats.audit.synced || 0) + 1;
-        return;
+        /* §TACTICS and the squads not in it still get a day's work: this returned here, so every squad left out of a
+           strike stood idle until tomorrow's planning */
       }
     }
 
@@ -21200,7 +21283,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        REACTION, handled in the fight resolution, and it must never overwrite the approach.
        That conflation is what pinned squads to the wall for the last week of a Divide. */
     for (const sq of free) {
-      if (sq.approach && day < sq.approachUntil && approachValid(sq, planet, day)) continue;
+      if (sq.intent) continue;                                   /* taken into a strike above */
+      /* §TACTICS A PLAN STILL IN HAND GETS ITS NEXT STEP. A squad whose approach still stood but whose last step was
+         done (it reached the spot, or the step ran out) was skipped here and stood where it was until the approach
+         lapsed — a hunter that found the ground empty waited days on it. It takes the approach's next step instead. */
+      if (sq.approach && day < sq.approachUntil && approachValid(sq, planet, day)) {
+        sq.intent = approachIntent(rng, sq, corp, planet, day, asRead(sq, foreign, captainMind(sq)));
+        continue;
+      }
       chooseApproach(rng, sq, corp, planet, day, foreign, stats);
     }
   }
@@ -22508,9 +22598,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            them. The target now sits a real margin inside, whatever the circle's size. */
         const inR = Math.max(zNow.r * 0.5, zNow.r - Math.max(0.03, zNow.r * 0.2));
         const k = inR / Math.max(1e-9, dz);
-        sq.intent = { type: 'withdraw',
+        /* §TACTICS THE WALK IN ENDS. This carried no end: no `expires`, and a withdrawal is never marked arrived, so a
+           squad once caught outside the line held this intent for the rest of the contest — standing on the spot it
+           walked in to, never free to plan again. Measured, a third to nearly half of every squad-day was squads
+           frozen so, the careful most (they live near the edge). It lasts the day. */
+        sq.intent = { type: 'withdraw', dome: true,
                       tx: zNow.cx + (sq.x - zNow.cx) * k,
-                      ty: zNow.cy + (sq.y - zNow.cy) * k };
+                      ty: zNow.cy + (sq.y - zNow.cy) * k, expires: day };
         stats.audit.lineEvade = (stats.audit.lineEvade || 0) + 1;
       }
 
@@ -23238,8 +23332,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             stats.audit.nightMarch++;
             for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.NIGHT_MARCH_FATIGUE);
           }
-        } else if (it.type === 'claim' || it.type === 'patrol') {
-          it.arrived = true;
+        } else if (it.type === 'claim' || it.type === 'patrol' || it.type === 'withdraw' || it.type === 'avoid') {
+          it.arrived = true;           /* §TACTICS a pull-back that has got where it was going is done */
         }
       }
 
@@ -23635,6 +23729,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             }
             /* §CHARGES note what every combatant carries in, so the spend can come off the fighter */
             for (const sd of built) for (const u of (sd.units || [])) u._carriedIn = (u.carried || []).slice();
+            /* §LOOT who was already dead before this fight: only today's fallen are on this ground to be stripped */
+            const deadBefore = new Set();
+            for (const g of groups) for (const q of g) for (const b of q.bodies) if (b.status === 'dead') deadBefore.add(b);
+            for (const A of arrivals) for (const b of A.sq.bodies) if (b.status === 'dead') deadBefore.add(b);
             const res = TACTICAL.resolve(rng, built, ctx);
             if (global.__FIGHTS) {
               const rows = built.map((sd, gi) => {
@@ -23924,6 +24022,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             const m = /^disengage_(.+)$/.exec(res.result);
             if (m) { for (const tag of m[1].split('')) broke[tag] = true; }
             if (m && m[1] === 'both') for (const g of groups) broke[String.fromCharCode(65 + groups.indexOf(g))] = true;
+            lootField(groups, broke, arrivals, deadBefore, day, stats, mx, my);
             for (let gi = 0; gi < groups.length; gi++) {
               const tag = String.fromCharCode(65 + gi);
               const g = groups[gi];
@@ -27488,8 +27587,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
-      const ids = idsOf(f);
-      if (f.status !== 'dead') { carried(ids); continue; }      /* home, and back in the rack */
+      /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
+      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
+      if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
          recovered whether or not their side held the ground. The hook was declared at Step 2,
          repurposed in writing at Step 5, and read by nothing until the gear-damage cut went
