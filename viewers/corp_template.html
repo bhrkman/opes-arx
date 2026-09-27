@@ -6956,6 +6956,19 @@
         drawSite(g, p, o);
         G._gspots.push({ x: p[0], y: p[1], r: 11, kind: 'site', site: o });
       }
+      /* §COMMAND YOUR OA'S PLAN, ON THE GROUND: each operation a flag where it is aimed, in your colour, saying what it
+         is — so a manager reads the day by what his people meant to do */
+      for (var oi = 0; oi < (D.ops || []).length; oi++) {
+        var op = D.ops[oi]; if (op.x == null || oaIdOf(op.c) !== G.me) continue;
+        var opp = gproj(cv, op.x, op.y), oc = colFor(G.me);
+        g.strokeStyle = oc; g.fillStyle = oc; g.globalAlpha = .9; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(opp[0], opp[1] + 9); g.lineTo(opp[0], opp[1] - 13); g.stroke();
+        g.beginPath(); g.moveTo(opp[0], opp[1] - 13); g.lineTo(opp[0] + 11, opp[1] - 9); g.lineTo(opp[0], opp[1] - 5); g.closePath(); g.fill();
+        g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
+        g.fillText((OPWORD[op.k] || op.k) + (op.t ? ' \u00b7 ' + (SITEWORD[op.t] || op.t) : '') + (op.n > 1 ? ' \u00b7 ' + op.n + ' Squads' : ''), opp[0] + 14, opp[1] - 10);
+        g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
+        G._gspots.push({ x: opp[0], y: opp[1] - 9, r: 10, kind: 'op', op: op });
+      }
       /* §GROUND fights fire at their moment in the day: day fights spread through the march,
          night fights at its end; each bursts when it fires and keeps its label after */
       /* §GROUND A FIGHT IS TWO MARKS, NOT A SENTENCE. Each contact was labelled with a made-up
@@ -7312,6 +7325,7 @@
       tip.style.left = (hit.x * k + 14) + 'px'; tip.style.top = (hit.y * k - 6) + 'px';
       tip.innerHTML = hit.kind === 'squad' ? squadTip(hit.sq)
                     : hit.kind === 'site' ? siteTip(hit.site)
+                    : hit.kind === 'op' ? opTip(hit.op)
                     : (hit.ev.corps || []).map(cSpan).join(' \u00d7 ') +
                       '<div class="r">' + esc(fightWords(hit.ev)) + (hit.ev.bi != null ? ' \u00b7 Click to Watch' : '') + '</div>';
       tip.classList.add('on');
@@ -7602,6 +7616,16 @@
     }
     g.restore();
   }
+  var OPWORD = { take: 'Take', reinforce: 'Reinforce', mend: 'Mend', strike: 'Strike', join: 'Link Up', advance: 'Advance', hold: 'Hold', close: 'Close In' };
+  var SITEWORD = { resource_site: 'Deposit', sponsor_cache: 'Beacon', ration_site: 'Rest Site', strongpoint: 'Strongpoint', munitions_drop: 'Munitions', squad: 'Squad' };
+  /* why the operation stands as it does: the moment it was last chosen, in the manager's words */
+  var OPWHY = { first: 'Set at the Drop', window: 'Changed at the Window', gone: 'Old Aim Was Spent', landed: 'Reinforcements Landed',
+    quarry: 'Old Quarry Is Down', joined: 'Squads Linked Up', bled: 'Replanned After Losses', outmatched: 'Replanned, Outmatched', ring: 'Replanned for the Ring', close: 'The Ring Is Closing' };
+  function opTip(op) {
+    var name = op.t === 'resource_site' && op.lbl ? capWords(op.lbl) : (SITEWORD[op.t] || '');
+    return '<b style="color:' + colFor(G.me) + '">' + esc((OPWORD[op.k] || op.k) + (name ? ' · ' + name : '')) + '</b>' +
+      '<div class="r">' + (op.n || 1) + (op.n > 1 ? ' Squads' : ' Squad') + (OPWHY[op.why] ? ' · ' + OPWHY[op.why] : '') + '</div>';
+  }
   function siteTip(o) {
     var look = SITE_LOOK[o.t] || SITE_LOOK.resource_site;
     var name = o.t === 'resource_site' && o.lbl ? capWords(o.lbl) : look.word;
@@ -7615,7 +7639,7 @@
   /* who is standing in a squad of yours, and how they are: read off the window when it is
      the day being shown, and off the day's own count when the manager has scrubbed back */
   /* exposed for the harness, which has no layout to point a mouse at */
-  window.__gtip = { squadTip: function (q) { return squadTip(q); }, siteTip: function (o) { return siteTip(o); } };
+  window.__gtip = { squadTip: function (q) { return squadTip(q); }, siteTip: function (o) { return siteTip(o); }, opTip: function (o) { return opTip(o); } };
   function squadTip(sq) {
     var nm = (G.plan && G.plan.names && G.plan.names[sq.s]) || ('Squad ' + squadLetter(sq.s));
     var h = '<b style="color:' + SQCOL[sq.s % SQCOL.length] + '">' + esc(nm) + '</b>';

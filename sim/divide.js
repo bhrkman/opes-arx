@@ -3855,7 +3855,7 @@
     /* §RESERVE A SQUAD THAT LOST PEOPLE THINKS AGAIN. A plan is only remade when it runs out, and the first one is
        made at the drop, before anyone is lost — so a squad bled in a fight went on with the plan it had, and never
        weighed walking to a beacon to be made whole. If its OA still has fighters in orbit, its plan is set aside. */
-    if (killed + downed > 0) {
+    if (killed + downed > 0 && CONST.COMMAND !== 'oa') {   /* §COMMAND in the OA's hands, its dawn orders re-weigh a bled squad */
       const squads = side._parts ? side._parts.map(p => p._sq) : [sq];
       for (const q of squads) if (q && q.corp && q.corp.reserve && q.corp.reserve.length) {   /* a strike is spent once fought */
         q.intent = null; q.approachUntil = 0;
@@ -4384,7 +4384,7 @@
             const idx = corps.findIndex(c => c.id === seatId);
             return {
               corps: corps.map(c => c.id === seatId ? snapshotOwn(c) : shellOf(c)),
-              record: REC ? REC.days.map(d => Object.assign({}, d, { sq: (d.sq || []).filter(q => q.c === idx) })) : null
+              record: REC ? REC.days.map(d => Object.assign({}, d, { sq: (d.sq || []).filter(q => q.c === idx), ops: (d.ops || []).filter(o => o.c === idx) })) : null
             };
           };
           const viewFor = (seatId) => {
@@ -4696,6 +4696,16 @@
                   ? { cx: Math.round(n.cx * 1000) / 1000, cy: Math.round(n.cy * 1000) / 1000,
                       r: Math.round(n.r * 1000) / 1000 } : null; })(),
           sq,
+          /* §COMMAND THE PLAN, ON THE RECORD: each OA group's operation — what, where, why it was chosen, and how many
+             squads are on it — so a replay can be read by what the OA meant to do, not only where its squads went */
+          ops: (function () {
+            const out = [], seen = new Set();
+            corps.forEach((c, ci) => { for (const q of c.squads) { const op = q._op; if (!op || seen.has(op) || !squadHead(q).length) continue; seen.add(op);
+              const n = c.squads.filter(q2 => q2._op === op && squadHead(q2).length).length;
+              out.push({ c: ci, k: op.kind, why: op.why || null, n: n,
+                x: op.x != null ? Math.round(op.x * 1000) / 1000 : null, y: op.y != null ? Math.round(op.y * 1000) / 1000 : null,
+                t: op.obj ? op.obj.type : op.target ? 'squad' : null, lbl: op.obj ? (op.obj.label || null) : null }); } });
+            return out; })(),
           obj: planet.objectives.filter(o => o.revealed).map(o => ({
                  x: Math.round(o.x * 1000) / 1000, y: Math.round(o.y * 1000) / 1000,
                  h: o.heldBy, t: o.type, lbl: o.label,
@@ -5726,7 +5736,19 @@
               const g = groups[gi];
               const lost = broke[tag] || (m && m[1] === 'both');
               for (const sq of g) {
-                const dx = sq.x - mx, dy = sq.y - my;
+                let dx = sq.x - mx, dy = sq.y - my;
+                /* §COMMAND A BEATEN SQUAD FALLS BACK ON ITS OWN. Away from the fight, it ran straight away from it —
+                   often away from the rest of its OA too. With friends of its operation standing clear of this fight,
+                   it runs toward them. */
+                if (CONST.COMMAND === 'oa' && sq._op) {
+                  const mates = sq.corp.squads.filter(q => q !== sq && q._op === sq._op && squadHead(q).length && g.indexOf(q) < 0);
+                  const mw = mates.reduce((t, q) => t + squadHead(q).length, 0);
+                  if (mw) {
+                    const fx = mates.reduce((t, q) => t + q.x * squadHead(q).length, 0) / mw, fy = mates.reduce((t, q) => t + q.y * squadHead(q).length, 0) / mw;
+                    const ax = fx - mx, ay = fy - my;
+                    if (ax * dx + ay * dy > -0.2 * Math.hypot(ax, ay) * Math.hypot(dx, dy)) { dx = fx - sq.x; dy = fy - sq.y; stats.audit.fellBackOnGroup = (stats.audit.fellBackOnGroup || 0) + 1; }
+                  }
+                }
                 const len = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy));
                 if (lost) {
                   /* Breaking contact is also measured against the room that is left. On the
@@ -5767,6 +5789,8 @@
                     stats.audit.tookTheGround = (stats.audit.tookTheGround || 0) + 1;
                     continue;
                   }
+                  /* §COMMAND no lone chase: whether the OA goes after the beaten is its operation's call at the next dawn */
+                  if (CONST.COMMAND === 'oa') continue;
                   const pursuit = C.STANCE[sq.corp.policy].pursuit;
                   const chase = pursuit === 'always' ? 0.85 : pursuit === 'aggressive' ? 0.6
                               : pursuit === 'yes' ? 0.35 : pursuit === 'if_free' ? 0.15 : 0;

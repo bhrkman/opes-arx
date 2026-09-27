@@ -4217,6 +4217,22 @@ formation step (`FORM_SPACING`) to the side of the line of march, closing up as 
 operation's squads keep within a third of a day's march of each other (median; 90% within 0.8). Fatality ~29%, contests
 ~17 days; the wall took nobody in twenty contests.
 
+**THE AI REBUILD, STAGE 3: A FIGHT DOES NOT TEAR UP THE PLAN.** Three things still broke a squad away from its
+operation after contact. A beaten squad ran straight away from its enemy, wherever that took it; it now runs toward
+the rest of its operation when they are not in the fight and the way to them is not back through the enemy. A winner
+chased the loser alone; under the OA's command it no longer pursues — the operation decides whether that enemy is
+worth a strike. And every loss cleared the squad's orders so it replanned for itself; under the OA's command the
+orders stand and the operation replans on its own triggers (bled, outmatched). **MEASURED** (sixteen contests):
+an operation's squads within 0.37 days' march of each other (median; 90% within 0.75), trips that got there 28%,
+places more than three days off 7%, blocked steps ~2 a contest; fatality 30%, contests ~17 days.
+
+**THE AI REBUILD, STAGE 4: THE PLAN, ON THE RECORD.** Every recorded day carries each OA's operations — what, where,
+why it was last chosen, how many squads are on it (`ops`) — and each seat is given only its own, like its squads. The
+Ground draws your OA's operations as flags in your colour where they are aimed ("Take · Deposit · 2 Squads"); the
+hover names the objective and why the operation stands ("Set at the Drop", "Replanned After Losses", "The Ring Is
+Closing"). The drop is recorded before the first plan, so its day carries none. `drive_map` checks the plan rides the
+day, is only yours, and that its hover says something.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
