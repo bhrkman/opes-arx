@@ -4143,6 +4143,18 @@ bold 31%, bold-then-careful 29%. Flat caution does not beat every way of choosin
 it, and the odds-reading policies hold it level. What loses is being bold EARLY. The engine's own chooser is among the
 weaker ones — it samples widely around its culture and the "ahead" pull turns it bold early.
 
+**SITES WORTH MORE, THE POT A LITTLE LESS (ruled: tweak, not a systemic change).** A dug deposit pays ₡20k at the close
+(`SITE_CASH`, was ₡5k); the pot's base is ₡1.2M (`POT_BASE`, was ₡1.4M). **FOUND: HALF THE SITES NEVER APPEARED.** The
+reveal waves were laid for a contest of 24 days and more (1, 7, 13, 19, 24); a contest runs about 15, so the last two
+waves — 17 of 35 sites — never came. Brought in to 1, 4, 7, 10, 13: sites seen 20 → 34 of 35 a contest, deposits dug
+2.7 → 4.9, beacon landings 9.0 → 14.5, fatality 31.4% → 29.4% (sixteen contests). The AI now wants a deposit for its
+cash, not only while the board's ask is unmet (`PROSPECT_CASH`), and the bolder stances lean toward prospecting and the
+careful away from it (the design's word: the aggressive are out getting sites). **MEASURED** (tempered founders, 128
+OA-seasons each, per season, before → after): payouts fell with the pot, sites dug rose (0.2–0.5 → 0.4–0.8 an OA), and
+money kept per season across the fleet rose a little (₡21.6k → ₡25.0k). **STILL OPEN:** the bold stances do not yet dig
+more than the careful (Nevlon 0.5 a season, Verdant 0.8): a bold squad is almost never free to choose an approach — it
+is on a strike or a hunt — so the lean barely reaches it, and raising the pull did nothing measurable.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

@@ -168,7 +168,10 @@
     /* §2.5 sponsor waves: a drop at every ring step, fewer at the start and more in total,
        each wave landing inside the ring as it will stand that day and worth more than the
        last. The ring stops being only a squeeze and becomes what reloads the map. */
-    WAVE_DAYS: [1, 7, 13, 19, 24],       // [S] the ring steps
+    /* §SITES THE WAVES FIT THE CONTEST. They were laid for a contest of 24 days and more; a contest runs about 15 now,
+       so the last two waves (17 of 35 sites) never appeared and a third came as it ended — measured, 20 of 35 sites
+       were ever seen and 2.7 deposits dug a contest. Brought in to the contest's real length: 34 of 35 seen, 4.9 dug. */
+    WAVE_DAYS: [1, 4, 7, 10, 13],       // [S] when each wave of sites is revealed (was 1, 7, 13, 19, 24)
     WAVE_COUNT: [5, 6, 7, 8, 9],         // [C] 35 across a Divide
     RELAY_COOLDOWN: 3,                   // [C] days a fired mast stays dark
     LOOT_TICKS: 2,                       // [S] long enough to be interrupted, not an occupation

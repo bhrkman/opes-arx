@@ -10580,7 +10580,10 @@
     /* §2.5 sponsor waves: a drop at every ring step, fewer at the start and more in total,
        each wave landing inside the ring as it will stand that day and worth more than the
        last. The ring stops being only a squeeze and becomes what reloads the map. */
-    WAVE_DAYS: [1, 7, 13, 19, 24],       // [S] the ring steps
+    /* §SITES THE WAVES FIT THE CONTEST. They were laid for a contest of 24 days and more; a contest runs about 15 now,
+       so the last two waves (17 of 35 sites) never appeared and a third came as it ended — measured, 20 of 35 sites
+       were ever seen and 2.7 deposits dug a contest. Brought in to the contest's real length: 34 of 35 seen, 4.9 dug. */
+    WAVE_DAYS: [1, 4, 7, 10, 13],       // [S] when each wave of sites is revealed (was 1, 7, 13, 19, 24)
     WAVE_COUNT: [5, 6, 7, 8, 9],         // [C] 35 across a Divide
     RELAY_COOLDOWN: 3,                   // [C] days a fired mast stays dark
     LOOT_TICKS: 2,                       // [S] long enough to be interrupted, not an occupation
@@ -17149,7 +17152,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one; split down an umbrella it is still years. The pot has to stay
        immense AFTER the deals, or the deals are not worth making. */
-    POT_BASE: 1400000,                  // [H] credits, a whole planet
+    POT_BASE: 1200000,                  // [H] credits, a whole planet (ruled 1.4M → 1.2M: the pot a little less, sites worth more)
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
@@ -19180,6 +19183,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
     STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
+    PROSPECT_CASH: 0.45,                // [C] §SITES the pull of a deposit in reach for its cash alone
+    PROSPECT_REACH_MARCHES: 2.5,        // [C] §SITES how far (in days' march) a deposit is worth walking to for it
     STRIKE_FIT: 0.7,                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
     LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
@@ -21287,11 +21292,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   const APPROACH_LEAN = {
-    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:1.45, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
-    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:1.20, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
+    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:0.80, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
+    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:0.90, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
     standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
-    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:0.75, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
-    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:0.45, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
+    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:1.25, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
+    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:1.40, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
   };
   /* `prospecting` is new at Step 7 and it exists because the board's ask had no verb behind
      it. A corp was told at season open to bring back a named resource, and mining was a side
@@ -21464,15 +21469,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            month of not fighting, and only a board's ask makes it worth doing. */
         const g = corp.rep && corp.rep.goal;
         const ask = g ? g.demands.filter(d => d.kind === 'resource')[0] : null;
-        if (!ask) return 0;
-        if (((corp._banked || {})[ask.resource] || 0) > 0) return 0.05;   /* already have it */
+        /* §SITES (ruled: sites worth more) A DEPOSIT PAYS WHETHER OR NOT THE BOARD ASKED. Every dug site is cash at the
+           close (`SITE_CASH`), so a squad with a live deposit in reach wants it for that alone; the board's ask, until
+           it is met, wants it more. (Measured before: an OA dug under half a site a season, because nothing but the ask
+           — and only until one was banked — ever sent a squad to dig.) */
+        const cashPull = () => {
+          let dd = 9;
+          for (const o of planet.objectives) if (o.type === 'resource_site' && MAP.siteLive(o, day) && MAP.inZone(planet, day + 1, o.x, o.y))
+            dd = Math.min(dd, MAP.dist(sq.x, sq.y, o.x, o.y));
+          return dd < CONST.DAY_MARCH * CONST.PROSPECT_REACH_MARCHES ? CONST.PROSPECT_CASH * (1 - hurt * 0.6) : 0;
+        };
+        if (!ask) return cashPull();
+        if (((corp._banked || {})[ask.resource] || 0) > 0) return cashPull();   /* the ask is met: the cash still pays */
         let d2 = 9, found = false;
         for (const o of planet.objectives) {
           if (o.type !== 'resource_site' || !MAP.siteLive(o, day) || o.resource !== ask.resource) continue;
           found = true;
           d2 = Math.min(d2, MAP.dist(sq.x, sq.y, o.x, o.y));
         }
-        if (!found) return 0;
+        if (!found) return cashPull();
         const priority = g.demands[g.priority] === ask;
         return (priority ? CONST.PROSPECT_PRIORITY : CONST.PROSPECT_BASE)
              * (1 - hurt * 0.6)                       /* a mauled squad has other problems */
@@ -25332,7 +25347,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 5000,         /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled) */
+    SITE_CASH: 20000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled; ₡5k → ₡20k: sites worth more, the pot a little less) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is

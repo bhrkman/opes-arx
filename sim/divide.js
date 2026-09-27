@@ -335,6 +335,8 @@
     STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
     STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
+    PROSPECT_CASH: 0.45,                // [C] §SITES the pull of a deposit in reach for its cash alone
+    PROSPECT_REACH_MARCHES: 2.5,        // [C] §SITES how far (in days' march) a deposit is worth walking to for it
     STRIKE_FIT: 0.7,                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
     LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
@@ -2442,11 +2444,11 @@
   }
 
   const APPROACH_LEAN = {
-    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:1.45, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
-    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:1.20, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
+    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:0.80, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
+    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:0.90, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
     standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
-    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:0.75, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
-    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:0.45, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
+    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:1.25, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
+    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:1.40, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
   };
   /* `prospecting` is new at Step 7 and it exists because the board's ask had no verb behind
      it. A corp was told at season open to bring back a named resource, and mining was a side
@@ -2619,15 +2621,25 @@
            month of not fighting, and only a board's ask makes it worth doing. */
         const g = corp.rep && corp.rep.goal;
         const ask = g ? g.demands.filter(d => d.kind === 'resource')[0] : null;
-        if (!ask) return 0;
-        if (((corp._banked || {})[ask.resource] || 0) > 0) return 0.05;   /* already have it */
+        /* §SITES (ruled: sites worth more) A DEPOSIT PAYS WHETHER OR NOT THE BOARD ASKED. Every dug site is cash at the
+           close (`SITE_CASH`), so a squad with a live deposit in reach wants it for that alone; the board's ask, until
+           it is met, wants it more. (Measured before: an OA dug under half a site a season, because nothing but the ask
+           — and only until one was banked — ever sent a squad to dig.) */
+        const cashPull = () => {
+          let dd = 9;
+          for (const o of planet.objectives) if (o.type === 'resource_site' && MAP.siteLive(o, day) && MAP.inZone(planet, day + 1, o.x, o.y))
+            dd = Math.min(dd, MAP.dist(sq.x, sq.y, o.x, o.y));
+          return dd < CONST.DAY_MARCH * CONST.PROSPECT_REACH_MARCHES ? CONST.PROSPECT_CASH * (1 - hurt * 0.6) : 0;
+        };
+        if (!ask) return cashPull();
+        if (((corp._banked || {})[ask.resource] || 0) > 0) return cashPull();   /* the ask is met: the cash still pays */
         let d2 = 9, found = false;
         for (const o of planet.objectives) {
           if (o.type !== 'resource_site' || !MAP.siteLive(o, day) || o.resource !== ask.resource) continue;
           found = true;
           d2 = Math.min(d2, MAP.dist(sq.x, sq.y, o.x, o.y));
         }
-        if (!found) return 0;
+        if (!found) return cashPull();
         const priority = g.demands[g.priority] === ask;
         return (priority ? CONST.PROSPECT_PRIORITY : CONST.PROSPECT_BASE)
              * (1 - hurt * 0.6)                       /* a mauled squad has other problems */
