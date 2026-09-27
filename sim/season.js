@@ -3565,6 +3565,9 @@
         /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
            Divide writes into the same object, so the lesson survives the lock */
         dealRecord: (c._dealRecord = c._dealRecord || {}),
+        /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
+           it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
+        wordRecord: (c._wordRecord = c._wordRecord || {}),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -4139,7 +4142,6 @@
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
         calledWithdrawal: !!c._calledWithdrawal,
-        policyChanged: !!c._policyChanged,
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,

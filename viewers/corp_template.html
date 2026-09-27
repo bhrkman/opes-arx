@@ -7397,7 +7397,7 @@
     var prof = (G.oa || OA || []).filter(function (p) { return p.id === id; })[0] || c.profile || {};
     var treach = (prof.dials && prof.dials.treachery != null) ? prof.dials.treachery : 50;
     var base = 1 - treach / 100;
-    var rec = (c.persist && c.persist.wordRecord) || c._wordRecord || null;
+    var rec = c._wordRecord || (c.persist && c.persist.wordRecord) || null;   /* the season corp's, carried across years */
     var seen = rec ? (rec.kept || 0) + (rec.broken || 0) : 0;
     /* what it has been seen to do counts for more the more it has been seen to do it */
     var share = seen ? (base * 3 + (rec.kept || 0)) / (3 + seen) : base;
@@ -9466,13 +9466,6 @@
     Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-sheet]'), function (el) {
       el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
     });
-    Array.prototype.forEach.call($('tstance').querySelectorAll('[data-lean]'), function (p2) {
-      p2.onclick = function () {
-        G.div.answer = G.div.answer || {}; G.div.answer.leanings = G.div.answer.leanings || {};
-        G.div.answer.leanings[p2.getAttribute('data-lean')] = +p2.getAttribute('data-lv');
-        renderTable();
-      };
-    });
 
     /* ---- the head: the day, your odds, your banner ---- */
     if ($('dealhead')) {
@@ -9598,128 +9591,14 @@
               '<div class="box beamcol"><h2 style="margin-top:0;text-align:center">The Beam</h2><div class="tscale"><i style="left:' + Math.round(chance * 100) + '%"></i></div>' +
                 '<div class="word ' + (chance > 0.5 ? 'good' : '') + '">' + Math.round(chance * 100) + '% They Say Yes</div>' +
                 beamFacts([['Their Chance of Winning', theirOdds + '%'], ['Yours', yourOdds + '%'], ['The Truce Runs', NEG.CONST.PACT_DAYS[1] + ' Days'],
-                           [G._tpact.credits ? 'Sweetener' : null, crs(G._tpact.credits || 0)], ['If Torn Up', 'Seen by the Crowd']]) +
+                           [G._tpact.credits ? 'Sweetener' : null, crs(G._tpact.credits || 0)], ['Kept', 'Never Broken \u00b7 The Aleas See to It']]) +
                 '<button style="margin-top:10px;width:100%" data-tsend="pact">Put It to Them</button></div>' +
               '<div class="box"><h2 style="margin-top:0">You Ask For</h2>' +
                 '<div class="trow2"><div class="r1"><span class="nm">A Truce</span></div><div class="r2"><span>Neither Side\u2019s Squads Engage the Other\u2019s for ' + NEG.CONST.PACT_DAYS[1] + ' Days</span></div></div></div></div>'
             : '<div class="box"><span class="m">' + esc(capWords(pr.why || 'They Do Not Deal')) + '</span></div>');
           var pc = host.querySelector('[data-tpcred]');
           if (pc) pc.onchange = function () { G._tpact.credits = Math.min(G.corps[G.me].account.treasury, Math.max(0, Math.round(+pc.value || 0))); renderTable(); };
-        } else {
-          var r = TKIND === 'join' ? t.join : t.take, rg = r.range || {};
-          {
-            var noNumber = !r.viable || !r.band;
-            var lo = r.band ? Math.max(0, Math.round(r.band.minShare * 100)) : Math.round((rg.joinerMin || 0) / Math.max(1, rg.expectedTake || 1) * 100);
-            var hi = r.band ? Math.min(95, Math.round(r.band.maxShare * 100)) : Math.round((rg.principalMax || 0) / Math.max(1, rg.expectedTake || 1) * 100);
-            var bandWord = r.band ? lo + '\u2013' + hi + '% Would Sign' : 'They Want ' + lo + '%, ' + (TKIND === 'join' ? 'You' : 'They') + ' Would Pay ' + hi + '%';
-            /* the pools: what each side can put on the table for this kind of deal. A SHARE OF
-               THE HAUL is a share of what the principal banks in a category, cascading; each row
-               says what the principal can expect to bank and how badly each side wants it. */
-            var rates = rg.resources || {};
-            var myRep = G.corps[G.me].rep || {}, theirRep = G.corps[id].rep || {};
-            var wantWord = function (r, cat) {
-              var hold = ((r.holds || {})[cat] != null) ? r.holds[cat] : 0.5;
-              var asked = ((r.goal || {}).demands || []).some(function (d) { return d.kind === 'resource' && d.category === cat; });
-              return (hold < 0.25 ? 'Short' : hold < 0.5 ? 'Low' : 'Stocked') + (asked ? ' \u00b7 Board Asks' : '');
-            };
-            var crates = rg.claims || {};
-            var claimRows = Object.keys(crates).map(function (sid) {
-              var c = crates[sid];
-              return { k: 'claim:' + sid, site: sid, label: 'The ' + esc(RES_NAME[c.resource] || capWords(c.resource)) + ' Claim',
-                       sub: '~' + c.units + ' Units \u00b7 ' + CAT_NAME[c.category] + ' \u00b7 You: ' + wantWord(myRep, c.category) + ' \u00b7 They: ' + wantWord(theirRep, c.category) };
-            });
-            var haulRows = REP.CATEGORIES.map(function (cat) {
-              var r = rates[cat] || { units: 0 };
-              return { k: 'haul:' + cat, cat: cat, label: 'A Share of Their ' + CAT_NAME[cat],
-                       sub: (r.units > 0 ? '~' + r.units + ' Units Expected' : 'Nothing Expected') +
-                            ' \u00b7 You: ' + wantWord(myRep, cat) + ' \u00b7 They: ' + wantWord(theirRep, cat),
-                       input: 'pct', def: 25, dead: !(r.units > 0) };
-            });
-            var pools = TKIND === 'join'
-              ? { give: [{ k: 'stand', label: 'Stand Down', sub: 'Your People Off the Line', on: rg.standDown ? 'They Would Rather' : '' }],
-                  get:  [{ k: 'cut', label: 'A Cut of the Take', sub: bandWord, input: 'pct', def: Math.round((lo + hi) / 2) },
-                         { k: 'credits', label: 'Credits', sub: 'Paid To You', input: 'cr', def: 0 }].concat(haulRows, claimRows) }
-              : { give: [{ k: 'cut', label: 'A Cut of the Take', sub: bandWord, input: 'pct', def: Math.round((lo + hi) / 2) },
-                         { k: 'credits', label: 'Credits', sub: 'Paid To Them', input: 'cr', def: 0 }].concat(haulRows, claimRows),
-                  get:  [{ k: 'stand', label: 'Stand Down', sub: 'Their People Off the Line', on: rg.standDown ? 'They Would Rather' : '' }] };
-            var poolHtml = function (side) {
-              return pools[side].map(function (row) {
-                var have = C[side].some(function (c) { return c.k === row.k; });
-                var btn = row.fixed || row.dead ? '' : '<button class="tiny" data-tadd2="' + side + ':' + row.k + '"' + (have ? ' disabled' : '') + '>' + (have ? '\u2713 Added' : 'Add') + '</button>';
-                var ctl = row.fixed ? '<span>Always</span>'
-                        : row.dead ? '<span>Nothing Expected</span>'
-                        : '<span class="ctl">' +
-                          (row.input === 'pct' ? '<input class="bid" data-tin="' + row.k + '" value="' + row.def + '"><span>%</span>' : '') +
-                          (row.input === 'cr' ? '<span>\u20a1</span><input class="bid" style="width:80px" data-tin="' + row.k + '" value="' + row.def + '">' : '') +
-                          (row.cat ? '<span class="tog" data-twin="' + row.k + '" title="paid only if their banner wins the Divide">If They Win</span>' : '') +
-                          '</span>';
-                return '<div class="trow2' + (row.dead ? ' dead' : '') + '"><div class="r1"><span class="nm">' + row.label + '</span>' + btn + '</div>' +
-                       '<div class="r2"><span>' + row.sub + (row.on ? ' \u00b7 ' + row.on : '') + '</span>' + ctl + '</div></div>';
-              }).join('');
-            };
-            var chipHtml = function (side) {
-              return C[side].map(function (c, i) {
-                return '<span class="chip" data-tdrop2="' + side + ':' + i + '">' +
-                       (c.k === 'cut' ? c.pct + '% of the Take' : c.k === 'credits' ? cr(c.n) : c.k === 'stand' ? 'Stand Down'
-                        : c.cat ? c.pct + '% of Their ' + CAT_NAME[c.cat] + (c.when === 'win' ? ' If They Win' : '') : c.label) + ' \u00d7</span>';
-              }).join('');
-            };
-            /* THE BEAM: the engine's own arithmetic on the terms as they stand */
-            var terms = termsOf(C);
-            var value = NEG.termsValue(terms, rg, 'joiner'), cost = NEG.termsValue(terms, rg, 'principal');
-            var min = rg.joinerMin || 0, max = rg.principalMax || 0, span = Math.max(1, max - min);
-            var pos = Math.max(2, Math.min(98, Math.round(((value - min) / span) * 60 + 20)));
-            /* THE VERDICT, one line; the reasons beneath as figures */
-            var word, wcls = '', ok = false, empty = !C.give.length && !C.get.length;
-            var whoseWall = rg.wall ? ((rg.wall === 'seller') === (TKIND === 'join') ? 'Your' : 'Their') : null;
-            if (rg.wall) { word = whoseWall + ' Fans Forbid It Today'; wcls = 'bad'; }
-            else if (empty) { word = 'Nothing on the Table'; wcls = 'm'; }
-            else if (value < min) { word = 'Short by ' + cr(min - value); wcls = 'bad'; }
-            else if (cost > max) { word = 'Over by ' + cr(cost - max); wcls = 'bad'; }
-            else { ok = true; word = value > min + span * 0.7 ? 'Gladly' : 'They Would Sign'; wcls = 'good'; }
-            var inKind = (terms.resources || []).length || (terms.claims || []).length;
-            var seen = TKIND === 'join' ? rg.seller : rg.buyer;
-            var facts = beamFacts([
-              [TKIND === 'join' ? 'Their Chance of Winning' : 'Their Chance of Winning', Math.round((rg.oddsPrincipal || 0) * 100) + '% \u2192 ' + Math.round((rg.oddsJoined || 0) * 100) + '% Together'],
-              ['Least They Would Take', crs(min)],
-              ['Most They Would Pay', crs(max)],
-              [empty ? null : 'Your Offer, to Them', crs(value), value >= min ? 'good' : 'bad'],
-              [empty || !inKind ? null : 'Your Offer, to You', crs(cost), cost <= max ? '' : 'bad'],
-              [rg.relPrice > 1.05 ? 'Their Trust' : rg.relPrice < 0.95 ? 'Their Trust' : null, rg.relPrice > 1.05 ? 'Low \u2014 a Premium' : 'High \u2014 a Discount'],
-              [rg.spoiler > 0 ? (TKIND === 'join' ? 'Your Leverage' : 'Their Leverage') : null, crs(rg.spoiler)],
-              [seen && seen.damage > 0.5 ? 'Your Fans' : null, '\u2212' + Math.round(seen && seen.damage || 0) + ' Standing' + (seen && seen.wall ? ' \u00b7 Too Much' : ''), seen && seen.wall ? 'bad' : '']
-            ]);
-            host.innerHTML = kh + '<div class="tcols">' +
-              '<div class="box"><h2 style="margin-top:0">You Offer</h2><div class="ways">' + waysHtml + '</div><div class="tpool">' + poolHtml('give') + '</div><div class="chips">' + chipHtml('give') + '</div></div>' +
-              '<div class="box beamcol"><h2 style="margin-top:0;text-align:center">The Beam</h2><div class="tscale"><i style="left:' + pos + '%"></i></div>' +
-                '<div class="word ' + wcls + '">' + word + '</div>' + facts +
-                '<button style="margin-top:10px;width:100%" data-tsend="' + TKIND + '"' + (!empty && !rg.wall ? '' : ' disabled') + '>Put It to Them</button></div>' +
-              '<div class="box"><h2 style="margin-top:0">You Ask For</h2><div class="tpool">' + poolHtml('get') + '</div><div class="chips">' + chipHtml('get') + '</div></div>' +
-              '</div>';
-            Array.prototype.forEach.call(host.querySelectorAll('[data-tadd2]'), function (b) {
-              b.onclick = function () {
-                var a2 = b.getAttribute('data-tadd2'), side = a2.slice(0, a2.indexOf(':')), k = a2.slice(a2.indexOf(':') + 1);
-                var inp = host.querySelector('[data-tin="' + k + '"]');
-                var term = { k: k };
-                if (k === 'cut') term.pct = Math.max(0, Math.min(95, Math.round(+inp.value || 0)));
-                if (k === 'credits') term.n = Math.max(0, Math.round(+inp.value || 0));
-                if (k.indexOf('haul:') === 0) {
-                  term.cat = k.slice(5); term.pct = Math.max(1, Math.min(95, Math.round(+inp.value || 0)));
-                  var wc = host.querySelector('[data-twin="' + k + '"]'); term.when = wc && wc.classList.contains('on') ? 'win' : 'always';
-                }
-                if (k.indexOf('claim:') === 0) {
-                  term.site = k.slice(6);
-                  var cr0 = (rg.claims || {})[term.site]; term.label = 'The ' + (cr0 ? (RES_NAME[cr0.resource] || capWords(cr0.resource)) : 'Ore') + ' Claim';
-                }
-                C[side].push(term); renderTable();
-              };
-            });
-            Array.prototype.forEach.call(host.querySelectorAll('.tog[data-twin]'), function (b) { b.onclick = function () { b.classList.toggle('on'); }; });
-            Array.prototype.forEach.call(host.querySelectorAll('[data-tdrop2]'), function (b) {
-              b.onclick = function () { var parts = b.getAttribute('data-tdrop2').split(':'); C[parts[0]].splice(+parts[1], 1); renderTable(); };
-            });
-          }
-        }
+        }   /* §JOINING RETIRED the join/take composer that stood here was unreachable since the banners went; deleted */
         Array.prototype.forEach.call(host.querySelectorAll('[data-tkind]'), function (b) {
           b.onclick = function () { if (b.classList.contains('off')) return; TKIND = b.getAttribute('data-tkind'); renderTable(); };
         });
@@ -9727,13 +9606,6 @@
           b.onclick = function () {
             G.div.answer = G.div.answer || {};
             G.div.answer.deal = { kind: b.getAttribute('data-transom'), corp: id, fighter: b.getAttribute('data-fighter') };
-            renderTable();
-          };
-        });
-        Array.prototype.forEach.call(host.querySelectorAll('[data-task]'), function (b) {
-          b.onclick = function () {
-            G.div.answer = G.div.answer || {};
-            G.div.answer.deal = { kind: b.getAttribute('data-task'), corp: id };
             renderTable();
           };
         });
@@ -9755,20 +9627,12 @@
     var d = ans.deal;
     $('tword').innerHTML = !d
       ? '<span class="m">Nothing Composed \u00b7 <span class="act" data-godeal style="color:var(--a);cursor:pointer">Open the Deal</span></span>'
-      : ('<b>' + (d.kind === 'join' ? 'Concede the Ground to ' + cSpan(d.principal)
-                : d.kind === 'take' ? 'Take ' + cSpan(d.corp) + ' Under Yours'
-                : d.kind === 'accept' ? 'Take ' + cSpan(d.corp) + ' Under Yours, on Their Terms'
-                : d.kind === 'refuse' ? 'Refuse ' + cSpan(d.corp)
-                : d.kind === 'ransom_pay' ? 'Pay the Ransom to ' + cSpan(d.corp)
+      : ('<b>' + (d.kind === 'ransom_pay' ? 'Pay the Ransom to ' + cSpan(d.corp)
                 : d.kind === 'ransom_decline' ? 'Decline the Ransom From ' + cSpan(d.corp)
                 : d.kind === 'ransom_sell' ? 'Sell Their Man Back to ' + cSpan(d.corp)
                 : d.kind === 'ransom_keep' ? 'Keep Their Man From ' + cSpan(d.corp)
                 : 'Seek a Pact With ' + cSpan(d.corp)) + '</b>' +
-         (d.terms ? '<div class="m">' + Math.round((d.terms.share || 0) * 100) + '% of the Take' +
-           (d.terms.credits ? ' + ' + crs(d.terms.credits) : '') +
-           (d.terms.resources || []).map(function (t) { return ' + ' + Math.round(t.share * 100) + '% of Their ' + CAT_NAME[t.category] + (t.when === 'win' ? ' If They Win' : ''); }).join('') +
-           (d.terms.claims || []).map(function (id) { return ' + The ' + claimResource(id) + ' Claim'; }).join('') +
-           (d.terms.standDown ? ' \u00b7 Standing Down' : '') + '</div>' : '') +
+         (d.terms && d.terms.credits ? '<div class="m">Sweetener ' + crs(d.terms.credits) + '</div>' : '') +
          ' <button class="tiny" id="twithdraw">Withdraw</button>');
     if ($('twithdraw')) $('twithdraw').onclick = function () { if (G.div.answer) delete G.div.answer.deal; renderTable(); };
     var gd = $('tword').querySelector('[data-godeal]'); if (gd) gd.onclick = function () { if (TAB.deal) TAB.deal.click(); };
@@ -9782,8 +9646,6 @@
       ? '<span class="good">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">' + (e.kind === 'ransom_pay' ? 'Ransomed' : 'Sold Back') + '</span>'
       : e.kind === 'ransom_decline' || e.kind === 'ransom_keep'
       ? '<span class="warn">' + esc(e.name || '') + '</span> <span class="m">' + (e.kind === 'ransom_decline' ? 'Left With Them' : 'Kept') + '</span>'
-      : e.kind === 'refuse'
-      ? '<span class="warn">You Refused ' + cSpan(e.corp) + '</span> <span class="m">Remembered</span>'
       : '<span class="warn">Refused</span> <span class="m">by ' + cSpan(e.corp) +
         (e.note ? ' \u2014 ' + esc(capWords(e.note)) : '') +
         (e.short ? ' \u00b7 short by ' + crs(e.short) : '') +

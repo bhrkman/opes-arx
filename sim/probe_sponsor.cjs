@@ -119,15 +119,15 @@ lean2.sponsors.contracts = [mkContract('spn_arrowline', 'stay_lean', 'limitation
 check(SPON.judge(lean2, { dropped: 30, dead: 0, dropSize: 26 }).broken.length === 1,
       'stay-lean is broken by a fat drop (26 fielded)');
 
-/* PREREQUISITE: keep-policy holds unless the policy changed in-year. */
+/* THE GUILD'S MIRROR: mostly-ballistic is Helion's condition the other way round, off the same drop record. */
 const preOk = mkCorp('preOk');
-preOk.sponsors.contracts = [mkContract('spn_ferrous', 'keep_policy', 'prerequisite')];
-check(SPON.judge(preOk, { dropped: 20, dead: 1, policyChanged: false }).kept.length === 1,
-      'a prerequisite holds when the policy was kept all year');
+preOk.sponsors.contracts = [mkContract('spn_ferrous', 'mostly_ballistic', 'limitation')];
+check(SPON.judge(preOk, { dropped: 20, dead: 1, energyFraction: 0.1 }).kept.length === 1,
+      'mostly-ballistic holds on a powder-and-steel drop');
 const preNo = mkCorp('preNo');
-preNo.sponsors.contracts = [mkContract('spn_ferrous', 'keep_policy', 'prerequisite')];
-check(SPON.judge(preNo, { dropped: 20, dead: 1, policyChanged: true }).broken.length === 1,
-      'a prerequisite fails the moment the policy changed');
+preNo.sponsors.contracts = [mkContract('spn_ferrous', 'mostly_ballistic', 'limitation')];
+check(SPON.judge(preNo, { dropped: 20, dead: 1, energyFraction: 0.5 }).broken.length === 1,
+      'mostly-ballistic is broken by a half-energy drop');
 
 /* IN-KIND REWARD: the verdict carries a kit reward for the granter to honour (no cash paid). */
 const kitCorp = mkCorp('kit');
@@ -148,10 +148,8 @@ check(statusFor('accept_terms', { account: { treasury: 5000, ledger: [] } }).sta
       'accept-terms reads holding while in surplus');
 check(statusFor('accept_terms', { account: { treasury: -100, ledger: [] } }).state === 'atrisk',
       'accept-terms reads at-risk while in the red');
-check(statusFor('keep_policy', { _policyChanged: false }).state === 'holding',
-      'keep-policy holds until the policy changes');
-check(statusFor('keep_policy', { _policyChanged: true }).state === 'atrisk',
-      'keep-policy reads broken once the policy changed');
+check(statusFor('mostly_ballistic').state === 'pending',
+      'mostly-ballistic reads pending until the drop exists');
 check(statusFor('mostly_energy').state === 'pending',
       'a drop-dependent limitation reads pending until the drop exists');
 check(statusFor('none').state === 'met',

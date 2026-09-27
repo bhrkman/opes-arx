@@ -4262,6 +4262,16 @@ condition can never break (`_policyChanged` is written by nothing); media day ca
 `illicit.js` is a whole module nothing requires; the Sealed badge on the trade strip gates nothing in the prep year;
 the stale dev viewers (`the_desk`, `the_firefight`, …) carry old engine copies.
 
+**THE HALF-BUILT AUDIT, RULINGS APPLIED.** The engine's OAs no longer truce with a manager's OA among themselves (ruled:
+a manager's truce is struck at their table or not at all). **Their Word reads the record now:** whether an OA kept or
+broke its promises to leavers is carried on the season corp (`_wordRecord`, the way `_dealRecord` is) and survives the
+year; it had been written to the per-Divide store and lost. **Ferrous's condition retired** (ruled): "keep your
+declared engagement policy all year" judged a flag nothing wrote, and with stances per squad per window there is no
+declared policy; the guild asks a 75% ballistic drop instead, the mirror of Helion's, off the same record.
+**`illicit.js` deleted** (ruled: the illicit systems were cut; the module was a remnant nothing required). **The
+join/take composer deleted** from the deal page, with its orphaned handlers and the words for kinds the engine no longer
+takes; the truce beam's "If Torn Up · Seen by the Crowd" said a truce could be broken, and it cannot.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

@@ -1512,6 +1512,10 @@
       for (let j = i + 1; j < corps.length; j++) {
         const a = corps[i], b = corps[j];
         if (a.withdrawn || b.withdrawn) continue;
+        /* §TRUCE (ruled) A MANAGER'S TRUCE IS THE MANAGER'S TO STRIKE. This pass is the engine's OAs agreeing among
+           themselves; a truce with a person's OA is made at their table, on their answer, or not at all. Without
+           this the engine could put a manager under a truce — rations taken, fights stopped — with nothing shown. */
+        if (isHumanOA(a.id) || isHumanOA(b.id)) continue;
         if (!a.allBodies.some(x => x.status === 'active') || !b.allBodies.some(x => x.status === 'active')) continue;
         if (pactHolds(a, b, day)) continue;
         const pact = NEG.considerPact(rng, a, b, ctx);
