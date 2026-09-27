@@ -4175,6 +4175,34 @@ day; stance differences are measured with `measure_stance_policies.cjs` (policie
 founders, 96 fresh contests: Verdant 14, Mercy 9, Violets 7, New Line 17, Vantis 16, Knights 17, Alliance 9, Nevlon 4;
 fatality 31.3%. `drive_withdraw` works the tab two windows in (a founded OA on its fixed seed can be pulled by the fifth).
 
+**THE AI REBUILD, STAGE 1: THE OA COMMANDS (ruled: rebuild as aggressively as needed).** The replay showed aimless
+wander, four squads setting off across the map for a site they could never reach, and one breaking away. Measured
+(`sim/measure_movement.cjs`, sixteen contests): 85% of the trips a squad set out on were dropped before it arrived; a
+quarter of the places squads were heading were more than three days' march off (6% more than five); on 27% of an OA's
+days its own squads were heading for places three days apart. The cause was structural: every squad planned for
+itself by a weighted draw from fifteen approaches, and half a dozen things rewrote a single squad's plan. **NOW**
+(`commandCorp`, `COMMAND: 'oa'`; `'squad'` keeps the old planner for comparison): squads within `CMD_GROUP_R` of one
+another by any chain are a GROUP (an OA lands dispersed, so a detachment three days off is not marched across the map),
+and each group runs ONE OPERATION, scored, not drawn — take a site, land the reserve at a beacon, mend at a rest site,
+strike an enemy it can beat (the pincer machinery, its party drawn from the group and each member within reach),
+link up with another group of its own, advance toward ground beyond reach, or hold — valued by worth against days of
+march (`CMD_HORIZON` 2), the ring's schedule and the enemies it has seen, weighted by stance. An operation stands until
+the next window, and at the window it is kept unless something now scores clearly better (`CMD_SWITCH`); between
+windows it is replanned only when the objective is gone, the quarry is lost, the group has been bled
+(`CMD_REPLAN_LOSS`), a stronger force sits on its objective, or the ring takes it. Every squad gets a ROLE each dawn
+(the operation's, or — too hurt to fight — go and be made whole at a beacon or mend); the reflexes the ground forces
+(a fight, the wall, running from a lost fight) run their course and the role resumes. On the last ground every group
+closes on the nearest enemy it knows of (N18). The AI's stance is now DECIDED, not sampled (it lurched a notch either
+way every window): it steps one notch toward its target, and only when the target is clearly away
+(`STANCE_HYSTERESIS`). The replay's squad label is its role. **MEASURED** (sixteen contests, old → new): places more
+than three days off 25% → 7% (none past five), median distance 1.7 → 1.0 days, trips that got there 15% → 29%; the
+share of OA-days with squads heading far apart falls within a group (it reads 24%, which is now dispersed groups each
+on its own operation). Contests run longer (15 → 19 days), fatality 29–31%. Stance policies, free for all, 128
+contests: careful-then-bold 22.7%, flat cautious 21.1%, the engine's own 11.7%, board odds 10.2%, local odds 8.6%,
+bold-then-careful 7.8%, flat bold 6.2%, hurt-then-careful 6.2% (balance is parked by ruling). **FOUND, NOT CHANGED:**
+a truce struck late can leave its two partners as the last banners, unable to fight, until the overtime rail ends the
+contest with no winner (three in thirty-two contests).
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
