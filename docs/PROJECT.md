@@ -3945,9 +3945,15 @@ STRENGTH more than money (money cannot buy power past the kit cap, so a money ha
 spread wide (each stat 1.8x further from the pool's average: totals ~240 to ~690), two to an OA, picked in straight
 reverse order of last year's placement — last place first in both rounds — free, on a two-season contract. An engine
 seat takes the best available; a person's pick waits, and Month 1 closing has the Aleas assign the best remaining; a
-first year's order is drawn. A Mon-Wa pair is one being and one pick, and crosses whole (the first build split pairs —
-the page's trade check caught a half left behind). A panel on the Desk in Month 1: the order, the pool's seven stats,
-Pick. **THE DROP:** the landing-slot pick before the drop is renamed wherever a player sees it. **THE CHAMPION'S
+first year's order is WEAKEST FIRST by the fleet's strength read (the roster's quality and the OA's standing — the Drop's
+own read; it was a random draw, which let the strongest OA pick first and defeated the draft). A Mon-Wa pair is one being
+and one pick, and crosses whole (the first build split pairs — the page's trade check caught a half left behind). **ON
+THE ROSTER** (ruled: every acquisition is there; the Desk panel was a bare table): a signing window in the Draft's own
+colour (a sage, beside the blue, the lilac and the tan) — THE BOARD, sixteen picks down a rail, filled in as they are
+made, the pick at bat lit as the year rail lights the month; beside it the sheet of who is left, as the market's own
+prospect cards (mark, name in its people's colour, graded stats, Best With, the rookie terms), best first, one Pick when
+the pick is yours. The Desk's Waiting On You carries "The Draft · Your Pick" to it. The Best With line spans its card
+now — it had been squeezed into the last stat column on every window's card. **THE DROP:** the landing-slot pick before the drop is renamed wherever a player sees it. **THE CHAMPION'S
 PREMIUM:** a hired gun charges last year's champion +30%, last place about −10% (the losses discount had rewarded the
 careful OAs, which are the ones that win). **UNDERDOG FAME:** fame for a kill +12% a place the victim's OA finished above
 the killer's, less hitting down (floor 0.4x), +50% for one of the champion's own. **THE CHAMPION'S BOARD:** a top-three

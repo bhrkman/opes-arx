@@ -2664,7 +2664,9 @@
      pick is one. The pool is spread WIDE (each stat pushed 1.8x further from the pool's average) so the first pick is
      worth having. An engine seat takes the best available; a person's turn waits, and when Month 1 closes the Aleas
      assign the best remaining — a rule, not a choice made for them. A first year has no placements, so its order is
-     drawn. (The landing-slot pick before the drop is the Drop.) */
+     WEAKEST FIRST by the strength the fleet reads (`strengthRead`: the roster's quality and the OA's standing) — the
+     same read the Drop's landing draft uses; a random draw let the strongest OA pick first, which defeats a draft.
+     (The landing-slot pick before the drop is the Drop.) */
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
   function openRecruitDraft(state) {
@@ -2684,7 +2686,7 @@
     const placed = state.ids.some(id => state.corps[id]._lastPlace);
     const base = state.ids.slice();
     if (placed) base.sort((a, b) => (state.corps[b]._lastPlace || 99) - (state.corps[a]._lastPlace || 99));
-    else for (let i = base.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = base[i]; base[i] = base[j]; base[j] = t; }
+    else { const st = {}; for (const id of base) st[id] = strengthRead(state, id); base.sort((a, b) => st[a] - st[b]); }
     const order = [];
     for (let r = 0; r < DRAFT.ROUNDS; r++) order.push.apply(order, base);
     state.recruitDraft = { pool: pool, order: order, picks: [], i: 0, done: false, byPlacement: placed };
@@ -4411,7 +4413,7 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose,
+  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
