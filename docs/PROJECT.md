@@ -3919,6 +3919,326 @@ the command colour) and the Market's (centred, ruled, uppercase) are two designs
 look: the name centred in capitals (14px, .18em, ink) with a rule running out either side, and the Desk's fold mark (▾
 folded, ▴ open) at the right edge — added to the Market's titles, which had none. The Desk's underline is gone.
 
+**A BASELINE FOR FATALITY AND THE ECONOMY (temporary, ruled — not the final balance).** Measured first: a Divide killed
+~53% of those fielded. 28 of 32 OAs were ELIMINATED, none withdrew; the fallen lost 60% dead, the winners 32%. No tuning
+of a hit moved that below ~42% — gentler hits only meant more fights — because a fighter is worth ₡3–10k and the pot
+₡1.28M, so fighting to the last was the rational play. Two levers: **the Aleas pull a spent banner** (an OA below 45%
+standing is out and its survivors come home — every seat alike; `BANNER_PULL_AT`) and **severity's power weight 1.15 →
+0.75**. An AI OA may also **walk away with nothing** when staying is worth less than its standing (it could only leave
+by deal). **The market was the failure (ruled: the Divide is a negotiation, fix it before placement shares).** In six
+contests: one offer a contest, ONE exit by deal, 1.3% of the pot to anyone but the winner, one promise in six kept. A
+rival promises exactly what an exit gains it, so there was never surplus, and two things sank every deal: trust (a
+promise kept at 1 − treachery − share/2, an average OA ~45%) and a leaver that priced staying as if it could fight on
+while the banner rule was about to pull it with nothing. Now **trust is grounded in reputation** (`keepChance`, one
+formula for what a leaver expects and what the winner does: honest ~90%, average ~70%, treacherous ~50%) and **the
+deadline is priced** (staying's worth shrinks to nothing at the line, `PULL_MARGIN` 0.25 above it). Six contests: 4.7
+offers a contest, 14 exits by deal, 28 banners pulled (41), 18.3% of the pot to OAs that did not win, fatality 28.3%.
+Eight seasons (seed B): every non-winner earns ₡73–323k from the market where it earned nothing, nobody goes negative,
+the founded OA (played by the AI's own policies) ₡210k → ₡441k where it went broke. **Left:** one OA still wins about
+half the Divides (Mercy Concern 4 of 8, ₡3.2M) — a strength snowball, not money (winners cannot spend past the kit cap),
+so placement shares were held back; winners' money needs somewhere to go. `harness/probe_market.cjs` measures the market.
+Snapshots re-blessed; proofs re-recorded.
+
+**ANTI-SNOWBALL (ruled).** In multiplayer a dynasty is miserable, so the top is pushed on and the bottom lifted, on
+STRENGTH more than money (money cannot buy power past the kit cap, so a money handicap mostly bites the middle).
+**THE DRAFT** (ruled; a fourth way to take on fighters): in Month 1 the Aleas present sixteen fighters they raised,
+spread wide (each stat 1.8x further from the pool's average: totals ~240 to ~690), two to an OA, picked in straight
+reverse order of last year's placement — last place first in both rounds — free, on a two-season contract. An engine
+seat takes the best available; a person's pick waits, and Month 1 closing has the Aleas assign the best remaining; a
+first year's order is WEAKEST FIRST by the fleet's strength read (the roster's quality and the OA's standing — the Drop's
+own read; it was a random draw, which let the strongest OA pick first and defeated the draft). A Mon-Wa pair is one being
+and one pick, and crosses whole (the first build split pairs — the page's trade check caught a half left behind). **ON
+THE ROSTER** (ruled: every acquisition is there; the Desk panel was a bare table): a signing window in the Draft's own
+colour (a sage, beside the blue, the lilac and the tan) — THE BOARD, sixteen picks down a rail, filled in as they are
+made, the pick at bat lit as the year rail lights the month; beside it the sheet of who is left, as the market's own
+prospect cards (mark, name in its people's colour, graded stats, Best With, the rookie terms), best first, one Pick when
+the pick is yours. The Desk's Waiting On You carries "The Draft · Your Pick" to it. The Best With line spans its card
+now — it had been squeezed into the last stat column on every window's card. **THE DROP:** the landing-slot pick before the drop is renamed wherever a player sees it. **THE CHAMPION'S
+PREMIUM:** a hired gun charges last year's champion +30%, last place about −10% (the losses discount had rewarded the
+careful OAs, which are the ones that win). **UNDERDOG FAME:** fame for a kill +12% a place the victim's OA finished above
+the killer's, less hitting down (floor 0.4x), +50% for one of the champion's own. **THE CHAMPION'S BOARD:** a top-three
+OA is asked to finish at least as high again; the champion's board wants the title again. **THE CHAMPION AS A MARK**
+(ruled: a tactical consideration, not a bounty): every hunter values the champion's squads more (+35%), and a CONTENDER
+(its force at least 70% of the strongest) values the champion and the front-runner more again and passes over small,
+weak OAs. **FOUND: PLACEMENT WAS LIST ORDER.** Nothing recorded the day an OA left the ground, so at the end every OA
+but the winner fell on the last day, tied, and was ranked by where it sat in the fleet's list — the board's "place Nth
+or better" was decided by that. It showed once most OAs left by withdrawal (New Line fifth eight seasons running). Now
+the day an OA withdraws, is pulled or loses its last fighter is its place; ties go to the one with more standing.
+**MEASURED** (eight seasons, seed B): six different champions, none more than twice (was one OA 6 of 8); fatality 27%;
+exits by deal 18 in six contests, 21.5% of the pot to non-winners. A season can end with no winner. The seat test picks
+a scenario where both seats still stand at its third window (a pulled banner leaves with its offer — the rule). Proofs
+and fingerprint re-recorded; `harness/drive_draft.cjs` drives the Draft on the page.
+
+**THE RESERVE AND THE LANDING BEACONS (ruled).** Caches handed out catalogue gear onto squads that already had full,
+varied kit — nothing an aggressive OA wanted enough to fight for. Now: **THE RESERVE** — an OA's fit fighters left off the
+drop wait in orbit, up to ten beings (a Mon-Wa pair is one and lands whole), in an order the manager sets on the Squads
+board (the bench is "In Reserve · Land in This Order": the sort buttons set the order, arrows move one fighter, past the
+tenth they stay home); an engine seat orders its own by quality. **THE RESERVE IS ON TOP OF THE DROP (ruled).** A
+shared limit was tried and reverted: sharing the 24 made a reserve pure cost — field the 24 and you start where a
+reinforcing rival can only climb back to, by sitting in the open for days. An engine seat keeps back more the less
+aggressive it is (`RESERVE_AI_MAX` 7 × (1 − aggression)), as agreed. The reserve
+is kitted at the drop with everyone, inside the kit cap; each fighter's purse is paid when they land; unlanded reserve
+kit comes home. **LANDING BEACONS** (the cache site, relabelled, weight 22 → 34: two a planet were brawls): held, not
+looted — every two blocks (four hours) a squad holds one with no enemy squad within 0.026 (a truce partner is not an
+enemy: it cannot fight you, so it does not stop a landing), one reserve fighter lands into the smallest of that OA's squads
+on it (up to eight seats; a Mon-Wa pair takes one); leave and return as often as you like; an empty reserve makes a
+beacon nothing to you; a lit beacon reveals its holder to every other OA (sightings "Beacon · Dn"). The Mon-Wa
+quartermaster hook (`sponsor_drop_handling_bonus`) now lands them a block faster. **THE AI:** a beaten squad whose OA has
+a reserve FALLS BACK TO A BEACON within three days' march (falling back and being made whole are one move); a squad that
+lost people in a fight sets its plan aside and chooses again, with a new REINFORCING approach (to the nearest beacon,
+held while there is anyone to land). **FOUND: THE LOCKED DROP WAS NOT THE DROP.** The muster paid purses to the engine's
+default drop and recorded it as `c._drop`; a manager's lock then put his fighters on the ground without touching it, so
+he paid purses for the wrong people and the season settled the wrong people's kit and service. The lock's drop is
+recorded and the purses put right by the difference. **MEASURED:** twelve contests, fatality ~25% (24.3%, 25.8%); six
+contests, 31 landings, 28% of the reserve used, 11 of 48 OA-contests landing someone; the market unchanged (17% of the pot
+to non-winners). Eight seasons: seed A four champions (Violets 4 of 8), seed B five (none past 3). A control with no
+reserve at all still gave seed B two champions (the two most cautious OAs): the cautious-OA advantage predates the
+reserve and is open. **A LIT BEACON IS PUNISHED — THE AI WAS AT FAULT (ruled: reinforcing is the loud, risky move; a
+cautious OA reinforcing unpunished is a tactics failure, not a design one).** Traced per OA, the cautious OAs held lit
+beacons for hundreds of blocks and were fought there a handful of times. Five faults, all tactical: (1) a GEOMETRY
+STANDOFF — the contest radius (0.04) was wider than contact (0.02), so a rival could stop the landing without ever
+meeting the holder: now 0.026, and two rival squads on one beacon, either lit, are in contact; (2) a lit holder was found
+at the ordinary detection odds: now at least 0.9 (`BEACON_DETECT`); (3) the beacon reached rival pictures but no squad
+acted on it: it is now heard like a firefight twice as far (`BEACON_SIGNAL_RANGE`), a beacon sighting passes a captain's
+sight inside that range, and a lit holder is prey worth half again (`BEACON_PREY`, and never discounted as a weak
+target); (4) the noise moved only IDLE squads, and nine in ten rivals in range already had a plan: A LIT BEACON IS NOW A
+CALL TO ARMS — a squad fit to fight (60% of its landing strength), not under a manager's order and not on a beacon of
+its own may drop its plan and go, at twice its seek (`BEACON_CALL`), at most two squads an OA a beacon; a squad walking
+in from outside the dome goes only if the walk brings it inside; (5) the slip-away rule turned a cautious squad that had
+answered the call away from the very holder it went to find. Truce partners neither block nor answer. **MEASURED**
+(twenty contests): the two cautious OAs that reinforce the most now lose more fighters on beacons than they land there
+(Mercy 16 landed, 58 lost; Violets 33, 46) where before they came out even and were fought there a third as often; the
+aggressive OAs land more than they lose (Nevlon 26, 8). Fatality 28.8% and 26.0% (two sets of twelve); the market 12.8%
+of the pot to non-winners. Eight seasons, four seed sets, with the call and without: 3/3/4/4 champions against 3/4/3/3
+— no difference, and Mercy and Violets take about half the titles either way. The beacons were not what fed them;
+the cautious-OA advantage stands open. Also found: a landing took a squad of eight seats to nine bodies' worth when
+the squad maximum is counted in seats (fixed: seats); the secrecy probe now lets a captor know the prisoner it holds.
+The page draws a beacon as a mast with its signal in the holder's colour while lit, lists your
+landings on the Ground, and counts who is still in reserve. `the_crate.html` (a standalone demonstration of the old crate
+reward) is obsolete. `harness/probe_reserve.cjs` and `harness/drive_reserve.cjs` guard the rules and the board.
+
+**EIGHT FOUNDED SEATS: WHAT THE CANON OAs CARRY (measured).** A full multiplayer table is eight founded OAs, and the
+fleet's results were measured with the canon eight. Asked: is the "cautious OAs win" result caution, or baggage?
+`sim/measure_baggage.cjs` plays four fleets, every seat engine-run, the fleet list ROTATED each career (so no OA keeps a
+list position), 96 careers × 4 seasons = 384 seasons each: **blank** (eight identical Human Player starts), **tempered**
+(founded, each given one canon OA's temperament only), **funded** (tempered + that OA's difficulty and finance) and
+**canon**. Wins by temperament (most cautious first):
+
+| temperament | aggr · lean · difficulty | tempered | funded | canon |
+|---|---|---|---|---|
+| Verdant | 30 · preservationist · 5 | 89 | 29 | 15 |
+| Mercy | 35 · preservationist · 3 | 61 | 67 | 66 |
+| Violets | 40 · standard · 1 | 51 | 99 | 124 |
+| New Line | 45 · preservationist · 4 | 65 | 31 | 20 |
+| Vantis | 50 · measured · 4 | 38 | 37 | 25 |
+| Knights | 55 · measured · 2 | 29 | 70 | 71 |
+| Alliance | 60 · standard · 3 | 10 | 12 | 5 |
+| Nevlon | 85 · unyielding · 2 | 14 | 22 | 39 |
+
+**Both, and they had been hiding each other.** Temperament alone: caution wins, steeply — the most cautious take a
+quarter of the titles, the two most aggressive 3–4% each. The DIFFICULTY GRADIENT (grant, cash, founding roster) is the
+largest baggage and nearly reorders the table: Violets 51 → 99, Knights 29 → 70, Verdant 89 → 29. The rest of identity
+(reputation, relationships, doctrine, holds, race weights) moves less: Violets 99 → 124, Nevlon 22 → 39, Verdant 29 → 15.
+In the canon fleet the rich OAs happen to be cautious, so it read as caution alone. **On an all-founded table there is
+no gradient, so caution is all that is left.** Blank founders with a rotated list: wins spread evenly across positions
+(no list-order bias worth the name; the last slot perhaps a third of a place better, inside the noise); an early,
+unrotated six careers looked like the last two slots dominating, which was two long title streaks. Fatality 27.7%
+tempered, 25.9% funded, 23.8% canon. **FOUND: ONLY ONE OA COULD BE FOUNDED.** `founderProfile` hard-wrote the id
+`custom_house`, so a second founder overwrote the first; it takes an `id` now (the page still founds one, as
+`custom_house`). A founded profile may carry `rigidity`. Eight founded seats run through the seat API (months
+submitted, the draft and contest forced) for two seasons, clean.
+
+**CAUTION OR COMPOSITION? (measured).** An aggressive OA splits into more, smaller squads, so "caution wins" might only
+be "big squads win". `sim/measure_composition.cjs` gives identical founded OAs a temperament and a FORCED squad count,
+96 fresh contests each, list rotated. Win rate per seat (even is 12.5%):
+
+| test | result |
+|---|---|
+| natural (each picks its own squads) | preservationist 20.8% (2.4 squads of 7.3) · unyielding 3.4% (4.9 squads of 3.9) |
+| crossed, 2 squads each | preservationist 18.2% · unyielding 17.7% |
+| crossed, 5 squads each | preservationist 8.9% · unyielding 3.6% |
+| stance varied, 3 squads each | preservationist 20.3% · measured 10.4% · standard 13.0% · unyielding 4.7% |
+| squad count varied, one stance | 2 squads 20.3% · 3 10.4% · 4 6.2% · 5 7.8% |
+
+**Mostly composition, and the rest is an interaction.** Concentrated in two squads of about nine, stance makes no
+difference at all; the bold OA's whole deficit in the natural fleet is chiefly its spread. Stance matters only once
+squads are small (six or under): there caution still pays two to four times over, because a small squad's best fight
+is the one it avoids. Splitting wide never pays for anyone — the ground it buys (more sites: 5.9 against 3.0 for the
+careful, split five ways) does not win a Divide.
+
+**FLANKING (ruled: option B, and the AI to concentrate and flank).** Measured first: a side's squads merged into one
+rank on one edge whatever directions they walked in from; being "flanked" at even numbers cost 50% of a side against
+53% not flanked; 192 strikes were planned in sixteen contests and 14 squads ever marched round a flank.
+**THE GROUND.** Every fighter carries its squad's approach (`_bearing`). When a side's squads came in at least
+`FLANK_SPLIT_ARC` (1 rad) apart — or one of its squads is due to walk in from such a bearing — the fight is a FLANKED
+FIGHT: the board grows to `FLANK_BOARD_W`×`FLANK_BOARD_H` (40×30, from 26×18) and each squad comes on at its own
+edge, within `FLANK_DEPLOY_REACH` of it. A head-on fight is untouched (same board, deployment and draws: the fixed
+snapshots pass unchanged). **THE TARGET (ruled): at equal numbers the flank wins.** `sim/measure_flank.cjs`, 8 against
+8, 150 fights each: head on 75–73; two squads of four on one bearing 72–70; 4+4 from 90° apart, the flankers win 84–57
+(losing 47% to 63%); from behind 86–56. Against six the flank does not overturn the numbers (45–102), which is the
+point: it is the harder move, and it pays at parity. **FOUND AND FIXED, three faults in the grid's arrivals:** a
+squad walking into a fight in progress carried no side letter, so the grid opened a NEW side for it — it fought
+everybody, its own OA included — and, not being one of the fight's groups, its losses were never written back:
+nobody who walked into a fight could be hurt in it. It now joins its banner's side and is booked with it (a stranger
+opens its own side and is booked on its own). An arrival's `side` was never set, and neither was any side's in a
+fight of three banners or more, so overwatch never fired in one. **THE AI.** Aggression no longer spreads an OA thin
+(`SPREAD_AGGRESSION` 0). A strike is a PLAN the party shares: the marks are re-laid each dawn around where the quarry
+was last seen (it died before on the quarry's first step), a well-led party waits until every squad is on its mark or
+a day past the planned day (`STRIKE_WAIT_DAYS`) and all go together, a flanker walks the arc outside the quarry's
+reach rather than across it, and a party is sent only when its head count reaches `STRIKE_ODDS_BASE − SEEK × seek` of
+the target's (bold 0.93, careful 1.18). A lone hunter (hunting, pressing) goes only after quarry it has that edge on.
+Sixteen contests: flank marches 14 → 263; 122 of 233 fights fought flanked. **MEASURED** (tempered founders, list
+rotated, 384 seasons; wins before → after): Verdant 89 → 68, Mercy 61 → 36, Violets 51 → 28, New Line 65 → 80,
+Vantis 38 → 42, Knights 29 → 58, Alliance 10 → 25, Nevlon 14 → 29 — the range 89:10 is now 80:25. Aggression alone
+no longer moves the result; stance still does (at three squads each, preservationist 15.1% a seat, unyielding 7.3%,
+from 20.3% and 4.7%): in a last-banner-standing contest every fight costs people, and a fight fought well only costs
+fewer. Fatality 28.3%; market 15.1% of the pot to non-winners.
+
+**LOOTING (ruled).** A won fight cost people and gave nothing that helps an OA last. Now the one side left holding the
+field (`lootField`: several sides standing, or none, and nobody loots) strips today's enemy dead: their medkit charges,
+the share of their squads' rations they were carrying, and their guns — a fighter takes a dead man's gun when it is the
+better piece (it cost more) and he shoots it at least as well as his own (Total Aim within `LOOT_AIM_SLACK`), carrying
+his own home; a gun nobody takes is carried off as a spare often enough (`LOOT_RECOVERY_P`, one a fighter, its own
+seeded draw so the fight's stream is untouched). The armoury settles it: a spare comes home with a living fighter; a
+gun taken off a corpse is no longer its OA's to recover. Twelve contests: 134 fights looted, 155 guns taken up, 172
+carried off, 581 medkit charges.
+
+**CAUTION AGAINST AGGRESSION: THE BEHAVIOUR, TRACED.** Identical founded OAs differing only in stance (two each),
+128 contests, every squad-day, meeting, fight and exit recorded. **FOUR BEHAVIOUR FAULTS, FIXED:** (1) the walk in from
+outside the dome line carried no end and a withdrawal is never marked arrived, so a squad once caught outside held it
+for the rest of the contest, standing where it walked in to — a third to nearly half of all squad-days (it now lasts
+the day, and a pull-back that has arrived is done); (2) the strike planner sent squads just bled in a fight straight
+out on the next strike, so a bold OA's hurt squads almost never reached a beacon (`STRIKE_FIT` 0.7 of landing strength);
+(3) having planned one strike it returned, and every squad left out of it stood idle that day; (4) a squad whose
+approach still stood but whose step was done waited on the spot until the approach lapsed (it takes the next step).
+**TRIED AND RULED OUT** (no measurable effect): slipping away by the odds for every stance; answering a beacon only with
+the odds; pursuit; the AI reserve rising or flat with aggression; the weak-target discount; an OA judging its own odds
+by the truth rather than the public board (everyone left more, the gap unchanged); the weight of its own loss rate.
+**FOUND, NOT CHANGED:** the stance table's `holdNudge` and `recoveryUrgency` are read by nothing. **WHAT REMAINS IS
+TIMING.** The boldest stance wins its fights (per contest it loses 19 and inflicts 42; the most careful loses 26 and
+inflicts 35) but takes its losses early (8 by day 8 against 5.5) because it goes looking (seeker 2.8 a contest against
+1.2); what it inflicts is spread over several rivals while its losses are all its own, and the bystanders gain. So it
+reaches the market's line first: it leaves by deal or on foot in about half its contests (the careful in under a third),
+for about ₡60k against ₡1.1M for a win. Nearly every OA ends a contest standard or bolder (the stance drifts toward
+aggression as the ring closes), so the difference is an early-game one. The careful live near the ring's edge (62% of
+squad-days within 12% of it) and are found more, but their losses come after most rivals are gone. Tempered founders,
+384 seasons (flank → +loot → +these fixes): Verdant 68 → 60 → 53, Mercy 36 → 38 → 38, Violets 28 → 32 → 35, New Line
+80 → 76 → 80, Vantis 42 → 59 → 61, Knights 58 → 62 → 44, Alliance 25 → 19 → 27, Nevlon 29 → 17 → 27. Fatality 28.6%.
+
+**THE RING, AGAIN (ruled: outside the ring is instant death, and no OA is ever there).** It had come back in a new
+shape. The ring stood at the day's line all day and stepped in at dawn, so every morning the squads near the edge woke
+OUTSIDE it and were given the whole day to walk back in — a third to nearly half of all squad-days began outside the
+line, which is what the replay showed. (The previous entry's "walk in that never ended" was this same fault seen from
+the other side.) Now every squad keeps inside TOMORROW'S line all day: its steps, a beaten squad's run, the spacing
+push and every march target are held inside it, and a squad that finds itself beyond it sprints in at once. Dawn then
+finds nobody outside; anyone who is, is taken where they stand and recorded as a fault (`wallDeaths`), which
+`harness/probe_wall.cjs` fails on. Forty-eight contests: nobody outside at any dawn, nobody taken.
+
+**STANCE: DOES A REACTIVE AI BEAT FLAT CAUTION?** FOUND FIRST: the window's re-stancing never reached a squad. An AI OA
+seats each squad's own notch at the drop (strongest a step bolder, weakest a step more careful), and a squad's own notch
+is what its behaviour reads; `reconsiderStance` changed only the OA's word, so every AI squad fought the whole contest
+on the notch it landed with. The squads are re-seated around the new notch at every window. A test may now hand an OA
+its own stance POLICY (`opts.stancePolicy[corpId]`: given its day, odds, losses, reserve, squads and what it has seen,
+it returns its notch and each squad's); `sim/measure_stance_policies.cjs` plays them. **Free for all** (eight policies,
+one seat each, 192 contests): flat cautious 17.7% of titles (mean place 3.24), careful-then-bold (careful until the ring
+pens them in, then bold) 17.2%, local odds (each squad bold where it outnumbers the nearest enemy it knows of, careful
+where outnumbered) 15.1%, flat bold 11.5%, the engine's own 9.9%, hurt-then-careful 9.4%, board odds 7.3%, bold-then-
+careful 6.8%. **Four against four flat cautious** (80 contests each; share of the titles the two sides took): careful-
+then-bold 57%, board odds 53%, local odds 48%, the engine's own 45%, hurt-then-careful 42%, contrary odds 33%, flat
+bold 31%, bold-then-careful 29%. Flat caution does not beat every way of choosing: waiting and then turning bold beats
+it, and the odds-reading policies hold it level. What loses is being bold EARLY. The engine's own chooser is among the
+weaker ones — it samples widely around its culture and the "ahead" pull turns it bold early.
+
+**SITES WORTH MORE, THE POT A LITTLE LESS (ruled: tweak, not a systemic change).** A dug deposit pays ₡20k at the close
+(`SITE_CASH`, was ₡5k); the pot's base is ₡1.2M (`POT_BASE`, was ₡1.4M). **FOUND: HALF THE SITES NEVER APPEARED.** The
+reveal waves were laid for a contest of 24 days and more (1, 7, 13, 19, 24); a contest runs about 15, so the last two
+waves — 17 of 35 sites — never came. Brought in to 1, 4, 7, 10, 13: sites seen 20 → 34 of 35 a contest, deposits dug
+2.7 → 4.9, beacon landings 9.0 → 14.5, fatality 31.4% → 29.4% (sixteen contests). The AI now wants a deposit for its
+cash, not only while the board's ask is unmet (`PROSPECT_CASH`), and the bolder stances lean toward prospecting and the
+careful away from it (the design's word: the aggressive are out getting sites). **MEASURED** (tempered founders, 128
+OA-seasons each, per season, before → after): payouts fell with the pot, sites dug rose (0.2–0.5 → 0.4–0.8 an OA), and
+money kept per season across the fleet rose a little (₡21.6k → ₡25.0k). **STILL OPEN:** the bold stances do not yet dig
+more than the careful (Nevlon 0.5 a season, Verdant 0.8): a bold squad is almost never free to choose an approach — it
+is on a strike or a hunt — so the lean barely reaches it, and raising the pull did nothing measurable.
+
+**BOLDNESS IS FOR GROUND (ruled: boldness is fighting for contested objectives, above all the beacons that bring an
+OA's reinforcements — not hunting for kills).** The AI's boldness was a hunt: planned pincers on whoever it had seen,
+lone hunts, pressing. Now: a new approach, CONTESTING — a squad goes for the best live objective in reach inside
+tomorrow's line, by what it is worth to its OA (a deposit 1.0; a beacon 1.1, 1.3 if a rival has lit it, only while the
+OA has anyone in orbit; a strongpoint 0.8; a crate 0.55), an objective an enemy is on counting for more to a bold squad
+and skipped if the enemy is more than it can take. The stances lean on it (careful 0.35 … death or glory 1.9) and on
+reinforcing (1.0 … 1.45), and hunt and press less (unyielding hunting 1.35 → 1.0, death or glory 1.75 → 1.25). A strike
+goes for an OA standing on an objective (three times the weight; a squad in the open needs a quarter more edge), the
+party carries that objective, and winners TAKE IT rather than chase the beaten. A pincer lasts a day past its deadline,
+not six days. A claim on a site somebody else has emptied ends. **MEASURED** (stance policies, free for all, 128
+contests, per seat per contest): flat bold lands 2.4 of its reserve against flat cautious 1.3, loots 2.0 fights against
+0.4, claims 3.3 sites against 3.0 — but digs fewer deposits (0.61 against 0.85). Titles: careful-then-bold 35.9%, flat
+bold 11.7%, board odds 11.7%, flat cautious 10.9%, bold-then-careful 9.4%, local odds 8.6%, the engine's own 6.2%,
+hurt-then-careful 2.3%. Flat bold and flat cautious are level; turning bold when the ring pens you in is now the strong
+play by a distance. **NOTE ON THE STANCE-ONLY TESTS:** since the window's notch reaches the squads, an OA drifts to the
+notch its dials give it within a window or two, so a test that varies only the declared lean is measuring the first
+day; stance differences are measured with `measure_stance_policies.cjs` (policies hold their notches). Tempered
+founders, 96 fresh contests: Verdant 14, Mercy 9, Violets 7, New Line 17, Vantis 16, Knights 17, Alliance 9, Nevlon 4;
+fatality 31.3%. `drive_withdraw` works the tab two windows in (a founded OA on its fixed seed can be pulled by the fifth).
+
+**THE AI REBUILD, STAGE 1: THE OA COMMANDS (ruled: rebuild as aggressively as needed).** The replay showed aimless
+wander, four squads setting off across the map for a site they could never reach, and one breaking away. Measured
+(`sim/measure_movement.cjs`, sixteen contests): 85% of the trips a squad set out on were dropped before it arrived; a
+quarter of the places squads were heading were more than three days' march off (6% more than five); on 27% of an OA's
+days its own squads were heading for places three days apart. The cause was structural: every squad planned for
+itself by a weighted draw from fifteen approaches, and half a dozen things rewrote a single squad's plan. **NOW**
+(`commandCorp`, `COMMAND: 'oa'`; `'squad'` keeps the old planner for comparison): squads within `CMD_GROUP_R` of one
+another by any chain are a GROUP (an OA lands dispersed, so a detachment three days off is not marched across the map),
+and each group runs ONE OPERATION, scored, not drawn — take a site, land the reserve at a beacon, mend at a rest site,
+strike an enemy it can beat (the pincer machinery, its party drawn from the group and each member within reach),
+link up with another group of its own, advance toward ground beyond reach, or hold — valued by worth against days of
+march (`CMD_HORIZON` 2), the ring's schedule and the enemies it has seen, weighted by stance. An operation stands until
+the next window, and at the window it is kept unless something now scores clearly better (`CMD_SWITCH`); between
+windows it is replanned only when the objective is gone, the quarry is lost, the group has been bled
+(`CMD_REPLAN_LOSS`), a stronger force sits on its objective, or the ring takes it. Every squad gets a ROLE each dawn
+(the operation's, or — too hurt to fight — go and be made whole at a beacon or mend); the reflexes the ground forces
+(a fight, the wall, running from a lost fight) run their course and the role resumes. On the last ground every group
+closes on the nearest enemy it knows of (N18). The AI's stance is now DECIDED, not sampled (it lurched a notch either
+way every window): it steps one notch toward its target, and only when the target is clearly away
+(`STANCE_HYSTERESIS`). The replay's squad label is its role. **MEASURED** (sixteen contests, old → new): places more
+than three days off 25% → 7% (none past five), median distance 1.7 → 1.0 days, trips that got there 15% → 29%; the
+share of OA-days with squads heading far apart falls within a group (it reads 24%, which is now dispersed groups each
+on its own operation). Contests run longer (15 → 19 days), fatality 29–31%. Stance policies, free for all, 128
+contests: careful-then-bold 22.7%, flat cautious 21.1%, the engine's own 11.7%, board odds 10.2%, local odds 8.6%,
+bold-then-careful 7.8%, flat bold 6.2%, hurt-then-careful 6.2% (balance is parked by ruling). **FOUND, NOT CHANGED:**
+a truce struck late can leave its two partners as the last banners, unable to fight, until the overtime rail ends the
+contest with no winner (three in thirty-two contests).
+
+**THE AI REBUILD, STAGE 2: ROUTES AND MARCHING IN COMPANY.** A squad stepped straight at its aim and, meeting water or a
+peak, swung its heading a little either way or stood still — measured, 57 steps a contest held by the ground, and every
+one of them a squad already STANDING on water or a peak (a push had put it there: the spacing pass, a beaten squad's
+run, the wall's sprint), where every step it tried was blocked too. **ROUTES:** a squad whose straight line is blocked
+walks a route — a grid over the planet (`NAV_CELL` 0.01), the fastest way round by the ground's own pace, pulled tight
+to its corners, kept until the aim moves or the day turns, the grid rebuilt only when a flood changes what is
+passable. **FOOTING:** nobody is left standing in a lake: the spacing pass will not push into water, and at the end of
+every block a squad on water or a peak wades to the nearest open ground that is also inside tomorrow's line (`footing`;
+a first cut that did not look at the line put a squad outside it, and the wall probe caught it). Blocked steps 57 → 2 a
+contest. **IN COMPANY:** squads of one group on one operation march at the pace of the slowest of them and abreast, a
+formation step (`FORM_SPACING`) to the side of the line of march, closing up as they reach the objective; an
+operation's squads keep within a third of a day's march of each other (median; 90% within 0.8). Fatality ~29%, contests
+~17 days; the wall took nobody in twenty contests.
+
+**THE AI REBUILD, STAGE 3: A FIGHT DOES NOT TEAR UP THE PLAN.** Three things still broke a squad away from its
+operation after contact. A beaten squad ran straight away from its enemy, wherever that took it; it now runs toward
+the rest of its operation when they are not in the fight and the way to them is not back through the enemy. A winner
+chased the loser alone; under the OA's command it no longer pursues — the operation decides whether that enemy is
+worth a strike. And every loss cleared the squad's orders so it replanned for itself; under the OA's command the
+orders stand and the operation replans on its own triggers (bled, outmatched). **MEASURED** (sixteen contests):
+an operation's squads within 0.37 days' march of each other (median; 90% within 0.75), trips that got there 28%,
+places more than three days off 7%, blocked steps ~2 a contest; fatality 30%, contests ~17 days.
+
+**THE AI REBUILD, STAGE 4: THE PLAN, ON THE RECORD.** Every recorded day carries each OA's operations — what, where,
+why it was last chosen, how many squads are on it (`ops`) — and each seat is given only its own, like its squads. The
+Ground draws your OA's operations as flags in your colour where they are aimed ("Take · Deposit · 2 Squads"); the
+hover names the objective and why the operation stands ("Set at the Drop", "Replanned After Losses", "The Ring Is
+Closing"). The drop is recorded before the first plan, so its day carries none. `drive_map` checks the plan rides the
+day, is only yours, and that its hover says something.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

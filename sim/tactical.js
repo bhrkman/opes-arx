@@ -199,6 +199,15 @@
     COVER_BLAST_P: 0.55,             // [C] the same for an `area` weapon, which is the point of one
     COVER_BLAST_RADIUS: 1,           // [C] tiles around the burst that take the same chance
     DEPLOY_DEPTH: 5,                 // [C] how deep a deployment zone is
+    /* §FLANK (ruled: option B) A FLANKED FIGHT IS FOUGHT ON MORE GROUND. A side whose squads walked in from different
+       directions used to merge into one blob on one edge — a pincer on the map was a single rank on the grid. Now each
+       squad comes on at its own edge, and when the approaches are this far apart the board grows to hold them, so the
+       squad coming round the back really is round the back: out of sight, behind the cover the others chose. A
+       head-on fight is untouched — same board, same deployment, same random draws. */
+    FLANK_SPLIT_ARC: 1.0,            // [C] radians between two squads' approaches before they come on apart
+    FLANK_BOARD_W: 40,               // [C] the board a flanked fight grows to
+    FLANK_BOARD_H: 30,
+    FLANK_DEPLOY_REACH: 6,           // [C] how far in from its edge point a squad on a flanked board may set up
     ARRIVE_EDGE_BAND: 2,             // [H] how far in somebody arriving mid-fight may appear
     /* [C] What being caught from two arcs does to the ground you chose. Cover is directional
        on this grid — a wall protects you from the side it is on — so a squad that set up
@@ -796,7 +805,7 @@
       /* a wedge of the map centred on the direction they came in from */
       const cx = (map.w - 1) / 2, cy = (map.h - 1) / 2;
       const ex = cx + Math.cos(opts.bearing) * cx, ey = cy + Math.sin(opts.bearing) * cy;
-      const reach = Math.max(CONST.DEPLOY_DEPTH, Math.round(Math.min(map.w, map.h) / 2));
+      const reach = opts.reach || Math.max(CONST.DEPLOY_DEPTH, Math.round(Math.min(map.w, map.h) / 2));
       /* YOU DO NOT WALK IN NEXT TO SOMEBODY. Arriving partway through was placed by the same
          rule as deploying at the start — anywhere within reach of a point on the perimeter,
          which on this grid runs nine tiles deep. So a squad that had just marched to the sound
@@ -1549,7 +1558,27 @@
         if (u.hooks.has('psionic_broadcast_sensation')) S._psi.read = true;
       }
     }
-    const board = boardFor(ctx.openingBand == null ? 1 : ctx.openingBand);
+    /* §FLANK the approaches of every squad on the field: units carry `_bearing` (the squad they came in with); a side
+       without one comes on at its side bearing. Any side whose squads came in far enough apart makes this a flanked
+       fight. */
+    const angGap = (a, b) => { let g = Math.abs(a - b) % (Math.PI * 2); return g > Math.PI ? Math.PI * 2 - g : g; };
+    const approaches = sides.map((S, i) => {
+      const bs = [];
+      for (const u of S.units) if (u._bearing != null && !bs.some(b => angGap(b, u._bearing) < 1e-6)) bs.push(u._bearing);
+      return bs;
+    });
+    /* somebody due to walk in on a side already here is one more approach for that side: the board has to be big
+       enough for where they will come from, because it cannot grow once the fight has started */
+    for (const R of (ctx.reinforce || [])) {
+      const si = sides.findIndex(S => S.tag === (R.side && R.side.tag));
+      if (si >= 0 && R.bearing != null && !approaches[si].some(b => angGap(b, R.bearing) < 1e-6)) {
+        if (!approaches[si].length) approaches[si].push(ctx.bearings && ctx.bearings[si] != null ? ctx.bearings[si] : (si === 0 ? Math.PI : 0));
+        approaches[si].push(R.bearing);
+      }
+    }
+    const flankFight = approaches.some(bs => bs.some((b, k) => bs.some((c, l) => l > k && angGap(b, c) >= CONST.FLANK_SPLIT_ARC)));
+    const board0 = boardFor(ctx.openingBand == null ? 1 : ctx.openingBand);
+    const board = flankFight ? { w: Math.max(board0.w, CONST.FLANK_BOARD_W), h: Math.max(board0.h, CONST.FLANK_BOARD_H) } : board0;
     const map = ctx.map || makeMap(rng, ctx.terrain || 'broken_ground', board.w, board.h);
     A = sides[0]; B = sides[1];
     const prep = ctx.prep || sides.map(() => 0.5);   /* how ready each side was for this */
@@ -1595,8 +1624,28 @@
          this is the original left/right deployment, unchanged, so the fixed-seed snapshots
          still describe the fight they were recorded from. */
       const useBearing = bearings && bearings[i] != null && (sides.length > 2 || ctx.forceBearings);
+      if (flankFight) {
+        /* every squad at its own edge, the way it walked in */
+        const home = bearings && bearings[i] != null ? bearings[i] : (i === 0 ? Math.PI : 0);
+        const byB = [];
+        for (const u of S.units) {
+          const b = u._bearing != null ? u._bearing : home;
+          let g = byB.find(x => angGap(x.b, b) < 1e-6);
+          if (!g) { g = { b: b, units: [] }; byB.push(g); }
+          g.units.push(u);
+        }
+        for (const g of byB)
+          deploy(rng, map, g.units, i, prep[i] == null ? 0.5 : prep[i], gap,
+                 { taken: taken, bearing: g.b, flanked: !!flanked[i], reach: CONST.FLANK_DEPLOY_REACH });
+        for (const u of S.units) u.side = i;
+        return;
+      }
       deploy(rng, map, S.units, i, prep[i] == null ? 0.5 : prep[i], gap,
              { taken: taken, bearing: useBearing ? bearings[i] : null, flanked: !!flanked[i] });
+      /* §FLANK a side placed on a bearing was never told its own index (only the two-edge path set it), so in every
+         fight of three banners or more `side` was undefined for everybody — which read as all on one side to the
+         overwatch test, and no reaction shot was ever taken in one */
+      for (const u of S.units) u.side = i;
     });
     const log = ctx.log === false ? null : [];
     /* who is still to walk in, and on which turn */
@@ -1638,6 +1687,7 @@
                   softBootsMoves: 0,    /* Soft Boots crossing ground unseen */
                   ambushInstinct: 0,    /* Ambush Instinct opening fire unseen */
                   endedBy: 'clock' };
+    if (flankFight) tel.flankFight = true;
     /* FOG IS ON UNLESS THE CALLER TURNS IT OFF. `ctx.fog === false` exists so the same tree
        can be measured with it and without it — a before/after that compares two different
        trees is comparing two instruments, which is the failure this project keeps hitting. */
@@ -1784,6 +1834,11 @@
           else { for (const u of R.side.units) sides[si].units.push(u); }
           deploy(rng, map, R.side.units, si, R.prep == null ? 0.5 : R.prep, null,
                  { taken: taken, bearing: R.bearing, flanked: false, edgeOnly: true });
+          /* §FLANK AN ARRIVAL KNOWS WHOSE SIDE IT IS ON. The bearing placement never set `side`, so a body that
+             walked in kept whatever index it was built with — friend to one side by accident, or to none, which
+             is what the overwatch path fell over. It belongs to the side it joined. */
+          for (const u of R.side.units) { u.side = si; u._side = sides[si]; }
+          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false, sense: false, read: false }; }
           tel.arrived = (tel.arrived || 0) + R.side.units.length;
           tel.arrivals = (tel.arrivals || 0) + 1;
           /* THEY WALK IN UNSEEN, and unlike everything else about fog this needs no special

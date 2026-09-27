@@ -130,6 +130,22 @@
     }
     return best;
   }
+  /* §RESERVE A BEATEN SQUAD FALLS BACK TO A BEACON when its OA has fighters in orbit and one is within reach: falling
+     back and being made whole are the same move. (The plan lottery could not do this: a bloodied squad is ordered to
+     break contact the moment it loses, and was usually pulled or finished before it chose again.) */
+  function beaconFor(sq, planet, day, reach) {
+    const c = sq.corp;
+    if (!c || !c.reserve || !c.reserve.length) return null;
+    if (squadHead(sq).length >= (sq._startN || 0)) return null;
+    let best = null, bd = reach;
+    for (const o of planet.objectives || []) {
+      if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day)) continue;
+      if (!MAP.inZone(planet, day, o.x, o.y)) continue;
+      const d = MAP.dist(sq.x, sq.y, o.x, o.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    return best;
+  }
   function setStance(corp, otherId, notch) {
     if (!STANCE_DIALS[notch]) return false;
     corp._stance = corp._stance || {};
@@ -315,6 +331,41 @@
     JOIN_P: 0.55,                       // [C] and willing to
     JOIN_OWN_P: 0.90,                   // [C] your own squad, converging on a planned strike
     JOIN_ALLY_P: 0.55,                  // [C] N5 — an ally has no shared plan bringing it in
+    STRIKE_ODDS_BASE: 1.25,             // [C] §FLANK the head-count edge a strike party wants: base − seek × below
+    STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
+    STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
+    LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
+    CONTEST_NEED: 0.45,                 // [C] §BOLD the pull of an objective worth taking (before the stance's lean)
+    CONTEST_REACH_MARCHES: 2.5,         // [C] §BOLD how far (in days' march) an objective is worth going for
+    PROSPECT_CASH: 0.45,                // [C] §SITES the pull of a deposit in reach for its cash alone
+    PROSPECT_REACH_MARCHES: 2.5,        // [C] §SITES how far (in days' march) a deposit is worth walking to for it
+    STRIKE_FIT: 0.7,
+    /* §COMMAND the OA's operation (stage 1 of the AI rebuild) */
+    NAV_ROUTES: true,                   // [C] §ROUTES squads route round water and peaks, over the faster ground
+    NAV_CELL: 0.01,                     // [C] §ROUTES the route grid's cell
+    MARCH_IN_COMPANY: true,             // [C] §ROUTES a group on one operation marches together, at its slowest pace, abreast
+    FORM_SPACING: 0.018,                // [C] §ROUTES the gap between squads marching abreast (just over OWN_SPACING)
+    COMMAND: 'oa',                      // [C] §COMMAND 'oa' — the OA plans an operation and gives squads roles; 'squad' — the old per-squad planner
+    CMD_HORIZON: 2.0,                   // [C] §COMMAND the furthest an objective may be, in days' march of the OA's main body
+    CMD_THREAT_R: 0.05,                 // [C] §COMMAND how near a seen enemy must be to count against an objective
+    CMD_OUTMATCHED: 1.2,                // [C] §COMMAND a seen force this much bigger than the OA on its objective makes it plan again
+    CMD_REPLAN_LOSS: 0.15,              // [C] §COMMAND a share of its people lost since planning that makes it plan again
+    CMD_CONTEST_TASTE: 1.5,             // [C] §COMMAND how much an enemy on an objective raises (bold) or lowers (careful) its worth
+    CMD_W_BEACON: 0.5,                  // [C] §COMMAND a beacon's worth, with a reserve to land
+    CMD_W_BEACON_PER_LOSS: 2.5,         //     and more for every share of the OA lost
+    CMD_W_MEND: 0.35,                   // [C] §COMMAND a rest site's worth with wounded to mend
+    CMD_W_STRIKE: 0.7,                  // [C] §COMMAND a strike on a squad in the open (× seek)
+    CMD_W_STRIKE_OBJ: 1.4,              //     on a squad standing on an objective (× seek)
+    CMD_W_HOLD: 0.3,                    // [C] §COMMAND holding ground where it is, a little toward the ring's future (× caution)
+    CMD_W_JOIN: 0.9,                    // [C] §COMMAND linking up with another group of the OA's own (the careful more)
+    CMD_W_ADVANCE: 0.25,                // [C] §COMMAND moving on toward ground beyond reach, a day at a time (× boldness)
+    CMD_ADVANCE_HORIZON: 5,             // [C] §COMMAND the furthest ground (days' march) worth advancing toward
+    CMD_JOIN_HORIZON: 6,                // [C] §COMMAND the furthest (days of march) another group is worth marching to join
+    CMD_GROUP_R: 0.06,                  // [C] §COMMAND squads this near each other (by any chain) are one group, with one operation
+    CMD_SWITCH: 1.3,                    // [C] §COMMAND at a window, a new operation must score this much better than the standing one
+    STRIKE_OBJECTIVE_WEIGHT: 3,         // [C] §BOLD how much more a target on an objective is worth striking
+    STRIKE_OPEN_EXTRA: 0.25,            // [C] §BOLD the extra edge a strike on a squad in the open needs                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
+    LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
 
     /* §8.3 coordination — how well a corp runs a planned attack */
@@ -366,7 +417,9 @@
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
     SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
-    SPREAD_AGGRESSION: 0.35,            // [C] and appetite for contact
+    SPREAD_AGGRESSION: 0,               // [C] §FLANK (ruled) appetite for contact no longer spreads an OA thin: measured, a
+                                        //     force split small loses whatever its stance (two squads 20% of titles, five 8%);
+                                        //     the bold concentrate, and work their squads together (the strike planner)
     SPREAD_PATIENCE: 0.45,              // [C] against what a careful OA keeps massed         // [S] squads live inside these bounds. RULED: the
                                         // floor is THREE — it binds the manager's own squad
                                         // page, which reads it from here. The auto-deal's
@@ -499,8 +552,20 @@
     /* §9 objectives */
     CLAIM_CACHE_TIER: 4,                // [S] a crate's tier when the wave did not set one
     INTEL_CAP: 0.18,                    // [S] most readiness a season of scouting can buy
-    CACHE_EXOTIC_P: 0.12,               // [S] chance a tier-5 crate holds an exotic
-    CACHE_CONSUMABLES: 2,               // [S] supplies in every crate, +1 with a quartermaster
+    REINFORCE_NEED: 0.45,               // [C] §RESERVE the pull of a beacon on a squad with any loss to replace
+    REINFORCE_PER_LOSS: 1.1,            // [C] and how much more for each share of its drop it has lost
+    BEACON_FALLBACK_MARCHES: 3,         // [C] how many days' march a beaten squad will fall back to reach a beacon
+    BEACON_SIGNAL_RANGE: DAY_MARCH * 5,  // [C] §RESERVE how far a lit beacon is heard: twice an ordinary firefight's carry
+    BEACON_PREY: 0.5,                   // [C] §RESERVE how much more a squad on a lit beacon is worth going after
+    BEACON_CALL: 2.0,                   // [C] §RESERVE a lit beacon doubles a busy squad's taste for going to look
+    BEACON_CALL_FIT: 0.6,               // [C] §RESERVE the share of its landing strength a squad needs to answer the call
+    BEACON_CALL_SQUADS: 2,              // [C] §RESERVE the most squads one OA sends to one beacon
+    BEACON_DETECT: 0.9,                // [C] §RESERVE the chance an enemy in reach finds a squad on a lit beacon
+    BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
+    /* §RESERVE only an enemy ON the beacon stops a landing — the same radius as standing on a site — and any two enemy
+       squads on one lit beacon are in contact (below). The first cut blocked from 0.04 against an engage range of 0.02,
+       so a rival parked beside a beacon blocked every landing and could never be fought: a standoff by geometry. */
+    BEACON_CONTEST_RADIUS: 0.026,        // [C] an enemy squad this near a beacon stops anything landing
     RELAY_INTEL_DAYS: 5,                // [C]
     RESUPPLY_MULT: 1.75,                // [C] §9 what a claimed munitions site is worth
 
@@ -522,10 +587,20 @@
     STANCE_PULL_AHEAD: 0.7,             // [C] an opening is worth taking
     RANSOM_ANSWER_WINDOWS: 2,           // [C] §TIME the windows a person has to answer a ransom before it lapses
     LEAVE_OVERTIME_GUESS: 6,
+    CHAMPION_PREY: 0.35,                // [C] §SNOWBALL every hunter values last year's champion this much more
+    CONTENDER_SHARE: 0.7,               // [C] a contender: its force at least this share of the strongest on the ground
+    CONTENDER_FOCUS: 0.35,              // [C] and it values the champion and the front-runner this much more again
+    CONTENDER_SMALL_FRY: 0.6,           // [C] and a small, weak OA only this much
+    UNDERDOG_FAME_PER_PLACE: 0.12,      // [C] §SNOWBALL fame for a kill, per place the victim's OA finished above the killer's
+    UNDERDOG_FAME_FLOOR: 0.4,           // [C] and the least it falls to, hitting all the way down
+    CHAMPION_FAME_BONUS: 0.5,           // [C] and half again on top for one of the champion's own
+    BANNER_PULL_AT: 0.45,
+    PULL_MARGIN: 0.25,                  // [C] §MARKET how far above the line a force's staying starts to lose its worth               // [C] §BASELINE (temporary) below this share standing, an OA's banner is pulled
     LEAVE_EARLIEST_DAY: 3,              // [C] before this an OA has seen too little of its own losses to price them            // [C] the days past the last ground an OA expects a contest to run
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,              // [H] a point of it in credits: about a year of gate (₡68/month) and its pull
                                         //     on prices, mercenaries and sponsors; an OA's pride scales it 0.5–1.5×
+    STANCE_HYSTERESIS: 0.6,             // [C] §COMMAND how far its target must be from where an OA stands before it changes notch
     STANCE_SPREAD: 0.95,                // [C] how widely a corp explores around its target
     /* §TRUCE a truce is never broken (ruled), so it has no price to break */
   };
@@ -821,7 +896,7 @@
                 : split === '2x12' ? [12, 12] : split === '4x6' ? [6, 6, 6, 6] : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance, declaredAt: stance,
-      rigidity: rigidity != null ? rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
+      rigidity: rigidity != null ? rigidity : profile.rigidity != null ? profile.rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
       squads: [], allBodies: [], stanceChanges: 0, hauled: 0, sitesClaimed: 0, engagements: 0,
       /* §WITHDRAWAL Step 6 — every corp drops holding its own claim, and keeps it until it
          concedes. The join stood here: the corp this one ceded its claim to and then fought
@@ -873,7 +948,8 @@
         _intel: (persist && persist.intel) || 0,
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
-        claiming: null, movedToday: false, foughtToday: false, engagements: 0
+        claiming: null, movedToday: false, foughtToday: false, engagements: 0,
+        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
@@ -890,7 +966,14 @@
        ground. `kitIntent` decides how near the cap this corp gets, from its wealth and from
        whether it fancies this particular planet. The cap itself is still one number for
        everyone (P1). */
+    /* §RESERVE the fighters held in orbit are kitted with the force, inside the same cap, and wait to land */
+    corp.reserve = (persist && persist.reserve) ? persist.reserve.slice() : [];
+    corp.reserveStart = corp.reserve.filter(f => !f.mirror_of).length;
+    corp.landed = 0;
+    const onGroundBodies = corp.allBodies;
+    if (corp.reserve.length) corp.allBodies = onGroundBodies.concat(corp.reserve);
     equipCorp(corp, profile, loadout, planet, season);
+    corp.allBodies = onGroundBodies;
     return corp;
   }
 
@@ -945,11 +1028,34 @@
     return Math.max(CONST.STANDING_MIN, Math.min(CONST.STANDING_MAX, v));
   }
 
+  /* §SNOWBALL THE CHAMPION IS A MARK, and a contender hunts the top. Every hunter values last year's champion more — the
+     fame of taking down the champ. A CONTENDER (its force near the strongest on the ground) values the champion and the
+     current front-runner more again, and a small, weak OA less — beating those does not bring the title nearer, and a
+     patient front-runner left alone is the one that outlasts everyone. */
+  function prestigeFor(seeker, sq) {
+    let p = prestigeOf(sq);
+    const tc = sq && sq.corp, sc = seeker && seeker.corp;
+    if (!tc || !sc || tc === sc) return p;
+    if (lastPlaceOf(tc) === 1) p *= 1 + CONST.CHAMPION_PREY;
+    const live = (c) => (c.allBodies || []).filter(b => b.status === 'active').length;
+    const onG = CORPS_REF.filter(c => !c.withdrawn);
+    const top = Math.max(1, ...onG.map(live));
+    if (live(sc) >= CONST.CONTENDER_SHARE * top) {
+      if (lastPlaceOf(tc) === 1 || live(tc) >= top) p *= 1 + CONST.CONTENDER_FOCUS;
+      else if (live(tc) < 0.5 * live(sc)) p *= CONST.CONTENDER_SMALL_FRY;
+    }
+    return p;
+  }
   /** What a hunter stands to gain from this particular squad. */
   function prestigeOf(sq) {
     const strength = squadHead(sq).length / Math.max(1, sq.bodies.length);
-    const weak = strength < 0.55 ? CONST.WEAK_TARGET_DISCOUNT : 1;
-    return standing(sq.corp) * weak;
+    /* §RESERVE A SQUAD DRAWING ON A BEACON IS THE ONE TO STOP. A weak squad is discounted as not worth hunting — and a
+       squad on a beacon is weak by definition, since it went there to replace its losses, so the hunters rated the one
+       squad about to be made whole among the least worth their time. Lit today or yesterday, it is a mark, not a
+       discount: stop it before it is whole again. */
+    const lit = sq._beaconLit != null && sq._beaconLit >= (sq._day || 0) - 1;
+    const weak = !lit && strength < 0.55 ? CONST.WEAK_TARGET_DISCOUNT : 1;
+    return standing(sq.corp) * weak * (lit ? 1 + CONST.BEACON_PREY : 1);
   }
 
   /**
@@ -1124,7 +1230,19 @@
      offer in a contest, his, and nothing an AI OA could post. Now every OA may have an offer out, the field
      answers each (an AI by its weighing, a person at their window), and standing down is one act for everyone:
      whoever said yes is on record, and the winner decides each promise at the settlement. */
+  /* §MARKET (ruled: the Divide is a negotiation) WHO KEEPS THEIR WORD. A promise was kept at one minus treachery, less
+     half the share — an average OA (treachery 50) at ~45% — so every promise a leaver weighed was worth under half its
+     face, and the market it was meant to drive barely traded: in six contests one exit by deal, 1.3% of the pot to
+     anyone but the winner, one promise in six kept. Breaking a promise costs the breaker standing that scales with the
+     promise, on a stage the whole fleet watches, so keeping it is the ordinary course and character bends that: an
+     honest OA keeps ~90%, an average one ~70%, a treacherous one ~50%, a little less for a larger promise. One formula,
+     for what a leaver expects and for what the winner does. */
+  function keepChance(j, share) {
+    const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
+    return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
+  }
   function standDown(c, day, stats, corps) {
+    if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
@@ -1233,10 +1351,7 @@
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
     const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;
-    const keepOf = (j, share) => {
-      const t = (j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
-      return Math.max(0.05, Math.min(0.95, (1 - t / 100) - share * 0.5));
-    };
+    const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
        the strength on the ground, of what fighting on would have cost it. A BIG THREAT GOING spares a lot, which
@@ -1276,7 +1391,7 @@
       const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
       const lost = Math.max(0, all.length - alive.length);
       const daysLeft = Math.max(1, MAP.CONST.LAST_GROUND_DAY + CONST.LEAVE_OVERTIME_GUESS - day);
-      const rate = 0.5 * (lost / Math.max(1, all.length) / Math.max(1, day)) + 0.5 * fieldRate;
+      const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / Math.max(1, day)) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
       const expect = Math.min(alive.length, rate * all.length * daysLeft);
       const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.salary) || 0) *
                     LED.CONST.SALARY_MONTHS + kitWorth(b.loadout), 0) / alive.length : 0;
@@ -1322,9 +1437,27 @@
        still do; otherwise it takes the offer back and fights on. (It replaced "leave below 4% odds" — ruled an
        oversimplification, and chosen for keeping a fatality rate steady, which the standing instruction says
        is not to be considered at all.) */
+    /* §BASELINE THE ALEAS PULL A SPENT BANNER (temporary, ruled; a rule for every seat alike): an OA with fewer than
+       this share of its people still standing is out of the contest, and those still standing come home. Measured:
+       of 32 OA-contests 28 were eliminated and none left — a fighter is worth ₡3–10k and the pot ₡1.28M, so fighting
+       to the last is the rational play — and the fallen lost 60% of those they fielded dead. No tuning of a hit moved
+       that below ~42%: gentler hits only meant more fights. This rule, with severity's power weight at 0.75, puts
+       a Divide at ~31% (six fresh Divides, 24–35% each); contests run ~21 days, not 28. */
+    if (day >= CONST.LEAVE_EARLIEST_DAY) for (const c of corps) {
+      if (!onGround(c)) continue;
+      const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
+      if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
+        stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
+        standDown(c, day, stats, corps);
+      }
+    }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
-      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) - stayCost(c), cost = standingCost(c);
+      /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
+         shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
+      const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
+      const margin = Math.max(0, Math.min(1, (upShare - CONST.BANNER_PULL_AT) / CONST.PULL_MARGIN));
+      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) * margin - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         const ask = (off.terms && off.terms.credits) || 0;
@@ -1338,6 +1471,17 @@
           if (ask <= 0) continue;
           const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask);
           if (ev > best.ev) best = { ask: ask, ev: ev };
+        }
+        /* §WITHDRAWAL AN OA CAN WALK AWAY WITH NOTHING. It could leave only through a deal — an offer some rival
+           promised against — so a beaten OA with no buyer for its exit fought on until it was eliminated, whatever
+           staying cost it: in four contests 28 of 32 OAs fell, none left, and the fallen lost 60% of those they
+           fielded dead. Walking off is the plain economic choice when staying is worth less than the standing it
+           costs to go — the same Withdraw Now a manager has. It is weighed before any offer, and a deal worth more
+           than walking still wins. */
+        if (-cost > stay && !(best.ask > 0 && best.ev - cost > -cost)) {
+          stats.audit.walkedAway = (stats.audit.walkedAway || 0) + 1;
+          standDown(c, day, stats, corps);
+          continue;
         }
         if (best.ask > 0 && best.ev - cost > stay) {
           postWithdrawOffer(c, { credits: best.ask }, day, stats);
@@ -1533,7 +1677,7 @@
        It was pre-catalog by construction: a five-row tier table is how you model kit before
        86 real items exist. PROCUREMENT.md §13 has said "that scalar is deleted" since Step 5
        and described the bundle that replaces it; this is that bundle, landed at last.
-       See `openCrate`. */
+       (A crate once upgraded kit from the catalogue; a cache is a Landing Beacon now.) */
     const byId = {};
     for (const u of units) byId[u.id] = u;
     for (const u of units) {
@@ -1562,6 +1706,80 @@
 
   /** Build one SIDE of a fight from one or more squads of the same corp. Two squads that
       arrived together fight as one body — that is what the pincer was for. */
+  /* §LOOT (ruled) THE GROUND GOES TO WHOEVER HOLDS IT. A won fight cost the winner people and gave it nothing that
+     helps it last, so in a contest won by the last banner standing every fight was a loss, only a smaller one for the
+     side that fought better. Now the one side left holding the field strips today's enemy dead: their medkits, the
+     rations their squads were carrying for them, and their guns — a fighter takes a dead man's gun when it is the
+     better piece (it cost more) and he shoots it at least as well as his own, and carries his own home. What nobody
+     takes up is carried off as spoils often enough (`LOOT_RECOVERY_P`), one spare a fighter, and comes home to the
+     armoury if they do. Several sides still standing, or nobody: nobody loots. */
+  function lootField(groups, broke, arrivals, deadBefore, day, stats, mx, my) {
+    const tagOf = gi => String.fromCharCode(65 + gi);
+    const holding = groups.map((g, gi) => gi).filter(gi => !broke[tagOf(gi)] && groups[gi].some(q => squadHead(q).length));
+    if (holding.length !== 1) return;
+    const wi = holding[0], winners = groups[wi].filter(q => squadHead(q).length);
+    const wCorp = groups[wi][0].corp;
+    for (const A of arrivals) if (A.gi === wi && squadHead(A.sq).length) winners.push(A.sq);
+    const losers = [];
+    groups.forEach((g, gi) => { if (gi !== wi) for (const q of g) losers.push(q); });
+    for (const A of arrivals) if (A.gi !== wi && (A.gi < 0 || broke[tagOf(A.gi)])) losers.push(A.sq);
+    const fallen = [];
+    const L = stats.audit.loot = stats.audit.loot || { fights: 0, medkits: 0, rations: 0, guns: 0, spares: 0 };
+    let took = false;
+    for (const q of losers) {
+      const here = q.bodies.filter(b => b.status === 'dead' && !deadBefore.has(b) && !b._stripped);
+      if (!here.length) continue;
+      /* the rations the dead were carrying: their share of the squad's */
+      const alive = q.bodies.filter(b => b.status === 'active' || b.status === 'injured').length;
+      const share = q.rations * here.length / Math.max(1, here.length + alive);
+      if (share > 0) {
+        q.rations -= share;
+        const to = winners.slice().sort((a, b) => a.rations / Math.max(1, squadHead(a).length) - b.rations / Math.max(1, squadHead(b).length))[0];
+        to.rations += share; L.rations += share; took = true;
+      }
+      for (const b of here) { b._stripped = true; fallen.push(b); }
+    }
+    if (!fallen.length) return;
+    const standing = []; for (const q of winners) for (const b of squadHead(q)) standing.push({ b, q });
+    if (!standing.length) return;
+    /* medkits */
+    for (const f of fallen) {
+      const n = (f._charges && f._charges.itm_medkit) || 0;
+      if (!n) continue;
+      f._charges.itm_medkit = 0;
+      const t = standing[0].b; t._charges = t._charges || {}; t._charges.itm_medkit = (t._charges.itm_medkit || 0) + n;
+      L.medkits += n; took = true;
+    }
+    for (const q of winners) { q.medkits = medkitCharges(q.bodies); q.hasMedkit = q.medkits > 0; }
+    /* guns: the best pieces first, each to the fighter it upgrades most */
+    const costOf = id => { const it = id && ITEMS.byId(id); return it ? (it.cost || 0) : 0; };
+    const guns = fallen.filter(f => f.loadout && f.loadout.primary && !C.hooksOf(f, ROSTER.traitById).has('never_drops_gear'))
+      .map(f => ({ f, id: f.loadout.primary })).sort((a, b) => costOf(b.id) - costOf(a.id));
+    for (const g of guns) {
+      const it = ITEMS.byId(g.id); if (!it) continue;
+      let best = null, gain = 0;
+      for (const s of standing) {
+        const lo = s.b.loadout || {}; if (!lo.primary) continue;
+        const mine = ITEMS.byId(lo.primary);
+        const up = costOf(g.id) - costOf(lo.primary);
+        if (up <= 0) continue;
+        if (ITEMS.shotOf(s.b, it) + CONST.LOOT_AIM_SLACK < ITEMS.shotOf(s.b, mine)) continue;   /* not a gun he shoots well */
+        if (up > gain) { gain = up; best = s; }
+      }
+      g.f._lootedPrimary = true;
+      if (best) {
+        const lo = best.b.loadout;
+        best.b._spareKit = [lo.primary].concat(lo.mods || []);       /* his own comes home on his back */
+        ITEMS.equip(best.b, { primary: g.id, mods: [], sidearm: lo.sidearm, armor: lo.armor, consumables: lo.consumables || [] });
+        L.guns++; took = true;
+        stats._rec && stats._rec({ t: 'loot', x: mx, y: my, c: best.q.corpId, name: best.b.name, gun: it.name || g.id });
+      } else if (P.mulberry32(P.seedFrom('loot' + day + g.f.id))() < ITEMS.CONST.LOOT_RECOVERY_P) {   /* its own draw: the fight's stream is untouched */
+        const carrier = standing.find(s => !s.b._spareKit || !s.b._spareKit.length);
+        if (carrier) { carrier.b._spareKit = [g.id]; L.spares++; took = true; }
+      }
+    }
+    if (took) { L.fights++; if (wCorp) wCorp._lootFights = (wCorp._lootFights || 0) + 1; }
+  }
   function liveSquadGroup(rng, squads, day, engagementNo, traitIndex) {
     const parts = squads.map(sq => liveSquad(rng, sq.corp, sq, day, engagementNo, traitIndex))
                         .filter(Boolean);
@@ -1918,6 +2136,7 @@
     if (it.type === 'strike') {
       const t = it.targetSquad;
       if (!t || squadHead(t).length < 1) return false;
+      if (it.plan) return true;                  /* §FLANK a pincer follows its quarry each dawn (planCorp) */
       /* the plan is built on where they were; if they have gone a long way it is dead */
       if (MAP.dist(t.x, t.y, it.tx, it.ty) > CONST.PLAN_DRIFT_TOLERANCE) return false;
       return true;
@@ -1925,6 +2144,8 @@
     if (it.type === 'claim' || it.type === 'hold') {
       const o = it.obj;
       if (!o || !o.revealed) return false;
+      /* §BOLD a crate emptied or a deposit dug by somebody else is not worth arriving at */
+      if (it.type === 'claim' && !MAP.siteLive(o, day)) return false;
       if (it.type === 'claim' && o.heldBy === sq.corpId) return false;
       return true;
     }
@@ -1992,6 +2213,385 @@
     }
     return out;
   }
+  /* ======================================================================================================
+     §ROUTES (stage 2 of the AI rebuild) A SQUAD WALKS A ROUTE, NOT A RULER LINE. It stepped straight at its aim and,
+     meeting water or a peak, swung its heading a little either way and took the first open footing — or stood still
+     if there was none — so it bumped along lake shores and stalled against ridges. Now a squad whose straight line is
+     blocked is given a route: a grid over the planet (`NAV_CELL`), the fastest way round by the ground's own pace
+     (open plain before broken ground, the flat before the steep), pulled tight so it walks the corners and not the
+     cells. Routes are kept until the aim moves or the day turns; the grid is rebuilt only when a flood changes what
+     is passable.
+     ====================================================================================================== */
+  const NAV = new WeakMap();
+  function navGrid(planet) {
+    const flood = planet.floodNow ? planet.floodNow() : 0;
+    let g = NAV.get(planet);
+    if (g && g.flood === flood) return g;
+    const cell = CONST.NAV_CELL, R = planet.radius * 1.02;
+    const x0 = planet.cx - R, y0 = planet.cy - R, n = Math.ceil(2 * R / cell);
+    const cost = new Float32Array(n * n);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const x = x0 + (i + 0.5) * cell, y = y0 + (j + 0.5) * cell;
+      if (MAP.dist(x, y, planet.cx, planet.cy) > R || (planet.passableAt && !planet.passableAt(x, y))) { cost[j * n + i] = Infinity; continue; }
+      const sp = planet.speedAt(x, y) * (planet.slopeAt ? (1 - CONST.HEIGHT_CLIMB * planet.slopeAt(x, y)) : 1);
+      cost[j * n + i] = 1 / Math.max(0.2, sp);
+    }
+    g = { flood, cell, x0, y0, n, cost };
+    NAV.set(planet, g);
+    return g;
+  }
+  function clearLine(planet, ax, ay, bx, by) {
+    const d = MAP.dist(ax, ay, bx, by), steps = Math.ceil(d / (CONST.NAV_CELL * 0.5));
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      if (planet.passableAt && !planet.passableAt(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+    }
+    return true;
+  }
+  function findRoute(planet, ax, ay, bx, by) {
+    const g = navGrid(planet), n = g.n;
+    const cellOf = (x, y) => { const i = Math.max(0, Math.min(n - 1, Math.floor((x - g.x0) / g.cell))), j = Math.max(0, Math.min(n - 1, Math.floor((y - g.y0) / g.cell))); return j * n + i; };
+    const nearOpen = (c) => {                      /* the nearest open cell, if the point itself sits in the blocked */
+      if (g.cost[c] < Infinity) return c;
+      const ci = c % n, cj = (c / n) | 0;
+      for (let r = 1; r < 6; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+        const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= n || j >= n) continue;
+        if (g.cost[j * n + i] < Infinity) return j * n + i;
+      }
+      return -1;
+    };
+    const s = nearOpen(cellOf(ax, ay)), t = nearOpen(cellOf(bx, by));
+    if (s < 0 || t < 0) return null;
+    const G = new Float32Array(n * n).fill(Infinity), from = new Int32Array(n * n).fill(-1);
+    const heap = [];                                /* binary heap of [f, cell] */
+    const push = (f, c) => { heap.push([f, c]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k;
+      if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+    const ti = t % n, tj = (t / n) | 0, h = (c) => Math.hypot((c % n) - ti, ((c / n) | 0) - tj) * 0.8;   /* 0.8: the fastest ground costs 1/1.25 */
+    G[s] = 0; push(h(s), s);
+    let found = false, guard = 0;
+    while (heap.length && guard++ < n * n * 4) {
+      const [, c] = pop();
+      if (c === t) { found = true; break; }
+      const ci = c % n, cj = (c / n) | 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue;
+        const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= n || j >= n) continue;
+        const c2 = j * n + i, w = g.cost[c2]; if (w === Infinity) continue;
+        if (di && dj && (g.cost[cj * n + i] === Infinity || g.cost[j * n + ci] === Infinity)) continue;   /* no corner-cutting */
+        const ng = G[c] + w * (di && dj ? Math.SQRT2 : 1);
+        if (ng < G[c2]) { G[c2] = ng; from[c2] = c; push(ng + h(c2), c2); }
+      }
+    }
+    if (!found) return null;
+    const cells = []; for (let c = t; c >= 0; c = from[c]) { cells.push(c); if (c === s) break; }
+    cells.reverse();
+    const pts = cells.map(c => ({ x: g.x0 + ((c % n) + 0.5) * g.cell, y: g.y0 + (((c / n) | 0) + 0.5) * g.cell }));
+    pts[pts.length - 1] = { x: bx, y: by };
+    /* pulled tight: from each point, jump to the furthest one it can see */
+    const out = []; let k = 0, px = ax, py = ay;
+    while (k < pts.length) {
+      let far = k;
+      for (let m = pts.length - 1; m > k; m--) if (clearLine(planet, px, py, pts[m].x, pts[m].y)) { far = m; break; }
+      out.push(pts[far]); px = pts[far].x; py = pts[far].y; k = far + 1;
+    }
+    return out;
+  }
+  /* §ROUTES the nearest open ground that is also inside the given day's line — never out of a lake and into the wall */
+  function footing(planet, day, x, y) {
+    const z = MAP.zoneOn(planet, day);
+    const ok = (a, b) => (!planet.passableAt || planet.passableAt(a, b)) && MAP.dist(a, b, z.cx, z.cy) <= z.r * MAP.CONST.EDGE_MARGIN;
+    const c0 = MAP.clampInside(planet, day, x, y);
+    if (ok(c0.x, c0.y)) return c0;
+    for (let k = 1; k <= 40; k++) {
+      const r = k * CONST.NAV_CELL * 0.5, m = 8 + k * 2;
+      for (let i = 0; i < m; i++) {
+        const a = i / m * Math.PI * 2, px = c0.x + Math.cos(a) * r, py = c0.y + Math.sin(a) * r;
+        if (ok(px, py)) return { x: px, y: py };
+      }
+    }
+    return c0;
+  }
+  /* the next point on this squad's way to its aim: the aim itself when the way is clear */
+  function wayPoint(planet, sq, tx, ty, day, stats) {
+    if (!CONST.NAV_ROUTES || !planet.passableAt) return { x: tx, y: ty };
+    const r = sq._route;
+    if (!(r && r.day === day && MAP.dist(r.tx, r.ty, tx, ty) < CONST.NAV_CELL * 2)) {
+      if (clearLine(planet, sq.x, sq.y, tx, ty)) { sq._route = { day, tx, ty, pts: [] }; return { x: tx, y: ty }; }
+      const pts = findRoute(planet, sq.x, sq.y, tx, ty);
+      sq._route = { day, tx, ty, pts: pts || [] };
+      stats.audit.routes = (stats.audit.routes || 0) + 1;
+      if (!pts) stats.audit.noRoute = (stats.audit.noRoute || 0) + 1;
+    }
+    const pts = sq._route.pts;
+    while (pts.length > 1 && (MAP.dist(sq.x, sq.y, pts[0].x, pts[0].y) < CONST.NAV_CELL * 0.75 || clearLine(planet, sq.x, sq.y, pts[1].x, pts[1].y))) pts.shift();
+    return pts.length ? pts[0] : { x: tx, y: ty };
+  }
+
+  /* ======================================================================================================
+     §COMMAND THE OA COMMANDS (stage 1 of the AI rebuild, ruled). Every squad used to plan for itself: a weighted draw
+     from fifteen approaches, re-drawn whenever its captain wavered, and rewritten by any of half a dozen things it
+     heard or saw — gunfire, a lit beacon, a sighting, a strike being planned, a fight's losses. Measured over sixteen
+     contests, 85% of the trips a squad set out on were dropped before it arrived, a quarter of the places squads were
+     heading were more than three days' march away (a contest runs about fifteen, and the ring halves in nine), and on
+     27% of an OA's days its own squads were heading for points three days apart. On the replay that is aimless wander,
+     four squads setting off across the map, and one breaking away.
+
+     Now the OA decides, as a manager does, at its comms window: ONE operation it can actually carry out before the
+     next window — take a site, land its reserve at a beacon, strike an enemy it can beat, mend at a rest site, or
+     pull its people together somewhere safe — and a ROLE for every squad in it. The operation stands until the next
+     window unless something the OA would care about happens (the objective is gone, the quarry is lost, it has been
+     badly bled since, or a stronger force has turned up on top of it); then the OA plans again, not the squad. Every
+     choice is SCORED, not drawn: value against distance, the ring's schedule and the enemy it has seen, weighted by
+     the OA's stance — the bold fight for ground, the careful take what is safe and keep together. Nothing further
+     than `CMD_HORIZON` days' march is ever an objective. Squads keep the reflexes the ground forces on them — a
+     fight, the wall, running from a lost fight — and return to their role at the next dawn.
+     ====================================================================================================== */
+  function commandCorp(rng, corp, planet, day, stats, foreign, mine) {
+    const dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard;
+    const seek = dials.seek;
+    const all = corp.allBodies || [];
+    const lostFrac = 1 - all.filter(b => b.status === 'active').length / Math.max(1, all.length);
+    const heads = q => squadHead(q).length;
+    const speed = CONST.DAY_MARCH * dials.ground;
+    const fresh = foreign.filter(e => day - e.day <= 2);
+    const threatAt = (x, y, r) => fresh.filter(e => MAP.dist(e.x, e.y, x, y) <= r).reduce((t, e) => t + (e.n || 1), 0);
+    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    const A = stats.audit.cmd = stats.audit.cmd || { plans: 0, replans: 0, kinds: {}, why: {}, kept: 0, switched: 0, groups: 0 };
+    const isWindow = MAP.isWindowDay(planet, day);
+
+    /* ---- WHO IS WITH WHOM. An OA lands dispersed, so its squads are not one force until they meet: squads within
+       `CMD_GROUP_R` of each other (by any chain) are a GROUP, and each group runs its own operation — a detachment
+       three days off does not march across the map to join a fight it cannot reach. Groups that close up merge, and
+       the merged group keeps the operation of the stronger part. ---- */
+    const groups = [];
+    for (const q of mine) {
+      const near = groups.filter(g => g.some(o => MAP.dist(o.x, o.y, q.x, q.y) <= CONST.CMD_GROUP_R));
+      if (!near.length) groups.push([q]);
+      else { const g0 = near[0]; g0.push(q); for (const g of near.slice(1)) { g0.push(...g); groups.splice(groups.indexOf(g), 1); } }
+    }
+    A.groups += groups.length;
+    const others = (g) => groups.filter(h => h !== g);
+    for (const g of groups) command(g);
+    return;
+
+    function command(g) {
+      const force = g.reduce((t, q) => t + heads(q), 0);
+      const cx = g.reduce((t, q) => t + q.x * heads(q), 0) / Math.max(1, force);
+      const cy = g.reduce((t, q) => t + q.y * heads(q), 0) / Math.max(1, force);
+      const fitSq = g.filter(q => heads(q) >= Math.ceil((q._startN || heads(q)) * CONST.STRIKE_FIT));
+      /* the group's operation: the one its strongest members were already on */
+      const byOp = new Map();
+      for (const q of g) if (q._op) byOp.set(q._op, (byOp.get(q._op) || 0) + heads(q));
+      let op = null, bw = -1;
+      for (const [o, w] of byOp) if (w > bw) { bw = w; op = o; }
+      let why = null;
+      if (!op) why = 'first';
+      else if (op.merged !== g.length && byOp.size > 1) why = null;   /* merged: keep the stronger part's purpose */
+      if (!why && op) {
+        if (isWindow && op.day !== day) why = 'window';
+        else if (op.obj && !MAP.siteLive(op.obj, day)) why = 'gone';
+        else if (op.kind === 'reinforce' && !(corp.reserve && corp.reserve.length)) why = 'landed';
+        else if (op.kind === 'strike' && !(op.target && heads(op.target))) why = 'quarry';
+        else if (op.kind === 'join' && !(op.to && op.to.some(q => heads(q)))) why = 'joined';
+        else if (lostFrac - op.lostAt >= CONST.CMD_REPLAN_LOSS) why = 'bled';
+        else if (op.x != null && op.kind !== 'strike' && threatAt(op.x, op.y, CONST.CMD_THREAT_R) > force * CONST.CMD_OUTMATCHED) why = 'outmatched';
+        else if (op.x != null && !MAP.inZone(planet, day + 1, op.x, op.y)) why = 'ring';
+        else if (op.kind === 'close') why = 'close';                        /* re-aimed at the enemy every day */
+      }
+      if (why === 'window') {
+        /* a window is a chance to change course, not an order to: kept unless something is clearly better */
+        const fresh2 = planFor(g, force, cx, cy, fitSq, true);
+        const same = fresh2.cands.find(c => c.kind === op.kind && (c.obj || null) === (op.obj || null) && (c.target || null) === (op.target || null));
+        if (same && fresh2.pick.score < same.score * CONST.CMD_SWITCH) { op.day = day; why = null; A.kept++; }
+      }
+      if (why) {
+        const next = planFor(g, force, cx, cy, fitSq, false);
+        next.why = why;
+        if (op) { A.replans++; if (op.kind !== next.kind || op.obj !== next.obj || op.target !== next.target) A.switched++; }
+        op = next;
+        A.plans++; A.kinds[op.kind] = (A.kinds[op.kind] || 0) + 1; A.why[why] = (A.why[why] || 0) + 1;
+      }
+      op.merged = g.length;
+      for (const q of g) q._op = op;
+      corp._op = op;                      /* the latest, for tooling */
+      orders(g, op);
+    }
+
+    function planFor(g, force, cx, cy, fitSq, wantList) {
+      const cands = [];
+      const gAll = [].concat.apply([], g.map(q => q.bodies));
+      const hurtN = gAll.filter(b => b.status === 'injured').length;
+      const reserve = (corp.reserve || []).length;
+      for (const o of planet.objectives) {
+        if (!MAP.siteLive(o, day)) continue;
+        const d = MAP.dist(cx, cy, o.x, o.y), eta = d / Math.max(1e-6, speed);
+        if (eta > CONST.CMD_HORIZON) continue;
+        if (!MAP.inZone(planet, day + Math.ceil(eta) + 1, o.x, o.y)) continue;   /* it will still be there when we are */
+        let kind = null, w = 0;
+        if (o.type === 'sponsor_cache') {
+          if (!reserve) continue;
+          kind = 'reinforce'; w = CONST.CMD_W_BEACON + lostFrac * CONST.CMD_W_BEACON_PER_LOSS;
+        } else if (o.type === 'ration_site') {
+          kind = 'mend'; w = hurtN ? CONST.CMD_W_MEND + hurtN / Math.max(1, gAll.length) * 2 : objectiveWorth(o, corp) * 0.6;
+        } else { kind = 'take'; w = objectiveWorth(o, corp); }
+        if (!w) continue;
+        const t = threatAt(o.x, o.y, CONST.CMD_THREAT_R);
+        if (t) {
+          if (force < t * need) continue;
+          w *= 1 + (seek - 0.4) * CONST.CMD_CONTEST_TASTE;
+        }
+        cands.push({ kind: kind, obj: o, x: o.x, y: o.y, score: w / (1 + eta) });
+      }
+      if (fitSq.length >= 2) for (const e of fresh) {
+        if (!squadHead(e.sq).length) continue;
+        const d = MAP.dist(cx, cy, e.x, e.y), eta = d / Math.max(1e-6, speed);
+        if (eta > CONST.CMD_HORIZON) continue;
+        /* only squads that can get there: a strike party is made of the group, each of it within reach */
+        const party = fitSq.filter(q => MAP.dist(q.x, q.y, e.x, e.y) / Math.max(1e-6, speed) <= CONST.CMD_HORIZON)
+          .sort((a, b) => MAP.dist(a.x, a.y, e.x, e.y) - MAP.dist(b.x, b.y, e.x, e.y)).slice(0, 3);
+        if (party.length < 2) continue;
+        const ph = party.reduce((t, q) => t + heads(q), 0);
+        const onObj = planet.objectives.some(o => MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0 && MAP.dist(o.x, o.y, e.x, e.y) <= MAP.CONST.CLAIM_RADIUS * 2);
+        const extra = threatAt(e.x, e.y, CONST.CMD_THREAT_R) - (e.n || 1);
+        if (ph < ((e.n || 1) + Math.max(0, extra)) * (need + (onObj ? 0 : CONST.STRIKE_OPEN_EXTRA))) continue;
+        const w = seek * (onObj ? CONST.CMD_W_STRIKE_OBJ : CONST.CMD_W_STRIKE);
+        cands.push({ kind: 'strike', target: e.sq, e: e, party: party, x: e.x, y: e.y, score: w / (1 + eta) });
+      }
+      /* link up with another group of its own OA, if one is within reach: the careful value it more */
+      for (const h of others(g)) {
+        const hf = h.reduce((t, q) => t + heads(q), 0);
+        const hx = h.reduce((t, q) => t + q.x * heads(q), 0) / Math.max(1, hf), hy = h.reduce((t, q) => t + q.y * heads(q), 0) / Math.max(1, hf);
+        const d = MAP.dist(cx, cy, hx, hy), eta = d / Math.max(1e-6, speed);
+        if (eta > CONST.CMD_JOIN_HORIZON) continue;
+        const w = CONST.CMD_W_JOIN * (1 - seek * 0.6) * (hf >= force ? 1 : 0.6);   /* the smaller goes to the larger */
+        cands.push({ kind: 'join', to: h, x: hx, y: hy, score: w / (1 + eta * 0.25) });
+      }
+      /* advance: toward the best ground beyond its reach today (or where the ring is going), one day's march at a time —
+         the bold go looking, the careful less */
+      {
+        let tx = null, ty = null, bv = 0;
+        for (const o of planet.objectives) {
+          if (!MAP.siteLive(o, day)) continue;
+          const w = o.type === 'sponsor_cache' ? (reserve ? CONST.CMD_W_BEACON : 0) : objectiveWorth(o, corp);
+          if (!w) continue;
+          const eta = MAP.dist(cx, cy, o.x, o.y) / Math.max(1e-6, speed);
+          if (eta <= CONST.CMD_HORIZON || eta > CONST.CMD_ADVANCE_HORIZON) continue;
+          if (!MAP.inZone(planet, day + Math.ceil(eta) + 1, o.x, o.y)) continue;
+          const v = w / (1 + eta);
+          if (v > bv) { bv = v; tx = o.x; ty = o.y; }
+        }
+        if (tx == null) { const zf = MAP.zoneOn(planet, day + 3); tx = zf.cx; ty = zf.cy; }
+        const d = MAP.dist(cx, cy, tx, ty);
+        if (d > CONST.DAY_MARCH * 0.5) {
+          /* the aim is the ground itself (a steady heading, not a waypoint re-laid every day); the window re-weighs it */
+          const p = MAP.clampInside(planet, day + 2, tx, ty);
+          cands.push({ kind: 'advance', x: p.x, y: p.y, score: CONST.CMD_W_ADVANCE * (0.35 + seek) + bv * 0.5 });
+        }
+      }
+      /* hold ground: stay put, a little toward where the ring will be and away from what it has seen */
+      {
+        const zf = MAP.zoneOn(planet, day + 3);
+        const dz = MAP.dist(cx, cy, zf.cx, zf.cy), step = Math.min(dz, CONST.DAY_MARCH * 0.5);
+        let gx = cx + (zf.cx - cx) / Math.max(1e-6, dz) * step, gy = cy + (zf.cy - cy) / Math.max(1e-6, dz) * step;
+        for (const e of fresh) {
+          const d = MAP.dist(gx, gy, e.x, e.y);
+          if (d < CONST.CMD_THREAT_R * 1.5 && d > 1e-6) { gx += (gx - e.x) / d * CONST.DAY_MARCH * 0.5; gy += (gy - e.y) / d * CONST.DAY_MARCH * 0.5; }
+        }
+        const p = MAP.clampInside(planet, day + 2, gx, gy);
+        cands.push({ kind: 'hold', x: p.x, y: p.y, score: CONST.CMD_W_HOLD * (1 - seek) + lostFrac * 0.3 });
+      }
+      /* §COMMAND ON THE LAST GROUND NOTHING IS BENEATH FIGHTING (N18): there is no ground left to take or hold, and a
+         group that kept its distance on the last circle could outlast the contest's rail with nobody winning. It closes
+         on the nearest enemy it knows of — or the circle's centre — whatever its stance. */
+      if (day >= MAP.CONST.LAST_GROUND_DAY) {
+        let ex = null, ed = 9;
+        for (const e of fresh) { const d = MAP.dist(cx, cy, e.x, e.y); if (d < ed && squadHead(e.sq).length) { ed = d; ex = e; } }
+        const zc = MAP.zoneOn(planet, day + 1);
+        cands.push({ kind: 'close', x: ex ? ex.x : zc.cx, y: ex ? ex.y : zc.cy, score: 99 });
+      }
+      cands.sort((a, b) => b.score - a.score);
+      let pick = cands[0];
+      const close = cands.filter(c => c.score >= pick.score * 0.97);
+      if (close.length > 1) pick = close[Math.floor(rng() * close.length)];
+      if (wantList) return { pick: pick, cands: cands };
+      return Object.assign({ day: day, lostAt: lostFrac }, pick, { plannedStrike: false });
+    }
+
+    function orders(g, op) {
+      const rest = [];
+      for (const q of g) {
+        const it = q.intent;
+        if (it && it.ordered) continue;
+        if (it && it.type === 'withdraw' && !it.arrived) continue;         /* running from a lost fight: the reflex finishes */
+        const hurt = heads(q) < Math.ceil((q._startN || heads(q)) * CONST.STRIKE_FIT);
+        if (hurt && op.kind !== 'reinforce' && op.kind !== 'mend') {
+          const bea = (corp.reserve && corp.reserve.length) ? beaconFor(q, planet, day, CONST.DAY_MARCH * CONST.CMD_HORIZON) : null;
+          if (bea) { q.intent = { type: 'hold', obj: bea, tx: bea.x, ty: bea.y, expires: day + 1, role: 'reinforce' }; q._role = 'reinforce'; continue; }
+          const shel = shelterFor(q, planet, day, CONST.DAY_MARCH * CONST.CMD_HORIZON);
+          if (shel) { q.intent = { type: 'claim', obj: shel, tx: shel.x, ty: shel.y, expires: day + 1, role: 'mend' }; q._role = 'mend'; continue; }
+        }
+        rest.push(q);
+      }
+      if (!rest.length) return;
+      if (op.kind === 'strike') {
+        const party = op.party.filter(q => rest.indexOf(q) >= 0 && heads(q));
+        if (!op.plannedStrike && party.length) { launchStrike(party, op); op.plannedStrike = true; }
+        for (const q of rest) {
+          if (q.intent && q.intent.type === 'strike' && q.intent.plan) { q._role = q.intent.role; continue; }
+          const t = op.target;
+          const p = MAP.clampInside(planet, day + 1, t && heads(t) ? t.x : op.x, t && heads(t) ? t.y : op.y);
+          q.intent = { type: 'patrol', tx: p.x, ty: p.y, expires: day + 1, role: 'support' }; q._role = 'support';
+        }
+        return;
+      }
+      let jx = op.x, jy = op.y;
+      if (op.kind === 'join') {
+        const h = op.to.filter(q => heads(q)); const hf = h.reduce((t, q) => t + heads(q), 0);
+        if (hf) { jx = h.reduce((t, q) => t + q.x * heads(q), 0) / hf; jy = h.reduce((t, q) => t + q.y * heads(q), 0) / hf; }
+        op.x = jx; op.y = jy;
+      }
+      for (const q of rest) {
+        const o = op.obj;
+        if (op.kind === 'reinforce') q.intent = { type: 'hold', obj: o, tx: o.x, ty: o.y, expires: day + 1, role: 'reinforce' };
+        else if (op.kind === 'take' || op.kind === 'mend') q.intent = { type: 'claim', obj: o, tx: o.x, ty: o.y, expires: day + 1, role: op.kind, contest: op.kind === 'take' };
+        else q.intent = { type: 'patrol', tx: jx, ty: jy, expires: day + 1, role: op.kind };
+        q._role = q.intent.role;
+      }
+    }
+
+    function launchStrike(party, op) {
+      const best = op.e, coord = coordination(corp);
+      const fixer = party[0];
+      const baseBearing = Math.atan2(fixer.y - best.y, fixer.x - best.x);
+      const spread = CONST.FLANK_ARC * (0.45 + 0.75 * coord);
+      const travel = [], marks = [];
+      for (let i = 0; i < party.length; i++) {
+        const sq = party[i];
+        const off = i === 0 ? 0 : (i === 1 ? spread : -spread);
+        const a = baseBearing + off + (rng() - 0.5) * (1 - coord) * 1.1;
+        const stage = CONST.STAGE_RADIUS * (0.85 + rng() * 0.3);
+        const sx = best.x + Math.cos(a) * stage, sy = best.y + Math.sin(a) * stage;
+        const budget = CONST.DAY_MARCH * dials.ground * sizeMarchMult(sq) * carryMult(sq) * paceMult(sq);
+        travel.push(Math.ceil(MAP.dist(sq.x, sq.y, sx, sy) / Math.max(1e-6, budget)));
+        marks.push({ sx, sy, a, stage });
+      }
+      const slowest = Math.max.apply(null, travel), sync = rng() < coord;
+      let pObj = null, pd = MAP.CONST.CLAIM_RADIUS * 2;
+      for (const o of planet.objectives) if (MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0) {
+        const dd = MAP.dist(o.x, o.y, best.x, best.y); if (dd <= pd) { pd = dd; pObj = o; } }
+      const plan = { key: best.corpId + ':' + best.sq.sIdx, party: party, sync: sync, go: false, obj: pObj,
+                     deadline: day + slowest + CONST.STRIKE_WAIT_DAYS };
+      party.forEach((sq, i) => {
+        sq.intent = { type: 'strike', role: i === 0 ? 'fix' : 'flank', targetSquad: best.sq, targetCorp: best.corpId,
+          tx: best.x, ty: best.y, sx: marks[i].sx, sy: marks[i].sy, a: marks[i].a, stage: marks[i].stage, plan: plan,
+          strikeDay: Math.max(day, day + (sync ? slowest : travel[i])), expires: day + slowest + CONST.STRIKE_WAIT_DAYS + 1 };
+      });
+      stats.audit.strikes = (stats.audit.strikes || 0) + 1;
+      if (party.length > 1) stats.audit.pincers = (stats.audit.pincers || 0) + 1;
+    }
+  }
+
   function planCorp(rng, corp, planet, day, flares, stats, noises) {
     const zNow = MAP.zoneOn(planet, day);
     const mine = corp.squads.filter(sq => squadHead(sq).length >= 1);
@@ -2011,7 +2611,7 @@
         const e = pic[it.target];
         if (!e || day - e.day > CONST.KNOWN_STALE || !squadHead(e.sq).length) { sq.intent = null; continue; }
         const dx = sq.x - e.x, dy = sq.y - e.y, m = Math.max(1e-6, Math.hypot(dx, dy));
-        const p = MAP.clampInside(planet, day, e.x + (dx / m) * CONST.SHADOW_DIST, e.y + (dy / m) * CONST.SHADOW_DIST);
+        const p = MAP.clampInside(planet, day + 1, e.x + (dx / m) * CONST.SHADOW_DIST, e.y + (dy / m) * CONST.SHADOW_DIST);
         it.tx = p.x; it.ty = p.y; it.arrived = false;
       } else if (it.type === 'screen') {
         const mate = it.mate;
@@ -2019,8 +2619,17 @@
         const e = it.target ? pic[it.target] : null;
         let px = mate.x, py = mate.y;
         if (e && day - e.day <= CONST.KNOWN_STALE) { const dx = e.x - mate.x, dy = e.y - mate.y, m = Math.max(1e-6, Math.hypot(dx, dy)); px = mate.x + (dx / m) * CONST.STAGE_RADIUS; py = mate.y + (dy / m) * CONST.STAGE_RADIUS; }
-        const p = MAP.clampInside(planet, day, px, py);
+        const p = MAP.clampInside(planet, day + 1, px, py);
         it.tx = p.x; it.ty = p.y; it.arrived = false;
+      } else if (it.type === 'strike' && it.plan) {
+        /* §FLANK A PINCER FOLLOWS ITS QUARRY. The plan was built on where the quarry stood, and died the moment it
+           walked more than a staging radius — measured, 192 strikes planned in sixteen contests and 14 squads ever
+           marched round a flank. The marks are re-laid each dawn around where the quarry was last seen, at the
+           bearing each squad was given; the plan is dropped only when the quarry is out of the picture. */
+        const e = pic[it.plan.key];
+        if (!e || day - e.day > CONST.KNOWN_STALE || !squadHead(e.sq).length) { sq.intent = null; continue; }
+        const p = MAP.clampInside(planet, day + 1, e.x + Math.cos(it.a) * it.stage, e.y + Math.sin(it.a) * it.stage);
+        it.sx = p.x; it.sy = p.y; it.tx = e.x; it.ty = e.y;
       } else if (it.type === 'meet' && it.arrived && it.then) {
         /* the rendezvous is made: the strike it carried takes over, if the quarry is still known */
         const e = pic[it.then];
@@ -2029,6 +2638,50 @@
       }
     }
     for (const sq of mine) if (!intentValid(sq, planet, day)) sq.intent = null;
+    if (CONST.COMMAND === 'oa') return commandCorp(rng, corp, planet, day, stats, foreign, mine);
+
+    /* ---- §RESERVE A LIT BEACON IS A CALL TO ARMS ----
+       The beacon was heard like shooting, and shooting only moves a squad with nothing to do —
+       measured, of the rival squads in range of a lit beacon on a given day, nine in ten were
+       already busy (mostly pulling back after a fight, or walking to a site), so the OA
+       reinforcing in plain sight was left alone and the patient OAs landed their reserves for
+       free. Reinforcing is meant to be the loud, risky thing. So a lit beacon reaches squads
+       that have a plan, not only idle ones: a squad still fit to fight, not under a manager's
+       order and not on a beacon of its own, may drop what it is doing and go — how readily is
+       its seek, raised by the call. An OA sends at most BEACON_CALL_SQUADS to
+       one beacon; the rest carry on. A truce partner does not answer (a truce is never broken).
+       Measured over twenty contests, the cautious OAs that reinforce the most now lose more
+       fighters on beacons than they land there (Mercy 16 landed, 58 lost; Violets 33, 46);
+       before, they landed about as many as they lost, and were fought there a third as often. */
+    if (noises && noises.length) {
+      const sent = {};
+      const byId = {}; for (const c of (stats._corps || [])) byId[c.id] = c;
+      for (const sq of mine) {
+        const it = sq.intent;
+        if (it && it.ordered) continue;                                    /* a manager's order */
+        if (it && (it.type === 'hunt' || it.type === 'strike' || it.type === 'sound')) continue;   /* already going to a fight */
+        if (it && it.obj && it.obj.type === 'sponsor_cache') continue;     /* on its own beacon run */
+        if (sq._beaconLit != null && sq._beaconLit >= day - 1) continue;   /* holding one itself */
+        const head = squadHead(sq).length;
+        if (head < Math.max(2, Math.ceil((sq._startN || head) * CONST.BEACON_CALL_FIT))) continue;   /* too hurt to go */
+        let call = null, cd = Infinity;
+        for (const nz of noises) {
+          if (!nz.beacon || nz.day < day - 1 || nz.corps.indexOf(corp.id) >= 0) continue;
+          const holder = byId[nz.corps[0]];
+          if (holder && (allied(corp, holder) || pactHolds(corp, holder, day))) continue;   /* a truce is never broken */
+          const d = MAP.dist(sq.x, sq.y, nz.x, nz.y);
+          if (d > nz.r || d >= cd) continue;
+          if ((sent[nz.x + ':' + nz.y] || 0) >= CONST.BEACON_CALL_SQUADS) continue;
+          call = nz; cd = d;
+        }
+        if (!call) continue;
+        const sd = squadDials(sq);
+        if (rng() >= Math.min(0.95, sd.seek * CONST.BEACON_CALL)) continue;
+        const k = call.x + ':' + call.y; sent[k] = (sent[k] || 0) + 1;
+        sq.intent = { type: 'hunt', tx: call.x, ty: call.y, expires: day + CONST.PLAN_LIFE, beacon: true };
+        stats.audit.beaconCalled = (stats.audit.beaconCalled || 0) + 1;
+      }
+    }
     /* a manager's order stands until it is done or runs out; the noises and the strikes below
        do not overwrite it */
     const free = mine.filter(sq => !sq.intent);
@@ -2055,6 +2708,7 @@
           heard = nz; hd = d;
         }
         if (!heard) continue;
+        if (heard.beacon) stats.audit.beaconHeard = (stats.audit.beaconHeard || 0) + 1;
         /* seek is the taste for finding a fight; it runs 0.15 for a preservationist to 0.80
            for death-or-glory, so this is the dial deciding it and not a new one. */
         const sd = squadDials(sq);
@@ -2070,6 +2724,7 @@
           expires: day + CONST.PLAN_LIFE
         };
         stats.audit.soundMoves = (stats.audit.soundMoves || 0) + (go ? 1 : 0);
+        if (heard.beacon) { stats.audit.beaconGo = (stats.audit.beaconGo || 0) + (go ? 1 : 0); stats.audit.beaconAvoid = (stats.audit.beaconAvoid || 0) + (go ? 0 : 1); }
         stats.audit.soundAvoided = (stats.audit.soundAvoided || 0) + (go ? 0 : 1);
       }
     }
@@ -2088,15 +2743,16 @@
       const pic = pictureOf(corp, day).filter(e => day - e.day <= 1);
       for (const sq of mine) {
         if (sq.intent && sq.intent.type === 'avoid') continue;
+        if (sq.intent && sq.intent.beacon) continue;                  /* it answered a beacon: seeing the holder is the point */
         const sd = squadDials(sq);
-        if (sd.seek >= 0.45) continue;                        /* it wants the fight, or does not mind */
         let near = null, nd = 9;
         for (const e of pic) {
           const d = MAP.dist(sq.x, sq.y, e.x, e.y);
           if (d < nd) { nd = d; near = e; }
         }
         if (!near || nd > CONST.SEE_RANGE) continue;
-        if (rng() >= (1 - sd.seek)) continue;
+          if (sd.seek >= 0.45) continue;                        /* it wants the fight, or does not mind */
+          if (rng() >= (1 - sd.seek)) continue;
         const a = Math.atan2(sq.y - near.y, sq.x - near.x);
         const step = CONST.SEE_RANGE * 1.2;
         sq.intent = { type: 'avoid', tx: sq.x + Math.cos(a) * step, ty: sq.y + Math.sin(a) * step,
@@ -2106,17 +2762,33 @@
     }
 
     /* ---- 1. a coordinated strike, if there is a target worth it ---- */
-    if (free.length >= 2 && foreign.length && rng() < dials.seek * (0.45 + coord)) {
+    /* §TACTICS WHO IS FIT FOR A STRIKE. The planner took any free squad — including one just bled in a fight, whose plan
+       had been set aside precisely so it could choose to go and be made whole (or to mend) — and sent it straight back
+       out on the next strike, so a bold OA's hurt squads almost never reached a beacon. A squad down to less than
+       `STRIKE_FIT` of the strength it landed with is left to choose its own approach. */
+    const fit = free.filter(q => squadHead(q).length >= Math.ceil((q._startN || squadHead(q).length) * CONST.STRIKE_FIT));
+    if (fit.length >= 2 && foreign.length && rng() < dials.seek * (0.45 + coord)) {
       let best = null, bs = 0;
+      /* §FLANK A PARTY THAT CAN WIN IT. The target was chosen on prestige and distance alone, so three small squads
+         set off after one bigger than all of them together. A pincer is worth going at even numbers (coming from two
+         sides wins those); a careful OA wants more than that, a bold one takes a little less. */
+      const partyHead = fit.slice().sort((a, b) => squadHead(b).length - squadHead(a).length).slice(0, 3)
+        .reduce((t, q) => t + squadHead(q).length, 0);
+      const needOdds = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * dials.seek;
       for (const f of foreign) {
-        const d = Math.min.apply(null, free.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
+        const d = Math.min.apply(null, fit.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
         if (d > CONST.PLAN_RANGE) continue;
-        const sc = f.prestige / (0.05 + d);
+        /* §BOLD a strike is for ground: a party goes after an OA standing on something worth taking; a squad merely
+           walking somewhere is worth the trouble only at a clearly better edge */
+        const onObj = planet.objectives.some(o => MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0
+          && MAP.dist(o.x, o.y, f.x, f.y) <= MAP.CONST.CLAIM_RADIUS * 2);
+        if (CONST.STRIKE_ODDS_BASE && partyHead < (f.n || 1) * (needOdds + (onObj ? 0 : CONST.STRIKE_OPEN_EXTRA))) continue;
+        const sc = f.prestige / (0.05 + d) * (onObj ? CONST.STRIKE_OBJECTIVE_WEIGHT : 1);
         if (sc > bs) { bs = sc; best = f; }
       }
       if (best) {
         /* the closest free squad fixes them; the others come round the sides */
-        const sorted = free.slice().sort((a, b) =>
+        const sorted = fit.slice().sort((a, b) =>
           MAP.dist(a.x, a.y, best.x, best.y) - MAP.dist(b.x, b.y, best.x, best.y));
         const party = sorted.slice(0, Math.min(3, sorted.length));
         const fixer = party[0];
@@ -2143,6 +2815,12 @@
            order that half the corp cannot meet, and they arrive piecemeal. */
         const slowest = Math.max.apply(null, travel);
         const sync = rng() < coord;
+        /* §BOLD the ground the quarry is standing on, which is what the party is going for */
+        let pObj = null, pd = MAP.CONST.CLAIM_RADIUS * 2;
+        for (const o of planet.objectives) if (MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0) {
+          const dd = MAP.dist(o.x, o.y, best.x, best.y); if (dd <= pd) { pd = dd; pObj = o; } }
+        const plan = { key: best.corpId + ':' + best.sq.sIdx, party: party, sync: sync, go: false, obj: pObj,
+                       deadline: day + slowest + CONST.STRIKE_WAIT_DAYS };
         for (let i = 0; i < party.length; i++) {
           const sq = party[i];
           const strike = day + (sync ? slowest : travel[i]) + (sync ? 0 : Math.round((rng() - 0.5) * 2));
@@ -2150,15 +2828,18 @@
             type: 'strike', role: i === 0 ? 'fix' : 'flank',
             targetSquad: best.sq, targetCorp: best.corpId,
             tx: best.x, ty: best.y, sx: sq._plan.sx, sy: sq._plan.sy,
+            a: sq._plan.a, stage: MAP.dist(best.x, best.y, sq._plan.sx, sq._plan.sy), plan: plan,
             strikeDay: Math.max(day, strike),
-            expires: day + CONST.PLAN_LIFE
+            /* §BOLD a pincer is a move, not a way of life: it lasts until a day past the party's deadline */
+            expires: day + slowest + CONST.STRIKE_WAIT_DAYS + 1
           };
           sq._plan = null;
         }
         stats.audit.strikes = (stats.audit.strikes || 0) + 1;
         if (party.length > 1) stats.audit.pincers = (stats.audit.pincers || 0) + 1;
         if (sync && party.length > 1) stats.audit.synced = (stats.audit.synced || 0) + 1;
-        return;
+        /* §TACTICS and the squads not in it still get a day's work: this returned here, so every squad left out of a
+           strike stood idle until tomorrow's planning */
       }
     }
 
@@ -2169,17 +2850,24 @@
        REACTION, handled in the fight resolution, and it must never overwrite the approach.
        That conflation is what pinned squads to the wall for the last week of a Divide. */
     for (const sq of free) {
-      if (sq.approach && day < sq.approachUntil && approachValid(sq, planet, day)) continue;
+      if (sq.intent) continue;                                   /* taken into a strike above */
+      /* §TACTICS A PLAN STILL IN HAND GETS ITS NEXT STEP. A squad whose approach still stood but whose last step was
+         done (it reached the spot, or the step ran out) was skipped here and stood where it was until the approach
+         lapsed — a hunter that found the ground empty waited days on it. It takes the approach's next step instead. */
+      if (sq.approach && day < sq.approachUntil && approachValid(sq, planet, day)) {
+        sq.intent = approachIntent(rng, sq, corp, planet, day, asRead(sq, foreign, captainMind(sq)));
+        continue;
+      }
       chooseApproach(rng, sq, corp, planet, day, foreign, stats);
     }
   }
 
   const APPROACH_LEAN = {
-    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:1.45, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
-    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:1.20, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
-    standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
-    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:0.75, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
-    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:0.45, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
+    preservationist: { contesting:0.35, reinforcing:1.00, hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:0.80, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
+    measured:        { contesting:0.70, reinforcing:1.10, hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:0.90, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
+    standard:        { contesting:1.00, reinforcing:1.20, hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
+    unyielding:      { contesting:1.60, reinforcing:1.35, hunting:1.00, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:1.25, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.10, shadowing:0.70, screening:0.85, days:3 },
+    death_or_glory:  { contesting:1.90, reinforcing:1.45, hunting:1.25, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:1.40, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.30, shadowing:0.40, screening:0.60, days:2 }
   };
   /* `prospecting` is new at Step 7 and it exists because the board's ask had no verb behind
      it. A corp was told at season open to bring back a named resource, and mining was a side
@@ -2191,7 +2879,7 @@
      rather his people found; everything below is the squads' own. The list is long on purpose —
      it is invisible to a manager, so it costs nothing to be various, and a contest where every
      squad is doing one of four things reads as four squads. */
-  const APPROACHES = ['resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
+  const APPROACHES = ['reinforcing', 'contesting', 'resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
                       'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening',
                       'entrenching', 'baiting', 'sweeping', 'pressing'];
 
@@ -2203,10 +2891,44 @@
   }
 
   function approachValid(sq, planet, day) {
-    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day));
+    if (sq.approach === 'resupplying') return planet.objectives.some(o => MAP.siteLive(o, day) && o.type !== 'sponsor_cache');
+    /* §RESERVE reinforcing is over when the reserve is empty or no beacon stands */
+    if (sq.approach === 'reinforcing') return !!(sq.corp && sq.corp.reserve && sq.corp.reserve.length)
+      && planet.objectives.some(o => o.type === 'sponsor_cache' && MAP.siteLive(o, day));
+    if (sq.approach === 'contesting') return planet.objectives.some(o => MAP.siteLive(o, day) && objectiveWorth(o, sq.corp) > 0);
     /* nothing left to dig means nothing to prospect for */
     if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'resource_site' && MAP.siteLive(o, day));
     return true;
+  }
+
+  /* §BOLD WHAT IS WORTH TAKING. Boldness is fighting for the ground that pays — a deposit (cash at the close), a
+     beacon (the OA's reinforcements, while it has anyone in orbit), a strongpoint, a crate — and taking it off whoever
+     is working it when the odds allow, not walking about looking for people to kill. The best live objective in reach,
+     inside tomorrow's line, by what it is worth to this OA; one an enemy is on counts for more to a bold squad and is
+     skipped if that enemy is more than it can take. */
+  function objectiveWorth(o, corp) {
+    if (o.type === 'resource_site') return 1.0;
+    if (o.type === 'sponsor_cache') return corp.reserve && corp.reserve.length ? (o.litBy && o.litBy !== corp.id ? 1.3 : 1.1) : 0;
+    if (o.type === 'strongpoint') return o.heldBy === corp.id ? 0 : 0.8;
+    if (o.type === 'munitions_drop' || o.type === 'ration_site') return 0.55;
+    return 0;
+  }
+  function objectiveToTake(sq, corp, planet, day, foreign) {
+    const head = squadHead(sq).length, sd = squadDials(sq);
+    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * sd.seek;
+    let best = null, bv = 0;
+    for (const o of planet.objectives) {
+      if (!MAP.siteLive(o, day) || !MAP.inZone(planet, day + 1, o.x, o.y)) continue;
+      const w = objectiveWorth(o, corp); if (!w) continue;
+      const d = MAP.dist(sq.x, sq.y, o.x, o.y);
+      if (d > CONST.DAY_MARCH * CONST.CONTEST_REACH_MARCHES) continue;
+      const on = foreign.filter(e => MAP.dist(e.x, e.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS * 2);
+      const there = on.reduce((t, e) => t + (e.n || 1), 0);
+      if (there && head < there * need) continue;                        /* more than it can take */
+      const v = w * (there ? 1 + sd.seek : 1) / (1 + d / CONST.DAY_MARCH);
+      if (v > bv) { bv = v; best = o; }
+    }
+    return best ? { o: best, v: bv } : null;
   }
 
   function approachNeed(sq, ap, corp, planet, day, foreign) {
@@ -2233,7 +2955,7 @@
                     : 1;
     let site = null, sd = 9;
     for (const o of planet.objectives) {
-      if (!MAP.siteLive(o, day) || o.type === 'relay_mast') continue;
+      if (!MAP.siteLive(o, day) || o.type === 'relay_mast' || o.type === 'sponsor_cache') continue;
       if (o.type === 'strongpoint' && o.heldBy === sq.corpId) continue;
       const dd = MAP.dist(sq.x, sq.y, o.x, o.y) * pull(o);
       if (dd < sd) { sd = dd; site = o; }
@@ -2245,6 +2967,22 @@
     const mateD = mates.length ? Math.min.apply(null, mates.map(s => MAP.dist(sq.x, sq.y, s.x, s.y))) : 9;
 
     switch (ap) {
+      /* §RESERVE A SQUAD WITH LOSSES TO REPLACE, and fighters waiting in orbit to replace them, goes to a beacon — the
+         more it has lost the more it wants to — and a nearer beacon pulls harder. A squad at full strength never does. */
+      case 'contesting': {
+        const t = objectiveToTake(sq, corp, planet, day, foreign);
+        return t ? Math.min(1.2, CONST.CONTEST_NEED + t.v * 0.5) * (1 - hurt * 0.6) : 0;
+      }
+      case 'reinforcing': {
+        const left = corp.reserve ? corp.reserve.length : 0;
+        const lost = Math.max(0, (sq._startN || head) - head) / Math.max(1, sq._startN || head);
+        if (!left || lost <= 0) return 0;
+        let bd = 9;
+        for (const o of planet.objectives)
+          if (o.type === 'sponsor_cache' && MAP.siteLive(o, day) && MAP.inZone(planet, day, o.x, o.y)) bd = Math.min(bd, MAP.dist(sq.x, sq.y, o.x, o.y));
+        if (bd > z.r * 1.3) return 0;
+        return Math.min(1, CONST.REINFORCE_NEED + lost * CONST.REINFORCE_PER_LOSS);
+      }
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
@@ -2260,10 +2998,16 @@
            reason to walk to a sponsor's crate and a well-armed one does not. */
         return (sq.rations < head * 4 ? 0.55 : 0) + (poorlyArmed(sq) ? 0.20 : 0) +
                (site && sd < z.r * 1.3 ? 0.40 : 0);
-      case 'hunting':
-        if (!near) return 0.10;
-        return 0.25 + (near.strength && near.strength < head ? 0.45 : 0) + (1 - hurt) * 0.35 +
-               (nearD < z.r ? 0.20 : 0);
+      case 'hunting': {
+        /* §FLANK only quarry it can take counts (approachIntent's `prey`): with none, hunting is a walk */
+        const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * squadDials(sq).seek;
+        const takeable = foreign.filter(f => head >= (f.n || 1) * need);
+        if (!takeable.length) return 0.10;
+        let tn = takeable[0], td = 9;
+        for (const f of takeable) { const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId); if (dd < td) { td = dd; tn = f; } }
+        return 0.25 + (tn.strength && tn.strength < head ? 0.45 : 0) + (1 - hurt) * 0.35 +
+               (td < z.r ? 0.20 : 0);
+      }
       case 'scouting':
         return 0.05 + blind * 0.40 + (mastUp ? blind * 0.45 : 0);
       case 'hiding':
@@ -2331,15 +3075,25 @@
            month of not fighting, and only a board's ask makes it worth doing. */
         const g = corp.rep && corp.rep.goal;
         const ask = g ? g.demands.filter(d => d.kind === 'resource')[0] : null;
-        if (!ask) return 0;
-        if (((corp._banked || {})[ask.resource] || 0) > 0) return 0.05;   /* already have it */
+        /* §SITES (ruled: sites worth more) A DEPOSIT PAYS WHETHER OR NOT THE BOARD ASKED. Every dug site is cash at the
+           close (`SITE_CASH`), so a squad with a live deposit in reach wants it for that alone; the board's ask, until
+           it is met, wants it more. (Measured before: an OA dug under half a site a season, because nothing but the ask
+           — and only until one was banked — ever sent a squad to dig.) */
+        const cashPull = () => {
+          let dd = 9;
+          for (const o of planet.objectives) if (o.type === 'resource_site' && MAP.siteLive(o, day) && MAP.inZone(planet, day + 1, o.x, o.y))
+            dd = Math.min(dd, MAP.dist(sq.x, sq.y, o.x, o.y));
+          return dd < CONST.DAY_MARCH * CONST.PROSPECT_REACH_MARCHES ? CONST.PROSPECT_CASH * (1 - hurt * 0.6) : 0;
+        };
+        if (!ask) return cashPull();
+        if (((corp._banked || {})[ask.resource] || 0) > 0) return cashPull();   /* the ask is met: the cash still pays */
         let d2 = 9, found = false;
         for (const o of planet.objectives) {
           if (o.type !== 'resource_site' || !MAP.siteLive(o, day) || o.resource !== ask.resource) continue;
           found = true;
           d2 = Math.min(d2, MAP.dist(sq.x, sq.y, o.x, o.y));
         }
-        if (!found) return 0;
+        if (!found) return cashPull();
         const priority = g.demands[g.priority] === ask;
         return (priority ? CONST.PROSPECT_PRIORITY : CONST.PROSPECT_BASE)
              * (1 - hurt * 0.6)                       /* a mauled squad has other problems */
@@ -2392,7 +3146,8 @@
     const out = [];
     for (const f of foreign) {
       const d = MAP.dist(sq.x, sq.y, f.x, f.y);
-      if (d > mind.sight) continue;
+      /* §RESERVE a lit beacon is broadcast, not glimpsed: its holder can be chosen from as far as the beacon is heard */
+      if (d > mind.sight && !(f.via === 'beacon' && d <= CONST.BEACON_SIGNAL_RANGE)) continue;
       const fear = 1 + (0.5 - mind.nerve) * CONST.NERVE_SWING * 2;
       out.push(Object.assign({}, f, { n: Math.max(1, Math.round((f.n || 1) * fear)) }));
     }
@@ -2454,12 +3209,42 @@
       }
       return b;
     };
+    /* §FLANK A HUNTER PICKS QUARRY IT CAN TAKE. A lone squad hunted the nearest sighting whatever its size, and a
+       meeting is nearly always a fight to the finish decided on numbers — so a bold OA's squads walked into bigger ones
+       and were spent. Alone, it wants the edge its boldness asks for; outnumbered, the quarry is its OA's to take
+       together (the strike planner), not this squad's alone. */
+    const prey = (() => {
+      const head = squadHead(sq).length, need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * squadDials(sq).seek;
+      let b = null, bd = 9;
+      for (const f of foreign) {
+        if (head < (f.n || 1) * need) continue;
+        const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId);
+        if (dd < bd) { bd = dd; b = f; }
+      }
+      return b;
+    })();
     switch (sq.approach) {
-      case 'hunting':
-        if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
+      case 'contesting': {
+        const t = objectiveToTake(sq, corp, planet, day, foreign);
+        if (t) return { type: 'claim', obj: t.o, tx: t.o.x, ty: t.o.y, expires: day + CONST.PLAN_LIFE, contest: true };
         break;
+      }
+      case 'hunting':
+        if (prey) return { type: 'hunt', tx: prey.x, ty: prey.y, expires: day + CONST.PLAN_LIFE };
+        break;
+      case 'reinforcing': {
+        /* §RESERVE to the nearest beacon inside the ring, and hold it while there is anyone left to land */
+        let b = null, bd = 9;
+        for (const o of planet.objectives) {
+          if (o.type !== 'sponsor_cache' || !MAP.siteLive(o, day) || !MAP.inZone(planet, day, o.x, o.y)) continue;
+          const dd = MAP.dist(sq.x, sq.y, o.x, o.y);
+          if (dd < bd) { bd = dd; b = o; }
+        }
+        if (b) return { type: 'claim', obj: b, tx: b.x, ty: b.y, expires: day + CONST.PLAN_LIFE };
+        break;
+      }
       case 'resupplying': {
-        const o = site(o2 => o2.type !== 'relay_mast');
+        const o = site(o2 => o2.type !== 'relay_mast' && o2.type !== 'sponsor_cache');
         if (o) return { type: 'claim', obj: o, tx: o.x, ty: o.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
@@ -2481,7 +3266,7 @@
           const dx = sq.x - near.x, dy = sq.y - near.y;
           const m2 = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy));
           const run = Math.min(CONST.DAY_MARCH * 1.4, z.r * 0.40);
-          const p = MAP.clampInside(planet, day, sq.x + (dx / m2) * run, sq.y + (dy / m2) * run);
+          const p = MAP.clampInside(planet, day + 1, sq.x + (dx / m2) * run, sq.y + (dy / m2) * run);
           return { type: 'withdraw', tx: p.x, ty: p.y, expires: day + CONST.WITHDRAW_DAYS };
         }
         break;
@@ -2525,11 +3310,11 @@
         /* the nearest ground nobody has looked at, inside the wall */
         const dark = (planet.objectives || []).filter(o => !o.revealed)
           .sort((a, b) => MAP.dist(sq.x, sq.y, a.x, a.y) - MAP.dist(sq.x, sq.y, b.x, b.y))[0];
-        if (dark) { const p6 = MAP.clampInside(planet, day, dark.x, dark.y); return { type: 'patrol', tx: p6.x, ty: p6.y, expires: day + CONST.PLAN_LIFE }; }
+        if (dark) { const p6 = MAP.clampInside(planet, day + 1, dark.x, dark.y); return { type: 'patrol', tx: p6.x, ty: p6.y, expires: day + CONST.PLAN_LIFE }; }
         break;
       }
       case 'pressing': {
-        if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
+        if (prey) return { type: 'hunt', tx: prey.x, ty: prey.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
       case 'shadowing': {
@@ -2551,7 +3336,7 @@
         const mates = corp.squads.filter(s => squadHead(s).length);
         if (mates.length > 1) {
           let cx = 0, cy = 0; for (const s of mates) { cx += s.x; cy += s.y; } cx /= mates.length; cy /= mates.length;
-          const p = MAP.clampInside(planet, day, cx, cy);
+          const p = MAP.clampInside(planet, day + 1, cx, cy);
           /* MEET, THEN STRIKE: if what drove us together is something we can beat together,
              the rendezvous carries the strike with it */
           const together = mates.reduce((n, s) => n + squadHead(s).length, 0);
@@ -2574,6 +3359,8 @@
   }
 
   /* the two ways size reads on the ground — see the RULED comment on the constants */
+  /* §ROUTES the roles a company marches in (a squad's own rate, `rateOf`, lives in the day loop) */
+  const COMPANY_ROLES = { take: 1, reinforce: 1, mend: 1, join: 1, advance: 1, hold: 1, support: 1, close: 1 };
   function sizeMarchMult(sq) {
     return 1 + (CONST.SIZE_PIVOT - squadHead(sq).length) * CONST.SIZE_MARCH_PER_BODY;
   }
@@ -2609,6 +3396,11 @@
     /* closer is easier to notice: full weight at contact, tailing off to nothing at range */
     p *= 1.35 - 0.9 * Math.min(1, sep / CONST.ENGAGE_RANGE);
     if (night) p *= CONST.DETECT_NIGHT;
+    /* §RESERVE A LIT BEACON GIVES ITS HOLDER AWAY. Detection scales with how much each squad wants a fight, so two careful
+       squads could stand on the same beacon side by side and never notice each other — measured, in 106 of 239 blocked
+       landings the blocker was itself on the beacon, and no fight came of it. A squad transmitting its position is
+       found by anyone in reach, whatever its temperament: that is the risk a beacon is meant to carry. */
+    if (sqA._beaconLit === day || sqB._beaconLit === day) return Math.max(Math.min(0.95, p), CONST.BEACON_DETECT);
     /* `pre_battle_intel_bonus` — an augur reads the ground before anyone else does. */
     if (squadHasHook(sqA, 'pre_battle_intel_bonus') || squadHasHook(sqB, 'pre_battle_intel_bonus')) p *= 1.25;
     p *= compressionFactor(planet, day);
@@ -2677,103 +3469,6 @@
    * map, then it goes dark for a few days and anyone may use it next. Staying at one would
    * waste the freedom it just handed you.
    */
-  /**
-   * PROCUREMENT.md §13 — what is actually in a sponsor's crate.
-   *
-   * One primary or armour piece at the crate's tier, plus supplies, and on a late crate
-   * sometimes an exotic. The piece goes to whoever gains most by it and is only taken if it
-   * is genuinely an upgrade — a tier-2 crate holds nothing a fielded squad wants, which is
-   * what makes the ring's escalating waves matter: early crates are supplies, late crates
-   * are weapons, and `DIVIDE.md` §2.5's "a late crate is where the exotica live" becomes
-   * true rather than aspirational.
-   *
-   * It is equipped onto the BODY, not onto the per-engagement combatant, so it survives the
-   * fight, keeps its tags, damage type and resistances like any other catalog item, and is
-   * carried home into the armoury by `season.js` if its owner lives. That is the honest path
-   * to a railgun: you win it, you keep it, and then you spend seasons deciding whether it is
-   * worth seven bodies' allowance to bring back.
-   *
-   * `sponsor_drop_handling_bonus` (the Mon-Wa quartermaster) reads HERE at last, closing half
-   * of `[OPEN-E3]` — it was declared at Step 2 and read nowhere in the project.
-   */
-  function openCrate(rng, sq, obj, stats) {
-    const bodies = squadHead(sq);
-    if (!bodies.length) return false;
-    const tier = Math.max(1, Math.min(5, obj.tier || CONST.CLAIM_CACHE_TIER));
-    const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
-    if (knack && stats.audit) stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
-    let took = false;
-
-    /* ---- the piece ----
-       The ordinary shelf STOPS AT TIER 4: every tier-5 primary and armour piece in the catalog
-       is exotic (§11.1), by design. So an exact-tier filter left the best crates in the game
-       holding nothing 88% of the time — the one branch that most needed to fire, wired to a
-       condition almost never true, written while cutting a system for that exact fault and
-       caught by measuring rather than reading. The pool is therefore "the best ordinary grade
-       AT OR BELOW the crate's tier": a tier-5 crate holds a tier-4 piece unless it rolls the
-       exotic, and a tier-2 crate holds a tier-2 piece that a fielded squad will refuse. */
-    const wantExotic = tier >= 5 && rng() < CONST.CACHE_EXOTIC_P * (knack ? 2 : 1);
-    let pool = ITEMS.catalog.filter(i =>
-      (i.slot === 'primary' || i.slot === 'armor') && i.legality === 'legal' &&
-      (wantExotic ? !!i.exotic : (!i.exotic && i.tier <= tier)));
-    if (!wantExotic && pool.length) {
-      const top = Math.max.apply(null, pool.map(i => i.tier));
-      pool = pool.filter(i => i.tier === top);
-    }
-    if (pool.length) {
-      const pick = pool[Math.floor(rng() * pool.length)];
-      const slot = pick.slot === 'armor' ? 'armor' : 'primary';
-      /* to whoever gains most: the lowest tier currently in that slot */
-      let best = null, bestTier = 99;
-      for (const f of bodies) {
-        const cur = ITEMS.byId((f.loadout || {})[slot]);
-        const t = cur ? cur.tier : 0;
-        if (t < bestTier) { bestTier = t; best = f; }
-      }
-      if (best && pick.tier > bestTier) {
-        const lo = best.loadout || {};
-        ITEMS.equip(best, {
-          primary: slot === 'primary' ? pick.id : lo.primary,
-          armor:   slot === 'armor'   ? pick.id : lo.armor,
-          mods: lo.mods, sidearm: lo.sidearm, consumables: lo.consumables
-        });
-        took = true;
-        if (pick.exotic) stats.audit.cacheExotics = (stats.audit.cacheExotics || 0) + 1;
-        stats.audit.cachePieces = (stats.audit.cachePieces || 0) + 1;
-      }
-    }
-
-    /* ---- the supplies ----
-       THE ALEAS CAPS CONSUMABLE SLOTS (`CONSUMABLE_SLOTS 2`, PROCUREMENT.md §2.4), and the first
-       version of this appended to `consumables` without looking — so a squad that emptied two
-       crates walked around with three and four, over a quota the Aleas is broadcasting. Five
-       fighters in a four-season career. Found by the corp schema at Step 8.5b, which is the
-       first thing in the project ever to walk a live fighter against its own declared shape.
-       Supplies now go to somebody who has a free slot, and a full squad simply cannot take
-       them — which is a real cost of having looted already, not a validation error. */
-    const want = CONST.CACHE_CONSUMABLES + (knack ? 1 : 0);
-    const shelf = ITEMS.catalog.filter(i => i.slot === 'consumable' && i.legality === 'legal');
-    for (let k = 0; k < want && shelf.length; k++) {
-      const room = bodies.filter(f => ((f.loadout || {}).consumables || []).length
-                                      < ITEMS.CONST.CONSUMABLE_SLOTS);
-      if (!room.length) break;
-      const item = shelf[Math.floor(rng() * shelf.length)];
-      const f = room[Math.floor(rng() * room.length)];
-      const lo = f.loadout || {};
-      ITEMS.equip(f, { primary: lo.primary, armor: lo.armor, mods: lo.mods, sidearm: lo.sidearm,
-                       consumables: (lo.consumables || []).concat([item.id]) });
-      took = true;
-      stats.audit.cacheSupplies = (stats.audit.cacheSupplies || 0) + 1;
-    }
-
-    /* a medkit in the crate is a medkit in the squad — the tally is built at the muster and
-       has to be rebuilt when the squad's consumables change, or the crate is invisible to it */
-    for (const f of bodies) chargeUp(f, true);
-    sq.medkits = medkitCharges(bodies);
-    sq.hasMedkit = sq.medkits > 0;
-    sq.crates++;
-    return took;
-  }
 
   function awardObjective(rng, sq, obj, stats) {
     stats.audit.awarded[obj.type] = (stats.audit.awarded[obj.type] || 0) + 1;
@@ -2839,7 +3534,6 @@
     sq.corp.sitesClaimed++;
     stats.claims++;
     switch (obj.type) {
-      case 'sponsor_cache':  if (openCrate(rng, sq, obj, stats)) stats.audit.gearUpgraded++; break;
       case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
@@ -2954,6 +3648,16 @@
    * Pick the notch for the next couple of days. Called at every corp window, for every corp,
    * and it is free. Returns true if the notch actually moved.
    */
+  /* §STANCE each squad's notch around its OA's: the strongest a step bolder, the weakest a step more careful */
+  function seatSquadStances(corp) {
+    const base = NOTCHES.indexOf(corp.policy || 'standard');
+    const live = (corp.squads || []).filter(q => squadHead(q).length);
+    const ranked = live.slice().sort((a, b) => squadHead(b).length - squadHead(a).length);
+    ranked.forEach((q, i) => {
+      const step = i === 0 && ranked.length > 1 ? 1 : i === ranked.length - 1 && ranked.length > 1 ? -1 : 0;
+      q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
+    });
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -2974,11 +3678,22 @@
 
     /* Sample around the target rather than snapping to it, so a corp explores the ladder
        and no notch is ever off the table. */
-    const spread = CONST.STANCE_SPREAD;
-    const weights = NOTCHES.map((_, i) => Math.exp(-Math.pow(i - target, 2) / (2 * spread * spread)));
-    const tot = weights.reduce((a, b) => a + b, 0);
-    let roll = rng() * tot, pick = 0;
-    for (let i = 0; i < weights.length; i++) { if ((roll -= weights[i]) <= 0) { pick = i; break; } }
+    let pick = 0;
+    if (CONST.COMMAND === 'oa') {
+      /* §COMMAND A STANCE IS A DECISION, NOT A DRAW. It was sampled around its target with a spread near a whole notch,
+         so an OA lurched between death-or-glory and unyielding and back from one window to the next, and its squads'
+         whole bearing with it. It now moves toward the notch its culture and its situation point at, one step a
+         window, and only when that target is clearly away from where it stands. */
+      const cur = Math.max(0, NOTCHES.indexOf(corp.policy));
+      pick = Math.abs(target - cur) < CONST.STANCE_HYSTERESIS ? cur : cur + Math.sign(target - cur);
+      pick = Math.max(0, Math.min(NOTCHES.length - 1, pick));
+    } else {
+      const spread = CONST.STANCE_SPREAD;
+      const weights = NOTCHES.map((_, i) => Math.exp(-Math.pow(i - target, 2) / (2 * spread * spread)));
+      const tot = weights.reduce((a, b) => a + b, 0);
+      let roll = rng() * tot;
+      for (let i = 0; i < weights.length; i++) { if ((roll -= weights[i]) <= 0) { pick = i; break; } }
+    }
 
     const next = NOTCHES[pick];
     if (next === corp.policy) return false;
@@ -3000,6 +3715,10 @@
     if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
     /* No stress. Changing your mind about how to approach the next two days is not an injury. */
     for (const sq of corp.squads) sq.policy = next;
+    /* §STANCE THE NEW NOTCH REACHES THE SQUADS. An AI OA seats each squad's own notch at the drop, and a squad's own
+       notch is what its behaviour reads — so every window's reconsidering changed the OA's word and none of its squads:
+       they fought the whole contest on the notch they landed with. They are re-seated around the new one. */
+    seatSquadStances(corp);
     return true;
   }
 
@@ -3035,8 +3754,20 @@
    * That is the honest resolution at this granularity: the squad that took them down gets
    * the credit, not a name drawn out of a hat.
    */
-  function transferFame(victim, takers) {
-    const gain = REP.fameTransfer(victim.fame || 0, 1);
+  /* §SNOWBALL EVERYONE LOVES AN UNDERDOG: fame for a kill scales with how far UP it was aimed — against an OA that
+     finished above yours last year it pays more, against one below less — and one of last year's champion's own is
+     worth the most of all. The places are last year's (1 the champion); a first year has none. */
+  let CORPS_REF = [];                    /* the contest being run, for the hunters' view of the field */
+  const lastPlaceOf = (c) => c ? ((c.persist && c.persist.lastPlace) || c._lastPlace || null) : null;
+  function underdogMult(victimCorp, takerCorp) {
+    const vp = lastPlaceOf(victimCorp), tp = lastPlaceOf(takerCorp);
+    if (!vp || !tp) return 1;
+    let m = 1 + CONST.UNDERDOG_FAME_PER_PLACE * (tp - vp);           /* places climbed: positive hitting up */
+    if (vp === 1) m += CONST.CHAMPION_FAME_BONUS;
+    return Math.max(CONST.UNDERDOG_FAME_FLOOR, m);
+  }
+  function transferFame(victim, takers, victimCorp, takerCorp) {
+    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp);
     if (!(gain > 0) || !takers.length) return 0;
     const each = gain / takers.length;
     for (const t of takers) {
@@ -3085,7 +3816,9 @@
           const e = (bag[f._oaId || sq.corpId] = bag[f._oaId || sq.corpId] || { n: 0, famous: 0 });
           e.n++;
           if ((f.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++;
-          transferFame(f, victors.bodies || []);
+          /* the victim's OA: a combined side hands each fighter back to the squad they marched in with */
+          const vsq = owner[u.id] || sq;
+          transferFame(f, victors.bodies || [], vsq && vsq.corp, victors.corp);
         }
       }
       else if (u.state === 'captured') {
@@ -3119,6 +3852,15 @@
       addStress(sq, CONST.STRESS.killed * killed + CONST.STRESS.downed * downed, stats);
     }
     if (!killed && !downed) addStress(sq, CONST.STRESS.cleanWin, stats);
+    /* §RESERVE A SQUAD THAT LOST PEOPLE THINKS AGAIN. A plan is only remade when it runs out, and the first one is
+       made at the drop, before anyone is lost — so a squad bled in a fight went on with the plan it had, and never
+       weighed walking to a beacon to be made whole. If its OA still has fighters in orbit, its plan is set aside. */
+    if (killed + downed > 0 && CONST.COMMAND !== 'oa') {   /* §COMMAND in the OA's hands, its dawn orders re-weigh a bled squad */
+      const squads = side._parts ? side._parts.map(p => p._sq) : [sq];
+      for (const q of squads) if (q && q.corp && q.corp.reserve && q.corp.reserve.length) {   /* a strike is spent once fought */
+        q.intent = null; q.approachUntil = 0;
+      }
+    }
     return killed + downed;
   }
 
@@ -3164,6 +3906,7 @@
     if (!planet.pot) planet.pot = NEG.rollPot(rng, planet.archetype, planet.richness);
 
     const corps = [];
+    CORPS_REF = corps;                  /* §SNOWBALL the hunters’ view of who is on the ground */
     _humans = new Set((opts.humans && opts.humans.length) ? opts.humans : (opts.human ? [opts.human] : []));
     _manager = (opts.humans && opts.humans.length) ? opts.humans[0] : (opts.human || null);
     corpsRef = corps;
@@ -3285,15 +4028,7 @@
          weakest a step more careful, the rest where its culture puts them. That is what a
          manager would do with the same squads, and it means an AI field is not eight blocks
          moving in lockstep. */
-      if (!isHumanOA(c.id)) {
-        const base = NOTCHES.indexOf(c.policy || 'standard');
-        const live = (c.squads || []).filter(q => squadHead(q).length);
-        const ranked = live.slice().sort((a, b) => squadHead(b).length - squadHead(a).length);
-        ranked.forEach((q, i) => {
-          const step = i === 0 && ranked.length > 1 ? 1 : i === ranked.length - 1 && ranked.length > 1 ? -1 : 0;
-          q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
-        });
-      }
+      if (!isHumanOA(c.id)) seatSquadStances(c);
       if (rp && !isHumanOA(c.id)) {
         /* §STANCE an AI OA sets the same control a manager does: a notch AT each rival, from
            its own declared stance, hardened toward the OAs it thinks least of and softened
@@ -3362,7 +4097,7 @@
         passedOver: 0,
         huntMoves: 0, evadeMoves: 0, driftMoves: 0, objectiveMoves: 0,
         awarded: {}, hazardKind: {}, terrainUsed: {}, bandOpen: [0, 0, 0],
-        relayIntelUsed: 0, relayEscapeUsed: 0, gearUpgraded: 0, ammoResupply: 0,
+        relayIntelUsed: 0, relayEscapeUsed: 0, landed: 0, beaconContested: 0, ammoResupply: 0,
         weakDiscount: 0, lateReveals: 0,
         stressApplied: 0, successions: 0, rationDryDays: 0, degradeChecks: 0,
         nightEngagements: 0, objectiveFights: 0, capturedAlive: 0
@@ -3451,6 +4186,10 @@
 
     while (true) {
       day++;
+      /* §PLACEMENT WHEN AN OA LEAVES THE GROUND is its place: the day it withdrew, had its banner pulled or lost its last
+         fighter. Nothing recorded it, so every OA but the winner was ranked in LIST ORDER — the board's "place Nth or
+         better" was decided by where an OA sat in the fleet's list; it only showed once most OAs left by withdrawal. */
+      for (const c of corps) if (c._downedOn == null && (c.withdrawn || !(c.squads || []).some(q => squadHead(q).length))) c._downedOn = day - 1;
       stats.days = day;
       rollWeather(rng, planet, stats, day);
       overtime = day > MAP.CONST.LAST_GROUND_DAY;
@@ -3476,29 +4215,22 @@
          and its line is answered by the squads' own logic. Any able squad that dawn
          finds outside today's line drops what it was doing and walks in — its own legs,
          on the record. The dome takes whoever is still outside at dusk. */
+      /* §WALL DAWN FINDS NOBODY OUTSIDE. Everyone kept inside tomorrow's line all yesterday; a squad that did not is
+         taken now, where it stands, and the death is recorded as a fault in whatever left it there. (This was a walk
+         in, with the whole day to make it — which is how squads came to be seen outside the ring.) */
       for (const c of corps) for (const sq of c.squads) {
-        if (!squadHead(sq).length) continue;
+        if (!sq.bodies.length) continue;
         const dz = MAP.dist(sq.x, sq.y, zNow.cx, zNow.cy);
         if (dz <= zNow.r) continue;
-        if ((sq._busyUntil || 0) > (day - 1) * CONST.TICKS_PER_DAY) {
-          /* NOBODY ARGUES WITH THE DOME. A fight it reaches breaks off — both sides,
-             each the moment its own dawn finds it outside the line — because staying
-             is not a stance, it is a death. Breaking under fire costs composure. */
-          sq._busyUntil = 0;
-          addStress(sq, 4, stats);
-          stats.audit.lineBrokeFight = (stats.audit.lineBrokeFight || 0) + 1;
+        let took = 0;
+        for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
+        if (took) {
+          (stats.wallDeaths = stats.wallDeaths || []).push({ day, corp: sq.corpId, s: sq.sIdx, took, at: 'dawn',
+            stance: squadStance(sq), out: +(dz - zNow.r).toFixed(4), intent: sq.intent && sq.intent.type, r: +zNow.r.toFixed(3) });
+          stats.audit.domeDeaths = (stats.audit.domeDeaths || 0) + took;
+          (stats.audit.wallBy = stats.audit.wallBy || {})[c.id] = ((stats.audit.wallBy || {})[c.id] || 0) + took;
+          rec({ t: 'wall', x: Math.round(sq.x * 1000) / 1000, y: Math.round(sq.y * 1000) / 1000, c: sq.corpId, n: took });
         }
-        /* AIM DEEP ENOUGH THAT ARRIVAL CANNOT PRE-EMPT THE WALK. The first cut aimed
-           at 0.9·r; on the late contest's small circles that point sits inside
-           ARRIVE_SLACK of a rim squad, movement ruled them “arrived”, and they stood
-           obediently still — millimetres outside — while the line passed through
-           them. The target now sits a real margin inside, whatever the circle's size. */
-        const inR = Math.max(zNow.r * 0.5, zNow.r - Math.max(0.03, zNow.r * 0.2));
-        const k = inR / Math.max(1e-9, dz);
-        sq.intent = { type: 'withdraw',
-                      tx: zNow.cx + (sq.x - zNow.cx) * k,
-                      ty: zNow.cy + (sq.y - zNow.cy) * k };
-        stats.audit.lineEvade = (stats.audit.lineEvade || 0) + 1;
       }
 
 
@@ -3582,7 +4314,19 @@
              point of the window. Everybody else's squad leaders reorganise as they always did. */
           if (isHumanOA(c.id)) continue;
           const mine = board[principalOf(c).id] || 0;
-          reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
+          /* §STANCE a test may hand an OA its own way of choosing (opts.stancePolicy[corpId]): given what the OA can
+             see, it returns the OA's notch and, if it likes, each squad's */
+          const pol = opts.stancePolicy && opts.stancePolicy[c.id];
+          if (pol) {
+            const all = c.allBodies || [];
+            const got = pol({ day: day, penned: penned, odds: mine, ahead: mine > 0.28,
+              lostFrac: 1 - all.filter(b => b.status === 'active' || b.status === 'injured').length / Math.max(1, all.length),
+              reserve: (c.reserve || []).length, corp: c, squads: c.squads.filter(q => squadHead(q).length),
+              head: q => squadHead(q).length, known: pictureOf(c, day), dist: MAP.dist });
+            if (got && got.corp && STANCE_DIALS[got.corp] && got.corp !== c.policy) { c.policy = got.corp; c.stanceChanges++; stats.stanceChanges++; }
+            if (got && got.squads) { for (const q of c.squads) { const n = got.squads[q.sIdx]; if (n && STANCE_DIALS[n]) q.stance = n; } }
+            else seatSquadStances(c);
+          } else reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
         }
 
         /* THE WINDOW. Comms are up; this is where a manager speaks to their people and to the
@@ -3640,7 +4384,7 @@
             const idx = corps.findIndex(c => c.id === seatId);
             return {
               corps: corps.map(c => c.id === seatId ? snapshotOwn(c) : shellOf(c)),
-              record: REC ? REC.days.map(d => Object.assign({}, d, { sq: (d.sq || []).filter(q => q.c === idx) })) : null
+              record: REC ? REC.days.map(d => Object.assign({}, d, { sq: (d.sq || []).filter(q => q.c === idx), ops: (d.ops || []).filter(o => o.c === idx) })) : null
             };
           };
           const viewFor = (seatId) => {
@@ -3696,6 +4440,9 @@
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
+              /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
+              landings: (stats.landings || []).filter(l => l.corp === seatId),
+              reserveLeft: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(f => !f.mirror_of).length,
               /* §WITHDRAWAL what the field has said about your offer, and the offer itself */
               withdrawOffer: (stats.withdrawOffers || {})[you.id] ? { terms: stats.withdrawOffers[you.id].terms,
                                                      sentDay: stats.withdrawOffers[you.id].sentDay } : null,
@@ -3883,6 +4630,7 @@
         }
       }
 
+      if (opts.onDay) opts.onDay(day, corps, planet, squadHead);   /* tooling: a look at the field at the end of each day */
       if (REC) {
         const sq = [];
         for (let ci = 0; ci < corps.length; ci++) {
@@ -3948,9 +4696,20 @@
                   ? { cx: Math.round(n.cx * 1000) / 1000, cy: Math.round(n.cy * 1000) / 1000,
                       r: Math.round(n.r * 1000) / 1000 } : null; })(),
           sq,
+          /* §COMMAND THE PLAN, ON THE RECORD: each OA group's operation — what, where, why it was chosen, and how many
+             squads are on it — so a replay can be read by what the OA meant to do, not only where its squads went */
+          ops: (function () {
+            const out = [], seen = new Set();
+            corps.forEach((c, ci) => { for (const q of c.squads) { const op = q._op; if (!op || seen.has(op) || !squadHead(q).length) continue; seen.add(op);
+              const n = c.squads.filter(q2 => q2._op === op && squadHead(q2).length).length;
+              out.push({ c: ci, k: op.kind, why: op.why || null, n: n,
+                x: op.x != null ? Math.round(op.x * 1000) / 1000 : null, y: op.y != null ? Math.round(op.y * 1000) / 1000 : null,
+                t: op.obj ? op.obj.type : op.target ? 'squad' : null, lbl: op.obj ? (op.obj.label || null) : null }); } });
+            return out; })(),
           obj: planet.objectives.filter(o => o.revealed).map(o => ({
                  x: Math.round(o.x * 1000) / 1000, y: Math.round(o.y * 1000) / 1000,
-                 h: o.heldBy, t: o.type, lbl: o.label })),
+                 h: o.heldBy, t: o.type, lbl: o.label,
+                 on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),   /* §RESERVE a beacon lit today, and by whom */
           corp: corps.map(c => ({
             e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length,
             a: c.allBodies.filter(b => b.status === 'active').length,
@@ -4049,9 +4808,32 @@
          they lay. They crawl for the line — slowly, but in. */
       for (const c of corps) for (const sq of c.squads) {
         if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured' || b.status === 'active')) continue;
-        const zW = MAP.zoneOn(planet, day);
+        const zW = MAP.zoneOn(planet, day + 1);
         const dW = MAP.dist(sq.x, sq.y, zW.cx, zW.cy);
-        if (dW > zW.r * (1 - CONST.WALL_EDGE)) wallRun(planet, day, sq, zW, dW, CONST.WALL_CRAWL, stats);
+        if (dW > zW.r * (1 - CONST.WALL_EDGE)) wallRun(planet, day + 1, sq, zW, dW, CONST.WALL_CRAWL, stats);
+      }
+      const rateOf = (sq) => {
+        let r = squadDials(sq).ground * sizeMarchMult(sq) * carryMult(sq) * paceMult(sq);
+        if (squadHooks(sq).has('march_efficiency_up')) r *= 1.12;
+        if (sq._lostDay) r *= 0.3;
+        if (!overtime && sq.restUntil && day <= sq.restUntil) r *= CONST.REST_MARCH_MULT;
+        return r;
+      };
+      /* §ROUTES the companies marching this block: each operation's squads, their centre, their slowest pace, their order */
+      const company = CONST.COMMAND === 'oa' && CONST.MARCH_IN_COMPANY ? new Map() : null;
+      if (company) {
+        for (const sq of liveSquads()) {
+          if (!sq._op || !COMPANY_ROLES[sq._role] || !sq.intent || sq.intent.role !== sq._role) continue;
+          if ((sq._busyUntil || 0) > absTick) continue;
+          const C2 = company.get(sq._op) || { n: 0, rate: Infinity, sx: 0, sy: 0, w: 0, members: [] };
+          const r2 = rateOf(sq), w = squadHead(sq).length;
+          C2.n++; C2.rate = Math.min(C2.rate, r2); C2.sx += sq.x * w; C2.sy += sq.y * w; C2.w += w; C2.members.push(sq);
+          company.set(sq._op, C2);
+        }
+        for (const C2 of company.values()) {
+          C2.cx = C2.sx / Math.max(1, C2.w); C2.cy = C2.sy / Math.max(1, C2.w);
+          C2.slot = new Map(); C2.members.sort((a, b) => a.sIdx - b.sIdx).forEach((q, i) => C2.slot.set(q, i));
+        }
       }
       for (const sq of liveSquads()) {
         const dials = squadDials(sq);
@@ -4083,15 +4865,21 @@
            Now it is checked EVERY TICK: a squad outside breaks off whatever it is doing — a fight
            included — and SPRINTS for safe ground just inside, at full pace whatever its
            stance, rest or burden, with no arrival slack. Only then does anything else happen. */
+        /* §WALL (ruled) OUTSIDE THE RING IS DEATH, AND NOBODY IS EVER THERE. The ring stood at today's line all day and
+           stepped in at dawn, so every morning squads near the edge woke outside it and were given the day to walk in —
+           a third to nearly half of all squad-days began outside the line, and the replay showed them there. The ring
+           closes through the day toward tomorrow's line, and every squad keeps inside TOMORROW'S line: its steps are
+           held inside it, and a squad that finds itself beyond it sprints in now. Dawn then finds nobody outside; anyone
+           who is, is gone (and recorded as the bug it is). */
         {
-          const zW = MAP.zoneOn(planet, day);
+          const zW = MAP.zoneOn(planet, day + 1);
           const dW = MAP.dist(sq.x, sq.y, zW.cx, zW.cy);
           if (dW > zW.r * (1 - CONST.WALL_EDGE)) {
             if (sq._busyUntil != null && sq._busyUntil > absTick) {
               sq._busyUntil = 0; addStress(sq, 4, stats);
               stats.audit.lineBrokeFight = (stats.audit.lineBrokeFight || 0) + 1;
             }
-            wallRun(planet, day, sq, zW, dW, Math.max(0.5, terrainSpeed) * CONST.WALL_SPRINT, stats);
+            wallRun(planet, day + 1, sq, zW, dW, Math.max(0.5, terrainSpeed) * CONST.WALL_SPRINT, stats);
             continue;
           }
         }
@@ -4104,15 +4892,48 @@
         }
 
         const it = sq.intent;
-        if (!it) { sq._why = sq.approach || 'hold'; sq._aim = null; continue; }
+        if (!it) { sq._why = CONST.COMMAND === 'oa' ? (sq._role || 'hold') : (sq.approach || 'hold'); sq._aim = null; continue; }
 
         /* Staging: a flanker in position waits for the strike, rather than walking in
            alone and being killed piecemeal. This is what makes the pincer arrive at once. */
         let tx = it.tx, ty = it.ty;
         if (it.type === 'strike') {
           const staged = MAP.dist(sq.x, sq.y, it.sx, it.sy) <= CONST.STAGE_SLACK;
-          if (day < it.strikeDay && !staged) { tx = it.sx; ty = it.sy; sq._why = 'stage'; }
-          else if (day < it.strikeDay) { sq._why = 'stage'; tx = sq.x; ty = sq.y; }
+          /* §FLANK A PINCER GOES WHEN IT IS IN PLACE. It went on a day fixed when it was planned, from where the
+             quarry stood then; a well-led party now waits until every squad in it is at its mark (or the plan's
+             last day comes), and all of them go together. A badly led one still goes squad by squad, on the day
+             each thought it would be ready — which is how a pincer arrives piecemeal. */
+          let go;
+          const P = it.plan;
+          if (P && P.sync) {
+            if (!P.go) {
+              const live = P.party.filter(q => squadHead(q).length && q.intent && q.intent.plan === P);
+              if (!live.length || day > P.deadline ||
+                  live.every(q => MAP.dist(q.x, q.y, q.intent.sx, q.intent.sy) <= CONST.STAGE_SLACK)) {
+                P.go = true;
+                if (live.length > 1) stats.audit.pincersSprung = (stats.audit.pincersSprung || 0) + 1;
+              }
+            }
+            go = P.go;
+          } else go = day >= it.strikeDay;
+          if (go && P) sq._strikeObj = P.obj || null;      /* §BOLD remembered through the fight */
+          if (!go && !staged) {
+            tx = it.sx; ty = it.sy; sq._why = 'stage';
+            /* round, not through: a flanker whose mark is on the far side of the quarry walks the arc outside its
+               reach rather than straight across it, where it would meet them alone */
+            const t = it.targetSquad;
+            if (t && squadHead(t).length) {
+              const a0 = Math.atan2(sq.y - t.y, sq.x - t.x), a1 = Math.atan2(it.sy - t.y, it.sx - t.x);
+              let da = a1 - a0; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+              const r0 = MAP.dist(sq.x, sq.y, t.x, t.y);
+              if (Math.abs(da) > 0.6 && r0 < CONST.STAGE_RADIUS * 2.5) {
+                const a = a0 + Math.sign(da) * Math.min(Math.abs(da), 0.9), r = Math.max(r0, CONST.STAGE_RADIUS * 1.25);
+                tx = t.x + Math.cos(a) * r; ty = t.y + Math.sin(a) * r;
+                stats.audit.flankArcs = (stats.audit.flankArcs || 0) + 1;
+              }
+            }
+          }
+          else if (!go) { sq._why = 'stage'; tx = sq.x; ty = sq.y; }
           else {
             const t = it.targetSquad;
             if (t && squadHead(t).length >= 1) { tx = t.x; ty = t.y; }
@@ -4130,7 +4951,8 @@
              label and the tally are two different jobs; they are separated now. */
           if (it.type === 'claim' || it.type === 'hold') stats.audit.objectiveMoves++;
           else if (it.type !== 'withdraw') stats.audit.driftMoves++;
-          if (sq.approach && it.type !== 'strike') sq._why = sq.approach;
+          if (it.role) sq._why = it.role;                         /* §COMMAND the role its OA gave it */
+          else if (sq.approach && it.type !== 'strike' && CONST.COMMAND !== 'oa') sq._why = sq.approach;
         }
 
         /* Hold the destination inside the current line — a captain can see the edge.
@@ -4144,7 +4966,7 @@
 
            A margin, not a veto: everyone still gets clamped inside the line, but where the
            line effectively sits for THIS corp depends on what it declared. */
-        const zc = MAP.zoneOn(planet, day);
+        const zc = MAP.zoneOn(planet, day + 1);            /* §WALL the line it will be, not the line it was at dawn */
         const zr = squadDials(sq).zoneRisk;
         const margin = CONST.ZONE_MARGIN_SAFE
                      - (CONST.ZONE_MARGIN_SAFE - CONST.ZONE_MARGIN_BOLD) * zr;
@@ -4163,16 +4985,34 @@
            the past and implies nothing; this is the thing a manager would want to see. */
         sq._aim = { x: tx, y: ty, why: sq._why };
 
+        /* §ROUTES IN COMPANY. Squads of one group on one operation march together: at the pace of the slowest of them,
+           and abreast — each a formation step to the side of the line of march — until they close on the objective. */
+        if (company && sq._op && company.has(sq._op) && COMPANY_ROLES[sq._role]) {
+          const C2 = company.get(sq._op);
+          if (C2.n > 1) {
+            budget *= Math.min(1, C2.rate / Math.max(1e-9, rateOf(sq)));
+            const dgo = MAP.dist(C2.cx, C2.cy, tx, ty);
+            if (dgo > CONST.FORM_SPACING * 3 && sq._role !== 'take' && sq._role !== 'mend' && sq._role !== 'reinforce' || dgo > CONST.FORM_SPACING * 6) {
+              const hx = (tx - C2.cx) / Math.max(1e-9, dgo), hy = (ty - C2.cy) / Math.max(1e-9, dgo);
+              const slot = C2.slot.get(sq) - (C2.n - 1) / 2;
+              const fx = tx + -hy * slot * CONST.FORM_SPACING, fy = ty + hx * slot * CONST.FORM_SPACING;
+              if (!planet.passableAt || planet.passableAt(fx, fy)) { tx = fx; ty = fy; }
+            }
+          }
+        }
         const d = MAP.dist(sq.x, sq.y, tx, ty);
         if (d > CONST.ARRIVE_SLACK) {
-          const step = Math.min(budget, d);
-          let nx = sq.x + (tx - sq.x) / d * step, ny = sq.y + (ty - sq.y) / d * step;
+          const wp = wayPoint(planet, sq, tx, ty, day, stats);
+          const dw = Math.max(1e-9, MAP.dist(sq.x, sq.y, wp.x, wp.y));
+          const step = Math.min(budget, dw);
+          let nx = sq.x + (wp.x - sq.x) / dw * step, ny = sq.y + (wp.y - sq.y) / dw * step;
+          const base0 = Math.atan2(wp.y - sq.y, wp.x - sq.x);
           /* §7.6 WATER AND PEAKS ARE NOT CROSSED. If the step lands in either, swing the
              heading — a little, then more, either way — and take the first open footing.
              Nothing open in a half-circle means standing where they are: a squad against a
              lake with the wall behind it is the chokepoint doing its work. */
           if (planet.passableAt && !planet.passableAt(nx, ny)) {
-            const base = Math.atan2(ty - sq.y, tx - sq.x);
+            const base = base0;
             let found = null;
             for (const off of [0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) {
               const qx = sq.x + Math.cos(base + off) * step, qy = sq.y + Math.sin(base + off) * step;
@@ -4181,7 +5021,7 @@
             if (found) { nx = found[0]; ny = found[1]; stats.audit.routedRound = (stats.audit.routedRound || 0) + 1; }
             else { nx = sq.x; ny = sq.y; stats.audit.heldByGround = (stats.audit.heldByGround || 0) + 1; }
           }
-          const inside = MAP.clampInside(planet, day, nx, ny);   /* the wall is a wall */
+          const inside = MAP.clampInside(planet, day + 1, nx, ny);   /* the wall is a wall — and it is closing */
           sq.x = inside.x; sq.y = inside.y;
           sq.movedToday = true;
           for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.FATIGUE_MARCH);
@@ -4189,11 +5029,21 @@
             stats.audit.nightMarch++;
             for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.NIGHT_MARCH_FATIGUE);
           }
-        } else if (it.type === 'claim' || it.type === 'patrol') {
-          it.arrived = true;
+        } else if (it.type === 'claim' || it.type === 'patrol' || it.type === 'withdraw' || it.type === 'avoid') {
+          it.arrived = true;           /* §TACTICS a pull-back that has got where it was going is done */
         }
       }
 
+      /* §ROUTES NOBODY STANDS IN A LAKE. A push (the spacing below, a beaten squad's run, the wall's sprint) could leave
+         a squad on water or a peak, where every step it tried was blocked too and it stood there for days — measured,
+         every step the ground held back was a squad already standing where it could not be. It wades out to the
+         nearest footing at the end of the block. */
+      if (planet.passableAt && planet.nearestPassable) for (const q of liveSquads()) {
+        if (planet.passableAt(q.x, q.y)) continue;
+        const f = footing(planet, day + 1, q.x, q.y);
+        q.x = f.x; q.y = f.y;
+        stats.audit.wadedOut = (stats.audit.wadedOut || 0) + 1;
+      }
       /* --- OWN LINES DO NOT STACK (§6.1 OWN_SPACING) ---
          After the tick's marches, own-corp pairs standing inside a body's-breadth of each
          other are pushed apart symmetrically, then held inside the wall. Squads held in a
@@ -4211,8 +5061,9 @@
             if (sep > 1e-6) { ux = (b.x - a.x) / sep; uy = (b.y - a.y) / sep; }
             else { const ang = (i * 2.4 + j) % (Math.PI * 2); ux = Math.cos(ang); uy = Math.sin(ang); }
             const half = (CONST.OWN_SPACING - sep) / 2;
-            const pa = MAP.clampInside(planet, day, a.x - ux * half, a.y - uy * half);
-            const pb = MAP.clampInside(planet, day, b.x + ux * half, b.y + uy * half);
+            const pa = MAP.clampInside(planet, day + 1, a.x - ux * half, a.y - uy * half);
+            const pb = MAP.clampInside(planet, day + 1, b.x + ux * half, b.y + uy * half);
+            if (planet.passableAt && (!planet.passableAt(pa.x, pa.y) || !planet.passableAt(pb.x, pb.y))) continue;   /* §ROUTES not into the water */
             a.x = pa.x; a.y = pa.y; b.x = pb.x; b.y = pb.y;
             stats.audit.ownSpacingPush = (stats.audit.ownSpacingPush || 0) + 1;
           }
@@ -4247,7 +5098,10 @@
             if (squadHead(sqA).length < 1 || squadHead(sqB).length < 1) continue;
 
             const sep = MAP.dist(sqA.x, sqA.y, sqB.x, sqB.y);
-            if (sep > CONST.ENGAGE_RANGE) continue;
+            /* §RESERVE two enemy squads on one lit beacon are in reach of each other, however it is they stand on it */
+            const onOneBeacon = (sqA._beaconLit === day || sqB._beaconLit === day) && planet.objectives.some(o => o.type === 'sponsor_cache'
+              && MAP.dist(sqA.x, sqA.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS && MAP.dist(sqB.x, sqB.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS);
+            if (sep > CONST.ENGAGE_RANGE && !onOneBeacon) continue;
             /* NOBODY STARTS A FIGHT IN THE DOME'S PATH. Ground outside today's line is
                dead ground by dusk; hunter and prey both know it, and a squad walking in
                off it is walking, not fighting. Without this, evaders were intercepted on
@@ -4353,7 +5207,7 @@
               const late = overtime ? 1
                 : 1 - Math.min(1, Math.max(0, (room - minFrac) / (0.55 - minFrac)));
               const worth = Math.min(1, CONST.PRESTIGE_FLOOR
-                + (1 - CONST.PRESTIGE_FLOOR) * prestigeOf(other) + 0.55 * late);
+                + (1 - CONST.PRESTIGE_FLOOR) * prestigeFor(seeker, other) + 0.55 * late);
               if (rng() >= worth) {
                 stats.passedOver++; stats.audit.passedOver++;
                 rec({ t: 'pass', x: mx, y: my, c: seeker.corpId, on: other.corpId });
@@ -4516,13 +5370,26 @@
                                  bearing: Math.atan2(my - other.y, mx - other.x) });
               }
             }
+            const arrivals = [];
             if (reinforce.length) {
-              const byTag = {};
-              for (let gi = 0; gi < groups.length; gi++) byTag[principalOf(groups[gi][0].corp).id] = built[gi];
               ctx.reinforce = [];
+              let strangers = 0;
               for (const R of reinforce) {
                 const side = liveSquadGroup(rng, [R.sq], day, engagementsRun, traitIndex);
                 if (!side) continue;
+                /* §FLANK WHOSE SIDE THEY WALK ONTO. An arriving squad carried no side letter, so the grid opened a NEW
+                   side for it — every arrival was its own banner, shooting at everybody including the people it came to
+                   help — and, not being one of the fight's groups, its losses were never written back: nobody who
+                   walked into a fight could be hurt in it. It now joins its own banner's side, if that side is here,
+                   and is booked with it; a stranger opens a side of its own and is booked on its own. */
+                const gi = groups.findIndex(g => g[0] && allied(g[0].corp, R.sq.corp));
+                side.tag = String.fromCharCode(65 + (gi >= 0 ? gi : groups.length + strangers++));
+                if (gi >= 0) {
+                  const host = built[gi];
+                  if (!host._parts) host._parts = [{ units: host.units.slice(), _sq: groups[gi][0] }];
+                  host._parts.push(side);
+                }
+                arrivals.push({ sq: R.sq, side: side, gi: gi });
                 /* turns, not ticks: the grid runs its own clock inside the block */
                 ctx.reinforce.push({
                   side: side, bearing: R.bearing, prep: 0.5,
@@ -4540,6 +5407,18 @@
               const lead = g[0];
               return Math.atan2(my - lead.hy, mx - lead.hx);
             });
+            /* §FLANK EACH SQUAD COMES ON WHERE IT CAME FROM. A side's squads were one rank on one edge whatever
+               directions they walked in from; every fighter now carries its own squad's approach, and the grid puts
+               squads that came in far enough apart on their own edges, on a board grown to hold them. */
+            built.forEach((side, gi) => {
+              const parts = side._parts || [side];
+              for (const part of parts) {
+                const q = part._sq; if (!q) continue;
+                const b = Math.atan2(my - q.hy, mx - q.hx);
+                for (const u of part.units) u._bearing = b;
+              }
+            });
+            for (const R of (ctx.reinforce || [])) for (const u of (R.side.units || [])) u._bearing = R.bearing;
 
             /* §GRUDGE A MAN FIGHTING THE OA HE REMEMBERS. Grudge Holder's three hooks wanted
                a fighter's memory of every OA in the fleet, and the first design for it was a
@@ -4558,6 +5437,10 @@
             }
             /* §CHARGES note what every combatant carries in, so the spend can come off the fighter */
             for (const sd of built) for (const u of (sd.units || [])) u._carriedIn = (u.carried || []).slice();
+            /* §LOOT who was already dead before this fight: only today's fallen are on this ground to be stripped */
+            const deadBefore = new Set();
+            for (const g of groups) for (const q of g) for (const b of q.bodies) if (b.status === 'dead') deadBefore.add(b);
+            for (const A of arrivals) for (const b of A.sq.bodies) if (b.status === 'dead') deadBefore.add(b);
             const res = TACTICAL.resolve(rng, built, ctx);
             if (global.__FIGHTS) {
               const rows = built.map((sd, gi) => {
@@ -4605,7 +5488,7 @@
                          comp0: +(us.reduce((t, u) => t + (u._comp0 != null ? u._comp0 : (u.comp || 0)), 0) / Math.max(1, us.length)).toFixed(1),
                          seeker: g.some(q => q._lastSeekDay === day), found: g.some(q => q._lastFoundDay === day) };
               });
-              global.__FIGHTS.push({ day, result: res.result, turns: res.telemetry && res.telemetry.turn, rows, terrain, band: ctx.openingBand });
+              global.__FIGHTS.push({ day, result: res.result, turns: res.telemetry && res.telemetry.turn, rows, terrain, band: ctx.openingBand, flank: !!(res.telemetry && res.telemetry.flankFight) });
             }
             /* §CHARGES and take the spend off the fighter: each item a combatant used this fight is
                one charge gone for the rest of the Divide */
@@ -4670,6 +5553,7 @@
             if (groups.length > 2) stats.audit.multiSide = (stats.audit.multiSide || 0) + 1;
             if (party.length > groups.length) stats.audit.combinedArms = (stats.audit.combinedArms || 0) + 1;
             if (flanked.some(Boolean)) stats.audit.flanked = (stats.audit.flanked || 0) + 1;
+            if (res.telemetry && res.telemetry.flankFight) stats.audit.flankFights = (stats.audit.flankFights || 0) + 1;   /* §FLANK fought on the grown board */
 
             const t = res.telemetry;
             if (t) { for (const k of ['drones', 'turrets', 'turretShots', 'turretHits', 'stims', 'scrambles', 'thermobarics'])
@@ -4825,6 +5709,20 @@
                 stats.audit.captivesMarchedOff = (stats.audit.captivesMarchedOff || 0) + 1;
               }
             }
+            /* §FLANK a stranger who walked in is booked on its own: its dead are dead */
+            for (const A of arrivals) {
+              if (A.gi >= 0) continue;
+              let captorId = null, best = -1;
+              for (let hi = 0; hi < groups.length; hi++) {
+                const n = groups[hi].reduce((t, q) => t + squadHead(q).length, 0);
+                if (n > best) { best = n; captorId = groups[hi][0].corpId; }
+              }
+              const before = tallyCorp(A.sq.corp);
+              applyOutcome(A.sq, A.side, stats, captorId, null);
+              const now = tallyCorp(A.sq.corp), p = pcOf[A.sq.corp.id];
+              if (p) { p.permanent += now.permanent - before.permanent; p.injuredHome += now.injured - before.injured; p.engagements++; }
+              A.sq.corp.engagements++;
+            }
             /* The contest resolves. Whoever broke contact runs — a real distance, not a
                notional one — and whoever held may chase. Standing on the same ground after
                a firefight is what stretched a 3v3 across a month of skirmishing. */
@@ -4832,12 +5730,25 @@
             const m = /^disengage_(.+)$/.exec(res.result);
             if (m) { for (const tag of m[1].split('')) broke[tag] = true; }
             if (m && m[1] === 'both') for (const g of groups) broke[String.fromCharCode(65 + groups.indexOf(g))] = true;
+            lootField(groups, broke, arrivals, deadBefore, day, stats, mx, my);
             for (let gi = 0; gi < groups.length; gi++) {
               const tag = String.fromCharCode(65 + gi);
               const g = groups[gi];
               const lost = broke[tag] || (m && m[1] === 'both');
               for (const sq of g) {
-                const dx = sq.x - mx, dy = sq.y - my;
+                let dx = sq.x - mx, dy = sq.y - my;
+                /* §COMMAND A BEATEN SQUAD FALLS BACK ON ITS OWN. Away from the fight, it ran straight away from it —
+                   often away from the rest of its OA too. With friends of its operation standing clear of this fight,
+                   it runs toward them. */
+                if (CONST.COMMAND === 'oa' && sq._op) {
+                  const mates = sq.corp.squads.filter(q => q !== sq && q._op === sq._op && squadHead(q).length && g.indexOf(q) < 0);
+                  const mw = mates.reduce((t, q) => t + squadHead(q).length, 0);
+                  if (mw) {
+                    const fx = mates.reduce((t, q) => t + q.x * squadHead(q).length, 0) / mw, fy = mates.reduce((t, q) => t + q.y * squadHead(q).length, 0) / mw;
+                    const ax = fx - mx, ay = fy - my;
+                    if (ax * dx + ay * dy > -0.2 * Math.hypot(ax, ay) * Math.hypot(dx, dy)) { dx = fx - sq.x; dy = fy - sq.y; stats.audit.fellBackOnGroup = (stats.audit.fellBackOnGroup || 0) + 1; }
+                  }
+                }
                 const len = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy));
                 if (lost) {
                   /* Breaking contact is also measured against the room that is left. On the
@@ -4847,7 +5758,7 @@
                   const roomNow = MAP.zoneOn(planet, day).r;
                   const run = Math.min(CONST.BREAK_DISTANCE * (0.8 + rng() * 0.5),
                                        roomNow * CONST.WITHDRAW_RUN_FRAC);
-                  const p = MAP.clampInside(planet, day, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
+                  const p = MAP.clampInside(planet, day + 1, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
                   /* §MAP the break for it is a leg of the day's walk: without it the marker
                      finished its animated march and then jumped to where the run had put it */
                   if (!sq._track || !sq._track.length) sq._track = [Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000];
@@ -4858,8 +5769,11 @@
                      almost always `withdraw` — running from the fight straight away, which
                      overrode everything else it wanted — so it never walked to a rest site even
                      when one was close. When there is shelter within reach, it runs THERE. */
-                  const shel = cornered ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  const bea = cornered ? null : beaconFor(sq, planet, day, CONST.DAY_MARCH * CONST.BEACON_FALLBACK_MARCHES);
+                  const shel = cornered || bea ? null : shelterFor(sq, planet, day, CONST.DAY_MARCH * 2.5);
+                  if (bea) stats.audit.ranForBeacon = (stats.audit.ranForBeacon || 0) + 1;
                   sq.intent = cornered ? null
+                    : bea ? { type: 'claim', obj: bea, tx: bea.x, ty: bea.y, expires: day + CONST.PLAN_LIFE }
                     : shel ? { type: 'claim', obj: shel, tx: shel.x, ty: shel.y, expires: day + CONST.PLAN_LIFE }
                     : { type: 'withdraw', tx: sq.x + (dx / len) * run,
                         ty: sq.y + (dy / len) * run, expires: day + CONST.WITHDRAW_DAYS };
@@ -4867,6 +5781,16 @@
                   sq.restUntil = day + CONST.REST_DAYS_LOSER;
                 } else {
                   sq.restUntil = day + CONST.REST_DAYS_WINNER;
+                  /* §BOLD THE GROUND WAS THE POINT. A party that struck an OA off an objective, and won, takes the
+                     objective — it does not chase the beaten across the map. */
+                  const sObj = (sq.intent && sq.intent.plan && sq.intent.plan.obj) || sq._strikeObj; sq._strikeObj = null;
+                  if (sObj && MAP.siteLive(sObj, day) && MAP.inZone(planet, day + 1, sObj.x, sObj.y)) {
+                    sq.intent = { type: 'claim', obj: sObj, tx: sObj.x, ty: sObj.y, expires: day + 2, contest: true };
+                    stats.audit.tookTheGround = (stats.audit.tookTheGround || 0) + 1;
+                    continue;
+                  }
+                  /* §COMMAND no lone chase: whether the OA goes after the beaten is its operation's call at the next dawn */
+                  if (CONST.COMMAND === 'oa') continue;
                   const pursuit = C.STANCE[sq.corp.policy].pursuit;
                   const chase = pursuit === 'always' ? 0.85 : pursuit === 'aggressive' ? 0.6
                               : pursuit === 'yes' ? 0.35 : pursuit === 'if_free' ? 0.15 : 0;
@@ -4963,6 +5887,62 @@
 
       /* --- objective claim clocks (§9) --- */
       const tickedToday = new Set();
+      /* §RESERVE (ruled) A LANDING BEACON. A squad standing on one draws its OA's reserve down: every BEACON_TICKS
+         blocks held with no enemy squad in reach, one fighter lands (a Mon-Wa pair whole) into the smallest of that OA's
+         squads on the beacon, up to the squad maximum. Leave and come back as often as you like; once the reserve is
+         empty the beacon is nothing to you. While it is in use it fires: every other OA knows where you are, and whose
+         you are. An enemy squad in reach stops the landing in progress. */
+      const beaconDrawn = new Set();
+      const beaconTick = (sq, o, day) => {
+        const corp = sq.corp;
+        if (!corp || !corp.reserve || !corp.reserve.length) { sq.claiming = null; return; }
+        sq.claiming = o.id;
+        const key = o.id + ':' + corp.id;
+        if (beaconDrawn.has(key)) return;                   /* one draw a block, an OA, a beacon */
+        beaconDrawn.add(key);
+        o.litBy = corp.id; o.litDay = day; o.heldBy = corp.id;
+        for (const q of liveSquads()) if (q.corpId === corp.id && MAP.dist(q.x, q.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS) q._beaconLit = day;
+        for (const c of (stats._corps || [])) if (!allied(c, corp)) recordSighting(c, sq, day, false, 'beacon');
+        /* §RESERVE THE BEACON IS HEARD. The sighting above reached every rival OA's picture and stopped there: a squad
+           only weighs rivals within its captain's sight, so a lit beacon moved nobody who could not already see it —
+           measured, 640 blocks of beacons lit in six contests and 33 fights on them. It carries like a firefight, only
+           further: every rival squad in range weighs it as it weighs shooting it hears — a squad that seeks a fight goes
+           to it, one that does not keeps clear. Once a day a beacon. */
+        if (o._heardDay !== day) {
+          o._heardDay = day;
+          noises.push({ x: o.x, y: o.y, r: CONST.BEACON_SIGNAL_RANGE, day: day, corps: [corp.id], beacon: true });
+        }
+        o.draw = o.draw || {};
+        /* an OA under a truce with you is not an enemy: it cannot fight you there, so it does not stop the landing */
+        const rival = liveSquads().some(s => !allied(s.corp, corp) && !pactHolds(s.corp, corp, day) &&
+          MAP.dist(s.x, s.y, o.x, o.y) <= CONST.BEACON_CONTEST_RADIUS);
+        if (rival) {
+          o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
+        /* the squad maximum is in seats, as the dealing counts it: a Mon-Wa pair takes one */
+        const seats = s => squadHead(s).filter(b => !b.mirror_of).length;
+        const mine = liveSquads().filter(s => s.corpId === corp.id && MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS
+                                           && seats(s) < CONST.SQUAD_MAX);
+        if (!mine.length) return;
+        const knack = mine.some(s => squadHasHook(s, 'sponsor_drop_handling_bonus'));   /* the quartermaster brings them in faster */
+        o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
+        if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
+        o.draw[corp.id] = 0;
+        const into = mine.sort((a, b) => seats(a) - seats(b))[0];
+        const lead = corp.reserve.shift(), group = [lead];
+        if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
+        for (const f of group) {
+          f.status = 'active'; f._squadIdx = into.sIdx; f._landedDay = day;
+          into.bodies.push(f); corp.allBodies.push(f);
+          if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(f) < 0) corp.persist.drop.push(f);
+        }
+        if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);   /* paid on landing */
+        into.rations += CONST.RATION_DROP_DAYS * group.length;
+        into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
+        corp.landed += group.length; stats.audit.landed += group.length;
+        (stats.landings = stats.landings || []).push({ day: day, corp: corp.id, squad: into.sIdx, fighter: lead.id,
+          name: lead.name, pair: group.length > 1, seats: seats(into), site: o.label, place: o.place, left: corp.reserve.filter(f => !f.mirror_of).length });
+        if (stats._rec) stats._rec({ t: 'landed', x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
+      };
       /* Emptying a crate takes a tick or two, not two days, and a rival standing on it
          interrupts the work rather than freezing a claim clock. */
       for (const sq of liveSquads()) {
@@ -4972,6 +5952,7 @@
           if (MAP.dist(sq.x, sq.y, cand.x, cand.y) <= MAP.CONST.CLAIM_RADIUS) { o = cand; break; }
         }
         if (!o || sq.foughtToday) { sq.claiming = null; continue; }
+        if (o.type === 'sponsor_cache') { beaconTick(sq, o, day); continue; }   /* §RESERVE a beacon is held, not looted */
         const rival = liveSquads().some(s => s.corpId !== sq.corpId &&
           MAP.dist(s.x, s.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS);
         if (rival) { sq.claiming = o.id; o.work = {}; continue; }
@@ -5246,7 +6227,9 @@
        read categories. */
     stats.haulLines = NEG.settleHaul(stats.banked, corps, stats.deals, stats.winner, REP.CATEGORIES);
 
-    const fellIds = (stats.fallen || []).slice().sort((a, b) => a.day - b.day).map(f => f.id);
+    /* earliest off the ground places lowest; on the same day, the one with fewer people still standing */
+    const upOf = (id) => { const c = corps.find(x => x.id === id); return c ? c.allBodies.filter(b => b.status === 'active' || b.status === 'injured').length : 0; };
+    const fellIds = (stats.fallen || []).slice().sort((a, b) => (a.day - b.day) || (upOf(a.id) - upOf(b.id))).map(f => f.id);
     stats.placement = REP.placements(fellIds, stats.winner, [], corps.length);
 
     /* --- §3.1 the finish, and the planet ----------------------------------------------- */
@@ -5324,7 +6307,7 @@
         /* the settlement is past the last window, so this is not a manager's choice to make
            and takes no `decide` hook: an OA answers for its word out of its own character. */
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
-        const keep = rng() < Math.max(0.05, Math.min(0.95, straight - (share + storesAsked / 4) * 0.5));
+        const keep = rng() < keepChance(w, share + storesAsked / 4);   /* §MARKET the same trust the leaver priced */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
@@ -5434,7 +6417,7 @@
      way the replay's two frame builders drifted. */
   const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, loudnessOf, STANCE_STANDING, NOTCHES,
                 /* §STANCE the notch a manager sets at each OA, and what it is worth */
-                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, openCrate, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
+                setStance, NOTCH_WORDS, squadStance, squadDials, standing, prestigeOf, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, allied, bannersStanding, umbrellasOf, sealedCorp: sealed,
     /* the size reads on the ground, exported so the probe that keeps them honest can
        measure them and any surface can show a manager the cost of the squad they shaped */
     sizeMarchMult, sizeDetectMult, squadStress, WEATHER };

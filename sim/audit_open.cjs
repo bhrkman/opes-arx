@@ -85,7 +85,7 @@ claim('OPEN-E2', 'PROJECT.md', 'no doc-parity guard for the day loop', () => {
 claim('OPEN-E3', 'PROJECT.md', 'two trait hooks unread', () => {
   const dead = ['sponsor_drop_handling_bonus', 'overwatch_fatigue_immune'].filter(h => !reads(h));
   return dead.length === 0
-    ? closed('both hooks are read — sponsor_drop_handling_bonus in openCrate, ' +
+    ? closed('both hooks are read — sponsor_drop_handling_bonus at a Landing Beacon (a quartermaster lands them faster), ' +
              'overwatch_fatigue_immune in the resolver. The suite guards this every run')
     : stands('still unread: ' + dead.join(', '));
 });

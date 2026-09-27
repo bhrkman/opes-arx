@@ -24,6 +24,7 @@
   --wall:#9d7cd8;
     /* ORIGIN HUES — muted, their own identity, distinct from the squad vivids */
     --o-nat:#6fb4d8; --o-mer:#b899cc; --o-con:#c8a86a;
+    --o-drf:#8fc79a;   /* the Draft: a muted sage, beside the blue, the lilac and the tan */
     /* §SPONSORS EIGHT SUPPLIERS, EIGHT COLOURS, NONE OF THEM A HOUSE'S. There are exactly
        eight backers and the board was colouring them by a HASH into ten hues — with eight
        draws from ten, collisions are not a risk but a certainty, and several read identically.
@@ -1023,7 +1024,9 @@
   .talrow .st.shootline .v{color:var(--cred,#f0c04a);font-weight:700;margin-left:6px}
   .talrow .st.best .k{color:#4fd6a0}
   .talrow .st.worst .k{color:#ef8a8a}
-  .pc-trade{display:block;margin-top:6px;font-size:11px;color:var(--dim)}
+  /* §MARKET the Best With line is written inside the stat grid, so it spans the grid: squeezed into the last
+     stat column it wrapped one word a line, on every window's card */
+  .pc-trade{display:block;grid-column:1 / -1;margin-top:6px;font-size:11px;color:var(--dim)}
   .pc-trade b{color:var(--ink);font-weight:500}
   /* §WITHDRAWAL the offers the others have out */
   .wasks{margin-top:14px}
@@ -1054,6 +1057,32 @@
   .mtile .mtop{display:flex;align-items:baseline;gap:6px}.mtile .mtop .nm{flex:1}.mtile .mtop .pr{color:var(--cred);white-space:nowrap}
   .mtile .mfoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
   .mtile .held{color:var(--hit,#4fd6a0);font-size:10.5px}
+  .rsvrow{display:flex;align-items:center;gap:6px}.rsvrow > :nth-child(2){flex:1;min-width:0}
+  .rsvrow .rsvn{width:16px;text-align:right;color:var(--cred,#f0c04a);font-size:11px}
+  .rsvrow .rsvmv{display:flex;flex-direction:column;gap:2px}.rsvrow .rsvmv button{padding:0 5px;line-height:1.2}
+  .rsvrow.home{opacity:.55}
+  .rsvsplit{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);text-align:center;margin:8px 0 4px;border-top:1px solid var(--line);padding-top:6px}
+  .ev.land{color:var(--hit,#4fd6a0)}
+  /* §DRAFT THE BOARD: sixteen picks down a rail, filled in as they are made, the pick at bat lit the way the
+     year rail lights the month; the sheet beside it holds only who is still there */
+  .drfcols{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:start}
+  .drfboard{border:1px solid color-mix(in srgb, var(--o-drf) 34%, var(--line));border-radius:8px;background:color-mix(in srgb, var(--o-drf) 5%, var(--bg));padding:8px 0}
+  .drfboard .rh{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:2px 12px 6px}
+  .drfboard .rh.r2{border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+  .drfpk{display:grid;grid-template-columns:22px 12px 1fr;align-items:center;gap:8px;padding:4px 12px;font-size:10.5px;position:relative}
+  .drfpk .no{color:var(--faint);text-align:right;font-variant-numeric:tabular-nums}
+  .drfpk .sw{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.85}
+  .drfpk .who{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  .drfpk .who .oa{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .drfpk .who .got{color:var(--ink);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drfpk .who .wait{color:var(--faint);font-size:9.5px;font-style:italic}
+  .drfpk.done{opacity:.55}
+  .drfpk.now{background:color-mix(in srgb, var(--o-drf) 14%, transparent)}
+  .drfpk.now::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--o-drf)}
+  .drfpk.now .who .wait{color:var(--o-drf);font-style:normal;font-weight:700}
+  .drfpk.mine .who .got{color:var(--o-drf)}
+  .drfdone{text-align:center;color:var(--dim);font-size:11px;padding:18px 0}
+  @media (max-width:900px){.drfcols{grid-template-columns:1fr}}
   .pspec{display:flex;flex-direction:column;gap:5px;margin-top:6px}
   .pspec .mbar{grid-template-columns:62px 1fr 34px}
   .fig{font-size:10.5px;white-space:nowrap}
@@ -1564,7 +1593,7 @@
   .focusdeskline{text-align:center;margin:4px 0 12px;font-size:13px;letter-spacing:.06em;width:100%}
   .focusdeskline b{font-size:16px} .focusdeskline b.left{color:var(--bad)} .focusdeskline b.done{color:var(--hit)}
   .acq{margin-bottom:14px;--o:var(--o-nat)}
-   .acq.w-mer{--o:var(--o-mer)} 
+   .acq.w-mer{--o:var(--o-mer)} .acq.w-drf{--o:var(--o-drf)}
   .acq .railbox{background:color-mix(in srgb, var(--o) 8%, var(--bg));border-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wtitle{border-bottom-color:color-mix(in srgb, var(--o) 34%, var(--line))}
   .acq .wnm{color:var(--o)} .acq .wtitle .dot{background:var(--o)}
@@ -1882,6 +1911,8 @@
   </div>
   <div class="box" id="money"></div>
   <div id="resigning"></div>
+  <!-- §DRAFT THE DRAFT IS A SIGNING WINDOW, so it stands with the others, in its own colour -->
+  <div id="rostdraft" class="acq w-drf"></div>
   <div id="rostmarket" class="acq"></div>
   <div class="rostcols">
     <div class="rostbooks">
@@ -2809,7 +2840,7 @@
       el.onclick = function (e) { e.stopPropagation(); openMarkEditor(el.getAttribute('data-editmark')); };
     });
 
-    renderMarket();
+    renderMarket(); renderRecruitDraft();
   }
 
   /* THE WINDOW IS THE CALENDAR'S. A bid stands through the run-up and the signings land at
@@ -3048,7 +3079,13 @@
 
 
     var foot, terms;
-    if (signing === 'tryouts') {
+    if (signing === 'draft') {
+      /* §DRAFT a draftee's paper is the Aleas': a rookie term at ordinary wages, no fee, no bid — one Pick, when it is yours */
+      var RD = G.state.recruitDraft, myPick = RD && !RD.done && RD.order[RD.i] === G.me;
+      var rookie = (SEASON.DRAFT && SEASON.DRAFT.SEASONS) || 2;
+      terms = rookie + ' Seasons \u00b7 Rookie \u00b7 ' + crs((f.contract || {}).salary || 0) + '/yr \u00b7 Fame ' + Math.round(f.fame || 0);
+      foot = myPick ? '<button class="pcbtn" data-rdpick="' + f.id + '">Pick</button>' : '';
+    } else if (signing === 'tryouts') {
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §SIGNING no marking and waiting: the sheet is your own ship's, so signing signs them */
@@ -3243,6 +3280,8 @@
        the same person on the sheet twice */
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of; });
     if (myLetter() && TRADE.tradingOpen(m)) items.push({ txt: cSpan(myLetter().from) + ' Has Written', tab: 'talks', kind: 'Letter', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
+    var RD = G.state.recruitDraft;
+    if (RD && !RD.done && m === 1 && SEASON.recruitDraftWhose(G.state) === G.me) items.push({ txt: 'The Draft \u00b7 Your Pick', tab: 'roster', kind: 'Draft', ping: '#rostdraft', urgent: true, cost: 'Best Remaining Assigned for You' });
     if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', kind: 'Board', urgent: true, cost: 'Silence Is an Answer' });
     if (m === SEASON.CONST.EIGHT_MONTH) {
       var E8 = G.state.eight || { names: {}, declined: {} };
@@ -3273,6 +3312,45 @@
     return items;
   }
   /* ============================ THE EIGHT ============================ */
+  /* §DRAFT THE DRAFT, ON THE ROSTER in Month 1, as a signing window in its own colour: the board — sixteen picks
+     down a rail, filled in as they go, the pick at bat lit — and beside it the sheet of who is still there, the
+     market's own prospect cards (mark, name, people, graded stats, Best With, the rookie terms), best first, with
+     one Pick when the pick is yours. It stood on the Desk as a bare table; every other acquisition is here. */
+  function renderRecruitDraft() {
+    var host = $('rostdraft'); if (!host) return;
+    var R = G.state && G.state.recruitDraft;
+    if (!R || G.state.month > 1) { host.innerHTML = ''; host.style.display = 'none'; return; }
+    host.style.display = '';
+    var n = G.state.ids.length, whose = R.done ? null : R.order[R.i], mine = whose === G.me;
+    var right = R.done ? 'The Draft Is Done' : 'Round ' + (Math.floor(R.i / n) + 1) + ' \u00b7 Pick ' + (R.i + 1) + ' of ' + R.order.length +
+                ' \u00b7 ' + (mine ? 'Your Pick' : 'Waiting on ' + esc(tName(whose)));
+    var byPick = {}; R.picks.forEach(function (p) { byPick[p.pick] = p; });
+    var board = '';
+    R.order.forEach(function (id, k) {
+      if (k % n === 0) board += '<div class="rh' + (k ? ' r2' : '') + '">Round ' + (Math.floor(k / n) + 1) + '</div>';
+      var p = byPick[k + 1], cls = p ? 'done' : k === R.i && !R.done ? 'now' : '';
+      if (id === G.me) cls += ' mine';
+      var pf = p ? (G.corps[p.corp].roster || []).find(function (x) { return x.id === p.fighter; }) : null;
+      board += '<div class="drfpk ' + cls + '" style="color:' + colFor(id) + '"><span class="no">' + (k + 1) + '</span><i class="sw"></i>' +
+        '<span class="who"><span class="oa oaname" data-oa="' + esc(id) + '">' + esc(tName(id)) + '</span>' +
+        (p ? '<span class="got">' + (pf ? nameHtml(pf) : esc(p.name)) + (p.how === 'assigned' ? ' <span class="m">\u00b7 Assigned</span>' : '') + '</span>'
+           : '<span class="wait">' + (k === R.i && !R.done ? (mine ? 'Your Pick' : 'Picking') : 'Waits') + '</span>') +
+        '</span></div>';
+    });
+    var pool = R.pool.filter(function (f) { return !f.mirror_of; }).sort(function (a, b) {
+      var sa = 0, sb = 0; STAT_KEYS.forEach(function (k) { sa += a.stats[k] || 0; sb += b.stats[k] || 0; }); return sb - sa;
+    });
+    var sheet = R.done ? '<div class="drfdone">Every Pick Made \u00b7 Your Draftees on the Books</div>'
+              : '<div class="pcs">' + pool.map(function (f) { return prospectCard(f, 'draft'); }).join('') + '</div>';
+    host.innerHTML = winShell('drf', 'The Draft', '', right,
+      '<div class="drfcols"><div class="drfboard">' + board + '</div>' + sheet + '</div>');
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-rdpick]');
+    if (!b || !G || !G.state) return;
+    var r = SEASON.recruitDraftPick(G.state, G.me, b.getAttribute('data-rdpick'));
+    if (r.ok) { if (typeof renderRoster === 'function') renderRoster(); if (typeof renderDesk === 'function') renderDesk(); }
+  });
   function renderEight() {
     var host = $('eight'); if (!host || !G || !G.state) return;
     var m = G.state.month, E = G.state.eight || { names: {} };
@@ -3422,7 +3500,7 @@
     if (m >= 12) {
       var D = G.state.drop && G.state.drop.draft;
       var mine = D ? (D.picks[G.me] || []).length : 0;
-      if (D && !D.done) { shell('', 'The Draft', mine + ' of ' + ((D.want || {})[G.me] || 0) + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
+      if (D && !D.done) { shell('', 'The Drop', mine + ' of ' + ((D.want || {})[G.me] || 0) + ' Landings Chosen', function () { if (TAB.table) TAB.table.click(); }); return; }
       /* §DROP THE FIRST PRESS DID NOTHING. This switched to the Table and then looked for the
          landing's own Drop button — which the Table had not rendered yet, so nothing happened
          and a manager pressed twice. The handler both buttons share is called directly. */
@@ -5082,6 +5160,16 @@
     renderSquads();
   }
 
+  /* §RESERVE the fit fighters in no squad, in the landing order the manager set (new arrivals at the foot) */
+  function reserveBodies(fit) {
+    var home = fit.filter(function (b) { return G.plan.at[b.id] == null; });
+    var order = (G.plan.reserve || []), byId = {};
+    home.forEach(function (b) { byId[b.id] = b; });
+    var out = order.filter(function (id) { return byId[id]; }).map(function (id) { return byId[id]; });
+    home.forEach(function (b) { if (out.indexOf(b) < 0) out.push(b); });
+    return out;
+  }
+  function reserveIds() { return reserveBodies(fitBodies()).map(function (b) { return b.id; }); }
   function renderSquads() {
     if (!G) return;
     var fit = fitBodies();
@@ -5094,25 +5182,50 @@
     var sel = G._sqsel ? bodyById(G._sqsel) : null;
     var MAX = DIVIDE.CONST.SQUAD_MAX, MIN = DIVIDE.CONST.SQUAD_MIN;
 
-    /* ---- the bench ---- */
-    var home = fit.filter(function (b) { return G.plan.at[b.id] == null; });
-    home.sort(function (a, b) {
-      var x = rosterSortVal(a, BENCH_SORT.key), y = rosterSortVal(b, BENCH_SORT.key);
-      var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
-      return BENCH_SORT.asc ? c : -c;
-    });
-    var bh = '<div class="benchhead"><span class="t">At Home</span><span class="n">' + home.length + ' Fit, Unassigned</span></div>' +
-      '<div class="sortbar bsort"><span class="lbl">Sort</span>' + BENCH_SORTS.map(function (o) {
+    /* ---- the bench IS THE RESERVE (§RESERVE, ruled) ----
+       Everyone fit who is not in a squad waits in orbit, and the first ten land at a Landing Beacon in the order they
+       stand here — one for every four hours a squad of yours holds a beacon unchallenged. The sort buttons set the order
+       in one click; the arrows move one fighter. Past the tenth, they stay home. */
+    var home = reserveBodies(fit);
+    var RMAX = SEASON.CONST.RESERVE_MAX;
+    var bh = '<div class="benchhead"><span class="t">In Reserve</span><span class="n">' + Math.min(RMAX, home.length) + ' of ' + RMAX +
+      ' \u00b7 Land in This Order</span></div>' +
+      '<div class="sortbar bsort"><span class="lbl">Order By</span>' + BENCH_SORTS.map(function (o) {
         return '<span class="sortopt' + (BENCH_SORT.key === o.k ? ' on' : '') + '" data-bsort="' + o.k + '">' + o.lbl + '</span>'; }).join('') + '</div>' +
       '<div class="bcards">';
-    if (!home.length) bh += '<div class="none">Everyone Fit Is Fielding</div>';
-    home.forEach(function (b) { bh += fighterCard(b, false); });
+    if (!home.length) bh += '<div class="none">Everyone Fit Is Fielding \u00b7 No Reserve</div>';
+    home.forEach(function (b, k) {
+      if (k === RMAX) bh += '<div class="rsvsplit">Stays Home</div>';
+      bh += '<div class="rsvrow' + (k >= RMAX ? ' home' : '') + '"><span class="rsvn">' + (k < RMAX ? k + 1 : '') + '</span>' +
+            fighterCard(b, false) +
+            '<span class="rsvmv"><button class="tiny" data-rsvup="' + b.id + '"' + (k ? '' : ' disabled') + ' title="Land Sooner">\u25b2</button>' +
+            '<button class="tiny" data-rsvdn="' + b.id + '"' + (k < home.length - 1 ? '' : ' disabled') + ' title="Land Later">\u25bc</button></span></div>';
+    });
     $('bench').innerHTML = bh + '</div>';
     Array.prototype.forEach.call($('bench').querySelectorAll('[data-bsort]'), function (o) {
       o.onclick = function () {
         var k = o.getAttribute('data-bsort');
         if (BENCH_SORT.key === k) BENCH_SORT.asc = !BENCH_SORT.asc;
         else { BENCH_SORT.key = k; BENCH_SORT.asc = (k === 'name' || k === 'origin'); }
+        /* a sort SETS the landing order */
+        var all = reserveBodies(fitBodies());
+        all.sort(function (a, b) {
+          var x = rosterSortVal(a, BENCH_SORT.key), y = rosterSortVal(b, BENCH_SORT.key);
+          var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
+          return BENCH_SORT.asc ? c : -c;
+        });
+        G.plan.reserve = all.map(function (b) { return b.id; });
+        renderSquads();
+      };
+    });
+    Array.prototype.forEach.call($('bench').querySelectorAll('[data-rsvup],[data-rsvdn]'), function (bt) {
+      bt.onclick = function (e) {
+        e.stopPropagation();
+        var up = bt.hasAttribute('data-rsvup'), id = bt.getAttribute(up ? 'data-rsvup' : 'data-rsvdn');
+        var ids = reserveIds(), i = ids.indexOf(id), j = up ? i - 1 : i + 1;
+        if (i < 0 || j < 0 || j >= ids.length) return;
+        var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+        G.plan.reserve = ids;
         renderSquads();
       };
     });
@@ -6094,7 +6207,7 @@
     /* §AUTHORITY the manager's squads, leaders and hand-kit are LOCKED through the engine, which checks them and
        applies them as it prepares the Divide — the page used to write them straight into its options */
     var planned = plannedGroups();
-    SEASON.lockSquads(G.state, G.me, { groups: planned ? planned.groups : [], leaders: planned ? planned.leaders : [],
+    SEASON.lockSquads(G.state, G.me, { reserve: reserveIds(), groups: planned ? planned.groups : [], leaders: planned ? planned.leaders : [],
                                        hand: G.plan.hand || {} });
     /* §SUPER in hotseat both seats are people: the second is handed to a person for the contest */
     if (G.super && G.super.on) G.super.seats.forEach(function (id) { SEASON.setController(G.state, id, 'human'); });
@@ -6383,7 +6496,8 @@
     return { d: w.day, z: w.zone, zn: null, sq: sq,
              obj: (G.div.planet.objectives || []).filter(function (o) { return o.revealed; })
                     .map(function (o) { return { x: o.x, y: o.y, h: o.heldBy, t: o.type, lbl: o.label,
-                                                 l: !!o.looted, id: o.id }; }),
+                                                 l: !!o.looted, id: o.id,
+                                                 on: o.type === 'sponsor_cache' && o.litDay === w.day ? o.litBy : null }; }),
              ev: (w.fights || []).map(function (f) {
                     return { t: 'fight', x: f.x, y: f.y, corps: f.corps, ex: f.exchanges,
                              result: f.result }; }),
@@ -6870,6 +6984,19 @@
         drawSite(g, p, o);
         G._gspots.push({ x: p[0], y: p[1], r: 11, kind: 'site', site: o });
       }
+      /* §COMMAND YOUR OA'S PLAN, ON THE GROUND: each operation a flag where it is aimed, in your colour, saying what it
+         is — so a manager reads the day by what his people meant to do */
+      for (var oi = 0; oi < (D.ops || []).length; oi++) {
+        var op = D.ops[oi]; if (op.x == null || oaIdOf(op.c) !== G.me) continue;
+        var opp = gproj(cv, op.x, op.y), oc = colFor(G.me);
+        g.strokeStyle = oc; g.fillStyle = oc; g.globalAlpha = .9; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(opp[0], opp[1] + 9); g.lineTo(opp[0], opp[1] - 13); g.stroke();
+        g.beginPath(); g.moveTo(opp[0], opp[1] - 13); g.lineTo(opp[0] + 11, opp[1] - 9); g.lineTo(opp[0], opp[1] - 5); g.closePath(); g.fill();
+        g.font = '700 9px ui-monospace, Menlo, monospace'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = TOK.ink;
+        g.fillText((OPWORD[op.k] || op.k) + (op.t ? ' \u00b7 ' + (SITEWORD[op.t] || op.t) : '') + (op.n > 1 ? ' \u00b7 ' + op.n + ' Squads' : ''), opp[0] + 14, opp[1] - 10);
+        g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
+        G._gspots.push({ x: opp[0], y: opp[1] - 9, r: 10, kind: 'op', op: op });
+      }
       /* §GROUND fights fire at their moment in the day: day fights spread through the march,
          night fights at its end; each bursts when it fires and keeps its label after */
       /* §GROUND A FIGHT IS TWO MARKS, NOT A SENTENCE. Each contact was labelled with a made-up
@@ -6980,6 +7107,7 @@
              squad of yours that met them */
           g.fillText(sq2.landing ? 'Posted Landing'
                    : sq2.via === 'relay' ? 'Mast \u00b7 D' + (D.d - sq2.age)
+                   : sq2.via === 'beacon' ? 'Beacon \u00b7 D' + (D.d - sq2.age)
                    : sq2.stale ? 'Last Seen D' + (D.d - sq2.age)
                    : (sq2.age ? 'Seen D' + (D.d - sq2.age) : 'Seen'), sp[0], sp[1] + r + 9);
           g.textBaseline = 'alphabetic'; g.globalAlpha = 1;
@@ -7082,7 +7210,8 @@
     $('gplanet').innerHTML = '<b>' + esc(pl.name || pl.archetype) + '</b><br>' +
       '<span class="m">Day ' + D.d + ' \u00b7 ' +
       (D.z.r / pl.radius * 100).toFixed(1) + '% of the Ground Inside the Wall \u00b7 ' +
-      (D.obj || []).length + ' Sites Revealed</span>' +
+      (D.obj || []).length + ' Sites Revealed' +
+      (G.div.win && G.div.win.reserveLeft != null ? ' \u00b7 ' + G.div.win.reserveLeft + ' in Reserve' : '') + '</span>' +
       (G.div.win && G.div.win.weather && G.div.win.day === D.d ? '<div style="margin-top:4px">' + weatherWords(G.div.win.weather) + '</div>' : '');
     /* §WITHDRAWAL (stage 5) the column is the OA, not a banner: nobody stands under anybody
        else's flag now — an OA is on the ground or it has conceded and gone */
@@ -7104,6 +7233,12 @@
              (v.corps || []).map(cSpan).join(' Met ') +
              '</b>' + (v.result ? ' \u2014 ' + esc(capWords(v.result)) : '') +
              (v.ex != null ? ' \u00b7 ' + v.ex + ' Exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
+    });
+    /* §RESERVE your landings that day */
+    ((G.div.win && G.div.win.landings) || []).forEach(function (l) {
+      if (l.day !== D.d) return;
+      out += '<div class="ev land">Day ' + D.d + ' \u00b7 <b>' + esc(l.name) + (l.pair ? ' (a Pair)' : '') + '</b> Landed at the ' +
+             esc(l.site || 'Landing Beacon') + ' \u2014 ' + esc((G.plan && G.plan.names && G.plan.names[l.squad]) || ('Squad ' + squadLetter(l.squad))) + '</div>';
     });
     $('gevents').innerHTML = out || '<div class="ev m">Quiet Since the Last Window</div>';
     renderRecord();
@@ -7218,6 +7353,7 @@
       tip.style.left = (hit.x * k + 14) + 'px'; tip.style.top = (hit.y * k - 6) + 'px';
       tip.innerHTML = hit.kind === 'squad' ? squadTip(hit.sq)
                     : hit.kind === 'site' ? siteTip(hit.site)
+                    : hit.kind === 'op' ? opTip(hit.op)
                     : (hit.ev.corps || []).map(cSpan).join(' \u00d7 ') +
                       '<div class="r">' + esc(fightWords(hit.ev)) + (hit.ev.bi != null ? ' \u00b7 Click to Watch' : '') + '</div>';
       tip.classList.add('on');
@@ -7467,7 +7603,7 @@
     strongpoint:    { word: 'Strongpoint', col: TOK.warn },
     ration_site:    { word: 'Rest Site',   col: TOK.hit },
     relay_mast:     { word: 'Vision Site', col: TOK.a },
-    sponsor_cache:  { word: 'Cache',       col: TOK.cred },
+    sponsor_cache:  { word: 'Landing Beacon', col: TOK.cred },
     munitions_drop: { word: 'Munitions',   col: TOK.shell },
     resource_site:  { word: 'Deposit',     col: TOK.wall }
   };
@@ -7490,9 +7626,15 @@
       g.moveTo(x - 9, y); g.quadraticCurveTo(x, y - 8, x + 9, y); g.quadraticCurveTo(x, y + 8, x - 9, y);
       g.fill(); g.stroke();
       g.fillStyle = look.col; g.beginPath(); g.arc(x, y, 2.8, 0, Math.PI * 2); g.fill();
-    } else if (o.t === 'sponsor_cache') {   /* a box */
-      g.rect(x - 7, y - 6, 14, 12); g.fill(); g.stroke();
-      g.beginPath(); g.moveTo(x - 7, y - 1); g.lineTo(x + 7, y - 1); g.stroke();
+    } else if (o.t === 'sponsor_cache') {   /* §RESERVE a beacon: a mast, and its signal when lit */
+      g.moveTo(x, y - 8); g.lineTo(x + 6, y + 7); g.lineTo(x - 6, y + 7); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = look.col; g.beginPath(); g.arc(x, y - 8, 2.2, 0, Math.PI * 2); g.fill();
+      if (o.on) {
+        g.strokeStyle = colFor(o.on); g.lineWidth = 2;
+        g.beginPath(); g.arc(x, y - 8, 7, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+        g.beginPath(); g.arc(x, y - 8, 11, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+        g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.globalAlpha = 0.5; g.stroke();
+      }
     } else if (o.t === 'munitions_drop') {  /* a round */
       g.moveTo(x, y - 8); g.lineTo(x + 5, y - 2); g.lineTo(x + 5, y + 7); g.lineTo(x - 5, y + 7); g.lineTo(x - 5, y - 2);
       g.closePath(); g.fill(); g.stroke();
@@ -7502,6 +7644,16 @@
     }
     g.restore();
   }
+  var OPWORD = { take: 'Take', reinforce: 'Reinforce', mend: 'Mend', strike: 'Strike', join: 'Link Up', advance: 'Advance', hold: 'Hold', close: 'Close In' };
+  var SITEWORD = { resource_site: 'Deposit', sponsor_cache: 'Beacon', ration_site: 'Rest Site', strongpoint: 'Strongpoint', munitions_drop: 'Munitions', squad: 'Squad' };
+  /* why the operation stands as it does: the moment it was last chosen, in the manager's words */
+  var OPWHY = { first: 'Set at the Drop', window: 'Changed at the Window', gone: 'Old Aim Was Spent', landed: 'Reinforcements Landed',
+    quarry: 'Old Quarry Is Down', joined: 'Squads Linked Up', bled: 'Replanned After Losses', outmatched: 'Replanned, Outmatched', ring: 'Replanned for the Ring', close: 'The Ring Is Closing' };
+  function opTip(op) {
+    var name = op.t === 'resource_site' && op.lbl ? capWords(op.lbl) : (SITEWORD[op.t] || '');
+    return '<b style="color:' + colFor(G.me) + '">' + esc((OPWORD[op.k] || op.k) + (name ? ' · ' + name : '')) + '</b>' +
+      '<div class="r">' + (op.n || 1) + (op.n > 1 ? ' Squads' : ' Squad') + (OPWHY[op.why] ? ' · ' + OPWHY[op.why] : '') + '</div>';
+  }
   function siteTip(o) {
     var look = SITE_LOOK[o.t] || SITE_LOOK.resource_site;
     var name = o.t === 'resource_site' && o.lbl ? capWords(o.lbl) : look.word;
@@ -7509,12 +7661,13 @@
        kind of site is FOR is learned once from its mark and belongs in no hover. */
     return '<b style="color:' + look.col + '">' + esc(name) + '</b>' +
       (o.t === 'strongpoint' && o.h ? '<div class="r">' + cSpan(o.h) + '</div>' : '') +
+      (o.t === 'sponsor_cache' && o.on ? '<div class="r">Lit by ' + cSpan(o.on) + '</div>' : '') +
       (o.l ? '<div class="r">Spent</div>' : '');
   }
   /* who is standing in a squad of yours, and how they are: read off the window when it is
      the day being shown, and off the day's own count when the manager has scrubbed back */
   /* exposed for the harness, which has no layout to point a mouse at */
-  window.__gtip = { squadTip: function (q) { return squadTip(q); }, siteTip: function (o) { return siteTip(o); } };
+  window.__gtip = { squadTip: function (q) { return squadTip(q); }, siteTip: function (o) { return siteTip(o); }, opTip: function (o) { return opTip(o); } };
   function squadTip(sq) {
     var nm = (G.plan && G.plan.names && G.plan.names[sq.s]) || ('Squad ' + squadLetter(sq.s));
     var h = '<b style="color:' + SQCOL[sq.s % SQCOL.length] + '">' + esc(nm) + '</b>';
@@ -9043,7 +9196,7 @@
         '<div class="ds">' + (D.picks[id] || []).map(function (sl) { return '<span class="slotchip" style="background:' + colFor(id) + '">' + (sl + 1) + '</span>'; }).join('') +
         (on ? '<span class="m">Picking</span>' : '') + '</div></div>'; }).join('');
     var mine = D.picks[G.me] || [];
-    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Draft \u00b7 Round ' + Math.min(SEASON.PICKS_EACH, D.round + 1) + ' of ' + SEASON.PICKS_EACH + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
+    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Drop \u00b7 Round ' + Math.min(SEASON.PICKS_EACH, D.round + 1) + ' of ' + SEASON.PICKS_EACH + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
       (D.done ? '<button id="dropbtn" class="primary">Drop</button>' : myTurn ? '<span class="gold">Your Pick \u00b7 ' + (SEASON.PICKS_EACH - mine.length) + ' Left</span>' : '<span class="m">Waiting on ' + cSpan(whose) + '</span>') + '</div>' +
       '<div class="dstrip">' + strip + '</div>' +
       '<div class="landcols"><div><canvas id="dropmap" width="720" height="720" style="width:100%;height:auto;display:block;background:' + TOK.mapbg + ';border:1px solid var(--line);border-radius:3px"></canvas></div>' +

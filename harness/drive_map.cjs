@@ -1,5 +1,5 @@
 /* §GROUND THE MAP, READ. Plays to the drop, advances a window, and reads the Ground's hover
-   for a squad of yours and for the sites — through the two functions that build it, since
+   for a squad of yours, for the sites and for your OA's operations — through the two functions that build it, since
    the harness has no layout to point a mouse at. Fails if the sites are not told what they
    are or a squad's hover does not list who is in it. `node harness/drive_map.cjs` */
 const fs=require('fs');const {JSDOM}=require('/home/claude/opes-arx/harness/node_modules/jsdom');
@@ -26,6 +26,12 @@ setTimeout(()=>{d.getElementById('mNew').click();
          if(kinds.size < 3) fails.push('the map is not told what its sites are (' + [...kinds].join(',') + ')');
          (D.obj||[]).slice(0,3).forEach(o=>{ const t=txt(w.__gtip.siteTip(o)); console.log('site:  ' + t);
            if(!t || /undefined/.test(t)) fails.push('a site hover says nothing: ' + o.t); });
+         /* §COMMAND your OA's plan rides the day: its operations, and none of anyone else's */
+         const rec=G.div.win.record||[], ops=(rec[rec.length-1]||{}).ops||[];   /* the drop is recorded before the first plan */
+         if(!ops.length) fails.push('the day carries no plan of yours');
+         if(ops.some(o=>o.c!==ops[0].c)) fails.push('the day shows another OA\'s plan');
+         ops.slice(0,3).forEach(o=>{ const t=txt(w.__gtip.opTip(o)); console.log('op:    ' + t);
+           if(!t || /undefined|null/.test(t)) fails.push('an operation hover says nothing: ' + o.k); });
          console.log(fails.length ? 'FAIL ' + fails.join(' | ') : 'the map names its sites, and your squads say who is in them');
          process.exit(fails.length ? 1 : 0);
        },400);

@@ -50,6 +50,9 @@
        ACT, so effects scale linearly by thirds — except the signing window, where every
        point is another pass over the lot (an act of attention, not a scaled block). */
     FOCUS_POINTS: 8,             // [H] focus a corp gets each month
+    RESERVE_MAX: 10,              // [C] §RESERVE the most fighters (beings) an OA holds in orbit, ready to land at a beacon
+    RESERVE_AI_MAX: 7,            // [C] §RESERVE what a wholly unaggressive engine seat would hold back (×(1 − aggression))
+    CHAMPION_MERC_PREMIUM: 0.30,  // [C] §SNOWBALL a hired gun charges the champion +30%, last place about −10%
     FOCUS_CAP: 3,                // [H] the most focus any one track accepts
     TRAIN_BASELINE: 0.1,         // [C] everyone below the green gap drifts this fraction of a
                                  //     drill block toward their ceiling monthly, unfocused —
@@ -250,7 +253,7 @@
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 5000,         /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled) */
+    SITE_CASH: 20000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled; ₡5k → ₡20k: sites worth more, the pot a little less) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is
@@ -383,7 +386,9 @@
       average carried the eight's reputations with it, and an OA with no history took ₡93k a
       year at the door before it had done anything.) Opening at zero on EVERY audience was tried
       once and read as "your own crew hates you"; that is why home is kept warm. */
-  function founderProfile(profiles, name) {
+  /* §SEATS `id` lets more than one OA be founded into one fleet — every manager who joins founds his own, and they
+     cannot all be `custom_house`. Left out, it is the one founder the page has always made. */
+  function founderProfile(profiles, name, id) {
     const avg = vals => {
       const nums = vals.filter(v => typeof v === 'number' && isFinite(v));
       if (nums.length === vals.length && nums.length)
@@ -411,7 +416,7 @@
        a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
        loyalty is earned by the year. The fleet has no opinion yet. */
     p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
-    p.id = 'custom_house';
+    p.id = id || 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
     p.motto = 'Unwritten.';
@@ -948,6 +953,13 @@
       const idx = STATE_REF.ids.map(id => STATE_REF.corps[id]).filter(x => x && x.rep).map(x => REP.mercIndex(x.rep));
       const fleetMean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : 0;
       if (fleetMean > 0) mult *= REP.mercPriceMult(corp.rep, fleetMean);
+      /* §SNOWBALL THE CHAMPION'S PREMIUM: a hired gun charges last year's champion most — its fights will be the
+         hardest and its purse is deep — and the foot of the table a little less. The losses discount above rewards
+         careful OAs, which are also the ones that win, so on its own it fed the leader; this answers it. */
+      if (corp._lastPlace) {
+        const n = STATE_REF.ids.length, top = (n - corp._lastPlace) / Math.max(1, n - 1);   /* 1 the champion, 0 last */
+        mult *= 1 + CONST.CHAMPION_MERC_PREMIUM * top - CONST.CHAMPION_MERC_PREMIUM * 0.33 * (1 - top);
+      }
     }
     return Math.round(flat * mult);
   }
@@ -2395,7 +2407,15 @@
        the corp answers its own board. This read `opts.want || DROP_MAX`, so absent a harness
        override it always wanted the maximum and the small-force build could never be taken. */
     const asked = opts.want != null ? opts.want : wantedDropSize(corp);
-    const want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    let want = Math.min(CONST.DROP_MAX, Math.max(CONST.DROP_MIN, asked));
+    /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK (ruled): the less aggressive, the more it keeps in orbit to land at a beacon
+       later — a cautious OA about five, an aggressive one about one — never dropping below the floor to do it */
+    if (opts.want == null && !opts.noReserve) {
+      const agg = ((corp.profile && corp.profile.dials && corp.profile.dials.aggression) != null ? corp.profile.dials.aggression : 50) / 100;
+      const keep = Math.round(CONST.RESERVE_AI_MAX * (1 - agg));
+      const fitLeads = fit.filter(f => !f.mirror_of).length;
+      want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
+    }
     const picked = fit.slice().sort((a, b) => score(b) - score(a)).slice(0, Math.min(want, fit.length));
     /* THE WALKING WOUNDED. A roster can hold twenty and still not field sixteen, because the
        drop takes only the uninjured — and S14 caught a force of fifteen going down. A corp
@@ -2492,8 +2512,10 @@
 
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
-      const ids = idsOf(f);
-      if (f.status !== 'dead') { carried(ids); continue; }      /* home, and back in the rack */
+      /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
+      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
+      if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
          recovered whether or not their side held the ground. The hook was declared at Step 2,
          repurposed in writing at Step 5, and read by nothing until the gear-damage cut went
@@ -2636,6 +2658,81 @@
       }
     }
   }
+  /* §DRAFT (ruled) THE DRAFT: fighters raised and trained by the Aleas, sixteen of them in Month 1, two to an OA, picked
+     in straight reverse order of last year's placement — last place first in both rounds — for free, on a two-season
+     rookie contract at ordinary wages. The Aleas want a contest worth watching, and a league where last place gets first
+     pick is one. The pool is spread WIDE (each stat pushed 1.8x further from the pool's average) so the first pick is
+     worth having. An engine seat takes the best available; a person's turn waits, and when Month 1 closes the Aleas
+     assign the best remaining — a rule, not a choice made for them. A first year has no placements, so its order is
+     WEAKEST FIRST by the strength the fleet reads (`strengthRead`: the roster's quality and the OA's standing) — the
+     same read the Drop's landing draft uses; a random draw let the strongest OA pick first, which defeats a draft.
+     (The landing-slot pick before the drop is the Drop.) */
+  const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
+  function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
+  function openRecruitDraft(state) {
+    const ws = state.corps[state.ids[0]] && state.corps[state.ids[0]]._worldSeed;
+    const rng = P.mulberry32(P.seedFrom('recruit-draft' + state.season + ':' + (ws || 0)));
+    /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
+    const pool = ROSTER.generateSquad(rng, DRAFT.POOL, { corpId: null, poolMix: [['nattie', 1]] }).bodies;
+    const keys = Object.keys((pool[0] && pool[0].stats) || {});
+    for (const k of keys) {
+      const m = pool.reduce((t, f) => t + (f.stats[k] || 0), 0) / pool.length;
+      for (const f of pool) f.stats[k] = Math.max(15, Math.min(195, Math.round(m + ((f.stats[k] || 0) - m) * DRAFT.SPREAD)));
+    }
+    for (const f of pool) {
+      f.draftee = true; f.status = 'active';
+      f.contract = Object.assign({}, f.contract || {}, { seasons_remaining: DRAFT.SEASONS, seasons_total: DRAFT.SEASONS });
+    }
+    const placed = state.ids.some(id => state.corps[id]._lastPlace);
+    const base = state.ids.slice();
+    if (placed) base.sort((a, b) => (state.corps[b]._lastPlace || 99) - (state.corps[a]._lastPlace || 99));
+    else { const st = {}; for (const id of base) st[id] = strengthRead(state, id); base.sort((a, b) => st[a] - st[b]); }
+    const order = [];
+    for (let r = 0; r < DRAFT.ROUNDS; r++) order.push.apply(order, base);
+    state.recruitDraft = { pool: pool, order: order, picks: [], i: 0, done: false, byPlacement: placed };
+    recruitDraftAdvance(state);
+  }
+  function recruitDraftWhose(state) {
+    const R = state.recruitDraft;
+    return R && !R.done ? R.order[R.i] : null;
+  }
+  const draftLeads = (R) => R.pool.filter(x => !x.mirror_of);
+  function takeDraftee(state, corpId, f, how) {
+    const R = state.recruitDraft, c = state.corps[corpId];
+    const both = [f].concat(R.pool.filter(x => x.mirror_of === f.id));   /* a pair crosses together */
+    R.pool = R.pool.filter(x => both.indexOf(x) < 0);
+    for (const b of both) {
+      b.divides = 0; b.seasonsHere = 0; b.retired = false; b._fameAtSigning = b.fame || 0;
+      c.roster.push(b);
+    }
+    R.picks.push({ corp: corpId, fighter: f.id, name: f.name, round: Math.floor(R.i / state.ids.length) + 1, pick: R.i + 1, how: how });
+    R.i++;
+    if (R.i >= R.order.length || !draftLeads(R).length) R.done = true;
+  }
+  function recruitDraftPick(state, corpId, fighterId) {
+    const R = state.recruitDraft;
+    if (!R || R.done) return { ok: false, why: 'No Draft Open' };
+    if (recruitDraftWhose(state) !== corpId) return { ok: false, why: 'Not Your Pick' };
+    const f = draftLeads(R).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not in the Pool' };
+    takeDraftee(state, corpId, f, 'chose');
+    recruitDraftAdvance(state);
+    return { ok: true };
+  }
+  function recruitDraftAdvance(state, opts) {
+    const R = state.recruitDraft;
+    if (!R) return null;
+    while (!R.done) {
+      const who = R.order[R.i];
+      const best = draftLeads(R).sort((a, b) => draftScore(b) - draftScore(a))[0];
+      if (!best) { R.done = true; break; }
+      if (isHuman(state, who)) {
+        if (!(opts && opts.force)) break;
+        takeDraftee(state, who, best, 'assigned');
+      } else takeDraftee(state, who, best, 'policy');
+    }
+    return R;
+  }
   function beginSeason(rng, corps, profiles, opts) {
     /* §AUTHORITY a board question left unanswered when the year turns was silence, and silence costs */
     for (const id in corps) {
@@ -2731,7 +2828,8 @@
       REP.openSeason(c.rep, planet,
                      P.mulberry32(P.seedFrom('goal' + season + id)),
                      { expect: Math.max(2, 3 + ((c.profile || {}).difficulty || 3)),
-                       thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low' });
+                       thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low',
+                       lastPlace: c._lastPlace || null });      /* §SNOWBALL the champion's board raises the bar */
     }
 
     const seats = humansOf(opts);
@@ -2752,6 +2850,7 @@
     ensureLot(state);
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
+    openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
     return state;
   }
 
@@ -3104,6 +3203,8 @@
    * a second human player would wait on.
    */
   function stepMonth(state, choices) {
+    /* §DRAFT the month the draft is held closes it: any pick not made is the Aleas' to assign */
+    if (state.recruitDraft && !state.recruitDraft.done) recruitDraftAdvance(state, { force: true });
     lapseTrades(state);   /* §TRADE the month closes: a letter left unanswered lapses */
     if (state.done || state.month > CONST.PREP_MONTHS) return null;
     STATE_REF = state;
@@ -3460,6 +3561,7 @@
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
         /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
            Divide writes into the same object, so the lesson survives the lock */
         dealRecord: (c._dealRecord = c._dealRecord || {}),
@@ -3666,8 +3768,41 @@
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
-    c._lock = { groups: groups, leaders: leaders, hand: hand };
+    const reserve = ((plan && plan.reserve) || []).filter(id => own.has(id));
+    c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve };
     return { ok: true, lock: c._lock };
+  }
+  /* §RESERVE (ruled) THE RESERVE: an OA's fit fighters left off the drop wait in orbit, up to ten (beings: a Mon-Wa
+     pair is one, and lands whole), in an order its manager sets on the Squads board — the engine orders its own by
+     quality. They are kitted at the drop with everyone else, inside the kit cap, and land one at a time at a Landing
+     Beacon; each one's purse is paid when it lands. A reserve that never lands costs its kit's place in the cap and no
+     lives. What did not land comes home with its kit. */
+  function reserveOf(c) {
+    const inDrop = new Set((c._drop || []).map(f => f.id));
+    const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
+      && !inDrop.has(f.id) && !(f.condition && (f.condition.injuries || []).length));
+    const leads = fit.filter(f => !f.mirror_of);
+    const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+    const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
+    const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
+    /* the reserve is force ON TOP of the drop, not carved out of it (ruled): a reserve carved out of the drop's limit
+       would only ever cost an OA its starting strength, and nobody would hold one */
+    const out = [];
+    for (const f of asked.concat(rest).slice(0, CONST.RESERVE_MAX)) {
+      out.push(f);
+      const mate = fit.find(x => x.mirror_of === f.id);
+      if (mate) out.push(mate);
+    }
+    return out;
+  }
+  function assignReserves(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      if (!c || !per[id]) continue;
+      c._reserve = reserveOf(c);
+      per[id].reserve = c._reserve.slice();
+    }
   }
   function applyLocks(state) {
     const per = (state._divideOpts || {}).corps || {};
@@ -3680,6 +3815,19 @@
       const drop = selectDrop(c, { manual: ids });
       if (!drop.length) continue;
       const kept = {}; drop.forEach(b => { kept[b.id] = true; });
+      /* §RESERVE THE LOCKED DROP IS THE DROP. The muster pays purses to the engine's default drop and records it as
+         `c._drop`; a manager's lock then put HIS fighters on the ground without touching `c._drop`, so he paid purses
+         for the wrong people and the season settled the wrong people's kit and service afterwards. The lock's drop
+         is recorded, and the purses are put right by the difference. */
+      const old = c._drop || [], oldIds = old.map(f => f.id).sort().join(','), newIds = drop.map(f => f.id).sort().join(',');
+      if (oldIds !== newIds) {
+        const diff = LED.purseBill(drop) - LED.purseBill(old);
+        if (diff) LED.post(c.account, 'expense', 'purses', -diff);
+        c._purses = (c._purses || 0) + diff; c._wages = (c._retainers || 0) + c._purses;
+        for (const f of old) f._droppedLastSeason = false;
+        for (const f of drop) f._droppedLastSeason = true;
+      }
+      c._drop = drop;
       p.drop = drop; p.groups = []; p.leaders = [];
       L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
     }
@@ -3690,6 +3838,7 @@
        be missed (the contest ran with no drafted landings) — and so a resumed contest builds exactly what the first did */
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
+    assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
@@ -3736,6 +3885,8 @@
   }
   function finishSeason(state, res) {
     askBoards(state, res);
+    /* §DRAFT where each OA finished is next year's draft order, last place first */
+    for (const id of state.ids) if (res.placement && res.placement[id] != null) state.corps[id]._lastPlace = res.placement[id];
     /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
        it walks onto the ground, does its work, and is gone at the settlement. Cleared here
        rather than at the drop so a replayed or halted contest still sees it. */
@@ -3828,8 +3979,10 @@
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
+      /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
+      const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
       c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
-                                 c, dropped, dead, heldGround);
+                                 c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
       /* ---- THE BOARD CLOSES ----
@@ -4260,7 +4413,8 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { isHuman, humansOf, theManager, seatView,
+  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+     seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
      setController,

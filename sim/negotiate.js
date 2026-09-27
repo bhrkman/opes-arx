@@ -22,7 +22,7 @@
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one; split down an umbrella it is still years. The pot has to stay
        immense AFTER the deals, or the deals are not worth making. */
-    POT_BASE: 1400000,                  // [H] credits, a whole planet
+    POT_BASE: 1200000,                  // [H] credits, a whole planet (ruled 1.4M → 1.2M: the pot a little less, sites worth more)
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the

@@ -893,3 +893,19 @@ ONE SECTION TITLE
 
 Desk sections and Market type titles share one centred look: capitals with rules either side, the Desk's
 fold mark at the right edge (now on the Market's titles too).
+
+A BASELINE FOR FATALITY AND THE ECONOMY (temporary)
+
+The Aleas pull a spent banner (below 45% standing); severity's power weight 1.15 -> 0.75; an AI OA may walk
+away with nothing. The withdrawal market fixed: trust grounded in reputation (keepChance, one formula for
+expectation and settlement) and the pull deadline priced into staying. Six contests: fatality ~53% -> ~28%,
+exits by deal 1 -> 14, pot to non-winners 1.3% -> 18%. probe_market.cjs. Snapshots re-blessed; proofs re-recorded.
+
+ANTI-SNOWBALL: THE DRAFT, THE DROP, THE CHAMPION; PLACEMENT FIXED
+
+The Draft: sixteen Aleas-raised fighters in Month 1, two each, last place first; a Mon-Wa pair is one pick.
+The landing pick is renamed the Drop. The champion pays +30% for mercenaries, its board wants the title
+again, its fighters are worth more fame, and contenders hunt it. Placement was list order (nothing recorded
+the day an OA left the ground); now it is that day. Eight seasons: six champions, none more than twice.
+Proofs and fingerprint re-recorded; drive_draft.cjs; the seat test chooses a scenario both seats survive.
+(Also contains the fatality and market baseline, not yet on GitHub.)

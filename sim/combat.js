@@ -196,7 +196,7 @@ const CONST = {
   NIGHT_AIM_PENALTY: 20,                   // [OPEN-C1] proposed
 
   /* §3.6 severity */
-  SEV_POWER_MULT: 1.15,                   // [H] C12: retuned again in v1.2 (2 → 1.4 → 1.15)
+  SEV_POWER_MULT: 0.75,                   // [H] §BASELINE (temporary, ruled): 1.15 → 0.75 — one of two levers toward a 25–30% Divide                   // [H] C12: retuned again in v1.2 (2 → 1.4 → 1.15)
   SEV_PROTECTION_MULT: 1.90,              // [H] C12: retuned again in v1.2 (3 → 2.0 → 1.65)
   SEV_GRIT_DIVISOR: 20,                    // [H]
   SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 94.2 },  // [C] >critical = killed outright

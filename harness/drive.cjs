@@ -295,9 +295,11 @@ setTimeout(() => {
       const before = c1[you].roster.length;
       const theirs = Object.keys(c1)[1], theirBefore = c1[theirs].roster.length;
       while (st1.month <= 3) S1.stepMonth(st1);        /* through both Natural-Born months */
-      check(c1[you].roster.length === before,
-            'a manager who marked nobody signed nobody (' + before + ' \u2192 ' +
-            c1[you].roster.length + ')');
+      /* §DRAFT the Draft's two are the Aleas' to assign when Month 1 closes on an unmade pick: counted apart */
+      const signedNow = c1[you].roster.filter(f => !f.draftee).length, drafted = c1[you].roster.filter(f => f.draftee).length;
+      check(signedNow === before,
+            'a manager who marked nobody signed nobody (' + before + ' \u2192 ' + signedNow + ')');
+      check(drafted === 2, 'and the Draft assigned him his two when Month 1 closed (' + drafted + ')');
       /* an OA nobody runs still RECRUITS on its own — it is not left to a manager's hand. How
          many it can afford is balance, and balance waits on fatality (ruled), so this asks only
          that it keeps a force it can field, not that it grows */
@@ -665,6 +667,16 @@ setTimeout(() => {
       const wantId = TR.netOf(getOne);
       check(doc.querySelectorAll('#negwrap .contract tr:not(.tot):not(.none)').length >= 2, 'both contributions stand on the contract');
       check(/They Would|Short by|Would Not|Gladly|Refused Outright/.test(text('#negwrap')), 'the pressure bar reads a verdict: ' + (text('#negwrap').match(/(They Would[^₡]*|Short by ₡[\d,]+|They Would Not Entertain This)/) || [''])[0].trim());
+      /* OVER THE ODDS, as the note above says: a bare one-for-one was accepted only when the pairing happened to favour
+         them, and any change to the rosters (the Draft's two a year) could make it fall short. Pay what the bar says. */
+      {
+        const short = (text('#negwrap').match(/Short by \u20a1([\d,]+)/) || [])[1];
+        if (short) {
+          const inp = giveCol().querySelector('[data-tcash]');
+          inp.value = String(Math.ceil(+short.replace(/,/g, '') * 1.25) + 500);
+          giveCol().querySelector('[data-tcashadd]').click();
+        }
+      }
       doc.getElementById('tput').click();
       /* §MON-WA count BEINGS, not bodies: a pair is one roster slot with two records and
          crosses the table together, so a one-for-one deal involving one moves two rows */
