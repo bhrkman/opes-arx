@@ -4155,6 +4155,26 @@ money kept per season across the fleet rose a little (₡21.6k → ₡25.0k). **
 more than the careful (Nevlon 0.5 a season, Verdant 0.8): a bold squad is almost never free to choose an approach — it
 is on a strike or a hunt — so the lean barely reaches it, and raising the pull did nothing measurable.
 
+**BOLDNESS IS FOR GROUND (ruled: boldness is fighting for contested objectives, above all the beacons that bring an
+OA's reinforcements — not hunting for kills).** The AI's boldness was a hunt: planned pincers on whoever it had seen,
+lone hunts, pressing. Now: a new approach, CONTESTING — a squad goes for the best live objective in reach inside
+tomorrow's line, by what it is worth to its OA (a deposit 1.0; a beacon 1.1, 1.3 if a rival has lit it, only while the
+OA has anyone in orbit; a strongpoint 0.8; a crate 0.55), an objective an enemy is on counting for more to a bold squad
+and skipped if the enemy is more than it can take. The stances lean on it (careful 0.35 … death or glory 1.9) and on
+reinforcing (1.0 … 1.45), and hunt and press less (unyielding hunting 1.35 → 1.0, death or glory 1.75 → 1.25). A strike
+goes for an OA standing on an objective (three times the weight; a squad in the open needs a quarter more edge), the
+party carries that objective, and winners TAKE IT rather than chase the beaten. A pincer lasts a day past its deadline,
+not six days. A claim on a site somebody else has emptied ends. **MEASURED** (stance policies, free for all, 128
+contests, per seat per contest): flat bold lands 2.4 of its reserve against flat cautious 1.3, loots 2.0 fights against
+0.4, claims 3.3 sites against 3.0 — but digs fewer deposits (0.61 against 0.85). Titles: careful-then-bold 35.9%, flat
+bold 11.7%, board odds 11.7%, flat cautious 10.9%, bold-then-careful 9.4%, local odds 8.6%, the engine's own 6.2%,
+hurt-then-careful 2.3%. Flat bold and flat cautious are level; turning bold when the ring pens you in is now the strong
+play by a distance. **NOTE ON THE STANCE-ONLY TESTS:** since the window's notch reaches the squads, an OA drifts to the
+notch its dials give it within a window or two, so a test that varies only the declared lean is measuring the first
+day; stance differences are measured with `measure_stance_policies.cjs` (policies hold their notches). Tempered
+founders, 96 fresh contests: Verdant 14, Mercy 9, Violets 7, New Line 17, Vantis 16, Knights 17, Alliance 9, Nevlon 4;
+fatality 31.3%. `drive_withdraw` works the tab two windows in (a founded OA on its fixed seed can be pulled by the fifth).
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

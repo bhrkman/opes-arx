@@ -19183,9 +19183,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
     STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
+    CONTEST_NEED: 0.45,                 // [C] §BOLD the pull of an objective worth taking (before the stance's lean)
+    CONTEST_REACH_MARCHES: 2.5,         // [C] §BOLD how far (in days' march) an objective is worth going for
     PROSPECT_CASH: 0.45,                // [C] §SITES the pull of a deposit in reach for its cash alone
     PROSPECT_REACH_MARCHES: 2.5,        // [C] §SITES how far (in days' march) a deposit is worth walking to for it
-    STRIKE_FIT: 0.7,                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
+    STRIKE_FIT: 0.7,
+    STRIKE_OBJECTIVE_WEIGHT: 3,         // [C] §BOLD how much more a target on an objective is worth striking
+    STRIKE_OPEN_EXTRA: 0.25,            // [C] §BOLD the extra edge a strike on a squad in the open needs                    // [C] §TACTICS the share of its landing strength a squad needs to be sent on a strike
     LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
 
@@ -20964,6 +20968,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (it.type === 'claim' || it.type === 'hold') {
       const o = it.obj;
       if (!o || !o.revealed) return false;
+      /* §BOLD a crate emptied or a deposit dug by somebody else is not worth arriving at */
+      if (it.type === 'claim' && !MAP.siteLive(o, day)) return false;
       if (it.type === 'claim' && o.heldBy === sq.corpId) return false;
       return true;
     }
@@ -21216,8 +21222,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       for (const f of foreign) {
         const d = Math.min.apply(null, fit.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
         if (d > CONST.PLAN_RANGE) continue;
-        if (CONST.STRIKE_ODDS_BASE && partyHead < (f.n || 1) * needOdds) continue;
-        const sc = f.prestige / (0.05 + d);
+        /* §BOLD a strike is for ground: a party goes after an OA standing on something worth taking; a squad merely
+           walking somewhere is worth the trouble only at a clearly better edge */
+        const onObj = planet.objectives.some(o => MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0
+          && MAP.dist(o.x, o.y, f.x, f.y) <= MAP.CONST.CLAIM_RADIUS * 2);
+        if (CONST.STRIKE_ODDS_BASE && partyHead < (f.n || 1) * (needOdds + (onObj ? 0 : CONST.STRIKE_OPEN_EXTRA))) continue;
+        const sc = f.prestige / (0.05 + d) * (onObj ? CONST.STRIKE_OBJECTIVE_WEIGHT : 1);
         if (sc > bs) { bs = sc; best = f; }
       }
       if (best) {
@@ -21249,7 +21259,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            order that half the corp cannot meet, and they arrive piecemeal. */
         const slowest = Math.max.apply(null, travel);
         const sync = rng() < coord;
-        const plan = { key: best.corpId + ':' + best.sq.sIdx, party: party, sync: sync, go: false,
+        /* §BOLD the ground the quarry is standing on, which is what the party is going for */
+        let pObj = null, pd = MAP.CONST.CLAIM_RADIUS * 2;
+        for (const o of planet.objectives) if (MAP.siteLive(o, day) && objectiveWorth(o, corp) > 0) {
+          const dd = MAP.dist(o.x, o.y, best.x, best.y); if (dd <= pd) { pd = dd; pObj = o; } }
+        const plan = { key: best.corpId + ':' + best.sq.sIdx, party: party, sync: sync, go: false, obj: pObj,
                        deadline: day + slowest + CONST.STRIKE_WAIT_DAYS };
         for (let i = 0; i < party.length; i++) {
           const sq = party[i];
@@ -21260,7 +21274,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             tx: best.x, ty: best.y, sx: sq._plan.sx, sy: sq._plan.sy,
             a: sq._plan.a, stage: MAP.dist(best.x, best.y, sq._plan.sx, sq._plan.sy), plan: plan,
             strikeDay: Math.max(day, strike),
-            expires: day + Math.max(CONST.PLAN_LIFE, slowest + CONST.STRIKE_WAIT_DAYS + 1)
+            /* §BOLD a pincer is a move, not a way of life: it lasts until a day past the party's deadline */
+            expires: day + slowest + CONST.STRIKE_WAIT_DAYS + 1
           };
           sq._plan = null;
         }
@@ -21292,11 +21307,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   const APPROACH_LEAN = {
-    preservationist: { hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:0.80, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
-    measured:        { hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:0.90, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
-    standard:        { hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
-    unyielding:      { hunting:1.35, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:1.25, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.35, shadowing:0.70, screening:0.85, days:3 },
-    death_or_glory:  { hunting:1.75, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:1.40, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.75, shadowing:0.40, screening:0.60, days:2 }
+    preservationist: { contesting:0.35, reinforcing:1.00, hunting:0.50, resupplying:1.25, scouting:1.30, hiding:1.80, recovering:1.40, consolidating:1.20, prospecting:0.80, rallying:1.35, entrenching:1.40, baiting:0.30, sweeping:1.25, pressing:0.35, shadowing:1.20, screening:1.30, days:4 },
+    measured:        { contesting:0.70, reinforcing:1.10, hunting:0.75, resupplying:1.15, scouting:1.15, hiding:1.30, recovering:1.20, consolidating:1.10, prospecting:0.90, rallying:1.20, entrenching:1.20, baiting:0.70, sweeping:1.15, pressing:0.70, shadowing:1.10, screening:1.15, days:4 },
+    standard:        { contesting:1.00, reinforcing:1.20, hunting:1.00, resupplying:1.00, scouting:1.00, hiding:1.00, recovering:1.00, consolidating:1.00, prospecting:1.00, rallying:1.00, entrenching:1.00, baiting:1.00, sweeping:1.00, pressing:1.00, shadowing:1.00, screening:1.00, days:3 },
+    unyielding:      { contesting:1.60, reinforcing:1.35, hunting:1.00, resupplying:0.90, scouting:0.85, hiding:0.60, recovering:0.85, consolidating:0.90, prospecting:1.25, rallying:0.80, entrenching:0.75, baiting:1.30, sweeping:0.85, pressing:1.10, shadowing:0.70, screening:0.85, days:3 },
+    death_or_glory:  { contesting:1.90, reinforcing:1.45, hunting:1.25, resupplying:0.75, scouting:0.60, hiding:0.35, recovering:0.65, consolidating:0.80, prospecting:1.40, rallying:0.55, entrenching:0.45, baiting:1.60, sweeping:0.60, pressing:1.30, shadowing:0.40, screening:0.60, days:2 }
   };
   /* `prospecting` is new at Step 7 and it exists because the board's ask had no verb behind
      it. A corp was told at season open to bring back a named resource, and mining was a side
@@ -21308,7 +21323,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      rather his people found; everything below is the squads' own. The list is long on purpose —
      it is invisible to a manager, so it costs nothing to be various, and a contest where every
      squad is doing one of four things reads as four squads. */
-  const APPROACHES = ['reinforcing', 'resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
+  const APPROACHES = ['reinforcing', 'contesting', 'resupplying', 'hunting', 'scouting', 'hiding', 'recovering',
                       'consolidating', 'prospecting', 'rallying', 'shadowing', 'screening',
                       'entrenching', 'baiting', 'sweeping', 'pressing'];
 
@@ -21324,9 +21339,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §RESERVE reinforcing is over when the reserve is empty or no beacon stands */
     if (sq.approach === 'reinforcing') return !!(sq.corp && sq.corp.reserve && sq.corp.reserve.length)
       && planet.objectives.some(o => o.type === 'sponsor_cache' && MAP.siteLive(o, day));
+    if (sq.approach === 'contesting') return planet.objectives.some(o => MAP.siteLive(o, day) && objectiveWorth(o, sq.corp) > 0);
     /* nothing left to dig means nothing to prospect for */
     if (sq.approach === 'prospecting') return planet.objectives.some(o => o.type === 'resource_site' && MAP.siteLive(o, day));
     return true;
+  }
+
+  /* §BOLD WHAT IS WORTH TAKING. Boldness is fighting for the ground that pays — a deposit (cash at the close), a
+     beacon (the OA's reinforcements, while it has anyone in orbit), a strongpoint, a crate — and taking it off whoever
+     is working it when the odds allow, not walking about looking for people to kill. The best live objective in reach,
+     inside tomorrow's line, by what it is worth to this OA; one an enemy is on counts for more to a bold squad and is
+     skipped if that enemy is more than it can take. */
+  function objectiveWorth(o, corp) {
+    if (o.type === 'resource_site') return 1.0;
+    if (o.type === 'sponsor_cache') return corp.reserve && corp.reserve.length ? (o.litBy && o.litBy !== corp.id ? 1.3 : 1.1) : 0;
+    if (o.type === 'strongpoint') return o.heldBy === corp.id ? 0 : 0.8;
+    if (o.type === 'munitions_drop' || o.type === 'ration_site') return 0.55;
+    return 0;
+  }
+  function objectiveToTake(sq, corp, planet, day, foreign) {
+    const head = squadHead(sq).length, sd = squadDials(sq);
+    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * sd.seek;
+    let best = null, bv = 0;
+    for (const o of planet.objectives) {
+      if (!MAP.siteLive(o, day) || !MAP.inZone(planet, day + 1, o.x, o.y)) continue;
+      const w = objectiveWorth(o, corp); if (!w) continue;
+      const d = MAP.dist(sq.x, sq.y, o.x, o.y);
+      if (d > CONST.DAY_MARCH * CONST.CONTEST_REACH_MARCHES) continue;
+      const on = foreign.filter(e => MAP.dist(e.x, e.y, o.x, o.y) <= MAP.CONST.CLAIM_RADIUS * 2);
+      const there = on.reduce((t, e) => t + (e.n || 1), 0);
+      if (there && head < there * need) continue;                        /* more than it can take */
+      const v = w * (there ? 1 + sd.seek : 1) / (1 + d / CONST.DAY_MARCH);
+      if (v > bv) { bv = v; best = o; }
+    }
+    return best ? { o: best, v: bv } : null;
   }
 
   function approachNeed(sq, ap, corp, planet, day, foreign) {
@@ -21367,6 +21413,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     switch (ap) {
       /* §RESERVE A SQUAD WITH LOSSES TO REPLACE, and fighters waiting in orbit to replace them, goes to a beacon — the
          more it has lost the more it wants to — and a nearer beacon pulls harder. A squad at full strength never does. */
+      case 'contesting': {
+        const t = objectiveToTake(sq, corp, planet, day, foreign);
+        return t ? Math.min(1.2, CONST.CONTEST_NEED + t.v * 0.5) * (1 - hurt * 0.6) : 0;
+      }
       case 'reinforcing': {
         const left = corp.reserve ? corp.reserve.length : 0;
         const lost = Math.max(0, (sq._startN || head) - head) / Math.max(1, sq._startN || head);
@@ -21618,6 +21668,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return b;
     })();
     switch (sq.approach) {
+      case 'contesting': {
+        const t = objectiveToTake(sq, corp, planet, day, foreign);
+        if (t) return { type: 'claim', obj: t.o, tx: t.o.x, ty: t.o.y, expires: day + CONST.PLAN_LIFE, contest: true };
+        break;
+      }
       case 'hunting':
         if (prey) return { type: 'hunt', tx: prey.x, ty: prey.y, expires: day + CONST.PLAN_LIFE };
         break;
@@ -23006,6 +23061,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
       }
 
+      if (opts.onDay) opts.onDay(day, corps, planet, squadHead);   /* tooling: a look at the field at the end of each day */
       if (REC) {
         const sq = [];
         for (let ci = 0; ci < corps.length; ci++) {
@@ -23258,6 +23314,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             }
             go = P.go;
           } else go = day >= it.strikeDay;
+          if (go && P) sq._strikeObj = P.obj || null;      /* §BOLD remembered through the fight */
           if (!go && !staged) {
             tx = it.sx; ty = it.sy; sq._why = 'stage';
             /* round, not through: a flanker whose mark is on the far side of the quarry walks the arc outside its
@@ -24080,6 +24137,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   sq.restUntil = day + CONST.REST_DAYS_LOSER;
                 } else {
                   sq.restUntil = day + CONST.REST_DAYS_WINNER;
+                  /* §BOLD THE GROUND WAS THE POINT. A party that struck an OA off an objective, and won, takes the
+                     objective — it does not chase the beaten across the map. */
+                  const sObj = (sq.intent && sq.intent.plan && sq.intent.plan.obj) || sq._strikeObj; sq._strikeObj = null;
+                  if (sObj && MAP.siteLive(sObj, day) && MAP.inZone(planet, day + 1, sObj.x, sObj.y)) {
+                    sq.intent = { type: 'claim', obj: sObj, tx: sObj.x, ty: sObj.y, expires: day + 2, contest: true };
+                    stats.audit.tookTheGround = (stats.audit.tookTheGround || 0) + 1;
+                    continue;
+                  }
                   const pursuit = C.STANCE[sq.corp.policy].pursuit;
                   const chase = pursuit === 'always' ? 0.85 : pursuit === 'aggressive' ? 0.6
                               : pursuit === 'yes' ? 0.35 : pursuit === 'if_free' ? 0.15 : 0;

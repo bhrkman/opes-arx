@@ -35,6 +35,10 @@ for (let s = a; s < b; s++) {
   const d = S.prepareDivide(st);
   d.opts.stancePolicy = {}; for (const p of prof) if (POL[p._pol].f) d.opts.stancePolicy[p.id] = POL[p._pol].f;
   const r = DIV.runDivide(d.rng, d.opts);
-  for (const p of prof) { const e = (T[p._pol] = T[p._pol] || { wins: 0, place: 0, n: 0 }); e.wins += r.winner === p.id ? 1 : 0; e.place += r.placement[p.id]; e.n++; }
+  for (const p of prof) { const e = (T[p._pol] = T[p._pol] || { wins: 0, place: 0, n: 0, dug: 0, landed: 0, sites: 0, loot: 0, pay: 0, dead: 0, drop: 0 });
+    const pc = r.perCorp.find(x => x.id === p.id) || {}, cc = (r.corps || r._corps || []).find(x => x.id === p.id) || {};
+    e.wins += r.winner === p.id ? 1 : 0; e.place += r.placement[p.id]; e.n++;
+    e.dug += pc.sitesDug || 0; e.landed += cc.landed || 0; e.sites += cc.sitesClaimed || 0; e.loot += cc._lootFights || 0; e.pay += pc.payout || 0;
+    e.dead += (cc.allBodies || []).filter(b => b.status === 'dead').length; e.drop += (cc.allBodies || []).length; }
 }
 console.log(JSON.stringify(T));

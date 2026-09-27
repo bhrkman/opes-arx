@@ -1,4 +1,4 @@
-/* §WITHDRAWAL THE TAB, DRIVEN. Opens the game, plays to the lock, drops, runs five comms
+/* §WITHDRAWAL THE TAB, DRIVEN. Opens the game, plays to the lock, drops, runs two comms
    windows, then works the Withdraw tab the way a manager does: open it, drag a term, send
    the offer, advance a window, and read the field's replies back off the page.
    `node harness/drive_withdraw.cjs` */
@@ -15,7 +15,9 @@ setTimeout(()=>{d.getElementById('mNew').click();
    setTimeout(()=>{
      d.getElementById('begindiv').onclick();
      setTimeout(()=>{
-       for(let k=0;k<5;k++) d.getElementById('advwin').onclick();
+       /* two windows in: the test is of the tab, not of surviving — a founded OA on a fixed seed can have its banner
+          pulled by the fifth window, which is the game, not a fault */
+       for(let k=0;k<2;k++) d.getElementById('advwin').onclick();
        [...d.querySelectorAll('.tab')].filter(x=>/Negotiation/.test(x.textContent))[0].click();
        console.log('panel open?', !!d.querySelector('#withdraw .wbody'));
        console.log('opened, terms:', d.querySelectorAll('#withdraw [data-wask]').length,
