@@ -331,6 +331,9 @@
     JOIN_P: 0.55,                       // [C] and willing to
     JOIN_OWN_P: 0.90,                   // [C] your own squad, converging on a planned strike
     JOIN_ALLY_P: 0.55,                  // [C] N5 — an ally has no shared plan bringing it in
+    STRIKE_ODDS_BASE: 1.25,             // [C] §FLANK the head-count edge a strike party wants: base − seek × below
+    STRIKE_ODDS_SEEK: 0.5,              //     (bold 0.93 of the target's number, careful 1.18)
+    STRIKE_WAIT_DAYS: 1,                // [C] §FLANK how long past the planned day a party waits for its slowest squad
     FLANK_ARC: 1.75,                    // [C] radians between approaches that counts as flanked
 
     /* §8.3 coordination — how well a corp runs a planned attack */
@@ -382,7 +385,9 @@
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
     SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
-    SPREAD_AGGRESSION: 0.35,            // [C] and appetite for contact
+    SPREAD_AGGRESSION: 0,               // [C] §FLANK (ruled) appetite for contact no longer spreads an OA thin: measured, a
+                                        //     force split small loses whatever its stance (two squads 20% of titles, five 8%);
+                                        //     the bold concentrate, and work their squads together (the strike planner)
     SPREAD_PATIENCE: 0.45,              // [C] against what a careful OA keeps massed         // [S] squads live inside these bounds. RULED: the
                                         // floor is THREE — it binds the manager's own squad
                                         // page, which reads it from here. The auto-deal's
@@ -2024,6 +2029,7 @@
     if (it.type === 'strike') {
       const t = it.targetSquad;
       if (!t || squadHead(t).length < 1) return false;
+      if (it.plan) return true;                  /* §FLANK a pincer follows its quarry each dawn (planCorp) */
       /* the plan is built on where they were; if they have gone a long way it is dead */
       if (MAP.dist(t.x, t.y, it.tx, it.ty) > CONST.PLAN_DRIFT_TOLERANCE) return false;
       return true;
@@ -2127,6 +2133,15 @@
         if (e && day - e.day <= CONST.KNOWN_STALE) { const dx = e.x - mate.x, dy = e.y - mate.y, m = Math.max(1e-6, Math.hypot(dx, dy)); px = mate.x + (dx / m) * CONST.STAGE_RADIUS; py = mate.y + (dy / m) * CONST.STAGE_RADIUS; }
         const p = MAP.clampInside(planet, day, px, py);
         it.tx = p.x; it.ty = p.y; it.arrived = false;
+      } else if (it.type === 'strike' && it.plan) {
+        /* §FLANK A PINCER FOLLOWS ITS QUARRY. The plan was built on where the quarry stood, and died the moment it
+           walked more than a staging radius — measured, 192 strikes planned in sixteen contests and 14 squads ever
+           marched round a flank. The marks are re-laid each dawn around where the quarry was last seen, at the
+           bearing each squad was given; the plan is dropped only when the quarry is out of the picture. */
+        const e = pic[it.plan.key];
+        if (!e || day - e.day > CONST.KNOWN_STALE || !squadHead(e.sq).length) { sq.intent = null; continue; }
+        const p = MAP.clampInside(planet, day, e.x + Math.cos(it.a) * it.stage, e.y + Math.sin(it.a) * it.stage);
+        it.sx = p.x; it.sy = p.y; it.tx = e.x; it.ty = e.y;
       } else if (it.type === 'meet' && it.arrived && it.then) {
         /* the rendezvous is made: the strike it carried takes over, if the quarry is still known */
         const e = pic[it.then];
@@ -2269,9 +2284,16 @@
     /* ---- 1. a coordinated strike, if there is a target worth it ---- */
     if (free.length >= 2 && foreign.length && rng() < dials.seek * (0.45 + coord)) {
       let best = null, bs = 0;
+      /* §FLANK A PARTY THAT CAN WIN IT. The target was chosen on prestige and distance alone, so three small squads
+         set off after one bigger than all of them together. A pincer is worth going at even numbers (coming from two
+         sides wins those); a careful OA wants more than that, a bold one takes a little less. */
+      const partyHead = free.slice().sort((a, b) => squadHead(b).length - squadHead(a).length).slice(0, 3)
+        .reduce((t, q) => t + squadHead(q).length, 0);
+      const needOdds = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * dials.seek;
       for (const f of foreign) {
         const d = Math.min.apply(null, free.map(sq => MAP.dist(sq.x, sq.y, f.x, f.y)));
         if (d > CONST.PLAN_RANGE) continue;
+        if (CONST.STRIKE_ODDS_BASE && partyHead < (f.n || 1) * needOdds) continue;
         const sc = f.prestige / (0.05 + d);
         if (sc > bs) { bs = sc; best = f; }
       }
@@ -2304,6 +2326,8 @@
            order that half the corp cannot meet, and they arrive piecemeal. */
         const slowest = Math.max.apply(null, travel);
         const sync = rng() < coord;
+        const plan = { key: best.corpId + ':' + best.sq.sIdx, party: party, sync: sync, go: false,
+                       deadline: day + slowest + CONST.STRIKE_WAIT_DAYS };
         for (let i = 0; i < party.length; i++) {
           const sq = party[i];
           const strike = day + (sync ? slowest : travel[i]) + (sync ? 0 : Math.round((rng() - 0.5) * 2));
@@ -2311,8 +2335,9 @@
             type: 'strike', role: i === 0 ? 'fix' : 'flank',
             targetSquad: best.sq, targetCorp: best.corpId,
             tx: best.x, ty: best.y, sx: sq._plan.sx, sy: sq._plan.sy,
+            a: sq._plan.a, stage: MAP.dist(best.x, best.y, sq._plan.sx, sq._plan.sy), plan: plan,
             strikeDay: Math.max(day, strike),
-            expires: day + CONST.PLAN_LIFE
+            expires: day + Math.max(CONST.PLAN_LIFE, slowest + CONST.STRIKE_WAIT_DAYS + 1)
           };
           sq._plan = null;
         }
@@ -2436,10 +2461,16 @@
            reason to walk to a sponsor's crate and a well-armed one does not. */
         return (sq.rations < head * 4 ? 0.55 : 0) + (poorlyArmed(sq) ? 0.20 : 0) +
                (site && sd < z.r * 1.3 ? 0.40 : 0);
-      case 'hunting':
-        if (!near) return 0.10;
-        return 0.25 + (near.strength && near.strength < head ? 0.45 : 0) + (1 - hurt) * 0.35 +
-               (nearD < z.r ? 0.20 : 0);
+      case 'hunting': {
+        /* §FLANK only quarry it can take counts (approachIntent's `prey`): with none, hunting is a walk */
+        const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * squadDials(sq).seek;
+        const takeable = foreign.filter(f => head >= (f.n || 1) * need);
+        if (!takeable.length) return 0.10;
+        let tn = takeable[0], td = 9;
+        for (const f of takeable) { const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId); if (dd < td) { td = dd; tn = f; } }
+        return 0.25 + (tn.strength && tn.strength < head ? 0.45 : 0) + (1 - hurt) * 0.35 +
+               (td < z.r ? 0.20 : 0);
+      }
       case 'scouting':
         return 0.05 + blind * 0.40 + (mastUp ? blind * 0.45 : 0);
       case 'hiding':
@@ -2631,9 +2662,23 @@
       }
       return b;
     };
+    /* §FLANK A HUNTER PICKS QUARRY IT CAN TAKE. A lone squad hunted the nearest sighting whatever its size, and a
+       meeting is nearly always a fight to the finish decided on numbers — so a bold OA's squads walked into bigger ones
+       and were spent. Alone, it wants the edge its boldness asks for; outnumbered, the quarry is its OA's to take
+       together (the strike planner), not this squad's alone. */
+    const prey = (() => {
+      const head = squadHead(sq).length, need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * squadDials(sq).seek;
+      let b = null, bd = 9;
+      for (const f of foreign) {
+        if (head < (f.n || 1) * need) continue;
+        const dd = MAP.dist(sq.x, sq.y, f.x, f.y) * leanOf(corp, f.corpId);
+        if (dd < bd) { bd = dd; b = f; }
+      }
+      return b;
+    })();
     switch (sq.approach) {
       case 'hunting':
-        if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
+        if (prey) return { type: 'hunt', tx: prey.x, ty: prey.y, expires: day + CONST.PLAN_LIFE };
         break;
       case 'reinforcing': {
         /* §RESERVE to the nearest beacon inside the ring, and hold it while there is anyone left to land */
@@ -2717,7 +2762,7 @@
         break;
       }
       case 'pressing': {
-        if (near) return { type: 'hunt', tx: near.x, ty: near.y, expires: day + CONST.PLAN_LIFE };
+        if (prey) return { type: 'hunt', tx: prey.x, ty: prey.y, expires: day + CONST.PLAN_LIFE };
         break;
       }
       case 'shadowing': {
@@ -4238,8 +4283,40 @@
         let tx = it.tx, ty = it.ty;
         if (it.type === 'strike') {
           const staged = MAP.dist(sq.x, sq.y, it.sx, it.sy) <= CONST.STAGE_SLACK;
-          if (day < it.strikeDay && !staged) { tx = it.sx; ty = it.sy; sq._why = 'stage'; }
-          else if (day < it.strikeDay) { sq._why = 'stage'; tx = sq.x; ty = sq.y; }
+          /* §FLANK A PINCER GOES WHEN IT IS IN PLACE. It went on a day fixed when it was planned, from where the
+             quarry stood then; a well-led party now waits until every squad in it is at its mark (or the plan's
+             last day comes), and all of them go together. A badly led one still goes squad by squad, on the day
+             each thought it would be ready — which is how a pincer arrives piecemeal. */
+          let go;
+          const P = it.plan;
+          if (P && P.sync) {
+            if (!P.go) {
+              const live = P.party.filter(q => squadHead(q).length && q.intent && q.intent.plan === P);
+              if (!live.length || day > P.deadline ||
+                  live.every(q => MAP.dist(q.x, q.y, q.intent.sx, q.intent.sy) <= CONST.STAGE_SLACK)) {
+                P.go = true;
+                if (live.length > 1) stats.audit.pincersSprung = (stats.audit.pincersSprung || 0) + 1;
+              }
+            }
+            go = P.go;
+          } else go = day >= it.strikeDay;
+          if (!go && !staged) {
+            tx = it.sx; ty = it.sy; sq._why = 'stage';
+            /* round, not through: a flanker whose mark is on the far side of the quarry walks the arc outside its
+               reach rather than straight across it, where it would meet them alone */
+            const t = it.targetSquad;
+            if (t && squadHead(t).length) {
+              const a0 = Math.atan2(sq.y - t.y, sq.x - t.x), a1 = Math.atan2(it.sy - t.y, it.sx - t.x);
+              let da = a1 - a0; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2;
+              const r0 = MAP.dist(sq.x, sq.y, t.x, t.y);
+              if (Math.abs(da) > 0.6 && r0 < CONST.STAGE_RADIUS * 2.5) {
+                const a = a0 + Math.sign(da) * Math.min(Math.abs(da), 0.9), r = Math.max(r0, CONST.STAGE_RADIUS * 1.25);
+                tx = t.x + Math.cos(a) * r; ty = t.y + Math.sin(a) * r;
+                stats.audit.flankArcs = (stats.audit.flankArcs || 0) + 1;
+              }
+            }
+          }
+          else if (!go) { sq._why = 'stage'; tx = sq.x; ty = sq.y; }
           else {
             const t = it.targetSquad;
             if (t && squadHead(t).length >= 1) { tx = t.x; ty = t.y; }
@@ -4646,13 +4723,26 @@
                                  bearing: Math.atan2(my - other.y, mx - other.x) });
               }
             }
+            const arrivals = [];
             if (reinforce.length) {
-              const byTag = {};
-              for (let gi = 0; gi < groups.length; gi++) byTag[principalOf(groups[gi][0].corp).id] = built[gi];
               ctx.reinforce = [];
+              let strangers = 0;
               for (const R of reinforce) {
                 const side = liveSquadGroup(rng, [R.sq], day, engagementsRun, traitIndex);
                 if (!side) continue;
+                /* §FLANK WHOSE SIDE THEY WALK ONTO. An arriving squad carried no side letter, so the grid opened a NEW
+                   side for it — every arrival was its own banner, shooting at everybody including the people it came to
+                   help — and, not being one of the fight's groups, its losses were never written back: nobody who
+                   walked into a fight could be hurt in it. It now joins its own banner's side, if that side is here,
+                   and is booked with it; a stranger opens a side of its own and is booked on its own. */
+                const gi = groups.findIndex(g => g[0] && allied(g[0].corp, R.sq.corp));
+                side.tag = String.fromCharCode(65 + (gi >= 0 ? gi : groups.length + strangers++));
+                if (gi >= 0) {
+                  const host = built[gi];
+                  if (!host._parts) host._parts = [{ units: host.units.slice(), _sq: groups[gi][0] }];
+                  host._parts.push(side);
+                }
+                arrivals.push({ sq: R.sq, side: side, gi: gi });
                 /* turns, not ticks: the grid runs its own clock inside the block */
                 ctx.reinforce.push({
                   side: side, bearing: R.bearing, prep: 0.5,
@@ -4670,6 +4760,18 @@
               const lead = g[0];
               return Math.atan2(my - lead.hy, mx - lead.hx);
             });
+            /* §FLANK EACH SQUAD COMES ON WHERE IT CAME FROM. A side's squads were one rank on one edge whatever
+               directions they walked in from; every fighter now carries its own squad's approach, and the grid puts
+               squads that came in far enough apart on their own edges, on a board grown to hold them. */
+            built.forEach((side, gi) => {
+              const parts = side._parts || [side];
+              for (const part of parts) {
+                const q = part._sq; if (!q) continue;
+                const b = Math.atan2(my - q.hy, mx - q.hx);
+                for (const u of part.units) u._bearing = b;
+              }
+            });
+            for (const R of (ctx.reinforce || [])) for (const u of (R.side.units || [])) u._bearing = R.bearing;
 
             /* §GRUDGE A MAN FIGHTING THE OA HE REMEMBERS. Grudge Holder's three hooks wanted
                a fighter's memory of every OA in the fleet, and the first design for it was a
@@ -4735,7 +4837,7 @@
                          comp0: +(us.reduce((t, u) => t + (u._comp0 != null ? u._comp0 : (u.comp || 0)), 0) / Math.max(1, us.length)).toFixed(1),
                          seeker: g.some(q => q._lastSeekDay === day), found: g.some(q => q._lastFoundDay === day) };
               });
-              global.__FIGHTS.push({ day, result: res.result, turns: res.telemetry && res.telemetry.turn, rows, terrain, band: ctx.openingBand });
+              global.__FIGHTS.push({ day, result: res.result, turns: res.telemetry && res.telemetry.turn, rows, terrain, band: ctx.openingBand, flank: !!(res.telemetry && res.telemetry.flankFight) });
             }
             /* §CHARGES and take the spend off the fighter: each item a combatant used this fight is
                one charge gone for the rest of the Divide */
@@ -4800,6 +4902,7 @@
             if (groups.length > 2) stats.audit.multiSide = (stats.audit.multiSide || 0) + 1;
             if (party.length > groups.length) stats.audit.combinedArms = (stats.audit.combinedArms || 0) + 1;
             if (flanked.some(Boolean)) stats.audit.flanked = (stats.audit.flanked || 0) + 1;
+            if (res.telemetry && res.telemetry.flankFight) stats.audit.flankFights = (stats.audit.flankFights || 0) + 1;   /* §FLANK fought on the grown board */
 
             const t = res.telemetry;
             if (t) { for (const k of ['drones', 'turrets', 'turretShots', 'turretHits', 'stims', 'scrambles', 'thermobarics'])
@@ -4954,6 +5057,20 @@
                 sq.bodies.splice(bi2, 1);
                 stats.audit.captivesMarchedOff = (stats.audit.captivesMarchedOff || 0) + 1;
               }
+            }
+            /* §FLANK a stranger who walked in is booked on its own: its dead are dead */
+            for (const A of arrivals) {
+              if (A.gi >= 0) continue;
+              let captorId = null, best = -1;
+              for (let hi = 0; hi < groups.length; hi++) {
+                const n = groups[hi].reduce((t, q) => t + squadHead(q).length, 0);
+                if (n > best) { best = n; captorId = groups[hi][0].corpId; }
+              }
+              const before = tallyCorp(A.sq.corp);
+              applyOutcome(A.sq, A.side, stats, captorId, null);
+              const now = tallyCorp(A.sq.corp), p = pcOf[A.sq.corp.id];
+              if (p) { p.permanent += now.permanent - before.permanent; p.injuredHome += now.injured - before.injured; p.engagements++; }
+              A.sq.corp.engagements++;
             }
             /* The contest resolves. Whoever broke contact runs — a real distance, not a
                notional one — and whoever held may chase. Standing on the same ground after

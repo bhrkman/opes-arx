@@ -4060,6 +4060,34 @@ squads are small (six or under): there caution still pays two to four times over
 is the one it avoids. Splitting wide never pays for anyone — the ground it buys (more sites: 5.9 against 3.0 for the
 careful, split five ways) does not win a Divide.
 
+**FLANKING (ruled: option B, and the AI to concentrate and flank).** Measured first: a side's squads merged into one
+rank on one edge whatever directions they walked in from; being "flanked" at even numbers cost 50% of a side against
+53% not flanked; 192 strikes were planned in sixteen contests and 14 squads ever marched round a flank.
+**THE GROUND.** Every fighter carries its squad's approach (`_bearing`). When a side's squads came in at least
+`FLANK_SPLIT_ARC` (1 rad) apart — or one of its squads is due to walk in from such a bearing — the fight is a FLANKED
+FIGHT: the board grows to `FLANK_BOARD_W`×`FLANK_BOARD_H` (40×30, from 26×18) and each squad comes on at its own
+edge, within `FLANK_DEPLOY_REACH` of it. A head-on fight is untouched (same board, deployment and draws: the fixed
+snapshots pass unchanged). **THE TARGET (ruled): at equal numbers the flank wins.** `sim/measure_flank.cjs`, 8 against
+8, 150 fights each: head on 75–73; two squads of four on one bearing 72–70; 4+4 from 90° apart, the flankers win 84–57
+(losing 47% to 63%); from behind 86–56. Against six the flank does not overturn the numbers (45–102), which is the
+point: it is the harder move, and it pays at parity. **FOUND AND FIXED, three faults in the grid's arrivals:** a
+squad walking into a fight in progress carried no side letter, so the grid opened a NEW side for it — it fought
+everybody, its own OA included — and, not being one of the fight's groups, its losses were never written back:
+nobody who walked into a fight could be hurt in it. It now joins its banner's side and is booked with it (a stranger
+opens its own side and is booked on its own). An arrival's `side` was never set, and neither was any side's in a
+fight of three banners or more, so overwatch never fired in one. **THE AI.** Aggression no longer spreads an OA thin
+(`SPREAD_AGGRESSION` 0). A strike is a PLAN the party shares: the marks are re-laid each dawn around where the quarry
+was last seen (it died before on the quarry's first step), a well-led party waits until every squad is on its mark or
+a day past the planned day (`STRIKE_WAIT_DAYS`) and all go together, a flanker walks the arc outside the quarry's
+reach rather than across it, and a party is sent only when its head count reaches `STRIKE_ODDS_BASE − SEEK × seek` of
+the target's (bold 0.93, careful 1.18). A lone hunter (hunting, pressing) goes only after quarry it has that edge on.
+Sixteen contests: flank marches 14 → 263; 122 of 233 fights fought flanked. **MEASURED** (tempered founders, list
+rotated, 384 seasons; wins before → after): Verdant 89 → 68, Mercy 61 → 36, Violets 51 → 28, New Line 65 → 80,
+Vantis 38 → 42, Knights 29 → 58, Alliance 10 → 25, Nevlon 14 → 29 — the range 89:10 is now 80:25. Aggression alone
+no longer moves the result; stance still does (at three squads each, preservationist 15.1% a seat, unyielding 7.3%,
+from 20.3% and 4.7%): in a last-banner-standing contest every fight costs people, and a fight fought well only costs
+fewer. Fatality 28.3%; market 15.1% of the pot to non-winners.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
