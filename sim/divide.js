@@ -2200,7 +2200,7 @@
         const e = pic[it.target];
         if (!e || day - e.day > CONST.KNOWN_STALE || !squadHead(e.sq).length) { sq.intent = null; continue; }
         const dx = sq.x - e.x, dy = sq.y - e.y, m = Math.max(1e-6, Math.hypot(dx, dy));
-        const p = MAP.clampInside(planet, day, e.x + (dx / m) * CONST.SHADOW_DIST, e.y + (dy / m) * CONST.SHADOW_DIST);
+        const p = MAP.clampInside(planet, day + 1, e.x + (dx / m) * CONST.SHADOW_DIST, e.y + (dy / m) * CONST.SHADOW_DIST);
         it.tx = p.x; it.ty = p.y; it.arrived = false;
       } else if (it.type === 'screen') {
         const mate = it.mate;
@@ -2208,7 +2208,7 @@
         const e = it.target ? pic[it.target] : null;
         let px = mate.x, py = mate.y;
         if (e && day - e.day <= CONST.KNOWN_STALE) { const dx = e.x - mate.x, dy = e.y - mate.y, m = Math.max(1e-6, Math.hypot(dx, dy)); px = mate.x + (dx / m) * CONST.STAGE_RADIUS; py = mate.y + (dy / m) * CONST.STAGE_RADIUS; }
-        const p = MAP.clampInside(planet, day, px, py);
+        const p = MAP.clampInside(planet, day + 1, px, py);
         it.tx = p.x; it.ty = p.y; it.arrived = false;
       } else if (it.type === 'strike' && it.plan) {
         /* §FLANK A PINCER FOLLOWS ITS QUARRY. The plan was built on where the quarry stood, and died the moment it
@@ -2217,7 +2217,7 @@
            bearing each squad was given; the plan is dropped only when the quarry is out of the picture. */
         const e = pic[it.plan.key];
         if (!e || day - e.day > CONST.KNOWN_STALE || !squadHead(e.sq).length) { sq.intent = null; continue; }
-        const p = MAP.clampInside(planet, day, e.x + Math.cos(it.a) * it.stage, e.y + Math.sin(it.a) * it.stage);
+        const p = MAP.clampInside(planet, day + 1, e.x + Math.cos(it.a) * it.stage, e.y + Math.sin(it.a) * it.stage);
         it.sx = p.x; it.sy = p.y; it.tx = e.x; it.ty = e.y;
       } else if (it.type === 'meet' && it.arrived && it.then) {
         /* the rendezvous is made: the strike it carried takes over, if the quarry is still known */
@@ -2236,8 +2236,7 @@
        free. Reinforcing is meant to be the loud, risky thing. So a lit beacon reaches squads
        that have a plan, not only idle ones: a squad still fit to fight, not under a manager's
        order and not on a beacon of its own, may drop what it is doing and go — how readily is
-       its seek, raised by the call. A squad walking in from outside the dome line goes only if
-       the walk toward the beacon brings it inside. An OA sends at most BEACON_CALL_SQUADS to
+       its seek, raised by the call. An OA sends at most BEACON_CALL_SQUADS to
        one beacon; the rest carry on. A truce partner does not answer (a truce is never broken).
        Measured over twenty contests, the cautious OAs that reinforce the most now lose more
        fighters on beacons than they land there (Mercy 16 landed, 58 lost; Violets 33, 46);
@@ -2248,7 +2247,6 @@
       for (const sq of mine) {
         const it = sq.intent;
         if (it && it.ordered) continue;                                    /* a manager's order */
-        const domeRun = !!(it && it.dome);                                 /* walking in from outside the line */
         if (it && (it.type === 'hunt' || it.type === 'strike' || it.type === 'sound')) continue;   /* already going to a fight */
         if (it && it.obj && it.obj.type === 'sponsor_cache') continue;     /* on its own beacon run */
         if (sq._beaconLit != null && sq._beaconLit >= day - 1) continue;   /* holding one itself */
@@ -2262,13 +2260,6 @@
           const d = MAP.dist(sq.x, sq.y, nz.x, nz.y);
           if (d > nz.r || d >= cd) continue;
           if ((sent[nz.x + ':' + nz.y] || 0) >= CONST.BEACON_CALL_SQUADS) continue;
-          if (domeRun) {
-            /* the dome still comes first: a squad outside the line goes to the beacon only if the
-               day's walk toward it brings it inside with room to spare */
-            const step = Math.min(d, CONST.DAY_MARCH * 0.8);
-            const px = sq.x + (nz.x - sq.x) / Math.max(1e-9, d) * step, py = sq.y + (nz.y - sq.y) / Math.max(1e-9, d) * step;
-            if (MAP.dist(px, py, zNow.cx, zNow.cy) > zNow.r - Math.max(0.03, zNow.r * 0.2)) continue;
-          }
           call = nz; cd = d;
         }
         if (!call) continue;
@@ -2804,7 +2795,7 @@
           const dx = sq.x - near.x, dy = sq.y - near.y;
           const m2 = Math.max(1e-6, Math.sqrt(dx * dx + dy * dy));
           const run = Math.min(CONST.DAY_MARCH * 1.4, z.r * 0.40);
-          const p = MAP.clampInside(planet, day, sq.x + (dx / m2) * run, sq.y + (dy / m2) * run);
+          const p = MAP.clampInside(planet, day + 1, sq.x + (dx / m2) * run, sq.y + (dy / m2) * run);
           return { type: 'withdraw', tx: p.x, ty: p.y, expires: day + CONST.WITHDRAW_DAYS };
         }
         break;
@@ -2848,7 +2839,7 @@
         /* the nearest ground nobody has looked at, inside the wall */
         const dark = (planet.objectives || []).filter(o => !o.revealed)
           .sort((a, b) => MAP.dist(sq.x, sq.y, a.x, a.y) - MAP.dist(sq.x, sq.y, b.x, b.y))[0];
-        if (dark) { const p6 = MAP.clampInside(planet, day, dark.x, dark.y); return { type: 'patrol', tx: p6.x, ty: p6.y, expires: day + CONST.PLAN_LIFE }; }
+        if (dark) { const p6 = MAP.clampInside(planet, day + 1, dark.x, dark.y); return { type: 'patrol', tx: p6.x, ty: p6.y, expires: day + CONST.PLAN_LIFE }; }
         break;
       }
       case 'pressing': {
@@ -2874,7 +2865,7 @@
         const mates = corp.squads.filter(s => squadHead(s).length);
         if (mates.length > 1) {
           let cx = 0, cy = 0; for (const s of mates) { cx += s.x; cy += s.y; } cx /= mates.length; cy /= mates.length;
-          const p = MAP.clampInside(planet, day, cx, cy);
+          const p = MAP.clampInside(planet, day + 1, cx, cy);
           /* MEET, THEN STRIKE: if what drove us together is something we can beat together,
              the rendezvous carries the strike with it */
           const together = mates.reduce((n, s) => n + squadHead(s).length, 0);
@@ -3184,6 +3175,16 @@
    * Pick the notch for the next couple of days. Called at every corp window, for every corp,
    * and it is free. Returns true if the notch actually moved.
    */
+  /* §STANCE each squad's notch around its OA's: the strongest a step bolder, the weakest a step more careful */
+  function seatSquadStances(corp) {
+    const base = NOTCHES.indexOf(corp.policy || 'standard');
+    const live = (corp.squads || []).filter(q => squadHead(q).length);
+    const ranked = live.slice().sort((a, b) => squadHead(b).length - squadHead(a).length);
+    ranked.forEach((q, i) => {
+      const step = i === 0 && ranked.length > 1 ? 1 : i === ranked.length - 1 && ranked.length > 1 ? -1 : 0;
+      q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
+    });
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -3230,6 +3231,10 @@
     if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
     /* No stress. Changing your mind about how to approach the next two days is not an injury. */
     for (const sq of corp.squads) sq.policy = next;
+    /* §STANCE THE NEW NOTCH REACHES THE SQUADS. An AI OA seats each squad's own notch at the drop, and a squad's own
+       notch is what its behaviour reads — so every window's reconsidering changed the OA's word and none of its squads:
+       they fought the whole contest on the notch they landed with. They are re-seated around the new one. */
+    seatSquadStances(corp);
     return true;
   }
 
@@ -3539,15 +3544,7 @@
          weakest a step more careful, the rest where its culture puts them. That is what a
          manager would do with the same squads, and it means an AI field is not eight blocks
          moving in lockstep. */
-      if (!isHumanOA(c.id)) {
-        const base = NOTCHES.indexOf(c.policy || 'standard');
-        const live = (c.squads || []).filter(q => squadHead(q).length);
-        const ranked = live.slice().sort((a, b) => squadHead(b).length - squadHead(a).length);
-        ranked.forEach((q, i) => {
-          const step = i === 0 && ranked.length > 1 ? 1 : i === ranked.length - 1 && ranked.length > 1 ? -1 : 0;
-          q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
-        });
-      }
+      if (!isHumanOA(c.id)) seatSquadStances(c);
       if (rp && !isHumanOA(c.id)) {
         /* §STANCE an AI OA sets the same control a manager does: a notch AT each rival, from
            its own declared stance, hardened toward the OAs it thinks least of and softened
@@ -3734,33 +3731,22 @@
          and its line is answered by the squads' own logic. Any able squad that dawn
          finds outside today's line drops what it was doing and walks in — its own legs,
          on the record. The dome takes whoever is still outside at dusk. */
+      /* §WALL DAWN FINDS NOBODY OUTSIDE. Everyone kept inside tomorrow's line all yesterday; a squad that did not is
+         taken now, where it stands, and the death is recorded as a fault in whatever left it there. (This was a walk
+         in, with the whole day to make it — which is how squads came to be seen outside the ring.) */
       for (const c of corps) for (const sq of c.squads) {
-        if (!squadHead(sq).length) continue;
+        if (!sq.bodies.length) continue;
         const dz = MAP.dist(sq.x, sq.y, zNow.cx, zNow.cy);
         if (dz <= zNow.r) continue;
-        if ((sq._busyUntil || 0) > (day - 1) * CONST.TICKS_PER_DAY) {
-          /* NOBODY ARGUES WITH THE DOME. A fight it reaches breaks off — both sides,
-             each the moment its own dawn finds it outside the line — because staying
-             is not a stance, it is a death. Breaking under fire costs composure. */
-          sq._busyUntil = 0;
-          addStress(sq, 4, stats);
-          stats.audit.lineBrokeFight = (stats.audit.lineBrokeFight || 0) + 1;
+        let took = 0;
+        for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
+        if (took) {
+          (stats.wallDeaths = stats.wallDeaths || []).push({ day, corp: sq.corpId, s: sq.sIdx, took, at: 'dawn',
+            stance: squadStance(sq), out: +(dz - zNow.r).toFixed(4), intent: sq.intent && sq.intent.type, r: +zNow.r.toFixed(3) });
+          stats.audit.domeDeaths = (stats.audit.domeDeaths || 0) + took;
+          (stats.audit.wallBy = stats.audit.wallBy || {})[c.id] = ((stats.audit.wallBy || {})[c.id] || 0) + took;
+          rec({ t: 'wall', x: Math.round(sq.x * 1000) / 1000, y: Math.round(sq.y * 1000) / 1000, c: sq.corpId, n: took });
         }
-        /* AIM DEEP ENOUGH THAT ARRIVAL CANNOT PRE-EMPT THE WALK. The first cut aimed
-           at 0.9·r; on the late contest's small circles that point sits inside
-           ARRIVE_SLACK of a rim squad, movement ruled them “arrived”, and they stood
-           obediently still — millimetres outside — while the line passed through
-           them. The target now sits a real margin inside, whatever the circle's size. */
-        const inR = Math.max(zNow.r * 0.5, zNow.r - Math.max(0.03, zNow.r * 0.2));
-        const k = inR / Math.max(1e-9, dz);
-        /* §TACTICS THE WALK IN ENDS. This carried no end: no `expires`, and a withdrawal is never marked arrived, so a
-           squad once caught outside the line held this intent for the rest of the contest — standing on the spot it
-           walked in to, never free to plan again. Measured, a third to nearly half of every squad-day was squads
-           frozen so, the careful most (they live near the edge). It lasts the day. */
-        sq.intent = { type: 'withdraw', dome: true,
-                      tx: zNow.cx + (sq.x - zNow.cx) * k,
-                      ty: zNow.cy + (sq.y - zNow.cy) * k, expires: day };
-        stats.audit.lineEvade = (stats.audit.lineEvade || 0) + 1;
       }
 
 
@@ -3844,7 +3830,19 @@
              point of the window. Everybody else's squad leaders reorganise as they always did. */
           if (isHumanOA(c.id)) continue;
           const mine = board[principalOf(c).id] || 0;
-          reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
+          /* §STANCE a test may hand an OA its own way of choosing (opts.stancePolicy[corpId]): given what the OA can
+             see, it returns the OA's notch and, if it likes, each squad's */
+          const pol = opts.stancePolicy && opts.stancePolicy[c.id];
+          if (pol) {
+            const all = c.allBodies || [];
+            const got = pol({ day: day, penned: penned, odds: mine, ahead: mine > 0.28,
+              lostFrac: 1 - all.filter(b => b.status === 'active' || b.status === 'injured').length / Math.max(1, all.length),
+              reserve: (c.reserve || []).length, corp: c, squads: c.squads.filter(q => squadHead(q).length),
+              head: q => squadHead(q).length, known: pictureOf(c, day), dist: MAP.dist });
+            if (got && got.corp && STANCE_DIALS[got.corp] && got.corp !== c.policy) { c.policy = got.corp; c.stanceChanges++; stats.stanceChanges++; }
+            if (got && got.squads) { for (const q of c.squads) { const n = got.squads[q.sIdx]; if (n && STANCE_DIALS[n]) q.stance = n; } }
+            else seatSquadStances(c);
+          } else reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
         }
 
         /* THE WINDOW. Comms are up; this is where a manager speaks to their people and to the
@@ -4315,9 +4313,9 @@
          they lay. They crawl for the line — slowly, but in. */
       for (const c of corps) for (const sq of c.squads) {
         if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured' || b.status === 'active')) continue;
-        const zW = MAP.zoneOn(planet, day);
+        const zW = MAP.zoneOn(planet, day + 1);
         const dW = MAP.dist(sq.x, sq.y, zW.cx, zW.cy);
-        if (dW > zW.r * (1 - CONST.WALL_EDGE)) wallRun(planet, day, sq, zW, dW, CONST.WALL_CRAWL, stats);
+        if (dW > zW.r * (1 - CONST.WALL_EDGE)) wallRun(planet, day + 1, sq, zW, dW, CONST.WALL_CRAWL, stats);
       }
       for (const sq of liveSquads()) {
         const dials = squadDials(sq);
@@ -4349,15 +4347,21 @@
            Now it is checked EVERY TICK: a squad outside breaks off whatever it is doing — a fight
            included — and SPRINTS for safe ground just inside, at full pace whatever its
            stance, rest or burden, with no arrival slack. Only then does anything else happen. */
+        /* §WALL (ruled) OUTSIDE THE RING IS DEATH, AND NOBODY IS EVER THERE. The ring stood at today's line all day and
+           stepped in at dawn, so every morning squads near the edge woke outside it and were given the day to walk in —
+           a third to nearly half of all squad-days began outside the line, and the replay showed them there. The ring
+           closes through the day toward tomorrow's line, and every squad keeps inside TOMORROW'S line: its steps are
+           held inside it, and a squad that finds itself beyond it sprints in now. Dawn then finds nobody outside; anyone
+           who is, is gone (and recorded as the bug it is). */
         {
-          const zW = MAP.zoneOn(planet, day);
+          const zW = MAP.zoneOn(planet, day + 1);
           const dW = MAP.dist(sq.x, sq.y, zW.cx, zW.cy);
           if (dW > zW.r * (1 - CONST.WALL_EDGE)) {
             if (sq._busyUntil != null && sq._busyUntil > absTick) {
               sq._busyUntil = 0; addStress(sq, 4, stats);
               stats.audit.lineBrokeFight = (stats.audit.lineBrokeFight || 0) + 1;
             }
-            wallRun(planet, day, sq, zW, dW, Math.max(0.5, terrainSpeed) * CONST.WALL_SPRINT, stats);
+            wallRun(planet, day + 1, sq, zW, dW, Math.max(0.5, terrainSpeed) * CONST.WALL_SPRINT, stats);
             continue;
           }
         }
@@ -4442,7 +4446,7 @@
 
            A margin, not a veto: everyone still gets clamped inside the line, but where the
            line effectively sits for THIS corp depends on what it declared. */
-        const zc = MAP.zoneOn(planet, day);
+        const zc = MAP.zoneOn(planet, day + 1);            /* §WALL the line it will be, not the line it was at dawn */
         const zr = squadDials(sq).zoneRisk;
         const margin = CONST.ZONE_MARGIN_SAFE
                      - (CONST.ZONE_MARGIN_SAFE - CONST.ZONE_MARGIN_BOLD) * zr;
@@ -4479,7 +4483,7 @@
             if (found) { nx = found[0]; ny = found[1]; stats.audit.routedRound = (stats.audit.routedRound || 0) + 1; }
             else { nx = sq.x; ny = sq.y; stats.audit.heldByGround = (stats.audit.heldByGround || 0) + 1; }
           }
-          const inside = MAP.clampInside(planet, day, nx, ny);   /* the wall is a wall */
+          const inside = MAP.clampInside(planet, day + 1, nx, ny);   /* the wall is a wall — and it is closing */
           sq.x = inside.x; sq.y = inside.y;
           sq.movedToday = true;
           for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.FATIGUE_MARCH);
@@ -4509,8 +4513,8 @@
             if (sep > 1e-6) { ux = (b.x - a.x) / sep; uy = (b.y - a.y) / sep; }
             else { const ang = (i * 2.4 + j) % (Math.PI * 2); ux = Math.cos(ang); uy = Math.sin(ang); }
             const half = (CONST.OWN_SPACING - sep) / 2;
-            const pa = MAP.clampInside(planet, day, a.x - ux * half, a.y - uy * half);
-            const pb = MAP.clampInside(planet, day, b.x + ux * half, b.y + uy * half);
+            const pa = MAP.clampInside(planet, day + 1, a.x - ux * half, a.y - uy * half);
+            const pb = MAP.clampInside(planet, day + 1, b.x + ux * half, b.y + uy * half);
             a.x = pa.x; a.y = pa.y; b.x = pb.x; b.y = pb.y;
             stats.audit.ownSpacingPush = (stats.audit.ownSpacingPush || 0) + 1;
           }
@@ -5193,7 +5197,7 @@
                   const roomNow = MAP.zoneOn(planet, day).r;
                   const run = Math.min(CONST.BREAK_DISTANCE * (0.8 + rng() * 0.5),
                                        roomNow * CONST.WITHDRAW_RUN_FRAC);
-                  const p = MAP.clampInside(planet, day, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
+                  const p = MAP.clampInside(planet, day + 1, sq.x + (dx / len) * run, sq.y + (dy / len) * run);
                   /* §MAP the break for it is a leg of the day's walk: without it the marker
                      finished its animated march and then jumped to where the run had put it */
                   if (!sq._track || !sq._track.length) sq._track = [Math.round(sq.x * 1000) / 1000, Math.round(sq.y * 1000) / 1000];

@@ -4119,6 +4119,30 @@ squad-days within 12% of it) and are found more, but their losses come after mos
 384 seasons (flank → +loot → +these fixes): Verdant 68 → 60 → 53, Mercy 36 → 38 → 38, Violets 28 → 32 → 35, New Line
 80 → 76 → 80, Vantis 42 → 59 → 61, Knights 58 → 62 → 44, Alliance 25 → 19 → 27, Nevlon 29 → 17 → 27. Fatality 28.6%.
 
+**THE RING, AGAIN (ruled: outside the ring is instant death, and no OA is ever there).** It had come back in a new
+shape. The ring stood at the day's line all day and stepped in at dawn, so every morning the squads near the edge woke
+OUTSIDE it and were given the whole day to walk back in — a third to nearly half of all squad-days began outside the
+line, which is what the replay showed. (The previous entry's "walk in that never ended" was this same fault seen from
+the other side.) Now every squad keeps inside TOMORROW'S line all day: its steps, a beaten squad's run, the spacing
+push and every march target are held inside it, and a squad that finds itself beyond it sprints in at once. Dawn then
+finds nobody outside; anyone who is, is taken where they stand and recorded as a fault (`wallDeaths`), which
+`harness/probe_wall.cjs` fails on. Forty-eight contests: nobody outside at any dawn, nobody taken.
+
+**STANCE: DOES A REACTIVE AI BEAT FLAT CAUTION?** FOUND FIRST: the window's re-stancing never reached a squad. An AI OA
+seats each squad's own notch at the drop (strongest a step bolder, weakest a step more careful), and a squad's own notch
+is what its behaviour reads; `reconsiderStance` changed only the OA's word, so every AI squad fought the whole contest
+on the notch it landed with. The squads are re-seated around the new notch at every window. A test may now hand an OA
+its own stance POLICY (`opts.stancePolicy[corpId]`: given its day, odds, losses, reserve, squads and what it has seen,
+it returns its notch and each squad's); `sim/measure_stance_policies.cjs` plays them. **Free for all** (eight policies,
+one seat each, 192 contests): flat cautious 17.7% of titles (mean place 3.24), careful-then-bold (careful until the ring
+pens them in, then bold) 17.2%, local odds (each squad bold where it outnumbers the nearest enemy it knows of, careful
+where outnumbered) 15.1%, flat bold 11.5%, the engine's own 9.9%, hurt-then-careful 9.4%, board odds 7.3%, bold-then-
+careful 6.8%. **Four against four flat cautious** (80 contests each; share of the titles the two sides took): careful-
+then-bold 57%, board odds 53%, local odds 48%, the engine's own 45%, hurt-then-careful 42%, contrary odds 33%, flat
+bold 31%, bold-then-careful 29%. Flat caution does not beat every way of choosing: waiting and then turning bold beats
+it, and the odds-reading policies hold it level. What loses is being bold EARLY. The engine's own chooser is among the
+weaker ones — it samples widely around its culture and the "ahead" pull turns it bold early.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they
