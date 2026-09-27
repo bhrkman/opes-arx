@@ -304,18 +304,18 @@ const CONST = {
   GEAR_TIER_ACCURACY: 5.0                                       // [S] per tier from 3 (1 → 0.6 → 0.50)
 };
 
-/* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives
-   inside the firefight is two nudges and pursuit, and nothing else (D1).
-   `recoveryUrgency` = exchanges before someone goes to a downed squadmate. Death-or-glory
-   goes back FASTEST (D2): that mentality carries strong bonds of kinship. Their wounded
-   still die more often because they are the squad still standing there when it collapses,
-   and losing your wounded is a consequence of being overrun (§3.7), not of indifference. */
+/* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives inside the firefight
+   is PURSUIT, here, and the point at which the captain orders the squad back, which is the day loop's
+   `STANCE_WITHDRAW_AT` (divide.js) handed to the grid as the side's `withdrawAt`. Two fields stood here that
+   nothing read: `holdNudge` (superseded by that threshold) and `recoveryUrgency` (exchanges before someone goes
+   to a downed squadmate — a mechanic never built; losing your wounded is a consequence of being overrun, §3.7).
+   Both deleted rather than left as knobs that turn nothing. */
 const STANCE = {
-  preservationist: { holdNudge: -0.30, recoveryUrgency: 2, pursuit: 'if_free'    },
-  measured:        { holdNudge: -0.15, recoveryUrgency: 2, pursuit: 'if_free'    },
-  standard:        { holdNudge:  0.00, recoveryUrgency: 2, pursuit: 'yes'        },
-  unyielding:      { holdNudge: +0.25, recoveryUrgency: 2, pursuit: 'aggressive' },
-  death_or_glory:  { holdNudge: +0.45, recoveryUrgency: 2, pursuit: 'always'     }
+  preservationist: { pursuit: 'if_free'    },
+  measured:        { pursuit: 'if_free'    },
+  standard:        { pursuit: 'yes'        },
+  unyielding:      { pursuit: 'aggressive' },
+  death_or_glory:  { pursuit: 'always'     }
 };
 /* back-compat alias: callers still say squad.policy */
 const POLICY = STANCE;

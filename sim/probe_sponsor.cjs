@@ -27,32 +27,16 @@ function mkCorp(id) {
            sponsors: { regard: {}, contracts: [], offers: [], courted: {}, courting: {} } };
 }
 
-/* ---- the cost curve falls as contracts are taken, floored ---- */
-const board = SPON.openBoard(houses);
-const a = mkCorp('a');
-const c0 = SPON.courtCost(board, a, houses[0]);
-board.taken = 3;
-const c3 = SPON.courtCost(board, a, houses[0]);
-board.taken = 99;
-const cFloor = SPON.courtCost(board, a, houses[0]);
-check(c3 < c0, 'courting cost falls as contracts are taken: ' + c0.toFixed(2) + ' -> ' + c3.toFixed(2));
-check(cFloor >= CO.COURT_COST_FLOOR - 1e-9, 'the cost never falls below the floor: ' + cFloor.toFixed(2));
-
-/* ---- regard discounts the cost ---- */
-const board2 = SPON.openBoard(houses);
-const b = mkCorp('b');
-const costCold = SPON.courtCost(board2, b, houses[0]);
-SPON.bumpRegard(b, houses[0], CO.REGARD_SPAN);       /* max regard */
-const costWarm = SPON.courtCost(board2, b, houses[0]);
-check(costWarm < costCold, 'regard discounts the courting cost: ' + costCold.toFixed(2) + ' -> ' + costWarm.toFixed(2));
-
+/* §SPONSORS courting is paid in FOCUS, not credits: `courtCost` is 0 by ruling and `courtStanding` is regard alone
+   (the effort is folded into regard at once). The checks that priced courting and summed a separate effort were
+   the old system's and read against a mechanic that no longer exists. */
 /* ---- courting raises regard and records effort; standing sums them ---- */
 const cc = mkCorp('cc');
 SPON.court(cc, houses[0], 3);
 check(SPON.regardOf(cc, houses[0]) === 3 * CO.SPONSOR_COURT_REGARD,
       'courting raises regard by the effort put in');
-check(SPON.courtStanding(cc, houses[0]) > SPON.regardOf(cc, houses[0]),
-      'standing is regard PLUS this year\u2019s effort, so it exceeds bare regard');
+check(SPON.courtStanding(cc, houses[0]) === SPON.regardOf(cc, houses[0]),
+      'standing is regard: the effort is already in it');
 
 /* ---- the board signs the highest-standing courter, one per house ---- */
 const board3 = SPON.openBoard(houses);

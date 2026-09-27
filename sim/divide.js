@@ -1104,6 +1104,9 @@
     const by = new Map();
     for (const c of corps) {
       if (!c.allBodies.some(b => b.status === 'active' || b.status === 'injured')) continue;
+      /* an OA that stood down took its people home standing: still 'active' bodies, no longer a banner. Left in,
+         it drew a share of everyone's Chance of Winning after it had left the ground. */
+      if (c.withdrawn) continue;
       const p = principalOf(c);
       if (!by.has(p.id)) by.set(p.id, { principal: p, members: [] });
       by.get(p.id).members.push(c);
@@ -1453,6 +1456,11 @@
     }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
+      /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
+         stood at dawn, so three could each find staying worthless and all three walk in one pass, the third off an
+         empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
+         nothing to leave. */
+      if (corps.filter(onGround).length <= 1) { stats.audit.lastStood = (stats.audit.lastStood || 0) + 1; break; }
       /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
          shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
       const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
@@ -1968,7 +1976,8 @@
        the heavy weapons at all. Over capacity is legal; it is not free. */
     {
       const heads = squadHead(sq);
-      const bonus = heads.reduce((s, b) => s + ((b.race && b.race.carry_bonus) || 0), 0)
+      /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
+      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0)
                   + heads.filter(b => C.hooksOf(b, ROSTER.traitById).has('carry_bulk_up_2')).length * 2;
       const load = ITEMS.squadBulk(heads, bonus);
       sq.overBulk = load.over;
@@ -2986,7 +2995,10 @@
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
-        const dry = 1 - Math.max(0, Math.min(1, (sq.ammo == null ? CONST.AMMO_LOAD : sq.ammo) / CONST.AMMO_LOAD));
+        /* rounds are carried by the people (combat.js LOADOUT_AMMO); `CONST.AMMO_LOAD` never existed, so this was NaN and never fired */
+        const hd = squadHead(sq), full = hd.length * C.CONST.LOADOUT_AMMO;
+        const have = hd.reduce((t, b) => t + (b.ammo == null ? C.CONST.LOADOUT_AMMO : b.ammo), 0);
+        const dry = full ? 1 - Math.max(0, Math.min(1, have / full)) : 0;
         if (dry > 0.6) return 0.55 + dry * 0.2;
       }
       /* falls through to the kit and ration reasons */
@@ -3031,7 +3043,7 @@
            them come to it */
         const good = planet.heightAt ? planet.heightAt(sq.x, sq.y) : 0.5;
         const inZone = MAP.dist(sq.x, sq.y, z.cx, z.cy) < z.r * 0.8;
-        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < CONST.CLAIM_RANGE ? 0.15 : 0);
+        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < MAP.CONST.CLAIM_RADIUS * 2 ? 0.15 : 0);   /* `CONST.CLAIM_RANGE` never existed */
       }
       case 'baiting': {
         /* let ourselves be seen on ground of our choosing, and meet whoever comes on it */
@@ -4454,6 +4466,10 @@
               }),
               picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
               leanings: Object.assign({}, you._leanings || {}),
+              /* §CONTACT what your OA has had with each rival, for the deal page's "Hunting You / Beat You / You Beat
+                 Them / Fought You": the accessor lived on the negotiation context, not on the window, so the page
+                 read Not Met for everyone all contest */
+              contact: (function () { const o = {}; for (const c of corps) if (c.id !== you.id) { const r = contactWith(you, c, corps); if (r.fights || r.huntedBy || r.hunting) o[c.id] = r; } return o; })(),
               /* the wall's remaining beats, so a manager can plan against the clock */
               wall: MAP.wallSchedule(planet, day),
               /* §STORES WHAT THE GROUND HAS GIVEN YOU SO FAR, in the units the board asks in,
@@ -4580,7 +4596,7 @@
               }
             }
             /* the manager stands down on the replies he has: whoever said yes is on record */
-            if (answer && answer.withdrawNow && you2 && !you2.withdrawn) standDown(you2, day, stats, corps);
+            if (answer && answer.withdrawNow && you2 && !you2.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you2, day, stats, corps);   /* the last one standing has won */
             /* §CHOICES his answer to a ransom case: Pay or Decline as the owner, Sell or Keep as the captor */
             if (answer && answer.deal && you2 && /^ransom_/.test(answer.deal.kind || '')) {
               const d = answer.deal, yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';

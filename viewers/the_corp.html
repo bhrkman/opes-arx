@@ -13411,18 +13411,18 @@ const CONST = {
   GEAR_TIER_ACCURACY: 5.0                                       // [S] per tier from 3 (1 → 0.6 → 0.50)
 };
 
-/* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives
-   inside the firefight is two nudges and pursuit, and nothing else (D1).
-   `recoveryUrgency` = exchanges before someone goes to a downed squadmate. Death-or-glory
-   goes back FASTEST (D2): that mentality carries strong bonds of kinship. Their wounded
-   still die more often because they are the squad still standing there when it collapses,
-   and losing your wounded is a consequence of being overrun (§3.7), not of indifference. */
+/* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives inside the firefight
+   is PURSUIT, here, and the point at which the captain orders the squad back, which is the day loop's
+   `STANCE_WITHDRAW_AT` (divide.js) handed to the grid as the side's `withdrawAt`. Two fields stood here that
+   nothing read: `holdNudge` (superseded by that threshold) and `recoveryUrgency` (exchanges before someone goes
+   to a downed squadmate — a mechanic never built; losing your wounded is a consequence of being overrun, §3.7).
+   Both deleted rather than left as knobs that turn nothing. */
 const STANCE = {
-  preservationist: { holdNudge: -0.30, recoveryUrgency: 2, pursuit: 'if_free'    },
-  measured:        { holdNudge: -0.15, recoveryUrgency: 2, pursuit: 'if_free'    },
-  standard:        { holdNudge:  0.00, recoveryUrgency: 2, pursuit: 'yes'        },
-  unyielding:      { holdNudge: +0.25, recoveryUrgency: 2, pursuit: 'aggressive' },
-  death_or_glory:  { holdNudge: +0.45, recoveryUrgency: 2, pursuit: 'always'     }
+  preservationist: { pursuit: 'if_free'    },
+  measured:        { pursuit: 'if_free'    },
+  standard:        { pursuit: 'yes'        },
+  unyielding:      { pursuit: 'aggressive' },
+  death_or_glory:  { pursuit: 'always'     }
 };
 /* back-compat alias: callers still say squad.policy */
 const POLICY = STANCE;
@@ -18594,13 +18594,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           ? { state: 'met', word: 'A Standout Is Already Fielded' }
           : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
-        return alive.length <= 20
-          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
-          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
+        /* judged on the DROP (`judge` reads record.dropSize), not the books: the status counted the roster and said
+           Must Field 20 or Fewer to an OA whose drop was 16 */
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 20 Fielded or Fewer' };
+      case 'blood_the_green':
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 A Third Unproven' };
       case 'none':
-        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
+        /* a supplier that asks nothing: it read blood_the_green's words, which belong to the Almsdesk */
+        return { state: 'met', word: 'No Condition' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 ' + Math.round(CONST.SPONSOR_ENERGY_FRAC * 100) + '% Energy or More' };
       case 'no_scandal':
         return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':
@@ -19969,6 +19972,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const by = new Map();
     for (const c of corps) {
       if (!c.allBodies.some(b => b.status === 'active' || b.status === 'injured')) continue;
+      /* an OA that stood down took its people home standing: still 'active' bodies, no longer a banner. Left in,
+         it drew a share of everyone's Chance of Winning after it had left the ground. */
+      if (c.withdrawn) continue;
       const p = principalOf(c);
       if (!by.has(p.id)) by.set(p.id, { principal: p, members: [] });
       by.get(p.id).members.push(c);
@@ -20318,6 +20324,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
+      /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
+         stood at dawn, so three could each find staying worthless and all three walk in one pass, the third off an
+         empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
+         nothing to leave. */
+      if (corps.filter(onGround).length <= 1) { stats.audit.lastStood = (stats.audit.lastStood || 0) + 1; break; }
       /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
          shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
       const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
@@ -20833,7 +20844,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the heavy weapons at all. Over capacity is legal; it is not free. */
     {
       const heads = squadHead(sq);
-      const bonus = heads.reduce((s, b) => s + ((b.race && b.race.carry_bonus) || 0), 0)
+      /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
+      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0)
                   + heads.filter(b => C.hooksOf(b, ROSTER.traitById).has('carry_bulk_up_2')).length * 2;
       const load = ITEMS.squadBulk(heads, bonus);
       sq.overBulk = load.over;
@@ -21851,7 +21863,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
-        const dry = 1 - Math.max(0, Math.min(1, (sq.ammo == null ? CONST.AMMO_LOAD : sq.ammo) / CONST.AMMO_LOAD));
+        /* rounds are carried by the people (combat.js LOADOUT_AMMO); `CONST.AMMO_LOAD` never existed, so this was NaN and never fired */
+        const hd = squadHead(sq), full = hd.length * C.CONST.LOADOUT_AMMO;
+        const have = hd.reduce((t, b) => t + (b.ammo == null ? C.CONST.LOADOUT_AMMO : b.ammo), 0);
+        const dry = full ? 1 - Math.max(0, Math.min(1, have / full)) : 0;
         if (dry > 0.6) return 0.55 + dry * 0.2;
       }
       /* falls through to the kit and ration reasons */
@@ -21896,7 +21911,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            them come to it */
         const good = planet.heightAt ? planet.heightAt(sq.x, sq.y) : 0.5;
         const inZone = MAP.dist(sq.x, sq.y, z.cx, z.cy) < z.r * 0.8;
-        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < CONST.CLAIM_RANGE ? 0.15 : 0);
+        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < MAP.CONST.CLAIM_RADIUS * 2 ? 0.15 : 0);   /* `CONST.CLAIM_RANGE` never existed */
       }
       case 'baiting': {
         /* let ourselves be seen on ground of our choosing, and meet whoever comes on it */
@@ -23319,6 +23334,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               }),
               picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
               leanings: Object.assign({}, you._leanings || {}),
+              /* §CONTACT what your OA has had with each rival, for the deal page's "Hunting You / Beat You / You Beat
+                 Them / Fought You": the accessor lived on the negotiation context, not on the window, so the page
+                 read Not Met for everyone all contest */
+              contact: (function () { const o = {}; for (const c of corps) if (c.id !== you.id) { const r = contactWith(you, c, corps); if (r.fights || r.huntedBy || r.hunting) o[c.id] = r; } return o; })(),
               /* the wall's remaining beats, so a manager can plan against the clock */
               wall: MAP.wallSchedule(planet, day),
               /* §STORES WHAT THE GROUND HAS GIVEN YOU SO FAR, in the units the board asks in,
@@ -23445,7 +23464,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               }
             }
             /* the manager stands down on the replies he has: whoever said yes is on record */
-            if (answer && answer.withdrawNow && you2 && !you2.withdrawn) standDown(you2, day, stats, corps);
+            if (answer && answer.withdrawNow && you2 && !you2.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you2, day, stats, corps);   /* the last one standing has won */
             /* §CHOICES his answer to a ransom case: Pay or Decline as the owner, Sell or Keep as the captor */
             if (answer && answer.deal && you2 && /^ransom_/.test(answer.deal.kind || '')) {
               const d = answer.deal, yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
@@ -30503,7 +30522,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     veteran: 'After Two Divides',
     green: 'Before Their First Divide',
     young: 'While Young',
-    old_hand: 'Past Thirty-Four',
+    old_hand: 'Thirty-Four and Older',
     hurt: 'While Carrying a Wound',
     settled: 'While Settled',
     rattled: 'While Rattled',
@@ -37166,8 +37185,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         '<div class="ds">' + (D.picks[id] || []).map(function (sl) { return '<span class="slotchip" style="background:' + colFor(id) + '">' + (sl + 1) + '</span>'; }).join('') +
         (on ? '<span class="m">Picking</span>' : '') + '</div></div>'; }).join('');
     var mine = D.picks[G.me] || [];
-    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Drop \u00b7 Round ' + Math.min(SEASON.PICKS_EACH, D.round + 1) + ' of ' + SEASON.PICKS_EACH + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
-      (D.done ? '<button id="dropbtn" class="primary">Drop</button>' : myTurn ? '<span class="gold">Your Pick \u00b7 ' + (SEASON.PICKS_EACH - mine.length) + ' Left</span>' : '<span class="m">Waiting on ' + cSpan(whose) + '</span>') + '</div>' +
+    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Drop \u00b7 Round ' + Math.min(D.rounds, D.round + 1) + ' of ' + D.rounds + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
+      (D.done ? '<button id="dropbtn" class="primary">Drop</button>' : myTurn ? '<span class="gold">Your Pick \u00b7 ' + (D.want[G.me] - mine.length) + ' Left</span>' : '<span class="m">Waiting on ' + cSpan(whose) + '</span>') + '</div>' +
       '<div class="dstrip">' + strip + '</div>' +
       '<div class="landcols"><div><canvas id="dropmap" width="720" height="720" style="width:100%;height:auto;display:block;background:' + TOK.mapbg + ';border:1px solid var(--line);border-radius:3px"></canvas></div>' +
       '<div class="legendside"><div><h2 style="margin-top:0">Your Landings</h2><div class="ring">' +
@@ -37412,7 +37431,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        him, and how they stand on the ground. */
     var sh = '<div class="stancehd"><span></span><span>OA</span><span>How They Stand</span></div>';
     G.state.ids.filter(function (id) { return id !== G.me; }).forEach(function (id) {
-      var tc = (w.contact && w.contact(you, { id: id })) || {};
+      var tc = (w.contact || {})[id] || {};
       var reg = G.corps[id] && G.corps[id].rep ? Math.round(REP.standing(G.corps[id].rep, 'rival', G.me)) : 0;
       var band = standBand(reg, 'rival');
       var met = tc.huntedBy ? '<span class="bad">Hunting You</span>' : tc.lostTo ? '<span class="bad">Beat You</span>'
@@ -37478,7 +37497,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* §NEGOTIATION who is on you, read from the contact record the Desk uses. This read the
            dead join tables, so every OA was labelled "0%" — a number the engine never produced,
            where odds were ruled out anyway — and "Hunting You" and hunger never showed (audit 2) */
-        var tc = (w.contact && w.contact(you, { id: id })) || {};
+        var tc = (w.contact || {})[id] || {};
         var touch = tc.huntedBy ? 'Hunting You' : tc.lostTo ? 'Beat You' : tc.beat ? 'You Beat Them' : tc.fights ? 'Fought You' : '';
         return (rel ? '<span class="gold">' + rel + '</span>' : '') +
                (touch ? (rel ? '<br>' : '') + '<span class="warn">' + touch + '</span>' : '');

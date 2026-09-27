@@ -2533,7 +2533,7 @@
     veteran: 'After Two Divides',
     green: 'Before Their First Divide',
     young: 'While Young',
-    old_hand: 'Past Thirty-Four',
+    old_hand: 'Thirty-Four and Older',
     hurt: 'While Carrying a Wound',
     settled: 'While Settled',
     rattled: 'While Rattled',
@@ -9196,8 +9196,8 @@
         '<div class="ds">' + (D.picks[id] || []).map(function (sl) { return '<span class="slotchip" style="background:' + colFor(id) + '">' + (sl + 1) + '</span>'; }).join('') +
         (on ? '<span class="m">Picking</span>' : '') + '</div></div>'; }).join('');
     var mine = D.picks[G.me] || [];
-    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Drop \u00b7 Round ' + Math.min(SEASON.PICKS_EACH, D.round + 1) + ' of ' + SEASON.PICKS_EACH + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
-      (D.done ? '<button id="dropbtn" class="primary">Drop</button>' : myTurn ? '<span class="gold">Your Pick \u00b7 ' + (SEASON.PICKS_EACH - mine.length) + ' Left</span>' : '<span class="m">Waiting on ' + cSpan(whose) + '</span>') + '</div>' +
+    var h = '<div class="landhead"><span class="m"><b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 The Drop \u00b7 Round ' + Math.min(D.rounds, D.round + 1) + ' of ' + D.rounds + ' \u00b7 Survey <b>' + (DEPTHWORD[depth] || 'Full') + '</b></span>' +
+      (D.done ? '<button id="dropbtn" class="primary">Drop</button>' : myTurn ? '<span class="gold">Your Pick \u00b7 ' + (D.want[G.me] - mine.length) + ' Left</span>' : '<span class="m">Waiting on ' + cSpan(whose) + '</span>') + '</div>' +
       '<div class="dstrip">' + strip + '</div>' +
       '<div class="landcols"><div><canvas id="dropmap" width="720" height="720" style="width:100%;height:auto;display:block;background:' + TOK.mapbg + ';border:1px solid var(--line);border-radius:3px"></canvas></div>' +
       '<div class="legendside"><div><h2 style="margin-top:0">Your Landings</h2><div class="ring">' +
@@ -9442,7 +9442,7 @@
        him, and how they stand on the ground. */
     var sh = '<div class="stancehd"><span></span><span>OA</span><span>How They Stand</span></div>';
     G.state.ids.filter(function (id) { return id !== G.me; }).forEach(function (id) {
-      var tc = (w.contact && w.contact(you, { id: id })) || {};
+      var tc = (w.contact || {})[id] || {};
       var reg = G.corps[id] && G.corps[id].rep ? Math.round(REP.standing(G.corps[id].rep, 'rival', G.me)) : 0;
       var band = standBand(reg, 'rival');
       var met = tc.huntedBy ? '<span class="bad">Hunting You</span>' : tc.lostTo ? '<span class="bad">Beat You</span>'
@@ -9508,7 +9508,7 @@
         /* §NEGOTIATION who is on you, read from the contact record the Desk uses. This read the
            dead join tables, so every OA was labelled "0%" — a number the engine never produced,
            where odds were ruled out anyway — and "Hunting You" and hunger never showed (audit 2) */
-        var tc = (w.contact && w.contact(you, { id: id })) || {};
+        var tc = (w.contact || {})[id] || {};
         var touch = tc.huntedBy ? 'Hunting You' : tc.lostTo ? 'Beat You' : tc.beat ? 'You Beat Them' : tc.fights ? 'Fought You' : '';
         return (rel ? '<span class="gold">' + rel + '</span>' : '') +
                (touch ? (rel ? '<br>' : '') + '<span class="warn">' + touch + '</span>' : '');

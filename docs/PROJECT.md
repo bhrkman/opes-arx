@@ -4114,7 +4114,7 @@ approach still stood but whose step was done waited on the spot until the approa
 **TRIED AND RULED OUT** (no measurable effect): slipping away by the odds for every stance; answering a beacon only with
 the odds; pursuit; the AI reserve rising or flat with aggression; the weak-target discount; an OA judging its own odds
 by the truth rather than the public board (everyone left more, the gap unchanged); the weight of its own loss rate.
-**FOUND, NOT CHANGED:** the stance table's `holdNudge` and `recoveryUrgency` are read by nothing. **WHAT REMAINS IS
+**FOUND, then deleted (the half-built audit):** the stance table's `holdNudge` and `recoveryUrgency` were read by nothing. **WHAT REMAINS IS
 TIMING.** The boldest stance wins its fights (per contest it loses 19 and inflicts 42; the most careful loses 26 and
 inflicts 35) but takes its losses early (8 by day 8 against 5.5) because it goes looking (seeker 2.8 a contest against
 1.2); what it inflicts is spread over several rivals while its losses are all its own, and the bystanders gain. So it
@@ -4205,9 +4205,10 @@ than three days off 25% → 7% (none past five), median distance 1.7 → 1.0 day
 share of OA-days with squads heading far apart falls within a group (it reads 24%, which is now dispersed groups each
 on its own operation). Contests run longer (15 → 19 days), fatality 29–31%. Stance policies, free for all, 128
 contests: careful-then-bold 22.7%, flat cautious 21.1%, the engine's own 11.7%, board odds 10.2%, local odds 8.6%,
-bold-then-careful 7.8%, flat bold 6.2%, hurt-then-careful 6.2% (balance is parked by ruling). **FOUND, NOT CHANGED:**
-a truce struck late can leave its two partners as the last banners, unable to fight, until the overtime rail ends the
-contest with no winner (three in thirty-two contests).
+bold-then-careful 7.8%, flat bold 6.2%, hurt-then-careful 6.2% (balance is parked by ruling). **FOUND, and wrongly diagnosed:**
+a contest that ended with no winner was put down to a late truce; measured properly (forty contests, the last days of
+the one that stalled) it was three OAs each finding staying worthless at the same window and all three standing down in
+one pass, the third off an empty ground. Fixed below.
 
 **THE AI REBUILD, STAGE 2: ROUTES AND MARCHING IN COMPANY.** A squad stepped straight at its aim and, meeting water or a
 peak, swung its heading a little either way or stood still — measured, 57 steps a contest held by the ground, and every
@@ -4238,6 +4239,28 @@ Ground draws your OA's operations as flags in your colour where they are aimed (
 hover names the objective and why the operation stands ("Set at the Drop", "Replanned After Losses", "The Ring Is
 Closing"). The drop is recorded before the first plan, so its day carries none. `drive_map` checks the plan rides the
 day, is only yours, and that its hover says something.
+
+**THE HALF-BUILT AUDIT, FIRST PASS (queued by ruling; the document was not trusted, so each lead was read on both
+sides before anything moved).** **THE LAST ONE STANDING HAS WON** — the economic-exit pass weighed every OA against the
+field as it stood at dawn, so three could each find staying worthless and all three walk in one pass, the last off an
+empty ground: a contest with nobody left and no winner (one in forty). The pass stops once one OA is left, for the
+engine's OAs and for a manager's Withdraw Now alike; 0 in 64 since. **Deleted:** `holdNudge` (superseded by
+`STANCE_WITHDRAW_AT`) and `recoveryUrgency` (a go-to-the-wounded mechanic never built). **Fixed, engine:** the Olmac and
+Svalbard `carry_bonus` was read off the race's id string and was 0 for everyone — it is on the race record; an OA that
+stood down still drew a share of everyone's Chance of Winning (`umbrellasOf` kept it: its people went home 'active');
+the legacy planner's `CONST.AMMO_LOAD` and `CONST.CLAIM_RANGE` never existed (NaN, so its resupply desire never fired —
+reachable only under `COMMAND: 'squad'`). **Fixed, page:** every rival read "Not Met" all contest, because the contact
+accessor lived on the negotiation context and the window never carried it (`window.contact` now); the Drop's header read
+"Round NaN of undefined" (`SEASON.PICKS_EACH` does not exist; it reads the draft's own rounds and wants); the Helion
+status said 60% where the engine judges 75%; the Arrowline status counted the roster where the engine judges the drop;
+the no-condition supplier wore the Almsdesk's words; "Past Thirty-Four" for a rule that is 34 and older.
+`probe_sponsor` was checking a courting price that is 0 by ruling and is brought up to the mechanic. **Found, held for
+rulings** (each a design question, listed in the session's report): the engine's OAs can put a manager's OA under a
+truce with nothing shown on the page; the deal page's join/take composer is unreachable dead code; Their Word never
+reads the kept/broken record (it is written to a per-Divide store and lost at the season); the Ferrous keep-policy
+condition can never break (`_policyChanged` is written by nothing); media day cannot be attended by a manager;
+`illicit.js` is a whole module nothing requires; the Sealed badge on the trade strip gates nothing in the prep year;
+the stale dev viewers (`the_desk`, `the_firefight`, …) carry old engine copies.
 
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning

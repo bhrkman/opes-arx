@@ -518,13 +518,16 @@
           ? { state: 'met', word: 'A Standout Is Already Fielded' }
           : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
-        return alive.length <= 20
-          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
-          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
+        /* judged on the DROP (`judge` reads record.dropSize), not the books: the status counted the roster and said
+           Must Field 20 or Fewer to an OA whose drop was 16 */
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 20 Fielded or Fewer' };
+      case 'blood_the_green':
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 A Third Unproven' };
       case 'none':
-        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
+        /* a supplier that asks nothing: it read blood_the_green's words, which belong to the Almsdesk */
+        return { state: 'met', word: 'No Condition' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 ' + Math.round(CONST.SPONSOR_ENERGY_FRAC * 100) + '% Energy or More' };
       case 'no_scandal':
         return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':
