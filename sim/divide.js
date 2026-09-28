@@ -357,6 +357,7 @@
     CMD_W_STRIKE: 0.7,                  // [C] §COMMAND a strike on a squad in the open (× seek)
     CMD_W_STRIKE_OBJ: 1.4,              //     on a squad standing on an objective (× seek)
     CMD_W_HOLD: 0.3,                    // [C] §COMMAND holding ground where it is, a little toward the ring's future (× caution)
+    CMD_W_SUPPLY: 0.5,                  // [C] §COMMAND what a rest site, or a still day on the ground, is worth to a group short of rations
     CMD_W_JOIN: 0.9,                    // [C] §COMMAND linking up with another group of the OA's own (the careful more)
     CMD_W_ADVANCE: 0.25,                // [C] §COMMAND moving on toward ground beyond reach, a day at a time (× boldness)
     CMD_ADVANCE_HORIZON: 5,             // [C] §COMMAND the furthest ground (days' march) worth advancing toward
@@ -497,6 +498,7 @@
                                  endowment: the grab, beside the prize the winner takes */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
+    RATION_CARRY_DAYS: 14,              // [C] §5.2 — what one body can carry: foraging fills to this and no further
     /* §7.5 ELEVATION, read three ways */
     HEIGHT_SPOT: 0.60,                  // [C] detection × (1 + this × height difference): the high see the low
     HEIGHT_CLIMB: 0.50,                 // [C] pace × (1 − this × slope): steep ground is slow ground
@@ -824,6 +826,7 @@
          the same fourteen days' load feeds the squad longer */
       const vict = SPON && SPON.standingValue ? SPON.standingValue(corp, 'victualler') : 0;
       if (vict) sq.rations = Math.round(sq.rations * (1 + vict));
+      sq._rationPerHead = (sq.rations - packs * CONST.RATION_PACK_DAYS) / Math.max(1, sq.bodies.length);
       /* §CHARGES every fighter lands with the charges its stores carry for the Divide */
       for (const f of sq.bodies) chargeUp(f);
       sq.medkits = medkitCharges(sq.bodies);
@@ -1839,7 +1842,22 @@
     return demand;
   }
 
+  /* §5.2 FORAGING IS A DAY'S WORK, NOT A BACKGROUND HUM. It ran every morning for every squad, marching or fighting
+     or not, with no ceiling on what a squad could hold — so on any ground better than barren the rations only grew
+     (70 at the drop, 321 by day 20 in the play-through) and supply never bound anything. Now a squad forages at
+     camp only on a day it neither marched nor fought, and carries no more than its people landed with plus the
+     packs they brought: a column on the move eats down, a squad that holds good ground eats up. The planner knows
+     it: a group short of rations weighs a rest site and holding ground higher (`CMD_W_SUPPLY`). */
+  function rationCap(sq) {
+    const packs = (sq.bodies || []).reduce((s, f) => s + ((f.loadout && f.loadout.consumables) || []).filter(c => c === "itm_field_rations").length, 0);
+    /* a victualler's standing order stretched the drop's load past the plain carry; what they landed with per head is the cap */
+    return Math.max(CONST.RATION_CARRY_DAYS, sq._rationPerHead || 0) * squadHead(sq).length + packs * CONST.RATION_PACK_DAYS;
+  }
   function forage(rng, sq, planet, hooksOfSquad, posture, stats) {
+    /* a squad that fought, or marched more than half a day, had no day to forage; a short shift to better ground did */
+    if (sq.foughtToday || (sq._marched || 0) > CONST.DAY_MARCH * 0.5) return 0;
+    const cap = rationCap(sq);
+    if (sq.rations >= cap) return 0;
     let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round(planet.forageAt(sq.x, sq.y))))] || 0;
     /* A forager whose people can eat what the rest cannot. The guard used to require
        `yieldPer === 0` — an exactly-barren tile — which never occurred on any archetype, so
@@ -1854,7 +1872,7 @@
     if (hooksOfSquad.has('forage_bonus')) yieldPer *= 1.4;
     if (hooksOfSquad.has('forage_value_up')) yieldPer *= 1.25;
     if (posture === 'forage') yieldPer *= CONST.FORAGE_POSTURE_MULT;
-    const got = Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng()));
+    const got = Math.min(cap - sq.rations, Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng())));
     sq.rations += got;
     if (stats) { stats.audit.forageEvents++; stats.audit.forageYield += got; }
     return got;
@@ -2446,6 +2464,9 @@
       const gAll = [].concat.apply([], g.map(q => q.bodies));
       const hurtN = gAll.filter(b => b.status === 'injured').length;
       const reserve = (corp.reserve || []).length;
+      /* §5.2 short of rations: fewer days in hand than the short mark, across the group */
+      const gHeads = g.reduce((t, q) => t + heads(q), 0), gRations = g.reduce((t, q) => t + (q.rations || 0), 0);
+      const short = gHeads > 0 && gRations / gHeads < CONST.RATION_SHORT_AT * 2;
       for (const o of planet.objectives) {
         if (!MAP.siteLive(o, day)) continue;
         const d = MAP.dist(cx, cy, o.x, o.y), eta = d / Math.max(1e-6, speed);
@@ -2456,7 +2477,7 @@
           if (!reserve) continue;
           kind = 'reinforce'; w = CONST.CMD_W_BEACON + lostFrac * CONST.CMD_W_BEACON_PER_LOSS;
         } else if (o.type === 'ration_site') {
-          kind = 'mend'; w = hurtN ? CONST.CMD_W_MEND + hurtN / Math.max(1, gAll.length) * 2 : objectiveWorth(o, corp) * 0.6;
+          kind = 'mend'; w = (hurtN ? CONST.CMD_W_MEND + hurtN / Math.max(1, gAll.length) * 2 : objectiveWorth(o, corp) * 0.6) + (short ? CONST.CMD_W_SUPPLY : 0);
         } else { kind = 'take'; w = objectiveWorth(o, corp); }
         if (!w) continue;
         const t = threatAt(o.x, o.y, CONST.CMD_THREAT_R);
@@ -2522,7 +2543,9 @@
           if (d < CONST.CMD_THREAT_R * 1.5 && d > 1e-6) { gx += (gx - e.x) / d * CONST.DAY_MARCH * 0.5; gy += (gy - e.y) / d * CONST.DAY_MARCH * 0.5; }
         }
         const p = MAP.clampInside(planet, day + 2, gx, gy);
-        cands.push({ kind: 'hold', x: p.x, y: p.y, score: CONST.CMD_W_HOLD * (1 - seek) + lostFrac * 0.3 });
+        /* short of rations, a still day on ground that feeds is worth having (the yield class where the group stands) */
+        const feeds = short && planet.forageAt ? CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round(planet.forageAt(cx, cy))))] || 0 : 0;
+        cands.push({ kind: 'hold', x: p.x, y: p.y, score: CONST.CMD_W_HOLD * (1 - seek) + lostFrac * 0.3 + (feeds >= 1 ? CONST.CMD_W_SUPPLY : 0) });
       }
       /* §COMMAND ON THE LAST GROUND NOTHING IS BENEATH FIGHTING (N18): there is no ground left to take or hold, and a
          group that kept its distance on the last circle could outlast the contest's rail with nobody winning. It closes
@@ -3564,7 +3587,8 @@
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
       case 'ration_site': {
-        sq.rations += CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot;
+        /* §5.2 a site fills the packs; it does not make them bigger (the carry cap holds here as at the forage) */
+        sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
         /* §SITES and it mends: a day's shelter and care takes the edge off every wound the
            squad is carrying, and stands a lightly hurt fighter back up */
         /* in a contest a wound is carried as `_recovery`, the days until a fighter can stand
@@ -4263,7 +4287,7 @@
       for (const c of corps) for (const sq of c.squads) {
         if (!squadHead(sq).length) continue;
         sq._day = day; sq._st = stats;
-        sq.movedToday = false; sq.foughtToday = false; sq._lostDay = false; sq._hunted = false;
+        sq.movedToday = false; sq._marched = 0; sq.foughtToday = false; sq._lostDay = false; sq._hunted = false;
       }
       if (MAP.isWindowDay(planet, day)) stats.windows++;
 
@@ -4799,7 +4823,6 @@
       for (const sq of liveSquads()) {
         const hooks = squadHooks(sq);
         consumeRations(sq, planet, raceById, hooks, stats);
-        forage(rng, sq, planet, hooks, posture, stats);
         stats.squadDays++;
         if (sq.rationShort) stats.rationShortDays++;
         if (sq.rationDry) { addStress(sq, CONST.STRESS.rationDry, stats); stats.audit.rationDryDays++; }
@@ -5053,7 +5076,7 @@
           }
           const inside = MAP.clampInside(planet, day + 1, nx, ny);   /* the wall is a wall — and it is closing */
           sq.x = inside.x; sq.y = inside.y;
-          sq.movedToday = true;
+          sq.movedToday = true; sq._marched = (sq._marched || 0) + step;
           for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.FATIGUE_MARCH);
           if (tick === 0 && rng() < CONST.NIGHT_MARCH_P && !hooks.has('march_efficiency_up')) {
             stats.audit.nightMarch++;
@@ -6064,6 +6087,8 @@
           stats._lightDay = day; stats._lightShare = lit / CONST.TICKS_PER_DAY;
         }
         camp(rng, c, sq, squadHooks(sq), stats);
+        forage(rng, sq, planet, squadHooks(sq), posture, stats);   /* §5.2 a still day is a foraging day */
+        if (sq.rations > rationCap(sq)) sq.rations = rationCap(sq);   /* and what the packs cannot hold is left on the ground */
         if (!sq.foughtToday) addStress(sq, CONST.STRESS.quietDay, stats);
         if (sq._successions) { stats.audit.successions += sq._successions; sq._successions = 0; }
       }
