@@ -1049,7 +1049,7 @@
       /* who got them, and what everybody else offered — so a manager can be TOLD they were
          outbid and by how much, rather than watching a number fail to change. */
       (tally.results = tally.results || []).push({
-        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid,
+        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid, month: state ? state.month : null,
         offers: offers.map(o => ({ corp: o.corp.id, bid: o.bid }))
       });
     }

@@ -25760,8 +25760,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
        a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
     const target = price * 0.95;
+    /* MONEY FIRST. It filled with gear and paid the remainder in credits, so an OA sitting on a quarter of a
+       million wrote "₡52, a plasma caster, four carbines, five vests and five rifles for your best man" — a letter
+       that reads as junk and trains a manager to bin the box. An OA pays in credits as far as it can spare them
+       (the same two-fifths of the treasury as before) and fills what is left from the shelf. */
+    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), target);
     const gear = [];
-    let raised = 0;
+    let raised = credits;
     const shelf = Object.keys(them.armoury || {})
       .filter(k => them.armoury[k] > 0)
       .sort((x, y) => gearPrice(y) - gearPrice(x));
@@ -25774,8 +25779,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       gear.push({ id: id, n: n });
       raised += each * n;
     }
-    const short = Math.max(0, target - raised);
-    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), short);
     const offer = { gear: gear, credits: Math.round(credits) };
     const ask = { units: [want.id] };
     /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
@@ -26903,7 +26906,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* who got them, and what everybody else offered — so a manager can be TOLD they were
          outbid and by how much, rather than watching a number fail to change. */
       (tally.results = tally.results || []).push({
-        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid,
+        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid, month: state ? state.month : null,
         offers: offers.map(o => ({ corp: o.corp.id, bid: o.bid }))
       });
     }
@@ -31542,7 +31545,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
     host.innerHTML = '<div class="eightcard"><div class="eighthead"><div><div class="et">The Eight</div>' +
-        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 No Retreat \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
+        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 Fought to the Death \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
         '<div class="teams"><div class="tm' + (sideOf === 'A' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'A' ? 'Your Four' : 'The First Four') + '</span>' + A.map(cSpan).join('') + '</div><span class="vs">vs</span>' +
           '<div class="tm' + (sideOf === 'B' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'B' ? 'Your Four' : 'The Second Four') + '</span>' + B.map(cSpan).join('') + '</div></div></div>' +
       '<div class="m" style="margin:8px 0 6px">' + (named ? 'Named' : 'Unnamed \u00b7 Your Best Goes') + '</div>' +
@@ -32907,6 +32910,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         var mine2 = r.offers.filter(function (o) { return o.corp === G.me; })[0].term;
         return esc(r.name) + ' Took ' + r.term + ' Divide' + (r.term === 1 ? '' : 's') + ' Elsewhere' +
                (r.term < mine2 ? ' \u00b7 You Offered ' + mine2 : ' \u00b7 He Trusted Them More');
+      }) : res.event === 'mercs' ? (t.results || []).filter(function (r) {
+        /* §MARKET a manager outbid is told who took the man and at what: four bids lost in silence read as a market that never delivers */
+        if (r.to === G.me || (r.month != null && r.month !== res.month)) return false;
+        return (r.offers || []).some(function (o) { return o.corp === G.me; });
+      }).map(function (r) {
+        var mine2 = r.offers.filter(function (o) { return o.corp === G.me; })[0].bid;
+        return esc(r.name) + ' Signed With ' + cSpan(r.to) + ' at ' + crs(r.at) +
+               (mine2 < r.at ? ' \u00b7 You Offered ' + crs(mine2) : ' \u00b7 He Trusted Them More');
       }) : [];
       lines.push('<b>' + esc(res.name) + '</b> \u2014 ' + fleetLine +
                  (mine ? '' : ' \u00b7 <span class="warn">None Came to You</span>') +

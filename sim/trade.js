@@ -283,8 +283,13 @@
        up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
        a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
     const target = price * 0.95;
+    /* MONEY FIRST. It filled with gear and paid the remainder in credits, so an OA sitting on a quarter of a
+       million wrote "₡52, a plasma caster, four carbines, five vests and five rifles for your best man" — a letter
+       that reads as junk and trains a manager to bin the box. An OA pays in credits as far as it can spare them
+       (the same two-fifths of the treasury as before) and fills what is left from the shelf. */
+    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), target);
     const gear = [];
-    let raised = 0;
+    let raised = credits;
     const shelf = Object.keys(them.armoury || {})
       .filter(k => them.armoury[k] > 0)
       .sort((x, y) => gearPrice(y) - gearPrice(x));
@@ -297,8 +302,6 @@
       gear.push({ id: id, n: n });
       raised += each * n;
     }
-    const short = Math.max(0, target - raised);
-    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), short);
     const offer = { gear: gear, credits: Math.round(credits) };
     const ask = { units: [want.id] };
     /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by

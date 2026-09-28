@@ -206,6 +206,10 @@ function playYear(year) {
     say('\n**The month closed:** ' + delta(before, after) + '.');
     const lines = me().account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
     if (lines.length) say('- The ledger: ' + lines.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
+    if (res.event === 'mercs') for (const r of ((state.mercs || {}).results || [])) {
+      const mine = (r.offers || []).find(o => o.corp === ME); if (!mine || r.to === ME || r.month !== m) continue;
+      say('- ' + r.name + ' signed with ' + oaName(r.to) + ' at ' + cr(r.at) + (mine.bid < r.at ? ' (you offered ' + cr(mine.bid) + ')' : ' (yours was as high; they trusted them more)') + '.');
+    }
     if (state.mercs && state.mercs.scraped && state.mercs.scraped !== (state._scrapedSeen || 0)) { say('- **The board filled your roster** to the drop floor with hired hands, at a price and a patience hit.'); state._scrapedSeen = state.mercs.scraped; }
     const now = alive(me()); const joined = now.filter(f => idsBefore.indexOf(f.id) < 0), left = me().roster.filter(f => idsBefore.indexOf(f.id) >= 0 && now.indexOf(f) < 0);
     if (joined.length) say('- Came aboard: ' + joined.map(f => nm(f) + ' (' + cap(f.race) + (f.origin ? ', ' + cap(f.origin) : '') + ')').join(', ') + '.');
@@ -219,6 +223,13 @@ function playYear(year) {
   }
 }
 
+function fightWords(f) {
+  const r = String(f.result || ''), m = /^disengage_(.+)$/.exec(r);
+  if (m) return m[1] === 'both' ? 'both sides broke off' : m[1].split('').map(t => oaName(f.corps[t.charCodeAt(0) - 65]) || t).join(' and ') + ' broke off';
+  if (r === 'cleared') return 'the field was cleared';
+  if (r === 'cap') return 'fought to the cap';
+  return cap(r).toLowerCase();
+}
 function playDivide(year) {
   say('\n# Year ' + year + ' — the Divide\n');
   S.closeSeasonToDrop(state);
@@ -254,7 +265,7 @@ function playDivide(year) {
     const others = (v.corps || []).filter(x => x.id !== ME);
     say('**The fleet:** ' + others.map(x => oaName(x.id) + ' ' + (x.withdrawn ? 'gone' : (x.standing ? x.standing.up + '/' + x.standing.of : '?')) + ((v.contact || {})[x.id] ? ' (' + ((v.contact[x.id].huntedBy && 'hunting you') || (v.contact[x.id].beat && 'you beat them') || (v.contact[x.id].lostTo && 'beat you') || 'fought') + ')' : '')).join(' · ') + '.');
     const fights = (v.fights || []).filter(f => (f.corps || []).indexOf(ME) >= 0);
-    if (fights.length) say('**Since the last window:** ' + fights.map(f => 'day ' + f.day + (f.night ? ' (night)' : '') + ' ' + f.corps.map(oaName).join(' met ') + ' — ' + (f.result || '')).join('; ') + '.');
+    if (fights.length) say('**Since the last window:** ' + fights.map(f => 'day ' + f.day + (f.night ? ' (night)' : '') + ' ' + f.corps.map(oaName).join(' met ') + ' — ' + fightWords(f)).join('; ') + '.');
     const asks = v.withdrawAsks || [];
     if (asks.length) say('**Offers to leave:** ' + asks.map(a => oaName(a.from) + ' asks ' + Math.round((a.terms.credits || 0) * 100) + '% of the pot').join('; ') + '.');
     const table = v.table || {};

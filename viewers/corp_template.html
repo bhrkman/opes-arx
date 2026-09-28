@@ -3392,7 +3392,7 @@
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
     host.innerHTML = '<div class="eightcard"><div class="eighthead"><div><div class="et">The Eight</div>' +
-        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 No Retreat \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
+        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 Fought to the Death \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
         '<div class="teams"><div class="tm' + (sideOf === 'A' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'A' ? 'Your Four' : 'The First Four') + '</span>' + A.map(cSpan).join('') + '</div><span class="vs">vs</span>' +
           '<div class="tm' + (sideOf === 'B' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'B' ? 'Your Four' : 'The Second Four') + '</span>' + B.map(cSpan).join('') + '</div></div></div>' +
       '<div class="m" style="margin:8px 0 6px">' + (named ? 'Named' : 'Unnamed \u00b7 Your Best Goes') + '</div>' +
@@ -4757,6 +4757,14 @@
         var mine2 = r.offers.filter(function (o) { return o.corp === G.me; })[0].term;
         return esc(r.name) + ' Took ' + r.term + ' Divide' + (r.term === 1 ? '' : 's') + ' Elsewhere' +
                (r.term < mine2 ? ' \u00b7 You Offered ' + mine2 : ' \u00b7 He Trusted Them More');
+      }) : res.event === 'mercs' ? (t.results || []).filter(function (r) {
+        /* §MARKET a manager outbid is told who took the man and at what: four bids lost in silence read as a market that never delivers */
+        if (r.to === G.me || (r.month != null && r.month !== res.month)) return false;
+        return (r.offers || []).some(function (o) { return o.corp === G.me; });
+      }).map(function (r) {
+        var mine2 = r.offers.filter(function (o) { return o.corp === G.me; })[0].bid;
+        return esc(r.name) + ' Signed With ' + cSpan(r.to) + ' at ' + crs(r.at) +
+               (mine2 < r.at ? ' \u00b7 You Offered ' + crs(mine2) : ' \u00b7 He Trusted Them More');
       }) : [];
       lines.push('<b>' + esc(res.name) + '</b> \u2014 ' + fleetLine +
                  (mine ? '' : ' \u00b7 <span class="warn">None Came to You</span>') +
