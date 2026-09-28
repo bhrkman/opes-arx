@@ -4304,6 +4304,29 @@ cards join the pool — A Profile Piece (Months 8–10, a columnist wants a week
 under the lens, or written thinner from the postings) and Last Year, Reviewed (Month 1, from the second year: sit
 down with them, or no comment). Six acts join the ledger for them.
 
+**THE PLAY-THROUGH AUDIT (ruled: play it screen by screen).** A year and a Divide driven with a screenshot of every
+screen — 158 of them — and read from the manager's chair; the document was not consulted. **Broken and fixed:** the
+Bastille's blind sheet was squeezed into one stat column, a word a line, and the mercenary's slider and buttons were
+crammed beside the terms and cut off (the card's foot is a column now, on every window); the shut Natural-Born preview
+wore Bastille terms; the Ground's Still on the Ground struck every rival through at 0 on day one (counted off the
+secrecy shell's empty bodies — it reads the broadcast count now); the Board asked a third place "another finish
+outside the frame" (a podium question added) beside a patience word that read "Losing Faith" against a Pleased verdict
+(the 25–50 band is "Wary", a level not a trend); the Ground's title was the raw archetype id; a contract's figure was
+a month on the roster card and a year on the Paper and the market, and the draft called its monthly figure a year
+(a year everywhere now, as the Paper ruled); the Eight's cards showed stat fractions (a stat is a whole number on
+every screen); a squad with nobody left still read Working a Deposit. **Moved or cut:** the Dividend's Lights stood
+on the Desk from Month 5 to the Lock (the month after, then the recap has them); the Divide's Negotiation opened on the
+Withdraw panel (below the table now); the top-left Next Comms Window buttons duplicated the corner's beacon (cut); the
+DEV hotseat control stood in the flow at the top of every contest page (with the other dev buttons now); the founding
+screen let the header ghost through; the corner's kind-chips read DRA… (wide enough for the word); every page ends
+with room to scroll clear of the corner; the recap led with an event that went by default over the month's real news
+(an answered event, then signings, then the default); the recap before the Divide said Next · The Lock from the Lock;
+the Market drew an empty framed strip with no order; the preparation's ring hung the top name into the hub and put a
+bare number and a false Sealed under each OA (wider; the word for what they think of you); "Smoke 48" was six
+canisters of eight (pieces, not charges); the Bastille said Your Name discounts every ask where the Kier sets the wage.
+**Seen, not changed** (balance is parked): five of eight OAs had walked by day 11; a manager who never sets squads is
+charged ₵54k for the board to fill them, silently, at the drop.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

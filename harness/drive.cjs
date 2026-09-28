@@ -1008,7 +1008,7 @@ setTimeout(() => {
       const dvc = doc.querySelectorAll('#dvpick .fcard[data-dvdrop]').length;
       check(dvc >= 1, 'the card\'s fighters are whole-card click targets (' + dvc + ')');
     }
-    check(/the Dividend/.test(text('#desklights')),
+    check(/the Dividend/i.test(text('#desklights')),
           'the Dividend surfaces on the Desk\'s shelf, not a month log');
     check(doc.getElementById('deskligwrap').style.display !== 'none',
           'the lights stand on the Desk\'s shelf from month 7');
@@ -1016,9 +1016,9 @@ setTimeout(() => {
        recap — it used to carry the summer's exhibition into the Divide, which is why the
        Table opened on a list of fights that had nothing to do with the ground. */
     const lightRows = doc.querySelectorAll('#desklights [data-watchd]').length;
-    check(lightRows >= 1 && /the Dividend/.test(text('#desklights')),
+    check(lightRows >= 1 && /the Dividend/i.test(text('#desklights')),
           'the show-matches stand on the Desk\'s shelf for watching (' + lightRows + ' lights)');
-    check(!/the Dividend/.test(text('#encounters')),
+    check(!/the Dividend/i.test(text('#encounters')),
           'the contest\'s recap carries only the ground, not the summer\'s exhibition');
     doc.querySelector('#desklights [data-watchd]').click();
     check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/.test(text('#frLbl')),
@@ -1459,7 +1459,7 @@ setTimeout(() => {
     /* Beta holds one now and reads short; send them home so the lock below sees one squad */
     { const hb = doc.querySelector('#sqboxes .sqcard[data-si="1"] [data-home]'); if (hb) hb.click(); }
     endMonth();               /* month 11 — the lock; the year turns to the Divide */
-    check(/the Divide/.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
+    check(/the Divide/i.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
     check(/The Draft|Drop/.test(((doc.getElementById('turngo') || {}).textContent || '')),
           'at the lock the corner is the draft, not a month');
     check(!doc.body.classList.contains('yearline'), 'the year line stands down for the Divide');
@@ -1813,7 +1813,7 @@ setTimeout(() => {
     check(enc >= 1, 'encounters from the ground arrived in the Table\'s recap (' + enc + ')');
     /* re-ruled with the recap split: the Table speaks for the contest, the Desk's shelf
        for the year's lights. Two lists, two places. */
-    check(!/the Dividend/.test(text('#encounters')),
+    check(!/the Dividend/i.test(text('#encounters')),
           'the Table\'s recap stays on the ground; the lights stay on the shelf');
     doc.querySelector('#encounters [data-watch]').click();
     /* the check is that the encounter REPLAYS, not that it was a long one: a squad with

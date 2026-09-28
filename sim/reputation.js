@@ -943,6 +943,10 @@
       ask: "Second. Closer than anyone expected. Does that count for anything?" },
     { id: 'lost_famous', when: o => o.famousLosses > 0,
       ask: "You went down there with a name the fleet knew, and you came back without them." },
+    /* §ADDRESS a third place got asked what changes after "another finish outside the frame": the fallback was
+       written for a poor year and asked of every year that was not a win or a loss. A good finish gets its own. */
+    { id: 'placed',      when: o => o.placement != null && o.placement <= 3,
+      ask: "On the podium, and the people who paid to watch want to know if that was the ceiling or the floor." },
     { id: 'quiet',       when: () => true,
       ask: "Another Divide, another finish outside the frame. What changes next year?" }
   ];

@@ -67,7 +67,7 @@
      grew and the button that starts the game went past the bottom edge with no way to scroll
      to it. It scrolls now, centres only while it fits, and keeps a margin at the foot so the
      last control is never flush against the edge. */
-  .overlay{position:fixed;inset:0;background:rgba(12,11,9,.97);z-index:40;display:flex;
+  .overlay{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;   /* opaque: the header ghosted through the founding screen */
     gap:40px;align-items:center;justify-content:center;flex-wrap:wrap;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 16px 40px}
   .overlay > *{max-height:none}
@@ -151,6 +151,12 @@
   #fillsquads{position:fixed;left:14px;bottom:44px;z-index:20;font:inherit;font-size:9.5px;letter-spacing:.1em;background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
   body.yearline #fillsquads{left:18px}
   @media (max-width:900px){ #skiptolock{left:8px;bottom:8px} }
+  /* §DEV the hotseat control sits with the other dev buttons, under the year line, not in the page's flow at the
+     top-left of every contest screen */
+  #superbox{position:fixed;left:14px;bottom:74px;z-index:20;display:flex;gap:4px;align-items:center}
+  #superbox button,#superbox select{font:inherit;font-size:9.5px;letter-spacing:.1em;background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:3px 8px}
+  #superbox select{max-width:120px}
+  body.yearline #superbox{left:18px}
   /* §CHROME A GAME'S CHROME DOES NOT REFLOW. The tab rail wrapped onto a second line when the
      window narrowed, which is how a website behaves and not how a board does — the tabs move,
      the page jumps, and a manager loses the thing he was reaching for. The rail holds one line
@@ -1252,7 +1258,7 @@
   .dtbl .dage{text-align:right;font-size:9px;white-space:nowrap;width:60px}
   .bbtn{color:var(--mag);border-color:var(--a-dim)}
   .bbtn.on{background:var(--mag);color:var(--bg);border-color:var(--mag)}
-  .page{display:none;padding:14px 20px}
+  .page{display:none;padding:14px 20px 190px}   /* §CORNER the corner is fixed bottom-right; the page ends high enough to scroll clear of it */
   /* THE YEAR LINE. A route map of the year, twelve stops, down the left of every page in the
      preparation: the current stop lit, the past dim, each stop in its kind's colour with a
      word of what it does and how far off it is. During the Divide it stands down. */
@@ -1274,12 +1280,12 @@
   body.yearline #agenda,body.turnon #agenda{display:flex}
   body.recapon #agenda{display:none}
   #agenda .items{display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-height:44vh;overflow:visible}
-  #agenda .atab{position:relative;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:5px 12px 5px 14px;margin-right:-16px;transform:translateX(calc(100% - 46px));transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s;cursor:pointer;min-width:240px;font-size:11px;white-space:nowrap;box-shadow:-6px 4px 18px rgba(0,0,0,.4)}
+  #agenda .atab{position:relative;background:var(--panel);border:1px solid var(--line2);border-right:none;border-radius:8px 0 0 8px;padding:5px 12px 5px 14px;margin-right:-16px;transform:translateX(calc(100% - 62px));transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s;cursor:pointer;min-width:240px;font-size:11px;white-space:nowrap;box-shadow:-6px 4px 18px rgba(0,0,0,.4)}
   #agenda .atab::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cred);border-radius:8px 0 0 8px;transition:background .3s}
   #agenda .atab.urgent::before{background:var(--red)}
-  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9.5px;color:var(--cred);letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:color .3s;width:34px;overflow:hidden;text-overflow:ellipsis}
+  #agenda .atab .k{position:absolute;left:12px;top:5px;font-size:9.5px;color:var(--cred);letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:color .3s;width:50px;overflow:hidden;text-overflow:ellipsis}
   #agenda .atab.urgent .k{color:var(--red)}
-  #agenda .atab .t{padding-left:48px;color:var(--ink)}
+  #agenda .atab .t{padding-left:64px;color:var(--ink)}   /* the kind word peeks whole from the edge: it read DRA… */
   #agenda .atab .c{color:var(--dim);font-size:10px;margin-left:8px}
   #agenda:hover .atab,#agenda .atab:hover,#agenda.open .atab{transform:none}
   #agenda .atab.here{border-color:var(--a)} #agenda .atab.here::before{background:var(--a)} #agenda .atab.here .k{color:var(--a)}
@@ -1611,7 +1617,12 @@
   .acq .pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:9px}
   .acq .pc{background:color-mix(in srgb, var(--o) 6%, var(--panel));
     border-color:color-mix(in srgb, var(--o) 28%, var(--line));border-left:3px solid var(--o);margin:0;position:relative}
-  .acq .pc-foot{border-top-color:color-mix(in srgb, var(--o) 26%, var(--line));padding-top:8px;margin-top:8px}
+  /* §MARKET THE FOOT IS A COLUMN: the terms on one line, the action on its own full-width line beneath. As a row, the
+     mercenary's slider and three buttons and the Bastille's three roads were crammed beside the terms into a strip
+     and cut off; the Bastille's blind sheet was likewise squeezed into one stat column, a word a line. */
+  .acq .pc-foot{border-top-color:color-mix(in srgb, var(--o) 26%, var(--line));padding-top:8px;margin-top:8px;flex-direction:column;align-items:stretch;gap:7px}
+  .acq .pc-foot > .pcbtn{width:100%}
+  .pc-stats .pc-blind{grid-column:1 / -1;display:flex;flex-direction:column;gap:3px}
   /* THE BUTTON NEVER MOVES AND NEVER RENAMES ITSELF UNDER THE CURSOR: one action, full width,
      in the window's colour, in the same place whatever state the card is in. */
   .acq .pcbtn{width:100%;padding:8px;border-radius:5px;background:transparent;border:1px solid var(--o);color:var(--o);font-size:12px}
@@ -1927,8 +1938,6 @@
      inspected — the same convention the Squads board uses. -->
 <div class="page" data-tab="roster">
   <div class="bar" style="margin-bottom:10px">
-    <button class="advwin2" style="display:none">Next Comms Window</button>
-    <span class="m advwin2state"></span>
   </div>
   <div class="box" id="money"></div>
   <div id="resigning"></div>
@@ -1946,8 +1955,6 @@
 <!-- ================================ THE SQUADS ================================ -->
 <div class="page" data-tab="squads">
   <div class="bar" style="margin-bottom:10px">
-    <button class="advwin2" style="display:none">Next Comms Window</button>
-    <span class="m advwin2state"></span>
   </div>
   <div class="bar" style="justify-content:space-between;margin-bottom:10px">
     <div class="planline" id="planstate"></div>
@@ -2002,8 +2009,6 @@
 <!-- ================================ THE GROUND ================================ -->
 <div class="page" data-tab="ground">
   <div class="bar" style="margin-bottom:10px">
-    <button class="advwin2" style="display:none">Next Comms Window</button>
-    <span class="m advwin2state"></span>
   </div>
   <div id="sponsorverdict"></div>
   <div class="scrub" id="gscrub" style="display:none">
@@ -2077,11 +2082,12 @@
      composer. The word and the echo stay on the Table, where the window is worked. -->
 <div class="page" data-tab="deal">
   <div class="dealhead" id="dealhead"></div>
-  <!-- §WITHDRAWAL its own surface, because it is not a trade: one public offer to the whole
-       field, answered by everyone, binding on nobody. -->
-  <div id="withdraw"></div>
   <div class="oastrip" id="tstrip"></div>
   <div id="tdeal"><div class="box"><span class="m">&mdash;</span></div></div>
+  <!-- §WITHDRAWAL its own surface, because it is not a trade: one public offer to the whole
+       field, answered by everyone, binding on nobody. It stands BELOW the table: it opened the
+       page, so the first thing a manager saw on day one was how to quit. -->
+  <div id="withdraw"></div>
 </div>
 
 <!-- ================================ THE MARKET ================================= -->
@@ -2126,8 +2132,6 @@
 <!-- ================================= THE BOARD ================================= -->
 <div class="page" data-tab="board">
   <div class="bar" style="margin-bottom:10px">
-    <button class="advwin2" style="display:none">Next Comms Window</button>
-    <span class="m advwin2state"></span>
   </div>
   <div class="dayhead" id="boardhead"></div>
   <div id="boardask" style="display:none;margin-bottom:12px">
@@ -2209,10 +2213,10 @@
      stays whole — the fractions keep accruing underneath either way. It lives beside
      `esc` because every block that prints a stat needs it; declaring it inside one of them
      is what took the desk down on the first cut. */
+  /* a stat is a whole number on every screen: training moves it by fractions, and the Eight's cards showed them */
   var fmtStat = function (v) {
     if (typeof v !== 'number' || !isFinite(v)) return v;
-    var r = Math.round(v * 10) / 10;
-    return (r === Math.round(r)) ? String(Math.round(r)) : r.toFixed(1);
+    return String(Math.round(v));
   };
 
   var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
@@ -2350,7 +2354,7 @@
     /* the clock wears the month's own colour, the one the year line uses for that stop */
     if (G && G.state) { var mk2 = monthKind(m); $('clock').style.color = mk2.c; }
     $('clock').textContent = G && G.state
-      ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 the Divide'
+      ? 'Year ' + G.state.season + ' \u00b7 ' + (m >= 12 ? 'Month 12 \u2014 The Divide'
           : 'Month ' + m + ' \u2014 ' + ((SEASON.MONTHS[m] || {}).name || ''))
       : '';
   }
@@ -2505,7 +2509,7 @@
       : '\u2014';
     var paper = '<span class="k">Origin</span><span class="v" style="color:var(--o-' + org.cls +
       ')">' + org.label + '</span>' +
-      '<span class="k">Salary</span><span class="v">' + crs(ct.salary || 0) + ' / mo</span>' +
+      '<span class="k">Salary</span><span class="v">' + crs((ct.salary || 0) * 12) + ' / yr</span>' +   /* §PAPER a contract's figures are a year's, everywhere */
       '<span class="k">Term</span><span class="v">' + termTxt + '</span>' +
       /* §SHOWN morale steadies a fighter in every grid fight, loyalty moves what re-signing them
          costs — both were simulated and never shown (audit 1) */
@@ -2834,7 +2838,7 @@
         '<div class="rc-orig ' + org.cls + '">' + org.label +
           ' <span class="who">\u00b7 ' + capRace(f.race) + ', ' + (f.age || '?') + '</span></div>' +
         '<div class="rc-line"><span><span class="lab">Salary </span><span class="val">' +
-          crs((f.contract || {}).salary || 0) + '</span></span>' +
+          crs(((f.contract || {}).salary || 0) * 12) + '<span class="m">/yr</span></span></span>' +   /* §PAPER a year's figure, as the Paper and the market give it */
           '<span><span class="lab">Fame </span><span class="val">' + Math.round(f.fame || 0) + '</span></span></div>' +
         '<div class="rc-tags">' +
           '<span class="rc-tag term' + (term.ending ? ' end' : '') + '">' + term.txt + '</span>' +
@@ -2973,7 +2977,7 @@
       mkt.innerHTML = winShell(nn.cls, nn.name, nn.kind, 'Opens Month ' + next.m,
         '<div class="shutwrap">' +
           '<div class="pcs">' + (peek.length
-            ? peek.map(function (f) { return prospectCard(f, null); }).join('')
+            ? peek.map(function (f) { return prospectCard(f, next.kind); }).join('')   /* the window's own terms, not the Bastille's */
             : '<span class="none">No Sheet Yet</span>') + '</div>' +
           '<div class="shutplate"><b>' + esc(nn.name) + '</b>' +
             '<span>Opens Month ' + next.m + '</span></div>' +
@@ -2989,7 +2993,8 @@
     var meRep = G.corps[G.me].rep;
     var nameGood = meRep ? REP.standing(meRep, 'own') + REP.standing(meRep, 'fleet') * SEASON.CONST.MARKET_FLEET_SHARE : 0;
     var namePct = Math.round(Math.max(-SEASON.CONST.MARKET_SWING, Math.min(SEASON.CONST.MARKET_SWING, nameGood / 100 * SEASON.CONST.MARKET_SWING)) * 100);
-    var nameWord = namePct > 2 ? '<span class="good">Your Name: \u2212' + namePct + '% on Every Ask</span>'
+    var nameWord = win.signing === 'bastille' ? '<span class="m">Kier Wages \u00b7 No Asks to Discount</span>'   /* the Bastille has no asks to discount */
+                 : namePct > 2 ? '<span class="good">Your Name: \u2212' + namePct + '% on Every Ask</span>'
                  : namePct < -2 ? '<span class="bad">Your Name: +' + (-namePct) + '% on Every Ask</span>'
                  : '<span class="m">Your Name Moves Nothing</span>';
     meta = Object.assign({}, meta, { name: meta.name + (win.pool && POOLWORD[win.pool] ? ' \u00b7 ' + POOLWORD[win.pool] : '') });
@@ -3104,7 +3109,7 @@
       /* §DRAFT a draftee's paper is the Aleas': a rookie term at ordinary wages, no fee, no bid — one Pick, when it is yours */
       var RD = G.state.recruitDraft, myPick = RD && !RD.done && RD.order[RD.i] === G.me;
       var rookie = (SEASON.DRAFT && SEASON.DRAFT.SEASONS) || 2;
-      terms = rookie + ' Seasons \u00b7 Rookie \u00b7 ' + crs((f.contract || {}).salary || 0) + '/yr \u00b7 Fame ' + Math.round(f.fame || 0);
+      terms = rookie + ' Seasons \u00b7 Rookie \u00b7 ' + crs(((f.contract || {}).salary || 0) * 12) + '/yr \u00b7 Fame ' + Math.round(f.fame || 0);
       foot = myPick ? '<button class="pcbtn" data-rdpick="' + f.id + '">Pick</button>' : '';
     } else if (signing === 'tryouts') {
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
@@ -4826,7 +4831,7 @@
     /* §RECAP the arriving month's colour runs through the strip, the next-month box and Continue */
     var nk = monthKind(nextM);
     var page = document.querySelector('.page[data-tab="recap"]'); if (page) page.style.setProperty('--nxc', nk.c);
-    var nextName = nextM <= 11 && nextWin ? 'Month ' + nextM + ' \u00b7 ' + nextWin.name : 'The Lock';
+    var nextName = nextM <= 11 && nextWin ? 'Month ' + nextM + ' \u00b7 ' + nextWin.name : 'Month 12 \u00b7 The Divide';   /* Month 11 IS the Lock; what follows it is the Divide */
     $('recaphead').innerHTML = '<span>Month <b>' + m + ' \u00b7 ' + esc(R.name) + '</b> \u00b7 Ended</span>' +
       '<span class="nx">Next \u00b7 ' + esc(nextName) + '</span>';
     /* THE HEADLINE: the one thing that mattered most this month, in this order — the show
@@ -4840,12 +4845,17 @@
       headline = 'The Eight Was Fought \u00b7 ' + (ER.winner ? (mineSide ? '<b>Your Four Took It</b>' : 'Your Four <b>Lost</b>') : '<b>Drawn</b>');
     } else if (R.event === 'dividend') {
       headline = 'The Dividend Paid \u00b7 <b>The Lights Came Up</b>';
-    } else if ((R.events || []).length) {
-      headline = esc(R.events[0].line) + ' \u00b7 ' + (R.events[0].defaulted ? '<b>By Default</b>' : '<b>Your Call</b>');
+    } else if ((R.events || []).some(function (e) { return !e.defaulted; })) {
+      /* an event YOU answered is the month's news; one that went by default is the deck's, not the headline's —
+         "Petra Was Overruled · By Default" led a month in which nine signed across the fleet and none came to you */
+      var ans = (R.events || []).filter(function (e) { return !e.defaulted; })[0];
+      headline = esc(ans.line) + ' \u00b7 <b>Your Call</b>';
     } else if (came.length) {
       headline = came.slice(0, 2).join(' and ') + (came.length > 2 ? ' and ' + (came.length - 2) + ' More' : '') + ' <b>Signed</b>';
     } else if (gone.length) {
       headline = gone.slice(0, 2).join(' and ') + ' <b>Left</b>';
+    } else if ((R.events || []).length) {
+      headline = esc(R.events[0].line) + ' \u00b7 <b>By Default</b>';
     } else if (lineTexts.length) {
       headline = lineTexts.shift();
     } else if (Math.abs(dT) >= 5000) {
@@ -4925,7 +4935,7 @@
          nobody is that everybody sees what became of it */
       promisesHtml((G._boardOutcome || {}).promises, (G._boardOutcome || {}).winner) +
       foot;
-    if ($('recapgow')) $('recapgow').textContent = nextM <= 11 ? 'Month ' + nextM : 'The Lock';
+    if ($('recapgow')) $('recapgow').textContent = nextM <= 11 ? 'Month ' + nextM : 'The Divide';
     if ($('recapgos')) $('recapgos').textContent = 'Continue';
     show('recap');
     wireEightWatch();
@@ -6335,21 +6345,10 @@
   /* THE WINDOW IS THE CONTEST'S CLOCK, so it belongs on every screen the contest owns —
      walking back to the Table to move the ground forward was a tax on watching. One
      handler, mirrored onto each rail page; `syncWindowBtns` keeps them honest. */
-  Array.prototype.forEach.call(document.querySelectorAll('.advwin2'), function (b) {
-    b.onclick = function () { advanceDivide(); };
-  });
+  /* §CORNER the corner's beacon is the one Next Comms Window on every page of the contest; the mirrored top-left
+     buttons that predated it are gone — two of the same button on one screen. */
   window.syncWindowBtns = syncWindowBtns;
-  function syncWindowBtns() {
-    var on = $('advwin').style.display !== 'none';
-    var label = $('advwin').textContent;
-    var state = $('divstate') ? $('divstate').textContent : '';
-    Array.prototype.forEach.call(document.querySelectorAll('.advwin2'), function (b) {
-      b.style.display = on ? '' : 'none'; b.textContent = label;
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('.advwin2state'), function (s) {
-      s.textContent = on ? state : '';
-    });
-  }
+  function syncWindowBtns() {}
 
   function advanceDivide() {
     if (!G.div || G.div.done) return;
@@ -6562,11 +6561,15 @@
              ev: (w.fights || []).map(function (f) {
                     return { t: 'fight', x: f.x, y: f.y, corps: f.corps, ex: f.exchanges,
                              result: f.result }; }),
-             corp: w.corps.map(function (c) { return {
+             /* §SECRECY a rival reaches the page as a shell: its broadcast count (up of how many), not its bodies.
+                Counted off the empty shell, every rival read 0 and was struck through on the first day. */
+             corp: w.corps.map(function (c) {
+               if (c.shell && c.standing) return { a: c.standing.up, w: null, p: c.standing.of - c.standing.up, si: c.sitesClaimed || 0, gone: !!c.withdrawn };
+               return {
                a: c.allBodies.filter(function (b) { return b.status === 'active'; }).length,
                w: c.allBodies.filter(function (b) { return b.status === 'injured'; }).length,
                p: c.allBodies.filter(function (b) { return b.status === 'dead'; }).length,
-               si: c.sitesClaimed }; }) };
+               si: c.sitesClaimed, gone: !!c.withdrawn }; }) };
   }
 
   /* §GROUND YOU SEE WHO YOU FOUGHT. Every day a manager actually watches comes from the
@@ -7268,7 +7271,7 @@
     var cv = $('gmap');
     if ($('glegend')) $('glegend').innerHTML = terrainLegend(G.div.planet) + surveyNote();
     var pl = G.div.planet;
-    $('gplanet').innerHTML = '<b>' + esc(pl.name || pl.archetype) + '</b><br>' +
+    $('gplanet').innerHTML = '<b>' + esc(pl.name || pl.archetypeName || capWords(pl.archetype)) + '</b><br>' +
       '<span class="m">Day ' + D.d + ' \u00b7 ' +
       (D.z.r / pl.radius * 100).toFixed(1) + '% of the Ground Inside the Wall \u00b7 ' +
       (D.obj || []).length + ' Sites Revealed' +
@@ -7280,11 +7283,11 @@
     for (var bi = 0; bi < (D.corp || []).length; bi++) {
       var cc = D.corp[bi];
       var bid = oaIdOf(bi), mine = bid === G.me;
-      rows += '<tr class="' + (cc.a ? '' : 'gone ') + (mine ? 'merow' : '') +
+      rows += '<tr class="' + (cc.a || cc.gone ? (cc.gone ? 'gone ' : '') : 'gone ') + (mine ? 'merow' : '') +
         '"><td><span class="sw" style="background:' + colFor(bid) + '"></span>' +
         '<span style="color:' + colFor(bid) + '">' + markFor(bid, 13) + ' ' + esc(bannerName(bi)) + '</span>' +
         (mine ? ' <span class="youtag">You</span>' : '') + '</td><td>' + cc.a +
-        '</td><td>' + cc.w + '</td><td>' + cc.p + '</td><td>' + (cc.si || 0) + '</td></tr>';
+        '</td><td>' + (cc.w == null ? '\u2014' : cc.w) + '</td><td>' + cc.p + '</td><td>' + (cc.si || 0) + '</td></tr>';
     }
     $('gboard').innerHTML = rows;
     var out = '';
@@ -7785,8 +7788,13 @@
     var ids = Object.keys(tot).filter(function (id) { return CHARGE_WORD[id]; });
     /* a squad going out with no medkit says so: the count always shows, red at nothing */
     if (ids.indexOf('itm_medkit') < 0) { ids.unshift('itm_medkit'); tot.itm_medkit = tot.itm_medkit || q.medkits || 0; }
+    /* charges are per piece, at most one a fight: six canisters of eight read "Smoke 48", a typo to anyone. The
+       count is of PIECES a squad carries; the charges are theirs to spend. */
+    var pieces = {};
+    (q.bodies || []).forEach(function (b) { var ch = b._charges || {}; for (var id in ch) if (ch[id] > 0) pieces[id] = (pieces[id] || 0) + 1; });
     return ids.map(function (id) {
-      return ' \u00b7 ' + CHARGE_WORD[id] + ' <b class="' + (tot[id] ? '' : 'bad') + '">' + tot[id] + '</b>';
+      var n = id === 'itm_medkit' && !pieces[id] ? tot[id] : (pieces[id] || 0);
+      return ' \u00b7 ' + CHARGE_WORD[id] + ' <b class="' + (n ? '' : 'bad') + '">' + n + '</b>';
     }).join('');
   }
   /* §LIGHT THE PLANET'S CYCLE, AS PLAIN AS THE WEATHER. Whether it is light or dark now, how long until it
@@ -8065,6 +8073,7 @@
     $('mktsum').innerHTML =
       (total ? '<span>Order ' + crs(-total) + '</span>' +
                '<span>' + crs(left) + ' After</span>' : '');
+    $('mktsum').style.display = total ? '' : 'none';   /* an empty order drew an empty framed strip */
     /* the slot picker is a rail, and should look like one: it was five grey `tiny` buttons
        doing the same job the tabs at the top of the screen do */
     /* §MARKET (ruled) THE TABS, UNDERLINED: the slots on one rule, the one you are shopping for underlined in the command
@@ -8362,14 +8371,15 @@
     /* §PICKER THE TALKS PICK THE SAME WAY: the ring, and under each name what they think of
        you, which is the whole question when choosing whom to write to. */
     var tOthers = G.state.ids.filter(function (id) { return id !== G.me; });
+    /* §PICKER wider than the contest's ring: with a word under each name the top name hung into the hub. The word
+       is what they think of you (a bare number read as nothing); Sealed is the Divide's, not the year's — a sealed
+       OA writes and trades in the preparation like any other. */
     $('tradestrip').innerHTML = oaPicker(tOthers, TSEL, 'data-toa', {
-      size: 58, radius: 112,
+      size: 58, radius: 140,
       hub: '<b>' + esc(shortOA(G.me)) + '</b><span>To Whom</span>',
       sub: function (id) {
         var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
-        var sealed = (G.corps[id].profile || {}).no_negotiation;
-        return sealed ? '<span class="bad">Sealed</span>'
-                      : '<span class="' + (r > 8 ? 'good' : r < -8 ? 'bad' : 'm') + '">' + (r > 0 ? '+' : '') + r + '</span>';
+        return '<span class="' + (r > 8 ? 'good' : r < -8 ? 'bad' : 'm') + '">' + esc(standBand(r, 'rival').word) + '</span>';
       }
     });
 
@@ -8682,7 +8692,7 @@
        bar with the danger drawn on it (red to 25, amber to 50), the figure, and what the board
        is at the moment. The verdict joins it once the year has one. */
     var patWord = pat == null ? '' : pat < 15 ? 'Out of Patience' : pat < 25 ? 'Close to Sacking You'
-                : pat < 50 ? 'Losing Faith' : pat < 75 ? 'Content' : 'Behind You';
+                : pat < 50 ? 'Wary' : pat < 75 ? 'Content' : 'Behind You';   /* a level, not a trend: "Losing Faith" stood beside a Pleased verdict */
     var patCls = pat == null ? '' : pat < 25 ? 'bad' : pat < 50 ? 'warn' : 'good';
     $('boardhead').innerHTML =
       '<span class="byr">Year<b>' + G.state.season + '</b></span>' +
@@ -9077,14 +9087,17 @@
     var lights = (G.state && G.state.dividend && G.state.dividend.watch) || [];
     lights.forEach(function (m, i) {
       var nm = m.corps.map(mSpan).join(' vs ');
-      h += '<div class="poolrow"><span><span class="gold">the Dividend</span> \u00b7 ' + nm +
+      h += '<div class="poolrow"><span><span class="gold">The Dividend</span> \u00b7 ' + nm +
            ' <span class="m">\u2014 ' + m.score.join('\u2013') +
            (m.winnerId ? ', ' + cSpan(m.winnerId) + ' Took the Purse' : ', Drawn') +
            '</span></span><button class="tiny" data-watchl="' + i + '">Watch</button></div>';
     });
     /* the lights also stand on the Desk's shelf through the year, watchable from there */
     var wrap = $('deskligwrap');
-    if (wrap) { wrap.style.display = lights.length ? '' : 'none'; $('desklights').innerHTML = h.replace(/data-watchl=/g, 'data-watchd='); }
+    /* §DESK for the month after the lights, not the rest of the year: it stood under Court Sponsors from Month 5 to
+       the Lock. The recap of the Dividend's month keeps the footage after that. */
+    var dvm = (window.CDSEASON && CDSEASON.DIVIDEND_MONTH) || 4, showLights = lights.length && G.state && G.state.month <= dvm + 1;
+    if (wrap) { wrap.style.display = showLights ? '' : 'none'; $('desklights').innerHTML = h.replace(/data-watchl=/g, 'data-watchd='); }
     /* the shelf has taken the lights; the contest's recap starts empty and carries only
        what happened on the ground */
     h = '';
@@ -9447,7 +9460,7 @@
       var days = alive ? Math.floor((q.rations || 0) / Math.max(1, alive)) : 0;
       var rcol = days >= 8 ? 'var(--hit)' : days >= 4 ? 'var(--cred)' : 'var(--red)';
       var rpct = Math.max(0, Math.min(100, days / 14 * 100));
-      var doing = q.intent ? (INTENT_WORD[q.intent.type] || capWords(q.intent.type)) : 'Holding';
+      var doing = !alive ? 'Done' : q.intent ? (INTENT_WORD[q.intent.type] || capWords(q.intent.type)) : 'Holding';   /* a squad with nobody left is not working anything */
       var dcls = /Hunt|Strik/.test(doing) ? 'hunt' : /Work/.test(doing) ? 'claim'
                : /Fall|Avoid/.test(doing) ? 'rest' : 'hold';
       var here = terrainName(G.div.planet.terrainAt(q.x, q.y)) +
