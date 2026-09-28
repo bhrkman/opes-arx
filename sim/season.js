@@ -1411,7 +1411,7 @@
         available: month + SPON.CONST.COURT_MONTHS <= CONST.PREP_MONTHS,
         subject: ((corp.sponsors || {}).contracts || []).length,
         why: month + SPON.CONST.COURT_MONTHS > CONST.PREP_MONTHS
-               ? 'Sponsors Commit at the Lock \\u2014 Too Late to Build Standing Now'
+               ? 'Sponsors Commit at the Lock — Too Late to Build Standing Now'
                : (((corp.sponsors || {}).contracts || []).length
                    ? 'Backed by ' + corp.sponsors.contracts.map(c => c.house).join(', ')
                    : 'Court a Backer for the Year') }

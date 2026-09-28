@@ -110,10 +110,30 @@ function doEvents(evs) {
     say('- Answered *' + e.title + '*: ' + (e.options.find(o => o.id === pick) || {}).label + ' → ' + line);
   }
 }
+function sideWords(b, corpId) {
+  b = b || {}; const parts = [];
+  if (b.credits) parts.push(cr(b.credits));
+  for (const g of (b.gear || [])) parts.push((g.n || 1) + '× ' + (((ITEMS.byId && ITEMS.byId(g.id)) || {}).name || cap(String(g.id).replace(/^itm_/, ''))));
+  for (const id of (b.units || [])) { const c = state.corps[corpId]; const f = c && c.roster.find(x => x.id === id); parts.push(f ? nm(f) + ' (' + cap(f.race) + ')' : id); }
+  for (const t of (b.intel || [])) parts.push('intel on ' + (t.about ? oaName(t.about) : 'the planet'));
+  return parts.length ? parts.join(', ') : 'nothing';
+}
 function listLetters() {
   const ls = S.tradeLetters(state, ME) || []; if (!ls.length) return [];
-  say('- **Letters:** ' + ls.map(l => oaName(l.from) + ' offers ' + JSON.stringify(l.offer) + ' for ' + JSON.stringify(l.ask)).join('; '));
+  say('- **Letters:** ' + ls.map(l => oaName(l.from) + ' offers ' + sideWords(l.offer, l.from) + ' for ' + sideWords(l.ask, ME)).join('; '));
   return ls;
+}
+function demandWords(d) {
+  switch (d.kind) {
+    case 'resource': return 'bring home ' + ((d.units || 0) * (REP.CONST.UNIT_SCALE || 1)).toLocaleString('en-US') + ' units of ' + cap(d.resource);
+    case 'placement': return d.at <= 1 ? 'win the Divide' : 'place ' + d.at + ' or better';
+    case 'win': return 'win the Divide outright';
+    case 'surplus': return 'end the year ' + cr(d.amount) + ' up';
+    case 'losses': return 'lose no more than ' + d.max + ' for good';
+    case 'stipend': return 'ask the board for no money';
+    case 'standing': return 'stand above ' + d.above + ' with ' + cap(d.audience);
+  }
+  return cap(d.kind);
 }
 function listFocus() {
   const tracks = S.monthTracks(me(), state.month);
@@ -129,7 +149,7 @@ function listSponsors() {
 }
 function listBoard() {
   const b = me().rep && me().rep.goal; if (!b) return;
-  say('- **The board’s card:** ' + JSON.stringify(b).slice(0, 220) + ' · patience ' + me().rep.patience);
+  say('- **The board’s card:** ' + b.demands.map((d, i) => demandWords(d) + (i === b.priority ? ' (the priority)' : '')).join('; ') + ' · patience ' + me().rep.patience);
 }
 function chooseFocus(tracks) {
   const c = me(), hurt = alive(c).filter(f => f.condition && (f.condition.injuries || []).length).length;
@@ -164,7 +184,7 @@ function playYear(year) {
   while (state.month <= S.CONST.PREP_MONTHS) {
     const m = state.month, win = S.MONTHS[m];
     say('\n## Month ' + m + ' · ' + win.name + '\n');
-    const before = snap(); const ledgerAt = me().account.ledger.length;
+    const before = snap(); const ledgerAt = me().account.ledger.length; const idsBefore = alive(me()).map(f => f.id);
     say('**On the desk:**');
     if (m === 1) listPool();
     const rs = listRenewals();
@@ -187,8 +207,9 @@ function playYear(year) {
     const lines = me().account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
     if (lines.length) say('- The ledger: ' + lines.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
     if (state.mercs && state.mercs.scraped && state.mercs.scraped !== (state._scrapedSeen || 0)) { say('- **The board filled your roster** to the drop floor with hired hands, at a price and a patience hit.'); state._scrapedSeen = state.mercs.scraped; }
-    const landed = (res.landed && res.landed[ME]) || [];
-    const cameIn = landed.filter(l => l && l.name); if (cameIn.length) say('- Came aboard: ' + cameIn.map(f => nm(f)).join(', ') + '.');
+    const now = alive(me()); const joined = now.filter(f => idsBefore.indexOf(f.id) < 0), left = me().roster.filter(f => idsBefore.indexOf(f.id) >= 0 && now.indexOf(f) < 0);
+    if (joined.length) say('- Came aboard: ' + joined.map(f => nm(f) + ' (' + cap(f.race) + (f.origin ? ', ' + cap(f.origin) : '') + ')').join(', ') + '.');
+    if (left.length) say('- Gone: ' + left.map(f => nm(f) + ' (' + cap(f.status) + ')').join(', ') + '.');
     if (res.event === 'dividend' && state.dividend && state.dividend.watch) {
       const mine = (state.dividend.watch || []).find(x => x.corps.indexOf(ME) >= 0);
       if (mine) say('- The Dividend: ' + mine.corps.map(oaName).join(' vs ') + ' ' + mine.score.join('–') + (mine.winnerId ? ', ' + oaName(mine.winnerId) + ' took the purse' : ', drawn') + '.');
@@ -220,7 +241,7 @@ function playDivide(year) {
   const t0 = c.account.treasury;
   S.beginContest(state, { replay: true });
   let win = 0, st = S.contestStatus(state);
-  const t1 = c.account.treasury; say('The drop cost ' + cr(t0 - t1) + ' (kit, purses, the Aleas’ entry).');
+  const t1 = c.account.treasury, ledgerAt = c.account.ledger.length; say('The drop cost ' + cr(t0 - t1) + ' (kit, purses, the Aleas’ entry).');
   while (st && !st.done && win < 40) {
     const v = S.contestView(state, ME); win++;
     if (!v) break;
@@ -268,7 +289,12 @@ function playDivide(year) {
   say('Your people: ' + (pc.permanent != null ? pc.permanent + ' lost for good' : (pc.dead != null ? pc.dead + ' dead' : '')) + (pc.injuredHome != null ? ', ' + pc.injuredHome + ' came home hurt' : '') + (pc.withdrew ? ', withdrew day ' + pc.withdrew.day : ', fought to the end') + '.');
   const rec = S.finishSeason(state, res);
   const c2 = me();
-  say('The books: ' + cr(c2.account.treasury) + ' in the bank (' + (c2.account.treasury - t1 >= 0 ? '+' : '−') + cr(Math.abs(c2.account.treasury - t1)) + ' over the contest). Board patience ' + c2.rep.patience + '; own people ' + standing('own') + ', fleet ' + standing('fleet') + '.');
+  say('The books: ' + cr(c2.account.treasury) + ' in the bank (' + (c2.account.treasury - t1 >= 0 ? '+' : '−') + cr(Math.abs(c2.account.treasury - t1)) + ' over the contest). Board patience ' + Math.round(c2.rep.patience) + '; own people ' + standing('own') + ', fleet ' + standing('fleet') + '.');
+  const hist = c2.history && c2.history[c2.history.length - 1];
+  if (hist && hist.card) say('The board’s card: ' + hist.card.map(l => demandWords(l.d) + ' — ' + (l.met ? 'met' : 'missed') + (l.priority ? ' (the priority)' : '')).join('; ') + '.');
+  if (hist && hist.sponsors) say('The sponsors: ' + hist.sponsors.kept + ' kept, ' + hist.sponsors.broken.length + ' broken' + (hist.sponsors.paid ? ', ' + cr(hist.sponsors.paid) + ' paid' : '') + (hist.sponsors.standings.length ? ', standing granted: ' + hist.sponsors.standings.map(x => typeof x === 'string' ? x : (x.name + ' (' + x.what + ')')).join(', ') : '') + '.');
+  const settle = c2.account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
+  if (settle.length) say('The ledger: ' + settle.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
   const b = c2._board; if (b && b.outcome) { const q = REP.question(b.outcome); say('The board asks: “' + q.ask + '” You answer candidly.'); S.answerBoard(state, ME, 'candid'); }
   if (rec && rec.log && rec.log.length) say('Offseason: ' + rec.log.filter(l => l.indexOf(ME) === 0).join('; '));
 }
