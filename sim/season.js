@@ -1452,10 +1452,18 @@
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
     const focus = {};
     let left = CONST.FOCUS_POINTS;
+    /* §FOCUS THE CAP IS THE BUDGET. A track was clamped to FOCUS_CAP (3) here while its target map — the drill's
+       and the rest's painted pips, which is what the spend actually reads — carried every pip a person placed: eight
+       on the drill trained as eight and was tallied and reported as three ("Focus · 3 On Train"). FOCUS_CAP is
+       the most one CELL of a grid takes and the engine's own spread; a track takes what was placed, and the
+       eight-point budget is the only clamp. A painted map's pips are the track's figure. */
+    const pipsOf = (map) => { let n = (map && map.all) || 0; for (const t of ['col', 'row', 'cell']) for (const k in ((map || {})[t] || {})) n += (map[t][k] || 0); return n; };
     for (const kind in (wanted || {})) {
-      if (kind === '_boost' || kind === 'trainTarget') continue;
+      if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;
       if (!open[kind] || !left) continue;
-      const f = Math.min(CONST.FOCUS_CAP, Math.max(0, Math.floor(wanted[kind] || 0)), left);
+      const map = kind === 'train' ? wanted.trainTarget : kind === 'rest' ? wanted.restTarget : null;
+      const asked = map && (map.all != null || map.col || map.row || map.cell) ? pipsOf(map) : Math.max(0, Math.floor(wanted[kind] || 0));
+      const f = Math.min(asked, left);
       if (f) { focus[kind] = f; left -= f; }
     }
     /* a boost only survives for a track that actually took focus — no paying to double
@@ -1466,6 +1474,8 @@
         if (focus[k]) focus._boost[k] = true;
     }
     if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
+    if (wanted && wanted.restTarget) focus.restTarget = wanted.restTarget;
+    if (wanted && wanted.intelTarget) focus.intelTarget = wanted.intelTarget;
     /* courting's per-OA map is a rider like trainTarget — carried through so the player's
        painted OAs reach the spend, and clamped to nothing exotic (it is read as data). */
     if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
@@ -1800,7 +1810,7 @@
     const focus = wanted ? validateFocus(corp, month, wanted)
                          : chooseFocus(corp, month);
     for (const kind in focus) {
-      if (kind === '_boost' || kind === 'trainTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
+      if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
       if (!fpts) continue;
       /* BOOST rides the focus map as `_boost: { track: true }`. Where set on a non-purchase

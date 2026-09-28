@@ -491,6 +491,10 @@
   .rfront .gauge .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;padding:0;border:none}
   .rfront .gauge .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--b)}
   .rfront .gauge .bar i.board{background:var(--cred)}
+  .rfront .gauge .bar i.warm{background:var(--b)} .rfront .gauge .bar i.cold{background:var(--red)}
+  .rfront .gauge .bar b.zero{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--dim)}
+  .rfront .close.total{border-top:none;margin-top:0;padding-top:4px} .rfront .close .v.gold{color:var(--cred)}
+  .rfront .bad{color:var(--red)}
   .rfront .gauge .bar em{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink)}
   .rfront .gauge .d{width:64px;text-align:right;white-space:nowrap}
   .rfront .none{color:var(--faint);font-size:11px;padding:4px 0}
@@ -4716,9 +4720,9 @@
     if (myLetter() && TAB.talks) TAB.talks.classList.add('urgent');
     var lines = [];
     var sp = (res.spent || {})[G.me] || {};
-    var spWords = [];
-    for (var sk in sp) if (sp[sk] && typeof sp[sk] === 'number') spWords.push(sp[sk] + ' on ' + sk);
-    if (spWords.length) lines.push('Focus \u00b7 ' + spWords.map(capWords).join(' \u00b7 '));
+    var FOCUS_NAME = { train: 'Drill', rest: 'Rest', scout: 'Intel', court: 'Courting' }, spWords = [], spTotal = 0;
+    ['train', 'rest', 'scout', 'court'].forEach(function (sk) { if (sp[sk] && typeof sp[sk] === 'number') { spWords.push(sp[sk] + ' ' + FOCUS_NAME[sk]); spTotal += sp[sk]; } });
+    var focusLine = spWords.length ? spTotal + ' of ' + SEASON.CONST.FOCUS_POINTS + ' Focus \u00b7 ' + spWords.join(' \u00b7 ') : 'No Focus Placed';
     var gateLine = ((res.landed && res.landed[G.me]) || []).filter(function (l) { return l.kind === 'gate'; })[0];
     if (gateLine) lines.push('<b>Gate and Merchandise</b> \u2014 <span class="cr pos">' + crs(gateLine.amount) + '</span>' + ' <span class="m">\u00b7 What the Crowd Paid</span>');
     ((res.landed || {})[G.me] || []).forEach(function (x) {
@@ -4777,7 +4781,7 @@
     dlog('<b>month ' + res.month + ' \u2014 ' + esc(res.name) + '</b><br>' +
          (lines.length ? lines.join('<br>') : '<span class="m">a quiet month</span>'));
     renderBench(); renderSquads(); renderDesk(); renderEncounters();
-    G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, joined: joined.map(function (b) { return b.id; }),
+    G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, focus: focusLine, joined: joined.map(function (b) { return b.id; }),
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
                  events: (res.events || {})[G.me] || [] };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
@@ -4801,7 +4805,8 @@
   };
   /* ============================ THE RECAP ============================ */
   function monthSnapshot(me) {
-    var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race }; });
+    var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
+      health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
     var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
     return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st,
              own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0, patience: me.rep ? me.rep.patience : null };
@@ -4847,7 +4852,7 @@
     var plainOf = function (h) { return String(h).replace(/<[^>]*>/g, ''); };
     var headline = '', deck = [];
     /* the log's lines less the money (the money column has every ledger line already) */
-    var lineTexts = (R.lines || []).filter(function (l) { return !/landed:|Gate and Merchandise/.test(l); });
+    var lineTexts = (R.lines || []).filter(function (l) { return !/landed:|Gate and Merchandise|^Focus/.test(l); });
     if (R.event === 'eight' && G.state.eight && G.state.eight.result && G.state.eight.result.held) {
       var ER = G.state.eight.result, mineSide = ER.winner && ER.teams && ER.teams[ER.winner] && ER.teams[ER.winner].some(function (t) { return t.corp === G.me; });
       headline = 'The Eight Was Fought \u00b7 ' + (ER.winner ? (mineSide ? '<b>Your Four Took It</b>' : 'Your Four <b>Lost</b>') : '<b>Drawn</b>');
@@ -4881,8 +4886,8 @@
     var moneyCol = '<h3>Money</h3>' + ln('Open', 'At the Start', crs(snap.treasury), true);
     led.forEach(function (l) { moneyCol += ln(esc(capWords(l.kind || '')), esc(titleOf(l.label || l.kind)), crs(l.amount)); });
     if (!led.length) moneyCol += ln('', 'Nothing Moved', '');
-    moneyCol += '<div class="close"><span class="k">Close</span><span>At the End</span><span class="v">' + crs(me.account.treasury) +
-                ' <span class="' + cls(dT) + '" style="font-size:11px">' + (dT === 0 ? '\u00b10' : crs(dT)) + '</span></span></div>';
+    moneyCol += '<div class="close"><span class="k">Month</span><span>' + (dT > 0 ? 'Made' : dT < 0 ? 'Cost' : 'Even') + '</span><span class="v ' + cls(dT) + '">' + (dT === 0 ? '\u00b10' : crs(dT)) + '</span></div>' +
+                '<div class="close total"><span class="k">Close</span><span>At the End</span><span class="v gold">' + crs(me.account.treasury) + '</span></div>';
     /* §PRIZE STORES, BESIDE THE CREDITS. The winner takes the planet's stores as well as its
        credits, a promise can move stores, and a squad keeps what it dug — and the recap listed
        only credits, so all three were invisible. Each store the OA came home with, in the words
@@ -4902,21 +4907,45 @@
       peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
     gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
     changed.forEach(function (c) { peopleCol += ln('Changed', c + (/Injured/.test(c) ? stamp('Mending', 'amber') : ''), ''); });
-    gains.slice(0, 4).forEach(function (g) { peopleCol += ln('Drilled', '<span style="color:' + raceColour(g.b) + '">' + esc(g.b.name) + '</span> <span style="color:' + STATCOL[g.k] + '">' + STAT_ABBR[g.k] + '</span>', '<span class="good">' + sgn(g.d, 1) + '</span>'); });
-    if (gains.length > 4) peopleCol += ln('', '<span class="m">And ' + (gains.length - 4) + ' More Drilled</span>', '');
+    /* who grew, by body: every stat that moved on one line, the biggest movers first, and the roster's total */
+    var byBody = {}, order = [];
+    gains.forEach(function (g) { if (!byBody[g.b.id]) { byBody[g.b.id] = { b: g.b, parts: [], sum: 0 }; order.push(g.b.id); } byBody[g.b.id].parts.push(g); byBody[g.b.id].sum += g.d; });
+    order.sort(function (a, b) { return byBody[b].sum - byBody[a].sum; });
+    var totalGain = gains.reduce(function (t, g) { return t + g.d; }, 0);
+    order.slice(0, 6).forEach(function (id) { var e = byBody[id];
+      var parts = e.parts.slice().sort(function (x, y) { return y.d - x.d; });
+      var shown = parts.slice(0, 3).map(function (g) { return '<span style="color:' + STATCOL[g.k] + '">' + STAT_ABBR[g.k] + '</span> ' + sgn(g.d, 1); }).join(' \u00b7 ');
+      if (parts.length > 3) shown += ' \u00b7 +' + (parts.length - 3) + ' More';
+      peopleCol += ln('Drilled', nameSpan(e.b) + ' <span class="m">' + shown + '</span>', '<span class="good">' + sgn(e.sum, 1) + '</span>'); });
+    if (order.length) peopleCol += ln('', '<span class="m">' + order.length + ' Drilled \u00b7 ' + gains.length + ' Stats Moved</span>', '<span class="good">' + sgn(totalGain, 0) + '</span>');
+    /* the wounded mending, and the strain coming off */
+    var mended = [], calmer = 0;
+    me.roster.forEach(function (b) { var was = snap.stats[b.id]; if (!was || !b.condition) return;
+      var h = b.condition.health == null ? 100 : b.condition.health; if (was.health < 100 && h - was.health >= 0.5) mended.push({ b: b, d: h - was.health, whole: h >= 100 });
+      if ((was.stress || 0) - (b.condition.stress || 0) >= 3) calmer++; });
+    mended.sort(function (a, b) { return b.d - a.d; });
+    mended.slice(0, 3).forEach(function (e) { peopleCol += ln('Mending', nameSpan(e.b) + (e.whole ? ' ' + stamp('Whole', 'good') : ''), '<span class="good">' + sgn(e.d, 0) + '</span>'); });
+    if (mended.length > 3) peopleCol += ln('', '<span class="m">' + (mended.length - 3) + ' More Mending</span>', '');
+    if (calmer) peopleCol += ln('Rested', '<span class="m">' + calmer + ' Less Strained</span>', '');
     if (peopleCol === '<h3>People</h3>') peopleCol += ln('', '<span class="m">No Comings or Goings</span>', '');
     /* STANDING: gauges with a tick for a month ago, the figure and its change on the right */
+    /* a crowd's standing runs \u2212100..100 and is drawn from the centre: 0 is an empty bar, a cold crowd fills left in
+       red, a warm one right; the board's patience is 0..100 and fills from the left. The figure beside each is the
+       number itself. The tick is where it stood a month ago. */
     var gauge = function (lab, now, was, boardish) {
-      var pct = Math.max(0, Math.min(100, boardish ? now : 50 + now / 2)), wpct = Math.max(0, Math.min(100, boardish ? was : 50 + was / 2));
-      var d = now - was;
-      var dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, boardish ? 0 : 1);
-      return '<div class="gauge"><span class="lab">' + lab + '</span><span class="bar"><i' + (boardish ? ' class="board"' : '') + ' style="width:' + pct.toFixed(0) + '%"></i><em style="left:' + wpct.toFixed(0) + '%"></em></span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
+      var d = now - was, dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, boardish ? 0 : 1), bar;
+      if (boardish) {
+        bar = '<i class="board" style="left:0;width:' + Math.max(0, Math.min(100, now)).toFixed(0) + '%"></i><em style="left:' + Math.max(0, Math.min(100, was)).toFixed(0) + '%"></em>';
+      } else {
+        var w = Math.min(50, Math.abs(now) / 2), left = now >= 0 ? 50 : 50 - w;
+        bar = '<b class="zero"></b><i class="' + (now >= 0 ? 'warm' : 'cold') + '" style="left:' + left.toFixed(1) + '%;width:' + w.toFixed(1) + '%"></i><em style="left:' + (50 + Math.max(-50, Math.min(50, was / 2))).toFixed(1) + '%"></em>';
+      }
+      return '<div class="gauge"><span class="lab">' + lab + '</span><span class="bar">' + bar + '</span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
     };
     var standCol = '<h3>Standing</h3>' +
       gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
       /* §ALEAS the Aleas gauge is hidden here as on the Board and the OA sheet: nothing reads it (ruled) */
-      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '') +
-      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet', '', true);
+      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '');
     /* §SPONSORS WHAT THE OA HAS BEEN GIVEN, and keeps. Standings are permanent, they stack,
        and they are the reason a manager courts anybody: they belong on the Board beside the
        holds rather than buried in a season's report. */
@@ -4937,7 +4966,7 @@
       (deck.length ? '<div class="deck">' + deck.map(esc).join(' \u00b7 ') + '</div>' : '') +
       (decided ? '<div class="decided"><h3>Decided</h3>' + decided + '</div>' : '') +
       (eight || lights ? '<div class="rcards">' + eight + lights + '</div>' : '') +
-      '<div class="sheethead"><span>' + esc(me.profile.name || me.name || '') + ' \u00b7 Year ' + G.state.season + ' \u00b7 Month ' + m + '</span><span>Credits \u00b7 People \u00b7 Standing</span></div>' +
+      '<div class="sheethead"><span>' + esc(me.profile.name || me.name || '') + ' \u00b7 Year ' + G.state.season + ' \u00b7 Month ' + m + '</span><span>' + esc(R.focus || '') + '</span></div>' +
       '<div class="cols"><div>' + moneyCol + '</div><div>' + peopleCol + '</div><div>' + standCol + standCol2 + '</div></div>' +
       /* §WITHDRAWAL the word given, and what it was worth — the payoff of a promise that bound
          nobody is that everybody sees what became of it */
