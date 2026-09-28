@@ -36,7 +36,6 @@
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
-    MEMORY_RESIDUE: 0.15,               // [C] the share of ordinary conduct that never fades
     MEMORY_CAP: 40,                     // [S] acts kept per audience before the tail is folded
     HEADLINE_AT: 20,                    // [C] §3.3 an act this big is remembered by name
 

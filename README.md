@@ -4,10 +4,10 @@ A management sim. You run a corporation that fields a squad in a lethal annual c
 mineral rights, and **you never aim a gun**. You choose who to hire, who to send, what they
 carry and what deals you'll take — then you watch.
 
-**Demos:** every page in `viewers/` runs the live engine in the browser rather than replaying a
-recording. Start with `the_corp.html` — the full management surface (Desk, Roster, Squads,
-Negotiation, the Board) for playing a year. The contest and the firefight are drawn inside it,
-as tabs of the Divide.
+**The game** is one page: `index.html` (also `viewers/the_corp.html`), built from
+`viewers/corp_template.html` by `sim/build_corp.cjs`, with the live engine inlined. Every surface
+— the Desk, the Roster, the Squads, the Market, Negotiation, the Board, the Ground and the firefight —
+is a tab of it. The single-surface dev viewers that used to sit beside it were retired.
 
 ## Where to start reading
 
@@ -29,10 +29,22 @@ node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the
                                 conventions — run after every change to the page; it fails
 node audit_cross.cjs            does one step's work reach the next, or just sit there
+node audit_hooks.cjs            every trait hook does something or says why it does not
+node audit_code.cjs             dead functions, unread constants, helpers written twice
+node measure_fight.cjs          the shape of a fight
+node probe_sponsor.cjs          the sponsor board's rules
 
 cd ../harness
 npm install                     once, for jsdom (node_modules is gitignored)
 node drive.cjs                  93 checks · drives the BUILT page through a whole year
+node drive_*.cjs                one surface each: the draft, the map, the market, the reserve, the withdrawal…
+node probe_*.cjs                seats, secrecy, handover, resume, time, the wall, the market, the reserve
+node stat_scale_proof.cjs check the fight resolver against its recorded baseline (record after a behaviour change)
+node fingerprint_human.cjs check a person's seat changes nothing the engine would not (record likewise)
+node audit_halfbuilt.cjs        what the page shows that the engine does not do
+
+The balance-measurement tools (`measure_*`, `probe_*` in `sim/`) were deleted by ruling: they measured
+questions that are parked, against an engine that has moved on. Write fresh ones when balance resumes.
 ```
 
 If the code and the document ever disagree, **the code is right** and the document is stale.

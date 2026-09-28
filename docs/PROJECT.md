@@ -4272,6 +4272,17 @@ declared policy; the guild asks a 75% ballistic drop instead, the mirror of Heli
 join/take composer deleted** from the deal page, with its orphaned handlers and the words for kinds the engine no longer
 takes; the truce beam's "If Torn Up · Seen by the Crowd" said a truce could be broken, and it cannot.
 
+**THE CLEARING (ruled).** Everything the game is lives in one page now, and the repo says so: the eleven single-surface
+dev viewers (`the_desk`, `the_firefight`, `the_ground`, `the_table`, `the_year`, `the_bench`, `the_career`, `the_crate`,
+`armoury`, `audience_board`, `negotiation_table`), their nine templates and ten build scripts — each carrying an engine
+copy weeks stale — are deleted, with `arx.cjs`'s commands that built them. The seven one-off audit reports and two
+migration notes in `docs/` are deleted (their findings that still matter are in this ledger). The balance measures and
+probes in `sim/` (every `measure_*` and `probe_*` but `measure_fight`, `probe_sponsor` and `probe_stat_scale`) are deleted
+by ruling: they measured parked questions against an engine that has moved on, several had gone stale enough to crash or
+print NaN, and they are to be written fresh when balance resumes. Four constants only they read went with them
+(`FOLD_BASE`, `GREED_HOLDOUT`, `MEMORY_RESIDUE`, `TREAT_DAYS`). What remains is the gate: `regress`, the five audits,
+the harness's drives, probes and proofs, `audit_halfbuilt`. The README lists it.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

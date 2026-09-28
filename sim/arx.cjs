@@ -5,9 +5,6 @@
  *   node arx.cjs regress                 regression suite  → 70 checks
  *   node arx.cjs regress --bless         re-record the snapshot baseline
  *   node arx.cjs probe gear|rout|band    targeted probes for questions telemetry hides
- *   node arx.cjs build                   rebuild ui/combat_theater.html
- *   node arx.cjs armoury                 rebuild armoury.html (catalog + bench + allowance)
- *   node arx.cjs table                   rebuild negotiation_table.html (6 baked Divides)
  *   node arx.cjs lab [days] [seed]       3 corps x 3 squads, small arena, tick-by-tick trace
  *   node arx.cjs all                     regress + test, the pre-commit pair
  *
@@ -2874,36 +2871,6 @@ function doctrineRules() {
    9. DOC PARITY — PROCUREMENT.md, guarded from live values like the other two
    ========================================================================= */
 
-/* =========================================================================
-   10. ARMOURY PAGE — self-hosting, like the other two viewers
-   The built page is its own template: `armoury` re-inlines the live sim files and data
-   between the markers, so the page can never show a catalog the simulation isn't running.
-   ========================================================================= */
-function buildArmoury() {
-  const target = findFile('armoury.html');
-  let html = fs.readFileSync(target, 'utf8');
-  const inline = (name) => {
-    const src = fs.readFileSync(findFile(name), 'utf8');
-    const re = new RegExp('<!--INLINE:' + name.replace('.', '\\.') + '-->[\\s\\S]*?<!--/INLINE-->');
-    if (!re.test(html)) throw new Error('armoury.html has no marker for ' + name);
-    let tail = '';
-    if (name === 'combat.js') tail = '\nwindow.CDCOMBAT = API;';
-    html = html.replace(re, '<!--INLINE:' + name + '--><script>' + src + tail + '<\/script><!--/INLINE-->');
-  };
-  ['prng.js', 'combat.js', 'roster.js', 'items.js'].forEach(inline);
-
-  const data = {
-    items: readJSON('items.json'), races: readJSON('races.json'), traits: readJSON('traits.json'),
-    recruitment: readJSON('recruitment.json'), oa: readJSON('oa_profiles.json')
-  };
-  html = html.replace(/<!--DATA-->[\s\S]*?<!--\/DATA-->/,
-    '<!--DATA--><script>window.__DATA=' + JSON.stringify(data) + ';<\/script><!--/DATA-->');
-
-  fs.writeFileSync(target, html);
-  const kb = Math.round(Buffer.byteLength(html) / 1024);
-  console.log('armoury.html rebuilt \u00b7 ' + kb + 'KB \u00b7 ' + data.items.items.length + ' items, ' +
-              data.items.quirks.length + ' quirks');
-}
 
 /* =========================================================================
    11. LAB — three corps, three squads each, a small arena, and a tick-by-tick trace.
@@ -4168,52 +4135,6 @@ function probeBand() {
   }
 }
 
-/* ================================================================== *
- * THEATER BUILD                                                       *
- * ================================================================== */
-function buildTheater() {
-  try { findFile('combat_theater.html'); }
-  catch (e) {
-    console.log('combat_theater.html not found — the page is self-hosting, so keep it alongside');
-    console.log('the project if you want to rebuild it. Nothing else depends on it.');
-    return;
-  }
-  /* Self-hosting: the built page carries @DATA / @SIM markers, so it is its own
-     template. Only the data and sim blocks are regenerated; the markup, styles and
-     app logic in the page are preserved. Falls back to ui/_theater.html if present. */
-  const data = {
-    races: readJSON('races.json'), traits: readJSON('traits.json'),
-    recruitment: readJSON('recruitment.json'), oa: readJSON('oa_profiles.json')
-  };
-  const rd = n => fs.readFileSync(findFile(n), 'utf8');
-  const sim = [
-    rd('prng.js'),
-    '(function(){var module={exports:{}};\n' + rd('combat.js') + '\nwindow.combat=API;})();',
-    rd('roster.js'),   /* namegen + recruitgen + commentary + roster, consolidated */
-    'window.CDROSTER.initRoster({races:window.DATA.races,traits:window.DATA.traits,' +
-      'recruitment:window.DATA.recruitment,oa:window.DATA.oa});'
-  ].join('\n\n');
-
-  let src, outPath;
-  try {
-    src = rd('combat_theater.html');
-    outPath = findFile('combat_theater.html');
-  } catch (e) {
-    src = rd('_theater.html');
-    outPath = path.join(path.dirname(findFile('_theater.html')), 'combat_theater.html');
-    src = src.replace('/*__APP__*/', rd('_theater_app.js'));
-  }
-
-  const swap = (html, tag, payload) => {
-    const a = html.indexOf('<!--@' + tag + '-->'), b = html.indexOf('<!--@/' + tag + '-->');
-    if (a < 0 || b < 0) throw new Error('marker @' + tag + ' missing from the page');
-    return html.slice(0, a) + '<!--@' + tag + '-->\n<script>' + payload + '</script>\n' + html.slice(b);
-  };
-  let html = swap(src, 'DATA', 'window.DATA = ' + JSON.stringify(data) + ';');
-  html = swap(html, 'SIM', sim);
-  fs.writeFileSync(outPath, html);
-  console.log(path.relative(process.cwd(), outPath) + '  ' + (html.length / 1024).toFixed(0) + ' KB');
-}
 
 /* ================================================================== *
  * CLI                                                                 *
@@ -4259,19 +4180,12 @@ function buildSurvey() {
     replays.length + ' replays');
 }
 
-function buildTable() {
-  /* The negotiation viewer. Bakes real runs — see build_table.cjs, which owns the shape. */
-  const { execFileSync } = require('child_process');
-  execFileSync(process.execPath, [findFile('build_table.cjs')], { stdio: 'inherit' });
-}
-
 function usage() {
   console.log([
     'Capital Divide — project checks and builds', '',
     '  node arx.cjs test [divides] [seed]   acceptance suite (default 300, VC-103)',
     '  node arx.cjs regress [--bless]       regression suite; --bless re-records snapshots',
     '  node arx.cjs probe gear|rout|band    targeted probes',
-    '  node arx.cjs build                   rebuild the theater page',
     '  node arx.cjs all                     regress + test'
   ].join('\n'));
 }
@@ -4286,10 +4200,7 @@ else if (cmd === 'probe') {
   else if (which === 'band') probeBand();
   else { console.log('probe needs: gear | rout | band'); process.exitCode = 1; }
 }
-else if (cmd === 'build') buildTheater();
 else if (cmd === 'survey') buildSurvey();
-else if (cmd === 'armoury') buildArmoury();
-else if (cmd === 'table') buildTable();
 else if (cmd === 'lab') runLab(Number(process.argv[3]) || 6, process.argv[4]);
 else if (cmd === 'all') { runRegression(); console.log(''); runAcceptance(); }
 else usage();

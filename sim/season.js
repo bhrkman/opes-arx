@@ -111,7 +111,6 @@
     EIGHT_FAME: 12,              // [C] fame for standing in it
     EIGHT_FAME_WIN: 14,          // [C] more for the winning four
     EIGHT_STRESS: 14,            // [C] the pressure of it
-    TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
        pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four

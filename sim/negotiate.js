@@ -87,7 +87,6 @@
     MIN_ASK_FRAC: 0.12,                 // [C] §10.2 nobody hands over a claim for nothing,
                                         //     however hopeless. The floor the deleted
                                         //     additive penalty used to supply by accident
-    FOLD_BASE: 0.06,                    // [H] the crowd's charge for quitting, at its worst
                                         //     paid even by a corp cut down to three people
                                         //     selling a contest you could have won
 
@@ -102,14 +101,6 @@
        Two directions, because greed cuts both ways at a table:
          HOLDOUT — I would rather fight you for all of it than be bought at a fair price
          MERCY   — you are finished, and I will pay you accordingly */
-    /* [C] how much more a seller demands than the maths says. WAS 0.55, and at 0.55 the seller's
-       stack (aggression × relationship × holdout × the crowd's premium) cleared the buyer's
-       ceiling by 1.2–2.2× in four refusals of five: one or two joins a Divide, none in kind,
-       five or six banners standing at the end. Measured with measure_table.cjs over four
-       seeds — 0.25: four or five joins, the first deals in kind, two or three banners
-       standing, the crowd's wall now the main refusal (the design working). 0.10 overshoots:
-       a seed collapsed under the favourite on day 8. */
-    GREED_HOLDOUT: 0.25,
 
     /* §8 the Aleas */
                                         //     grudge. Checked at EVERY window by every allied
