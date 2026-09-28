@@ -3971,7 +3971,7 @@
          This is the largest dead wire in the project so far and it is the oldest. */
       const pc = (res.perCorp || []).find(x => x.id === id) || {};
       LED.bookDivide(c.account, {
-        season: season, escalator: ITEMS.CONST.ALLOWANCE_ESCALATOR,
+        season: season,
         payout: pc.payout || 0,
         bonuses: pc.won ? ((res.settlement && res.settlement.bonuses
                             && res.settlement.bonuses.total) || 0) : 0,

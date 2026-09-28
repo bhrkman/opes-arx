@@ -1440,7 +1440,6 @@
   .sqhead{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);
     background:linear-gradient(90deg,color-mix(in srgb,var(--sq) 22%,transparent),transparent 70%)}
   .sqhead .dot{width:8px;height:8px;border-radius:2px;background:var(--sq);flex-shrink:0}
-  .planline .kitcap{font-size:14px;letter-spacing:.05em}
   #planstate{justify-content:center;text-align:center;font-size:12.5px}
   .sqname{color:var(--sq);font-weight:bold;letter-spacing:.04em;flex:1;cursor:text;text-align:center}
   .sqname input{background:#0a0e16;border:1px solid var(--a);color:var(--ink);font:inherit;width:110px;padding:1px 4px;border-radius:3px}
@@ -5384,11 +5383,8 @@
       el.onclick = function (e) { e.stopPropagation(); renameSquad(+el.getAttribute('data-rename'), el); };
     });
 
-    /* ---- the plan line: what the fielded kit is worth against the cap, and the drop cap
-       when it is broken. THE CAP IS WHAT ANY OA MAY FIELD at the drop — catalog value, hand
-       and quartermaster together — and it belongs here, where the fielding is decided, not on
-       the Market, where owning more than it is allowed. ---- */
-    var cap = ITEMS.allowanceFor(G.state.season);
+    /* ---- the plan line: what the fielded kit is worth (catalog value, hand and quartermaster together), and the
+       drop cap when it is broken. The Aleas' kit ceiling is gone (ruled): the treasury is the limit. ---- */
     var fieldedKit = 0, hands = 0, refused = 0;
     fit.forEach(function (b) {
       if (G.plan.at[b.id] == null) return;
@@ -5399,10 +5395,8 @@
       if (G.plan.hand[b.id]) { hands++; if (!handStands(b)) refused++; }
     });
     var kitLine = total
-      ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">' +
-        'Kit ' + (fieldedKit > cap ? '<span class="over">' : '') + crs(fieldedKit) + (fieldedKit > cap ? '</span>' : '') +
-        ' of ' + crs(cap) + ' Cap</span>'
-      : '<span class="kitcap">Kit Cap ' + crs(cap) + '</span>';
+      ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">Kit ' + crs(fieldedKit) + '</span>'
+      : '';
     $('planstate').innerHTML = kitLine +
       (refused ? '<span class="over" title="a hand needs a primary and armor, or the quartermaster overrides it">' + refused + ' hand' + (refused === 1 ? '' : 's') + ' incomplete</span>' : '') +
       (total > SEASON.CONST.DROP_MAX

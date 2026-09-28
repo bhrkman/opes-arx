@@ -574,7 +574,7 @@ setTimeout(() => {
             /Units of 9,000/.test(text('#boardholds')) && /a Month/.test(text('#boardholds')),
             'the four holds are barred in a fleet\'s own units, falling monthly');
       [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
-      check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
+      check(!/Cap\b/.test(text('#planstate').replace(/Drop Cap/, '')), 'the Squads plan line carries no kit cap (the Aleas ceiling is gone): ' + text('#planstate').trim());
       const focusBefore = text('#focusdesk');
       const t0 = meM.account.treasury;
       const id = doc.querySelector('#mktledger .mtile').getAttribute('data-mopen');

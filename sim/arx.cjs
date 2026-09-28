@@ -1397,7 +1397,7 @@ function gearRatio() {
    Identical rosters, identical doctrine, identical armoury. The only difference is how much
    Kit Allowance one of them is permitted to field. */
 function budgetParity() {
-  const BASE = ITEMS.CONST.KIT_ALLOWANCE_PER_BODY * 8;
+  const BASE = 4000 * 8;   /* a tier-3 kit a body, eight bodies: the poorer side's outlay; the richer spends 1.3× it */
   const GROUND = ['open_basin','broken_ground','ruins','forest','entrenched'];
   const run = (mult, pop) => {
     const rng = makeRng('budget-guard-' + mult + '-' + pop);
@@ -1845,9 +1845,8 @@ function seasonRules() {
   ok('G27 a big win is worth about the ruled number of years of existing',
      banked > anchoredWin * 0.75 && banked < anchoredWin * 1.25,
      'a 1.9M settlement banks ' + banked + ' against an anchor of ' + Math.round(anchoredWin));
-  ok('G28 the win bonus escalates with the allowance, on the same escalator',
-     LEDG.squadBonus(1000000, 5, ITEMS.CONST.ALLOWANCE_ESCALATOR) >
-     LEDG.squadBonus(1000000, 1, ITEMS.CONST.ALLOWANCE_ESCALATOR));
+  ok('G28 the win bonus is a flat share of the payout (the kit allowance it once escalated with is gone)',
+     LEDG.squadBonus(1000000) === Math.round(1000000 * LEDG.CONST.SQUAD_BONUS_SHARE));
 
   /* R25's FUNDING SPECTRUM MUST HAVE BOTH HALVES. A board is annoyed by an expensive year, not
      merely un-delighted by one. Neutral was a spend ratio of 1.0 and a corp cannot spend more
@@ -2130,11 +2129,8 @@ function seasonRules() {
   const last = bank.seasons[bank.seasons.length - 1];
   for (const id in last.corps)
     sLateMax = Math.max(sLateMax, last.corps[id].kitValue / Math.max(1, last.corps[id].dropped));
-  ok('G22 the allowance escalator reaches the ground in a real career',
-     sLateMax > ITEMS.CONST.KIT_ALLOWANCE_PER_BODY,
-     'best kit per body: season 1 ' + Math.round(s1Max) + ' \u2192 season ' +
-     bank.seasons.length + ' ' + Math.round(sLateMax) +
-     ' against a season-one cap of ' + ITEMS.CONST.KIT_ALLOWANCE_PER_BODY);
+  observe('G22', 'best kit per body fielded, season 1 \u2192 last (no ceiling: the treasury decides)',
+          Math.round(sLateMax), ' from ' + Math.round(s1Max));
 
   /* Contracts ticked, expired, were collected into a season record and read by nobody: 755
      ran out over a twelve-season chain and not one fighter left a roster because of it,
@@ -2650,39 +2646,15 @@ function loadoutRules() {
   ok('loadout: the satchel quota holds',
      V({ primary: 'itm_carbine', consumables: ['itm_ammo_satchel', 'itm_ammo_satchel'] }).length > 0);
 
-  /* §2.2/§2.3 arithmetic */
-  ok('allowance: the Aleas ceiling is ' + ITEMS.CONST.KIT_ALLOWANCE_PER_BODY * ITEMS.CONST.DROP_MAX,
-     ITEMS.allowanceFor(1) === ITEMS.CONST.KIT_ALLOWANCE_PER_BODY * ITEMS.CONST.DROP_MAX);
-
-  /* S3's SMALL-FORCE BUILD, guarded at the arithmetic. The ceiling multiplied by the number of
-     bodies fielded from Step 5 until Step 8.5, so a corp bringing sixteen got a smaller ceiling
-     and a flat 2,500 a body either way — there was nothing to concentrate and the choice was
-     impossible, not merely unattractive. It was never decided: the changelog shows the per-body
-     figure being tuned as HEADROOM IN A FULL FORCE (2000 → 2050 → 2250 → 2500, "at 2050 only one
-     body in a squad could be meaningfully upgraded"), with the total written beside it as the
-     derived number. It was invisible for three steps because every corp always fielded exactly
-     24, and under that assumption the two are the same number.
-
-     So this fails if the ceiling ever starts moving with headcount again. Fewer bodies must buy
-     a LARGER share, or "quality against quantity" is a phrase with no arithmetic behind it. */
-  {
-    const full = ITEMS.allowancePerBody(ITEMS.CONST.DROP_MAX, 3);
-    const small = ITEMS.allowancePerBody(16, 3);
-    ok('allowance: the ceiling does not shrink when a corp fields fewer (S3)',
-       ITEMS.allowanceFor(3) === ITEMS.allowanceFor(3) && small > full * 1.4,
-       'per body at 24 = ' + Math.round(full) + ', at 16 = ' + Math.round(small) +
-       ' — fielding fewer must concentrate the ceiling, not divide it');
-  }
+  /* §2.2 the Aleas ceiling and its per-body arithmetic are gone (ruled at the money pass): nothing to guard */
   const std = { primary: 'itm_carbine', armor: 'itm_plate_carrier', sidearm: 'itm_service_pistol',
                 mods: [], consumables: ['itm_frag_grenade', 'itm_medkit'] };
-  ok('allowance: a standard loadout fits inside one body\u2019s share',
-     ITEMS.value(std) <= ITEMS.CONST.KIT_ALLOWANCE_PER_BODY,
-     ITEMS.value(std) + ' of ' + ITEMS.CONST.KIT_ALLOWANCE_PER_BODY);
+  ok('loadout: a standard loadout is priced like a year of one body\u2019s wages, not for free',
+     ITEMS.value(std) > 2500 && ITEMS.value(std) < 9000, ITEMS.value(std) + '');
   ok('bulk: a standard loadout is exactly the per-head cap',
      ITEMS.bulk(std) === ITEMS.CONST.SQUAD_BULK_PER_HEAD, ITEMS.bulk(std) + ' of ' + ITEMS.CONST.SQUAD_BULK_PER_HEAD);
-  ok('bulk: no single exotic fits a body\u2019s share of the allowance',
-     ITEMS.all().filter(i => i.price_model === 'scarcity')
-       .every(i => i.cost > ITEMS.CONST.KIT_ALLOWANCE_PER_BODY));
+  ok('price: an exotic costs more than a year of a body\u2019s wages',
+     ITEMS.all().filter(i => i.price_model === 'scarcity').every(i => i.cost > 9000));
 }
 
 /* §15 — composition and lean, guarded like data. These are the checks that would have
@@ -2814,10 +2786,6 @@ function doctrineRules() {
     last = t;
   }
   ok('procurement: more money never fields less kit', mono);
-
-  const s1 = ITEMS.allowanceFor(1), s5 = ITEMS.allowanceFor(5);
-  ok('allowance: the escalator raises the cap across seasons', s5 > s1, s1 + ' \u2192 ' + s5);
-  ok('allowance: season 1 is the base cap', s1 === ITEMS.CONST.KIT_ALLOWANCE_PER_BODY * 24);
 
   const sig = ds.map(d => { const p = ITEMS.planForce(d.id, 24);
     return p.mustered ? [p.bands.short || 0, p.bands.medium || 0, p.bands.long || 0].join('/') : 'x'; });
@@ -3420,11 +3388,7 @@ function negotiationRules() {
       const idx = h.indexOf(dead + ':');
       if (idx >= 0) viewerRot.push(v + ' still declares ' + dead);
     }
-    /* and the live kit allowance and ring must match the modules */
-    if (h.indexOf('KIT_ALLOWANCE_PER_BODY') >= 0
-        && h.indexOf('KIT_ALLOWANCE_PER_BODY: ' + ITEMS.CONST.KIT_ALLOWANCE_PER_BODY) < 0) {
-      viewerRot.push(v + ' quotes a stale kit allowance');
-    }
+    /* the ring must match the modules (the kit allowance it also checked is gone) */
     if (h.indexOf('ZONE_STEPS') >= 0
         && h.indexOf('ZONE_STEPS: [' + MAPMOD.CONST.ZONE_STEPS.join(', ') + ']') < 0) {
       viewerRot.push(v + ' quotes a stale ring schedule');

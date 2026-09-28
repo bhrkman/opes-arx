@@ -630,41 +630,28 @@
    *
    * Returns the allowance the corp CHOOSES to field to, never above the Aleas cap.
    */
+  /* §2.2 WHAT AN OA MEANS TO SPEND ON KIT (ruled at the money pass: no ceiling). It read an Aleas allowance —
+     2,500 a body, up 6% a year — as the cap every OA fielded under, and the fleet bought surplus rifles under it
+     (₡200–700 a body, tier 1) while a person buying tier 3 took +13 points of win rate off every fight. The
+     allowance is gone. An OA spends from its procurement budget (`ledger.procurementBudget`: what is free after
+     wages, the entry and the reserve, at KIT_SHARE), tempered by its WILL — a fat planet opens the purse, a thrifty
+     board closes it — and the money is laid out evenly across the force (`planForce` shares it), because the
+     measured worth of kit is in the tier everyone carries, not in one railgun: each tier step is worth about
+     ten points of win rate and half the casualties. Wealth, for the locker's depth, is budget per body against
+     KIT_BUDGET_REFERENCE, the point at which a corp is rich enough to field tier 4 for all. */
   function kitIntent(profile, planet, bodyCount, kitBudget, season) {
-    /* THE ESCALATOR, AT LAST. This read `KIT_ALLOWANCE_PER_BODY` flat, so the 6%-a-season
-       rise `allowanceFor` has implemented since Step 5 could not reach the ground: measured
-       over a twelve-season career, kit fielded per body topped out at exactly 2,500 in season
-       one and in season twelve alike. It was named as an inherited dead wire at Step 8 and
-       reported closed, and it was not — the guard called `allowanceFor` directly and proved
-       the function escalates, which is a different claim from the game ever calling it with a
-       season. The cap is one number for everyone (P1); what rises is the number itself. */
-    /* Step 8.5b: the ceiling stopped scaling with headcount, so this asks for the per-body
-       share of a corp ceiling divided by who is actually going — which is the number a planner
-       spends against, and which RISES when a corp fields fewer. */
-    const cap = ITEMS.allowancePerBody(bodyCount, season);
-    /* CROSS-STEP FIX. This used to re-derive a corp's wealth from its treasury band with its
-       own hand-rolled 0-1 scale, while `ledger.js` computed `procurementBudget` — real credits,
-       after wages, the Aleas entry and the reserve floor — and the day loop ignored it. Two
-       steps answering "what can this corp spend on kit" by different methods, and disagreeing.
-       Step 5's economy is the source of truth now; this reads it. */
     const budget = kitBudget != null ? kitBudget : 0;
     const perBodyAfford = budget / Math.max(1, bodyCount);
-    const w = Math.max(0, Math.min(1, perBodyAfford / (cap * ITEMS.CONST.KIT_BUDGET_REFERENCE)));
+    const w = Math.max(0, Math.min(1, perBodyAfford / ITEMS.CONST.KIT_BUDGET_REFERENCE));
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
-
-    /* WILL — a fat planet opens the purse; a thrifty board closes it. A corp that reckons a
-       poor rock is not worth the outlay drops under its means deliberately. */
     const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
     const thrift = ((profile.dials && profile.dials.thrift) || 50) / 100;
     let will = 0.90
              + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2
              - ITEMS.CONST.WILL_THRIFT_PULL * (thrift - 0.5) * 2;
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
-
-    /* CAN — money is the other half. The poorest corps cannot reach the cap however keen. */
-    const perBody = (0.35 + 0.85 * w) * cap;
-    const target = Math.round(Math.min(cap, perBody * will));
+    const target = Math.round(perBodyAfford * will);
     return {
       allowance: Math.max(ITEMS.CONST.KIT_FLOOR_PER_BODY, target) * bodyCount,
       depth: depth, will: will, wealth: w

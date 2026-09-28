@@ -97,25 +97,22 @@
    * Step 6 — book one Divide's outcome into the account.
    *
    * The settlement figure is what the corp WON. `squadBonus` is what reaches its own books:
-   * the rest is the OA's, because the OA is who the planet was taken for. The bonus rises
-   * with the season on the same escalator as the Kit Allowance, per ruling — what a win is
-   * worth grows at the same rate as what it costs to field a force, so year ten is not year
-   * one with bigger numbers on one side only.
+   * the rest is the OA's, because the OA is who the planet was taken for. (It rose with the
+   * season on the kit allowance's escalator; the allowance is gone and nothing else inflates.)
    *
    * Ransoms are NOT cut. A ransom is one corp paying another for a body; the arkship has no
    * claim on it and both sides book it whole.
    */
-  function squadBonus(payout, season, escalator) {
+  function squadBonus(payout) {
     if (!(payout > 0)) return 0;
-    const s = Math.max(1, season || 1);
-    return Math.round(payout * CONST.SQUAD_BONUS_SHARE * Math.pow(escalator || 1, s - 1));
+    return Math.round(payout * CONST.SQUAD_BONUS_SHARE);   /* it rode the kit allowance's escalator; the allowance is gone */
   }
 
   function bookDivide(acct, result) {
     result = result || {};
     if (result.payout) {
       const share = result.squadShare != null ? result.squadShare
-                  : squadBonus(result.payout, result.season || acct.season, result.escalator);
+                  : squadBonus(result.payout);
       post(acct, 'income', 'Divide bonus (the OA takes the rights)', share);
       acct.lastSettlement = result.payout;
       acct.lastBonus = share;

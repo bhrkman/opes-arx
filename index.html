@@ -1440,7 +1440,6 @@
   .sqhead{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);
     background:linear-gradient(90deg,color-mix(in srgb,var(--sq) 22%,transparent),transparent 70%)}
   .sqhead .dot{width:8px;height:8px;border-radius:2px;background:var(--sq);flex-shrink:0}
-  .planline .kitcap{font-size:14px;letter-spacing:.05em}
   #planstate{justify-content:center;text-align:center;font-size:12.5px}
   .sqname{color:var(--sq);font-weight:bold;letter-spacing:.04em;flex:1;cursor:text;text-align:center}
   .sqname input{background:#0a0e16;border:1px solid var(--a);color:var(--ink);font:inherit;width:110px;padding:1px 4px;border-radius:3px}
@@ -4756,19 +4755,20 @@
    "Contraband exists as data with no acquisition path until Step 9 (PROCUREMENT.md 11.2).",
    "Identity is the weapon, refinement is the mod, tier is only a shelf: no model appears at more than one tier (PROCUREMENT.md 4.1)."
   ],
-  "type_note": "What a piece IS, as a shelf would file it. Derived once from what each weapon does (its traits and its band) and then written down, because a market that guesses its own sections from tags will disagree with itself the moment a tag changes. Edit this field, not the derivation."
+  "type_note": "What a piece IS, as a shelf would file it. Derived once from what each weapon does (its traits and its band) and then written down, because a market that guesses its own sections from tags will disagree with itself the moment a tag changes. Edit this field, not the derivation.",
+  "money_pass": "Money pass: tiers 1-4 priced ×2 (measured: a tier step buys +10-13 points of win rate and halves losses, at 700-3,700 a body it was nearly free); tier 4 lifted — a point of power and protection, three of handling, a point of ballistic and energy resist — measured flat against tier 3 before, a full step (~60/35) after. Tier 5 unchanged."
  },
  "constants": {
   "pricing": {
-   "WEAPON_BASE": 490,
-   "POWER_COST": 100,
-   "QUIRK_COST": 180,
-   "BULK_REBATE": 30,
-   "SIDEARM_BASE": 120,
-   "SIDEARM_POWER": 45,
-   "SIDEARM_QUIRK": 70,
-   "ARMOR_BASE": 230,
-   "PROTECTION_COST": 130,
+   "WEAPON_BASE": 980,
+   "POWER_COST": 200,
+   "QUIRK_COST": 360,
+   "BULK_REBATE": 60,
+   "SIDEARM_BASE": 240,
+   "SIDEARM_POWER": 90,
+   "SIDEARM_QUIRK": 140,
+   "ARMOR_BASE": 460,
+   "PROTECTION_COST": 260,
    "ROUND_TO": 10
   },
   "TIER_MULT": {
@@ -4776,7 +4776,7 @@
    "2": 0.7,
    "3": 1,
    "4": 1.75,
-   "5": 3.6
+   "5": 1.8
   }
  },
  "quirks": [
@@ -4949,7 +4949,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 360,
+   "cost": 720,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -4981,7 +4981,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 530,
+   "cost": 1070,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -5015,7 +5015,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 960,
+   "cost": 1920,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -5049,7 +5049,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 820,
+   "cost": 1640,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -5083,7 +5083,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1030,
+   "cost": 2060,
    "bulk": 3,
    "effects": {
     "power": 8,
@@ -5117,7 +5117,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1150,
+   "cost": 2300,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -5151,7 +5151,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1340,
+   "cost": 2690,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -5186,7 +5186,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1180,
+   "cost": 2360,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -5221,7 +5221,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 960,
+   "cost": 1930,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -5255,7 +5255,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1030,
+   "cost": 2060,
    "bulk": 5,
    "effects": {
     "power": 4,
@@ -5287,7 +5287,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1880,
+   "cost": 3760,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -5322,7 +5322,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1040,
+   "cost": 2080,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -5356,7 +5356,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1130,
+   "cost": 2250,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -5391,10 +5391,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 1800,
+   "cost": 3940,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "medium",
     "tags": [
      "ricochet"
@@ -5406,7 +5406,7 @@
     "reach": 12,
     "near": 0,
     "falloff": 2,
-    "handling": 5,
+    "handling": 8,
     "snap": 2,
     "pen": 0,
     "suppress": 0,
@@ -5425,10 +5425,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 1950,
+   "cost": 4260,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "long",
     "tags": [],
     "damage": "ballistic",
@@ -5438,7 +5438,7 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 8,
+    "handling": 11,
     "snap": 6,
     "pen": 0,
     "suppress": 0,
@@ -5457,10 +5457,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2300,
+   "cost": 4960,
    "bulk": 6,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "medium",
     "tags": [
      "spool",
@@ -5473,7 +5473,7 @@
     "reach": 14,
     "near": 3,
     "falloff": 1.5,
-    "handling": -15,
+    "handling": -12,
     "snap": 14,
     "pen": 0,
     "suppress": 2,
@@ -5492,10 +5492,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2260,
+   "cost": 4880,
    "bulk": 4,
    "effects": {
-    "power": 6,
+    "power": 7,
     "range": "medium",
     "tags": [
      "area"
@@ -5507,7 +5507,7 @@
     "reach": 12,
     "near": 3,
     "falloff": 2,
-    "handling": -5,
+    "handling": -2,
     "snap": 5,
     "pen": 0,
     "suppress": 0,
@@ -5526,10 +5526,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2390,
+   "cost": 5140,
    "bulk": 4,
    "effects": {
-    "power": 8,
+    "power": 9,
     "range": "long",
     "tags": [
      "spool"
@@ -5541,7 +5541,7 @@
     "reach": 20,
     "near": 8,
     "falloff": 1,
-    "handling": -5,
+    "handling": -2,
     "snap": 12,
     "pen": 2,
     "suppress": 0,
@@ -5560,10 +5560,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2580,
+   "cost": 5510,
    "bulk": 5,
    "effects": {
-    "power": 9,
+    "power": 10,
     "range": "long",
     "tags": [
      "single_shot"
@@ -5575,7 +5575,7 @@
     "reach": 22,
     "near": 8,
     "falloff": 1,
-    "handling": -5,
+    "handling": -2,
     "snap": 12,
     "pen": 2,
     "suppress": 0,
@@ -5594,10 +5594,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2980,
+   "cost": 6310,
    "bulk": 4,
    "effects": {
-    "power": 9,
+    "power": 10,
     "range": "short",
     "tags": [
      "cover_shred"
@@ -5609,7 +5609,7 @@
     "reach": 5,
     "near": 0,
     "falloff": 6,
-    "handling": -3,
+    "handling": 0,
     "snap": 4,
     "pen": 1,
     "suppress": 0,
@@ -5628,7 +5628,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 1,
-   "cost": 470,
+   "cost": 950,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -5663,7 +5663,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 980,
+   "cost": 1960,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -5699,7 +5699,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 960,
+   "cost": 1910,
    "bulk": 5,
    "effects": {
     "power": 4,
@@ -5734,7 +5734,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 1110,
+   "cost": 2210,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -5770,7 +5770,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 1060,
+   "cost": 2120,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -5805,7 +5805,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 1220,
+   "cost": 2440,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -5840,10 +5840,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 1910,
+   "cost": 4180,
    "bulk": 4,
    "effects": {
-    "power": 4,
+    "power": 5,
     "range": "medium",
     "tags": [
      "chill"
@@ -5856,7 +5856,7 @@
     "reach": 12,
     "near": 0,
     "falloff": 2,
-    "handling": 5,
+    "handling": 8,
     "snap": 2,
     "pen": 1,
     "suppress": 0,
@@ -5875,10 +5875,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2470,
+   "cost": 5290,
    "bulk": 4,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "medium",
     "tags": [
      "sustained"
@@ -5891,7 +5891,7 @@
     "reach": 14,
     "near": 2,
     "falloff": 1.5,
-    "handling": -8,
+    "handling": -5,
     "snap": 9,
     "pen": 0,
     "suppress": 1,
@@ -5910,10 +5910,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 1950,
+   "cost": 4260,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "long",
     "tags": [],
     "damage": "energy",
@@ -5924,7 +5924,7 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 6,
+    "handling": 9,
     "snap": 6,
     "pen": 0,
     "suppress": 0,
@@ -5943,10 +5943,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2190,
+   "cost": 4730,
    "bulk": 3,
    "effects": {
-    "power": 4,
+    "power": 5,
     "range": "medium",
     "tags": [
      "disorient",
@@ -5960,7 +5960,7 @@
     "reach": 12,
     "near": 0,
     "falloff": 2,
-    "handling": 5,
+    "handling": 8,
     "snap": 2,
     "pen": 0,
     "suppress": 0,
@@ -5979,10 +5979,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2120,
+   "cost": 4600,
    "bulk": 4,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "long",
     "tags": [],
     "damage": "energy",
@@ -5993,7 +5993,7 @@
     "reach": 18,
     "near": 5,
     "falloff": 1.5,
-    "handling": 0,
+    "handling": 3,
     "snap": 6,
     "pen": 1,
     "suppress": 0,
@@ -6012,10 +6012,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2340,
+   "cost": 5030,
    "bulk": 5,
    "effects": {
-    "power": 8,
+    "power": 9,
     "range": "short",
     "tags": [
      "cover_shred",
@@ -6029,7 +6029,7 @@
     "reach": 5,
     "near": 0,
     "falloff": 6,
-    "handling": -3,
+    "handling": 0,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
@@ -6048,10 +6048,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2540,
+   "cost": 5440,
    "bulk": 5,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "medium",
     "tags": [
      "incendiary",
@@ -6066,7 +6066,7 @@
     "reach": 11,
     "near": 3,
     "falloff": 2,
-    "handling": -8,
+    "handling": -5,
     "snap": 8,
     "pen": 0,
     "suppress": 0,
@@ -6085,10 +6085,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2780,
+   "cost": 5920,
    "bulk": 5,
    "effects": {
-    "power": 8,
+    "power": 9,
     "range": "short",
     "tags": [
      "incendiary",
@@ -6102,7 +6102,7 @@
     "reach": 6,
     "near": 0,
     "falloff": 5,
-    "handling": -5,
+    "handling": -2,
     "snap": 5,
     "pen": 0,
     "suppress": 0,
@@ -6121,7 +6121,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 1,
-   "cost": 90,
+   "cost": 190,
    "bulk": 1,
    "effects": {
     "power": 2,
@@ -6153,7 +6153,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 2,
-   "cost": 210,
+   "cost": 420,
    "bulk": 1,
    "effects": {
     "power": 2,
@@ -6188,7 +6188,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 3,
-   "cost": 260,
+   "cost": 510,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6220,7 +6220,7 @@
    "slot": "sidearm",
    "family": "energy",
    "tier": 3,
-   "cost": 260,
+   "cost": 510,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6252,7 +6252,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 3,
-   "cost": 250,
+   "cost": 500,
    "bulk": 1,
    "effects": {
     "power": 4,
@@ -6287,7 +6287,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 3,
-   "cost": 350,
+   "cost": 710,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6321,7 +6321,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 3,
-   "cost": 300,
+   "cost": 610,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6356,7 +6356,7 @@
    "slot": "sidearm",
    "family": "energy",
    "tier": 3,
-   "cost": 320,
+   "cost": 640,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6390,7 +6390,7 @@
    "slot": "sidearm",
    "family": "ballistic",
    "tier": 3,
-   "cost": 380,
+   "cost": 760,
    "bulk": 1,
    "effects": {
     "power": 3,
@@ -6424,7 +6424,7 @@
    "slot": "sidearm",
    "family": "energy",
    "tier": 4,
-   "cost": 650,
+   "cost": 1300,
    "bulk": 1,
    "effects": {
     "power": 4,
@@ -6458,7 +6458,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 370,
+   "cost": 740,
    "bulk": 1,
    "effects": {
     "protection": 1,
@@ -6489,7 +6489,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 370,
+   "cost": 740,
    "bulk": 1,
    "effects": {
     "protection": 2,
@@ -6516,7 +6516,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 450,
+   "cost": 890,
    "bulk": 2,
    "effects": {
     "protection": 3,
@@ -6543,14 +6543,14 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1060,
+   "cost": 2530,
    "bulk": 2,
    "effects": {
-    "protection": 4,
+    "protection": 5,
     "mobility": 0,
     "tags": [],
     "resist": {
-     "ballistic": -2,
+     "ballistic": -1,
      "energy": 3,
      "explosive": 0
     },
@@ -6571,17 +6571,17 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1260,
+   "cost": 2970,
    "bulk": 3,
    "effects": {
-    "protection": 5,
+    "protection": 6,
     "mobility": -1,
     "tags": [
      "mob_down"
     ],
     "resist": {
-     "ballistic": 1,
-     "energy": 1,
+     "ballistic": 2,
+     "energy": 2,
      "explosive": 1
     },
     "covers": null
@@ -6598,7 +6598,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 380,
+   "cost": 760,
    "bulk": 0,
    "effects": {
     "gear_accuracy": 10,
@@ -6616,7 +6616,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 220,
+   "cost": 440,
    "bulk": 1,
    "effects": {
     "aim_holding": 20,
@@ -6635,7 +6635,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 320,
+   "cost": 640,
    "bulk": 0,
    "effects": {
     "overwatch_mult": 1.6,
@@ -6653,7 +6653,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 200,
+   "cost": 400,
    "bulk": 0,
    "effects": {
     "bulk": -1,
@@ -6672,7 +6672,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 340,
+   "cost": 680,
    "bulk": 0,
    "effects": {
     "grants": "stabilized",
@@ -6690,7 +6690,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 300,
+   "cost": 600,
    "bulk": 0,
    "effects": {
     "band_mismatch_mult": 0.5,
@@ -6708,7 +6708,7 @@
    "slot": "mod",
    "family": "any",
    "tier": 3,
-   "cost": 150,
+   "cost": 300,
    "bulk": 0,
    "effects": {
     "grants": "crowd_pleaser",
@@ -6726,7 +6726,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 260,
+   "cost": 520,
    "bulk": 1,
    "effects": {
     "ammo": 6,
@@ -6744,7 +6744,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 240,
+   "cost": 480,
    "bulk": 0,
    "effects": {
     "suppress_drain": -8,
@@ -6763,7 +6763,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 400,
+   "cost": 800,
    "bulk": 0,
    "effects": {
     "grants": "silent",
@@ -6781,7 +6781,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 340,
+   "cost": 680,
    "bulk": 0,
    "effects": {
     "grants": "pierce_2",
@@ -6800,7 +6800,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 360,
+   "cost": 720,
    "bulk": 0,
    "effects": {
     "grants": "incendiary",
@@ -6818,7 +6818,7 @@
    "slot": "mod",
    "family": "ballistic",
    "tier": 3,
-   "cost": 280,
+   "cost": 560,
    "bulk": 0,
    "effects": {
     "grants": "flechette",
@@ -6836,7 +6836,7 @@
    "slot": "mod",
    "family": "energy",
    "tier": 3,
-   "cost": 290,
+   "cost": 580,
    "bulk": 1,
    "effects": {
     "charge": 18,
@@ -6854,7 +6854,7 @@
    "slot": "mod",
    "family": "energy",
    "tier": 3,
-   "cost": 420,
+   "cost": 840,
    "bulk": 0,
    "effects": {
     "power": 1,
@@ -6873,7 +6873,7 @@
    "slot": "mod",
    "family": "energy",
    "tier": 3,
-   "cost": 310,
+   "cost": 620,
    "bulk": 0,
    "effects": {
     "grants": "spread",
@@ -6892,7 +6892,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 120,
+   "cost": 240,
    "bulk": 1,
    "uses": 1,
    "action": "throw",
@@ -6914,7 +6914,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 90,
+   "cost": 180,
    "bulk": 1,
    "uses": 1,
    "action": "screen",
@@ -6934,7 +6934,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 180,
+   "cost": 360,
    "bulk": 1,
    "uses": 1,
    "action": "throw",
@@ -6957,7 +6957,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 140,
+   "cost": 280,
    "bulk": 1,
    "uses": 1,
    "action": "treat",
@@ -6977,7 +6977,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 110,
+   "cost": 220,
    "bulk": 1,
    "uses": 1,
    "action": "dose",
@@ -6997,7 +6997,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 260,
+   "cost": 520,
    "bulk": 1,
    "uses": 1,
    "action": "deploy",
@@ -7017,7 +7017,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 380,
+   "cost": 760,
    "bulk": 2,
    "uses": 1,
    "action": "deploy",
@@ -7037,7 +7037,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 100,
+   "cost": 200,
    "bulk": 2,
    "uses": 1,
    "action": "carry",
@@ -7057,7 +7057,7 @@
    "slot": "consumable",
    "family": "any",
    "tier": 3,
-   "cost": 130,
+   "cost": 260,
    "bulk": 1,
    "uses": 1,
    "action": "carry",
@@ -7327,7 +7327,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 560,
+   "cost": 1120,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -7362,7 +7362,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 880,
+   "cost": 1760,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -7397,7 +7397,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 540,
+   "cost": 1070,
    "bulk": 2,
    "effects": {
     "power": 3,
@@ -7431,7 +7431,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 470,
+   "cost": 950,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -7465,7 +7465,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 740,
+   "cost": 1470,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -7499,7 +7499,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1310,
+   "cost": 2630,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -7534,10 +7534,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 2390,
+   "cost": 5130,
    "bulk": 4,
    "effects": {
-    "power": 6,
+    "power": 7,
     "range": "medium",
     "tags": [
      "burst"
@@ -7549,7 +7549,7 @@
     "reach": 14,
     "near": 1,
     "falloff": 2,
-    "handling": 0,
+    "handling": 3,
     "snap": 4,
     "pen": 1,
     "suppress": 0,
@@ -7568,10 +7568,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2070,
+   "cost": 4480,
    "bulk": 3,
    "effects": {
-    "power": 6,
+    "power": 7,
     "range": "medium",
     "tags": [
      "burst",
@@ -7584,7 +7584,7 @@
     "reach": 14,
     "near": 1,
     "falloff": 2,
-    "handling": 0,
+    "handling": 3,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
@@ -7638,7 +7638,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 620,
+   "cost": 1230,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -7672,7 +7672,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 960,
+   "cost": 1920,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -7706,7 +7706,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1700,
+   "cost": 3410,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -7741,10 +7741,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 2950,
+   "cost": 6250,
    "bulk": 2,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "short",
     "tags": [
      "burst"
@@ -7756,7 +7756,7 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 8,
+    "handling": 11,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -7775,7 +7775,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 1,
-   "cost": 130,
+   "cost": 260,
    "bulk": 1,
    "effects": {
     "protection": 1,
@@ -7803,7 +7803,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 1,
-   "cost": 150,
+   "cost": 310,
    "bulk": 2,
    "effects": {
     "protection": 2,
@@ -7830,7 +7830,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 2,
-   "cost": 290,
+   "cost": 570,
    "bulk": 2,
    "effects": {
     "protection": 2,
@@ -7859,7 +7859,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 2,
-   "cost": 280,
+   "cost": 570,
    "bulk": 1,
    "effects": {
     "protection": 2,
@@ -7887,7 +7887,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 2,
-   "cost": 260,
+   "cost": 530,
    "bulk": 2,
    "effects": {
     "protection": 2,
@@ -7915,7 +7915,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 360,
+   "cost": 720,
    "bulk": 2,
    "effects": {
     "protection": 2,
@@ -7943,7 +7943,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 450,
+   "cost": 890,
    "bulk": 2,
    "effects": {
     "protection": 3,
@@ -7970,7 +7970,7 @@
    "slot": "armor",
    "family": "armor",
    "tier": 3,
-   "cost": 410,
+   "cost": 820,
    "bulk": 2,
    "effects": {
     "protection": 2,
@@ -7999,15 +7999,15 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1060,
+   "cost": 2530,
    "bulk": 2,
    "effects": {
-    "protection": 4,
+    "protection": 5,
     "mobility": 0,
     "tags": [],
     "resist": {
-     "ballistic": 2,
-     "energy": -1,
+     "ballistic": 3,
+     "energy": 0,
      "explosive": 1
     },
     "covers": [
@@ -8027,14 +8027,14 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1160,
+   "cost": 2770,
    "bulk": 3,
    "effects": {
-    "protection": 4,
+    "protection": 5,
     "mobility": -1,
     "tags": [],
     "resist": {
-     "ballistic": -1,
+     "ballistic": 0,
      "energy": 3,
      "explosive": -1
     },
@@ -8052,15 +8052,15 @@
    "slot": "armor",
    "family": "armor",
    "tier": 4,
-   "cost": 1060,
+   "cost": 2540,
    "bulk": 3,
    "effects": {
-    "protection": 4,
+    "protection": 5,
     "mobility": -1,
     "tags": [],
     "resist": {
-     "ballistic": 1,
-     "energy": 1,
+     "ballistic": 2,
+     "energy": 2,
      "explosive": 1
     },
     "covers": [
@@ -9646,11 +9646,10 @@
        DROP_MAX from here rather than declaring a second copy, because the two numbers are the
        same fact and this project has three times found a constant declared twice. */
     DROP_MAX: 24,
-    KIT_ALLOWANCE_PER_BODY: 2500,   // [H] a standard loadout is 2020, so ~10% of the force
-                                    //     can be genuinely upgraded rather than only rearranged
-    ALLOWANCE_ESCALATOR: 1.06,      // [H] per season, compounding. The catalog never inflates;
-                                    //     the allowance does, so old kit stays honest while more
-                                    //     of it becomes fieldable. Read from Step 8 (seasons).
+    /* §2.2 THE ALEAS CEILING IS GONE (ruled at the money pass). A kit allowance — 2,500 a body, 60,000 a
+       force, up 6% a year — capped what any OA could field. It was there to stop a rich OA buying the field;
+       the economy now does that (a year's kit is a year's wages), and a ceiling is the kind of thing this
+       project cuts. What bounds a force's kit is its treasury and the bulk its people can carry. */
 
     /* §2.3 bulk */
     SQUAD_BULK_PER_HEAD: 8,         // [C] a standard kit is exactly 8
@@ -9700,8 +9699,10 @@
                                     //     poor planet drags the whole fleet to the floor
                                     //     together, which re-flattens the field it is meant
                                     //     to spread
-    KIT_BUDGET_REFERENCE: 4.8,      // [C] budget-per-body, in caps, at which a corp can
-                                    //     comfortably field to the ceiling
+    KIT_BUDGET_REFERENCE: 9000,     // [C] budget per body, in credits, at which a corp is rich for kit: its locker
+                                    //     is deep and it fields tier 4 for everyone (a tier-4 kit is ~7,400)
+    KIT_GUN_SHARE: 0.62,            // [C] of a body's share of the OA's kit outlay, what the gun may take; the armour the rest
+    KIT_SHARE_SLACK: 1.35,          // [C] and how far past an even share one body's piece may go
     KIT_TASTE_SWING: 12,            // [C] §QUARTERMASTER the doctrine's favourite gun is worth this much Aim in the choosing
     KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
@@ -9714,7 +9715,7 @@
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
     CONSUMABLE_SLOTS: 2,            // [S] §3
-    EXOTIC_PRICE_FLOOR_MULT: 3.0    // [C] cheapest exotic vs dearest formula item
+    EXOTIC_PRICE_FLOOR_MULT: 1.5    // [C] cheapest exotic vs dearest formula item (3.0 → 1.5 at the money pass: tiers 1–4 doubled, the exotics held)
   };
 
   /* The default loadout. Chosen so a fielded force is numerically identical to the
@@ -10013,11 +10014,10 @@
     opts = (typeof opts === 'number') ? { season: opts } : (opts || {});
     const d = api.doctrine(doctrineId);
     if (!d) return null;
-    /* Two different numbers, and conflating them was a design error worth naming:
-       `allowance` is the Aleas CEILING, shared by every corp and bought by nobody.
-       `budget` is treasury credits, which is what actually buys the kit (§14).
-       A corp fields min(budget, allowance) — the rich are cap-bound, the poor wallet-bound. */
-    const allow = opts.allowance != null ? opts.allowance : allowanceFor(opts.season);
+    /* Two numbers: `allowance` is what THIS OA means to lay out on kit for this drop (its own target, from its
+       budget and its will — the Aleas' ceiling it once was is gone), and `budget` is the treasury credits that
+       actually buy it (§14). A corp fields min(budget, allowance); with no target given, the money is the limit. */
+    const allow = opts.allowance != null ? opts.allowance : Infinity;
     const budget = Math.max(0, opts.budget || 0);
     const armoury = opts.armoury || foundingArmoury(doctrineId, bodyCount, opts).stock;
     const taste = d.taste || [];
@@ -10109,11 +10109,15 @@
     if (!shortfall) {
       for (const q of queue) {
         reserve -= floorCost(q.slot);
-        const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve);
+        /* THE OUTLAY IS SHARED: a body buys within its share of what the OA means to spend (a gun most of it), a
+           little past it for a piece worth having — the first body in the queue does not buy the railgun and leave
+           the rest surplus rifles. Measured, the tier everyone carries is what wins fights. */
+        const share = (allow / bodies.length) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
+        const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve, share);
         const ranked = listFor(q.b, q.slot);
         const fits = ranked.filter(c => spent + c.cost <= mustAllow);
-        /* never past the cap for a gun this hand merely prefers: if nothing they would rather carry fits, they take
-           what the rack holds before anything is bought over the Aleas' line */
+        /* never past its outlay for a gun this hand merely prefers: if nothing they would rather carry fits, they take
+           what the rack holds before anything is bought over the line */
         let pick = fits.find(c => c.cost <= ceilingHere);
         if (!pick) {
           /* the rack before any purchase — but short of the essentials too, like everything else here */
@@ -10342,43 +10346,6 @@
   }
 
 
-  /**
-   * §2.2 — THE ALEAS CEILING. One number per corp per season, and it does NOT move with how
-   * many bodies you field.
-   *
-   * This multiplied by `bodyCount` from Step 5 until Step 8.5, which meant a corp fielding
-   * sixteen got a ceiling of 40,000 and a corp fielding twenty-four got 60,000 — a flat 2,500
-   * a body either way, so there was nothing to concentrate and the small-force build of
-   * `SEASONS.md` §4.1 was arithmetically impossible.
-   *
-   * THAT WAS NEVER DECIDED. The changelog shows `KIT_ALLOWANCE_PER_BODY` moving 2000 → 2050 →
-   * 2250 → 2500, and every one of those adjustments reasons about **headroom per body in a full
-   * force** — "at 2050 only one body in a squad could be meaningfully upgraded", "widen the
-   * window at the top" — with "(54,000 for 24)" written beside it as the derived total. The
-   * per-body figure was the unit the cap was TUNED in. It was never a rule that the ceiling
-   * shrinks when you bring fewer people.
-   *
-   * It was invisible for three steps because every corp always fielded exactly 24, and under
-   * that assumption `per-body × count` and `a flat corp cap` are the same number. `DROP_MIN`
-   * falling to 16 made them different and nobody re-derived it. A formula that was correct
-   * under an assumption which later stopped holding, never re-tested because it never failed.
-   *
-   * So: the ceiling is `KIT_ALLOWANCE_PER_BODY × DROP_MAX`, escalated. Field twenty-four and it
-   * is 2,500 each, exactly as before. Field sixteen and it is 3,750 each — you may concentrate
-   * what you saved into the people you actually sent, which is what quality-against-quantity
-   * means and what S3 has always claimed was on offer.
-   */
-  function allowanceFor(season) {
-    const s = Math.max(1, season || 1);
-    return Math.round(CONST.KIT_ALLOWANCE_PER_BODY * Math.pow(CONST.ALLOWANCE_ESCALATOR, s - 1))
-           * CONST.DROP_MAX;
-  }
-
-  /** The ceiling expressed per body actually fielded — what a planner spends against. */
-  function allowancePerBody(bodyCount, season) {
-    return allowanceFor(season) / Math.max(1, bodyCount || CONST.DROP_MAX);
-  }
-
   /** §2.3 — bulk pools at the squad, so light bodies pay for the gunner. */
   function squadBulk(bodies, carryBonus) {
     const used = bodies.reduce((s, b) => s + bulk(b.loadout), 0);
@@ -10442,7 +10409,7 @@
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
     normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury,
-    allowanceFor, allowancePerBody, squadBulk, equip, equipForce,
+    squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },
@@ -11217,25 +11184,22 @@
    * Step 6 — book one Divide's outcome into the account.
    *
    * The settlement figure is what the corp WON. `squadBonus` is what reaches its own books:
-   * the rest is the OA's, because the OA is who the planet was taken for. The bonus rises
-   * with the season on the same escalator as the Kit Allowance, per ruling — what a win is
-   * worth grows at the same rate as what it costs to field a force, so year ten is not year
-   * one with bigger numbers on one side only.
+   * the rest is the OA's, because the OA is who the planet was taken for. (It rose with the
+   * season on the kit allowance's escalator; the allowance is gone and nothing else inflates.)
    *
    * Ransoms are NOT cut. A ransom is one corp paying another for a body; the arkship has no
    * claim on it and both sides book it whole.
    */
-  function squadBonus(payout, season, escalator) {
+  function squadBonus(payout) {
     if (!(payout > 0)) return 0;
-    const s = Math.max(1, season || 1);
-    return Math.round(payout * CONST.SQUAD_BONUS_SHARE * Math.pow(escalator || 1, s - 1));
+    return Math.round(payout * CONST.SQUAD_BONUS_SHARE);   /* it rode the kit allowance's escalator; the allowance is gone */
   }
 
   function bookDivide(acct, result) {
     result = result || {};
     if (result.payout) {
       const share = result.squadShare != null ? result.squadShare
-                  : squadBonus(result.payout, result.season || acct.season, result.escalator);
+                  : squadBonus(result.payout);
       post(acct, 'income', 'Divide bonus (the OA takes the rights)', share);
       acct.lastSettlement = result.payout;
       acct.lastBonus = share;
@@ -19632,41 +19596,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    *
    * Returns the allowance the corp CHOOSES to field to, never above the Aleas cap.
    */
+  /* §2.2 WHAT AN OA MEANS TO SPEND ON KIT (ruled at the money pass: no ceiling). It read an Aleas allowance —
+     2,500 a body, up 6% a year — as the cap every OA fielded under, and the fleet bought surplus rifles under it
+     (₡200–700 a body, tier 1) while a person buying tier 3 took +13 points of win rate off every fight. The
+     allowance is gone. An OA spends from its procurement budget (`ledger.procurementBudget`: what is free after
+     wages, the entry and the reserve, at KIT_SHARE), tempered by its WILL — a fat planet opens the purse, a thrifty
+     board closes it — and the money is laid out evenly across the force (`planForce` shares it), because the
+     measured worth of kit is in the tier everyone carries, not in one railgun: each tier step is worth about
+     ten points of win rate and half the casualties. Wealth, for the locker's depth, is budget per body against
+     KIT_BUDGET_REFERENCE, the point at which a corp is rich enough to field tier 4 for all. */
   function kitIntent(profile, planet, bodyCount, kitBudget, season) {
-    /* THE ESCALATOR, AT LAST. This read `KIT_ALLOWANCE_PER_BODY` flat, so the 6%-a-season
-       rise `allowanceFor` has implemented since Step 5 could not reach the ground: measured
-       over a twelve-season career, kit fielded per body topped out at exactly 2,500 in season
-       one and in season twelve alike. It was named as an inherited dead wire at Step 8 and
-       reported closed, and it was not — the guard called `allowanceFor` directly and proved
-       the function escalates, which is a different claim from the game ever calling it with a
-       season. The cap is one number for everyone (P1); what rises is the number itself. */
-    /* Step 8.5b: the ceiling stopped scaling with headcount, so this asks for the per-body
-       share of a corp ceiling divided by who is actually going — which is the number a planner
-       spends against, and which RISES when a corp fields fewer. */
-    const cap = ITEMS.allowancePerBody(bodyCount, season);
-    /* CROSS-STEP FIX. This used to re-derive a corp's wealth from its treasury band with its
-       own hand-rolled 0-1 scale, while `ledger.js` computed `procurementBudget` — real credits,
-       after wages, the Aleas entry and the reserve floor — and the day loop ignored it. Two
-       steps answering "what can this corp spend on kit" by different methods, and disagreeing.
-       Step 5's economy is the source of truth now; this reads it. */
     const budget = kitBudget != null ? kitBudget : 0;
     const perBodyAfford = budget / Math.max(1, bodyCount);
-    const w = Math.max(0, Math.min(1, perBodyAfford / (cap * ITEMS.CONST.KIT_BUDGET_REFERENCE)));
+    const w = Math.max(0, Math.min(1, perBodyAfford / ITEMS.CONST.KIT_BUDGET_REFERENCE));
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
-
-    /* WILL — a fat planet opens the purse; a thrifty board closes it. A corp that reckons a
-       poor rock is not worth the outlay drops under its means deliberately. */
     const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
     const thrift = ((profile.dials && profile.dials.thrift) || 50) / 100;
     let will = 0.90
              + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2
              - ITEMS.CONST.WILL_THRIFT_PULL * (thrift - 0.5) * 2;
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
-
-    /* CAN — money is the other half. The poorest corps cannot reach the cap however keen. */
-    const perBody = (0.35 + 0.85 * w) * cap;
-    const target = Math.round(Math.min(cap, perBody * will));
+    const target = Math.round(perBodyAfford * will);
     return {
       allowance: Math.max(ITEMS.CONST.KIT_FLOOR_PER_BODY, target) * bodyCount,
       depth: depth, will: will, wealth: w
@@ -29862,7 +29813,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          This is the largest dead wire in the project so far and it is the oldest. */
       const pc = (res.perCorp || []).find(x => x.id === id) || {};
       LED.bookDivide(c.account, {
-        season: season, escalator: ITEMS.CONST.ALLOWANCE_ESCALATOR,
+        season: season,
         payout: pc.payout || 0,
         bonuses: pc.won ? ((res.settlement && res.settlement.bonuses
                             && res.settlement.bonuses.total) || 0) : 0,
@@ -33572,11 +33523,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       el.onclick = function (e) { e.stopPropagation(); renameSquad(+el.getAttribute('data-rename'), el); };
     });
 
-    /* ---- the plan line: what the fielded kit is worth against the cap, and the drop cap
-       when it is broken. THE CAP IS WHAT ANY OA MAY FIELD at the drop — catalog value, hand
-       and quartermaster together — and it belongs here, where the fielding is decided, not on
-       the Market, where owning more than it is allowed. ---- */
-    var cap = ITEMS.allowanceFor(G.state.season);
+    /* ---- the plan line: what the fielded kit is worth (catalog value, hand and quartermaster together), and the
+       drop cap when it is broken. The Aleas' kit ceiling is gone (ruled): the treasury is the limit. ---- */
     var fieldedKit = 0, hands = 0, refused = 0;
     fit.forEach(function (b) {
       if (G.plan.at[b.id] == null) return;
@@ -33587,10 +33535,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (G.plan.hand[b.id]) { hands++; if (!handStands(b)) refused++; }
     });
     var kitLine = total
-      ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">' +
-        'Kit ' + (fieldedKit > cap ? '<span class="over">' : '') + crs(fieldedKit) + (fieldedKit > cap ? '</span>' : '') +
-        ' of ' + crs(cap) + ' Cap</span>'
-      : '<span class="kitcap">Kit Cap ' + crs(cap) + '</span>';
+      ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">Kit ' + crs(fieldedKit) + '</span>'
+      : '';
     $('planstate').innerHTML = kitLine +
       (refused ? '<span class="over" title="a hand needs a primary and armor, or the quartermaster overrides it">' + refused + ' hand' + (refused === 1 ? '' : 's') + ' incomplete</span>' : '') +
       (total > SEASON.CONST.DROP_MAX
