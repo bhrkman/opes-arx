@@ -45,6 +45,22 @@
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
        the same card; a petition costs, and if half the fleet petitions the edict is withdrawn. */
     FLEET_MONTH: 7,              // [S]
+    /* §MEDIA MEDIA DAY (ruled: an annual event, M11): the fleet's press boards every OA the week of the drop. Standing
+       is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
+       hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
+    MEDIA_MONTH: 11,             // [S]
+    MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
+    MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
+    MEDIA_REVEAL: { standout: 0.35, steady: 0.2, manager: 0.1 },   // [H] how much rivals learn, by who fronts it
+    MEDIA_MULT: { steady: 0.75, manager: 0.55 },                   // [H] a quieter front, a quieter day
+    MEDIA_FAME: { standout: 6, steady: 3 },                        // [C] what the front gains for being seen
+    MEDIA_STRESS: 8,             // [C] the pressure of the cameras
+    MEDIA_CUT_P: 0.35,           // [H] a villain edit's chance of the piece being cut against you
+    MEDIA_PATIENCE: 1,           // [C] the board likes a manager who fronts the OA himself
+    /* §MEDIA THE PRESS between media days: a profile before the drop, and last year reviewed */
+    PROFILE_FAME: 8,             // [C] a long piece on your standout
+    PROFILE_STRESS: 6,           // [C] a week under the lens
+    PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
@@ -346,6 +362,42 @@
       ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
     }
   ];
+  /* §MEDIA THE PRESS: what a columnist wants between media days */
+  const standoutOf = c => alive(c).filter(f => !f.mirror_of).sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] || null;
+  POOL.push({
+    id: 'profile', weight: 0.9,
+    when: (c, ctx) => { if (ctx.month < 8 || ctx.month > 10) return null; const f = standoutOf(c);
+      return f && (f.fame || 0) >= 12 && !(c._eventFlags && c._eventFlags['profile' + ctx.season]) ? f : null; },
+    make: (f, c, ctx) => { ctx.corpFlags(c)['profile' + ctx.season] = true;
+      return { kind: 'profile', subject: f.id, title: 'A Profile Piece',
+        text: 'A fleet columnist wants a week with ' + f.name + ' for a long piece before the drop.',
+        options: [{ id: 'grant', label: 'Grant the Week', cost: 'Fame +' + CONST.PROFILE_FAME + ' \u00b7 a Week Under the Lens' },
+                  { id: 'decline', label: 'Decline', cost: 'Written Anyway, From the Postings' }], def: 'decline' }; },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
+      const loud = storyMult(ctx.state, f, true);
+      if (opt === 'grant') { f.fame = (f.fame || 0) + Math.round(CONST.PROFILE_FAME * loud); stress(f, CONST.PROFILE_STRESS);
+        if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
+      f.fame = (f.fame || 0) + CONST.PROFILE_DECLINED_FAME; return 'The Piece Ran Anyway, Thinner';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
+  });
+  POOL.push({
+    id: 'coverage', weight: 0.8,
+    when: (c, ctx) => ctx.month === 1 && c._lastPlace ? c._lastPlace : null,
+    make: (place, c, ctx) => ({ kind: 'coverage', place: place, title: 'Last Year, Reviewed',
+      text: place === 1 ? 'The fleet\u2019s press wants the champion on the record before the new year starts.'
+          : 'A columnist is writing up last year\u2019s Divide and wants a word about finishing ' + ordinal(place) + '.',
+      options: [{ id: 'sit', label: 'Sit Down With Them', cost: place <= 3 ? 'The Fleet Warms' : 'Your Own People Hear You Own It' },
+                { id: 'none', label: 'No Comment', cost: 'They Write It Without You' }], def: 'none' }),
+    resolve: (c, e, opt) => {
+      if (opt === 'sit') { if (c.rep) REP.act(c.rep, e.place <= 3 ? 'spoke_well' : 'owned_it', {}); return 'You Went on the Record'; }
+      if (c.rep && e.place > 3) REP.act(c.rep, 'no_comment', {}); return 'They Wrote It Without You';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 35 ? 'sit' : 'none'
+  });
+  function ordinal(n) { return n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'); }
+
   /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
      displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
      BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
@@ -355,7 +407,10 @@
 
   /* the acts the events lean on, if the reputation module has not got them */
   const ACTS = { sold_a_fighter: { own: -4, residue: 0.2 }, refused_an_offer: { rival: -2, residue: 0.15 },
-                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 } };
+                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 },
+                 /* §MEDIA */
+                 profiled: { fleet: 2, residue: 0.1 }, spoke_well: { fleet: 2, own: 1, residue: 0.1 }, owned_it: { own: 3, residue: 0.15 },
+                 no_comment: { own: -2, residue: 0.1 }, media_cut_against: { own: -2, fleet: -4, residue: 0.2 }, sent_regrets: { fleet: -1, residue: 0.05 } };
   if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
@@ -467,7 +522,7 @@
      about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
      one worse, a blame magnet wears whatever went wrong, and a company family's dead are
      mourned louder. These were six hooks wanting a press office; they are one multiplier. */
-  /* PARKED (ruled): nothing calls this yet — it waits for authored stories, which will raise acts through it */
+  /* §MEDIA read by media day and the press: a soundbite machine is heard louder, a villain edit cut against */
   function storyMult(state, f, good) {
     if (!f) return 1;
     let m = 1;
@@ -541,6 +596,58 @@
   const ACTS_FLEET = { petitioned_the_aleas: { aleas: -1, fleet: 1, residue: 0.1 } };
   if (REP && REP.ACTS) for (const k in ACTS_FLEET) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS_FLEET[k];
 
+  /* ------------------------------------------------------------------------- media day ---- */
+  /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
+     standout (most fame), the steadiest hand who is not the standout (most presence) — and the manager. */
+  function mediaCard(state, corp) {
+    const so = standoutOf(corp);
+    const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
+    const loudOf = f => storyMult(state, f, true);
+    const options = [];
+    const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
+    if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
+            (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
+    if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
+    options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
+    options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
+    return { id: 'media-' + state.season, pool: 'media', kind: 'media', title: 'Media Day',
+             text: 'The fleet\u2019s press corps boards every OA the week of the drop. Who you put in front of them decides what the crowd hears, and what your rivals learn by watching.',
+             options, def: 'regrets', resolved: null };
+  }
+  const MEDIA_SPEC = {
+    resolve: (c, e, opt, ctx) => {
+      const state = ctx.state; state.drop = state.drop || {}; state.drop.media = state.drop.media || {};
+      const rec = (reveal, gain) => { state.drop.media[c.id] = { gain, reveal }; c._mediaReveal = reveal; };
+      if (opt === 'regrets') { if (c.rep) REP.act(c.rep, 'sent_regrets', {}); rec(0, 0); return 'You Sent Regrets'; }
+      if (opt === 'manager') { const mult = CONST.MEDIA_MULT.manager; if (c.rep) { REP.act(c.rep, 'media_day', { mult }); c.rep.patience = Math.min(100, (c.rep.patience || 0) + CONST.MEDIA_PATIENCE); }
+        rec(CONST.MEDIA_REVEAL.manager, CONST.MEDIA_BASE * mult); return 'You Fronted Media Day Yourself'; }
+      const o = e.options.find(x => x.id === opt), f = o && alive(c).find(x => x.id === o.fighter);
+      if (!f) { rec(0, 0); return 'Nobody Went'; }
+      const loud = storyMult(state, f, true);
+      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
+      f.fame = (f.fame || 0) + CONST.MEDIA_FAME[opt]; stress(f, CONST.MEDIA_STRESS);
+      rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
+      if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
+        if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });
+        return 'The Piece Was Cut Against ' + f.name;
+      }
+      if (c.rep) REP.act(c.rep, 'media_day', { mult });
+      return 'The Fleet Heard ' + f.name;
+    },
+    ai: (c, e) => {
+      const show = ((c.profile || {}).dials || {}).showmanship || 50;
+      const has = id => e.options.some(o => o.id === id);
+      if (show < 20) return 'regrets';
+      if (show >= 65 && has('standout')) return 'standout';
+      if (show >= 40 && has('steady')) return 'steady';
+      return 'manager';
+    }
+  };
+
   /* ---------------------------------------------------------------------- the machinery ---- */
   function ctxFor(rng, state, corpId) {
     /* the state rides on the ctx so a spec can read a fighter's hooks */
@@ -559,6 +666,8 @@
     const list = [];
     /* the fleet's month: the same card for every OA, first */
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
+    /* §MEDIA media day: the same card for every OA, the month before the drop */
+    if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};
     for (let t = 0; t < tries; t++) {
@@ -579,7 +688,7 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
     const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
@@ -594,7 +703,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);

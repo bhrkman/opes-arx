@@ -4283,6 +4283,27 @@ print NaN, and they are to be written fresh when balance resumes. Four constants
 (`FOLD_BASE`, `GREED_HOLDOUT`, `MEMORY_RESIDUE`, `TREAT_DAYS`). What remains is the gate: `regress`, the five audits,
 the harness's drives, probes and proofs, `audit_halfbuilt`. The README lists it.
 
+**THE DISPATCHES (ruled: B).** The month's events left the Desk. They stood above the Focus tracks and never sat right
+there; they are a window over the Desk now — the cards, a strip counting what waits, one Beacon (Later, or Done) —
+that opens itself once a month when the Desk is first reached with something to answer, closes with Later, and comes
+back through Waiting On You. The Eight's naming card (Month 8) moved in with them. Unanswered, they resolve by their
+defaults at month's end, as before. `harness/drive_dispatch.cjs` drives it. **THE ALEAS GAUGE** left the recap too: it
+was hidden on the Board and the OA sheet because nothing reads it, and the recap alone still drew it.
+
+**MEDIA DAY (ruled: an annual event, Month 11; the press in other events).** It was a roll the engine's OAs made by
+showmanship and a function no page called; a manager could not attend. It is a card every seat answers, drawn with
+the month's events (`events.js mediaCard`): WHO FRONTS IT — your standout (the most standing, +fame to them, rivals
+learn a third of your strength at the table), your steadiest hand (less of each), yourself (least standing, the board
+warms, rivals learn a tenth), or Send Regrets (the fleet notes it). Everything it moves existed: the reputation
+ledger's `media_day` act scaled by the front's fame, `_mediaReveal` for the negotiation read (now by front:
+0.35/0.2/0.1), fame and stress to the front; and the story quirks read at last — a Soundbite Machine is heard louder
+(`storyMult`, no longer parked), a Villain Edit risks the piece being cut against you (`MEDIA_CUT_P`). The engine's
+seats choose by showmanship (65+ the standout, 40+ the steadiest, else the manager; under 20 regrets), so the fleet
+fronts it differently (regress checks it). `attendMediaDay` and `predivide.mediaDay` are gone. **THE PRESS:** two
+cards join the pool — A Profile Piece (Months 8–10, a columnist wants a week with your standout: fame for a week
+under the lens, or written thinner from the postings) and Last Year, Reviewed (Month 1, from the second year: sit
+down with them, or no comment). Six acts join the ledger for them.
+
 **Standing instruction, recorded in the plan:** no stage bends a number to hold a fatality rate.
 The systems around death are not locked, so tuning against today's death rate would be tuning
 against a baseline the next change undoes. Deaths are measured and recorded at each stage; they

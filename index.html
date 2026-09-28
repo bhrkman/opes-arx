@@ -422,6 +422,17 @@
   .evcard .chosen{font-size:11.5px;color:var(--hit);padding:8px 12px;border-top:1px solid var(--line2)}
   .ev-raise{--k:var(--cred)} .ev-debt{--k:var(--red)} .ev-brawl{--k:var(--warn)} .ev-memo{--k:var(--b)} .ev-poach{--k:var(--o-mer)}
   .ev-insult{--k:var(--mag)} .ev-dealer{--k:var(--hit)} .ev-role{--k:var(--a)} .ev-fleet{--k:var(--wall)}
+  .ev-media,.ev-profile,.ev-coverage{--k:var(--spn-2)}
+  /* §DISPATCHES the window over the Desk */
+  #dscrim{background:rgba(6,9,14,.62)}
+  .dispatch{position:fixed;left:50%;top:36px;transform:translateX(-50%);width:min(880px,calc(100% - 32px));max-height:calc(100% - 72px);overflow:auto;
+    background:#0b1019;border:1px solid var(--a);border-radius:10px;padding:14px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:30;display:none}
+  .dispatch.on{display:block}
+  .dispatch .evgrid{grid-template-columns:1fr;margin-bottom:0}
+  .dispatch .rgo{align-items:center;gap:14px}
+  .dispatch .evopts{grid-auto-flow:row;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  body.yearline .dispatch{left:calc(50% + 106px)}
+  @media (max-width:900px){ body.yearline .dispatch{left:50%} }
   /* THE EIGHT: one name, two teams, and the result */
   .eightcard{background:var(--panel);border:1px solid var(--mag);border-radius:8px;padding:11px 14px;margin-bottom:12px}
   .eightcard .et{font-size:13px;color:var(--ink);font-weight:bold}
@@ -1865,8 +1876,18 @@
 <!-- ================================= THE DESK ================================= -->
 <div class="page" data-tab="desk">
   <div class="brief" id="brief"></div>
-  <div id="eight"></div>
-  <div id="events"></div>
+  <!-- §DISPATCHES (ruled) THE MONTH'S EVENTS ARE A WINDOW OVER THE DESK, NOT FURNITURE ON IT. The cards — what
+       happened to the OA this month, the Eight's naming in its month, media day in its — stood above the Focus
+       tracks and never sat right there. They open over the Desk when a month begins with something to answer,
+       close with Later, and come back through Waiting On You. Unanswered, they resolve by their defaults at
+       month's end, as before. -->
+  <div class="scrim" id="dscrim"></div>
+  <div id="dispatch" class="dispatch">
+    <div class="rstrip"><span id="dhead"></span><span class="nx" id="dcount"></span></div>
+    <div id="eight"></div>
+    <div id="events"></div>
+    <div class="rgo"><span class="m" id="dfoot"></span><button id="dlater" class="rbeacon"><span class="w" id="dlaterw">Later</span><small>To the Desk</small></button></div>
+  </div>
   <!-- §DESK THE TALLY SPEAKS FOR BOTH COLUMNS, SO IT STANDS ABOVE BOTH. It was put inside the
        LEFT column of the grid, which centred it over training and rest and left it sitting
        off to one side of the screen — worse than the corner it came from, because it now
@@ -12539,6 +12560,22 @@
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
        the same card; a petition costs, and if half the fleet petitions the edict is withdrawn. */
     FLEET_MONTH: 7,              // [S]
+    /* §MEDIA MEDIA DAY (ruled: an annual event, M11): the fleet's press boards every OA the week of the drop. Standing
+       is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
+       hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
+    MEDIA_MONTH: 11,             // [S]
+    MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
+    MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
+    MEDIA_REVEAL: { standout: 0.35, steady: 0.2, manager: 0.1 },   // [H] how much rivals learn, by who fronts it
+    MEDIA_MULT: { steady: 0.75, manager: 0.55 },                   // [H] a quieter front, a quieter day
+    MEDIA_FAME: { standout: 6, steady: 3 },                        // [C] what the front gains for being seen
+    MEDIA_STRESS: 8,             // [C] the pressure of the cameras
+    MEDIA_CUT_P: 0.35,           // [H] a villain edit's chance of the piece being cut against you
+    MEDIA_PATIENCE: 1,           // [C] the board likes a manager who fronts the OA himself
+    /* §MEDIA THE PRESS between media days: a profile before the drop, and last year reviewed */
+    PROFILE_FAME: 8,             // [C] a long piece on your standout
+    PROFILE_STRESS: 6,           // [C] a week under the lens
+    PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
@@ -12840,6 +12877,42 @@
       ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
     }
   ];
+  /* §MEDIA THE PRESS: what a columnist wants between media days */
+  const standoutOf = c => alive(c).filter(f => !f.mirror_of).sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] || null;
+  POOL.push({
+    id: 'profile', weight: 0.9,
+    when: (c, ctx) => { if (ctx.month < 8 || ctx.month > 10) return null; const f = standoutOf(c);
+      return f && (f.fame || 0) >= 12 && !(c._eventFlags && c._eventFlags['profile' + ctx.season]) ? f : null; },
+    make: (f, c, ctx) => { ctx.corpFlags(c)['profile' + ctx.season] = true;
+      return { kind: 'profile', subject: f.id, title: 'A Profile Piece',
+        text: 'A fleet columnist wants a week with ' + f.name + ' for a long piece before the drop.',
+        options: [{ id: 'grant', label: 'Grant the Week', cost: 'Fame +' + CONST.PROFILE_FAME + ' \u00b7 a Week Under the Lens' },
+                  { id: 'decline', label: 'Decline', cost: 'Written Anyway, From the Postings' }], def: 'decline' }; },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
+      const loud = storyMult(ctx.state, f, true);
+      if (opt === 'grant') { f.fame = (f.fame || 0) + Math.round(CONST.PROFILE_FAME * loud); stress(f, CONST.PROFILE_STRESS);
+        if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
+      f.fame = (f.fame || 0) + CONST.PROFILE_DECLINED_FAME; return 'The Piece Ran Anyway, Thinner';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
+  });
+  POOL.push({
+    id: 'coverage', weight: 0.8,
+    when: (c, ctx) => ctx.month === 1 && c._lastPlace ? c._lastPlace : null,
+    make: (place, c, ctx) => ({ kind: 'coverage', place: place, title: 'Last Year, Reviewed',
+      text: place === 1 ? 'The fleet\u2019s press wants the champion on the record before the new year starts.'
+          : 'A columnist is writing up last year\u2019s Divide and wants a word about finishing ' + ordinal(place) + '.',
+      options: [{ id: 'sit', label: 'Sit Down With Them', cost: place <= 3 ? 'The Fleet Warms' : 'Your Own People Hear You Own It' },
+                { id: 'none', label: 'No Comment', cost: 'They Write It Without You' }], def: 'none' }),
+    resolve: (c, e, opt) => {
+      if (opt === 'sit') { if (c.rep) REP.act(c.rep, e.place <= 3 ? 'spoke_well' : 'owned_it', {}); return 'You Went on the Record'; }
+      if (c.rep && e.place > 3) REP.act(c.rep, 'no_comment', {}); return 'They Wrote It Without You';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 35 ? 'sit' : 'none'
+  });
+  function ordinal(n) { return n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'); }
+
   /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
      displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
      BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
@@ -12849,7 +12922,10 @@
 
   /* the acts the events lean on, if the reputation module has not got them */
   const ACTS = { sold_a_fighter: { own: -4, residue: 0.2 }, refused_an_offer: { rival: -2, residue: 0.15 },
-                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 } };
+                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 },
+                 /* §MEDIA */
+                 profiled: { fleet: 2, residue: 0.1 }, spoke_well: { fleet: 2, own: 1, residue: 0.1 }, owned_it: { own: 3, residue: 0.15 },
+                 no_comment: { own: -2, residue: 0.1 }, media_cut_against: { own: -2, fleet: -4, residue: 0.2 }, sent_regrets: { fleet: -1, residue: 0.05 } };
   if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
@@ -12961,7 +13037,7 @@
      about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
      one worse, a blame magnet wears whatever went wrong, and a company family's dead are
      mourned louder. These were six hooks wanting a press office; they are one multiplier. */
-  /* PARKED (ruled): nothing calls this yet — it waits for authored stories, which will raise acts through it */
+  /* §MEDIA read by media day and the press: a soundbite machine is heard louder, a villain edit cut against */
   function storyMult(state, f, good) {
     if (!f) return 1;
     let m = 1;
@@ -13035,6 +13111,58 @@
   const ACTS_FLEET = { petitioned_the_aleas: { aleas: -1, fleet: 1, residue: 0.1 } };
   if (REP && REP.ACTS) for (const k in ACTS_FLEET) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS_FLEET[k];
 
+  /* ------------------------------------------------------------------------- media day ---- */
+  /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
+     standout (most fame), the steadiest hand who is not the standout (most presence) — and the manager. */
+  function mediaCard(state, corp) {
+    const so = standoutOf(corp);
+    const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
+    const loudOf = f => storyMult(state, f, true);
+    const options = [];
+    const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
+    if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
+            (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
+    if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
+    options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
+    options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
+    return { id: 'media-' + state.season, pool: 'media', kind: 'media', title: 'Media Day',
+             text: 'The fleet\u2019s press corps boards every OA the week of the drop. Who you put in front of them decides what the crowd hears, and what your rivals learn by watching.',
+             options, def: 'regrets', resolved: null };
+  }
+  const MEDIA_SPEC = {
+    resolve: (c, e, opt, ctx) => {
+      const state = ctx.state; state.drop = state.drop || {}; state.drop.media = state.drop.media || {};
+      const rec = (reveal, gain) => { state.drop.media[c.id] = { gain, reveal }; c._mediaReveal = reveal; };
+      if (opt === 'regrets') { if (c.rep) REP.act(c.rep, 'sent_regrets', {}); rec(0, 0); return 'You Sent Regrets'; }
+      if (opt === 'manager') { const mult = CONST.MEDIA_MULT.manager; if (c.rep) { REP.act(c.rep, 'media_day', { mult }); c.rep.patience = Math.min(100, (c.rep.patience || 0) + CONST.MEDIA_PATIENCE); }
+        rec(CONST.MEDIA_REVEAL.manager, CONST.MEDIA_BASE * mult); return 'You Fronted Media Day Yourself'; }
+      const o = e.options.find(x => x.id === opt), f = o && alive(c).find(x => x.id === o.fighter);
+      if (!f) { rec(0, 0); return 'Nobody Went'; }
+      const loud = storyMult(state, f, true);
+      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
+      f.fame = (f.fame || 0) + CONST.MEDIA_FAME[opt]; stress(f, CONST.MEDIA_STRESS);
+      rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
+      if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
+        if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });
+        return 'The Piece Was Cut Against ' + f.name;
+      }
+      if (c.rep) REP.act(c.rep, 'media_day', { mult });
+      return 'The Fleet Heard ' + f.name;
+    },
+    ai: (c, e) => {
+      const show = ((c.profile || {}).dials || {}).showmanship || 50;
+      const has = id => e.options.some(o => o.id === id);
+      if (show < 20) return 'regrets';
+      if (show >= 65 && has('standout')) return 'standout';
+      if (show >= 40 && has('steady')) return 'steady';
+      return 'manager';
+    }
+  };
+
   /* ---------------------------------------------------------------------- the machinery ---- */
   function ctxFor(rng, state, corpId) {
     /* the state rides on the ctx so a spec can read a fighter's hooks */
@@ -13053,6 +13181,8 @@
     const list = [];
     /* the fleet's month: the same card for every OA, first */
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
+    /* §MEDIA media day: the same card for every OA, the month before the drop */
+    if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};
     for (let t = 0; t < tries; t++) {
@@ -13073,7 +13203,7 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
     const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
@@ -13088,7 +13218,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
@@ -18674,11 +18804,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        scale-free: land somewhere with three rivals and there is a quarter of it for you,
        whatever the sector was worth to begin with. */
     CROWDING_SHARE: 1.0,
-    /* [H] Media day. Standing is on the signed -100..100 audience scale, so these are points on
-       it, not multipliers. Turning up is worth more when you have something to show. */
-    MEDIA_BASE: 7,
-    MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of your best fighter's fame
-    MEDIA_REVEAL: 0.35,          // [H] how much of your true strength rivals learn by watching
     /* [H] Pacts struck blind. Cheaper to agree than an in-Divide truce because neither side
        knows yet what they are giving up, and correspondingly easier to regret. */
   };
@@ -18839,22 +18964,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * concealment. `reveal` is what rivals learn — it is returned rather than applied here, so the
    * Divide's belief model stays the one place that decides what anybody believes.
    */
-  function mediaDay(corp) {
-    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const bestFame = alive.reduce((m, f) => Math.max(m, f.fame || 0), 0);
-    /* THROUGH `act`, NOT INTO `base`. Standing has a memory that decays and a residue that
-       lingers, and writing to `base` directly would put a number on the scale that the
-       reputation system had no record of ever granting — visible in the total, absent from the
-       history, and impossible for anything to decay or contradict later. */
-    const scale = 1 + bestFame * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE;
-    if (corp.rep) REP.act(corp.rep, 'media_day', { mult: scale });
-    corp._mediaReveal = CONST.MEDIA_REVEAL;
-    return { gain: CONST.MEDIA_BASE * scale, reveal: CONST.MEDIA_REVEAL };
-  }
+  /* §MEDIA media day moved to events.js: it is a card every seat answers, not a roll */
 
-
-
-  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector, mediaDay };
+  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector };
 }));
 
 /* ==== divide.js ==== */
@@ -28865,16 +28977,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
 
 
-  /** Perform, or don't. Paid in standing, charged in concealment. */
-  function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
-    state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
-    const r = PRE.mediaDay(state.corps[corpId]);
-    state.drop.media[corpId] = r;
-    return { ok: true, gain: r.gain, reveal: r.reveal };
-  }
-
+  /* §MEDIA media day is an event now (events.js `mediaCard`): every seat answers the same card in Month 11, a person at
+     the Desk and the engine by showmanship, and the answer writes `state.drop.media` for the drop to read. */
   /** What a given corp could do in the month the season is currently sitting on. */
   function optionsFor(state, corpId) {
     return monthTracks(state.corps[corpId], state.month);
@@ -29104,9 +29208,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
       }
       state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken);
-      /* showmanship decides whether an OA performs — the dial was already written */
-      const show = ((c.profile || {}).dials || {}).showmanship || 50;
-      if (rng() < show / 100) attendMediaDay(state, id);
       /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
     }
   }
@@ -30115,7 +30216,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid,
+           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,
@@ -30339,7 +30440,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       else if (tab === 'lights') renderDividend();
       else if (tab === 'market') renderShelf();
       else if (tab === 'table' || tab === 'deal') renderTable();
-      else if (tab === 'desk') renderDesk();
+      else if (tab === 'desk') { renderDesk(); dispatchOnArrival(); }
       else if (tab === 'ground') { gWireMap(); renderGround(); gPlayPending(); }
     }
   }
@@ -31271,12 +31372,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', kind: 'Board', urgent: true, cost: 'Silence Is an Answer' });
     if (m === SEASON.CONST.EIGHT_MONTH) {
       var E8 = G.state.eight || { names: {}, declined: {} };
-      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', kind: 'Eight', ping: '#eight', urgent: true, cost: 'Best Named for You' });
+      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', kind: 'Eight', open: 'dispatch', urgent: true, cost: 'Best Named for You' });
     }
     (SEASON.eventsFor(G.state, G.me) || []).forEach(function (e) {
       if (e.resolved) return;
       var d = e.options.filter(function (o) { return o.id === e.def; })[0];
-      items.push({ txt: esc(e.title), tab: 'desk', kind: 'Event', ping: '#events', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
+      items.push({ txt: esc(e.title), tab: 'desk', kind: 'Event', open: 'dispatch', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
     });
     /* "NOTHING MARKED IN THE NATURAL-BORN WINDOW · 6 ON THE SHEET" stood here and said
        nothing: marking is not a thing any more (a Natural-Born signs when you sign them), the
@@ -31362,7 +31463,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           '<span class="kn">Fame ' + Math.round(f.fame || 0) + (f.id === cur ? (named ? ' <span class="ktag hand">Named</span>' : ' <span class="ktag">Your Best</span>') : '') + '</span></div>' +
           stripHtml(f) + '</div>'; }).join('') + '</div></div>';
     Array.prototype.forEach.call(host.querySelectorAll('.fcard[data-eight]'), function (el) {
-      el.onclick = function (e) { if (e.target.getAttribute('data-sheet')) return; SEASON.nameForEight(G.state, G.me, el.getAttribute('data-eight')); renderDesk(); };
+      el.onclick = function (e) { if (e.target.getAttribute('data-sheet')) return; SEASON.nameForEight(G.state, G.me, el.getAttribute('data-eight')); renderDesk(); if ($('dispatch').classList.contains('on')) renderDispatch(); };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-sheet]'), function (el) { el.onclick = function (e) { e.stopPropagation(); inspect(el.getAttribute('data-sheet')); }; });
   }
@@ -31400,11 +31501,50 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     };
   }
   /* ============================ THE EVENTS ============================ */
+  /* §DISPATCHES what the month has to answer: open events, and the Eight's naming in its month */
+  function dispatchCount() {
+    if (!G || !G.state || G.state.month >= 12) return 0;
+    var n = (SEASON.eventsFor(G.state, G.me) || []).filter(function (e) { return !e.resolved; }).length;
+    var E = G.state.eight || { names: {} };
+    if (G.state.month === SEASON.CONST.EIGHT_MONTH && !(E.result && E.result.season === G.state.season) && !E.names[G.me]) n++;
+    return n;
+  }
+  function dispatchTotal() {
+    if (!G || !G.state || G.state.month >= 12) return 0;
+    var n = (SEASON.eventsFor(G.state, G.me) || []).length;
+    var E = G.state.eight || { names: {} };
+    if (G.state.month === SEASON.CONST.EIGHT_MONTH && !(E.result && E.result.season === G.state.season)) n++;
+    return n;
+  }
+  function renderDispatch() {
+    var box = $('dispatch'); if (!box) return;
+    renderEight(); renderEvents();
+    var open = dispatchCount(), all = dispatchTotal();
+    $('dhead').innerHTML = 'Month ' + G.state.month + ' \u00b7 <b>Dispatches</b>';
+    $('dcount').textContent = open ? open + ' Waiting' : 'All Answered';
+    $('dfoot').textContent = open ? 'Unanswered Dispatches Resolve by Their Defaults at Month\u2019s End' : '';
+    $('dlaterw').textContent = open ? 'Later' : 'Done';
+  }
+  function openDispatch() {
+    if (!G || !G.state || !dispatchTotal()) return;
+    renderDispatch();
+    $('dscrim').classList.add('on'); $('dispatch').classList.add('on');
+    G._dispatchSeen = G.state.season + ':' + G.state.month;
+  }
+  function closeDispatch() { $('dscrim').classList.remove('on'); $('dispatch').classList.remove('on'); }
+  $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch;
+  /* the window opens itself once a month, when the Desk is first shown with something to answer */
+  function dispatchOnArrival() {
+    if (!G || !G.state || G.state.month >= 12) return;
+    var key = G.state.season + ':' + G.state.month;
+    if (G._dispatchSeen === key || !dispatchCount()) return;
+    openDispatch();
+  }
   function renderEvents() {
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -31429,7 +31569,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       b.onclick = function () {
         var line = SEASON.answerEvent(G.state, G.me, b.getAttribute('data-ev'), b.getAttribute('data-opt'));
         if (line) dlog('<span class="gold">' + esc(line) + '</span>');
-        renderDesk(); renderRoster();
+        renderDesk(); renderRoster(); if ($('dispatch').classList.contains('on')) renderDispatch();
       };
     });
   }
@@ -31526,6 +31666,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      item has no element of its own */
   function pingFor(it) {
     var el = null;
+    if (it && it.open === 'dispatch') { openDispatch(); return; }
     if (it && it.ping) el = document.querySelector(it.ping);
     if (!el) { var pg = document.querySelector('.page.on'); el = pg && (pg.querySelector('.box, .card, .panel, h2') || pg); }
     if (!el) return;
@@ -32821,9 +32962,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     };
     var standCol = '<h3>Standing</h3>' +
       gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
-      gauge('The Aleas', read.aleas || 0, snap.aleas) +
+      /* §ALEAS the Aleas gauge is hidden here as on the Board and the OA sheet: nothing reads it (ruled) */
       (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '') +
-      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet \u00b7 ' + standBand(read.aleas || 0, 'aleas').word + ' by the Aleas', '', true);
+      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet', '', true);
     /* §SPONSORS WHAT THE OA HAS BEEN GIVEN, and keeps. Standings are permanent, they stack,
        and they are the reason a manager courts anybody: they belong on the Board beside the
        holds rather than buried in a season's report. */

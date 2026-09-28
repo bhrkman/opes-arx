@@ -422,6 +422,17 @@
   .evcard .chosen{font-size:11.5px;color:var(--hit);padding:8px 12px;border-top:1px solid var(--line2)}
   .ev-raise{--k:var(--cred)} .ev-debt{--k:var(--red)} .ev-brawl{--k:var(--warn)} .ev-memo{--k:var(--b)} .ev-poach{--k:var(--o-mer)}
   .ev-insult{--k:var(--mag)} .ev-dealer{--k:var(--hit)} .ev-role{--k:var(--a)} .ev-fleet{--k:var(--wall)}
+  .ev-media,.ev-profile,.ev-coverage{--k:var(--spn-2)}
+  /* §DISPATCHES the window over the Desk */
+  #dscrim{background:rgba(6,9,14,.62)}
+  .dispatch{position:fixed;left:50%;top:36px;transform:translateX(-50%);width:min(880px,calc(100% - 32px));max-height:calc(100% - 72px);overflow:auto;
+    background:#0b1019;border:1px solid var(--a);border-radius:10px;padding:14px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:30;display:none}
+  .dispatch.on{display:block}
+  .dispatch .evgrid{grid-template-columns:1fr;margin-bottom:0}
+  .dispatch .rgo{align-items:center;gap:14px}
+  .dispatch .evopts{grid-auto-flow:row;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  body.yearline .dispatch{left:calc(50% + 106px)}
+  @media (max-width:900px){ body.yearline .dispatch{left:50%} }
   /* THE EIGHT: one name, two teams, and the result */
   .eightcard{background:var(--panel);border:1px solid var(--mag);border-radius:8px;padding:11px 14px;margin-bottom:12px}
   .eightcard .et{font-size:13px;color:var(--ink);font-weight:bold}
@@ -1865,8 +1876,18 @@
 <!-- ================================= THE DESK ================================= -->
 <div class="page" data-tab="desk">
   <div class="brief" id="brief"></div>
-  <div id="eight"></div>
-  <div id="events"></div>
+  <!-- §DISPATCHES (ruled) THE MONTH'S EVENTS ARE A WINDOW OVER THE DESK, NOT FURNITURE ON IT. The cards — what
+       happened to the OA this month, the Eight's naming in its month, media day in its — stood above the Focus
+       tracks and never sat right there. They open over the Desk when a month begins with something to answer,
+       close with Later, and come back through Waiting On You. Unanswered, they resolve by their defaults at
+       month's end, as before. -->
+  <div class="scrim" id="dscrim"></div>
+  <div id="dispatch" class="dispatch">
+    <div class="rstrip"><span id="dhead"></span><span class="nx" id="dcount"></span></div>
+    <div id="eight"></div>
+    <div id="events"></div>
+    <div class="rgo"><span class="m" id="dfoot"></span><button id="dlater" class="rbeacon"><span class="w" id="dlaterw">Later</span><small>To the Desk</small></button></div>
+  </div>
   <!-- §DESK THE TALLY SPEAKS FOR BOTH COLUMNS, SO IT STANDS ABOVE BOTH. It was put inside the
        LEFT column of the grid, which centred it over training and rest and left it sitting
        off to one side of the screen — worse than the corner it came from, because it now
@@ -2353,7 +2374,7 @@
       else if (tab === 'lights') renderDividend();
       else if (tab === 'market') renderShelf();
       else if (tab === 'table' || tab === 'deal') renderTable();
-      else if (tab === 'desk') renderDesk();
+      else if (tab === 'desk') { renderDesk(); dispatchOnArrival(); }
       else if (tab === 'ground') { gWireMap(); renderGround(); gPlayPending(); }
     }
   }
@@ -3285,12 +3306,12 @@
     if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', kind: 'Board', urgent: true, cost: 'Silence Is an Answer' });
     if (m === SEASON.CONST.EIGHT_MONTH) {
       var E8 = G.state.eight || { names: {}, declined: {} };
-      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', kind: 'Eight', ping: '#eight', urgent: true, cost: 'Best Named for You' });
+      if (!E8.names[G.me]) items.push({ txt: 'Name Your Fighter for The Eight', tab: 'desk', kind: 'Eight', open: 'dispatch', urgent: true, cost: 'Best Named for You' });
     }
     (SEASON.eventsFor(G.state, G.me) || []).forEach(function (e) {
       if (e.resolved) return;
       var d = e.options.filter(function (o) { return o.id === e.def; })[0];
-      items.push({ txt: esc(e.title), tab: 'desk', kind: 'Event', ping: '#events', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
+      items.push({ txt: esc(e.title), tab: 'desk', kind: 'Event', open: 'dispatch', urgent: true, cost: d ? 'Defaults to ' + d.label : 'Defaults' });
     });
     /* "NOTHING MARKED IN THE NATURAL-BORN WINDOW · 6 ON THE SHEET" stood here and said
        nothing: marking is not a thing any more (a Natural-Born signs when you sign them), the
@@ -3376,7 +3397,7 @@
           '<span class="kn">Fame ' + Math.round(f.fame || 0) + (f.id === cur ? (named ? ' <span class="ktag hand">Named</span>' : ' <span class="ktag">Your Best</span>') : '') + '</span></div>' +
           stripHtml(f) + '</div>'; }).join('') + '</div></div>';
     Array.prototype.forEach.call(host.querySelectorAll('.fcard[data-eight]'), function (el) {
-      el.onclick = function (e) { if (e.target.getAttribute('data-sheet')) return; SEASON.nameForEight(G.state, G.me, el.getAttribute('data-eight')); renderDesk(); };
+      el.onclick = function (e) { if (e.target.getAttribute('data-sheet')) return; SEASON.nameForEight(G.state, G.me, el.getAttribute('data-eight')); renderDesk(); if ($('dispatch').classList.contains('on')) renderDispatch(); };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-sheet]'), function (el) { el.onclick = function (e) { e.stopPropagation(); inspect(el.getAttribute('data-sheet')); }; });
   }
@@ -3414,11 +3435,50 @@
     };
   }
   /* ============================ THE EVENTS ============================ */
+  /* §DISPATCHES what the month has to answer: open events, and the Eight's naming in its month */
+  function dispatchCount() {
+    if (!G || !G.state || G.state.month >= 12) return 0;
+    var n = (SEASON.eventsFor(G.state, G.me) || []).filter(function (e) { return !e.resolved; }).length;
+    var E = G.state.eight || { names: {} };
+    if (G.state.month === SEASON.CONST.EIGHT_MONTH && !(E.result && E.result.season === G.state.season) && !E.names[G.me]) n++;
+    return n;
+  }
+  function dispatchTotal() {
+    if (!G || !G.state || G.state.month >= 12) return 0;
+    var n = (SEASON.eventsFor(G.state, G.me) || []).length;
+    var E = G.state.eight || { names: {} };
+    if (G.state.month === SEASON.CONST.EIGHT_MONTH && !(E.result && E.result.season === G.state.season)) n++;
+    return n;
+  }
+  function renderDispatch() {
+    var box = $('dispatch'); if (!box) return;
+    renderEight(); renderEvents();
+    var open = dispatchCount(), all = dispatchTotal();
+    $('dhead').innerHTML = 'Month ' + G.state.month + ' \u00b7 <b>Dispatches</b>';
+    $('dcount').textContent = open ? open + ' Waiting' : 'All Answered';
+    $('dfoot').textContent = open ? 'Unanswered Dispatches Resolve by Their Defaults at Month\u2019s End' : '';
+    $('dlaterw').textContent = open ? 'Later' : 'Done';
+  }
+  function openDispatch() {
+    if (!G || !G.state || !dispatchTotal()) return;
+    renderDispatch();
+    $('dscrim').classList.add('on'); $('dispatch').classList.add('on');
+    G._dispatchSeen = G.state.season + ':' + G.state.month;
+  }
+  function closeDispatch() { $('dscrim').classList.remove('on'); $('dispatch').classList.remove('on'); }
+  $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch;
+  /* the window opens itself once a month, when the Desk is first shown with something to answer */
+  function dispatchOnArrival() {
+    if (!G || !G.state || G.state.month >= 12) return;
+    var key = G.state.season + ':' + G.state.month;
+    if (G._dispatchSeen === key || !dispatchCount()) return;
+    openDispatch();
+  }
   function renderEvents() {
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -3443,7 +3503,7 @@
       b.onclick = function () {
         var line = SEASON.answerEvent(G.state, G.me, b.getAttribute('data-ev'), b.getAttribute('data-opt'));
         if (line) dlog('<span class="gold">' + esc(line) + '</span>');
-        renderDesk(); renderRoster();
+        renderDesk(); renderRoster(); if ($('dispatch').classList.contains('on')) renderDispatch();
       };
     });
   }
@@ -3540,6 +3600,7 @@
      item has no element of its own */
   function pingFor(it) {
     var el = null;
+    if (it && it.open === 'dispatch') { openDispatch(); return; }
     if (it && it.ping) el = document.querySelector(it.ping);
     if (!el) { var pg = document.querySelector('.page.on'); el = pg && (pg.querySelector('.box, .card, .panel, h2') || pg); }
     if (!el) return;
@@ -4835,9 +4896,9 @@
     };
     var standCol = '<h3>Standing</h3>' +
       gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
-      gauge('The Aleas', read.aleas || 0, snap.aleas) +
+      /* §ALEAS the Aleas gauge is hidden here as on the Board and the OA sheet: nothing reads it (ruled) */
       (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '') +
-      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet \u00b7 ' + standBand(read.aleas || 0, 'aleas').word + ' by the Aleas', '', true);
+      ln('Read', standBand(read.own || 0, 'own').word + ' at Home \u00b7 ' + standBand(read.fleet || 0, 'fleet').word + ' in the Fleet', '', true);
     /* §SPONSORS WHAT THE OA HAS BEEN GIVEN, and keeps. Standings are permanent, they stack,
        and they are the reason a manager courts anybody: they belong on the Board beside the
        holds rather than buried in a season's report. */

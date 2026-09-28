@@ -818,7 +818,7 @@ function theSeam() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const PRE = req('predivide.js');
 
-  let sectorSpread = [], agreed = 0, asked = 0, performed = 0, corpSeasons = 0;
+  let sectorSpread = [], agreed = 0, asked = 0, performed = 0, fronts = new Set(), corpSeasons = 0;
   const rng = P.mulberry32(P.seedFrom('seam-guard'));
   const corps = SEASONMOD.openFleet(rng, oa, {});
   for (let s = 0; s < 6; s++) {
@@ -829,7 +829,8 @@ function theSeam() {
     for (const id in st.drop.sectors) counts[st.drop.sectors[id]] = 1;
     sectorSpread.push(Object.keys(counts).length);
     asked += Object.keys(st.drop.pacts || {}).length;   /* there is no such list now: this stays 0 */
-    performed += Object.keys(st.drop.media).length;
+    /* §MEDIA media day is a card now: every seat answers it, and who fronts it sets what rivals learn (reveal) */
+    for (const id in st.drop.media) { const r = st.drop.media[id]; fronts.add(r.reveal); if (r.reveal > 0) performed++; }
     corpSeasons += st.ids.length;
   }
   const meanSpread = sectorSpread.reduce((a, b) => a + b, 0) / sectorSpread.length;
@@ -840,9 +841,9 @@ function theSeam() {
      meanSpread < PRE.CONST.SECTORS, meanSpread.toFixed(1) + ' of ' + PRE.CONST.SECTORS);
   /* §TRUCE no truce is struck before the drop (ruled): only at the table, on the ground */
   ok('no truce is struck before the drop', asked === 0, asked + ' asked');
-  ok('some corps perform at media day and some do not',
-     performed > 0 && performed < corpSeasons,
-     performed + ' of ' + corpSeasons + ' corp-seasons performed');
+  ok('media day is fronted differently across the fleet',
+     performed > 0 && fronts.size >= 2,
+     performed + ' of ' + corpSeasons + ' corp-seasons performed, ' + fronts.size + ' kinds of front');
 
   /* --- a survey has to buy VISION, or it is still a flat number nobody can point at --- */
   const rng2 = P.mulberry32(P.seedFrom('seam-intel'));
@@ -3703,11 +3704,12 @@ function negotiationRules() {
     const mSt = SEASONMOD.beginSeason(mRng, mCorps, oaAll, { human: mId });
     while (mSt.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(mSt);
     const before = REPMOD.standing(mCorps[mId].rep, 'fleet');
-    const res = SEASONMOD.attendMediaDay(mSt, mId);
+    const mCard = (SEASONMOD.eventsFor(mSt, mId) || []).find(e => e.pool === 'media');
+    const mLine = mCard ? SEASONMOD.answerEvent(mSt, mId, mCard.id, mCard.options.some(o => o.id === 'standout') ? 'standout' : 'manager') : null;
     const after = REPMOD.standing(mCorps[mId].rep, 'fleet');
-    ok('media day reaches the reputation system through the seam',
-       res.ok && after > before, 'fleet standing ' + before.toFixed(1) + ' -> ' + after.toFixed(1));
-    if (res.ok) actsSeen.add('media_day');
+    ok('media day reaches the reputation system through its card',
+       !!mLine && after > before && (mSt.drop.media[mId] || {}).reveal > 0, 'fleet standing ' + before.toFixed(1) + ' -> ' + after.toFixed(1) + ' \u00b7 ' + mLine);
+    if (mLine) actsSeen.add('media_day');
   }
 
   const deadActs = Object.keys(REPMOD.ACTS).filter(a => !actsSeen.has(a));

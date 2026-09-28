@@ -3180,16 +3180,8 @@
 
 
 
-  /** Perform, or don't. Paid in standing, charged in concealment. */
-  function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
-    state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
-    const r = PRE.mediaDay(state.corps[corpId]);
-    state.drop.media[corpId] = r;
-    return { ok: true, gain: r.gain, reveal: r.reveal };
-  }
-
+  /* §MEDIA media day is an event now (events.js `mediaCard`): every seat answers the same card in Month 11, a person at
+     the Desk and the engine by showmanship, and the answer writes `state.drop.media` for the drop to read. */
   /** What a given corp could do in the month the season is currently sitting on. */
   function optionsFor(state, corpId) {
     return monthTracks(state.corps[corpId], state.month);
@@ -3419,9 +3411,6 @@
         if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
       }
       state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken);
-      /* showmanship decides whether an OA performs — the dial was already written */
-      const show = ((c.profile || {}).dials || {}).showmanship || 50;
-      if (rng() < show / 100) attendMediaDay(state, id);
       /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
     }
   }
@@ -4430,7 +4419,7 @@
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid,
+           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,

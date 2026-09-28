@@ -58,11 +58,6 @@
        scale-free: land somewhere with three rivals and there is a quarter of it for you,
        whatever the sector was worth to begin with. */
     CROWDING_SHARE: 1.0,
-    /* [H] Media day. Standing is on the signed -100..100 audience scale, so these are points on
-       it, not multipliers. Turning up is worth more when you have something to show. */
-    MEDIA_BASE: 7,
-    MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of your best fighter's fame
-    MEDIA_REVEAL: 0.35,          // [H] how much of your true strength rivals learn by watching
     /* [H] Pacts struck blind. Cheaper to agree than an in-Divide truce because neither side
        knows yet what they are giving up, and correspondingly easier to regret. */
   };
@@ -223,20 +218,7 @@
    * concealment. `reveal` is what rivals learn — it is returned rather than applied here, so the
    * Divide's belief model stays the one place that decides what anybody believes.
    */
-  function mediaDay(corp) {
-    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const bestFame = alive.reduce((m, f) => Math.max(m, f.fame || 0), 0);
-    /* THROUGH `act`, NOT INTO `base`. Standing has a memory that decays and a residue that
-       lingers, and writing to `base` directly would put a number on the scale that the
-       reputation system had no record of ever granting — visible in the total, absent from the
-       history, and impossible for anything to decay or contradict later. */
-    const scale = 1 + bestFame * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE;
-    if (corp.rep) REP.act(corp.rep, 'media_day', { mult: scale });
-    corp._mediaReveal = CONST.MEDIA_REVEAL;
-    return { gain: CONST.MEDIA_BASE * scale, reveal: CONST.MEDIA_REVEAL };
-  }
+  /* §MEDIA media day moved to events.js: it is a card every seat answers, not a roll */
 
-
-
-  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector, mediaDay };
+  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector };
 }));
