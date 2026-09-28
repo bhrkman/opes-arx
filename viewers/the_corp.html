@@ -3968,8 +3968,8 @@
       },
       "finance": {
         "treasury_band": [
-          270000,
-          390000
+          202000,
+          292000
         ],
         "board_patience": 55,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4028,8 +4028,8 @@
       },
       "finance": {
         "treasury_band": [
-          210000,
-          300000
+          158000,
+          225000
         ],
         "board_patience": 65,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4089,8 +4089,8 @@
       },
       "finance": {
         "treasury_band": [
-          360000,
-          480000
+          270000,
+          360000
         ],
         "board_patience": 70,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4149,8 +4149,8 @@
       },
       "finance": {
         "treasury_band": [
-          240000,
-          345000
+          180000,
+          259000
         ],
         "board_patience": 45,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4210,8 +4210,8 @@
       },
       "finance": {
         "treasury_band": [
-          120000,
-          180000
+          90000,
+          135000
         ],
         "board_patience": 75,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4276,8 +4276,8 @@
       },
       "finance": {
         "treasury_band": [
-          255000,
-          360000
+          191000,
+          270000
         ],
         "board_patience": 40,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4338,8 +4338,8 @@
       },
       "finance": {
         "treasury_band": [
-          90000,
-          135000
+          68000,
+          101000
         ],
         "board_patience": 80,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4399,8 +4399,8 @@
       },
       "finance": {
         "treasury_band": [
-          225000,
-          315000
+          169000,
+          236000
         ],
         "board_patience": 60,
         "funding_note": "The board grant is no longer here: it is derived in season.js (grantFor) from the founded OA's grant and this OA's difficulty rating, so the only OA a manager can play is the yardstick every other OA is funded against."
@@ -4433,7 +4433,8 @@
       }
     }
   ]
-},
+}
+,
   "oa_display": {
   "file": "oa_display.json",
   "derivedFrom": "oa_profiles.json",
@@ -11138,8 +11139,8 @@
   const isNode = typeof module !== "undefined" && module.exports;
 
   const CONST = {
-    WEALTH_LOW: 100000,   // [C] §DEVICES a founding band this poor fits no devices
-    WEALTH_HIGH: 400000,  // [C] and this rich fits them across a third of its force
+    WEALTH_LOW: 75000,    // [C] §DEVICES a founding band this poor fits no devices (the bands ×0.75 at the money pass)
+    WEALTH_HIGH: 300000,  // [C] and this rich fits them across a third of its force
     /* [S] A season is ONE YEAR OF TWELVE MONTHS — an ordinary Earth calendar, kept in space.
        This was 13 and the calendar it came from had thirteen months, which also gave the Divide
        two months while C1 says it runs the LAST MONTH of the year, singular. Both wrong, and the
@@ -17328,12 +17329,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one; split down an umbrella it is still years. The pot has to stay
        immense AFTER the deals, or the deals are not worth making. */
-    POT_BASE: 1200000,                  // [H] credits, a whole planet (ruled 1.4M → 1.2M: the pot a little less, sites worth more)
+    POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, promises and umbrella shares paid out of it
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
        surplus of a store already full. Sized so a won planet's overflow is worth having. */
-    SURPLUS_VALUE: 220000,                 // [H] §2.2 what the fleet pays for a unit an OA sells on
+    SURPLUS_VALUE: 30000,                  // [H] §2.2 what the fleet pays for a unit an OA sells on (ruled 220k → 30k: the overflow was a second pot)
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary
@@ -26062,7 +26063,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
-    LEAN_TREASURY: 210000,    // [C] and the money to become something — measured against a
+    LEAN_TREASURY: 180000,    // [H] and the money to become something (ruled 210k → 180k at the money pass) — measured against a
                               //     year: the entry, the wages, and a market worth entering
     /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
        he founds at the desk, so its year is the year the game is tuned to, and the eight are
@@ -26143,7 +26144,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 20000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled; ₡5k → ₡20k: sites worth more, the pot a little less) */
+    SITE_CASH: 15000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled ₡5k → ₡20k → ₡15k with the pot at 400k: 4% of it a site) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is

@@ -19,8 +19,8 @@
   const isNode = typeof module !== "undefined" && module.exports;
 
   const CONST = {
-    WEALTH_LOW: 100000,   // [C] §DEVICES a founding band this poor fits no devices
-    WEALTH_HIGH: 400000,  // [C] and this rich fits them across a third of its force
+    WEALTH_LOW: 75000,    // [C] §DEVICES a founding band this poor fits no devices (the bands ×0.75 at the money pass)
+    WEALTH_HIGH: 300000,  // [C] and this rich fits them across a third of its force
     /* [S] A season is ONE YEAR OF TWELVE MONTHS — an ordinary Earth calendar, kept in space.
        This was 13 and the calendar it came from had thirteen months, which also gave the Divide
        two months while C1 says it runs the LAST MONTH of the year, singular. Both wrong, and the

@@ -172,7 +172,7 @@
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
-    LEAN_TREASURY: 210000,    // [C] and the money to become something — measured against a
+    LEAN_TREASURY: 180000,    // [H] and the money to become something (ruled 210k → 180k at the money pass) — measured against a
                               //     year: the entry, the wages, and a market worth entering
     /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
        he founds at the desk, so its year is the year the game is tuned to, and the eight are
@@ -253,7 +253,7 @@
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 20000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled; ₡5k → ₡20k: sites worth more, the pot a little less) */
+    SITE_CASH: 15000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled ₡5k → ₡20k → ₡15k with the pot at 400k: 4% of it a site) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is
