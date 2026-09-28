@@ -185,6 +185,7 @@ function playYear(year) {
     const m = state.month, win = S.MONTHS[m];
     say('\n## Month ' + m + ' · ' + win.name + '\n');
     const before = snap(); const ledgerAt = me().account.ledger.length; const idsBefore = alive(me()).map(f => f.id);
+    const statsBefore = {}; for (const f of alive(me())) statsBefore[f.id] = Object.assign({}, f.stats);
     say('**On the desk:**');
     if (m === 1) listPool();
     const rs = listRenewals();
@@ -211,6 +212,9 @@ function playYear(year) {
       say('- ' + r.name + ' signed with ' + oaName(r.to) + ' at ' + cr(r.at) + (mine.bid < r.at ? ' (you offered ' + cr(mine.bid) + ')' : ' (yours was as high; they trusted them more)') + '.');
     }
     if (state.mercs && state.mercs.scraped && state.mercs.scraped !== (state._scrapedSeen || 0)) { say('- **The board filled your roster** to the drop floor with hired hands, at a price and a patience hit.'); state._scrapedSeen = state.mercs.scraped; }
+    const gains = []; for (const f of alive(me())) { const b = statsBefore[f.id]; if (!b) continue; for (const k in f.stats) if (f.stats[k] - b[k] >= 0.5) gains.push({ f, k, d: f.stats[k] - b[k] }); }
+    gains.sort((a, b) => b.d - a.d);
+    if (gains.length) say('- Drilled: ' + gains.slice(0, 4).map(g => nm(g.f) + ' ' + g.k + ' +' + g.d.toFixed(1)).join(', ') + (gains.length > 4 ? ' and ' + (gains.length - 4) + ' more' : '') + '.');
     const now = alive(me()); const joined = now.filter(f => idsBefore.indexOf(f.id) < 0), left = me().roster.filter(f => idsBefore.indexOf(f.id) >= 0 && now.indexOf(f) < 0);
     if (joined.length) say('- Came aboard: ' + joined.map(f => nm(f) + ' (' + cap(f.race) + (f.origin ? ', ' + cap(f.origin) : '') + ')').join(', ') + '.');
     if (left.length) say('- Gone: ' + left.map(f => nm(f) + ' (' + cap(f.status) + ')').join(', ') + '.');
@@ -254,8 +258,16 @@ function playDivide(year) {
   let win = 0, st = S.contestStatus(state);
   const t1 = c.account.treasury, ledgerAt = c.account.ledger.length; say('The drop cost ' + cr(t0 - t1) + ' (kit, purses, the Aleas’ entry).');
   while (st && !st.done && win < 40) {
-    const v = S.contestView(state, ME); win++;
+    const v = S.contestView(state, ME);
     if (!v) break;
+    if (v.settlement) {
+      /* the winner's word: keep every promise (the honest policy), and say what each costs */
+      say('\n## The winner’s word · day ' + v.day + '\n');
+      const keepWord = {};
+      for (const pr of v.promises) { keepWord[pr.to] = true; say('- Promised ' + oaName(pr.to) + ' ' + Math.round(pr.share * 100) + '% of the pot on day ' + pr.day + ' — ' + cr(pr.owed) + ' — kept.'); }
+      S.answerContest(state, ME, { keepWord: keepWord }); S.advanceContest(state, { force: true }); st = S.contestStatus(state); continue;
+    }
+    win++;
     say('\n## Comms window ' + win + ' · day ' + v.day + '\n');
     const you = v.you, mySq = (you.squads || []).filter(q => (q.bodies || []).some(b => b.status === 'active'));
     say('**The ground:** ' + Math.round((v.zone.r / (state.planet.radius || 1)) * 100) + '% inside the wall. ' + (v.weather && v.weather.kind ? 'Weather: ' + cap(v.weather.kind) + '. ' : ''));

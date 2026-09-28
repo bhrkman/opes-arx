@@ -1411,7 +1411,7 @@
                Math.max(1, alive.length)) },
       { kind: 'train', cap: CONST.FOCUS_CAP, name: 'Drill the Green',
         available: green.length > 0, subject: green.length,
-        why: green.length ? green.length + ' Short of Their Ceiling' : 'Nobody Has Room to Grow' },
+        why: green.length ? green.length + ' With Room to Grow' : 'Nobody Has Room to Grow' },
       /* A survey party sent this late cannot get back before the drop, so the verb is shut —
          a fact about the world, which is the only thing `available` is allowed to mean. The AI
          reads this same list, so it stops buying reports that arrive after the lock rather than
@@ -2861,6 +2861,8 @@
     const seats = humansOf(opts);
     const state = {
       rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      /* the drop's floor and what the board charges in patience to fill it, for the dispatch that warns of it */
+      rosterMin: CONST.ROSTER_MIN, scrapePatience: CONST.SCRAPE_PATIENCE,
       /* §CONTROLLER who holds each seat: a person, or the engine */
       controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },

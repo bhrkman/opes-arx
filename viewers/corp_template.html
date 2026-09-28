@@ -423,6 +423,7 @@
   .evcard .subj .fcard{cursor:default;--sq:var(--k)}
   .evopts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;background:var(--line2);border-top:1px solid var(--line2)}
   .evopt{display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:9px 12px;background:var(--panel);cursor:pointer;text-align:left;font:inherit;color:var(--ink);border:none}
+  .evopt.sel{box-shadow:inset 0 0 0 1px var(--a);color:var(--a)}
   .evopt:hover{background:var(--a-deep)} .evopt:hover .ol{color:var(--a)}
   .evopt .ol{font-size:12px;font-weight:600} .evopt .oc{font-size:9.5px;color:var(--dim);line-height:1.35}
   .evcard .chosen{font-size:11.5px;color:var(--hit);padding:8px 12px;border-top:1px solid var(--line2)}
@@ -3483,7 +3484,7 @@
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -6355,9 +6356,39 @@
      handler, mirrored onto each rail page; `syncWindowBtns` keeps them honest. */
   /* §CORNER the corner's beacon is the one Next Comms Window on every page of the contest; the mirrored top-left
      buttons that predated it are gone — two of the same button on one screen. */
-  window.syncWindowBtns = syncWindowBtns;
+  window.syncWindowBtns = syncWindowBtns; window.renderWordWindow = renderWordWindow;
   function syncWindowBtns() {}
 
+  function renderWordWindow(v) {
+    var keep = {}; (v.promises || []).forEach(function (p) { keep[p.to] = true; });
+    var box = $('dispatch');
+    $('dhead').innerHTML = 'Day ' + v.day + ' \u00b7 <b>The Planet Is Yours</b>';
+    $('dcount').textContent = (v.promises || []).length + ' Promised';
+    $('eight').innerHTML = '';
+    var draw = function () {
+      $('events').innerHTML = '<div class="evgrid">' + (v.promises || []).map(function (p) {
+        var stores = Object.keys(p.stores || {}).map(function (cat) { return Math.round(p.stores[cat] * 100) + '% of the ' + esc(titleWords(cat)); }).join(', ');
+        return '<div class="evcard ev-word"><div class="evk"><span>Your Word</span><span>Day ' + p.day + '</span></div>' +
+          '<div class="et">' + cSpan(p.to) + ' \u00b7 Your Promise \u00b7 ' + Math.round(p.share * 100) + '% of the Pot' + (stores ? ' \u00b7 ' + stores : '') + '</div>' +
+          '<div class="evopts"><button class="evopt' + (keep[p.to] ? ' sel' : '') + '" data-word="' + esc(p.to) + '" data-keep="1"><span class="ol">Keep It</span><span class="oc">\u2212' + crs(p.owed) + ' \u00b7 A Word Kept</span></button>' +
+          '<button class="evopt' + (!keep[p.to] ? ' sel' : '') + '" data-word="' + esc(p.to) + '" data-keep="0"><span class="ol">Break It</span><span class="oc">+' + crs(p.owed) + ' \u00b7 A Betrayal, Remembered</span></button></div></div>';
+      }).join('') + '</div>';
+      Array.prototype.forEach.call($('events').querySelectorAll('[data-word]'), function (b) {
+        b.onclick = function () { keep[b.getAttribute('data-word')] = b.getAttribute('data-keep') === '1'; draw(); };
+      });
+    };
+    draw();
+    $('dfoot').textContent = 'The Settlement Waits on Your Word';
+    $('dlaterw').textContent = 'Settle';
+    $('dlater').onclick = function () {
+      SEASON.answerContest(G.state, G.me, { keepWord: keep });
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      advanceDivide();
+    };
+    $('dscrim').onclick = null;   /* the word is given, not put off */
+    $('dscrim').classList.add('on'); box.classList.add('on');
+    $('advwin').style.display = 'none';
+  }
   function advanceDivide() {
     if (!G.div || G.div.done) return;
     /* §AUTHORITY a truce's sweetener is paid by the engine when the truce is struck */
@@ -6422,6 +6453,10 @@
         G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
         $('gday').value = '1';
       }
+    } else if (step.value && step.value.settlement) {
+      /* §SEATS THE WINNER'S WORD: the contest is decided and the engine asks the seat, promise by promise,
+         whether it keeps what it said at the table; the settlement waits on the answer */
+      renderWordWindow(step.value.seats && step.value.seats[G.me] ? step.value.seats[G.me] : step.value);
     } else {
       /* the record is a LIVE array the engine keeps appending to, so its length is never
          "how much has been watched"; where the manager actually is, is G.gday. */

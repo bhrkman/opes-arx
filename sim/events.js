@@ -49,6 +49,7 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
+    MERC_MONTHS: [9, 10],        // [S] the mercenary windows, where the board warns of a short roster
     MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
     MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
     MEDIA_REVEAL: { standout: 0.35, steady: 0.2, manager: 0.1 },   // [H] how much rivals learn, by who fronts it
@@ -606,6 +607,16 @@
   /* ------------------------------------------------------------------------- media day ---- */
   /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
      standout (most fame), the steadiest hand who is not the standout (most presence) — and the manager. */
+  function shortCard(state, corp) {
+    const n = alive(corp).filter(f => !f.mirror_of).length, last = state.month === CONST.MERC_MONTHS[1];
+    return { id: 'short-' + state.season + '-' + state.month, pool: 'short', kind: 'short',
+             title: last ? 'The Board Counts the Books' : 'Short of the Drop',
+             text: n + ' on the books against a drop of ' + state.rosterMin + '. ' + (last
+               ? 'This is the last window. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'
+               : 'Two mercenary windows remain. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'),
+             options: [{ id: 'accept', label: 'Noted', cost: (state.rosterMin - n) + ' Short' }], def: 'accept', resolved: null };
+  }
+  const SHORT_SPEC = { resolve: () => 'The Count Was Noted', ai: () => 'accept' };
   function mediaCard(state, corp) {
     const so = standoutOf(corp);
     const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
@@ -675,6 +686,8 @@
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
     /* §MEDIA media day: the same card for every OA, the month before the drop */
     if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
+    /* §ROSTER short of the drop in the mercenary months: the board says now what it will do at the last door */
+    if (state.rosterMin && (state.month === CONST.MERC_MONTHS[0] || state.month === CONST.MERC_MONTHS[1]) && alive(corp).filter(f => !f.mirror_of).length < state.rosterMin) list.push(shortCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};
     for (let t = 0; t < tries; t++) {
@@ -695,7 +708,7 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
     const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
@@ -710,7 +723,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);

@@ -423,6 +423,7 @@
   .evcard .subj .fcard{cursor:default;--sq:var(--k)}
   .evopts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;background:var(--line2);border-top:1px solid var(--line2)}
   .evopt{display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:9px 12px;background:var(--panel);cursor:pointer;text-align:left;font:inherit;color:var(--ink);border:none}
+  .evopt.sel{box-shadow:inset 0 0 0 1px var(--a);color:var(--a)}
   .evopt:hover{background:var(--a-deep)} .evopt:hover .ol{color:var(--a)}
   .evopt .ol{font-size:12px;font-weight:600} .evopt .oc{font-size:9.5px;color:var(--dim);line-height:1.35}
   .evcard .chosen{font-size:11.5px;color:var(--hit);padding:8px 12px;border-top:1px solid var(--line2)}
@@ -12572,6 +12573,7 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
+    MERC_MONTHS: [9, 10],        // [S] the mercenary windows, where the board warns of a short roster
     MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
     MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
     MEDIA_REVEAL: { standout: 0.35, steady: 0.2, manager: 0.1 },   // [H] how much rivals learn, by who fronts it
@@ -13129,6 +13131,16 @@
   /* ------------------------------------------------------------------------- media day ---- */
   /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
      standout (most fame), the steadiest hand who is not the standout (most presence) — and the manager. */
+  function shortCard(state, corp) {
+    const n = alive(corp).filter(f => !f.mirror_of).length, last = state.month === CONST.MERC_MONTHS[1];
+    return { id: 'short-' + state.season + '-' + state.month, pool: 'short', kind: 'short',
+             title: last ? 'The Board Counts the Books' : 'Short of the Drop',
+             text: n + ' on the books against a drop of ' + state.rosterMin + '. ' + (last
+               ? 'This is the last window. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'
+               : 'Two mercenary windows remain. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'),
+             options: [{ id: 'accept', label: 'Noted', cost: (state.rosterMin - n) + ' Short' }], def: 'accept', resolved: null };
+  }
+  const SHORT_SPEC = { resolve: () => 'The Count Was Noted', ai: () => 'accept' };
   function mediaCard(state, corp) {
     const so = standoutOf(corp);
     const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
@@ -13198,6 +13210,8 @@
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
     /* §MEDIA media day: the same card for every OA, the month before the drop */
     if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
+    /* §ROSTER short of the drop in the mercenary months: the board says now what it will do at the last door */
+    if (state.rosterMin && (state.month === CONST.MERC_MONTHS[0] || state.month === CONST.MERC_MONTHS[1]) && alive(corp).filter(f => !f.mirror_of).length < state.rosterMin) list.push(shortCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};
     for (let t = 0; t < tries; t++) {
@@ -13218,7 +13232,7 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
     const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
@@ -13233,7 +13247,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
@@ -25330,6 +25344,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     {
       const w = stats.winner ? corps.filter(c => c.id === stats.winner)[0] : null;
       const take = (stats.settlement && stats.settlement.take) || {};
+      /* §SEATS (ruled: eight players) A PERSON'S WORD IS THEIRS TO KEEP. The engine's OAs answer for their word
+         out of their character below; a person's OA was rolled the same way, and the fleet charged a manager
+         for a betrayal nobody chose. The winner's seat, if a person holds it, is asked once here — a settlement
+         window carrying each promise and what keeping it costs — and answers `{ keepWord: { toId: true|false } }`.
+         Unanswered, a promise is kept: the honest default. */
+      const owed = (stats.promises || []).filter(pr => w && pr.from === w.id);
+      if (w && isHumanOA(w.id) && owed.length) {
+        const ask = owed.map(pr => {
+          const share = Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0));
+          const stores = {}; for (const cat in (stats.potResources || {})) { const f = Math.max(0, Math.min(1, (pr.terms && pr.terms[cat]) || 0)); if (f > 0) stores[cat] = f; }
+          return { to: pr.to, day: pr.day, share: share, owed: Math.round((take[w.id] || 0) * share), stores: stores };
+        });
+        const view = { day: day, settlement: true, winner: w.id, promises: ask, you: { id: w.id } };
+        const reply = yield Object.assign({}, view, { seats: { [w.id]: view }, lead: w.id });
+        const answer = (reply && reply.bySeat) ? reply.bySeat[w.id] : reply;
+        stats._keepWord = (answer && answer.keepWord) || {};
+      }
       for (const pr of (stats.promises || [])) {
         if (!w || pr.from !== w.id) { pr.moot = true; continue; }
         /* §HALF-BUILT A WIN THAT WAS BOUGHT: the winner promised a rival a share to leave the planet, and the
@@ -25356,7 +25387,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* the settlement is past the last window, so this is not a manager's choice to make
            and takes no `decide` hook: an OA answers for its word out of its own character. */
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
-        const keep = rng() < keepChance(w, share + storesAsked / 4);   /* §MARKET the same trust the leaver priced */
+        const keep = isHumanOA(w.id)
+          ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
+          : rng() < keepChance(w, share + storesAsked / 4);            /* §MARKET the same trust the leaver priced */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
@@ -27268,7 +27301,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                Math.max(1, alive.length)) },
       { kind: 'train', cap: CONST.FOCUS_CAP, name: 'Drill the Green',
         available: green.length > 0, subject: green.length,
-        why: green.length ? green.length + ' Short of Their Ceiling' : 'Nobody Has Room to Grow' },
+        why: green.length ? green.length + ' With Room to Grow' : 'Nobody Has Room to Grow' },
       /* A survey party sent this late cannot get back before the drop, so the verb is shut —
          a fact about the world, which is the only thing `available` is allowed to mean. The AI
          reads this same list, so it stops buying reports that arrive after the lock rather than
@@ -28718,6 +28751,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const seats = humansOf(opts);
     const state = {
       rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      /* the drop's floor and what the board charges in patience to fill it, for the dispatch that warns of it */
+      rosterMin: CONST.ROSTER_MIN, scrapePatience: CONST.SCRAPE_PATIENCE,
       /* §CONTROLLER who holds each seat: a person, or the engine */
       controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
@@ -31636,7 +31671,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -34508,9 +34543,39 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      handler, mirrored onto each rail page; `syncWindowBtns` keeps them honest. */
   /* §CORNER the corner's beacon is the one Next Comms Window on every page of the contest; the mirrored top-left
      buttons that predated it are gone — two of the same button on one screen. */
-  window.syncWindowBtns = syncWindowBtns;
+  window.syncWindowBtns = syncWindowBtns; window.renderWordWindow = renderWordWindow;
   function syncWindowBtns() {}
 
+  function renderWordWindow(v) {
+    var keep = {}; (v.promises || []).forEach(function (p) { keep[p.to] = true; });
+    var box = $('dispatch');
+    $('dhead').innerHTML = 'Day ' + v.day + ' \u00b7 <b>The Planet Is Yours</b>';
+    $('dcount').textContent = (v.promises || []).length + ' Promised';
+    $('eight').innerHTML = '';
+    var draw = function () {
+      $('events').innerHTML = '<div class="evgrid">' + (v.promises || []).map(function (p) {
+        var stores = Object.keys(p.stores || {}).map(function (cat) { return Math.round(p.stores[cat] * 100) + '% of the ' + esc(titleWords(cat)); }).join(', ');
+        return '<div class="evcard ev-word"><div class="evk"><span>Your Word</span><span>Day ' + p.day + '</span></div>' +
+          '<div class="et">' + cSpan(p.to) + ' \u00b7 Your Promise \u00b7 ' + Math.round(p.share * 100) + '% of the Pot' + (stores ? ' \u00b7 ' + stores : '') + '</div>' +
+          '<div class="evopts"><button class="evopt' + (keep[p.to] ? ' sel' : '') + '" data-word="' + esc(p.to) + '" data-keep="1"><span class="ol">Keep It</span><span class="oc">\u2212' + crs(p.owed) + ' \u00b7 A Word Kept</span></button>' +
+          '<button class="evopt' + (!keep[p.to] ? ' sel' : '') + '" data-word="' + esc(p.to) + '" data-keep="0"><span class="ol">Break It</span><span class="oc">+' + crs(p.owed) + ' \u00b7 A Betrayal, Remembered</span></button></div></div>';
+      }).join('') + '</div>';
+      Array.prototype.forEach.call($('events').querySelectorAll('[data-word]'), function (b) {
+        b.onclick = function () { keep[b.getAttribute('data-word')] = b.getAttribute('data-keep') === '1'; draw(); };
+      });
+    };
+    draw();
+    $('dfoot').textContent = 'The Settlement Waits on Your Word';
+    $('dlaterw').textContent = 'Settle';
+    $('dlater').onclick = function () {
+      SEASON.answerContest(G.state, G.me, { keepWord: keep });
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      advanceDivide();
+    };
+    $('dscrim').onclick = null;   /* the word is given, not put off */
+    $('dscrim').classList.add('on'); box.classList.add('on');
+    $('advwin').style.display = 'none';
+  }
   function advanceDivide() {
     if (!G.div || G.div.done) return;
     /* §AUTHORITY a truce's sweetener is paid by the engine when the truce is struck */
@@ -34575,6 +34640,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
         $('gday').value = '1';
       }
+    } else if (step.value && step.value.settlement) {
+      /* §SEATS THE WINNER'S WORD: the contest is decided and the engine asks the seat, promise by promise,
+         whether it keeps what it said at the table; the settlement waits on the answer */
+      renderWordWindow(step.value.seats && step.value.seats[G.me] ? step.value.seats[G.me] : step.value);
     } else {
       /* the record is a LIVE array the engine keeps appending to, so its length is never
          "how much has been watched"; where the manager actually is, is G.gday. */

@@ -6343,6 +6343,23 @@
     {
       const w = stats.winner ? corps.filter(c => c.id === stats.winner)[0] : null;
       const take = (stats.settlement && stats.settlement.take) || {};
+      /* §SEATS (ruled: eight players) A PERSON'S WORD IS THEIRS TO KEEP. The engine's OAs answer for their word
+         out of their character below; a person's OA was rolled the same way, and the fleet charged a manager
+         for a betrayal nobody chose. The winner's seat, if a person holds it, is asked once here — a settlement
+         window carrying each promise and what keeping it costs — and answers `{ keepWord: { toId: true|false } }`.
+         Unanswered, a promise is kept: the honest default. */
+      const owed = (stats.promises || []).filter(pr => w && pr.from === w.id);
+      if (w && isHumanOA(w.id) && owed.length) {
+        const ask = owed.map(pr => {
+          const share = Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0));
+          const stores = {}; for (const cat in (stats.potResources || {})) { const f = Math.max(0, Math.min(1, (pr.terms && pr.terms[cat]) || 0)); if (f > 0) stores[cat] = f; }
+          return { to: pr.to, day: pr.day, share: share, owed: Math.round((take[w.id] || 0) * share), stores: stores };
+        });
+        const view = { day: day, settlement: true, winner: w.id, promises: ask, you: { id: w.id } };
+        const reply = yield Object.assign({}, view, { seats: { [w.id]: view }, lead: w.id });
+        const answer = (reply && reply.bySeat) ? reply.bySeat[w.id] : reply;
+        stats._keepWord = (answer && answer.keepWord) || {};
+      }
       for (const pr of (stats.promises || [])) {
         if (!w || pr.from !== w.id) { pr.moot = true; continue; }
         /* §HALF-BUILT A WIN THAT WAS BOUGHT: the winner promised a rival a share to leave the planet, and the
@@ -6369,7 +6386,9 @@
         /* the settlement is past the last window, so this is not a manager's choice to make
            and takes no `decide` hook: an OA answers for its word out of its own character. */
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
-        const keep = rng() < keepChance(w, share + storesAsked / 4);   /* §MARKET the same trust the leaver priced */
+        const keep = isHumanOA(w.id)
+          ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
+          : rng() < keepChance(w, share + storesAsked / 4);            /* §MARKET the same trust the leaver priced */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
