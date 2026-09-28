@@ -2361,15 +2361,23 @@
      fight, the wall, running from a lost fight — and return to their role at the next dawn.
      ====================================================================================================== */
   function commandCorp(rng, corp, planet, day, stats, foreign, mine) {
-    const dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard;
-    const seek = dials.seek;
+    /* §STANCE THE PLAN'S BOLDNESS IS THE SQUADS' STANCE. The planner read the OA's declared stance, which a manager
+       cannot set from the table — so the stances set on his squads at every window changed how they fought and
+       never what the OA planned, and a founded OA (declared Avoid) held its ground for twenty days with four full
+       squads told to Engage. A group plans by the mean notch of the squads in it: the engine's seats seat their
+       squads around their declared stance, so nothing changes for them. */
     const all = corp.allBodies || [];
     const lostFrac = 1 - all.filter(b => b.status === 'active').length / Math.max(1, all.length);
     const heads = q => squadHead(q).length;
-    const speed = CONST.DAY_MARCH * dials.ground;
     const fresh = foreign.filter(e => day - e.day <= 2);
     const threatAt = (x, y, r) => fresh.filter(e => MAP.dist(e.x, e.y, x, y) <= r).reduce((t, e) => t + (e.n || 1), 0);
-    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    let dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard, seek = dials.seek, speed = CONST.DAY_MARCH * dials.ground;
+    let need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    const groupDials = (g) => {
+      const idx = g.map(q => NOTCHES.indexOf(squadStance(q))).filter(i => i >= 0);
+      const mean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : NOTCHES.indexOf(corp.policy || 'standard');
+      return STANCE_DIALS[NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, Math.round(mean)))]] || STANCE_DIALS.standard;
+    };
     const A = stats.audit.cmd = stats.audit.cmd || { plans: 0, replans: 0, kinds: {}, why: {}, kept: 0, switched: 0, groups: 0 };
     const isWindow = MAP.isWindowDay(planet, day);
 
@@ -2389,6 +2397,8 @@
     return;
 
     function command(g) {
+      dials = groupDials(g); seek = dials.seek; speed = CONST.DAY_MARCH * dials.ground;
+      need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
       const force = g.reduce((t, q) => t + heads(q), 0);
       const cx = g.reduce((t, q) => t + q.x * heads(q), 0) / Math.max(1, force);
       const cy = g.reduce((t, q) => t + q.y * heads(q), 0) / Math.max(1, force);

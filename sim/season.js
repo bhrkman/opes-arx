@@ -422,6 +422,9 @@
     p.archetype = 'founder';
     p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
     p.no_negotiation = false;
+    /* the fleet's most common lean is Avoid; a founded OA declares Engage, the middle notch, and its manager sets the
+       rest squad by squad at the table */
+    p.engagement_lean = 'standard';
     p.relationships = [];
     p.canon_status = 'player-founded';
     p.founding = 'lean';
@@ -2994,7 +2997,11 @@
     let lot = state.lots[kind]; if (lot && lot[corpId]) lot = lot[corpId];
     const f = (lot || []).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not on the Sheet' };
-    const year = askingPrice(f, c) * LED.CONST.SALARY_MONTHS;
+    /* §PAPER A NATTIE SIGNS FLAT (ruled): the listed wage for the listed years, paid month by month with the rest of
+       the retainers, and no fee — which is what the engine's seats pay at the same window (`runTryouts`). The desk
+       charged `askingPrice × SALARY_MONTHS` on signing: askingPrice is already a year's figure, so a manager paid
+       twelve years' wages up front for a three-year contract and the engine paid nothing. */
+    const year = askingPrice(f, c);
     if (signingBudget(c) < year) return { ok: false, why: 'The Money Is Not There' };
     /* off the sheet and onto the roster, this moment */
     const idx = lot.indexOf(f); if (idx >= 0) lot.splice(idx, 1);
@@ -3006,8 +3013,7 @@
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
     c.roster.push(f);
-    LED.post(c.account, 'expense', 'A Contract Signed', -year);
-    return { ok: true, name: f.name, cost: year };
+    return { ok: true, name: f.name, cost: 0, year: year };
   }
 
   /* ------------------------------------------------------------------------- the seam ---- */

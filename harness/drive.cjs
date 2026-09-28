@@ -912,10 +912,11 @@ setTimeout(() => {
       const purseBefore = GS.corps[GS.me].account.treasury;
       doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
       doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
+      /* §PAPER a nattie signs flat: no fee at the desk, the wage month by month with the retainers (as the engine's seats) */
       check(GS.corps[GS.me].roster.length === rosterBefore + 2 &&
             doc.querySelectorAll('#rostmarket .pc').length === sheetBefore - 2 &&
-            GS.corps[GS.me].account.treasury < purseBefore,
-            'two sign on the spot: off the sheet, onto the roster, paid for');
+            GS.corps[GS.me].account.treasury === purseBefore,
+            'two sign on the spot: off the sheet, onto the roster, no fee');
     }
     endMonth();               /* month 3 ends and its pool signs; month 4 raises the lights */
     openRoster();

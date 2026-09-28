@@ -3013,7 +3013,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-signnow]'), function (b) {
       b.onclick = function () {
         var r = SEASON.signNow(G.state, G.me, b.getAttribute('data-signnow'));
-        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.cost) + '</span>'
+        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.year) + '/yr</span>'
                   : '<span class="bad">' + esc(r.why) + '</span>');
         renderRoster();
       };
@@ -3115,7 +3115,7 @@
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §SIGNING no marking and waiting: the sheet is your own ship's, so signing signs them */
-      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '</button>';
+      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '/yr</button>';   /* the wage, paid monthly; no fee */
     } else if (signing === 'mercs') {
       terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven OAs bid and the fighter

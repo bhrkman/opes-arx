@@ -665,93 +665,50 @@ function suppressionTraits() {
    Prose describing work that was not done — so the negotiation half is guarded by firing every
    branch of it, not by checking that the window appears. */
 function decisionWindow() {
+  /* §CONTEST WHAT A MANAGER CAN DO AT A WINDOW, each branch fired: a truce sought at the table, an exit offered to
+     the field, a squad's stance set — the three answers the seat takes now that joining is retired. */
   const oa = readJSON('oa_profiles.json').oa_profiles;
-  const mid = b => ({ share: (b.minShare + b.maxShare) / 2 });
-
   const run = (policy, seed, me) => {
-    const g = DIV.divideCore(P.mulberry32(P.seedFrom(seed)),
-                             { oaProfiles: oa, raceById: gen.raceById, human: me });
-    let r = g.next(), offered = 0, windows = 0, cadences = {}, takeRows = 0, takeViable = 0;
+    const g = DIV.divideCore(P.mulberry32(P.seedFrom(seed)), { oaProfiles: oa, raceById: gen.raceById, human: me });
+    let r = g.next(), offered = 0, windows = 0, cadences = {}, posted = 0, stanced = 0;
     while (!r.done) {
       const w = r.value; windows++; cadences[w.cadence] = 1;
-      const ans = { stance: 'standard' };
-      if (policy === 'join' && !w.you.joinedTo) {
-        const t = w.table.canJoin.filter(x => x.viable && x.band)[0];
-        if (t) { ans.deal = { kind: 'join', principal: t.principal, terms: mid(t.band) }; offered++; }
-      }
-      if (policy === 'take') {
-        takeRows += (w.table.wouldTake || []).length;
-        takeViable += (w.table.wouldTake || []).filter(x => x.viable).length;
-        const t = w.table.wouldTake.filter(x => x.viable && x.band)[0];
-        if (t) { ans.deal = { kind: 'take', corp: t.corp, terms: mid(t.band) }; offered++; }
-      }
+      const ans = {};
       if (policy === 'pact') {
-        const t = w.table.pacts.filter(x => x.viable)[0];
-        if (t) { ans.deal = { kind: 'pact', corp: t.corp }; offered++; }
+        const t = ((w.table || {}).pacts || []).filter(x => x.viable)[0];
+        if (t) { ans.deal = { kind: 'pact', corp: t.corp, terms: { credits: 0 } }; offered++; }
+      }
+      if (policy === 'leave' && !w.withdrawOffer && windows === 2) { ans.withdrawOffer = { credits: 0.1 }; offered++; }
+      if (policy === 'leave' && w.withdrawOffer) posted++;
+      if (policy === 'stance') {
+        ans.squadStance = {}; (w.you.squads || []).forEach((q, i) => { ans.squadStance[q.sIdx != null ? q.sIdx : i] = 'death_or_glory'; });
+        if ((w.you.squads || []).some(q => q.stance === 'death_or_glory')) stanced++;
       }
       r = g.next(ans);
-      /* STOP AS SOON AS THE BRANCH HAS FIRED. What this proves is that a manager CAN cede, take
-         and agree — not what happens over the thirty days after, which every other check here
-         already covers. Running each case to the end cost 36 full Divides at ~10s apiece:
-         roughly two thirds of the whole suite's runtime, to answer a question settled in the
-         first few windows. A guard nobody will wait for is a guard nobody runs, so cost is part
-         of whether an instrument works rather than a separate concern from it.
-         `stats` is the live object the generator is writing into, so the counters can be read
-         mid-contest without finishing it. */
-      if (policy !== 'none' && !r.done) {
+      if (!r.done) {
         const a = (r.value.stats || {}).audit || {};
-        if ((a.humanJoins || 0) + (a.humanTakes || 0) + (a.humanPacts || 0) > 0) {
-          return { offered, windows, cadences: Object.keys(cadences), takeRows, takeViable,
-                   joins: a.humanJoins || 0, takes: a.humanTakes || 0, pacts: a.humanPacts || 0 };
-        }
+        if (policy === 'pact' && (a.humanPacts || 0) > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: a.humanPacts, posted, stanced };
+        if (policy === 'leave' && posted > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: 0, posted, stanced };
+        if (policy === 'stance' && stanced > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: 0, posted, stanced };
       }
     }
     const a = (r.value || {}).audit || {};
-    return { offered, windows, cadences: Object.keys(cadences), takeRows, takeViable,
-             joins: a.humanJoins || 0, takes: a.humanTakes || 0, pacts: a.humanPacts || 0 };
+    return { offered, windows, cadences: Object.keys(cadences), pacts: a.humanPacts || 0, posted, stanced };
   };
-
   const one = run('none', 'win-guard', 'vantis_deepcore');
   ok('a Divide stops for you more than once', one.windows > 3, one.windows + ' windows');
-  ok('the cadence tightens as the ring closes',
-     one.cadences.length > 1, 'cadences seen: ' + one.cadences.join(', '));
-
-  /* TWO SEEDS AND TWO OAs, NOT FOUR AND THREE. This was 36 full Divides to prove that three
-     branches fire, which at ~10s each was about two thirds of the entire suite. Coverage is
-     unchanged — every branch is still exercised by more than one seed and more than one OA,
-     which is what guards against a branch that only works for one profile — and the cost is a
-     quarter of what it was. If a branch stops firing at this size that is a finding, not noise:
-     these are the two OAs that deal most freely. */
-  /* TAKING SOMEBODY IS ALMOST NEVER SIGNABLE, and this check was green by luck rather than
-     by coverage. Measured across the same runs: of 112 priced take rows, exactly ONE had a
-     number both sides would sign (joinerMin <= principalMax). A two-seed sample of a
-     one-in-a-hundred event is a coin toss, and the next change to the economy — here, a
-     re-priced gun catalogue — flipped it to zero and read as a broken branch.
-     The sample is widened until the branch can fire reliably. The RATE is a separate
-     question, recorded in the docs for a ruling: an OA will hand over its banner far more
-     readily than it will accept somebody else's. */
-  let joins = 0, takes = 0, pacts = 0, offered = 0, takeRows = 0, takeViable = 0;
+  ok('the cadence tightens as the ring closes', one.cadences.length > 1, 'cadences seen: ' + one.cadences.join(', '));
+  let pacts = 0, offered = 0, posted = 0, stanced = 0;
   for (const seed of ['w1', 'w2', 'w3', 'w4'])
-    for (const me of ['vantis_deepcore', 'mercy_concern'])
-      for (const pol of ['join', 'take', 'pact']) {
-        const r = run(pol, seed, me);
-        joins += r.joins; takes += r.takes; pacts += r.pacts; offered += r.offered;
-        takeRows += r.takeRows || 0; takeViable += r.takeViable || 0;
-      }
-  ok('a manager can cede their banner to somebody', joins > 0, joins + ' joins');
-  ok('a manager can take somebody under theirs', takes > 0,
-     takes + ' takes \u00b7 ' + takeViable + ' signable of ' + takeRows + ' priced rows');
-  ok('a manager can agree a truce mid-contest', pacts > 0, pacts + ' pacts');
-  ok('and offers are made that do not all succeed',
-     offered > joins + takes + pacts, offered + ' offered, ' + (joins + takes + pacts) + ' struck');
-
-  /* the stance half, which DID work, kept honest */
-  const g2 = DIV.divideCore(P.mulberry32(P.seedFrom('win-stance')),
-                            { oaProfiles: oa, raceById: gen.raceById, human: oa[3].id });
-  let r2 = g2.next(), changes = 0;
-  while (!r2.done) { const you = r2.value.you; r2 = g2.next({ stance: 'death_or_glory' });
-                     if (you) changes = you.stanceChanges; }
-  ok('a manager\'s notch actually moves their squads', changes > 0, changes + ' stance changes');
+    for (const me of ['vantis_deepcore', 'mercy_concern']) {
+      const rp = run('pact', seed, me); pacts += rp.pacts; offered += rp.offered;
+      const rl = run('leave', seed, me); posted += rl.posted;
+      const rs = run('stance', seed, me); stanced += rs.stanced;
+    }
+  ok('a manager can agree a truce mid-contest', pacts > 0, pacts + ' truces of ' + offered + ' sought');
+  ok('and truces sought do not all succeed', offered > pacts, offered + ' sought, ' + pacts + ' struck');
+  ok('a manager can offer the field an exit, and the offer stands at the next window', posted > 0, posted + ' offers standing');
+  ok('a manager\'s notch actually moves their squads', stanced > 0, stanced + ' windows with the notch on the squads');
 
   /* --- THE SEASON SPLITS AT THE DROP, and the two halves must be one game. `closeSeason` is a
      wrapper over prepare/step/finish, so a manager sitting through the contest and a fleet
@@ -2107,8 +2064,8 @@ function seasonRules() {
        rim and a manager's whole drafting decision was thrown away between the two. */
     {
       const PRE2 = require(findFile('predivide.js'));
-      const st4 = SEASONMOD.openFleet(makeRng('slot-fleet'), oaAll, {});
-      const sst = SEASONMOD.beginSeason(makeRng('slot-season'), st4, oaAll, {});
+      const st4 = SEASONMOD.openFleet(makeRng('slot-fleet'), oa, {});
+      const sst = SEASONMOD.beginSeason(makeRng('slot-season'), st4, oa, {});
       while (sst.month <= 11) SEASONMOD.stepMonth(sst);
       SEASONMOD.closeSeasonToDrop(sst);
       const pd2 = SEASONMOD.prepareDivide(sst), pl2 = pd2.opts.groundTruth;
@@ -2418,7 +2375,7 @@ function seasonRules() {
      `the_table.html` could not be rebuilt at any point during Step 7.5 and still showed a game
      running the abstract resolver. A viewer that has fallen behind the code is a lie, and a
      build script that cannot run makes the lie invisible. */
-  const buildSrc = ['build_table.cjs', 'build_seasons.cjs', 'build_audiences.cjs'];
+  const buildSrc = ['build_corp.cjs'];   /* the one build left: the game is one page */
   /* build_bench.cjs and build_bench_weapons.cjs left this list when the_table.html and
      the_bench.html were retired — superseded single-surface pages, removed with their
      templates and builders rather than left to drift. */
@@ -2452,7 +2409,7 @@ function seasonRules() {
     const writes = src.match(/writeFileSync\(\s*(?:D|OUT|__dirname)[^,]*/g) || [];
     for (const w of writes) {
       if (/OUT/.test(w)) continue;                       /* resolved via findFile elsewhere */
-      if (w.indexOf('viewers') < 0) badOut.push(f + ': ' + w.slice(0, 46));
+      if (w.indexOf('viewers') < 0 && w.indexOf('index.html') < 0) badOut.push(f + ': ' + w.slice(0, 46));   /* the page is also the repo's index */
     }
   }
   ok('every build script writes where the viewer lives', badOut.length === 0, badOut.join(' | '));
@@ -3451,7 +3408,7 @@ function negotiationRules() {
      a hand-written mirror of the squad AI, so it could not be regenerated and had already
      drifted once, drawing the weekly ring schedule for a whole phase after it was replaced.
      A frozen duplicate of logic that keeps changing is a lie with a delay on it. */
-  const VIEWS = ['armoury.html', 'the_career.html'];
+  const VIEWS = ['corp_template.html'];   /* the one page; the single-surface viewers were retired */
   const DELETED = ['ZONE_WEEKS', 'ZONE_FINAL_FRAC', 'OBJECTIVES_AT_DROP', 'LATE_REVEAL_DAY',
                    'RIGIDITY_BLOCK', 'DESPERATION_LOSS_FRACTION', 'WITHDRAW_TRIGGER_FRAC'];
   const viewerRot = [];
@@ -3642,8 +3599,10 @@ function negotiationRules() {
      one. A tempo change shifted the sample and it stopped appearing, which is the batch method
      failing exactly as this file's own comment predicts: a branch certified by a wide sample is
      certified by luck. Produced directly instead, which is the stronger claim. */
+  /* only acts the table still defines: `betrayed_covered` went with the illicit systems */
   for (const rare of ['betrayed', 'betrayed_covered', 'released_captives', 'kept_captive',
                       'killed_captives', 'abandoned_ours', 'refused_all', 'hid', 'last_ground']) {
+    if (!REPMOD.ACTS[rare]) continue;
     REPMOD.act(rareRep, rare, { targetId: OA[1].id, count: 1, scale: 0.5 });
     actsSeen.add(rare);
   }
@@ -3715,11 +3674,7 @@ function negotiationRules() {
   const deadActs = Object.keys(REPMOD.ACTS).filter(a => !actsSeen.has(a));
   ok('every act the table defines can actually be produced', deadActs.length === 0,
      'never produced: ' + deadActs.join(', '));
-  const B = REPMOD.ACTS.betrayed, BC = REPMOD.ACTS.betrayed_covered;
-  ok('a betrayal the camera missed costs less than one it caught',
-     Math.abs(BC.fleet) < Math.abs(B.fleet) && Math.abs(BC.own) < Math.abs(B.own)
-       && B.aleas < (BC.aleas || 0),
-     'R19: the verdict varies, the sentence does not');
+  /* 'a betrayal the camera missed' went with `betrayed_covered` and the illicit systems (ruled) */
 
   /* --- the board's ask must be PURSUED, not merely scored ------------------------------
      A demand nothing chases is decoration. The first version of this scored a resource

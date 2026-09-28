@@ -13,17 +13,19 @@ is a tab of it. The single-surface dev viewers that used to sit beside it were r
 
 | | |
 |---|---|
-| `docs/PROJECT.md` | **The only document.** What was decided and what was rejected. The code holds every number; this holds the reasoning and, crucially, records what is *absent* — which no audit can see. |
-| `docs/SETUP.md` | Getting the repo and the hosted demos running, once. |
-| `docs/HUB.md` | How the project is run: a hub that decides, branches that build. |
-| `docs/BRIEF_FOG.md` | The next step out. |
+| `docs/PROJECT.md` | The vision the rules serve and the rulings that bind them. The code holds every number. |
+| `sim/` | The engine: `season.js` (the year), `divide.js` (the contest), `tactical.js` (a fight), `negotiate.js`, `events.js`, `sponsors.js`, `reputation.js`, `items.js`, `roster.js`, `map.js`. |
+| `viewers/corp_template.html` | The page. `node sim/build_corp.cjs` inlines the engine and writes `index.html`. |
+| `data/` | The catalogues: peoples, traits, items, OA profiles. |
+
+Hosting is any static host pointed at the repo root; `index.html` is the whole game.
 
 ## The gate
 
 ```
 cd sim
-node arx.cjs regress --fast     114 checks · the edit loop
-node arx.cjs regress            249 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     112 checks · the edit loop
+node arx.cjs regress            244 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the

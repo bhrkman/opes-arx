@@ -21341,15 +21341,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      fight, the wall, running from a lost fight — and return to their role at the next dawn.
      ====================================================================================================== */
   function commandCorp(rng, corp, planet, day, stats, foreign, mine) {
-    const dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard;
-    const seek = dials.seek;
+    /* §STANCE THE PLAN'S BOLDNESS IS THE SQUADS' STANCE. The planner read the OA's declared stance, which a manager
+       cannot set from the table — so the stances set on his squads at every window changed how they fought and
+       never what the OA planned, and a founded OA (declared Avoid) held its ground for twenty days with four full
+       squads told to Engage. A group plans by the mean notch of the squads in it: the engine's seats seat their
+       squads around their declared stance, so nothing changes for them. */
     const all = corp.allBodies || [];
     const lostFrac = 1 - all.filter(b => b.status === 'active').length / Math.max(1, all.length);
     const heads = q => squadHead(q).length;
-    const speed = CONST.DAY_MARCH * dials.ground;
     const fresh = foreign.filter(e => day - e.day <= 2);
     const threatAt = (x, y, r) => fresh.filter(e => MAP.dist(e.x, e.y, x, y) <= r).reduce((t, e) => t + (e.n || 1), 0);
-    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    let dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard, seek = dials.seek, speed = CONST.DAY_MARCH * dials.ground;
+    let need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    const groupDials = (g) => {
+      const idx = g.map(q => NOTCHES.indexOf(squadStance(q))).filter(i => i >= 0);
+      const mean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : NOTCHES.indexOf(corp.policy || 'standard');
+      return STANCE_DIALS[NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, Math.round(mean)))]] || STANCE_DIALS.standard;
+    };
     const A = stats.audit.cmd = stats.audit.cmd || { plans: 0, replans: 0, kinds: {}, why: {}, kept: 0, switched: 0, groups: 0 };
     const isWindow = MAP.isWindowDay(planet, day);
 
@@ -21369,6 +21377,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return;
 
     function command(g) {
+      dials = groupDials(g); seek = dials.seek; speed = CONST.DAY_MARCH * dials.ground;
+      need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
       const force = g.reduce((t, q) => t + heads(q), 0);
       const cx = g.reduce((t, q) => t + q.x * heads(q), 0) / Math.max(1, force);
       const cy = g.reduce((t, q) => t + q.y * heads(q), 0) / Math.max(1, force);
@@ -26227,6 +26237,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     p.archetype = 'founder';
     p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
     p.no_negotiation = false;
+    /* the fleet's most common lean is Avoid; a founded OA declares Engage, the middle notch, and its manager sets the
+       rest squad by squad at the table */
+    p.engagement_lean = 'standard';
     p.relationships = [];
     p.canon_status = 'player-founded';
     p.founding = 'lean';
@@ -28799,7 +28812,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     let lot = state.lots[kind]; if (lot && lot[corpId]) lot = lot[corpId];
     const f = (lot || []).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not on the Sheet' };
-    const year = askingPrice(f, c) * LED.CONST.SALARY_MONTHS;
+    /* §PAPER A NATTIE SIGNS FLAT (ruled): the listed wage for the listed years, paid month by month with the rest of
+       the retainers, and no fee — which is what the engine's seats pay at the same window (`runTryouts`). The desk
+       charged `askingPrice × SALARY_MONTHS` on signing: askingPrice is already a year's figure, so a manager paid
+       twelve years' wages up front for a three-year contract and the engine paid nothing. */
+    const year = askingPrice(f, c);
     if (signingBudget(c) < year) return { ok: false, why: 'The Money Is Not There' };
     /* off the sheet and onto the roster, this moment */
     const idx = lot.indexOf(f); if (idx >= 0) lot.splice(idx, 1);
@@ -28811,8 +28828,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
     c.roster.push(f);
-    LED.post(c.account, 'expense', 'A Contract Signed', -year);
-    return { ok: true, name: f.name, cost: year };
+    return { ok: true, name: f.name, cost: 0, year: year };
   }
 
   /* ------------------------------------------------------------------------- the seam ---- */
@@ -31083,7 +31099,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-signnow]'), function (b) {
       b.onclick = function () {
         var r = SEASON.signNow(G.state, G.me, b.getAttribute('data-signnow'));
-        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.cost) + '</span>'
+        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.year) + '/yr</span>'
                   : '<span class="bad">' + esc(r.why) + '</span>');
         renderRoster();
       };
@@ -31185,7 +31201,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §SIGNING no marking and waiting: the sheet is your own ship's, so signing signs them */
-      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '</button>';
+      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '/yr</button>';   /* the wage, paid monthly; no fee */
     } else if (signing === 'mercs') {
       terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven OAs bid and the fighter
