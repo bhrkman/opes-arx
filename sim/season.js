@@ -72,6 +72,7 @@
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
     WOUND_CRIPPLED: 33,          // [S] and below this he is Crippling: he cannot train at all
     WOUND_STRESS_SERIOUS: 5,     // [C] extra stress a month for working while Serious
@@ -556,6 +557,27 @@
     f.condition = f.condition || {};
     f.condition.health = Math.max(0, Math.min(100, v));
   }
+  /* §WOUNDS THE LIST FOLLOWS THE NUMBER. `injuries` names what the wounds are; `health` says how hurt the
+     body is. Nothing ever counted a wound's `days_remaining` down, so a body mended to 100 still "carried an
+     injury" on every screen, for good — the play-through showed seven hurt for eleven months with rest on
+     them all year. A whole body carries only the wounds that are carried for good. */
+  function settleWounds(f) {
+    if (!f.condition) return;
+    if (woundOf(f) < 100) return;
+    const inj = f.condition.injuries || [];
+    f.condition.injuries = inj.filter(w => w.permanent || w.careerEnding);
+    if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+  }
+  /* §WOUNDS A WOUND COMES HOME AS A NUMBER. In a contest, an event or the Eight a wound is `_recovery`, days until
+     the body can stand; on the books it is `health`. Nothing wrote the one from the other: a fighter came home
+     "injured" with a whole body, so the verb that mends had nothing to mend and the status never lifted. */
+  function bringWoundHome(f) {
+    if (f.status !== 'injured') return;
+    const days = Math.max(0, f._recovery || 0);
+    if (days > 0) setWound(f, Math.min(woundOf(f), 100 - days * CONST.WOUND_PER_DAY));
+    f._recovery = 0;
+    if (woundOf(f) >= 100) f.status = 'active';
+  }
   function woundBand(f) {
     const h = woundOf(f);
     return h >= 100 ? 'whole' : h < CONST.WOUND_CRIPPLED ? 'crippled'
@@ -828,7 +850,7 @@
       if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1; }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
@@ -1743,6 +1765,7 @@
         setWound(f, before + CONST.WOUND_DRIFT);
         if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
       }
+      settleWounds(f);
     }
     tally.mended += mended;
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
@@ -1849,6 +1872,7 @@
               const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
+              settleWounds(f);
               tally.treated++;
               /* whatever the effort could have mended and found nothing to mend */
               const spare = Math.max(0, want - room);
@@ -2060,7 +2084,7 @@
         f.condition.injuries = inj.filter(w => {
           if (w.careerEnding) { careerEnding = true; return true; }
           if (w.permanent) { permanent++; return true; }
-          return w.days_remaining > 0;
+          return woundOf(f) < 100;   /* §WOUNDS the number is the state: a whole body carries no wound */
         });
         out.injured += f.condition.injuries.length ? 1 : 0;
         if (careerEnding) { f.retired = true; f.status = 'retired'; out.retired.push(f); continue; }
@@ -4073,6 +4097,7 @@
       if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
+      for (const f of c.roster) bringWoundHome(f);   /* §WOUNDS the ground's wounds become the year's */
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
                        /* §BOARD where it finished, so the Board can show the fleet's last

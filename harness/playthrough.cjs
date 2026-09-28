@@ -284,9 +284,9 @@ function playDivide(year) {
   say('\n## The settlement\n');
   const place = res.placement && res.placement[ME];
   say('Winner: **' + oaName(res.winner || 'nobody') + '**. You placed ' + (place ? place + (place === 1 ? 'st' : place === 2 ? 'nd' : place === 3 ? 'rd' : 'th') : '—') + ' of ' + state.ids.length + ' after ' + res.days + ' days.');
-  const pc = (res.perCorp || []).find(x => x.id === ME) || {};
+  const pc = (res.perCorp || []).find(x => x.id === ME) || {}; const fell = (res.fallen || []).find(f => f.id === ME);
   const deadN = me().roster.filter(f => f.status === 'dead' && f._diedSeason === state.season).length; const dropped = pc.dropped || 0;
-  say('Your people: ' + (pc.permanent != null ? pc.permanent + ' lost for good' : (pc.dead != null ? pc.dead + ' dead' : '')) + (pc.injuredHome != null ? ', ' + pc.injuredHome + ' came home hurt' : '') + (pc.withdrew ? ', withdrew day ' + pc.withdrew.day : ', fought to the end') + '.');
+  say('Your people: ' + (pc.permanent != null ? pc.permanent + ' lost for good' : (pc.dead != null ? pc.dead + ' dead' : '')) + (pc.injuredHome != null ? ', ' + pc.injuredHome + ' came home hurt' : '') + (pc.withdrew ? ', withdrew day ' + pc.withdrew.day : (fell && fell.how === 'wiped' ? ', the last squad fell on day ' + fell.day : fell && fell.how === 'pulled' ? ', the Aleas pulled the banner on day ' + fell.day + ' (too few left standing)' : ', stood to the end')) + '.');
   const rec = S.finishSeason(state, res);
   const c2 = me();
   say('The books: ' + cr(c2.account.treasury) + ' in the bank (' + (c2.account.treasury - t1 >= 0 ? '+' : '−') + cr(Math.abs(c2.account.treasury - t1)) + ' over the contest). Board patience ' + Math.round(c2.rep.patience) + '; own people ' + standing('own') + ', fleet ' + standing('fleet') + '.');

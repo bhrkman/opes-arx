@@ -1247,12 +1247,13 @@
     const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
     return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
   }
-  function standDown(c, day, stats, corps) {
+  function standDown(c, day, stats, corps, how) {
     if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
-    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: true };
+    /* `how`: 'withdrew' (its own call, or a sold exit) or 'pulled' (the Aleas took a spent banner off the ground) */
+    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: how !== 'pulled', how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
       for (const b of q.bodies || []) if (b.status === 'active') b._withdrew = day;
@@ -1454,7 +1455,7 @@
       const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
       if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
         stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
-        standDown(c, day, stats, corps);
+        standDown(c, day, stats, corps, 'pulled');
       }
     }
     for (const c of corps) {
@@ -4387,8 +4388,13 @@
            answer. Now the window is built for each seat a person holds, the Divide pauses once holding every
            view, and each answer is applied to its own OA. With one person the pause carries that person's view
            exactly as before (and a plain answer is theirs); several send `{ bySeat: { id: answer } }`. */
-        if (_humans.size) {
-          const seatIds = corps.filter(c => isHumanOA(c.id)).map(c => c.id);
+        /* §SEATS A WINDOW OPENS FOR A SEAT THAT IS STILL ON THE GROUND. A person whose last squad had fallen kept
+           getting windows — nothing to set, 0% to win, and rivals selling their exits to an OA with nobody there
+           (the play-through sat through eight of them). Out is out: the contest runs on to its end and the seat
+           reads it at the settlement, which says which day its last squad fell. */
+        const standsNow = (c) => !c.withdrawn && (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+        const seatIds = corps.filter(c => isHumanOA(c.id) && standsNow(c)).map(c => c.id);
+        if (seatIds.length) {
           stats._fightCursor = stats._fightCursor || {};
           stats._echo = stats._echo || {};
           /* §SECRECY (ruled: each seat sees only what it knows) A SEAT'S VIEW HOLDS ITS OWN OA IN FULL AND EVERY OTHER AS A
@@ -6233,8 +6239,9 @@
     for (const c of corps) {
       if (stats.winner === c.id) continue;
       if ((stats.fallen || []).some(f => f.id === c.id)) continue;
-      const alive = c.allBodies.some(b => b.status === 'active' || b.status === 'injured');
-      recordFall(stats, c.id, c._downedOn || stats.days || 30, alive ? 'standing' : 'wiped');
+      /* on its feet means a squad with a body standing; the wounded lying in the holds are not a banner */
+      const alive = (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+      recordFall(stats, c.id, c._downedOn || stats.days || 30, c.withdrawn ? (c.withdrawn.how || 'withdrew') : alive ? 'standing' : 'wiped');
     }
     /* §7.4 — what each corp actually dug out, by name. The assay bank was a single credit
        figure; the sites carry a resource now, so what comes home can be counted in the thing

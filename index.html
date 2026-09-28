@@ -12642,6 +12642,14 @@
   }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
+  /* §WOUNDS a wound is a number on the books: N days down costs N points of health (the season's WOUND_PER_DAY, 1) */
+  const wound = (f, rng, type, lo, hi) => {
+    const days = P.int(rng, lo, hi);
+    f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
+    f.condition.injuries.push({ type: type, severity: 'minor', days_remaining: days, untreated: false });
+    f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
+    f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
+  };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
 
   /* --------------------------------------------------------------------------- the pool ---- */
@@ -12761,8 +12769,7 @@
         f._debtCalled = true;
         if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
         if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
-        f.condition.injuries.push({ type: 'inj_arm', severity: 'minor', days_remaining: P.int(ctx.rng, 6, 14), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(ctx.rng, 6, 14); f._untreatedDays = 0; stress(f, 12);
+        wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
       ai: (c) => spare(c) > CONST.DEBT_CALL * 6 ? 'pay' : 'ignore'
@@ -12787,7 +12794,7 @@
       resolve: (c, e, opt, ctx) => {
         const hot = alive(c).find(x => x.id === e.subject), oth = alive(c).find(x => x.id === e.other);
         if (hot) hot._brawled = true;
-        if (oth) { oth.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(ctx.rng, 5, 9), untreated: false }); oth.status = 'injured'; oth._recovery = P.int(ctx.rng, 5, 9); oth._untreatedDays = 0; }
+        if (oth) wound(oth, ctx.rng, 'inj_torso', 5, 9);
         if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
         if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); return 'Both Were Fined'; }
         alive(c).forEach(f => stress(f, 5)); return 'It Was Let Lie';
@@ -20227,12 +20234,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
     return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
   }
-  function standDown(c, day, stats, corps) {
+  function standDown(c, day, stats, corps, how) {
     if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
-    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: true };
+    /* `how`: 'withdrew' (its own call, or a sold exit) or 'pulled' (the Aleas took a spent banner off the ground) */
+    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: how !== 'pulled', how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
       for (const b of q.bodies || []) if (b.status === 'active') b._withdrew = day;
@@ -20434,7 +20442,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
       if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
         stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
-        standDown(c, day, stats, corps);
+        standDown(c, day, stats, corps, 'pulled');
       }
     }
     for (const c of corps) {
@@ -23367,8 +23375,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            answer. Now the window is built for each seat a person holds, the Divide pauses once holding every
            view, and each answer is applied to its own OA. With one person the pause carries that person's view
            exactly as before (and a plain answer is theirs); several send `{ bySeat: { id: answer } }`. */
-        if (_humans.size) {
-          const seatIds = corps.filter(c => isHumanOA(c.id)).map(c => c.id);
+        /* §SEATS A WINDOW OPENS FOR A SEAT THAT IS STILL ON THE GROUND. A person whose last squad had fallen kept
+           getting windows — nothing to set, 0% to win, and rivals selling their exits to an OA with nobody there
+           (the play-through sat through eight of them). Out is out: the contest runs on to its end and the seat
+           reads it at the settlement, which says which day its last squad fell. */
+        const standsNow = (c) => !c.withdrawn && (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+        const seatIds = corps.filter(c => isHumanOA(c.id) && standsNow(c)).map(c => c.id);
+        if (seatIds.length) {
           stats._fightCursor = stats._fightCursor || {};
           stats._echo = stats._echo || {};
           /* §SECRECY (ruled: each seat sees only what it knows) A SEAT'S VIEW HOLDS ITS OWN OA IN FULL AND EVERY OTHER AS A
@@ -25213,8 +25226,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const c of corps) {
       if (stats.winner === c.id) continue;
       if ((stats.fallen || []).some(f => f.id === c.id)) continue;
-      const alive = c.allBodies.some(b => b.status === 'active' || b.status === 'injured');
-      recordFall(stats, c.id, c._downedOn || stats.days || 30, alive ? 'standing' : 'wiped');
+      /* on its feet means a squad with a body standing; the wounded lying in the holds are not a banner */
+      const alive = (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+      recordFall(stats, c.id, c._downedOn || stats.days || 30, c.withdrawn ? (c.withdrawn.how || 'withdrew') : alive ? 'standing' : 'wiped');
     }
     /* §7.4 — what each corp actually dug out, by name. The assay bank was a single credit
        figure; the sites carry a resource now, so what comes home can be counted in the thing
@@ -25912,6 +25926,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
     WOUND_CRIPPLED: 33,          // [S] and below this he is Crippling: he cannot train at all
     WOUND_STRESS_SERIOUS: 5,     // [C] extra stress a month for working while Serious
@@ -26396,6 +26411,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     f.condition = f.condition || {};
     f.condition.health = Math.max(0, Math.min(100, v));
   }
+  /* §WOUNDS THE LIST FOLLOWS THE NUMBER. `injuries` names what the wounds are; `health` says how hurt the
+     body is. Nothing ever counted a wound's `days_remaining` down, so a body mended to 100 still "carried an
+     injury" on every screen, for good — the play-through showed seven hurt for eleven months with rest on
+     them all year. A whole body carries only the wounds that are carried for good. */
+  function settleWounds(f) {
+    if (!f.condition) return;
+    if (woundOf(f) < 100) return;
+    const inj = f.condition.injuries || [];
+    f.condition.injuries = inj.filter(w => w.permanent || w.careerEnding);
+    if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+  }
+  /* §WOUNDS A WOUND COMES HOME AS A NUMBER. In a contest, an event or the Eight a wound is `_recovery`, days until
+     the body can stand; on the books it is `health`. Nothing wrote the one from the other: a fighter came home
+     "injured" with a whole body, so the verb that mends had nothing to mend and the status never lifted. */
+  function bringWoundHome(f) {
+    if (f.status !== 'injured') return;
+    const days = Math.max(0, f._recovery || 0);
+    if (days > 0) setWound(f, Math.min(woundOf(f), 100 - days * CONST.WOUND_PER_DAY));
+    f._recovery = 0;
+    if (woundOf(f) >= 100) f.status = 'active';
+  }
   function woundBand(f) {
     const h = woundOf(f);
     return h >= 100 ? 'whole' : h < CONST.WOUND_CRIPPLED ? 'crippled'
@@ -26668,7 +26704,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1; }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
@@ -27583,6 +27619,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         setWound(f, before + CONST.WOUND_DRIFT);
         if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
       }
+      settleWounds(f);
     }
     tally.mended += mended;
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
@@ -27689,6 +27726,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
+              settleWounds(f);
               tally.treated++;
               /* whatever the effort could have mended and found nothing to mend */
               const spare = Math.max(0, want - room);
@@ -27900,7 +27938,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         f.condition.injuries = inj.filter(w => {
           if (w.careerEnding) { careerEnding = true; return true; }
           if (w.permanent) { permanent++; return true; }
-          return w.days_remaining > 0;
+          return woundOf(f) < 100;   /* §WOUNDS the number is the state: a whole body carries no wound */
         });
         out.injured += f.condition.injuries.length ? 1 : 0;
         if (careerEnding) { f.retired = true; f.status = 'retired'; out.retired.push(f); continue; }
@@ -29913,6 +29951,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
+      for (const f of c.roster) bringWoundHome(f);   /* §WOUNDS the ground's wounds become the year's */
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
                        /* §BOARD where it finished, so the Board can show the fleet's last
@@ -34505,8 +34544,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (TAB.board) TAB.board.classList.add('urgent');
       $('advwin').style.display = 'none';
       syncWindowBtns();
+      var fell = (step.value.fallen || []).filter(function (f) { return f.id === G.me; })[0];
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
         ' days \u00b7 winner ' + (step.value.winner ? cSpan(step.value.winner) : 'nobody') +
+        (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'pulled' ? ' \u00b7 The Aleas Pulled Your Banner on Day ' + fell.day : '') +
         (mine.payout ? ' \u00b7 Your Take ' + crs(mine.payout) : '') +
         ' \u00b7 Settled to the Books';
       renderSponsorVerdict(seasonRec);

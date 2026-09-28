@@ -119,6 +119,14 @@
   }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
+  /* §WOUNDS a wound is a number on the books: N days down costs N points of health (the season's WOUND_PER_DAY, 1) */
+  const wound = (f, rng, type, lo, hi) => {
+    const days = P.int(rng, lo, hi);
+    f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
+    f.condition.injuries.push({ type: type, severity: 'minor', days_remaining: days, untreated: false });
+    f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
+    f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
+  };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
 
   /* --------------------------------------------------------------------------- the pool ---- */
@@ -238,8 +246,7 @@
         f._debtCalled = true;
         if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
         if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
-        f.condition.injuries.push({ type: 'inj_arm', severity: 'minor', days_remaining: P.int(ctx.rng, 6, 14), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(ctx.rng, 6, 14); f._untreatedDays = 0; stress(f, 12);
+        wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
       ai: (c) => spare(c) > CONST.DEBT_CALL * 6 ? 'pay' : 'ignore'
@@ -264,7 +271,7 @@
       resolve: (c, e, opt, ctx) => {
         const hot = alive(c).find(x => x.id === e.subject), oth = alive(c).find(x => x.id === e.other);
         if (hot) hot._brawled = true;
-        if (oth) { oth.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(ctx.rng, 5, 9), untreated: false }); oth.status = 'injured'; oth._recovery = P.int(ctx.rng, 5, 9); oth._untreatedDays = 0; }
+        if (oth) wound(oth, ctx.rng, 'inj_torso', 5, 9);
         if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
         if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); return 'Both Were Fined'; }
         alive(c).forEach(f => stress(f, 5)); return 'It Was Let Lie';
