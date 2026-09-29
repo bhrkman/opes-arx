@@ -321,6 +321,8 @@ function playDivide(year) {
   if (hist && hist.sponsors) say('The sponsors: ' + hist.sponsors.kept + ' kept, ' + hist.sponsors.broken.length + ' broken' + (hist.sponsors.paid ? ', ' + cr(hist.sponsors.paid) + ' paid' : '') + (hist.sponsors.standings.length ? ', standing granted: ' + hist.sponsors.standings.map(x => typeof x === 'string' ? x : (x.name + ' (' + x.what + ')')).join(', ') : '') + '.');
   const settle = c2.account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
   if (settle.length) say('The ledger: ' + settle.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
+  say('The stands: ' + REP.FACTIONS.map(f => cap(f) + ' ' + Math.round(REP.standing(c2.rep, f)) + ' (' + Math.round((c2.rep.shares[f] || 0) * 100) + '%)').join(' · ') + '.');
+  say('The houses: ' + Object.keys(c2.rep.base.houses).map(id => oaName(id) + ' ' + Math.round(REP.standing(c2.rep, 'house', id))).join(' · ') + '.');
   const b = c2._board; if (b && b.outcome) { const q = REP.question(b.outcome); say('The board asks: “' + q.ask + '” You answer candidly.'); S.answerBoard(state, ME, 'candid'); }
   if (rec && rec.log && rec.log.length) say('Offseason: ' + rec.log.filter(l => l.indexOf(ME) === 0).join('; '));
 }

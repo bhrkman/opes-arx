@@ -49,6 +49,11 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
+    CROWD_WARM: 66,              // [C] §STANDING the crowd's warmth at which it starts bringing things to the airlock
+    CROWD_COLD: 42,              // [C] and at which it starts bringing trouble (below the fleet's bottom tenth, measured: p10 56, median 66)
+    DONATION_PER_POINT: 600,     // [C] a collection, per point of warmth over indifference
+    STRIKE_PER_HEAD: 400,        // [C] what it costs a head to end a strike
+    LEAK_HUNT: 3000,             // [C] what finding a leak costs
     MERC_MONTHS: [9, 10],        // [S] the mercenary windows, where the board warns of a short roster
     MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
     MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
@@ -147,32 +152,32 @@
   const MOMENTS = [
     { id: 'q_argued_the_plan', tie: 'an argument with his captain', title: 'An Argument Over the Plan',
       text: n => n + ' told the captain the approach was wrong, in front of the squad.',
-      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down'],
-      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken'] },
+      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down', { craft: 0.4, word: 0.3 }],
+      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken', { craft: 0.6, care: 0.3 }] },
     { id: 'q_wound_hidden', tie: 'a wound he did not report', title: 'A Wound Off the Books',
       text: n => 'The medic signed ' + n + ' fit. The medic is not sure ' + n + ' was honest.',
-      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining'],
-      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It'] },
+      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining', { care: 0.8 }],
+      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It', { grit: 0.6, word: 0.3, care: -0.4 }] },
     { id: 'q_captaincy_snub', tie: 'a captaincy he was passed over for', title: 'The Armband Went Elsewhere',
       text: n => n + ' heard about the captaincy from somebody else.',
-      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation'],
-      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice'] },
+      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation', { word: 0.6, care: 0.3 }],
+      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice', { craft: 0.3, care: -0.4 }] },
     { id: 'q_evac_retainer', tie: 'an evac retainer the desk had to budget for', title: 'The Evac Retainer',
       text: n => 'Medical have written to the desk about ' + n + ' again. They would like it in writing.',
-      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n],
-      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan'] },
+      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n, { care: 1.0 }],
+      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan', { care: -0.8, blood: 0.2 }] },
     { id: 'q_squad_cut_down', tie: 'a squad cut to a handful', title: 'What Is Left of the Squad',
       text: n => 'There are four of them now, and ' + n + ' has stopped asking for replacements.',
-      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head'],
-      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had'] },
+      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head', { craft: 0.6, word: -0.2 }],
+      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had', { grit: 0.7, word: 0.3 }] },
     { id: 'q_captain_fell', tie: 'a captain who fell in front of him', title: 'The Captain Went Down',
       text: n => n + ' has not been the same since the armband changed hands.',
-      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month'],
-      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out'] },
+      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month', { care: 0.9 }],
+      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out', { grit: 0.6, blood: 0.3, care: -0.4 }] },
     { id: 'q_long_shot', tie: 'a shot that decided a fight', title: 'The Shot They Are Still Talking About',
       text: n => 'The clip of ' + n + '\u2019s shot has been round the fleet twice.',
-      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview'],
-      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It'] }
+      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview', { glory: 1.0 }],
+      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It', { care: 0.5, craft: 0.3 }] }
   ];
   function momentSpec(m) {
     return {
@@ -197,6 +202,7 @@
         else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
         else if (kind === 'fame') { if (amount > 0) REP.earnFame(f, amount); else f.fame = Math.max(0, (f.fame || 0) + amount); }
         else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
+        if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
       ai: () => 'a'
@@ -226,8 +232,8 @@
         f._raiseAsked = true;
         /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
         if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
-        if (opt === 'release') { f.status = 'retired'; f._released = true; return f.name + ' Was Released'; }
-        stress(f, 18); f._discontent = (f._discontent || 0) + 1; return f.name + ' Was Refused, and Soured';
+        if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
+        stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
       ai: (c, e) => spare(c) > e.ask * 20 ? 'grant' : 'refuse'
     },
@@ -246,7 +252,8 @@
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._debtCalled = true;
         if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
-        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
+        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + '\u2019s Contract Was Sold'; }
+        if (c.rep) REP.act(c.rep, 'left_a_debtor', {});
         wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
@@ -273,9 +280,9 @@
         const hot = alive(c).find(x => x.id === e.subject), oth = alive(c).find(x => x.id === e.other);
         if (hot) hot._brawled = true;
         if (oth) wound(oth, ctx.rng, 'inj_torso', 5, 9);
-        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
-        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); return 'Both Were Fined'; }
-        alive(c).forEach(f => stress(f, 5)); return 'It Was Let Lie';
+        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); if (c.rep) REP.act(c.rep, 'disciplined', {}); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
+        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
+        alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
       ai: () => 'punish'
     },
@@ -324,7 +331,7 @@
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
-          if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + ' Went for ' + fmtCr(price); };
+          if (c.rep) REP.act(c.rep, 'sold_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Went for ' + fmtCr(price); };
         if (opt === 'accept') return sell(e.price);
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
         if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'The Offer Was Refused';
@@ -346,7 +353,7 @@
         if (!c.rep) return 'The Slight Passed';
         if (opt === 'answer') { REP.act(c.rep, 'answered_a_slight', { targetId: e.from }); return 'The Slight Was Answered'; }
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
-        return 'The Slight Was Laughed Off';
+        REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
       ai: (c) => (c.rep && REP.standing(c.rep, 'crowd') < 50) ? 'answer' : 'laugh'
     },
@@ -365,11 +372,107 @@
         if (c.account.treasury < e.price) return 'The Money Was Not There';
         LED.post(c.account, 'expense', 'A Dealer\u2019s Piece', -e.price);
         c.armoury = c.armoury || {}; c.armoury[e.subject] = (c.armoury[e.subject] || 0) + 1;
+        if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
       ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
     }
   ];
+  /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
+     cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
+  const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
+  POOL.push(
+    {
+      id: 'donation', weight: 1.0,
+      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && !ctx.corpFlags(c)['donation' + ctx.season] ? true : null,
+      make: (x, c) => { const amt = Math.round((crowdOf(c) - 50) * CONST.DONATION_PER_POINT / 100) * 100;
+        return { kind: 'donation', amount: amt, title: 'The Stands Pass the Hat',
+          text: 'Your supporters have taken a collection for the OA, and want to hand it over in person.',
+          options: [
+            { id: 'take', label: 'Take It', cost: '+' + fmtCr(amt) },
+            { id: 'families', label: 'Give It to the Families of the Dead', cost: 'Nothing to the Books \u00b7 the Families and Diehards Remember' }
+          ], def: 'take' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['donation' + ctx.state.season] = true;
+        if (opt === 'families') { if (c.rep) REP.act(c.rep, 'gave_it_away', {}); return 'The Collection Went to the Families'; }
+        LED.post(c.account, 'income', 'The Stands\u2019 Collection', e.amount);
+        if (c.rep) REP.act(c.rep, 'took_the_collection', {});
+        return 'The Collection Was Taken';
+      },
+      ai: (c) => (c.rep && (c.rep.shares.families || 0) > 0.2) ? 'families' : 'take'
+    },
+    {
+      id: 'tip', weight: 0.8,
+      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (from) => ({ kind: 'tip', from: from, title: 'A Supporter With a Rival\u2019s Papers',
+        text: 'Somebody on a rival\u2019s ship is a supporter of yours, and has copied what their squads are drilling.',
+        options: [
+          { id: 'read', label: 'Read Them', cost: 'A Dossier on That OA \u00b7 That House Cools If It Hears' },
+          { id: 'return', label: 'Send Them Back Unread', cost: 'That House Warms \u00b7 the Diehards Approve' }
+        ], def: 'read' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['tip' + ctx.state.season] = true;
+        if (opt === 'return') { if (c.rep) REP.act(c.rep, 'sent_the_papers_back', { targetId: e.from }); return 'The Papers Went Back Unread'; }
+        c._tipOn = e.from;                            /* the season reads it into the dossier this month */
+        if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
+        return 'The Papers Were Read';
+      },
+      ai: (c) => 'read'
+    },
+    {
+      id: 'protest', weight: 1.1,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && !ctx.corpFlags(c)['protest' + ctx.season] ? true : null,
+      make: () => ({ kind: 'protest', title: 'They Are Booing at the Gate',
+        text: 'Your own supporters are outside the gate, and they want the manager.',
+        options: [
+          { id: 'meet', label: 'Go Out to Them', cost: 'Patience \u22122 \u00b7 the Crowd Warms a Little' },
+          { id: 'shut', label: 'Shut the Gate', cost: 'No Gate This Month \u00b7 the Diehards Mind' },
+          { id: 'ignore', label: 'Wait It Out', cost: 'Patience \u22124' }
+        ], def: 'ignore' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['protest' + ctx.state.season] = true;
+        if (opt === 'meet') { if (c.rep) { c.rep.patience = Math.max(0, c.rep.patience - 2); REP.act(c.rep, 'went_out_to_them', {}); } return 'You Went Out to Them'; }
+        if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
+        if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
+      },
+      ai: (c) => 'meet'
+    },
+    {
+      id: 'strike', weight: 0.9,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
+        return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
+          text: 'Your people have heard what the stands think of the OA, and have stopped drilling until somebody pays them to start.',
+          options: [
+            { id: 'pay', label: 'Pay Them Back to Work', cost: '\u2212' + fmtCr(bill) },
+            { id: 'wait', label: 'Let Them Sit', cost: 'No Drill This Month' }
+          ], def: 'wait' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['strike' + ctx.state.season] = true;
+        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Strike Settled', -e.amount); if (c.rep) REP.act(c.rep, 'settled_a_strike', {}); return 'The Strike Was Paid Off'; }
+        c._noDrill = ctx.state.season * 100 + ctx.state.month;
+        return 'The Drill Stood Idle';
+      },
+      ai: (c, e) => spare(c) > e.amount * 4 ? 'pay' : 'wait'
+    },
+    {
+      id: 'leak', weight: 0.8,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (to) => ({ kind: 'leak', to: to, title: 'Somebody Is Talking',
+        text: 'A disgruntled hand has been seen drinking with a rival\u2019s crew, and what your squads are drilling is going with them.',
+        options: [
+          { id: 'find', label: 'Find Them', cost: '\u2212' + fmtCr(CONST.LEAK_HUNT) },
+          { id: 'let', label: 'Let It Go', cost: 'That OA Learns What You Are Drilling' }
+        ], def: 'let' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['leak' + ctx.state.season] = true;
+        if (opt === 'find') { LED.post(c.account, 'expense', 'A Leak Found', -CONST.LEAK_HUNT); return 'The Leak Was Found'; }
+        c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
+        return 'The Leak Ran';
+      },
+      ai: (c) => spare(c) > CONST.LEAK_HUNT * 4 ? 'find' : 'let'
+    }
+  );
   /* §MEDIA THE PRESS: what a columnist wants between media days */
   const standoutOf = c => alive(c).filter(f => !f.mirror_of).sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] || null;
   POOL.push({

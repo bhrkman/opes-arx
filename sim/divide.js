@@ -357,6 +357,10 @@
     CMD_W_STRIKE: 0.7,                  // [C] §COMMAND a strike on a squad in the open (× seek)
     CMD_W_STRIKE_OBJ: 1.4,              //     on a squad standing on an objective (× seek)
     CMD_W_HOLD: 0.3,                    // [C] §COMMAND holding ground where it is, a little toward the ring's future (× caution)
+    /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
+    CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
+    UNDERDOG_MORALE: 6,                 // [C] a day's morale a warm, full-share Underdogs faction lends an OA past hope
+    BLOODHOUND_FAME: 1.0,               // [C] how much further a kill's fame travels with a warm, full-share Bloodhounds faction
     CMD_W_SUPPLY: 0.5,                  // [C] §COMMAND what a rest site, or a still day on the ground, is worth to a group short of rations
     CMD_W_JOIN: 0.9,                    // [C] §COMMAND linking up with another group of the OA's own (the careful more)
     CMD_W_ADVANCE: 0.25,                // [C] §COMMAND moving on toward ground beyond reach, a day at a time (× boldness)
@@ -1268,6 +1272,12 @@
       if (c.withdrawn) continue;
       const o = odds[principalOf(c).id] || 0;
       if (c._minOdds == null || o < c._minOdds) { c._minOdds = o; c._engAtLow = c.engagements || 0; }
+      /* §STANDING THE UNDERDOGS SING LOUDEST WHEN IT IS HOPELESS: an OA below half its fair share of the odds, with a warm
+         Underdogs faction, finds its people steadier each day it holds on */
+      if (o < 0.5 / Math.max(1, umbrellas.length)) {
+        const lift = Math.max(0, factionLeanOf(c, 'underdogs')) * CONST.UNDERDOG_MORALE;
+        if (lift > 0) for (const q of c.squads) for (const b of squadHead(q)) b.condition.morale = Math.min(95, b.condition.morale + lift);
+      }
       if (c._openingOdds == null) c._openingOdds = o;     /* §6.12 what it dropped with */
     }
 
@@ -3804,8 +3814,12 @@
     if (vp === 1) m += CONST.CHAMPION_FAME_BONUS;
     return Math.max(CONST.UNDERDOG_FAME_FLOOR, m);
   }
+  /* §STANDING a faction's lean, −1..1 about indifference and weighted by its share of the stands */
+  function factionLeanOf(corp, f) { return corp && corp.rep ? (corp.rep.shares[f] || 0) * (REP.standing(corp.rep, f) - 50) / 50 : 0; }
   function transferFame(victim, takers, victimCorp, takerCorp) {
-    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp);
+    /* §STANDING a warm Bloodhounds faction roars for a kill: the name travels further */
+    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp)
+               * (1 + Math.max(0, factionLeanOf(takerCorp, 'bloodhounds')) * CONST.BLOODHOUND_FAME);
     if (!(gain > 0) || !takers.length) return 0;
     const each = gain / takers.length;
     for (const t of takers) {
@@ -4214,6 +4228,13 @@
     /* Drop day: the devout arrive elated. Declared in traits.json since Step 2 and read by
        nothing until the Step 6 audit. Placed here rather than at corp construction because
        the squad hook cache does not exist until the loop is set up. */
+    /* §STANDING THE CROWD GOES DOWN WITH THEM: a loved OA's people drop steadier, a jeered one's shaken */
+    for (const c of corps) {
+      if (!c.rep) continue;
+      const lean = (REP.standing(c.rep, 'crowd') - 50) / 50;
+      for (const q of c.squads) for (const b of squadHead(q))
+        b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + lean * CONST.CROWD_DROP_MORALE));
+    }
     for (const c of corps) {
       for (const q of c.squads) {
         const h = squadHooks(q);
@@ -6288,7 +6309,7 @@
       if (!c.rep) continue;
       const place = stats.placement[c.id];
       if (place != null) {
-        REP.act(c.rep, 'finished', { count: Math.max(0, corps.length - place) });
+        REP.act(c.rep, 'finished', { count: (corps.length + 1) / 2 - place });   /* above the middle of the table glory, below it the reverse */
       }
       if (stats.winner === c.id) REP.act(c.rep, 'won_planet', { rivalIds: corpIds });
       /* §3.1a held out: never sold, odds fell under the floor, and fought on from there */

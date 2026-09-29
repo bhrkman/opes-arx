@@ -169,7 +169,7 @@
   const ACTS = {
     /* --- the Divide, and its settlement --- */
     won_planet:         { q: { glory: 1.0 }, mag: 14, houses: -5, residue: 0.55 },       /* ctx.scale adds grit: how unlikely it was */
-    finished:           { q: { glory: 1.0 }, mag: { per: 0.9 }, residue: 0.15 },
+    finished:           { q: { glory: 1.0 }, mag: { per: 2.0 }, residue: 0.15 },   /* ctx.count: places above the middle of the table, negative below */
     ceded:              { q: { glory: -1.0, grit: -0.6, care: 0.5 }, mag: [4, 14], buyer: 3, residue: 0.15 },
     bought_win:         { q: { grit: -1.0, glory: -0.3, word: -0.2 }, mag: [4, 10], target: -6, residue: 0.15 },
     held_out:           { q: { grit: 1.0, blood: 0.3 }, mag: [3, 10], residue: 0.20 },
@@ -222,7 +222,35 @@
     no_comment:         { q: { word: -0.6, glory: -0.3 }, mag: 2, residue: 0.10 },
     media_cut_against:  { q: { glory: -1.0 }, mag: 3, houses: -2, residue: 0.20 },
     sent_regrets:       { q: { glory: -0.5 }, mag: 1, houses: -1, residue: 0.05 },
-    petitioned:         { q: { word: 0.4, care: 0.3 }, mag: 1.5, residue: 0.10 }
+    petitioned:         { q: { word: 0.4, care: 0.3 }, mag: 1.5, residue: 0.10 },
+    refused_a_raise:    { q: { care: -0.6, word: -0.2 }, mag: 2, residue: 0.15 },
+    released_a_fighter: { q: { care: -0.8, word: -0.4 }, mag: 3, residue: 0.20 },          /* ctx.grave for a star */
+    left_a_debtor:      { q: { care: -1.0, blood: 0.2 }, mag: 3, residue: 0.20 },
+    disciplined:        { q: { craft: 0.5, blood: -0.4, care: -0.2 }, mag: 2, residue: 0.10 },
+    fined_both:         { q: { craft: 0.3, care: -0.2 }, mag: 1.5, residue: 0.10 },
+    let_it_lie:         { q: { blood: 0.6, craft: -0.4 }, mag: 2, residue: 0.10 },
+    bought_rare_kit:    { q: { blood: 0.5, glory: 0.5, craft: 0.2 }, mag: 2, residue: 0.10 },
+    a_hand_handled:     { q: {}, mag: 1.5, residue: 0.10 },                                    /* ctx.q: what the answer was made of */
+    lost_the_dividend:  { q: { glory: -0.5 }, mag: 2, residue: 0.10 },
+    lost_the_eight:     { q: { glory: -0.6 }, mag: 2, residue: 0.10 },
+    /* --- the year's work, month by month: ctx.count is the focus spent --- */
+    drilled_hard:       { q: { craft: 0.5, blood: 0.3, care: -0.5 }, mag: { per: 0.18 }, residue: 0.05 },
+    rested_them:        { q: { care: 0.8, craft: -0.2, blood: -0.3 }, mag: { per: 0.18 }, residue: 0.05 },
+    scouted:            { q: { craft: 0.8, blood: -0.2 }, mag: { per: 0.14 }, residue: 0.05 },
+    courted:            { q: { glory: 0.5, word: -0.2 }, mag: { per: 0.10 }, residue: 0.05 },
+    /* --- who comes aboard, and who is let go --- */
+    signed_our_own:     { q: { word: 0.6, care: 0.3 }, mag: 1.2, residue: 0.10 },
+    hired_a_gun:        { q: { glory: 0.7, blood: 0.3, word: -0.3 }, mag: [1, 5], residue: 0.10 },   /* ctx.scale: their fame */
+    took_a_conscript:   { q: { blood: 0.4, grit: 0.3, care: -0.2 }, mag: 1, residue: 0.10 },
+    let_a_veteran_go:   { q: { word: -0.6, care: -0.3 }, mag: [1, 5], residue: 0.20 },      /* ctx.scale: their years; ctx.grave for a star */
+    /* --- the crowd's own dispatches --- */
+    gave_it_away:       { q: { care: 1.0, word: 0.6 }, mag: 4, grave: true, residue: 0.20 },
+    took_the_collection:{ q: { glory: 0.3 }, mag: 1, residue: 0.05 },
+    read_the_papers:    { q: { craft: 0.6, word: -0.3 }, mag: 2, target: -4, residue: 0.15 },
+    sent_the_papers_back:{ q: { word: 1.0 }, mag: 3, target: 8, grave: true, residue: 0.20 },
+    went_out_to_them:   { q: { word: 0.6, care: 0.4 }, mag: 4, residue: 0.15 },
+    shut_the_gate:      { q: { word: -0.6, glory: -0.4 }, mag: 3, residue: 0.15 },
+    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 }
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
@@ -413,7 +441,7 @@
     const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
     const loud = (ctx.storyMult || 1) * (ctx.mult || 1);
     const mag = resolve(spec.mag, c) * loud;
-    const q = Object.assign({}, spec.q || {});
+    const q = Object.assign({}, spec.q || {}, ctx.q || {});
     /* a win against the odds is grit as well as glory (ctx.scale: how unlikely it was) */
     if (type === 'won_planet' && ctx.scale != null) q.grit = (q.grit || 0) + clamp(ctx.scale, 0, 1);
     const grave = !!(spec.grave || ctx.grave);

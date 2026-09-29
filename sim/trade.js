@@ -40,6 +40,7 @@
   const REP = isNode ? require('./reputation.js') : global.CDREP;
 
   const CONST = {
+    LETTER_REGARD: 0.15,        // [C] §STANDING how far a house's regard moves what it opens a letter at, either way
     /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
        fleet's own wage bill pays about this much for a point of quality (median salary ×
        12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
@@ -282,7 +283,11 @@
        negotiation by overpaying — and they fill with gear that FITS rather than rounding
        up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
        a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
-    const target = price * 0.95;
+    /* §STANDING A HOUSE WRITES AS IT REGARDS YOU: one that likes you opens near the whole price, one that does not opens
+       low — and one that loathes you opens so low it is an insult, and the fairness test below keeps it from writing */
+    const regard = me.rep && REP && me.rep.base && me.rep.base.houses && me.rep.base.houses[them.id] != null
+      ? (REP.standing(me.rep, 'house', them.id) - 50) / 50 : 0;
+    const target = price * (0.95 + CONST.LETTER_REGARD * regard);
     /* MONEY FIRST. It filled with gear and paid the remainder in credits, so an OA sitting on a quarter of a
        million wrote "₡52, a plasma caster, four carbines, five vests and five rifles for your best man" — a letter
        that reads as junk and trains a manager to bin the box. An OA pays in credits as far as it can spare them
