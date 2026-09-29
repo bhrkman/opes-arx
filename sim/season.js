@@ -89,7 +89,7 @@
     FAME_WATCHED: 0.5,           // [C] and a loved OA is written about: a rival scouting it gets this much more, at a crowd of 100
     FAIRWEATHER_GATE: 1.5,
     CROWD_INTEL_LEVELS: 4,       // [C] what a supporter's papers, or a leak, is worth in intel levels       // [C] how much harder the Fairweathers swing the gate than the rest of the crowd
-    BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off 55
+    BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off indifference
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
        STRESS. Both come down on their own every month; focus speeds either up sharply, and
@@ -1803,7 +1803,7 @@
     }
     tally.mended += mended;
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
-    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 55) * CONST.BOARD_HEARS));
+    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
        block toward their ceiling whether or not anybody watches. Green-gated like the
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */

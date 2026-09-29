@@ -14,10 +14,15 @@ gifts; a Mon-Wa is one being in two bodies and is hired, seated and lost as one.
 people are natural-born to its ship, conscripts bought out of the Kier Bastille, mercenaries
 bid for on an open market, or rookies raised by the Aleas and drafted.
 
-Everything an OA does is watched: by its own people and their families, by the fleet of
-rival OAs, and by a board that pays the bills and can take the OA away. Standing with each is
-earned by acts and decays with time. The press reports what it sees and a manager can put a
-face in front of it.
+Everything an OA does is watched. Its crowd is six factions — Bloodhounds for blood,
+Tacticians for craft, Fairweathers for winning, Underdogs for long odds, Families for people
+home, and Diehards, the steady majority, for a word kept — and every act is judged by what it
+is made of, so one choice warms some and cools others. The stands drift toward whoever an OA
+feeds, and the mix becomes its identity. Each of the seven other houses regards it by the
+taste of its own stands and by what was done to it. A board pays the bills and can take the
+OA away. The crowd is felt in the barracks and on the ground: loyalty, who turns up to trial,
+the gate, morale at the drop, what the stands bring to the airlock or throw at the gate. The
+press reports what it sees and a manager can put a face in front of it.
 
 ## The year
 
@@ -93,4 +98,5 @@ saw; the board judges its card and the sponsors judge their conditions.
 - Outside the ring is death, and a truce is never broken.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
+- Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.

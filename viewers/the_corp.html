@@ -491,8 +491,8 @@
   .rfront .gauge .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;padding:0;border:none}
   .rfront .gauge .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--b)}
   .rfront .gauge .bar i.board{background:var(--cred)}
-  .rfront .gauge .bar i.warm{background:var(--b)} .rfront .gauge .bar i.cold{background:var(--red)}
-  .rfront .gauge .bar b.zero{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--dim)}
+  .rfront .gauge.sm{padding:2px 0 2px 12px;font-size:10.5px} .rfront .gauge.sm .lab{width:80px}
+  .rfront .gauge.sm .bar{height:4px}
   .rfront .close.total{border-top:none;margin-top:0;padding-top:4px} .rfront .close .v.gold{color:var(--cred)}
   .rfront .bad{color:var(--red)}
   .rfront .gauge .bar em{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink)}
@@ -586,9 +586,7 @@
   .fleetbox .fleetrow:last-child{border-bottom:none}
   .fleetbox .fleetrow.hd{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
   .fleetbox .nm small{display:block;font-size:9.5px;color:var(--dim)}
-  .fleetbox .fbar{position:relative;height:6px;background:var(--line);border-radius:3px}
-  .fleetbox .fbar i{position:absolute;top:0;bottom:0;border-radius:3px}
-  .fleetbox .fbar .c{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--faint)}
+  .fleetbox .fbar{position:relative}
   .fleetbox .frd{white-space:nowrap} .fleetbox .frd b{margin-right:6px}
   .fleetbox .flast{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
   /* narrow: the row folds to two lines rather than dropping the reading and the year — nothing
@@ -894,9 +892,11 @@
   .legend td i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid var(--line2)}
   .legend tr.special td{color:var(--ink)}
   #audiences .audbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
-  .audrow2{display:grid;grid-template-columns:118px 1fr 96px;gap:14px;align-items:center;padding:10px 2px 4px}
+  .audrow2{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;padding:10px 2px 4px}
   .audrow2 .an{font-size:12.5px} .audrow2 .an small{display:block;font-size:10px;color:var(--dim)}
-  .audrow2 .ab{padding-bottom:14px}
+  .audrow2 .ab{padding-bottom:4px}
+  .audrow2.lead{border-bottom:1px solid var(--line2);padding-bottom:10px;margin-bottom:4px} .audrow2.lead .an{font-size:14px}
+  .audrow2.fac{padding-top:6px} .audrow2 .share{font-size:10.5px;color:var(--cred);margin-left:4px}
   .audrow2 .ard{text-align:right;font-size:11px;white-space:nowrap}
   .audrow2 .ard b{display:block;font-size:13px;color:var(--ink)}
   /* THE BAND WORD CARRIES ITS BAND'S COLOUR. `.bad` has no global rule in this stylesheet
@@ -11133,7 +11133,7 @@
        crowd; standing decides whether they come back. */
     /* §MONEY cut a quarter at the first money pass: with the grant the gate was a second
        income of the same order, and pay sat at a quarter of what came in */
-    GATE_BASE: 1950,                 // [C] a month's gate for an OA nobody minds
+    GATE_BASE: 5800,                 // [C] a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
     GATE_PER_STANDING: 41,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
     GATE_PER_FAME: 16,               // [C] per point of roster fame (the draw)
@@ -11275,10 +11275,11 @@
    *
    *   retainerBill(roster) + purseBill(dropped) = what the season actually cost in people.
    */
-  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw. */
-  function gateFor(ownStanding, fleetStanding, rosterFame) {
+  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw: the crowd and the houses, each
+      0..100, read as −100..100 around indifference. */
+  function gateFor(crowd, houses, rosterFame) {
     const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
-    const good = (ownStanding || 0) + (fleetStanding || 0) * CONST.GATE_FLEET_SHARE;
+    const good = ((crowd == null ? 50 : crowd) - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }
@@ -11407,25 +11408,27 @@
 })(typeof window !== "undefined" ? window : globalThis);
 
 /* ==== reputation.js ==== */
-/* Capital Divide — /sim/reputation.js  (Step 7b)
+/* Capital Divide — /sim/reputation.js
  *
- * Who is watching, what they think of you, and what that costs. Implements REPUTATION.md:
- *   §2 the four audiences and the memory · §3 the acts · §4 fame · §5 placement
- *   §6 the board, the holds, the goal card and patience · §10 the premium and the wall
- *   §11 the mercenary price
+ * Who is watching, what they think of you, and what that costs.
  *
- * WHAT THIS OWNS: standing, and everything that reads it. This is the FIRST thing in the
- * project that outlives a Divide (R1) — a corp's memory, its board's patience and its holds
- * survive; rosters, armouries and treasuries still do not, and building those is Step 8.
+ * THE AUDIENCES (ruled at the standing pass). Every standing is 0 to 100, and 50 is indifference.
+ *   YOUR CROWD is six factions, each with a warmth and a share of the stands: Bloodhounds (blood), Tacticians
+ *     (craft), Fairweathers (glory, and quick to leave), Underdogs (grit, long odds), Families (care, people
+ *     home) and Diehards (the word kept; the largest share, moved only by grave acts). The shares drift each
+ *     year toward the factions an OA feeds, so the mix of the stands becomes the OA's identity. The crowd's
+ *     warmth is the share-weighted mean.
+ *   THE HOUSES are the seven other OAs, each how that house and its people regard you. A house judges by its own
+ *     crowd's mix — what its stands like, it likes to see — plus what you did to it directly.
+ *   THE BOARD is patience, 0 to 100.
+ * The Aleas and a single "fleet" audience are gone (ruled).
  *
- * WHAT THIS DOES NOT OWN: money. Per R2 and R3 there is no exchange rate between standing
- * and credits anywhere in this file, and there must never be one. What §10 exports is a
- * MULTIPLIER on an asking price and a wall past which no price is accepted — an ugly deal
- * makes a corp expensive and then makes it unavailable. It never states what a point is worth.
+ * AN ACT DECLARES WHAT IT IS — how much blood, craft, glory, grit, care and word is in it — and each audience
+ * weighs that by its taste, so one act splits the stands instead of nudging one bar.
  *
- * Plain serialisable data: no closures, no functions on the record. Step 8 writes it to disk.
+ * WHAT THIS DOES NOT OWN: money. There is no exchange rate between standing and credits in this file.
  *
- * Pure logic: no DOM, no Math.random, no I/O. Every roll takes an injected rng.
+ * Plain serialisable data; pure logic; every roll takes an injected rng.
  */
 (function (global) {
   "use strict";
@@ -11433,20 +11436,26 @@
   const P = isNode ? require('./prng.js') : global.CDPRNG;
 
   const CONST = {
-    /* §2.1 the scale — signed, because loathing is a position and not an absence */
-    STANDING_FLOOR: -100,               // [S]
+    /* §2.1 the scale — 0 to 100, and 50 is indifference (ruled) */
+    STANDING_FLOOR: 0,                  // [S]
     STANDING_CEIL: 100,                 // [S]
-    SOFT_AT: 40,                        // [C] §2.2 past this the scale compresses toward the ceiling
-    SOFT_SCALE: 150,                    // [C] how much raw feeling it takes to climb the last stretch:
-                                        //     an OA with two hundred points of goodwill reads high,
-                                        //     not pinned, and can still be told from one with four
-    DRIFT: 0.22,                        // [C] §2.3 the share of the gap back to an OA's resting
-                                        //     place that closes each season
+    STANDING_MID: 50,                   // [S] where every audience starts that has no reason not to
+    SOFT_AT: 25,                        // [C] §2.2 past this far from indifference the scale compresses: the last
+    SOFT_SCALE: 30,                     //     points cost the most, and nothing pins at the ends
+    DRIFT: 0.22,                        // [C] §2.3 the share of what is felt that fades each season
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
-    MEMORY_CAP: 40,                     // [S] acts kept per audience before the tail is folded
-    HEADLINE_AT: 20,                    // [C] §3.3 an act this big is remembered by name
+    MEMORY_CAP: 80,                     // [S] acts kept before the oldest are folded into the base
+    HEADLINE_AT: 12,                    // [C] §3.3 an act this big to anyone is remembered by name
+
+    /* §2.4 the crowd */
+    SHARE_SHIFT: 0.30,                  // [C] how far a year moves the stands toward the factions an OA feeds
+    SHARE_FLOOR: 0.04,                  // [C] no faction ever leaves entirely
+    DIEHARD_DAMP: 0.30,                 // [C] what an ordinary act moves the Diehards, of what it moves anyone else
+    DIEHARD_GRAVE: 1.20,                // [C] and what a grave one does
+    /* §2.5 the houses */
+    HOUSE_SPECTATE: 0.45,               // [C] a house watches you with its own crowd's taste, at this weight
 
     /* §4 fame — attention, not approval (R11) */
     FAME_FLOOR: 0,                      // [S]
@@ -11481,8 +11490,8 @@
     STANDING_THRIFT_W: 1.30,            // [C] how hard a cheap year moves a board with no
                                         //     interest in the planet; scaled DOWN by interest
     STANDING_POPULARITY_W: 0.85,        // [C] §5.3 what the crowd is worth beside the books
-    POPULARITY_NEUTRAL: 25,             // [C] the standing a board takes for granted
-    POPULARITY_SPAN: 45,                // [C] the distance from neutral to delight or fury
+    POPULARITY_NEUTRAL: 50,             // [C] the crowd a board takes for granted: indifference is unremarkable, not a failure
+    POPULARITY_SPAN: 20,                // [C] the distance from that to delight or fury
     STANDING_CARE_W: 0.70,              // [C] how hard bringing people home moves one
     CARE_NEUTRAL_LOSS: 0.29,            // [C] the loss rate a board considers unremarkable.
                                         //     MEASURED, not assumed, and re-measured whenever
@@ -11533,125 +11542,130 @@
     CALL_PATIENCE_RATE: 0.055,          // [C] §6.5 patience per 10,000 credits asked of the board
     CALL_ESCALATOR: 0.80,               // [C] and asking twice costs more than asking once
 
-    /* §10 the premium and the wall — what replaces the deleted exchange rate */
-    UGLY_PREMIUM_MAX: 1.25,             // [C] what being seen to do it multiplies a price by.
-                                        //     RE-DERIVED, and the first draft was wrong by an
-                                        //     order of magnitude: the additive reputation cost
-                                        //     this replaces was only 5–20% of an asking price,
-                                        //     never a doubling. At 2.20 both sides moved so far
-                                        //     apart that the market closed completely — zero
-                                        //     deals in sixty Divides. The premium is the gentle
-                                        //     half of this mechanism; the wall is the teeth
-    UGLY_WALL: 0.75,                    // [S] past this share of what a corp can afford, no
-                                        //     price is enough. This is where the corp that
-                                        //     refuses to deal at all lives — the far end of a
-                                        //     scale rather than a flag on a profile
-    TOLERANCE_BASE: 40.0,               // [C] standing points a comfortable corp can shrug off.
-                                        //     Re-derived against N-T1/N-T3/N-T7: 1.9 joins per
-                                        //     Divide, chains in 31%, median 25 days
-
     /* §11 the mercenary price — a price, not an audience (R7) */
     MERC_INDEX_HALFLIFE: 2,             // [C] seasons
     MERC_PRICE_SWING: 0.35              // [H] how far the market moves for how you spend people
   };
 
-  const AUDIENCES = ['own', 'rival', 'fleet', 'aleas'];
+  /* §2.4 THE CROWD'S FACTIONS, and what each wants to see. A taste is a weight on each quality an act can carry. */
+  const FACTIONS = ['bloodhounds', 'tacticians', 'fairweathers', 'underdogs', 'families', 'diehards'];
+  const QUALITIES = ['blood', 'craft', 'glory', 'grit', 'care', 'word'];
+  const TASTE = {
+    bloodhounds:  { blood: 1.00, craft: 0.00, glory: 0.35, grit: 0.25, care: -0.10, word: 0.00 },
+    tacticians:   { blood: -0.15, craft: 1.00, glory: 0.30, grit: 0.10, care: 0.10, word: 0.20 },
+    fairweathers: { blood: 0.15, craft: 0.10, glory: 1.40, grit: -0.20, care: 0.00, word: 0.00 },
+    underdogs:    { blood: 0.10, craft: 0.10, glory: -0.15, grit: 1.10, care: 0.10, word: 0.20 },
+    families:     { blood: -0.40, craft: 0.00, glory: 0.10, grit: 0.00, care: 1.10, word: 0.45 },
+    diehards:     { blood: 0.00, craft: 0.00, glory: 0.20, grit: 0.20, care: 0.50, word: 0.90 }
+  };
+  /* how long each faction remembers, in seasons: a Fairweather forgets a triumph by next year, a Diehard does not */
+  const HALFLIFE = { bloodhounds: 3, tacticians: 3, fairweathers: 1, underdogs: 3, families: 3, diehards: 5 };
   const CATEGORIES = ['minerals', 'fuels', 'luxuries', 'foods'];
+  const REGISTERS = ['gracious', 'defiant', 'humble', 'deflecting', 'candid', 'evasive'];
+  /* the audiences a caller may ask for by name */
+  const AUDIENCES = FACTIONS.concat(['crowd', 'house', 'houses']);
 
   /* --- §3.1 the act table ------------------------------------------------------------
-     One entry per thing a corp can be seen doing. A value may be:
-        a number      flat
-        [lo, hi]      scaled by ctx.scale (0..1) — how much you threw away
-        {per: n}      multiplied by ctx.count, with ctx.famous counted at famousMult
-     A blank means that audience does not care, which is most of the interesting content:
-     your own ships punish losses and the wider fleet barely notices them, and that is the
-     difference between supporters and spectators. */
+     Every act says what it IS, and the audiences decide what they make of it.
+        q        the qualities in it, each -1..1 (blood, craft, glory, grit, care, word)
+        mag      how big it is: a number, [lo, hi] scaled by ctx.scale, or {per: n} by ctx.count
+                 (ctx.famous counted at famousMult)
+        target   felt by the house the act was done to (ctx.targetId), on top of how it watched
+        houses   felt by every house directly — envy of a winner, respect for a gracious word
+        buyer    felt by the house that bought from you (ctx.buyerId)
+        grave    the Diehards feel it in full; ctx.grave marks one case of an act as grave
+        residue  the share never forgotten (R8)
+     ctx.mult (and the older ctx.storyMult) scales the whole act: who it happened to changes how loudly it lands. */
   const ACTS = {
-    won_planet:        { own: 18, rival: -4, fleet: 6, aleas: 4, residue: 0.55 },
-    finished:          { own: { per: 1.6 }, fleet: { per: 0.5 }, residue: 0.15 },
-    ceded:             { own: [-4, -14], fleet: [-5, -18], aleas: 2, buyer: 3, residue: 0.15 },
-    bought_win:        { own: -2, rival: -6, fleet: [-4, -11], aleas: -3, residue: 0.15 },
-    /* §3.1a HOLDING OUT. An OA whose odds fell through the floor and kept fighting is
-       what the crowd came to see; scaled by how hopeless it was and how much fight it gave. */
-    held_out:          { own: [2, 9], fleet: [1, 6], aleas: 1, residue: 0.20 },
-    /* §3.1b WHAT IS LEFT WAITING. An OA that wrote and got no answer noticed; a board that
-       asked and heard nothing took the silence as the answer. */
-    snubbed_letter:    { rival: -4, residue: 0.25 },
-    /* §3.1c WHAT A CAREFUL OA EARNS. Nearly every act that touched an OA's own people
-       took something away — ceding, selling, refusing, silence — and the ones that gave came
-       only from fighting, so a manager who kept his people alive was hated for it. These are
-       what a year of ordinary good management is worth to the crews and the fans. */
-    everyone_came_home: { own: 7, fleet: 2, residue: 0.20 },   // a Divide with no dead
-    few_lost:           { own: 3, residue: 0.20 },             // fewer than the fleet's average
-    paid_the_wages:     { own: 2, residue: 0.30 },             // the books balanced, nobody went short
-    granted_a_raise:    { own: 3, residue: 0.25 },
-    kept_a_debtor:      { own: 4, residue: 0.25 },
-    a_star_rose:        { own: 4, fleet: 5, residue: 0.20 },   // one of yours became famous
-    took_the_purse:     { own: 5, fleet: 4, residue: 0.20 },   // the Dividend
-    the_gate_was_good:  { own: 2, fleet: 2, residue: 0.15 },
-    /* The Eight: the fleet came to see it */
-    won_the_eight:     { own: 4, fleet: 6, aleas: 2, residue: 0.25 },
-    silent_before_board: { own: -3, aleas: -1, residue: 0.20 },
-    refused_all:       { own: 6, rival: -5, fleet: 9, aleas: -4, residue: 0.30 },
-    kept_truce:        { own: 1, rival: 7, fleet: 3, aleas: 1, residue: 0.15 },
-    betrayed:          { own: -25, rival: -60, fleet: -45, aleas: -70, residue: 0.85 },
-    ransomed_home:     { own: 9, rival: 5, fleet: 2, residue: 0.15 },
-    abandoned_ours:    { own: -14, fleet: -3, residue: 0.30 },
-    released_captives: { own: 2, rival: 11, fleet: 6, aleas: 1, residue: 0.15 },
-    killed_captives:   { own: -4, rival: -26, fleet: -16, aleas: -5, residue: 0.85 },
-    /* §6.4 WHAT A PRINCIPAL DID WITH A OA THAT ASKED TO COME IN. Raised on the principal
-       with `targetId` the OA in question, so it is THAT OA's people who remember — and
-       the fleet, which watches how a winner treats the beaten. Side terms at a table whose
-       spine is money and odds; none of these is large. */
-    generous_terms:    { own: -1, rival: 6, fleet: 2, residue: 0.20 },    // and gave it more than it had coming
-    /* §6.10 an arrangement between two OAs whose squads never met this Divide. Teaming up
-       for alliance's sake — not circumstance — is what the Aleas and the fans punish. Raised
-       on both. */
-    kept_captive:      { own: 1, rival: -9, fleet: -2, residue: 0.15 },
-    our_dead:          { own: { per: -0.7 }, fleet: { per: -0.2 }, famousMult: 3, residue: 0.15 },
-    their_dead:        { own: { per: 0.3 }, rival: { per: -0.5 }, fleet: { per: 0.2 },
-                         famousMult: 3, residue: 0.15 },
-    worthy_fight:      { own: 1, rival: 0.5, fleet: 2.5, aleas: 2, residue: 0.15 },
-    hid:               { own: { per: -1 }, fleet: { per: -4 }, aleas: { per: -5 }, residue: 0.15 },
-    last_ground:       { own: 5, rival: 2, fleet: 8, aleas: 7, residue: 0.15 },
-    /* MEDIA DAY, at the seam. Performing before the drop is the one act here that is bought
-       rather than earned — every other entry in this table is a thing that HAPPENED to you or
-       that you did on the ground. So it pays the fleet, which watches everybody, and it pays
-       your own ships a little for the spectacle; it does not touch the Aleas, who are not
-       impressed by press, and it makes rivals' fanbases like you slightly less for showing off.
-       The price is not here, because it is not a reputation price: turning up tells the other
-       seven what you brought. */
-    media_day:         { own: 3, rival: -1, fleet: 6, residue: 0.15 },
-    /* --- THE TRANSFER MARKET, seen from the stands (ruled at the trade pass).
-       Selling somebody is not just paperwork: your own supporters mind, and how much they
-       mind is who you sold. `ctx.count` carries the fighter's FAME, so an unknown moving on
-       is a shrug and a famous one leaving is a wound — the same {per} shape `our_dead`
-       uses. The wider fleet barely looks up; the Aleas do not care at all about who is on
-       whose books.
-
-       And the mirror, which is the part that makes a transfer market feel like one: the
-       SELLING side's supporters warm to whoever took their star. That is `buyer`, the same
-       hook ceding already uses to pay the corp that bought a claim — a rival fanbase can
-       think better of you for giving one of their own a place to be. */
-    sold_away:         { own: { per: -0.22 }, fleet: { per: -0.02 }, buyer: { per: 0.18 },
-                         residue: 0.20 },
-    /* a small flat knock for the fact of it, so trading a nobody is not entirely free */
-    sold_anyone:       { own: -1.5, residue: 0.15 },
-    /* §8.2 the address. One entry per register, so a guard can assert that every register
-       moves at least one audience and none of them is a dead option. */
-    said_gracious:     { rival: 7, fleet: 3, residue: 0.15 },
-    said_defiant:      { own: 6, rival: -3, fleet: 1, residue: 0.15 },
-    said_humble:       { own: 3, fleet: 4, aleas: 3, residue: 0.15 },
-    said_deflecting:   { own: 4, aleas: -8, fleet: -2, residue: 0.15 },
-    said_candid:       { own: -2, fleet: 9, aleas: -4, residue: 0.15 },
-    said_evasive:      { own: -1, rival: -1, fleet: -2, aleas: -1, residue: 0.15 }
+    /* --- the Divide, and its settlement --- */
+    won_planet:         { q: { glory: 1.0 }, mag: 14, houses: -5, residue: 0.55 },       /* ctx.scale adds grit: how unlikely it was */
+    finished:           { q: { glory: 1.0 }, mag: { per: 2.0 }, residue: 0.15 },   /* ctx.count: places above the middle of the table, negative below */
+    ceded:              { q: { glory: -1.0, grit: -0.6, care: 0.5 }, mag: [4, 14], buyer: 3, residue: 0.15 },
+    bought_win:         { q: { grit: -1.0, glory: -0.3, word: -0.2 }, mag: [4, 10], target: -6, residue: 0.15 },
+    held_out:           { q: { grit: 1.0, blood: 0.3 }, mag: [3, 10], residue: 0.20 },
+    refused_all:        { q: { grit: 0.8, word: 0.4, blood: 0.3 }, mag: 7, houses: -3, residue: 0.30 },
+    last_ground:        { q: { grit: 0.7, blood: 0.5, glory: 0.5 }, mag: 6, houses: 1, residue: 0.15 },
+    everyone_came_home: { q: { care: 1.0, craft: 0.4 }, mag: 8, residue: 0.20 },
+    few_lost:           { q: { care: 1.0 }, mag: 4, residue: 0.20 },
+    our_dead:           { q: { care: -1.0 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
+    their_dead:         { q: { blood: 1.0 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
+    worthy_fight:       { q: { blood: 0.5, craft: 0.5, grit: 0.3 }, mag: { per: 1.2 }, houses: { per: 0.3 }, residue: 0.15 },
+    hid:                { q: { blood: -1.0, grit: -0.6 }, mag: { per: 1.2 }, houses: { per: -0.5 }, residue: 0.15 },
+    kept_truce:         { q: { word: 1.0 }, mag: 3, target: 8, residue: 0.15 },
+    betrayed:           { q: { word: -1.0 }, mag: 22, target: -45, houses: -8, grave: true, residue: 0.85 },
+    generous_terms:     { q: { word: 0.5 }, mag: 2, target: 6, residue: 0.20 },
+    ransomed_home:      { q: { care: 1.0, word: 0.4 }, mag: 8, target: 4, residue: 0.15 },
+    abandoned_ours:     { q: { care: -1.0, word: -0.5 }, mag: 14, grave: true, residue: 0.30 },
+    released_captives:  { q: { word: 0.6, blood: -0.5, care: 0.3 }, mag: 4, target: 11, residue: 0.15 },
+    killed_captives:    { q: { blood: 0.8, word: -1.0 }, mag: 12, target: -26, houses: -4, grave: true, residue: 0.85 },
+    kept_captive:       { q: { blood: 0.3 }, mag: 2, target: -9, residue: 0.15 },
+    /* --- the year --- */
+    a_star_rose:        { q: { glory: 1.0, blood: 0.3 }, mag: 5, residue: 0.20 },
+    took_the_purse:     { q: { glory: 1.0, craft: 0.5 }, mag: 5, residue: 0.20 },
+    the_gate_was_good:  { q: { glory: 0.6 }, mag: 2, residue: 0.15 },
+    won_the_eight:      { q: { glory: 1.0, blood: 0.5 }, mag: 6, houses: 1, residue: 0.25 },
+    paid_the_wages:     { q: { care: 1.0, word: 0.3 }, mag: 2.5, residue: 0.30 },
+    granted_a_raise:    { q: { care: 1.0 }, mag: 3, residue: 0.25 },
+    kept_a_debtor:      { q: { care: 0.8, word: 0.6 }, mag: 4, residue: 0.25 },
+    silent_before_board:{ q: { word: -1.0 }, mag: 3, residue: 0.20 },
+    snubbed_letter:     { target: -4, residue: 0.25 },
+    media_day:          { q: { glory: 1.0 }, mag: 4, houses: -1, residue: 0.15 },
+    /* --- the market, seen from the stands: ctx.count is the fighter's fame --- */
+    sold_away:          { q: { word: -1.0, care: -0.3 }, mag: { per: 0.2 }, buyer: { per: 0.18 }, residue: 0.20 },   /* ctx.grave for a star */
+    sold_anyone:        { q: { word: -0.5 }, mag: 1.5, residue: 0.15 },
+    /* --- §8.2 the address: one per register, so every register moves somebody --- */
+    said_gracious:      { q: { word: 0.6 }, mag: 3, houses: 4, residue: 0.15 },
+    said_defiant:       { q: { blood: 0.6, grit: 0.5 }, mag: 5, houses: -2, residue: 0.15 },
+    said_humble:        { q: { care: 0.5, word: 0.4 }, mag: 3, houses: 2, residue: 0.15 },
+    said_deflecting:    { q: { glory: 0.3, word: -0.5 }, mag: 3, residue: 0.15 },
+    said_candid:        { q: { word: 0.8, craft: 0.3 }, mag: 4, houses: 3, residue: 0.15 },
+    said_evasive:       { q: { word: -0.4 }, mag: 2, houses: -1, residue: 0.15 },
+    /* --- the dispatches --- */
+    sold_a_fighter:     { q: { word: -0.8, care: -0.3 }, mag: 4, residue: 0.20 },
+    refused_an_offer:   { q: { word: 0.6 }, mag: 2, target: -2, residue: 0.15 },
+    answered_a_slight:  { q: { blood: 0.5, grit: 0.4 }, mag: 3, target: -4, residue: 0.20 },
+    ignored_a_slight:   { q: { grit: -0.5, word: 0.2 }, mag: 2, residue: 0.15 },
+    laughed_off_a_slight:{ q: { glory: 0.3 }, mag: 1, residue: 0.10 },
+    profiled:           { q: { glory: 1.0 }, mag: 2, residue: 0.10 },
+    spoke_well:         { q: { glory: 0.6, word: 0.4 }, mag: 2, houses: 1, residue: 0.10 },
+    owned_it:           { q: { word: 1.0 }, mag: 3, residue: 0.15 },
+    no_comment:         { q: { word: -0.6, glory: -0.3 }, mag: 2, residue: 0.10 },
+    media_cut_against:  { q: { glory: -1.0 }, mag: 3, houses: -2, residue: 0.20 },
+    sent_regrets:       { q: { glory: -0.5 }, mag: 1, houses: -1, residue: 0.05 },
+    petitioned:         { q: { word: 0.4, care: 0.3 }, mag: 1.5, residue: 0.10 },
+    refused_a_raise:    { q: { care: -0.6, word: -0.2 }, mag: 2, residue: 0.15 },
+    released_a_fighter: { q: { care: -0.8, word: -0.4 }, mag: 3, residue: 0.20 },          /* ctx.grave for a star */
+    left_a_debtor:      { q: { care: -1.0, blood: 0.2 }, mag: 3, residue: 0.20 },
+    disciplined:        { q: { craft: 0.5, blood: -0.4, care: -0.2 }, mag: 2, residue: 0.10 },
+    fined_both:         { q: { craft: 0.3, care: -0.2 }, mag: 1.5, residue: 0.10 },
+    let_it_lie:         { q: { blood: 0.6, craft: -0.4 }, mag: 2, residue: 0.10 },
+    bought_rare_kit:    { q: { blood: 0.5, glory: 0.5, craft: 0.2 }, mag: 2, residue: 0.10 },
+    a_hand_handled:     { q: {}, mag: 1.5, residue: 0.10 },                                    /* ctx.q: what the answer was made of */
+    lost_the_dividend:  { q: { glory: -0.5 }, mag: 2, residue: 0.10 },
+    lost_the_eight:     { q: { glory: -0.6 }, mag: 2, residue: 0.10 },
+    /* --- the year's work, month by month: ctx.count is the focus spent --- */
+    drilled_hard:       { q: { craft: 0.5, blood: 0.3, care: -0.5 }, mag: { per: 0.30 }, residue: 0.05 },
+    rested_them:        { q: { care: 0.8, craft: -0.2, blood: -0.3 }, mag: { per: 0.30 }, residue: 0.05 },
+    scouted:            { q: { craft: 0.8, blood: -0.2 }, mag: { per: 0.22 }, residue: 0.05 },
+    courted:            { q: { glory: 0.5, word: -0.2 }, mag: { per: 0.16 }, residue: 0.05 },
+    /* --- who comes aboard, and who is let go --- */
+    signed_our_own:     { q: { word: 0.6, care: 0.3 }, mag: 1.2, residue: 0.10 },
+    hired_a_gun:        { q: { glory: 0.7, blood: 0.3, word: -0.3 }, mag: [1, 5], residue: 0.10 },   /* ctx.scale: their fame */
+    took_a_conscript:   { q: { blood: 0.4, grit: 0.3, care: -0.2 }, mag: 1, residue: 0.10 },
+    let_a_veteran_go:   { q: { word: -0.6, care: -0.3 }, mag: [1, 5], residue: 0.20 },      /* ctx.scale: their years; ctx.grave for a star */
+    /* --- the crowd's own dispatches --- */
+    gave_it_away:       { q: { care: 1.0, word: 0.6 }, mag: 4, grave: true, residue: 0.20 },
+    took_the_collection:{ q: { glory: 0.3 }, mag: 1, residue: 0.05 },
+    read_the_papers:    { q: { craft: 0.6, word: -0.3 }, mag: 2, target: -4, residue: 0.15 },
+    sent_the_papers_back:{ q: { word: 1.0 }, mag: 3, target: 8, grave: true, residue: 0.20 },
+    went_out_to_them:   { q: { word: 0.6, care: 0.4 }, mag: 4, residue: 0.15 },
+    shut_the_gate:      { q: { word: -0.6, glory: -0.4 }, mag: 3, residue: 0.15 },
+    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 }
   };
 
-  const REGISTERS = ['gracious', 'defiant', 'humble', 'deflecting', 'candid', 'evasive'];
-
-  /* §2.6 rival fanbase starting values are GENERATED from the relationships already on file
-     rather than authored a second time, so the eight-by-seven grid cannot drift from the
-     data it is supposed to express. */
+  /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
+     house regards another, at half their written weight. A founded OA has none: it stands at indifference with every
+     house and is judged from the start by seven different tastes (ruled: no preset grudges against a person's seat). */
   const DISPOSITION = {
     kinship: 35, sympathy: 28, respect: 25, dependence: 12, leverage: -5,
     poaching: -12, friction: -15, rivalry: -18, disdain: -22, distrust: -25, hostility: -45
@@ -11660,50 +11674,84 @@
   function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
 
   /* ================================================================================
-     §2 — the memory, and standing computed from it
+     §2 — the crowd, the houses, the memory
      ================================================================================ */
 
-  /** A corp's persistent record. `profile` is an oa_profiles entry. */
+  /* §2.4 THE STANDS AN OA OPENS WITH. An engine OA's crowd is read from its character: an aggressive OA draws
+     Bloodhounds, a showman Fairweathers, a careful one Tacticians, a thrifty one Families, a traditional one
+     Diehards, and a poor one Underdogs. A founded OA opens balanced, with the Diehards any OA has — and becomes what
+     its record makes it (ruled: off record). */
+  function openingShares(profile, founded) {
+    if (founded) {
+      const s = { diehards: 0.30 };
+      for (const f of FACTIONS) if (f !== 'diehards') s[f] = 0.14;
+      return s;
+    }
+    const d = (profile && profile.dials) || {};
+    const x = k => (d[k] != null ? d[k] : 50) / 100;
+    const diff = ((profile && profile.difficulty) || 3);
+    const raw = {
+      bloodhounds: 0.5 + 1.2 * x('aggression'),
+      tacticians: 0.5 + 0.8 * x('patience') + 0.3 * (1 - x('aggression')),
+      fairweathers: 0.5 + 1.2 * x('showmanship'),
+      underdogs: 0.2 + 0.30 * (diff - 1),
+      families: 0.5 + 0.8 * x('thrift') + 0.3 * (1 - x('treachery')),
+      diehards: 1.0 + 1.0 * x('tradition')
+    };
+    return normShares(raw);
+  }
+  function normShares(raw) {
+    let t = 0; for (const f of FACTIONS) t += Math.max(0, raw[f] || 0);
+    const out = {};
+    for (const f of FACTIONS) out[f] = t ? Math.max(0, raw[f] || 0) / t : 1 / FACTIONS.length;
+    /* the floor, then renormalised */
+    for (const f of FACTIONS) out[f] = Math.max(CONST.SHARE_FLOOR, out[f]);
+    let t2 = 0; for (const f of FACTIONS) t2 += out[f];
+    for (const f of FACTIONS) out[f] /= t2;
+    return out;
+  }
+  /** the taste of a crowd with these shares — what a house built of these stands likes to see */
+  function tasteOfShares(shares) {
+    const t = {};
+    for (const q of QUALITIES) t[q] = 0;
+    for (const f of FACTIONS) for (const q of QUALITIES) t[q] += (shares[f] || 0) * TASTE[f][q];
+    return t;
+  }
+  function tasteOf(rep) { return tasteOfShares(rep.shares); }
+
+  /** an OA founded at the desk (season.founderProfile marks it) */
+  function isFounded(profile) { return !!(profile && (profile.founded || profile.founding === 'lean' || profile.canon_status === 'player-founded')); }
+
+  /** A corp's persistent record. `profile` is an oa_profiles entry; `opts.founded` for a desk-founded OA. */
   function open(profile, allProfiles, opts) {
     opts = opts || {};
-    const rep = profile.reputation || {};
-    /* §2.0 A OA STANDS SOMEWHERE BEFORE IT DOES ANYTHING. The eight carry their standings
-       in their profiles; a corporation built at the desk carried none, so a manager opened at
-       zero on every audience and could only ever go down from there — the whole first career
-       read "nobody has an opinion" and then "your own people hate you". An OA without
-       declared standings is read from its dials: its own people expect what it is (a bloody
-       OA is loved for blood, a thrifty one starts cool with its crews), the fleet knows a
-       showman, the Aleas mistrust the treacherous. */
-    const d = (profile.dials || {});
-    const dial = k => (d[k] != null ? d[k] : 50);
-    const fromDials = {
-      own:   Math.round(10 + dial('showmanship') * 0.35 + dial('aggression') * 0.15 - (100 - dial('thrift')) * 0.10),
-      fleet: Math.round(-5 + dial('showmanship') * 0.30 + dial('tradition') * 0.20 - dial('treachery') * 0.25),
-      aleas: Math.round(15 + dial('tradition') * 0.30 - dial('treachery') * 0.45 + dial('patience') * 0.10)
-    };
-    const base = {
-      own: rep.own != null ? rep.own : fromDials.own,
-      fleet: rep.fleet != null ? rep.fleet : fromDials.fleet,
-      aleas: rep.aleas != null ? rep.aleas : fromDials.aleas,
-      rival: {}
-    };
-    /* how each OTHER corp's supporters feel about this one: their disposition toward us if
-       they have declared one, otherwise a weaker mirror of ours toward them */
+    const founded = !!(opts.founded || isFounded(profile));
+    const shares = openingShares(profile, founded);
+    /* an engine OA's own people start where its profile says they stand, on the new scale */
+    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 4 : 0;
+    const base = { factions: {}, houses: {} };
+    for (const f of FACTIONS) base.factions[f] = own0;
+    const houseTaste = {};
     for (const other of (allProfiles || [])) {
-      if (other.id === profile.id) continue;
+      if (!other || other.id === profile.id) continue;
       let v = 0;
-      const theirs = (other.relationships || []).filter(r => r.with === profile.id)[0];
-      if (theirs) v = DISPOSITION[theirs.disposition] || 0;
-      else {
-        const ours = (profile.relationships || []).filter(r => r.with === other.id)[0];
-        if (ours) v = Math.round((DISPOSITION[ours.disposition] || 0) * 0.5);
+      if (!founded && !isFounded(other)) {
+        const theirs = (other.relationships || []).filter(r => r.with === profile.id)[0];
+        if (theirs) v = (DISPOSITION[theirs.disposition] || 0) / 2;
+        else {
+          const ours = (profile.relationships || []).filter(r => r.with === other.id)[0];
+          if (ours) v = (DISPOSITION[ours.disposition] || 0) / 4;
+        }
       }
-      base.rival[other.id] = v;
+      base.houses[other.id] = v;
+      houseTaste[other.id] = tasteOfShares(openingShares(other, isFounded(other)));
     }
     return {
       corpId: profile.id,
       season: opts.season || 1,
+      shares: shares,
       base: base,
+      houseTaste: houseTaste,           // how each house watches — its own crowd's taste, refreshed each season
       memory: [],                       // remembered acts, §2.1
       patience: (profile.finance && profile.finance.board_patience) || 50,
       calls: 0,                         // §6.5 calls on the board this season
@@ -11714,52 +11762,71 @@
       history: []                       // { season, placement, won }
     };
   }
-
-  /** §2.1 — standing is COMPUTED, never stored. */
-  function standing(rep, audience, targetId) {
-    let v = audience === 'rival'
-      ? (rep.base.rival[targetId] || 0)
-      : (rep.base[audience] || 0);
-    for (const m of rep.memory) {
-      if (m.a !== audience) continue;
-      if (audience === 'rival' && m.r !== targetId) continue;
-      v += m.v * decay(m, rep.season);
+  /** §2.5 each season the houses are re-read: a house watches with the taste of the stands it has NOW */
+  function setHouseTastes(rep, tastes) {
+    for (const id in tastes) {
+      rep.houseTaste[id] = tastes[id];
+      if (rep.base.houses[id] == null) rep.base.houses[id] = 0;
     }
-    return compress(v);
   }
 
-  /* §2.2 THE LAST POINTS COST THE MOST. The raw sum was clamped, so four OAs of eight sat
-     pinned at the ceiling after three years and the number stopped carrying information. Past
-     SOFT_AT the scale compresses toward the ceiling and never reaches it: the difference
-     between adored and worshipped stays legible, and nothing saturates. */
-  function compress(v) {
-    const soft = CONST.SOFT_AT, ceil = CONST.STANDING_CEIL, floor = CONST.STANDING_FLOOR, k = CONST.SOFT_SCALE;
-    if (v > soft) return Math.min(ceil - 0.5, soft + (ceil - soft) * (1 - Math.exp(-(v - soft) / k)));
-    if (v < -soft) return Math.max(floor + 0.5, -soft - (-floor - soft) * (1 - Math.exp(-(-v - soft) / k)));
+  /* §2.2 THE LAST POINTS COST THE MOST: within SOFT_AT of indifference the scale is linear, and past it compresses
+     toward the ends and never reaches them, so adored and worshipped stay legible and nothing pins. */
+  function soft(v) {
+    const a = CONST.SOFT_AT, span = CONST.STANDING_CEIL - CONST.STANDING_MID - 0.5 - a, k = CONST.SOFT_SCALE;
+    if (v > a) return a + span * (1 - Math.exp(-(v - a) / k));
+    if (v < -a) return -a - span * (1 - Math.exp(-(-v - a) / k));
     return v;
   }
   /** How much of a remembered act is still being felt. Residue never washes off (R8). */
-  function decay(m, season) {
-    const age = Math.max(0, season - m.s);
-    return m.res + (1 - m.res) * Math.pow(0.5, age / m.hl);
+  function decay(m, season, halflife) {
+    const age = Math.max(0, season - m.s), hl = halflife || m.hl || CONST.MEMORY_HALFLIFE;
+    return m.res + (1 - m.res) * Math.pow(0.5, age / hl);
+  }
+  function rawFaction(rep, f) {
+    let v = rep.base.factions[f] || 0;
+    for (const m of rep.memory) if (m.fx && m.fx[f]) v += m.fx[f] * decay(m, rep.season, HALFLIFE[f]);
+    return v;
+  }
+  function rawHouse(rep, id) {
+    let v = rep.base.houses[id] || 0;
+    for (const m of rep.memory) if (m.hx && m.hx[id]) v += m.hx[id] * decay(m, rep.season);
+    return v;
+  }
+  function houseIds(rep) { return Object.keys(rep.base.houses); }
+
+  /**
+   * §2.1 — standing is COMPUTED, never stored. 0..100, 50 indifferent.
+   *   a faction's name   that faction's warmth
+   *   'crowd'            the stands as a whole: each faction's warmth by its share
+   *   'house', id        how that house regards you
+   *   'houses'           the mean of the houses — how the fleet regards you
+   */
+  function standing(rep, audience, targetId) {
+    const mid = CONST.STANDING_MID;
+    if (TASTE[audience]) return mid + soft(rawFaction(rep, audience));
+    if (audience === 'crowd') {
+      let v = 0;
+      for (const f of FACTIONS) v += (rep.shares[f] || 0) * (mid + soft(rawFaction(rep, f)));
+      return v;
+    }
+    if (audience === 'house') return mid + soft(rawHouse(rep, targetId));
+    if (audience === 'houses') {
+      const ids = houseIds(rep);
+      if (!ids.length) return mid;
+      let v = 0; for (const id of ids) v += mid + soft(rawHouse(rep, id));
+      return v / ids.length;
+    }
+    throw new Error('reputation: no such audience ' + audience);
   }
 
   /** Every audience at once, for the board and the viewer. */
-  function readAll(rep, rivalIds) {
-    const out = { own: standing(rep, 'own'), fleet: standing(rep, 'fleet'),
-                  aleas: standing(rep, 'aleas'), rival: {} };
-    for (const id of (rivalIds || Object.keys(rep.base.rival))) {
-      out.rival[id] = standing(rep, 'rival', id);
-    }
+  function readAll(rep) {
+    const out = { crowd: standing(rep, 'crowd'), houses: {}, housesMean: standing(rep, 'houses'),
+                  factions: {}, shares: Object.assign({}, rep.shares) };
+    for (const f of FACTIONS) out.factions[f] = standing(rep, f);
+    for (const id of houseIds(rep)) out.houses[id] = standing(rep, 'house', id);
     return out;
-  }
-
-  /** §2.3 — a fanbase that hates you is a fanbase that watches you. */
-  /* PARKED (ruled): nothing calls this yet — it belongs to the media system, not yet designed */
-  function attention(rep, rivalIds) {
-    let a = 0;
-    for (const id of (rivalIds || Object.keys(rep.base.rival))) a += Math.abs(standing(rep, 'rival', id));
-    return a / Math.max(1, (rivalIds || Object.keys(rep.base.rival)).length);
   }
 
   function resolve(v, ctx) {
@@ -11776,90 +11843,110 @@
     return 0;
   }
 
+  /** What an act would do to every audience, without doing it: { fx: {faction: v}, hx: {house: v} } */
+  function impact(rep, type, ctx) {
+    ctx = ctx || {};
+    const spec = ACTS[type];
+    if (!spec) throw new Error('reputation: unknown act ' + type);
+    const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
+    const loud = (ctx.storyMult || 1) * (ctx.mult || 1);
+    const mag = resolve(spec.mag, c) * loud;
+    const q = Object.assign({}, spec.q || {}, ctx.q || {});
+    /* a win against the odds is grit as well as glory (ctx.scale: how unlikely it was) */
+    if (type === 'won_planet' && ctx.scale != null) q.grit = (q.grit || 0) + clamp(ctx.scale, 0, 1);
+    const grave = !!(spec.grave || ctx.grave);
+    const fx = {}, hx = {};
+    for (const f of FACTIONS) {
+      let v = 0;
+      for (const k in q) v += (TASTE[f][k] || 0) * q[k] * mag;
+      if (f === 'diehards') v *= grave ? CONST.DIEHARD_GRAVE : CONST.DIEHARD_DAMP;
+      if (v) fx[f] = v;
+    }
+    const direct = resolve(spec.houses, c) * loud;
+    for (const id of houseIds(rep)) {
+      const t = rep.houseTaste[id] || tasteOfShares(normShares({}));
+      let v = 0;
+      for (const k in q) v += (t[k] || 0) * q[k] * mag;
+      v = v * CONST.HOUSE_SPECTATE + direct;
+      if (v) hx[id] = v;
+    }
+    if (spec.target != null && ctx.targetId && rep.base.houses[ctx.targetId] != null)
+      hx[ctx.targetId] = (hx[ctx.targetId] || 0) + resolve(spec.target, c) * loud;
+    if (spec.buyer != null && ctx.buyerId && rep.base.houses[ctx.buyerId] != null)
+      hx[ctx.buyerId] = (hx[ctx.buyerId] || 0) + resolve(spec.buyer, c) * loud;
+    return { fx, hx, grave };
+  }
+  /** the change to the crowd as a whole and to the houses' mean that `impact` amounts to — for a preview */
+  function impactSummary(rep, im) {
+    let crowd = 0; for (const f in im.fx) crowd += (rep.shares[f] || 0) * im.fx[f];
+    const ids = houseIds(rep); let houses = 0; for (const id in im.hx) houses += im.hx[id];
+    return { crowd: crowd, houses: ids.length ? houses / ids.length : 0 };
+  }
+
   /**
-   * §3 — a corp is seen doing something. Pushes remembered acts onto the audiences that
-   * care and returns what moved, so the day loop and the viewer can show the reason
-   * alongside the number.
-   *
-   * ctx: { targetId, count, famous, scale, buyerId, rivalIds, season }
+   * §3 — a corp is seen doing something. Remembers what each audience made of it and returns what moved, so the
+   * day loop and the viewer can show the reason beside the number.
+   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, storyMult, season }
    */
   function act(rep, type, ctx) {
     ctx = ctx || {};
     const spec = ACTS[type];
-    if (!spec) throw new Error('reputation: unknown act ' + type);
-    /* §STORY WHO IT HAPPENED TO CHANGES HOW LOUDLY IT LANDS. Six trait hooks — a soundbite
-       machine, a villain edit, a blame magnet, a company family's dead — all wanted the same
-       thing, and the first design for it was a press system with named subjects. There is no
-       need: an act already carries a subject through `ctx`, and the whole swing is computed in
-       one place. The subject's own traits scale it, and that is the whole mechanism.
-       `ctx.storyMult` is set by whoever raises the act, from the hooks that hand carries. */
-    const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
-    const story = ctx.storyMult || 1;
+    const im = impact(rep, type, ctx);
     const season = ctx.season != null ? ctx.season : rep.season;
-    const moved = [];
-    const push = (audience, targetId, value) => {
-      value = value * story;
-      if (!value) return;
-      const headline = Math.abs(value) >= CONST.HEADLINE_AT;
-      rep.memory.push({
-        s: season, t: type, a: audience, r: targetId || null, v: value,
-        res: spec.residue, hl: headline ? CONST.MEMORY_HALFLIFE * 2 : CONST.MEMORY_HALFLIFE,
-        h: headline
-      });
-      moved.push({ audience: audience, target: targetId || null, by: value, headline: headline });
-    };
-    push('own', null, resolve(spec.own, c));
-    push('fleet', null, resolve(spec.fleet, c));
-    push('aleas', null, resolve(spec.aleas, c));
-    if (spec.rival != null) {
-      const v = resolve(spec.rival, c);
-      if (ctx.targetId) push('rival', ctx.targetId, v);
-      else for (const id of (ctx.rivalIds || Object.keys(rep.base.rival))) push('rival', id, v);
-    }
-    /* §3.1 — ceding pays the buyer's supporters, who are pleased to have you */
-    if (spec.buyer != null && ctx.buyerId) push('rival', ctx.buyerId, resolve(spec.buyer, c));
+    let peak = 0;
+    for (const f in im.fx) peak = Math.max(peak, Math.abs(im.fx[f]));
+    for (const id in im.hx) peak = Math.max(peak, Math.abs(im.hx[id]));
+    if (!peak) return [];
+    const headline = peak >= CONST.HEADLINE_AT;
+    rep.memory.push({ s: season, t: type, fx: im.fx, hx: im.hx, res: spec.residue,
+                      hl: headline ? CONST.MEMORY_HALFLIFE * 2 : CONST.MEMORY_HALFLIFE, h: headline, g: im.grave || undefined });
     foldTail(rep);
+    const sum = impactSummary(rep, im);
+    const moved = [];
+    for (const f in im.fx) moved.push({ audience: f, target: null, by: im.fx[f], headline: headline });
+    for (const id in im.hx) moved.push({ audience: 'house', target: id, by: im.hx[id], headline: headline });
+    moved.crowd = sum.crowd; moved.houses = sum.houses;
     return moved;
   }
 
   /**
-   * §2.1 — past MEMORY_CAP acts for one audience the oldest are collapsed into the base at
-   * their present value, so a save file does not grow without bound and a corp with a
-   * century of history is not carrying a century of list.
+   * §2.1 — past MEMORY_CAP acts the oldest are folded into the base at their present value, so a save file does not
+   * grow without bound and a century of history is not a century of list.
    */
   function foldTail(rep) {
-    const buckets = {};
-    for (const m of rep.memory) {
-      const k = m.a === 'rival' ? 'rival:' + m.r : m.a;
-      (buckets[k] || (buckets[k] = [])).push(m);
+    if (rep.memory.length <= CONST.MEMORY_CAP) return;
+    rep.memory.sort((a, b) => a.s - b.s);
+    const excess = rep.memory.splice(0, rep.memory.length - CONST.MEMORY_CAP);
+    for (const m of excess) {
+      for (const f in (m.fx || {})) rep.base.factions[f] = (rep.base.factions[f] || 0) + m.fx[f] * decay(m, rep.season, HALFLIFE[f]);
+      for (const id in (m.hx || {})) rep.base.houses[id] = (rep.base.houses[id] || 0) + m.hx[id] * decay(m, rep.season);
     }
-    let folded = false;
-    for (const k in buckets) {
-      const list = buckets[k];
-      if (list.length <= CONST.MEMORY_CAP) continue;
-      list.sort((a, b) => a.s - b.s);
-      const excess = list.slice(0, list.length - CONST.MEMORY_CAP);
-      for (const m of excess) {
-        const v = m.v * decay(m, rep.season);
-        if (m.a === 'rival') rep.base.rival[m.r] = (rep.base.rival[m.r] || 0) + v;
-        else rep.base[m.a] = (rep.base[m.a] || 0) + v;
-        m._folded = true;
-        folded = true;
-      }
-    }
-    if (folded) rep.memory = rep.memory.filter(m => !m._folded);
   }
 
-  /** What an audience remembers, most recent and heaviest first — for the viewer. */
+  /** What an audience remembers, heaviest first — for the viewer. `audience` a faction, or 'house' with an id. */
   function why(rep, audience, targetId, limit) {
     const out = [];
     for (const m of rep.memory) {
-      if (m.a !== audience) continue;
-      if (audience === 'rival' && m.r !== targetId) continue;
-      out.push({ season: m.s, act: m.t, at: m.v, now: m.v * decay(m, rep.season), headline: m.h });
+      const v = audience === 'house' ? (m.hx || {})[targetId] : (m.fx || {})[audience];
+      if (!v) continue;
+      const hl = audience === 'house' ? null : HALFLIFE[audience];
+      out.push({ season: m.s, act: m.t, at: v, now: v * decay(m, rep.season, hl), headline: m.h });
     }
     out.sort((a, b) => Math.abs(b.now) - Math.abs(a.now) || b.season - a.season);
     return limit ? out.slice(0, limit) : out;
+  }
+
+  /* §2.4 THE STANDS FOLLOW THE SHOW. Each season the shares move toward the factions that are warm and away from the
+     cold ones — the Diehards barely — so an OA that feeds blood for three years has Bloodhounds in its stands. */
+  function shiftShares(rep) {
+    const raw = {};
+    for (const f of FACTIONS) {
+      const w = (standing(rep, f) - CONST.STANDING_MID) / CONST.STANDING_MID;
+      const k = CONST.SHARE_SHIFT * (f === 'diehards' ? 0.25 : 1);
+      raw[f] = (rep.shares[f] || 0) * Math.max(0.2, 1 + k * w);
+    }
+    rep.shares = normShares(raw);
+    return rep.shares;
   }
 
   /* ================================================================================
@@ -12005,7 +12092,7 @@
       } });
       break;                                    /* one, not one per shortage */
     }
-    const standingNow = standing(rep, 'fleet');
+    const standingNow = standing(rep, 'houses');
     /* THE CARD SCALES WITH WHERE THE CORP STANDS NOW, not only with what it was born as.
        `opts.expect` is the profile's anchor — what this board would ask of a corp at even
        standing. What it actually asks moves with the patience already banked: a board that
@@ -12032,13 +12119,13 @@
        than it did; the verdict cuts below are anchored to a score distribution that this
        moves, and want re-measuring. */
     pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
-    pool.push({ weight: standingNow < 10 ? 1.6 : 0.8,
-                demand: { kind: 'standing', audience: 'fleet',
-                          above: Math.round(standingNow + 3) } });
+    pool.push({ weight: standingNow < 50 ? 1.6 : 0.8,
+                demand: { kind: 'standing', audience: 'houses',
+                          above: Math.round(Math.min(90, standingNow + 3)) } });
     /* two more that a corp of any size can actually satisfy, so a card is a spread of
        achievable asks rather than a list of long shots */
-    pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'own',
-                                       above: Math.round(standing(rep, 'own') - 4) } });
+    pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'crowd',
+                                       above: Math.round(Math.min(90, standing(rep, 'crowd') - 2)) } });
 
     /* One demand per KIND. The first version padded a thin card with a second `losses` and a
        second `standing` entry, and boards duly asked for "no more than 13 of ours" and "no
@@ -12110,8 +12197,7 @@
       return Math.max(-1, Math.min(1, (CONST.CARE_NEUTRAL_LOSS - r) / CONST.CARE_NEUTRAL_LOSS));
     }
     if (s.kind === 'popularity') {
-      /* what the crowd thought of the OA this year: its own people and the fleet's,
-         against what a board takes for granted */
+      /* what the crowd thought of the OA this year (0..100), against what a board takes for granted */
       const v = outcome.popularity != null ? outcome.popularity : (s.expected || 0);
       return Math.max(-1, Math.min(1, (v - (s.expected || 0)) / CONST.POPULARITY_SPAN));
     }
@@ -12219,8 +12305,8 @@
       delta *= (1 - CONST.EASY_CARD_DISCOUNT * ease);
     }
     if (delta < 0) {
-      /* a manager the ships love is hard to sack for the same result */
-      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'own')) / CONST.STANDING_CEIL);
+      /* a manager the crowd loves is hard to sack for the same result */
+      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
     }
     rep.patience = clamp(rep.patience + delta, CONST.PATIENCE_FLOOR, CONST.PATIENCE_CEIL);
     return { delta: Math.round(delta * 10) / 10, band: band, patience: rep.patience };
@@ -12265,72 +12351,6 @@
     const m = fleetMean > 0 ? fleetMean : 1;
     const idx = mercIndex(rep);
     return clamp(1 + CONST.MERC_PRICE_SWING * (idx - m) / m, 0.6, 1.8);
-  }
-
-  /* ================================================================================
-     §10 — the premium and the wall
-     ================================================================================
-     THE DELETED CONSTANTS LIVED HERE. There is deliberately no credit figure anywhere in
-     this section. What a corp computes is how much standing an act costs it, how much
-     standing it can currently afford to lose, and the ratio between the two. The ratio
-     multiplies an asking price and, past UGLY_WALL, ends the conversation.
-     ================================================================================ */
-
-  /**
-   * How much this act would hurt, in standing points, weighted by what THIS corp cares
-   * about. No new personality data: showmanship weights the wider fleet, tradition weights
-   * the rival fanbases and the Aleas, and a corp low on patience weights its own ships
-   * heavily because they are what is keeping it employed.
-   */
-  function damageOf(rep, type, ctx, dials) {
-    const spec = ACTS[type];
-    if (!spec) throw new Error('reputation: unknown act ' + type);
-    const c = Object.assign({}, ctx || {}, { famousMult: spec.famousMult || 1 });
-    const show = (dials && dials.showmanship || 50) / 100;
-    const trad = (dials && dials.tradition || 50) / 100;
-    const desperate = 1 - rep.patience / CONST.PATIENCE_CEIL;
-    const w = {
-      own: 0.7 + 0.8 * desperate,
-      fleet: 0.6 + 0.9 * show,
-      aleas: 0.5 + 0.7 * trad,
-      rival: 0.4 + 0.6 * trad
-    };
-    let d = 0;
-    d += w.own * Math.min(0, resolve(spec.own, c));
-    d += w.fleet * Math.min(0, resolve(spec.fleet, c));
-    d += w.aleas * Math.min(0, resolve(spec.aleas, c));
-    d += w.rival * Math.min(0, resolve(spec.rival, c));
-    return -d;                          // positive is bad
-  }
-
-  /** How much ugliness this corp can currently afford. */
-  function tolerance(rep, dials, goalAtRisk) {
-    const show = (dials && dials.showmanship || 50) / 100;
-    const risk = clamp(goalAtRisk == null ? 0 : goalAtRisk, 0, 1);
-    return CONST.TOLERANCE_BASE
-         * (0.35 + 0.90 * rep.patience / CONST.PATIENCE_CEIL)
-         * (0.75 + 0.50 * Math.max(0, standing(rep, 'own')) / CONST.STANDING_CEIL)
-         * (1.25 - 0.50 * show)
-         * (1 + 0.35 * risk);           // a card already blown is a card you stop guarding
-  }
-
-  /**
-   * The whole of what replaces the exchange rate. `premium` multiplies what a corp asks
-   * for; `wall` ends the conversation. A corp whose board has been happy for three years
-   * takes an ugly deal cheaply; one on its last warning fights a battle it expects to lose
-   * rather than take the same deal — same numbers on the table, different answer.
-   */
-  function priceOfBeingSeen(rep, type, ctx, dials, goalAtRisk) {
-    const damage = damageOf(rep, type, ctx, dials);
-    const tol = Math.max(0.5, tolerance(rep, dials, goalAtRisk));
-    const ratio = damage / tol;
-    return {
-      damage: damage,
-      tolerance: tol,
-      ratio: ratio,
-      wall: ratio > CONST.UGLY_WALL,
-      premium: 1 + (CONST.UGLY_PREMIUM_MAX - 1) * Math.min(1, ratio / CONST.UGLY_WALL)
-    };
   }
 
   /* ================================================================================
@@ -12391,25 +12411,7 @@
     if (h.has('fame_gain_down')) amp *= 0.6;
     /* fame carries a statement further: the fleet hears a name it knows */
     if (sp) amp *= 1 + 0.5 * ((sp.fame || 0) / CONST.FAME_CEIL);
-    const spec = ACTS[type];
-    const moved = [];
-    const season = ctx.season != null ? ctx.season : rep.season;
-    const push = (audience, targetId, v) => {
-      if (!v) return;
-      const value = v * amp;
-      rep.memory.push({ s: season, t: type, a: audience, r: targetId || null, v: value,
-                        res: spec.residue, hl: CONST.MEMORY_HALFLIFE,
-                        h: Math.abs(value) >= CONST.HEADLINE_AT });
-      moved.push({ audience: audience, target: targetId || null, by: value });
-    };
-    push('own', null, spec.own);
-    push('fleet', null, spec.fleet);
-    push('aleas', null, spec.aleas);
-    if (spec.rival != null) {
-      if (ctx.targetId) push('rival', ctx.targetId, spec.rival);
-      else for (const id of (ctx.rivalIds || Object.keys(rep.base.rival))) push('rival', id, spec.rival);
-    }
-    foldTail(rep);
+    const moved = act(rep, type, { mult: amp, targetId: ctx.targetId, season: ctx.season });
     return { register: register, amplified: amp, moved: moved };
   }
 
@@ -12421,12 +12423,8 @@
    */
   function addressOptions(rep, outcome) {
     return REGISTERS.map(function (r) {
-      const spec = ACTS['said_' + r];
-      return {
-        register: r,
-        moves: { own: spec.own || 0, rival: spec.rival || 0,
-                 fleet: spec.fleet || 0, aleas: spec.aleas || 0 }
-      };
+      const sum = impactSummary(rep, impact(rep, 'said_' + r, {}));
+      return { register: r, moves: { crowd: sum.crowd, houses: sum.houses } };
     });
   }
 
@@ -12453,16 +12451,15 @@
     rep._drainedThisYear = true;
   }
   function drift(rep) {
-    /* THE RESTING PLACE IS WHERE A OA STARTED. The first cut of this pulled the base
-       toward the CURRENT standing, which is a ratchet, not a drift: every good year became
-       permanent. What drifts is the memory — each season the accumulated feeling loses a
-       share of itself, so an old triumph stops carrying an OA for ever and an old disgrace
-       stops damning it, while the OA's own nature (the base) stays what it always was. */
-    rep.origin = rep.origin || { own: rep.base.own, fleet: rep.base.fleet, aleas: rep.base.aleas };
-    for (const a of ['own', 'fleet', 'aleas']) rep.base[a] = rep.origin[a];
-    for (const m of rep.memory) m.v *= (1 - CONST.DRIFT);
+    /* THE RESTING PLACE IS WHERE AN OA STARTED: what drifts is the memory — each season the accumulated feeling loses a
+       share of itself, so an old triumph stops carrying an OA for ever and an old disgrace stops damning it */
+    for (const m of rep.memory) {
+      for (const f in (m.fx || {})) m.fx[f] *= (1 - CONST.DRIFT);
+      for (const id in (m.hx || {})) m.hx[id] *= (1 - CONST.DRIFT);
+    }
   }
   function closeSeason(rep, outcome) {
+    shiftShares(rep);                  /* the stands follow the show, before the year's feeling fades */
     drift(rep);
     const score = scoreGoal(rep, outcome || {});
     const moved = movePatience(rep, score);
@@ -12476,13 +12473,13 @@
   }
 
   const api = {
-    CONST, ACTS, AUDIENCES, CATEGORIES, REGISTERS, DISPOSITION,
-    open, standing, readAll, attention, act, why, decay, foldTail, compress, drift, drainHolds,
+    CONST, ACTS, AUDIENCES, FACTIONS, QUALITIES, TASTE, HALFLIFE, CATEGORIES, REGISTERS, DISPOSITION,
+    open, standing, readAll, act, impact, impactSummary, why, decay, foldTail, soft, drift, drainHolds,
+    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares,
     fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,
     drainHolds, fillHolds, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
     recordCasualties, mercIndex, mercPriceMult,
-    damageOf, tolerance, priceOfBeingSeen,
     QUESTIONS, question, address, addressOptions, standingScore,
     openSeason, closeSeason
   };
@@ -12542,6 +12539,11 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
+    CROWD_WARM: 66,              // [C] §STANDING the crowd's warmth at which it starts bringing things to the airlock
+    CROWD_COLD: 42,              // [C] and at which it starts bringing trouble (below the fleet's bottom tenth, measured: p10 56, median 66)
+    DONATION_PER_POINT: 600,     // [C] a collection, per point of warmth over indifference
+    STRIKE_PER_HEAD: 400,        // [C] what it costs a head to end a strike
+    LEAK_HUNT: 3000,             // [C] what finding a leak costs
     MERC_MONTHS: [9, 10],        // [S] the mercenary windows, where the board warns of a short roster
     MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
     MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
@@ -12640,32 +12642,32 @@
   const MOMENTS = [
     { id: 'q_argued_the_plan', tie: 'an argument with his captain', title: 'An Argument Over the Plan',
       text: n => n + ' told the captain the approach was wrong, in front of the squad.',
-      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down'],
-      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken'] },
+      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down', { craft: 0.4, word: 0.3 }],
+      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken', { craft: 0.6, care: 0.3 }] },
     { id: 'q_wound_hidden', tie: 'a wound he did not report', title: 'A Wound Off the Books',
       text: n => 'The medic signed ' + n + ' fit. The medic is not sure ' + n + ' was honest.',
-      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining'],
-      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It'] },
+      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining', { care: 0.8 }],
+      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It', { grit: 0.6, word: 0.3, care: -0.4 }] },
     { id: 'q_captaincy_snub', tie: 'a captaincy he was passed over for', title: 'The Armband Went Elsewhere',
       text: n => n + ' heard about the captaincy from somebody else.',
-      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation'],
-      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice'] },
+      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation', { word: 0.6, care: 0.3 }],
+      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice', { craft: 0.3, care: -0.4 }] },
     { id: 'q_evac_retainer', tie: 'an evac retainer the desk had to budget for', title: 'The Evac Retainer',
       text: n => 'Medical have written to the desk about ' + n + ' again. They would like it in writing.',
-      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n],
-      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan'] },
+      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n, { care: 1.0 }],
+      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan', { care: -0.8, blood: 0.2 }] },
     { id: 'q_squad_cut_down', tie: 'a squad cut to a handful', title: 'What Is Left of the Squad',
       text: n => 'There are four of them now, and ' + n + ' has stopped asking for replacements.',
-      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head'],
-      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had'] },
+      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head', { craft: 0.6, word: -0.2 }],
+      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had', { grit: 0.7, word: 0.3 }] },
     { id: 'q_captain_fell', tie: 'a captain who fell in front of him', title: 'The Captain Went Down',
       text: n => n + ' has not been the same since the armband changed hands.',
-      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month'],
-      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out'] },
+      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month', { care: 0.9 }],
+      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out', { grit: 0.6, blood: 0.3, care: -0.4 }] },
     { id: 'q_long_shot', tie: 'a shot that decided a fight', title: 'The Shot They Are Still Talking About',
       text: n => 'The clip of ' + n + '\u2019s shot has been round the fleet twice.',
-      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview'],
-      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It'] }
+      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview', { glory: 1.0 }],
+      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It', { care: 0.5, craft: 0.3 }] }
   ];
   function momentSpec(m) {
     return {
@@ -12690,6 +12692,7 @@
         else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
         else if (kind === 'fame') { if (amount > 0) REP.earnFame(f, amount); else f.fame = Math.max(0, (f.fame || 0) + amount); }
         else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
+        if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
       ai: () => 'a'
@@ -12719,8 +12722,8 @@
         f._raiseAsked = true;
         /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
         if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
-        if (opt === 'release') { f.status = 'retired'; f._released = true; return f.name + ' Was Released'; }
-        stress(f, 18); f._discontent = (f._discontent || 0) + 1; return f.name + ' Was Refused, and Soured';
+        if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
+        stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
       ai: (c, e) => spare(c) > e.ask * 20 ? 'grant' : 'refuse'
     },
@@ -12739,7 +12742,8 @@
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._debtCalled = true;
         if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
-        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
+        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + '\u2019s Contract Was Sold'; }
+        if (c.rep) REP.act(c.rep, 'left_a_debtor', {});
         wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
@@ -12766,9 +12770,9 @@
         const hot = alive(c).find(x => x.id === e.subject), oth = alive(c).find(x => x.id === e.other);
         if (hot) hot._brawled = true;
         if (oth) wound(oth, ctx.rng, 'inj_torso', 5, 9);
-        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
-        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); return 'Both Were Fined'; }
-        alive(c).forEach(f => stress(f, 5)); return 'It Was Let Lie';
+        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); if (c.rep) REP.act(c.rep, 'disciplined', {}); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
+        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
+        alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
       ai: () => 'punish'
     },
@@ -12817,7 +12821,7 @@
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
-          if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + ' Went for ' + fmtCr(price); };
+          if (c.rep) REP.act(c.rep, 'sold_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Went for ' + fmtCr(price); };
         if (opt === 'accept') return sell(e.price);
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
         if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'The Offer Was Refused';
@@ -12839,9 +12843,9 @@
         if (!c.rep) return 'The Slight Passed';
         if (opt === 'answer') { REP.act(c.rep, 'answered_a_slight', { targetId: e.from }); return 'The Slight Was Answered'; }
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
-        return 'The Slight Was Laughed Off';
+        REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
-      ai: (c) => (c.rep && REP.standing(c.rep, 'own') < 0) ? 'answer' : 'laugh'
+      ai: (c) => (c.rep && REP.standing(c.rep, 'crowd') < 50) ? 'answer' : 'laugh'
     },
     {
       id: 'dealer', weight: 0.9,
@@ -12858,11 +12862,107 @@
         if (c.account.treasury < e.price) return 'The Money Was Not There';
         LED.post(c.account, 'expense', 'A Dealer\u2019s Piece', -e.price);
         c.armoury = c.armoury || {}; c.armoury[e.subject] = (c.armoury[e.subject] || 0) + 1;
+        if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
       ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
     }
   ];
+  /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
+     cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
+  const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
+  POOL.push(
+    {
+      id: 'donation', weight: 1.0,
+      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && !ctx.corpFlags(c)['donation' + ctx.season] ? true : null,
+      make: (x, c) => { const amt = Math.round((crowdOf(c) - 50) * CONST.DONATION_PER_POINT / 100) * 100;
+        return { kind: 'donation', amount: amt, title: 'The Stands Pass the Hat',
+          text: 'Your supporters have taken a collection for the OA, and want to hand it over in person.',
+          options: [
+            { id: 'take', label: 'Take It', cost: '+' + fmtCr(amt) },
+            { id: 'families', label: 'Give It to the Families of the Dead', cost: 'Nothing to the Books \u00b7 the Families and Diehards Remember' }
+          ], def: 'take' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['donation' + ctx.state.season] = true;
+        if (opt === 'families') { if (c.rep) REP.act(c.rep, 'gave_it_away', {}); return 'The Collection Went to the Families'; }
+        LED.post(c.account, 'income', 'The Stands\u2019 Collection', e.amount);
+        if (c.rep) REP.act(c.rep, 'took_the_collection', {});
+        return 'The Collection Was Taken';
+      },
+      ai: (c) => (c.rep && (c.rep.shares.families || 0) > 0.2) ? 'families' : 'take'
+    },
+    {
+      id: 'tip', weight: 0.8,
+      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (from) => ({ kind: 'tip', from: from, title: 'A Supporter With a Rival\u2019s Papers',
+        text: 'Somebody on a rival\u2019s ship is a supporter of yours, and has copied what their squads are drilling.',
+        options: [
+          { id: 'read', label: 'Read Them', cost: 'A Dossier on That OA \u00b7 That House Cools If It Hears' },
+          { id: 'return', label: 'Send Them Back Unread', cost: 'That House Warms \u00b7 the Diehards Approve' }
+        ], def: 'read' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['tip' + ctx.state.season] = true;
+        if (opt === 'return') { if (c.rep) REP.act(c.rep, 'sent_the_papers_back', { targetId: e.from }); return 'The Papers Went Back Unread'; }
+        c._tipOn = e.from;                            /* the season reads it into the dossier this month */
+        if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
+        return 'The Papers Were Read';
+      },
+      ai: (c) => 'read'
+    },
+    {
+      id: 'protest', weight: 1.1,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && !ctx.corpFlags(c)['protest' + ctx.season] ? true : null,
+      make: () => ({ kind: 'protest', title: 'They Are Booing at the Gate',
+        text: 'Your own supporters are outside the gate, and they want the manager.',
+        options: [
+          { id: 'meet', label: 'Go Out to Them', cost: 'Patience \u22122 \u00b7 the Crowd Warms a Little' },
+          { id: 'shut', label: 'Shut the Gate', cost: 'No Gate This Month \u00b7 the Diehards Mind' },
+          { id: 'ignore', label: 'Wait It Out', cost: 'Patience \u22124' }
+        ], def: 'ignore' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['protest' + ctx.state.season] = true;
+        if (opt === 'meet') { if (c.rep) { c.rep.patience = Math.max(0, c.rep.patience - 2); REP.act(c.rep, 'went_out_to_them', {}); } return 'You Went Out to Them'; }
+        if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
+        if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
+      },
+      ai: (c) => 'meet'
+    },
+    {
+      id: 'strike', weight: 0.9,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
+        return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
+          text: 'Your people have heard what the stands think of the OA, and have stopped drilling until somebody pays them to start.',
+          options: [
+            { id: 'pay', label: 'Pay Them Back to Work', cost: '\u2212' + fmtCr(bill) },
+            { id: 'wait', label: 'Let Them Sit', cost: 'No Drill This Month' }
+          ], def: 'wait' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['strike' + ctx.state.season] = true;
+        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Strike Settled', -e.amount); if (c.rep) REP.act(c.rep, 'settled_a_strike', {}); return 'The Strike Was Paid Off'; }
+        c._noDrill = ctx.state.season * 100 + ctx.state.month;
+        return 'The Drill Stood Idle';
+      },
+      ai: (c, e) => spare(c) > e.amount * 4 ? 'pay' : 'wait'
+    },
+    {
+      id: 'leak', weight: 0.8,
+      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (to) => ({ kind: 'leak', to: to, title: 'Somebody Is Talking',
+        text: 'A disgruntled hand has been seen drinking with a rival\u2019s crew, and what your squads are drilling is going with them.',
+        options: [
+          { id: 'find', label: 'Find Them', cost: '\u2212' + fmtCr(CONST.LEAK_HUNT) },
+          { id: 'let', label: 'Let It Go', cost: 'That OA Learns What You Are Drilling' }
+        ], def: 'let' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['leak' + ctx.state.season] = true;
+        if (opt === 'find') { LED.post(c.account, 'expense', 'A Leak Found', -CONST.LEAK_HUNT); return 'The Leak Was Found'; }
+        c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
+        return 'The Leak Ran';
+      },
+      ai: (c) => spare(c) > CONST.LEAK_HUNT * 4 ? 'find' : 'let'
+    }
+  );
   /* §MEDIA THE PRESS: what a columnist wants between media days */
   const standoutOf = c => alive(c).filter(f => !f.mirror_of).sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] || null;
   POOL.push({
@@ -12907,12 +13007,7 @@
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
   /* the acts the events lean on, if the reputation module has not got them */
-  const ACTS = { sold_a_fighter: { own: -4, residue: 0.2 }, refused_an_offer: { rival: -2, residue: 0.15 },
-                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 },
-                 /* §MEDIA */
-                 profiled: { fleet: 2, residue: 0.1 }, spoke_well: { fleet: 2, own: 1, residue: 0.1 }, owned_it: { own: 3, residue: 0.15 },
-                 no_comment: { own: -2, residue: 0.1 }, media_cut_against: { own: -2, fleet: -4, residue: 0.2 }, sent_regrets: { fleet: -1, residue: 0.05 } };
-  if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
+  /* the dispatches' acts live in reputation.js's one table, with what each is made of */
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
   /* §QUIRKS does this fighter carry a hook? The pool's events wanted to ask and had no way to:
@@ -13064,7 +13159,7 @@
     resolve: (c, e, opt, ctx) => {
       if (opt === 'petition' && c.account.treasury >= CONST.PETITION_COST) {
         LED.post(c.account, 'expense', 'A Petition to the Aleas', -CONST.PETITION_COST);
-        if (c.rep) REP.act(c.rep, 'petitioned_the_aleas', {});
+        if (c.rep) REP.act(c.rep, 'petitioned', {});
         ctx.state.fleet.pending.petitions++;
         return 'You Petitioned Against It';
       }
@@ -13094,8 +13189,6 @@
     }
     return { id: spec.id, title: spec.title, withdrawn: pend.withdrawn, petitions: pend.petitions, need };
   }
-  const ACTS_FLEET = { petitioned_the_aleas: { aleas: -1, fleet: 1, residue: 0.1 } };
-  if (REP && REP.ACTS) for (const k in ACTS_FLEET) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS_FLEET[k];
 
   /* ------------------------------------------------------------------------- media day ---- */
   /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
@@ -17680,17 +17773,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        OA nobody minds fighting under is joined for less, and an OA the fleet despises has
        to pay for the shame of it. */
     const fleetRep = to && to.rep && to.rep.base ? (to._fleetStanding != null ? to._fleetStanding : null) : null;
-    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, fleetRep / 100 * CONST.BANNER_SHAME));
+    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, (fleetRep - 50) / 50 * CONST.BANNER_SHAME));
     return v;
   }
 
   /* HOW `who` FEELS ABOUT `about`, today. The memory lives on the OA that ACTED: `x.rep`
-     keeps, per other OA, what that OA's supporters think of x. So what `who` thinks of
-     `about` is read off `about.rep` under `who`'s name. Signed, roughly ±100; null when nobody
-     has an opinion. (The first cut read it from the wrong end and moved the wrong price.) */
+     keeps, per other OA, how that house regards x. So what `who` thinks of `about` is read off `about.rep` under
+     `who`'s name — 0..100, returned here as −100..100 around indifference, the span this module's prices were set
+     on; null when nobody has an opinion. */
   function livingRegard(who, about) {
     if (!who || !about || !about.rep || !REP || !REP.standing) return null;
-    const v = REP.standing(about.rep, 'rival', who.id);
+    if (!about.rep.base || !about.rep.base.houses || about.rep.base.houses[who.id] == null) return null;
+    const v = (REP.standing(about.rep, 'house', who.id) - 50) * 2;
     return typeof v === 'number' && isFinite(v) ? Math.max(-100, Math.min(100, v)) : null;
   }
 
@@ -18481,7 +18575,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
         const fleetStanding = id => {
           const rep = corps[id].rep;
-          return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+          return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
         };
         for (const id of ids) {
           const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
@@ -18515,7 +18609,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
       const fleetStanding = id => {
         const rep = corps[id].rep;
-        return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+        return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
       };
       for (const id of ids) {
         const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
@@ -19327,6 +19421,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     CMD_W_STRIKE: 0.7,                  // [C] §COMMAND a strike on a squad in the open (× seek)
     CMD_W_STRIKE_OBJ: 1.4,              //     on a squad standing on an objective (× seek)
     CMD_W_HOLD: 0.3,                    // [C] §COMMAND holding ground where it is, a little toward the ring's future (× caution)
+    /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
+    CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
+    UNDERDOG_MORALE: 6,                 // [C] a day's morale a warm, full-share Underdogs faction lends an OA past hope
+    BLOODHOUND_FAME: 1.0,               // [C] how much further a kill's fame travels with a warm, full-share Bloodhounds faction
     CMD_W_SUPPLY: 0.5,                  // [C] §COMMAND what a rest site, or a still day on the ground, is worth to a group short of rations
     CMD_W_JOIN: 0.9,                    // [C] §COMMAND linking up with another group of the OA's own (the careful more)
     CMD_W_ADVANCE: 0.25,                // [C] §COMMAND moving on toward ground beyond reach, a day at a time (× boldness)
@@ -20238,6 +20336,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (c.withdrawn) continue;
       const o = odds[principalOf(c).id] || 0;
       if (c._minOdds == null || o < c._minOdds) { c._minOdds = o; c._engAtLow = c.engagements || 0; }
+      /* §STANDING THE UNDERDOGS SING LOUDEST WHEN IT IS HOPELESS: an OA below half its fair share of the odds, with a warm
+         Underdogs faction, finds its people steadier each day it holds on */
+      if (o < 0.5 / Math.max(1, umbrellas.length)) {
+        const lift = Math.max(0, factionLeanOf(c, 'underdogs')) * CONST.UNDERDOG_MORALE;
+        if (lift > 0) for (const q of c.squads) for (const b of squadHead(q)) b.condition.morale = Math.min(95, b.condition.morale + lift);
+      }
       if (c._openingOdds == null) c._openingOdds = o;     /* §6.12 what it dropped with */
     }
 
@@ -22774,8 +22878,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (vp === 1) m += CONST.CHAMPION_FAME_BONUS;
     return Math.max(CONST.UNDERDOG_FAME_FLOOR, m);
   }
+  /* §STANDING a faction's lean, −1..1 about indifference and weighted by its share of the stands */
+  function factionLeanOf(corp, f) { return corp && corp.rep ? (corp.rep.shares[f] || 0) * (REP.standing(corp.rep, f) - 50) / 50 : 0; }
   function transferFame(victim, takers, victimCorp, takerCorp) {
-    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp);
+    /* §STANDING a warm Bloodhounds faction roars for a kill: the name travels further */
+    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp)
+               * (1 + Math.max(0, factionLeanOf(takerCorp, 'bloodhounds')) * CONST.BLOODHOUND_FAME);
     if (!(gain > 0) || !takers.length) return 0;
     const each = gain / takers.length;
     for (const t of takers) {
@@ -23028,7 +23136,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        negotiation can price a banner by what it costs a joiner's people to fight under it */
     if (REP && opts.reputations) for (const c of corps) {
       const rp = opts.reputations[c.id];
-      if (rp) c._fleetStanding = REP.standing(rp, 'fleet');
+      if (rp) c._fleetStanding = REP.standing(rp, 'houses');
       /* §MIND an AI OA leans the way its own regard leans: it seeks out the OAs it
          thinks least of and gives the ones it respects a wider berth */
       /* §STANCE AN OA IS NOT ONE MIND. An AI OA gives each of its squads a notch around its
@@ -23045,7 +23153,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const base = NOTCHES.indexOf(c.policy || 'standard');
         for (const other of corps) {
           if (other === c) continue;
-          const r = REP.standing(rp, 'rival', other.id);
+          /* how c regards `other`: kept on other's record, under c's name, as −100..100 */
+          const orp = opts.reputations[other.id];
+          const r = orp && orp.base.houses[c.id] != null ? (REP.standing(orp, 'house', c.id) - 50) * 2 : 0;
           const step = r < -20 ? 2 : r < -5 ? 1 : r > 20 ? -2 : r > 5 ? -1 : 0;
           c._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
         }
@@ -23182,6 +23292,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* Drop day: the devout arrive elated. Declared in traits.json since Step 2 and read by
        nothing until the Step 6 audit. Placed here rather than at corp construction because
        the squad hook cache does not exist until the loop is set up. */
+    /* §STANDING THE CROWD GOES DOWN WITH THEM: a loved OA's people drop steadier, a jeered one's shaken */
+    for (const c of corps) {
+      if (!c.rep) continue;
+      const lean = (REP.standing(c.rep, 'crowd') - 50) / 50;
+      for (const q of c.squads) for (const b of squadHead(q))
+        b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + lean * CONST.CROWD_DROP_MORALE));
+    }
     for (const c of corps) {
       for (const q of c.squads) {
         const h = squadHooks(q);
@@ -25256,7 +25373,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!c.rep) continue;
       const place = stats.placement[c.id];
       if (place != null) {
-        REP.act(c.rep, 'finished', { count: Math.max(0, corps.length - place) });
+        REP.act(c.rep, 'finished', { count: (corps.length + 1) / 2 - place });   /* above the middle of the table glory, below it the reverse */
       }
       if (stats.winner === c.id) REP.act(c.rep, 'won_planet', { rivalIds: corpIds });
       /* §3.1a held out: never sold, odds fell under the floor, and fought on from there */
@@ -25506,6 +25623,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   const REP = isNode ? require('./reputation.js') : global.CDREP;
 
   const CONST = {
+    LETTER_REGARD: 0.15,        // [C] §STANDING how far a house's regard moves what it opens a letter at, either way
     /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
        fleet's own wage bill pays about this much for a point of quality (median salary ×
        12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
@@ -25606,7 +25724,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const give = valueBundle(me, mine, opts);
     const ask = valueBundle(them, theirs, opts);
     const regard = typeof opts.regard === 'number' ? opts.regard
-      : (them.rep && REP ? REP.standing(them.rep, 'rival', me.id) : 0);
+      : (me.rep && REP && me.rep.base.houses[them.id] != null ? (REP.standing(me.rep, 'house', them.id) - 50) * 2 : 0);   /* −100..100: how THEY regard ME */
     /* what they need to see, softened or hardened by what they think of you */
     const need = ask * (1 - regard / CONST.REGARD_SWING);
     let ratio;
@@ -25748,7 +25866,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        negotiation by overpaying — and they fill with gear that FITS rather than rounding
        up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
        a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
-    const target = price * 0.95;
+    /* §STANDING A HOUSE WRITES AS IT REGARDS YOU: one that likes you opens near the whole price, one that does not opens
+       low — and one that loathes you opens so low it is an insult, and the fairness test below keeps it from writing */
+    const regard = me.rep && REP && me.rep.base && me.rep.base.houses && me.rep.base.houses[them.id] != null
+      ? (REP.standing(me.rep, 'house', them.id) - 50) / 50 : 0;
+    const target = price * (0.95 + CONST.LETTER_REGARD * regard);
     /* MONEY FIRST. It filled with gear and paid the remainder in credits, so an OA sitting on a quarter of a
        million wrote "₡52, a plasma caster, four carbines, five vests and five rifles for your best man" — a letter
        that reads as junk and trains a manager to bin the box. An OA pays in credits as far as it can spare them
@@ -25925,6 +26047,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     WOUND_STRESS_CRIPPLED: 11,   // [C] and while Crippling
     WOUND_DECAY: 0.5,            // [C] stat points lost a month at Crippling with no care
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
+    /* §STANDING WHAT THE CROWD DOES FOR AN OA'S PEOPLE (ruled at the standing pass). The crowd's warmth runs 0..100
+       about an indifferent 50; each of these reads it as −1..1 from there. */
+    CROWD_LOYALTY: 1.2,          // [C] a month's pull on every hand's loyalty at a crowd of 100 (or 0, the other way)
+    CROWD_LOT: 2,                // [C] how many more (or fewer) natural-born turn up to trial, at the ends
+    CROWD_LOT_STATS: 12,         // [C] and how much better (or worse) they are, on every stat
+    FAMILIES_CALM: 4,            // [C] §STANDING a warm Families faction takes this much more stress off everyone monthly, at a full share
+    TACTICIANS_INTEL: 0.6,       // [C] a warm Tacticians faction lifts a month's intel by this share, at a full share
+    FAME_WATCHED: 0.5,           // [C] and a loved OA is written about: a rival scouting it gets this much more, at a crowd of 100
+    FAIRWEATHER_GATE: 1.5,
+    CROWD_INTEL_LEVELS: 4,       // [C] what a supporter's papers, or a leak, is worth in intel levels       // [C] how much harder the Fairweathers swing the gate than the rest of the crowd
+    BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off indifference
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
        STRESS. Both come down on their own every month; focus speeds either up sharply, and
@@ -26257,11 +26390,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
     p.race_weights = {};
     Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
-    /* LIKED AT HOME means what the page's own-people bands mean by it: under 40 reads
-       Mutinous, 40–65 Strained, 65–85 Loyal. Read off the dials the founder came out at 29 —
-       a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
-       loyalty is earned by the year. The fleet has no opinion yet. */
-    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
+    /* §STANDING a founded OA's crowd opens balanced and indifferent, and every house stands at 50 with it: what it
+       becomes is earned by its record (reputation.js reads `founding: 'lean'`) */
+    p.reputation = {};
     p.id = id || 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
@@ -26629,6 +26760,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* §HALF-BUILT the Dividend taken is a thing the fleet and your own people notice (`took_the_purse`,
            written and never raised) */
         if (winner.rep) REP.act(winner.rep, 'took_the_purse', {});
+        const loser = winner === A ? B : A;
+        if (loser && loser.rep) REP.act(loser.rep, 'lost_the_dividend', {});
         tally.purses++;
         for (const f of (winner === A ? bodiesA : bodiesB)) {
           REP.earnFame(f, CONST.DIVIDEND_FAME_WIN);
@@ -26676,7 +26809,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
-    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'fleet') : 0) - (a.corp.rep ? REP.standing(a.corp.rep, 'fleet') : 0));
+    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'houses') : 50) - (a.corp.rep ? REP.standing(a.corp.rep, 'houses') : 50));
     const n = entrants.length, A = [], B = [];
     entrants.forEach((e, i) => { const pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(e); });
     const pot = entrants.length * CONST.EIGHT_ENTRY + CONST.EIGHT_PURSE;
@@ -26693,7 +26826,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const deadBy = {}, hurtBy = {};
     const land = (S, team) => S.units.forEach((u, i) => {
       const e = team[i], f = e.f;
-      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1; }
+      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
+        if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
         f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
@@ -26713,6 +26847,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (win) {
       const share = Math.round(pot / win.length);
       for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); REP.earnFame(e.f, CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
+      for (const e of (win === A ? B : A)) if (e.corp.rep) REP.act(e.corp.rep, 'lost_the_eight', {});
     }
     E.result = { held: true, season, teams: { A: A.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })), B: B.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })) },
                  winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy, stun,
@@ -26765,8 +26900,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        WIDER FLEET, which is the one that watches everybody rather than one corp's own ships.
        It is a signed scale — being loathed is a real position — so this maps the whole of it,
        and a corp the fleet detests now reads worse to a free agent than an unknown one. */
-    const fleet = REP.standing(corp.rep, 'fleet');
-    const standing = Math.max(0, Math.min(1, (fleet + CONST.MERC_FAME_SPAN) / (2 * CONST.MERC_FAME_SPAN)));
+    /* how the fleet's houses regard the OA, 0..1: a free agent asks around before he signs */
+    const standing = Math.max(0, Math.min(1, REP.standing(corp.rep, 'houses') / 100));
     return CONST.MERC_W_MONEY * money
          + CONST.MERC_W_SAFETY * safety
          + CONST.MERC_W_FAME * standing
@@ -26787,7 +26922,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      starts with the roster's own */
   function openLot(rng, kind, corpId, pool, corp) {
     const spec = {
-      tryouts:  { n: CONST.TRYOUT_LOT,   mix: [['nattie', 1]] },
+      tryouts:  { n: Math.max(3, CONST.TRYOUT_LOT + Math.round(crowdLean(corp) * CONST.CROWD_LOT)), mix: [['nattie', 1]] },
       mercs:    { n: CONST.MERC_LOT,     mix: [['mercenary', 1]] },
       bastille: { n: CONST.BASTILLE_LOT, mix: [['prisoner', 1]] }
     }[kind];
@@ -26795,6 +26930,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const taken = new Set((corp && corp.roster || []).map(f => f.name));
     const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix, taken }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+    /* §STANDING THE SHIP'S CHILDREN WANT TO JOIN A LOVED OA: its own tryouts come deeper and better, a jeered one's thinner */
+    if (kind === 'tryouts' && corp) {
+      const lift = Math.round(crowdLean(corp) * CONST.CROWD_LOT_STATS);
+      if (lift) for (const f of lot) for (const k in (f.stats || {})) f.stats[k] = Math.max(10, Math.min(200, f.stats[k] + lift));
+    }
     /* the premium and discount pools of the Natural-Born window: the same ship, a different
        year of it — dearer and greener, or cheaper and nearer the ceiling */
     const shape = pool === 'premium' ? CONST.POOL_PREMIUM : pool === 'discount' ? CONST.POOL_DISCOUNT : null;
@@ -26814,7 +26954,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function askingPrice(f, corp) {
     const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
     if (!corp || !corp.rep) return flat;
-    const good = REP.standing(corp.rep, 'own') + REP.standing(corp.rep, 'fleet') * CONST.MARKET_FLEET_SHARE;
+    /* −100..100: the crowd's warmth and the houses' regard, each centred on indifference */
+    const good = (REP.standing(corp.rep, 'crowd') - 50) * 2 + (REP.standing(corp.rep, 'houses') - 50) * 2 * CONST.MARKET_FLEET_SHARE;
     let mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
     /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
        what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
@@ -26889,6 +27030,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       f.contract.salary = Math.round(pick.bid / LED.CONST.SALARY_MONTHS);
       f._fameAtSigning = f.fame || 0;
       pick.corp.roster.push(f);
+      if (pick.corp.rep) REP.act(pick.corp.rep, kind === 'mercs' ? 'hired_a_gun' : 'signed_our_own', { scale: Math.min(1, (f.fame || 0) / 60) });
       LED.post(pick.corp.account, 'expense', kind + ' signing',
                -((f.contract && f.contract.signing_cost) || 0));
       tally.signed++;
@@ -26989,6 +27131,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         corp.roster.push(f);
+        if (corp.rep) REP.act(corp.rep, 'signed_our_own', {});
         lots[id] = lots[id].filter(x => x !== f);
         tally.signed++; took++;
         if (byPolicy) corp._nattieYear.signed++;   /* the year's cap is the policy's appetite, not a rule for a person */
@@ -27084,6 +27227,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       f.divides = 0; f.seasonsHere = 0; f.retired = false;
       f._fameAtSigning = f.fame || 0;
       c.roster.push(f);
+      if (c.rep) REP.act(c.rep, 'took_a_conscript', {});
       LED.post(c.account, 'expense', 'Kier processing', -fee);
       const bought = sentence - win.term;
       if (bought > 0) {
@@ -27609,7 +27753,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE);
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE - Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM);
+      /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
+      f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */
@@ -27624,6 +27770,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       settleWounds(f);
     }
     tally.mended += mended;
+    /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
+    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
        block toward their ceiling whether or not anybody watches. Green-gated like the
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
@@ -27655,6 +27803,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        through the function a human would use; this is the other half of that bargain. */
     const focus = wanted ? validateFocus(corp, month, wanted)
                          : chooseFocus(corp, month);
+    /* §STANDING a strike stood the drill idle this month: whatever was painted on it goes unspent */
+    if (corp._noDrill === (season || 0) * 100 + month) delete focus.train;
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -27678,6 +27828,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const third = fpts / 3 * mult;     /* three focus = one old act, ruled; boost doubles it */
       tally.focus += fpts;
       tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
+      /* §STANDING THE STANDS SEE THE YEAR'S WORK: a hard drill pleases the Tacticians and the Bloodhounds and wears on
+         the Families, rest the reverse, a scouting party the Tacticians, courting a backer the Fairweathers */
+      const SEEN = { train: 'drilled_hard', rest: 'rested_them', scout: 'scouted', court: 'courted' };
+      if (corp.rep && SEEN[kind]) REP.act(corp.rep, SEEN[kind], { count: fpts });
       const a = { kind: kind };
       if (a.kind === 'rest') {
         /* --- THE RECOVERY GRID. Two tracks per body — `wounds` and `stress` — painted at
@@ -27842,13 +27996,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         for (const key in map) {
           const pips = map[key] || 0;
           if (pips <= 0) continue;
-          const levels = pips * perPip;
+          /* §STANDING a warm Tacticians faction sends its own eyes; and a loved OA is written about, so a rival looking
+             at it finds more (fame cuts both ways) */
+          let levels = pips * perPip * (1 + Math.max(0, factionLean(corp, 'tacticians')) * CONST.TACTICIANS_INTEL);
           if (key !== 'planet' && corps && corps[key]) {
             const them = corps[key];
+            levels *= 1 + Math.max(0, crowdLean(them)) * CONST.FAME_WATCHED;
+            levels = Math.round(levels);
             gatherIntel(corp, 'rival', key, levels, absMonth,
                         (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
           } else {
-            gatherIntel(corp, 'planet', null, levels, absMonth, null);
+            gatherIntel(corp, 'planet', null, Math.round(levels), absMonth, null);
           }
           anyGathered = true;
         }
@@ -28033,6 +28191,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      for less to stay; one who does not asks for more, and asks for a lot more if he is only
      here for the wage. This is where `loyalty_cap_reduced` becomes a consequence rather than a
      system: a fighter who can never be fully loyal simply never reaches the discount. */
+  /* §STANDING the crowd as −1..1 about indifference, and a faction's share-weighted lean, for the payoffs */
+  function crowdLean(c) { return c && c.rep ? (REP.standing(c.rep, 'crowd') - 50) / 50 : 0; }
+  function factionLean(c, f) { return c && c.rep ? (c.rep.shares[f] || 0) * (REP.standing(c.rep, f) - 50) / 50 : 0; }
   function loyaltyOf(state, f) {
     let l = f.loyalty == null ? 50 : f.loyalty;
     if (state && EVENTS.fighterHas(state, f, 'loyalty_cap_reduced'))
@@ -28105,8 +28266,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* The freed choose first, because whether they stay changes what the wage bill is.
        A corp its own ships think well of is a corp a released prisoner signs with again. */
     for (const f of (freed || [])) {
-      const own = corp.rep ? REP.standing(corp.rep, 'own') : 0;
-      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, own / 100)));
+      const own = corp.rep ? REP.standing(corp.rep, 'crowd') : 50;
+      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, (own - 50) / 50)));
       if (rng() < p) {
         f.status = 'active';
         f.contract = f.contract || {};
@@ -28187,6 +28348,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
 
+    /* §STANDING the stands watch who leaves: a long-served hand let go is felt, a star grave to the Diehards */
+    if (corp.rep) for (const f of gone) {
+      const years = f.seasonsHere || f.divides || 0;
+      if (years >= 1 || (f.fame || 0) >= 20)
+        REP.act(corp.rep, 'let_a_veteran_go', { scale: Math.min(1, years / 6 + (f.fame || 0) / 120), grave: (f.fame || 0) >= 60 || years >= 5 });
+    }
     if (gone.length) corp.roster = corp.roster.filter(f => gone.indexOf(f) < 0);
     return out;
   }
@@ -28704,6 +28871,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
     planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + season)), planet.archetype, planet.richness);
+    /* §STANDING each house watches the others with the taste of the stands it has now */
+    for (const id of ids) {
+      const c = corps[id];
+      if (!c.rep) continue;
+      const tastes = {};
+      for (const oid of ids) if (oid !== id && corps[oid].rep) tastes[oid] = REP.tasteOf(corps[oid].rep);
+      REP.setHouseTastes(c.rep, tastes);
+    }
     for (const id of ids) {
       const c = corps[id];
       if (!c.rep) continue;
@@ -28895,6 +29070,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
     c.roster.push(f);
+    if (c.rep) REP.act(c.rep, 'signed_our_own', {});
     return { ok: true, name: f.name, cost: 0, year: year };
   }
 
@@ -28974,7 +29150,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
-    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
+    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);
   }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
@@ -29101,6 +29277,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const ans = (choices && choices[id] && choices[id].events) || {};
         for (const evId in ans) EVENTS.answer(state, id, evId, ans[evId]);
         eventsOut[id] = EVENTS.settle(state, id, !isHuman(state, id));
+        /* §STANDING what the crowd's dispatches set: a supporter's papers read into the dossier, a leak into a rival's */
+        const cc = state.corps[id], absM = state.season * 100 + m;
+        ensureIntel(cc, state.season || 0);
+        if (cc._tipOn && state.corps[cc._tipOn]) {
+          const them = state.corps[cc._tipOn];
+          gatherIntel(cc, 'rival', cc._tipOn, CONST.CROWD_INTEL_LEVELS, absM, (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
+        }
+        if (cc._leakTo && state.corps[cc._leakTo]) {
+          const to = state.corps[cc._leakTo];
+          ensureIntel(to, state.season || 0);
+          gatherIntel(to, 'rival', id, CONST.CROWD_INTEL_LEVELS, absM, (rowKey, depth) => snapshotRival(cc, rowKey, depth, state.season || 0));
+        }
+        delete cc._tipOn; delete cc._leakTo;
       }
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
@@ -29197,7 +29386,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
-      const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
+      /* §STANDING the Fairweathers are the gate's swing — a warm lot fill the stands, a sour lot empty them — and the
+         Diehards its floor: they buy a ticket whatever the year was */
+      const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
+      const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
+      const shut = c._gateShut === state.season * 100 + m;
+      const gate = shut ? 0 : Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame));
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
          were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
@@ -29420,7 +29614,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       fleet: state.ids.filter(x => x !== id).map(x => {
         const r = state.corps[x];
         return { id: x, profile: lite(r),
-                 standing: r.rep ? { own: Math.round(REP.standing(r.rep, 'own')), fleet: Math.round(REP.standing(r.rep, 'fleet')) } : null,
+                 standing: r.rep ? { crowd: Math.round(REP.standing(r.rep, 'crowd')), houses: Math.round(REP.standing(r.rep, 'houses')) } : null,
                  people: r.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length };
       }),
       planet: { archetype: pl.archetype, archetypeName: pl.archetypeName, radius: pl.radius, cycle: pl.cycle, pot: pl.pot,
@@ -29908,7 +30102,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         lossRate: dropped.length ? dead.length / dropped.length : 0,
         /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
-        popularity: c.rep ? REP.standing(c.rep, 'own') + REP.standing(c.rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE : 0,
+        popularity: c.rep ? REP.standing(c.rep, 'crowd') + (REP.standing(c.rep, 'houses') - 50) * LED.CONST.GATE_FLEET_SHARE : 50,
         /* §3.1c and what the year said about the OA to the people who work in it */
         _own: (function () {
           if (!c.rep) return 0;
@@ -31145,7 +31339,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var POOLWORD = { premium: 'Premium Pool', discount: 'Discount Pool', first: 'First Intake', second: 'Second Intake' };
     /* §MARKET an OA's name is a discount or a premium on every ask */
     var meRep = G.corps[G.me].rep;
-    var nameGood = meRep ? REP.standing(meRep, 'own') + REP.standing(meRep, 'fleet') * SEASON.CONST.MARKET_FLEET_SHARE : 0;
+    var nameGood = meRep ? (REP.standing(meRep, 'crowd') - 50) * 2 + (REP.standing(meRep, 'houses') - 50) * 2 * SEASON.CONST.MARKET_FLEET_SHARE : 0;
     var namePct = Math.round(Math.max(-SEASON.CONST.MARKET_SWING, Math.min(SEASON.CONST.MARKET_SWING, nameGood / 100 * SEASON.CONST.MARKET_SWING)) * 100);
     var nameWord = win.signing === 'bastille' ? '<span class="m">Kier Wages \u00b7 No Asks to Discount</span>'   /* the Bastille has no asks to discount */
                  : namePct > 2 ? '<span class="good">Your Name: \u2212' + namePct + '% on Every Ask</span>'
@@ -31541,7 +31735,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var fit = me.roster.filter(function (f) { return f.status === 'active' && !f.mirror_of && !(f.condition && (f.condition.injuries || []).length); });
     var def = SEASON.eightPick(me), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
-    var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'fleet') - REP.standing(G.corps[a].rep, 'fleet'); });
+    var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
     var A = [], B = []; order.forEach(function (id, i) { var pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(id); });
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
@@ -32957,16 +33151,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function monthSnapshot(me) {
     var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
       health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
-    var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
+    var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
     return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st,
-             own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0, patience: me.rep ? me.rep.patience : null };
+             crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), patience: me.rep ? me.rep.patience : null };
   }
   window.__showRecap = function () { return showRecap(); };
   function showRecap() {
     var R = G._recap; if (!R || !$('recaphead')) return;
     var me = G.corps[G.me], snap = R.snap;
     var m = R.month, nextM = G.state.month;
-    var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
+    var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
     var sgn = function (v, dp) { var r = dp ? v.toFixed(dp) : Math.round(v); return (v > 0 ? '+' : '') + r; };
     var cls = function (v) { return v > 0 ? 'good' : v < 0 ? 'bad' : 'm'; };
     /* money: the ledger's lines since the snapshot */
@@ -33079,23 +33273,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (calmer) peopleCol += ln('Rested', '<span class="m">' + calmer + ' Less Strained</span>', '');
     if (peopleCol === '<h3>People</h3>') peopleCol += ln('', '<span class="m">No Comings or Goings</span>', '');
     /* STANDING: gauges with a tick for a month ago, the figure and its change on the right */
-    /* a crowd's standing runs \u2212100..100 and is drawn from the centre: 0 is an empty bar, a cold crowd fills left in
-       red, a warm one right; the board's patience is 0..100 and fills from the left. The figure beside each is the
-       number itself. The tick is where it stood a month ago. */
-    var gauge = function (lab, now, was, boardish) {
-      var d = now - was, dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, boardish ? 0 : 1), bar;
-      if (boardish) {
-        bar = '<i class="board" style="left:0;width:' + Math.max(0, Math.min(100, now)).toFixed(0) + '%"></i><em style="left:' + Math.max(0, Math.min(100, was)).toFixed(0) + '%"></em>';
-      } else {
-        var w = Math.min(50, Math.abs(now) / 2), left = now >= 0 ? 50 : 50 - w;
-        bar = '<b class="zero"></b><i class="' + (now >= 0 ? 'warm' : 'cold') + '" style="left:' + left.toFixed(1) + '%;width:' + w.toFixed(1) + '%"></i><em style="left:' + (50 + Math.max(-50, Math.min(50, was / 2))).toFixed(1) + '%"></em>';
-      }
-      return '<div class="gauge"><span class="lab">' + lab + '</span><span class="bar">' + bar + '</span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
+    /* §STANDING every standing 0..100, filled from the left, with the tick where it stood a month ago */
+    var gauge = function (lab, now, was, small, fill) {
+      var d = now - was, dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, 1);
+      return '<div class="gauge' + (small ? ' sm' : '') + '"><span class="lab">' + lab + '</span><span class="bar"><i' + (fill ? ' class="' + fill + '"' : '') + ' style="width:' + Math.max(0, Math.min(100, now)).toFixed(0) + '%"></i>' +
+             '<em style="left:' + Math.max(0, Math.min(100, was)).toFixed(0) + '%"></em></span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
     };
     var standCol = '<h3>Standing</h3>' +
-      gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
+      gauge('Your Crowd', read.crowd, snap.crowd != null ? snap.crowd : read.crowd) +
+      REP.FACTIONS.map(function (f) { var was = (snap.factions || {})[f]; return gauge(FACTION_META[f].name, read.factions[f], was != null ? was : read.factions[f], true); }).join('') +
+      gauge('The Houses', read.housesMean, snap.houses != null ? snap.houses : read.housesMean) +
       /* §ALEAS the Aleas gauge is hidden here as on the Board and the OA sheet: nothing reads it (ruled) */
-      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '');
+      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, false, 'board') : '');
     /* §SPONSORS WHAT THE OA HAS BEEN GIVEN, and keeps. Standings are permanent, they stack,
        and they are the reason a manager courts anybody: they belong on the Board beside the
        holds rather than buried in a season's report. */
@@ -33619,7 +33808,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var p = c.profile || {}, me = G.corps[G.me], mine = id === G.me;
     var row = function (k, v) { return '<div class="orow"><span>' + k + '</span><span>' + v + '</span></div>'; };
     var gauge = function (lab, v) {
-      var pct = Math.max(0, Math.min(100, 50 + (v || 0) / 2));
+      var pct = Math.max(0, Math.min(100, v == null ? 50 : v));
       return '<div class="gaugeline"><span class="lab">' + lab + '</span><span class="bar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
              '<span class="v">' + Math.round(v || 0) + '</span></div>';
     };
@@ -33630,11 +33819,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* WHAT ANYBODY CAN SEE: the fleet's own reading of them, and what they think of you */
     h += '<h3>Standing</h3>';
     if (c.rep) {
-      /* §ALEAS the Aleas gauge is hidden until the media system gives it a meaning */
-      h += gauge('Their People', REP.standing(c.rep, 'own')) + gauge('The Fleet', REP.standing(c.rep, 'fleet'));
-      if (!mine) h += gauge('Toward You', REP.standing(c.rep, 'rival', G.me));
-      h += row('Read', standBand(REP.standing(c.rep, 'fleet'), 'fleet').word + ' in the Fleet' +
-               (mine ? '' : ' \u00b7 ' + standBand(REP.standing(c.rep, 'rival', G.me), 'rival').word + ' Toward You'));
+      /* §STANDING their crowd and the houses' regard are public; how they regard YOU is kept on your own record */
+      h += gauge('Their Crowd', REP.standing(c.rep, 'crowd')) + gauge('The Houses', REP.standing(c.rep, 'houses'));
+      if (!mine) h += gauge('Toward You', houseToward(id));
+      /* the stands they have: their largest factions, which is what their people will want to see from you */
+      var top = REP.FACTIONS.slice().sort(function (a, b) { return (c.rep.shares[b] || 0) - (c.rep.shares[a] || 0); }).slice(0, 3);
+      h += row('Their Stands', top.map(function (f) { return FACTION_META[f].name + ' ' + Math.round((c.rep.shares[f] || 0) * 100) + '%'; }).join(' \u00b7 '));
     }
     /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
     h += '<h3>The OA</h3>';
@@ -36529,7 +36719,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function tradeOpts() {
     return { focusPointPrice: SEASON.CONST.BOOST_PER_POINT,
              rowsPerPip: SEASON.CONST.INTEL_PER_PIP,
-             regard: TSEL ? REP.standing(G.corps[TSEL].rep, 'rival', G.me) : 0 };
+             regard: TSEL ? (houseToward(TSEL) - 50) * 2 : 0 };
   }
   function aliveOf(c) {
     return (c.roster || []).filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
@@ -36596,8 +36786,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       size: 58, radius: 140,
       hub: '<b>' + esc(shortOA(G.me)) + '</b><span>To Whom</span>',
       sub: function (id) {
-        var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
-        return '<span class="' + (r > 8 ? 'good' : r < -8 ? 'bad' : 'm') + '">' + esc(standBand(r, 'rival').word) + '</span>';
+        var r = houseToward(id), b = standBand(r);
+        return '<span class="' + (b.cls || 'm') + '">' + esc(b.word) + '</span>';
       }
     });
 
@@ -36798,101 +36988,53 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
      Nothing here is scored. The engine's own line: a manager is never graded on how they
      answer, only moved. --- */
+  /* §STANDING ONE SCALE, ONE BAR, ONE SET OF WORDS (ruled at the standing pass). Every standing is 0..100 about an
+     indifferent 50, fills from the left, carries a tick every twenty and a tick where it stood a month ago, and reads the
+     same five words whoever is watching. */
   var AUDNAME = {
-    own:   { name: 'Your Own People', sub: 'The Crews and the Families' },
-    fleet: { name: 'The Fleet',       sub: 'The Other OAs' },
-    /* §BACKROOM the gauge says what the number buys: their price for a favour, and for losing a piece of footage */
-    aleas: { name: 'The Aleas',       sub: 'The Referees \u00b7 Their Price for a Favour' }
+    crowd:  { name: 'Your Crowd', sub: 'Everyone in Your Stands' },
+    houses: { name: 'The Houses', sub: 'The Other OAs, Together' },
+    house:  { name: 'That House', sub: '' }
   };
-  /* THE WORD FOR A NUMBER IS NOT THE SAME WORD FOR EVERY AUDIENCE. All four run on the
-     same -100..100 scale, but they do not live in the same part of it, and one set of
-     thresholds read every corporation as adored. MEASURED over six seasons of a full
-     career: your own people start at 80 and drift to the ceiling; the fleet runs 5 to 100
-     around a median of 66; the Aleas runs -74 to 78 around 20; a rival runs the whole
-     scale around a median of -9. So each audience gets bands cut against where it
-     actually sits, and the bar shows the true position on the shared scale. */
-  var STAND_BANDS = {
-    own:   [[40, 'Mutinous', 'bad'], [65, 'Strained', 'bad'], [85, 'Loyal', 'good'],
-            [999, 'Devoted', 'good']],
-    fleet: [[20, 'Unknown', ''], [40, 'Watched', ''], [65, 'Respected', 'good'],
-            [999, 'Renowned', 'good']],
-    aleas: [[-40, 'Distrusted', 'bad'], [-10, 'Watched', 'bad'], [25, 'Tolerated', ''],
-            [60, 'Approved', 'good'], [999, 'Favoured', 'good']],
-    rival: [[-50, 'Hostile', 'bad'], [-20, 'Cold', 'bad'], [15, 'Neutral', ''],
-            [45, 'Warm', 'good'], [999, 'Close', 'good']]
+  var FACTION_META = {
+    bloodhounds:  { name: 'Bloodhounds',  sub: 'Kills and Aggression' },
+    tacticians:   { name: 'Tacticians',   sub: 'Craft and Clean Play' },
+    fairweathers: { name: 'Fairweathers', sub: 'Winning, and Only Winning' },
+    underdogs:    { name: 'Underdogs',    sub: 'Long Odds and Comebacks' },
+    families:     { name: 'Families',     sub: 'People Home Safe' },
+    diehards:     { name: 'Diehards',     sub: 'A Word Kept' }
   };
-  function standBand(v, aud) {
-    var t = STAND_BANDS[aud] || STAND_BANDS.rival;
-    for (var i = 0; i < t.length; i++) if (v < t[i][0]) return { word: t[i][1], cls: t[i][2] };
-    return { word: t[t.length - 1][1], cls: t[t.length - 1][2] };
+  REP.FACTIONS.forEach(function (f) { AUDNAME[f] = FACTION_META[f]; });
+  var STAND_BANDS = [[20, 'Hostile', 'bad'], [40, 'Cold', 'warn'], [60, 'Indifferent', ''], [80, 'Warm', 'good'], [101, 'Devoted', 'good']];
+  function standBand(v) {
+    for (var i = 0; i < STAND_BANDS.length; i++) if (v < STAND_BANDS[i][0]) return { word: STAND_BANDS[i][1], cls: STAND_BANDS[i][2] };
+    return { word: 'Devoted', cls: 'good' };
   }
-  /* THE NUMBER HAS TO MEAN WHAT THE WORD MEANS. Every standing lives on the same
-     -100..100 store, but the four audiences do not use the same part of it, and printing a
-     SIGNED figure beside a per-audience word produced nonsense: "+20 Mutinous" next to
-     "+13 Neutral", where the first is a crew close to walking off and the second is a rival
-     who barely knows you. A plus sign promises a symmetric scale.
-
-     So each audience is drawn on the range it actually occupies. Your own people and the
-     fleet are read out of 100 — 20 of 100 is a bad number and looks like one. The Aleas and
-     a rival genuinely run both ways, so they keep the sign and the bar keeps its centre. */
-  var STAND_SCALE = {
-    own:   { lo: 0, hi: 100, signed: false },
-    fleet: { lo: 0, hi: 100, signed: false },
-    aleas: { lo: -100, hi: 100, signed: true },
-    rival: { lo: -100, hi: 100, signed: true }
-  };
-  function standBar(v, aud, was, bare) {
-    var sc = STAND_SCALE[aud] || STAND_SCALE.rival;
-    var at = function (x) { return Math.max(0, Math.min(100, ((x - sc.lo) / (sc.hi - sc.lo)) * 100)); };
-    var pct = at(v);
-    var b = standBand(v, aud);
-    var num = sc.signed ? ((v > 0 ? '+' : '') + Math.round(v))
-                        : (Math.round(v) + ' of ' + sc.hi);
-    /* the bands named on the bar, so the figure has a scale a manager can read */
-    /* the bands are named at the THRESHOLD each begins at, so a tick sits where a reading
-       crosses from one word to the next; the first band has no threshold below it and the
-       last has none above, so both are named at their own edge */
-    /* TWO NAMES, NEVER TOUCHING. Every threshold gets a tick. Only the band you are in is
-       named — by its neighbours: the band BELOW at the lower boundary, anchored to the left
-       of its tick, and the band ABOVE at the upper boundary, anchored to the right of its. Two
-       words pulling away from each other cannot overlap at any width. (Three names crowded
-       onto one bar printed "MUTINGBBAINEDVAL".) */
-    var bands = STAND_BANDS[aud] || [], bi = 0;
-    bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
-    var ticks = bands.slice(0, -1).map(function (t, i) {
-      var p = at(t[0]); if (p <= 2 || p >= 98) return '';
-      var word = '';
-      /* at the bottom band there is nothing below to name, so the two boundaries ABOVE are
-         named (as the mock does for the Fleet at zero: WATCHED · RESPECTED); at the top band,
-         the two below */
-      var lower = bi === 0 ? -1 : bi === bands.length - 1 ? bi - 2 : bi - 1;
-      var upper = bi === 0 ? 1 : bi === bands.length - 1 ? bi - 1 : bi;
-      /* the lower name pulls left of its tick, the upper pulls right: they cannot meet.
-         A lower tick too close to the bar's start has no room on its left and pulls right
-         instead, which the upper's distance then covers. */
-      if (i === lower || (bi === 0 && i === 0))
-        word = '<span class="btw ' + (p >= 18 ? 'lo' : 'hi') + '" style="left:' + p.toFixed(1) + '%">' + (bi === 0 ? bands[i + 1][1] : bands[i][1]) + '</span>';
-      else if (i === upper && bands[i + 1])
-        word = '<span class="btw hi" style="left:' + p.toFixed(1) + '%">' + (bi === bands.length - 1 ? bands[i][1] : bands[i + 1][1]) + '</span>';
-      return '<span class="bt" style="left:' + p.toFixed(1) + '%"></span>' + word;
-    }).join('');
-    var d = was != null ? v - was : 0;
-    var dtxt = was == null || Math.abs(d) < 0.05 ? '\u00b10' : (d > 0 ? '+' : '\u2212') + Math.abs(d).toFixed(1);
-    if (bare) {
-      /* the Board's bar: filled to where the standing stands, coloured by the band it is in */
-      /* NOT `.sbar`: the Board's bar is its own class. Wearing the picker's class meant wearing
-         the picker's gradient, and beating it took a specificity argument that a stylesheet
-         should never have to have. One colour, as the mock drew it: the BAR says how much, the
-         WORD beside it says how good. */
-      return '<span class="standfill">' + ticks +
-             (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
-             '<i style="width:' + pct.toFixed(1) + '%"></i></span>';
-    }
-    var bar = '<span class="sbar' + (sc.signed ? '' : ' onesided') + '">' + ticks +
-              (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
-              '<i style="left:' + pct.toFixed(1) + '%"></i></span>';
-    return bar + '<span class="swrd ' + b.cls + '">' + b.word + ' \u00b7 ' + num +
-           ' <span class="' + (d > 0.05 ? 'good' : d < -0.05 ? 'bad' : 'm') + '">' + dtxt + '</span></span>';
+  /* how a house regards YOU: kept on your own record, under that house's name */
+  function houseToward(id) { var r = G.corps[G.me] && G.corps[G.me].rep; return r && r.base.houses[id] != null ? REP.standing(r, 'house', id) : 50; }
+  function standBar(v, was) {
+    var at = function (x) { return Math.max(0, Math.min(100, x)); };
+    return '<span class="standfill">' +
+           [20, 40, 60, 80].map(function (t) { return '<span class="bt" style="left:' + t + '%"></span>'; }).join('') +
+           (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
+           '<i style="width:' + at(v).toFixed(1) + '%"></i></span>';
+  }
+  function standReading(v, was) {
+    var b = standBand(v), dv = was != null ? v - was : 0;
+    var dtxt = was == null || Math.abs(dv) < 0.05 ? '\u00b10' : (dv > 0 ? '+' : '\u2212') + Math.abs(dv).toFixed(1);
+    return '<span class="ard"><b class="' + b.cls + '">' + b.word + '</b><span class="af">' + Math.round(v) + '</span>' +
+           '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span>';
+  }
+  function whyLine(list) {
+    /* one line per act, summed: three months of drilling is one entry, not three */
+    var by = {}, order = [];
+    list.forEach(function (m) { if (!by[m.act]) { by[m.act] = { act: m.act, now: 0 }; order.push(m.act); } by[m.act].now += m.now; });
+    list = order.map(function (k) { return by[k]; }).sort(function (a, b) { return Math.abs(b.now) - Math.abs(a.now); }).slice(0, 3);
+    return '<div class="amem">' + (list.length
+      ? list.map(function (m) { var up = m.now > 0;
+          return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
+                 esc(capWords(String(m.act).replace(/_/g, ' '))) + '</span>'; }).join('')
+      : '<span class="m">Unmoved</span>') + '</div>';
   }
   function renderBoard() {
     if (!G || !$('audiences')) return;
@@ -36925,64 +37067,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     renderCard(me, rep);
     renderHolds(me, rep);
 
-    /* ---- who is watching: each audience a card, its own memory inside it. A standing with no
-       story behind it is a number a manager cannot act on; the story sits under the number. ---- */
-    /* §BOARD a standing means nothing without its scale or its direction: the bands are named
-       on the bar itself, a tick shows where the audience stood a month ago, and the change
-       stands beside the figure. The Board keeps the month's reading for the comparison. */
+    /* ---- who is watching: the crowd, faction by faction with its share of the stands, then the houses. Each carries
+       the month-ago tick and what moved it. ---- */
     if (!G._audAt || G._audAt !== G.state.season + ':' + G.state.month) {
-      G._audWas = { own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0 };
+      G._audWas = { crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), house: Object.assign({}, read.houses) };
       G._audAt = G.state.season + ':' + G.state.month;
     }
-    var audWas = G._audWas || {};
-    var h = '<div class="audbox">';
-    /* §ALEAS standing with the Aleas is HIDDEN until the media system gives it a meaning: nothing reads it
-       now that the Back Room and the cases are gone, and a gauge that measures nothing is the half-built trap */
-    ['own', 'fleet'].forEach(function (a) {
-      var v = read[a] || 0, d = AUDNAME[a];
-      /* THREE COLUMNS: who is watching, the bar with its bands and its month-ago tick, and
-         the reading on the right — the word in its own colour over the figure and the change.
-         Under it, ONE line of what moved them: an arrow and the act, not a dated ledger. */
-      var why = (REP.why(rep, a, null, 3) || []);
-      var sc = STAND_SCALE[a] || STAND_SCALE.rival;
-      var band = standBand(v, a), was = audWas[a];
-      /* the lowest band of a scale is red; the next one up is a warning, not a disaster */
-      var bands = STAND_BANDS[a] || [], bi = 0;
-      bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
-      var wcls = band.cls === 'good' ? 'good' : band.cls === 'bad' ? (bi === 0 ? 'bad' : 'warn') : '';
-      var dv = was != null ? v - was : 0;
-      var dtxt = was == null || Math.abs(dv) < 0.05 ? '\u00b10' : (dv > 0 ? '+' : '\u2212') + Math.abs(dv).toFixed(1);
-      h += '<div class="audrow2"><span class="an">' + d.name + '<small>' + d.sub + '</small></span>' +
-           '<span class="ab">' + standBar(v, a, was, true) + '</span>' +
-           '<span class="ard"><b class="' + wcls + '">' + band.word + '</b>' +
-           '<span class="af">' + (sc.signed && v > 0 ? '+' : '') + Math.round(v) + '</span>' +
-           '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span></div>' +
-           '<div class="amem">' + (why.length
-             ? why.map(function (m) {
-                 var up = m.now > 0;
-                 return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
-                        esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span>';
-               }).join('')
-             : '<span class="m">Unmoved</span>') + '</div>';
+    var audWas = G._audWas || { factions: {}, house: {} };
+    var h = '<div class="audbox">' +
+      '<div class="audrow2 lead"><span class="an">' + AUDNAME.crowd.name + '<small>' + AUDNAME.crowd.sub + '</small></span>' +
+      '<span class="ab">' + standBar(read.crowd, audWas.crowd) + '</span>' + standReading(read.crowd, audWas.crowd) + '</div>';
+    REP.FACTIONS.slice().sort(function (a, b) { return (read.shares[b] || 0) - (read.shares[a] || 0); }).forEach(function (f) {
+      var v = read.factions[f], was = (audWas.factions || {})[f], d = FACTION_META[f];
+      h += '<div class="audrow2 fac"><span class="an">' + d.name + ' <span class="share">' + Math.round((read.shares[f] || 0) * 100) + '%</span><small>' + d.sub + '</small></span>' +
+           '<span class="ab">' + standBar(v, was) + '</span>' + standReading(v, was) + '</div>' +
+           whyLine(REP.why(rep, f, null) || []);
     });
-    /* §BOARD THE FLEET AS A LEDGER. The wheel of marks put each OA on a spoke at a distance
-       and said nothing a manager could read: who is warm, who is cold, why, and what they did.
-       Seven rows: the mark, the name (a door to its sheet), how they fight, what they think of
-       you as a bar about a centre line, the word, and their last year. */
-    h += '</div><div class="audhead">The Fleet</div><div class="box fleetbox">' +
+    h += '</div><div class="audhead">The Houses</div><div class="box fleetbox">' +
       '<div class="fleetrow hd"><span></span><span>OA</span><span>Toward You</span><span>Read</span><span>Last Year</span></div>' +
       rivalIds.map(function (id) {
-        var c = G.corps[id], p = (c && c.profile) || {}, v = Math.max(-100, Math.min(100, read.rival[id] || 0));
-        var band = standBand(v, 'rival');
+        var c = G.corps[id], p = (c && c.profile) || {}, v = read.houses[id] != null ? read.houses[id] : 50, was = (audWas.house || {})[id];
+        var band = standBand(v);
         var hs = (c.history || []), hy = hs[hs.length - 1];
         var last = hy ? ((hy.won ? 'Won' : hy.placement ? ordinal(hy.placement) : '\u2014') + ' \u00b7 ' + (hy.dead || 0) + ' Lost') : 'No Year Yet';
-        var w = Math.abs(v) / 2;
         return '<div class="fleetrow"><span style="color:' + colFor(id) + '">' + markFor(id, 18) + '</span>' +
                '<span class="nm">' + cSpan(id) + '<small>' + esc(capWords(p.archetype || '')) +
                (p.engagement_lean ? ' \u00b7 ' + esc(capWords(String(p.engagement_lean).replace(/_/g, ' '))) : '') + '</small></span>' +
-               '<span class="fbar"><span class="c"></span><i style="' + (v >= 0 ? 'left:50%' : 'right:50%') + ';width:' + w.toFixed(0) + '%;background:' +
-               (v > 15 ? 'var(--hit)' : v < -15 ? 'var(--red)' : 'var(--b)') + '"></i></span>' +
-               '<span class="frd"><b class="' + (band.cls || '') + '">' + band.word + '</b>' + (v > 0 ? '+' : '') + Math.round(v) + '</span>' +
+               '<span class="fbar">' + standBar(v, was) + '</span>' +
+               '<span class="frd"><b class="' + (band.cls || '') + '">' + band.word + '</b>' + Math.round(v) + '</span>' +
                '<span class="flast">' + esc(last) + '</span></div>';
       }).join('') + '</div>';
     $('audiences').innerHTML = h;
@@ -37099,7 +37211,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var line = byKind[sd.kind];
       var v = line ? line.value : null;
       if (v == null && sd.kind === 'popularity') {
-        var pop = REP.standing(rep, 'own') + REP.standing(rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE;
+        var pop = REP.standing(rep, 'crowd') + (REP.standing(rep, 'houses') - 50) * LED.CONST.GATE_FLEET_SHARE;
         v = Math.max(-1, Math.min(1, (pop - sd.expected) / REP.CONST.POPULARITY_SPAN));
       }
       var pos = v == null ? 50 : Math.round((v + 1) / 2 * 100);
@@ -37126,8 +37238,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
   /* who is actually asking, under the ask */
   function demandWho(d) {
-    if (d.kind === 'standing') return d.audience === 'own' ? 'The Crews and the Families'
-                                    : d.audience === 'fleet' ? 'The Other Seven\u2019s Regard' : 'The Referees';
+    if (d.kind === 'standing') return d.audience === 'crowd' ? 'Everyone in Your Stands' : 'The Other Seven\u2019s Regard';
     if (d.kind === 'placement' || d.kind === 'win' || d.kind === 'losses') return 'Settled on the Ground';
     if (d.kind === 'resource') return 'The Holds at the Divide';
     return 'The Books';
@@ -37151,12 +37262,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* the gauge that fits the demand */
   function demandGauge(d, me, rep) {
     if (d.kind === 'standing') {
-      var v = REP.standing(rep, d.audience), lo = -100, hi = 100;
+      var v = REP.standing(rep, d.audience), lo = 0, hi = 100;
       var pct = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
       var met = v >= d.above;
       return '<span class="obar"><i class="' + (met ? 'met' : 'short') + '" style="width:' + pct(v).toFixed(0) + '%"></i>' +
              '<em style="left:' + pct(d.above).toFixed(0) + '%"></em></span>' +
-             '<div class="scale"><span class="l">\u2212100</span><span class="n" style="left:' + pct(d.above).toFixed(0) + '%">Needs ' + Math.round(d.above) + '</span><span class="r">100</span></div>';
+             '<div class="scale"><span class="l">0</span><span class="n" style="left:' + pct(d.above).toFixed(0) + '%">Needs ' + Math.round(d.above) + '</span><span class="r">100</span></div>';
     }
     if (d.kind === 'placement' || d.kind === 'win') {
       var b = strengthBoard(me), want = d.kind === 'win' ? 1 : (d.at || 5);
@@ -37261,11 +37372,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             '<div class="regs">';
     opts.forEach(function (o) {
       var mv = o.moves, bits = [];
-      /* §ALEAS standing with the Aleas is HIDDEN until the media system gives it a meaning: nothing reads it
-       now that the Back Room and the cases are gone, and a gauge that measures nothing is the half-built trap */
-    ['own', 'fleet'].forEach(function (a) {
-        if (mv[a]) bits.push(AUDNAME[a].name.replace('Your Own People', 'Your People') + ' ' +
-                             (mv[a] > 0 ? '+' : '') + mv[a]);
+    ['crowd', 'houses'].forEach(function (a) {
+        var n = Math.round((mv[a] || 0) * 10) / 10;
+        if (n) bits.push(AUDNAME[a].name + ' ' + (n > 0 ? '+' : '') + n);
       });
       h += '<button class="regbtn" data-reg="' + o.register + '">' +
            '<b>' + o.register.charAt(0).toUpperCase() + o.register.slice(1) + '</b>' +
@@ -37735,8 +37844,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var sh = '<div class="stancehd"><span></span><span>OA</span><span>How They Stand</span></div>';
     G.state.ids.filter(function (id) { return id !== G.me; }).forEach(function (id) {
       var tc = (w.contact || {})[id] || {};
-      var reg = G.corps[id] && G.corps[id].rep ? Math.round(REP.standing(G.corps[id].rep, 'rival', G.me)) : 0;
-      var band = standBand(reg, 'rival');
+      var reg = Math.round(houseToward(id));
+      var band = standBand(reg);
       var met = tc.huntedBy ? '<span class="bad">Hunting You</span>' : tc.lostTo ? '<span class="bad">Beat You</span>'
               : tc.beat ? '<span class="good">You Beat Them</span>' : tc.fights ? 'Fought You' : 'Not Met';
       var gone = (w.corps || []).some(function (c) { return c.id === id && c.withdrawn; });

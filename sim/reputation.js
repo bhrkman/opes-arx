@@ -80,7 +80,7 @@
     STANDING_THRIFT_W: 1.30,            // [C] how hard a cheap year moves a board with no
                                         //     interest in the planet; scaled DOWN by interest
     STANDING_POPULARITY_W: 0.85,        // [C] §5.3 what the crowd is worth beside the books
-    POPULARITY_NEUTRAL: 55,             // [C] the crowd a board takes for granted (0..100: a little better than indifferent)
+    POPULARITY_NEUTRAL: 50,             // [C] the crowd a board takes for granted: indifference is unremarkable, not a failure
     POPULARITY_SPAN: 20,                // [C] the distance from that to delight or fury
     STANDING_CARE_W: 0.70,              // [C] how hard bringing people home moves one
     CARE_NEUTRAL_LOSS: 0.29,            // [C] the loss rate a board considers unremarkable.
@@ -234,10 +234,10 @@
     lost_the_dividend:  { q: { glory: -0.5 }, mag: 2, residue: 0.10 },
     lost_the_eight:     { q: { glory: -0.6 }, mag: 2, residue: 0.10 },
     /* --- the year's work, month by month: ctx.count is the focus spent --- */
-    drilled_hard:       { q: { craft: 0.5, blood: 0.3, care: -0.5 }, mag: { per: 0.18 }, residue: 0.05 },
-    rested_them:        { q: { care: 0.8, craft: -0.2, blood: -0.3 }, mag: { per: 0.18 }, residue: 0.05 },
-    scouted:            { q: { craft: 0.8, blood: -0.2 }, mag: { per: 0.14 }, residue: 0.05 },
-    courted:            { q: { glory: 0.5, word: -0.2 }, mag: { per: 0.10 }, residue: 0.05 },
+    drilled_hard:       { q: { craft: 0.5, blood: 0.3, care: -0.5 }, mag: { per: 0.30 }, residue: 0.05 },
+    rested_them:        { q: { care: 0.8, craft: -0.2, blood: -0.3 }, mag: { per: 0.30 }, residue: 0.05 },
+    scouted:            { q: { craft: 0.8, blood: -0.2 }, mag: { per: 0.22 }, residue: 0.05 },
+    courted:            { q: { glory: 0.5, word: -0.2 }, mag: { per: 0.16 }, residue: 0.05 },
     /* --- who comes aboard, and who is let go --- */
     signed_our_own:     { q: { word: 0.6, care: 0.3 }, mag: 1.2, residue: 0.10 },
     hired_a_gun:        { q: { glory: 0.7, blood: 0.3, word: -0.3 }, mag: [1, 5], residue: 0.10 },   /* ctx.scale: their fame */

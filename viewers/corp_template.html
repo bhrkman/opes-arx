@@ -491,8 +491,8 @@
   .rfront .gauge .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;padding:0;border:none}
   .rfront .gauge .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--b)}
   .rfront .gauge .bar i.board{background:var(--cred)}
-  .rfront .gauge .bar i.warm{background:var(--b)} .rfront .gauge .bar i.cold{background:var(--red)}
-  .rfront .gauge .bar b.zero{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--dim)}
+  .rfront .gauge.sm{padding:2px 0 2px 12px;font-size:10.5px} .rfront .gauge.sm .lab{width:80px}
+  .rfront .gauge.sm .bar{height:4px}
   .rfront .close.total{border-top:none;margin-top:0;padding-top:4px} .rfront .close .v.gold{color:var(--cred)}
   .rfront .bad{color:var(--red)}
   .rfront .gauge .bar em{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink)}
@@ -586,9 +586,7 @@
   .fleetbox .fleetrow:last-child{border-bottom:none}
   .fleetbox .fleetrow.hd{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 2px 6px}
   .fleetbox .nm small{display:block;font-size:9.5px;color:var(--dim)}
-  .fleetbox .fbar{position:relative;height:6px;background:var(--line);border-radius:3px}
-  .fleetbox .fbar i{position:absolute;top:0;bottom:0;border-radius:3px}
-  .fleetbox .fbar .c{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:var(--faint)}
+  .fleetbox .fbar{position:relative}
   .fleetbox .frd{white-space:nowrap} .fleetbox .frd b{margin-right:6px}
   .fleetbox .flast{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
   /* narrow: the row folds to two lines rather than dropping the reading and the year — nothing
@@ -894,9 +892,11 @@
   .legend td i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid var(--line2)}
   .legend tr.special td{color:var(--ink)}
   #audiences .audbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
-  .audrow2{display:grid;grid-template-columns:118px 1fr 96px;gap:14px;align-items:center;padding:10px 2px 4px}
+  .audrow2{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;padding:10px 2px 4px}
   .audrow2 .an{font-size:12.5px} .audrow2 .an small{display:block;font-size:10px;color:var(--dim)}
-  .audrow2 .ab{padding-bottom:14px}
+  .audrow2 .ab{padding-bottom:4px}
+  .audrow2.lead{border-bottom:1px solid var(--line2);padding-bottom:10px;margin-bottom:4px} .audrow2.lead .an{font-size:14px}
+  .audrow2.fac{padding-top:6px} .audrow2 .share{font-size:10.5px;color:var(--cred);margin-left:4px}
   .audrow2 .ard{text-align:right;font-size:11px;white-space:nowrap}
   .audrow2 .ard b{display:block;font-size:13px;color:var(--ink)}
   /* THE BAND WORD CARRIES ITS BAND'S COLOUR. `.bad` has no global rule in this stylesheet
@@ -2995,7 +2995,7 @@
     var POOLWORD = { premium: 'Premium Pool', discount: 'Discount Pool', first: 'First Intake', second: 'Second Intake' };
     /* §MARKET an OA's name is a discount or a premium on every ask */
     var meRep = G.corps[G.me].rep;
-    var nameGood = meRep ? REP.standing(meRep, 'own') + REP.standing(meRep, 'fleet') * SEASON.CONST.MARKET_FLEET_SHARE : 0;
+    var nameGood = meRep ? (REP.standing(meRep, 'crowd') - 50) * 2 + (REP.standing(meRep, 'houses') - 50) * 2 * SEASON.CONST.MARKET_FLEET_SHARE : 0;
     var namePct = Math.round(Math.max(-SEASON.CONST.MARKET_SWING, Math.min(SEASON.CONST.MARKET_SWING, nameGood / 100 * SEASON.CONST.MARKET_SWING)) * 100);
     var nameWord = win.signing === 'bastille' ? '<span class="m">Kier Wages \u00b7 No Asks to Discount</span>'   /* the Bastille has no asks to discount */
                  : namePct > 2 ? '<span class="good">Your Name: \u2212' + namePct + '% on Every Ask</span>'
@@ -3391,7 +3391,7 @@
     var fit = me.roster.filter(function (f) { return f.status === 'active' && !f.mirror_of && !(f.condition && (f.condition.injuries || []).length); });
     var def = SEASON.eightPick(me), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
-    var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'fleet') - REP.standing(G.corps[a].rep, 'fleet'); });
+    var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
     var A = [], B = []; order.forEach(function (id, i) { var pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(id); });
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
@@ -4807,16 +4807,16 @@
   function monthSnapshot(me) {
     var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
       health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
-    var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
+    var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
     return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st,
-             own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0, patience: me.rep ? me.rep.patience : null };
+             crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), patience: me.rep ? me.rep.patience : null };
   }
   window.__showRecap = function () { return showRecap(); };
   function showRecap() {
     var R = G._recap; if (!R || !$('recaphead')) return;
     var me = G.corps[G.me], snap = R.snap;
     var m = R.month, nextM = G.state.month;
-    var read = me.rep ? REP.readAll(me.rep, G.state.ids.filter(function (id) { return id !== G.me; })) : {};
+    var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
     var sgn = function (v, dp) { var r = dp ? v.toFixed(dp) : Math.round(v); return (v > 0 ? '+' : '') + r; };
     var cls = function (v) { return v > 0 ? 'good' : v < 0 ? 'bad' : 'm'; };
     /* money: the ledger's lines since the snapshot */
@@ -4929,23 +4929,18 @@
     if (calmer) peopleCol += ln('Rested', '<span class="m">' + calmer + ' Less Strained</span>', '');
     if (peopleCol === '<h3>People</h3>') peopleCol += ln('', '<span class="m">No Comings or Goings</span>', '');
     /* STANDING: gauges with a tick for a month ago, the figure and its change on the right */
-    /* a crowd's standing runs \u2212100..100 and is drawn from the centre: 0 is an empty bar, a cold crowd fills left in
-       red, a warm one right; the board's patience is 0..100 and fills from the left. The figure beside each is the
-       number itself. The tick is where it stood a month ago. */
-    var gauge = function (lab, now, was, boardish) {
-      var d = now - was, dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, boardish ? 0 : 1), bar;
-      if (boardish) {
-        bar = '<i class="board" style="left:0;width:' + Math.max(0, Math.min(100, now)).toFixed(0) + '%"></i><em style="left:' + Math.max(0, Math.min(100, was)).toFixed(0) + '%"></em>';
-      } else {
-        var w = Math.min(50, Math.abs(now) / 2), left = now >= 0 ? 50 : 50 - w;
-        bar = '<b class="zero"></b><i class="' + (now >= 0 ? 'warm' : 'cold') + '" style="left:' + left.toFixed(1) + '%;width:' + w.toFixed(1) + '%"></i><em style="left:' + (50 + Math.max(-50, Math.min(50, was / 2))).toFixed(1) + '%"></em>';
-      }
-      return '<div class="gauge"><span class="lab">' + lab + '</span><span class="bar">' + bar + '</span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
+    /* §STANDING every standing 0..100, filled from the left, with the tick where it stood a month ago */
+    var gauge = function (lab, now, was, small, fill) {
+      var d = now - was, dtxt = Math.abs(d) < 0.05 ? '\u00b10' : sgn(d, 1);
+      return '<div class="gauge' + (small ? ' sm' : '') + '"><span class="lab">' + lab + '</span><span class="bar"><i' + (fill ? ' class="' + fill + '"' : '') + ' style="width:' + Math.max(0, Math.min(100, now)).toFixed(0) + '%"></i>' +
+             '<em style="left:' + Math.max(0, Math.min(100, was)).toFixed(0) + '%"></em></span><span class="d">' + Math.round(now) + ' <span class="' + cls(d) + '">' + dtxt + '</span></span></div>';
     };
     var standCol = '<h3>Standing</h3>' +
-      gauge('Own People', read.own || 0, snap.own) + gauge('The Fleet', read.fleet || 0, snap.fleet) +
+      gauge('Your Crowd', read.crowd, snap.crowd != null ? snap.crowd : read.crowd) +
+      REP.FACTIONS.map(function (f) { var was = (snap.factions || {})[f]; return gauge(FACTION_META[f].name, read.factions[f], was != null ? was : read.factions[f], true); }).join('') +
+      gauge('The Houses', read.housesMean, snap.houses != null ? snap.houses : read.housesMean) +
       /* §ALEAS the Aleas gauge is hidden here as on the Board and the OA sheet: nothing reads it (ruled) */
-      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, true) : '');
+      (snap.patience != null && me.rep ? gauge('The Board', me.rep.patience, snap.patience, false, 'board') : '');
     /* §SPONSORS WHAT THE OA HAS BEEN GIVEN, and keeps. Standings are permanent, they stack,
        and they are the reason a manager courts anybody: they belong on the Board beside the
        holds rather than buried in a season's report. */
@@ -5469,7 +5464,7 @@
     var p = c.profile || {}, me = G.corps[G.me], mine = id === G.me;
     var row = function (k, v) { return '<div class="orow"><span>' + k + '</span><span>' + v + '</span></div>'; };
     var gauge = function (lab, v) {
-      var pct = Math.max(0, Math.min(100, 50 + (v || 0) / 2));
+      var pct = Math.max(0, Math.min(100, v == null ? 50 : v));
       return '<div class="gaugeline"><span class="lab">' + lab + '</span><span class="bar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
              '<span class="v">' + Math.round(v || 0) + '</span></div>';
     };
@@ -5480,11 +5475,12 @@
     /* WHAT ANYBODY CAN SEE: the fleet's own reading of them, and what they think of you */
     h += '<h3>Standing</h3>';
     if (c.rep) {
-      /* §ALEAS the Aleas gauge is hidden until the media system gives it a meaning */
-      h += gauge('Their People', REP.standing(c.rep, 'own')) + gauge('The Fleet', REP.standing(c.rep, 'fleet'));
-      if (!mine) h += gauge('Toward You', REP.standing(c.rep, 'rival', G.me));
-      h += row('Read', standBand(REP.standing(c.rep, 'fleet'), 'fleet').word + ' in the Fleet' +
-               (mine ? '' : ' \u00b7 ' + standBand(REP.standing(c.rep, 'rival', G.me), 'rival').word + ' Toward You'));
+      /* §STANDING their crowd and the houses' regard are public; how they regard YOU is kept on your own record */
+      h += gauge('Their Crowd', REP.standing(c.rep, 'crowd')) + gauge('The Houses', REP.standing(c.rep, 'houses'));
+      if (!mine) h += gauge('Toward You', houseToward(id));
+      /* the stands they have: their largest factions, which is what their people will want to see from you */
+      var top = REP.FACTIONS.slice().sort(function (a, b) { return (c.rep.shares[b] || 0) - (c.rep.shares[a] || 0); }).slice(0, 3);
+      h += row('Their Stands', top.map(function (f) { return FACTION_META[f].name + ' ' + Math.round((c.rep.shares[f] || 0) * 100) + '%'; }).join(' \u00b7 '));
     }
     /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
     h += '<h3>The OA</h3>';
@@ -8379,7 +8375,7 @@
   function tradeOpts() {
     return { focusPointPrice: SEASON.CONST.BOOST_PER_POINT,
              rowsPerPip: SEASON.CONST.INTEL_PER_PIP,
-             regard: TSEL ? REP.standing(G.corps[TSEL].rep, 'rival', G.me) : 0 };
+             regard: TSEL ? (houseToward(TSEL) - 50) * 2 : 0 };
   }
   function aliveOf(c) {
     return (c.roster || []).filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
@@ -8446,8 +8442,8 @@
       size: 58, radius: 140,
       hub: '<b>' + esc(shortOA(G.me)) + '</b><span>To Whom</span>',
       sub: function (id) {
-        var r = Math.round(REP.standing(G.corps[id].rep, 'rival', G.me));
-        return '<span class="' + (r > 8 ? 'good' : r < -8 ? 'bad' : 'm') + '">' + esc(standBand(r, 'rival').word) + '</span>';
+        var r = houseToward(id), b = standBand(r);
+        return '<span class="' + (b.cls || 'm') + '">' + esc(b.word) + '</span>';
       }
     });
 
@@ -8648,101 +8644,53 @@
 
      Nothing here is scored. The engine's own line: a manager is never graded on how they
      answer, only moved. --- */
+  /* §STANDING ONE SCALE, ONE BAR, ONE SET OF WORDS (ruled at the standing pass). Every standing is 0..100 about an
+     indifferent 50, fills from the left, carries a tick every twenty and a tick where it stood a month ago, and reads the
+     same five words whoever is watching. */
   var AUDNAME = {
-    own:   { name: 'Your Own People', sub: 'The Crews and the Families' },
-    fleet: { name: 'The Fleet',       sub: 'The Other OAs' },
-    /* §BACKROOM the gauge says what the number buys: their price for a favour, and for losing a piece of footage */
-    aleas: { name: 'The Aleas',       sub: 'The Referees \u00b7 Their Price for a Favour' }
+    crowd:  { name: 'Your Crowd', sub: 'Everyone in Your Stands' },
+    houses: { name: 'The Houses', sub: 'The Other OAs, Together' },
+    house:  { name: 'That House', sub: '' }
   };
-  /* THE WORD FOR A NUMBER IS NOT THE SAME WORD FOR EVERY AUDIENCE. All four run on the
-     same -100..100 scale, but they do not live in the same part of it, and one set of
-     thresholds read every corporation as adored. MEASURED over six seasons of a full
-     career: your own people start at 80 and drift to the ceiling; the fleet runs 5 to 100
-     around a median of 66; the Aleas runs -74 to 78 around 20; a rival runs the whole
-     scale around a median of -9. So each audience gets bands cut against where it
-     actually sits, and the bar shows the true position on the shared scale. */
-  var STAND_BANDS = {
-    own:   [[40, 'Mutinous', 'bad'], [65, 'Strained', 'bad'], [85, 'Loyal', 'good'],
-            [999, 'Devoted', 'good']],
-    fleet: [[20, 'Unknown', ''], [40, 'Watched', ''], [65, 'Respected', 'good'],
-            [999, 'Renowned', 'good']],
-    aleas: [[-40, 'Distrusted', 'bad'], [-10, 'Watched', 'bad'], [25, 'Tolerated', ''],
-            [60, 'Approved', 'good'], [999, 'Favoured', 'good']],
-    rival: [[-50, 'Hostile', 'bad'], [-20, 'Cold', 'bad'], [15, 'Neutral', ''],
-            [45, 'Warm', 'good'], [999, 'Close', 'good']]
+  var FACTION_META = {
+    bloodhounds:  { name: 'Bloodhounds',  sub: 'Kills and Aggression' },
+    tacticians:   { name: 'Tacticians',   sub: 'Craft and Clean Play' },
+    fairweathers: { name: 'Fairweathers', sub: 'Winning, and Only Winning' },
+    underdogs:    { name: 'Underdogs',    sub: 'Long Odds and Comebacks' },
+    families:     { name: 'Families',     sub: 'People Home Safe' },
+    diehards:     { name: 'Diehards',     sub: 'A Word Kept' }
   };
-  function standBand(v, aud) {
-    var t = STAND_BANDS[aud] || STAND_BANDS.rival;
-    for (var i = 0; i < t.length; i++) if (v < t[i][0]) return { word: t[i][1], cls: t[i][2] };
-    return { word: t[t.length - 1][1], cls: t[t.length - 1][2] };
+  REP.FACTIONS.forEach(function (f) { AUDNAME[f] = FACTION_META[f]; });
+  var STAND_BANDS = [[20, 'Hostile', 'bad'], [40, 'Cold', 'warn'], [60, 'Indifferent', ''], [80, 'Warm', 'good'], [101, 'Devoted', 'good']];
+  function standBand(v) {
+    for (var i = 0; i < STAND_BANDS.length; i++) if (v < STAND_BANDS[i][0]) return { word: STAND_BANDS[i][1], cls: STAND_BANDS[i][2] };
+    return { word: 'Devoted', cls: 'good' };
   }
-  /* THE NUMBER HAS TO MEAN WHAT THE WORD MEANS. Every standing lives on the same
-     -100..100 store, but the four audiences do not use the same part of it, and printing a
-     SIGNED figure beside a per-audience word produced nonsense: "+20 Mutinous" next to
-     "+13 Neutral", where the first is a crew close to walking off and the second is a rival
-     who barely knows you. A plus sign promises a symmetric scale.
-
-     So each audience is drawn on the range it actually occupies. Your own people and the
-     fleet are read out of 100 — 20 of 100 is a bad number and looks like one. The Aleas and
-     a rival genuinely run both ways, so they keep the sign and the bar keeps its centre. */
-  var STAND_SCALE = {
-    own:   { lo: 0, hi: 100, signed: false },
-    fleet: { lo: 0, hi: 100, signed: false },
-    aleas: { lo: -100, hi: 100, signed: true },
-    rival: { lo: -100, hi: 100, signed: true }
-  };
-  function standBar(v, aud, was, bare) {
-    var sc = STAND_SCALE[aud] || STAND_SCALE.rival;
-    var at = function (x) { return Math.max(0, Math.min(100, ((x - sc.lo) / (sc.hi - sc.lo)) * 100)); };
-    var pct = at(v);
-    var b = standBand(v, aud);
-    var num = sc.signed ? ((v > 0 ? '+' : '') + Math.round(v))
-                        : (Math.round(v) + ' of ' + sc.hi);
-    /* the bands named on the bar, so the figure has a scale a manager can read */
-    /* the bands are named at the THRESHOLD each begins at, so a tick sits where a reading
-       crosses from one word to the next; the first band has no threshold below it and the
-       last has none above, so both are named at their own edge */
-    /* TWO NAMES, NEVER TOUCHING. Every threshold gets a tick. Only the band you are in is
-       named — by its neighbours: the band BELOW at the lower boundary, anchored to the left
-       of its tick, and the band ABOVE at the upper boundary, anchored to the right of its. Two
-       words pulling away from each other cannot overlap at any width. (Three names crowded
-       onto one bar printed "MUTINGBBAINEDVAL".) */
-    var bands = STAND_BANDS[aud] || [], bi = 0;
-    bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
-    var ticks = bands.slice(0, -1).map(function (t, i) {
-      var p = at(t[0]); if (p <= 2 || p >= 98) return '';
-      var word = '';
-      /* at the bottom band there is nothing below to name, so the two boundaries ABOVE are
-         named (as the mock does for the Fleet at zero: WATCHED · RESPECTED); at the top band,
-         the two below */
-      var lower = bi === 0 ? -1 : bi === bands.length - 1 ? bi - 2 : bi - 1;
-      var upper = bi === 0 ? 1 : bi === bands.length - 1 ? bi - 1 : bi;
-      /* the lower name pulls left of its tick, the upper pulls right: they cannot meet.
-         A lower tick too close to the bar's start has no room on its left and pulls right
-         instead, which the upper's distance then covers. */
-      if (i === lower || (bi === 0 && i === 0))
-        word = '<span class="btw ' + (p >= 18 ? 'lo' : 'hi') + '" style="left:' + p.toFixed(1) + '%">' + (bi === 0 ? bands[i + 1][1] : bands[i][1]) + '</span>';
-      else if (i === upper && bands[i + 1])
-        word = '<span class="btw hi" style="left:' + p.toFixed(1) + '%">' + (bi === bands.length - 1 ? bands[i][1] : bands[i + 1][1]) + '</span>';
-      return '<span class="bt" style="left:' + p.toFixed(1) + '%"></span>' + word;
-    }).join('');
-    var d = was != null ? v - was : 0;
-    var dtxt = was == null || Math.abs(d) < 0.05 ? '\u00b10' : (d > 0 ? '+' : '\u2212') + Math.abs(d).toFixed(1);
-    if (bare) {
-      /* the Board's bar: filled to where the standing stands, coloured by the band it is in */
-      /* NOT `.sbar`: the Board's bar is its own class. Wearing the picker's class meant wearing
-         the picker's gradient, and beating it took a specificity argument that a stylesheet
-         should never have to have. One colour, as the mock drew it: the BAR says how much, the
-         WORD beside it says how good. */
-      return '<span class="standfill">' + ticks +
-             (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
-             '<i style="width:' + pct.toFixed(1) + '%"></i></span>';
-    }
-    var bar = '<span class="sbar' + (sc.signed ? '' : ' onesided') + '">' + ticks +
-              (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
-              '<i style="left:' + pct.toFixed(1) + '%"></i></span>';
-    return bar + '<span class="swrd ' + b.cls + '">' + b.word + ' \u00b7 ' + num +
-           ' <span class="' + (d > 0.05 ? 'good' : d < -0.05 ? 'bad' : 'm') + '">' + dtxt + '</span></span>';
+  /* how a house regards YOU: kept on your own record, under that house's name */
+  function houseToward(id) { var r = G.corps[G.me] && G.corps[G.me].rep; return r && r.base.houses[id] != null ? REP.standing(r, 'house', id) : 50; }
+  function standBar(v, was) {
+    var at = function (x) { return Math.max(0, Math.min(100, x)); };
+    return '<span class="standfill">' +
+           [20, 40, 60, 80].map(function (t) { return '<span class="bt" style="left:' + t + '%"></span>'; }).join('') +
+           (was != null ? '<span class="ago" style="left:' + at(was).toFixed(1) + '%"></span>' : '') +
+           '<i style="width:' + at(v).toFixed(1) + '%"></i></span>';
+  }
+  function standReading(v, was) {
+    var b = standBand(v), dv = was != null ? v - was : 0;
+    var dtxt = was == null || Math.abs(dv) < 0.05 ? '\u00b10' : (dv > 0 ? '+' : '\u2212') + Math.abs(dv).toFixed(1);
+    return '<span class="ard"><b class="' + b.cls + '">' + b.word + '</b><span class="af">' + Math.round(v) + '</span>' +
+           '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span>';
+  }
+  function whyLine(list) {
+    /* one line per act, summed: three months of drilling is one entry, not three */
+    var by = {}, order = [];
+    list.forEach(function (m) { if (!by[m.act]) { by[m.act] = { act: m.act, now: 0 }; order.push(m.act); } by[m.act].now += m.now; });
+    list = order.map(function (k) { return by[k]; }).sort(function (a, b) { return Math.abs(b.now) - Math.abs(a.now); }).slice(0, 3);
+    return '<div class="amem">' + (list.length
+      ? list.map(function (m) { var up = m.now > 0;
+          return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
+                 esc(capWords(String(m.act).replace(/_/g, ' '))) + '</span>'; }).join('')
+      : '<span class="m">Unmoved</span>') + '</div>';
   }
   function renderBoard() {
     if (!G || !$('audiences')) return;
@@ -8775,64 +8723,34 @@
     renderCard(me, rep);
     renderHolds(me, rep);
 
-    /* ---- who is watching: each audience a card, its own memory inside it. A standing with no
-       story behind it is a number a manager cannot act on; the story sits under the number. ---- */
-    /* §BOARD a standing means nothing without its scale or its direction: the bands are named
-       on the bar itself, a tick shows where the audience stood a month ago, and the change
-       stands beside the figure. The Board keeps the month's reading for the comparison. */
+    /* ---- who is watching: the crowd, faction by faction with its share of the stands, then the houses. Each carries
+       the month-ago tick and what moved it. ---- */
     if (!G._audAt || G._audAt !== G.state.season + ':' + G.state.month) {
-      G._audWas = { own: read.own || 0, fleet: read.fleet || 0, aleas: read.aleas || 0 };
+      G._audWas = { crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), house: Object.assign({}, read.houses) };
       G._audAt = G.state.season + ':' + G.state.month;
     }
-    var audWas = G._audWas || {};
-    var h = '<div class="audbox">';
-    /* §ALEAS standing with the Aleas is HIDDEN until the media system gives it a meaning: nothing reads it
-       now that the Back Room and the cases are gone, and a gauge that measures nothing is the half-built trap */
-    ['own', 'fleet'].forEach(function (a) {
-      var v = read[a] || 0, d = AUDNAME[a];
-      /* THREE COLUMNS: who is watching, the bar with its bands and its month-ago tick, and
-         the reading on the right — the word in its own colour over the figure and the change.
-         Under it, ONE line of what moved them: an arrow and the act, not a dated ledger. */
-      var why = (REP.why(rep, a, null, 3) || []);
-      var sc = STAND_SCALE[a] || STAND_SCALE.rival;
-      var band = standBand(v, a), was = audWas[a];
-      /* the lowest band of a scale is red; the next one up is a warning, not a disaster */
-      var bands = STAND_BANDS[a] || [], bi = 0;
-      bands.forEach(function (t, k) { if (v >= t[0]) bi = k + 1; });
-      var wcls = band.cls === 'good' ? 'good' : band.cls === 'bad' ? (bi === 0 ? 'bad' : 'warn') : '';
-      var dv = was != null ? v - was : 0;
-      var dtxt = was == null || Math.abs(dv) < 0.05 ? '\u00b10' : (dv > 0 ? '+' : '\u2212') + Math.abs(dv).toFixed(1);
-      h += '<div class="audrow2"><span class="an">' + d.name + '<small>' + d.sub + '</small></span>' +
-           '<span class="ab">' + standBar(v, a, was, true) + '</span>' +
-           '<span class="ard"><b class="' + wcls + '">' + band.word + '</b>' +
-           '<span class="af">' + (sc.signed && v > 0 ? '+' : '') + Math.round(v) + '</span>' +
-           '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span></div>' +
-           '<div class="amem">' + (why.length
-             ? why.map(function (m) {
-                 var up = m.now > 0;
-                 return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
-                        esc(capWords(m.headline || String(m.act).replace(/_/g, ' '))) + '</span>';
-               }).join('')
-             : '<span class="m">Unmoved</span>') + '</div>';
+    var audWas = G._audWas || { factions: {}, house: {} };
+    var h = '<div class="audbox">' +
+      '<div class="audrow2 lead"><span class="an">' + AUDNAME.crowd.name + '<small>' + AUDNAME.crowd.sub + '</small></span>' +
+      '<span class="ab">' + standBar(read.crowd, audWas.crowd) + '</span>' + standReading(read.crowd, audWas.crowd) + '</div>';
+    REP.FACTIONS.slice().sort(function (a, b) { return (read.shares[b] || 0) - (read.shares[a] || 0); }).forEach(function (f) {
+      var v = read.factions[f], was = (audWas.factions || {})[f], d = FACTION_META[f];
+      h += '<div class="audrow2 fac"><span class="an">' + d.name + ' <span class="share">' + Math.round((read.shares[f] || 0) * 100) + '%</span><small>' + d.sub + '</small></span>' +
+           '<span class="ab">' + standBar(v, was) + '</span>' + standReading(v, was) + '</div>' +
+           whyLine(REP.why(rep, f, null) || []);
     });
-    /* §BOARD THE FLEET AS A LEDGER. The wheel of marks put each OA on a spoke at a distance
-       and said nothing a manager could read: who is warm, who is cold, why, and what they did.
-       Seven rows: the mark, the name (a door to its sheet), how they fight, what they think of
-       you as a bar about a centre line, the word, and their last year. */
-    h += '</div><div class="audhead">The Fleet</div><div class="box fleetbox">' +
+    h += '</div><div class="audhead">The Houses</div><div class="box fleetbox">' +
       '<div class="fleetrow hd"><span></span><span>OA</span><span>Toward You</span><span>Read</span><span>Last Year</span></div>' +
       rivalIds.map(function (id) {
-        var c = G.corps[id], p = (c && c.profile) || {}, v = Math.max(-100, Math.min(100, read.rival[id] || 0));
-        var band = standBand(v, 'rival');
+        var c = G.corps[id], p = (c && c.profile) || {}, v = read.houses[id] != null ? read.houses[id] : 50, was = (audWas.house || {})[id];
+        var band = standBand(v);
         var hs = (c.history || []), hy = hs[hs.length - 1];
         var last = hy ? ((hy.won ? 'Won' : hy.placement ? ordinal(hy.placement) : '\u2014') + ' \u00b7 ' + (hy.dead || 0) + ' Lost') : 'No Year Yet';
-        var w = Math.abs(v) / 2;
         return '<div class="fleetrow"><span style="color:' + colFor(id) + '">' + markFor(id, 18) + '</span>' +
                '<span class="nm">' + cSpan(id) + '<small>' + esc(capWords(p.archetype || '')) +
                (p.engagement_lean ? ' \u00b7 ' + esc(capWords(String(p.engagement_lean).replace(/_/g, ' '))) : '') + '</small></span>' +
-               '<span class="fbar"><span class="c"></span><i style="' + (v >= 0 ? 'left:50%' : 'right:50%') + ';width:' + w.toFixed(0) + '%;background:' +
-               (v > 15 ? 'var(--hit)' : v < -15 ? 'var(--red)' : 'var(--b)') + '"></i></span>' +
-               '<span class="frd"><b class="' + (band.cls || '') + '">' + band.word + '</b>' + (v > 0 ? '+' : '') + Math.round(v) + '</span>' +
+               '<span class="fbar">' + standBar(v, was) + '</span>' +
+               '<span class="frd"><b class="' + (band.cls || '') + '">' + band.word + '</b>' + Math.round(v) + '</span>' +
                '<span class="flast">' + esc(last) + '</span></div>';
       }).join('') + '</div>';
     $('audiences').innerHTML = h;
@@ -8949,7 +8867,7 @@
       var line = byKind[sd.kind];
       var v = line ? line.value : null;
       if (v == null && sd.kind === 'popularity') {
-        var pop = REP.standing(rep, 'own') + REP.standing(rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE;
+        var pop = REP.standing(rep, 'crowd') + (REP.standing(rep, 'houses') - 50) * LED.CONST.GATE_FLEET_SHARE;
         v = Math.max(-1, Math.min(1, (pop - sd.expected) / REP.CONST.POPULARITY_SPAN));
       }
       var pos = v == null ? 50 : Math.round((v + 1) / 2 * 100);
@@ -8976,8 +8894,7 @@
   }
   /* who is actually asking, under the ask */
   function demandWho(d) {
-    if (d.kind === 'standing') return d.audience === 'own' ? 'The Crews and the Families'
-                                    : d.audience === 'fleet' ? 'The Other Seven\u2019s Regard' : 'The Referees';
+    if (d.kind === 'standing') return d.audience === 'crowd' ? 'Everyone in Your Stands' : 'The Other Seven\u2019s Regard';
     if (d.kind === 'placement' || d.kind === 'win' || d.kind === 'losses') return 'Settled on the Ground';
     if (d.kind === 'resource') return 'The Holds at the Divide';
     return 'The Books';
@@ -9001,12 +8918,12 @@
   /* the gauge that fits the demand */
   function demandGauge(d, me, rep) {
     if (d.kind === 'standing') {
-      var v = REP.standing(rep, d.audience), lo = -100, hi = 100;
+      var v = REP.standing(rep, d.audience), lo = 0, hi = 100;
       var pct = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
       var met = v >= d.above;
       return '<span class="obar"><i class="' + (met ? 'met' : 'short') + '" style="width:' + pct(v).toFixed(0) + '%"></i>' +
              '<em style="left:' + pct(d.above).toFixed(0) + '%"></em></span>' +
-             '<div class="scale"><span class="l">\u2212100</span><span class="n" style="left:' + pct(d.above).toFixed(0) + '%">Needs ' + Math.round(d.above) + '</span><span class="r">100</span></div>';
+             '<div class="scale"><span class="l">0</span><span class="n" style="left:' + pct(d.above).toFixed(0) + '%">Needs ' + Math.round(d.above) + '</span><span class="r">100</span></div>';
     }
     if (d.kind === 'placement' || d.kind === 'win') {
       var b = strengthBoard(me), want = d.kind === 'win' ? 1 : (d.at || 5);
@@ -9111,11 +9028,9 @@
             '<div class="regs">';
     opts.forEach(function (o) {
       var mv = o.moves, bits = [];
-      /* §ALEAS standing with the Aleas is HIDDEN until the media system gives it a meaning: nothing reads it
-       now that the Back Room and the cases are gone, and a gauge that measures nothing is the half-built trap */
-    ['own', 'fleet'].forEach(function (a) {
-        if (mv[a]) bits.push(AUDNAME[a].name.replace('Your Own People', 'Your People') + ' ' +
-                             (mv[a] > 0 ? '+' : '') + mv[a]);
+    ['crowd', 'houses'].forEach(function (a) {
+        var n = Math.round((mv[a] || 0) * 10) / 10;
+        if (n) bits.push(AUDNAME[a].name + ' ' + (n > 0 ? '+' : '') + n);
       });
       h += '<button class="regbtn" data-reg="' + o.register + '">' +
            '<b>' + o.register.charAt(0).toUpperCase() + o.register.slice(1) + '</b>' +
@@ -9585,8 +9500,8 @@
     var sh = '<div class="stancehd"><span></span><span>OA</span><span>How They Stand</span></div>';
     G.state.ids.filter(function (id) { return id !== G.me; }).forEach(function (id) {
       var tc = (w.contact || {})[id] || {};
-      var reg = G.corps[id] && G.corps[id].rep ? Math.round(REP.standing(G.corps[id].rep, 'rival', G.me)) : 0;
-      var band = standBand(reg, 'rival');
+      var reg = Math.round(houseToward(id));
+      var band = standBand(reg);
       var met = tc.huntedBy ? '<span class="bad">Hunting You</span>' : tc.lostTo ? '<span class="bad">Beat You</span>'
               : tc.beat ? '<span class="good">You Beat Them</span>' : tc.fights ? 'Fought You' : 'Not Met';
       var gone = (w.corps || []).some(function (c) { return c.id === id && c.withdrawn; });

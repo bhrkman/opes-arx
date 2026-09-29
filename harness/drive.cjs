@@ -1767,19 +1767,18 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      /* §BOARD the audiences keep their rows — two now: the Aleas' is hidden until the media system gives it a
-         meaning (§ALEAS) — and the fleet is a LEDGER, seven rows */
-      check(doc.querySelectorAll('#audiences .audrow2').length === 2 &&
+      /* §STANDING the Board reads the crowd and its six factions, then the seven houses */
+      check(doc.querySelectorAll('#audiences .audrow2').length === 7 &&
             doc.querySelectorAll('#audiences .fleetbox .fleetrow:not(.hd)').length === 7,
-            'the Board reads its two audiences and the seven (' +
-            doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 in the ledger)');
+            'the Board reads the crowd, its six factions and the seven houses (' +
+            doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 houses)');
       check(doc.querySelectorAll('#audiences .fleetbox .fleetrow svg').length >= 7 &&
             doc.querySelectorAll('#audiences .fleetbox [data-oa]').length === 7,
             'each OA carries its own mark and opens its sheet');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
-      check(doc.querySelectorAll('#audiences .amem').length === 2 && /\d/.test(text('#audiences')),
-            'each audience carries one line of what moved it');
+      check(doc.querySelectorAll('#audiences .amem').length === 6 && /\d/.test(text('#audiences')),
+            'each faction carries one line of what moved it');
       /* §BOARD the head is a strip now: the year and patience are figures under their labels,
          patience with a bar and a word for what the board is at */
       check(/Year/.test(text('#boardhead')) && /Patience/.test(text('#boardhead')) &&
@@ -1791,7 +1790,7 @@ setTimeout(() => {
       check(regs.length === 6, 'the board asks, and all six registers are offered (' + regs.length + ')');
       regs[0].click();
       const after = REPM.readAll(GB.corps[GB.me].rep, rivals);
-      const moved = ['own', 'fleet', 'aleas'].some(a => Math.abs(after[a] - before[a]) > 0.001);
+      const moved = Math.abs(after.crowd - before.crowd) > 0.001 || Math.abs(after.housesMean - before.housesMean) > 0.001;
       check(moved, 'answering the board moves the audiences rather than scoring the manager');
       check(/You Answered/.test(text('#boardq')),
             'the answer is on the record and cannot be taken back');
