@@ -282,7 +282,8 @@
     const sgn = v => (v > 0 ? '+' : '−') + Math.abs(v);
     const parts = [];
     if (HOW_TAG[e.how]) parts.push(HOW_TAG[e.how]);
-    if (e.drill && e.drill !== 1) parts.push('Drill ×' + (Math.round(e.drill * 100) / 100));
+    /* the bonus rides the drill: a hand not drilled this month learns nothing more for being driven */
+    if (e.drill && e.drill !== 1) parts.push('Drill ×' + (Math.round(e.drill * 100) / 100) + ' If Drilled');
     if (e.loyalty) parts.push('Loyalty ' + sgn(e.loyalty));
     if (e.stress) parts.push('Stress ' + sgn(e.stress));
     if (e.slackNow) parts.push('Coasts This Month');

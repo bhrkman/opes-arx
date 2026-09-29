@@ -550,8 +550,12 @@
       const f = cand[Math.floor(ctx.rng() * cand.length)];
       TALKS.temperOf(f);
       const strained = ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED;
+      /* a grievance with a captain needs a captain over them: on a squad board, their own squad's */
+      const plan = c._ownSquads && c._seat && c._seat.plan;
+      const underOne = plan ? (plan.at && plan.at[f.id] != null && caps.some(id => id !== f.id && plan.at[id] === plan.at[f.id]))
+                            : caps.length && caps.indexOf(f.id) < 0;
       const ask = strained ? 'strain'
-                : caps.length && caps.indexOf(f.id) < 0 && ctx.rng() < 0.35 ? 'captain'
+                : underOne && ctx.rng() < 0.35 ? 'captain'
                 : f.want === 'eight' && st.month > 8 ? 'drop' : f.want;
       return { f, ask };
     },

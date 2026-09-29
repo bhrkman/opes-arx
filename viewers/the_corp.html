@@ -12795,7 +12795,8 @@
     const sgn = v => (v > 0 ? '+' : '−') + Math.abs(v);
     const parts = [];
     if (HOW_TAG[e.how]) parts.push(HOW_TAG[e.how]);
-    if (e.drill && e.drill !== 1) parts.push('Drill ×' + (Math.round(e.drill * 100) / 100));
+    /* the bonus rides the drill: a hand not drilled this month learns nothing more for being driven */
+    if (e.drill && e.drill !== 1) parts.push('Drill ×' + (Math.round(e.drill * 100) / 100) + ' If Drilled');
     if (e.loyalty) parts.push('Loyalty ' + sgn(e.loyalty));
     if (e.stress) parts.push('Stress ' + sgn(e.stress));
     if (e.slackNow) parts.push('Coasts This Month');
@@ -13406,8 +13407,12 @@
       const f = cand[Math.floor(ctx.rng() * cand.length)];
       TALKS.temperOf(f);
       const strained = ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED;
+      /* a grievance with a captain needs a captain over them: on a squad board, their own squad's */
+      const plan = c._ownSquads && c._seat && c._seat.plan;
+      const underOne = plan ? (plan.at && plan.at[f.id] != null && caps.some(id => id !== f.id && plan.at[id] === plan.at[f.id]))
+                            : caps.length && caps.indexOf(f.id) < 0;
       const ask = strained ? 'strain'
-                : caps.length && caps.indexOf(f.id) < 0 && ctx.rng() < 0.35 ? 'captain'
+                : underOne && ctx.rng() < 0.35 ? 'captain'
                 : f.want === 'eight' && st.month > 8 ? 'drop' : f.want;
       return { f, ask };
     },
