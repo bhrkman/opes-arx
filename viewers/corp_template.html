@@ -1224,6 +1224,35 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §STAFF the backroom */
+  .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  @media (max-width:900px){.bkposts{grid-template-columns:1fr}}
+  .bkpost{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-height:150px}
+  .bkpost.vacant{border-style:dashed;opacity:.75}
+  .bkpost .pt{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .bkpost .pt .sch{letter-spacing:0;text-transform:none;color:var(--a);font-size:10px}
+  .bkpost .who{display:flex;align-items:center;gap:8px}
+  .bkpost .who .nm{font-weight:bold;cursor:default}
+  .bkpost .craft{margin-left:auto;font-size:20px;color:var(--ink)}
+  .bkpost .craft small{font-size:9px;color:var(--dim);display:block;text-align:right;letter-spacing:.1em}
+  .bkbar{height:4px;background:var(--a-dim);border-radius:2px;overflow:hidden}
+  .bkbar i{display:block;height:100%;background:var(--a)}
+  .bkpost .kv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px}
+  .bkpost .kv .k{color:var(--dim)} .bkpost .kv .v{text-align:right}
+  .bkpost .acts{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+  .bktabs{display:flex;gap:6px;margin:4px 0 8px}
+  .bktabs button.on{border-color:var(--a);color:var(--a)}
+  .bktbl{width:100%;border-collapse:collapse;font-size:11px}
+  .bktbl th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:right;padding:4px 6px;font-weight:normal}
+  .bktbl th:first-child,.bktbl td:first-child{text-align:left}
+  .bktbl td{padding:5px 6px;border-top:1px solid #131f30;text-align:right;white-space:nowrap}
+  .bktbl td.cr8{cursor:pointer;border-radius:3px}
+  .bktbl td.cr8:hover{background:var(--a-deep);color:var(--a)}
+  .bktbl td.cr8.sel{background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a);color:var(--a)}
+  .bktbl td.cr8.held{color:var(--faint);cursor:default}
+  .bktbl td.cr8.hi{color:var(--ink);font-weight:bold}
+  .bkconfirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;margin:8px 0;border:1px solid var(--a);border-radius:5px;background:var(--a-deep)}
+  .bkgone{font-size:10px;color:var(--dim);margin-top:6px}
   /* §TALKS the month's word */
   .wopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 0 8px}
   .wopt{text-align:left;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px}
@@ -2106,6 +2135,11 @@
 </div>
 
 <!-- ================================ THE MARKET ================================= -->
+<!-- ================================ THE BACKROOM ================================ -->
+<div class="page" data-tab="backroom">
+  <div id="backroom"></div>
+</div>
+
 <div class="page" data-tab="market">
   <div class="summary" id="mktsum"></div>
   <div class="bar">
@@ -2287,25 +2321,21 @@
     deal:   { name: 'Negotiation', live: true },
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true },
-    /* §BACKROOM A PAGE, NOT A DRAWER. "The Back Room" was a side panel opened by a button,
-       which made a whole standing system feel like a footnote and forced its targets into
-       DROP-DOWN MENUS for want of room. It is a surface with a rail tab, and it carries
-       different work before the Divide and during it: the favours that say "this Divide" are
-       not things a manager buys in month three. */
+    /* §STAFF THE BACKROOM: the OA's staff — six posts at home, and who could fill them */
     backroom: { name: 'The Backroom', live: true }
   };
   var RAILS = {
     /* the phase head said "Months 1–11 · The Preparation" on every page of the preparation —
        a thing the clock beside it already tells a manager, in the space a manager needs */
     prep:   { head: '', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
               tabs: ['table', 'deal', 'ground', 'roster', 'board'] },
     /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
        step and leave a shelf on the Desk: a manager walked through month six and felt
        nothing happen. It gets the floor now, the way the Divide does. */
     dividend: { head: 'Month ' + (window.CDSEASON ? CDSEASON.DIVIDEND_MONTH : 4) + ' \u00b7 The Dividend', home: 'lights',
-                tabs: ['lights', 'desk', 'roster', 'squads', 'market', 'talks', 'board'] }
+                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -2387,6 +2417,7 @@
     /* refresh the tab's live view on open, so the board and roster always tell the truth */
     if (G) {
       if (tab === 'squads') renderSquads();
+      else if (tab === 'backroom') renderBackroom();
       else if (tab === 'roster') renderRoster();
       else if (tab === 'board') { renderBoard(); if (TAB.board) TAB.board.classList.remove('urgent'); }
       else if (tab === 'talks') renderTrade();
@@ -4844,7 +4875,8 @@
     G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, focus: focusLine, joined: joined.map(function (b) { return b.id; }),
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
                  events: (res.events || {})[G.me] || [],
-                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null };
+                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null,
+                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }) };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -4975,6 +5007,7 @@
       peopleCol += ln('Word', esc(tk.line) + (tk.revealed ? ' ' + stamp(esc(tk.temper), 'good') : '') + (tk.reached ? ' <span class="m">\u00b7 Felt by ' + tk.reached + ' More</span>' : ''),
                       '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
     }
+    (R.staff || []).forEach(function (t) { peopleCol += ln('Backroom', esc(t), ''); });
     (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
       if (pn.outcome === 'void') return;
       peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
@@ -5723,10 +5756,141 @@
   });
 
 
+
+  /* ============================ THE BACKROOM (§STAFF) ============================
+     Six posts at home and who could fill them. Your own people's Craft is exact; a stranger's is
+     a range until they are yours. Appointing one of your own takes them off the line for good. */
+  var BK_POSTS = ['drill', 'sergeant', 'quartermaster', 'fixer', 'surgeon', 'spymaster'];
+  function bkSel() { if (!G._bk) G._bk = { tab: 'own' }; return G._bk; }
+  function crY(monthly) { return crs(Math.round((monthly || 0) * 12)) + '/yr'; }
+  function bkRange(r) { return r.lo === r.hi ? String(r.lo) : r.lo + '–' + r.hi; }
+  var RECORD_WORDS = { gains: ['Stats Drilled', 0], talks: ['Talks', 0], saved: ['Credits Saved', 1], mended: ['Wounds Mended', 0], reports: ['Reports', 0], lost: ['Lost on the Table', 0] };
+  function bkRecord(st) {
+    var r = st.record || {}, out = [];
+    for (var k in RECORD_WORDS) if (r[k]) out.push(RECORD_WORDS[k][0] + ' ' + (RECORD_WORDS[k][1] ? crs(Math.round(r[k])) : Math.round(r[k])));
+    return out.join(' · ');
+  }
+  function bkTemper(st) {
+    var t = SEASON.TALKS.temperShown(st);
+    return t ? '<span class="ktag" title="' + esc(t.text) + '">' + esc(t.name) + '</span>' : '<span class="ktag">Temper Undiscovered</span>';
+  }
+  function STAFFgone(me) { return me.staff && me.staff.gone; }
+  function renderBackroom() {
+    var host = $('backroom'); if (!host || !G || !G.state) return;
+    var V = SEASON.backroomFor(G.state, G.me); if (!V) return;
+    var S = SEASON.STAFF, sel = bkSel(), me = G.corps[G.me], open = G.state.month <= SEASON.CONST.PREP_MONTHS;
+    var mole = me.staff && me.staff.mole;
+    var h = '<div class="bkposts">';
+    BK_POSTS.forEach(function (p) {
+      var st = V.posts[p];
+      if (!st) { h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">Vacant</div></div>'; return; }
+      var craft = Math.round(st.craft[p] || 0);
+      var sch = S.SCHOOLS[p][st.school] || { name: '' };
+      var origin = st.from ? 'From ' + cSpan(st.from) : st.origin === 'specialist' ? 'Specialist' : 'Veteran';
+      h += '<div class="bkpost"><div class="pt"><span>' + S.POST_NAME[p] + '</span><span class="sch" title="' + esc(sch.text || '') + '">' +
+           esc(p === 'sergeant' ? S.SERGEANT_TALK_NAME[S.SERGEANT_TALK[SEASON.TALKS.temperOf(st)]] : sch.name) + '</span></div>' +
+        '<div class="who"><span class="nm" style="color:' + raceColour(st) + '">' + esc(st.name) + '</span>' + bkTemper(st) +
+          '<span class="craft">' + craft + '<small>Craft</small></span></div>' +
+        '<div class="bkbar"><i style="width:' + craft + '%"></i></div>' +
+        '<div class="kv"><span class="k">' + origin + '</span><span class="v">Age ' + (st.age || '?') + ' · ' + ((st.years || {})[p] || 0) + ' Yr in Post</span>' +
+          '<span class="k">Wage</span><span class="v">' + crY(st.wage) + '</span>' +
+          '<span class="k">Release Fee</span><span class="v">' + crs(S.feeOf(st)) + '</span>' +
+          (bkRecord(st) ? '<span class="k">Record</span><span class="v">' + esc(bkRecord(st)) + '</span>' : '') +
+          (p === 'spymaster' && st.school === 'mole' ? '<span class="k">Mole</span><span class="v">' + ((mole && mole.season === G.state.season) ? 'In ' + cSpan(mole.target) : 'Not Planted') + '</span>' : '') +
+        '</div>' +
+        (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crY(st.asking) + '</span></div>' : '') +
+        '<div class="acts">' +
+          (st.asking ? '<button class="tiny" data-bkrenew="' + p + '">Renew</button>' : '') +
+          (p === 'spymaster' && st.school === 'mole' && open ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '') +
+          (open ? (sel.letGo === p ? '<button class="tiny danger" data-bkgo="' + p + '">Confirm · Let Go</button><button class="tiny" data-bkkeep="1">Keep</button>'
+                                  : '<button class="tiny" data-bkask="' + p + '">Let Go</button>') : '') +
+        '</div></div>';
+    });
+    h += '</div>';
+    if (sel.mole) {
+      h += '<div class="bkconfirm"><span class="m">Plant In</span>' + G.state.ids.filter(function (id) { return id !== G.me; }).map(function (id) {
+        return '<button class="tiny" data-bkmolet="' + id + '">' + cSpan(id) + '</button>'; }).join('') + '<button class="tiny" data-bkkeep="1">Cancel</button></div>';
+    }
+    h += '<div class="box"><div class="bktabs">' +
+      [['own', 'Your People'], ['spec', 'Specialists'], ['rival', 'Other Houses']].map(function (t) {
+        return '<button class="tiny' + (sel.tab === t[0] ? ' on' : '') + '" data-bktab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+    var held = function (p) { return !!V.posts[p]; };
+    if (sel.tab === 'own') {
+      var rows = V.own.slice().sort(function (a, b) { var ma = 0, mb = 0; BK_POSTS.forEach(function (p) { ma = Math.max(ma, a.craft[p]); mb = Math.max(mb, b.craft[p]); }); return mb - ma; });
+      if (sel.pick) {
+        var pr = V.own.filter(function (r) { return r.id === sel.pick.id; })[0];
+        if (pr) h += '<div class="bkconfirm"><span>' + nameHtml(pr.f) + ' as ' + S.POST_NAME[sel.pick.post] + ' · Craft ' + pr.craft[sel.pick.post] +
+          ' · ' + crY(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">Off the Line for Good</span>' +
+          '<button class="tiny" data-bkappoint="1">Appoint</button><button class="tiny" data-bkkeep="1">Cancel</button></div>';
+      }
+      h += '<table class="bktbl"><tr><th>Name</th><th>Age</th>' + BK_POSTS.map(function (p) { return '<th>' + S.POST_NAME[p] + '</th>'; }).join('') + '</tr>' +
+        rows.map(function (r) {
+          var top = Math.max.apply(null, BK_POSTS.map(function (p) { return r.craft[p]; }));
+          return '<tr><td><span class="nm" data-sheet="' + r.id + '" style="color:' + raceColour(r.f) + ';cursor:pointer">' + nameHtml(r.f) + '</span>' + (r.retiring ? ' <span class="ktag">Retiring</span>' : '') + '</td><td>' + (r.age || '?') + '</td>' +
+            BK_POSTS.map(function (p) {
+              var cls = 'cr8' + (held(p) ? ' held' : '') + (r.craft[p] === top ? ' hi' : '') + (sel.pick && sel.pick.id === r.id && sel.pick.post === p ? ' sel' : '');
+              return '<td class="' + cls + '"' + (held(p) || !open ? '' : ' data-bkpick="' + r.id + '|' + p + '"') + '>' + r.craft[p] + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>';
+    } else if (sel.tab === 'spec') {
+      h += '<table class="bktbl"><tr><th>Name</th><th>Post</th><th>Craft</th><th>School</th><th>Age</th><th>Wage</th><th></th></tr>' +
+        V.spec.map(function (x) {
+          var st = x.st, p = st.specialty, sch = S.SCHOOLS[p][st.school] || { name: '' };
+          return '<tr><td style="color:' + raceColour(st) + '">' + esc(st.name) + '</td><td>' + S.POST_NAME[p] + '</td><td>' + bkRange(x.est[p]) + '</td><td>' +
+            esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crY(x.wage) + '</td><td>' +
+            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
+        (V.spec.length ? '' : '<tr><td colspan="7" class="m">All Taken</td></tr>') + '</table>';
+    } else {
+      h += '<table class="bktbl"><tr><th>House</th><th>Post</th><th>Name</th><th>Craft</th><th>Fee</th><th>Would Ask</th><th></th></tr>' +
+        V.rivals.map(function (x) {
+          var can = open && !held(x.post) && x.willing && (me.account.treasury || 0) >= x.fee;
+          return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crY(x.wage) + '</td><td>' +
+            '<button class="tiny" data-bkpoach="' + x.from + '|' + x.post + '"' + (can ? '' : ' disabled') + '>' +
+            (held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
+        (V.rivals.length ? '' : '<tr><td colspan="7" class="m">None Held</td></tr>') + '</table>';
+    }
+    var gone = (STAFFgone(me) || []).slice(-4).reverse();
+    var WHY = { poached: 'Poached', 'let go': 'Let Go', retired: 'Retired' };
+    if (gone.length) h += '<div class="bkgone">' + gone.map(function (g) { return esc(g.name) + ' · ' + S.POST_NAME[g.post] + ' · ' + (WHY[g.why] || 'Gone'); }).join(' &nbsp; ') + '</div>';
+    if (sel.msg) h += '<div class="bkgone warn">' + esc(sel.msg) + '</div>';
+    h += '</div>';
+    host.innerHTML = h;
+    var q = function (sel2, fn) { Array.prototype.forEach.call(host.querySelectorAll(sel2), function (el) { el.onclick = function (e) { fn(el, e); }; }); };
+    var done = function (r) { sel.msg = r && !r.ok && r.why ? r.why : ''; delete sel.pick; delete sel.letGo; delete sel.mole; renderBackroom(); renderRoster(); renderBrief(); };
+    q('[data-bktab]', function (el) { sel.tab = el.getAttribute('data-bktab'); delete sel.pick; sel.msg = ''; renderBackroom(); });
+    q('[data-bkpick]', function (el) { var v = el.getAttribute('data-bkpick').split('|'); sel.pick = { id: v[0], post: v[1] }; renderBackroom(); });
+    q('[data-bkappoint]', function () { done(SEASON.appoint(G.state, G.me, sel.pick.id, sel.pick.post)); });
+    q('[data-bkkeep]', function () { delete sel.pick; delete sel.letGo; delete sel.mole; renderBackroom(); });
+    q('[data-bkask]', function (el) { sel.letGo = el.getAttribute('data-bkask'); renderBackroom(); });
+    q('[data-bkgo]', function (el) { done(SEASON.letStaffGo(G.state, G.me, el.getAttribute('data-bkgo'))); });
+    q('[data-bkrenew]', function (el) { done(SEASON.renewStaff(G.state, G.me, el.getAttribute('data-bkrenew'), true)); });
+    q('[data-bkhire]', function (el) { done(SEASON.hireSpecialist(G.state, G.me, el.getAttribute('data-bkhire'))); });
+    q('[data-bkpoach]', function (el) { var v = el.getAttribute('data-bkpoach').split('|'); done(SEASON.poach(G.state, G.me, v[0], v[1])); });
+    q('[data-bkmole]', function () { sel.mole = true; renderBackroom(); });
+    q('[data-bkmolet]', function (el) { done(SEASON.setMole(G.state, G.me, el.getAttribute('data-bkmolet'))); });
+    q('[data-sheet]', function (el) { var id = el.getAttribute('data-sheet'); if (me.roster.some(function (f) { return f.id === id; })) inspect(id); });
+  }
   /* ============================ CHAT WITH (§TALKS) ============================
      One word a month, had from the person's own sheet. The button opens the five talks, costed as
      far as the manager knows this person; choosing one and pressing Speak has it, now. */
-  function chatHtml(b) {
+  /* §STAFF the Sergeant's word and the Cutter's table, beside the manager's own */
+  function chatHtml(b) { var main = chatMainHtml(b); return main ? main + staffBarsHtml(b) : ''; }
+  function staffBarsHtml(b) {
+    var me = G.corps[G.me], abs = G.state.season * 100 + G.state.month, h = '';
+    var pv = SEASON.sergeantPreview(G.state, G.me, b.id);
+    if (pv) {
+      var used = me._sgtTalked && me._sgtTalked.abs === abs;
+      h += '<div class="chatbar"><button class="pcbtn" id="psgt"' + (used ? ' disabled' : '') + '>' + (used ? 'Sergeant Spoken' : esc(pv.sergeant) + ' \u00b7 ' + esc(pv.talk)) + '</button>' +
+           '<span class="m">' + esc(used ? me._sgtTalked.line : SEASON.TALKS.describe(pv) + (b.temperKnown ? '' : ' \u00b7 Temper Unknown')) + '</span></div>';
+    }
+    var odds = SEASON.STAFF.operateOdds(me);
+    var crippled = b.condition && SEASON.woundBand && SEASON.woundBand(b) === 'crippled';
+    if (odds && crippled) {
+      var cut = me._operated === abs;
+      h += '<div class="chatbar"><button class="pcbtn" id="poperate"' + (cut ? ' disabled' : '') + '>' + (cut ? 'Table Used This Month' : 'Operate') + '</button>' +
+           '<span class="m">Whole ' + Math.round(odds.live * 100) + '% \u00b7 Dies ' + Math.round(odds.die * (1 - odds.live) * 100) + '%</span></div>';
+    }
+    return h;
+  }
+  function chatMainHtml(b) {
     if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS || G.div) return '';
     var me = G.corps[G.me];
     if (me.roster.indexOf(b) < 0 || b.status === 'dead' || b.status === 'retired' || b.mirror_of) return '';
@@ -5771,6 +5935,10 @@
         else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
         renderPanel(); };
     });
+    var sg = $('psgt');
+    if (sg) sg.onclick = function () { SEASON.sergeantNow(G.state, G.me, b.id); renderPanel(); renderRoster(); };
+    var op = $('poperate');
+    if (op) op.onclick = function () { var r = SEASON.operate(G.state, G.me, b.id); if (r && r.outcome === 'dead') closeSheet(); else renderPanel(); renderRoster(); };
     var sp = $('pspeak');
     if (sp) sp.onclick = function () {
       if (!sel.kind) return;

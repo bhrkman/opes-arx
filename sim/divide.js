@@ -679,7 +679,7 @@
        money that decided kit was the band midpoint no matter what last season did. A
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
-    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies);
+    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies) * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the

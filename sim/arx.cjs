@@ -910,6 +910,80 @@ function talks() {
   ok('no promise of the year is left open after the drop',
      ids.every(k => T.promisesOf(corps[k]).every(pr => pr.season !== st.season || pr.status !== 'open')), '');
 }
+/* §STAFF THE BACKROOM. One number, six posts: veterans natural in the military posts and poor in
+   the specialist ones; strangers seen as a range; a fighter appointed leaves the line for good; a
+   rival's staffer is taken for a fee if they will come, at a cost with their house; the Sergeant's
+   talk is their temper's and is not the manager's; Craft grows and wages rise with the years; and
+   the engine staffs its own backroom by the same verbs. */
+function staffRules() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const ST = req('staff.js'), T = req('talks.js');
+  const rng = P.mulberry32(P.seedFrom('staff-guard'));
+  const corps = SEASONMOD.openFleet(rng, oa, {});
+  const ids = Object.keys(corps);
+  let mil = 0, spec = 0, n = 0;
+  for (const id of ids) for (const f of corps[id].roster) { const c = ST.veteranCraft(f); mil += (c.drill + c.sergeant) / 2; spec += (c.surgeon + c.spymaster) / 2; n++; }
+  ok('a veteran is a natural in the military posts and poor in the specialist ones', mil / n > spec / n * 2.5,
+     'military ' + (mil / n).toFixed(0) + ' vs specialist ' + (spec / n).toFixed(0));
+  const pool = ST.specialistPool(1);
+  ok('a stranger’s Craft is a range that holds the truth', pool.every(s => { const e = ST.estimate(s, s.specialty, 15); return e.lo <= s.craft[s.specialty] && e.hi >= s.craft[s.specialty] && e.hi > e.lo; }), '');
+  ok('a specialist costs more than a veteran of the same Craft', ST.wageFor(70, 'specialist') > ST.wageFor(70, 'veteran') * 2, '');
+
+  const st = SEASONMOD.beginSeason(rng, corps, oa, { human: ids[0] });
+  const me = ids[0], c = corps[me];
+  /* the engine staffs its own backroom as its years and purse allow: measured across a career, not its lean first year */
+  const carS = sharedCareer(oa);
+  const staffed = Object.keys(carS.corps).filter(k => ST.allStaff(carS.corps[k]).length >= 1);
+  ok('the engine staffs its own backroom', staffed.length >= 5,
+     Object.keys(carS.corps).map(k => ST.allStaff(carS.corps[k]).length).join(','));
+  const f = c.roster.filter(x => x.status === 'active' && !x.mirror_of && !x.bond_partner)[0];
+  const r = SEASONMOD.appoint(st, me, f.id, 'sergeant');
+  ok('a fighter appointed leaves the line for good', r.ok && c.roster.indexOf(f) < 0 && !SEASONMOD.backroomFor(st, me).own.some(x => x.id === f.id), JSON.stringify(r.why || ''));
+  ok('a held post cannot be filled over', !SEASONMOD.appoint(st, me, c.roster[0].id, 'sergeant').ok, '');
+  const sg = ST.sergeantTalk(c);
+  ok('the sergeant’s talk is their temper’s', sg && sg.kind === ST.SERGEANT_TALK[T.temperOf(c.staff.posts.sergeant)], sg && sg.kind);
+  const target = c.roster.filter(x => x.status === 'active' && !x.mirror_of)[0];
+  const mine = SEASONMOD.talkNow(st, me, { fighterId: target.id, kind: 'hear' });
+  const theirs = SEASONMOD.sergeantNow(st, me, target.id);
+  ok('the sergeant’s word is free: it does not take the manager’s', !!mine && !!theirs && c._talked.fighterId === target.id && c._sgtTalked, '');
+  ok('and it is one a month', SEASONMOD.sergeantNow(st, me, target.id) === null, '');
+  /* poaching: a willing staffer, for the fee, at a cost with their house */
+  const rival = ids.slice(1).find(k => ST.holder(corps[k], 'drill'));
+  const their = ST.holder(corps[rival], 'drill');
+  their.loyalty = 20;
+  c.account.treasury = 500000;
+  const regBefore = REPMOD.standing(c.rep, 'house', rival), fee = ST.feeOf(their), paidBefore = corps[rival].account.treasury;
+  const pr = SEASONMOD.poach(st, me, rival, 'drill');
+  ok('a willing staffer is poached for their release fee', pr.ok && ST.holder(c, 'drill') === their && !ST.holder(corps[rival], 'drill') && corps[rival].account.treasury - paidBefore === fee, JSON.stringify(pr.why || ''));
+  ok('and their old house thinks less of you for it', REPMOD.standing(c.rep, 'house', rival) < regBefore, regBefore.toFixed(1) + '→' + REPMOD.standing(c.rep, 'house', rival).toFixed(1));
+  const loyal = ids.slice(1).map(k => ST.allStaff(corps[k])[0]).filter(Boolean)[0];
+  if (loyal) { loyal.loyalty = 95; }
+  const owner = loyal && ids.find(k => ST.allStaff(corps[k]).indexOf(loyal) >= 0);
+  ok('a loyal staffer will not come', !loyal || !ST.willing(loyal, 50), '');
+  void owner;
+  /* the drillmaster teaches, best in their own best */
+  const dm = ST.holder(c, 'drill'), best = ST.bestStats(dm)[0], worst = ['aim', 'grit', 'reflex', 'fieldcraft', 'tactics', 'presence', 'resolve'].filter(k => ST.bestStats(dm).indexOf(k) < 0)[0];
+  ok('a drillmaster lifts the drill, most in what they were best at', ST.drillFor(c, best).yield > ST.drillFor(c, worst).yield && ST.drillFor(c, worst).yield > 1, '');
+  /* wages are paid; a year turns */
+  const led0 = c.account.ledger.length;
+  SEASONMOD.stepMonth(st, { [me]: {} });
+  ok('the backroom is paid every month', c.account.ledger.slice(led0).some(l => l.label === 'Staff Wages' && l.amount < 0), '');
+  const s1 = ST.holder(c, 'sergeant'), craft0 = s1.craft.sergeant, wage0 = s1.wage;
+  s1.term = 1;
+  const turn = ST.yearTurns(c, 2);
+  ok('a year in post grows Craft', s1.craft.sergeant > craft0, craft0 + '→' + s1.craft.sergeant);
+  ok('a contract come due asks for more', turn.due.indexOf(s1) >= 0 && s1.asking > wage0, wage0 + '→' + s1.asking);
+  const old = { id: 'old1', age: 70, craft: { drill: 50 }, years: {}, record: {}, wage: 1000, term: 3 };
+  const cc = { staff: { posts: { drill: old }, gone: [] } };
+  let retiredAt = null;
+  for (let y = 1; y <= 12 && !retiredAt; y++) { ST.yearTurns(cc, y); if (!cc.staff.posts.drill) retiredAt = y; }
+  ok('staff grow old and retire', retiredAt != null, String(retiredAt));
+  /* the fixer carries good news further */
+  const rp = REPMOD.open(OA[0], OA), rp2 = REPMOD.open(OA[0], OA);
+  rp2._spin = { good: 1.4, bad: 0.9, houses: 1 };
+  const a1 = REPMOD.act(rp, 'media_day', {}), a2 = REPMOD.act(rp2, 'media_day', {});
+  ok('a fixer carries good news further', (a2.crowd || 0) > (a1.crowd || 0), (a1.crowd || 0).toFixed(2) + ' vs ' + (a2.crowd || 0).toFixed(2));
+}
 function sponsorship() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const SPON = req('sponsors.js');
@@ -3536,7 +3610,7 @@ function negotiationRules() {
   const emitted = new Set();
   /* trade.js belongs here: the transfer market emits its own acts, and a file list that
      predates a module reports live content as dead */
-  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js', 'events.js', 'talks.js']
+  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js', 'events.js', 'talks.js', 'staff.js']
     .map(f => fs.readFileSync(findFile(f), 'utf8')).join('\n');
   /* `act(` as a whole word — `impact(` is not an emission — and both arms of a ternary inside one */
   for (const m of srcAll.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*'([a-z_]+)'/g)) emitted.add(m[1]);
@@ -3598,7 +3672,9 @@ function negotiationRules() {
      — and no engine seat leaves either; `held_out` needs a banner fighting on past hope */
   for (const rare of ['betrayed', 'released_captives', 'kept_captive',
                       'killed_captives', 'abandoned_ours', 'refused_all', 'hid', 'last_ground',
-                      'held_out', 'silent_before_board', 'snubbed_letter']) {
+                      'held_out', 'silent_before_board', 'snubbed_letter',
+                      /* §STAFF a poach and an exposed mole are a manager's rare, chosen risks */
+                      'poached_staff', 'mole_exposed']) {
     if (!REPMOD.ACTS[rare]) continue;
     REPMOD.act(rareRep, rare, { targetId: OA[1].id, count: 1, scale: 0.5 });
     actsSeen.add(rare);
@@ -3852,6 +3928,7 @@ function runRegression() {
   phase('laterConsequences', laterConsequences);
   phase('sponsorship', sponsorship);
   phase('talks', talks);
+  phase('staff', staffRules);
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('negotiationRules', negotiationRules);

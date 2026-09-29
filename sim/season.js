@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF) {
   'use strict';
 
   const CONST = {
@@ -1814,8 +1814,11 @@
          next month, which is the whole point of having a verb for it */
       const before = woundOf(f);
       if (before < 100) {
-        setWound(f, before + CONST.WOUND_DRIFT);
-        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
+        const sgn = STAFF.surgeonFor(corp);   /* §STAFF the surgeon's hand on the body's own mending */
+        setWound(f, before + CONST.WOUND_DRIFT * sgn.drift);
+        if (sgn.calm) f.condition.stress = Math.max(0, (f.condition.stress || 0) - sgn.calm);
+        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active';
+          const sgR = STAFF.holder(corp, 'surgeon'); if (sgR) sgR.record.mended = (sgR.record.mended || 0) + 1; }
       }
       settleWounds(f);
     }
@@ -1887,6 +1890,17 @@
                              drilled: focus.train ? new Set(aliveOf(corp).map(f => f.id)) : null });
     const talked = holdTalk(corp, talkWant, season || 0, month, landedOut);
     if (talked) tally.talks = (tally.talks || 0) + 1;
+    /* §STAFF the engine's Sergeant has their word too; a person sends theirs from the sheet */
+    if (!wanted) {
+      const sgWho = aiSergeant(corp, month, season || 0);
+      if (sgWho) {
+        const sg = STAFF.sergeantTalk(corp), fw = aliveOf(corp).find(x => x.id === sgWho);
+        const r = fw && TALKS.talk(corp, fw, sg.kind, { abs: talkAbs, season: season || 0, captains: caps, roster: aliveOf(corp),
+                                                       squad: squadOfCaptain(corp, fw.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+        if (r) sg.st.record.talks = (sg.st.record.talks || 0) + 1;
+      }
+    }
+    staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -1961,7 +1975,7 @@
               /* §SPONSORS a backer's ward mends faster, for good: `med_recovery` is a standing
                  the OA keeps, so every month of every later career is treated in it */
               const ward = 1 + SPON.standingValue(corp, 'med_recovery');
-              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
+              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward * STAFF.surgeonFor(corp).focus;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
               settleWounds(f);
@@ -2045,6 +2059,8 @@
             gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
             if (gain <= 0) continue;
             gain *= learn;                       /* §QUIRKS a quick study, and the mentored young */
+            gain *= STAFF.drillFor(corp, k).yield;   /* §STAFF the drillmaster, best in what they were best at */
+            if (corp.staff && corp.staff.posts && corp.staff.posts.drill) corp.staff.posts.drill.record.gains = (corp.staff.posts.drill.record.gains || 0) + gain;
             store[k] = Math.min(cap, cur + gain);
             if (k === 'aim') trainCarried(f, gain, cap);
             tally.trained++;
@@ -2052,7 +2068,7 @@
           }
           if (drilled && f.condition)
             f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) +
-                                          CONST.TRAIN_STRESS_FOCUS * third);
+                                          CONST.TRAIN_STRESS_FOCUS * third * STAFF.drillFor(corp, 'aim').strain);
         }
       } else if (a.kind === 'scout') {
         /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the
@@ -2111,7 +2127,7 @@
           for (const house in map) {
             const pips = map[house] || 0;
             if (pips <= 0) continue;
-            SPON.court(corp, house, pips);
+            SPON.court(corp, house, pips * STAFF.courtMult(corp));   /* §STAFF a fixer's introductions */
             tally.courted = (tally.courted || 0) + 1;
           }
         }
@@ -2290,7 +2306,9 @@
     const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
     /* §TALKS a hand dressed down against their temper remembers it when the paper comes round */
     const grudge = f._grudge ? TALKS.CONST.GRUDGE_RENEWAL : 1;
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge));
+    /* §STAFF and one a sergeant talked up has been told what they are worth */
+    const talkedUp = 1 + (f._talkedUp || 0) * TALKS.CONST.UP_RENEWAL;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge * talkedUp));
   }
 
   /**
@@ -2404,7 +2422,7 @@
             const over = Math.min(1, (paying - asked) / Math.max(1, asked));
             f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
           }
-          f.contract.salary = paying;
+          f.contract.salary = paying; delete f._grudge; delete f._talkedUp;   /* §TALKS the paper is settled, and so is what it carried */
           /* §PAPER THE TERM WAS NEVER RENEWED. A hand the manager re-signed kept the contract
              that had just run out — `seasons_remaining` at zero — so the offseason expired him
              again the next year, every year, and `fitBodies` had a man with no paper standing
@@ -2423,7 +2441,7 @@
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
           budget -= year;
-          f.contract.salary = ask;
+          f.contract.salary = ask; delete f._grudge; delete f._talkedUp;
           f.contract.seasons_remaining = renewalTerm(f);
         f.contract.seasons_total = renewalTerm(f);
           f._fameAtSigning = f.fame || 0;
@@ -2893,6 +2911,8 @@
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
                                : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
       c._off = off;
+      /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
+      c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
     }
 
     /* ---- THE PREP CALENDAR, M1-M11 (S16) ----
@@ -2995,6 +3015,8 @@
     };
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
+    staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
+    for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -3292,6 +3314,276 @@
       }
       for (const fid of now) if (k.ids.indexOf(fid) < 0) appointed(c, fid, state);
       k.ids = now;
+    }
+  }
+
+  /* ============================================================ §STAFF THE BACKROOM
+     Six posts at home (staff.js holds the numbers). Here: who can be appointed, hired and
+     poached, what each post does to the month, and the engine's own hiring — the same verbs a
+     person has, called the same way. Nobody on the staff goes into the Divide. */
+  function staffPoolOf(state) {
+    if (!state.staffPool || state.staffPool.season !== state.season)
+      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season) };
+    return state.staffPool.list;
+  }
+  /** who of your own could take a post: anyone standing on the roster (not half of a pair), and this year's retirees */
+  function ownCandidates(corp) {
+    const out = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !f.mirror_of && !f.bond_partner);
+    for (const f of ((corp._off && corp._off.retired) || [])) if (f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of && !f.bond_partner) out.push(f);
+    return out;
+  }
+  function regardOf(corp, houseId) { return corp.rep ? REP.standing(corp.rep, 'house', houseId) : 50; }
+  /** the Backroom as one OA sees it: its posts, and every candidate — its own exactly, strangers as a range */
+  function backroomFor(state, corpId) {
+    const c = state.corps[corpId]; if (!c) return null;
+    const o = STAFF.office(c);
+    const own = ownCandidates(c).map(f => ({ id: f.id, name: f.name, race: f.race, age: f.age, retiring: f.status === 'retired',
+                                             craft: STAFF.veteranCraft(f), f }));
+    const spec = staffPoolOf(state).map(st => {
+      const est = {}; for (const p of STAFF.POSTS) est[p] = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_SPEC);
+      return { st, est, wage: st.wage };
+    });
+    const rivals = [];
+    for (const id of state.ids) {
+      if (id === corpId) continue;
+      const them = state.corps[id], ro = STAFF.office(them);
+      for (const p of STAFF.POSTS) {
+        const st = ro.posts[p]; if (!st) continue;
+        const est = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_RIVAL);
+        rivals.push({ from: id, post: p, st, est, fee: STAFF.feeOf(st), wage: Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10,
+                      willing: STAFF.willing(st, regardOf(c, id)) });
+      }
+    }
+    return { posts: o.posts, own, spec, rivals };
+  }
+  function prepOpen(state) { return !state.done && state.month <= CONST.PREP_MONTHS; }
+  /** a fighter leaves the line for a post. No going back. */
+  function appoint(state, corpId, fighterId, post) {
+    const c = state.corps[corpId];
+    if (!c || STAFF.POSTS.indexOf(post) < 0) return { ok: false, why: 'No Such Post' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    const f = ownCandidates(c).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not One of Yours' };
+    const st = STAFF.fromFighter(f, post);
+    o.posts[post] = st;
+    const i = c.roster.indexOf(f);
+    if (i >= 0) c.roster.splice(i, 1);
+    else f._staffed = true;
+    const plan = c._seat && c._seat.plan;
+    if (plan) { if (plan.at) delete plan.at[f.id]; if (plan.leaderOf) delete plan.leaderOf[f.id]; if (plan.hand) delete plan.hand[f.id]; }
+    if (state.eight && state.eight.names && state.eight.names[corpId] === f.id) delete state.eight.names[corpId];
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  function hireSpecialist(state, corpId, specId, post) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const pool = staffPoolOf(state), st = pool.find(x => x.id === specId);
+    if (!st) return { ok: false, why: 'Already Taken' };
+    post = post || st.specialty;
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    pool.splice(pool.indexOf(st), 1);
+    st.post = post; st.school = STAFF.schoolFor(st, post);
+    st.wage = STAFF.wageFor(st.craft[post], 'specialist');
+    o.posts[post] = st;
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  /** pay a house's release fee and take its staffer, if they will come */
+  function poach(state, corpId, fromId, post) {
+    const c = state.corps[corpId], them = state.corps[fromId];
+    if (!c || !them || corpId === fromId) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const st = STAFF.holder(them, post);
+    if (!st) return { ok: false, why: 'Nobody in That Post' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'Your Post Is Held' };
+    if (!STAFF.willing(st, regardOf(c, fromId))) return { ok: false, why: 'They Will Not Come' };
+    const fee = STAFF.feeOf(st);
+    if ((c.account.treasury || 0) < fee) return { ok: false, why: 'Not Enough in the Treasury' };
+    LED.post(c.account, 'expense', 'A Release Fee', -fee);
+    LED.post(them.account, 'income', 'A Release Fee', fee);
+    STAFF.office(them).posts[post] = null;
+    STAFF.office(them).gone.push({ name: st.name, post, why: 'poached', by: corpId, season: state.season });
+    st.wage = Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10;
+    st.loyalty = 50; st.term = st.origin === 'specialist' ? STAFF.CONST.SPEC_TERM : STAFF.CONST.VET_TERM;
+    st.years = Object.assign({}, st.years); st.from = fromId;
+    o.posts[post] = st;
+    if (c.rep) REP.act(c.rep, 'poached_staff', { targetId: fromId });
+    /* they know their old house, and go on telling you a while */
+    ensureIntel(c, state.season || 0);
+    gatherIntel(c, 'rival', fromId, STAFF.CONST.POACH_INTEL_LEVELS, state.season * 100 + state.month,
+                (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
+    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: state.season * 100 + state.month + STAFF.CONST.POACH_INTEL_MONTHS });
+    applySpin(c); applySpin(them);
+    return { ok: true, staffer: st, fee };
+  }
+  function letStaffGo(state, corpId, post) {
+    const c = state.corps[corpId]; const o = c && STAFF.office(c);
+    if (!o || !o.posts[post]) return { ok: false, why: 'Nobody in That Post' };
+    o.gone.push({ name: o.posts[post].name, post, why: 'let go', season: state.season });
+    o.posts[post] = null; applySpin(c);
+    return { ok: true };
+  }
+  function renewStaff(state, corpId, post, yes) {
+    const c = state.corps[corpId]; if (!c) return { ok: false };
+    const done = STAFF.renew(c, post, !!yes); applySpin(c);
+    return { ok: done };
+  }
+  /** the Fixer's hand on how the stands hear this OA */
+  function applySpin(c) { if (c && c.rep) c.rep._spin = STAFF.spin(c); }
+  /** the Sergeant's free word: the person is the manager's choice, the talk is the Sergeant's */
+  function sergeantNow(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const sg = STAFF.sergeantTalk(c); if (!sg) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._sgtTalked && c._sgtTalked.abs === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId); if (!f) return null;
+    const res = TALKS.talk(c, f, sg.kind, { abs, season: state.season, captains: captainsOf(c, state.season), roster: aliveOf(c),
+                                            squad: squadOfCaptain(c, f.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+    if (res) { sg.st.record.talks = (sg.st.record.talks || 0) + 1; }
+    return res;
+  }
+  function sergeantPreview(state, corpId, fighterId) {
+    const c = state.corps[corpId], sg = c && STAFF.sergeantTalk(c);
+    const f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!sg || !f) return null;
+    const pv = TALKS.preview(f, sg.kind, state.season * 100 + state.month);
+    pv.loyalty = Math.round(pv.loyalty * sg.scale); pv.stress = Math.round(pv.stress * sg.scale);
+    if (pv.drill !== 1) pv.drill = 1 + (pv.drill - 1) * sg.scale;
+    return Object.assign(pv, { sergeant: sg.st.name, talk: sg.name });
+  }
+  /** a Cutter operates on a crippled hand: whole, dead, or no better. Once a month. */
+  function operate(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const odds = STAFF.operateOdds(c); if (!odds) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._operated === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId);
+    if (!f || woundBand(f) !== 'crippled') return null;
+    c._operated = abs;
+    const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))();
+    const sg = STAFF.holder(c, 'surgeon');
+    if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
+      sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
+    if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
+      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
+      sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
+    return { outcome: 'none', line: sg.name + ' Could Do Nothing for ' + f.name };
+  }
+  function setMole(state, corpId, targetId) {
+    const c = state.corps[corpId], sp = c && STAFF.holder(c, 'spymaster');
+    if (!sp || sp.school !== 'mole' || !state.corps[targetId] || targetId === corpId) return { ok: false };
+    STAFF.office(c).mole = { target: targetId, season: state.season };
+    return { ok: true };
+  }
+
+  /* the backroom's month: the Spymaster's reports, a poached hand's old house, and a Nurse's calm */
+  function staffMonth(corp, month, season, corps, landedOut, isAI) {
+    const abs = (season || 0) * 100 + month;
+    applySpin(corp);
+    const sp = STAFF.eff(corp, 'spymaster');
+    if (sp.st && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      if (sp.school === 'watcher') {
+        const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
+        if (lv > 0) {
+          const planetFull = INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
+          if (!planetFull) gatherIntel(corp, 'planet', null, lv, abs, null);
+          else {
+            const rid = Object.keys(corps || {}).filter(k => k !== corp.id).sort((a, b) => rivalPreparedness(corp, a, season || 0) - rivalPreparedness(corp, b, season || 0))[0];
+            if (rid) gatherIntel(corp, 'rival', rid, lv, abs, (rowKey, depth) => snapshotRival(corps[rid], rowKey, depth, season || 0));
+          }
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+        }
+      } else {
+        const o = STAFF.office(corp);
+        if (isAI && (!o.mole || o.mole.season !== season)) {
+          const best = Object.keys(corps || {}).filter(k => k !== corp.id && corps[k].rep)
+            .sort((a, b) => REP.standing(corps[b].rep, 'crowd') - REP.standing(corps[a].rep, 'crowd'))[0];
+          if (best) o.mole = { target: best, season };
+        }
+        const mo = o.mole;
+        if (mo && mo.season === season && corps[mo.target]) {
+          const them = corps[mo.target];
+          gatherIntel(corp, 'rival', mo.target, Math.round(STAFF.CONST.MOLE_LEVELS * sp.e) + 1, abs, (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+          if (P.mulberry32(P.seedFrom('mole' + abs + corp.id))() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
+            if (corp.rep) REP.act(corp.rep, 'mole_exposed', { targetId: mo.target });
+            o.mole = null;
+            if (landedOut) landedOut.push({ kind: 'staff', text: 'Your Mole in ' + ((them.profile && them.profile.name) || mo.target) + ' Was Found' });
+          }
+        }
+      }
+    }
+    if (corp._poachIntel && corp._poachIntel.length) {
+      corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
+      for (const x of corp._poachIntel) {
+        ensureIntel(corp, season || 0);
+        gatherIntel(corp, 'rival', x.from, STAFF.CONST.POACH_INTEL_MONTHLY, abs, (rowKey, depth) => snapshotRival(corps[x.from], rowKey, depth, season || 0));
+      }
+    }
+  }
+  /** the engine's Sergeant picks whom to speak to, by the talk it knows its Sergeant has */
+  function aiSergeant(corp, month, season) {
+    const sg = STAFF.sergeantTalk(corp); if (!sg) return null;
+    const abs = (season || 0) * 100 + month;
+    const alive = aliveOf(corp).filter(f => !f.mirror_of);
+    const loy = f => (f.loyalty == null ? 50 : f.loyalty), str = f => ((f.condition && f.condition.stress) || 0);
+    const ok = f => { TALKS.temperOf(f); const how = TALKS.landing(f, sg.kind, abs, !!f.temperKnown); return how !== 'backfired' && how !== 'faded'; };
+    const pool = alive.filter(ok);
+    if (!pool.length) return null;
+    let who;
+    if (sg.kind === 'hear') who = pool.filter(f => !f.temperKnown)[0] || pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'praise') who = pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'up') who = pool.filter(f => ((f.contract || {}).seasons_remaining || 0) >= 2).sort((a, b) => (a.age || 30) - (b.age || 30))[0];
+    else who = pool.filter(f => str(f) < 40).sort((a, b) => str(a) - str(b))[0];
+    return who ? who.id : null;
+  }
+  /** the engine hires the way a person would: its own veterans for the military posts, strangers
+      for the rest when it can pay them, and a rival's best when it is bold and rich enough */
+  function aiStaff(state, id) {
+    const c = state.corps[id], o = STAFF.office(c);
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    /* the year's renewals: keep whoever is worth what they ask */
+    for (const p of STAFF.POSTS) { const st = o.posts[p]; if (st && st.asking) STAFF.renew(c, p, STAFF.worthKeeping(st, p)); }
+    const purse = (c.account && c.account.treasury) || 0;
+    const spare = () => aliveOf(c).filter(f => !f.mirror_of).length - CONST.ROSTER_MIN;
+    for (const p of STAFF.POSTS) {
+      if (o.posts[p]) continue;
+      /* a veteran, if the roster can spare one who is past their best on the line */
+      /* who the line can spare: the retiring, and anyone outside the best the OA would drop */
+      const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+      const standing = aliveOf(c).filter(f => !f.mirror_of).sort((a, b) => q(b) - q(a));
+      const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
+      const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
+        .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
+      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => b.craft[p] - a.craft[p])[0];
+      const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
+      const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
+      if (vet && (!canSpec || vet.v >= spec.craft[p] - 15)) appoint(state, id, vet.f.id, p);
+      else if (canSpec) hireSpecialist(state, id, spec.id, p);
+    }
+    /* one poach a year, for a bold house with money to spare */
+    if ((dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
+      let best = null;
+      for (const oid of state.ids) {
+        if (oid === id) continue;
+        for (const p of STAFF.POSTS) {
+          const st = STAFF.holder(state.corps[oid], p); if (!st) continue;
+          if (o.posts[p]) continue;                 /* it poaches into an empty post, never over its own */
+          if (!STAFF.willing(st, regardOf(c, oid))) continue;
+          if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
+        }
+      }
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) poach(state, id, best.oid, best.p);
     }
   }
   /** what a promise can be of this month */
@@ -3644,6 +3936,11 @@
         LED.post(c.account, 'expense', 'retainers', -payroll);
         landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
       }
+      /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
+      const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
+      if (staffPay > 0) LED.post(c.account, 'expense', 'Staff Wages', -staffPay);
+      /* a renewal nobody answered by the first month's end is signed at what was asked */
+      if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
@@ -3861,6 +4158,8 @@
         wordRecord: (c._wordRecord = c._wordRecord || {}),
         /* §TALKS the year's captains lead the squads they land in */
         captains: captainsOf(c, season),
+        /* §STAFF an Armourer finds more for the kit than the books alone would */
+        kitBoost: STAFF.kitBoost(c),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -4040,6 +4339,9 @@
       clean[id] = n; total += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
+    /* §STAFF a quartermaster haggles */
+    const disc = STAFF.shelfDiscount(c);
+    if (disc > 0) { const saved = Math.round(total * disc); total -= saved; const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + saved; }
     if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
     c.armoury = c.armoury || {};
     for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
@@ -4232,6 +4534,9 @@
       const kit = (persist[id] && persist[id].kitValue) || 0;
       const spend = (persist[id] && persist[id].kitSpend) || 0;
       if (spend) LED.post(c.account, 'expense', 'procurement', -spend);
+      /* §STAFF and haggles at the drop, for a part of what they win at the market */
+      const qmOff = Math.round(spend * STAFF.shelfDiscount(c) * STAFF.CONST.QM_PROCURE);
+      if (qmOff > 0) { LED.post(c.account, 'income', 'The Quartermaster\u2019s Haggling', qmOff); const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + qmOff; }
 
       /* ---- THE MONEY THE DIVIDE WAS WORTH ----
          `ledger.bookDivide` has existed since Step 6 and had no caller anywhere in the season
@@ -4622,6 +4927,7 @@
         /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
            them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
         events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
+        staffPool: toPlain(state.staffPool || null),   /* §STAFF who is still looking for a post this year */
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -4686,7 +4992,7 @@
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
       drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
-      events: o.events || {}, fleet: o.fleet || undefined,
+      events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
@@ -4726,6 +5032,7 @@
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
      captainsOf, promisable, talkNow, talkPreview, TALKS,
+     STAFF, backroomFor, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,

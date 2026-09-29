@@ -56,7 +56,10 @@
     CAPTAIN_STRESS: 2,           // [C] a month of leading
     CAPTAIN_SWAY: 0.04,          // [C] a month's pull of the roster's loyalty toward its captains'
     CAPTAIN_NAMED_LOYALTY: 8,    // [C] being made a captain
-    HISTORY: 12                  // [S] talks remembered per person
+    HISTORY: 12,                 // [S] talks remembered per person
+    UP_DRILL: 1.4,               // [C] a Hungry sergeant Talks Them Up: drill, if drilled
+    UP_LOYALTY: 6,               // [C]
+    UP_RENEWAL: 0.10             // [C] and every time they are talked up, their next renewal asks this much more
   };
 
   const TALKS = [
@@ -67,6 +70,8 @@
     { id: 'hear',    name: 'Hear Them Out' }
   ];
   const TALK_NAME = {}; TALKS.forEach(t => { TALK_NAME[t.id] = t.name; });
+  /* §STAFF the Hungry sergeant's own talk: never the manager's */
+  TALK_NAME.up = 'Talk Them Up';
 
   /* what each temper takes well and badly. Dress Down backfires on two of five: it is the risky talk. */
   const TEMPERS = {
@@ -161,6 +166,8 @@
         e.loyalty = CONST.PROMISE_LOYALTY * scale * wanted;
       }
       e.owedAt = promiseKind === 'eight' ? 'the Eight' : 'the Lock';
+    } else if (kind === 'up') {
+      e.drill = 1 + (CONST.UP_DRILL - 1) * scale; e.loyalty = CONST.UP_LOYALTY * scale; e.talkedUp = true;
     } else if (kind === 'hear') {
       e.reveal = true;
       if (how === 'doubled') { e.loyalty = 8; e.stress = -8; }
@@ -176,6 +183,7 @@
                : kind === 'praise' ? 'Praised ' + n
                : kind === 'dress' ? 'Dressed Down ' + n
                : kind === 'promise' ? 'Promised ' + n + ' ' + PROMISES[promiseKind].mid
+               : kind === 'up' ? 'Talked ' + n + ' Up'
                : 'Heard ' + n + ' Out';
     return base + (HOW_WORD[how] || '');
   }
@@ -226,6 +234,13 @@
     temperOf(f);
     const how = landing(f, kind, ctx.abs, true);        /* the landing is what it is; only the preview hides it */
     const e = effects(f, kind, how, ctx.promise);
+    /* §STAFF a sergeant's word lands as well as their Craft lets it */
+    const bySgt = ctx.by === 'sergeant';
+    if (bySgt && ctx.scale != null) {
+      e.loyalty = Math.round(e.loyalty * ctx.scale); e.stress = Math.round(e.stress * ctx.scale);
+      if (e.drill !== 1) e.drill = 1 + (e.drill - 1) * ctx.scale;
+    }
+    if (e.talkedUp) f._talkedUp = (f._talkedUp || 0) + 1;
     f.loyalty = clamp((f.loyalty == null ? 50 : f.loyalty) + e.loyalty, 0, 100);
     if (f.condition) f.condition.stress = clamp((f.condition.stress || 0) + e.stress, 0, 100);
     if (e.drill !== 1) f._drillMult = { abs: ctx.abs, mult: e.drill };
@@ -251,12 +266,13 @@
     }
     /* how they take it is how you come to know them */
     const h = history(f);
-    h.push({ abs: ctx.abs, season: ctx.season, month: ctx.abs % 100, kind, how, promise: kind === 'promise' ? ctx.promise : undefined });
+    h.push({ abs: ctx.abs, season: ctx.season, month: ctx.abs % 100, kind, how, promise: kind === 'promise' ? ctx.promise : undefined, by: bySgt ? ctx.byName : undefined });
     while (h.length > CONST.HISTORY) h.shift();
     let revealed = false;
     if (!f.temperKnown && (e.reveal || h.length >= CONST.REVEAL_AFTER)) { f.temperKnown = true; revealed = true; }
-    const line = lineFor(f, kind, how, ctx.promise);
-    corp._talked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
+    const line = (bySgt ? ctx.byName + ' ' : '') + lineFor(f, kind, how, ctx.promise);
+    if (bySgt) corp._sgtTalked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
+    else corp._talked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
     return { fighterId: f.id, name: f.name, kind, how, promise: ctx.promise, loyalty: e.loyalty, stress: e.stress,
              drill: e.drill, reached, revealed, temper: revealed ? TEMPERS[f.temper].name : null, line };
   }
@@ -291,6 +307,7 @@
     if (e.clearSlack) parts.push('Ends Any Coasting');
     if (e.grudge) parts.push('Holds a Grudge');
     if (e.reveal) parts.push('Learn Their Temper');
+    if (e.talkedUp) parts.push('Asks More at Renewal');
     if (e.owedAt) parts.push('Owed at ' + e.owedAt);
     return parts.join(' · ') || 'Nothing Moves';
   }

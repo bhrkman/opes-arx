@@ -624,9 +624,13 @@
      saved mid-year came back wrong. Neither belongs in a save: they are derived from the
      catalogue, which every build already has. */
   const SEED_CACHE = new WeakMap();
+  /* §STAFF WHO IS ABOARD, NOT HOW MANY. The cache was keyed on the roster's length, and a hand moved
+     to the backroom and another signed leave the length alone — so a resumed year, with a fresh
+     cache, drew different events from the one it was saved from. */
+  function rosterKey(corp) { return corp.roster.map(f => f.id + (f.status === 'dead' || f.status === 'retired' ? '-' : '')).join(','); }
   function corpSeeds(state, corp) {
-    const cached = SEED_CACHE.get(corp);
-    if (cached && cached.n === corp.roster.length) return cached.set;
+    const cached = SEED_CACHE.get(corp), key = rosterKey(corp);
+    if (cached && cached.n === key) return cached.set;
     const idx = traitIndexOf(state), set = new Set();
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -635,7 +639,7 @@
         if (tr && tr.effects) for (const h of (tr.effects.hooks || [])) if (/_seed|_amplified/.test(h)) set.add(h);
       }
     }
-    SEED_CACHE.set(corp, { n: corp.roster.length, set });
+    SEED_CACHE.set(corp, { n: key, set });
     return set;
   }
   function seedWeight(state, corp, specId) {
@@ -654,8 +658,8 @@
   const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
   const LUCK_CACHE = new WeakMap();
   function luckOf(state, corp) {
-    const c = LUCK_CACHE.get(corp);
-    if (c && c.n === corp.roster.length) return c.v;
+    const c = LUCK_CACHE.get(corp), key = rosterKey(corp);
+    if (c && c.n === key) return c.v;
     let v = 1;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -663,7 +667,7 @@
       if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
     }
     v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
-    LUCK_CACHE.set(corp, { n: corp.roster.length, v });
+    LUCK_CACHE.set(corp, { n: key, v });
     return v;
   }
   let TRAIT_INDEX = null;

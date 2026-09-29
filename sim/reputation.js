@@ -254,7 +254,10 @@
     settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 },
     /* §TALKS a promise to one of your own gets out, kept or broken */
     kept_a_promise:     { q: { word: 0.8, care: 0.3 }, mag: 1.5, residue: 0.10 },
-    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 }      /* ctx.grave for a star */
+    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 },     /* ctx.grave for a star */
+    /* §STAFF the backroom's acts */
+    poached_staff:      { q: { craft: 0.4, word: -0.3 }, mag: 1.5, target: -10, residue: 0.20 },
+    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 }
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
@@ -486,6 +489,13 @@
     ctx = ctx || {};
     const spec = ACTS[type];
     const im = impact(rep, type, ctx);
+    /* §STAFF A FIXER'S HAND: good news carried further, bad news softened, the houses courted —
+       set on the rep by the season from whoever holds the post, read here where every act lands */
+    const sp = rep._spin;
+    if (sp) {
+      for (const f in im.fx) im.fx[f] *= im.fx[f] > 0 ? sp.good : sp.bad;
+      for (const id in im.hx) im.hx[id] *= im.hx[id] > 0 ? sp.good * sp.houses : sp.bad;
+    }
     const season = ctx.season != null ? ctx.season : rep.season;
     let peak = 0;
     for (const f in im.fx) peak = Math.max(peak, Math.abs(im.fx[f]));

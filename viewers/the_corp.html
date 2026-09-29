@@ -1224,6 +1224,35 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §STAFF the backroom */
+  .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  @media (max-width:900px){.bkposts{grid-template-columns:1fr}}
+  .bkpost{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-height:150px}
+  .bkpost.vacant{border-style:dashed;opacity:.75}
+  .bkpost .pt{display:flex;justify-content:space-between;align-items:baseline;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .bkpost .pt .sch{letter-spacing:0;text-transform:none;color:var(--a);font-size:10px}
+  .bkpost .who{display:flex;align-items:center;gap:8px}
+  .bkpost .who .nm{font-weight:bold;cursor:default}
+  .bkpost .craft{margin-left:auto;font-size:20px;color:var(--ink)}
+  .bkpost .craft small{font-size:9px;color:var(--dim);display:block;text-align:right;letter-spacing:.1em}
+  .bkbar{height:4px;background:var(--a-dim);border-radius:2px;overflow:hidden}
+  .bkbar i{display:block;height:100%;background:var(--a)}
+  .bkpost .kv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px}
+  .bkpost .kv .k{color:var(--dim)} .bkpost .kv .v{text-align:right}
+  .bkpost .acts{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+  .bktabs{display:flex;gap:6px;margin:4px 0 8px}
+  .bktabs button.on{border-color:var(--a);color:var(--a)}
+  .bktbl{width:100%;border-collapse:collapse;font-size:11px}
+  .bktbl th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:right;padding:4px 6px;font-weight:normal}
+  .bktbl th:first-child,.bktbl td:first-child{text-align:left}
+  .bktbl td{padding:5px 6px;border-top:1px solid #131f30;text-align:right;white-space:nowrap}
+  .bktbl td.cr8{cursor:pointer;border-radius:3px}
+  .bktbl td.cr8:hover{background:var(--a-deep);color:var(--a)}
+  .bktbl td.cr8.sel{background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a);color:var(--a)}
+  .bktbl td.cr8.held{color:var(--faint);cursor:default}
+  .bktbl td.cr8.hi{color:var(--ink);font-weight:bold}
+  .bkconfirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;margin:8px 0;border:1px solid var(--a);border-radius:5px;background:var(--a-deep)}
+  .bkgone{font-size:10px;color:var(--dim);margin-top:6px}
   /* §TALKS the month's word */
   .wopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 0 8px}
   .wopt{text-align:left;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px}
@@ -2106,6 +2135,11 @@
 </div>
 
 <!-- ================================ THE MARKET ================================= -->
+<!-- ================================ THE BACKROOM ================================ -->
+<div class="page" data-tab="backroom">
+  <div id="backroom"></div>
+</div>
+
 <div class="page" data-tab="market">
   <div class="summary" id="mktsum"></div>
   <div class="bar">
@@ -11675,7 +11709,10 @@
     settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 },
     /* §TALKS a promise to one of your own gets out, kept or broken */
     kept_a_promise:     { q: { word: 0.8, care: 0.3 }, mag: 1.5, residue: 0.10 },
-    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 }      /* ctx.grave for a star */
+    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 },     /* ctx.grave for a star */
+    /* §STAFF the backroom's acts */
+    poached_staff:      { q: { craft: 0.4, word: -0.3 }, mag: 1.5, target: -10, residue: 0.20 },
+    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 }
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
@@ -11907,6 +11944,13 @@
     ctx = ctx || {};
     const spec = ACTS[type];
     const im = impact(rep, type, ctx);
+    /* §STAFF A FIXER'S HAND: good news carried further, bad news softened, the houses courted —
+       set on the rep by the season from whoever holds the post, read here where every act lands */
+    const sp = rep._spin;
+    if (sp) {
+      for (const f in im.fx) im.fx[f] *= im.fx[f] > 0 ? sp.good : sp.bad;
+      for (const id in im.hx) im.hx[id] *= im.hx[id] > 0 ? sp.good * sp.houses : sp.bad;
+    }
     const season = ctx.season != null ? ctx.season : rep.season;
     let peak = 0;
     for (const f in im.fx) peak = Math.max(peak, Math.abs(im.fx[f]));
@@ -12569,7 +12613,10 @@
     CAPTAIN_STRESS: 2,           // [C] a month of leading
     CAPTAIN_SWAY: 0.04,          // [C] a month's pull of the roster's loyalty toward its captains'
     CAPTAIN_NAMED_LOYALTY: 8,    // [C] being made a captain
-    HISTORY: 12                  // [S] talks remembered per person
+    HISTORY: 12,                 // [S] talks remembered per person
+    UP_DRILL: 1.4,               // [C] a Hungry sergeant Talks Them Up: drill, if drilled
+    UP_LOYALTY: 6,               // [C]
+    UP_RENEWAL: 0.10             // [C] and every time they are talked up, their next renewal asks this much more
   };
 
   const TALKS = [
@@ -12580,6 +12627,8 @@
     { id: 'hear',    name: 'Hear Them Out' }
   ];
   const TALK_NAME = {}; TALKS.forEach(t => { TALK_NAME[t.id] = t.name; });
+  /* §STAFF the Hungry sergeant's own talk: never the manager's */
+  TALK_NAME.up = 'Talk Them Up';
 
   /* what each temper takes well and badly. Dress Down backfires on two of five: it is the risky talk. */
   const TEMPERS = {
@@ -12674,6 +12723,8 @@
         e.loyalty = CONST.PROMISE_LOYALTY * scale * wanted;
       }
       e.owedAt = promiseKind === 'eight' ? 'the Eight' : 'the Lock';
+    } else if (kind === 'up') {
+      e.drill = 1 + (CONST.UP_DRILL - 1) * scale; e.loyalty = CONST.UP_LOYALTY * scale; e.talkedUp = true;
     } else if (kind === 'hear') {
       e.reveal = true;
       if (how === 'doubled') { e.loyalty = 8; e.stress = -8; }
@@ -12689,6 +12740,7 @@
                : kind === 'praise' ? 'Praised ' + n
                : kind === 'dress' ? 'Dressed Down ' + n
                : kind === 'promise' ? 'Promised ' + n + ' ' + PROMISES[promiseKind].mid
+               : kind === 'up' ? 'Talked ' + n + ' Up'
                : 'Heard ' + n + ' Out';
     return base + (HOW_WORD[how] || '');
   }
@@ -12739,6 +12791,13 @@
     temperOf(f);
     const how = landing(f, kind, ctx.abs, true);        /* the landing is what it is; only the preview hides it */
     const e = effects(f, kind, how, ctx.promise);
+    /* §STAFF a sergeant's word lands as well as their Craft lets it */
+    const bySgt = ctx.by === 'sergeant';
+    if (bySgt && ctx.scale != null) {
+      e.loyalty = Math.round(e.loyalty * ctx.scale); e.stress = Math.round(e.stress * ctx.scale);
+      if (e.drill !== 1) e.drill = 1 + (e.drill - 1) * ctx.scale;
+    }
+    if (e.talkedUp) f._talkedUp = (f._talkedUp || 0) + 1;
     f.loyalty = clamp((f.loyalty == null ? 50 : f.loyalty) + e.loyalty, 0, 100);
     if (f.condition) f.condition.stress = clamp((f.condition.stress || 0) + e.stress, 0, 100);
     if (e.drill !== 1) f._drillMult = { abs: ctx.abs, mult: e.drill };
@@ -12764,12 +12823,13 @@
     }
     /* how they take it is how you come to know them */
     const h = history(f);
-    h.push({ abs: ctx.abs, season: ctx.season, month: ctx.abs % 100, kind, how, promise: kind === 'promise' ? ctx.promise : undefined });
+    h.push({ abs: ctx.abs, season: ctx.season, month: ctx.abs % 100, kind, how, promise: kind === 'promise' ? ctx.promise : undefined, by: bySgt ? ctx.byName : undefined });
     while (h.length > CONST.HISTORY) h.shift();
     let revealed = false;
     if (!f.temperKnown && (e.reveal || h.length >= CONST.REVEAL_AFTER)) { f.temperKnown = true; revealed = true; }
-    const line = lineFor(f, kind, how, ctx.promise);
-    corp._talked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
+    const line = (bySgt ? ctx.byName + ' ' : '') + lineFor(f, kind, how, ctx.promise);
+    if (bySgt) corp._sgtTalked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
+    else corp._talked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
     return { fighterId: f.id, name: f.name, kind, how, promise: ctx.promise, loyalty: e.loyalty, stress: e.stress,
              drill: e.drill, reached, revealed, temper: revealed ? TEMPERS[f.temper].name : null, line };
   }
@@ -12804,6 +12864,7 @@
     if (e.clearSlack) parts.push('Ends Any Coasting');
     if (e.grudge) parts.push('Holds a Grudge');
     if (e.reveal) parts.push('Learn Their Temper');
+    if (e.talkedUp) parts.push('Asks More at Renewal');
     if (e.owedAt) parts.push('Owed at ' + e.owedAt);
     return parts.join(' · ') || 'Nothing Moves';
   }
@@ -12852,6 +12913,322 @@
   return { CONST, TALKS, TALK_NAME, TEMPERS, PROMISES, temperOf, wantOf, temperKnown, temperShown,
            runOf, landing, effects, preview, describe, talk, drillMult, talkedThisMonth,
            promisesOf, openPromise, makePromise, settlePromise, aiTalk, lineFor };
+});
+
+/* ==== staff.js ==== */
+/* ============================================================================================
+   STAFF — the backroom. Six posts, one number, and mostly your own people.
+
+   RULED (the staff pass):
+   - Six posts: Drillmaster, Sergeant, Quartermaster, Fixer, Surgeon, Spymaster. Nobody on the
+     staff goes into the Divide: the backroom works at home.
+   - ONE SYSTEM. Everybody who could hold a post — your fighters, a rival's staff, an outside
+     specialist — has a CRAFT for every post, 0 to 100, and Craft is the only thing a post reads.
+     A veteran's Craft comes from who they were on the line: natural in the military posts,
+     arguable in the Quartermaster's and the Fixer's, poor in the Surgeon's and the Spymaster's.
+     A specialist is a stranger with a great deal of one Craft and little of the rest, and costs
+     two or three times a veteran's wage.
+   - Anyone may move to the backroom at any time, and nobody comes back.
+   - Craft grows with years in a post, fastest for those furthest from the top.
+   - A stranger's Craft is an estimate while you are hiring: a range, never the number.
+   - A staff contract carries a RELEASE FEE, not a term a rival must wait out: anyone may pay it
+     and take the person, if the person is willing. Taking a house's staff costs regard with
+     that house, and they bring a year's knowledge of it with them.
+   - Staff age, retire later than fighters do, and renegotiate — a good record gets expensive.
+   - The Sergeant has a free second talk a month; the person is yours to choose, the talk is
+     their temper's: Proud drives, Cold dresses down, Brittle praises, Devoted hears them out,
+     and Hungry TALKS THEM UP — a better month now, a dearer contract later.
+   - Every post has a SCHOOL: two ways of doing the job, each with its own cost.
+
+   SYMMETRY (ruled): the engine's OAs hire, poach, renew and are poached by the same rules.
+   This module owns the numbers and the choices; `season.js` owns when they happen.
+   ============================================================================================ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./talks.js'));
+  else root.CDSTAFF = factory(root.CDPRNG, root.CDTALKS);
+})(typeof self !== 'undefined' ? self : this, function (P, TALKS) {
+  'use strict';
+
+  const CONST = {
+    STAT_FLOOR: 50, STAT_SPAN: 1.5,     // [C] a fighter stat of 50 is Craft 0, of 200 is Craft 100
+    VET_ARGUABLE: 0.70,                 // [C] a veteran's reach into the Quartermaster's and Fixer's work
+    VET_SURGEON: 0.35,                  // [C] and into the Surgeon's
+    VET_SPY: 0.30,                      // [C] and the Spymaster's
+    SPEC_LO: 55, SPEC_HI: 90,           // [C] a specialist's Craft in their own post
+    SPEC_OTHER: 20,                     // [C] and at most this in any other
+    GROWTH: 0.08,                       // [C] a year in post closes this share of the gap to 100
+    GROWTH_FLAT: 2,                     // [C] and adds this much besides
+    VET_WAGE_BASE: 5000, VET_WAGE_PER: 100,     // [C] a year's wage for a veteran, by Craft in post
+    SPEC_WAGE_BASE: 10000, SPEC_WAGE_PER: 250,  // [C] and for a specialist
+    POACH_RAISE: 1.2,                   // [C] what a poached staffer is paid over what they were
+    FEE_BASE: 1.0, FEE_PER_YEAR: 0.25,  // [C] release fee: a year's wage, and a quarter more per year in post
+    VET_TERM: 3, SPEC_TERM: 2,          // [S] contract years
+    RENEW_RAISE: 0.10,                  // [C] what a renewal asks over the old wage
+    RENEW_PER_YEAR: 0.03,               // [C] and more for every year of record
+    RETIRE_FROM: 58, RETIRE_STEP: 0.10, // [C] from this age, this much more chance a year of retiring
+    SPEC_AGE: [35, 55],                 // [S]
+    POOL_SIZE: 9,                       // [S] specialists looking for a post each year
+    ESTIMATE_SPEC: 15,                  // [S] how wide a specialist's Craft is guessed, either way
+    ESTIMATE_RIVAL: 10,                 // [S] and a rival's staffer, whom the fleet has watched work
+    POACH_REGARD: -10,                  // [C] what the house loses toward you for taking its people
+    POACH_INTEL_LEVELS: 6,              // [C] what they tell you of their old house on arrival
+    POACH_INTEL_MONTHS: 12,             // [S] and they go on telling you, a little, this long
+    POACH_INTEL_MONTHLY: 2,             // [C]
+    SERGEANT_FLOOR: 0.4,                // [C] a Craft-0 sergeant's talk lands at this share
+    UP_DRILL: 1.4,                      // [C] Talks Them Up: drill, if drilled
+    UP_LOYALTY: 6,                      // [C]
+    UP_RENEWAL: 0.10,                   // [C] and what their next renewal asks for it
+    DRILL_HARD: 0.45, DRILL_PATIENT: 0.25,      // [C] drill yield at Craft 100, by school
+    DRILL_BEST: 0.35,                   // [C] more again in the drillmaster's own best stats
+    DRILL_HARD_STRESS: 0.5, DRILL_PATIENT_CALM: 0.4,   // [C] what the school does to the drill's strain
+    QM_HAGGLE: 0.20, QM_ARMOURER_HAGGLE: 0.08,  // [C] shelf discount at Craft 100
+    QM_PROCURE: 0.5,                    // [C] share of the shelf discount won on the drop's procurement
+    QM_KIT: 0.15,                       // [C] an Armourer's reach into the kit budget
+    FIX_SHOW_GOOD: 0.40, FIX_SHOW_BAD: 0.10,    // [C] a Showman: louder news, a little less of the bad
+    FIX_DIP_GOOD: 0.15, FIX_DIP_BAD: 0.35, FIX_DIP_HOUSES: 0.40,   // [C] a Diplomat
+    FIX_COURT: 0.30,                    // [C] courting, at Craft 100
+    SURGEON_DRIFT: 1.0,                 // [C] the body's own mending, doubled at Craft 100
+    SURGEON_FOCUS: 0.5,                 // [C] and rest's mending
+    NURSE_DRIFT: 0.5, NURSE_CALM: 3,    // [C] a Nurse mends more and calms the hurt
+    CUTTER_P: 0.35, CUTTER_P_CRAFT: 0.5,         // [C] an operation's chance, and Craft's share of it
+    CUTTER_DEATH: 0.35,                 // [C] a failed operation kills at this share of (1 − Craft)
+    WATCHER_LEVELS: 4,                  // [C] a Watcher's reports a month at Craft 100
+    MOLE_LEVELS: 6,                     // [C] a mole's, into one house
+    MOLE_EXPOSE: 0.05                   // [C] a month's chance a mole is found, at Craft 0 (halved at 100)
+  };
+
+  const POSTS = ['drill', 'sergeant', 'quartermaster', 'fixer', 'surgeon', 'spymaster'];
+  const POST_NAME = { drill: 'Drillmaster', sergeant: 'Sergeant', quartermaster: 'Quartermaster',
+                      fixer: 'Fixer', surgeon: 'Surgeon', spymaster: 'Spymaster' };
+  const SCHOOLS = {
+    drill:         { hard: { name: 'Hard School', text: 'Faster Gains · More Strain' },
+                     patient: { name: 'Patient School', text: 'Steady Gains · Calmer Drill' } },
+    sergeant:      { temper: { name: 'By Temper', text: 'Their Temper Decides the Talk' } },
+    quartermaster: { haggler: { name: 'Haggler', text: 'Cheaper at the Market and the Drop' },
+                     armourer: { name: 'Armourer', text: 'A Deeper Kit Budget at the Drop' } },
+    fixer:         { showman: { name: 'Showman', text: 'Good News Carries Further' },
+                     diplomat: { name: 'Diplomat', text: 'Bad News Softened · Warms the Houses' } },
+    surgeon:       { cutter: { name: 'Cutter', text: 'Can Operate on the Crippled · Some Die on the Table' },
+                     nurse: { name: 'Nurse', text: 'Faster Mending · Calms the Hurt' } },
+    spymaster:     { watcher: { name: 'Watcher', text: 'Steady Reports · Nothing to Be Caught At' },
+                     mole: { name: 'Mole', text: 'Deep Into One House · May Be Exposed' } }
+  };
+  /* the Sergeant's talk, by their own temper */
+  const SERGEANT_TALK = { proud: 'drive', cold: 'dress', brittle: 'praise', devoted: 'hear', hungry: 'up' };
+  const SERGEANT_TALK_NAME = { drive: 'Drives Them', dress: 'Dresses Them Down', praise: 'Praises Them', hear: 'Hears Them Out', up: 'Talks Them Up' };
+  /* the few quirks that fit a post */
+  const TRAIT_CRAFT = { steady_hands: { surgeon: 20 }, born_captain: { sergeant: 12 },
+                        armchair_general: { quartermaster: 10, drill: 8 }, ankoth_sympathizer: { spymaster: 20 } };
+  const STATS = ['aim', 'grit', 'reflex', 'fieldcraft', 'tactics', 'presence', 'resolve'];
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const m = x => clamp(((x || 0) - CONST.STAT_FLOOR) / CONST.STAT_SPAN, 0, 100);
+  const rngFor = key => P.mulberry32(P.seedFrom('staff:' + key));
+
+  /* ------------------------------------------------------------------------------- craft */
+  /** What a fighter would bring to each post, read off who they were on the line. */
+  function veteranCraft(f) {
+    const s = f.stats || {}, divs = f.divides || 0;
+    const best = STATS.map(k => s[k] || 0).sort((a, b) => b - a).slice(0, 3);
+    const c = {
+      drill: m(best.reduce((a, b) => a + b, 0) / 3) + Math.min(20, divs * 2),
+      sergeant: m(((s.presence || 0) + (s.resolve || 0)) / 2) + Math.min(20, divs * 3),
+      quartermaster: CONST.VET_ARGUABLE * m(((s.fieldcraft || 0) + (s.tactics || 0)) / 2) + Math.min(10, divs),
+      fixer: CONST.VET_ARGUABLE * (0.6 * m(s.presence) + 0.4 * clamp(f.fame || 0, 0, 100)),
+      surgeon: CONST.VET_SURGEON * m(s.resolve),
+      spymaster: CONST.VET_SPY * m(s.fieldcraft)
+    };
+    for (const t of (f.traits || [])) for (const p in (TRAIT_CRAFT[t] || {})) c[p] += TRAIT_CRAFT[t][p];
+    for (const p of POSTS) c[p] = Math.round(clamp(c[p], 0, 100));
+    return c;
+  }
+  /** the stats a drillmaster teaches best: their own best three */
+  function bestStats(st) {
+    const s = st.stats || {};
+    return STATS.slice().sort((a, b) => (s[b] || 0) - (s[a] || 0)).slice(0, 3);
+  }
+  function schoolFor(st, post) {
+    const opts = Object.keys(SCHOOLS[post]);
+    if (opts.length === 1) return opts[0];
+    if (post === 'drill') {
+      const t = TALKS.temperOf(st);
+      return (t === 'brittle' || t === 'devoted') ? 'patient' : 'hard';
+    }
+    return opts[Math.floor(rngFor(st.id + ':' + post)() * opts.length)];
+  }
+  function wageFor(craft, origin) {
+    const y = origin === 'specialist' ? CONST.SPEC_WAGE_BASE + CONST.SPEC_WAGE_PER * craft
+                                      : CONST.VET_WAGE_BASE + CONST.VET_WAGE_PER * craft;
+    return Math.round(y / 12 / 10) * 10;       /* monthly, as a fighter's salary is */
+  }
+
+  /* ------------------------------------------------------------------------ the people */
+  /** A fighter comes off the line. The body keeps its name, stats, quirks and temper. */
+  function fromFighter(f, post) {
+    const craft = veteranCraft(f);
+    const st = { id: f.id, name: f.name, race: f.race, age: f.age || 30, stats: Object.assign({}, f.stats || {}),
+                 traits: (f.traits || []).slice(), divides: f.divides || 0, fame: f.fame || 0,
+                 temper: f.temper, want: f.want, temperKnown: !!f.temperKnown, loyalty: f.loyalty == null ? 55 : f.loyalty,
+                 origin: 'veteran', craft, years: {}, record: {}, mark: f.mark || null, pair_name: f.pair_name };
+    TALKS.temperOf(st);
+    st.post = post;
+    st.school = schoolFor(st, post);
+    st.wage = Math.max(((f.contract || {}).salary || 0), wageFor(craft[post], 'veteran'));
+    st.term = CONST.VET_TERM;
+    return st;
+  }
+  /** The year's outside specialists: the same list for every OA, drawn from the season alone. */
+  function specialistPool(season) {
+    const rng = rngFor('pool' + season);
+    const out = [];
+    const RACES = ['human', 'human', 'human', 'etu', 'kellis', 'svalbard'];
+    const FIRST = ['Aldo', 'Brea', 'Casimir', 'Dessa', 'Emrick', 'Fenna', 'Gorran', 'Hesper', 'Ilse', 'Joss', 'Kerel', 'Lusa',
+                   'Maro', 'Nell', 'Orsin', 'Petra', 'Quill', 'Rhosyn', 'Stellan', 'Tamsin', 'Ulric', 'Vesna', 'Wystan', 'Yara'];
+    const LAST = ['Achter', 'Brandt', 'Corvel', 'Dunmore', 'Ellery', 'Farrow', 'Graves', 'Holm', 'Iverson', 'Kade', 'Lorne',
+                  'Marsh', 'Novak', 'Orme', 'Pell', 'Quint', 'Rask', 'Soren', 'Thorne', 'Vale', 'Wren'];
+    /* the posts a stranger is worth hiring for, weighted toward the ones veterans do badly */
+    const WANT = ['surgeon', 'surgeon', 'spymaster', 'spymaster', 'fixer', 'quartermaster', 'drill', 'sergeant', 'fixer'];
+    for (let i = 0; i < CONST.POOL_SIZE; i++) {
+      const post = WANT[i % WANT.length];
+      const id = 'spc' + season + '_' + i;
+      const craft = {};
+      for (const p of POSTS) craft[p] = Math.round(rng() * CONST.SPEC_OTHER);
+      craft[post] = Math.round(CONST.SPEC_LO + rng() * (CONST.SPEC_HI - CONST.SPEC_LO));
+      const st = { id, name: FIRST[Math.floor(rng() * FIRST.length)] + ' ' + LAST[Math.floor(rng() * LAST.length)],
+                   race: RACES[Math.floor(rng() * RACES.length)],
+                   age: Math.round(CONST.SPEC_AGE[0] + rng() * (CONST.SPEC_AGE[1] - CONST.SPEC_AGE[0])),
+                   stats: {}, traits: [], origin: 'specialist', specialty: post, craft, years: {}, record: {},
+                   loyalty: 50, temperKnown: false };
+      TALKS.temperOf(st);
+      st.post = null;
+      st.school = schoolFor(st, post);
+      st.wage = wageFor(craft[post], 'specialist');
+      st.term = CONST.SPEC_TERM;
+      out.push(st);
+    }
+    return out;
+  }
+  /** a stranger's Craft as the hiring manager sees it: a range that holds the truth somewhere inside */
+  function estimate(st, post, width) {
+    const v = st.craft[post];
+    const off = Math.round((rngFor('est:' + st.id + ':' + post)() - 0.5) * width);   /* where the truth sits in it */
+    const lo = clamp(Math.round((v - width + off) / 5) * 5, 0, 100);
+    const hi = clamp(Math.round((v + width + off) / 5) * 5, 0, 100);
+    return { lo: Math.min(lo, v), hi: Math.max(hi, v) };
+  }
+  function feeOf(st) {
+    const yrs = (st.years && st.years[st.post]) || 0;
+    return Math.round(st.wage * 12 * (CONST.FEE_BASE + CONST.FEE_PER_YEAR * yrs) / 100) * 100;
+  }
+
+  /* ---------------------------------------------------------------------------- the office */
+  function office(corp) {
+    corp.staff = corp.staff || { posts: {}, gone: [] };
+    for (const p of POSTS) if (!(p in corp.staff.posts)) corp.staff.posts[p] = null;
+    return corp.staff;
+  }
+  function holder(corp, post) { return corp && corp.staff && corp.staff.posts ? corp.staff.posts[post] || null : null; }
+  /** how good the post is being done, 0..1, and in which school */
+  function eff(corp, post) {
+    const st = holder(corp, post);
+    return st ? { e: (st.craft[post] || 0) / 100, school: st.school, st } : { e: 0, school: null, st: null };
+  }
+  function allStaff(corp) { const o = office(corp); return POSTS.map(p => o.posts[p]).filter(Boolean); }
+
+  /* ------------------------------------------------------------------------- what they do */
+  /** the drill: a yield multiplier for one stat, and what the drill's strain is multiplied by */
+  function drillFor(corp, stat) {
+    const d = eff(corp, 'drill');
+    if (!d.st) return { yield: 1, strain: 1 };
+    const base = d.school === 'hard' ? CONST.DRILL_HARD : CONST.DRILL_PATIENT;
+    const best = bestStats(d.st).indexOf(stat) >= 0 ? CONST.DRILL_BEST : 0;
+    const strain = d.school === 'hard' ? 1 + CONST.DRILL_HARD_STRESS * d.e : 1 - CONST.DRILL_PATIENT_CALM * d.e;
+    return { yield: 1 + (base + best) * d.e, strain };
+  }
+  function shelfDiscount(corp) {
+    const q = eff(corp, 'quartermaster');
+    if (!q.st) return 0;
+    return (q.school === 'haggler' ? CONST.QM_HAGGLE : CONST.QM_ARMOURER_HAGGLE) * q.e;
+  }
+  function kitBoost(corp) {
+    const q = eff(corp, 'quartermaster');
+    return q.st && q.school === 'armourer' ? 1 + CONST.QM_KIT * q.e : 1;
+  }
+  /** what the Fixer does to the stands' hearing of your acts */
+  function spin(corp) {
+    const f = eff(corp, 'fixer');
+    if (!f.st) return null;
+    if (f.school === 'showman') return { good: 1 + CONST.FIX_SHOW_GOOD * f.e, bad: 1 - CONST.FIX_SHOW_BAD * f.e, houses: 1 };
+    return { good: 1 + CONST.FIX_DIP_GOOD * f.e, bad: 1 - CONST.FIX_DIP_BAD * f.e, houses: 1 + CONST.FIX_DIP_HOUSES * f.e };
+  }
+  function courtMult(corp) { const f = eff(corp, 'fixer'); return 1 + CONST.FIX_COURT * f.e; }
+  function surgeonFor(corp) {
+    const s = eff(corp, 'surgeon');
+    if (!s.st) return { drift: 1, focus: 1, calm: 0, cutter: false, e: 0 };
+    const nurse = s.school === 'nurse';
+    return { drift: 1 + CONST.SURGEON_DRIFT * s.e + (nurse ? CONST.NURSE_DRIFT * s.e : 0), focus: 1 + CONST.SURGEON_FOCUS * s.e,
+             calm: nurse ? CONST.NURSE_CALM * s.e : 0, cutter: s.school === 'cutter', e: s.e };
+  }
+  function operateOdds(corp) {
+    const s = surgeonFor(corp);
+    if (!s.cutter) return null;
+    return { live: CONST.CUTTER_P + CONST.CUTTER_P_CRAFT * s.e, die: CONST.CUTTER_DEATH * (1 - s.e) };
+  }
+
+  /* --------------------------------------------------------------- the Sergeant's word */
+  function sergeantTalk(corp) {
+    const s = holder(corp, 'sergeant');
+    if (!s) return null;
+    const kind = SERGEANT_TALK[TALKS.temperOf(s)];
+    return { kind, name: SERGEANT_TALK_NAME[kind], scale: CONST.SERGEANT_FLOOR + (1 - CONST.SERGEANT_FLOOR) * (s.craft.sergeant || 0) / 100, st: s };
+  }
+
+  /* ---------------------------------------------------------------- the year's turning */
+  /** A year passes for the backroom: Craft grows in post, people age, some retire, contracts
+      come due. Returns what happened, for the recap. Retirement is drawn from the person and
+      the year, never the game's stream. */
+  function yearTurns(corp, season) {
+    const o = office(corp), out = { retired: [], due: [] };
+    for (const p of POSTS) {
+      const st = o.posts[p]; if (!st) continue;
+      st.years[p] = (st.years[p] || 0) + 1;
+      st.craft[p] = Math.round(clamp(st.craft[p] + (100 - st.craft[p]) * CONST.GROWTH + CONST.GROWTH_FLAT, 0, 100));
+      st.age = (st.age || 40) + 1;
+      st.loyalty = clamp((st.loyalty == null ? 50 : st.loyalty) + 2, 0, 100);
+      const pRetire = st.age >= CONST.RETIRE_FROM ? (st.age - CONST.RETIRE_FROM + 1) * CONST.RETIRE_STEP : 0;
+      if (pRetire && rngFor('retire:' + st.id + ':' + season)() < pRetire) {
+        o.posts[p] = null; o.gone.push({ name: st.name, post: p, why: 'retired', season });
+        out.retired.push(st); continue;
+      }
+      st.term = (st.term || 1) - 1;
+      if (st.term <= 0) {
+        st.asking = Math.round(st.wage * (1 + CONST.RENEW_RAISE + CONST.RENEW_PER_YEAR * (st.years[p] || 0)) / 10) * 10;
+        out.due.push(st);
+      }
+    }
+    while (o.gone.length > 30) o.gone.shift();
+    return out;
+  }
+  function renew(corp, post, yes) {
+    const o = office(corp), st = o.posts[post];
+    if (!st || !st.asking) return false;
+    if (yes) { st.wage = st.asking; st.term = st.origin === 'specialist' ? CONST.SPEC_TERM : CONST.VET_TERM; delete st.asking; }
+    else { o.posts[post] = null; o.gone.push({ name: st.name, post, why: 'let go' }); }
+    return true;
+  }
+  /** is this staffer worth what they now ask, to an engine that has to pay it */
+  function worthKeeping(st, post) { return st.asking <= wageFor(st.craft[post], st.origin) * 1.35; }
+
+  /* ------------------------------------------------------------------------- poaching */
+  /** would they come? their loyalty to where they are, against your standing with that house and the raise */
+  function willing(st, regardOfYou) {
+    const pull = (60 - (st.loyalty == null ? 50 : st.loyalty)) + ((regardOfYou == null ? 50 : regardOfYou) - 50) * 0.5 + 15;
+    return pull > 0;
+  }
+
+  return { CONST, POSTS, POST_NAME, SCHOOLS, SERGEANT_TALK, SERGEANT_TALK_NAME, veteranCraft, bestStats, schoolFor, wageFor,
+           fromFighter, specialistPool, estimate, feeOf, office, holder, eff, allStaff, drillFor, shelfDiscount, kitBoost,
+           spin, courtMult, surgeonFor, operateOdds, sergeantTalk, yearTurns, renew, worthKeeping, willing };
 });
 
 /* ==== events.js ==== */
@@ -13481,9 +13858,13 @@
      saved mid-year came back wrong. Neither belongs in a save: they are derived from the
      catalogue, which every build already has. */
   const SEED_CACHE = new WeakMap();
+  /* §STAFF WHO IS ABOARD, NOT HOW MANY. The cache was keyed on the roster's length, and a hand moved
+     to the backroom and another signed leave the length alone — so a resumed year, with a fresh
+     cache, drew different events from the one it was saved from. */
+  function rosterKey(corp) { return corp.roster.map(f => f.id + (f.status === 'dead' || f.status === 'retired' ? '-' : '')).join(','); }
   function corpSeeds(state, corp) {
-    const cached = SEED_CACHE.get(corp);
-    if (cached && cached.n === corp.roster.length) return cached.set;
+    const cached = SEED_CACHE.get(corp), key = rosterKey(corp);
+    if (cached && cached.n === key) return cached.set;
     const idx = traitIndexOf(state), set = new Set();
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -13492,7 +13873,7 @@
         if (tr && tr.effects) for (const h of (tr.effects.hooks || [])) if (/_seed|_amplified/.test(h)) set.add(h);
       }
     }
-    SEED_CACHE.set(corp, { n: corp.roster.length, set });
+    SEED_CACHE.set(corp, { n: key, set });
     return set;
   }
   function seedWeight(state, corp, specId) {
@@ -13511,8 +13892,8 @@
   const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
   const LUCK_CACHE = new WeakMap();
   function luckOf(state, corp) {
-    const c = LUCK_CACHE.get(corp);
-    if (c && c.n === corp.roster.length) return c.v;
+    const c = LUCK_CACHE.get(corp), key = rosterKey(corp);
+    if (c && c.n === key) return c.v;
     let v = 1;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -13520,7 +13901,7 @@
       if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
     }
     v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
-    LUCK_CACHE.set(corp, { n: corp.roster.length, v });
+    LUCK_CACHE.set(corp, { n: key, v });
     return v;
   }
   let TRAIT_INDEX = null;
@@ -20187,7 +20568,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        money that decided kit was the band midpoint no matter what last season did. A
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
-    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies);
+    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies) * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the
@@ -26453,12 +26834,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF) {
   'use strict';
 
   const CONST = {
@@ -28254,8 +28635,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          next month, which is the whole point of having a verb for it */
       const before = woundOf(f);
       if (before < 100) {
-        setWound(f, before + CONST.WOUND_DRIFT);
-        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
+        const sgn = STAFF.surgeonFor(corp);   /* §STAFF the surgeon's hand on the body's own mending */
+        setWound(f, before + CONST.WOUND_DRIFT * sgn.drift);
+        if (sgn.calm) f.condition.stress = Math.max(0, (f.condition.stress || 0) - sgn.calm);
+        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active';
+          const sgR = STAFF.holder(corp, 'surgeon'); if (sgR) sgR.record.mended = (sgR.record.mended || 0) + 1; }
       }
       settleWounds(f);
     }
@@ -28327,6 +28711,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                              drilled: focus.train ? new Set(aliveOf(corp).map(f => f.id)) : null });
     const talked = holdTalk(corp, talkWant, season || 0, month, landedOut);
     if (talked) tally.talks = (tally.talks || 0) + 1;
+    /* §STAFF the engine's Sergeant has their word too; a person sends theirs from the sheet */
+    if (!wanted) {
+      const sgWho = aiSergeant(corp, month, season || 0);
+      if (sgWho) {
+        const sg = STAFF.sergeantTalk(corp), fw = aliveOf(corp).find(x => x.id === sgWho);
+        const r = fw && TALKS.talk(corp, fw, sg.kind, { abs: talkAbs, season: season || 0, captains: caps, roster: aliveOf(corp),
+                                                       squad: squadOfCaptain(corp, fw.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+        if (r) sg.st.record.talks = (sg.st.record.talks || 0) + 1;
+      }
+    }
+    staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -28401,7 +28796,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               /* §SPONSORS a backer's ward mends faster, for good: `med_recovery` is a standing
                  the OA keeps, so every month of every later career is treated in it */
               const ward = 1 + SPON.standingValue(corp, 'med_recovery');
-              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
+              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward * STAFF.surgeonFor(corp).focus;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
               settleWounds(f);
@@ -28485,6 +28880,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
             if (gain <= 0) continue;
             gain *= learn;                       /* §QUIRKS a quick study, and the mentored young */
+            gain *= STAFF.drillFor(corp, k).yield;   /* §STAFF the drillmaster, best in what they were best at */
+            if (corp.staff && corp.staff.posts && corp.staff.posts.drill) corp.staff.posts.drill.record.gains = (corp.staff.posts.drill.record.gains || 0) + gain;
             store[k] = Math.min(cap, cur + gain);
             if (k === 'aim') trainCarried(f, gain, cap);
             tally.trained++;
@@ -28492,7 +28889,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           }
           if (drilled && f.condition)
             f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) +
-                                          CONST.TRAIN_STRESS_FOCUS * third);
+                                          CONST.TRAIN_STRESS_FOCUS * third * STAFF.drillFor(corp, 'aim').strain);
         }
       } else if (a.kind === 'scout') {
         /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the
@@ -28551,7 +28948,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           for (const house in map) {
             const pips = map[house] || 0;
             if (pips <= 0) continue;
-            SPON.court(corp, house, pips);
+            SPON.court(corp, house, pips * STAFF.courtMult(corp));   /* §STAFF a fixer's introductions */
             tally.courted = (tally.courted || 0) + 1;
           }
         }
@@ -28730,7 +29127,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
     /* §TALKS a hand dressed down against their temper remembers it when the paper comes round */
     const grudge = f._grudge ? TALKS.CONST.GRUDGE_RENEWAL : 1;
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge));
+    /* §STAFF and one a sergeant talked up has been told what they are worth */
+    const talkedUp = 1 + (f._talkedUp || 0) * TALKS.CONST.UP_RENEWAL;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge * talkedUp));
   }
 
   /**
@@ -28844,7 +29243,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             const over = Math.min(1, (paying - asked) / Math.max(1, asked));
             f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
           }
-          f.contract.salary = paying;
+          f.contract.salary = paying; delete f._grudge; delete f._talkedUp;   /* §TALKS the paper is settled, and so is what it carried */
           /* §PAPER THE TERM WAS NEVER RENEWED. A hand the manager re-signed kept the contract
              that had just run out — `seasons_remaining` at zero — so the offseason expired him
              again the next year, every year, and `fitBodies` had a man with no paper standing
@@ -28863,7 +29262,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
           budget -= year;
-          f.contract.salary = ask;
+          f.contract.salary = ask; delete f._grudge; delete f._talkedUp;
           f.contract.seasons_remaining = renewalTerm(f);
         f.contract.seasons_total = renewalTerm(f);
           f._fameAtSigning = f.fame || 0;
@@ -29333,6 +29732,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
                                : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
       c._off = off;
+      /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
+      c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
     }
 
     /* ---- THE PREP CALENDAR, M1-M11 (S16) ----
@@ -29435,6 +29836,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     };
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
+    staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
+    for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -29732,6 +30135,276 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       for (const fid of now) if (k.ids.indexOf(fid) < 0) appointed(c, fid, state);
       k.ids = now;
+    }
+  }
+
+  /* ============================================================ §STAFF THE BACKROOM
+     Six posts at home (staff.js holds the numbers). Here: who can be appointed, hired and
+     poached, what each post does to the month, and the engine's own hiring — the same verbs a
+     person has, called the same way. Nobody on the staff goes into the Divide. */
+  function staffPoolOf(state) {
+    if (!state.staffPool || state.staffPool.season !== state.season)
+      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season) };
+    return state.staffPool.list;
+  }
+  /** who of your own could take a post: anyone standing on the roster (not half of a pair), and this year's retirees */
+  function ownCandidates(corp) {
+    const out = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !f.mirror_of && !f.bond_partner);
+    for (const f of ((corp._off && corp._off.retired) || [])) if (f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of && !f.bond_partner) out.push(f);
+    return out;
+  }
+  function regardOf(corp, houseId) { return corp.rep ? REP.standing(corp.rep, 'house', houseId) : 50; }
+  /** the Backroom as one OA sees it: its posts, and every candidate — its own exactly, strangers as a range */
+  function backroomFor(state, corpId) {
+    const c = state.corps[corpId]; if (!c) return null;
+    const o = STAFF.office(c);
+    const own = ownCandidates(c).map(f => ({ id: f.id, name: f.name, race: f.race, age: f.age, retiring: f.status === 'retired',
+                                             craft: STAFF.veteranCraft(f), f }));
+    const spec = staffPoolOf(state).map(st => {
+      const est = {}; for (const p of STAFF.POSTS) est[p] = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_SPEC);
+      return { st, est, wage: st.wage };
+    });
+    const rivals = [];
+    for (const id of state.ids) {
+      if (id === corpId) continue;
+      const them = state.corps[id], ro = STAFF.office(them);
+      for (const p of STAFF.POSTS) {
+        const st = ro.posts[p]; if (!st) continue;
+        const est = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_RIVAL);
+        rivals.push({ from: id, post: p, st, est, fee: STAFF.feeOf(st), wage: Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10,
+                      willing: STAFF.willing(st, regardOf(c, id)) });
+      }
+    }
+    return { posts: o.posts, own, spec, rivals };
+  }
+  function prepOpen(state) { return !state.done && state.month <= CONST.PREP_MONTHS; }
+  /** a fighter leaves the line for a post. No going back. */
+  function appoint(state, corpId, fighterId, post) {
+    const c = state.corps[corpId];
+    if (!c || STAFF.POSTS.indexOf(post) < 0) return { ok: false, why: 'No Such Post' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    const f = ownCandidates(c).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not One of Yours' };
+    const st = STAFF.fromFighter(f, post);
+    o.posts[post] = st;
+    const i = c.roster.indexOf(f);
+    if (i >= 0) c.roster.splice(i, 1);
+    else f._staffed = true;
+    const plan = c._seat && c._seat.plan;
+    if (plan) { if (plan.at) delete plan.at[f.id]; if (plan.leaderOf) delete plan.leaderOf[f.id]; if (plan.hand) delete plan.hand[f.id]; }
+    if (state.eight && state.eight.names && state.eight.names[corpId] === f.id) delete state.eight.names[corpId];
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  function hireSpecialist(state, corpId, specId, post) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const pool = staffPoolOf(state), st = pool.find(x => x.id === specId);
+    if (!st) return { ok: false, why: 'Already Taken' };
+    post = post || st.specialty;
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    pool.splice(pool.indexOf(st), 1);
+    st.post = post; st.school = STAFF.schoolFor(st, post);
+    st.wage = STAFF.wageFor(st.craft[post], 'specialist');
+    o.posts[post] = st;
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  /** pay a house's release fee and take its staffer, if they will come */
+  function poach(state, corpId, fromId, post) {
+    const c = state.corps[corpId], them = state.corps[fromId];
+    if (!c || !them || corpId === fromId) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const st = STAFF.holder(them, post);
+    if (!st) return { ok: false, why: 'Nobody in That Post' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'Your Post Is Held' };
+    if (!STAFF.willing(st, regardOf(c, fromId))) return { ok: false, why: 'They Will Not Come' };
+    const fee = STAFF.feeOf(st);
+    if ((c.account.treasury || 0) < fee) return { ok: false, why: 'Not Enough in the Treasury' };
+    LED.post(c.account, 'expense', 'A Release Fee', -fee);
+    LED.post(them.account, 'income', 'A Release Fee', fee);
+    STAFF.office(them).posts[post] = null;
+    STAFF.office(them).gone.push({ name: st.name, post, why: 'poached', by: corpId, season: state.season });
+    st.wage = Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10;
+    st.loyalty = 50; st.term = st.origin === 'specialist' ? STAFF.CONST.SPEC_TERM : STAFF.CONST.VET_TERM;
+    st.years = Object.assign({}, st.years); st.from = fromId;
+    o.posts[post] = st;
+    if (c.rep) REP.act(c.rep, 'poached_staff', { targetId: fromId });
+    /* they know their old house, and go on telling you a while */
+    ensureIntel(c, state.season || 0);
+    gatherIntel(c, 'rival', fromId, STAFF.CONST.POACH_INTEL_LEVELS, state.season * 100 + state.month,
+                (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
+    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: state.season * 100 + state.month + STAFF.CONST.POACH_INTEL_MONTHS });
+    applySpin(c); applySpin(them);
+    return { ok: true, staffer: st, fee };
+  }
+  function letStaffGo(state, corpId, post) {
+    const c = state.corps[corpId]; const o = c && STAFF.office(c);
+    if (!o || !o.posts[post]) return { ok: false, why: 'Nobody in That Post' };
+    o.gone.push({ name: o.posts[post].name, post, why: 'let go', season: state.season });
+    o.posts[post] = null; applySpin(c);
+    return { ok: true };
+  }
+  function renewStaff(state, corpId, post, yes) {
+    const c = state.corps[corpId]; if (!c) return { ok: false };
+    const done = STAFF.renew(c, post, !!yes); applySpin(c);
+    return { ok: done };
+  }
+  /** the Fixer's hand on how the stands hear this OA */
+  function applySpin(c) { if (c && c.rep) c.rep._spin = STAFF.spin(c); }
+  /** the Sergeant's free word: the person is the manager's choice, the talk is the Sergeant's */
+  function sergeantNow(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const sg = STAFF.sergeantTalk(c); if (!sg) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._sgtTalked && c._sgtTalked.abs === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId); if (!f) return null;
+    const res = TALKS.talk(c, f, sg.kind, { abs, season: state.season, captains: captainsOf(c, state.season), roster: aliveOf(c),
+                                            squad: squadOfCaptain(c, f.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+    if (res) { sg.st.record.talks = (sg.st.record.talks || 0) + 1; }
+    return res;
+  }
+  function sergeantPreview(state, corpId, fighterId) {
+    const c = state.corps[corpId], sg = c && STAFF.sergeantTalk(c);
+    const f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!sg || !f) return null;
+    const pv = TALKS.preview(f, sg.kind, state.season * 100 + state.month);
+    pv.loyalty = Math.round(pv.loyalty * sg.scale); pv.stress = Math.round(pv.stress * sg.scale);
+    if (pv.drill !== 1) pv.drill = 1 + (pv.drill - 1) * sg.scale;
+    return Object.assign(pv, { sergeant: sg.st.name, talk: sg.name });
+  }
+  /** a Cutter operates on a crippled hand: whole, dead, or no better. Once a month. */
+  function operate(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const odds = STAFF.operateOdds(c); if (!odds) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._operated === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId);
+    if (!f || woundBand(f) !== 'crippled') return null;
+    c._operated = abs;
+    const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))();
+    const sg = STAFF.holder(c, 'surgeon');
+    if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
+      sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
+    if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
+      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
+      sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
+    return { outcome: 'none', line: sg.name + ' Could Do Nothing for ' + f.name };
+  }
+  function setMole(state, corpId, targetId) {
+    const c = state.corps[corpId], sp = c && STAFF.holder(c, 'spymaster');
+    if (!sp || sp.school !== 'mole' || !state.corps[targetId] || targetId === corpId) return { ok: false };
+    STAFF.office(c).mole = { target: targetId, season: state.season };
+    return { ok: true };
+  }
+
+  /* the backroom's month: the Spymaster's reports, a poached hand's old house, and a Nurse's calm */
+  function staffMonth(corp, month, season, corps, landedOut, isAI) {
+    const abs = (season || 0) * 100 + month;
+    applySpin(corp);
+    const sp = STAFF.eff(corp, 'spymaster');
+    if (sp.st && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      if (sp.school === 'watcher') {
+        const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
+        if (lv > 0) {
+          const planetFull = INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
+          if (!planetFull) gatherIntel(corp, 'planet', null, lv, abs, null);
+          else {
+            const rid = Object.keys(corps || {}).filter(k => k !== corp.id).sort((a, b) => rivalPreparedness(corp, a, season || 0) - rivalPreparedness(corp, b, season || 0))[0];
+            if (rid) gatherIntel(corp, 'rival', rid, lv, abs, (rowKey, depth) => snapshotRival(corps[rid], rowKey, depth, season || 0));
+          }
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+        }
+      } else {
+        const o = STAFF.office(corp);
+        if (isAI && (!o.mole || o.mole.season !== season)) {
+          const best = Object.keys(corps || {}).filter(k => k !== corp.id && corps[k].rep)
+            .sort((a, b) => REP.standing(corps[b].rep, 'crowd') - REP.standing(corps[a].rep, 'crowd'))[0];
+          if (best) o.mole = { target: best, season };
+        }
+        const mo = o.mole;
+        if (mo && mo.season === season && corps[mo.target]) {
+          const them = corps[mo.target];
+          gatherIntel(corp, 'rival', mo.target, Math.round(STAFF.CONST.MOLE_LEVELS * sp.e) + 1, abs, (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+          if (P.mulberry32(P.seedFrom('mole' + abs + corp.id))() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
+            if (corp.rep) REP.act(corp.rep, 'mole_exposed', { targetId: mo.target });
+            o.mole = null;
+            if (landedOut) landedOut.push({ kind: 'staff', text: 'Your Mole in ' + ((them.profile && them.profile.name) || mo.target) + ' Was Found' });
+          }
+        }
+      }
+    }
+    if (corp._poachIntel && corp._poachIntel.length) {
+      corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
+      for (const x of corp._poachIntel) {
+        ensureIntel(corp, season || 0);
+        gatherIntel(corp, 'rival', x.from, STAFF.CONST.POACH_INTEL_MONTHLY, abs, (rowKey, depth) => snapshotRival(corps[x.from], rowKey, depth, season || 0));
+      }
+    }
+  }
+  /** the engine's Sergeant picks whom to speak to, by the talk it knows its Sergeant has */
+  function aiSergeant(corp, month, season) {
+    const sg = STAFF.sergeantTalk(corp); if (!sg) return null;
+    const abs = (season || 0) * 100 + month;
+    const alive = aliveOf(corp).filter(f => !f.mirror_of);
+    const loy = f => (f.loyalty == null ? 50 : f.loyalty), str = f => ((f.condition && f.condition.stress) || 0);
+    const ok = f => { TALKS.temperOf(f); const how = TALKS.landing(f, sg.kind, abs, !!f.temperKnown); return how !== 'backfired' && how !== 'faded'; };
+    const pool = alive.filter(ok);
+    if (!pool.length) return null;
+    let who;
+    if (sg.kind === 'hear') who = pool.filter(f => !f.temperKnown)[0] || pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'praise') who = pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'up') who = pool.filter(f => ((f.contract || {}).seasons_remaining || 0) >= 2).sort((a, b) => (a.age || 30) - (b.age || 30))[0];
+    else who = pool.filter(f => str(f) < 40).sort((a, b) => str(a) - str(b))[0];
+    return who ? who.id : null;
+  }
+  /** the engine hires the way a person would: its own veterans for the military posts, strangers
+      for the rest when it can pay them, and a rival's best when it is bold and rich enough */
+  function aiStaff(state, id) {
+    const c = state.corps[id], o = STAFF.office(c);
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    /* the year's renewals: keep whoever is worth what they ask */
+    for (const p of STAFF.POSTS) { const st = o.posts[p]; if (st && st.asking) STAFF.renew(c, p, STAFF.worthKeeping(st, p)); }
+    const purse = (c.account && c.account.treasury) || 0;
+    const spare = () => aliveOf(c).filter(f => !f.mirror_of).length - CONST.ROSTER_MIN;
+    for (const p of STAFF.POSTS) {
+      if (o.posts[p]) continue;
+      /* a veteran, if the roster can spare one who is past their best on the line */
+      /* who the line can spare: the retiring, and anyone outside the best the OA would drop */
+      const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+      const standing = aliveOf(c).filter(f => !f.mirror_of).sort((a, b) => q(b) - q(a));
+      const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
+      const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
+        .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
+      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => b.craft[p] - a.craft[p])[0];
+      const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
+      const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
+      if (vet && (!canSpec || vet.v >= spec.craft[p] - 15)) appoint(state, id, vet.f.id, p);
+      else if (canSpec) hireSpecialist(state, id, spec.id, p);
+    }
+    /* one poach a year, for a bold house with money to spare */
+    if ((dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
+      let best = null;
+      for (const oid of state.ids) {
+        if (oid === id) continue;
+        for (const p of STAFF.POSTS) {
+          const st = STAFF.holder(state.corps[oid], p); if (!st) continue;
+          if (o.posts[p]) continue;                 /* it poaches into an empty post, never over its own */
+          if (!STAFF.willing(st, regardOf(c, oid))) continue;
+          if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
+        }
+      }
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) poach(state, id, best.oid, best.p);
     }
   }
   /** what a promise can be of this month */
@@ -30084,6 +30757,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         LED.post(c.account, 'expense', 'retainers', -payroll);
         landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
       }
+      /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
+      const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
+      if (staffPay > 0) LED.post(c.account, 'expense', 'Staff Wages', -staffPay);
+      /* a renewal nobody answered by the first month's end is signed at what was asked */
+      if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
@@ -30301,6 +30979,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         wordRecord: (c._wordRecord = c._wordRecord || {}),
         /* §TALKS the year's captains lead the squads they land in */
         captains: captainsOf(c, season),
+        /* §STAFF an Armourer finds more for the kit than the books alone would */
+        kitBoost: STAFF.kitBoost(c),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -30480,6 +31160,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       clean[id] = n; total += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
+    /* §STAFF a quartermaster haggles */
+    const disc = STAFF.shelfDiscount(c);
+    if (disc > 0) { const saved = Math.round(total * disc); total -= saved; const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + saved; }
     if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
     c.armoury = c.armoury || {};
     for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
@@ -30672,6 +31355,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const kit = (persist[id] && persist[id].kitValue) || 0;
       const spend = (persist[id] && persist[id].kitSpend) || 0;
       if (spend) LED.post(c.account, 'expense', 'procurement', -spend);
+      /* §STAFF and haggles at the drop, for a part of what they win at the market */
+      const qmOff = Math.round(spend * STAFF.shelfDiscount(c) * STAFF.CONST.QM_PROCURE);
+      if (qmOff > 0) { LED.post(c.account, 'income', 'The Quartermaster\u2019s Haggling', qmOff); const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + qmOff; }
 
       /* ---- THE MONEY THE DIVIDE WAS WORTH ----
          `ledger.bookDivide` has existed since Step 6 and had no caller anywhere in the season
@@ -31062,6 +31748,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
            them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
         events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
+        staffPool: toPlain(state.staffPool || null),   /* §STAFF who is still looking for a post this year */
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -31126,7 +31813,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
       drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
-      events: o.events || {}, fleet: o.fleet || undefined,
+      events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
@@ -31166,6 +31853,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
      captainsOf, promisable, talkNow, talkPreview, TALKS,
+     STAFF, backroomFor, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
@@ -31291,25 +31979,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     deal:   { name: 'Negotiation', live: true },
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true },
-    /* §BACKROOM A PAGE, NOT A DRAWER. "The Back Room" was a side panel opened by a button,
-       which made a whole standing system feel like a footnote and forced its targets into
-       DROP-DOWN MENUS for want of room. It is a surface with a rail tab, and it carries
-       different work before the Divide and during it: the favours that say "this Divide" are
-       not things a manager buys in month three. */
+    /* §STAFF THE BACKROOM: the OA's staff — six posts at home, and who could fill them */
     backroom: { name: 'The Backroom', live: true }
   };
   var RAILS = {
     /* the phase head said "Months 1–11 · The Preparation" on every page of the preparation —
        a thing the clock beside it already tells a manager, in the space a manager needs */
     prep:   { head: '', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'market', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
               tabs: ['table', 'deal', 'ground', 'roster', 'board'] },
     /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
        step and leave a shelf on the Desk: a manager walked through month six and felt
        nothing happen. It gets the floor now, the way the Divide does. */
     dividend: { head: 'Month ' + (window.CDSEASON ? CDSEASON.DIVIDEND_MONTH : 4) + ' \u00b7 The Dividend', home: 'lights',
-                tabs: ['lights', 'desk', 'roster', 'squads', 'market', 'talks', 'board'] }
+                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -31391,6 +32075,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* refresh the tab's live view on open, so the board and roster always tell the truth */
     if (G) {
       if (tab === 'squads') renderSquads();
+      else if (tab === 'backroom') renderBackroom();
       else if (tab === 'roster') renderRoster();
       else if (tab === 'board') { renderBoard(); if (TAB.board) TAB.board.classList.remove('urgent'); }
       else if (tab === 'talks') renderTrade();
@@ -33848,7 +34533,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, focus: focusLine, joined: joined.map(function (b) { return b.id; }),
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
                  events: (res.events || {})[G.me] || [],
-                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null };
+                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null,
+                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }) };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -33979,6 +34665,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       peopleCol += ln('Word', esc(tk.line) + (tk.revealed ? ' ' + stamp(esc(tk.temper), 'good') : '') + (tk.reached ? ' <span class="m">\u00b7 Felt by ' + tk.reached + ' More</span>' : ''),
                       '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
     }
+    (R.staff || []).forEach(function (t) { peopleCol += ln('Backroom', esc(t), ''); });
     (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
       if (pn.outcome === 'void') return;
       peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
@@ -34727,10 +35414,141 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   });
 
 
+
+  /* ============================ THE BACKROOM (§STAFF) ============================
+     Six posts at home and who could fill them. Your own people's Craft is exact; a stranger's is
+     a range until they are yours. Appointing one of your own takes them off the line for good. */
+  var BK_POSTS = ['drill', 'sergeant', 'quartermaster', 'fixer', 'surgeon', 'spymaster'];
+  function bkSel() { if (!G._bk) G._bk = { tab: 'own' }; return G._bk; }
+  function crY(monthly) { return crs(Math.round((monthly || 0) * 12)) + '/yr'; }
+  function bkRange(r) { return r.lo === r.hi ? String(r.lo) : r.lo + '–' + r.hi; }
+  var RECORD_WORDS = { gains: ['Stats Drilled', 0], talks: ['Talks', 0], saved: ['Credits Saved', 1], mended: ['Wounds Mended', 0], reports: ['Reports', 0], lost: ['Lost on the Table', 0] };
+  function bkRecord(st) {
+    var r = st.record || {}, out = [];
+    for (var k in RECORD_WORDS) if (r[k]) out.push(RECORD_WORDS[k][0] + ' ' + (RECORD_WORDS[k][1] ? crs(Math.round(r[k])) : Math.round(r[k])));
+    return out.join(' · ');
+  }
+  function bkTemper(st) {
+    var t = SEASON.TALKS.temperShown(st);
+    return t ? '<span class="ktag" title="' + esc(t.text) + '">' + esc(t.name) + '</span>' : '<span class="ktag">Temper Undiscovered</span>';
+  }
+  function STAFFgone(me) { return me.staff && me.staff.gone; }
+  function renderBackroom() {
+    var host = $('backroom'); if (!host || !G || !G.state) return;
+    var V = SEASON.backroomFor(G.state, G.me); if (!V) return;
+    var S = SEASON.STAFF, sel = bkSel(), me = G.corps[G.me], open = G.state.month <= SEASON.CONST.PREP_MONTHS;
+    var mole = me.staff && me.staff.mole;
+    var h = '<div class="bkposts">';
+    BK_POSTS.forEach(function (p) {
+      var st = V.posts[p];
+      if (!st) { h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">Vacant</div></div>'; return; }
+      var craft = Math.round(st.craft[p] || 0);
+      var sch = S.SCHOOLS[p][st.school] || { name: '' };
+      var origin = st.from ? 'From ' + cSpan(st.from) : st.origin === 'specialist' ? 'Specialist' : 'Veteran';
+      h += '<div class="bkpost"><div class="pt"><span>' + S.POST_NAME[p] + '</span><span class="sch" title="' + esc(sch.text || '') + '">' +
+           esc(p === 'sergeant' ? S.SERGEANT_TALK_NAME[S.SERGEANT_TALK[SEASON.TALKS.temperOf(st)]] : sch.name) + '</span></div>' +
+        '<div class="who"><span class="nm" style="color:' + raceColour(st) + '">' + esc(st.name) + '</span>' + bkTemper(st) +
+          '<span class="craft">' + craft + '<small>Craft</small></span></div>' +
+        '<div class="bkbar"><i style="width:' + craft + '%"></i></div>' +
+        '<div class="kv"><span class="k">' + origin + '</span><span class="v">Age ' + (st.age || '?') + ' · ' + ((st.years || {})[p] || 0) + ' Yr in Post</span>' +
+          '<span class="k">Wage</span><span class="v">' + crY(st.wage) + '</span>' +
+          '<span class="k">Release Fee</span><span class="v">' + crs(S.feeOf(st)) + '</span>' +
+          (bkRecord(st) ? '<span class="k">Record</span><span class="v">' + esc(bkRecord(st)) + '</span>' : '') +
+          (p === 'spymaster' && st.school === 'mole' ? '<span class="k">Mole</span><span class="v">' + ((mole && mole.season === G.state.season) ? 'In ' + cSpan(mole.target) : 'Not Planted') + '</span>' : '') +
+        '</div>' +
+        (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crY(st.asking) + '</span></div>' : '') +
+        '<div class="acts">' +
+          (st.asking ? '<button class="tiny" data-bkrenew="' + p + '">Renew</button>' : '') +
+          (p === 'spymaster' && st.school === 'mole' && open ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '') +
+          (open ? (sel.letGo === p ? '<button class="tiny danger" data-bkgo="' + p + '">Confirm · Let Go</button><button class="tiny" data-bkkeep="1">Keep</button>'
+                                  : '<button class="tiny" data-bkask="' + p + '">Let Go</button>') : '') +
+        '</div></div>';
+    });
+    h += '</div>';
+    if (sel.mole) {
+      h += '<div class="bkconfirm"><span class="m">Plant In</span>' + G.state.ids.filter(function (id) { return id !== G.me; }).map(function (id) {
+        return '<button class="tiny" data-bkmolet="' + id + '">' + cSpan(id) + '</button>'; }).join('') + '<button class="tiny" data-bkkeep="1">Cancel</button></div>';
+    }
+    h += '<div class="box"><div class="bktabs">' +
+      [['own', 'Your People'], ['spec', 'Specialists'], ['rival', 'Other Houses']].map(function (t) {
+        return '<button class="tiny' + (sel.tab === t[0] ? ' on' : '') + '" data-bktab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+    var held = function (p) { return !!V.posts[p]; };
+    if (sel.tab === 'own') {
+      var rows = V.own.slice().sort(function (a, b) { var ma = 0, mb = 0; BK_POSTS.forEach(function (p) { ma = Math.max(ma, a.craft[p]); mb = Math.max(mb, b.craft[p]); }); return mb - ma; });
+      if (sel.pick) {
+        var pr = V.own.filter(function (r) { return r.id === sel.pick.id; })[0];
+        if (pr) h += '<div class="bkconfirm"><span>' + nameHtml(pr.f) + ' as ' + S.POST_NAME[sel.pick.post] + ' · Craft ' + pr.craft[sel.pick.post] +
+          ' · ' + crY(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">Off the Line for Good</span>' +
+          '<button class="tiny" data-bkappoint="1">Appoint</button><button class="tiny" data-bkkeep="1">Cancel</button></div>';
+      }
+      h += '<table class="bktbl"><tr><th>Name</th><th>Age</th>' + BK_POSTS.map(function (p) { return '<th>' + S.POST_NAME[p] + '</th>'; }).join('') + '</tr>' +
+        rows.map(function (r) {
+          var top = Math.max.apply(null, BK_POSTS.map(function (p) { return r.craft[p]; }));
+          return '<tr><td><span class="nm" data-sheet="' + r.id + '" style="color:' + raceColour(r.f) + ';cursor:pointer">' + nameHtml(r.f) + '</span>' + (r.retiring ? ' <span class="ktag">Retiring</span>' : '') + '</td><td>' + (r.age || '?') + '</td>' +
+            BK_POSTS.map(function (p) {
+              var cls = 'cr8' + (held(p) ? ' held' : '') + (r.craft[p] === top ? ' hi' : '') + (sel.pick && sel.pick.id === r.id && sel.pick.post === p ? ' sel' : '');
+              return '<td class="' + cls + '"' + (held(p) || !open ? '' : ' data-bkpick="' + r.id + '|' + p + '"') + '>' + r.craft[p] + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>';
+    } else if (sel.tab === 'spec') {
+      h += '<table class="bktbl"><tr><th>Name</th><th>Post</th><th>Craft</th><th>School</th><th>Age</th><th>Wage</th><th></th></tr>' +
+        V.spec.map(function (x) {
+          var st = x.st, p = st.specialty, sch = S.SCHOOLS[p][st.school] || { name: '' };
+          return '<tr><td style="color:' + raceColour(st) + '">' + esc(st.name) + '</td><td>' + S.POST_NAME[p] + '</td><td>' + bkRange(x.est[p]) + '</td><td>' +
+            esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crY(x.wage) + '</td><td>' +
+            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
+        (V.spec.length ? '' : '<tr><td colspan="7" class="m">All Taken</td></tr>') + '</table>';
+    } else {
+      h += '<table class="bktbl"><tr><th>House</th><th>Post</th><th>Name</th><th>Craft</th><th>Fee</th><th>Would Ask</th><th></th></tr>' +
+        V.rivals.map(function (x) {
+          var can = open && !held(x.post) && x.willing && (me.account.treasury || 0) >= x.fee;
+          return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crY(x.wage) + '</td><td>' +
+            '<button class="tiny" data-bkpoach="' + x.from + '|' + x.post + '"' + (can ? '' : ' disabled') + '>' +
+            (held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
+        (V.rivals.length ? '' : '<tr><td colspan="7" class="m">None Held</td></tr>') + '</table>';
+    }
+    var gone = (STAFFgone(me) || []).slice(-4).reverse();
+    var WHY = { poached: 'Poached', 'let go': 'Let Go', retired: 'Retired' };
+    if (gone.length) h += '<div class="bkgone">' + gone.map(function (g) { return esc(g.name) + ' · ' + S.POST_NAME[g.post] + ' · ' + (WHY[g.why] || 'Gone'); }).join(' &nbsp; ') + '</div>';
+    if (sel.msg) h += '<div class="bkgone warn">' + esc(sel.msg) + '</div>';
+    h += '</div>';
+    host.innerHTML = h;
+    var q = function (sel2, fn) { Array.prototype.forEach.call(host.querySelectorAll(sel2), function (el) { el.onclick = function (e) { fn(el, e); }; }); };
+    var done = function (r) { sel.msg = r && !r.ok && r.why ? r.why : ''; delete sel.pick; delete sel.letGo; delete sel.mole; renderBackroom(); renderRoster(); renderBrief(); };
+    q('[data-bktab]', function (el) { sel.tab = el.getAttribute('data-bktab'); delete sel.pick; sel.msg = ''; renderBackroom(); });
+    q('[data-bkpick]', function (el) { var v = el.getAttribute('data-bkpick').split('|'); sel.pick = { id: v[0], post: v[1] }; renderBackroom(); });
+    q('[data-bkappoint]', function () { done(SEASON.appoint(G.state, G.me, sel.pick.id, sel.pick.post)); });
+    q('[data-bkkeep]', function () { delete sel.pick; delete sel.letGo; delete sel.mole; renderBackroom(); });
+    q('[data-bkask]', function (el) { sel.letGo = el.getAttribute('data-bkask'); renderBackroom(); });
+    q('[data-bkgo]', function (el) { done(SEASON.letStaffGo(G.state, G.me, el.getAttribute('data-bkgo'))); });
+    q('[data-bkrenew]', function (el) { done(SEASON.renewStaff(G.state, G.me, el.getAttribute('data-bkrenew'), true)); });
+    q('[data-bkhire]', function (el) { done(SEASON.hireSpecialist(G.state, G.me, el.getAttribute('data-bkhire'))); });
+    q('[data-bkpoach]', function (el) { var v = el.getAttribute('data-bkpoach').split('|'); done(SEASON.poach(G.state, G.me, v[0], v[1])); });
+    q('[data-bkmole]', function () { sel.mole = true; renderBackroom(); });
+    q('[data-bkmolet]', function (el) { done(SEASON.setMole(G.state, G.me, el.getAttribute('data-bkmolet'))); });
+    q('[data-sheet]', function (el) { var id = el.getAttribute('data-sheet'); if (me.roster.some(function (f) { return f.id === id; })) inspect(id); });
+  }
   /* ============================ CHAT WITH (§TALKS) ============================
      One word a month, had from the person's own sheet. The button opens the five talks, costed as
      far as the manager knows this person; choosing one and pressing Speak has it, now. */
-  function chatHtml(b) {
+  /* §STAFF the Sergeant's word and the Cutter's table, beside the manager's own */
+  function chatHtml(b) { var main = chatMainHtml(b); return main ? main + staffBarsHtml(b) : ''; }
+  function staffBarsHtml(b) {
+    var me = G.corps[G.me], abs = G.state.season * 100 + G.state.month, h = '';
+    var pv = SEASON.sergeantPreview(G.state, G.me, b.id);
+    if (pv) {
+      var used = me._sgtTalked && me._sgtTalked.abs === abs;
+      h += '<div class="chatbar"><button class="pcbtn" id="psgt"' + (used ? ' disabled' : '') + '>' + (used ? 'Sergeant Spoken' : esc(pv.sergeant) + ' \u00b7 ' + esc(pv.talk)) + '</button>' +
+           '<span class="m">' + esc(used ? me._sgtTalked.line : SEASON.TALKS.describe(pv) + (b.temperKnown ? '' : ' \u00b7 Temper Unknown')) + '</span></div>';
+    }
+    var odds = SEASON.STAFF.operateOdds(me);
+    var crippled = b.condition && SEASON.woundBand && SEASON.woundBand(b) === 'crippled';
+    if (odds && crippled) {
+      var cut = me._operated === abs;
+      h += '<div class="chatbar"><button class="pcbtn" id="poperate"' + (cut ? ' disabled' : '') + '>' + (cut ? 'Table Used This Month' : 'Operate') + '</button>' +
+           '<span class="m">Whole ' + Math.round(odds.live * 100) + '% \u00b7 Dies ' + Math.round(odds.die * (1 - odds.live) * 100) + '%</span></div>';
+    }
+    return h;
+  }
+  function chatMainHtml(b) {
     if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS || G.div) return '';
     var me = G.corps[G.me];
     if (me.roster.indexOf(b) < 0 || b.status === 'dead' || b.status === 'retired' || b.mirror_of) return '';
@@ -34775,6 +35593,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
         renderPanel(); };
     });
+    var sg = $('psgt');
+    if (sg) sg.onclick = function () { SEASON.sergeantNow(G.state, G.me, b.id); renderPanel(); renderRoster(); };
+    var op = $('poperate');
+    if (op) op.onclick = function () { var r = SEASON.operate(G.state, G.me, b.id); if (r && r.outcome === 'dead') closeSheet(); else renderPanel(); renderRoster(); };
     var sp = $('pspeak');
     if (sp) sp.onclick = function () {
       if (!sel.kind) return;

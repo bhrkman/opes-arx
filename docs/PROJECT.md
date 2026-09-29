@@ -51,6 +51,17 @@ and the Divide, their squad's loyalty leans toward their own, and a talk with th
 their squad. The stars are free until the first month turns; after that a captain stood down
 is a promise broken.
 
+The backroom holds six staff posts, all at home: Drillmaster, Sergeant, Quartermaster, Fixer,
+Surgeon and Spymaster. Everyone has a Craft for every post, and Craft is all a post reads. A
+fighter's Craft comes from who they were on the line, so veterans are natural drillmasters and
+sergeants and poor surgeons and spymasters; outside specialists are strong in one post and cost
+two or three times as much. Anyone may be moved to the backroom, and nobody comes back. A
+stranger's Craft is seen as a range while hiring. Each post has a school with its own cost. The
+Sergeant has a free talk a month in their temper's own style. Staff contracts carry a release
+fee, so any OA may take another's staff if they are willing, at a cost in that house's regard
+and with a year's knowledge of it. Craft grows with years in post; staff age, retire later than
+fighters, and ask more at each renewal.
+
 Sponsors are suppliers who back OAs whose year suits them, each on one condition judged at
 the drop or the year's end. The board sets a card of three demands and watches spending,
 casualties and popularity beside it; its patience is the number a manager lives by.

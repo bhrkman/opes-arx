@@ -1090,10 +1090,16 @@ setTimeout(() => {
       pl.rows = JSON.parse(keep);    /* the reading was a look, not a purchase */
       openRoster();
     })();
-    /* §ALEAS THE BACK ROOM IS GONE (ruled), and with it everything this section walked: its acts, the
-       evidence and its three uses, and the Aleas' cases. The tab must not come back by accident. */
-    check(![...doc.querySelectorAll('.tab')].some(x => /Back ?room/i.test(x.textContent)) && !doc.getElementById('backroom'),
-          'there is no Back Room: no tab, and no page');
+    /* §ALEAS THE ALEAS' BACK ROOM IS GONE (ruled): its favours, evidence and cases. §STAFF The name now belongs to
+       the staff — six posts at home — and the old favours must not come back under it. */
+    {
+      const bkTab = [...doc.querySelectorAll('.tab')].find(x => /Backroom/i.test(x.textContent));
+      if (bkTab) bkTab.click();
+      const bk = doc.getElementById('backroom'), bt = bk ? bk.textContent : '';
+      check(!!bkTab && /Drillmaster/.test(bt) && /Spymaster/.test(bt) && !/Favour|Evidence|Aleas/i.test(bt),
+            'the Backroom is the staff: six posts, and none of the Aleas\u2019 old favours');
+      openRoster();
+    }
     [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
     /* THE EVENTS: something asks for a decision. Force one onto the month, answer it, and see it
        resolve; leave another and see it default in the recap. */
