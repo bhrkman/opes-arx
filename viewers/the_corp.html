@@ -5103,7 +5103,7 @@
     "reach": 7,
     "near": 0,
     "falloff": 4,
-    "handling": 5,
+    "handling": 4,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -6097,13 +6097,13 @@
     "damage": "energy",
     "charge": 12,
     "rof": 1,
-    "mag": 12,
+    "mag": 18,
     "reload": 2,
     "reach": 5,
     "near": 0,
     "falloff": 6,
-    "handling": 0,
-    "snap": 4,
+    "handling": 3,
+    "snap": 3,
     "pen": 0,
     "suppress": 0,
     "spread": 1,
@@ -7161,13 +7161,13 @@
     "range": "medium",
     "damage": "explosive",
     "rof": 0.5,
-    "mag": 2,
+    "mag": 3,
     "reload": 3,
     "reach": 14,
     "near": 4,
     "falloff": 1.5,
-    "handling": -15,
-    "snap": 10,
+    "handling": -9,
+    "snap": 7,
     "pen": 0,
     "suppress": 0,
     "spread": 2,
@@ -7201,8 +7201,8 @@
     "reach": 14,
     "near": 3,
     "falloff": 1.5,
-    "handling": -15,
-    "snap": 15,
+    "handling": -4,
+    "snap": 8,
     "pen": 0,
     "suppress": 2,
     "spread": 0,
@@ -7225,19 +7225,19 @@
    "bulk": 6,
    "effects": {
     "tags": [
-     "spool"
+     "single_shot"
     ],
     "power": 12,
     "range": "long",
     "damage": "ballistic",
     "rof": 0.5,
-    "mag": 3,
+    "mag": 4,
     "reload": 2,
     "reach": 24,
     "near": 9,
     "falloff": 1,
-    "handling": -8,
-    "snap": 15,
+    "handling": 3,
+    "snap": 8,
     "pen": 3,
     "suppress": 0,
     "spread": 0,
@@ -7272,8 +7272,8 @@
     "reach": 14,
     "near": 3,
     "falloff": 1.5,
-    "handling": -12,
-    "snap": 9,
+    "handling": -7,
+    "snap": 7,
     "pen": 0,
     "suppress": 0,
     "spread": 2,
@@ -7760,7 +7760,7 @@
     "reach": 7,
     "near": 0,
     "falloff": 4,
-    "handling": 5,
+    "handling": 4,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -7790,13 +7790,13 @@
     ],
     "damage": "ballistic",
     "rof": 3,
-    "mag": 30,
+    "mag": 36,
     "reload": 1,
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 8,
-    "snap": 2,
+    "handling": 12,
+    "snap": 1,
     "pen": 0,
     "suppress": 1,
     "spread": 0,
@@ -9069,7 +9069,7 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 7,
+    "handling": 5,
     "snap": 7,
     "pen": 0,
     "suppress": 0,
@@ -11042,11 +11042,13 @@
 
      If you are measuring whether something works, equip the way the contest does, or run the
      contest. This constant is for filling a gap, not for building a world to measure. */
+  /* §FACILITIES THE FALLBACK IS ISSUE KIT, AND ISSUE KIT IS THE ARMOURY'S FIRST LEVEL. It was a tier-three
+     carbine and plate, which handed an OA that could not arm its drop better kit than one that could. */
   const DEFAULT_LOADOUT = {
-    primary: "itm_carbine",
+    primary: "itm_pattern_auto",
     mods: [],
     sidearm: null,
-    armor: "itm_plate_carrier",
+    armor: "itm_patrol_vest",
     consumables: []
   };
   /* There is no free kit (ruled). A body the armoury cannot cover carries nothing, which
@@ -12971,7 +12973,9 @@
     broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 },     /* ctx.grave for a star */
     /* §STAFF the backroom's acts */
     poached_staff:      { q: { craft: 0.4, word: -0.3 }, mag: 1.5, target: -10, residue: 0.20 },
-    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 }
+    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 },
+    /* §FACILITIES a facility stands: each faction sees what it cares for (ctx.q) */
+    raised_a_facility:  { q: {}, mag: 2, residue: 0.15 }
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
@@ -14205,25 +14209,25 @@
 
   /* levels[i] is what level i+1 costs: credits up front, months to build, upkeep a month once standing */
   const FACILITIES = {
-    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1,
+    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1, seen: { blood: 0.8, craft: 0.4 },
                  levels: [{ cost: 0, months: 0, upkeep: 600 },
                           { cost: 110000, months: 6, upkeep: 1600 },
                           { cost: 240000, months: 9, upkeep: 3200 },
                           { cost: 420000, months: 12, upkeep: 5200 }],
                  does: ['Issues Tiers 1–2', 'Issues Tier 3', 'Issues Tier 4', 'Issues Tier 5'] },
-    infirmary: { name: 'Infirmary', post: 'surgeon', start: 0,
+    infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
                  levels: [{ cost: 55000, months: 3, upkeep: 900 }, { cost: 130000, months: 6, upkeep: 2000 }, { cost: 280000, months: 12, upkeep: 3800 }],
                  does: ['A Surgeon Can Work · Wounds Mend Faster', 'A Cutter Can Operate · Faster Still', 'Wounds Mend Fastest'] },
-    yard:      { name: 'Training Yard', post: 'drill', start: 0,
+    yard:      { name: 'Training Yard', post: 'drill', start: 0, seen: { craft: 1.0, grit: 0.3 },
                  levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
                  does: ['A Drillmaster Can Work · Drills Gain More', 'Drills Gain More', 'Drills Gain Most'] },
-    barracks:  { name: 'Barracks', post: 'sergeant', start: 0,
+    barracks:  { name: 'Barracks', post: 'sergeant', start: 0, seen: { care: 0.7, word: 0.3 },
                  levels: [{ cost: 45000, months: 3, upkeep: 800 }, { cost: 110000, months: 6, upkeep: 1800 }, { cost: 240000, months: 12, upkeep: 3400 }],
                  does: ['A Sergeant Can Work · Strain Eases', 'Strain Eases More · Loyalty Settles', 'Strain Eases Most · Loyalty Settles Faster'] },
-    press:     { name: 'Press Office', post: 'fixer', start: 0,
+    press:     { name: 'Press Office', post: 'fixer', start: 0, seen: { glory: 1.0 },
                  levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
                  does: ['A Fixer Can Work · A Bigger Gate', 'A Bigger Gate', 'The Biggest Gate'] },
-    listening: { name: 'Listening Post', post: 'spymaster', start: 0,
+    listening: { name: 'Listening Post', post: 'spymaster', start: 0, seen: { craft: 0.8, word: -0.2 },
                  levels: [{ cost: 55000, months: 3, upkeep: 1000 }, { cost: 130000, months: 6, upkeep: 2200 }, { cost: 280000, months: 12, upkeep: 4000 }],
                  does: ['A Spymaster Can Work', 'A Mole Can Be Planted', 'Reports Every Month, Staffed or Not'] }
   };
@@ -14261,15 +14265,23 @@
     return Object.assign({ level: L + 1, does: F.does[L] }, F.levels[L]);
   }
   /** can a build start: one at a time, and paid in full */
-  function canBuild(corp, id) {
+  /* the doctrine's ceiling is the Armoury's: past it, a level would open nothing */
+  function capped(corp, id) {
+    if (id !== 'armoury') return false;
+    const cap = corp && corp._doctrineCap;
+    return cap != null && maxTier(corp) >= cap;
+  }
+  function canBuild(corp, id, mult) {
     const g = grounds(corp), nx = nextLevel(corp, id);
     if (!nx) return { ok: false, why: 'At the Top' };
+    if (capped(corp, id)) return { ok: false, why: 'The Doctrine Goes No Higher' };
     if (g.build) return { ok: false, why: 'Already Building' };
+    nx.cost = Math.round(nx.cost * (mult || 1) / 1000) * 1000;   /* the fleet's month moves the builders' prices too */
     if (((corp.account && corp.account.treasury) || 0) < nx.cost) return { ok: false, why: 'Not Enough in the Treasury' };
     return { ok: true, next: nx };
   }
-  function startBuild(corp, id, season, month, post) {
-    const c = canBuild(corp, id); if (!c.ok) return c;
+  function startBuild(corp, id, season, month, post, mult) {
+    const c = canBuild(corp, id, mult); if (!c.ok) return c;
     const g = grounds(corp);
     if (post) post(corp.account, 'expense', 'Building the ' + FACILITIES[id].name, -c.next.cost);
     g.build = { id, level: c.next.level, from: absOf(season, month), ready: absOf(season, month) + c.next.months };
@@ -14317,7 +14329,7 @@
     };
     const purse = (corp.account && corp.account.treasury) || 0;
     const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
-      .filter(o => o.nx && o.nx.cost > 0 && purse - o.nx.cost >= reserve)
+      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && purse - o.nx.cost >= reserve)
       /* the cheaper next step of a wanted thing first: a house climbs, it does not leap */
       .map(o => ({ id: o.id, score: want[o.id] / (1 + o.nx.cost / 100000) / (1 + 0.5 * (o.nx.level - 1)) }))
       .sort((a, b) => b.score - a.score);
@@ -14325,7 +14337,7 @@
   }
 
   return { FACILITIES, IDS, FOR_POST, CONST, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
-           tick, monthsLeft, upkeep, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
+           tick, monthsLeft, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
            cutterAllowed, moleAllowed, aiChoose };
 });
 
@@ -15015,11 +15027,13 @@
     {
       id: 'dealer', weight: 0.9,
       when: (c, ctx) => { const tiers = CONST.RARE_PIECE_TIERS; const pieces = ITEMS.bySlot('primary').filter(i => i.tier >= tiers[0] && i.tier <= tiers[1]); return pieces.length ? pieces[Math.floor(ctx.rng() * pieces.length)] : null; },
-      make: (it) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+      make: (it, c) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+        /* §FACILITIES a piece above the Armoury is bought to be stored, and the dealer says so */
+        const issues = armouryTier(c), stored = (it.tier || 1) > issues;
         return { kind: 'dealer', subject: it.id, price: price, title: 'A Dealer at the Airlock',
           text: 'Somebody with a case and no paperwork is offering a ' + it.name + ' for ' + fmtCr(price) + '. Tonight only.',
           options: [
-            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) },
+            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + ((it.tier || 1) - 1) : '') },
             { id: 'pass', label: 'Pass', cost: 'Nothing' }
           ], def: 'pass' }; },
       resolve: (c, e, opt) => {
@@ -15030,9 +15044,11 @@
         if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
-      ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
+      /* the engine buys what it can issue soon, not what it will store for years */
+      ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
+  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 1) + 1); }
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
@@ -15464,10 +15480,14 @@
     const o = corp.staff; if (!o) return null;
     const gone = (o.gone || []).filter(g => g.season === state.season && (g.why === 'retired' || g.why === 'poached'));
     const due = Object.keys(o.posts || {}).map(p => o.posts[p]).filter(st => st && st.asking);
-    if (!gone.length && !due.length) return null;
+    /* §FACILITIES and what the builders finished while nobody was looking */
+    const FNAME = { armoury: 'Armoury', infirmary: 'Infirmary', yard: 'Training Yard', barracks: 'Barracks', press: 'Press Office', listening: 'Listening Post' };
+    const stood = ((corp.facilities && corp.facilities.history) || []).filter(h => h.season === state.season);
+    if (!gone.length && !due.length && !stood.length) return null;
     const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
-      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'));
-    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'The Backroom Over the Winter',
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'))
+      .concat(stood.map(h => 'The ' + FNAME[h.id] + ' stands at level ' + h.level + '.'));
+    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'Over the Winter',
              text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };
   }
   const BACKROOM_SPEC = { resolve: () => 'The Backroom Was Noted', ai: () => 'accept' };
@@ -29261,6 +29281,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const k = mercKit(rng, f);
       if (!k) continue;
       f.ownKit = k;
+      ITEMS.equip(f, { primary: k.primary, armor: k.armor, sidearm: k.sidearm || null, mods: [], consumables: [] });   /* they arrive carrying it */
       const worth = [k.primary, k.armor, k.sidearm].reduce((a, id) => a + ((id && ITEMS.byId(id) && ITEMS.byId(id).cost) || 0), 0);
       if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary + worth / LED.CONST.SALARY_MONTHS);
     }
@@ -29389,7 +29410,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const ask = askingPrice(f, null);
     if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
     const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
-    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER));
+    /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
+    const beyond = f.ownKit && f.ownKit.tier > FAC.maxTier(c) ? 1.15 : 1;
+    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER) * beyond);
   }
   /* the tryouts: the best of its own sheet by what they ARE, up to its need */
   function aiTryoutMarks(lot, depth) {
@@ -30016,8 +30039,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' Pieces in the Armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
+        const tierNote = ' \u00b7 Issues to Tier ' + FAC.maxTier(them);   /* §FACILITIES the Armoury is plain to see */
+        if (full) return held + ' Pieces in the Armoury' + tierNote;
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury' + tierNote;
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -30190,7 +30214,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
     /* §FACILITIES the engine looks again at its grounds mid-year, when the gate has paid in */
-    if (!wanted && month === 6) aiBuild(corp, { season: season || 0, month });
+    if (!wanted && month === 6) aiBuild(corp, STATE_REF && STATE_REF.corps && STATE_REF.corps[corp.id] === corp ? STATE_REF : { season: season || 0, month });
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -30957,7 +30981,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
       /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
-      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      let ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      /* §FACILITIES a mercenary's own kit goes home with the mercenary, not into the rack */
+      if (f.ownKit && f.status !== 'dead') { const own = [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm]; ids = ids.filter(id => own.indexOf(id) < 0); }
       const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
       if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
@@ -31310,6 +31336,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §FACILITIES builds run through the Divide and the winter; the engine starts its own */
     for (const id of state.ids) {
       const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
+      c._doctrineCap = (ITEMS.doctrineForCorp(id) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
       if (!isHuman(state, id)) aiBuild(c, state);
     }
     for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
@@ -31428,7 +31455,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       freedomReq: f.contract && f.contract.divides_required,
       record: f.experience || null,
       pool: f._pool || null,
-      carried: !!f._carried
+      carried: !!f._carried,
+      ownKit: f.ownKit || null   /* §FACILITIES a mercenary's own gear, which is part of what the price buys */
       };
       return kind === 'bastille' ? apparentOnly(rec, f) : rec;
     });
@@ -31910,7 +31938,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const c = state.corps[corpId];
     if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
     if (state.done) return { ok: false, why: 'The Year Is Over' };
-    return FAC.startBuild(c, facId, state.season, state.month, LED.post);
+    return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
   }
   /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
   function aiBuild(c, state) {
@@ -31918,7 +31946,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
     const reserve = 60000 + 80000 * thrift;
     const pick = FAC.aiChoose(c, reserve);
-    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post);
+    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
   }
   /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
      best, armour and a sidearm, at a tier set by how good they are — tier two to four, whatever the buyer's Armoury */
@@ -32164,7 +32192,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
         delete cc._tipOn; delete cc._leakTo;
       }
-      if (stood[id]) landed[id].push({ kind: 'staff', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
+      if (stood[id]) {
+        landed[id].push({ kind: 'facility', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
+        /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
+        if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
+      }
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
@@ -34408,7 +34440,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          everyone, so a person's own potential decides nothing a manager can see or move, and
          naming it promised a mechanic that is not there. What a scout THINKS of a prospect
          still prices him; it is not a stat. */
-      (f.carried ? '<span class="pc-pot"><span class="ktag">Carried Over</span></span>' : '');
+      (f.carried ? '<span class="pc-pot"><span class="ktag">Carried Over</span></span>' : '') +
+      /* §FACILITIES a mercenary's own gear, which comes with them whatever your Armoury issues */
+      (f.ownKit ? '<span class="pc-pot">Carries ' + [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm].filter(Boolean).map(function (id) {
+        var it = ITEM_BY_ID[id]; return it ? tierHtml(id) + esc(it.name) : ''; }).join(' \u00b7 ') + '</span>' : '');
     }
 
 
@@ -34667,6 +34702,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       items.push({ txt: esc(st.name) + '\u2019s Contract Is Up', tab: 'backroom', kind: 'Staff', urgent: true, cost: 'Renewed at Their Ask' }); });
     var retiring = (((G.corps[G.me]._off || {}).retired) || []).filter(function (f) { return f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of; });
     if (m === 1 && retiring.length) items.push({ txt: retiring.length + ' Retiring \u00b7 Could Take a Post', tab: 'backroom', kind: 'Staff', cost: 'Gone at Year\u2019s End' });
+    /* §FACILITIES the builders idle while something is affordable: said once, at the year's opening */
+    var meF = G.corps[G.me];
+    if (m === 1 && !(meF.facilities && meF.facilities.build) && SEASON.FAC.IDS.some(function (fid) { return SEASON.FAC.canBuild(meF, fid, SEASON.priceMult(G.state)).ok; }))
+      items.push({ txt: 'The Builders Are Idle', tab: 'grounds', kind: 'Facilities', cost: 'Nothing Rises This Year' });
     /* §TALKS a captain owed a squad who no longer leads one breaks that promise when the month turns */
     owedSquads().forEach(function (f) { items.push({ txt: nameHtml(f) + ' Was Promised a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'Broken When the Month Turns' }); });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
@@ -36126,7 +36165,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
                  events: (res.events || {})[G.me] || [],
                  talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null,
-                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }) };
+                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }),
+                 built: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'facility'; }).map(function (l) { return l.text; }) };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -36258,6 +36298,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                       '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
     }
     (R.staff || []).forEach(function (t) { peopleCol += ln('Backroom', esc(t), ''); });
+    (R.built || []).forEach(function (t) { peopleCol += ln('Facilities', esc(t), '<span class="good">Built</span>'); });
     (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
       if (pn.outcome === 'void') return;
       peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
@@ -36976,7 +37017,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         sheetBlocks(b) +
         '<div class="colblk"><div class="clab">Loadout' +
           (hand ? '<span class="ktag hand">Hand-Kitted</span><span class="ktag rel" id="pclear" title="hand the kit back to the quartermaster">Release</span>'
-                : '<span class="ktag">Quartermaster</span>') +
+                : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && !handStands(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">No Primary or Armor</div>' : '') +
@@ -37016,6 +37057,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /* ============================ FACILITIES (§FACILITIES) ============================
      Six facilities, levels, one build at a time. The Armoury decides what gear can be issued. */
+  /* §FACILITIES what sits in the rack that the Armoury cannot yet issue: the case for the next level */
+  function armouryStoredHtml(me) {
+    var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
+    for (var id in rack) { var it = ITEM_BY_ID[id]; if (it && it.tier > tier && rack[id] > 0) { n += rack[id]; best = Math.max(best, it.tier); } }
+    return n ? '<div class="fcnext"><span class="k">Stored</span><span class="v">' + n + ' Piece' + (n === 1 ? '' : 's') + ' up to Tier ' + best + '</span></div>' : '';
+  }
   function renderGrounds() {
     var host = $('grounds'); if (!host || !G || !G.state) return;
     var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
@@ -37033,7 +37080,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       h += '<div class="fccard' + (building ? ' building' : '') + '"><div class="fh"><span class="ft">' + esc(fac.name) + '</span><span class="fp">' +
            SEASON.STAFF.POST_NAME[fac.post] + '</span></div>' +
         '<div class="fcpips">' + fac.levels.map(function (_, i) { return '<i class="' + (i < L ? 'on' : building && i === L ? 'bld' : '') + '"></i>'; }).join('') + '</div>' +
-        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' · ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' \u00b7 ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        (id === 'armoury' ? armouryStoredHtml(me) : '') +
         (L > 0 ? '<div class="fcnext"><span class="k">Upkeep</span><span class="v">' + crs(fac.levels[L - 1].upkeep) + '/mo</span></div>' : '') +
         (nx ? '<div class="fcnext"><span class="k">Level ' + nx.level + '</span><span class="v">' + crs(nx.cost) + ' · ' + nx.months + ' Months</span>' +
               '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
@@ -37098,7 +37146,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crY(st.asking) + '</span></div>' : '') +
         '<div class="acts">' +
           (st.asking ? '<button class="tiny" data-bkrenew="' + p + '">Renew</button>' : '') +
-          (p === 'spymaster' && st.school === 'mole' && open ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '') +
+          (p === 'spymaster' && st.school === 'mole' && open ? (SEASON.FAC.moleAllowed(me) ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '<button class="tiny" disabled>Listening Post 2</button>') : '') +
           (open ? (sel.letGo === p ? '<button class="tiny danger" data-bkgo="' + p + '">Confirm · Let Go</button><button class="tiny" data-bkkeep="1">Keep</button>'
                                   : '<button class="tiny" data-bkask="' + p + '">Let Go</button>') : '') +
         '</div></div>';
@@ -37133,7 +37181,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           var st = x.st, p = st.specialty, sch = S.SCHOOLS[p][st.school] || { name: '' };
           return '<tr><td style="color:' + raceColour(st) + '">' + esc(st.name) + '</td><td>' + S.POST_NAME[p] + '</td><td>' + bkRange(x.est[p]) + '</td><td>' +
             esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crY(x.wage) + '</td><td>' +
-            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
+            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (!SEASON.FAC.postOpen(me, p) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[p]].name : held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
         (V.spec.length ? '' : '<tr><td colspan="7" class="m">All Taken</td></tr>') + '</table>';
     } else {
       h += '<table class="bktbl"><tr><th>House</th><th>Post</th><th>Name</th><th>Craft</th><th>Fee</th><th>Would Ask</th><th></th></tr>' +
@@ -37141,7 +37189,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           var can = open && !held(x.post) && x.willing && (me.account.treasury || 0) >= x.fee;
           return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crY(x.wage) + '</td><td>' +
             '<button class="tiny" data-bkpoach="' + x.from + '|' + x.post + '"' + (can ? '' : ' disabled') + '>' +
-            (held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
+            (!SEASON.FAC.postOpen(me, x.post) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[x.post]].name : held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
         (V.rivals.length ? '' : '<tr><td colspan="7" class="m">None Held</td></tr>') + '</table>';
     }
     var gone = (STAFFgone(me) || []).slice(-4).reverse();

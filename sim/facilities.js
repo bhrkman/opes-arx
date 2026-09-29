@@ -25,25 +25,25 @@
 
   /* levels[i] is what level i+1 costs: credits up front, months to build, upkeep a month once standing */
   const FACILITIES = {
-    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1,
+    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1, seen: { blood: 0.8, craft: 0.4 },
                  levels: [{ cost: 0, months: 0, upkeep: 600 },
                           { cost: 110000, months: 6, upkeep: 1600 },
                           { cost: 240000, months: 9, upkeep: 3200 },
                           { cost: 420000, months: 12, upkeep: 5200 }],
                  does: ['Issues Tiers 1–2', 'Issues Tier 3', 'Issues Tier 4', 'Issues Tier 5'] },
-    infirmary: { name: 'Infirmary', post: 'surgeon', start: 0,
+    infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
                  levels: [{ cost: 55000, months: 3, upkeep: 900 }, { cost: 130000, months: 6, upkeep: 2000 }, { cost: 280000, months: 12, upkeep: 3800 }],
                  does: ['A Surgeon Can Work · Wounds Mend Faster', 'A Cutter Can Operate · Faster Still', 'Wounds Mend Fastest'] },
-    yard:      { name: 'Training Yard', post: 'drill', start: 0,
+    yard:      { name: 'Training Yard', post: 'drill', start: 0, seen: { craft: 1.0, grit: 0.3 },
                  levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
                  does: ['A Drillmaster Can Work · Drills Gain More', 'Drills Gain More', 'Drills Gain Most'] },
-    barracks:  { name: 'Barracks', post: 'sergeant', start: 0,
+    barracks:  { name: 'Barracks', post: 'sergeant', start: 0, seen: { care: 0.7, word: 0.3 },
                  levels: [{ cost: 45000, months: 3, upkeep: 800 }, { cost: 110000, months: 6, upkeep: 1800 }, { cost: 240000, months: 12, upkeep: 3400 }],
                  does: ['A Sergeant Can Work · Strain Eases', 'Strain Eases More · Loyalty Settles', 'Strain Eases Most · Loyalty Settles Faster'] },
-    press:     { name: 'Press Office', post: 'fixer', start: 0,
+    press:     { name: 'Press Office', post: 'fixer', start: 0, seen: { glory: 1.0 },
                  levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
                  does: ['A Fixer Can Work · A Bigger Gate', 'A Bigger Gate', 'The Biggest Gate'] },
-    listening: { name: 'Listening Post', post: 'spymaster', start: 0,
+    listening: { name: 'Listening Post', post: 'spymaster', start: 0, seen: { craft: 0.8, word: -0.2 },
                  levels: [{ cost: 55000, months: 3, upkeep: 1000 }, { cost: 130000, months: 6, upkeep: 2200 }, { cost: 280000, months: 12, upkeep: 4000 }],
                  does: ['A Spymaster Can Work', 'A Mole Can Be Planted', 'Reports Every Month, Staffed or Not'] }
   };
@@ -81,15 +81,23 @@
     return Object.assign({ level: L + 1, does: F.does[L] }, F.levels[L]);
   }
   /** can a build start: one at a time, and paid in full */
-  function canBuild(corp, id) {
+  /* the doctrine's ceiling is the Armoury's: past it, a level would open nothing */
+  function capped(corp, id) {
+    if (id !== 'armoury') return false;
+    const cap = corp && corp._doctrineCap;
+    return cap != null && maxTier(corp) >= cap;
+  }
+  function canBuild(corp, id, mult) {
     const g = grounds(corp), nx = nextLevel(corp, id);
     if (!nx) return { ok: false, why: 'At the Top' };
+    if (capped(corp, id)) return { ok: false, why: 'The Doctrine Goes No Higher' };
     if (g.build) return { ok: false, why: 'Already Building' };
+    nx.cost = Math.round(nx.cost * (mult || 1) / 1000) * 1000;   /* the fleet's month moves the builders' prices too */
     if (((corp.account && corp.account.treasury) || 0) < nx.cost) return { ok: false, why: 'Not Enough in the Treasury' };
     return { ok: true, next: nx };
   }
-  function startBuild(corp, id, season, month, post) {
-    const c = canBuild(corp, id); if (!c.ok) return c;
+  function startBuild(corp, id, season, month, post, mult) {
+    const c = canBuild(corp, id, mult); if (!c.ok) return c;
     const g = grounds(corp);
     if (post) post(corp.account, 'expense', 'Building the ' + FACILITIES[id].name, -c.next.cost);
     g.build = { id, level: c.next.level, from: absOf(season, month), ready: absOf(season, month) + c.next.months };
@@ -137,7 +145,7 @@
     };
     const purse = (corp.account && corp.account.treasury) || 0;
     const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
-      .filter(o => o.nx && o.nx.cost > 0 && purse - o.nx.cost >= reserve)
+      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && purse - o.nx.cost >= reserve)
       /* the cheaper next step of a wanted thing first: a house climbs, it does not leap */
       .map(o => ({ id: o.id, score: want[o.id] / (1 + o.nx.cost / 100000) / (1 + 0.5 * (o.nx.level - 1)) }))
       .sort((a, b) => b.score - a.score);
@@ -145,6 +153,6 @@
   }
 
   return { FACILITIES, IDS, FOR_POST, CONST, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
-           tick, monthsLeft, upkeep, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
+           tick, monthsLeft, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
            cutterAllowed, moleAllowed, aiChoose };
 });

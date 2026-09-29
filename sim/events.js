@@ -365,11 +365,13 @@
     {
       id: 'dealer', weight: 0.9,
       when: (c, ctx) => { const tiers = CONST.RARE_PIECE_TIERS; const pieces = ITEMS.bySlot('primary').filter(i => i.tier >= tiers[0] && i.tier <= tiers[1]); return pieces.length ? pieces[Math.floor(ctx.rng() * pieces.length)] : null; },
-      make: (it) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+      make: (it, c) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+        /* §FACILITIES a piece above the Armoury is bought to be stored, and the dealer says so */
+        const issues = armouryTier(c), stored = (it.tier || 1) > issues;
         return { kind: 'dealer', subject: it.id, price: price, title: 'A Dealer at the Airlock',
           text: 'Somebody with a case and no paperwork is offering a ' + it.name + ' for ' + fmtCr(price) + '. Tonight only.',
           options: [
-            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) },
+            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + ((it.tier || 1) - 1) : '') },
             { id: 'pass', label: 'Pass', cost: 'Nothing' }
           ], def: 'pass' }; },
       resolve: (c, e, opt) => {
@@ -380,9 +382,11 @@
         if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
-      ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
+      /* the engine buys what it can issue soon, not what it will store for years */
+      ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
+  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 1) + 1); }
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
@@ -814,10 +818,14 @@
     const o = corp.staff; if (!o) return null;
     const gone = (o.gone || []).filter(g => g.season === state.season && (g.why === 'retired' || g.why === 'poached'));
     const due = Object.keys(o.posts || {}).map(p => o.posts[p]).filter(st => st && st.asking);
-    if (!gone.length && !due.length) return null;
+    /* §FACILITIES and what the builders finished while nobody was looking */
+    const FNAME = { armoury: 'Armoury', infirmary: 'Infirmary', yard: 'Training Yard', barracks: 'Barracks', press: 'Press Office', listening: 'Listening Post' };
+    const stood = ((corp.facilities && corp.facilities.history) || []).filter(h => h.season === state.season);
+    if (!gone.length && !due.length && !stood.length) return null;
     const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
-      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'));
-    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'The Backroom Over the Winter',
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'))
+      .concat(stood.map(h => 'The ' + FNAME[h.id] + ' stands at level ' + h.level + '.'));
+    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'Over the Winter',
              text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };
   }
   const BACKROOM_SPEC = { resolve: () => 'The Backroom Was Noted', ai: () => 'accept' };

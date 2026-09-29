@@ -3222,7 +3222,10 @@
          everyone, so a person's own potential decides nothing a manager can see or move, and
          naming it promised a mechanic that is not there. What a scout THINKS of a prospect
          still prices him; it is not a stat. */
-      (f.carried ? '<span class="pc-pot"><span class="ktag">Carried Over</span></span>' : '');
+      (f.carried ? '<span class="pc-pot"><span class="ktag">Carried Over</span></span>' : '') +
+      /* §FACILITIES a mercenary's own gear, which comes with them whatever your Armoury issues */
+      (f.ownKit ? '<span class="pc-pot">Carries ' + [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm].filter(Boolean).map(function (id) {
+        var it = ITEM_BY_ID[id]; return it ? tierHtml(id) + esc(it.name) : ''; }).join(' \u00b7 ') + '</span>' : '');
     }
 
 
@@ -3481,6 +3484,10 @@
       items.push({ txt: esc(st.name) + '\u2019s Contract Is Up', tab: 'backroom', kind: 'Staff', urgent: true, cost: 'Renewed at Their Ask' }); });
     var retiring = (((G.corps[G.me]._off || {}).retired) || []).filter(function (f) { return f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of; });
     if (m === 1 && retiring.length) items.push({ txt: retiring.length + ' Retiring \u00b7 Could Take a Post', tab: 'backroom', kind: 'Staff', cost: 'Gone at Year\u2019s End' });
+    /* §FACILITIES the builders idle while something is affordable: said once, at the year's opening */
+    var meF = G.corps[G.me];
+    if (m === 1 && !(meF.facilities && meF.facilities.build) && SEASON.FAC.IDS.some(function (fid) { return SEASON.FAC.canBuild(meF, fid, SEASON.priceMult(G.state)).ok; }))
+      items.push({ txt: 'The Builders Are Idle', tab: 'grounds', kind: 'Facilities', cost: 'Nothing Rises This Year' });
     /* §TALKS a captain owed a squad who no longer leads one breaks that promise when the month turns */
     owedSquads().forEach(function (f) { items.push({ txt: nameHtml(f) + ' Was Promised a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'Broken When the Month Turns' }); });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
@@ -4940,7 +4947,8 @@
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
                  events: (res.events || {})[G.me] || [],
                  talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null,
-                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }) };
+                 staff: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'staff'; }).map(function (l) { return l.text; }),
+                 built: ((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'facility'; }).map(function (l) { return l.text; }) };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -5072,6 +5080,7 @@
                       '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
     }
     (R.staff || []).forEach(function (t) { peopleCol += ln('Backroom', esc(t), ''); });
+    (R.built || []).forEach(function (t) { peopleCol += ln('Facilities', esc(t), '<span class="good">Built</span>'); });
     (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
       if (pn.outcome === 'void') return;
       peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
@@ -5790,7 +5799,7 @@
         sheetBlocks(b) +
         '<div class="colblk"><div class="clab">Loadout' +
           (hand ? '<span class="ktag hand">Hand-Kitted</span><span class="ktag rel" id="pclear" title="hand the kit back to the quartermaster">Release</span>'
-                : '<span class="ktag">Quartermaster</span>') +
+                : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && !handStands(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">No Primary or Armor</div>' : '') +
@@ -5830,6 +5839,12 @@
 
   /* ============================ FACILITIES (§FACILITIES) ============================
      Six facilities, levels, one build at a time. The Armoury decides what gear can be issued. */
+  /* §FACILITIES what sits in the rack that the Armoury cannot yet issue: the case for the next level */
+  function armouryStoredHtml(me) {
+    var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
+    for (var id in rack) { var it = ITEM_BY_ID[id]; if (it && it.tier > tier && rack[id] > 0) { n += rack[id]; best = Math.max(best, it.tier); } }
+    return n ? '<div class="fcnext"><span class="k">Stored</span><span class="v">' + n + ' Piece' + (n === 1 ? '' : 's') + ' up to Tier ' + best + '</span></div>' : '';
+  }
   function renderGrounds() {
     var host = $('grounds'); if (!host || !G || !G.state) return;
     var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
@@ -5847,7 +5862,8 @@
       h += '<div class="fccard' + (building ? ' building' : '') + '"><div class="fh"><span class="ft">' + esc(fac.name) + '</span><span class="fp">' +
            SEASON.STAFF.POST_NAME[fac.post] + '</span></div>' +
         '<div class="fcpips">' + fac.levels.map(function (_, i) { return '<i class="' + (i < L ? 'on' : building && i === L ? 'bld' : '') + '"></i>'; }).join('') + '</div>' +
-        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' · ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' \u00b7 ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        (id === 'armoury' ? armouryStoredHtml(me) : '') +
         (L > 0 ? '<div class="fcnext"><span class="k">Upkeep</span><span class="v">' + crs(fac.levels[L - 1].upkeep) + '/mo</span></div>' : '') +
         (nx ? '<div class="fcnext"><span class="k">Level ' + nx.level + '</span><span class="v">' + crs(nx.cost) + ' · ' + nx.months + ' Months</span>' +
               '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
@@ -5912,7 +5928,7 @@
         (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crY(st.asking) + '</span></div>' : '') +
         '<div class="acts">' +
           (st.asking ? '<button class="tiny" data-bkrenew="' + p + '">Renew</button>' : '') +
-          (p === 'spymaster' && st.school === 'mole' && open ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '') +
+          (p === 'spymaster' && st.school === 'mole' && open ? (SEASON.FAC.moleAllowed(me) ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '<button class="tiny" disabled>Listening Post 2</button>') : '') +
           (open ? (sel.letGo === p ? '<button class="tiny danger" data-bkgo="' + p + '">Confirm · Let Go</button><button class="tiny" data-bkkeep="1">Keep</button>'
                                   : '<button class="tiny" data-bkask="' + p + '">Let Go</button>') : '') +
         '</div></div>';
@@ -5947,7 +5963,7 @@
           var st = x.st, p = st.specialty, sch = S.SCHOOLS[p][st.school] || { name: '' };
           return '<tr><td style="color:' + raceColour(st) + '">' + esc(st.name) + '</td><td>' + S.POST_NAME[p] + '</td><td>' + bkRange(x.est[p]) + '</td><td>' +
             esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crY(x.wage) + '</td><td>' +
-            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
+            '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (!SEASON.FAC.postOpen(me, p) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[p]].name : held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
         (V.spec.length ? '' : '<tr><td colspan="7" class="m">All Taken</td></tr>') + '</table>';
     } else {
       h += '<table class="bktbl"><tr><th>House</th><th>Post</th><th>Name</th><th>Craft</th><th>Fee</th><th>Would Ask</th><th></th></tr>' +
@@ -5955,7 +5971,7 @@
           var can = open && !held(x.post) && x.willing && (me.account.treasury || 0) >= x.fee;
           return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crY(x.wage) + '</td><td>' +
             '<button class="tiny" data-bkpoach="' + x.from + '|' + x.post + '"' + (can ? '' : ' disabled') + '>' +
-            (held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
+            (!SEASON.FAC.postOpen(me, x.post) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[x.post]].name : held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
         (V.rivals.length ? '' : '<tr><td colspan="7" class="m">None Held</td></tr>') + '</table>';
     }
     var gone = (STAFFgone(me) || []).slice(-4).reverse();

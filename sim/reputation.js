@@ -257,7 +257,9 @@
     broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 },     /* ctx.grave for a star */
     /* §STAFF the backroom's acts */
     poached_staff:      { q: { craft: 0.4, word: -0.3 }, mag: 1.5, target: -10, residue: 0.20 },
-    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 }
+    mole_exposed:       { q: { word: -0.8, craft: 0.2 }, mag: 3, target: -18, residue: 0.25 },
+    /* §FACILITIES a facility stands: each faction sees what it cares for (ctx.q) */
+    raised_a_facility:  { q: {}, mag: 2, residue: 0.15 }
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one

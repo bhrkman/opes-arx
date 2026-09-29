@@ -3737,7 +3737,7 @@ function negotiationRules() {
                       'killed_captives', 'abandoned_ours', 'refused_all', 'hid', 'last_ground',
                       'held_out', 'silent_before_board', 'snubbed_letter',
                       /* §STAFF a poach and an exposed mole are a manager's rare, chosen risks */
-                      'poached_staff', 'mole_exposed']) {
+                      'poached_staff', 'mole_exposed', 'raised_a_facility']) {
     if (!REPMOD.ACTS[rare]) continue;
     REPMOD.act(rareRep, rare, { targetId: OA[1].id, count: 1, scale: 0.5 });
     actsSeen.add(rare);

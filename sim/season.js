@@ -986,6 +986,7 @@
       const k = mercKit(rng, f);
       if (!k) continue;
       f.ownKit = k;
+      ITEMS.equip(f, { primary: k.primary, armor: k.armor, sidearm: k.sidearm || null, mods: [], consumables: [] });   /* they arrive carrying it */
       const worth = [k.primary, k.armor, k.sidearm].reduce((a, id) => a + ((id && ITEMS.byId(id) && ITEMS.byId(id).cost) || 0), 0);
       if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary + worth / LED.CONST.SALARY_MONTHS);
     }
@@ -1114,7 +1115,9 @@
     const ask = askingPrice(f, null);
     if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
     const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
-    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER));
+    /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
+    const beyond = f.ownKit && f.ownKit.tier > FAC.maxTier(c) ? 1.15 : 1;
+    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER) * beyond);
   }
   /* the tryouts: the best of its own sheet by what they ARE, up to its need */
   function aiTryoutMarks(lot, depth) {
@@ -1741,8 +1744,9 @@
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' Pieces in the Armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
+        const tierNote = ' \u00b7 Issues to Tier ' + FAC.maxTier(them);   /* §FACILITIES the Armoury is plain to see */
+        if (full) return held + ' Pieces in the Armoury' + tierNote;
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury' + tierNote;
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -1915,7 +1919,7 @@
     }
     staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
     /* §FACILITIES the engine looks again at its grounds mid-year, when the gate has paid in */
-    if (!wanted && month === 6) aiBuild(corp, { season: season || 0, month });
+    if (!wanted && month === 6) aiBuild(corp, STATE_REF && STATE_REF.corps && STATE_REF.corps[corp.id] === corp ? STATE_REF : { season: season || 0, month });
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -2682,7 +2686,9 @@
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
       /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
-      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      let ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      /* §FACILITIES a mercenary's own kit goes home with the mercenary, not into the rack */
+      if (f.ownKit && f.status !== 'dead') { const own = [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm]; ids = ids.filter(id => own.indexOf(id) < 0); }
       const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
       if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
@@ -3035,6 +3041,7 @@
     /* §FACILITIES builds run through the Divide and the winter; the engine starts its own */
     for (const id of state.ids) {
       const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
+      c._doctrineCap = (ITEMS.doctrineForCorp(id) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
       if (!isHuman(state, id)) aiBuild(c, state);
     }
     for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
@@ -3153,7 +3160,8 @@
       freedomReq: f.contract && f.contract.divides_required,
       record: f.experience || null,
       pool: f._pool || null,
-      carried: !!f._carried
+      carried: !!f._carried,
+      ownKit: f.ownKit || null   /* §FACILITIES a mercenary's own gear, which is part of what the price buys */
       };
       return kind === 'bastille' ? apparentOnly(rec, f) : rec;
     });
@@ -3635,7 +3643,7 @@
     const c = state.corps[corpId];
     if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
     if (state.done) return { ok: false, why: 'The Year Is Over' };
-    return FAC.startBuild(c, facId, state.season, state.month, LED.post);
+    return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
   }
   /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
   function aiBuild(c, state) {
@@ -3643,7 +3651,7 @@
     const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
     const reserve = 60000 + 80000 * thrift;
     const pick = FAC.aiChoose(c, reserve);
-    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post);
+    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
   }
   /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
      best, armour and a sidearm, at a tier set by how good they are — tier two to four, whatever the buyer's Armoury */
@@ -3889,7 +3897,11 @@
         }
         delete cc._tipOn; delete cc._leakTo;
       }
-      if (stood[id]) landed[id].push({ kind: 'staff', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
+      if (stood[id]) {
+        landed[id].push({ kind: 'facility', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
+        /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
+        if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
+      }
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);

@@ -114,11 +114,13 @@
 
      If you are measuring whether something works, equip the way the contest does, or run the
      contest. This constant is for filling a gap, not for building a world to measure. */
+  /* §FACILITIES THE FALLBACK IS ISSUE KIT, AND ISSUE KIT IS THE ARMOURY'S FIRST LEVEL. It was a tier-three
+     carbine and plate, which handed an OA that could not arm its drop better kit than one that could. */
   const DEFAULT_LOADOUT = {
-    primary: "itm_carbine",
+    primary: "itm_pattern_auto",
     mods: [],
     sidearm: null,
-    armor: "itm_plate_carrier",
+    armor: "itm_patrol_vest",
     consumables: []
   };
   /* There is no free kit (ruled). A body the armoury cannot cover carries nothing, which
