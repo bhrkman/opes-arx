@@ -4058,7 +4058,7 @@
        negotiation can price a banner by what it costs a joiner's people to fight under it */
     if (REP && opts.reputations) for (const c of corps) {
       const rp = opts.reputations[c.id];
-      if (rp) c._fleetStanding = REP.standing(rp, 'fleet');
+      if (rp) c._fleetStanding = REP.standing(rp, 'houses');
       /* §MIND an AI OA leans the way its own regard leans: it seeks out the OAs it
          thinks least of and gives the ones it respects a wider berth */
       /* §STANCE AN OA IS NOT ONE MIND. An AI OA gives each of its squads a notch around its
@@ -4075,7 +4075,9 @@
         const base = NOTCHES.indexOf(c.policy || 'standard');
         for (const other of corps) {
           if (other === c) continue;
-          const r = REP.standing(rp, 'rival', other.id);
+          /* how c regards `other`: kept on other's record, under c's name, as −100..100 */
+          const orp = opts.reputations[other.id];
+          const r = orp && orp.base.houses[c.id] != null ? (REP.standing(orp, 'house', c.id) - 50) * 2 : 0;
           const step = r < -20 ? 2 : r < -5 ? 1 : r > 20 ? -2 : r > 5 ? -1 : 0;
           c._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
         }

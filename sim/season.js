@@ -411,11 +411,9 @@
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
     p.race_weights = {};
     Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
-    /* LIKED AT HOME means what the page's own-people bands mean by it: under 40 reads
-       Mutinous, 40–65 Strained, 65–85 Loyal. Read off the dials the founder came out at 29 —
-       a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
-       loyalty is earned by the year. The fleet has no opinion yet. */
-    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
+    /* §STANDING a founded OA's crowd opens balanced and indifferent, and every house stands at 50 with it: what it
+       becomes is earned by its record (reputation.js reads `founding: 'lean'`) */
+    p.reputation = {};
     p.id = id || 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
@@ -830,7 +828,7 @@
     }
     if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
-    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'fleet') : 0) - (a.corp.rep ? REP.standing(a.corp.rep, 'fleet') : 0));
+    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'houses') : 50) - (a.corp.rep ? REP.standing(a.corp.rep, 'houses') : 50));
     const n = entrants.length, A = [], B = [];
     entrants.forEach((e, i) => { const pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(e); });
     const pot = entrants.length * CONST.EIGHT_ENTRY + CONST.EIGHT_PURSE;
@@ -919,8 +917,8 @@
        WIDER FLEET, which is the one that watches everybody rather than one corp's own ships.
        It is a signed scale — being loathed is a real position — so this maps the whole of it,
        and a corp the fleet detests now reads worse to a free agent than an unknown one. */
-    const fleet = REP.standing(corp.rep, 'fleet');
-    const standing = Math.max(0, Math.min(1, (fleet + CONST.MERC_FAME_SPAN) / (2 * CONST.MERC_FAME_SPAN)));
+    /* how the fleet's houses regard the OA, 0..1: a free agent asks around before he signs */
+    const standing = Math.max(0, Math.min(1, REP.standing(corp.rep, 'houses') / 100));
     return CONST.MERC_W_MONEY * money
          + CONST.MERC_W_SAFETY * safety
          + CONST.MERC_W_FAME * standing
@@ -968,7 +966,8 @@
   function askingPrice(f, corp) {
     const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
     if (!corp || !corp.rep) return flat;
-    const good = REP.standing(corp.rep, 'own') + REP.standing(corp.rep, 'fleet') * CONST.MARKET_FLEET_SHARE;
+    /* −100..100: the crowd's warmth and the houses' regard, each centred on indifference */
+    const good = (REP.standing(corp.rep, 'crowd') - 50) * 2 + (REP.standing(corp.rep, 'houses') - 50) * 2 * CONST.MARKET_FLEET_SHARE;
     let mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
     /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
        what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
@@ -2259,8 +2258,8 @@
     /* The freed choose first, because whether they stay changes what the wage bill is.
        A corp its own ships think well of is a corp a released prisoner signs with again. */
     for (const f of (freed || [])) {
-      const own = corp.rep ? REP.standing(corp.rep, 'own') : 0;
-      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, own / 100)));
+      const own = corp.rep ? REP.standing(corp.rep, 'crowd') : 50;
+      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, (own - 50) / 50)));
       if (rng() < p) {
         f.status = 'active';
         f.contract = f.contract || {};
@@ -2858,6 +2857,14 @@
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
     planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + season)), planet.archetype, planet.richness);
+    /* §STANDING each house watches the others with the taste of the stands it has now */
+    for (const id of ids) {
+      const c = corps[id];
+      if (!c.rep) continue;
+      const tastes = {};
+      for (const oid of ids) if (oid !== id && corps[oid].rep) tastes[oid] = REP.tasteOf(corps[oid].rep);
+      REP.setHouseTastes(c.rep, tastes);
+    }
     for (const id of ids) {
       const c = corps[id];
       if (!c.rep) continue;
@@ -3128,7 +3135,7 @@
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
-    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
+    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);
   }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
@@ -3351,7 +3358,7 @@
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
-      const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
+      const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'crowd') : 50, c.rep ? REP.standing(c.rep, 'houses') : 50, fame);
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
          were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
@@ -3574,7 +3581,7 @@
       fleet: state.ids.filter(x => x !== id).map(x => {
         const r = state.corps[x];
         return { id: x, profile: lite(r),
-                 standing: r.rep ? { own: Math.round(REP.standing(r.rep, 'own')), fleet: Math.round(REP.standing(r.rep, 'fleet')) } : null,
+                 standing: r.rep ? { crowd: Math.round(REP.standing(r.rep, 'crowd')), houses: Math.round(REP.standing(r.rep, 'houses')) } : null,
                  people: r.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length };
       }),
       planet: { archetype: pl.archetype, archetypeName: pl.archetypeName, radius: pl.radius, cycle: pl.cycle, pot: pl.pot,
@@ -4062,7 +4069,7 @@
         lossRate: dropped.length ? dead.length / dropped.length : 0,
         /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
-        popularity: c.rep ? REP.standing(c.rep, 'own') + REP.standing(c.rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE : 0,
+        popularity: c.rep ? REP.standing(c.rep, 'crowd') + (REP.standing(c.rep, 'houses') - 50) * LED.CONST.GATE_FLEET_SHARE : 50,
         /* §3.1c and what the year said about the OA to the people who work in it */
         _own: (function () {
           if (!c.rep) return 0;

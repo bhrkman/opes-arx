@@ -27,7 +27,8 @@ const corps = S.openFleet(rng, oaList, {});
 let state = S.beginSeason(rng, corps, oaList, { human: ME });
 const me = () => state.corps[ME];
 const standing = (aud) => Math.round(REP.standing(me().rep, aud));
-const snap = () => ({ t: me().account.treasury, n: alive(me()).length, own: standing('own'), fleet: standing('fleet'), pat: me().rep.patience });
+const facs = () => { const o = {}; for (const f of REP.FACTIONS) o[f] = Math.round(REP.standing(me().rep, f)); return o; };
+const snap = () => ({ t: me().account.treasury, n: alive(me()).length, own: standing('crowd'), fleet: standing('houses'), pat: Math.round(me().rep.patience), f: facs() });
 
 function listPool() {
   const R = state.recruitDraft; if (!R) return;
@@ -170,8 +171,10 @@ function delta(a, b) {
   const d = [];
   d.push('treasury ' + cr(a.t) + ' → ' + cr(b.t) + ' (' + (b.t - a.t >= 0 ? '+' : '−') + cr(Math.abs(b.t - a.t)) + ')');
   if (a.n !== b.n) d.push('on the books ' + a.n + ' → ' + b.n);
-  if (a.own !== b.own) d.push('own people ' + a.own + ' → ' + b.own);
-  if (a.fleet !== b.fleet) d.push('fleet ' + a.fleet + ' → ' + b.fleet);
+  if (a.own !== b.own) d.push('crowd ' + a.own + ' → ' + b.own);
+  if (a.fleet !== b.fleet) d.push('houses ' + a.fleet + ' → ' + b.fleet);
+  const moved = REP.FACTIONS.filter(f => a.f[f] !== b.f[f]).map(f => cap(f) + ' ' + a.f[f] + '→' + b.f[f]);
+  if (moved.length) d.push(moved.join(', '));
   if (a.pat !== b.pat) d.push('patience ' + a.pat + ' → ' + b.pat);
   return d.join('; ');
 }
@@ -312,7 +315,7 @@ function playDivide(year) {
   say('Your people: ' + (pc.permanent != null ? pc.permanent + ' lost for good' : (pc.dead != null ? pc.dead + ' dead' : '')) + (pc.injuredHome != null ? ', ' + pc.injuredHome + ' came home hurt' : '') + (pc.withdrew ? ', withdrew day ' + pc.withdrew.day : (fell && fell.how === 'wiped' ? ', the last squad fell on day ' + fell.day : fell && fell.how === 'pulled' ? ', the Aleas pulled the banner on day ' + fell.day + ' (too few left standing)' : ', stood to the end')) + '.');
   const rec = S.finishSeason(state, res);
   const c2 = me();
-  say('The books: ' + cr(c2.account.treasury) + ' in the bank (' + (c2.account.treasury - t1 >= 0 ? '+' : '−') + cr(Math.abs(c2.account.treasury - t1)) + ' over the contest). Board patience ' + Math.round(c2.rep.patience) + '; own people ' + standing('own') + ', fleet ' + standing('fleet') + '.');
+  say('The books: ' + cr(c2.account.treasury) + ' in the bank (' + (c2.account.treasury - t1 >= 0 ? '+' : '−') + cr(Math.abs(c2.account.treasury - t1)) + ' over the contest). Board patience ' + Math.round(c2.rep.patience) + '; own people ' + standing('crowd') + ', houses ' + standing('houses') + '.');
   const hist = c2.history && c2.history[c2.history.length - 1];
   if (hist && hist.card) say('The board’s card: ' + hist.card.map(l => demandWords(l.d) + ' — ' + (l.met ? 'met' : 'missed') + (l.priority ? ' (the priority)' : '')).join('; ') + '.');
   if (hist && hist.sponsors) say('The sponsors: ' + hist.sponsors.kept + ' kept, ' + hist.sponsors.broken.length + ' broken' + (hist.sponsors.paid ? ', ' + cr(hist.sponsors.paid) + ' paid' : '') + (hist.sponsors.standings.length ? ', standing granted: ' + hist.sponsors.standings.map(x => typeof x === 'string' ? x : (x.name + ' (' + x.what + ')')).join(', ') : '') + '.');

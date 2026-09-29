@@ -348,7 +348,7 @@
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
         return 'The Slight Was Laughed Off';
       },
-      ai: (c) => (c.rep && REP.standing(c.rep, 'own') < 0) ? 'answer' : 'laugh'
+      ai: (c) => (c.rep && REP.standing(c.rep, 'crowd') < 50) ? 'answer' : 'laugh'
     },
     {
       id: 'dealer', weight: 0.9,
@@ -414,12 +414,7 @@
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
   /* the acts the events lean on, if the reputation module has not got them */
-  const ACTS = { sold_a_fighter: { own: -4, residue: 0.2 }, refused_an_offer: { rival: -2, residue: 0.15 },
-                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 },
-                 /* §MEDIA */
-                 profiled: { fleet: 2, residue: 0.1 }, spoke_well: { fleet: 2, own: 1, residue: 0.1 }, owned_it: { own: 3, residue: 0.15 },
-                 no_comment: { own: -2, residue: 0.1 }, media_cut_against: { own: -2, fleet: -4, residue: 0.2 }, sent_regrets: { fleet: -1, residue: 0.05 } };
-  if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
+  /* the dispatches' acts live in reputation.js's one table, with what each is made of */
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
   /* §QUIRKS does this fighter carry a hook? The pool's events wanted to ask and had no way to:
@@ -571,7 +566,7 @@
     resolve: (c, e, opt, ctx) => {
       if (opt === 'petition' && c.account.treasury >= CONST.PETITION_COST) {
         LED.post(c.account, 'expense', 'A Petition to the Aleas', -CONST.PETITION_COST);
-        if (c.rep) REP.act(c.rep, 'petitioned_the_aleas', {});
+        if (c.rep) REP.act(c.rep, 'petitioned', {});
         ctx.state.fleet.pending.petitions++;
         return 'You Petitioned Against It';
       }
@@ -601,8 +596,6 @@
     }
     return { id: spec.id, title: spec.title, withdrawn: pend.withdrawn, petitions: pend.petitions, need };
   }
-  const ACTS_FLEET = { petitioned_the_aleas: { aleas: -1, fleet: 1, residue: 0.1 } };
-  if (REP && REP.ACTS) for (const k in ACTS_FLEET) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS_FLEET[k];
 
   /* ------------------------------------------------------------------------- media day ---- */
   /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the

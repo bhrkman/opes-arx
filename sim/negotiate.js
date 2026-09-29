@@ -405,17 +405,18 @@
        OA nobody minds fighting under is joined for less, and an OA the fleet despises has
        to pay for the shame of it. */
     const fleetRep = to && to.rep && to.rep.base ? (to._fleetStanding != null ? to._fleetStanding : null) : null;
-    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, fleetRep / 100 * CONST.BANNER_SHAME));
+    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, (fleetRep - 50) / 50 * CONST.BANNER_SHAME));
     return v;
   }
 
   /* HOW `who` FEELS ABOUT `about`, today. The memory lives on the OA that ACTED: `x.rep`
-     keeps, per other OA, what that OA's supporters think of x. So what `who` thinks of
-     `about` is read off `about.rep` under `who`'s name. Signed, roughly ±100; null when nobody
-     has an opinion. (The first cut read it from the wrong end and moved the wrong price.) */
+     keeps, per other OA, how that house regards x. So what `who` thinks of `about` is read off `about.rep` under
+     `who`'s name — 0..100, returned here as −100..100 around indifference, the span this module's prices were set
+     on; null when nobody has an opinion. */
   function livingRegard(who, about) {
     if (!who || !about || !about.rep || !REP || !REP.standing) return null;
-    const v = REP.standing(about.rep, 'rival', who.id);
+    if (!about.rep.base || !about.rep.base.houses || about.rep.base.houses[who.id] == null) return null;
+    const v = (REP.standing(about.rep, 'house', who.id) - 50) * 2;
     return typeof v === 'number' && isFinite(v) ? Math.max(-100, Math.min(100, v)) : null;
   }
 

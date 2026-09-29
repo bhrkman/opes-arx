@@ -140,7 +140,7 @@
     const give = valueBundle(me, mine, opts);
     const ask = valueBundle(them, theirs, opts);
     const regard = typeof opts.regard === 'number' ? opts.regard
-      : (them.rep && REP ? REP.standing(them.rep, 'rival', me.id) : 0);
+      : (me.rep && REP && me.rep.base.houses[them.id] != null ? (REP.standing(me.rep, 'house', them.id) - 50) * 2 : 0);   /* −100..100: how THEY regard ME */
     /* what they need to see, softened or hardened by what they think of you */
     const need = ask * (1 - regard / CONST.REGARD_SWING);
     let ratio;

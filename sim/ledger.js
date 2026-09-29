@@ -42,7 +42,7 @@
        crowd; standing decides whether they come back. */
     /* §MONEY cut a quarter at the first money pass: with the grant the gate was a second
        income of the same order, and pay sat at a quarter of what came in */
-    GATE_BASE: 1950,                 // [C] a month's gate for an OA nobody minds
+    GATE_BASE: 5800,                 // [C] a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
     GATE_PER_STANDING: 41,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
     GATE_PER_FAME: 16,               // [C] per point of roster fame (the draw)
@@ -184,10 +184,11 @@
    *
    *   retainerBill(roster) + purseBill(dropped) = what the season actually cost in people.
    */
-  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw. */
-  function gateFor(ownStanding, fleetStanding, rosterFame) {
+  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw: the crowd and the houses, each
+      0..100, read as −100..100 around indifference. */
+  function gateFor(crowd, houses, rosterFame) {
     const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
-    const good = (ownStanding || 0) + (fleetStanding || 0) * CONST.GATE_FLEET_SHARE;
+    const good = ((crowd == null ? 50 : crowd) - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }

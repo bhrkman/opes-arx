@@ -3458,53 +3458,7 @@ function negotiationRules() {
   } catch (e) { replayOk = false; replayNote = e.message; }
   ok('replay: recording a Divide runs, and does not change it', replayOk, replayNote);
 
-  /* --- the mechanism that REPLACED the two exchange rates must actually be reachable ---
-     The old guard here asserted that both placeholders were DECLARED rather than buried,
-     which was right for Step 6 and is spent now that both are deleted (REPUTATION.md R2/R3).
-     Its successor asks the harder question the Step 6 audit taught: the premium and the wall
-     replaced a term that was carrying real structural load, so are they carrying it?
-     A wall that never fires is a wall that is not stopping anything, and the first draft of
-     this surgery produced exactly that in reverse — a wall that fired on everything and
-     closed the market to zero deals in sixty Divides. Both failure modes are silent unless
-     counted, so they are counted. */
-  /* This zeroed `NEG.TELEMETRY` and re-ran six Divides to fill it. It cannot zero a shared
-     accumulator any more without stealing the counts from every other reader, so the corpus
-     records each Divide's delta as it is built and they are summed here instead. */
-  const T = { floorBinds: 0, valuations: 0, wallsSeller: 0, wallsBuyer: 0 };
-  for (const s of corpusOf(6)) {
-    T.floorBinds += s._negDelta.floorBinds; T.valuations += s._negDelta.valuations;
-    T.wallsSeller += s._negDelta.wallsSeller; T.wallsBuyer += s._negDelta.wallsBuyer;
-  }
-  const sellerRate = T.valuations ? T.wallsSeller / T.valuations : 0;
-  ok('the wall stops real deals, and does not stop all of them',
-     T.valuations > 200 && sellerRate > 0.10 && sellerRate < 0.75,
-     (100 * sellerRate).toFixed(1) + '% of valuations walled, of ' + T.valuations);
-
-  /* The buyer side is deliberately much rarer than the seller side — buying a win is far
-     less shameful than selling one and the act table says so — and it fires in well under
-     one valuation in a hundred. A batch guard on something that rare is really a guard on
-     the batch size, and widening the batch until it passes is how a branch that has quietly
-     died gets certified as alive. So reachability is proved BY CONSTRUCTION: build the corp
-     the design says should refuse, and assert it refuses. The rate is reported alongside as
-     an observation, which is what it is. */
-  function wallProbe(profileId, patience, scale, actType) {
-    const prof = OA.find(p => p.id === profileId);
-    const rep = REPMOD.open(prof, OA);
-    rep.patience = patience;
-    return REPMOD.priceOfBeingSeen(rep, actType, { scale: scale }, prof.dials, 0);
-  }
-  /* Alliance House: loud, thin-skinned with the fleet, and a board already unimpressed.
-     Seen buying a win it is miles ahead in, it should not be able to. */
-  const buyerProbe = wallProbe('alliance_house', 30, 1, 'bought_win');
-  ok('the buyer side of the wall is reachable — a corp can refuse to buy a win',
-     buyerProbe.wall === true,
-     'ratio ' + buyerProbe.ratio.toFixed(2) + ' vs wall ' + REPMOD.CONST.UGLY_WALL);
-  /* And it must NOT fire for a comfortable corp, or it is not a wall, it is a ban. */
-  const buyerOk = wallProbe('violets_enterprise', 80, 0.4, 'bought_win');
-  ok('and a comfortable corp can still buy a win', buyerOk.wall === false,
-     'ratio ' + buyerOk.ratio.toFixed(2));
-  ok('observed: buyer walls in live Divides', true,
-     T.wallsBuyer + ' of ' + T.valuations + ' valuations (rare by design)');
+  /* the premium and the wall (reputation §10) are gone with the standing pass: nothing in the game priced by them */
 
   /* MIN_ASK_FRAC is a floor, and floors are supposed to be rare. Same treatment: prove it
      binds where the design says it must — a corp with no realistic chance still asks for
@@ -3626,12 +3580,12 @@ function negotiationRules() {
     const mId = Object.keys(mCorps)[0];
     const mSt = SEASONMOD.beginSeason(mRng, mCorps, oaAll, { human: mId });
     while (mSt.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(mSt);
-    const before = REPMOD.standing(mCorps[mId].rep, 'fleet');
+    const before = REPMOD.standing(mCorps[mId].rep, 'fairweathers');
     const mCard = (SEASONMOD.eventsFor(mSt, mId) || []).find(e => e.pool === 'media');
     const mLine = mCard ? SEASONMOD.answerEvent(mSt, mId, mCard.id, mCard.options.some(o => o.id === 'standout') ? 'standout' : 'manager') : null;
-    const after = REPMOD.standing(mCorps[mId].rep, 'fleet');
+    const after = REPMOD.standing(mCorps[mId].rep, 'fairweathers');
     ok('media day reaches the reputation system through its card',
-       !!mLine && after > before && (mSt.drop.media[mId] || {}).reveal > 0, 'fleet standing ' + before.toFixed(1) + ' -> ' + after.toFixed(1) + ' \u00b7 ' + mLine);
+       !!mLine && after > before && (mSt.drop.media[mId] || {}).reveal > 0, 'Fairweathers ' + before.toFixed(1) + ' -> ' + after.toFixed(1) + ' \u00b7 ' + mLine);
     if (mLine) actsSeen.add('media_day');
   }
 
@@ -3723,12 +3677,12 @@ function negotiationRules() {
   let offScale = 0, checked = 0;
   for (const s of corpusOf(6)) {
     for (const c of s.corps) {
-      for (const a of ['own', 'fleet', 'aleas']) {
+      for (const a of REPMOD.FACTIONS.concat(['crowd', 'houses'])) {
         const v = REPMOD.standing(c.rep, a); checked++;
         if (v < REPMOD.CONST.STANDING_FLOOR || v > REPMOD.CONST.STANDING_CEIL) offScale++;
       }
-      for (const id in c.rep.base.rival) {
-        const v = REPMOD.standing(c.rep, 'rival', id); checked++;
+      for (const id in c.rep.base.houses) {
+        const v = REPMOD.standing(c.rep, 'house', id); checked++;
         if (v < REPMOD.CONST.STANDING_FLOOR || v > REPMOD.CONST.STANDING_CEIL) offScale++;
       }
     }
@@ -3754,10 +3708,11 @@ function negotiationRules() {
      fameMoved > 0 && fameOff === 0, fameMoved + ' fighters above 30, ' + fameOff + ' off scale');
   /* Every register at the microphone must move somebody. A choice that moves nothing is the
      failure this project keeps catching. */
+  const regRep = REPMOD.open(OA[0], OA);
   const deadRegisters = REPMOD.REGISTERS.filter(function (r) {
-    const spec = REPMOD.ACTS['said_' + r];
-    if (!spec) return true;
-    return !['own', 'rival', 'fleet', 'aleas'].some(a => spec[a]);
+    if (!REPMOD.ACTS['said_' + r]) return true;
+    const im = REPMOD.impact(regRep, 'said_' + r, {});
+    return !Object.keys(im.fx).length && !Object.keys(im.hx).length;
   });
   ok('every register at the microphone moves at least one audience',
      deadRegisters.length === 0, deadRegisters.join(', '));

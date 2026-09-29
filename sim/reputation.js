@@ -1,22 +1,24 @@
-/* Capital Divide — /sim/reputation.js  (Step 7b)
+/* Capital Divide — /sim/reputation.js
  *
- * Who is watching, what they think of you, and what that costs. Implements REPUTATION.md:
- *   §2 the four audiences and the memory · §3 the acts · §4 fame · §5 placement
- *   §6 the board, the holds, the goal card and patience · §10 the premium and the wall
- *   §11 the mercenary price
+ * Who is watching, what they think of you, and what that costs.
  *
- * WHAT THIS OWNS: standing, and everything that reads it. This is the FIRST thing in the
- * project that outlives a Divide (R1) — a corp's memory, its board's patience and its holds
- * survive; rosters, armouries and treasuries still do not, and building those is Step 8.
+ * THE AUDIENCES (ruled at the standing pass). Every standing is 0 to 100, and 50 is indifference.
+ *   YOUR CROWD is six factions, each with a warmth and a share of the stands: Bloodhounds (blood), Tacticians
+ *     (craft), Fairweathers (glory, and quick to leave), Underdogs (grit, long odds), Families (care, people
+ *     home) and Diehards (the word kept; the largest share, moved only by grave acts). The shares drift each
+ *     year toward the factions an OA feeds, so the mix of the stands becomes the OA's identity. The crowd's
+ *     warmth is the share-weighted mean.
+ *   THE HOUSES are the seven other OAs, each how that house and its people regard you. A house judges by its own
+ *     crowd's mix — what its stands like, it likes to see — plus what you did to it directly.
+ *   THE BOARD is patience, 0 to 100.
+ * The Aleas and a single "fleet" audience are gone (ruled).
  *
- * WHAT THIS DOES NOT OWN: money. Per R2 and R3 there is no exchange rate between standing
- * and credits anywhere in this file, and there must never be one. What §10 exports is a
- * MULTIPLIER on an asking price and a wall past which no price is accepted — an ugly deal
- * makes a corp expensive and then makes it unavailable. It never states what a point is worth.
+ * AN ACT DECLARES WHAT IT IS — how much blood, craft, glory, grit, care and word is in it — and each audience
+ * weighs that by its taste, so one act splits the stands instead of nudging one bar.
  *
- * Plain serialisable data: no closures, no functions on the record. Step 8 writes it to disk.
+ * WHAT THIS DOES NOT OWN: money. There is no exchange rate between standing and credits in this file.
  *
- * Pure logic: no DOM, no Math.random, no I/O. Every roll takes an injected rng.
+ * Plain serialisable data; pure logic; every roll takes an injected rng.
  */
 (function (global) {
   "use strict";
@@ -24,20 +26,26 @@
   const P = isNode ? require('./prng.js') : global.CDPRNG;
 
   const CONST = {
-    /* §2.1 the scale — signed, because loathing is a position and not an absence */
-    STANDING_FLOOR: -100,               // [S]
+    /* §2.1 the scale — 0 to 100, and 50 is indifference (ruled) */
+    STANDING_FLOOR: 0,                  // [S]
     STANDING_CEIL: 100,                 // [S]
-    SOFT_AT: 40,                        // [C] §2.2 past this the scale compresses toward the ceiling
-    SOFT_SCALE: 150,                    // [C] how much raw feeling it takes to climb the last stretch:
-                                        //     an OA with two hundred points of goodwill reads high,
-                                        //     not pinned, and can still be told from one with four
-    DRIFT: 0.22,                        // [C] §2.3 the share of the gap back to an OA's resting
-                                        //     place that closes each season
+    STANDING_MID: 50,                   // [S] where every audience starts that has no reason not to
+    SOFT_AT: 25,                        // [C] §2.2 past this far from indifference the scale compresses: the last
+    SOFT_SCALE: 30,                     //     points cost the most, and nothing pins at the ends
+    DRIFT: 0.22,                        // [C] §2.3 the share of what is felt that fades each season
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
-    MEMORY_CAP: 40,                     // [S] acts kept per audience before the tail is folded
-    HEADLINE_AT: 20,                    // [C] §3.3 an act this big is remembered by name
+    MEMORY_CAP: 80,                     // [S] acts kept before the oldest are folded into the base
+    HEADLINE_AT: 12,                    // [C] §3.3 an act this big to anyone is remembered by name
+
+    /* §2.4 the crowd */
+    SHARE_SHIFT: 0.30,                  // [C] how far a year moves the stands toward the factions an OA feeds
+    SHARE_FLOOR: 0.04,                  // [C] no faction ever leaves entirely
+    DIEHARD_DAMP: 0.30,                 // [C] what an ordinary act moves the Diehards, of what it moves anyone else
+    DIEHARD_GRAVE: 1.20,                // [C] and what a grave one does
+    /* §2.5 the houses */
+    HOUSE_SPECTATE: 0.45,               // [C] a house watches you with its own crowd's taste, at this weight
 
     /* §4 fame — attention, not approval (R11) */
     FAME_FLOOR: 0,                      // [S]
@@ -72,8 +80,8 @@
     STANDING_THRIFT_W: 1.30,            // [C] how hard a cheap year moves a board with no
                                         //     interest in the planet; scaled DOWN by interest
     STANDING_POPULARITY_W: 0.85,        // [C] §5.3 what the crowd is worth beside the books
-    POPULARITY_NEUTRAL: 25,             // [C] the standing a board takes for granted
-    POPULARITY_SPAN: 45,                // [C] the distance from neutral to delight or fury
+    POPULARITY_NEUTRAL: 55,             // [C] the crowd a board takes for granted (0..100: a little better than indifferent)
+    POPULARITY_SPAN: 20,                // [C] the distance from that to delight or fury
     STANDING_CARE_W: 0.70,              // [C] how hard bringing people home moves one
     CARE_NEUTRAL_LOSS: 0.29,            // [C] the loss rate a board considers unremarkable.
                                         //     MEASURED, not assumed, and re-measured whenever
@@ -124,125 +132,102 @@
     CALL_PATIENCE_RATE: 0.055,          // [C] §6.5 patience per 10,000 credits asked of the board
     CALL_ESCALATOR: 0.80,               // [C] and asking twice costs more than asking once
 
-    /* §10 the premium and the wall — what replaces the deleted exchange rate */
-    UGLY_PREMIUM_MAX: 1.25,             // [C] what being seen to do it multiplies a price by.
-                                        //     RE-DERIVED, and the first draft was wrong by an
-                                        //     order of magnitude: the additive reputation cost
-                                        //     this replaces was only 5–20% of an asking price,
-                                        //     never a doubling. At 2.20 both sides moved so far
-                                        //     apart that the market closed completely — zero
-                                        //     deals in sixty Divides. The premium is the gentle
-                                        //     half of this mechanism; the wall is the teeth
-    UGLY_WALL: 0.75,                    // [S] past this share of what a corp can afford, no
-                                        //     price is enough. This is where the corp that
-                                        //     refuses to deal at all lives — the far end of a
-                                        //     scale rather than a flag on a profile
-    TOLERANCE_BASE: 40.0,               // [C] standing points a comfortable corp can shrug off.
-                                        //     Re-derived against N-T1/N-T3/N-T7: 1.9 joins per
-                                        //     Divide, chains in 31%, median 25 days
-
     /* §11 the mercenary price — a price, not an audience (R7) */
     MERC_INDEX_HALFLIFE: 2,             // [C] seasons
     MERC_PRICE_SWING: 0.35              // [H] how far the market moves for how you spend people
   };
 
-  const AUDIENCES = ['own', 'rival', 'fleet', 'aleas'];
+  /* §2.4 THE CROWD'S FACTIONS, and what each wants to see. A taste is a weight on each quality an act can carry. */
+  const FACTIONS = ['bloodhounds', 'tacticians', 'fairweathers', 'underdogs', 'families', 'diehards'];
+  const QUALITIES = ['blood', 'craft', 'glory', 'grit', 'care', 'word'];
+  const TASTE = {
+    bloodhounds:  { blood: 1.00, craft: 0.00, glory: 0.35, grit: 0.25, care: -0.10, word: 0.00 },
+    tacticians:   { blood: -0.15, craft: 1.00, glory: 0.30, grit: 0.10, care: 0.10, word: 0.20 },
+    fairweathers: { blood: 0.15, craft: 0.10, glory: 1.40, grit: -0.20, care: 0.00, word: 0.00 },
+    underdogs:    { blood: 0.10, craft: 0.10, glory: -0.15, grit: 1.10, care: 0.10, word: 0.20 },
+    families:     { blood: -0.40, craft: 0.00, glory: 0.10, grit: 0.00, care: 1.10, word: 0.45 },
+    diehards:     { blood: 0.00, craft: 0.00, glory: 0.20, grit: 0.20, care: 0.50, word: 0.90 }
+  };
+  /* how long each faction remembers, in seasons: a Fairweather forgets a triumph by next year, a Diehard does not */
+  const HALFLIFE = { bloodhounds: 3, tacticians: 3, fairweathers: 1, underdogs: 3, families: 3, diehards: 5 };
   const CATEGORIES = ['minerals', 'fuels', 'luxuries', 'foods'];
+  const REGISTERS = ['gracious', 'defiant', 'humble', 'deflecting', 'candid', 'evasive'];
+  /* the audiences a caller may ask for by name */
+  const AUDIENCES = FACTIONS.concat(['crowd', 'house', 'houses']);
 
   /* --- §3.1 the act table ------------------------------------------------------------
-     One entry per thing a corp can be seen doing. A value may be:
-        a number      flat
-        [lo, hi]      scaled by ctx.scale (0..1) — how much you threw away
-        {per: n}      multiplied by ctx.count, with ctx.famous counted at famousMult
-     A blank means that audience does not care, which is most of the interesting content:
-     your own ships punish losses and the wider fleet barely notices them, and that is the
-     difference between supporters and spectators. */
+     Every act says what it IS, and the audiences decide what they make of it.
+        q        the qualities in it, each -1..1 (blood, craft, glory, grit, care, word)
+        mag      how big it is: a number, [lo, hi] scaled by ctx.scale, or {per: n} by ctx.count
+                 (ctx.famous counted at famousMult)
+        target   felt by the house the act was done to (ctx.targetId), on top of how it watched
+        houses   felt by every house directly — envy of a winner, respect for a gracious word
+        buyer    felt by the house that bought from you (ctx.buyerId)
+        grave    the Diehards feel it in full; ctx.grave marks one case of an act as grave
+        residue  the share never forgotten (R8)
+     ctx.mult (and the older ctx.storyMult) scales the whole act: who it happened to changes how loudly it lands. */
   const ACTS = {
-    won_planet:        { own: 18, rival: -4, fleet: 6, aleas: 4, residue: 0.55 },
-    finished:          { own: { per: 1.6 }, fleet: { per: 0.5 }, residue: 0.15 },
-    ceded:             { own: [-4, -14], fleet: [-5, -18], aleas: 2, buyer: 3, residue: 0.15 },
-    bought_win:        { own: -2, rival: -6, fleet: [-4, -11], aleas: -3, residue: 0.15 },
-    /* §3.1a HOLDING OUT. An OA whose odds fell through the floor and kept fighting is
-       what the crowd came to see; scaled by how hopeless it was and how much fight it gave. */
-    held_out:          { own: [2, 9], fleet: [1, 6], aleas: 1, residue: 0.20 },
-    /* §3.1b WHAT IS LEFT WAITING. An OA that wrote and got no answer noticed; a board that
-       asked and heard nothing took the silence as the answer. */
-    snubbed_letter:    { rival: -4, residue: 0.25 },
-    /* §3.1c WHAT A CAREFUL OA EARNS. Nearly every act that touched an OA's own people
-       took something away — ceding, selling, refusing, silence — and the ones that gave came
-       only from fighting, so a manager who kept his people alive was hated for it. These are
-       what a year of ordinary good management is worth to the crews and the fans. */
-    everyone_came_home: { own: 7, fleet: 2, residue: 0.20 },   // a Divide with no dead
-    few_lost:           { own: 3, residue: 0.20 },             // fewer than the fleet's average
-    paid_the_wages:     { own: 2, residue: 0.30 },             // the books balanced, nobody went short
-    granted_a_raise:    { own: 3, residue: 0.25 },
-    kept_a_debtor:      { own: 4, residue: 0.25 },
-    a_star_rose:        { own: 4, fleet: 5, residue: 0.20 },   // one of yours became famous
-    took_the_purse:     { own: 5, fleet: 4, residue: 0.20 },   // the Dividend
-    the_gate_was_good:  { own: 2, fleet: 2, residue: 0.15 },
-    /* The Eight: the fleet came to see it */
-    won_the_eight:     { own: 4, fleet: 6, aleas: 2, residue: 0.25 },
-    silent_before_board: { own: -3, aleas: -1, residue: 0.20 },
-    refused_all:       { own: 6, rival: -5, fleet: 9, aleas: -4, residue: 0.30 },
-    kept_truce:        { own: 1, rival: 7, fleet: 3, aleas: 1, residue: 0.15 },
-    betrayed:          { own: -25, rival: -60, fleet: -45, aleas: -70, residue: 0.85 },
-    ransomed_home:     { own: 9, rival: 5, fleet: 2, residue: 0.15 },
-    abandoned_ours:    { own: -14, fleet: -3, residue: 0.30 },
-    released_captives: { own: 2, rival: 11, fleet: 6, aleas: 1, residue: 0.15 },
-    killed_captives:   { own: -4, rival: -26, fleet: -16, aleas: -5, residue: 0.85 },
-    /* §6.4 WHAT A PRINCIPAL DID WITH A OA THAT ASKED TO COME IN. Raised on the principal
-       with `targetId` the OA in question, so it is THAT OA's people who remember — and
-       the fleet, which watches how a winner treats the beaten. Side terms at a table whose
-       spine is money and odds; none of these is large. */
-    generous_terms:    { own: -1, rival: 6, fleet: 2, residue: 0.20 },    // and gave it more than it had coming
-    /* §6.10 an arrangement between two OAs whose squads never met this Divide. Teaming up
-       for alliance's sake — not circumstance — is what the Aleas and the fans punish. Raised
-       on both. */
-    kept_captive:      { own: 1, rival: -9, fleet: -2, residue: 0.15 },
-    our_dead:          { own: { per: -0.7 }, fleet: { per: -0.2 }, famousMult: 3, residue: 0.15 },
-    their_dead:        { own: { per: 0.3 }, rival: { per: -0.5 }, fleet: { per: 0.2 },
-                         famousMult: 3, residue: 0.15 },
-    worthy_fight:      { own: 1, rival: 0.5, fleet: 2.5, aleas: 2, residue: 0.15 },
-    hid:               { own: { per: -1 }, fleet: { per: -4 }, aleas: { per: -5 }, residue: 0.15 },
-    last_ground:       { own: 5, rival: 2, fleet: 8, aleas: 7, residue: 0.15 },
-    /* MEDIA DAY, at the seam. Performing before the drop is the one act here that is bought
-       rather than earned — every other entry in this table is a thing that HAPPENED to you or
-       that you did on the ground. So it pays the fleet, which watches everybody, and it pays
-       your own ships a little for the spectacle; it does not touch the Aleas, who are not
-       impressed by press, and it makes rivals' fanbases like you slightly less for showing off.
-       The price is not here, because it is not a reputation price: turning up tells the other
-       seven what you brought. */
-    media_day:         { own: 3, rival: -1, fleet: 6, residue: 0.15 },
-    /* --- THE TRANSFER MARKET, seen from the stands (ruled at the trade pass).
-       Selling somebody is not just paperwork: your own supporters mind, and how much they
-       mind is who you sold. `ctx.count` carries the fighter's FAME, so an unknown moving on
-       is a shrug and a famous one leaving is a wound — the same {per} shape `our_dead`
-       uses. The wider fleet barely looks up; the Aleas do not care at all about who is on
-       whose books.
-
-       And the mirror, which is the part that makes a transfer market feel like one: the
-       SELLING side's supporters warm to whoever took their star. That is `buyer`, the same
-       hook ceding already uses to pay the corp that bought a claim — a rival fanbase can
-       think better of you for giving one of their own a place to be. */
-    sold_away:         { own: { per: -0.22 }, fleet: { per: -0.02 }, buyer: { per: 0.18 },
-                         residue: 0.20 },
-    /* a small flat knock for the fact of it, so trading a nobody is not entirely free */
-    sold_anyone:       { own: -1.5, residue: 0.15 },
-    /* §8.2 the address. One entry per register, so a guard can assert that every register
-       moves at least one audience and none of them is a dead option. */
-    said_gracious:     { rival: 7, fleet: 3, residue: 0.15 },
-    said_defiant:      { own: 6, rival: -3, fleet: 1, residue: 0.15 },
-    said_humble:       { own: 3, fleet: 4, aleas: 3, residue: 0.15 },
-    said_deflecting:   { own: 4, aleas: -8, fleet: -2, residue: 0.15 },
-    said_candid:       { own: -2, fleet: 9, aleas: -4, residue: 0.15 },
-    said_evasive:      { own: -1, rival: -1, fleet: -2, aleas: -1, residue: 0.15 }
+    /* --- the Divide, and its settlement --- */
+    won_planet:         { q: { glory: 1.0 }, mag: 14, houses: -5, residue: 0.55 },       /* ctx.scale adds grit: how unlikely it was */
+    finished:           { q: { glory: 1.0 }, mag: { per: 0.9 }, residue: 0.15 },
+    ceded:              { q: { glory: -1.0, grit: -0.6, care: 0.5 }, mag: [4, 14], buyer: 3, residue: 0.15 },
+    bought_win:         { q: { grit: -1.0, glory: -0.3, word: -0.2 }, mag: [4, 10], target: -6, residue: 0.15 },
+    held_out:           { q: { grit: 1.0, blood: 0.3 }, mag: [3, 10], residue: 0.20 },
+    refused_all:        { q: { grit: 0.8, word: 0.4, blood: 0.3 }, mag: 7, houses: -3, residue: 0.30 },
+    last_ground:        { q: { grit: 0.7, blood: 0.5, glory: 0.5 }, mag: 6, houses: 1, residue: 0.15 },
+    everyone_came_home: { q: { care: 1.0, craft: 0.4 }, mag: 8, residue: 0.20 },
+    few_lost:           { q: { care: 1.0 }, mag: 4, residue: 0.20 },
+    our_dead:           { q: { care: -1.0 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
+    their_dead:         { q: { blood: 1.0 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
+    worthy_fight:       { q: { blood: 0.5, craft: 0.5, grit: 0.3 }, mag: { per: 1.2 }, houses: { per: 0.3 }, residue: 0.15 },
+    hid:                { q: { blood: -1.0, grit: -0.6 }, mag: { per: 1.2 }, houses: { per: -0.5 }, residue: 0.15 },
+    kept_truce:         { q: { word: 1.0 }, mag: 3, target: 8, residue: 0.15 },
+    betrayed:           { q: { word: -1.0 }, mag: 22, target: -45, houses: -8, grave: true, residue: 0.85 },
+    generous_terms:     { q: { word: 0.5 }, mag: 2, target: 6, residue: 0.20 },
+    ransomed_home:      { q: { care: 1.0, word: 0.4 }, mag: 8, target: 4, residue: 0.15 },
+    abandoned_ours:     { q: { care: -1.0, word: -0.5 }, mag: 14, grave: true, residue: 0.30 },
+    released_captives:  { q: { word: 0.6, blood: -0.5, care: 0.3 }, mag: 4, target: 11, residue: 0.15 },
+    killed_captives:    { q: { blood: 0.8, word: -1.0 }, mag: 12, target: -26, houses: -4, grave: true, residue: 0.85 },
+    kept_captive:       { q: { blood: 0.3 }, mag: 2, target: -9, residue: 0.15 },
+    /* --- the year --- */
+    a_star_rose:        { q: { glory: 1.0, blood: 0.3 }, mag: 5, residue: 0.20 },
+    took_the_purse:     { q: { glory: 1.0, craft: 0.5 }, mag: 5, residue: 0.20 },
+    the_gate_was_good:  { q: { glory: 0.6 }, mag: 2, residue: 0.15 },
+    won_the_eight:      { q: { glory: 1.0, blood: 0.5 }, mag: 6, houses: 1, residue: 0.25 },
+    paid_the_wages:     { q: { care: 1.0, word: 0.3 }, mag: 2.5, residue: 0.30 },
+    granted_a_raise:    { q: { care: 1.0 }, mag: 3, residue: 0.25 },
+    kept_a_debtor:      { q: { care: 0.8, word: 0.6 }, mag: 4, residue: 0.25 },
+    silent_before_board:{ q: { word: -1.0 }, mag: 3, residue: 0.20 },
+    snubbed_letter:     { target: -4, residue: 0.25 },
+    media_day:          { q: { glory: 1.0 }, mag: 4, houses: -1, residue: 0.15 },
+    /* --- the market, seen from the stands: ctx.count is the fighter's fame --- */
+    sold_away:          { q: { word: -1.0, care: -0.3 }, mag: { per: 0.2 }, buyer: { per: 0.18 }, residue: 0.20 },   /* ctx.grave for a star */
+    sold_anyone:        { q: { word: -0.5 }, mag: 1.5, residue: 0.15 },
+    /* --- §8.2 the address: one per register, so every register moves somebody --- */
+    said_gracious:      { q: { word: 0.6 }, mag: 3, houses: 4, residue: 0.15 },
+    said_defiant:       { q: { blood: 0.6, grit: 0.5 }, mag: 5, houses: -2, residue: 0.15 },
+    said_humble:        { q: { care: 0.5, word: 0.4 }, mag: 3, houses: 2, residue: 0.15 },
+    said_deflecting:    { q: { glory: 0.3, word: -0.5 }, mag: 3, residue: 0.15 },
+    said_candid:        { q: { word: 0.8, craft: 0.3 }, mag: 4, houses: 3, residue: 0.15 },
+    said_evasive:       { q: { word: -0.4 }, mag: 2, houses: -1, residue: 0.15 },
+    /* --- the dispatches --- */
+    sold_a_fighter:     { q: { word: -0.8, care: -0.3 }, mag: 4, residue: 0.20 },
+    refused_an_offer:   { q: { word: 0.6 }, mag: 2, target: -2, residue: 0.15 },
+    answered_a_slight:  { q: { blood: 0.5, grit: 0.4 }, mag: 3, target: -4, residue: 0.20 },
+    ignored_a_slight:   { q: { grit: -0.5, word: 0.2 }, mag: 2, residue: 0.15 },
+    laughed_off_a_slight:{ q: { glory: 0.3 }, mag: 1, residue: 0.10 },
+    profiled:           { q: { glory: 1.0 }, mag: 2, residue: 0.10 },
+    spoke_well:         { q: { glory: 0.6, word: 0.4 }, mag: 2, houses: 1, residue: 0.10 },
+    owned_it:           { q: { word: 1.0 }, mag: 3, residue: 0.15 },
+    no_comment:         { q: { word: -0.6, glory: -0.3 }, mag: 2, residue: 0.10 },
+    media_cut_against:  { q: { glory: -1.0 }, mag: 3, houses: -2, residue: 0.20 },
+    sent_regrets:       { q: { glory: -0.5 }, mag: 1, houses: -1, residue: 0.05 },
+    petitioned:         { q: { word: 0.4, care: 0.3 }, mag: 1.5, residue: 0.10 }
   };
 
-  const REGISTERS = ['gracious', 'defiant', 'humble', 'deflecting', 'candid', 'evasive'];
-
-  /* §2.6 rival fanbase starting values are GENERATED from the relationships already on file
-     rather than authored a second time, so the eight-by-seven grid cannot drift from the
-     data it is supposed to express. */
+  /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
+     house regards another, at half their written weight. A founded OA has none: it stands at indifference with every
+     house and is judged from the start by seven different tastes (ruled: no preset grudges against a person's seat). */
   const DISPOSITION = {
     kinship: 35, sympathy: 28, respect: 25, dependence: 12, leverage: -5,
     poaching: -12, friction: -15, rivalry: -18, disdain: -22, distrust: -25, hostility: -45
@@ -251,50 +236,84 @@
   function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
 
   /* ================================================================================
-     §2 — the memory, and standing computed from it
+     §2 — the crowd, the houses, the memory
      ================================================================================ */
 
-  /** A corp's persistent record. `profile` is an oa_profiles entry. */
+  /* §2.4 THE STANDS AN OA OPENS WITH. An engine OA's crowd is read from its character: an aggressive OA draws
+     Bloodhounds, a showman Fairweathers, a careful one Tacticians, a thrifty one Families, a traditional one
+     Diehards, and a poor one Underdogs. A founded OA opens balanced, with the Diehards any OA has — and becomes what
+     its record makes it (ruled: off record). */
+  function openingShares(profile, founded) {
+    if (founded) {
+      const s = { diehards: 0.30 };
+      for (const f of FACTIONS) if (f !== 'diehards') s[f] = 0.14;
+      return s;
+    }
+    const d = (profile && profile.dials) || {};
+    const x = k => (d[k] != null ? d[k] : 50) / 100;
+    const diff = ((profile && profile.difficulty) || 3);
+    const raw = {
+      bloodhounds: 0.5 + 1.2 * x('aggression'),
+      tacticians: 0.5 + 0.8 * x('patience') + 0.3 * (1 - x('aggression')),
+      fairweathers: 0.5 + 1.2 * x('showmanship'),
+      underdogs: 0.2 + 0.30 * (diff - 1),
+      families: 0.5 + 0.8 * x('thrift') + 0.3 * (1 - x('treachery')),
+      diehards: 1.0 + 1.0 * x('tradition')
+    };
+    return normShares(raw);
+  }
+  function normShares(raw) {
+    let t = 0; for (const f of FACTIONS) t += Math.max(0, raw[f] || 0);
+    const out = {};
+    for (const f of FACTIONS) out[f] = t ? Math.max(0, raw[f] || 0) / t : 1 / FACTIONS.length;
+    /* the floor, then renormalised */
+    for (const f of FACTIONS) out[f] = Math.max(CONST.SHARE_FLOOR, out[f]);
+    let t2 = 0; for (const f of FACTIONS) t2 += out[f];
+    for (const f of FACTIONS) out[f] /= t2;
+    return out;
+  }
+  /** the taste of a crowd with these shares — what a house built of these stands likes to see */
+  function tasteOfShares(shares) {
+    const t = {};
+    for (const q of QUALITIES) t[q] = 0;
+    for (const f of FACTIONS) for (const q of QUALITIES) t[q] += (shares[f] || 0) * TASTE[f][q];
+    return t;
+  }
+  function tasteOf(rep) { return tasteOfShares(rep.shares); }
+
+  /** an OA founded at the desk (season.founderProfile marks it) */
+  function isFounded(profile) { return !!(profile && (profile.founded || profile.founding === 'lean' || profile.canon_status === 'player-founded')); }
+
+  /** A corp's persistent record. `profile` is an oa_profiles entry; `opts.founded` for a desk-founded OA. */
   function open(profile, allProfiles, opts) {
     opts = opts || {};
-    const rep = profile.reputation || {};
-    /* §2.0 A OA STANDS SOMEWHERE BEFORE IT DOES ANYTHING. The eight carry their standings
-       in their profiles; a corporation built at the desk carried none, so a manager opened at
-       zero on every audience and could only ever go down from there — the whole first career
-       read "nobody has an opinion" and then "your own people hate you". An OA without
-       declared standings is read from its dials: its own people expect what it is (a bloody
-       OA is loved for blood, a thrifty one starts cool with its crews), the fleet knows a
-       showman, the Aleas mistrust the treacherous. */
-    const d = (profile.dials || {});
-    const dial = k => (d[k] != null ? d[k] : 50);
-    const fromDials = {
-      own:   Math.round(10 + dial('showmanship') * 0.35 + dial('aggression') * 0.15 - (100 - dial('thrift')) * 0.10),
-      fleet: Math.round(-5 + dial('showmanship') * 0.30 + dial('tradition') * 0.20 - dial('treachery') * 0.25),
-      aleas: Math.round(15 + dial('tradition') * 0.30 - dial('treachery') * 0.45 + dial('patience') * 0.10)
-    };
-    const base = {
-      own: rep.own != null ? rep.own : fromDials.own,
-      fleet: rep.fleet != null ? rep.fleet : fromDials.fleet,
-      aleas: rep.aleas != null ? rep.aleas : fromDials.aleas,
-      rival: {}
-    };
-    /* how each OTHER corp's supporters feel about this one: their disposition toward us if
-       they have declared one, otherwise a weaker mirror of ours toward them */
+    const founded = !!(opts.founded || isFounded(profile));
+    const shares = openingShares(profile, founded);
+    /* an engine OA's own people start where its profile says they stand, on the new scale */
+    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 4 : 0;
+    const base = { factions: {}, houses: {} };
+    for (const f of FACTIONS) base.factions[f] = own0;
+    const houseTaste = {};
     for (const other of (allProfiles || [])) {
-      if (other.id === profile.id) continue;
+      if (!other || other.id === profile.id) continue;
       let v = 0;
-      const theirs = (other.relationships || []).filter(r => r.with === profile.id)[0];
-      if (theirs) v = DISPOSITION[theirs.disposition] || 0;
-      else {
-        const ours = (profile.relationships || []).filter(r => r.with === other.id)[0];
-        if (ours) v = Math.round((DISPOSITION[ours.disposition] || 0) * 0.5);
+      if (!founded && !isFounded(other)) {
+        const theirs = (other.relationships || []).filter(r => r.with === profile.id)[0];
+        if (theirs) v = (DISPOSITION[theirs.disposition] || 0) / 2;
+        else {
+          const ours = (profile.relationships || []).filter(r => r.with === other.id)[0];
+          if (ours) v = (DISPOSITION[ours.disposition] || 0) / 4;
+        }
       }
-      base.rival[other.id] = v;
+      base.houses[other.id] = v;
+      houseTaste[other.id] = tasteOfShares(openingShares(other, isFounded(other)));
     }
     return {
       corpId: profile.id,
       season: opts.season || 1,
+      shares: shares,
       base: base,
+      houseTaste: houseTaste,           // how each house watches — its own crowd's taste, refreshed each season
       memory: [],                       // remembered acts, §2.1
       patience: (profile.finance && profile.finance.board_patience) || 50,
       calls: 0,                         // §6.5 calls on the board this season
@@ -305,52 +324,71 @@
       history: []                       // { season, placement, won }
     };
   }
-
-  /** §2.1 — standing is COMPUTED, never stored. */
-  function standing(rep, audience, targetId) {
-    let v = audience === 'rival'
-      ? (rep.base.rival[targetId] || 0)
-      : (rep.base[audience] || 0);
-    for (const m of rep.memory) {
-      if (m.a !== audience) continue;
-      if (audience === 'rival' && m.r !== targetId) continue;
-      v += m.v * decay(m, rep.season);
+  /** §2.5 each season the houses are re-read: a house watches with the taste of the stands it has NOW */
+  function setHouseTastes(rep, tastes) {
+    for (const id in tastes) {
+      rep.houseTaste[id] = tastes[id];
+      if (rep.base.houses[id] == null) rep.base.houses[id] = 0;
     }
-    return compress(v);
   }
 
-  /* §2.2 THE LAST POINTS COST THE MOST. The raw sum was clamped, so four OAs of eight sat
-     pinned at the ceiling after three years and the number stopped carrying information. Past
-     SOFT_AT the scale compresses toward the ceiling and never reaches it: the difference
-     between adored and worshipped stays legible, and nothing saturates. */
-  function compress(v) {
-    const soft = CONST.SOFT_AT, ceil = CONST.STANDING_CEIL, floor = CONST.STANDING_FLOOR, k = CONST.SOFT_SCALE;
-    if (v > soft) return Math.min(ceil - 0.5, soft + (ceil - soft) * (1 - Math.exp(-(v - soft) / k)));
-    if (v < -soft) return Math.max(floor + 0.5, -soft - (-floor - soft) * (1 - Math.exp(-(-v - soft) / k)));
+  /* §2.2 THE LAST POINTS COST THE MOST: within SOFT_AT of indifference the scale is linear, and past it compresses
+     toward the ends and never reaches them, so adored and worshipped stay legible and nothing pins. */
+  function soft(v) {
+    const a = CONST.SOFT_AT, span = CONST.STANDING_CEIL - CONST.STANDING_MID - 0.5 - a, k = CONST.SOFT_SCALE;
+    if (v > a) return a + span * (1 - Math.exp(-(v - a) / k));
+    if (v < -a) return -a - span * (1 - Math.exp(-(-v - a) / k));
     return v;
   }
   /** How much of a remembered act is still being felt. Residue never washes off (R8). */
-  function decay(m, season) {
-    const age = Math.max(0, season - m.s);
-    return m.res + (1 - m.res) * Math.pow(0.5, age / m.hl);
+  function decay(m, season, halflife) {
+    const age = Math.max(0, season - m.s), hl = halflife || m.hl || CONST.MEMORY_HALFLIFE;
+    return m.res + (1 - m.res) * Math.pow(0.5, age / hl);
+  }
+  function rawFaction(rep, f) {
+    let v = rep.base.factions[f] || 0;
+    for (const m of rep.memory) if (m.fx && m.fx[f]) v += m.fx[f] * decay(m, rep.season, HALFLIFE[f]);
+    return v;
+  }
+  function rawHouse(rep, id) {
+    let v = rep.base.houses[id] || 0;
+    for (const m of rep.memory) if (m.hx && m.hx[id]) v += m.hx[id] * decay(m, rep.season);
+    return v;
+  }
+  function houseIds(rep) { return Object.keys(rep.base.houses); }
+
+  /**
+   * §2.1 — standing is COMPUTED, never stored. 0..100, 50 indifferent.
+   *   a faction's name   that faction's warmth
+   *   'crowd'            the stands as a whole: each faction's warmth by its share
+   *   'house', id        how that house regards you
+   *   'houses'           the mean of the houses — how the fleet regards you
+   */
+  function standing(rep, audience, targetId) {
+    const mid = CONST.STANDING_MID;
+    if (TASTE[audience]) return mid + soft(rawFaction(rep, audience));
+    if (audience === 'crowd') {
+      let v = 0;
+      for (const f of FACTIONS) v += (rep.shares[f] || 0) * (mid + soft(rawFaction(rep, f)));
+      return v;
+    }
+    if (audience === 'house') return mid + soft(rawHouse(rep, targetId));
+    if (audience === 'houses') {
+      const ids = houseIds(rep);
+      if (!ids.length) return mid;
+      let v = 0; for (const id of ids) v += mid + soft(rawHouse(rep, id));
+      return v / ids.length;
+    }
+    throw new Error('reputation: no such audience ' + audience);
   }
 
   /** Every audience at once, for the board and the viewer. */
-  function readAll(rep, rivalIds) {
-    const out = { own: standing(rep, 'own'), fleet: standing(rep, 'fleet'),
-                  aleas: standing(rep, 'aleas'), rival: {} };
-    for (const id of (rivalIds || Object.keys(rep.base.rival))) {
-      out.rival[id] = standing(rep, 'rival', id);
-    }
+  function readAll(rep) {
+    const out = { crowd: standing(rep, 'crowd'), houses: {}, housesMean: standing(rep, 'houses'),
+                  factions: {}, shares: Object.assign({}, rep.shares) };
+    for (const f of FACTIONS) out.factions[f] = standing(rep, f);
+    for (const id of houseIds(rep)) out.houses[id] = standing(rep, 'house', id);
     return out;
-  }
-
-  /** §2.3 — a fanbase that hates you is a fanbase that watches you. */
-  /* PARKED (ruled): nothing calls this yet — it belongs to the media system, not yet designed */
-  function attention(rep, rivalIds) {
-    let a = 0;
-    for (const id of (rivalIds || Object.keys(rep.base.rival))) a += Math.abs(standing(rep, 'rival', id));
-    return a / Math.max(1, (rivalIds || Object.keys(rep.base.rival)).length);
   }
 
   function resolve(v, ctx) {
@@ -367,90 +405,110 @@
     return 0;
   }
 
+  /** What an act would do to every audience, without doing it: { fx: {faction: v}, hx: {house: v} } */
+  function impact(rep, type, ctx) {
+    ctx = ctx || {};
+    const spec = ACTS[type];
+    if (!spec) throw new Error('reputation: unknown act ' + type);
+    const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
+    const loud = (ctx.storyMult || 1) * (ctx.mult || 1);
+    const mag = resolve(spec.mag, c) * loud;
+    const q = Object.assign({}, spec.q || {});
+    /* a win against the odds is grit as well as glory (ctx.scale: how unlikely it was) */
+    if (type === 'won_planet' && ctx.scale != null) q.grit = (q.grit || 0) + clamp(ctx.scale, 0, 1);
+    const grave = !!(spec.grave || ctx.grave);
+    const fx = {}, hx = {};
+    for (const f of FACTIONS) {
+      let v = 0;
+      for (const k in q) v += (TASTE[f][k] || 0) * q[k] * mag;
+      if (f === 'diehards') v *= grave ? CONST.DIEHARD_GRAVE : CONST.DIEHARD_DAMP;
+      if (v) fx[f] = v;
+    }
+    const direct = resolve(spec.houses, c) * loud;
+    for (const id of houseIds(rep)) {
+      const t = rep.houseTaste[id] || tasteOfShares(normShares({}));
+      let v = 0;
+      for (const k in q) v += (t[k] || 0) * q[k] * mag;
+      v = v * CONST.HOUSE_SPECTATE + direct;
+      if (v) hx[id] = v;
+    }
+    if (spec.target != null && ctx.targetId && rep.base.houses[ctx.targetId] != null)
+      hx[ctx.targetId] = (hx[ctx.targetId] || 0) + resolve(spec.target, c) * loud;
+    if (spec.buyer != null && ctx.buyerId && rep.base.houses[ctx.buyerId] != null)
+      hx[ctx.buyerId] = (hx[ctx.buyerId] || 0) + resolve(spec.buyer, c) * loud;
+    return { fx, hx, grave };
+  }
+  /** the change to the crowd as a whole and to the houses' mean that `impact` amounts to — for a preview */
+  function impactSummary(rep, im) {
+    let crowd = 0; for (const f in im.fx) crowd += (rep.shares[f] || 0) * im.fx[f];
+    const ids = houseIds(rep); let houses = 0; for (const id in im.hx) houses += im.hx[id];
+    return { crowd: crowd, houses: ids.length ? houses / ids.length : 0 };
+  }
+
   /**
-   * §3 — a corp is seen doing something. Pushes remembered acts onto the audiences that
-   * care and returns what moved, so the day loop and the viewer can show the reason
-   * alongside the number.
-   *
-   * ctx: { targetId, count, famous, scale, buyerId, rivalIds, season }
+   * §3 — a corp is seen doing something. Remembers what each audience made of it and returns what moved, so the
+   * day loop and the viewer can show the reason beside the number.
+   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, storyMult, season }
    */
   function act(rep, type, ctx) {
     ctx = ctx || {};
     const spec = ACTS[type];
-    if (!spec) throw new Error('reputation: unknown act ' + type);
-    /* §STORY WHO IT HAPPENED TO CHANGES HOW LOUDLY IT LANDS. Six trait hooks — a soundbite
-       machine, a villain edit, a blame magnet, a company family's dead — all wanted the same
-       thing, and the first design for it was a press system with named subjects. There is no
-       need: an act already carries a subject through `ctx`, and the whole swing is computed in
-       one place. The subject's own traits scale it, and that is the whole mechanism.
-       `ctx.storyMult` is set by whoever raises the act, from the hooks that hand carries. */
-    const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
-    const story = ctx.storyMult || 1;
+    const im = impact(rep, type, ctx);
     const season = ctx.season != null ? ctx.season : rep.season;
-    const moved = [];
-    const push = (audience, targetId, value) => {
-      value = value * story;
-      if (!value) return;
-      const headline = Math.abs(value) >= CONST.HEADLINE_AT;
-      rep.memory.push({
-        s: season, t: type, a: audience, r: targetId || null, v: value,
-        res: spec.residue, hl: headline ? CONST.MEMORY_HALFLIFE * 2 : CONST.MEMORY_HALFLIFE,
-        h: headline
-      });
-      moved.push({ audience: audience, target: targetId || null, by: value, headline: headline });
-    };
-    push('own', null, resolve(spec.own, c));
-    push('fleet', null, resolve(spec.fleet, c));
-    push('aleas', null, resolve(spec.aleas, c));
-    if (spec.rival != null) {
-      const v = resolve(spec.rival, c);
-      if (ctx.targetId) push('rival', ctx.targetId, v);
-      else for (const id of (ctx.rivalIds || Object.keys(rep.base.rival))) push('rival', id, v);
-    }
-    /* §3.1 — ceding pays the buyer's supporters, who are pleased to have you */
-    if (spec.buyer != null && ctx.buyerId) push('rival', ctx.buyerId, resolve(spec.buyer, c));
+    let peak = 0;
+    for (const f in im.fx) peak = Math.max(peak, Math.abs(im.fx[f]));
+    for (const id in im.hx) peak = Math.max(peak, Math.abs(im.hx[id]));
+    if (!peak) return [];
+    const headline = peak >= CONST.HEADLINE_AT;
+    rep.memory.push({ s: season, t: type, fx: im.fx, hx: im.hx, res: spec.residue,
+                      hl: headline ? CONST.MEMORY_HALFLIFE * 2 : CONST.MEMORY_HALFLIFE, h: headline, g: im.grave || undefined });
     foldTail(rep);
+    const sum = impactSummary(rep, im);
+    const moved = [];
+    for (const f in im.fx) moved.push({ audience: f, target: null, by: im.fx[f], headline: headline });
+    for (const id in im.hx) moved.push({ audience: 'house', target: id, by: im.hx[id], headline: headline });
+    moved.crowd = sum.crowd; moved.houses = sum.houses;
     return moved;
   }
 
   /**
-   * §2.1 — past MEMORY_CAP acts for one audience the oldest are collapsed into the base at
-   * their present value, so a save file does not grow without bound and a corp with a
-   * century of history is not carrying a century of list.
+   * §2.1 — past MEMORY_CAP acts the oldest are folded into the base at their present value, so a save file does not
+   * grow without bound and a century of history is not a century of list.
    */
   function foldTail(rep) {
-    const buckets = {};
-    for (const m of rep.memory) {
-      const k = m.a === 'rival' ? 'rival:' + m.r : m.a;
-      (buckets[k] || (buckets[k] = [])).push(m);
+    if (rep.memory.length <= CONST.MEMORY_CAP) return;
+    rep.memory.sort((a, b) => a.s - b.s);
+    const excess = rep.memory.splice(0, rep.memory.length - CONST.MEMORY_CAP);
+    for (const m of excess) {
+      for (const f in (m.fx || {})) rep.base.factions[f] = (rep.base.factions[f] || 0) + m.fx[f] * decay(m, rep.season, HALFLIFE[f]);
+      for (const id in (m.hx || {})) rep.base.houses[id] = (rep.base.houses[id] || 0) + m.hx[id] * decay(m, rep.season);
     }
-    let folded = false;
-    for (const k in buckets) {
-      const list = buckets[k];
-      if (list.length <= CONST.MEMORY_CAP) continue;
-      list.sort((a, b) => a.s - b.s);
-      const excess = list.slice(0, list.length - CONST.MEMORY_CAP);
-      for (const m of excess) {
-        const v = m.v * decay(m, rep.season);
-        if (m.a === 'rival') rep.base.rival[m.r] = (rep.base.rival[m.r] || 0) + v;
-        else rep.base[m.a] = (rep.base[m.a] || 0) + v;
-        m._folded = true;
-        folded = true;
-      }
-    }
-    if (folded) rep.memory = rep.memory.filter(m => !m._folded);
   }
 
-  /** What an audience remembers, most recent and heaviest first — for the viewer. */
+  /** What an audience remembers, heaviest first — for the viewer. `audience` a faction, or 'house' with an id. */
   function why(rep, audience, targetId, limit) {
     const out = [];
     for (const m of rep.memory) {
-      if (m.a !== audience) continue;
-      if (audience === 'rival' && m.r !== targetId) continue;
-      out.push({ season: m.s, act: m.t, at: m.v, now: m.v * decay(m, rep.season), headline: m.h });
+      const v = audience === 'house' ? (m.hx || {})[targetId] : (m.fx || {})[audience];
+      if (!v) continue;
+      const hl = audience === 'house' ? null : HALFLIFE[audience];
+      out.push({ season: m.s, act: m.t, at: v, now: v * decay(m, rep.season, hl), headline: m.h });
     }
     out.sort((a, b) => Math.abs(b.now) - Math.abs(a.now) || b.season - a.season);
     return limit ? out.slice(0, limit) : out;
+  }
+
+  /* §2.4 THE STANDS FOLLOW THE SHOW. Each season the shares move toward the factions that are warm and away from the
+     cold ones — the Diehards barely — so an OA that feeds blood for three years has Bloodhounds in its stands. */
+  function shiftShares(rep) {
+    const raw = {};
+    for (const f of FACTIONS) {
+      const w = (standing(rep, f) - CONST.STANDING_MID) / CONST.STANDING_MID;
+      const k = CONST.SHARE_SHIFT * (f === 'diehards' ? 0.25 : 1);
+      raw[f] = (rep.shares[f] || 0) * Math.max(0.2, 1 + k * w);
+    }
+    rep.shares = normShares(raw);
+    return rep.shares;
   }
 
   /* ================================================================================
@@ -596,7 +654,7 @@
       } });
       break;                                    /* one, not one per shortage */
     }
-    const standingNow = standing(rep, 'fleet');
+    const standingNow = standing(rep, 'houses');
     /* THE CARD SCALES WITH WHERE THE CORP STANDS NOW, not only with what it was born as.
        `opts.expect` is the profile's anchor — what this board would ask of a corp at even
        standing. What it actually asks moves with the patience already banked: a board that
@@ -623,13 +681,13 @@
        than it did; the verdict cuts below are anchored to a score distribution that this
        moves, and want re-measuring. */
     pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
-    pool.push({ weight: standingNow < 10 ? 1.6 : 0.8,
-                demand: { kind: 'standing', audience: 'fleet',
-                          above: Math.round(standingNow + 3) } });
+    pool.push({ weight: standingNow < 50 ? 1.6 : 0.8,
+                demand: { kind: 'standing', audience: 'houses',
+                          above: Math.round(Math.min(90, standingNow + 3)) } });
     /* two more that a corp of any size can actually satisfy, so a card is a spread of
        achievable asks rather than a list of long shots */
-    pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'own',
-                                       above: Math.round(standing(rep, 'own') - 4) } });
+    pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'crowd',
+                                       above: Math.round(Math.min(90, standing(rep, 'crowd') - 2)) } });
 
     /* One demand per KIND. The first version padded a thin card with a second `losses` and a
        second `standing` entry, and boards duly asked for "no more than 13 of ours" and "no
@@ -701,8 +759,7 @@
       return Math.max(-1, Math.min(1, (CONST.CARE_NEUTRAL_LOSS - r) / CONST.CARE_NEUTRAL_LOSS));
     }
     if (s.kind === 'popularity') {
-      /* what the crowd thought of the OA this year: its own people and the fleet's,
-         against what a board takes for granted */
+      /* what the crowd thought of the OA this year (0..100), against what a board takes for granted */
       const v = outcome.popularity != null ? outcome.popularity : (s.expected || 0);
       return Math.max(-1, Math.min(1, (v - (s.expected || 0)) / CONST.POPULARITY_SPAN));
     }
@@ -810,8 +867,8 @@
       delta *= (1 - CONST.EASY_CARD_DISCOUNT * ease);
     }
     if (delta < 0) {
-      /* a manager the ships love is hard to sack for the same result */
-      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'own')) / CONST.STANDING_CEIL);
+      /* a manager the crowd loves is hard to sack for the same result */
+      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
     }
     rep.patience = clamp(rep.patience + delta, CONST.PATIENCE_FLOOR, CONST.PATIENCE_CEIL);
     return { delta: Math.round(delta * 10) / 10, band: band, patience: rep.patience };
@@ -856,72 +913,6 @@
     const m = fleetMean > 0 ? fleetMean : 1;
     const idx = mercIndex(rep);
     return clamp(1 + CONST.MERC_PRICE_SWING * (idx - m) / m, 0.6, 1.8);
-  }
-
-  /* ================================================================================
-     §10 — the premium and the wall
-     ================================================================================
-     THE DELETED CONSTANTS LIVED HERE. There is deliberately no credit figure anywhere in
-     this section. What a corp computes is how much standing an act costs it, how much
-     standing it can currently afford to lose, and the ratio between the two. The ratio
-     multiplies an asking price and, past UGLY_WALL, ends the conversation.
-     ================================================================================ */
-
-  /**
-   * How much this act would hurt, in standing points, weighted by what THIS corp cares
-   * about. No new personality data: showmanship weights the wider fleet, tradition weights
-   * the rival fanbases and the Aleas, and a corp low on patience weights its own ships
-   * heavily because they are what is keeping it employed.
-   */
-  function damageOf(rep, type, ctx, dials) {
-    const spec = ACTS[type];
-    if (!spec) throw new Error('reputation: unknown act ' + type);
-    const c = Object.assign({}, ctx || {}, { famousMult: spec.famousMult || 1 });
-    const show = (dials && dials.showmanship || 50) / 100;
-    const trad = (dials && dials.tradition || 50) / 100;
-    const desperate = 1 - rep.patience / CONST.PATIENCE_CEIL;
-    const w = {
-      own: 0.7 + 0.8 * desperate,
-      fleet: 0.6 + 0.9 * show,
-      aleas: 0.5 + 0.7 * trad,
-      rival: 0.4 + 0.6 * trad
-    };
-    let d = 0;
-    d += w.own * Math.min(0, resolve(spec.own, c));
-    d += w.fleet * Math.min(0, resolve(spec.fleet, c));
-    d += w.aleas * Math.min(0, resolve(spec.aleas, c));
-    d += w.rival * Math.min(0, resolve(spec.rival, c));
-    return -d;                          // positive is bad
-  }
-
-  /** How much ugliness this corp can currently afford. */
-  function tolerance(rep, dials, goalAtRisk) {
-    const show = (dials && dials.showmanship || 50) / 100;
-    const risk = clamp(goalAtRisk == null ? 0 : goalAtRisk, 0, 1);
-    return CONST.TOLERANCE_BASE
-         * (0.35 + 0.90 * rep.patience / CONST.PATIENCE_CEIL)
-         * (0.75 + 0.50 * Math.max(0, standing(rep, 'own')) / CONST.STANDING_CEIL)
-         * (1.25 - 0.50 * show)
-         * (1 + 0.35 * risk);           // a card already blown is a card you stop guarding
-  }
-
-  /**
-   * The whole of what replaces the exchange rate. `premium` multiplies what a corp asks
-   * for; `wall` ends the conversation. A corp whose board has been happy for three years
-   * takes an ugly deal cheaply; one on its last warning fights a battle it expects to lose
-   * rather than take the same deal — same numbers on the table, different answer.
-   */
-  function priceOfBeingSeen(rep, type, ctx, dials, goalAtRisk) {
-    const damage = damageOf(rep, type, ctx, dials);
-    const tol = Math.max(0.5, tolerance(rep, dials, goalAtRisk));
-    const ratio = damage / tol;
-    return {
-      damage: damage,
-      tolerance: tol,
-      ratio: ratio,
-      wall: ratio > CONST.UGLY_WALL,
-      premium: 1 + (CONST.UGLY_PREMIUM_MAX - 1) * Math.min(1, ratio / CONST.UGLY_WALL)
-    };
   }
 
   /* ================================================================================
@@ -982,25 +973,7 @@
     if (h.has('fame_gain_down')) amp *= 0.6;
     /* fame carries a statement further: the fleet hears a name it knows */
     if (sp) amp *= 1 + 0.5 * ((sp.fame || 0) / CONST.FAME_CEIL);
-    const spec = ACTS[type];
-    const moved = [];
-    const season = ctx.season != null ? ctx.season : rep.season;
-    const push = (audience, targetId, v) => {
-      if (!v) return;
-      const value = v * amp;
-      rep.memory.push({ s: season, t: type, a: audience, r: targetId || null, v: value,
-                        res: spec.residue, hl: CONST.MEMORY_HALFLIFE,
-                        h: Math.abs(value) >= CONST.HEADLINE_AT });
-      moved.push({ audience: audience, target: targetId || null, by: value });
-    };
-    push('own', null, spec.own);
-    push('fleet', null, spec.fleet);
-    push('aleas', null, spec.aleas);
-    if (spec.rival != null) {
-      if (ctx.targetId) push('rival', ctx.targetId, spec.rival);
-      else for (const id of (ctx.rivalIds || Object.keys(rep.base.rival))) push('rival', id, spec.rival);
-    }
-    foldTail(rep);
+    const moved = act(rep, type, { mult: amp, targetId: ctx.targetId, season: ctx.season });
     return { register: register, amplified: amp, moved: moved };
   }
 
@@ -1012,12 +985,8 @@
    */
   function addressOptions(rep, outcome) {
     return REGISTERS.map(function (r) {
-      const spec = ACTS['said_' + r];
-      return {
-        register: r,
-        moves: { own: spec.own || 0, rival: spec.rival || 0,
-                 fleet: spec.fleet || 0, aleas: spec.aleas || 0 }
-      };
+      const sum = impactSummary(rep, impact(rep, 'said_' + r, {}));
+      return { register: r, moves: { crowd: sum.crowd, houses: sum.houses } };
     });
   }
 
@@ -1044,16 +1013,15 @@
     rep._drainedThisYear = true;
   }
   function drift(rep) {
-    /* THE RESTING PLACE IS WHERE A OA STARTED. The first cut of this pulled the base
-       toward the CURRENT standing, which is a ratchet, not a drift: every good year became
-       permanent. What drifts is the memory — each season the accumulated feeling loses a
-       share of itself, so an old triumph stops carrying an OA for ever and an old disgrace
-       stops damning it, while the OA's own nature (the base) stays what it always was. */
-    rep.origin = rep.origin || { own: rep.base.own, fleet: rep.base.fleet, aleas: rep.base.aleas };
-    for (const a of ['own', 'fleet', 'aleas']) rep.base[a] = rep.origin[a];
-    for (const m of rep.memory) m.v *= (1 - CONST.DRIFT);
+    /* THE RESTING PLACE IS WHERE AN OA STARTED: what drifts is the memory — each season the accumulated feeling loses a
+       share of itself, so an old triumph stops carrying an OA for ever and an old disgrace stops damning it */
+    for (const m of rep.memory) {
+      for (const f in (m.fx || {})) m.fx[f] *= (1 - CONST.DRIFT);
+      for (const id in (m.hx || {})) m.hx[id] *= (1 - CONST.DRIFT);
+    }
   }
   function closeSeason(rep, outcome) {
+    shiftShares(rep);                  /* the stands follow the show, before the year's feeling fades */
     drift(rep);
     const score = scoreGoal(rep, outcome || {});
     const moved = movePatience(rep, score);
@@ -1067,13 +1035,13 @@
   }
 
   const api = {
-    CONST, ACTS, AUDIENCES, CATEGORIES, REGISTERS, DISPOSITION,
-    open, standing, readAll, attention, act, why, decay, foldTail, compress, drift, drainHolds,
+    CONST, ACTS, AUDIENCES, FACTIONS, QUALITIES, TASTE, HALFLIFE, CATEGORIES, REGISTERS, DISPOSITION,
+    open, standing, readAll, act, impact, impactSummary, why, decay, foldTail, soft, drift, drainHolds,
+    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares,
     fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,
     drainHolds, fillHolds, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
     recordCasualties, mercIndex, mercPriceMult,
-    damageOf, tolerance, priceOfBeingSeen,
     QUESTIONS, question, address, addressOptions, standingScore,
     openSeason, closeSeason
   };

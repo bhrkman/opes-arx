@@ -286,7 +286,7 @@
         const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
         const fleetStanding = id => {
           const rep = corps[id].rep;
-          return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+          return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
         };
         for (const id of ids) {
           const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
@@ -320,7 +320,7 @@
       const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
       const fleetStanding = id => {
         const rep = corps[id].rep;
-        return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+        return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
       };
       for (const id of ids) {
         const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
