@@ -1802,6 +1802,7 @@
       settleWounds(f);
     }
     tally.mended += mended;
+    if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
     if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
@@ -4427,6 +4428,9 @@
            their units), so a save at the drop — which the page never made, and a resumable contest must — crashed on
            it; the record is history, and it rides as plain data */
         bastille: state.bastille, bids: state.bids, rec: toPlain(state.rec), drop: state.drop,
+        /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
+           them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
+        events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -4491,6 +4495,7 @@
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
       drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
+      events: o.events || {}, fleet: o.fleet || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
@@ -4501,7 +4506,7 @@
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
        lock can resolve it from the restored courting. */
-    state.sponsorBoard = SPON.openBoard(SPON.houseIds());
+    state.sponsorBoard = o.sponsorBoard || SPON.openBoard(SPON.houseIds());   /* the year's signings stand */
     if (!o.lotSpent) ensureLot(state);
     return { corps: corps, state: state };
   }

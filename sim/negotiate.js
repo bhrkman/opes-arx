@@ -338,10 +338,6 @@
   /* §5.3 valuation, §6 the table                                        */
   /* ------------------------------------------------------------------ */
 
-  /* Step 7 telemetry. MIN_ASK_FRAC is a floor, and a floor that never binds is a constant
-     wired to a condition that never becomes true — the exact fault the Step 6 audit found
-     nine times. A guard asserts this counter is non-zero. */
-  const TELEMETRY = { floorBinds: 0, valuations: 0, wallsSeller: 0, wallsBuyer: 0 };
 
   const dial = (c, k) => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
 
@@ -909,7 +905,7 @@
 
   const api = {
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard, priceModifier, relationship, TELEMETRY, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
+    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
     wantOf, settleHaul,
     ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     settle

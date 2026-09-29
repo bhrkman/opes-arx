@@ -49,8 +49,9 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
-    CROWD_WARM: 66,              // [C] §STANDING the crowd's warmth at which it starts bringing things to the airlock
-    CROWD_COLD: 42,              // [C] and at which it starts bringing trouble (below the fleet's bottom tenth, measured: p10 56, median 66)
+    CROWD_WARM: 66,              // [C] §STANDING a faction's warmth at which it starts bringing things to the airlock
+    CROWD_COLD: 40,              // [C] and at which it starts bringing trouble (the faction that feels it: Cold on the one scale)
+    CROWD_FACTION_SHARE: 0.10,   // [C] a faction with less of the stands than this brings nothing to the airlock
     DONATION_PER_POINT: 600,     // [C] a collection, per point of warmth over indifference
     STRIKE_PER_HEAD: 400,        // [C] what it costs a head to end a strike
     LEAK_HUNT: 3000,             // [C] what finding a leak costs
@@ -381,13 +382,18 @@
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
+  /* the faction that feels it: warm or cold past the mark, and enough of the stands to matter */
+  const facAt = (c, f) => (c.rep && (c.rep.shares[f] || 0) >= CONST.CROWD_FACTION_SHARE ? REP.standing(c.rep, f) : 50);
+  const warmOf = (c, fs) => fs.filter(f => facAt(c, f) >= CONST.CROWD_WARM)[0] || null;
+  const coldOf = (c, fs) => fs.filter(f => facAt(c, f) <= CONST.CROWD_COLD)[0] || null;
+  const FNAME = { bloodhounds: 'Bloodhounds', tacticians: 'Tacticians', fairweathers: 'Fairweathers', underdogs: 'Underdogs', families: 'Families', diehards: 'Diehards' };
   POOL.push(
     {
       id: 'donation', weight: 1.0,
-      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && !ctx.corpFlags(c)['donation' + ctx.season] ? true : null,
-      make: (x, c) => { const amt = Math.round((crowdOf(c) - 50) * CONST.DONATION_PER_POINT / 100) * 100;
-        return { kind: 'donation', amount: amt, title: 'The Stands Pass the Hat',
-          text: 'Your supporters have taken a collection for the OA, and want to hand it over in person.',
+      when: (c, ctx) => !ctx.corpFlags(c)['donation' + ctx.season] ? warmOf(c, ['families', 'diehards']) : null,
+      make: (f, c) => { const amt = Math.max(1000, Math.round((facAt(c, f) - 50) * CONST.DONATION_PER_POINT / 100) * 100);
+        return { kind: 'donation', amount: amt, faction: f, title: 'The Stands Pass the Hat',
+          text: 'Your ' + FNAME[f] + ' have taken a collection for the OA, and want to hand it over in person.',
           options: [
             { id: 'take', label: 'Take It', cost: '+' + fmtCr(amt) },
             { id: 'families', label: 'Give It to the Families of the Dead', cost: 'Nothing to the Books \u00b7 the Families and Diehards Remember' }
@@ -403,9 +409,9 @@
     },
     {
       id: 'tip', weight: 0.8,
-      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      when: (c, ctx) => warmOf(c, ['tacticians']) && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
       make: (from) => ({ kind: 'tip', from: from, title: 'A Supporter With a Rival\u2019s Papers',
-        text: 'Somebody on a rival\u2019s ship is a supporter of yours, and has copied what their squads are drilling.',
+        text: 'One of your Tacticians crews on a rival\u2019s ship, and has copied what their squads are drilling.',
         options: [
           { id: 'read', label: 'Read Them', cost: 'A Dossier on That OA \u00b7 That House Cools If It Hears' },
           { id: 'return', label: 'Send Them Back Unread', cost: 'That House Warms \u00b7 the Diehards Approve' }
@@ -421,9 +427,9 @@
     },
     {
       id: 'protest', weight: 1.1,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && !ctx.corpFlags(c)['protest' + ctx.season] ? true : null,
-      make: () => ({ kind: 'protest', title: 'They Are Booing at the Gate',
-        text: 'Your own supporters are outside the gate, and they want the manager.',
+      when: (c, ctx) => !ctx.corpFlags(c)['protest' + ctx.season] ? coldOf(c, ['diehards', 'fairweathers']) : null,
+      make: (f) => ({ kind: 'protest', faction: f, title: 'They Are Booing at the Gate',
+        text: 'Your ' + FNAME[f] + ' are outside the gate, and they want the manager.',
         options: [
           { id: 'meet', label: 'Go Out to Them', cost: 'Patience \u22122 \u00b7 the Crowd Warms a Little' },
           { id: 'shut', label: 'Shut the Gate', cost: 'No Gate This Month \u00b7 the Diehards Mind' },
@@ -439,10 +445,10 @@
     },
     {
       id: 'strike', weight: 0.9,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      when: (c, ctx) => coldOf(c, ['families']) && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
       make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
         return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
-          text: 'Your people have heard what the stands think of the OA, and have stopped drilling until somebody pays them to start.',
+          text: 'Your people have heard what their Families think of the OA, and have stopped drilling until somebody pays them to start.',
           options: [
             { id: 'pay', label: 'Pay Them Back to Work', cost: '\u2212' + fmtCr(bill) },
             { id: 'wait', label: 'Let Them Sit', cost: 'No Drill This Month' }
@@ -457,7 +463,7 @@
     },
     {
       id: 'leak', weight: 0.8,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      when: (c, ctx) => coldOf(c, ['underdogs', 'families']) && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
       make: (to) => ({ kind: 'leak', to: to, title: 'Somebody Is Talking',
         text: 'A disgruntled hand has been seen drinking with a rival\u2019s crew, and what your squads are drilling is going with them.',
         options: [

@@ -11443,6 +11443,7 @@
     SOFT_AT: 25,                        // [C] §2.2 past this far from indifference the scale compresses: the last
     SOFT_SCALE: 30,                     //     points cost the most, and nothing pins at the ends
     DRIFT: 0.22,                        // [C] §2.3 the share of what is felt that fades each season
+    MONTHLY_FADE: 0.025,                // [C] §2.3 and what fades each month: a crowd has to be fed, or it cools back toward indifference
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
@@ -11587,8 +11588,8 @@
     last_ground:        { q: { grit: 0.7, blood: 0.5, glory: 0.5 }, mag: 6, houses: 1, residue: 0.15 },
     everyone_came_home: { q: { care: 1.0, craft: 0.4 }, mag: 8, residue: 0.20 },
     few_lost:           { q: { care: 1.0 }, mag: 4, residue: 0.20 },
-    our_dead:           { q: { care: -1.0 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
-    their_dead:         { q: { blood: 1.0 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
+    our_dead:           { q: { care: -1.0, craft: -0.35, glory: -0.25 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
+    their_dead:         { q: { blood: 1.0, craft: 0.2, glory: 0.25 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
     worthy_fight:       { q: { blood: 0.5, craft: 0.5, grit: 0.3 }, mag: { per: 1.2 }, houses: { per: 0.3 }, residue: 0.15 },
     hid:                { q: { blood: -1.0, grit: -0.6 }, mag: { per: 1.2 }, houses: { per: -0.5 }, residue: 0.15 },
     kept_truce:         { q: { word: 1.0 }, mag: 3, target: 8, residue: 0.15 },
@@ -11728,7 +11729,7 @@
     const founded = !!(opts.founded || isFounded(profile));
     const shares = openingShares(profile, founded);
     /* an engine OA's own people start where its profile says they stand, on the new scale */
-    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 4 : 0;
+    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 8 : 0;
     const base = { factions: {}, houses: {} };
     for (const f of FACTIONS) base.factions[f] = own0;
     const houseTaste = {};
@@ -12458,6 +12459,14 @@
       for (const id in (m.hx || {})) m.hx[id] *= (1 - CONST.DRIFT);
     }
   }
+  /** §2.3 a month passes: every feeling fades a little, so warmth is what an OA has done lately */
+  function fade(rep) {
+    const k = 1 - CONST.MONTHLY_FADE;
+    for (const m of rep.memory) {
+      for (const f in (m.fx || {})) m.fx[f] *= k;
+      for (const id in (m.hx || {})) m.hx[id] *= k;
+    }
+  }
   function closeSeason(rep, outcome) {
     shiftShares(rep);                  /* the stands follow the show, before the year's feeling fades */
     drift(rep);
@@ -12475,7 +12484,7 @@
   const api = {
     CONST, ACTS, AUDIENCES, FACTIONS, QUALITIES, TASTE, HALFLIFE, CATEGORIES, REGISTERS, DISPOSITION,
     open, standing, readAll, act, impact, impactSummary, why, decay, foldTail, soft, drift, drainHolds,
-    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares,
+    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares, fade,
     fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,
     drainHolds, fillHolds, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
@@ -12539,8 +12548,9 @@
        is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
        hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
     MEDIA_MONTH: 11,             // [S]
-    CROWD_WARM: 66,              // [C] §STANDING the crowd's warmth at which it starts bringing things to the airlock
-    CROWD_COLD: 42,              // [C] and at which it starts bringing trouble (below the fleet's bottom tenth, measured: p10 56, median 66)
+    CROWD_WARM: 66,              // [C] §STANDING a faction's warmth at which it starts bringing things to the airlock
+    CROWD_COLD: 40,              // [C] and at which it starts bringing trouble (the faction that feels it: Cold on the one scale)
+    CROWD_FACTION_SHARE: 0.10,   // [C] a faction with less of the stands than this brings nothing to the airlock
     DONATION_PER_POINT: 600,     // [C] a collection, per point of warmth over indifference
     STRIKE_PER_HEAD: 400,        // [C] what it costs a head to end a strike
     LEAK_HUNT: 3000,             // [C] what finding a leak costs
@@ -12871,13 +12881,18 @@
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
+  /* the faction that feels it: warm or cold past the mark, and enough of the stands to matter */
+  const facAt = (c, f) => (c.rep && (c.rep.shares[f] || 0) >= CONST.CROWD_FACTION_SHARE ? REP.standing(c.rep, f) : 50);
+  const warmOf = (c, fs) => fs.filter(f => facAt(c, f) >= CONST.CROWD_WARM)[0] || null;
+  const coldOf = (c, fs) => fs.filter(f => facAt(c, f) <= CONST.CROWD_COLD)[0] || null;
+  const FNAME = { bloodhounds: 'Bloodhounds', tacticians: 'Tacticians', fairweathers: 'Fairweathers', underdogs: 'Underdogs', families: 'Families', diehards: 'Diehards' };
   POOL.push(
     {
       id: 'donation', weight: 1.0,
-      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && !ctx.corpFlags(c)['donation' + ctx.season] ? true : null,
-      make: (x, c) => { const amt = Math.round((crowdOf(c) - 50) * CONST.DONATION_PER_POINT / 100) * 100;
-        return { kind: 'donation', amount: amt, title: 'The Stands Pass the Hat',
-          text: 'Your supporters have taken a collection for the OA, and want to hand it over in person.',
+      when: (c, ctx) => !ctx.corpFlags(c)['donation' + ctx.season] ? warmOf(c, ['families', 'diehards']) : null,
+      make: (f, c) => { const amt = Math.max(1000, Math.round((facAt(c, f) - 50) * CONST.DONATION_PER_POINT / 100) * 100);
+        return { kind: 'donation', amount: amt, faction: f, title: 'The Stands Pass the Hat',
+          text: 'Your ' + FNAME[f] + ' have taken a collection for the OA, and want to hand it over in person.',
           options: [
             { id: 'take', label: 'Take It', cost: '+' + fmtCr(amt) },
             { id: 'families', label: 'Give It to the Families of the Dead', cost: 'Nothing to the Books \u00b7 the Families and Diehards Remember' }
@@ -12893,9 +12908,9 @@
     },
     {
       id: 'tip', weight: 0.8,
-      when: (c, ctx) => crowdOf(c) >= CONST.CROWD_WARM && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      when: (c, ctx) => warmOf(c, ['tacticians']) && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
       make: (from) => ({ kind: 'tip', from: from, title: 'A Supporter With a Rival\u2019s Papers',
-        text: 'Somebody on a rival\u2019s ship is a supporter of yours, and has copied what their squads are drilling.',
+        text: 'One of your Tacticians crews on a rival\u2019s ship, and has copied what their squads are drilling.',
         options: [
           { id: 'read', label: 'Read Them', cost: 'A Dossier on That OA \u00b7 That House Cools If It Hears' },
           { id: 'return', label: 'Send Them Back Unread', cost: 'That House Warms \u00b7 the Diehards Approve' }
@@ -12911,9 +12926,9 @@
     },
     {
       id: 'protest', weight: 1.1,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && !ctx.corpFlags(c)['protest' + ctx.season] ? true : null,
-      make: () => ({ kind: 'protest', title: 'They Are Booing at the Gate',
-        text: 'Your own supporters are outside the gate, and they want the manager.',
+      when: (c, ctx) => !ctx.corpFlags(c)['protest' + ctx.season] ? coldOf(c, ['diehards', 'fairweathers']) : null,
+      make: (f) => ({ kind: 'protest', faction: f, title: 'They Are Booing at the Gate',
+        text: 'Your ' + FNAME[f] + ' are outside the gate, and they want the manager.',
         options: [
           { id: 'meet', label: 'Go Out to Them', cost: 'Patience \u22122 \u00b7 the Crowd Warms a Little' },
           { id: 'shut', label: 'Shut the Gate', cost: 'No Gate This Month \u00b7 the Diehards Mind' },
@@ -12929,10 +12944,10 @@
     },
     {
       id: 'strike', weight: 0.9,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      when: (c, ctx) => coldOf(c, ['families']) && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
       make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
         return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
-          text: 'Your people have heard what the stands think of the OA, and have stopped drilling until somebody pays them to start.',
+          text: 'Your people have heard what their Families think of the OA, and have stopped drilling until somebody pays them to start.',
           options: [
             { id: 'pay', label: 'Pay Them Back to Work', cost: '\u2212' + fmtCr(bill) },
             { id: 'wait', label: 'Let Them Sit', cost: 'No Drill This Month' }
@@ -12947,7 +12962,7 @@
     },
     {
       id: 'leak', weight: 0.8,
-      when: (c, ctx) => crowdOf(c) <= CONST.CROWD_COLD && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      when: (c, ctx) => coldOf(c, ['underdogs', 'families']) && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
       make: (to) => ({ kind: 'leak', to: to, title: 'Somebody Is Talking',
         text: 'A disgruntled hand has been seen drinking with a rival\u2019s crew, and what your squads are drilling is going with them.',
         options: [
@@ -17706,10 +17721,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* §5.3 valuation, §6 the table                                        */
   /* ------------------------------------------------------------------ */
 
-  /* Step 7 telemetry. MIN_ASK_FRAC is a floor, and a floor that never binds is a constant
-     wired to a condition that never becomes true — the exact fault the Step 6 audit found
-     nine times. A guard asserts this counter is non-zero. */
-  const TELEMETRY = { floorBinds: 0, valuations: 0, wallsSeller: 0, wallsBuyer: 0 };
 
   const dial = (c, k) => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
 
@@ -18277,7 +18288,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   const api = {
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard, priceModifier, relationship, TELEMETRY, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
+    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
     wantOf, settleHaul,
     ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     settle
@@ -27770,6 +27781,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       settleWounds(f);
     }
     tally.mended += mended;
+    if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
     if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
@@ -30395,6 +30407,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            their units), so a save at the drop — which the page never made, and a resumable contest must — crashed on
            it; the record is history, and it rides as plain data */
         bastille: state.bastille, bids: state.bids, rec: toPlain(state.rec), drop: state.drop,
+        /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
+           them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
+        events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -30459,6 +30474,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
       drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
+      events: o.events || {}, fleet: o.fleet || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
@@ -30469,7 +30485,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
        lock can resolve it from the restored courting. */
-    state.sponsorBoard = SPON.openBoard(SPON.houseIds());
+    state.sponsorBoard = o.sponsorBoard || SPON.openBoard(SPON.houseIds());   /* the year's signings stand */
     if (!o.lotSpent) ensureLot(state);
     return { corps: corps, state: state };
   }
@@ -31831,7 +31847,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board', donation: 'The Stands', tip: 'The Stands', protest: 'The Stands', strike: 'The Barracks', leak: 'The Barracks' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;

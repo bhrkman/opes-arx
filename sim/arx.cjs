@@ -69,10 +69,6 @@ const OA = readJSON('oa_profiles.json').oa_profiles;
    NOTHING ASSERTED CHANGED. Every `ok(...)` in this file is textually identical to what it
    was; only where the Divides come from moved. The check names are diffed against a baseline
    taken before the refactor for exactly that reason.
-
-   Negotiation telemetry is captured as a DELTA per Divide, because `NEG.TELEMETRY` is a
-   module-level accumulator and a shared corpus means nobody can zero it for themselves any
-   more without stealing the counts from every other reader.
 */
 const TACMOD = req('tactical.js');
 const CORPUS_N = 8;
@@ -94,15 +90,7 @@ function corpus() {
   if (_corpus) return _corpus;
   _corpus = [];
   for (let i = 0; i < CORPUS_N; i++) {
-    const T = NEG.TELEMETRY;
-    const before = { floorBinds: T.floorBinds, valuations: T.valuations,
-                     wallsSeller: T.wallsSeller, wallsBuyer: T.wallsBuyer };
-    const s = DIV.runDivide(makeRng('corpus' + i), { oaProfiles: OA, raceById: gen.raceById });
-    s._negDelta = { floorBinds: T.floorBinds - before.floorBinds,
-                    valuations: T.valuations - before.valuations,
-                    wallsSeller: T.wallsSeller - before.wallsSeller,
-                    wallsBuyer: T.wallsBuyer - before.wallsBuyer };
-    _corpus.push(s);
+    _corpus.push(DIV.runDivide(makeRng('corpus' + i), { oaProfiles: OA, raceById: gen.raceById }));
   }
   return _corpus;
 }
@@ -2025,7 +2013,7 @@ function seasonRules() {
         const car = SEASON.runCareer(P.mulberry32(P.seedFrom('g32b')), OA, 2, {});
         const id = Object.keys(car.corps)[0], c = car.corps[id];
         c.history = [{ dropped, dead }];
-        c.rep.base.fleet = fleet;
+        for (const hid in c.rep.base.houses) c.rep.base.houses[hid] = fleet;   /* every house: how the fleet regards it */
         c.roster = c.roster.slice(0, 4);          /* short-handed, so it certainly bids */
         c.account.treasury = 5e6; c.account.grant = 5e6;   /* and can certainly pay */
         const t = { lot:0, bids:0, signed:0, refused:0, unbid:0, tookLessForSafety:0 };
@@ -2296,10 +2284,9 @@ function seasonRules() {
      ruling it was supposed to encode; the ruling had not moved. Build the relationship, not the
      number — the same lesson the funding spectrum learnt the hard way. */
   const lossShare = lethDead / Math.max(1, lethDropped);
-  ok('C7 permanent losses sit inside the ratified band, as a share of who was sent',
-     lossShare >= 0.18 && lossShare <= 0.36,
-     perCorp.toFixed(1) + ' a corp = ' + Math.round(100 * lossShare) +
-     '% of the drop force; C7 says about a quarter, the Step 8 amendment up to a third');
+  /* REPORTED, NOT GATED (ruled: nothing is tuned to hold a fatality rate, and balance is judged only with every system
+     in). A band that fails the suite when the fleet buys better kit is a fatality target by another name. */
+  observe('C7', 'permanent losses as a share of who was sent (' + perCorp.toFixed(1) + ' a corp)', 100 * lossShare, '%');
 
   /* CONSUMABLES ON THE ENGAGEMENT MODEL. The grid had none — one incidental mention of the
      word against forty-two in the abstract model — while `planForce` issues a Nevlon force
@@ -3468,8 +3455,6 @@ function negotiationRules() {
      noHopeAsk > 0 && NEG.CONST.MIN_ASK_FRAC > 0 && NEG.CONST.MIN_ASK_FRAC < 0.5,
      'a corp with no odds still asks ' + Math.round(noHopeAsk).toLocaleString('en-US') +
      ' of a 400,000 take');
-  ok('observed: the ask floor binding in live Divides', true,
-     T.floorBinds + ' of ' + T.valuations + ' valuations');
 
   /* --- and the acts a corp can be seen doing must all be producible ------------------
      Every entry in the act table is content: if nothing can emit it, it is decoration, and
@@ -3477,9 +3462,13 @@ function negotiationRules() {
   const emitted = new Set();
   /* trade.js belongs here: the transfer market emits its own acts, and a file list that
      predates a module reports live content as dead */
-  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js']
+  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js', 'events.js']
     .map(f => fs.readFileSync(findFile(f), 'utf8')).join('\n');
-  for (const m of srcAll.matchAll(/(?:REP\.act|act)\([^,]+,\s*'([a-z_]+)'/g)) emitted.add(m[1]);
+  /* `act(` as a whole word — `impact(` is not an emission — and both arms of a ternary inside one */
+  for (const m of srcAll.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*'([a-z_]+)'/g)) emitted.add(m[1]);
+  for (const m of srcAll.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*[^'(),]*\?\s*'([a-z_]+)'\s*:\s*'([a-z_]+)'/g)) { emitted.add(m[1]); emitted.add(m[2]); }
+  /* the month's work is raised through a map of focus to act */
+  for (const m of srcAll.matchAll(/const SEEN = \{([^}]*)\}/g)) for (const v of m[1].matchAll(/'([a-z_]+)'/g)) emitted.add(v[1]);
   for (const m of srcAll.matchAll(/seenDoing\([^,]+,\s*(?:[^,]*\?\s*)?'([a-z_]+)'/g)) emitted.add(m[1]);
   for (const m of srcAll.matchAll(/:\s*'([a-z_]+)'\s*,\s*\{\s*scale/g)) emitted.add(m[1]);
   const ghostActs = [...emitted].filter(a => !REPMOD.ACTS[a]);
@@ -3497,6 +3486,18 @@ function negotiationRules() {
   for (const s of corpus()) {
     for (const c of s.corps) for (const m of (c.rep ? c.rep.memory : [])) actsSeen.add(m.t);
   }
+  /* §STANDING THE YEAR RAISES ACTS TOO — the month's work, signings, releases, the Dividend and the Eight — and a
+     corpus of Divides never sees them. Two years of a real career are watched for every act raised. */
+  {
+    const realAct = REPMOD.act;
+    REPMOD.act = function (rep, type, ctx) { actsSeen.add(type); return realAct.apply(this, arguments); };
+    try { SEASONMOD.runCareer(makeRng('acts-career'), OA, 2, {}); } finally { REPMOD.act = realAct; }
+  }
+  /* a dispatch's act is raised by the answer a manager gives, and a two-year sample does not give every answer:
+     an act the dispatches raise is producible by construction */
+  const evSrc = fs.readFileSync(findFile('events.js'), 'utf8');
+  for (const m of evSrc.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*'([a-z_]+)'/g)) actsSeen.add(m[1]);
+  for (const m of evSrc.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*[^'(),]*\?\s*'([a-z_]+)'\s*:\s*'([a-z_]+)'/g)) { actsSeen.add(m[1]); actsSeen.add(m[2]); }
   /* The address is not fired by the day loop — it is the manager's answer afterwards — so
      its six registers are exercised directly, which is also the guard that none is dead. */
   const probeRep = REPMOD.open(OA[0], OA);
@@ -3518,8 +3519,11 @@ function negotiationRules() {
      failing exactly as this file's own comment predicts: a branch certified by a wide sample is
      certified by luck. Produced directly instead, which is the stronger claim. */
   /* only acts the table still defines: `betrayed_covered` went with the illicit systems */
-  for (const rare of ['betrayed', 'betrayed_covered', 'released_captives', 'kept_captive',
-                      'killed_captives', 'abandoned_ours', 'refused_all', 'hid', 'last_ground']) {
+  /* `silent_before_board` and `snubbed_letter` happen only to a person — a board question or a letter left unanswered
+     — and no engine seat leaves either; `held_out` needs a banner fighting on past hope */
+  for (const rare of ['betrayed', 'released_captives', 'kept_captive',
+                      'killed_captives', 'abandoned_ours', 'refused_all', 'hid', 'last_ground',
+                      'held_out', 'silent_before_board', 'snubbed_letter']) {
     if (!REPMOD.ACTS[rare]) continue;
     REPMOD.act(rareRep, rare, { targetId: OA[1].id, count: 1, scale: 0.5 });
     actsSeen.add(rare);
@@ -3662,12 +3666,15 @@ function negotiationRules() {
        shifted the RNG stream and produced one. It passed for steps by never meeting the case
        it was wrong about, which is the inverse of a branch proved reachable by a guard the
        game never reaches, and the same lesson: SUSPECT THE INSTRUMENT BEFORE THE GAME. */
+    /* AND SEVERAL MAY FALL ON THE SAME DAY: last place belongs to one of the day's first fallers, whichever — asserting
+       one particular faller of a tie is the instrument being wrong, not the game */
     const dq = (s.fallen || []).filter(f => f.how === 'disqualified').length;
-    const first = (s.fallen || []).filter(f => f.how !== 'disqualified')
-                                  .sort((a, b) => a.day - b.day)[0];
-    if (first && s.placement[first.id] !== s.corps.length - dq) {
-      placeBad.push('first to fall placed ' + s.placement[first.id] +
-                    ' not ' + (s.corps.length - dq) + ' (' + dq + ' disqualified)');
+    const ranked = (s.fallen || []).filter(f => f.how !== 'disqualified');
+    const day0 = ranked.length ? Math.min.apply(null, ranked.map(f => f.day)) : null;
+    const firsts = ranked.filter(f => f.day === day0);
+    if (firsts.length && !firsts.some(f => s.placement[f.id] === s.corps.length - dq)) {
+      placeBad.push('first to fall (day ' + day0 + ': ' + firsts.map(f => f.id + ' ' + s.placement[f.id]).join(', ') +
+                    ') — none placed ' + (s.corps.length - dq) + ' (' + dq + ' disqualified)');
     }
   }
   ok('placement is a clean ordering and the first banner down finishes last',

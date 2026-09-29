@@ -33,6 +33,7 @@
     SOFT_AT: 25,                        // [C] §2.2 past this far from indifference the scale compresses: the last
     SOFT_SCALE: 30,                     //     points cost the most, and nothing pins at the ends
     DRIFT: 0.22,                        // [C] §2.3 the share of what is felt that fades each season
+    MONTHLY_FADE: 0.025,                // [C] §2.3 and what fades each month: a crowd has to be fed, or it cools back toward indifference
 
     /* §2.1 the memory — recency and permanence together (R8) */
     MEMORY_HALFLIFE: 3,                 // [C] seasons, the default
@@ -177,8 +178,8 @@
     last_ground:        { q: { grit: 0.7, blood: 0.5, glory: 0.5 }, mag: 6, houses: 1, residue: 0.15 },
     everyone_came_home: { q: { care: 1.0, craft: 0.4 }, mag: 8, residue: 0.20 },
     few_lost:           { q: { care: 1.0 }, mag: 4, residue: 0.20 },
-    our_dead:           { q: { care: -1.0 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
-    their_dead:         { q: { blood: 1.0 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
+    our_dead:           { q: { care: -1.0, craft: -0.35, glory: -0.25 }, mag: { per: 0.8 }, famousMult: 3, residue: 0.15 },   /* ctx.grave when it was most of them */
+    their_dead:         { q: { blood: 1.0, craft: 0.2, glory: 0.25 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
     worthy_fight:       { q: { blood: 0.5, craft: 0.5, grit: 0.3 }, mag: { per: 1.2 }, houses: { per: 0.3 }, residue: 0.15 },
     hid:                { q: { blood: -1.0, grit: -0.6 }, mag: { per: 1.2 }, houses: { per: -0.5 }, residue: 0.15 },
     kept_truce:         { q: { word: 1.0 }, mag: 3, target: 8, residue: 0.15 },
@@ -318,7 +319,7 @@
     const founded = !!(opts.founded || isFounded(profile));
     const shares = openingShares(profile, founded);
     /* an engine OA's own people start where its profile says they stand, on the new scale */
-    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 4 : 0;
+    const own0 = !founded && profile && profile.reputation && profile.reputation.own != null ? profile.reputation.own / 8 : 0;
     const base = { factions: {}, houses: {} };
     for (const f of FACTIONS) base.factions[f] = own0;
     const houseTaste = {};
@@ -1048,6 +1049,14 @@
       for (const id in (m.hx || {})) m.hx[id] *= (1 - CONST.DRIFT);
     }
   }
+  /** §2.3 a month passes: every feeling fades a little, so warmth is what an OA has done lately */
+  function fade(rep) {
+    const k = 1 - CONST.MONTHLY_FADE;
+    for (const m of rep.memory) {
+      for (const f in (m.fx || {})) m.fx[f] *= k;
+      for (const id in (m.hx || {})) m.hx[id] *= k;
+    }
+  }
   function closeSeason(rep, outcome) {
     shiftShares(rep);                  /* the stands follow the show, before the year's feeling fades */
     drift(rep);
@@ -1065,7 +1074,7 @@
   const api = {
     CONST, ACTS, AUDIENCES, FACTIONS, QUALITIES, TASTE, HALFLIFE, CATEGORIES, REGISTERS, DISPOSITION,
     open, standing, readAll, act, impact, impactSummary, why, decay, foldTail, soft, drift, drainHolds,
-    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares,
+    openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares, fade,
     fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,
     drainHolds, fillHolds, goalCard, demandMet, scoreGoal, movePatience, callOnBoard,
