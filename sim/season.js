@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS) {
   'use strict';
 
   const CONST = {
@@ -733,8 +733,11 @@
         dividendLoadout(f, i);
       });
       const side = (corp, bodies) => {
-        let cap = bodies[0];
-        for (const f of bodies) if (f.stats.tactics > cap.stats.tactics) cap = f;
+        /* §TALKS the year's captain leads if they are on the card; otherwise the sharpest head */
+        const caps = captainsOf(corp, season);
+        const pool = bodies.some(f => caps.indexOf(f.id) >= 0) ? bodies.filter(f => caps.indexOf(f.id) >= 0) : bodies;
+        let cap = pool[0];
+        for (const f of pool) if (f.stats.tactics > cap.stats.tactics) cap = f;
         return { tag: corp.id, corpId: corp.id, policy: 'standard', policyName: 'standard',
                  hasMedkit: true,
                  units: bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
@@ -819,6 +822,10 @@
   function eightPick(corp) {
     const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
+    /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
+    const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
+      .map(p => fit.find(f => f.id === p.fighterId)).filter(Boolean);
+    if (owed.length) return owed[0];
     const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
     return fit.slice().sort((a, b) => score(b) - score(a))[0];
   }
@@ -838,6 +845,17 @@
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
       if (!f) f = eightPick(corps[id]);
       if (f) entrants.push({ corp: corps[id], f });
+    }
+    /* §TALKS whoever was promised the Eight either went or was passed over */
+    for (const id of ids) {
+      const c = corps[id], went = entrants.find(e => e.corp === c);
+      for (const p of TALKS.promisesOf(c).filter(p => p.kind === 'eight' && p.status === 'open' && p.season === season)) {
+        const f = c.roster.find(x => x.id === p.fighterId);
+        const out = went && went.f === f ? 'kept'
+                  : (!f || f.status !== 'active' || (f.condition && (f.condition.injuries || []).length)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, p, out, f);
+        (c._promiseNews = c._promiseNews || []).push({ season, name: p.name, kind: 'eight', outcome: out });
+      }
     }
     if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
@@ -1802,6 +1820,21 @@
       settleWounds(f);
     }
     tally.mended += mended;
+    /* §TALKS A CAPTAIN'S MOOD IS THE BARRACKS'. The roster's loyalty leans toward its captains'
+       a little every month, and leading wears on the one who does it. */
+    const caps = captainsOf(corp, season || 0);
+    if (caps.length) {
+      const capF = caps.map(id => corp.roster.find(f => f.id === id)).filter(Boolean);
+      const mean = capF.reduce((a, f) => a + (f.loyalty == null ? 50 : f.loyalty), 0) / Math.max(1, capF.length);
+      for (const f of aliveOf(corp)) {
+        if (caps.indexOf(f.id) >= 0) {
+          if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + TALKS.CONST.CAPTAIN_STRESS);
+          continue;
+        }
+        const l = f.loyalty == null ? 50 : f.loyalty;
+        f.loyalty = Math.max(0, Math.min(100, l + (mean - l) * TALKS.CONST.CAPTAIN_SWAY));
+      }
+    }
     if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
     if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
@@ -1838,6 +1871,15 @@
                          : chooseFocus(corp, month);
     /* §STANDING a strike stood the drill idle this month: whatever was painted on it goes unspent */
     if (corp._noDrill === (season || 0) * 100 + month) delete focus.train;
+    /* §TALKS THE MONTH'S WORD, before the work it may sharpen or blunt. A person's rides their
+       choices; the engine chooses its own by the same rules. A request for a word answered
+       earlier this month has already had it. */
+    const talkAbs = (season || 0) * 100 + month;
+    const talkWant = wanted ? wanted.talk
+      : TALKS.aiTalk(corp, { abs: talkAbs, captains: caps, promisable: promisable(month),
+                             drilled: focus.train ? new Set(aliveOf(corp).map(f => f.id)) : null });
+    const talked = holdTalk(corp, talkWant, season || 0, month, landedOut);
+    if (talked) tally.talks = (tally.talks || 0) + 1;
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -1975,7 +2017,8 @@
              simply not learning, which is the cost of fielding a broken hand. */
           if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
           const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
-                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1);
+                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1)
+                      * TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -2238,7 +2281,9 @@
     const fame = (f.fame || 0) - (f._fameAtSigning || 0);
     /* 50 is indifferent; the pull runs either way from there */
     const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull));
+    /* §TALKS a hand dressed down against their temper remembers it when the paper comes round */
+    const grudge = f._grudge ? TALKS.CONST.GRUDGE_RENEWAL : 1;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge));
   }
 
   /**
@@ -2466,8 +2511,10 @@
        the ruling describes, made by culture through `lockLean`. */
     const lean = opts.lean || lockLean(corp);
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
+    /* §TALKS a place on the drop promised is a place on the drop, if they can stand */
+    const owed = new Set(TALKS.promisesOf(corp).filter(p => (p.kind === 'drop' || p.kind === 'lead') && p.status === 'open').map(p => p.fighterId));
     const score = f => {
-      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4;
+      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) ? 100 : 0);
       /* an unserved term pulls its holder toward the drop — the corp bought the clause
          and the clause only advances on the ground; a served-out term stops pulling */
       if (f.contract && f.contract.divides_required != null) {
@@ -2940,6 +2987,7 @@
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
+    openCaptains(state);                /* §TALKS the year opens with its captains named */
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -3165,6 +3213,137 @@
     c._squadPlan = { season: state.season, n };
     return n;
   }
+
+  /* ============================================================ §TALKS CAPTAINS AND THE MONTH'S WORD
+     RULED: captains are named for the YEAR, not at the Lock alone. They lead in the Dividend and
+     the Divide (the Eight is one hand an OA, and has no captain of its own), their loyalty pulls
+     the roster's toward it month by month, and they carry a little more strain for it. Being
+     named is a promise — a squad to lead at the drop — so the naming is free until the year's
+     first month turns, and a captain stood down after that is a promise broken.
+     One talk a month, human or engine (talks.js). */
+  const CAPTAINS_MAX = 6;
+  const EIGHT_MONTH = +Object.keys(MONTHS).find(k => MONTHS[k].event === 'eight');
+  function aliveOf(c) { return c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'); }
+  function captainsOf(corp, season) {
+    const k = corp && corp.captains;
+    if (!k || k.season !== season) return [];
+    const alive = new Set(aliveOf(corp).map(f => f.id));
+    return k.ids.filter(id => alive.has(id));
+  }
+  function captainSlots(state, corpId) { return Math.max(1, Math.min(CAPTAINS_MAX, squadPlanFor(state, corpId))); }
+  function captainCandidates(corp) { return aliveOf(corp).filter(f => f.status === 'active' && !f.mirror_of); }
+  function pickCaptains(corp, n, keep) {
+    const cand = captainCandidates(corp);
+    const kept = (keep || []).filter(id => cand.some(f => f.id === id)).slice(0, n);
+    const rest = cand.filter(f => kept.indexOf(f.id) < 0)
+      .sort((a, b) => (b.stats.tactics - a.stats.tactics) || ((b.loyalty == null ? 50 : b.loyalty) - (a.loyalty == null ? 50 : a.loyalty)));
+    return kept.concat(rest.slice(0, Math.max(0, n - kept.length)).map(f => f.id));
+  }
+  /** the year opens with captains: a person keeps last year's where they still stand, the engine picks afresh */
+  function openCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      const prior = (c.captains && c.captains.ids) || [];
+      c.captains = { season: state.season, ids: pickCaptains(c, captainSlots(state, id), isHuman(state, id) ? prior : []), promised: false };
+    }
+  }
+  function appointed(c, fid, state) {
+    const f = c.roster.find(x => x.id === fid); if (!f) return;
+    f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + TALKS.CONST.CAPTAIN_NAMED_LOYALTY));
+    TALKS.makePromise(c, f, 'lead', state.season, state.season * 100 + state.month, 'captain');
+  }
+  /** the first month turns: whoever holds a captaincy now has been promised a squad */
+  function promiseCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id], k = c.captains;
+      if (!k || k.season !== state.season || k.promised) continue;
+      k.promised = true;
+      for (const fid of captainsOf(c, state.season)) appointed(c, fid, state);
+    }
+  }
+  /** A manager names the year's captains. Free until the first month turns; after it, a captain
+      stood down is a promise broken, and one raised is a promise made. */
+  function nameCaptains(state, corpId, ids) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    if (state.done || state.month > CONST.PREP_MONTHS) return { ok: false, why: 'The Squads Are Locked' };
+    const n = captainSlots(state, corpId);
+    const cand = new Set(captainCandidates(c).map(f => f.id));
+    const want = [];
+    for (const id of (ids || [])) if (cand.has(id) && want.indexOf(id) < 0) want.push(id);
+    if (want.length > n) return { ok: false, why: 'Only ' + n + ' Squads to Lead' };
+    const k = c.captains && c.captains.season === state.season ? c.captains
+            : (c.captains = { season: state.season, ids: [], promised: false });
+    const was = captainsOf(c, state.season), broken = [];
+    if (k.promised) {
+      for (const id of was) if (want.indexOf(id) < 0) {
+        const f = c.roster.find(x => x.id === id);
+        const p = f && TALKS.openPromise(c, f, 'lead', state.season);
+        if (p) { TALKS.settlePromise(c, p, 'broken', f); broken.push(f.name);
+                 (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: f.name, kind: 'lead', outcome: 'broken' }); }
+      }
+      for (const id of want) if (was.indexOf(id) < 0) appointed(c, id, state);
+    }
+    k.ids = want;
+    return { ok: true, captains: want.slice(), broken };
+  }
+  /** what a promise can be of this month */
+  function promisable(month) { const k = ['drop', 'lead']; if (month <= EIGHT_MONTH) k.push('eight'); return k; }
+  /** The month's one talk, if it has not been had. `t` = { fighterId, kind, promise }. */
+  function holdTalk(corp, t, season, month, landedOut) {
+    const abs = (season || 0) * 100 + month;
+    if (!t || !TALKS || TALKS.talkedThisMonth(corp, abs)) return null;
+    const f = aliveOf(corp).find(x => x.id === t.fighterId);
+    if (!f) return null;
+    if (t.kind === 'promise' && promisable(month).indexOf(t.promise) < 0) return null;
+    const res = TALKS.talk(corp, f, t.kind, { abs, season: season || 0, promise: t.promise,
+                                              captains: captainsOf(corp, season || 0), roster: aliveOf(corp) });
+    if (res && landedOut) landedOut.push({ kind: 'talk', text: res.line, talk: res });
+    return res;
+  }
+  /** a person asks for a word: the month's talk, taken now (events.js) */
+  function talkNow(state, corpId, t) {
+    const c = state.corps[corpId];
+    if (!c || state.done || state.month > CONST.PREP_MONTHS) return null;
+    return holdTalk(c, t, state.season, state.month, null);
+  }
+  /** how the month's talk with somebody would land, as far as their manager can know */
+  function talkPreview(state, corpId, fighterId, kind, promise) {
+    const c = state.corps[corpId], f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!f) return null;
+    return TALKS.preview(f, kind, (state.season || 0) * 100 + state.month, promise);
+  }
+  /** The promises due at the drop come due: a place on it, and a squad to lead. Idempotent. */
+  function settleDropPromises(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id], p = per[id] || {};
+      const drop = new Set(((p.drop || c._drop) || []).map(f => f.id));
+      const caps = captainsOf(c, state.season);
+      const leads = new Set();
+      if (p.groups && p.groups.length) {
+        p.groups.forEach((g, i) => {
+          if (p.leaders && p.leaders[i]) { leads.add(p.leaders[i]); return; }
+          const inG = g.filter(x => caps.indexOf(x) >= 0);
+          if (inG.length) leads.add(inG.map(x => c.roster.find(f => f.id === x)).filter(Boolean)
+            .sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id);
+        });
+      } else for (const x of caps) if (drop.has(x)) leads.add(x);
+      for (const pr of TALKS.promisesOf(c)) {
+        if (pr.status !== 'open' || pr.season !== state.season) continue;
+        const f = c.roster.find(x => x.id === pr.fighterId);
+        const gone = !f || f.status === 'dead' || f.status === 'retired' || f.status === 'captured';
+        const unfit = !gone && !!(f.condition && (f.condition.injuries || []).length);
+        let out;
+        if (pr.kind === 'eight') out = 'void';          /* the Eight was fought without it being settled: nobody's doing */
+        else if (gone) out = 'void';
+        else if (pr.kind === 'drop') out = drop.has(f.id) ? 'kept' : unfit ? 'void' : 'broken';
+        else out = leads.has(f.id) ? 'kept' : (unfit && !drop.has(f.id)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, pr, out, gone ? null : f);
+        (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: pr.name, kind: pr.kind, outcome: out });
+      }
+    }
+  }
   function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
   function ensureDraft(state) {
     state.drop = state.drop || { sectors: {} };
@@ -3301,6 +3480,7 @@
     if (EVENTS && EVENTS.useTraitIndex) EVENTS.useTraitIndex(ROSTER && ROSTER.traitById);
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
+    promiseCaptains(state);   /* §TALKS the naming was free until now */
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -3671,6 +3851,8 @@
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
         wordRecord: (c._wordRecord = c._wordRecord || {}),
+        /* §TALKS the year's captains lead the squads they land in */
+        captains: captainsOf(c, season),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -3945,6 +4127,7 @@
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
+    settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
@@ -4523,6 +4706,8 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
+  /* §TALKS a person asking for a word takes the month's talk through the season, where the captains are */
+  if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
@@ -4532,6 +4717,7 @@
      buyItems, pickDividend, lockSquads, answerBoard,
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+     captainsOf, captainSlots, nameCaptains, promisable, talkNow, talkPreview, TALKS,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,

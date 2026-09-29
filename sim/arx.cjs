@@ -836,6 +836,72 @@ function theSeam() {
      'landing north vs south-west produced the same season');
 }
 
+/* §TALKS ONE WORD A MONTH, CAPTAINS FOR THE YEAR. The rules that make a talk a decision rather
+   than a chore are each held here: a temper hides until heard or seen twice; it doubles one talk
+   and backfires another; the same talk three months running backfires; one talk a month; a
+   captain stood down after the year's first month is a promise broken; and the engine talks, and
+   keeps its promises, by the same rules. */
+function talks() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const T = req('talks.js');
+  const rng = P.mulberry32(P.seedFrom('talk-guard'));
+  const corps = SEASONMOD.openFleet(rng, oa, {});
+  const ids = Object.keys(corps);
+  const c = corps[ids[0]];
+  const f = c.roster.filter(x => x.status === 'active')[0];
+  T.temperOf(f);
+  ok('a temper starts undiscovered', !f.temperKnown && T.temperShown(f) === null, f.temper);
+  f.temper = 'proud';
+  ok('a temper doubles its talk and backfires another',
+     T.landing(f, 'drive', 101, true) === 'doubled' && T.landing(f, 'dress', 101, true) === 'backfired' && T.landing(f, 'praise', 101, true) === 'plain',
+     ['drive', 'dress', 'praise'].map(k => k + ':' + T.landing(f, k, 101, true)).join(' '));
+  ok('a preview made blind does not show the temper', T.preview(f, 'dress', 101).how === 'plain', T.preview(f, 'dress', 101).how);
+  const heard = T.talk(c, f, 'hear', { abs: 101, season: 1 });
+  ok('hearing them out reveals the temper', heard && heard.revealed && f.temperKnown, JSON.stringify(heard && heard.how));
+  const g = c.roster.filter(x => x.status === 'active')[1]; T.temperOf(g); g.temper = 'cold'; g.temperKnown = false; g._talks = [];
+  T.talk(c, g, 'praise', { abs: 102, season: 1 });
+  const second = T.talk(c, g, 'praise', { abs: 103, season: 1 });
+  ok('two talks show a temper without asking', g.temperKnown && second.revealed, String(g.temperKnown));
+  ok('the same talk two months running wears thin', second.how === 'faded', second.how);
+  ok('and a third month running backfires', T.landing(g, 'praise', 104, true) === 'backfired', T.landing(g, 'praise', 104, true));
+  ok('praise leaves them coasting next month', T.drillMult(g, 104) < 1, String(T.drillMult(g, 104)));
+
+  /* the year: one talk a month, captains named free until the first month turns */
+  const st = SEASONMOD.beginSeason(rng, corps, oa, {});
+  const id = ids[1], cc = corps[id];
+  const caps0 = SEASONMOD.captainsOf(cc, st.season);
+  ok('every OA opens the year with captains', ids.every(k => SEASONMOD.captainsOf(corps[k], st.season).length >= 1), caps0.length + ' for ' + id);
+  const other = cc.roster.filter(x => x.status === 'active' && !x.mirror_of && caps0.indexOf(x.id) < 0)[0];
+  const free = SEASONMOD.nameCaptains(st, id, [other.id].concat(caps0.slice(1)));
+  ok('a captain is changed free before the first month turns', free.ok && !free.broken.length, JSON.stringify(free));
+  const first = SEASONMOD.talkNow(st, id, { fighterId: other.id, kind: 'praise' });
+  const again = SEASONMOD.talkNow(st, id, { fighterId: other.id, kind: 'drive' });
+  ok('one talk a month', !!first && again === null, String(!!again));
+  SEASONMOD.stepMonth(st);
+  const loyBefore = other.loyalty;
+  const down = SEASONMOD.nameCaptains(st, id, SEASONMOD.captainsOf(cc, st.season).filter(x => x !== other.id));
+  ok('a captain stood down after the first month is a promise broken',
+     down.ok && down.broken.length === 1 && other.loyalty < loyBefore, JSON.stringify(down.broken) + ' ' + Math.round(loyBefore) + '→' + Math.round(other.loyalty));
+
+  /* the engine talks, and keeps its word */
+  let talked = 0, months = 0;
+  const hold = SEASONMOD.stepMonth;
+  while (st.month <= SEASONMOD.CONST.PREP_MONTHS) {
+    const r = SEASONMOD.stepMonth(st);
+    for (const k of ids) { months++; if (corps[k]._talked && corps[k]._talked.abs === st.season * 100 + r.month) talked++; }
+  }
+  void hold;
+  ok('the engine has its word most months', talked >= months * 0.7, talked + ' of ' + months);
+  SEASONMOD.closeSeason(st);
+  const settled = [], broken = [];
+  for (const k of ids) for (const pr of T.promisesOf(corps[k])) if (pr.season === st.season && pr.status !== 'open' && pr.status !== 'void') {
+    settled.push(pr); if (pr.status === 'broken' && !(k === id && pr.kind === 'lead')) broken.push(k + ':' + pr.kind + ':' + pr.name);
+  }
+  ok('the engine keeps the promises it makes', settled.length > 0 && broken.length <= Math.max(1, settled.length * 0.1),
+     settled.length + ' settled · broken ' + broken.join(', '));
+  ok('no promise of the year is left open after the drop',
+     ids.every(k => T.promisesOf(corps[k]).every(pr => pr.season !== st.season || pr.status !== 'open')), '');
+}
 function sponsorship() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const SPON = req('sponsors.js');
@@ -3462,7 +3528,7 @@ function negotiationRules() {
   const emitted = new Set();
   /* trade.js belongs here: the transfer market emits its own acts, and a file list that
      predates a module reports live content as dead */
-  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js', 'events.js']
+  const srcAll = ['divide.js', 'negotiate.js', 'reputation.js', 'trade.js', 'season.js', 'events.js', 'talks.js']
     .map(f => fs.readFileSync(findFile(f), 'utf8')).join('\n');
   /* `act(` as a whole word — `impact(` is not an emission — and both arms of a ternary inside one */
   for (const m of srcAll.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*'([a-z_]+)'/g)) emitted.add(m[1]);
@@ -3495,7 +3561,8 @@ function negotiationRules() {
   }
   /* a dispatch's act is raised by the answer a manager gives, and a two-year sample does not give every answer:
      an act the dispatches raise is producible by construction */
-  const evSrc = fs.readFileSync(findFile('events.js'), 'utf8');
+  /* §TALKS and a promise is kept or broken by the manager who made it, so its acts are producible the same way */
+  const evSrc = fs.readFileSync(findFile('events.js'), 'utf8') + '\n' + fs.readFileSync(findFile('talks.js'), 'utf8');
   for (const m of evSrc.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*'([a-z_]+)'/g)) actsSeen.add(m[1]);
   for (const m of evSrc.matchAll(/(?<![A-Za-z_])act\([^,]+,\s*[^'(),]*\?\s*'([a-z_]+)'\s*:\s*'([a-z_]+)'/g)) { actsSeen.add(m[1]); actsSeen.add(m[2]); }
   /* The address is not fired by the day loop — it is the manager's answer afterwards — so
@@ -3776,6 +3843,7 @@ function runRegression() {
   phase('saveLoad', saveLoad);
   phase('laterConsequences', laterConsequences);
   phase('sponsorship', sponsorship);
+  phase('talks', talks);
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('negotiationRules', negotiationRules);

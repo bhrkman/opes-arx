@@ -18,9 +18,9 @@
    ============================================================================================ */
 (function (root, factory) {
   const isNode = typeof module !== "undefined" && module.exports;
-  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"));
-  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS);
-})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS) {
+  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"), require("./talks.js"));
+  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS, root.CDTALKS);
+})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS, TALKS) {
   "use strict";
 
   const CONST = {
@@ -70,7 +70,11 @@
     PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
-    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
+    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35,  // [C] the shelf's prices for the year
+    WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
+    WORD_SOUR: 45,               // [C] loyalty under which a hand has something to say
+    WORD_STRAINED: 55,           // [C] stress over which a hand has something to say
+    TURN_AWAY_LOYALTY: -8        // [C] what being turned away costs
   };
   /* §ALEAS THE ALEAS' RULINGS ARE CUT (ruled). Four of this pool were the Aleas changing the year's rules —
      the wall closed early, a stun-grade Divide, no truces, a levy — invasive, rarely noticed and not much
@@ -519,6 +523,73 @@
      displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
      BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
      cannot be answered is the worst of both — it looks like content and is furniture. */
+
+  /* §TALKS SOMEBODY ASKS FOR A WORD. A sour or strained hand comes to the manager with
+     something to say, and the answer IS the month's talk: take the meeting and that is who you
+     spoke to this month; turn them away and they feel it. The talks are the five a manager
+     always has, costed as far as the manager knows the person. */
+  let TALKER = null;
+  function useTalker(fn) { TALKER = fn || null; }
+  const WORD_ASKS = {
+    drop:   { title: n => n + ' Wants a Place on the Drop', text: n => n + ' has watched the drop list all year and wants to know where they stand on it.' },
+    lead:   { title: n => n + ' Wants a Squad', text: n => n + ' thinks they could lead better than the ones who do, and has come to say so.' },
+    eight:  { title: n => n + ' Wants the Eight', text: n => n + ' wants to be the one the OA sends to the Eight, and wants you to say it.' },
+    strain: { title: n => n + ' Is Coming Apart', text: n => n + ' has not slept properly in weeks and has asked to see you.' },
+    captain:{ title: n => n + ' Will Not Serve Under Their Captain', text: n => n + ' has had enough of the one leading them, and says so to your face.' }
+  };
+  POOL.push({
+    id: 'word', weight: CONST.WORD_WEIGHT,
+    when: (c, ctx) => {
+      if (!TALKER || !ctx.state) return null;
+      const st = ctx.state, abs = st.season * 100 + st.month;
+      if (c._talked && c._talked.abs === abs) return null;
+      const caps = (c.captains && c.captains.season === st.season) ? c.captains.ids : [];
+      const cand = alive(c).filter(f => !f.mirror_of && f._askedWord !== st.season &&
+        ((f.loyalty == null ? 50 : f.loyalty) < CONST.WORD_SOUR || ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED));
+      if (!cand.length) return null;
+      const f = cand[Math.floor(ctx.rng() * cand.length)];
+      TALKS.temperOf(f);
+      const strained = ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED;
+      const ask = strained ? 'strain'
+                : caps.length && caps.indexOf(f.id) < 0 && ctx.rng() < 0.35 ? 'captain'
+                : f.want === 'eight' && st.month > 8 ? 'drop' : f.want;
+      return { f, ask };
+    },
+    make: (hit, c, ctx) => {
+      const f = hit.f, st = ctx.state, abs = st.season * 100 + st.month, n = f.name, a = WORD_ASKS[hit.ask];
+      const promiseKind = hit.ask === 'drop' || hit.ask === 'lead' || hit.ask === 'eight' ? hit.ask : 'drop';
+      const cost = (kind, pk) => TALKS.describe(TALKS.preview(f, kind, abs, pk)) + (f.temperKnown ? '' : ' · Temper Unknown');
+      const options = [
+        { id: 'hear',    label: 'Hear Them Out',  cost: cost('hear') },
+        { id: 'praise',  label: 'Reassure Them',  cost: cost('praise') },
+        { id: 'promise', label: 'Promise ' + TALKS.PROMISES[promiseKind].name, cost: cost('promise', promiseKind), promise: promiseKind },
+        { id: 'dress',   label: 'Tell Them to Get On With It', cost: cost('dress') },
+        { id: 'drive',   label: 'Put Them Back to Work', cost: cost('drive') },
+        { id: 'away',    label: 'Turn Them Away', cost: 'Loyalty ' + '−' + Math.abs(CONST.TURN_AWAY_LOYALTY) + ' · Keeps Your Talk This Month' }
+      ];
+      return { kind: 'word', subject: f.id, ask: hit.ask, title: a.title(n), text: a.text(n) + ' Taking the meeting is this month’s talk.',
+               options, def: 'away' };
+    },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
+      f._askedWord = ctx.state.season;
+      const turn = () => { f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) + CONST.TURN_AWAY_LOYALTY); return f.name + ' Was Turned Away'; };
+      if (opt === 'away') return turn();
+      const o = e.options.find(x => x.id === opt);
+      const res = TALKER && TALKER(ctx.state, c.id, { fighterId: f.id, kind: opt, promise: o && o.promise });
+      if (!res) return turn();
+      return res.line + (res.revealed ? ' · ' + res.temper : '');
+    },
+    ai: (c, e) => {
+      const f = alive(c).find(x => x.id === e.subject);
+      if (!f) return 'away';
+      const t = f.temperKnown ? TALKS.TEMPERS[TALKS.temperOf(f)] : null;
+      if (t && t.doubles !== 'promise' && e.options.some(o => o.id === t.doubles)) return t.doubles;
+      if (t && t.doubles === 'promise' && e.ask !== 'captain' && e.ask !== 'strain') return 'promise';
+      if (!t) return 'hear';
+      return t.backfires === 'praise' ? 'hear' : 'praise';
+    }
+  });
   MOMENTS.forEach(m => POOL.push(momentSpec(m)));
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
@@ -836,7 +907,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, fighterHas, storyMult, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });

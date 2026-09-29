@@ -1224,6 +1224,27 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §TALKS the month's word */
+  .wtbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  .wtbl tr.who{border-bottom:1px solid #131f30;cursor:pointer}
+  .wtbl tr.who:hover{background:var(--a-deep)}
+  .wtbl tr.who.lit{background:var(--a-deep)}
+  .wtbl td{padding:5px 6px;vertical-align:middle}
+  .wtbl .wnum{color:var(--dim);font-size:10px;white-space:nowrap;text-align:right}
+  .wtbl .wnum b{color:var(--ink);font-weight:normal}
+  .wtbl .wtemp{font-size:9.5px;color:var(--dim)}
+  .wtbl .wtemp.known{color:var(--a)}
+  .wtbl .capb{font-size:9px;padding:1px 6px}
+  .wtbl .capb.on{border-color:var(--mag);color:var(--mag)}
+  .wopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;padding:6px 4px 10px}
+  .wopt{text-align:left;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px}
+  .wopt .ol{font-weight:bold}
+  .wopt .oc{font-size:9.5px;color:var(--dim)}
+  .wopt.on{border-color:var(--a);background:var(--a-deep)}
+  .wopt.bad .oc{color:var(--red)}
+  .wprom{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  .wdone{padding:8px 4px;font-size:11.5px}
+  .wcap{color:var(--mag);font-size:9px;border:1px solid var(--mag);border-radius:3px;padding:0 4px;margin-left:5px}
   .ctbl tr{border-bottom:1px solid #131f30}
   .ctbl tr.lit{background:var(--a-deep)}
   .ctbl tr.signed{opacity:.6}
@@ -1919,6 +1940,7 @@
       <div class="bar" style="margin-top:8px"><span class="m" id="apline"></span></div>
     </div>
     <div>
+      <div id="talkgrid"></div>
       <div id="intelgrid"></div>
       <div id="courtgrid"></div>
       <div id="deskligwrap" style="display:none"><h2>The Dividend's Lights</h2>
@@ -2533,11 +2555,46 @@
     if (b.seasonsHere != null && b.seasonsHere > 0)
       paper += '<span class="k">With You</span><span class="v m">' + b.seasonsHere + ' Season' + (b.seasonsHere === 1 ? '' : 's') + '</span>';
 
+    /* §TALKS TEMPER IS AN UNDISCOVERED QUIRK, and it sits with the others: hidden until heard out, or until two talks
+       have shown how they take things — and only ever on your own people */
+    var ours = G && G.corps && G.corps[G.me] && G.corps[G.me].roster.indexOf(b) >= 0;
+    var temperChip = '';
+    if (ours) {
+      var tm = SEASON.TALKS.temperShown(b);
+      temperChip = tm
+        ? '<span class="q" title="' + esc(tm.name + ' \u2014 ' + tm.text) + '">' + esc(tm.name) + '<span class="qtip"><b>' + esc(tm.name) + '</b><span class="ql">' + esc(tm.text) +
+          '</span><span class="ql">Wants ' + esc(tm.wantName) + '</span></span></span>'
+        : '<span class="q flav" title="Temper \u2014 Undiscovered">Temper Undiscovered<span class="qtip"><b>Temper</b><span class="ql m">Hear Them Out, or Talk to Them Twice</span></span></span>';
+    }
+    var wordBlk = ours ? talkRecordHtml(b) : '';
     return '<div class="colblk"><div class="clab">Stats</div><div class="statrow">' + statCells + '</div></div>' +
       '<div class="colblk"><div class="clab">Weapon Skill</div><div class="talrow">' + talCells + '</div></div>' +
-      (quirks.length ? '<div class="colblk"><div class="clab">Quirks</div><div class="qk">' +
+      (quirks.length || temperChip ? '<div class="colblk"><div class="clab">Quirks</div><div class="qk">' + temperChip +
         quirks.map(quirkChip).join('') + '</div></div>' : '') +
+      wordBlk +
       '<div class="colblk"><div class="clab">Contract</div><div class="paperline">' + paper + '</div></div>';
+  }
+  /* §TALKS what you have said to them, and what you have promised: the record a death is measured against */
+  var HOW_SHEET = { doubled: 'It Landed', faded: 'It Wore Thin', backfired: 'It Backfired', plain: '' };
+  var OUTCOME_WORD = { open: 'Owed', kept: 'Kept', broken: 'Broken', 'void': 'Void' };
+  function talkRecordHtml(b) {
+    var me = G.corps[G.me];
+    var talks = (b._talks || []).slice(-4).reverse();
+    var proms = SEASON.TALKS.promisesOf(me).filter(function (p) { return p.fighterId === b.id; }).slice(-4).reverse();
+    var isCap = SEASON.captainsOf(me, G.state ? G.state.season : -1).indexOf(b.id) >= 0;
+    if (!talks.length && !proms.length && !isCap) return '';
+    var rows = '';
+    if (isCap) rows += '<span class="k">Captain</span><span class="v">This Year</span>';
+    talks.forEach(function (t) {
+      rows += '<span class="k">Y' + t.season + ' M' + t.month + '</span><span class="v">' + esc(SEASON.TALKS.TALK_NAME[t.kind] +
+        (t.kind === 'promise' && t.promise ? ' \u00b7 ' + SEASON.TALKS.PROMISES[t.promise].name : '')) +
+        (HOW_SHEET[t.how] ? ' <span class="m">' + HOW_SHEET[t.how] + '</span>' : '') + '</span>';
+    });
+    proms.forEach(function (p) {
+      var cls = p.status === 'kept' ? 'good' : p.status === 'broken' ? 'bad' : p.status === 'open' ? 'warn' : 'm';
+      rows += '<span class="k">Promised</span><span class="v">' + esc(SEASON.TALKS.PROMISES[p.kind].name) + ' <span class="' + cls + '">' + OUTCOME_WORD[p.status] + '</span></span>';
+    });
+    return '<div class="colblk"><div class="clab">Your Word</div><div class="paperline">' + rows + '</div></div>';
   }
   function capWords(t) { return String(t).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
   /* a label written with its own capitals ("Gate and Merchandise") is already in Title Case
@@ -3242,6 +3299,7 @@
       h += '<span class="m">' + esc(o.why) + '</span></div>';
     });
     $('verbs').innerHTML = h;
+    renderTalkGrid();
     renderTrainGrid();
     renderRestGrid();
     renderIntelGrid();
@@ -3292,6 +3350,106 @@
     }
   }
 
+
+  /* ============================ THE MONTH'S WORD (§TALKS) ============================
+     One talk a month with one person, and the year's captains. The engine's own words are in
+     talks.js; this is the page on them. A person who asked for a word this month has had it. */
+  function talkSel() {
+    if (!G._talkSel || G._talkSel._m !== G.state.season * 100 + G.state.month) G._talkSel = { _m: G.state.season * 100 + G.state.month };
+    return G._talkSel;
+  }
+  function talkedNow() { var me = G.corps[G.me], k = me._talked; return k && k.abs === G.state.season * 100 + G.state.month ? k : null; }
+  function myCaptains() { return SEASON.captainsOf(G.corps[G.me], G.state.season); }
+  function captainsPromised() { var k = G.corps[G.me].captains; return !!(k && k.season === G.state.season && k.promised); }
+  var PROMISE_SHORT = { drop: 'The Drop', lead: 'A Squad', eight: 'The Eight' };
+  var PROMISE_MID = { drop: 'the Drop', lead: 'a Squad', eight: 'the Eight' };
+  function temperTag(f) {
+    var t = SEASON.TALKS.temperShown(f);
+    return t ? '<span class="wtemp known" title="' + esc(t.text) + '">' + esc(t.name) + ' · Wants ' + esc(PROMISE_MID[t.want]) + '</span>'
+             : '<span class="wtemp">Temper Undiscovered</span>';
+  }
+  function renderTalkGrid() {
+    var host = $('talkgrid'); if (!host) return;
+    if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS) { host.innerHTML = ''; return; }
+    var me = G.corps[G.me], sel = talkSel(), caps = myCaptains(), slots = SEASON.captainSlots(G.state, G.me);
+    var done = talkedNow();
+    var h = '<div class="tgwrap' + (deskFolded('talk') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="talk">' +
+      '<span class="tgtitle">The Month’s Word</span>' + foldTag('talk') + '</div>';
+    h += '<div class="m" style="font-size:10px;margin:2px 4px 6px">Captains ' + caps.length + ' of ' + slots +
+         (captainsPromised() ? ' · Standing One Down Breaks a Promise' : ' · Free to Change Until the Month Turns') + '</div>' +
+         (G._capNews && G._capNews.m === sel._m ? '<div class="m bad" style="font-size:10px;margin:0 4px 6px">' + esc(G._capNews.text) + '</div>' : '');
+    if (done) {
+      h += '<div class="wdone"><b>Spoken</b> · ' + esc(done.line) + '</div>';
+    }
+    var people = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !f.mirror_of; });
+    var loy = function (f) { return f.loyalty == null ? 50 : f.loyalty; };
+    people.sort(function (a, b) {
+      var ca = caps.indexOf(a.id) >= 0 ? 0 : 1, cb = caps.indexOf(b.id) >= 0 ? 0 : 1;
+      return (ca - cb) || (loy(a) - loy(b)); });
+    var shown = G._talkAll ? people : people.slice(0, 8);
+    if (sel.fighterId && shown.every(function (f) { return f.id !== sel.fighterId; })) {
+      var picked = people.filter(function (f) { return f.id === sel.fighterId; })[0]; if (picked) shown.push(picked); }
+    h += '<table class="wtbl">';
+    shown.forEach(function (f) {
+      var isCap = caps.indexOf(f.id) >= 0, lit = sel.fighterId === f.id;
+      var stress = Math.round((f.condition && f.condition.stress) || 0);
+      h += '<tr class="who' + (lit ? ' lit' : '') + '" data-talkwho="' + f.id + '"><td>' +
+        '<span class="nm" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + nameHtml(f) + '</span>' +
+        (isCap ? '<span class="wcap">Captain</span>' : '') + '<div>' + temperTag(f) + '</div></td>' +
+        '<td class="wnum">Loyalty <b>' + Math.round(loy(f)) + '</b><br>Stress <b>' + stress + '</b></td>' +
+        '<td style="text-align:right"><button class="tiny capb' + (isCap ? ' on' : '') + '" data-cap="' + f.id + '"' +
+          (!isCap && (caps.length >= slots || f.status !== 'active') ? ' disabled' : '') + '>' + (isCap ? 'Stand Down' : 'Make Captain') + '</button></td></tr>';
+      if (lit && !done) {
+        var abs = G.state.season * 100 + G.state.month, kinds = SEASON.promisable(G.state.month);
+        h += '<tr><td colspan="3"><div class="wopts">' + SEASON.TALKS.TALKS.map(function (t) {
+          var pk = t.id === 'promise' ? (sel.promise && kinds.indexOf(sel.promise) >= 0 ? sel.promise : (kinds.indexOf(SEASON.TALKS.wantOf(f)) >= 0 && f.temperKnown ? SEASON.TALKS.wantOf(f) : 'drop')) : null;
+          var pv = SEASON.talkPreview(G.state, G.me, f.id, t.id, pk);
+          var on = sel.kind === t.id;
+          var cost = SEASON.TALKS.describe(pv) + (f.temperKnown || t.id === 'hear' ? '' : ' · Temper Unknown');
+          var prom = t.id === 'promise' ? '<div class="wprom">' + kinds.map(function (k) {
+              return '<button class="tiny' + (pk === k ? ' on' : '') + '" data-wprom="' + k + '">' + esc(PROMISE_SHORT[k]) + '</button>'; }).join('') + '</div>' : '';
+          return '<div role="button" tabindex="0" class="evopt wopt' + (on ? ' on' : '') + (pv && pv.how === 'backfired' ? ' bad' : '') + '" data-wtalk="' + t.id + '"' + (pk ? ' data-wpk="' + pk + '"' : '') + '>' +
+            '<span class="ol">' + esc(t.id === 'promise' ? 'Promise ' + PROMISE_MID[pk] : t.name) + '</span><span class="oc">' + esc(cost) + '</span>' + prom + '</div>';
+        }).join('') + '</div></td></tr>';
+      }
+    });
+    h += '</table>';
+    if (people.length > 8) h += '<div class="bar"><button class="tiny" id="talkall">' + (G._talkAll ? 'Show Fewer' : 'Show All ' + people.length) + '</button></div>';
+    host.innerHTML = h;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-talkwho]'), function (el) {
+      el.onclick = function (e) {
+        if (e.target.closest('[data-cap]')) return;
+        if (e.target.getAttribute('data-sheet')) { inspect(e.target.getAttribute('data-sheet')); return; }
+        var id = el.getAttribute('data-talkwho');
+        if (sel.fighterId !== id) { sel.fighterId = id; delete sel.kind; delete sel.promise; } else if (!sel.kind) delete sel.fighterId;
+        renderDesk(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-wtalk]'), function (el) {
+      el.onclick = function (e) {
+        var pb = e.target.closest('[data-wprom]');
+        var k = el.getAttribute('data-wtalk');
+        if (pb) { sel.kind = 'promise'; sel.promise = pb.getAttribute('data-wprom'); }
+        else if (sel.kind === k) { delete sel.kind; delete sel.promise; }
+        else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
+        renderDesk(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-cap]'), function (el) {
+      el.onclick = function (e) {
+        e.stopPropagation();
+        var id = el.getAttribute('data-cap'), now = myCaptains().slice(), i = now.indexOf(id);
+        if (i >= 0) now.splice(i, 1); else now.push(id);
+        var r = SEASON.nameCaptains(G.state, G.me, now);
+        if (r && r.broken && r.broken.length) G._capNews = { m: talkSel()._m, text: 'Stood Down · ' + r.broken.join(', ') + ' · A Promise Broken' };
+        renderDesk(); renderRoster(); };
+    });
+    if ($('talkall')) $('talkall').onclick = function () { G._talkAll = !G._talkAll; renderDesk(); };
+  }
+  /* what the month's submit carries: the chosen talk, if it is whole */
+  function talkWanted() {
+    var sel = talkSel();
+    if (talkedNow() || !sel.fighterId || !sel.kind) return null;
+    return { fighterId: sel.fighterId, kind: sel.kind, promise: sel.kind === 'promise' ? (sel.promise || 'drop') : undefined };
+  }
   /* ============================ THE BRIEF ============================
      The month's shape, what is coming and when, and the agenda — the things waiting on the
      manager this month. The agenda is a count on End the Month too. */
@@ -3329,6 +3487,13 @@
     var spent = 0; for (var k in (G._focusSel || {})) if (k !== '_m' && typeof G._focusSel[k] === 'number') spent += G._focusSel[k];
     spent = Math.max(spent, trainPips() + restPips() + intelPips() + courtPips());
     if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', kind: 'Focus', ping: '.focusdeskline', cost: 'Wasted' });
+    /* §TALKS a month with nobody spoken to is a legal month, and a quiet one */
+    if (!talkedNow() && !talkWanted()) items.push({ txt: 'No Word Spoken', tab: 'desk', kind: 'Word', ping: '#talkgrid', cost: 'Nobody Hears From You' });
+    /* §TALKS the Lock is where a captain's squad is owed */
+    if (m === 11) {
+      var unled = captainsUnled();
+      if (unled.length) items.push({ txt: unled.length + ' Captain' + (unled.length === 1 ? '' : 's') + ' Without a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'A Promise Broken' });
+    }
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
        button up over a thing a manager frequently cannot act on — no window open, nobody to
        sign, nothing to do but click around it. The Market says how short an OA is where
@@ -3487,7 +3652,7 @@
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board', donation: 'The Stands', tip: 'The Stands', protest: 'The Stands', strike: 'The Barracks', leak: 'The Barracks' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board', word: 'A Word', donation: 'The Stands', tip: 'The Stands', protest: 'The Stands', strike: 'The Barracks', leak: 'The Barracks' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -4709,6 +4874,8 @@
     if (courtPips() > 0) { wanted.court = courtPips(); wanted.courtTarget = courtSel(); }
     else { delete wanted.court; delete wanted.courtTarget; }
     if (G._boostSel && Object.keys(G._boostSel).length) wanted._boost = G._boostSel;
+    /* §TALKS the month's word */
+    var tw = talkWanted(); if (tw) wanted.talk = tw;
     /* §TIME the month's choices are SUBMITTED, and the engine advances the month once every seat a person holds has
        — with one person, at once */
     SEASON.submitMonth(G.state, G.me, wanted);
@@ -4783,7 +4950,8 @@
     renderBench(); renderSquads(); renderDesk(); renderEncounters();
     G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, focus: focusLine, joined: joined.map(function (b) { return b.id; }),
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
-                 events: (res.events || {})[G.me] || [] };
+                 events: (res.events || {})[G.me] || [],
+                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -4808,7 +4976,7 @@
     var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
       health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
     var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
-    return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st,
+    return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st, promiseN: (me._promiseNews || []).length,
              crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), patience: me.rep ? me.rep.patience : null };
   }
   window.__showRecap = function () { return showRecap(); };
@@ -4907,6 +5075,18 @@
       peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
     gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
     changed.forEach(function (c) { peopleCol += ln('Changed', c + (/Injured/.test(c) ? stamp('Mending', 'amber') : ''), ''); });
+    /* §TALKS the month's word, and any promise that came due */
+    if (R.talk) {
+      var tk = R.talk, tb = me.roster.filter(function (x) { return x.id === tk.fighterId; })[0];
+      var tcls = tk.how === 'backfired' ? 'bad' : tk.how === 'doubled' ? 'good' : tk.how === 'faded' ? 'warn' : 'm';
+      peopleCol += ln('Word', esc(tk.line) + (tk.revealed ? ' ' + stamp(esc(tk.temper), 'good') : '') + (tk.reached ? ' <span class="m">\u00b7 Felt by ' + tk.reached + ' More</span>' : ''),
+                      '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
+    }
+    (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
+      if (pn.outcome === 'void') return;
+      peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
+                      '<span class="' + (pn.outcome === 'kept' ? 'good' : 'bad') + '">' + (pn.outcome === 'kept' ? 'Kept' : 'Broken') + '</span>');
+    });
     /* who grew, by body: every stat that moved on one line, the biggest movers first, and the roster's total */
     var byBody = {}, order = [];
     gains.forEach(function (g) { if (!byBody[g.b.id]) { byBody[g.b.id] = { b: g.b, parts: [], sum: 0 }; order.push(g.b.id); } byBody[g.b.id].parts.push(g); byBody[g.b.id].sum += g.d; });
@@ -5111,6 +5291,20 @@
   /* ---- the manager's squad plan: who stands with whom, and who they look to ---- */
   /* leadership follows the PERSON: G.plan.leaderOf[bodyId] means that body leads its squad.
      The engine wants one leader id per group, so we derive that array at the lock. */
+  /* §TALKS the year's captains that the planned squads leave without one to lead */
+  function captainsUnled() {
+    var caps = myCaptains(), plan = plannedGroups();
+    if (!plan) return [];
+    var me = G.corps[G.me], leads = {};
+    plan.groups.forEach(function (g, i) {
+      if (!g.length) return;
+      if (plan.leaders[i]) { leads[plan.leaders[i]] = true; return; }
+      var inG = g.filter(function (id) { return caps.indexOf(id) >= 0; }).map(function (id) { return me.roster.filter(function (f) { return f.id === id; })[0]; }).filter(Boolean);
+      inG.sort(function (a, b) { return b.stats.tactics - a.stats.tactics; });
+      if (inG[0]) leads[inG[0].id] = true;
+    });
+    return caps.filter(function (id) { return !leads[id]; });
+  }
   function plannedGroups() {
     if (!G || !G.plan) return null;
     var groups = [[], [], [], [], [], []];
@@ -5199,7 +5393,7 @@
       '<div class="pface">' + fighterMark(b, 72, colFor(G.me)) +
         (lead ? '<span class="plead">\u2605</span>' : '') +
         '<span class="prate ' + ratingBand(ratingOf(b)) + '">' + ratingOf(b) + '</span></div>' +
-      '<div class="pname" data-sheet="' + b.id + '" style="color:' + raceColour(b) + '">' + nameHtml(b) + '</div>' +
+      '<div class="pname" data-sheet="' + b.id + '" style="color:' + raceColour(b) + '">' + nameHtml(b) + (isCaptainOfYear(b) ? '<span class="wcap">Captain</span>' : '') + '</div>' +
       '<div class="pkit">' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</div>' +
       '<span class="px" data-home="' + b.id + '" title="Send Home">\u2715</span>' +
       '<span class="pstar' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="Leads">\u2605</span>' +
@@ -5213,6 +5407,8 @@
       '<circle cx="20" cy="14.5" r="7.5" fill="' + col + '" opacity=".40"/>' +
       '<path d="M5.5 40c0-8.4 6.5-13.5 14.5-13.5S34.5 31.6 34.5 40z" fill="' + col + '" opacity=".28"/></svg>';
   }
+  /* §TALKS the year's captains wear it on the squad board, where their squad is owed */
+  function isCaptainOfYear(b) { return !!(G && G.state && b && SEASON.captainsOf(G.corps[G.me], G.state.season).indexOf(b.id) >= 0); }
   function fighterCard(b, inSquad, opts) {
     opts = opts || {};
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
@@ -5222,7 +5418,7 @@
       (opts.pick ? 'data-' + opts.pick + '="' + b.id + '"' : opts.drop ? '' : 'data-id="' + b.id + '"') +
       (inSquad ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
       '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="read the sheet" style="color:' + raceColour(b) + '">' +
-        (lead ? '<span class="lead">\u2605</span>' : '') + nameHtml(b) + '</span></span>' +
+        (lead ? '<span class="lead">\u2605</span>' : '') + nameHtml(b) + (isCaptainOfYear(b) ? '<span class="wcap">Captain</span>' : '') + '</span></span>' +
         '<span class="kn">' + fighterMark(b, 20, colFor(G.me)) + ' ' + ratingHtml(b) + ' ' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</span>' +
         (inSquad ? '<span class="ctl"><span class="star' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="' + (lead ? 'Leads the Squad' : 'Make Leader') + '">\u2605</span>' +
                    '<span class="x" data-home="' + b.id + '" title="send home">\u2715</span></span>' : '') +

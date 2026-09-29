@@ -14,7 +14,7 @@ const D = __dirname + '/';
 
 /* ORDER MATTERS — each module captures its dependencies at load time. The season needs the
    sponsor and pre-Divide modules too; the desk's list is the precedent. */
-const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'events.js',
+const MODULES = ['prng.js', 'roster.js', 'items.js', 'map.js', 'ledger.js', 'reputation.js', 'talks.js', 'events.js',
                  'combat.js', 'tactical.js', 'negotiate.js', 'sponsors.js', 'predivide.js',
                  'divide.js', 'trade.js', 'season.js'];
 /* planets.json RIDES TOO. It did not, and the map module only reads it from disk under node —

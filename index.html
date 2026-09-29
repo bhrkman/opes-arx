@@ -1224,6 +1224,27 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §TALKS the month's word */
+  .wtbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  .wtbl tr.who{border-bottom:1px solid #131f30;cursor:pointer}
+  .wtbl tr.who:hover{background:var(--a-deep)}
+  .wtbl tr.who.lit{background:var(--a-deep)}
+  .wtbl td{padding:5px 6px;vertical-align:middle}
+  .wtbl .wnum{color:var(--dim);font-size:10px;white-space:nowrap;text-align:right}
+  .wtbl .wnum b{color:var(--ink);font-weight:normal}
+  .wtbl .wtemp{font-size:9.5px;color:var(--dim)}
+  .wtbl .wtemp.known{color:var(--a)}
+  .wtbl .capb{font-size:9px;padding:1px 6px}
+  .wtbl .capb.on{border-color:var(--mag);color:var(--mag)}
+  .wopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;padding:6px 4px 10px}
+  .wopt{text-align:left;display:flex;flex-direction:column;gap:2px;padding:6px 8px;border:1px solid var(--line2);border-radius:5px}
+  .wopt .ol{font-weight:bold}
+  .wopt .oc{font-size:9.5px;color:var(--dim)}
+  .wopt.on{border-color:var(--a);background:var(--a-deep)}
+  .wopt.bad .oc{color:var(--red)}
+  .wprom{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  .wdone{padding:8px 4px;font-size:11.5px}
+  .wcap{color:var(--mag);font-size:9px;border:1px solid var(--mag);border-radius:3px;padding:0 4px;margin-left:5px}
   .ctbl tr{border-bottom:1px solid #131f30}
   .ctbl tr.lit{background:var(--a-deep)}
   .ctbl tr.signed{opacity:.6}
@@ -1919,6 +1940,7 @@
       <div class="bar" style="margin-top:8px"><span class="m" id="apline"></span></div>
     </div>
     <div>
+      <div id="talkgrid"></div>
       <div id="intelgrid"></div>
       <div id="courtgrid"></div>
       <div id="deskligwrap" style="display:none"><h2>The Dividend's Lights</h2>
@@ -11661,7 +11683,10 @@
     sent_the_papers_back:{ q: { word: 1.0 }, mag: 3, target: 8, grave: true, residue: 0.20 },
     went_out_to_them:   { q: { word: 0.6, care: 0.4 }, mag: 4, residue: 0.15 },
     shut_the_gate:      { q: { word: -0.6, glory: -0.4 }, mag: 3, residue: 0.15 },
-    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 }
+    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 },
+    /* §TALKS a promise to one of your own gets out, kept or broken */
+    kept_a_promise:     { q: { word: 0.8, care: 0.3 }, mag: 1.5, residue: 0.10 },
+    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 }      /* ctx.grave for a star */
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one
@@ -12496,6 +12521,347 @@
   global.CDREP = api;
 })(typeof window !== "undefined" ? window : globalThis);
 
+/* ==== talks.js ==== */
+/* ============================================================================================
+   TALKS — one word a month with one person, and what it costs.
+
+   RULED: one talk a month, and it has to matter. Every talk buys something and costs
+   something, so there is no talk you simply always make:
+
+     Drive Them      a harder drill this month          more stress; a strained hand sours
+     Praise          loyalty up, stress down            they coast next month
+     Dress Down      snaps a slacker back               loyalty down
+     Make a Promise  a large loyalty jump now           broken, it costs more than it gave
+     Hear Them Out   nothing moves                      you learn their temper and what they want
+
+   TEMPER is an undiscovered quirk (ruled). Everyone has one; it doubles one talk and turns
+   another into a backfire. It is hidden until you hear them out, or until two talks have
+   shown you how they take things. The engine learns tempers by the same two roads.
+
+   REPEATS WEAR: the same talk to the same person two months running lands at half, and a
+   third month running backfires however they are made.
+
+   A CAPTAIN'S TALK carries: half of what it does to their loyalty and stress reaches the rest
+   of the roster, shared across the captains, because a captain's mood is the barracks' mood.
+
+   SYMMETRY (ruled): an engine OA has the same one talk, chooses it through `aiTalk`, and is
+   held to its promises the same way.
+
+   This module owns the arithmetic and the words. `season.js` decides WHEN a talk happens and
+   when a promise is settled; `events.js` lets a person ask for a word.
+   ============================================================================================ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./reputation.js'));
+  else root.CDTALKS = factory(root.CDPRNG, root.CDREP);
+})(typeof self !== 'undefined' ? self : this, function (P, REP) {
+  'use strict';
+
+  const CONST = {
+    DRIVE_DRILL: 1.5,            // [C] drill gain this month, driven
+    DRIVE_STRESS: 15,            // [C] what being driven costs
+    DRIVE_STRAIN_AT: 50,         // [C] stress at which being driven sours a hand
+    DRIVE_STRAIN_LOYALTY: -8,    // [C] and by this much
+    PRAISE_LOYALTY: 12,          // [C]
+    PRAISE_STRESS: -10,          // [C]
+    SLACK: 0.8,                  // [C] drill gain the month after praise: they coast
+    DRESS_DRILL: 1.25,           // [C] drill gain this month, dressed down
+    DRESS_LOYALTY: -10,          // [C]
+    PROMISE_LOYALTY: 20,         // [C] a promise, made
+    PROMISE_WANTED: 1.5,         // [C] and made of the thing they wanted
+    KEPT_LOYALTY: 5,             // [C] a promise kept is a small thing: it was owed
+    BROKEN_LOYALTY: -30,         // [C] a promise broken is not
+    BROKEN_STRESS: 10,           // [C]
+    DOUBLED: 2,                  // [C] a talk that suits their temper lands twice
+    REPEAT_FADE: 0.5,            // [C] the same talk two months running
+    REPEAT_BACKFIRE: 3,          // [S] the same talk this many months running backfires
+    REVEAL_AFTER: 2,             // [S] talks it takes to see someone's temper without asking
+    GRUDGE_RENEWAL: 1.15,        // [C] what a grudge adds to their re-signing ask
+    CAPTAIN_SPREAD: 0.5,         // [C] of a captain's talk, what reaches the roster (shared across captains)
+    CAPTAIN_STRESS: 2,           // [C] a month of leading
+    CAPTAIN_SWAY: 0.04,          // [C] a month's pull of the roster's loyalty toward its captains'
+    CAPTAIN_NAMED_LOYALTY: 8,    // [C] being made a captain
+    HISTORY: 12                  // [S] talks remembered per person
+  };
+
+  const TALKS = [
+    { id: 'drive',   name: 'Drive Them' },
+    { id: 'praise',  name: 'Praise' },
+    { id: 'dress',   name: 'Dress Down' },
+    { id: 'promise', name: 'Make a Promise' },
+    { id: 'hear',    name: 'Hear Them Out' }
+  ];
+  const TALK_NAME = {}; TALKS.forEach(t => { TALK_NAME[t.id] = t.name; });
+
+  /* what each temper takes well and badly. Dress Down backfires on two of five: it is the risky talk. */
+  const TEMPERS = {
+    proud:   { name: 'Proud',   doubles: 'drive',   backfires: 'dress',   text: 'Rises to a Challenge · Will Not Be Dressed Down' },
+    hungry:  { name: 'Hungry',  doubles: 'promise', backfires: 'praise',  text: 'Wants a Shot · Coasts on Praise' },
+    brittle: { name: 'Brittle', doubles: 'praise',  backfires: 'drive',   text: 'Blooms on Praise · Breaks When Driven' },
+    cold:    { name: 'Cold',    doubles: 'dress',   backfires: 'promise', text: 'Answers to Discipline · Believes No Promises' },
+    devoted: { name: 'Devoted', doubles: 'hear',    backfires: 'dress',   text: 'Wants to Be Heard · Wounded by a Dressing Down' }
+  };
+  const TEMPER_IDS = Object.keys(TEMPERS);
+
+  /* what a promise can be of, and what it means */
+  const PROMISES = {
+    drop:  { name: 'A Place on the Drop',    kept: 'Dropped as Promised' },
+    eight: { name: 'A Place in the Eight',   kept: 'Fought in the Eight as Promised' },
+    lead:  { name: 'A Squad to Lead',        kept: 'Led a Squad as Promised' }
+  };
+  const WANTS = ['drop', 'drop', 'eight', 'lead'];   /* most want the drop */
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  /* ---------------------------------------------------------------- the undiscovered quirk */
+  /** Their temper and what they want. Drawn once, from who they are, and never from the game's
+      dice: a temper is not an event, and drawing it from the stream would move every career. */
+  function temperOf(f) {
+    if (!f.temper || !TEMPERS[f.temper]) {
+      const rng = P.mulberry32(P.seedFrom('temper:' + f.id));
+      f.temper = TEMPER_IDS[Math.floor(rng() * TEMPER_IDS.length)];
+      f.want = WANTS[Math.floor(rng() * WANTS.length)];
+    }
+    return f.temper;
+  }
+  function wantOf(f) { temperOf(f); return f.want; }
+  function temperKnown(f) { return !!f.temperKnown; }
+  /** what the manager may see: the temper once found, nothing before */
+  function temperShown(f) {
+    if (!f.temperKnown) return null;
+    const t = TEMPERS[temperOf(f)];
+    return { id: f.temper, name: t.name, text: t.text, want: f.want, wantName: PROMISES[f.want].name };
+  }
+
+  /* ------------------------------------------------------------------------------- memory */
+  function history(f) { return (f._talks = f._talks || []); }
+  /** how many months running this person has had this same talk, up to last month */
+  function runOf(f, kind, abs) {
+    const h = history(f);
+    let n = 0;
+    for (let back = 1; back <= CONST.REPEAT_BACKFIRE; back++) {
+      if (h.some(t => t.abs === abs - back && t.kind === kind)) n++;
+      else break;
+    }
+    return n;
+  }
+  function talkedThisMonth(corp, abs) { return corp._talked && corp._talked.abs === abs ? corp._talked : null; }
+
+  /** how a talk would land, as far as the one asking can know. `seen` false hides the temper. */
+  function landing(f, kind, abs, seen) {
+    /* the run is the manager's own history and always known; the temper only once found */
+    const run = kind === 'hear' ? 0 : runOf(f, kind, abs);
+    if (kind !== 'hear' && run + 1 >= CONST.REPEAT_BACKFIRE) return 'backfired';
+    const t = TEMPERS[temperOf(f)];
+    let how = !seen ? 'plain' : t.backfires === kind ? 'backfired' : t.doubles === kind ? 'doubled' : 'plain';
+    if (run && how !== 'backfired') how = how === 'doubled' ? 'plain' : 'faded';   /* doubled, then halved */
+    return how;
+  }
+
+  /** The talk's numbers, before anything is applied. Pure: the page previews with it. */
+  function effects(f, kind, how, promiseKind, blind) {
+    const e = { loyalty: 0, stress: 0, drill: 1, slackNext: false, slackNow: false, clearSlack: false, grudge: false, reveal: false };
+    const stress0 = (f.condition && f.condition.stress) || 0;
+    const scale = how === 'doubled' ? CONST.DOUBLED : how === 'faded' ? CONST.REPEAT_FADE : 1;
+    if (kind === 'drive') {
+      if (how === 'backfired') { e.stress = CONST.DRIVE_STRESS * 2; e.loyalty = CONST.DRIVE_STRAIN_LOYALTY * 2; }
+      else {
+        e.drill = 1 + (CONST.DRIVE_DRILL - 1) * scale;
+        e.stress = CONST.DRIVE_STRESS;
+        if (stress0 > CONST.DRIVE_STRAIN_AT) e.loyalty = CONST.DRIVE_STRAIN_LOYALTY;
+      }
+    } else if (kind === 'praise') {
+      if (how === 'backfired') { e.slackNow = true; e.slackNext = true; }
+      else { e.loyalty = CONST.PRAISE_LOYALTY * scale; e.stress = CONST.PRAISE_STRESS * scale; e.slackNext = true; }
+    } else if (kind === 'dress') {
+      if (how === 'backfired') { e.loyalty = CONST.DRESS_LOYALTY * 2; e.grudge = true; }
+      else {
+        e.drill = 1 + (CONST.DRESS_DRILL - 1) * scale; e.clearSlack = true;
+        e.loyalty = how === 'doubled' ? CONST.DRESS_LOYALTY / 2 : CONST.DRESS_LOYALTY;
+      }
+    } else if (kind === 'promise') {
+      if (how !== 'backfired') {
+        /* what they want is part of the undiscovered quirk: a preview made blind does not know it */
+        const wanted = !blind && promiseKind && promiseKind === wantOf(f) ? CONST.PROMISE_WANTED : 1;
+        e.loyalty = CONST.PROMISE_LOYALTY * scale * wanted;
+      }
+      e.owedAt = promiseKind === 'eight' ? 'the Eight' : 'the Lock';
+    } else if (kind === 'hear') {
+      e.reveal = true;
+      if (how === 'doubled') { e.loyalty = 8; e.stress = -8; }
+    }
+    e.loyalty = Math.round(e.loyalty); e.stress = Math.round(e.stress);
+    return e;
+  }
+
+  const HOW_WORD = { plain: '', doubled: ' — It Landed', faded: ' — It Wore Thin', backfired: ' — It Backfired' };
+  function lineFor(f, kind, how, promiseKind) {
+    const n = f.name;
+    const base = kind === 'drive' ? 'Drove ' + n + ' Hard'
+               : kind === 'praise' ? 'Praised ' + n
+               : kind === 'dress' ? 'Dressed Down ' + n
+               : kind === 'promise' ? 'Promised ' + n + ' ' + PROMISES[promiseKind].name
+               : 'Heard ' + n + ' Out';
+    return base + (HOW_WORD[how] || '');
+  }
+
+  /* --------------------------------------------------------------------------- promises */
+  function promisesOf(corp) { return (corp._promises = corp._promises || []); }
+  function openPromise(corp, f, kind, season) {
+    return promisesOf(corp).find(p => p.fighterId === f.id && p.kind === kind && p.season === season && p.status === 'open') || null;
+  }
+  function makePromise(corp, f, kind, season, abs, source) {
+    if (!PROMISES[kind]) return null;
+    const have = openPromise(corp, f, kind, season);
+    if (have) return have;
+    const p = { fighterId: f.id, name: f.name, kind, season, abs, source: source || 'talk', status: 'open' };
+    promisesOf(corp).push(p);
+    /* the record is a few years long, not a career long */
+    const list = promisesOf(corp);
+    while (list.length > 60) list.shift();
+    return p;
+  }
+  /** Settle one promise. `outcome` is 'kept', 'broken' or 'void' (it stopped being possible
+      through nobody's choice: they died, left, or were hurt too badly to go). Idempotent. */
+  function settlePromise(corp, p, outcome, f) {
+    if (!p || p.status !== 'open') return null;
+    p.status = outcome;
+    if (!f) return p;
+    if (outcome === 'kept') {
+      f.loyalty = clamp((f.loyalty == null ? 50 : f.loyalty) + CONST.KEPT_LOYALTY, 0, 100);
+      /* a captaincy kept is the ordinary course of a year, not news; a promise made in a talk is */
+      if (corp.rep && p.source !== 'captain') REP.act(corp.rep, 'kept_a_promise', {});
+    } else if (outcome === 'broken') {
+      f.loyalty = clamp((f.loyalty == null ? 50 : f.loyalty) + CONST.BROKEN_LOYALTY, 0, 100);
+      if (f.condition) f.condition.stress = clamp((f.condition.stress || 0) + CONST.BROKEN_STRESS, 0, 100);
+      if (corp.rep) REP.act(corp.rep, 'broke_a_promise', { grave: (f.fame || 0) >= 60 });
+    }
+    return p;
+  }
+
+  /* ------------------------------------------------------------------------------ the talk */
+  /**
+   * Have the talk. ctx: { abs, season, promise (kind, for a promise), captains (array of ids),
+   * roster (the corp's living people, for a captain's reach) }. Returns what happened, or null
+   * if the talk was not legal (unknown kind, a promise of nothing).
+   */
+  function talk(corp, f, kind, ctx) {
+    if (!f || !TALK_NAME[kind]) return null;
+    if (kind === 'promise' && !PROMISES[ctx.promise]) return null;
+    temperOf(f);
+    const how = landing(f, kind, ctx.abs, true);        /* the landing is what it is; only the preview hides it */
+    const e = effects(f, kind, how, ctx.promise);
+    f.loyalty = clamp((f.loyalty == null ? 50 : f.loyalty) + e.loyalty, 0, 100);
+    if (f.condition) f.condition.stress = clamp((f.condition.stress || 0) + e.stress, 0, 100);
+    if (e.drill !== 1) f._drillMult = { abs: ctx.abs, mult: e.drill };
+    f._slack = (f._slack || []).filter(a => a >= ctx.abs);
+    if (e.clearSlack) f._slack = f._slack.filter(a => a !== ctx.abs && a !== ctx.abs + 1);
+    if (e.slackNow) f._slack.push(ctx.abs);
+    if (e.slackNext) f._slack.push(ctx.abs + 1);
+    if (e.grudge) f._grudge = true;
+    if (kind === 'promise') makePromise(corp, f, ctx.promise, ctx.season, ctx.abs, 'talk');
+    /* a captain's mood is the barracks' */
+    const caps = ctx.captains || [];
+    let reached = 0;
+    if (caps.indexOf(f.id) >= 0 && (e.loyalty || e.stress)) {
+      const share = CONST.CAPTAIN_SPREAD / Math.max(1, caps.length);
+      for (const o of (ctx.roster || [])) {
+        if (o === f) continue;
+        o.loyalty = clamp((o.loyalty == null ? 50 : o.loyalty) + e.loyalty * share, 0, 100);
+        if (o.condition) o.condition.stress = clamp((o.condition.stress || 0) + e.stress * share, 0, 100);
+        reached++;
+      }
+    }
+    /* how they take it is how you come to know them */
+    const h = history(f);
+    h.push({ abs: ctx.abs, season: ctx.season, month: ctx.abs % 100, kind, how, promise: kind === 'promise' ? ctx.promise : undefined });
+    while (h.length > CONST.HISTORY) h.shift();
+    let revealed = false;
+    if (!f.temperKnown && (e.reveal || h.length >= CONST.REVEAL_AFTER)) { f.temperKnown = true; revealed = true; }
+    const line = lineFor(f, kind, how, ctx.promise);
+    corp._talked = { abs: ctx.abs, fighterId: f.id, kind, how, line };
+    return { fighterId: f.id, name: f.name, kind, how, promise: ctx.promise, loyalty: e.loyalty, stress: e.stress,
+             drill: e.drill, reached, revealed, temper: revealed ? TEMPERS[f.temper].name : null, line };
+  }
+
+  /** this month's drill multiplier for a person: driven, dressed down, or coasting */
+  function drillMult(f, abs) {
+    let m = f._drillMult && f._drillMult.abs === abs ? f._drillMult.mult : 1;
+    if ((f._slack || []).indexOf(abs) >= 0) m *= CONST.SLACK;
+    return m;
+  }
+
+  /** what the manager sees before choosing: the numbers as far as they can know them */
+  function preview(f, kind, abs, promiseKind) {
+    const how = landing(f, kind, abs, !!f.temperKnown);
+    const e = Object.assign({ how }, effects(f, kind, how, promiseKind, !f.temperKnown));
+    if (f.temperKnown) e.reveal = false;        /* nothing left to learn by asking */
+    return e;
+  }
+
+  /** a preview in the page's words: Title Case, the numbers that move */
+  const HOW_TAG = { doubled: 'Suits Them', faded: 'Wearing Thin', backfired: 'Backfires' };
+  function describe(e) {
+    const sgn = v => (v > 0 ? '+' : '−') + Math.abs(v);
+    const parts = [];
+    if (HOW_TAG[e.how]) parts.push(HOW_TAG[e.how]);
+    if (e.drill && e.drill !== 1) parts.push('Drill ×' + (Math.round(e.drill * 100) / 100));
+    if (e.loyalty) parts.push('Loyalty ' + sgn(e.loyalty));
+    if (e.stress) parts.push('Stress ' + sgn(e.stress));
+    if (e.slackNow) parts.push('Coasts This Month');
+    if (e.slackNext) parts.push('Coasts Next Month');
+    if (e.clearSlack) parts.push('Ends Any Coasting');
+    if (e.grudge) parts.push('Holds a Grudge');
+    if (e.reveal) parts.push('Learn Their Temper');
+    if (e.owedAt) parts.push('Owed at ' + e.owedAt);
+    return parts.join(' · ') || 'Nothing Moves';
+  }
+
+  /* ---------------------------------------------------------------------- the engine's word */
+  /**
+   * An engine OA's talk for the month, chosen by the same rules a person reads. ctx:
+   * { abs, captains, promisable (kinds open now), drilled (Set of ids it is drilling) }.
+   * Returns { fighterId, kind, promise } or null.
+   */
+  function aiTalk(corp, ctx) {
+    const alive = corp.roster.filter(f => f.status === 'active' || f.status === 'injured');
+    if (!alive.length) return null;
+    const caps = new Set(ctx.captains || []);
+    const loy = f => (f.loyalty == null ? 50 : f.loyalty);
+    const str = f => ((f.condition && f.condition.stress) || 0);
+    /* who: a sour captain first, then the sourest hand, then whoever the drill is working */
+    let who = alive.filter(f => caps.has(f.id) && loy(f) < 45).sort((a, b) => loy(a) - loy(b))[0]
+           || alive.filter(f => loy(f) < 35).sort((a, b) => loy(a) - loy(b))[0]
+           || alive.filter(f => caps.has(f.id) && !f.temperKnown)[0]
+           || alive.filter(f => ctx.drilled && ctx.drilled.has(f.id) && str(f) < 40).sort((a, b) => str(a) - str(b))[0]
+           || alive.slice().sort((a, b) => loy(a) - loy(b))[0];
+    if (!who) return null;
+    temperOf(who);
+    const legal = kind => kind !== 'promise' || (ctx.promisable || []).length;
+    const ok = kind => legal(kind) && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'backfired'
+                    && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'faded';
+    let kind = null;
+    if (!who.temperKnown && (caps.has(who.id) || loy(who) < 40)) kind = 'hear';
+    else if (who.temperKnown && ok(TEMPERS[who.temper].doubles)) kind = TEMPERS[who.temper].doubles;
+    else if (loy(who) < 40 && ok('praise')) kind = 'praise';
+    else if (str(who) < 30 && ok('drive')) kind = 'drive';
+    else if (ok('praise')) kind = 'praise';
+    else if (ok('hear')) kind = 'hear';
+    if (!kind) return null;
+    let promise;
+    if (kind === 'promise') {
+      const want = wantOf(who);
+      promise = (ctx.promisable || []).indexOf(want) >= 0 && (want !== 'lead' || caps.has(who.id)) ? want
+              : (ctx.promisable || []).indexOf('drop') >= 0 ? 'drop' : null;
+      if (!promise) kind = 'praise';
+    }
+    return { fighterId: who.id, kind, promise };
+  }
+
+  return { CONST, TALKS, TALK_NAME, TEMPERS, PROMISES, temperOf, wantOf, temperKnown, temperShown,
+           runOf, landing, effects, preview, describe, talk, drillMult, talkedThisMonth,
+           promisesOf, openPromise, makePromise, settlePromise, aiTalk, lineFor };
+});
+
 /* ==== events.js ==== */
 /* ============================================================================================
    EVENTS — what happens TO a corporation in a month, and the choice it forces.
@@ -12517,9 +12883,9 @@
    ============================================================================================ */
 (function (root, factory) {
   const isNode = typeof module !== "undefined" && module.exports;
-  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"));
-  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS);
-})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS) {
+  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"), require("./talks.js"));
+  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS, root.CDTALKS);
+})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS, TALKS) {
   "use strict";
 
   const CONST = {
@@ -12569,7 +12935,11 @@
     PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
-    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
+    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35,  // [C] the shelf's prices for the year
+    WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
+    WORD_SOUR: 45,               // [C] loyalty under which a hand has something to say
+    WORD_STRAINED: 55,           // [C] stress over which a hand has something to say
+    TURN_AWAY_LOYALTY: -8        // [C] what being turned away costs
   };
   /* §ALEAS THE ALEAS' RULINGS ARE CUT (ruled). Four of this pool were the Aleas changing the year's rules —
      the wall closed early, a stun-grade Divide, no truces, a levy — invasive, rarely noticed and not much
@@ -13018,6 +13388,73 @@
      displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
      BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
      cannot be answered is the worst of both — it looks like content and is furniture. */
+
+  /* §TALKS SOMEBODY ASKS FOR A WORD. A sour or strained hand comes to the manager with
+     something to say, and the answer IS the month's talk: take the meeting and that is who you
+     spoke to this month; turn them away and they feel it. The talks are the five a manager
+     always has, costed as far as the manager knows the person. */
+  let TALKER = null;
+  function useTalker(fn) { TALKER = fn || null; }
+  const WORD_ASKS = {
+    drop:   { title: n => n + ' Wants a Place on the Drop', text: n => n + ' has watched the drop list all year and wants to know where they stand on it.' },
+    lead:   { title: n => n + ' Wants a Squad', text: n => n + ' thinks they could lead better than the ones who do, and has come to say so.' },
+    eight:  { title: n => n + ' Wants the Eight', text: n => n + ' wants to be the one the OA sends to the Eight, and wants you to say it.' },
+    strain: { title: n => n + ' Is Coming Apart', text: n => n + ' has not slept properly in weeks and has asked to see you.' },
+    captain:{ title: n => n + ' Will Not Serve Under Their Captain', text: n => n + ' has had enough of the one leading them, and says so to your face.' }
+  };
+  POOL.push({
+    id: 'word', weight: CONST.WORD_WEIGHT,
+    when: (c, ctx) => {
+      if (!TALKER || !ctx.state) return null;
+      const st = ctx.state, abs = st.season * 100 + st.month;
+      if (c._talked && c._talked.abs === abs) return null;
+      const caps = (c.captains && c.captains.season === st.season) ? c.captains.ids : [];
+      const cand = alive(c).filter(f => !f.mirror_of && f._askedWord !== st.season &&
+        ((f.loyalty == null ? 50 : f.loyalty) < CONST.WORD_SOUR || ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED));
+      if (!cand.length) return null;
+      const f = cand[Math.floor(ctx.rng() * cand.length)];
+      TALKS.temperOf(f);
+      const strained = ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED;
+      const ask = strained ? 'strain'
+                : caps.length && caps.indexOf(f.id) < 0 && ctx.rng() < 0.35 ? 'captain'
+                : f.want === 'eight' && st.month > 8 ? 'drop' : f.want;
+      return { f, ask };
+    },
+    make: (hit, c, ctx) => {
+      const f = hit.f, st = ctx.state, abs = st.season * 100 + st.month, n = f.name, a = WORD_ASKS[hit.ask];
+      const promiseKind = hit.ask === 'drop' || hit.ask === 'lead' || hit.ask === 'eight' ? hit.ask : 'drop';
+      const cost = (kind, pk) => TALKS.describe(TALKS.preview(f, kind, abs, pk)) + (f.temperKnown ? '' : ' · Temper Unknown');
+      const options = [
+        { id: 'hear',    label: 'Hear Them Out',  cost: cost('hear') },
+        { id: 'praise',  label: 'Reassure Them',  cost: cost('praise') },
+        { id: 'promise', label: 'Promise ' + TALKS.PROMISES[promiseKind].name, cost: cost('promise', promiseKind), promise: promiseKind },
+        { id: 'dress',   label: 'Tell Them to Get On With It', cost: cost('dress') },
+        { id: 'drive',   label: 'Put Them Back to Work', cost: cost('drive') },
+        { id: 'away',    label: 'Turn Them Away', cost: 'Loyalty ' + '−' + Math.abs(CONST.TURN_AWAY_LOYALTY) + ' · Keeps Your Talk This Month' }
+      ];
+      return { kind: 'word', subject: f.id, ask: hit.ask, title: a.title(n), text: a.text(n) + ' Taking the meeting is this month’s talk.',
+               options, def: 'away' };
+    },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
+      f._askedWord = ctx.state.season;
+      const turn = () => { f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) + CONST.TURN_AWAY_LOYALTY); return f.name + ' Was Turned Away'; };
+      if (opt === 'away') return turn();
+      const o = e.options.find(x => x.id === opt);
+      const res = TALKER && TALKER(ctx.state, c.id, { fighterId: f.id, kind: opt, promise: o && o.promise });
+      if (!res) return turn();
+      return res.line + (res.revealed ? ' · ' + res.temper : '');
+    },
+    ai: (c, e) => {
+      const f = alive(c).find(x => x.id === e.subject);
+      if (!f) return 'away';
+      const t = f.temperKnown ? TALKS.TEMPERS[TALKS.temperOf(f)] : null;
+      if (t && t.doubles !== 'promise' && e.options.some(o => o.id === t.doubles)) return t.doubles;
+      if (t && t.doubles === 'promise' && e.ask !== 'captain' && e.ask !== 'strain') return 'promise';
+      if (!t) return 'hear';
+      return t.backfires === 'praise' ? 'hear' : 'praise';
+    }
+  });
   MOMENTS.forEach(m => POOL.push(momentSpec(m)));
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
@@ -13335,7 +13772,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, fighterHas, storyMult, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });
@@ -20002,8 +20439,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!bodies.length) continue;          /* a named group whose bodies all fell unfit */
       let cap = bodies[0];
       for (const b of bodies) if (b.stats.tactics > cap.stats.tactics) cap = b;
-      const led = leaders && leaders[i] && bodies.some(b => b.id === leaders[i])
-                ? leaders[i] : cap.id;
+      const named = !!(leaders && leaders[i] && bodies.some(b => b.id === leaders[i]));
+      const led = named ? leaders[i] : cap.id;
       /* the squad's index is its place in the LIST — a skipped empty group must not leave
          a gap that `_squadIdx` lookups fall into — and rations feed the bodies that stand */
       const si = corp.squads.length;
@@ -20018,13 +20455,41 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
         claiming: null, movedToday: false, foughtToday: false, engagements: 0,
-        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _startN: bodies.length,          /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _named: named
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
          read a field that no code anywhere ever set. */
       for (const b of bodies) b._squadIdx = si;
       corp.allBodies.push(...bodies);
+    }
+    /* §TALKS THE YEAR'S CAPTAINS LEAD WHERE THEY LAND. A dealt drop (no manager's groups) moves a
+       second captain in one squad across to a squad that has none, trading places with its least
+       tactical single hand; then every squad without a leader named at the Lock is led by the
+       sharpest captain standing in it. A pair is never split to do it. No dice. */
+    const capSet = new Set((persist && persist.captains) || []);
+    if (capSet.size && corp.squads.length) {
+      const single = b => !b.mirror_of && !b.bond_partner;
+      if (!groups) {
+        const bare = corp.squads.filter(sq => !sq.bodies.some(b => capSet.has(b.id)));
+        for (const sq of corp.squads) {
+          const cs = sq.bodies.filter(b => capSet.has(b.id) && single(b));
+          while (cs.length > 1 && bare.length) {
+            const extra = cs.pop(), dest = bare.shift();
+            const swap = dest.bodies.filter(b => !capSet.has(b.id) && single(b))
+              .sort((a, b) => a.stats.tactics - b.stats.tactics)[0];
+            if (!swap) continue;
+            sq.bodies[sq.bodies.indexOf(extra)] = swap; dest.bodies[dest.bodies.indexOf(swap)] = extra;
+            swap._squadIdx = sq.sIdx; extra._squadIdx = dest.sIdx;
+          }
+        }
+      }
+      for (const sq of corp.squads) {
+        if (sq._named) continue;
+        const cs = sq.bodies.filter(b => capSet.has(b.id));
+        if (cs.length) sq.captainId = cs.sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id;
+      }
     }
     /* PROCUREMENT.md §15 — kit the force. Planning draws no RNG, so it cannot shift the
        stream; what it changes is what everybody is holding when the shooting starts.
@@ -25992,12 +26457,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS) {
   'use strict';
 
   const CONST = {
@@ -26712,8 +27177,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         dividendLoadout(f, i);
       });
       const side = (corp, bodies) => {
-        let cap = bodies[0];
-        for (const f of bodies) if (f.stats.tactics > cap.stats.tactics) cap = f;
+        /* §TALKS the year's captain leads if they are on the card; otherwise the sharpest head */
+        const caps = captainsOf(corp, season);
+        const pool = bodies.some(f => caps.indexOf(f.id) >= 0) ? bodies.filter(f => caps.indexOf(f.id) >= 0) : bodies;
+        let cap = pool[0];
+        for (const f of pool) if (f.stats.tactics > cap.stats.tactics) cap = f;
         return { tag: corp.id, corpId: corp.id, policy: 'standard', policyName: 'standard',
                  hasMedkit: true,
                  units: bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
@@ -26798,6 +27266,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function eightPick(corp) {
     const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
+    /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
+    const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
+      .map(p => fit.find(f => f.id === p.fighterId)).filter(Boolean);
+    if (owed.length) return owed[0];
     const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
     return fit.slice().sort((a, b) => score(b) - score(a))[0];
   }
@@ -26817,6 +27289,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
       if (!f) f = eightPick(corps[id]);
       if (f) entrants.push({ corp: corps[id], f });
+    }
+    /* §TALKS whoever was promised the Eight either went or was passed over */
+    for (const id of ids) {
+      const c = corps[id], went = entrants.find(e => e.corp === c);
+      for (const p of TALKS.promisesOf(c).filter(p => p.kind === 'eight' && p.status === 'open' && p.season === season)) {
+        const f = c.roster.find(x => x.id === p.fighterId);
+        const out = went && went.f === f ? 'kept'
+                  : (!f || f.status !== 'active' || (f.condition && (f.condition.injuries || []).length)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, p, out, f);
+        (c._promiseNews = c._promiseNews || []).push({ season, name: p.name, kind: 'eight', outcome: out });
+      }
     }
     if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
@@ -27781,6 +28264,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       settleWounds(f);
     }
     tally.mended += mended;
+    /* §TALKS A CAPTAIN'S MOOD IS THE BARRACKS'. The roster's loyalty leans toward its captains'
+       a little every month, and leading wears on the one who does it. */
+    const caps = captainsOf(corp, season || 0);
+    if (caps.length) {
+      const capF = caps.map(id => corp.roster.find(f => f.id === id)).filter(Boolean);
+      const mean = capF.reduce((a, f) => a + (f.loyalty == null ? 50 : f.loyalty), 0) / Math.max(1, capF.length);
+      for (const f of aliveOf(corp)) {
+        if (caps.indexOf(f.id) >= 0) {
+          if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + TALKS.CONST.CAPTAIN_STRESS);
+          continue;
+        }
+        const l = f.loyalty == null ? 50 : f.loyalty;
+        f.loyalty = Math.max(0, Math.min(100, l + (mean - l) * TALKS.CONST.CAPTAIN_SWAY));
+      }
+    }
     if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
     if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
@@ -27817,6 +28315,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                          : chooseFocus(corp, month);
     /* §STANDING a strike stood the drill idle this month: whatever was painted on it goes unspent */
     if (corp._noDrill === (season || 0) * 100 + month) delete focus.train;
+    /* §TALKS THE MONTH'S WORD, before the work it may sharpen or blunt. A person's rides their
+       choices; the engine chooses its own by the same rules. A request for a word answered
+       earlier this month has already had it. */
+    const talkAbs = (season || 0) * 100 + month;
+    const talkWant = wanted ? wanted.talk
+      : TALKS.aiTalk(corp, { abs: talkAbs, captains: caps, promisable: promisable(month),
+                             drilled: focus.train ? new Set(aliveOf(corp).map(f => f.id)) : null });
+    const talked = holdTalk(corp, talkWant, season || 0, month, landedOut);
+    if (talked) tally.talks = (tally.talks || 0) + 1;
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -27954,7 +28461,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              simply not learning, which is the cost of fielding a broken hand. */
           if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
           const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
-                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1);
+                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1)
+                      * TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -28217,7 +28725,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const fame = (f.fame || 0) - (f._fameAtSigning || 0);
     /* 50 is indifferent; the pull runs either way from there */
     const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull));
+    /* §TALKS a hand dressed down against their temper remembers it when the paper comes round */
+    const grudge = f._grudge ? TALKS.CONST.GRUDGE_RENEWAL : 1;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge));
   }
 
   /**
@@ -28445,8 +28955,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the ruling describes, made by culture through `lockLean`. */
     const lean = opts.lean || lockLean(corp);
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
+    /* §TALKS a place on the drop promised is a place on the drop, if they can stand */
+    const owed = new Set(TALKS.promisesOf(corp).filter(p => (p.kind === 'drop' || p.kind === 'lead') && p.status === 'open').map(p => p.fighterId));
     const score = f => {
-      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4;
+      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) ? 100 : 0);
       /* an unserved term pulls its holder toward the drop — the corp bought the clause
          and the clause only advances on the ground; a served-out term stops pulling */
       if (f.contract && f.contract.divides_required != null) {
@@ -28919,6 +29431,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
+    openCaptains(state);                /* §TALKS the year opens with its captains named */
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -29144,6 +29657,137 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     c._squadPlan = { season: state.season, n };
     return n;
   }
+
+  /* ============================================================ §TALKS CAPTAINS AND THE MONTH'S WORD
+     RULED: captains are named for the YEAR, not at the Lock alone. They lead in the Dividend and
+     the Divide (the Eight is one hand an OA, and has no captain of its own), their loyalty pulls
+     the roster's toward it month by month, and they carry a little more strain for it. Being
+     named is a promise — a squad to lead at the drop — so the naming is free until the year's
+     first month turns, and a captain stood down after that is a promise broken.
+     One talk a month, human or engine (talks.js). */
+  const CAPTAINS_MAX = 6;
+  const EIGHT_MONTH = +Object.keys(MONTHS).find(k => MONTHS[k].event === 'eight');
+  function aliveOf(c) { return c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'); }
+  function captainsOf(corp, season) {
+    const k = corp && corp.captains;
+    if (!k || k.season !== season) return [];
+    const alive = new Set(aliveOf(corp).map(f => f.id));
+    return k.ids.filter(id => alive.has(id));
+  }
+  function captainSlots(state, corpId) { return Math.max(1, Math.min(CAPTAINS_MAX, squadPlanFor(state, corpId))); }
+  function captainCandidates(corp) { return aliveOf(corp).filter(f => f.status === 'active' && !f.mirror_of); }
+  function pickCaptains(corp, n, keep) {
+    const cand = captainCandidates(corp);
+    const kept = (keep || []).filter(id => cand.some(f => f.id === id)).slice(0, n);
+    const rest = cand.filter(f => kept.indexOf(f.id) < 0)
+      .sort((a, b) => (b.stats.tactics - a.stats.tactics) || ((b.loyalty == null ? 50 : b.loyalty) - (a.loyalty == null ? 50 : a.loyalty)));
+    return kept.concat(rest.slice(0, Math.max(0, n - kept.length)).map(f => f.id));
+  }
+  /** the year opens with captains: a person keeps last year's where they still stand, the engine picks afresh */
+  function openCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      const prior = (c.captains && c.captains.ids) || [];
+      c.captains = { season: state.season, ids: pickCaptains(c, captainSlots(state, id), isHuman(state, id) ? prior : []), promised: false };
+    }
+  }
+  function appointed(c, fid, state) {
+    const f = c.roster.find(x => x.id === fid); if (!f) return;
+    f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + TALKS.CONST.CAPTAIN_NAMED_LOYALTY));
+    TALKS.makePromise(c, f, 'lead', state.season, state.season * 100 + state.month, 'captain');
+  }
+  /** the first month turns: whoever holds a captaincy now has been promised a squad */
+  function promiseCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id], k = c.captains;
+      if (!k || k.season !== state.season || k.promised) continue;
+      k.promised = true;
+      for (const fid of captainsOf(c, state.season)) appointed(c, fid, state);
+    }
+  }
+  /** A manager names the year's captains. Free until the first month turns; after it, a captain
+      stood down is a promise broken, and one raised is a promise made. */
+  function nameCaptains(state, corpId, ids) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    if (state.done || state.month > CONST.PREP_MONTHS) return { ok: false, why: 'The Squads Are Locked' };
+    const n = captainSlots(state, corpId);
+    const cand = new Set(captainCandidates(c).map(f => f.id));
+    const want = [];
+    for (const id of (ids || [])) if (cand.has(id) && want.indexOf(id) < 0) want.push(id);
+    if (want.length > n) return { ok: false, why: 'Only ' + n + ' Squads to Lead' };
+    const k = c.captains && c.captains.season === state.season ? c.captains
+            : (c.captains = { season: state.season, ids: [], promised: false });
+    const was = captainsOf(c, state.season), broken = [];
+    if (k.promised) {
+      for (const id of was) if (want.indexOf(id) < 0) {
+        const f = c.roster.find(x => x.id === id);
+        const p = f && TALKS.openPromise(c, f, 'lead', state.season);
+        if (p) { TALKS.settlePromise(c, p, 'broken', f); broken.push(f.name);
+                 (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: f.name, kind: 'lead', outcome: 'broken' }); }
+      }
+      for (const id of want) if (was.indexOf(id) < 0) appointed(c, id, state);
+    }
+    k.ids = want;
+    return { ok: true, captains: want.slice(), broken };
+  }
+  /** what a promise can be of this month */
+  function promisable(month) { const k = ['drop', 'lead']; if (month <= EIGHT_MONTH) k.push('eight'); return k; }
+  /** The month's one talk, if it has not been had. `t` = { fighterId, kind, promise }. */
+  function holdTalk(corp, t, season, month, landedOut) {
+    const abs = (season || 0) * 100 + month;
+    if (!t || !TALKS || TALKS.talkedThisMonth(corp, abs)) return null;
+    const f = aliveOf(corp).find(x => x.id === t.fighterId);
+    if (!f) return null;
+    if (t.kind === 'promise' && promisable(month).indexOf(t.promise) < 0) return null;
+    const res = TALKS.talk(corp, f, t.kind, { abs, season: season || 0, promise: t.promise,
+                                              captains: captainsOf(corp, season || 0), roster: aliveOf(corp) });
+    if (res && landedOut) landedOut.push({ kind: 'talk', text: res.line, talk: res });
+    return res;
+  }
+  /** a person asks for a word: the month's talk, taken now (events.js) */
+  function talkNow(state, corpId, t) {
+    const c = state.corps[corpId];
+    if (!c || state.done || state.month > CONST.PREP_MONTHS) return null;
+    return holdTalk(c, t, state.season, state.month, null);
+  }
+  /** how the month's talk with somebody would land, as far as their manager can know */
+  function talkPreview(state, corpId, fighterId, kind, promise) {
+    const c = state.corps[corpId], f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!f) return null;
+    return TALKS.preview(f, kind, (state.season || 0) * 100 + state.month, promise);
+  }
+  /** The promises due at the drop come due: a place on it, and a squad to lead. Idempotent. */
+  function settleDropPromises(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id], p = per[id] || {};
+      const drop = new Set(((p.drop || c._drop) || []).map(f => f.id));
+      const caps = captainsOf(c, state.season);
+      const leads = new Set();
+      if (p.groups && p.groups.length) {
+        p.groups.forEach((g, i) => {
+          if (p.leaders && p.leaders[i]) { leads.add(p.leaders[i]); return; }
+          const inG = g.filter(x => caps.indexOf(x) >= 0);
+          if (inG.length) leads.add(inG.map(x => c.roster.find(f => f.id === x)).filter(Boolean)
+            .sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id);
+        });
+      } else for (const x of caps) if (drop.has(x)) leads.add(x);
+      for (const pr of TALKS.promisesOf(c)) {
+        if (pr.status !== 'open' || pr.season !== state.season) continue;
+        const f = c.roster.find(x => x.id === pr.fighterId);
+        const gone = !f || f.status === 'dead' || f.status === 'retired' || f.status === 'captured';
+        const unfit = !gone && !!(f.condition && (f.condition.injuries || []).length);
+        let out;
+        if (pr.kind === 'eight') out = 'void';          /* the Eight was fought without it being settled: nobody's doing */
+        else if (gone) out = 'void';
+        else if (pr.kind === 'drop') out = drop.has(f.id) ? 'kept' : unfit ? 'void' : 'broken';
+        else out = leads.has(f.id) ? 'kept' : (unfit && !drop.has(f.id)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, pr, out, gone ? null : f);
+        (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: pr.name, kind: pr.kind, outcome: out });
+      }
+    }
+  }
   function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
   function ensureDraft(state) {
     state.drop = state.drop || { sectors: {} };
@@ -29280,6 +29924,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (EVENTS && EVENTS.useTraitIndex) EVENTS.useTraitIndex(ROSTER && ROSTER.traitById);
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
+    promiseCaptains(state);   /* §TALKS the naming was free until now */
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -29650,6 +30295,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
         wordRecord: (c._wordRecord = c._wordRecord || {}),
+        /* §TALKS the year's captains lead the squads they land in */
+        captains: captainsOf(c, season),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -29924,6 +30571,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
+    settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
     return { opts: state._divideOpts,
              rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
   }
@@ -30502,6 +31150,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
+  /* §TALKS a person asking for a word takes the month's talk through the season, where the captains are */
+  if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
@@ -30511,6 +31161,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      buyItems, pickDividend, lockSquads, answerBoard,
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+     captainsOf, captainSlots, nameCaptains, promisable, talkNow, talkPreview, TALKS,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
@@ -30893,11 +31544,46 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (b.seasonsHere != null && b.seasonsHere > 0)
       paper += '<span class="k">With You</span><span class="v m">' + b.seasonsHere + ' Season' + (b.seasonsHere === 1 ? '' : 's') + '</span>';
 
+    /* §TALKS TEMPER IS AN UNDISCOVERED QUIRK, and it sits with the others: hidden until heard out, or until two talks
+       have shown how they take things — and only ever on your own people */
+    var ours = G && G.corps && G.corps[G.me] && G.corps[G.me].roster.indexOf(b) >= 0;
+    var temperChip = '';
+    if (ours) {
+      var tm = SEASON.TALKS.temperShown(b);
+      temperChip = tm
+        ? '<span class="q" title="' + esc(tm.name + ' \u2014 ' + tm.text) + '">' + esc(tm.name) + '<span class="qtip"><b>' + esc(tm.name) + '</b><span class="ql">' + esc(tm.text) +
+          '</span><span class="ql">Wants ' + esc(tm.wantName) + '</span></span></span>'
+        : '<span class="q flav" title="Temper \u2014 Undiscovered">Temper Undiscovered<span class="qtip"><b>Temper</b><span class="ql m">Hear Them Out, or Talk to Them Twice</span></span></span>';
+    }
+    var wordBlk = ours ? talkRecordHtml(b) : '';
     return '<div class="colblk"><div class="clab">Stats</div><div class="statrow">' + statCells + '</div></div>' +
       '<div class="colblk"><div class="clab">Weapon Skill</div><div class="talrow">' + talCells + '</div></div>' +
-      (quirks.length ? '<div class="colblk"><div class="clab">Quirks</div><div class="qk">' +
+      (quirks.length || temperChip ? '<div class="colblk"><div class="clab">Quirks</div><div class="qk">' + temperChip +
         quirks.map(quirkChip).join('') + '</div></div>' : '') +
+      wordBlk +
       '<div class="colblk"><div class="clab">Contract</div><div class="paperline">' + paper + '</div></div>';
+  }
+  /* §TALKS what you have said to them, and what you have promised: the record a death is measured against */
+  var HOW_SHEET = { doubled: 'It Landed', faded: 'It Wore Thin', backfired: 'It Backfired', plain: '' };
+  var OUTCOME_WORD = { open: 'Owed', kept: 'Kept', broken: 'Broken', 'void': 'Void' };
+  function talkRecordHtml(b) {
+    var me = G.corps[G.me];
+    var talks = (b._talks || []).slice(-4).reverse();
+    var proms = SEASON.TALKS.promisesOf(me).filter(function (p) { return p.fighterId === b.id; }).slice(-4).reverse();
+    var isCap = SEASON.captainsOf(me, G.state ? G.state.season : -1).indexOf(b.id) >= 0;
+    if (!talks.length && !proms.length && !isCap) return '';
+    var rows = '';
+    if (isCap) rows += '<span class="k">Captain</span><span class="v">This Year</span>';
+    talks.forEach(function (t) {
+      rows += '<span class="k">Y' + t.season + ' M' + t.month + '</span><span class="v">' + esc(SEASON.TALKS.TALK_NAME[t.kind] +
+        (t.kind === 'promise' && t.promise ? ' \u00b7 ' + SEASON.TALKS.PROMISES[t.promise].name : '')) +
+        (HOW_SHEET[t.how] ? ' <span class="m">' + HOW_SHEET[t.how] + '</span>' : '') + '</span>';
+    });
+    proms.forEach(function (p) {
+      var cls = p.status === 'kept' ? 'good' : p.status === 'broken' ? 'bad' : p.status === 'open' ? 'warn' : 'm';
+      rows += '<span class="k">Promised</span><span class="v">' + esc(SEASON.TALKS.PROMISES[p.kind].name) + ' <span class="' + cls + '">' + OUTCOME_WORD[p.status] + '</span></span>';
+    });
+    return '<div class="colblk"><div class="clab">Your Word</div><div class="paperline">' + rows + '</div></div>';
   }
   function capWords(t) { return String(t).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
   /* a label written with its own capitals ("Gate and Merchandise") is already in Title Case
@@ -31602,6 +32288,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       h += '<span class="m">' + esc(o.why) + '</span></div>';
     });
     $('verbs').innerHTML = h;
+    renderTalkGrid();
     renderTrainGrid();
     renderRestGrid();
     renderIntelGrid();
@@ -31652,6 +32339,106 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
   }
 
+
+  /* ============================ THE MONTH'S WORD (§TALKS) ============================
+     One talk a month with one person, and the year's captains. The engine's own words are in
+     talks.js; this is the page on them. A person who asked for a word this month has had it. */
+  function talkSel() {
+    if (!G._talkSel || G._talkSel._m !== G.state.season * 100 + G.state.month) G._talkSel = { _m: G.state.season * 100 + G.state.month };
+    return G._talkSel;
+  }
+  function talkedNow() { var me = G.corps[G.me], k = me._talked; return k && k.abs === G.state.season * 100 + G.state.month ? k : null; }
+  function myCaptains() { return SEASON.captainsOf(G.corps[G.me], G.state.season); }
+  function captainsPromised() { var k = G.corps[G.me].captains; return !!(k && k.season === G.state.season && k.promised); }
+  var PROMISE_SHORT = { drop: 'The Drop', lead: 'A Squad', eight: 'The Eight' };
+  var PROMISE_MID = { drop: 'the Drop', lead: 'a Squad', eight: 'the Eight' };
+  function temperTag(f) {
+    var t = SEASON.TALKS.temperShown(f);
+    return t ? '<span class="wtemp known" title="' + esc(t.text) + '">' + esc(t.name) + ' · Wants ' + esc(PROMISE_MID[t.want]) + '</span>'
+             : '<span class="wtemp">Temper Undiscovered</span>';
+  }
+  function renderTalkGrid() {
+    var host = $('talkgrid'); if (!host) return;
+    if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS) { host.innerHTML = ''; return; }
+    var me = G.corps[G.me], sel = talkSel(), caps = myCaptains(), slots = SEASON.captainSlots(G.state, G.me);
+    var done = talkedNow();
+    var h = '<div class="tgwrap' + (deskFolded('talk') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="talk">' +
+      '<span class="tgtitle">The Month’s Word</span>' + foldTag('talk') + '</div>';
+    h += '<div class="m" style="font-size:10px;margin:2px 4px 6px">Captains ' + caps.length + ' of ' + slots +
+         (captainsPromised() ? ' · Standing One Down Breaks a Promise' : ' · Free to Change Until the Month Turns') + '</div>' +
+         (G._capNews && G._capNews.m === sel._m ? '<div class="m bad" style="font-size:10px;margin:0 4px 6px">' + esc(G._capNews.text) + '</div>' : '');
+    if (done) {
+      h += '<div class="wdone"><b>Spoken</b> · ' + esc(done.line) + '</div>';
+    }
+    var people = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !f.mirror_of; });
+    var loy = function (f) { return f.loyalty == null ? 50 : f.loyalty; };
+    people.sort(function (a, b) {
+      var ca = caps.indexOf(a.id) >= 0 ? 0 : 1, cb = caps.indexOf(b.id) >= 0 ? 0 : 1;
+      return (ca - cb) || (loy(a) - loy(b)); });
+    var shown = G._talkAll ? people : people.slice(0, 8);
+    if (sel.fighterId && shown.every(function (f) { return f.id !== sel.fighterId; })) {
+      var picked = people.filter(function (f) { return f.id === sel.fighterId; })[0]; if (picked) shown.push(picked); }
+    h += '<table class="wtbl">';
+    shown.forEach(function (f) {
+      var isCap = caps.indexOf(f.id) >= 0, lit = sel.fighterId === f.id;
+      var stress = Math.round((f.condition && f.condition.stress) || 0);
+      h += '<tr class="who' + (lit ? ' lit' : '') + '" data-talkwho="' + f.id + '"><td>' +
+        '<span class="nm" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + nameHtml(f) + '</span>' +
+        (isCap ? '<span class="wcap">Captain</span>' : '') + '<div>' + temperTag(f) + '</div></td>' +
+        '<td class="wnum">Loyalty <b>' + Math.round(loy(f)) + '</b><br>Stress <b>' + stress + '</b></td>' +
+        '<td style="text-align:right"><button class="tiny capb' + (isCap ? ' on' : '') + '" data-cap="' + f.id + '"' +
+          (!isCap && (caps.length >= slots || f.status !== 'active') ? ' disabled' : '') + '>' + (isCap ? 'Stand Down' : 'Make Captain') + '</button></td></tr>';
+      if (lit && !done) {
+        var abs = G.state.season * 100 + G.state.month, kinds = SEASON.promisable(G.state.month);
+        h += '<tr><td colspan="3"><div class="wopts">' + SEASON.TALKS.TALKS.map(function (t) {
+          var pk = t.id === 'promise' ? (sel.promise && kinds.indexOf(sel.promise) >= 0 ? sel.promise : (kinds.indexOf(SEASON.TALKS.wantOf(f)) >= 0 && f.temperKnown ? SEASON.TALKS.wantOf(f) : 'drop')) : null;
+          var pv = SEASON.talkPreview(G.state, G.me, f.id, t.id, pk);
+          var on = sel.kind === t.id;
+          var cost = SEASON.TALKS.describe(pv) + (f.temperKnown || t.id === 'hear' ? '' : ' · Temper Unknown');
+          var prom = t.id === 'promise' ? '<div class="wprom">' + kinds.map(function (k) {
+              return '<button class="tiny' + (pk === k ? ' on' : '') + '" data-wprom="' + k + '">' + esc(PROMISE_SHORT[k]) + '</button>'; }).join('') + '</div>' : '';
+          return '<div role="button" tabindex="0" class="evopt wopt' + (on ? ' on' : '') + (pv && pv.how === 'backfired' ? ' bad' : '') + '" data-wtalk="' + t.id + '"' + (pk ? ' data-wpk="' + pk + '"' : '') + '>' +
+            '<span class="ol">' + esc(t.id === 'promise' ? 'Promise ' + PROMISE_MID[pk] : t.name) + '</span><span class="oc">' + esc(cost) + '</span>' + prom + '</div>';
+        }).join('') + '</div></td></tr>';
+      }
+    });
+    h += '</table>';
+    if (people.length > 8) h += '<div class="bar"><button class="tiny" id="talkall">' + (G._talkAll ? 'Show Fewer' : 'Show All ' + people.length) + '</button></div>';
+    host.innerHTML = h;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-talkwho]'), function (el) {
+      el.onclick = function (e) {
+        if (e.target.closest('[data-cap]')) return;
+        if (e.target.getAttribute('data-sheet')) { inspect(e.target.getAttribute('data-sheet')); return; }
+        var id = el.getAttribute('data-talkwho');
+        if (sel.fighterId !== id) { sel.fighterId = id; delete sel.kind; delete sel.promise; } else if (!sel.kind) delete sel.fighterId;
+        renderDesk(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-wtalk]'), function (el) {
+      el.onclick = function (e) {
+        var pb = e.target.closest('[data-wprom]');
+        var k = el.getAttribute('data-wtalk');
+        if (pb) { sel.kind = 'promise'; sel.promise = pb.getAttribute('data-wprom'); }
+        else if (sel.kind === k) { delete sel.kind; delete sel.promise; }
+        else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
+        renderDesk(); };
+    });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-cap]'), function (el) {
+      el.onclick = function (e) {
+        e.stopPropagation();
+        var id = el.getAttribute('data-cap'), now = myCaptains().slice(), i = now.indexOf(id);
+        if (i >= 0) now.splice(i, 1); else now.push(id);
+        var r = SEASON.nameCaptains(G.state, G.me, now);
+        if (r && r.broken && r.broken.length) G._capNews = { m: talkSel()._m, text: 'Stood Down · ' + r.broken.join(', ') + ' · A Promise Broken' };
+        renderDesk(); renderRoster(); };
+    });
+    if ($('talkall')) $('talkall').onclick = function () { G._talkAll = !G._talkAll; renderDesk(); };
+  }
+  /* what the month's submit carries: the chosen talk, if it is whole */
+  function talkWanted() {
+    var sel = talkSel();
+    if (talkedNow() || !sel.fighterId || !sel.kind) return null;
+    return { fighterId: sel.fighterId, kind: sel.kind, promise: sel.kind === 'promise' ? (sel.promise || 'drop') : undefined };
+  }
   /* ============================ THE BRIEF ============================
      The month's shape, what is coming and when, and the agenda — the things waiting on the
      manager this month. The agenda is a count on End the Month too. */
@@ -31689,6 +32476,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var spent = 0; for (var k in (G._focusSel || {})) if (k !== '_m' && typeof G._focusSel[k] === 'number') spent += G._focusSel[k];
     spent = Math.max(spent, trainPips() + restPips() + intelPips() + courtPips());
     if (spent < SEASON.CONST.FOCUS_POINTS) items.push({ txt: (SEASON.CONST.FOCUS_POINTS - spent) + ' Focus Unspent', tab: 'desk', kind: 'Focus', ping: '.focusdeskline', cost: 'Wasted' });
+    /* §TALKS a month with nobody spoken to is a legal month, and a quiet one */
+    if (!talkedNow() && !talkWanted()) items.push({ txt: 'No Word Spoken', tab: 'desk', kind: 'Word', ping: '#talkgrid', cost: 'Nobody Hears From You' });
+    /* §TALKS the Lock is where a captain's squad is owed */
+    if (m === 11) {
+      var unled = captainsUnled();
+      if (unled.length) items.push({ txt: unled.length + ' Captain' + (unled.length === 1 ? '' : 's') + ' Without a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'A Promise Broken' });
+    }
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
        button up over a thing a manager frequently cannot act on — no window open, nobody to
        sign, nothing to do but click around it. The Market says how short an OA is where
@@ -31847,7 +32641,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
     if (!list.length) { host.innerHTML = ''; return; }
-    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board', donation: 'The Stands', tip: 'The Stands', protest: 'The Stands', strike: 'The Barracks', leak: 'The Barracks' };
+    var KIND = { raise: 'The Roster', debt: 'The Roster', brawl: 'The Barracks', memo: 'The Board', poach: 'A Rival OA', insult: 'The Postings', dealer: 'The Airlock', role: 'A Veteran', fleet: 'The Fleet', media: 'Media Day \u00b7 Annual', profile: 'The Press', coverage: 'The Press', short: 'The Board', word: 'A Word', donation: 'The Stands', tip: 'The Stands', protest: 'The Stands', strike: 'The Barracks', leak: 'The Barracks' };
     var me = G.corps[G.me];
     host.innerHTML = '<div class="evgrid">' + list.map(function (e) {
       var subj = e.subject && typeof e.subject === 'string' ? me.roster.filter(function (f) { return f.id === e.subject; })[0] : null;
@@ -33069,6 +33863,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (courtPips() > 0) { wanted.court = courtPips(); wanted.courtTarget = courtSel(); }
     else { delete wanted.court; delete wanted.courtTarget; }
     if (G._boostSel && Object.keys(G._boostSel).length) wanted._boost = G._boostSel;
+    /* §TALKS the month's word */
+    var tw = talkWanted(); if (tw) wanted.talk = tw;
     /* §TIME the month's choices are SUBMITTED, and the engine advances the month once every seat a person holds has
        — with one person, at once */
     SEASON.submitMonth(G.state, G.me, wanted);
@@ -33143,7 +33939,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     renderBench(); renderSquads(); renderDesk(); renderEncounters();
     G._recap = { month: res.month, name: res.name, snap: snap, lines: lines, focus: focusLine, joined: joined.map(function (b) { return b.id; }),
                  event: res.event, agendaLeft: agendaBefore.filter(function (it) { return !/Defaults/.test(it.cost || ''); }), dividend: res.event === 'dividend',
-                 events: (res.events || {})[G.me] || [] };
+                 events: (res.events || {})[G.me] || [],
+                 talk: (((res.landed || {})[G.me] || []).filter(function (l) { return l.kind === 'talk'; })[0] || {}).talk || null };
     /* ARRIVING AT MONTH SIX RAISES THE LIGHTS. The first cut halted on the way OUT of the
        month, which meant the manager spent all of month six on the desk and only then
        heard there had been a show. The year stops when the Dividend arrives, not when it
@@ -33168,7 +33965,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
       health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
     var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
-    return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st,
+    return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st, promiseN: (me._promiseNews || []).length,
              crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), patience: me.rep ? me.rep.patience : null };
   }
   window.__showRecap = function () { return showRecap(); };
@@ -33267,6 +34064,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
     gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
     changed.forEach(function (c) { peopleCol += ln('Changed', c + (/Injured/.test(c) ? stamp('Mending', 'amber') : ''), ''); });
+    /* §TALKS the month's word, and any promise that came due */
+    if (R.talk) {
+      var tk = R.talk, tb = me.roster.filter(function (x) { return x.id === tk.fighterId; })[0];
+      var tcls = tk.how === 'backfired' ? 'bad' : tk.how === 'doubled' ? 'good' : tk.how === 'faded' ? 'warn' : 'm';
+      peopleCol += ln('Word', esc(tk.line) + (tk.revealed ? ' ' + stamp(esc(tk.temper), 'good') : '') + (tk.reached ? ' <span class="m">\u00b7 Felt by ' + tk.reached + ' More</span>' : ''),
+                      '<span class="' + tcls + '">' + esc(SEASON.TALKS.describe({ drill: tk.drill, loyalty: tk.loyalty, stress: tk.stress }).replace(/^Nothing Moves$/, '')) + '</span>');
+    }
+    (me._promiseNews || []).slice(snap.promiseN || 0).forEach(function (pn) {
+      if (pn.outcome === 'void') return;
+      peopleCol += ln('Promise', esc(pn.name) + ' <span class="m">\u00b7 ' + esc(SEASON.TALKS.PROMISES[pn.kind].name) + '</span>',
+                      '<span class="' + (pn.outcome === 'kept' ? 'good' : 'bad') + '">' + (pn.outcome === 'kept' ? 'Kept' : 'Broken') + '</span>');
+    });
     /* who grew, by body: every stat that moved on one line, the biggest movers first, and the roster's total */
     var byBody = {}, order = [];
     gains.forEach(function (g) { if (!byBody[g.b.id]) { byBody[g.b.id] = { b: g.b, parts: [], sum: 0 }; order.push(g.b.id); } byBody[g.b.id].parts.push(g); byBody[g.b.id].sum += g.d; });
@@ -33471,6 +34280,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* ---- the manager's squad plan: who stands with whom, and who they look to ---- */
   /* leadership follows the PERSON: G.plan.leaderOf[bodyId] means that body leads its squad.
      The engine wants one leader id per group, so we derive that array at the lock. */
+  /* §TALKS the year's captains that the planned squads leave without one to lead */
+  function captainsUnled() {
+    var caps = myCaptains(), plan = plannedGroups();
+    if (!plan) return [];
+    var me = G.corps[G.me], leads = {};
+    plan.groups.forEach(function (g, i) {
+      if (!g.length) return;
+      if (plan.leaders[i]) { leads[plan.leaders[i]] = true; return; }
+      var inG = g.filter(function (id) { return caps.indexOf(id) >= 0; }).map(function (id) { return me.roster.filter(function (f) { return f.id === id; })[0]; }).filter(Boolean);
+      inG.sort(function (a, b) { return b.stats.tactics - a.stats.tactics; });
+      if (inG[0]) leads[inG[0].id] = true;
+    });
+    return caps.filter(function (id) { return !leads[id]; });
+  }
   function plannedGroups() {
     if (!G || !G.plan) return null;
     var groups = [[], [], [], [], [], []];
@@ -33559,7 +34382,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       '<div class="pface">' + fighterMark(b, 72, colFor(G.me)) +
         (lead ? '<span class="plead">\u2605</span>' : '') +
         '<span class="prate ' + ratingBand(ratingOf(b)) + '">' + ratingOf(b) + '</span></div>' +
-      '<div class="pname" data-sheet="' + b.id + '" style="color:' + raceColour(b) + '">' + nameHtml(b) + '</div>' +
+      '<div class="pname" data-sheet="' + b.id + '" style="color:' + raceColour(b) + '">' + nameHtml(b) + (isCaptainOfYear(b) ? '<span class="wcap">Captain</span>' : '') + '</div>' +
       '<div class="pkit">' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</div>' +
       '<span class="px" data-home="' + b.id + '" title="Send Home">\u2715</span>' +
       '<span class="pstar' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="Leads">\u2605</span>' +
@@ -33573,6 +34396,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       '<circle cx="20" cy="14.5" r="7.5" fill="' + col + '" opacity=".40"/>' +
       '<path d="M5.5 40c0-8.4 6.5-13.5 14.5-13.5S34.5 31.6 34.5 40z" fill="' + col + '" opacity=".28"/></svg>';
   }
+  /* §TALKS the year's captains wear it on the squad board, where their squad is owed */
+  function isCaptainOfYear(b) { return !!(G && G.state && b && SEASON.captainsOf(G.corps[G.me], G.state.season).indexOf(b.id) >= 0); }
   function fighterCard(b, inSquad, opts) {
     opts = opts || {};
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
@@ -33582,7 +34407,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       (opts.pick ? 'data-' + opts.pick + '="' + b.id + '"' : opts.drop ? '' : 'data-id="' + b.id + '"') +
       (inSquad ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
       '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="read the sheet" style="color:' + raceColour(b) + '">' +
-        (lead ? '<span class="lead">\u2605</span>' : '') + nameHtml(b) + '</span></span>' +
+        (lead ? '<span class="lead">\u2605</span>' : '') + nameHtml(b) + (isCaptainOfYear(b) ? '<span class="wcap">Captain</span>' : '') + '</span></span>' +
         '<span class="kn">' + fighterMark(b, 20, colFor(G.me)) + ' ' + ratingHtml(b) + ' ' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</span>' +
         (inSquad ? '<span class="ctl"><span class="star' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="' + (lead ? 'Leads the Squad' : 'Make Leader') + '">\u2605</span>' +
                    '<span class="x" data-home="' + b.id + '" title="send home">\u2715</span></span>' : '') +

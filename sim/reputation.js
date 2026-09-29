@@ -251,7 +251,10 @@
     sent_the_papers_back:{ q: { word: 1.0 }, mag: 3, target: 8, grave: true, residue: 0.20 },
     went_out_to_them:   { q: { word: 0.6, care: 0.4 }, mag: 4, residue: 0.15 },
     shut_the_gate:      { q: { word: -0.6, glory: -0.4 }, mag: 3, residue: 0.15 },
-    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 }
+    settled_a_strike:   { q: { care: 0.6 }, mag: 2, residue: 0.10 },
+    /* §TALKS a promise to one of your own gets out, kept or broken */
+    kept_a_promise:     { q: { word: 0.8, care: 0.3 }, mag: 1.5, residue: 0.10 },
+    broke_a_promise:    { q: { word: -1.0, care: -0.3 }, mag: 4, residue: 0.25 }      /* ctx.grave for a star */
   };
 
   /* §2.6 THE HOUSES' HISTORY. The eight engine OAs carry written relationships with one another; they seed how one

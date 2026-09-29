@@ -927,8 +927,8 @@
       if (!bodies.length) continue;          /* a named group whose bodies all fell unfit */
       let cap = bodies[0];
       for (const b of bodies) if (b.stats.tactics > cap.stats.tactics) cap = b;
-      const led = leaders && leaders[i] && bodies.some(b => b.id === leaders[i])
-                ? leaders[i] : cap.id;
+      const named = !!(leaders && leaders[i] && bodies.some(b => b.id === leaders[i]));
+      const led = named ? leaders[i] : cap.id;
       /* the squad's index is its place in the LIST — a skipped empty group must not leave
          a gap that `_squadIdx` lookups fall into — and rations feed the bodies that stand */
       const si = corp.squads.length;
@@ -943,13 +943,41 @@
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
         claiming: null, movedToday: false, foughtToday: false, engagements: 0,
-        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _startN: bodies.length,          /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _named: named
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
          read a field that no code anywhere ever set. */
       for (const b of bodies) b._squadIdx = si;
       corp.allBodies.push(...bodies);
+    }
+    /* §TALKS THE YEAR'S CAPTAINS LEAD WHERE THEY LAND. A dealt drop (no manager's groups) moves a
+       second captain in one squad across to a squad that has none, trading places with its least
+       tactical single hand; then every squad without a leader named at the Lock is led by the
+       sharpest captain standing in it. A pair is never split to do it. No dice. */
+    const capSet = new Set((persist && persist.captains) || []);
+    if (capSet.size && corp.squads.length) {
+      const single = b => !b.mirror_of && !b.bond_partner;
+      if (!groups) {
+        const bare = corp.squads.filter(sq => !sq.bodies.some(b => capSet.has(b.id)));
+        for (const sq of corp.squads) {
+          const cs = sq.bodies.filter(b => capSet.has(b.id) && single(b));
+          while (cs.length > 1 && bare.length) {
+            const extra = cs.pop(), dest = bare.shift();
+            const swap = dest.bodies.filter(b => !capSet.has(b.id) && single(b))
+              .sort((a, b) => a.stats.tactics - b.stats.tactics)[0];
+            if (!swap) continue;
+            sq.bodies[sq.bodies.indexOf(extra)] = swap; dest.bodies[dest.bodies.indexOf(swap)] = extra;
+            swap._squadIdx = sq.sIdx; extra._squadIdx = dest.sIdx;
+          }
+        }
+      }
+      for (const sq of corp.squads) {
+        if (sq._named) continue;
+        const cs = sq.bodies.filter(b => capSet.has(b.id));
+        if (cs.length) sq.captainId = cs.sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id;
+      }
     }
     /* PROCUREMENT.md §15 — kit the force. Planning draws no RNG, so it cannot shift the
        stream; what it changes is what everybody is holding when the shooting starts.

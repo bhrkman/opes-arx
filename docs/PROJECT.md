@@ -39,6 +39,17 @@ dispatches: things that happen to the OA and ask for an answer, resolved by thei
 left. Contracts are for a year's wage and a term of seasons; people age, tire, mend, sour,
 demand raises and leave. Rival OAs write letters offering trades, and a manager can write back.
 
+Each month a manager has one word with one person: Drive Them, Praise, Dress Down, Make a
+Promise, or Hear Them Out. Every talk buys something and costs something. Everyone has a
+temper, an undiscovered quirk that doubles one talk and turns another into a backfire; it is
+found by hearing them out or after two talks. The same talk three months running backfires.
+A promise (a place on the drop, a squad to lead, a place in the Eight) is kept or broken when
+it comes due, and the stands hear either way. A sour or strained hand may ask for a word
+themselves, and taking the meeting is the month's talk. Captains are named for the year: they
+lead in the Dividend and the Divide, pull the roster's loyalty toward their own, and carry a
+talk to the whole barracks. The naming is free until the first month turns; after that a
+captain stood down is a promise broken.
+
 Sponsors are suppliers who back OAs whose year suits them, each on one condition judged at
 the drop or the year's end. The board sets a card of three demands and watches spending,
 casualties and popularity beside it; its patience is the number a manager lives by.
@@ -99,4 +110,5 @@ saw; the board judges its card and the sponsors judge their conditions.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
+- One talk a month, and no talk is free: each buys something and costs something.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
