@@ -530,6 +530,9 @@
      always has, costed as far as the manager knows the person. */
   let TALKER = null;
   function useTalker(fn) { TALKER = fn || null; }
+  /* §STAFF a Sergeant can take the meeting in the manager's place: their talk, not the manager's */
+  let SERGEANT = null;
+  function useSergeant(h) { SERGEANT = h || null; }
   const WORD_ASKS = {
     drop:   { title: n => n + ' Wants a Place on the Drop', text: n => n + ' has watched the drop list all year and wants to know where they stand on it.' },
     lead:   { title: n => n + ' Wants a Squad', text: n => n + ' thinks they could lead better than the ones who do, and has come to say so.' },
@@ -571,6 +574,9 @@
         { id: 'drive',   label: 'Put Them Back to Work', cost: cost('drive') },
         { id: 'away',    label: 'Turn Them Away', cost: 'Loyalty ' + '−' + Math.abs(CONST.TURN_AWAY_LOYALTY) + ' · Keeps Your Talk This Month' }
       ];
+      const sgp = SERGEANT && !(c._sgtTalked && c._sgtTalked.abs === abs) ? SERGEANT.preview(st, c.id, f.id) : null;
+      if (sgp) options.splice(5, 0, { id: 'sergeant', label: 'Send ' + sgp.sergeant + ' · ' + sgp.talk,
+        cost: TALKS.describe(sgp) + ' · Keeps Your Talk This Month' + (f.temperKnown ? '' : ' · Temper Unknown') });
       return { kind: 'word', subject: f.id, ask: hit.ask, title: a.title(n), text: a.text(n) + ' Taking the meeting is this month’s talk.',
                options, def: 'away' };
     },
@@ -579,6 +585,10 @@
       f._askedWord = ctx.state.season;
       const turn = () => { f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) + CONST.TURN_AWAY_LOYALTY); return f.name + ' Was Turned Away'; };
       if (opt === 'away') return turn();
+      if (opt === 'sergeant') {
+        const r = SERGEANT && SERGEANT.now(ctx.state, c.id, f.id);
+        return r ? r.line : turn();
+      }
       const o = e.options.find(x => x.id === opt);
       const res = TALKER && TALKER(ctx.state, c.id, { fighterId: f.id, kind: opt, promise: o && o.promise });
       if (!res) return turn();
@@ -798,20 +808,35 @@
              options: [{ id: 'accept', label: 'Noted', cost: (state.rosterMin - n) + ' Short' }], def: 'accept', resolved: null };
   }
   const SHORT_SPEC = { resolve: () => 'The Count Was Noted', ai: () => 'accept' };
+  /* §STAFF WHAT HAPPENED IN THE BACKROOM OVER THE WINTER: who retired, who was taken, whose paper is up */
+  const POST_NAME = { drill: 'Drillmaster', sergeant: 'Sergeant', quartermaster: 'Quartermaster', fixer: 'Fixer', surgeon: 'Surgeon', spymaster: 'Spymaster' };
+  function backroomCard(state, corp) {
+    const o = corp.staff; if (!o) return null;
+    const gone = (o.gone || []).filter(g => g.season === state.season && (g.why === 'retired' || g.why === 'poached'));
+    const due = Object.keys(o.posts || {}).map(p => o.posts[p]).filter(st => st && st.asking);
+    if (!gone.length && !due.length) return null;
+    const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'));
+    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'The Backroom Over the Winter',
+             text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };
+  }
+  const BACKROOM_SPEC = { resolve: () => 'The Backroom Was Noted', ai: () => 'accept' };
   function mediaCard(state, corp) {
     const so = standoutOf(corp);
+    /* §STAFF a Fixer's hand on how the day is heard, in the figures the card quotes */
+    const spinGood = (corp.rep && corp.rep._spin && corp.rep._spin.good) || 1;
     const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
     const loudOf = f => storyMult(state, f, true);
     const options = [];
     const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
     if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
             ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
             (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
     if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady)) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
             ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
-    options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
+    options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager * spinGood) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
     options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
     return { id: 'media-' + state.season, pool: 'media', kind: 'media', title: 'Media Day',
              text: 'The fleet\u2019s press corps boards every OA the week of the drop. Who you put in front of them decides what the crowd hears, and what your rivals learn by watching.',
@@ -867,6 +892,7 @@
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
     /* §MEDIA media day: the same card for every OA, the month before the drop */
     if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
+    if (state.month === 1) { const bc = backroomCard(state, corp); if (bc) list.push(bc); }
     /* §ROSTER short of the drop in the mercenary months: the board says now what it will do at the last door */
     if (state.rosterMin && (state.month === CONST.MERC_MONTHS[0] || state.month === CONST.MERC_MONTHS[1]) && alive(corp).filter(f => !f.mirror_of).length < state.rosterMin) list.push(shortCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
@@ -889,7 +915,7 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
     const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
@@ -904,7 +930,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
@@ -915,7 +941,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, useTalker, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, storyMult, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });

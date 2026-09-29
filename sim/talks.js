@@ -319,7 +319,10 @@
    * Returns { fighterId, kind, promise } or null.
    */
   function aiTalk(corp, ctx) {
-    const alive = corp.roster.filter(f => f.status === 'active' || f.status === 'injured');
+    /* nobody gets the manager two months running while anyone else needs a word */
+    const lastWho = (corp._talked && corp._talked.abs === ctx.abs - 1) ? corp._talked.fighterId : null;
+    const all = corp.roster.filter(f => f.status === 'active' || f.status === 'injured');
+    const alive = all.length > 1 ? all.filter(f => f.id !== lastWho) : all;
     if (!alive.length) return null;
     const caps = new Set(ctx.captains || []);
     const loy = f => (f.loyalty == null ? 50 : f.loyalty);

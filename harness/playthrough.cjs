@@ -184,6 +184,9 @@ function playYear(year) {
   const c = me();
   say('Opening: ' + alive(c).length + ' on the books, ' + cr(c.account.treasury) + ' in the bank, board patience ' + c.rep.patience + ', planet **' + (state.planet.archetypeName || cap(state.planet.archetype)) + '**.');
   listBoard();
+  /* §STAFF the backroom, as the year opens */
+  const posts = S.STAFF.POSTS.map(p => { const st = S.STAFF.holder(c, p); return st ? S.STAFF.POST_NAME[p] + ' ' + st.name + ' (Craft ' + st.craft[p] + ', ' + cr(st.wage * 12) + '/yr)' : null; }).filter(Boolean);
+  say('The backroom: ' + (posts.length ? posts.join(' · ') : 'empty') + '.');
   while (state.month <= S.CONST.PREP_MONTHS) {
     const m = state.month, win = S.MONTHS[m];
     say('\n## Month ' + m + ' · ' + win.name + '\n');
@@ -203,11 +206,16 @@ function playYear(year) {
     for (const l of ls) { S.answerTrade(state, l.id, false); say('- Declined ' + oaName(l.from) + '’s letter.'); }
     eightAndMedia();
     const w = chooseFocus(tracks);
+    /* §TALKS the month's word, chosen the way the engine chooses its own */
+    const tw = S.TALKS.aiTalk(me(), { abs: state.season * 100 + m, captains: S.captainsOf(me(), state.season), promisable: S.promisable(m) });
+    if (tw && !(me()._talked && me()._talked.abs === state.season * 100 + m)) w.talk = tw;
     S.submitMonth(state, ME, w);
     const adv = S.advanceMonth(state, { force: true });
     const res = adv.res || {};
     const after = snap();
     say('\n**The month closed:** ' + delta(before, after) + '.');
+    const word = ((res.landed || {})[ME] || []).filter(l => l.kind === 'talk' || l.kind === 'staff');
+    for (const l of word) say('- ' + (l.kind === 'talk' ? 'The month\u2019s word: ' : 'The backroom: ') + l.text + (l.talk && l.talk.revealed ? ' — their temper is ' + l.talk.temper : '') + '.');
     const lines = me().account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
     if (lines.length) say('- The ledger: ' + lines.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
     if (res.event === 'mercs') for (const r of ((state.mercs || {}).results || [])) {

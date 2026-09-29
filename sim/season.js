@@ -1858,7 +1858,7 @@
       let drifted = false;
       for (const k of CONST.MIND)
         if (f.stats[k] < cap - CONST.TRAIN_GREEN_GAP) {
-          f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN * CONST.TRAIN_BASELINE);
+          f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN * CONST.TRAIN_BASELINE * STAFF.drillFor(corp, k).yield);   /* §STAFF a drillmaster works every day */
           drifted = true;
         }
       if (drifted && f.condition)
@@ -2913,6 +2913,7 @@
       c._off = off;
       /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
       c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
+      c._staffPaid = 0;
     }
 
     /* ---- THE PREP CALENDAR, M1-M11 (S16) ----
@@ -3522,6 +3523,17 @@
         }
       }
     }
+    /* the engine's Cutter operates when the odds are good and the hand is worth it */
+    const odds = isAI && STAFF.operateOdds(corp);
+    if (odds && odds.live >= 0.6 && corp._operated !== abs) {
+      const f = aliveOf(corp).filter(x => woundBand(x) === 'crippled').sort((a, b) => draftScore(b) - draftScore(a))[0];
+      if (f) {
+        corp._operated = abs;
+        const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))(), sg = STAFF.holder(corp, 'surgeon');
+        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
+        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
+      }
+    }
     if (corp._poachIntel && corp._poachIntel.length) {
       corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
       for (const x of corp._poachIntel) {
@@ -3706,6 +3718,10 @@
     state.opts = state.opts || {};
     state.opts.humans = seats; state.opts.human = seats[0] || null;
     if (state._divideOpts) { state._divideOpts.humans = seats.slice(); state._divideOpts.human = seats[0] || null; }
+    /* §TALKS a seat taken by a person keeps its captains on its squad board; one given to the engine names its own */
+    const c0 = state.corps[id];
+    c0._ownSquads = state.controllers[id] === 'human';
+    if (c0.captains && c0.captains.season === state.season) c0.captains.ids = captainsOf(c0, state.season);
     return { ok: true, humans: seats };
   }
   function waitingOn(state) { return state.ids.filter(id => isHuman(state, id) && !(state._submitted || {})[id]); }
@@ -3938,7 +3954,7 @@
       }
       /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
       const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
-      if (staffPay > 0) LED.post(c.account, 'expense', 'Staff Wages', -staffPay);
+      if (staffPay > 0) { LED.post(c.account, 'expense', 'Staff Wages', -staffPay); c._staffPaid = (c._staffPaid || 0) + staffPay; }
       /* a renewal nobody answered by the first month's end is signed at what was asked */
       if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
@@ -3979,6 +3995,11 @@
   function eventsFor(state, corpId) { return EVENTS ? EVENTS.draw(state, corpId) : []; }
   /** the shelf's price this year: the fleet's month may have moved it */
   function priceMult(state) { return (state && state.fleet && state.fleet.priceMult) || 1; }
+  /** §STAFF one item's price on the shelf to one OA: the fleet's month, less what its quartermaster haggles */
+  function shelfPrice(state, corpId, it) {
+    const c = state.corps[corpId];
+    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)));
+  }
   /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
       market, so it lives once rather than three times. */
   function hasHookF(f, h) {
@@ -4331,17 +4352,16 @@
   function buyItems(state, corpId, cart) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
-    let total = 0, lines = 0, pieces = 0;
+    let total = 0, full = 0, lines = 0, pieces = 0;
     const clean = {};
     for (const id in (cart || {})) {
       const it = ITEMS.byId(id), n = Math.floor(cart[id] || 0);
       if (!it || n <= 0 || !(it.cost > 0) || it.price_model === 'none') continue;
-      clean[id] = n; total += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
+      clean[id] = n; total += shelfPrice(state, corpId, it) * n; full += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
-    /* §STAFF a quartermaster haggles */
-    const disc = STAFF.shelfDiscount(c);
-    if (disc > 0) { const saved = Math.round(total * disc); total -= saved; const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + saved; }
+    /* §STAFF a quartermaster haggles: the price on the shelf is already theirs */
+    const q = STAFF.holder(c, 'quartermaster'); if (q && full > total) q.record.saved = (q.record.saved || 0) + (full - total);
     if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
     c.armoury = c.armoury || {};
     for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
@@ -4625,7 +4645,7 @@
              not, so the poor corp disappoints its board on money by existing. That is the
              intended shape, and it is not balanced here. */
           const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
-          const actual = kit + (c._wages || 0);
+          const actual = kit + (c._wages || 0) + (c._staffPaid || 0);   /* §STAFF the backroom is spending too */
           return actual / funded;
         })(),
         lossRate: dropped.length ? dead.length / dropped.length : 0,
@@ -5022,6 +5042,8 @@
      way to know the branch is alive is to build the state and fire it. */
   /* §TALKS a person asking for a word takes the month's talk through the season, where the captains are */
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
+  /* §STAFF and a Sergeant can take the meeting instead */
+  if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
   return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
@@ -5032,7 +5054,7 @@
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
      captainsOf, promisable, talkNow, talkPreview, TALKS,
-     STAFF, backroomFor, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
+     STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,

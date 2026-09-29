@@ -968,6 +968,13 @@ function staffRules() {
   const led0 = c.account.ledger.length;
   SEASONMOD.stepMonth(st, { [me]: {} });
   ok('the backroom is paid every month', c.account.ledger.slice(led0).some(l => l.label === 'Staff Wages' && l.amount < 0), '');
+  ok('and the board counts what the backroom costs', (c._staffPaid || 0) > 0, String(c._staffPaid));
+  /* a quartermaster's haggling is the price on the shelf, not a surprise at the till */
+  const qmSt = { id: 'qm1', craft: { quartermaster: 80 }, school: 'haggler', years: {}, record: {}, wage: 1000, post: 'quartermaster' };
+  const was = c.staff.posts.quartermaster; c.staff.posts.quartermaster = qmSt;
+  const it = { cost: 1000 };
+  ok('a quartermaster\u2019s haggle is on the shelf price', SEASONMOD.shelfPrice(st, me, it) < Math.round(1000 * SEASONMOD.priceMult(st)), String(SEASONMOD.shelfPrice(st, me, it)));
+  c.staff.posts.quartermaster = was;
   const s1 = ST.holder(c, 'sergeant'), craft0 = s1.craft.sergeant, wage0 = s1.wage;
   s1.term = 1;
   const turn = ST.yearTurns(c, 2);
