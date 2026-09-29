@@ -1224,6 +1224,25 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §FACILITIES the grounds */
+  .fcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (max-width:900px){.fcgrid{grid-template-columns:1fr}}
+  .fccard{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .fccard.building{border-color:var(--cred)}
+  .fccard .fh{display:flex;justify-content:space-between;align-items:baseline}
+  .fccard .fh .ft{font-weight:bold;letter-spacing:.04em}
+  .fccard .fh .fp{font-size:10px;color:var(--dim)}
+  .fcpips{display:flex;gap:4px}
+  .fcpips i{width:22px;height:6px;border-radius:2px;background:var(--a-dim)}
+  .fcpips i.on{background:var(--a)} .fcpips i.bld{background:var(--cred)}
+  .fcdoes{font-size:10.5px;display:flex;flex-direction:column;gap:2px}
+  .fcdoes .had{color:var(--ink)} .fcdoes .next{color:var(--dim)}
+  .fcnext{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px;border-top:1px solid #131f30;padding-top:6px}
+  .fcnext .k{color:var(--dim)} .fcnext .v{text-align:right}
+  .fcbanner{display:flex;gap:10px;align-items:center;padding:8px 10px;margin-bottom:10px;border:1px solid var(--cred);border-radius:5px;background:var(--a-deep);font-size:11.5px}
+  .fcbanner .bkbar{flex:1}
+  .fcbanner .bkbar i{background:var(--cred)}
+  .prow.locked{opacity:.5;cursor:default}
   /* §STAFF the backroom */
   .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
   @media (max-width:900px){.bkposts{grid-template-columns:1fr}}
@@ -2135,6 +2154,11 @@
 </div>
 
 <!-- ================================ THE MARKET ================================= -->
+<!-- ================================ FACILITIES ================================ -->
+<div class="page" data-tab="grounds">
+  <div id="grounds"></div>
+</div>
+
 <!-- ================================ THE BACKROOM ================================ -->
 <div class="page" data-tab="backroom">
   <div id="backroom"></div>
@@ -2322,20 +2346,22 @@
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true },
     /* §STAFF THE BACKROOM: the OA's staff — six posts at home, and who could fill them */
-    backroom: { name: 'The Backroom', live: true }
+    backroom: { name: 'The Backroom', live: true },
+    /* §FACILITIES what the OA builds and keeps */
+    grounds: { name: 'Facilities', live: true }
   };
   var RAILS = {
     /* the phase head said "Months 1–11 · The Preparation" on every page of the preparation —
        a thing the clock beside it already tells a manager, in the space a manager needs */
     prep:   { head: '', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'backroom', 'grounds', 'market', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
               tabs: ['table', 'deal', 'ground', 'roster', 'board'] },
     /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
        step and leave a shelf on the Desk: a manager walked through month six and felt
        nothing happen. It gets the floor now, the way the Divide does. */
     dividend: { head: 'Month ' + (window.CDSEASON ? CDSEASON.DIVIDEND_MONTH : 4) + ' \u00b7 The Dividend', home: 'lights',
-                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] }
+                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'grounds', 'market', 'talks', 'board'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -2418,6 +2444,7 @@
     if (G) {
       if (tab === 'squads') renderSquads();
       else if (tab === 'backroom') renderBackroom();
+      else if (tab === 'grounds') renderGrounds();
       else if (tab === 'roster') renderRoster();
       else if (tab === 'board') { renderBoard(); if (TAB.board) TAB.board.classList.remove('urgent'); }
       else if (tab === 'talks') renderTrade();
@@ -5644,6 +5671,9 @@
     /* §STAFF who works in their backroom is no secret; how well they do it is a guess */
     var theirStaff = SEASON.STAFF.POSTS.map(function (p) { var st = SEASON.STAFF.holder(c, p); return st ? SEASON.STAFF.POST_NAME[p] + ' ' + esc(st.name) : null; }).filter(Boolean);
     if (theirStaff.length) { h += '<h3>The Backroom</h3>'; theirStaff.forEach(function (t) { var bits = t.split(' '); h += row(bits.shift(), bits.join(' ')); }); }
+    /* §FACILITIES what they have built is plain to see from orbit */
+    var built = SEASON.FAC.IDS.filter(function (fid) { return SEASON.FAC.level(c, fid) > 0; });
+    if (built.length) { h += '<h3>Facilities</h3>'; built.forEach(function (fid) { h += row(SEASON.FAC.FACILITIES[fid].name, 'Level ' + SEASON.FAC.level(c, fid)); }); }
     if (!mine) { h += '<h3>The Dossier</h3>' + dossierHtml(id); }
     /* WHAT THEY HAVE DONE: the years behind them */
     var hist = (c.history || []).slice(-6).reverse();
@@ -5797,6 +5827,45 @@
 
 
 
+
+  /* ============================ FACILITIES (§FACILITIES) ============================
+     Six facilities, levels, one build at a time. The Armoury decides what gear can be issued. */
+  function renderGrounds() {
+    var host = $('grounds'); if (!host || !G || !G.state) return;
+    var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
+    var h = '';
+    if (g.build) {
+      var bf = F.FACILITIES[g.build.id], left = F.monthsLeft(me, G.state.season, G.state.month), tot = Math.max(1, g.build.ready - g.build.from);
+      h += '<div class="fcbanner"><span>Building · <b>' + esc(bf.name) + ' Level ' + g.build.level + '</b></span>' +
+           '<span class="bkbar"><i style="width:' + Math.round(100 * (1 - left / tot)) + '%"></i></span>' +
+           '<span>' + (left ? left + ' Month' + (left === 1 ? '' : 's') + ' Left' : 'Stands Next Month') + '</span></div>';
+    }
+    h += '<div class="fcgrid">';
+    F.IDS.forEach(function (id) {
+      var fac = F.FACILITIES[id], L = F.level(me, id), nx = F.nextLevel(me, id), building = g.build && g.build.id === id;
+      var can = F.canBuild(me, id);
+      h += '<div class="fccard' + (building ? ' building' : '') + '"><div class="fh"><span class="ft">' + esc(fac.name) + '</span><span class="fp">' +
+           SEASON.STAFF.POST_NAME[fac.post] + '</span></div>' +
+        '<div class="fcpips">' + fac.levels.map(function (_, i) { return '<i class="' + (i < L ? 'on' : building && i === L ? 'bld' : '') + '"></i>'; }).join('') + '</div>' +
+        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' · ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        (L > 0 ? '<div class="fcnext"><span class="k">Upkeep</span><span class="v">' + crs(fac.levels[L - 1].upkeep) + '/mo</span></div>' : '') +
+        (nx ? '<div class="fcnext"><span class="k">Level ' + nx.level + '</span><span class="v">' + crs(nx.cost) + ' · ' + nx.months + ' Months</span>' +
+              '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
+              '<div class="bar">' + (sel.ask === id
+                 ? '<button class="tiny" data-fcgo="' + id + '">Confirm · ' + crs(nx.cost) + '</button><button class="tiny" data-fckeep="1">Cancel</button>'
+                 : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + (building ? 'Building' : can.ok ? 'Build Level ' + nx.level : esc(can.why)) + '</button>') + '</div>'
+            : '<div class="m">At the Top</div>') +
+        '</div>';
+    });
+    h += '</div>';
+    if (sel.msg) h += '<div class="bkgone warn">' + esc(sel.msg) + '</div>';
+    host.innerHTML = h;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fcask]'), function (el) { el.onclick = function () { sel.ask = el.getAttribute('data-fcask'); sel.msg = ''; renderGrounds(); }; });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fckeep]'), function (el) { el.onclick = function () { delete sel.ask; renderGrounds(); }; });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fcgo]'), function (el) { el.onclick = function () {
+      var r = SEASON.buildFacility(G.state, G.me, el.getAttribute('data-fcgo'));
+      sel.msg = r && !r.ok ? r.why : ''; delete sel.ask; renderGrounds(); renderBrief(); }; });
+  }
   /* ============================ THE BACKROOM (§STAFF) ============================
      Six posts at home and who could fill them. Your own people's Craft is exact; a stranger's is
      a range until they are yours. Appointing one of your own takes them off the line for good. */
@@ -5823,7 +5892,9 @@
     var h = '<div class="bkposts">';
     BK_POSTS.forEach(function (p) {
       var st = V.posts[p];
-      if (!st) { h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">Vacant</div></div>'; return; }
+      if (!st) {
+        var needs = !SEASON.FAC.postOpen(me, p) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[p]].name : 'Vacant';
+        h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">' + needs + '</div></div>'; return; }
       var craft = Math.round(st.craft[p] || 0);
       var sch = S.SCHOOLS[p][st.school] || { name: '' };
       var origin = st.from ? 'From ' + cSpan(st.from) : st.origin === 'specialist' ? 'Specialist' : 'Veteran';
@@ -5854,7 +5925,7 @@
     h += '<div class="box"><div class="bktabs">' +
       [['own', 'Your People'], ['spec', 'Specialists'], ['rival', 'Other Houses']].map(function (t) {
         return '<button class="tiny' + (sel.tab === t[0] ? ' on' : '') + '" data-bktab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
-    var held = function (p) { return !!V.posts[p]; };
+    var held = function (p) { return !!V.posts[p] || !SEASON.FAC.postOpen(me, p); };   /* §FACILITIES held, or not yet built for */
     if (sel.tab === 'own') {
       var rows = V.own.slice().sort(function (a, b) { var ma = 0, mb = 0; BK_POSTS.forEach(function (p) { ma = Math.max(ma, a.craft[p]); mb = Math.max(mb, b.craft[p]); }); return mb - ma; });
       if (sel.pick) {
@@ -6031,7 +6102,11 @@
     var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
     var label = (KIT_SLOTS.filter(function (p) { return p[0] === slot; })[0] || [slot, capWords(slot)])[1];
 
-    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen); });
+    /* §FACILITIES the Armoury decides what can be issued; what sits above it is stored, and shown as stored */
+    var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
+    var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
+    var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
+    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -6047,10 +6122,13 @@
       /* §SKILLS what THIS fighter would shoot at with this gun: the average of their Aim, its class and its type */
       var shoots = shootsAt(b, it);
       var desc = (shoots != null ? 'Total Aim <b>' + shoots + '</b>' : '');
-      rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + '" data-pick="' + it.id + '">' + tierHtml(it.id) +
+      var lk = locked(it), mine = own.indexOf(it.id) >= 0;
+      rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + (lk ? ' locked' : '') + '"' + (lk ? '' : ' data-pick="' + it.id + '"') + '>' + tierHtml(it.id) +
               '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
               '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
-              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
+              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - 1) + '</span>'
+                  : mine ? '<span class="rack">Their Own</span>'
+                  : have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
     if (!items.length) rows += '<div class="prow"><span class="tierb none"></span><span class="pn"><span class="m">Nothing in the Armoury for This</span>' +
                                '<div class="pd">The Market Sells It</div></span></div>';
@@ -8307,7 +8385,7 @@
     if (!t || !G) return;
     if (t.hasAttribute('data-madd')) {
       var id = t.getAttribute('data-madd'), it = ITEMS.byId(id);
-      if (it && mktTotal() + (it.cost || 0) <= G.corps[G.me].account.treasury)
+      if (it && it.tier <= SEASON.FAC.maxTier(G.corps[G.me]) && mktTotal() + shelfPrice(it) <= G.corps[G.me].account.treasury)
         MKT.cart[id] = (MKT.cart[id] || 0) + 1;
       renderShelf(); e.stopPropagation(); return;
     }
@@ -8532,6 +8610,7 @@
       var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0, e = i.effects || {};
       var price = shelfPrice(i);
       var haggled = SEASON.STAFF.shelfDiscount(G.corps[G.me]) > 0;
+      var tierLocked = i.tier > SEASON.FAC.maxTier(G.corps[G.me]);   /* §FACILITIES sold, but not to an Armoury that cannot issue it */
       h += '<div class="mtile t' + i.tier + (open ? ' open' : '') + (n2 ? ' incart' : '') + '" data-mopen="' + i.id + '">' +
         '<div class="mtop">' + tierBadge(i.tier) + '<span class="nm">' + esc(i.name) + '</span>' +
         '<span class="pr">' + crs(price) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) > 1 ? 'Boom' : 'Crash') + '</span>' : '') + (haggled ? ' <span class="ktag">Haggled</span>' : '') + '</span></div>' +
@@ -8540,8 +8619,8 @@
         '<span class="step">' +
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
-          '<button class="stepbtn" data-madd="' + i.id + '">+</button>' +
-        '</span></div>';
+          '<button class="stepbtn" data-madd="' + i.id + '"' + (tierLocked ? ' disabled' : '') + '>+</button>' +
+        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - 1) + '</span>' : '') + '</div>';
       if (open) {
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +

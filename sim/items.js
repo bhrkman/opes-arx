@@ -400,7 +400,8 @@
     const budget = Math.max(0, opts.budget || 0);
     const armoury = opts.armoury || foundingArmoury(doctrineId, bodyCount, opts).stock;
     const taste = d.taste || [];
-    const maxTier = d.armoury_max_tier || 5;
+    /* §FACILITIES the Armoury decides what can be issued: the doctrine's ceiling, and the Armoury's below it */
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5);
     const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0);
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
@@ -646,7 +647,7 @@
       const step = want > 0 ? bodies.length / want : 0;
       for (let k = 0; k < want; k++) {
         const b = bodies[Math.floor(k * step)]; if (!b) continue;
-        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv) continue;
+        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv || (dv.tier || 1) > maxTier) continue;   /* §FACILITIES within the Armoury */
         if ((b.loadout.consumables || []).indexOf(dId) >= 0) continue;
         const cons = (b.loadout.consumables || []).slice();
         if (cons.length >= CONST.CONSUMABLE_SLOTS) {
@@ -687,7 +688,7 @@
     const d = api.doctrine(doctrineId);
     if (!d) return { stock: {}, value: 0 };
     const depth = opts.depth == null ? CONST.FOUNDING_DEPTH : opts.depth;
-    const maxTier = d.armoury_max_tier || 5, taste = d.taste || [];
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5), taste = d.taste || [];
     const n = bodyCount;
     const stock = {};
     const add = (id, k) => { if (id && k > 0) stock[id] = (stock[id] || 0) + k; };
@@ -720,7 +721,7 @@
     for (const id in stock) value += byId(id).cost * stock[id];
     /* §DEVICES a rich OA founds with devices in the rack, in proportion to its wealth (ruled) */
     const devN = Math.round(n * CONST.DEVICE_SHARE * Math.max(0, Math.min(1, (opts && opts.wealth) || 0)));
-    for (let k = 0; k < devN; k++) add(k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone', 1);
+    for (let k = 0; k < devN; k++) { const dv = k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone'; if ((byId(dv) || { tier: 9 }).tier <= maxTier) add(dv, 1); }
     return { stock, value };
   }
 

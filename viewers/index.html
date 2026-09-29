@@ -1224,6 +1224,25 @@
   .itbl .idoss:hover{color:var(--a)}
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
+  /* §FACILITIES the grounds */
+  .fcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (max-width:900px){.fcgrid{grid-template-columns:1fr}}
+  .fccard{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .fccard.building{border-color:var(--cred)}
+  .fccard .fh{display:flex;justify-content:space-between;align-items:baseline}
+  .fccard .fh .ft{font-weight:bold;letter-spacing:.04em}
+  .fccard .fh .fp{font-size:10px;color:var(--dim)}
+  .fcpips{display:flex;gap:4px}
+  .fcpips i{width:22px;height:6px;border-radius:2px;background:var(--a-dim)}
+  .fcpips i.on{background:var(--a)} .fcpips i.bld{background:var(--cred)}
+  .fcdoes{font-size:10.5px;display:flex;flex-direction:column;gap:2px}
+  .fcdoes .had{color:var(--ink)} .fcdoes .next{color:var(--dim)}
+  .fcnext{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px;border-top:1px solid #131f30;padding-top:6px}
+  .fcnext .k{color:var(--dim)} .fcnext .v{text-align:right}
+  .fcbanner{display:flex;gap:10px;align-items:center;padding:8px 10px;margin-bottom:10px;border:1px solid var(--cred);border-radius:5px;background:var(--a-deep);font-size:11.5px}
+  .fcbanner .bkbar{flex:1}
+  .fcbanner .bkbar i{background:var(--cred)}
+  .prow.locked{opacity:.5;cursor:default}
   /* §STAFF the backroom */
   .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
   @media (max-width:900px){.bkposts{grid-template-columns:1fr}}
@@ -2135,6 +2154,11 @@
 </div>
 
 <!-- ================================ THE MARKET ================================= -->
+<!-- ================================ FACILITIES ================================ -->
+<div class="page" data-tab="grounds">
+  <div id="grounds"></div>
+</div>
+
 <!-- ================================ THE BACKROOM ================================ -->
 <div class="page" data-tab="backroom">
   <div id="backroom"></div>
@@ -6664,7 +6688,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 440,
    "bulk": 1,
    "effects": {
@@ -6683,7 +6707,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "any",
-   "tier": 3,
+   "tier": 4,
    "cost": 640,
    "bulk": 0,
    "effects": {
@@ -6701,7 +6725,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 400,
    "bulk": 0,
    "effects": {
@@ -6756,7 +6780,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 300,
    "bulk": 0,
    "effects": {
@@ -6774,7 +6798,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "ballistic",
-   "tier": 3,
+   "tier": 2,
    "cost": 520,
    "bulk": 1,
    "effects": {
@@ -6792,7 +6816,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "ballistic",
-   "tier": 3,
+   "tier": 2,
    "cost": 480,
    "bulk": 0,
    "effects": {
@@ -6811,7 +6835,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "ballistic",
-   "tier": 3,
+   "tier": 4,
    "cost": 800,
    "bulk": 0,
    "effects": {
@@ -6829,7 +6853,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "ballistic",
-   "tier": 3,
+   "tier": 4,
    "cost": 680,
    "bulk": 0,
    "effects": {
@@ -6848,7 +6872,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "ballistic",
-   "tier": 3,
+   "tier": 4,
    "cost": 720,
    "bulk": 0,
    "effects": {
@@ -6902,7 +6926,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "energy",
-   "tier": 3,
+   "tier": 5,
    "cost": 840,
    "bulk": 0,
    "effects": {
@@ -6921,7 +6945,7 @@
    "category": "mod",
    "slot": "mod",
    "family": "energy",
-   "tier": 3,
+   "tier": 2,
    "cost": 620,
    "bulk": 0,
    "effects": {
@@ -6940,7 +6964,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 240,
    "bulk": 1,
    "uses": 1,
@@ -6962,7 +6986,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 1,
    "cost": 180,
    "bulk": 1,
    "uses": 1,
@@ -7005,7 +7029,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 1,
    "cost": 280,
    "bulk": 1,
    "uses": 1,
@@ -7025,7 +7049,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 220,
    "bulk": 1,
    "uses": 1,
@@ -7065,7 +7089,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 4,
    "cost": 760,
    "bulk": 2,
    "uses": 1,
@@ -7085,7 +7109,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 1,
    "cost": 200,
    "bulk": 2,
    "uses": 1,
@@ -7105,7 +7129,7 @@
    "category": "consumable",
    "slot": "consumable",
    "family": "any",
-   "tier": 3,
+   "tier": 2,
    "cost": 260,
    "bulk": 1,
    "uses": 1,
@@ -8180,6 +8204,1240 @@
    "legality": "legal",
    "identity": "",
    "type": "Armour"
+  },
+  {
+   "id": "itm_hunting_longarm",
+   "name": "Stalker Longarm",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1260,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 9,
+    "reload": 1,
+    "reach": 16,
+    "near": 4,
+    "falloff": 2,
+    "handling": -1,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Bought for deer. Kept for the long walk across open ground.",
+   "type": "Long Rifles"
+  },
+  {
+   "id": "itm_tallgrass_longarm",
+   "name": "Tallgrass Longarm",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9900,
+   "bulk": 3,
+   "effects": {
+    "power": 9,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 16,
+    "near": 4,
+    "falloff": 2,
+    "handling": 5,
+    "snap": 2,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Nobody hears it. Nobody who needs to.",
+   "type": "Long Rifles",
+   "exotic": true
+  },
+  {
+   "id": "itm_deer_rifle",
+   "name": "Converted Deer Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 690,
+   "bulk": 3,
+   "effects": {
+    "power": 4,
+    "range": "long",
+    "tags": [
+     "single_shot"
+    ],
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 4,
+    "reload": 1,
+    "reach": 17,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 1,
+    "snap": 7,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A glass sight bolted on by somebody who meant well.",
+   "type": "Marksman Rifles"
+  },
+  {
+   "id": "itm_warden_dmr",
+   "name": "Warden DMR",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9700,
+   "bulk": 3,
+   "effects": {
+    "power": 7,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 11,
+    "reload": 1,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 13,
+    "snap": 5,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Every round an argument won at the first word.",
+   "type": "Marksman Rifles",
+   "exotic": true
+  },
+  {
+   "id": "itm_hornet_pdw",
+   "name": "Hornet PDW",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9600,
+   "bulk": 2,
+   "effects": {
+    "power": 8,
+    "range": "short",
+    "tags": [
+     "burst",
+     "smart_link"
+    ],
+    "damage": "ballistic",
+    "rof": 3,
+    "mag": 37,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 12,
+    "snap": 0,
+    "pen": 1,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "A wall of small certainties.",
+   "type": "Submachine Guns",
+   "exotic": true
+  },
+  {
+   "id": "itm_old_squad_gun",
+   "name": "Old Squad Gun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 1040,
+   "bulk": 4,
+   "effects": {
+    "power": 5,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 35,
+    "reload": 2,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3,
+    "handling": -7,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Heavy, loud, and older than the man carrying it.",
+   "type": "Support Guns"
+  },
+  {
+   "id": "itm_sawn_off",
+   "name": "Sawn-Off Double",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 990,
+   "bulk": 3,
+   "effects": {
+    "power": 7,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 5,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": -2,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Two barrels, one decision.",
+   "type": "Scatterguns"
+  },
+  {
+   "id": "itm_breacher_auto",
+   "name": "Breacher Autoshotgun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9800,
+   "bulk": 4,
+   "effects": {
+    "power": 11,
+    "range": "short",
+    "tags": [
+     "spread",
+     "burst"
+    ],
+    "damage": "ballistic",
+    "rof": 2,
+    "mag": 15,
+    "reload": 2,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 1,
+    "snap": 2,
+    "pen": 1,
+    "suppress": 1,
+    "spread": 2,
+    "noise": 2
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Empties a room without opening the door.",
+   "type": "Scatterguns",
+   "exotic": true
+  },
+  {
+   "id": "itm_patrol_carbine",
+   "name": "Patrol Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 810,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 15,
+    "reload": 1,
+    "reach": 13,
+    "near": 3,
+    "falloff": 2,
+    "handling": 1,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Short, light, and forgiving of cold hands.",
+   "type": "Carbines"
+  },
+  {
+   "id": "itm_folding_carbine",
+   "name": "Folding-Stock Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1400,
+   "bulk": 3,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 17,
+    "reload": 1,
+    "reach": 13,
+    "near": 3,
+    "falloff": 2,
+    "handling": 3,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Fits in a pack. Unfolds into a problem.",
+   "type": "Carbines"
+  },
+  {
+   "id": "itm_pathfinder_carbine",
+   "name": "Pathfinder Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9500,
+   "bulk": 3,
+   "effects": {
+    "power": 7,
+    "range": "medium",
+    "tags": [
+     "ricochet"
+    ],
+    "damage": "ballistic",
+    "rof": 1.5,
+    "mag": 28,
+    "reload": 1,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 10,
+    "snap": 1,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Built for the first squad down and the last one out.",
+   "type": "Carbines",
+   "exotic": true
+  },
+  {
+   "id": "itm_rocket_tube",
+   "name": "Improvised Rocket Tube",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 980,
+   "bulk": 4,
+   "effects": {
+    "power": 4,
+    "range": "medium",
+    "tags": [
+     "area"
+    ],
+    "damage": "explosive",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 12,
+    "near": 3,
+    "falloff": 2,
+    "handling": -8,
+    "snap": 8,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Pipe, fuse, and faith.",
+   "type": "Launchers"
+  },
+  {
+   "id": "itm_rifle_grenadier",
+   "name": "Rifle-Grenade Launcher",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1670,
+   "bulk": 4,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "area"
+    ],
+    "damage": "explosive",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 12,
+    "near": 3,
+    "falloff": 2,
+    "handling": -6,
+    "snap": 7,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Lobs a problem over the wall they are hiding behind.",
+   "type": "Launchers"
+  },
+  {
+   "id": "itm_drum_launcher",
+   "name": "Drum Launcher",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 2590,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "area"
+    ],
+    "damage": "explosive",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 12,
+    "near": 3,
+    "falloff": 2,
+    "handling": -2,
+    "snap": 5,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 2,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Six rounds of bad news, one after another.",
+   "type": "Launchers"
+  },
+  {
+   "id": "itm_elephant_gun",
+   "name": "Elephant Gun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 780,
+   "bulk": 4,
+   "effects": {
+    "power": 5,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 2,
+    "reload": 2,
+    "reach": 20,
+    "near": 8,
+    "falloff": 1,
+    "handling": -8,
+    "snap": 15,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Kicks like the thing it was made for.",
+   "type": "Anti-Materiel"
+  },
+  {
+   "id": "itm_salvaged_atr",
+   "name": "Salvaged Anti-Tank Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1360,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 2,
+    "reload": 2,
+    "reach": 20,
+    "near": 8,
+    "falloff": 1,
+    "handling": -6,
+    "snap": 14,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Pulled off a wreck. Still finds armour through the smoke.",
+   "type": "Anti-Materiel"
+  },
+  {
+   "id": "itm_breaker_rifle",
+   "name": "Breaker Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 3,
+   "cost": 2140,
+   "bulk": 4,
+   "effects": {
+    "power": 7,
+    "range": "long",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 0.5,
+    "mag": 2,
+    "reload": 2,
+    "reach": 20,
+    "near": 8,
+    "falloff": 1,
+    "handling": -4,
+    "snap": 13,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Opens cover the way a key opens a door.",
+   "type": "Anti-Materiel"
+  },
+  {
+   "id": "itm_trench_pump",
+   "name": "Trench Pump",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 1,
+   "cost": 1130,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "short",
+    "tags": [
+     "cover_shred"
+    ],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 3,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -6,
+    "snap": 7,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 3
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "For the last three metres of any argument.",
+   "type": "Close-Quarters"
+  },
+  {
+   "id": "itm_room_clearer",
+   "name": "Room Clearer",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 2,
+   "cost": 1900,
+   "bulk": 4,
+   "effects": {
+    "power": 7,
+    "range": "short",
+    "tags": [
+     "cover_shred"
+    ],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 3,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": -4,
+    "snap": 6,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 3
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Short barrel. Short conversation.",
+   "type": "Close-Quarters"
+  },
+  {
+   "id": "itm_siege_breacher",
+   "name": "Siege Breacher",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 9900,
+   "bulk": 4,
+   "effects": {
+    "power": 12,
+    "range": "short",
+    "tags": [
+     "cover_shred"
+    ],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 4,
+    "reload": 2,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 2,
+    "snap": 3,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 1,
+    "noise": 3
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "The door is the wall now.",
+   "type": "Close-Quarters",
+   "exotic": true
+  },
+  {
+   "id": "itm_prod_gun",
+   "name": "Prod Gun",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 1,
+   "cost": 630,
+   "bulk": 3,
+   "effects": {
+    "power": 3,
+    "range": "medium",
+    "tags": [
+     "nonlethal",
+     "burst"
+    ],
+    "damage": "energy",
+    "rof": 2,
+    "mag": 18,
+    "reload": 1,
+    "reach": 11,
+    "near": 0,
+    "falloff": 2.5,
+    "handling": 3,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Cattle took it badly. People take it worse.",
+   "type": "Stun-Grade"
+  },
+  {
+   "id": "itm_tether_stunner",
+   "name": "Tether Stunner",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 4,
+   "cost": 3780,
+   "bulk": 4,
+   "effects": {
+    "power": 8,
+    "range": "short",
+    "tags": [
+     "nonlethal",
+     "disorient"
+    ],
+    "damage": "energy",
+    "rof": 1,
+    "mag": 11,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 9,
+    "snap": 0,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Puts them down and keeps them down.",
+   "type": "Stun-Grade"
+  },
+  {
+   "id": "itm_quietus_projector",
+   "name": "Quietus Projector",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 5,
+   "cost": 9500,
+   "bulk": 4,
+   "effects": {
+    "power": 10,
+    "range": "short",
+    "tags": [
+     "nonlethal",
+     "disorient"
+    ],
+    "damage": "energy",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 5,
+    "near": 0,
+    "falloff": 6,
+    "handling": 9,
+    "snap": 0,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "A whole squad asleep in the grass, and not a mark on them.",
+   "type": "Stun-Grade",
+   "exotic": true
+  },
+  {
+   "id": "itm_lumen_rifle",
+   "name": "Lumen Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 2,
+   "cost": 1610,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "medium",
+    "tags": [
+     "burst"
+    ],
+    "damage": "energy",
+    "charge": 20,
+    "rof": 2,
+    "mag": 20,
+    "reload": 2,
+    "reach": 12,
+    "near": 1,
+    "falloff": 2,
+    "handling": -1,
+    "snap": 3,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A training beam somebody turned up past the stop.",
+   "type": "Assault Rifles"
+  },
+  {
+   "id": "itm_spark_repeater",
+   "name": "Spark Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 2,
+   "cost": 2220,
+   "bulk": 2,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [
+     "burst"
+    ],
+    "damage": "energy",
+    "rof": 3,
+    "mag": 23,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 3.5,
+    "handling": 7,
+    "snap": 4,
+    "pen": 0,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 0
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Chatters, crackles, and burns through a cell in a breath.",
+   "type": "Submachine Guns"
+  },
+  {
+   "id": "itm_glint_rifle",
+   "name": "Glint Rifle",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 3,
+   "cost": 2230,
+   "bulk": 3,
+   "effects": {
+    "power": 5,
+    "range": "long",
+    "tags": [],
+    "damage": "energy",
+    "charge": 13,
+    "rof": 1,
+    "mag": 13,
+    "reload": 2,
+    "reach": 18,
+    "near": 4,
+    "falloff": 1.5,
+    "handling": 7,
+    "snap": 7,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 0
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The first thing they see is the last thing they see.",
+   "type": "Marksman Rifles"
+  },
+  {
+   "id": "itm_starfall_carbine",
+   "name": "Starfall Carbine",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 5,
+   "cost": 10200,
+   "bulk": 4,
+   "effects": {
+    "power": 6,
+    "range": "medium",
+    "tags": [
+     "chill"
+    ],
+    "damage": "energy",
+    "charge": 20,
+    "rof": 1.5,
+    "mag": 20,
+    "reload": 2,
+    "reach": 12,
+    "near": 0,
+    "falloff": 2,
+    "handling": 12,
+    "snap": 0,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Every shot a little sunrise.",
+   "type": "Carbines",
+   "exotic": true
+  },
+  {
+   "id": "itm_horizon_lance",
+   "name": "Horizon Lance",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 5,
+   "cost": 10400,
+   "bulk": 4,
+   "effects": {
+    "power": 10,
+    "range": "long",
+    "tags": [],
+    "damage": "energy",
+    "charge": 17,
+    "rof": 1,
+    "mag": 17,
+    "reload": 2,
+    "reach": 18,
+    "near": 5,
+    "falloff": 1.5,
+    "handling": 5,
+    "snap": 5,
+    "pen": 2,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Reaches the ridge line before the sound does.",
+   "type": "Long Rifles",
+   "exotic": true
+  },
+  {
+   "id": "itm_sunforge_repeater",
+   "name": "Sunforge Repeater",
+   "category": "weapon",
+   "slot": "primary",
+   "family": "energy",
+   "tier": 5,
+   "cost": 10600,
+   "bulk": 4,
+   "effects": {
+    "power": 7,
+    "range": "medium",
+    "tags": [
+     "sustained"
+    ],
+    "damage": "energy",
+    "charge": 27,
+    "rof": 1.5,
+    "mag": 27,
+    "reload": 2,
+    "reach": 14,
+    "near": 2,
+    "falloff": 1.5,
+    "handling": -3,
+    "snap": 8,
+    "pen": 1,
+    "suppress": 1,
+    "spread": 0,
+    "noise": 2
+   },
+   "price_model": "scarcity",
+   "legality": "legal",
+   "identity": "Holds a line of light across the whole field.",
+   "type": "Support Guns",
+   "exotic": true
+  },
+  {
+   "id": "itm_foil_poncho",
+   "name": "Foil Poncho",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 1,
+   "cost": 260,
+   "bulk": 1,
+   "effects": {
+    "protection": 1,
+    "mobility": 1,
+    "tags": [],
+    "resist": {
+     "ballistic": -1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Crinkles when you run. Turns a beam, sometimes."
+  },
+  {
+   "id": "itm_sandbag_vest",
+   "name": "Sandbag Vest",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 1,
+   "cost": 180,
+   "bulk": 3,
+   "effects": {
+    "protection": 1,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": -1,
+     "explosive": 2
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Exactly what it sounds like."
+  },
+  {
+   "id": "itm_trauma_plates",
+   "name": "Trauma Plates",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 2,
+   "cost": 620,
+   "bulk": 2,
+   "effects": {
+    "protection": 3,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 2,
+     "energy": -1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Stops the round. Not the bruise."
+  },
+  {
+   "id": "itm_patrol_vest",
+   "name": "Patrol Vest",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 2,
+   "cost": 530,
+   "bulk": 2,
+   "effects": {
+    "protection": 2,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 1,
+     "energy": 1,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Good at nothing in particular, which is often enough."
+  },
+  {
+   "id": "itm_prism_shell",
+   "name": "Prism Shell",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 5,
+   "cost": 3480,
+   "bulk": 3,
+   "effects": {
+    "protection": 7,
+    "mobility": 0,
+    "tags": [],
+    "resist": {
+     "ballistic": 0,
+     "energy": 3,
+     "explosive": 0
+    },
+    "covers": [
+     "torso",
+     "head",
+     "arms"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Light goes in. Light comes out somewhere else."
+  },
+  {
+   "id": "itm_bastion_plate",
+   "name": "Bastion Plate",
+   "category": "armor",
+   "slot": "armor",
+   "tier": 5,
+   "cost": 3380,
+   "bulk": 4,
+   "effects": {
+    "protection": 7,
+    "mobility": -1,
+    "tags": [],
+    "resist": {
+     "ballistic": 3,
+     "energy": 0,
+     "explosive": 1
+    },
+    "covers": [
+     "torso",
+     "head",
+     "legs"
+    ]
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Walks through small-arms fire like weather."
+  },
+  {
+   "id": "itm_spark_pistol",
+   "name": "Spark Pistol",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "energy",
+   "tier": 2,
+   "cost": 290,
+   "bulk": 1,
+   "effects": {
+    "power": 2,
+    "range": "medium",
+    "tags": [],
+    "damage": "energy",
+    "rof": 1,
+    "mag": 10,
+    "reload": 1,
+    "reach": 8,
+    "near": 0,
+    "falloff": 4,
+    "handling": 6,
+    "snap": 2,
+    "pen": 0,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "A torch that bites.",
+   "type": "Sidearms"
+  },
+  {
+   "id": "itm_magnum_auto",
+   "name": "Magnum Autoloader",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 4,
+   "cost": 1250,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 8,
+    "snap": 1,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "The last word, repeated.",
+   "type": "Sidearms"
+  },
+  {
+   "id": "itm_duelist_needler",
+   "name": "Duelist’s Needler",
+   "category": "weapon",
+   "slot": "sidearm",
+   "family": "ballistic",
+   "tier": 5,
+   "cost": 1280,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "range": "short",
+    "tags": [],
+    "damage": "ballistic",
+    "rof": 1,
+    "mag": 12,
+    "reload": 1,
+    "reach": 6,
+    "near": 0,
+    "falloff": 5,
+    "handling": 8,
+    "snap": 1,
+    "pen": 1,
+    "suppress": 0,
+    "spread": 0,
+    "noise": 1
+   },
+   "price_model": "formula",
+   "legality": "legal",
+   "identity": "Made for one person, and for one moment.",
+   "type": "Sidearms"
   }
  ],
  "doctrines": [
@@ -10070,7 +11328,8 @@
     const budget = Math.max(0, opts.budget || 0);
     const armoury = opts.armoury || foundingArmoury(doctrineId, bodyCount, opts).stock;
     const taste = d.taste || [];
-    const maxTier = d.armoury_max_tier || 5;
+    /* §FACILITIES the Armoury decides what can be issued: the doctrine's ceiling, and the Armoury's below it */
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5);
     const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0);
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
@@ -10316,7 +11575,7 @@
       const step = want > 0 ? bodies.length / want : 0;
       for (let k = 0; k < want; k++) {
         const b = bodies[Math.floor(k * step)]; if (!b) continue;
-        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv) continue;
+        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv || (dv.tier || 1) > maxTier) continue;   /* §FACILITIES within the Armoury */
         if ((b.loadout.consumables || []).indexOf(dId) >= 0) continue;
         const cons = (b.loadout.consumables || []).slice();
         if (cons.length >= CONST.CONSUMABLE_SLOTS) {
@@ -10357,7 +11616,7 @@
     const d = api.doctrine(doctrineId);
     if (!d) return { stock: {}, value: 0 };
     const depth = opts.depth == null ? CONST.FOUNDING_DEPTH : opts.depth;
-    const maxTier = d.armoury_max_tier || 5, taste = d.taste || [];
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5), taste = d.taste || [];
     const n = bodyCount;
     const stock = {};
     const add = (id, k) => { if (id && k > 0) stock[id] = (stock[id] || 0) + k; };
@@ -10390,7 +11649,7 @@
     for (const id in stock) value += byId(id).cost * stock[id];
     /* §DEVICES a rich OA founds with devices in the rack, in proportion to its wealth (ruled) */
     const devN = Math.round(n * CONST.DEVICE_SHARE * Math.max(0, Math.min(1, (opts && opts.wealth) || 0)));
-    for (let k = 0; k < devN; k++) add(k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone', 1);
+    for (let k = 0; k < devN; k++) { const dv = k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone'; if ((byId(dv) || { tier: 9 }).tier <= maxTier) add(dv, 1); }
     return { stock, value };
   }
 
@@ -12918,6 +14177,158 @@
            promisesOf, openPromise, makePromise, settlePromise, aiTalk, lineFor };
 });
 
+/* ==== facilities.js ==== */
+/* ============================================================================================
+   FACILITIES — what an OA builds, and keeps. Long-horizon money.
+
+   RULED (the facilities pass):
+   - Six facilities, each tied to a backroom post. Level one of a facility is needed before a
+     staffer can hold its post; every level above one multiplies what that staffer's Craft does.
+     The facility also does a little on its own, staffed or not.
+   - THE ARMOURY GATES GEAR. Everyone begins with the Armoury at level one: tiers one and two.
+     Each level above opens the next tier, to tier five at level four. Gear above an OA's tier is
+     STORED, never lost — captured kit waits in the rack for the day the Armoury can issue it.
+     A mercenary's own gear is theirs, and they carry it whatever the Armoury says.
+   - Building is paid in full when it starts and takes months; the months run through the Divide
+     and the winter, so a big build started in spring stands next spring. One build at a time.
+   - A standing facility costs upkeep every month. The board does not judge construction (it is
+     capital, not a year's spending); it does see the upkeep.
+   - No board sign-off: the money is the only gate.
+
+   SYMMETRY (ruled): the engine's OAs build by the same rules, by their own temperament.
+   ============================================================================================ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.CDFAC = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* levels[i] is what level i+1 costs: credits up front, months to build, upkeep a month once standing */
+  const FACILITIES = {
+    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1,
+                 levels: [{ cost: 0, months: 0, upkeep: 600 },
+                          { cost: 110000, months: 6, upkeep: 1600 },
+                          { cost: 240000, months: 9, upkeep: 3200 },
+                          { cost: 420000, months: 12, upkeep: 5200 }],
+                 does: ['Issues Tiers 1–2', 'Issues Tier 3', 'Issues Tier 4', 'Issues Tier 5'] },
+    infirmary: { name: 'Infirmary', post: 'surgeon', start: 0,
+                 levels: [{ cost: 55000, months: 3, upkeep: 900 }, { cost: 130000, months: 6, upkeep: 2000 }, { cost: 280000, months: 12, upkeep: 3800 }],
+                 does: ['A Surgeon Can Work · Wounds Mend Faster', 'A Cutter Can Operate · Faster Still', 'Wounds Mend Fastest'] },
+    yard:      { name: 'Training Yard', post: 'drill', start: 0,
+                 levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
+                 does: ['A Drillmaster Can Work · Drills Gain More', 'Drills Gain More', 'Drills Gain Most'] },
+    barracks:  { name: 'Barracks', post: 'sergeant', start: 0,
+                 levels: [{ cost: 45000, months: 3, upkeep: 800 }, { cost: 110000, months: 6, upkeep: 1800 }, { cost: 240000, months: 12, upkeep: 3400 }],
+                 does: ['A Sergeant Can Work · Strain Eases', 'Strain Eases More · Loyalty Settles', 'Strain Eases Most · Loyalty Settles Faster'] },
+    press:     { name: 'Press Office', post: 'fixer', start: 0,
+                 levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
+                 does: ['A Fixer Can Work · A Bigger Gate', 'A Bigger Gate', 'The Biggest Gate'] },
+    listening: { name: 'Listening Post', post: 'spymaster', start: 0,
+                 levels: [{ cost: 55000, months: 3, upkeep: 1000 }, { cost: 130000, months: 6, upkeep: 2200 }, { cost: 280000, months: 12, upkeep: 4000 }],
+                 does: ['A Spymaster Can Work', 'A Mole Can Be Planted', 'Reports Every Month, Staffed or Not'] }
+  };
+  const IDS = Object.keys(FACILITIES);
+  const FOR_POST = {}; for (const id of IDS) FOR_POST[FACILITIES[id].post] = id;
+
+  const CONST = {
+    STAFF_PER_LEVEL: 0.25,       // [C] what each level above one adds to a staffer's Craft's reach
+    YARD_BASE: 0.06,             // [C] drill yield per level, staffed or not
+    INFIRMARY_BASE: 0.20,        // [C] the body's own mending per level
+    BARRACKS_CALM: 1.0,          // [C] stress off everyone a month, per level
+    BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
+    PRESS_GATE: 0.05,            // [C] gate per level
+    LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
+    TIER_OFFSET: 1               // [S] the Armoury issues up to level + this
+  };
+
+  function grounds(corp) {
+    corp.facilities = corp.facilities || { levels: {}, build: null, history: [] };
+    for (const id of IDS) if (corp.facilities.levels[id] == null) corp.facilities.levels[id] = FACILITIES[id].start;
+    return corp.facilities;
+  }
+  function level(corp, id) { return corp ? (grounds(corp).levels[id] || 0) : 0; }
+  function maxTier(corp) { return Math.min(5, level(corp, 'armoury') + CONST.TIER_OFFSET); }
+  /** can this post be staffed at all */
+  function postOpen(corp, post) { const id = FOR_POST[post]; return !id || level(corp, id) >= 1; }
+  /** what the facility does to its staffer's Craft: nothing at level one, more above */
+  function staffMult(corp, post) { const id = FOR_POST[post]; const L = id ? level(corp, id) : 1; return 1 + CONST.STAFF_PER_LEVEL * Math.max(0, L - 1); }
+
+  const absOf = (season, month) => (season || 0) * 12 + (month || 0);
+  /** what the next level of a facility would cost, or null at the top */
+  function nextLevel(corp, id) {
+    const F = FACILITIES[id], L = level(corp, id);
+    if (L >= F.levels.length) return null;
+    return Object.assign({ level: L + 1, does: F.does[L] }, F.levels[L]);
+  }
+  /** can a build start: one at a time, and paid in full */
+  function canBuild(corp, id) {
+    const g = grounds(corp), nx = nextLevel(corp, id);
+    if (!nx) return { ok: false, why: 'At the Top' };
+    if (g.build) return { ok: false, why: 'Already Building' };
+    if (((corp.account && corp.account.treasury) || 0) < nx.cost) return { ok: false, why: 'Not Enough in the Treasury' };
+    return { ok: true, next: nx };
+  }
+  function startBuild(corp, id, season, month, post) {
+    const c = canBuild(corp, id); if (!c.ok) return c;
+    const g = grounds(corp);
+    if (post) post(corp.account, 'expense', 'Building the ' + FACILITIES[id].name, -c.next.cost);
+    g.build = { id, level: c.next.level, from: absOf(season, month), ready: absOf(season, month) + c.next.months };
+    return { ok: true, build: g.build };
+  }
+  /** time passes: a build that has stood long enough stands. Returns what finished. */
+  function tick(corp, season, month) {
+    const g = grounds(corp);
+    if (!g.build || absOf(season, month) < g.build.ready) return null;
+    const b = g.build; g.levels[b.id] = b.level; g.build = null;
+    g.history.push({ id: b.id, level: b.level, season });
+    while (g.history.length > 30) g.history.shift();
+    return b;
+  }
+  function monthsLeft(corp, season, month) { const b = grounds(corp).build; return b ? Math.max(0, b.ready - absOf(season, month)) : 0; }
+  function upkeep(corp) {
+    let n = 0;
+    for (const id of IDS) { const L = level(corp, id); if (L > 0) n += FACILITIES[id].levels[L - 1].upkeep; }
+    return n;
+  }
+
+  /* ------------------------------------------------------------------ what they do alone */
+  function yardYield(corp) { return 1 + CONST.YARD_BASE * level(corp, 'yard'); }
+  function mendMult(corp) { return 1 + CONST.INFIRMARY_BASE * level(corp, 'infirmary'); }
+  function barracksCalm(corp) { return CONST.BARRACKS_CALM * level(corp, 'barracks'); }
+  function barracksLoyalty(corp) { return CONST.BARRACKS_LOYALTY * Math.max(0, level(corp, 'barracks') - 1); }
+  function gateMult(corp) { return 1 + CONST.PRESS_GATE * level(corp, 'press'); }
+  function listenLevels(corp) { return level(corp, 'listening') >= 3 ? CONST.LISTEN_LEVELS : 0; }
+  function cutterAllowed(corp) { return level(corp, 'infirmary') >= 2; }
+  function moleAllowed(corp) { return level(corp, 'listening') >= 2; }
+
+  /* --------------------------------------------------------------------- the engine builds */
+  /** what an engine OA wants to build next, by its temperament and what it can afford to leave in the bank */
+  function aiChoose(corp, reserve) {
+    const g = grounds(corp); if (g.build) return null;
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const want = {
+      armoury: 1.2 + dial('aggression') * 0.6,
+      yard: 1.0 + dial('tradition') * 0.4,
+      infirmary: 0.8 + (1 - dial('aggression')) * 0.6,
+      barracks: 0.7 + dial('patience') * 0.4,
+      press: 0.5 + dial('showmanship') * 0.9,
+      listening: 0.4 + dial('treachery') * 0.8
+    };
+    const purse = (corp.account && corp.account.treasury) || 0;
+    const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
+      .filter(o => o.nx && o.nx.cost > 0 && purse - o.nx.cost >= reserve)
+      /* the cheaper next step of a wanted thing first: a house climbs, it does not leap */
+      .map(o => ({ id: o.id, score: want[o.id] / (1 + o.nx.cost / 100000) / (1 + 0.5 * (o.nx.level - 1)) }))
+      .sort((a, b) => b.score - a.score);
+    return opts.length ? opts[0].id : null;
+  }
+
+  return { FACILITIES, IDS, FOR_POST, CONST, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
+           tick, monthsLeft, upkeep, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
+           cutterAllowed, moleAllowed, aiChoose };
+});
+
 /* ==== staff.js ==== */
 /* ============================================================================================
    STAFF — the backroom. Six posts, one number, and mostly your own people.
@@ -12947,9 +14358,9 @@
    This module owns the numbers and the choices; `season.js` owns when they happen.
    ============================================================================================ */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./talks.js'));
-  else root.CDSTAFF = factory(root.CDPRNG, root.CDTALKS);
-})(typeof self !== 'undefined' ? self : this, function (P, TALKS) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./talks.js'), require('./facilities.js'));
+  else root.CDSTAFF = factory(root.CDPRNG, root.CDTALKS, root.CDFAC);
+})(typeof self !== 'undefined' ? self : this, function (P, TALKS, FAC) {
   'use strict';
 
   const CONST = {
@@ -13132,9 +14543,10 @@
   }
   function holder(corp, post) { return corp && corp.staff && corp.staff.posts ? corp.staff.posts[post] || null : null; }
   /** how good the post is being done, 0..1, and in which school */
+  /* §FACILITIES a staffer's Craft reaches further from a better facility */
   function eff(corp, post) {
     const st = holder(corp, post);
-    return st ? { e: (st.craft[post] || 0) / 100, school: st.school, st } : { e: 0, school: null, st: null };
+    return st ? { e: (st.craft[post] || 0) / 100 * FAC.staffMult(corp, post), school: st.school, st } : { e: 0, school: null, st: null };
   }
   function allStaff(corp) { const o = office(corp); return POSTS.map(p => o.posts[p]).filter(Boolean); }
 
@@ -13142,11 +14554,12 @@
   /** the drill: a yield multiplier for one stat, and what the drill's strain is multiplied by */
   function drillFor(corp, stat) {
     const d = eff(corp, 'drill');
-    if (!d.st) return { yield: 1, strain: 1 };
+    const yard = FAC.yardYield(corp);   /* §FACILITIES the yard works whoever runs it */
+    if (!d.st) return { yield: yard, strain: 1 };
     const base = d.school === 'hard' ? CONST.DRILL_HARD : CONST.DRILL_PATIENT;
     const best = bestStats(d.st).indexOf(stat) >= 0 ? CONST.DRILL_BEST : 0;
     const strain = d.school === 'hard' ? 1 + CONST.DRILL_HARD_STRESS * d.e : 1 - CONST.DRILL_PATIENT_CALM * d.e;
-    return { yield: 1 + (base + best) * d.e, strain };
+    return { yield: (1 + (base + best) * d.e) * yard, strain };
   }
   function shelfDiscount(corp) {
     const q = eff(corp, 'quartermaster');
@@ -13166,11 +14579,11 @@
   }
   function courtMult(corp) { const f = eff(corp, 'fixer'); return 1 + CONST.FIX_COURT * f.e; }
   function surgeonFor(corp) {
-    const s = eff(corp, 'surgeon');
-    if (!s.st) return { drift: 1, focus: 1, calm: 0, cutter: false, e: 0 };
+    const s = eff(corp, 'surgeon'), bay = FAC.mendMult(corp);   /* §FACILITIES the infirmary mends, staffed or not */
+    if (!s.st) return { drift: bay, focus: 1, calm: 0, cutter: false, e: 0 };
     const nurse = s.school === 'nurse';
-    return { drift: 1 + CONST.SURGEON_DRIFT * s.e + (nurse ? CONST.NURSE_DRIFT * s.e : 0), focus: 1 + CONST.SURGEON_FOCUS * s.e,
-             calm: nurse ? CONST.NURSE_CALM * s.e : 0, cutter: s.school === 'cutter', e: s.e };
+    return { drift: (1 + CONST.SURGEON_DRIFT * s.e + (nurse ? CONST.NURSE_DRIFT * s.e : 0)) * bay, focus: 1 + CONST.SURGEON_FOCUS * s.e,
+             calm: nurse ? CONST.NURSE_CALM * s.e : 0, cutter: s.school === 'cutter' && FAC.cutterAllowed(corp), e: s.e };
   }
   function operateOdds(corp) {
     const s = surgeonFor(corp);
@@ -20610,20 +22023,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const f of corp.allBodies) f._handKitted = false;   /* bodies persist across locks */
     const handSrc = (corp.persist && corp.persist.hand) || null;
     const baseArmoury = (corp.persist && corp.persist.armoury)
-          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock;
+          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth, maxTier: (corp.persist && corp.persist.maxTier) || 5 }).stock;
     const handStock = {};
     for (const k in baseArmoury) handStock[k] = baseArmoury[k];
     let handSpend = 0, handValue = 0, handed = 0;
     corp.handRefused = 0;
+    /* §FACILITIES A MERCENARY'S OWN GEAR IS THEIRS: carried whatever the Armoury allows, and not drawn from the rack */
+    for (const f of corp.allBodies) {
+      if (!f.ownKit || (handSrc && handSrc[f.id])) continue;
+      ITEMS.equip(f, { primary: f.ownKit.primary, armor: f.ownKit.armor, sidearm: f.ownKit.sidearm || null, mods: [], consumables: [] });
+      f._handKitted = true; handed++;
+    }
     if (handSrc) {
-      const maxTier = (ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5;
+      /* §FACILITIES the Armoury's tier, and the doctrine's, bound a manager's hand as they bind the quartermaster */
+      const maxTier = Math.min((ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5, (corp.persist && corp.persist.maxTier) || 5);
+      let own = null;
       const slotOk = (id, slot) => {
         const it = id ? ITEMS.byId(id) : null;
-        return it && it.slot === slot && it.tier <= maxTier ? it : null;
+        const mine = own && [own.primary, own.armor, own.sidearm].indexOf(id) >= 0;   /* a merc's own piece is always theirs to carry */
+        return it && it.slot === slot && (it.tier <= maxTier || mine) ? it : null;
       };
       for (const f of corp.allBodies) {
         const h = handSrc[f.id];
         if (!h) continue;
+        own = f.ownKit || null;
         const prim = slotOk(h.primary, 'primary');
         const arm = slotOk(h.armor, 'armor');
         if (!prim || !arm) { corp.handRefused++; continue; }
@@ -20654,6 +22077,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     const bareFighters = corp.allBodies.filter(f => !f._handKitted);
     let plan = ITEMS.planForce(doc.id, total - handed, {
+      maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -20684,6 +22108,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (raised > 0) {
         corp.kitBudget = (corp.kitBudget || 0) + raised;
         plan = ITEMS.planForce(doc.id, total - handed, {
+          maxTier: (corp.persist && corp.persist.maxTier) || 5,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -26863,12 +28288,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
   'use strict';
 
   const CONST = {
@@ -27323,8 +28748,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       corps[profile.id] = {
         id: profile.id, profile,
         roster: roster,
-        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
-                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile) }).stock,
+        /* §FACILITIES every OA opens with the Armoury at its first level: tiers one and two, and nothing above */
+        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH, maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock)
+                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile), maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock,
         /* §FOUNDING ONE KIND OF WEALTH, SPENT DIFFERENTLY (ruled). An AI OA founded with its
            profile's whole band IN CASH as well as a full roster and a decade of kit, so it began
            the game with one and a half to two and a half times the manager's wealth. It arrives
@@ -27830,6 +29256,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const taken = new Set((corp && corp.roster || []).map(f => f.name));
     const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix, taken }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+    /* §FACILITIES a mercenary's own kit, and its worth in what they ask */
+    if (kind === 'mercs') for (const f of lot) {
+      const k = mercKit(rng, f);
+      if (!k) continue;
+      f.ownKit = k;
+      const worth = [k.primary, k.armor, k.sidearm].reduce((a, id) => a + ((id && ITEMS.byId(id) && ITEMS.byId(id).cost) || 0), 0);
+      if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary + worth / LED.CONST.SALARY_MONTHS);
+    }
     /* §STANDING THE SHIP'S CHILDREN WANT TO JOIN A LOVED OA: its own tryouts come deeper and better, a jeered one's thinner */
     if (kind === 'tryouts' && corp) {
       const lift = Math.round(crowdLean(corp) * CONST.CROWD_LOT_STATS);
@@ -28656,6 +30090,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE - Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM);
       /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
       f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
+      /* §FACILITIES a Barracks worth the name: strain eases, loyalty settles toward content */
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - FAC.barracksCalm(corp));
+      const bl = FAC.barracksLoyalty(corp);
+      if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */
@@ -28751,6 +30189,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
     staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
+    /* §FACILITIES the engine looks again at its grounds mid-year, when the gate has paid in */
+    if (!wanted && month === 6) aiBuild(corp, { season: season || 0, month });
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -29867,6 +31307,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
     staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
+    /* §FACILITIES builds run through the Divide and the winter; the engine starts its own */
+    for (const id of state.ids) {
+      const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
+      if (!isHuman(state, id)) aiBuild(c, state);
+    }
     for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
@@ -30215,6 +31660,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     const f = ownCandidates(c).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not One of Yours' };
     const st = STAFF.fromFighter(f, post);
@@ -30237,6 +31683,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     post = post || st.specialty;
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     pool.splice(pool.indexOf(st), 1);
     st.post = post; st.school = STAFF.schoolFor(st, post);
     st.wage = STAFF.wageFor(st.craft[post], 'specialist');
@@ -30253,6 +31700,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!st) return { ok: false, why: 'Nobody in That Post' };
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'Your Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     if (!STAFF.willing(st, regardOf(c, fromId))) return { ok: false, why: 'They Will Not Come' };
     const fee = STAFF.feeOf(st);
     if ((c.account.treasury || 0) < fee) return { ok: false, why: 'Not Enough in the Treasury' };
@@ -30331,6 +31779,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function setMole(state, corpId, targetId) {
     const c = state.corps[corpId], sp = c && STAFF.holder(c, 'spymaster');
     if (!sp || sp.school !== 'mole' || !state.corps[targetId] || targetId === corpId) return { ok: false };
+    if (!FAC.moleAllowed(c)) return { ok: false, why: 'Needs the Listening Post at Level 2' };
     STAFF.office(c).mole = { target: targetId, season: state.season };
     return { ok: true };
   }
@@ -30342,7 +31791,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const sp = STAFF.eff(corp, 'spymaster');
     if (sp.st && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
       ensureIntel(corp, season || 0);
-      if (sp.school === 'watcher') {
+      if (sp.school === 'watcher' || !FAC.moleAllowed(corp)) {   /* §FACILITIES a mole needs the Listening Post's second level */
         const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
         if (lv > 0) {
           const planetFull = INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
@@ -30383,6 +31832,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
+    }
+    const lp = FAC.listenLevels(corp);
+    if (lp && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      gatherIntel(corp, 'planet', null, lp, abs, null);
     }
     if (corp._poachIntel && corp._poachIntel.length) {
       corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
@@ -30447,6 +31901,42 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) poach(state, id, best.oid, best.p);
     }
+  }
+
+  /* ============================================================ §FACILITIES THE GROUNDS
+     facilities.js holds the numbers. Here: a person builds from the Facilities page, the engine
+     from its temperament, both through `buildFacility`. */
+  function buildFacility(state, corpId, facId) {
+    const c = state.corps[corpId];
+    if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
+    if (state.done) return { ok: false, why: 'The Year Is Over' };
+    return FAC.startBuild(c, facId, state.season, state.month, LED.post);
+  }
+  /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
+  function aiBuild(c, state) {
+    const d = (c.profile && c.profile.dials) || {};
+    const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
+    const reserve = 60000 + 80000 * thrift;
+    const pick = FAC.aiChoose(c, reserve);
+    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post);
+  }
+  /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
+     best, armour and a sidearm, at a tier set by how good they are — tier two to four, whatever the buyer's Armoury */
+  function mercKit(rng, f) {
+    const st = f.stats || {};
+    const q = ((st.aim || 0) + (st.tactics || 0) + (st.resolve || 0) + (st.grit || 0)) / 4;
+    const tier = Math.max(2, Math.min(4, Math.round(1 + q / 60 + (rng() - 0.5))));
+    const prims = ITEMS.bySlot('primary').filter(it => it.tier === tier && !it.exotic && !((it.effects.tags || []).indexOf('nonlethal') >= 0));
+    const sk = f.skills || {};
+    const typeOf = it => ITEMS.skillTypeOf(it);
+    prims.sort((a, b) => ((sk[typeOf(b)] || 0) - (sk[typeOf(a)] || 0)) || (a.cost - b.cost));
+    const gun = prims[0];
+    const arms = ITEMS.bySlot('armor').filter(it => it.tier === tier && !it.exotic);
+    const arm = arms[Math.floor(rng() * arms.length)];
+    const sides = ITEMS.bySlot('sidearm').filter(it => it.tier <= tier).sort((a, b) => b.tier - a.tier);
+    const side = sides[0];
+    if (!gun || !arm) return null;
+    return { primary: gun.id, armor: arm.id, sidearm: side ? side.id : null, tier };
   }
   /** what a promise can be of this month */
   function promisable(month) { const k = ['drop', 'lead']; if (month <= EIGHT_MONTH) k.push('eight'); return k; }
@@ -30647,6 +32137,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
     reconcileCaptains(state);   /* §TALKS the naming was free until now; a star taken away after it is a promise broken */
+    /* §FACILITIES what the builders finish this month stands from now */
+    const stood = {};
+    /* a build of N months started in month M stands as month M+N opens: it finishes at this month's end */
+    for (const id of state.ids) { const b = FAC.tick(state.corps[id], state.season, m + 1); if (b) stood[id] = b; }
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -30670,6 +32164,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
         delete cc._tipOn; delete cc._leakTo;
       }
+      if (stood[id]) landed[id].push({ kind: 'staff', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
@@ -30770,7 +32265,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
       const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
       const shut = c._gateShut === state.season * 100 + m;
-      const gate = shut ? 0 : Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame));
+      const gate = shut ? 0 : Math.round(Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame)) * FAC.gateMult(c));   /* §FACILITIES the Press Office */
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
          were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
@@ -30805,6 +32300,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
       const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
       if (staffPay > 0) { LED.post(c.account, 'expense', 'Staff Wages', -staffPay); c._staffPaid = (c._staffPaid || 0) + staffPay; }
+      /* §FACILITIES what stands costs to keep standing */
+      const up = FAC.upkeep(c);
+      if (up > 0) { LED.post(c.account, 'expense', 'Facility Upkeep', -up); c._staffPaid = (c._staffPaid || 0) + up; }
       /* a renewal nobody answered by the first month's end is signed at what was asked */
       if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
@@ -31031,6 +32529,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         captains: captainsOf(c, season),
         /* §STAFF an Armourer finds more for the kit than the books alone would */
         kitBoost: STAFF.kitBoost(c),
+        /* §FACILITIES what the Armoury can issue */
+        maxTier: FAC.maxTier(c),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -31207,6 +32707,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const id in (cart || {})) {
       const it = ITEMS.byId(id), n = Math.floor(cart[id] || 0);
       if (!it || n <= 0 || !(it.cost > 0) || it.price_model === 'none') continue;
+      if ((it.tier || 1) > FAC.maxTier(c)) return { ok: false, why: 'Needs the Armoury at Level ' + ((it.tier || 1) - FAC.CONST.TIER_OFFSET) };
       clean[id] = n; total += shelfPrice(state, corpId, it) * n; full += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
@@ -31904,7 +33405,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
      captainsOf, promisable, talkNow, talkPreview, TALKS,
-     STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
+     FAC, buildFacility, mercKit, STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
@@ -32031,20 +33532,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     ground: { name: 'The Ground',    live: true },
     fight:  { name: 'The Firefight', live: true },
     /* §STAFF THE BACKROOM: the OA's staff — six posts at home, and who could fill them */
-    backroom: { name: 'The Backroom', live: true }
+    backroom: { name: 'The Backroom', live: true },
+    /* §FACILITIES what the OA builds and keeps */
+    grounds: { name: 'Facilities', live: true }
   };
   var RAILS = {
     /* the phase head said "Months 1–11 · The Preparation" on every page of the preparation —
        a thing the clock beside it already tells a manager, in the space a manager needs */
     prep:   { head: '', home: 'desk',
-              tabs: ['desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] },
+              tabs: ['desk', 'roster', 'squads', 'backroom', 'grounds', 'market', 'talks', 'board'] },
     divide: { head: 'Month 12 \u00b7 The Divide', home: 'table',
               tabs: ['table', 'deal', 'ground', 'roster', 'board'] },
     /* THE DIVIDEND IS AN EVENT, NOT A LINE IN A LOG. It used to resolve inside the month
        step and leave a shelf on the Desk: a manager walked through month six and felt
        nothing happen. It gets the floor now, the way the Divide does. */
     dividend: { head: 'Month ' + (window.CDSEASON ? CDSEASON.DIVIDEND_MONTH : 4) + ' \u00b7 The Dividend', home: 'lights',
-                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'market', 'talks', 'board'] }
+                tabs: ['lights', 'desk', 'roster', 'squads', 'backroom', 'grounds', 'market', 'talks', 'board'] }
   };
   var rail = $('rail');
   var TAB = {};
@@ -32127,6 +33630,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (G) {
       if (tab === 'squads') renderSquads();
       else if (tab === 'backroom') renderBackroom();
+      else if (tab === 'grounds') renderGrounds();
       else if (tab === 'roster') renderRoster();
       else if (tab === 'board') { renderBoard(); if (TAB.board) TAB.board.classList.remove('urgent'); }
       else if (tab === 'talks') renderTrade();
@@ -35353,6 +36857,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §STAFF who works in their backroom is no secret; how well they do it is a guess */
     var theirStaff = SEASON.STAFF.POSTS.map(function (p) { var st = SEASON.STAFF.holder(c, p); return st ? SEASON.STAFF.POST_NAME[p] + ' ' + esc(st.name) : null; }).filter(Boolean);
     if (theirStaff.length) { h += '<h3>The Backroom</h3>'; theirStaff.forEach(function (t) { var bits = t.split(' '); h += row(bits.shift(), bits.join(' ')); }); }
+    /* §FACILITIES what they have built is plain to see from orbit */
+    var built = SEASON.FAC.IDS.filter(function (fid) { return SEASON.FAC.level(c, fid) > 0; });
+    if (built.length) { h += '<h3>Facilities</h3>'; built.forEach(function (fid) { h += row(SEASON.FAC.FACILITIES[fid].name, 'Level ' + SEASON.FAC.level(c, fid)); }); }
     if (!mine) { h += '<h3>The Dossier</h3>' + dossierHtml(id); }
     /* WHAT THEY HAVE DONE: the years behind them */
     var hist = (c.history || []).slice(-6).reverse();
@@ -35506,6 +37013,45 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
 
 
+
+  /* ============================ FACILITIES (§FACILITIES) ============================
+     Six facilities, levels, one build at a time. The Armoury decides what gear can be issued. */
+  function renderGrounds() {
+    var host = $('grounds'); if (!host || !G || !G.state) return;
+    var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
+    var h = '';
+    if (g.build) {
+      var bf = F.FACILITIES[g.build.id], left = F.monthsLeft(me, G.state.season, G.state.month), tot = Math.max(1, g.build.ready - g.build.from);
+      h += '<div class="fcbanner"><span>Building · <b>' + esc(bf.name) + ' Level ' + g.build.level + '</b></span>' +
+           '<span class="bkbar"><i style="width:' + Math.round(100 * (1 - left / tot)) + '%"></i></span>' +
+           '<span>' + (left ? left + ' Month' + (left === 1 ? '' : 's') + ' Left' : 'Stands Next Month') + '</span></div>';
+    }
+    h += '<div class="fcgrid">';
+    F.IDS.forEach(function (id) {
+      var fac = F.FACILITIES[id], L = F.level(me, id), nx = F.nextLevel(me, id), building = g.build && g.build.id === id;
+      var can = F.canBuild(me, id);
+      h += '<div class="fccard' + (building ? ' building' : '') + '"><div class="fh"><span class="ft">' + esc(fac.name) + '</span><span class="fp">' +
+           SEASON.STAFF.POST_NAME[fac.post] + '</span></div>' +
+        '<div class="fcpips">' + fac.levels.map(function (_, i) { return '<i class="' + (i < L ? 'on' : building && i === L ? 'bld' : '') + '"></i>'; }).join('') + '</div>' +
+        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' · ' + esc(d) + '</span>'; }).join('') + '</div>' +
+        (L > 0 ? '<div class="fcnext"><span class="k">Upkeep</span><span class="v">' + crs(fac.levels[L - 1].upkeep) + '/mo</span></div>' : '') +
+        (nx ? '<div class="fcnext"><span class="k">Level ' + nx.level + '</span><span class="v">' + crs(nx.cost) + ' · ' + nx.months + ' Months</span>' +
+              '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
+              '<div class="bar">' + (sel.ask === id
+                 ? '<button class="tiny" data-fcgo="' + id + '">Confirm · ' + crs(nx.cost) + '</button><button class="tiny" data-fckeep="1">Cancel</button>'
+                 : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + (building ? 'Building' : can.ok ? 'Build Level ' + nx.level : esc(can.why)) + '</button>') + '</div>'
+            : '<div class="m">At the Top</div>') +
+        '</div>';
+    });
+    h += '</div>';
+    if (sel.msg) h += '<div class="bkgone warn">' + esc(sel.msg) + '</div>';
+    host.innerHTML = h;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fcask]'), function (el) { el.onclick = function () { sel.ask = el.getAttribute('data-fcask'); sel.msg = ''; renderGrounds(); }; });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fckeep]'), function (el) { el.onclick = function () { delete sel.ask; renderGrounds(); }; });
+    Array.prototype.forEach.call(host.querySelectorAll('[data-fcgo]'), function (el) { el.onclick = function () {
+      var r = SEASON.buildFacility(G.state, G.me, el.getAttribute('data-fcgo'));
+      sel.msg = r && !r.ok ? r.why : ''; delete sel.ask; renderGrounds(); renderBrief(); }; });
+  }
   /* ============================ THE BACKROOM (§STAFF) ============================
      Six posts at home and who could fill them. Your own people's Craft is exact; a stranger's is
      a range until they are yours. Appointing one of your own takes them off the line for good. */
@@ -35532,7 +37078,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var h = '<div class="bkposts">';
     BK_POSTS.forEach(function (p) {
       var st = V.posts[p];
-      if (!st) { h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">Vacant</div></div>'; return; }
+      if (!st) {
+        var needs = !SEASON.FAC.postOpen(me, p) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[p]].name : 'Vacant';
+        h += '<div class="bkpost vacant"><div class="pt"><span>' + S.POST_NAME[p] + '</span></div><div class="m">' + needs + '</div></div>'; return; }
       var craft = Math.round(st.craft[p] || 0);
       var sch = S.SCHOOLS[p][st.school] || { name: '' };
       var origin = st.from ? 'From ' + cSpan(st.from) : st.origin === 'specialist' ? 'Specialist' : 'Veteran';
@@ -35563,7 +37111,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     h += '<div class="box"><div class="bktabs">' +
       [['own', 'Your People'], ['spec', 'Specialists'], ['rival', 'Other Houses']].map(function (t) {
         return '<button class="tiny' + (sel.tab === t[0] ? ' on' : '') + '" data-bktab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
-    var held = function (p) { return !!V.posts[p]; };
+    var held = function (p) { return !!V.posts[p] || !SEASON.FAC.postOpen(me, p); };   /* §FACILITIES held, or not yet built for */
     if (sel.tab === 'own') {
       var rows = V.own.slice().sort(function (a, b) { var ma = 0, mb = 0; BK_POSTS.forEach(function (p) { ma = Math.max(ma, a.craft[p]); mb = Math.max(mb, b.craft[p]); }); return mb - ma; });
       if (sel.pick) {
@@ -35740,7 +37288,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
     var label = (KIT_SLOTS.filter(function (p) { return p[0] === slot; })[0] || [slot, capWords(slot)])[1];
 
-    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen); });
+    /* §FACILITIES the Armoury decides what can be issued; what sits above it is stored, and shown as stored */
+    var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
+    var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
+    var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
+    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -35756,10 +37308,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* §SKILLS what THIS fighter would shoot at with this gun: the average of their Aim, its class and its type */
       var shoots = shootsAt(b, it);
       var desc = (shoots != null ? 'Total Aim <b>' + shoots + '</b>' : '');
-      rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + '" data-pick="' + it.id + '">' + tierHtml(it.id) +
+      var lk = locked(it), mine = own.indexOf(it.id) >= 0;
+      rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + (lk ? ' locked' : '') + '"' + (lk ? '' : ' data-pick="' + it.id + '"') + '>' + tierHtml(it.id) +
               '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
               '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
-              (have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
+              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - 1) + '</span>'
+                  : mine ? '<span class="rack">Their Own</span>'
+                  : have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
     if (!items.length) rows += '<div class="prow"><span class="tierb none"></span><span class="pn"><span class="m">Nothing in the Armoury for This</span>' +
                                '<div class="pd">The Market Sells It</div></span></div>';
@@ -38016,7 +39571,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!t || !G) return;
     if (t.hasAttribute('data-madd')) {
       var id = t.getAttribute('data-madd'), it = ITEMS.byId(id);
-      if (it && mktTotal() + (it.cost || 0) <= G.corps[G.me].account.treasury)
+      if (it && it.tier <= SEASON.FAC.maxTier(G.corps[G.me]) && mktTotal() + shelfPrice(it) <= G.corps[G.me].account.treasury)
         MKT.cart[id] = (MKT.cart[id] || 0) + 1;
       renderShelf(); e.stopPropagation(); return;
     }
@@ -38241,6 +39796,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       var open = !!MKT.open[i.id], n2 = MKT.cart[i.id] || 0, held = arm[i.id] || 0, e = i.effects || {};
       var price = shelfPrice(i);
       var haggled = SEASON.STAFF.shelfDiscount(G.corps[G.me]) > 0;
+      var tierLocked = i.tier > SEASON.FAC.maxTier(G.corps[G.me]);   /* §FACILITIES sold, but not to an Armoury that cannot issue it */
       h += '<div class="mtile t' + i.tier + (open ? ' open' : '') + (n2 ? ' incart' : '') + '" data-mopen="' + i.id + '">' +
         '<div class="mtop">' + tierBadge(i.tier) + '<span class="nm">' + esc(i.name) + '</span>' +
         '<span class="pr">' + crs(price) + (SEASON.priceMult(G.state) !== 1 ? ' <span class="ktag">' + (SEASON.priceMult(G.state) > 1 ? 'Boom' : 'Crash') + '</span>' : '') + (haggled ? ' <span class="ktag">Haggled</span>' : '') + '</span></div>' +
@@ -38249,8 +39805,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         '<span class="step">' +
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
-          '<button class="stepbtn" data-madd="' + i.id + '">+</button>' +
-        '</span></div>';
+          '<button class="stepbtn" data-madd="' + i.id + '"' + (tierLocked ? ' disabled' : '') + '>+</button>' +
+        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - 1) + '</span>' : '') + '</div>';
       if (open) {
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +

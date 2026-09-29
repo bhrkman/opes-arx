@@ -915,12 +915,68 @@ function talks() {
    rival's staffer is taken for a fee if they will come, at a cost with their house; the Sergeant's
    talk is their temper's and is not the manager's; Craft grows and wages rise with the years; and
    the engine staffs its own backroom by the same verbs. */
+/* §FACILITIES WHAT AN OA BUILDS AND KEEPS. Everyone opens at the Armoury's first level and issues tiers
+   one and two; every tier has every role; a post needs its facility; a build is paid in full, one at a
+   time, and stands when its months are up; what stands costs upkeep; gear above the Armoury is stored,
+   not issued, not sold; a mercenary carries their own; and the engine builds by the same rules. */
+function facilityRules() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const F = req('facilities.js'), IT = req('items.js');
+  const cat = IT.all();
+  const types = [...new Set(cat.filter(i => i.slot === 'primary').map(i => i.type))];
+  const holes = [];
+  for (const ty of types) for (let t = 1; t <= 5; t++) if (!cat.some(i => i.slot === 'primary' && i.type === ty && i.tier === t)) holes.push(ty + ' T' + t);
+  ok('every weapon type exists at every tier', holes.length === 0, holes.join(', '));
+  ok('armour, a sidearm and a medkit exist at the first two tiers',
+     [1, 2].every(t => cat.some(i => i.slot === 'armor' && i.tier === t) && cat.some(i => i.slot === 'sidearm' && i.tier === t))
+     && (IT.byId('itm_medkit') || {}).tier <= 2, '');
+  const rng = P.mulberry32(P.seedFrom('fac-guard'));
+  const corps = SEASONMOD.openFleet(rng, oa, {});
+  const ids = Object.keys(corps), c = corps[ids[0]];
+  ok('everyone opens at the Armoury’s first level: tiers one and two', ids.every(k => F.level(corps[k], 'armoury') === 1 && F.maxTier(corps[k]) === 2), '');
+  ok('and nothing else built', ids.every(k => F.IDS.filter(f => f !== 'armoury').every(f => F.level(corps[k], f) === 0)), '');
+  ok('the founding racks hold nothing the Armoury cannot issue',
+     ids.every(k => Object.keys(corps[k].armoury || {}).every(id => (IT.byId(id) || { tier: 1 }).tier <= 2)), '');
+  const st = SEASONMOD.beginSeason(rng, corps, oa, { human: ids[0] });
+  const f0 = c.roster.find(x => x.status === 'active' && !x.mirror_of && !x.bond_partner);
+  ok('a post needs its facility', !SEASONMOD.appoint(st, ids[0], f0.id, 'surgeon').ok, '');
+  const t3 = cat.find(i => i.slot === 'primary' && i.tier === 3 && i.price_model === 'formula');
+  c.account.treasury = 600000;
+  ok('the market will not sell what the Armoury cannot issue', !SEASONMOD.buyItems(st, ids[0], { [t3.id]: 1 }).ok, '');
+  const t0 = c.account.treasury;
+  const b1 = SEASONMOD.buildFacility(st, ids[0], 'infirmary');
+  ok('a build is paid in full when it starts', b1.ok && t0 - c.account.treasury === F.FACILITIES.infirmary.levels[0].cost, '');
+  ok('one build at a time', !SEASONMOD.buildFacility(st, ids[0], 'yard').ok, '');
+  for (let i = 0; i < 3; i++) SEASONMOD.stepMonth(st, { [ids[0]]: {} });
+  ok('it stands when its months are up', F.level(c, 'infirmary') === 1 && !c.facilities.build, 'level ' + F.level(c, 'infirmary'));
+  ok('and then a post is open', SEASONMOD.appoint(st, ids[0], f0.id, 'surgeon').ok, '');
+  const led0 = c.account.ledger.length;
+  SEASONMOD.stepMonth(st, { [ids[0]]: {} });
+  ok('what stands costs upkeep', c.account.ledger.slice(led0).some(l => l.label === 'Facility Upkeep' && l.amount < 0), '');
+  c.facilities.levels.armoury = 2;
+  ok('a better Armoury opens the next tier', F.maxTier(c) === 3 && SEASONMOD.buyItems(st, ids[0], { [t3.id]: 1 }).ok, '');
+  ok('a Cutter needs the Infirmary’s second level, a Mole the Listening Post’s', !F.cutterAllowed(c) && !F.moleAllowed(c), '');
+  /* the quartermaster issues within the Armoury; a mercenary carries their own */
+  c.facilities.levels.armoury = 1;
+  const plan = IT.planForce(IT.doctrineForCorp(ids[0]).id, 12, { maxTier: 2, armoury: { [t3.id]: 12 }, budget: 50000 });
+  const issued = plan && plan.bodies ? plan.bodies.map(b => IT.byId(b.loadout.primary)).filter(Boolean) : [];
+  ok('the quartermaster issues nothing above the Armoury, whatever the rack holds', issued.every(i => i.tier <= 2), issued.map(i => i.tier).join(','));
+  const merc = gen.generateSquad(P.mulberry32(3), 6, { poolMix: [['mercenary', 1]] }).bodies.find(x => !x.mirror_of);
+  const mk = SEASONMOD.mercKit(P.mulberry32(4), merc);
+  ok('a mercenary comes with their own kit, tier two to four', mk && IT.byId(mk.primary) && mk.tier >= 2 && mk.tier <= 4, JSON.stringify(mk));
+  /* the engine builds, over a career */
+  const car = sharedCareer(oa);
+  const built = Object.keys(car.corps).filter(k => F.IDS.some(f => f !== 'armoury' && F.level(car.corps[k], f) > 0));
+  ok('the engine builds, by the same rules', built.length >= 4, built.length + ' of ' + Object.keys(car.corps).length);
+}
 function staffRules() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const ST = req('staff.js'), T = req('talks.js');
   const rng = P.mulberry32(P.seedFrom('staff-guard'));
   const corps = SEASONMOD.openFleet(rng, oa, {});
   const ids = Object.keys(corps);
+  /* §FACILITIES a post needs its facility: this phase is about staff, so every OA has the first level of each */
+  for (const id of ids) { const g = SEASONMOD.FAC.grounds(corps[id]); for (const f of SEASONMOD.FAC.IDS) g.levels[f] = Math.max(1, g.levels[f]); corps[id].account.treasury += 200000; }
   let mil = 0, spec = 0, n = 0;
   for (const id of ids) for (const f of corps[id].roster) { const c = ST.veteranCraft(f); mil += (c.drill + c.sergeant) / 2; spec += (c.surgeon + c.spymaster) / 2; n++; }
   ok('a veteran is a natural in the military posts and poor in the specialist ones', mil / n > spec / n * 2.5,
@@ -3936,6 +3992,7 @@ function runRegression() {
   phase('sponsorship', sponsorship);
   phase('talks', talks);
   phase('staff', staffRules);
+  phase('facilities', facilityRules);
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('negotiationRules', negotiationRules);

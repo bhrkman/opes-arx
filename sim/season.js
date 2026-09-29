@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
   'use strict';
 
   const CONST = {
@@ -473,8 +473,9 @@
       corps[profile.id] = {
         id: profile.id, profile,
         roster: roster,
-        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
-                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile) }).stock,
+        /* §FACILITIES every OA opens with the Armoury at its first level: tiers one and two, and nothing above */
+        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH, maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock)
+                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile), maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock,
         /* §FOUNDING ONE KIND OF WEALTH, SPENT DIFFERENTLY (ruled). An AI OA founded with its
            profile's whole band IN CASH as well as a full roster and a decade of kit, so it began
            the game with one and a half to two and a half times the manager's wealth. It arrives
@@ -980,6 +981,14 @@
     const taken = new Set((corp && corp.roster || []).map(f => f.name));
     const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix, taken }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+    /* §FACILITIES a mercenary's own kit, and its worth in what they ask */
+    if (kind === 'mercs') for (const f of lot) {
+      const k = mercKit(rng, f);
+      if (!k) continue;
+      f.ownKit = k;
+      const worth = [k.primary, k.armor, k.sidearm].reduce((a, id) => a + ((id && ITEMS.byId(id) && ITEMS.byId(id).cost) || 0), 0);
+      if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary + worth / LED.CONST.SALARY_MONTHS);
+    }
     /* §STANDING THE SHIP'S CHILDREN WANT TO JOIN A LOVED OA: its own tryouts come deeper and better, a jeered one's thinner */
     if (kind === 'tryouts' && corp) {
       const lift = Math.round(crowdLean(corp) * CONST.CROWD_LOT_STATS);
@@ -1806,6 +1815,10 @@
       f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE - Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM);
       /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
       f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
+      /* §FACILITIES a Barracks worth the name: strain eases, loyalty settles toward content */
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - FAC.barracksCalm(corp));
+      const bl = FAC.barracksLoyalty(corp);
+      if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */
@@ -1901,6 +1914,8 @@
       }
     }
     staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
+    /* §FACILITIES the engine looks again at its grounds mid-year, when the gate has paid in */
+    if (!wanted && month === 6) aiBuild(corp, { season: season || 0, month });
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -3017,6 +3032,11 @@
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
     staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
+    /* §FACILITIES builds run through the Divide and the winter; the engine starts its own */
+    for (const id of state.ids) {
+      const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
+      if (!isHuman(state, id)) aiBuild(c, state);
+    }
     for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
@@ -3365,6 +3385,7 @@
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     const f = ownCandidates(c).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not One of Yours' };
     const st = STAFF.fromFighter(f, post);
@@ -3387,6 +3408,7 @@
     post = post || st.specialty;
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     pool.splice(pool.indexOf(st), 1);
     st.post = post; st.school = STAFF.schoolFor(st, post);
     st.wage = STAFF.wageFor(st.craft[post], 'specialist');
@@ -3403,6 +3425,7 @@
     if (!st) return { ok: false, why: 'Nobody in That Post' };
     const o = STAFF.office(c);
     if (o.posts[post]) return { ok: false, why: 'Your Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     if (!STAFF.willing(st, regardOf(c, fromId))) return { ok: false, why: 'They Will Not Come' };
     const fee = STAFF.feeOf(st);
     if ((c.account.treasury || 0) < fee) return { ok: false, why: 'Not Enough in the Treasury' };
@@ -3481,6 +3504,7 @@
   function setMole(state, corpId, targetId) {
     const c = state.corps[corpId], sp = c && STAFF.holder(c, 'spymaster');
     if (!sp || sp.school !== 'mole' || !state.corps[targetId] || targetId === corpId) return { ok: false };
+    if (!FAC.moleAllowed(c)) return { ok: false, why: 'Needs the Listening Post at Level 2' };
     STAFF.office(c).mole = { target: targetId, season: state.season };
     return { ok: true };
   }
@@ -3492,7 +3516,7 @@
     const sp = STAFF.eff(corp, 'spymaster');
     if (sp.st && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
       ensureIntel(corp, season || 0);
-      if (sp.school === 'watcher') {
+      if (sp.school === 'watcher' || !FAC.moleAllowed(corp)) {   /* §FACILITIES a mole needs the Listening Post's second level */
         const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
         if (lv > 0) {
           const planetFull = INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
@@ -3533,6 +3557,11 @@
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
+    }
+    const lp = FAC.listenLevels(corp);
+    if (lp && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      gatherIntel(corp, 'planet', null, lp, abs, null);
     }
     if (corp._poachIntel && corp._poachIntel.length) {
       corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
@@ -3597,6 +3626,42 @@
       }
       if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) poach(state, id, best.oid, best.p);
     }
+  }
+
+  /* ============================================================ §FACILITIES THE GROUNDS
+     facilities.js holds the numbers. Here: a person builds from the Facilities page, the engine
+     from its temperament, both through `buildFacility`. */
+  function buildFacility(state, corpId, facId) {
+    const c = state.corps[corpId];
+    if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
+    if (state.done) return { ok: false, why: 'The Year Is Over' };
+    return FAC.startBuild(c, facId, state.season, state.month, LED.post);
+  }
+  /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
+  function aiBuild(c, state) {
+    const d = (c.profile && c.profile.dials) || {};
+    const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
+    const reserve = 60000 + 80000 * thrift;
+    const pick = FAC.aiChoose(c, reserve);
+    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post);
+  }
+  /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
+     best, armour and a sidearm, at a tier set by how good they are — tier two to four, whatever the buyer's Armoury */
+  function mercKit(rng, f) {
+    const st = f.stats || {};
+    const q = ((st.aim || 0) + (st.tactics || 0) + (st.resolve || 0) + (st.grit || 0)) / 4;
+    const tier = Math.max(2, Math.min(4, Math.round(1 + q / 60 + (rng() - 0.5))));
+    const prims = ITEMS.bySlot('primary').filter(it => it.tier === tier && !it.exotic && !((it.effects.tags || []).indexOf('nonlethal') >= 0));
+    const sk = f.skills || {};
+    const typeOf = it => ITEMS.skillTypeOf(it);
+    prims.sort((a, b) => ((sk[typeOf(b)] || 0) - (sk[typeOf(a)] || 0)) || (a.cost - b.cost));
+    const gun = prims[0];
+    const arms = ITEMS.bySlot('armor').filter(it => it.tier === tier && !it.exotic);
+    const arm = arms[Math.floor(rng() * arms.length)];
+    const sides = ITEMS.bySlot('sidearm').filter(it => it.tier <= tier).sort((a, b) => b.tier - a.tier);
+    const side = sides[0];
+    if (!gun || !arm) return null;
+    return { primary: gun.id, armor: arm.id, sidearm: side ? side.id : null, tier };
   }
   /** what a promise can be of this month */
   function promisable(month) { const k = ['drop', 'lead']; if (month <= EIGHT_MONTH) k.push('eight'); return k; }
@@ -3797,6 +3862,10 @@
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
     reconcileCaptains(state);   /* §TALKS the naming was free until now; a star taken away after it is a promise broken */
+    /* §FACILITIES what the builders finish this month stands from now */
+    const stood = {};
+    /* a build of N months started in month M stands as month M+N opens: it finishes at this month's end */
+    for (const id of state.ids) { const b = FAC.tick(state.corps[id], state.season, m + 1); if (b) stood[id] = b; }
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -3820,6 +3889,7 @@
         }
         delete cc._tipOn; delete cc._leakTo;
       }
+      if (stood[id]) landed[id].push({ kind: 'staff', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
       spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
@@ -3920,7 +3990,7 @@
       const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
       const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
       const shut = c._gateShut === state.season * 100 + m;
-      const gate = shut ? 0 : Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame));
+      const gate = shut ? 0 : Math.round(Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame)) * FAC.gateMult(c));   /* §FACILITIES the Press Office */
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
          were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
@@ -3955,6 +4025,9 @@
       /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
       const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
       if (staffPay > 0) { LED.post(c.account, 'expense', 'Staff Wages', -staffPay); c._staffPaid = (c._staffPaid || 0) + staffPay; }
+      /* §FACILITIES what stands costs to keep standing */
+      const up = FAC.upkeep(c);
+      if (up > 0) { LED.post(c.account, 'expense', 'Facility Upkeep', -up); c._staffPaid = (c._staffPaid || 0) + up; }
       /* a renewal nobody answered by the first month's end is signed at what was asked */
       if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
@@ -4181,6 +4254,8 @@
         captains: captainsOf(c, season),
         /* §STAFF an Armourer finds more for the kit than the books alone would */
         kitBoost: STAFF.kitBoost(c),
+        /* §FACILITIES what the Armoury can issue */
+        maxTier: FAC.maxTier(c),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -4357,6 +4432,7 @@
     for (const id in (cart || {})) {
       const it = ITEMS.byId(id), n = Math.floor(cart[id] || 0);
       if (!it || n <= 0 || !(it.cost > 0) || it.price_model === 'none') continue;
+      if ((it.tier || 1) > FAC.maxTier(c)) return { ok: false, why: 'Needs the Armoury at Level ' + ((it.tier || 1) - FAC.CONST.TIER_OFFSET) };
       clean[id] = n; total += shelfPrice(state, corpId, it) * n; full += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
@@ -5054,7 +5130,7 @@
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
      captainsOf, promisable, talkNow, talkPreview, TALKS,
-     STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
+     FAC, buildFacility, mercKit, STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,

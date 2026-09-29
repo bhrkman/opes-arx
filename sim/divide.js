@@ -692,20 +692,30 @@
     for (const f of corp.allBodies) f._handKitted = false;   /* bodies persist across locks */
     const handSrc = (corp.persist && corp.persist.hand) || null;
     const baseArmoury = (corp.persist && corp.persist.armoury)
-          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock;
+          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth, maxTier: (corp.persist && corp.persist.maxTier) || 5 }).stock;
     const handStock = {};
     for (const k in baseArmoury) handStock[k] = baseArmoury[k];
     let handSpend = 0, handValue = 0, handed = 0;
     corp.handRefused = 0;
+    /* §FACILITIES A MERCENARY'S OWN GEAR IS THEIRS: carried whatever the Armoury allows, and not drawn from the rack */
+    for (const f of corp.allBodies) {
+      if (!f.ownKit || (handSrc && handSrc[f.id])) continue;
+      ITEMS.equip(f, { primary: f.ownKit.primary, armor: f.ownKit.armor, sidearm: f.ownKit.sidearm || null, mods: [], consumables: [] });
+      f._handKitted = true; handed++;
+    }
     if (handSrc) {
-      const maxTier = (ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5;
+      /* §FACILITIES the Armoury's tier, and the doctrine's, bound a manager's hand as they bind the quartermaster */
+      const maxTier = Math.min((ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5, (corp.persist && corp.persist.maxTier) || 5);
+      let own = null;
       const slotOk = (id, slot) => {
         const it = id ? ITEMS.byId(id) : null;
-        return it && it.slot === slot && it.tier <= maxTier ? it : null;
+        const mine = own && [own.primary, own.armor, own.sidearm].indexOf(id) >= 0;   /* a merc's own piece is always theirs to carry */
+        return it && it.slot === slot && (it.tier <= maxTier || mine) ? it : null;
       };
       for (const f of corp.allBodies) {
         const h = handSrc[f.id];
         if (!h) continue;
+        own = f.ownKit || null;
         const prim = slotOk(h.primary, 'primary');
         const arm = slotOk(h.armor, 'armor');
         if (!prim || !arm) { corp.handRefused++; continue; }
@@ -736,6 +746,7 @@
     }
     const bareFighters = corp.allBodies.filter(f => !f._handKitted);
     let plan = ITEMS.planForce(doc.id, total - handed, {
+      maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -766,6 +777,7 @@
       if (raised > 0) {
         corp.kitBudget = (corp.kitBudget || 0) + raised;
         plan = ITEMS.planForce(doc.id, total - handed, {
+          maxTier: (corp.persist && corp.persist.maxTier) || 5,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */

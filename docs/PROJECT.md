@@ -62,6 +62,17 @@ fee, so any OA may take another's staff if they are willing, at a cost in that h
 and with a year's knowledge of it. Craft grows with years in post; staff age, retire later than
 fighters, and ask more at each renewal.
 
+Facilities are what an OA builds and keeps: the Armoury, Infirmary, Training Yard, Barracks,
+Press Office and Listening Post, each tied to a backroom post. A facility's first level is
+needed before its post can be staffed, and each level above multiplies what that staffer's
+Craft does; each facility also does a little on its own. A build is paid in full, takes months
+that run through the Divide and the winter, and one runs at a time; what stands costs upkeep.
+The Armoury gates gear: every OA begins at its first level, which issues tiers one and two, and
+each level above opens the next tier, to tier five. Every weapon type, armour role, sidearm and
+the medkit exists at every tier that matters. Gear above an OA's tier is stored, not issued or
+sold to it; a mercenary carries their own gear whatever the Armoury says, and their price
+includes it. The engine builds by the same rules.
+
 Sponsors are suppliers who back OAs whose year suits them, each on one condition judged at
 the drop or the year's end. The board sets a card of three demands and watches spending,
 casualties and popularity beside it; its patience is the number a manager lives by.
@@ -123,4 +134,5 @@ saw; the board judges its card and the sponsors judge their conditions.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
 - One talk a month, and no talk is free: each buys something and costs something.
+- Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.

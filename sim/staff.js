@@ -26,9 +26,9 @@
    This module owns the numbers and the choices; `season.js` owns when they happen.
    ============================================================================================ */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./talks.js'));
-  else root.CDSTAFF = factory(root.CDPRNG, root.CDTALKS);
-})(typeof self !== 'undefined' ? self : this, function (P, TALKS) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./prng.js'), require('./talks.js'), require('./facilities.js'));
+  else root.CDSTAFF = factory(root.CDPRNG, root.CDTALKS, root.CDFAC);
+})(typeof self !== 'undefined' ? self : this, function (P, TALKS, FAC) {
   'use strict';
 
   const CONST = {
@@ -211,9 +211,10 @@
   }
   function holder(corp, post) { return corp && corp.staff && corp.staff.posts ? corp.staff.posts[post] || null : null; }
   /** how good the post is being done, 0..1, and in which school */
+  /* §FACILITIES a staffer's Craft reaches further from a better facility */
   function eff(corp, post) {
     const st = holder(corp, post);
-    return st ? { e: (st.craft[post] || 0) / 100, school: st.school, st } : { e: 0, school: null, st: null };
+    return st ? { e: (st.craft[post] || 0) / 100 * FAC.staffMult(corp, post), school: st.school, st } : { e: 0, school: null, st: null };
   }
   function allStaff(corp) { const o = office(corp); return POSTS.map(p => o.posts[p]).filter(Boolean); }
 
@@ -221,11 +222,12 @@
   /** the drill: a yield multiplier for one stat, and what the drill's strain is multiplied by */
   function drillFor(corp, stat) {
     const d = eff(corp, 'drill');
-    if (!d.st) return { yield: 1, strain: 1 };
+    const yard = FAC.yardYield(corp);   /* §FACILITIES the yard works whoever runs it */
+    if (!d.st) return { yield: yard, strain: 1 };
     const base = d.school === 'hard' ? CONST.DRILL_HARD : CONST.DRILL_PATIENT;
     const best = bestStats(d.st).indexOf(stat) >= 0 ? CONST.DRILL_BEST : 0;
     const strain = d.school === 'hard' ? 1 + CONST.DRILL_HARD_STRESS * d.e : 1 - CONST.DRILL_PATIENT_CALM * d.e;
-    return { yield: 1 + (base + best) * d.e, strain };
+    return { yield: (1 + (base + best) * d.e) * yard, strain };
   }
   function shelfDiscount(corp) {
     const q = eff(corp, 'quartermaster');
@@ -245,11 +247,11 @@
   }
   function courtMult(corp) { const f = eff(corp, 'fixer'); return 1 + CONST.FIX_COURT * f.e; }
   function surgeonFor(corp) {
-    const s = eff(corp, 'surgeon');
-    if (!s.st) return { drift: 1, focus: 1, calm: 0, cutter: false, e: 0 };
+    const s = eff(corp, 'surgeon'), bay = FAC.mendMult(corp);   /* §FACILITIES the infirmary mends, staffed or not */
+    if (!s.st) return { drift: bay, focus: 1, calm: 0, cutter: false, e: 0 };
     const nurse = s.school === 'nurse';
-    return { drift: 1 + CONST.SURGEON_DRIFT * s.e + (nurse ? CONST.NURSE_DRIFT * s.e : 0), focus: 1 + CONST.SURGEON_FOCUS * s.e,
-             calm: nurse ? CONST.NURSE_CALM * s.e : 0, cutter: s.school === 'cutter', e: s.e };
+    return { drift: (1 + CONST.SURGEON_DRIFT * s.e + (nurse ? CONST.NURSE_DRIFT * s.e : 0)) * bay, focus: 1 + CONST.SURGEON_FOCUS * s.e,
+             calm: nurse ? CONST.NURSE_CALM * s.e : 0, cutter: s.school === 'cutter' && FAC.cutterAllowed(corp), e: s.e };
   }
   function operateOdds(corp) {
     const s = surgeonFor(corp);
