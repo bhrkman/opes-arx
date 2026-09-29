@@ -562,7 +562,7 @@
       const options = [
         { id: 'hear',    label: 'Hear Them Out',  cost: cost('hear') },
         { id: 'praise',  label: 'Reassure Them',  cost: cost('praise') },
-        { id: 'promise', label: 'Promise ' + TALKS.PROMISES[promiseKind].name, cost: cost('promise', promiseKind), promise: promiseKind },
+        { id: 'promise', label: 'Promise ' + TALKS.PROMISES[promiseKind].mid, cost: cost('promise', promiseKind), promise: promiseKind },
         { id: 'dress',   label: 'Tell Them to Get On With It', cost: cost('dress') },
         { id: 'drive',   label: 'Put Them Back to Work', cost: cost('drive') },
         { id: 'away',    label: 'Turn Them Away', cost: 'Loyalty ' + '−' + Math.abs(CONST.TURN_AWAY_LOYALTY) + ' · Keeps Your Talk This Month' }

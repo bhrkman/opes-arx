@@ -869,20 +869,28 @@ function talks() {
   /* the year: one talk a month, captains named free until the first month turns */
   const st = SEASONMOD.beginSeason(rng, corps, oa, {});
   const id = ids[1], cc = corps[id];
-  const caps0 = SEASONMOD.captainsOf(cc, st.season);
-  ok('every OA opens the year with captains', ids.every(k => SEASONMOD.captainsOf(corps[k], st.season).length >= 1), caps0.length + ' for ' + id);
-  const other = cc.roster.filter(x => x.status === 'active' && !x.mirror_of && caps0.indexOf(x.id) < 0)[0];
-  const free = SEASONMOD.nameCaptains(st, id, [other.id].concat(caps0.slice(1)));
-  ok('a captain is changed free before the first month turns', free.ok && !free.broken.length, JSON.stringify(free));
+  ok('every engine OA opens the year with captains', ids.every(k => SEASONMOD.captainsOf(corps[k], st.season).length >= 1), '');
+  /* a person's captains are their squad board's stars: one system, not two */
+  cc._ownSquads = true;
+  const pool = cc.roster.filter(x => x.status === 'active' && !x.mirror_of);
+  const other = pool[0], mate = pool[1];
+  cc._seat = { plan: { at: { [other.id]: 0, [mate.id]: 0 }, leaderOf: { [other.id]: true }, names: ['Alpha'], hand: {} } };
+  ok('a person’s captains are the leaders starred on their squad board',
+     SEASONMOD.captainsOf(cc, st.season).join() === other.id, SEASONMOD.captainsOf(cc, st.season).join());
+  T.temperOf(other); other.temper = 'brittle';   /* praise suits them, so something moves to carry */
   const first = SEASONMOD.talkNow(st, id, { fighterId: other.id, kind: 'praise' });
   const again = SEASONMOD.talkNow(st, id, { fighterId: other.id, kind: 'drive' });
   ok('one talk a month', !!first && again === null, String(!!again));
+  ok('a captain’s talk reaches their own squad', first && first.reached === 1, first && String(first.reached));
   SEASONMOD.stepMonth(st);
+  ok('the first month turning makes a starred leader a captain owed a squad',
+     !!T.openPromise(cc, other, 'lead', st.season), '');
   const loyBefore = other.loyalty;
-  const down = SEASONMOD.nameCaptains(st, id, SEASONMOD.captainsOf(cc, st.season).filter(x => x !== other.id));
-  ok('a captain stood down after the first month is a promise broken',
-     down.ok && down.broken.length === 1 && other.loyalty < loyBefore, JSON.stringify(down.broken) + ' ' + Math.round(loyBefore) + '→' + Math.round(other.loyalty));
-
+  delete cc._seat.plan.leaderOf[other.id];
+  SEASONMOD.stepMonth(st);
+  const pr = T.promisesOf(cc).find(x => x.fighterId === other.id && x.kind === 'lead' && x.season === st.season);
+  ok('a star taken away after the first month is a promise broken',
+     pr && pr.status === 'broken' && other.loyalty < loyBefore, (pr && pr.status) + ' ' + Math.round(loyBefore) + '→' + Math.round(other.loyalty));
   /* the engine talks, and keeps its word */
   let talked = 0, months = 0;
   const hold = SEASONMOD.stepMonth;
@@ -895,7 +903,7 @@ function talks() {
   SEASONMOD.closeSeason(st);
   const settled = [], broken = [];
   for (const k of ids) for (const pr of T.promisesOf(corps[k])) if (pr.season === st.season && pr.status !== 'open' && pr.status !== 'void') {
-    settled.push(pr); if (pr.status === 'broken' && !(k === id && pr.kind === 'lead')) broken.push(k + ':' + pr.kind + ':' + pr.name);
+    settled.push(pr); if (pr.status === 'broken' && k !== id) broken.push(k + ':' + pr.kind + ':' + pr.name);
   }
   ok('the engine keeps the promises it makes', settled.length > 0 && broken.length <= Math.max(1, settled.length * 0.1),
      settled.length + ' settled · broken ' + broken.join(', '));

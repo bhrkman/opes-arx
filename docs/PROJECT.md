@@ -45,10 +45,11 @@ temper, an undiscovered quirk that doubles one talk and turns another into a bac
 found by hearing them out or after two talks. The same talk three months running backfires.
 A promise (a place on the drop, a squad to lead, a place in the Eight) is kept or broken when
 it comes due, and the stands hear either way. A sour or strained hand may ask for a word
-themselves, and taking the meeting is the month's talk. Captains are named for the year: they
-lead in the Dividend and the Divide, pull the roster's loyalty toward their own, and carry a
-talk to the whole barracks. The naming is free until the first month turns; after that a
-captain stood down is a promise broken.
+themselves, and taking the meeting is the month's talk. A talk is had from the person's own
+sheet. A captain is a squad's leader, starred on the squad board: they lead it in the Dividend
+and the Divide, their squad's loyalty leans toward their own, and a talk with them reaches
+their squad. The stars are free until the first month turns; after that a captain stood down
+is a promise broken.
 
 Sponsors are suppliers who back OAs whose year suits them, each on one condition judged at
 the drop or the year's end. The board sets a card of three demands and watches spending,

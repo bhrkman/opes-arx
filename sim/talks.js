@@ -17,8 +17,8 @@
    REPEATS WEAR: the same talk to the same person two months running lands at half, and a
    third month running backfires however they are made.
 
-   A CAPTAIN'S TALK carries: half of what it does to their loyalty and stress reaches the rest
-   of the roster, shared across the captains, because a captain's mood is the barracks' mood.
+   A CAPTAIN'S TALK carries: half of what it does to their loyalty and stress reaches the squad
+   they lead, because a captain's mood is their squad's mood.
 
    SYMMETRY (ruled): an engine OA has the same one talk, chooses it through `aiTalk`, and is
    held to its promises the same way.
@@ -80,9 +80,9 @@
 
   /* what a promise can be of, and what it means */
   const PROMISES = {
-    drop:  { name: 'A Place on the Drop',    kept: 'Dropped as Promised' },
-    eight: { name: 'A Place in the Eight',   kept: 'Fought in the Eight as Promised' },
-    lead:  { name: 'A Squad to Lead',        kept: 'Led a Squad as Promised' }
+    drop:  { name: 'A Place on the Drop',    mid: 'a Place on the Drop',  kept: 'Dropped as Promised' },
+    eight: { name: 'A Place in the Eight',   mid: 'a Place in the Eight', kept: 'Fought in the Eight as Promised' },
+    lead:  { name: 'A Squad to Lead',        mid: 'a Squad to Lead',      kept: 'Led a Squad as Promised' }
   };
   const WANTS = ['drop', 'drop', 'eight', 'lead'];   /* most want the drop */
 
@@ -105,7 +105,7 @@
   function temperShown(f) {
     if (!f.temperKnown) return null;
     const t = TEMPERS[temperOf(f)];
-    return { id: f.temper, name: t.name, text: t.text, want: f.want, wantName: PROMISES[f.want].name };
+    return { id: f.temper, name: t.name, text: t.text, want: f.want, wantName: PROMISES[f.want].mid };
   }
 
   /* ------------------------------------------------------------------------------- memory */
@@ -175,7 +175,7 @@
     const base = kind === 'drive' ? 'Drove ' + n + ' Hard'
                : kind === 'praise' ? 'Praised ' + n
                : kind === 'dress' ? 'Dressed Down ' + n
-               : kind === 'promise' ? 'Promised ' + n + ' ' + PROMISES[promiseKind].name
+               : kind === 'promise' ? 'Promised ' + n + ' ' + PROMISES[promiseKind].mid
                : 'Heard ' + n + ' Out';
     return base + (HOW_WORD[how] || '');
   }
@@ -239,8 +239,10 @@
     const caps = ctx.captains || [];
     let reached = 0;
     if (caps.indexOf(f.id) >= 0 && (e.loyalty || e.stress)) {
-      const share = CONST.CAPTAIN_SPREAD / Math.max(1, caps.length);
-      for (const o of (ctx.roster || [])) {
+      /* their own squad feels half of it; where there is no board to say who that is, the roster
+         shares it across the captains */
+      const share = ctx.squad ? CONST.CAPTAIN_SPREAD : CONST.CAPTAIN_SPREAD / Math.max(1, caps.length);
+      for (const o of (ctx.squad || ctx.roster || [])) {
         if (o === f) continue;
         o.loyalty = clamp((o.loyalty == null ? 50 : o.loyalty) + e.loyalty * share, 0, 100);
         if (o.condition) o.condition.stress = clamp((o.condition.stress || 0) + e.stress * share, 0, 100);
