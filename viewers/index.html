@@ -1925,7 +1925,9 @@
         <button id="cfound" class="foundgo">Found the OA</button>
       </div>
       <span id="creplace" style="display:none"></span>
-      <input id="seed" value="corp-1" style="display:none">
+      <!-- §SEEDS the world this game is built from: drawn fresh for every new game (or read from ?seed=), never asked
+           for; it is saved with the game and is what two players must hold in common to play the same world -->
+      <input id="seed" value="" style="display:none">
     </div>
     <div class="bar" style="justify-content:center;margin-top:10px">
       <button class="tiny" id="setupback">Back</button>
@@ -14504,8 +14506,9 @@
     return st;
   }
   /** The year's outside specialists: the same list for every OA, drawn from the season alone. */
-  function specialistPool(season) {
-    const rng = rngFor('pool' + season);
+  function specialistPool(season, world) {
+    /* §SEEDS the year's specialists are this career's, not every career's */
+    const rng = rngFor('pool' + (world || 0) + ':' + season);
     const out = [];
     const RACES = ['human', 'human', 'human', 'etu', 'kellis', 'svalbard'];
     const FIRST = ['Aldo', 'Brea', 'Casimir', 'Dessa', 'Emrick', 'Fenna', 'Gorran', 'Hesper', 'Ilse', 'Joss', 'Kerel', 'Lusa',
@@ -14516,7 +14519,7 @@
     const WANT = ['surgeon', 'surgeon', 'spymaster', 'spymaster', 'fixer', 'quartermaster', 'drill', 'sergeant', 'fixer'];
     for (let i = 0; i < CONST.POOL_SIZE; i++) {
       const post = WANT[i % WANT.length];
-      const id = 'spc' + season + '_' + i;
+      const id = 'spc' + (world || 0).toString(36) + '_' + season + '_' + i;
       const craft = {};
       for (const p of POSTS) craft[p] = Math.round(rng() * CONST.SPEC_OTHER);
       craft[post] = Math.round(CONST.SPEC_LO + rng() * (CONST.SPEC_HI - CONST.SPEC_LO));
@@ -14764,6 +14767,8 @@
      event asks for one of those — "a fight in the barracks" — and gets whoever in the OA has
      a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
      and the events follow it. */
+  /* §SEEDS the career's seed, carried on every OA: every dispatch roll is that seed and a name */
+  function worldOf(state) { const c = state && state.corps && state.ids && state.corps[state.ids[0]]; return (c && c._worldSeed) || 0; }
   function tiesOf(state, f) {
     const idx = traitIndexOf(state), out = [];
     for (const tid of (f.traits || [])) {
@@ -14786,7 +14791,7 @@
     if (!fit.length) return null;
     /* §DETERMINISM never unseeded: with no dice passed, the cast is drawn from dice seeded by the season, the month,
        the OA and the tie — the same every time the same moment is played, as every other draw in the engine is */
-    const dice = rng || P.mulberry32(P.seedFrom('cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
+    const dice = rng || P.mulberry32(P.seedFrom('w' + worldOf(state) + ':cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
                                                 ((corp && corp.id) || '') + ':' + tie));
     return fit[Math.floor(dice() * fit.length)];
   }
@@ -15411,7 +15416,7 @@
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
     /* seeded by the world, not the year alone: two fleets on two planets meet two different months */
     const world = state.planet ? (state.planet.archetype || '') + (state.planet.patches || []).map(q => (q.type || '')[0]).join('') : '';
-    const rng = P.mulberry32(P.seedFrom('fleet' + state.season + world));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':fleet' + state.season + world));
     const spec = P.weightedPick(rng, FLEET_POOL.map(f => [f, f.w]));
     state.fleet.pending = { season: state.season, id: spec.id, petitions: 0, applied: false, withdrawn: false };
     return state.fleet.pending;
@@ -15555,7 +15560,7 @@
     const key = state.season + ':' + state.month;
     const have = state.events[corpId];
     if (have && have.month === key) return have.list;
-    const rng = P.mulberry32(P.seedFrom('ev' + state.season + 'm' + state.month + corpId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':ev' + state.season + 'm' + state.month + corpId));
     const corp = state.corps[corpId], ctx = ctxFor(rng, state, corpId);
     const list = [];
     /* the fleet's month: the same card for every OA, first */
@@ -15587,7 +15592,7 @@
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
     const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
-    const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
     const line = spec.resolve(state.corps[corpId], ev, opt, ctx);
     ev.resolved = { option: opt, line, defaulted: optionId === '__default' };
@@ -25377,7 +25382,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          the ground have to be the same object. */
       if (opts.openSeason) {
         REP.openSeason(corp.rep, planet,
-                       P.mulberry32(P.seedFrom('goal' + (opts.season || 1) + profile.id)),
+                       P.mulberry32(P.seedFrom('w' + ((persist && persist._worldSeed) || 0) + ':goal' + (opts.season || 1) + profile.id)),
                        { expect: Math.max(2, 3 + (profile.difficulty || 3)),
                          thinTreasury: (profile.finance || {}).treasury_band === 'low' });
       }
@@ -28316,6 +28321,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 }(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
   'use strict';
 
+  /* §SEEDS ONE SEED PER CAREER, AND EVERY ROLL IS NAMED. A career's world seed is drawn once, at the founding,
+     from the game's own seed (the host's, in a shared game), and saved on every OA. Every roll the year makes is
+     that seed plus a name for what is being rolled — never the season number alone, which made every career's
+     Dividend, lots, letters and winters the same — and never a clock or an unseeded random. Two machines with the
+     same seed and the same decisions compute the same world. */
+  function worldOf(src) {
+    if (!src) return 0;
+    if (src._worldSeed != null) return src._worldSeed;
+    if (src.corps) return worldOf(src.corps);
+    for (const k in src) { const c = src[k]; if (c && typeof c === 'object' && c._worldSeed != null) return c._worldSeed; }
+    return 0;
+  }
+  function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
+
   const CONST = {
     /* --- the roster (S2, S3) --- */
     /* --- THE PREP CALENDAR (S16) ---
@@ -28794,8 +28813,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        standing about with nothing on them. They are issued from what is on the shelf, best
        first, and what they take comes off it. */
     for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
+    /* §SEEDS the career's world seed is drawn here, once, from the game's seed */
+    const worldSeed = opts.worldSeed != null ? opts.worldSeed : Math.floor(rng() * 1e9);
+    for (const id of Object.keys(corps)) corps[id]._worldSeed = worldSeed;
     for (const id of Object.keys(corps))
-      lastYearsMarks(P.mulberry32(P.seedFrom('scars' + id)), corps[id]);
+      lastYearsMarks(rngOf(corps, 'scars' + id), corps[id]);
     return corps;
   }
 
@@ -29045,7 +29067,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          way everything in state does. The resolve keeps its own seeded stream, so keeping
          the footage costs the world no rolls. */
       const sA = side(A, bodiesA), sB = side(B, bodiesB);
-      const res = TAC.resolve(P.mulberry32(P.seedFrom('dividend' + season + A.id)),
+      const res = TAC.resolve(rngOf(corps, 'dividend' + season + A.id),
                               sA, sB,
                               { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5] });
 
@@ -29166,7 +29188,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const stun = false;   /* §ALEAS the stun-grade ruling is cut: The Eight is fought to the end */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
-    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB,
+    const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
       { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun, toTheEnd: !stun });
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
@@ -31117,7 +31139,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      per reader) */
   function writeLetters(state) {
     if (!TRADE || !TRADE.tradingOpen(state.month)) return;
-    const rng = P.mulberry32(P.seedFrom('letters' + state.season + ':' + state.month));
+    const rng = rngOf(state, 'letters' + state.season + ':' + state.month);
     for (const toId of state.ids) {
       if (tradeLetters(state, toId).length) continue;
       const writers = state.ids.filter(id => id !== toId && !isHuman(state, id));
@@ -31140,8 +31162,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
   function openRecruitDraft(state) {
-    const ws = state.corps[state.ids[0]] && state.corps[state.ids[0]]._worldSeed;
-    const rng = P.mulberry32(P.seedFrom('recruit-draft' + state.season + ':' + (ws || 0)));
+    const rng = rngOf(state, 'recruit-draft' + state.season);
     /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
     const pool = ROSTER.generateSquad(rng, DRAFT.POOL, { corpId: null, poolMix: [['nattie', 1]] }).bodies;
     const keys = Object.keys((pool[0] && pool[0].stats) || {});
@@ -31225,7 +31246,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
                                       if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
-                               : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
+                               : offseason(rngOf(corps, 'off' + season + id), c);
       c._off = off;
       /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
       c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
@@ -31288,13 +31309,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        carried on the corps so a save rebuilds the same planet, and every year's planet is
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
-    for (const id of ids) corps[id]._worldSeed = worldSeed;
-    const planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + season + ':' + worldSeed)), {});
+    for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
+    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
-    planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + season)), planet.archetype, planet.richness);
+    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
     /* §STANDING each house watches the others with the taste of the stands it has now */
     for (const id of ids) {
       const c = corps[id];
@@ -31307,7 +31328,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const c = corps[id];
       if (!c.rep) continue;
       REP.openSeason(c.rep, planet,
-                     P.mulberry32(P.seedFrom('goal' + season + id)),
+                     rngOf(corps, 'goal' + season + id),
                      { expect: Math.max(2, 3 + ((c.profile || {}).difficulty || 3)),
                        thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low',
                        lastPlace: c._lastPlace || null });      /* §SNOWBALL the champion's board raises the bar */
@@ -31374,13 +31395,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          the refresh is a different year of the same ship. */
       const byCorp = {};
       for (const id of state.ids)
-        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool, state.corps[id]);
+        byCorp[id] = openLot(rngOf(state, seed + id), kind, id, win.pool, state.corps[id]);
       state.lots[kind] = byCorp;
       return;
     }
     /* the shared markets: a fresh lot, and in the second month whoever nobody took in the
        first, still there at a markdown */
-    const fresh = openLot(P.mulberry32(P.seedFrom(seed)), kind, null, win.pool);
+    const fresh = openLot(rngOf(state, seed), kind, null, win.pool);
     const carried = (win.pool === 'second' && state.carry && state.carry[kind]) || [];
     for (const f of carried) {
       if (f.contract && f.contract.salary && !f._carried) f.contract.salary = Math.round(f.contract.salary * CONST.CARRY_MARKDOWN);
@@ -31647,7 +31668,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      person has, called the same way. Nobody on the staff goes into the Divide. */
   function staffPoolOf(state) {
     if (!state.staffPool || state.staffPool.season !== state.season)
-      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season) };
+      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season, worldOf(state)) };
     return state.staffPool.list;
   }
   /** who of your own could take a post: anyone standing on the roster (not half of a pair), and this year's retirees */
@@ -31795,7 +31816,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const f = aliveOf(c).find(x => x.id === fighterId);
     if (!f || woundBand(f) !== 'crippled') return null;
     c._operated = abs;
-    const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))();
+    const r = rngOf(state, 'operate' + abs + f.id)();
     const sg = STAFF.holder(c, 'surgeon');
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
       sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
@@ -31842,7 +31863,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const them = corps[mo.target];
           gatherIntel(corp, 'rival', mo.target, Math.round(STAFF.CONST.MOLE_LEVELS * sp.e) + 1, abs, (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
           sp.st.record.reports = (sp.st.record.reports || 0) + 1;
-          if (P.mulberry32(P.seedFrom('mole' + abs + corp.id))() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
+          if (rngOf(corp, 'mole' + abs + corp.id)() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
             if (corp.rep) REP.act(corp.rep, 'mole_exposed', { targetId: mo.target });
             o.mole = null;
             if (landedOut) landedOut.push({ kind: 'staff', text: 'Your Mole in ' + ((them.profile && them.profile.name) || mo.target) + ' Was Found' });
@@ -31856,7 +31877,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const f = aliveOf(corp).filter(x => woundBand(x) === 'crippled').sort((a, b) => draftScore(b) - draftScore(a))[0];
       if (f) {
         corp._operated = abs;
-        const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))(), sg = STAFF.holder(corp, 'surgeon');
+        const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
@@ -32124,7 +32145,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
-      const rng = P.mulberry32(P.seedFrom('draft' + state.season + who + D.round));
+      const rng = rngOf(state, 'draft' + state.season + who + D.round);
       let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
       if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
       draftPick(state, who, slot);
@@ -32197,7 +32218,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
         if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
       }
-      spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
+      spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
     }
@@ -32207,25 +32228,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
 
     if (win.event === 'dividend')
-      runDividend(P.mulberry32(P.seedFrom('div' + state.season)), state.corps, state.ids, state.season, state.dividend);
+      runDividend(rngOf(state, 'div' + state.season), state.corps, state.ids, state.season, state.dividend);
     if (win.event === 'eight') {
       for (const id of state.ids) {
         const ch = choices && choices[id];
         if (ch && Object.prototype.hasOwnProperty.call(ch, 'eight')) nameForEight(state, id, ch.eight);
       }
-      runEight(P.mulberry32(P.seedFrom('eight' + state.season)), state.corps, state.ids, state.season, state);
+      runEight(rngOf(state, 'eight-run' + state.season), state.corps, state.ids, state.season, state);
     }
     state.carry = state.carry || {};
     if (win.event === 'tryouts') {
       state.tryouts.season = state.season;
-      runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
+      runTryouts(rngOf(state, 'try' + state.season + 'm' + m), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts,
                  (id) => isHuman(state, id));
       state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
       const lot = state.lots.bastille || [];
-      bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season + 'm' + m)), state.corps, state.ids,
+      bastilleIntake(rngOf(state, 'bas' + state.season + 'm' + m), state.corps, state.ids,
                      state.season, state.bastille, lot, state.bids.bastille, state);
       /* the second window is a fresh intake: terms for a man who was carried over are offered
          again, knowingly, not inherited from a month ago */
@@ -32237,7 +32258,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     if (win.event === 'mercs') {
       const lot = state.lots.mercs || [];
-      runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
+      runMercMarket(rngOf(state, 'merc' + state.season + 'm' + m), state.corps, state.ids,
                     lot, state.mercs, state.bids.mercs, state);
       /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
          offered is still on the market for the refresh */
@@ -32255,7 +32276,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
         const short = CONST.ROSTER_MIN - alive.length;
         if (short <= 0) continue;
-        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const rngS = rngOf(state, 'scrape' + state.season + id);
         const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
           .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
         let bill = 0;
@@ -32350,7 +32371,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §TRADE the engine's OAs shop too — see trade.js fleetTrades — by POSTING offers to the market, a person's
        OA included, who answers it rather than being sold from */
     if (TRADE && TRADE.tradingOpen(m))
-      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+      TRADE.fleetTrades(rngOf(state, 'fleettrade' + state.season + m),
                         state.corps, state.ids, m, { post: LED.post, isHuman: (id) => isHuman(state, id),
                           postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask) });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
@@ -32405,7 +32426,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const id of state.ids) {
       if (isHuman(state, id)) continue;
       const c = state.corps[id];
-      const rng = P.mulberry32(P.seedFrom('seam' + state.season + id));
+      const rng = rngOf(state, 'seam' + state.season + id);
       const taken = {};
       for (const other of state.ids) {
         const pick = state.drop.sectors[other];
@@ -32647,9 +32668,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          its first season: eight signings a corp a year, wages never charged, which is a
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
-      c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
+      c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
                              c._off.expired, c._off.freed, state);
-      c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
+      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c);
       /* the calls are answered: they are this year's, not a standing instruction */
       c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -32842,7 +32863,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
     return { opts: state._divideOpts,
-             rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
+             rng: rngOf(state, 'divide' + state.season) };
   }
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
@@ -32986,7 +33007,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
       /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
       const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
-      c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
+      c._armoury = settleArmoury(rngOf(corps, 'arm' + season + id),
                                  c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
@@ -33399,9 +33420,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    const ws = corps[Object.keys(corps)[0]] && corps[Object.keys(corps)[0]]._worldSeed;
-    state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season + (ws != null ? ':' + ws : ''))), {});
-    state.planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + o.season)),
+    state.planet = MAP.generatePlanet(rngOf(corps, 'planet' + o.season), {});
+    state.planet.pot = NEG.rollPot(rngOf(corps, 'pot' + o.season),
                                    state.planet.archetype, state.planet.richness);
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
@@ -33710,11 +33730,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     var st = seatOf(G.me);
     for (var k2 in carried) if (carried[k2] != null && (k2 !== 'plan' || !st._planSet)) { st[SEAT_KEYS[k2]] = carried[k2]; if (k2 === 'plan') st._planSet = true; }
   }
+  /* §SEEDS A NEW GAME IS A NEW WORLD. Every game was built from the same seed, 'corp-1', so the same founding rosters,
+     the same draft and every roll after them came round every time. A seed is drawn fresh on the host's machine —
+     the only place in the game that reads entropy — and from then on it is the world: saved with the game, and given to anyone who is to play in the same world (?seed= on the address does it too). */
+  function entropySeed() {
+    var a = new Uint32Array(2);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+    else { a[0] = Math.floor(Math.random() * 4294967296); a[1] = Math.floor(Math.random() * 4294967296); }
+    return (a[0].toString(36) + a[1].toString(36)).slice(0, 10);
+  }
+  function freshSeed() {
+    var q = /[?&]seed=([^&#]+)/.exec(String((window.location && window.location.search) || ''));
+    return q ? decodeURIComponent(q[1]) : entropySeed();
+  }
+  if ($('seed')) $('seed').value = freshSeed();
   function startGame(seedStr, meId, oaList, customDef) {
     if (G) { stop(); clearTween(); }   /* an orphaned timer would keep drawing a dead world */
-    var rng = P.mulberry32(P.seedFrom(seedStr || 'corp-1'));
+    seedStr = String(seedStr || '').trim() || freshSeed();
+    var rng = P.mulberry32(P.seedFrom(seedStr));
     G = { rng: rng, oa: oaList, corps: SEASON.openFleet(rng, oaList, {}), me: meId,
-          seedStr: seedStr || 'corp-1', custom: customDef || null,
+          seedStr: seedStr, custom: customDef || null,
           lot: null, lotNo: 1, log: [], fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
@@ -33730,7 +33765,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     G.state = SEASON.beginSeason(G.rng, G.corps, oaList, { human: G.me });
     /* §DETERMINISM the page keeps its OWN dice: it shared the season's stream, so anything the page drew (a developer
        tool does) moved every roll the season made after it. The season's stream stays the season's, year to year. */
-    G.rng = P.mulberry32(P.seedFrom('page:' + G.me + ':' + (G.state.season || 1)));
+    G.rng = P.mulberry32(P.seedFrom('page:' + G.seedStr + ':' + G.me + ':' + (G.state.season || 1)));
     $('mlog').innerHTML = '<div class="m">No Windows Yet</div>';
     /* desk log panel removed */
     G._railPhase = null;
@@ -34702,10 +34737,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       items.push({ txt: esc(st.name) + '\u2019s Contract Is Up', tab: 'backroom', kind: 'Staff', urgent: true, cost: 'Renewed at Their Ask' }); });
     var retiring = (((G.corps[G.me]._off || {}).retired) || []).filter(function (f) { return f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of; });
     if (m === 1 && retiring.length) items.push({ txt: retiring.length + ' Retiring \u00b7 Could Take a Post', tab: 'backroom', kind: 'Staff', cost: 'Gone at Year\u2019s End' });
-    /* §FACILITIES the builders idle while something is affordable: said once, at the year's opening */
-    var meF = G.corps[G.me];
-    if (m === 1 && !(meF.facilities && meF.facilities.build) && SEASON.FAC.IDS.some(function (fid) { return SEASON.FAC.canBuild(meF, fid, SEASON.priceMult(G.state)).ok; }))
-      items.push({ txt: 'The Builders Are Idle', tab: 'grounds', kind: 'Facilities', cost: 'Nothing Rises This Year' });
     /* §TALKS a captain owed a squad who no longer leads one breaks that promise when the month turns */
     owedSquads().forEach(function (f) { items.push({ txt: nameHtml(f) + ' Was Promised a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'Broken When the Month Turns' }); });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
@@ -36457,7 +36488,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* the year turns: the engine's own offseason ages, heals, expires and retires; then a
        new season opens with a new planet, a new card, and new offers on the table */
     G.state = SEASON.beginSeason(G.state.rng, G.corps, G.oa, { human: G.me });   /* the season's own stream, carried on */
-    G.rng = P.mulberry32(P.seedFrom('page:' + G.me + ':' + (G.state.season || 1)));
+    G.rng = P.mulberry32(P.seedFrom('page:' + G.seedStr + ':' + G.me + ':' + (G.state.season || 1)));
     G.div = null; G.gcache = null; G._seen = []; G._seenLast = {};
     G._dividendDone = false; G._dividendFloor = false; G._dvPick = null;   /* next summer's lights are its own */
     G._boardOutcome = null; G._boardAnswered = null;                        /* and the new card is unscored */

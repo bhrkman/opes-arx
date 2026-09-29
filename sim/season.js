@@ -21,6 +21,20 @@
 }(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
   'use strict';
 
+  /* §SEEDS ONE SEED PER CAREER, AND EVERY ROLL IS NAMED. A career's world seed is drawn once, at the founding,
+     from the game's own seed (the host's, in a shared game), and saved on every OA. Every roll the year makes is
+     that seed plus a name for what is being rolled — never the season number alone, which made every career's
+     Dividend, lots, letters and winters the same — and never a clock or an unseeded random. Two machines with the
+     same seed and the same decisions compute the same world. */
+  function worldOf(src) {
+    if (!src) return 0;
+    if (src._worldSeed != null) return src._worldSeed;
+    if (src.corps) return worldOf(src.corps);
+    for (const k in src) { const c = src[k]; if (c && typeof c === 'object' && c._worldSeed != null) return c._worldSeed; }
+    return 0;
+  }
+  function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
+
   const CONST = {
     /* --- the roster (S2, S3) --- */
     /* --- THE PREP CALENDAR (S16) ---
@@ -499,8 +513,11 @@
        standing about with nothing on them. They are issued from what is on the shelf, best
        first, and what they take comes off it. */
     for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
+    /* §SEEDS the career's world seed is drawn here, once, from the game's seed */
+    const worldSeed = opts.worldSeed != null ? opts.worldSeed : Math.floor(rng() * 1e9);
+    for (const id of Object.keys(corps)) corps[id]._worldSeed = worldSeed;
     for (const id of Object.keys(corps))
-      lastYearsMarks(P.mulberry32(P.seedFrom('scars' + id)), corps[id]);
+      lastYearsMarks(rngOf(corps, 'scars' + id), corps[id]);
     return corps;
   }
 
@@ -750,7 +767,7 @@
          way everything in state does. The resolve keeps its own seeded stream, so keeping
          the footage costs the world no rolls. */
       const sA = side(A, bodiesA), sB = side(B, bodiesB);
-      const res = TAC.resolve(P.mulberry32(P.seedFrom('dividend' + season + A.id)),
+      const res = TAC.resolve(rngOf(corps, 'dividend' + season + A.id),
                               sA, sB,
                               { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5] });
 
@@ -871,7 +888,7 @@
     const stun = false;   /* §ALEAS the stun-grade ruling is cut: The Eight is fought to the end */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
-    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB,
+    const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
       { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun, toTheEnd: !stun });
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
@@ -2822,7 +2839,7 @@
      per reader) */
   function writeLetters(state) {
     if (!TRADE || !TRADE.tradingOpen(state.month)) return;
-    const rng = P.mulberry32(P.seedFrom('letters' + state.season + ':' + state.month));
+    const rng = rngOf(state, 'letters' + state.season + ':' + state.month);
     for (const toId of state.ids) {
       if (tradeLetters(state, toId).length) continue;
       const writers = state.ids.filter(id => id !== toId && !isHuman(state, id));
@@ -2845,8 +2862,7 @@
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
   function openRecruitDraft(state) {
-    const ws = state.corps[state.ids[0]] && state.corps[state.ids[0]]._worldSeed;
-    const rng = P.mulberry32(P.seedFrom('recruit-draft' + state.season + ':' + (ws || 0)));
+    const rng = rngOf(state, 'recruit-draft' + state.season);
     /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
     const pool = ROSTER.generateSquad(rng, DRAFT.POOL, { corpId: null, poolMix: [['nattie', 1]] }).bodies;
     const keys = Object.keys((pool[0] && pool[0].stats) || {});
@@ -2930,7 +2946,7 @@
       ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
                                       if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
-                               : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
+                               : offseason(rngOf(corps, 'off' + season + id), c);
       c._off = off;
       /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
       c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
@@ -2993,13 +3009,13 @@
        carried on the corps so a save rebuilds the same planet, and every year's planet is
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
-    for (const id of ids) corps[id]._worldSeed = worldSeed;
-    const planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + season + ':' + worldSeed)), {});
+    for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
+    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
-    planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + season)), planet.archetype, planet.richness);
+    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
     /* §STANDING each house watches the others with the taste of the stands it has now */
     for (const id of ids) {
       const c = corps[id];
@@ -3012,7 +3028,7 @@
       const c = corps[id];
       if (!c.rep) continue;
       REP.openSeason(c.rep, planet,
-                     P.mulberry32(P.seedFrom('goal' + season + id)),
+                     rngOf(corps, 'goal' + season + id),
                      { expect: Math.max(2, 3 + ((c.profile || {}).difficulty || 3)),
                        thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low',
                        lastPlace: c._lastPlace || null });      /* §SNOWBALL the champion's board raises the bar */
@@ -3079,13 +3095,13 @@
          the refresh is a different year of the same ship. */
       const byCorp = {};
       for (const id of state.ids)
-        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool, state.corps[id]);
+        byCorp[id] = openLot(rngOf(state, seed + id), kind, id, win.pool, state.corps[id]);
       state.lots[kind] = byCorp;
       return;
     }
     /* the shared markets: a fresh lot, and in the second month whoever nobody took in the
        first, still there at a markdown */
-    const fresh = openLot(P.mulberry32(P.seedFrom(seed)), kind, null, win.pool);
+    const fresh = openLot(rngOf(state, seed), kind, null, win.pool);
     const carried = (win.pool === 'second' && state.carry && state.carry[kind]) || [];
     for (const f of carried) {
       if (f.contract && f.contract.salary && !f._carried) f.contract.salary = Math.round(f.contract.salary * CONST.CARRY_MARKDOWN);
@@ -3352,7 +3368,7 @@
      person has, called the same way. Nobody on the staff goes into the Divide. */
   function staffPoolOf(state) {
     if (!state.staffPool || state.staffPool.season !== state.season)
-      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season) };
+      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season, worldOf(state)) };
     return state.staffPool.list;
   }
   /** who of your own could take a post: anyone standing on the roster (not half of a pair), and this year's retirees */
@@ -3500,7 +3516,7 @@
     const f = aliveOf(c).find(x => x.id === fighterId);
     if (!f || woundBand(f) !== 'crippled') return null;
     c._operated = abs;
-    const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))();
+    const r = rngOf(state, 'operate' + abs + f.id)();
     const sg = STAFF.holder(c, 'surgeon');
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
       sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
@@ -3547,7 +3563,7 @@
           const them = corps[mo.target];
           gatherIntel(corp, 'rival', mo.target, Math.round(STAFF.CONST.MOLE_LEVELS * sp.e) + 1, abs, (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
           sp.st.record.reports = (sp.st.record.reports || 0) + 1;
-          if (P.mulberry32(P.seedFrom('mole' + abs + corp.id))() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
+          if (rngOf(corp, 'mole' + abs + corp.id)() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
             if (corp.rep) REP.act(corp.rep, 'mole_exposed', { targetId: mo.target });
             o.mole = null;
             if (landedOut) landedOut.push({ kind: 'staff', text: 'Your Mole in ' + ((them.profile && them.profile.name) || mo.target) + ' Was Found' });
@@ -3561,7 +3577,7 @@
       const f = aliveOf(corp).filter(x => woundBand(x) === 'crippled').sort((a, b) => draftScore(b) - draftScore(a))[0];
       if (f) {
         corp._operated = abs;
-        const r = P.mulberry32(P.seedFrom('operate' + abs + f.id))(), sg = STAFF.holder(corp, 'surgeon');
+        const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
@@ -3829,7 +3845,7 @@
       }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
-      const rng = P.mulberry32(P.seedFrom('draft' + state.season + who + D.round));
+      const rng = rngOf(state, 'draft' + state.season + who + D.round);
       let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
       if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
       draftPick(state, who, slot);
@@ -3902,7 +3918,7 @@
         /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
         if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
       }
-      spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
+      spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
     }
@@ -3912,25 +3928,25 @@
 
 
     if (win.event === 'dividend')
-      runDividend(P.mulberry32(P.seedFrom('div' + state.season)), state.corps, state.ids, state.season, state.dividend);
+      runDividend(rngOf(state, 'div' + state.season), state.corps, state.ids, state.season, state.dividend);
     if (win.event === 'eight') {
       for (const id of state.ids) {
         const ch = choices && choices[id];
         if (ch && Object.prototype.hasOwnProperty.call(ch, 'eight')) nameForEight(state, id, ch.eight);
       }
-      runEight(P.mulberry32(P.seedFrom('eight' + state.season)), state.corps, state.ids, state.season, state);
+      runEight(rngOf(state, 'eight-run' + state.season), state.corps, state.ids, state.season, state);
     }
     state.carry = state.carry || {};
     if (win.event === 'tryouts') {
       state.tryouts.season = state.season;
-      runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
+      runTryouts(rngOf(state, 'try' + state.season + 'm' + m), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts,
                  (id) => isHuman(state, id));
       state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
       const lot = state.lots.bastille || [];
-      bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season + 'm' + m)), state.corps, state.ids,
+      bastilleIntake(rngOf(state, 'bas' + state.season + 'm' + m), state.corps, state.ids,
                      state.season, state.bastille, lot, state.bids.bastille, state);
       /* the second window is a fresh intake: terms for a man who was carried over are offered
          again, knowingly, not inherited from a month ago */
@@ -3942,7 +3958,7 @@
     }
     if (win.event === 'mercs') {
       const lot = state.lots.mercs || [];
-      runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
+      runMercMarket(rngOf(state, 'merc' + state.season + 'm' + m), state.corps, state.ids,
                     lot, state.mercs, state.bids.mercs, state);
       /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
          offered is still on the market for the refresh */
@@ -3960,7 +3976,7 @@
         const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
         const short = CONST.ROSTER_MIN - alive.length;
         if (short <= 0) continue;
-        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const rngS = rngOf(state, 'scrape' + state.season + id);
         const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
           .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
         let bill = 0;
@@ -4055,7 +4071,7 @@
     /* §TRADE the engine's OAs shop too — see trade.js fleetTrades — by POSTING offers to the market, a person's
        OA included, who answers it rather than being sold from */
     if (TRADE && TRADE.tradingOpen(m))
-      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+      TRADE.fleetTrades(rngOf(state, 'fleettrade' + state.season + m),
                         state.corps, state.ids, m, { post: LED.post, isHuman: (id) => isHuman(state, id),
                           postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask) });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
@@ -4110,7 +4126,7 @@
     for (const id of state.ids) {
       if (isHuman(state, id)) continue;
       const c = state.corps[id];
-      const rng = P.mulberry32(P.seedFrom('seam' + state.season + id));
+      const rng = rngOf(state, 'seam' + state.season + id);
       const taken = {};
       for (const other of state.ids) {
         const pick = state.drop.sectors[other];
@@ -4352,9 +4368,9 @@
          its first season: eight signings a corp a year, wages never charged, which is a
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
-      c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
+      c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
                              c._off.expired, c._off.freed, state);
-      c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
+      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c);
       /* the calls are answered: they are this year's, not a standing instruction */
       c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -4547,7 +4563,7 @@
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
     return { opts: state._divideOpts,
-             rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
+             rng: rngOf(state, 'divide' + state.season) };
   }
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
@@ -4691,7 +4707,7 @@
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
       /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
       const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
-      c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
+      c._armoury = settleArmoury(rngOf(corps, 'arm' + season + id),
                                  c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
@@ -5104,9 +5120,8 @@
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    const ws = corps[Object.keys(corps)[0]] && corps[Object.keys(corps)[0]]._worldSeed;
-    state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season + (ws != null ? ':' + ws : ''))), {});
-    state.planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + o.season)),
+    state.planet = MAP.generatePlanet(rngOf(corps, 'planet' + o.season), {});
+    state.planet.pot = NEG.rollPot(rngOf(corps, 'pot' + o.season),
                                    state.planet.archetype, state.planet.richness);
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the

@@ -1925,7 +1925,9 @@
         <button id="cfound" class="foundgo">Found the OA</button>
       </div>
       <span id="creplace" style="display:none"></span>
-      <input id="seed" value="corp-1" style="display:none">
+      <!-- §SEEDS the world this game is built from: drawn fresh for every new game (or read from ?seed=), never asked
+           for; it is saved with the game and is what two players must hold in common to play the same world -->
+      <input id="seed" value="" style="display:none">
     </div>
     <div class="bar" style="justify-content:center;margin-top:10px">
       <button class="tiny" id="setupback">Back</button>
@@ -2492,11 +2494,26 @@
     var st = seatOf(G.me);
     for (var k2 in carried) if (carried[k2] != null && (k2 !== 'plan' || !st._planSet)) { st[SEAT_KEYS[k2]] = carried[k2]; if (k2 === 'plan') st._planSet = true; }
   }
+  /* §SEEDS A NEW GAME IS A NEW WORLD. Every game was built from the same seed, 'corp-1', so the same founding rosters,
+     the same draft and every roll after them came round every time. A seed is drawn fresh on the host's machine —
+     the only place in the game that reads entropy — and from then on it is the world: saved with the game, and given to anyone who is to play in the same world (?seed= on the address does it too). */
+  function entropySeed() {
+    var a = new Uint32Array(2);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+    else { a[0] = Math.floor(Math.random() * 4294967296); a[1] = Math.floor(Math.random() * 4294967296); }
+    return (a[0].toString(36) + a[1].toString(36)).slice(0, 10);
+  }
+  function freshSeed() {
+    var q = /[?&]seed=([^&#]+)/.exec(String((window.location && window.location.search) || ''));
+    return q ? decodeURIComponent(q[1]) : entropySeed();
+  }
+  if ($('seed')) $('seed').value = freshSeed();
   function startGame(seedStr, meId, oaList, customDef) {
     if (G) { stop(); clearTween(); }   /* an orphaned timer would keep drawing a dead world */
-    var rng = P.mulberry32(P.seedFrom(seedStr || 'corp-1'));
+    seedStr = String(seedStr || '').trim() || freshSeed();
+    var rng = P.mulberry32(P.seedFrom(seedStr));
     G = { rng: rng, oa: oaList, corps: SEASON.openFleet(rng, oaList, {}), me: meId,
-          seedStr: seedStr || 'corp-1', custom: customDef || null,
+          seedStr: seedStr, custom: customDef || null,
           lot: null, lotNo: 1, log: [], fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
@@ -2512,7 +2529,7 @@
     G.state = SEASON.beginSeason(G.rng, G.corps, oaList, { human: G.me });
     /* §DETERMINISM the page keeps its OWN dice: it shared the season's stream, so anything the page drew (a developer
        tool does) moved every roll the season made after it. The season's stream stays the season's, year to year. */
-    G.rng = P.mulberry32(P.seedFrom('page:' + G.me + ':' + (G.state.season || 1)));
+    G.rng = P.mulberry32(P.seedFrom('page:' + G.seedStr + ':' + G.me + ':' + (G.state.season || 1)));
     $('mlog').innerHTML = '<div class="m">No Windows Yet</div>';
     /* desk log panel removed */
     G._railPhase = null;
@@ -3484,10 +3501,6 @@
       items.push({ txt: esc(st.name) + '\u2019s Contract Is Up', tab: 'backroom', kind: 'Staff', urgent: true, cost: 'Renewed at Their Ask' }); });
     var retiring = (((G.corps[G.me]._off || {}).retired) || []).filter(function (f) { return f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of; });
     if (m === 1 && retiring.length) items.push({ txt: retiring.length + ' Retiring \u00b7 Could Take a Post', tab: 'backroom', kind: 'Staff', cost: 'Gone at Year\u2019s End' });
-    /* §FACILITIES the builders idle while something is affordable: said once, at the year's opening */
-    var meF = G.corps[G.me];
-    if (m === 1 && !(meF.facilities && meF.facilities.build) && SEASON.FAC.IDS.some(function (fid) { return SEASON.FAC.canBuild(meF, fid, SEASON.priceMult(G.state)).ok; }))
-      items.push({ txt: 'The Builders Are Idle', tab: 'grounds', kind: 'Facilities', cost: 'Nothing Rises This Year' });
     /* §TALKS a captain owed a squad who no longer leads one breaks that promise when the month turns */
     owedSquads().forEach(function (f) { items.push({ txt: nameHtml(f) + ' Was Promised a Squad', tab: 'squads', kind: 'Promise', urgent: true, cost: 'Broken When the Month Turns' }); });
     /* ROSTER SHORT IS A STATE, NOT A TASK. It stood on the waiting list and held the turn
@@ -5239,7 +5252,7 @@
     /* the year turns: the engine's own offseason ages, heals, expires and retires; then a
        new season opens with a new planet, a new card, and new offers on the table */
     G.state = SEASON.beginSeason(G.state.rng, G.corps, G.oa, { human: G.me });   /* the season's own stream, carried on */
-    G.rng = P.mulberry32(P.seedFrom('page:' + G.me + ':' + (G.state.season || 1)));
+    G.rng = P.mulberry32(P.seedFrom('page:' + G.seedStr + ':' + G.me + ':' + (G.state.season || 1)));
     G.div = null; G.gcache = null; G._seen = []; G._seenLast = {};
     G._dividendDone = false; G._dividendFloor = false; G._dvPick = null;   /* next summer's lights are its own */
     G._boardOutcome = null; G._boardAnswered = null;                        /* and the new card is unscored */

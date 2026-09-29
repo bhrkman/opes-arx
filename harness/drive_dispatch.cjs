@@ -6,7 +6,7 @@ const fs = require('fs'), path = require('path');
 const { JSDOM } = require(path.join(__dirname, 'node_modules', 'jsdom'));
 let html = fs.readFileSync(path.join(__dirname, '..', 'viewers', 'the_corp.html'), 'utf8');
 html = html.replace('    G = { rng: rng,', '    G = window.__G = { rng: rng,');
-const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://opesarx.test/' });
+const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://opesarx.test/?seed=corp-1' });
 const w = dom.window, d = w.document; w.__noTurn = true;
 const errs = []; w.addEventListener('error', e => errs.push(e.message));
 const fails = [], check = (ok, what) => { if (!ok) fails.push(what); };

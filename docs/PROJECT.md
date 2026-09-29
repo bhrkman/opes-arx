@@ -136,3 +136,6 @@ saw; the board judges its card and the sponsors judge their conditions.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
+- A game is one world seed, drawn fresh when it is founded and saved with it. Every roll is that
+  seed and a name; nothing reads a clock or unseeded dice; the seats' decisions are the only
+  other input. Two machines holding the seed and the decisions hold the same game.

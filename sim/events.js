@@ -102,6 +102,8 @@
      event asks for one of those — "a fight in the barracks" — and gets whoever in the OA has
      a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
      and the events follow it. */
+  /* §SEEDS the career's seed, carried on every OA: every dispatch roll is that seed and a name */
+  function worldOf(state) { const c = state && state.corps && state.ids && state.corps[state.ids[0]]; return (c && c._worldSeed) || 0; }
   function tiesOf(state, f) {
     const idx = traitIndexOf(state), out = [];
     for (const tid of (f.traits || [])) {
@@ -124,7 +126,7 @@
     if (!fit.length) return null;
     /* §DETERMINISM never unseeded: with no dice passed, the cast is drawn from dice seeded by the season, the month,
        the OA and the tie — the same every time the same moment is played, as every other draw in the engine is */
-    const dice = rng || P.mulberry32(P.seedFrom('cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
+    const dice = rng || P.mulberry32(P.seedFrom('w' + worldOf(state) + ':cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
                                                 ((corp && corp.id) || '') + ':' + tie));
     return fit[Math.floor(dice() * fit.length)];
   }
@@ -749,7 +751,7 @@
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
     /* seeded by the world, not the year alone: two fleets on two planets meet two different months */
     const world = state.planet ? (state.planet.archetype || '') + (state.planet.patches || []).map(q => (q.type || '')[0]).join('') : '';
-    const rng = P.mulberry32(P.seedFrom('fleet' + state.season + world));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':fleet' + state.season + world));
     const spec = P.weightedPick(rng, FLEET_POOL.map(f => [f, f.w]));
     state.fleet.pending = { season: state.season, id: spec.id, petitions: 0, applied: false, withdrawn: false };
     return state.fleet.pending;
@@ -893,7 +895,7 @@
     const key = state.season + ':' + state.month;
     const have = state.events[corpId];
     if (have && have.month === key) return have.list;
-    const rng = P.mulberry32(P.seedFrom('ev' + state.season + 'm' + state.month + corpId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':ev' + state.season + 'm' + state.month + corpId));
     const corp = state.corps[corpId], ctx = ctxFor(rng, state, corpId);
     const list = [];
     /* the fleet's month: the same card for every OA, first */
@@ -925,7 +927,7 @@
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
     const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
-    const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
     const line = spec.resolve(state.corps[corpId], ev, opt, ctx);
     ev.resolved = { option: opt, line, defaulted: optionId === '__default' };

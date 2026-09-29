@@ -26,7 +26,7 @@ vc.on('jsdomError', (e) => { console.log('  PAGE LOAD ERROR: ' + String(e).slice
 vc.forwardTo(console, { jsdomErrors: 'none' });   /* jsdom 30: forwardTo, not sendTo */
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true,
                               virtualConsole: vc,
-                              url: 'http://opesarx.test/' });   /* a url so localStorage lives */
+                              url: 'http://opesarx.test/?seed=corp-1' });   /* a url so localStorage lives */
 /* the ledger turn is three seconds of animation the drive does not need to sit through */
 dom.window.__noTurn = true;
 const { window } = dom;
@@ -1133,7 +1133,7 @@ setTimeout(() => {
        and the letter is gone and the OA remembers being snubbed */
     {
       const GL = window.__G, from = GL.state.ids.find(x => x !== GL.me);
-      const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
+      const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter' && m.hx && m.hx[from] != null).length;
       /* §TRADE a letter is POSTED to the one market, as the engine's OAs post them */
       const planted = { from: from, ask: { units: [GL.corps[GL.me].roster[0].id], credits: 0, gear: [], intel: [] }, offer: { credits: 10000, gear: [], units: [], intel: [] } };
       window.CDSEASON.postTrade(GL.state, planted.from, GL.me, planted.offer, planted.ask);
@@ -1146,7 +1146,7 @@ setTimeout(() => {
       /* THE TEST WAS THAT NO LETTER STOOD AFTERWARDS, and the fleet writes every month: a
          new letter arriving in the same step is the game working, not the snub failing. What
          matters is that THIS letter lapsed and was remembered. */
-      const memAfter = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
+      const memAfter = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter' && m.hx && m.hx[from] != null).length;   /* THIS writer's: another letter may lapse the same month */
       check(memAfter === memBefore + 1 && (!GL._tradeOffer || GL._tradeOffer.from !== from),
             'the letter lapsed and the OA remembers the snub (' + memBefore + ' \u2192 ' + memAfter + ')');
     }

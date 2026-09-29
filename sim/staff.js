@@ -160,8 +160,9 @@
     return st;
   }
   /** The year's outside specialists: the same list for every OA, drawn from the season alone. */
-  function specialistPool(season) {
-    const rng = rngFor('pool' + season);
+  function specialistPool(season, world) {
+    /* §SEEDS the year's specialists are this career's, not every career's */
+    const rng = rngFor('pool' + (world || 0) + ':' + season);
     const out = [];
     const RACES = ['human', 'human', 'human', 'etu', 'kellis', 'svalbard'];
     const FIRST = ['Aldo', 'Brea', 'Casimir', 'Dessa', 'Emrick', 'Fenna', 'Gorran', 'Hesper', 'Ilse', 'Joss', 'Kerel', 'Lusa',
@@ -172,7 +173,7 @@
     const WANT = ['surgeon', 'surgeon', 'spymaster', 'spymaster', 'fixer', 'quartermaster', 'drill', 'sergeant', 'fixer'];
     for (let i = 0; i < CONST.POOL_SIZE; i++) {
       const post = WANT[i % WANT.length];
-      const id = 'spc' + season + '_' + i;
+      const id = 'spc' + (world || 0).toString(36) + '_' + season + '_' + i;
       const craft = {};
       for (const p of POSTS) craft[p] = Math.round(rng() * CONST.SPEC_OTHER);
       craft[post] = Math.round(CONST.SPEC_LO + rng() * (CONST.SPEC_HI - CONST.SPEC_LO));

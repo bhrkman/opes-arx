@@ -5,7 +5,7 @@
 const fs=require('fs');const {JSDOM}=require('/home/claude/opes-arx/harness/node_modules/jsdom');
 let html=fs.readFileSync('/home/claude/opes-arx/viewers/the_corp.html','utf8');
 html=html.replace('    G = { rng: rng,','    G = window.__G = { rng: rng,');
-const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'http://opesarx.test/'});
+const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url: 'http://opesarx.test/?seed=corp-1'});
 const w=dom.window,d=w.document;w.__noTurn=true;
 const scan=(label)=>{
   const bad=[];

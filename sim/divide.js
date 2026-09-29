@@ -4026,7 +4026,7 @@
          the ground have to be the same object. */
       if (opts.openSeason) {
         REP.openSeason(corp.rep, planet,
-                       P.mulberry32(P.seedFrom('goal' + (opts.season || 1) + profile.id)),
+                       P.mulberry32(P.seedFrom('w' + ((persist && persist._worldSeed) || 0) + ':goal' + (opts.season || 1) + profile.id)),
                        { expect: Math.max(2, 3 + (profile.difficulty || 3)),
                          thinTreasury: (profile.finance || {}).treasury_band === 'low' });
       }

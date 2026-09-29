@@ -24,8 +24,8 @@ Hosting is any static host pointed at the repo root; `index.html` is the whole g
 
 ```
 cd sim
-node arx.cjs regress --fast     162 checks · the edit loop
-node arx.cjs regress            287 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     172 checks · the edit loop
+node arx.cjs regress            297 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the

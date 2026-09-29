@@ -763,7 +763,7 @@ function theSeam() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const PRE = req('predivide.js');
 
-  let sectorSpread = [], agreed = 0, asked = 0, performed = 0, fronts = new Set(), corpSeasons = 0;
+  let sectorSpread = [], sharedSeasons = 0, agreed = 0, asked = 0, performed = 0, fronts = new Set(), corpSeasons = 0;
   const rng = P.mulberry32(P.seedFrom('seam-guard'));
   const corps = SEASONMOD.openFleet(rng, oa, {});
   for (let s = 0; s < 6; s++) {
@@ -771,8 +771,9 @@ function theSeam() {
     while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
     SEASONMOD.closeSeason(st);
     const counts = {};
-    for (const id in st.drop.sectors) counts[st.drop.sectors[id]] = 1;
+    for (const id in st.drop.sectors) counts[st.drop.sectors[id]] = (counts[st.drop.sectors[id]] || 0) + 1;
     sectorSpread.push(Object.keys(counts).length);
+    if (Object.values(counts).some(n => n >= 2)) sharedSeasons++;
     asked += Object.keys(st.drop.pacts || {}).length;   /* there is no such list now: this stays 0 */
     /* §MEDIA media day is a card now: every seat answers it, and who fronts it sets what rivals learn (reveal) */
     for (const id in st.drop.media) { const r = st.drop.media[id]; fronts.add(r.reveal); if (r.reveal > 0) performed++; }
@@ -782,8 +783,11 @@ function theSeam() {
 
   ok('the fleet does not all pile into one sector',
      meanSpread >= 2, meanSpread.toFixed(1) + ' distinct sectors used a season');
+  /* the old form (mean distinct sectors below six) held only on the old fixed seeds: across world
+     seeds the fleet uses all six sectors nearly every season, with two of them shared. What must
+     hold is that ground is shared every season, not how many sectors are empty. */
   ok('nor does it spread so evenly that nothing is contested',
-     meanSpread < PRE.CONST.SECTORS, meanSpread.toFixed(1) + ' of ' + PRE.CONST.SECTORS);
+     sharedSeasons === sectorSpread.length, sharedSeasons + ' of ' + sectorSpread.length + ' seasons with a shared sector');
   /* §TRUCE no truce is struck before the drop (ruled): only at the table, on the ground */
   ok('no truce is struck before the drop', asked === 0, asked + ' asked');
   ok('media day is fronted differently across the fleet',
@@ -919,6 +923,53 @@ function talks() {
    one and two; every tier has every role; a post needs its facility; a build is paid in full, one at a
    time, and stands when its months are up; what stands costs upkeep; gear above the Armoury is stored,
    not issued, not sold; a mercenary carries their own; and the engine builds by the same rules. */
+/* =========================================================================
+   WORLD SEEDING — one career seed, and every roll a named key off it.
+   The failure this exists to catch is the one the build had: the page always seeded 'corp-1' and
+   the engine keyed its rolls by season alone, so every new game drew the same draft, the same
+   specialists and the same dispatches. For play across machines the rule is stricter: the seed is
+   the only entropy, every roll is the seed plus a name, and decisions are the only other input.
+   ========================================================================= */
+function worldSeeding() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const fs = require('fs'), path = require('path');
+  const run = (seedStr, worldSeed, months) => {
+    const rng = P.mulberry32(P.seedFrom(seedStr));
+    const corps = SEASONMOD.openFleet(rng, oa, worldSeed == null ? {} : { worldSeed });
+    const st = SEASONMOD.beginSeason(rng, corps, oa, {});
+    const draft = (st.recruitDraft ? st.recruitDraft.pool.concat(st.recruitDraft.picks.map(p => ({ name: p.name }))) : []).map(f => f.name).sort().join('|');
+    const staff = (SEASONMOD.staffPoolOf(st) || []).map(x => x.name).join('|');
+    const planet = st.planet ? (st.planet.archetype + ':' + st.planet.richness + ':' + (st.planet.pot && st.planet.pot.total)) : '';
+    for (let m = 0; m < (months || 0) && st.month <= SEASONMOD.CONST.PREP_MONTHS; m++) SEASONMOD.stepMonth(st);
+    const shape = st.ids.map(id => { const c = st.corps[id]; return id + ':' + c.roster.map(f => f.id).join(',') + ':' + Math.round((c.account && c.account.treasury) || 0); }).join(';');
+    return { draft, staff, planet, shape, world: corps[st.ids[0]]._worldSeed };
+  };
+  const a = run('world-a', null, 4), a2 = run('world-a', null, 4), b = run('world-b', null, 4);
+  ok('the same seed plays the same world', JSON.stringify(a) === JSON.stringify(a2), '');
+  ok('a different seed draws a different draft', a.draft !== b.draft && a.draft.length > 0, '');
+  ok('a different seed hires from different specialists', a.staff !== b.staff && a.staff.length > 0, '');
+  ok('a different seed plays a different year', a.shape !== b.shape, '');
+  /* the world seed alone, with the founding stream held: nothing the engine rolls may be keyed by season alone */
+  const w1 = run('held', 11, 0), w2 = run('held', 22, 0);
+  ok('the draft is keyed by the world, not the season', w1.draft !== w2.draft, '');
+  ok('the backroom’s strangers are keyed by the world', w1.staff !== w2.staff, '');
+  {
+    const rng = P.mulberry32(P.seedFrom('world-save'));
+    const corps = SEASONMOD.openFleet(rng, oa, {}), st = SEASONMOD.beginSeason(rng, corps, oa, {});
+    SEASONMOD.stepMonth(st);
+    const back = SEASONMOD.loadCareer(JSON.parse(JSON.stringify(SEASONMOD.saveCareer(st))), oa).state;
+    ok('a saved game keeps its world', back.corps[back.ids[0]]._worldSeed === st.corps[st.ids[0]]._worldSeed, '');
+  }
+  const src = f => fs.readFileSync(path.join(__dirname, f), 'utf8');
+  const bare = src('season.js').split('\n').filter(l => /P\.mulberry32\(P\.seedFrom\(/.test(l) && !/function rngOf/.test(l));
+  ok('the season rolls only through the world', bare.length === 0, bare.length + ' bare seeds');
+  const evBare = src('events.js').split('\n').filter(l => /seedFrom\(/.test(l) && !/worldOf\(/.test(l));
+  ok('dispatches roll only through the world', evBare.length === 0, evBare.length + ' bare seeds');
+  const clocks = ['season.js', 'events.js', 'talks.js', 'staff.js', 'facilities.js', 'divide.js', 'reputation.js', 'items.js']
+    .filter(f => /Math\.random\(|Date\.now\(|new Date\(/.test(src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')));
+  ok('the rules read no clock and no unseeded dice', clocks.length === 0, clocks.join(', '));
+}
+
 function facilityRules() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const F = req('facilities.js'), IT = req('items.js');
@@ -3993,6 +4044,7 @@ function runRegression() {
   phase('talks', talks);
   phase('staff', staffRules);
   phase('facilities', facilityRules);
+  phase('worldSeeding', worldSeeding);
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('negotiationRules', negotiationRules);
@@ -4302,5 +4354,6 @@ else if (cmd === 'probe') {
 }
 else if (cmd === 'survey') buildSurvey();
 else if (cmd === 'lab') runLab(Number(process.argv[3]) || 6, process.argv[4]);
+else if (cmd === 'phase') { const f = { worldSeeding, theSeam }[process.argv[3]]; if (!f) { console.log('phase needs: worldSeeding | theSeam'); process.exitCode = 1; } else { f(); console.log(pass + ' passed, ' + fail + ' failed'); failures.forEach(x => console.log('  ✗ ' + x)); } }
 else if (cmd === 'all') { runRegression(); console.log(''); runAcceptance(); }
 else usage();
