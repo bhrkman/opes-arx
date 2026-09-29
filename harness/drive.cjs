@@ -700,14 +700,14 @@ setTimeout(() => {
          proportion to their fame, and the selling side's fans warm to whoever took them. */
       {
         const REPM = window.CDREP, seller = GT.corps[themId];
-        const ownBefore = REPM.standing(seller.rep, 'own');
-        const fansBefore = REPM.standing(seller.rep, 'rival', GT.me);
+        const ownBefore = REPM.standing(seller.rep, 'crowd');
+        const fansBefore = REPM.standing(seller.rep, 'house', GT.me);
         const star = seller.roster.slice().sort((a, b) => (b.fame || 0) - (a.fame || 0))[0];
         const mates = seller.roster.filter(f => f !== star).slice(0, 3).map(f => f.loyalty);
         window.CDTRADE.execute(seller, GT.corps[GT.me], { units: [star.id] }, {}, {});
-        check(REPM.standing(seller.rep, 'own') < ownBefore,
+        check(REPM.standing(seller.rep, 'crowd') < ownBefore,
               'selling somebody costs you with your own people');
-        check(REPM.standing(seller.rep, 'rival', GT.me) > fansBefore,
+        check(REPM.standing(seller.rep, 'house', GT.me) > fansBefore,
               'and their supporters warm to the OA that took them');
         const after = seller.roster.slice(0, 3).map(f => f.loyalty);
         check(after.some((v, i) => mates[i] != null && v < mates[i]),

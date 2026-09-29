@@ -14,7 +14,7 @@ for (const seed of ['fpA', 'fpB']) {
   const r = step.value || {};
   out.push({ seed, windows, winner: r.winner || (r.stats && r.stats.winner) || null,
     dead: (r.stats || r).dead, fights: ((r.stats || r).fights || []).length,
-    rep: st.ids.map(id => [id, Math.round(R.standing(st.corps[id].rep, 'own')), Math.round(R.standing(st.corps[id].rep, 'fleet'))]),
+    rep: st.ids.map(id => [id, Math.round(R.standing(st.corps[id].rep, 'crowd')), Math.round(R.standing(st.corps[id].rep, 'houses'))]),
     money: st.ids.map(id => Math.round(st.corps[id].account.treasury)),
     roster: st.ids.map(id => st.corps[id].roster.length) });
 }
