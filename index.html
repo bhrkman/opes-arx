@@ -435,6 +435,29 @@
   .dispatch{position:fixed;left:50%;top:36px;transform:translateX(-50%);width:min(880px,calc(100% - 32px));max-height:calc(100% - 72px);overflow:auto;
     background:#0b1019;border:1px solid var(--a);border-radius:10px;padding:14px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:30;display:none}
   .dispatch.on{display:block}
+  .dispatch.biz{border-color:var(--nxc,var(--a))}
+  .dispatch.biz.word{width:min(620px,calc(100% - 32px))}
+  .dispatch.biz.draft{width:min(1040px,calc(100% - 32px))}
+  .biz .rstrip .dot{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--nxc,var(--a));margin-right:8px;vertical-align:-1px}
+  .biz #bizgo{display:flex;gap:14px}
+  .rbeacon.ghost{border-style:dashed;box-shadow:none;opacity:.75}
+  /* §WINDOWS the docket line: what the business is, where it stands, and Open */
+  .docket{display:flex;align-items:center;gap:12px;border:1px solid var(--line2);border-left:4px solid var(--dc,var(--a));border-radius:6px;padding:7px 12px;margin-bottom:10px;background:color-mix(in srgb,var(--dc,var(--a)) 6%,var(--panel))}
+  .docket .nm{font-weight:700;color:var(--dc,var(--a));font-size:12px;min-width:100px}
+  .docket .st{color:var(--dim);font-size:10.5px;flex:1}
+  .docket .pcbtn{border-color:var(--dc,var(--a));color:var(--dc,var(--a))}
+  .docket.paper{--dc:var(--cred)} .docket.draft{--dc:var(--o-drf)}
+  /* §WORD the Word's mark on a Roster card; Spoken on the one who had it, spent on the rest */
+  .rcard{position:relative} .rcard .rc-tags{padding-right:62px}
+  .rc-word{position:absolute;right:8px;bottom:7px;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--a);border:1px solid var(--a);border-radius:3px;padding:1px 6px;background:var(--panel);cursor:pointer}
+  .rc-word::before{content:"\25CF";font-size:7px;margin-right:4px;vertical-align:1px}
+  .rc-word:hover{background:var(--a);color:var(--bg)}
+  .rc-word.spent{color:var(--faint);border-color:var(--line);cursor:default} .rc-word.spent:hover{background:var(--panel);color:var(--faint)}
+  .rc-word.spoken{color:var(--hit);border-color:var(--hit);cursor:default} .rc-word.spoken:hover{background:var(--panel);color:var(--hit)}
+  .whead{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:8px 10px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);margin-bottom:10px}
+  .whead .nm{font-size:14px;font-weight:700} .whead .sub{font-size:10px;color:var(--dim)}
+  .whead .st{display:flex;gap:14px;font-size:10px;color:var(--dim)} .whead .st b{color:var(--ink);font-weight:500}
+  .biz .wopts{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
   .dispatch .evgrid{grid-template-columns:1fr;margin-bottom:0}
   .dispatch .rgo{align-items:center;gap:14px}
   .dispatch .evopts{grid-auto-flow:row;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
@@ -1658,7 +1681,6 @@
      signing — so the market and the books never read as one thing. The prospects run as a
      grid, not a rail. */
   /* the paper, answered in the Review */
-  .rsbox{background:#1c1608;border-color:#4a3a12;margin-bottom:14px}
   .rsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:7px}
   .rscard{background:#231c0c;border:1px solid #4a3a12;border-radius:6px;padding:8px 10px}
   .rscard.called{border-color:var(--cred)}
@@ -1964,6 +1986,23 @@
 <!-- WAITING ON YOU: a standing panel under the year line, on every preparation page -->
 <aside id="agenda"></aside>
 
+<!-- §WINDOWS (ruled) WHAT HAPPENS AND IS DONE LEAVES THE PAGE. The Dispatches, the Paper, the Draft and the
+     Word are business a month opens and a manager answers. They open over whichever page he is on, in one
+     shell — a strip naming them in their colour, the thing itself, a beacon to leave by — and come back
+     through Waiting On You or a docket line where they used to stand. The pages keep what is always there. -->
+<div class="scrim" id="dscrim"></div>
+<div id="dispatch" class="dispatch">
+  <div class="rstrip"><span id="dhead"></span><span class="nx" id="dcount"></span></div>
+  <div id="eight"></div>
+  <div id="events"></div>
+  <div class="rgo"><span class="m" id="dfoot"></span><button id="dlater" class="rbeacon"><span class="w" id="dlaterw">Later</span><small>To the Desk</small></button></div>
+</div>
+<div id="bizwin" class="dispatch biz">
+  <div class="rstrip"><span id="bhead"></span><span class="nx" id="bcount"></span></div>
+  <div id="bizbody"></div>
+  <div class="rgo"><span class="m" id="bfoot"></span><span id="bizgo"></span></div>
+</div>
+
 <!-- ================================= THE DESK ================================= -->
 <div class="page" data-tab="desk">
   <div class="brief" id="brief"></div>
@@ -1972,13 +2011,6 @@
        tracks and never sat right there. They open over the Desk when a month begins with something to answer,
        close with Later, and come back through Waiting On You. Unanswered, they resolve by their defaults at
        month's end, as before. -->
-  <div class="scrim" id="dscrim"></div>
-  <div id="dispatch" class="dispatch">
-    <div class="rstrip"><span id="dhead"></span><span class="nx" id="dcount"></span></div>
-    <div id="eight"></div>
-    <div id="events"></div>
-    <div class="rgo"><span class="m" id="dfoot"></span><button id="dlater" class="rbeacon"><span class="w" id="dlaterw">Later</span><small>To the Desk</small></button></div>
-  </div>
   <!-- §DESK THE TALLY SPEAKS FOR BOTH COLUMNS, SO IT STANDS ABOVE BOTH. It was put inside the
        LEFT column of the grid, which centred it over training and rest and left it sitting
        off to one side of the screen — worse than the corner it came from, because it now
@@ -2020,9 +2052,9 @@
   <div class="bar" style="margin-bottom:10px">
   </div>
   <div class="box" id="money"></div>
+  <!-- §WINDOWS the Paper and the Draft are windows now; a docket line each stands here while they are open -->
   <div id="resigning"></div>
-  <!-- §DRAFT THE DRAFT IS A SIGNING WINDOW, so it stands with the others, in its own colour -->
-  <div id="rostdraft" class="acq w-drf"></div>
+  <div id="rostdraft"></div>
   <div id="rostmarket" class="acq"></div>
   <div class="rostcols">
     <div class="rostbooks">
@@ -34489,8 +34521,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (t) h += '<span class="rc-tag">' + esc(t.name) + '</span>';
     if (f.status === 'dead') { var lp = lastPromiseOf(f); if (lp) h += '<span class="rc-tag ' + (lp.status === 'kept' ? '' : 'warn') + '">Promised ' + esc(PROMISE_MID[lp.kind]) + ' \u00b7 ' + (lp.status === 'kept' ? 'Kept' : 'Broken') + '</span>'; return h; }
     openPromisesOf(f).forEach(function (p) { h += '<span class="rc-tag free">Owed ' + esc(PROMISE_MID[p.kind]) + '</span>'; });
-    var k = talkedNow(); if (k && k.fighterId === f.id) h += '<span class="rc-tag">Spoken</span>';
-    return h;
+    return h;   /* §WORD the card's own mark says Spoken */
   }
   function renderRoster() {
     renderResigning();
@@ -34562,9 +34593,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           (ob.txt && ob.txt !== '\u2014' ? '<span class="rc-tag free">' + ob.txt + '</span>' : '') +
           (stt.warn ? '<span class="rc-tag warn">' + stt.txt + '</span>' : '') +
           rosterWordTags(f) +
-        '</div></div>';
+        '</div>' + wordMarkHtml(f) + '</div>';
     });
     $('roster').innerHTML = h + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('#roster [data-word]'), function (el) {
+      el.onclick = function (e) { e.stopPropagation(); openWord(el.getAttribute('data-word')); };
+    });
 
     Array.prototype.forEach.call(document.querySelectorAll('#roster .sortopt'), function (o) {
       o.onclick = function () {
@@ -34595,15 +34629,32 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      renewed or dropped by the same budget arithmetic the fleet uses, so a manager never had to
      decide whether a veteran was worth what he now asks — or that a prisoner who has served his
      sentence is a free man asking for wages. */
+  function paperList() { return G && G.state && G.state.month === 1 ? (SEASON.renewalsFor(G.state, G.me) || []) : []; }
+  function docketHtml(kind, name, state) {
+    return '<div class="docket ' + kind + '"><span class="nm">' + name + '</span><span class="st">' + state + '</span>' +
+           '<button class="pcbtn" data-docket="' + kind + '">Open</button></div>';
+  }
+  function wireDocket(host) {
+    Array.prototype.forEach.call(host.querySelectorAll('[data-docket]'), function (b) { b.onclick = function () { openBiz(b.getAttribute('data-docket')); }; });
+  }
   function renderResigning() {
     var host = $('resigning'); if (!host || !G || !G.state) return;
-    var list = (SEASON.renewalsFor(G.state, G.me) || []);
-    if (G.state.month !== 1 || !list.length) { host.innerHTML = ''; return; }
-    var me = G.corps[G.me];
-    host.innerHTML = '<div class="railbox rsbox"><div class="wtitle"><span class="dot" style="background:var(--cred)"></span>' +
-      '<span class="wnm">The Paper</span>' +
-      '<span class="kind">' + list.length + ' Expiring</span></div>' +
-      '<div class="rsgrid">' + list.map(function (r) {
+    var list = paperList();
+    if (!list.length) { host.innerHTML = ''; return; }
+    var open = list.filter(function (r) { return !r.called; }).length;
+    host.innerHTML = docketHtml('paper', 'The Paper', list.length + ' Expiring \u00b7 ' + (open ? open + ' Unanswered' : 'All Answered'));
+    wireDocket(host);
+    if (BIZ.kind === 'paper') renderBiz();
+  }
+  /* §WINDOWS the Paper's cards, in the window */
+  function renderPaperWin(host) {
+    var list = paperList(), me = G.corps[G.me];
+    var open = list.filter(function (r) { return !r.called; }).length;
+    $('bhead').innerHTML = '<span class="dot"></span>Month 1 \u00b7 <b>The Paper</b>';
+    $('bcount').textContent = list.length + ' Expiring \u00b7 ' + (open ? open + ' Unanswered' : 'All Answered');
+    $('bfoot').textContent = open ? 'Unanswered at the Turn: Settled by the Books' : '';
+    $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (open ? 'Later' : 'Done') + '</span><small>To the Page</small></button>';
+    host.innerHTML = '<div class="rsgrid">' + list.map(function (r) {
         var f = me.roster.filter(function (x) { return x.id === r.id; })[0];
         var up = r.asks > r.was, low = Math.round(r.asks * SEASON.CONST.HAGGLE_FLOOR);
         return '<div class="rscard' + (r.called ? ' called' : '') + '">' +
@@ -34640,7 +34691,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                 'data-rsoff="' + r.id + '" value="' + Math.round(r.year * SEASON.CONST.HAGGLE_FLOOR) + '">' +
                 '<button class="pcbtn" data-rs="haggle" data-rsid="' + r.id + '">Offer This</button></span>' +
               '<button class="pcbtn x" data-rs="release" data-rsid="' + r.id + '">Let Them Go</button></div>') +
-          '</div>'; }).join('') + '</div></div>';
+          '</div>'; }).join('') + '</div>';
     Array.prototype.forEach.call(host.querySelectorAll('[data-rs]'), function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-rsid'), how = b.getAttribute('data-rs');
@@ -35013,7 +35064,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
 
   /* ============================ THE MONTH'S WORD (§TALKS) ============================
-     One talk a month with one person, had from their own sheet (Chat With). The engine's own words
+     One talk a month with one person, had from the Word mark on their Roster card (§WINDOWS). The engine's own words
      are in talks.js. A person who asked for a word this month has had it. */
   function talkSel() {
     if (!G._talkSel || G._talkSel._m !== G.state.season * 100 + G.state.month) G._talkSel = { _m: G.state.season * 100 + G.state.month };
@@ -35051,7 +35102,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of; });
     if (myLetter() && TRADE.tradingOpen(m)) items.push({ txt: cSpan(myLetter().from) + ' Has Written', tab: 'talks', kind: 'Letter', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
     var RD = G.state.recruitDraft;
-    if (RD && !RD.done && m === 1 && SEASON.recruitDraftWhose(G.state) === G.me) items.push({ txt: 'The Draft \u00b7 Your Pick', tab: 'roster', kind: 'Draft', ping: '#rostdraft', urgent: true, cost: 'Best Remaining Assigned for You' });
+    if (RD && !RD.done && m === 1 && SEASON.recruitDraftWhose(G.state) === G.me) items.push({ txt: 'The Draft \u00b7 Your Pick', tab: 'roster', kind: 'Draft', open: 'draft', urgent: true, cost: 'Best Remaining Assigned for You' });
+    /* §WINDOWS the Paper comes back the same way while any of it is unanswered */
+    var unpaper = paperList().filter(function (r) { return !r.called; }).length;
+    if (unpaper) items.push({ txt: 'The Paper \u00b7 ' + unpaper + ' Unanswered', tab: 'roster', kind: 'Paper', open: 'paper', cost: 'Settled by the Books' });
     if (G._boardOutcome && !G._boardAnswered && G.state.month < 12) items.push({ txt: 'The Board Is Asking', tab: 'board', kind: 'Board', urgent: true, cost: 'Silence Is an Answer' });
     if (m === SEASON.CONST.EIGHT_MONTH) {
       var E8 = G.state.eight || { names: {}, declined: {} };
@@ -35101,14 +35155,29 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      down a rail, filled in as they go, the pick at bat lit — and beside it the sheet of who is still there, the
      market's own prospect cards (mark, name, people, graded stats, Best With, the rookie terms), best first, with
      one Pick when the pick is yours. It stood on the Desk as a bare table; every other acquisition is here. */
+  function draftLive() { var R = G && G.state && G.state.recruitDraft; return R && G.state.month <= 1 ? R : null; }
+  function draftState() {
+    var R = draftLive(), n = G.state.ids.length, whose = R.done ? null : R.order[R.i], mine = whose === G.me;
+    return R.done ? 'The Draft Is Done' : 'Round ' + (Math.floor(R.i / n) + 1) + ' \u00b7 Pick ' + (R.i + 1) + ' of ' + R.order.length +
+           ' \u00b7 ' + (mine ? 'Your Pick' : 'Waiting on ' + esc(tName(whose)));
+  }
   function renderRecruitDraft() {
     var host = $('rostdraft'); if (!host) return;
-    var R = G.state && G.state.recruitDraft;
-    if (!R || G.state.month > 1) { host.innerHTML = ''; host.style.display = 'none'; return; }
-    host.style.display = '';
+    var R = draftLive();
+    if (!R) { host.innerHTML = ''; return; }
+    host.innerHTML = docketHtml('draft', 'The Draft', draftState());
+    wireDocket(host);
+    if (BIZ.kind === 'draft') renderBiz();
+  }
+  /* §WINDOWS the Draft's board and sheet, in the window */
+  function renderDraftWin(host) {
+    var R = draftLive(); if (!R) { host.innerHTML = ''; return; }
     var n = G.state.ids.length, whose = R.done ? null : R.order[R.i], mine = whose === G.me;
-    var right = R.done ? 'The Draft Is Done' : 'Round ' + (Math.floor(R.i / n) + 1) + ' \u00b7 Pick ' + (R.i + 1) + ' of ' + R.order.length +
-                ' \u00b7 ' + (mine ? 'Your Pick' : 'Waiting on ' + esc(tName(whose)));
+    var right = draftState();
+    $('bhead').innerHTML = '<span class="dot"></span>Month 1 \u00b7 <b>The Draft</b>';
+    $('bcount').textContent = right;
+    $('bfoot').textContent = R.done ? '' : mine ? 'Unanswered at the Turn: the Best Remaining, Assigned' : '';
+    $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (R.done ? 'Done' : 'Later') + '</span><small>To the Page</small></button>';
     var byPick = {}; R.picks.forEach(function (p) { byPick[p.pick] = p; });
     var board = '';
     R.order.forEach(function (id, k) {
@@ -35127,14 +35196,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     });
     var sheet = R.done ? '<div class="drfdone">Every Pick Made \u00b7 Your Draftees on the Books</div>'
               : '<div class="pcs">' + pool.map(function (f) { return prospectCard(f, 'draft'); }).join('') + '</div>';
-    host.innerHTML = winShell('drf', 'The Draft', '', right,
-      '<div class="drfcols"><div class="drfboard">' + board + '</div>' + sheet + '</div>');
+    host.innerHTML = '<div class="acq w-drf"><div class="drfcols"><div class="drfboard">' + board + '</div>' + sheet + '</div></div>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-rdpick]');
     if (!b || !G || !G.state) return;
     var r = SEASON.recruitDraftPick(G.state, G.me, b.getAttribute('data-rdpick'));
-    if (r.ok) { if (typeof renderRoster === 'function') renderRoster(); if (typeof renderDesk === 'function') renderDesk(); }
+    if (r.ok) { if (typeof renderRoster === 'function') renderRoster(); if (typeof renderDesk === 'function') renderDesk(); if (BIZ.kind === 'draft') renderBiz(); }
   });
   function renderEight() {
     var host = $('eight'); if (!host || !G || !G.state) return;
@@ -35226,19 +35294,56 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function openDispatch() {
     if (!G || !G.state || !dispatchTotal()) return;
+    hideBiz();
     renderDispatch();
     $('dscrim').classList.add('on'); $('dispatch').classList.add('on');
     G._dispatchSeen = G.state.season + ':' + G.state.month;
   }
-  function closeDispatch() { $('dscrim').classList.remove('on'); $('dispatch').classList.remove('on'); }
-  $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch;
-  /* the window opens itself once a month, when the Desk is first shown with something to answer */
-  function dispatchOnArrival() {
-    if (!G || !G.state || G.state.month >= 12) return;
-    var key = G.state.season + ':' + G.state.month;
-    if (G._dispatchSeen === key || !dispatchCount()) return;
-    openDispatch();
+  function closeDispatch() { $('dscrim').classList.remove('on'); $('dispatch').classList.remove('on'); nextWindow(); }
+  function closeAnyWindow() { if ($('bizwin').classList.contains('on')) closeBiz(); else closeDispatch(); }
+  $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeAnyWindow;
+  /* ============================ THE BUSINESS WINDOW (§WINDOWS) ============================
+     The Paper, the Draft and the Word, in the Dispatches' shell over whatever page is on. One
+     is open at a time. */
+  var BIZ = { kind: null, arg: null };
+  var BIZ_COLOUR = { paper: 'var(--cred)', draft: 'var(--o-drf)', word: 'var(--a)' };
+  function openBiz(kind, arg) {
+    if (!G || !G.state) return;
+    if ($('dispatch').classList.contains('on')) closeDispatch();
+    BIZ.kind = kind; BIZ.arg = arg;
+    var box = $('bizwin');
+    box.className = ['dispatch', 'biz', kind].join(' ');
+    box.style.setProperty('--nxc', BIZ_COLOUR[kind] || 'var(--a)');
+    renderBiz();
+    $('dscrim').classList.add('on'); box.classList.add('on');
   }
+  function hideBiz() {
+    BIZ.kind = null; BIZ.arg = null;
+    $('bizwin').classList.remove('on');
+    if (!$('dispatch').classList.contains('on')) $('dscrim').classList.remove('on');
+  }
+  function closeBiz() { hideBiz(); nextWindow(); }
+  function renderBiz() {
+    if (!BIZ.kind || !G || !G.state) return;
+    var body = $('bizbody');
+    if (BIZ.kind === 'paper') renderPaperWin(body);
+    else if (BIZ.kind === 'draft') renderDraftWin(body);
+    else if (BIZ.kind === 'word') renderWordWin(body, BIZ.arg);
+    var later = $('bizlater'); if (later) later.onclick = closeBiz;
+  }
+  /* THE MONTH'S WINDOWS COME IN TURN. When the Desk is first shown with something to answer: the
+     Dispatches, then the Paper, then the Draft, each once a month, each opening as the last one
+     closes. Anything closed unanswered comes back through Waiting On You or its docket line. */
+  function nextWindow() {
+    if (!G || !G.state || G.div || G.state.month >= 12) return;
+    var key = G.state.season + ':' + G.state.month;
+    if (G._dispatchSeen !== key && dispatchCount()) { openDispatch(); return; }
+    if ($('dispatch').classList.contains('on') || $('bizwin').classList.contains('on')) return;
+    G._bizSeen = G._bizSeen || {};
+    if (paperList().length && G._bizSeen.paper !== key) { G._bizSeen.paper = key; openBiz('paper'); return; }
+    if (draftLive() && !draftLive().done && G._bizSeen.draft !== key) { G._bizSeen.draft = key; openBiz('draft'); return; }
+  }
+  function dispatchOnArrival() { nextWindow(); }
   function renderEvents() {
     var host = $('events'); if (!host || !G || !G.state || G.state.month >= 12) { if (host) host.innerHTML = ''; return; }
     var list = SEASON.eventsFor(G.state, G.me) || [];
@@ -35366,6 +35471,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function pingFor(it) {
     var el = null;
     if (it && it.open === 'dispatch') { openDispatch(); return; }
+    if (it && it.open) { openBiz(it.open); return; }
     if (it && it.ping) el = document.querySelector(it.ping);
     if (!el) { var pg = document.querySelector('.page.on'); el = pg && (pg.querySelector('.box, .card, .panel, h2') || pg); }
     if (!el) return;
@@ -37605,10 +37711,72 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     q('[data-sheet]', function (el) { var id = el.getAttribute('data-sheet'); if (me.roster.some(function (f) { return f.id === id; })) inspect(id); });
   }
   /* ============================ CHAT WITH (§TALKS) ============================
-     One word a month, had from the person's own sheet. The button opens the five talks, costed as
+     One word a month, had from the Word mark on the person's Roster card, in the business window
+     (renderWordWin). The sheet keeps the Sergeant's word and the Cutter's table. The talks are costed as
      far as the manager knows this person; choosing one and pressing Speak has it, now. */
   /* §STAFF the Sergeant's word and the Cutter's table, beside the manager's own */
-  function chatHtml(b) { var main = chatMainHtml(b); return main ? main + staffBarsHtml(b) : ''; }
+  function chatHtml(b) { return wordOpenFor(b) ? staffBarsHtml(b) : ''; }
+  /* §WORD can a word be had with this person this month at all */
+  function wordOpenFor(b) {
+    if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS || G.div) return false;
+    var me = G.corps[G.me];
+    return me.roster.indexOf(b) >= 0 && b.status !== 'dead' && b.status !== 'retired' && !b.mirror_of;
+  }
+  /* the mark on a Roster card: Word while the month's is unspoken, Spoken on who had it, spent on the rest */
+  function wordMarkHtml(b) {
+    if (!wordOpenFor(b)) return '';
+    var done = talkedNow();
+    if (!done) return '<span class="rc-word" data-word="' + b.id + '" title="One Word a Month">Word</span>';
+    return done.fighterId === b.id ? '<span class="rc-word spoken" title="' + esc(done.line) + '">Spoken</span>'
+                                   : '<span class="rc-word spent" title="This Month\u2019s Word Went Elsewhere">Word</span>';
+  }
+  function openWord(fid) { var me = G.corps[G.me], b = me.roster.filter(function (f) { return f.id === fid; })[0]; if (b && wordOpenFor(b) && !talkedNow()) openBiz('word', fid); }
+  function renderWordWin(host, fid) {
+    var me = G.corps[G.me], b = me.roster.filter(function (f) { return f.id === fid; })[0];
+    if (!b) { closeBiz(); return; }
+    var done = talkedNow(), sel = talkSel(), short = shortNameOf(b);
+    $('bhead').innerHTML = '<span class="dot"></span>Month ' + G.state.month + ' \u00b7 <b>A Word With ' + esc(short) + '</b>';
+    $('bcount').textContent = done ? 'Spoken' : 'One a Month';
+    var mor = gaugeWord(moraleOf(b), ['Broken', 'Shaken', 'Steady', 'High']), loy = gaugeWord(b.loyalty == null ? 50 : b.loyalty, ['Restless', 'Wavering', 'Loyal', 'Devoted']);
+    var head = '<div class="whead">' + fighterMark(b, 40, colFor(G.me)) +
+      '<div><div class="nm" style="color:' + raceColour(b) + '">' + esc(SEASON.EVENTS.honorific(G.state, b) + b.name) + '</div>' +
+      '<div class="sub">' + originOf(b).label + ' \u00b7 ' + capRace(b.race) + ', ' + (b.age || '?') +
+        (squadOf(b) ? ' \u00b7 ' + esc(squadOf(b).name) : '') + ' \u00b7 ' + (b.temperKnown ? 'Temper Known' : 'Temper Unknown') + '</div></div>' +
+      '<div class="st"><span>Morale <b>' + mor + '</b></span><span>Loyalty <b>' + loy + '</b></span></div></div>';
+    if (done) {
+      host.innerHTML = head + '<div class="m">' + esc(done.fighterId === b.id ? done.line : 'This Month\u2019s Word Went Elsewhere') + '</div>';
+      $('bfoot').textContent = ''; $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">Done</span><small>To the Page</small></button>';
+      return;
+    }
+    var kinds = SEASON.promisable(G.state.month), picked = sel.fighterId === b.id ? sel : {};
+    host.innerHTML = head + '<div class="wopts">' + SEASON.TALKS.TALKS.map(function (t) {
+      var pk = t.id === 'promise' ? (picked.kind === 'promise' && picked.promise && kinds.indexOf(picked.promise) >= 0 ? picked.promise : 'drop') : null;
+      var pv = SEASON.talkPreview(G.state, G.me, b.id, t.id, pk);
+      var cost = SEASON.TALKS.describe(pv) + (b.temperKnown || t.id === 'hear' ? '' : ' \u00b7 Temper Unknown');
+      var prom = t.id === 'promise' ? '<div class="wprom">' + kinds.map(function (k) {
+          return '<button class="tiny' + (pk === k ? ' on' : '') + '" data-wprom="' + k + '">' + esc(PROMISE_SHORT[k]) + '</button>'; }).join('') + '</div>' : '';
+      return '<div role="button" tabindex="0" class="evopt wopt' + (picked.kind === t.id ? ' on' : '') + (pv && pv.how === 'backfired' ? ' bad' : '') + '" data-wtalk="' + t.id + '"' + (pk ? ' data-wpk="' + pk + '"' : '') + '>' +
+        '<span class="ol">' + esc(t.id === 'promise' ? 'Promise ' + PROMISE_MID[pk] : t.name) + '</span><span class="oc">' + esc(cost) + '</span>' + prom + '</div>';
+    }).join('') + '</div>';
+    var chosen = picked.kind ? SEASON.TALKS.TALKS.filter(function (t) { return t.id === picked.kind; })[0] : null;
+    $('bfoot').textContent = chosen ? (chosen.id === 'promise' ? 'Promise ' + PROMISE_MID[picked.promise || 'drop'] : chosen.name) + ' \u00b7 Spoken Now \u00b7 the Month\u2019s Word' : 'Choose a Talk';
+    $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon ghost"><span class="w">Not Now</span><small>Keep the Word</small></button>' +
+      '<button id="pspeak" class="rbeacon"' + (picked.kind ? '' : ' disabled') + '><span class="w">Speak</span><small>' + (chosen ? esc(chosen.id === 'promise' ? 'The Promise' : chosen.name) : 'Choose a Talk') + '</small></button>';
+    Array.prototype.forEach.call(host.querySelectorAll('[data-wtalk]'), function (el) {
+      el.onclick = function (e) {
+        var pb = e.target.closest('[data-wprom]'), k = el.getAttribute('data-wtalk');
+        sel.fighterId = b.id;
+        if (pb) { sel.kind = 'promise'; sel.promise = pb.getAttribute('data-wprom'); }
+        else if (sel.kind === k) { delete sel.kind; delete sel.promise; }
+        else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
+        renderBiz(); };
+    });
+    $('pspeak').onclick = function () {
+      if (!sel.kind) return;
+      SEASON.talkNow(G.state, G.me, { fighterId: b.id, kind: sel.kind, promise: sel.kind === 'promise' ? (sel.promise || 'drop') : undefined });
+      renderBiz(); renderRoster(); renderBrief(); if (G._inspect) renderPanel();
+    };
+  }
   function staffBarsHtml(b) {
     var me = G.corps[G.me], abs = G.state.season * 100 + G.state.month, h = '';
     var pv = SEASON.sergeantPreview(G.state, G.me, b.id);
@@ -37626,62 +37794,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     return h;
   }
-  function chatMainHtml(b) {
-    if (!G.state || G.state.month > SEASON.CONST.PREP_MONTHS || G.div) return '';
-    var me = G.corps[G.me];
-    if (me.roster.indexOf(b) < 0 || b.status === 'dead' || b.status === 'retired' || b.mirror_of) return '';
-    var done = talkedNow(), sel = talkSel(), short = shortNameOf(b);
-    if (done) {
-      var withB = done.fighterId === b.id;
-      return '<div class="chatbar"><button class="pcbtn" disabled>' + (withB ? 'Spoken This Month' : 'Chat With ' + esc(short)) + '</button>' +
-        '<span class="m">' + (withB ? esc(done.line) : 'This Month’s Word Went Elsewhere') + '</span></div>';
-    }
-    var open = sel.chatWith === b.id;
-    var h = '<div class="chatbar"><button class="pcbtn' + (open ? ' on' : '') + '" id="pchat">Chat With ' + esc(short) + '</button>' +
-            '<span class="m">One Word a Month</span></div>';
-    if (!open) return h;
-    var kinds = SEASON.promisable(G.state.month), picked = sel.fighterId === b.id ? sel : {};
-    h += '<div class="wopts">' + SEASON.TALKS.TALKS.map(function (t) {
-      var pk = t.id === 'promise' ? (picked.kind === 'promise' && picked.promise && kinds.indexOf(picked.promise) >= 0 ? picked.promise : 'drop') : null;
-      var pv = SEASON.talkPreview(G.state, G.me, b.id, t.id, pk);
-      var cost = SEASON.TALKS.describe(pv) + (b.temperKnown || t.id === 'hear' ? '' : ' · Temper Unknown');
-      var prom = t.id === 'promise' ? '<div class="wprom">' + kinds.map(function (k) {
-          return '<button class="tiny' + (pk === k ? ' on' : '') + '" data-wprom="' + k + '">' + esc(PROMISE_SHORT[k]) + '</button>'; }).join('') + '</div>' : '';
-      return '<div role="button" tabindex="0" class="evopt wopt' + (picked.kind === t.id ? ' on' : '') + (pv && pv.how === 'backfired' ? ' bad' : '') + '" data-wtalk="' + t.id + '"' + (pk ? ' data-wpk="' + pk + '"' : '') + '>' +
-        '<span class="ol">' + esc(t.id === 'promise' ? 'Promise ' + PROMISE_MID[pk] : t.name) + '</span><span class="oc">' + esc(cost) + '</span>' + prom + '</div>';
-    }).join('') + '</div>' +
-    '<div class="bar" style="margin-bottom:6px"><button class="pcbtn on" id="pspeak"' + (picked.kind ? '' : ' disabled') + '>Speak</button></div>';
-    return h;
-  }
   function shortNameOf(b) {
     var n = String(displayName(b) || b.name || '');
     if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
     return n.split(' ')[0];
   }
   function wireChat(panel, b) {
-    var sel = talkSel();
-    var pc = $('pchat');
-    if (pc) pc.onclick = function () { if (sel.chatWith === b.id) delete sel.chatWith; else { sel.chatWith = b.id; if (sel.fighterId !== b.id) { sel.fighterId = b.id; delete sel.kind; delete sel.promise; } } renderPanel(); };
-    Array.prototype.forEach.call(panel.querySelectorAll('[data-wtalk]'), function (el) {
-      el.onclick = function (e) {
-        var pb = e.target.closest('[data-wprom]'), k = el.getAttribute('data-wtalk');
-        sel.fighterId = b.id;
-        if (pb) { sel.kind = 'promise'; sel.promise = pb.getAttribute('data-wprom'); }
-        else if (sel.kind === k) { delete sel.kind; delete sel.promise; }
-        else { sel.kind = k; if (k === 'promise') sel.promise = el.getAttribute('data-wpk'); else delete sel.promise; }
-        renderPanel(); };
-    });
     var sg = $('psgt');
     if (sg) sg.onclick = function () { SEASON.sergeantNow(G.state, G.me, b.id); renderPanel(); renderRoster(); };
     var op = $('poperate');
     if (op) op.onclick = function () { var r = SEASON.operate(G.state, G.me, b.id); if (r && r.outcome === 'dead') closeSheet(); else renderPanel(); renderRoster(); };
-    var sp = $('pspeak');
-    if (sp) sp.onclick = function () {
-      if (!sel.kind) return;
-      SEASON.talkNow(G.state, G.me, { fighterId: b.id, kind: sel.kind, promise: sel.kind === 'promise' ? (sel.promise || 'drop') : undefined });
-      delete sel.chatWith;
-      renderPanel(); renderRoster(); renderBrief();
-    };
   }
   /* the sheet's head and blocks are the Roster rail's, so one fighter reads the same on
      both tabs */
@@ -38456,7 +38578,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     $('dlaterw').textContent = 'Settle';
     $('dlater').onclick = function () {
       SEASON.answerContest(G.state, G.me, { captiveFate: fate });
-      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeAnyWindow; $('dlaterw').textContent = 'Later';
       advanceDivide();
     };
     $('dscrim').onclick = null;
@@ -38486,7 +38608,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     $('dlaterw').textContent = 'Settle';
     $('dlater').onclick = function () {
       SEASON.answerContest(G.state, G.me, { keepWord: keep });
-      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeAnyWindow; $('dlaterw').textContent = 'Later';
       advanceDivide();
     };
     $('dscrim').onclick = null;   /* the word is given, not put off */

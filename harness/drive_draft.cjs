@@ -12,8 +12,15 @@ const fails = [];
 setTimeout(() => { d.getElementById('mNew').click();
   setTimeout(() => { d.getElementById('cfound').click();
     setTimeout(() => {
-      const G = w.__G, host = d.getElementById('rostdraft'), R = G.state.recruitDraft;
-      if (!host || !/The Draft/.test(host.textContent)) fails.push('no Draft window on the Roster in Month 1');
+      const G = w.__G, R = G.state.recruitDraft;
+      /* §WINDOWS the Draft is a window: a docket line on the Roster opens it, and Month 1 opens it in turn */
+      const dock = d.getElementById('rostdraft');
+      if (!dock || !/The Draft/.test(dock.textContent) || !dock.querySelector('[data-docket="draft"]')) fails.push('no Draft docket on the Roster in Month 1');
+      while (d.getElementById('dispatch').classList.contains('on')) d.getElementById('dlater').click();
+      for (let k = 0; k < 3 && d.getElementById('bizwin').classList.contains('on') && !/The Draft/.test(d.getElementById('bhead').textContent); k++) d.getElementById('bizlater').click();
+      if (!d.getElementById('bizwin').classList.contains('on')) dock.querySelector('[data-docket="draft"]').click();
+      const host = d.getElementById('bizwin');
+      if (!host.classList.contains('on') || !/The Draft/.test(host.textContent)) fails.push('the Draft does not open as a window');
       if (host.querySelectorAll('.drfpk').length !== 16) fails.push('the board does not show all sixteen picks');
       /* weakest first: the founder took the weakest berth, so the first pick is yours, not a draw */
       if (R.order[0] !== G.me) fails.push('the first pick is not the weakest OA (you)');
@@ -41,7 +48,7 @@ setTimeout(() => { d.getElementById('mNew').click();
       }
       if (errs.length) fails.push('page errors: ' + errs.slice(0, 2).join(' ; '));
       console.log(fails.length ? 'FAIL ' + fails.join(' | ')
-        : 'the Draft stands on the Roster in Month 1: the board weakest first, the pool best first with every stat, your pick, and the fighter on your roster');
+        : 'the Draft opens as a window from the Roster in Month 1: the board weakest first, the pool best first with every stat, your pick, and the fighter on your roster');
       process.exit(fails.length ? 1 : 0);
     }, 500);
   }, 300);

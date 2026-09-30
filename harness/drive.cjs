@@ -233,16 +233,23 @@ setTimeout(() => {
     {
       const GP = window.__G, S6 = window.CDSEASON;
       const paper = S6.renewalsFor(GP.state, GP.me) || [];
-      check(paper.length >= 1 && doc.querySelectorAll('#resigning .rscard').length === paper.length,
-            'the expiring paper stands on the Roster in the Review (' + paper.length + ')');
-      const signBtn = doc.querySelector('#resigning [data-rs="sign"]');
+      /* §WINDOWS the Paper is a window over the page: a docket line on the Roster opens it */
+      check(paper.length >= 1 && /The Paper/.test(text('#resigning')) && doc.querySelector('#resigning [data-docket="paper"]'),
+            'the Paper\'s docket stands on the Roster in the Review (' + paper.length + ')');
+      doc.querySelector('#resigning [data-docket="paper"]').click();
+      check(doc.getElementById('bizwin').classList.contains('on') && doc.querySelectorAll('#bizwin .rscard').length === paper.length,
+            'and opens the Paper as a window with every expiring hand in it');
+      const signBtn = doc.querySelector('#bizwin [data-rs="sign"]');
       const who = signBtn.getAttribute('data-rsid');
       signBtn.click();
-      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#resigning')),
+      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#bizwin')),
             'a hand is re-signed at what they ask');
-      const goBtn = doc.querySelectorAll('#resigning [data-rs="release"]')[0];
+      const goBtn = doc.querySelectorAll('#bizwin [data-rs="release"]')[0];
       if (goBtn) { const gone = goBtn.getAttribute('data-rsid'); goBtn.click();
         check((GP.corps[GP.me]._renewalCalls || {})[gone].how === 'release', 'and another is let go'); }
+      doc.getElementById('bizlater').click();
+      check(!(doc.getElementById('bizwin').classList.contains('on') && /The Paper/.test(text('#bhead'))), 'Later closes the Paper');
+      for (let k = 0; k < 3 && doc.getElementById('bizwin').classList.contains('on'); k++) doc.getElementById('bizlater').click();   /* and whatever came in turn behind it */
     }
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
