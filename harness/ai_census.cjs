@@ -83,7 +83,11 @@ function career(w) {
     const cap0 = {}; for (const id of ids) cap0[id] = JSON.stringify(corps[id].captains || []);
     for (const id of ids) chance('year', id);
     /* the recruit draft */
-    if (st.recruitDraft) for (const p of st.recruitDraft.picks) note('draft.pick', p.corp, p.how || 'pick');
+    if (st.recruitDraft) for (const p of st.recruitDraft.picks) {
+      const f = corps[p.corp].roster.find(x => x.id === p.fighter);
+      const top = f ? Object.entries(f.stats || {}).sort((a, b) => b[1] - a[1])[0][0] : '?';
+      note('draft.pick', p.corp, (p.how || 'pick') + ':best ' + top);
+    }
     while (st.month <= S.CONST.PREP_MONTHS) {
       const m = st.month;
       const before = {}; for (const id of ids) before[id] = new Set(corps[id].roster.map(f => f.id));
@@ -119,7 +123,13 @@ function career(w) {
     }
     /* the Eight, the Dividend, the drop */
     const E = st.eight && st.eight.result;
-    if (E && E.teams) for (const side in E.teams) for (const e of E.teams[side] || []) { const cid = e && (typeof e.corp === 'string' ? e.corp : e.corp && e.corp.id); if (cid) note('eight.entered', cid, 'entered'); }
+    if (E && E.teams) for (const side in E.teams) for (const e of E.teams[side] || []) {
+      const cid = e && (typeof e.corp === 'string' ? e.corp : e.corp && e.corp.id); if (!cid) continue;
+      const q = x => ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + ((x.stats || {})[k] || 0), 0);
+      const ros = corps[cid].roster.filter(x => x.status !== 'dead' && !x.mirror_of).sort((a, b) => q(b) - q(a));
+      const fid = e.fighter && (e.fighter.id || e.fighter), i = ros.findIndex(x => x.id === fid);
+      note('eight.entered', cid, i < 0 ? 'rank ?' : i < 2 ? 'rank top 2' : i < 6 ? 'rank 3-6' : 'rank 7+');
+    }
     for (const id of ids) chance('eight', id);
     const d = st.drop || {};
     for (const id in (d.media || {})) note('media', id, 'reveal ' + d.media[id].reveal);

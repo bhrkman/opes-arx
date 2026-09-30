@@ -14176,8 +14176,14 @@
     const ok = kind => legal(kind) && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'backfired'
                     && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'faded';
     let kind = null;
+    /* §CENSUS the house's own manner: a schemer buys a sour hand with a promise it may not keep; a hard house dresses
+       down the idle rather than drive them */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     if (!who.temperKnown && (caps.has(who.id) || loy(who) < 40)) kind = 'hear';
     else if (who.temperKnown && ok(TEMPERS[who.temper].doubles)) kind = TEMPERS[who.temper].doubles;
+    else if (loy(who) < 40 && dial('treachery') >= 0.55 && ok('promise')) kind = 'promise';
+    else if (str(who) < 30 && dial('aggression') >= 0.7 && dial('patience') <= 0.45 && ok('dress')) kind = 'dress';
     else if (loy(who) < 40 && ok('praise')) kind = 'praise';
     else if (str(who) < 30 && ok('drive')) kind = 'drive';
     else if (ok('praise')) kind = 'praise';
@@ -14845,6 +14851,31 @@
     f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
   };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
+  /* §CENSUS AN ENGINE OA ANSWERS AS ITSELF. Measured: ten dispatches were answered one way by every house, every
+     time — a brawl always punished, an offer always refused, every quirk moment the first option. Each policy now
+     weighs its options by the house's dials and its situation; the best-scoring option is the answer. */
+  const dialOf = (c, k) => ((c.profile && c.profile.dials && typeof c.profile.dials[k] === 'number') ? c.profile.dials[k] : 50) / 100;
+  /* what a house's character makes of an act's qualities, beside what its stands make of them */
+  const CHARACTER = { blood: ['aggression', 1], grit: ['aggression', 0.5], glory: ['showmanship', 1], care: ['patience', 1],
+                      word: ['tradition', 1], craft: ['tradition', 0.5] };
+  function appealOf(c, q) {
+    if (!q) return 0;
+    const taste = c.rep && REP.tasteOf ? REP.tasteOf(c.rep) : null;
+    let v = 0;
+    for (const k in q) {
+      if (taste && taste[k] != null) v += q[k] * taste[k];
+      const ch = CHARACTER[k]; if (ch) v += q[k] * (dialOf(c, ch[0]) - 0.5) * ch[1];
+    }
+    if (q.word) v -= q.word * (dialOf(c, 'treachery') - 0.5);   /* a schemer sets less store by a word kept */
+    return v;
+  }
+  const bestOf = scores => Object.keys(scores).sort((a, b) => scores[b] - scores[a])[0];
+  /* how much a hand matters to the house: their place in the roster's order, 1 = the best */
+  function rankOf(c, f) {
+    const q = x => { const s = x.stats || {}; return (s.aim || 0) + (s.tactics || 0) + (s.resolve || 0) + (s.grit || 0); };
+    const a = alive(c).filter(x => !x.mirror_of).sort((x, y) => q(y) - q(x));
+    return a.length ? (a.indexOf(f) + 1) / a.length : 1;
+  }
 
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
@@ -14916,7 +14947,13 @@
         if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
-      ai: () => 'a'
+      /* §CENSUS the option its stands and its character like better */
+      ai: (c) => {
+        /* what it costs weighs too: a careful house minds the money, a hard one minds the strain less */
+        const cost = o => (o[1] === 'credits' && o[2] < 0 ? o[2] / 10000 * (0.5 + dialOf(c, 'thrift')) : 0)
+                        - (o[1] === 'stress' && o[2] > 0 ? o[2] / 40 * (1 - dialOf(c, 'aggression')) : 0);
+        return appealOf(c, m.b[4]) + cost(m.b) > appealOf(c, m.a[4]) + cost(m.a) ? 'b' : 'a';
+      }
     };
   }
   const POOL = [
@@ -14946,7 +14983,15 @@
         if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
         stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
-      ai: (c, e) => spare(c) > e.ask * 20 ? 'grant' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f), thrift = dialOf(c, 'thrift');
+        return bestOf({
+          grant: (spare(c) > e.ask * 12 * (0.5 + thrift * 1.5) ? 0.3 : -1) + (1 - r) * 0.6 + dialOf(c, 'patience') * 0.3,
+          refuse: 0.2 + thrift * 0.9 + r * 0.4,
+          release: r > 0.6 ? thrift * 0.6 + (1 - dialOf(c, 'tradition')) * 0.3 + (r - 0.6) : 0
+        });
+      }
     },
     {
       id: 'debt', weight: 1.0,
@@ -14968,7 +15013,15 @@
         wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
-      ai: (c) => spare(c) > CONST.DEBT_CALL * 6 ? 'pay' : 'ignore'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'ignore';
+        const r = rankOf(c, f);
+        return bestOf({
+          pay: (spare(c) > CONST.DEBT_CALL * (3 + 5 * dialOf(c, 'thrift')) ? 0.3 : -1) + dialOf(c, 'patience') * 0.4 + (1 - r) * 0.4,
+          ignore: 0.3 + dialOf(c, 'aggression') * 0.4 + r * 0.2,
+          sell: r > 0.5 ? dialOf(c, 'thrift') * 0.5 + dialOf(c, 'treachery') * 0.3 + (r - 0.5) * 0.6 : 0
+        });
+      }
     },
     {
       id: 'brawl', weight: 1.0,
@@ -14995,7 +15048,11 @@
         if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
         alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
-      ai: () => 'punish'
+      ai: (c) => bestOf({
+        punish: dialOf(c, 'tradition') * 0.7 + dialOf(c, 'aggression') * 0.4,
+        fine: dialOf(c, 'thrift') * 0.8 + 0.15,
+        lie: dialOf(c, 'patience') * 0.6 + (1 - dialOf(c, 'tradition')) * 0.4
+      })
     },
     {
       id: 'memo', weight: 0.9,
@@ -15015,7 +15072,7 @@
         if (opt === 'accept') { c.rep.goal.priority = e.subject; c.rep.patience = Math.min(100, (c.rep.patience || 0) + 2); return 'The Card\u2019s Priority Moved'; }
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3); return 'The Card Held as It Stood';
       },
-      ai: (c) => (c.rep && c.rep.patience < 50) ? 'accept' : 'push'
+      ai: (c) => (c.rep && c.rep.patience < 35 + 35 * (1 - dialOf(c, 'tradition'))) ? 'accept' : 'push'
     },
     {
       id: 'poach', weight: 1.1,
@@ -15047,7 +15104,15 @@
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
         if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'The Offer Was Refused';
       },
-      ai: (c, e) => spare(c) < 20000 ? 'accept' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f);
+        return bestOf({
+          accept: (spare(c) < 20000 ? 0.8 : 0) + dialOf(c, 'thrift') * 0.4 + r * 0.5,
+          refuse: 0.5 + (1 - r) * 0.5 + dialOf(c, 'tradition') * 0.2,
+          counter: dialOf(c, 'treachery') * 0.6 + dialOf(c, 'showmanship') * 0.3 + r * 0.2
+        });
+      }
     },
     {
       id: 'insult', weight: 0.8,
@@ -15066,7 +15131,11 @@
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
         REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
-      ai: (c) => (c.rep && REP.standing(c.rep, 'crowd') < 50) ? 'answer' : 'laugh'
+      ai: (c) => bestOf({
+        answer: dialOf(c, 'aggression') * 0.8 + (c.rep && REP.standing(c.rep, 'crowd') < 50 ? 0.3 : 0),
+        laugh: dialOf(c, 'showmanship') * 0.5 + dialOf(c, 'patience') * 0.4,
+        ignore: dialOf(c, 'tradition') * 0.3 + (1 - dialOf(c, 'showmanship')) * 0.3
+      })
     },
     {
       id: 'dealer', weight: 0.9,
@@ -15089,7 +15158,7 @@
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
       /* the engine buys what it can issue soon, not what it will store for years */
-      ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
+      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
   function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
@@ -15119,7 +15188,10 @@
         if (c.rep) REP.act(c.rep, 'took_the_collection', {});
         return 'The Collection Was Taken';
       },
-      ai: (c) => (c.rep && (c.rep.shares.families || 0) > 0.2) ? 'families' : 'take'
+      ai: (c, e) => bestOf({
+        families: (c.rep ? ((c.rep.shares.families || 0) + (c.rep.shares.diehards || 0) * 0.5) * 1.5 : 0) + dialOf(c, 'tradition') * 0.3 + dialOf(c, 'patience') * 0.3,
+        take: 0.15 + dialOf(c, 'thrift') * 0.5 + (spare(c) < e.amount * 20 ? 0.3 : 0)
+      })
     },
     {
       id: 'tip', weight: 0.8,
@@ -15137,7 +15209,10 @@
         if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
         return 'The Papers Were Read';
       },
-      ai: (c) => 'read'
+      ai: (c) => bestOf({
+        read: 0.35 + dialOf(c, 'treachery') * 0.6 + dialOf(c, 'aggression') * 0.1,
+        return: dialOf(c, 'tradition') * 0.5 + (1 - dialOf(c, 'treachery')) * 0.3
+      })
     },
     {
       id: 'protest', weight: 1.1,
@@ -15155,7 +15230,11 @@
         if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
         if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
       },
-      ai: (c) => 'meet'
+      ai: (c) => bestOf({
+        meet: 0.3 + dialOf(c, 'showmanship') * 0.5 + (c.rep && c.rep.patience > 40 ? 0.1 : -0.2),
+        shut: dialOf(c, 'aggression') * 0.5 + (1 - dialOf(c, 'tradition')) * 0.3,
+        ignore: dialOf(c, 'patience') * 0.4 + (c.rep && c.rep.patience > 60 ? 0.2 : -0.3)
+      })
     },
     {
       id: 'strike', weight: 0.9,
@@ -15173,7 +15252,7 @@
         c._noDrill = ctx.state.season * 100 + ctx.state.month;
         return 'The Drill Stood Idle';
       },
-      ai: (c, e) => spare(c) > e.amount * 4 ? 'pay' : 'wait'
+      ai: (c, e) => spare(c) > e.amount * (2 + 4 * dialOf(c, 'thrift')) && dialOf(c, 'patience') < 0.75 ? 'pay' : 'wait'
     },
     {
       id: 'leak', weight: 0.8,
@@ -15190,7 +15269,7 @@
         c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
         return 'The Leak Ran';
       },
-      ai: (c) => spare(c) > CONST.LEAK_HUNT * 4 ? 'find' : 'let'
+      ai: (c) => spare(c) > CONST.LEAK_HUNT * (2 + 5 * (1 - dialOf(c, 'treachery')) + 2 * dialOf(c, 'thrift')) ? 'find' : 'let'
     }
   );
   /* §MEDIA THE PRESS: what a columnist wants between media days */
@@ -15307,6 +15386,10 @@
     ai: (c, e) => {
       const f = alive(c).find(x => x.id === e.subject);
       if (!f) return 'away';
+      /* §CENSUS a house that sets little store by a hand turns them away; one with a Sergeant sends them, keeping its word */
+      const r = rankOf(c, f);
+      if (r > 0.7 && dialOf(c, 'patience') < 0.45 && dialOf(c, 'aggression') > 0.5) return 'away';
+      if (e.options.some(o => o.id === 'sergeant') && (r > 0.4 || dialOf(c, 'patience') < 0.5)) return 'sergeant';
       const t = f.temperKnown ? TALKS.TEMPERS[TALKS.temperOf(f)] : null;
       if (t && t.doubles !== 'promise' && e.options.some(o => o.id === t.doubles)) return t.doubles;
       if (t && t.doubles === 'promise' && e.ask !== 'captain' && e.ask !== 'strain') return 'promise';
@@ -15486,7 +15569,7 @@
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
       /* a petition is a stance, not a reflex: only an OA the edict cuts against by
          temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'boom') return d('thrift') > 0.6 ? 'petition' : 'accept';
+      if (e.fleet === 'boom') return (d('thrift') + d('aggression')) / 2 > 0.55 || d('thrift') > 0.6 ? 'petition' : 'accept';   /* dear kit hurts the careful and the warlike */
       return 'accept';
     }
   };
@@ -22857,7 +22940,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            many. */
         /* the same reckoning the leaver used: what this OA would gain by its going — the odds, and the losses it is
            spared — against what the leaver asks of the pot it hopes to win */
-        const asked = Math.max(0, Math.min(1, (off.terms && off.terms.credits) || 0));
+        /* §CENSUS a share of the stores is weighed too, at the rate the settlement weighs it (a quarter of a credit
+           share): this read the credits alone, so an ask for no credits and all the stores was waved through */
+        let storeAsk = 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) storeAsk += Math.max(0, Math.min(1, off.terms[k] || 0));
+        const asked = Math.max(0, Math.min(1, ((off.terms && off.terms.credits) || 0) + storeAsk / 4));
         let yes = asked <= maxAskFor(leaver, c).maxAsk;
         yes = decide('withdrawReply', { corp: c.id, from: off.from }, yes, [true, false]);
         off.replies[c.id] = yes;
@@ -22904,8 +22991,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) * margin - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
-        const ask = (off.terms && off.terms.credits) || 0;
-        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true);
+        let ask = (off.terms && off.terms.credits) || 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) ask += Math.max(0, Math.min(1, off.terms[k] || 0)) / 4;   /* its stores at their worth */
+        /* §CENSUS a promise from a house that is itself leaving is worth nothing — only a winner pays — and seven
+           houses had been standing down on the strength of each other's yeses, off an empty ground by the evening */
+        const leaving = j => !!(stats.withdrawOffers || {})[j.id] || !onGround(j);
+        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true && !leaving(r.j));
         if (got - cost > stay) standDown(c, day, stats, corps);
         else { delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
       } else if (!off) {
@@ -22913,7 +23004,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         for (const r of rows) {
           const ask = Math.floor(r.maxAsk * 100) / 100;
           if (ask <= 0) continue;
-          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask);
+          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask && !(stats.withdrawOffers || {})[x.j.id]);   /* not from those already on their way out */
           if (ev > best.ev) best = { ask: ask, ev: ev };
         }
         /* §WITHDRAWAL AN OA CAN WALK AWAY WITH NOTHING. It could leave only through a deal — an offer some rival
@@ -22928,7 +23019,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           continue;
         }
         if (best.ask > 0 && best.ev - cost > stay) {
-          postWithdrawOffer(c, { credits: best.ask }, day, stats);
+          /* §CENSUS a house whose board wants a store takes part of its price in that store, at the same worth */
+          const terms = { credits: best.ask };
+          const dem = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(g => g.kind === 'resource' && g.category);
+          if (dem && planet.pot) { terms.credits = Math.round(best.ask * 0.75 * 100) / 100; terms[dem.category] = Math.min(1, Math.round(best.ask * 100) / 100); }
+          postWithdrawOffer(c, terms, day, stats);
           (stats.audit.offerLog = stats.audit.offerLog || []).push({ from: c.id, day: day, ask: best.ask,
             odds: Math.round((odds[c.id] || 0) * 1000) / 1000,
             standing: (c.allBodies || []).filter(b => b.status === 'active').length + '/' + (c.allBodies || []).length });
@@ -25141,6 +25236,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
     });
   }
+  /* §CENSUS THE GROUND HAS A SAY ABOUT EACH RIVAL. An engine OA set its notch at every rival once, at the drop, by
+     regard, and never looked again. Each window it now starts from that and weighs what is on the ground: a rival much
+     stronger than it is handled more carefully, a bled one pressed harder by a house with the stomach for it. */
+  function reconsiderRivals(corp, corps) {
+    if (!corp._stanceBase) return;
+    const living = j => (j.allBodies || []).filter(b => b.status === 'active').length;
+    const mine = Math.max(1, living(corp));
+    const d = (corp.profile && corp.profile.dials) || {};
+    const bold = (typeof d.aggression === 'number' ? d.aggression : 50) / 100;
+    for (const other of corps) {
+      if (other === corp || corp._stanceBase[other.id] == null) continue;
+      const ratio = living(other) / mine;
+      const adj = ratio > 1.6 ? -1 : ratio < 0.6 && bold > 0.5 ? 1 : 0;
+      const base = NOTCHES.indexOf(corp._stanceBase[other.id]);
+      corp._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + adj))];
+    }
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -25530,6 +25642,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const step = r < -20 ? 2 : r < -5 ? 1 : r > 20 ? -2 : r > 5 ? -1 : 0;
           c._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
         }
+        c._stanceBase = Object.assign({}, c._stance);   /* what it thinks of each before the ground has a say */
       }
     }
     /* guarantee, not hope: nudge apart anything that still landed inside sight range */
@@ -25822,7 +25935,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (got && got.corp && STANCE_DIALS[got.corp] && got.corp !== c.policy) { c.policy = got.corp; c.stanceChanges++; stats.stanceChanges++; }
             if (got && got.squads) { for (const q of c.squads) { const n = got.squads[q.sIdx]; if (n && STANCE_DIALS[n]) q.stance = n; } }
             else seatSquadStances(c);
-          } else reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
+          } else { reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 }); reconsiderRivals(c, corps); }
         }
 
         /* THE WINDOW. Comms are up; this is where a manager speaks to their people and to the
@@ -28262,6 +28375,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       raised += each * n;
     }
     const offer = { gear: gear, credits: Math.round(credits) };
+    /* §CENSUS A HOUSE SHORT OF MONEY PAYS IN KIND. An engine letter only ever carried credits and gear; a house that
+       could not cover the price now puts up a hand of its own it can spare, or what it knows about a third house —
+       a schemer reaching for the dossier first */
+    const dl = (them.profile && them.profile.dials) || {};
+    const schemer = (typeof dl.treachery === 'number' ? dl.treachery : 50) >= 55;
+    const addIntel = () => {
+      if (raised >= target * 0.9) return;
+      const sheets = (them._intel && them._intel.rivals) || {};
+      const about = Object.keys(sheets).filter(k => k !== me.id && k !== them.id && Object.keys((sheets[k] || {}).rows || {}).length)[0];
+      if (!about) return;
+      const rows = Object.keys(sheets[about].rows).length;
+      offer.intel = [{ about, rows }];
+      raised += intelPrice(rows, opts.focusPointPrice, opts.rowsPerPip);
+    };
+    const addBody = () => {
+      if (raised >= target * 0.9) return;
+      const gap = target - raised;
+      const spare = (them.roster || []).filter(f => (f.status === 'active' || f.status === 'injured') && !f.mirror_of && !f.bond_partner)
+        .map(f => ({ f, v: netOf(f) })).filter(x => x.v > 0 && x.v <= gap * 1.2).sort((a, b) => b.v - a.v)[0];
+      if (!spare) return;
+      offer.units = [spare.f.id];
+      raised += spare.v;
+    };
+    if (schemer) { addIntel(); addBody(); } else { addBody(); addIntel(); }
     const ask = { units: [want.id] };
     /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
        the receiver's lights, which is the opposite of why anybody proposes anything: an OA
@@ -29180,15 +29317,22 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
   }
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
-  function eightPick(corp) {
+  function eightPick(corp, asRule) {
     const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
     /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
     const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
       .map(p => fit.find(f => f.id === p.fighterId)).filter(Boolean);
     if (owed.length) return owed[0];
-    const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
-    return fit.slice().sort((a, b) => score(b) - score(a))[0];
+    /* §CENSUS who a house risks: a bold or showy house sends its best and most famous; a careful one keeps its best
+       home and sends a good hand from further down, since the Eight can kill */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.fame || 0) * (0.2 + 0.8 * dial('showmanship')) + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
+    const ranked = fit.slice().sort((a, b) => score(b) - score(a));
+    /* an unnamed person's seat is the rule's, not a character's: its best goes (ruled) */
+    const care = asRule ? 0 : Math.max(0, dial('patience') - dial('aggression'));   /* 0 for the bold, up to about a half for the careful */
+    return ranked[Math.min(ranked.length - 1, Math.floor(ranked.length * care * 0.5))];
   }
   /** a manager names a fighter — a choice for the month's end. RULED: every OA sends
       someone; there is no declining. Unnamed, the OA's best goes. */
@@ -29204,7 +29348,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const entrants = [];
     for (const id of ids) {
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
-      if (!f) f = eightPick(corps[id]);
+      if (!f) f = eightPick(corps[id], isHuman(state, id));
       if (f) entrants.push({ corp: corps[id], f });
     }
     /* §TALKS whoever was promised the Eight either went or was passed over */
@@ -29779,6 +29923,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (!best) break;
       focus[best] = (focus[best] || 0) + 1; left--;
+    }
+    /* §CENSUS A BOOST IS A LUXURY: the last two months before the Lock, a flush and eager house doubles the track that
+       matters most for the drop — rest if it has hurt to mend, else the drill — and pays for it */
+    if (month >= 9 && month <= 10) {
+      const purse = (corp.account && corp.account.treasury) || 0;
+      const want = hurt.length >= 3 ? 'rest' : 'train';
+      const bill = (focus[want] || 0) * CONST.BOOST_PER_POINT;
+      if (focus[want] && purse - bill > 80000 + 80000 * dial('thrift') && dial('aggression') + dial('showmanship') > 1.0)
+        focus._boost = { [want]: true };
     }
     /* §CENSUS WHERE THE EYES GO: the planet until it is known, then the rivals — the one it is most wary of first
        (the house the crowd loves most, which is the house that will be hardest to beat), a schemer sooner */
@@ -30806,9 +30959,25 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       let headroom = staying.length + expiring.length - CONST.ROSTER_MIN;
       /* §RESIGN a manager's own calls stand before the arithmetic does */
       const calls = corp._renewalCalls || {};
+      /* §CENSUS AN ENGINE OA SITS AT THE TABLE TOO. It paid every ask it could afford and released only when it could
+         not; it never haggled and never let a hand go by choice. Now it makes the calls a person makes: a careful house
+         offers under the ask (and may lose the hand over it), and one with a deep roster lets its weakest walk. */
+      const engineCalls = {};
+      if (state && !isHuman(state, corp.id)) {
+        const d = (corp.profile && corp.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const order = aliveOf(corp).filter(x => !x.mirror_of).sort((a, b) => worth(b) - worth(a));
+        let spareHeads = headroom;
+        for (const f of expiring) {
+          if (calls[f.id]) continue;
+          const r = order.length ? (order.indexOf(f) + 1) / order.length : 0;
+          if (spareHeads > 2 && r > 0.8 && dial('tradition') < 0.6) { engineCalls[f.id] = { how: 'release' }; spareHeads--; continue; }
+          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round(renewalSalary(f, state) * (1 - 0.3 * (dial('thrift') - 0.4))) };
+        }
+      }
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
         if (gone.indexOf(f) >= 0) continue;
-        const call = calls[f.id];
+        const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
           const asked = renewalSalary(f, state);
@@ -30945,8 +31114,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
     /* §TALKS a place on the drop promised is a place on the drop, if they can stand */
     const owed = new Set(TALKS.promisesOf(corp).filter(p => (p.kind === 'drop' || p.kind === 'lead') && p.status === 'open').map(p => p.fighterId));
+    /* §CENSUS A SCHEMER'S WORD IS WORTH WHAT IT COSTS. An engine OA kept every promise, however poor the hand it had
+       promised; a treacherous house now breaks the ones that would put its weakest on the ground, and pays for it with
+       the stands and the hand as a person would */
+    const dl = (corp.profile && corp.profile.dials) || {};
+    const treach = (typeof dl.treachery === 'number' ? dl.treachery : 50) / 100;
+    const qs = fit.map(quality).sort((a, b) => a - b), median = qs.length ? qs[Math.floor(qs.length / 2)] : 0;
+    const honours = f => !(treach >= 0.55 && quality(f) < median - (1 - treach) * 0.5);
     const score = f => {
-      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) ? 100 : 0);
+      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) && honours(f) ? 100 : 0);
       /* an unserved term pulls its holder toward the drop — the corp bought the clause
          and the clause only advances on the ground; a served-out term stops pulling */
       if (f.contract && f.contract.divides_required != null) {
@@ -31232,6 +31408,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      (The landing-slot pick before the drop is the Drop.) */
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
+  /* what a house looks for in a rookie: every stat counts, and its character counts some twice */
+  function draftTaste(c) {
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const w = { aim: 1 + dial('aggression') * 0.8, grit: 1 + dial('aggression') * 0.5, tactics: 1 + dial('tradition') * 0.8,
+                resolve: 1 + dial('patience') * 0.6, presence: 1 + dial('showmanship') * 0.8, fieldcraft: 1 + dial('treachery') * 0.6,
+                reflex: 1.2 };
+    return f => { const st = f.stats || {}; let t = 0; for (const k in st) t += (st[k] || 0) * (w[k] || 1); return t; };
+  }
   function openRecruitDraft(state) {
     const rng = rngOf(state, 'recruit-draft' + state.season);
     /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
@@ -31290,8 +31475,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (!best) { R.done = true; break; }
       if (isHuman(state, who)) {
         if (!(opts && opts.force)) break;
-        takeDraftee(state, who, best, 'assigned');
-      } else takeDraftee(state, who, best, 'policy');
+        takeDraftee(state, who, best, 'assigned');   /* an unmade pick is the Aleas' rule: the best left */
+      } else {
+        /* §CENSUS an engine OA drafts to its own taste, not the one sort every house used */
+        const taste = draftTaste(state.corps[who]);
+        takeDraftee(state, who, draftLeads(R).sort((a, b) => taste(b) - taste(a))[0], 'policy');
+      }
     }
     return R;
   }
@@ -31692,9 +31881,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return aliveOf(corp).filter(f => f.id !== capId && plan.at[f.id] === si);
   }
   function pickCaptains(corp, n) {
+    /* §CENSUS who a house trusts to lead: the head for it first, then what the house prizes — a traditional house
+       its loyal and its long-served, a showman its famous, a hard one its toughest */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.stats.tactics || 0) + (f.stats.presence || 0) * 0.5
+      + ((f.loyalty == null ? 50 : f.loyalty) - 50) * dial('tradition') * 0.8 + (f.divides || 0) * 6 * dial('tradition')
+      + (f.fame || 0) * dial('showmanship') * 0.6 + (f.stats.grit || 0) * dial('aggression') * 0.3;
     return aliveOf(corp).filter(f => f.status === 'active' && !f.mirror_of)
-      .sort((a, b) => (b.stats.tactics - a.stats.tactics) || ((b.loyalty == null ? 50 : b.loyalty) - (a.loyalty == null ? 50 : a.loyalty)))
-      .slice(0, n).map(f => f.id);
+      .sort((a, b) => score(b) - score(a)).slice(0, n).map(f => f.id);
   }
   /** the year opens: a person's captains are their board's stars; the engine names its own */
   function openCaptains(state) {
@@ -32008,7 +32203,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
-    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
+    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.55 && purse > 100000) {
       let best = null;
       for (const oid of state.ids) {
         if (oid === id) continue;
@@ -32019,7 +32214,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
         }
       }
-      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.25) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
     }
   }
 
@@ -32981,7 +33176,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       c._board = { season: state.season, outcome: boardOutcomeFor(res, id), answered: null };
       if (!isHuman(state, id)) {
         const opts = REP.addressOptions(c.rep, c._board.outcome);
-        const worth = o => ((o.moves || {}).own || 0) + ((o.moves || {}).fleet || 0) * CONST.MARKET_FLEET_SHARE;
+        /* §CENSUS this read `moves.own` and `moves.fleet`, which the options do not carry (they carry `crowd` and
+           `houses`), so every answer scored nothing and the first — gracious — was every house's every year. What
+           the answer moves, weighed by what the house cares for, and then how the house talks. */
+        const d = (c.profile && c.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const VOICE = { gracious: dial('showmanship') * 0.6 + dial('patience') * 0.3, defiant: dial('aggression') * 0.9,
+                        humble: dial('patience') * 0.6 + (1 - dial('showmanship')) * 0.3, candid: dial('tradition') * 0.8,
+                        deflecting: dial('treachery') * 0.6 + dial('showmanship') * 0.2, evasive: dial('treachery') * 0.7 };
+        /* and the year it is answering for: a winner is gracious or humble about it, a beaten house candid, defiant
+           or deflecting, each as its character runs */
+        const oc = c._board.outcome || {}, beaten = !oc.won && (oc.placement == null || oc.placement > 3);
+        const MOOD = oc.won ? { gracious: 0.3, humble: 0.2 } : beaten ? { candid: 0.2, defiant: 0.2, deflecting: 0.2, evasive: 0.1 } : { candid: 0.15, humble: 0.1 };
+        const worth = o => ((o.moves || {}).crowd || 0) * (0.5 + dial('showmanship'))
+                         + ((o.moves || {}).houses || 0) * CONST.MARKET_FLEET_SHARE * (1.5 - dial('aggression'))
+                         + ((VOICE[o.register] || 0) + (MOOD[o.register] || 0)) * 3;
         const best = opts.slice().sort((x, y) => worth(y) - worth(x))[0];
         if (best) answerBoard(state, id, best.register);
       }
@@ -34880,7 +35089,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* THE NAMING MONTH. One of yours goes, chosen from the fit as fighter cards; unnamed, your
        best goes. The seeding as it stands beside them. */
     var fit = me.roster.filter(function (f) { return f.status === 'active' && !f.mirror_of && !(f.condition && (f.condition.injuries || []).length); });
-    var def = SEASON.eightPick(me), named = E.names[G.me];
+    var def = SEASON.eightPick(me, true), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
     var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
     var A = [], B = []; order.forEach(function (id, i) { var pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(id); });

@@ -1462,7 +1462,11 @@
            many. */
         /* the same reckoning the leaver used: what this OA would gain by its going — the odds, and the losses it is
            spared — against what the leaver asks of the pot it hopes to win */
-        const asked = Math.max(0, Math.min(1, (off.terms && off.terms.credits) || 0));
+        /* §CENSUS a share of the stores is weighed too, at the rate the settlement weighs it (a quarter of a credit
+           share): this read the credits alone, so an ask for no credits and all the stores was waved through */
+        let storeAsk = 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) storeAsk += Math.max(0, Math.min(1, off.terms[k] || 0));
+        const asked = Math.max(0, Math.min(1, ((off.terms && off.terms.credits) || 0) + storeAsk / 4));
         let yes = asked <= maxAskFor(leaver, c).maxAsk;
         yes = decide('withdrawReply', { corp: c.id, from: off.from }, yes, [true, false]);
         off.replies[c.id] = yes;
@@ -1509,8 +1513,12 @@
       const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) * margin - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
-        const ask = (off.terms && off.terms.credits) || 0;
-        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true);
+        let ask = (off.terms && off.terms.credits) || 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) ask += Math.max(0, Math.min(1, off.terms[k] || 0)) / 4;   /* its stores at their worth */
+        /* §CENSUS a promise from a house that is itself leaving is worth nothing — only a winner pays — and seven
+           houses had been standing down on the strength of each other's yeses, off an empty ground by the evening */
+        const leaving = j => !!(stats.withdrawOffers || {})[j.id] || !onGround(j);
+        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true && !leaving(r.j));
         if (got - cost > stay) standDown(c, day, stats, corps);
         else { delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
       } else if (!off) {
@@ -1518,7 +1526,7 @@
         for (const r of rows) {
           const ask = Math.floor(r.maxAsk * 100) / 100;
           if (ask <= 0) continue;
-          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask);
+          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask && !(stats.withdrawOffers || {})[x.j.id]);   /* not from those already on their way out */
           if (ev > best.ev) best = { ask: ask, ev: ev };
         }
         /* §WITHDRAWAL AN OA CAN WALK AWAY WITH NOTHING. It could leave only through a deal — an offer some rival
@@ -1533,7 +1541,11 @@
           continue;
         }
         if (best.ask > 0 && best.ev - cost > stay) {
-          postWithdrawOffer(c, { credits: best.ask }, day, stats);
+          /* §CENSUS a house whose board wants a store takes part of its price in that store, at the same worth */
+          const terms = { credits: best.ask };
+          const dem = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(g => g.kind === 'resource' && g.category);
+          if (dem && planet.pot) { terms.credits = Math.round(best.ask * 0.75 * 100) / 100; terms[dem.category] = Math.min(1, Math.round(best.ask * 100) / 100); }
+          postWithdrawOffer(c, terms, day, stats);
           (stats.audit.offerLog = stats.audit.offerLog || []).push({ from: c.id, day: day, ask: best.ask,
             odds: Math.round((odds[c.id] || 0) * 1000) / 1000,
             standing: (c.allBodies || []).filter(b => b.status === 'active').length + '/' + (c.allBodies || []).length });
@@ -3746,6 +3758,23 @@
       q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
     });
   }
+  /* §CENSUS THE GROUND HAS A SAY ABOUT EACH RIVAL. An engine OA set its notch at every rival once, at the drop, by
+     regard, and never looked again. Each window it now starts from that and weighs what is on the ground: a rival much
+     stronger than it is handled more carefully, a bled one pressed harder by a house with the stomach for it. */
+  function reconsiderRivals(corp, corps) {
+    if (!corp._stanceBase) return;
+    const living = j => (j.allBodies || []).filter(b => b.status === 'active').length;
+    const mine = Math.max(1, living(corp));
+    const d = (corp.profile && corp.profile.dials) || {};
+    const bold = (typeof d.aggression === 'number' ? d.aggression : 50) / 100;
+    for (const other of corps) {
+      if (other === corp || corp._stanceBase[other.id] == null) continue;
+      const ratio = living(other) / mine;
+      const adj = ratio > 1.6 ? -1 : ratio < 0.6 && bold > 0.5 ? 1 : 0;
+      const base = NOTCHES.indexOf(corp._stanceBase[other.id]);
+      corp._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + adj))];
+    }
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -4135,6 +4164,7 @@
           const step = r < -20 ? 2 : r < -5 ? 1 : r > 20 ? -2 : r > 5 ? -1 : 0;
           c._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
         }
+        c._stanceBase = Object.assign({}, c._stance);   /* what it thinks of each before the ground has a say */
       }
     }
     /* guarantee, not hope: nudge apart anything that still landed inside sight range */
@@ -4427,7 +4457,7 @@
             if (got && got.corp && STANCE_DIALS[got.corp] && got.corp !== c.policy) { c.policy = got.corp; c.stanceChanges++; stats.stanceChanges++; }
             if (got && got.squads) { for (const q of c.squads) { const n = got.squads[q.sIdx]; if (n && STANCE_DIALS[n]) q.stance = n; } }
             else seatSquadStances(c);
-          } else reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
+          } else { reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 }); reconsiderRivals(c, corps); }
         }
 
         /* THE WINDOW. Comms are up; this is where a manager speaks to their people and to the

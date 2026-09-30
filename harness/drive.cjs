@@ -185,7 +185,7 @@ setTimeout(() => {
       check(/overflow-y:auto/.test(rule),
             'the founding overlay scrolls when it is taller than the screen');
     }
-    doc.getElementById('seed').value = 'corp-1';
+    doc.getElementById('seed').value = process.env.DRIVE_SEED || 'corp-1';
     /* §FOUNDING a manager founds an OA; the eight are the fleet, not a character select */
     doc.getElementById('cname').value = 'The Probe Concern';
     doc.getElementById('cfound').click();

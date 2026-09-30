@@ -841,15 +841,22 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
   }
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
-  function eightPick(corp) {
+  function eightPick(corp, asRule) {
     const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
     /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
     const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
       .map(p => fit.find(f => f.id === p.fighterId)).filter(Boolean);
     if (owed.length) return owed[0];
-    const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
-    return fit.slice().sort((a, b) => score(b) - score(a))[0];
+    /* §CENSUS who a house risks: a bold or showy house sends its best and most famous; a careful one keeps its best
+       home and sends a good hand from further down, since the Eight can kill */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.fame || 0) * (0.2 + 0.8 * dial('showmanship')) + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
+    const ranked = fit.slice().sort((a, b) => score(b) - score(a));
+    /* an unnamed person's seat is the rule's, not a character's: its best goes (ruled) */
+    const care = asRule ? 0 : Math.max(0, dial('patience') - dial('aggression'));   /* 0 for the bold, up to about a half for the careful */
+    return ranked[Math.min(ranked.length - 1, Math.floor(ranked.length * care * 0.5))];
   }
   /** a manager names a fighter — a choice for the month's end. RULED: every OA sends
       someone; there is no declining. Unnamed, the OA's best goes. */
@@ -865,7 +872,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const entrants = [];
     for (const id of ids) {
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
-      if (!f) f = eightPick(corps[id]);
+      if (!f) f = eightPick(corps[id], isHuman(state, id));
       if (f) entrants.push({ corp: corps[id], f });
     }
     /* §TALKS whoever was promised the Eight either went or was passed over */
@@ -1440,6 +1447,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (!best) break;
       focus[best] = (focus[best] || 0) + 1; left--;
+    }
+    /* §CENSUS A BOOST IS A LUXURY: the last two months before the Lock, a flush and eager house doubles the track that
+       matters most for the drop — rest if it has hurt to mend, else the drill — and pays for it */
+    if (month >= 9 && month <= 10) {
+      const purse = (corp.account && corp.account.treasury) || 0;
+      const want = hurt.length >= 3 ? 'rest' : 'train';
+      const bill = (focus[want] || 0) * CONST.BOOST_PER_POINT;
+      if (focus[want] && purse - bill > 80000 + 80000 * dial('thrift') && dial('aggression') + dial('showmanship') > 1.0)
+        focus._boost = { [want]: true };
     }
     /* §CENSUS WHERE THE EYES GO: the planet until it is known, then the rivals — the one it is most wary of first
        (the house the crowd loves most, which is the house that will be hardest to beat), a schemer sooner */
@@ -2467,9 +2483,25 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       let headroom = staying.length + expiring.length - CONST.ROSTER_MIN;
       /* §RESIGN a manager's own calls stand before the arithmetic does */
       const calls = corp._renewalCalls || {};
+      /* §CENSUS AN ENGINE OA SITS AT THE TABLE TOO. It paid every ask it could afford and released only when it could
+         not; it never haggled and never let a hand go by choice. Now it makes the calls a person makes: a careful house
+         offers under the ask (and may lose the hand over it), and one with a deep roster lets its weakest walk. */
+      const engineCalls = {};
+      if (state && !isHuman(state, corp.id)) {
+        const d = (corp.profile && corp.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const order = aliveOf(corp).filter(x => !x.mirror_of).sort((a, b) => worth(b) - worth(a));
+        let spareHeads = headroom;
+        for (const f of expiring) {
+          if (calls[f.id]) continue;
+          const r = order.length ? (order.indexOf(f) + 1) / order.length : 0;
+          if (spareHeads > 2 && r > 0.8 && dial('tradition') < 0.6) { engineCalls[f.id] = { how: 'release' }; spareHeads--; continue; }
+          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round(renewalSalary(f, state) * (1 - 0.3 * (dial('thrift') - 0.4))) };
+        }
+      }
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
         if (gone.indexOf(f) >= 0) continue;
-        const call = calls[f.id];
+        const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
           const asked = renewalSalary(f, state);
@@ -2606,8 +2638,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
     /* §TALKS a place on the drop promised is a place on the drop, if they can stand */
     const owed = new Set(TALKS.promisesOf(corp).filter(p => (p.kind === 'drop' || p.kind === 'lead') && p.status === 'open').map(p => p.fighterId));
+    /* §CENSUS A SCHEMER'S WORD IS WORTH WHAT IT COSTS. An engine OA kept every promise, however poor the hand it had
+       promised; a treacherous house now breaks the ones that would put its weakest on the ground, and pays for it with
+       the stands and the hand as a person would */
+    const dl = (corp.profile && corp.profile.dials) || {};
+    const treach = (typeof dl.treachery === 'number' ? dl.treachery : 50) / 100;
+    const qs = fit.map(quality).sort((a, b) => a - b), median = qs.length ? qs[Math.floor(qs.length / 2)] : 0;
+    const honours = f => !(treach >= 0.55 && quality(f) < median - (1 - treach) * 0.5);
     const score = f => {
-      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) ? 100 : 0);
+      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) && honours(f) ? 100 : 0);
       /* an unserved term pulls its holder toward the drop — the corp bought the clause
          and the clause only advances on the ground; a served-out term stops pulling */
       if (f.contract && f.contract.divides_required != null) {
@@ -2893,6 +2932,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      (The landing-slot pick before the drop is the Drop.) */
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
+  /* what a house looks for in a rookie: every stat counts, and its character counts some twice */
+  function draftTaste(c) {
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const w = { aim: 1 + dial('aggression') * 0.8, grit: 1 + dial('aggression') * 0.5, tactics: 1 + dial('tradition') * 0.8,
+                resolve: 1 + dial('patience') * 0.6, presence: 1 + dial('showmanship') * 0.8, fieldcraft: 1 + dial('treachery') * 0.6,
+                reflex: 1.2 };
+    return f => { const st = f.stats || {}; let t = 0; for (const k in st) t += (st[k] || 0) * (w[k] || 1); return t; };
+  }
   function openRecruitDraft(state) {
     const rng = rngOf(state, 'recruit-draft' + state.season);
     /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
@@ -2951,8 +2999,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (!best) { R.done = true; break; }
       if (isHuman(state, who)) {
         if (!(opts && opts.force)) break;
-        takeDraftee(state, who, best, 'assigned');
-      } else takeDraftee(state, who, best, 'policy');
+        takeDraftee(state, who, best, 'assigned');   /* an unmade pick is the Aleas' rule: the best left */
+      } else {
+        /* §CENSUS an engine OA drafts to its own taste, not the one sort every house used */
+        const taste = draftTaste(state.corps[who]);
+        takeDraftee(state, who, draftLeads(R).sort((a, b) => taste(b) - taste(a))[0], 'policy');
+      }
     }
     return R;
   }
@@ -3353,9 +3405,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return aliveOf(corp).filter(f => f.id !== capId && plan.at[f.id] === si);
   }
   function pickCaptains(corp, n) {
+    /* §CENSUS who a house trusts to lead: the head for it first, then what the house prizes — a traditional house
+       its loyal and its long-served, a showman its famous, a hard one its toughest */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.stats.tactics || 0) + (f.stats.presence || 0) * 0.5
+      + ((f.loyalty == null ? 50 : f.loyalty) - 50) * dial('tradition') * 0.8 + (f.divides || 0) * 6 * dial('tradition')
+      + (f.fame || 0) * dial('showmanship') * 0.6 + (f.stats.grit || 0) * dial('aggression') * 0.3;
     return aliveOf(corp).filter(f => f.status === 'active' && !f.mirror_of)
-      .sort((a, b) => (b.stats.tactics - a.stats.tactics) || ((b.loyalty == null ? 50 : b.loyalty) - (a.loyalty == null ? 50 : a.loyalty)))
-      .slice(0, n).map(f => f.id);
+      .sort((a, b) => score(b) - score(a)).slice(0, n).map(f => f.id);
   }
   /** the year opens: a person's captains are their board's stars; the engine names its own */
   function openCaptains(state) {
@@ -3669,7 +3727,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
-    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
+    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.55 && purse > 100000) {
       let best = null;
       for (const oid of state.ids) {
         if (oid === id) continue;
@@ -3680,7 +3738,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
         }
       }
-      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.25) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
     }
   }
 
@@ -4642,7 +4700,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       c._board = { season: state.season, outcome: boardOutcomeFor(res, id), answered: null };
       if (!isHuman(state, id)) {
         const opts = REP.addressOptions(c.rep, c._board.outcome);
-        const worth = o => ((o.moves || {}).own || 0) + ((o.moves || {}).fleet || 0) * CONST.MARKET_FLEET_SHARE;
+        /* §CENSUS this read `moves.own` and `moves.fleet`, which the options do not carry (they carry `crowd` and
+           `houses`), so every answer scored nothing and the first — gracious — was every house's every year. What
+           the answer moves, weighed by what the house cares for, and then how the house talks. */
+        const d = (c.profile && c.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const VOICE = { gracious: dial('showmanship') * 0.6 + dial('patience') * 0.3, defiant: dial('aggression') * 0.9,
+                        humble: dial('patience') * 0.6 + (1 - dial('showmanship')) * 0.3, candid: dial('tradition') * 0.8,
+                        deflecting: dial('treachery') * 0.6 + dial('showmanship') * 0.2, evasive: dial('treachery') * 0.7 };
+        /* and the year it is answering for: a winner is gracious or humble about it, a beaten house candid, defiant
+           or deflecting, each as its character runs */
+        const oc = c._board.outcome || {}, beaten = !oc.won && (oc.placement == null || oc.placement > 3);
+        const MOOD = oc.won ? { gracious: 0.3, humble: 0.2 } : beaten ? { candid: 0.2, defiant: 0.2, deflecting: 0.2, evasive: 0.1 } : { candid: 0.15, humble: 0.1 };
+        const worth = o => ((o.moves || {}).crowd || 0) * (0.5 + dial('showmanship'))
+                         + ((o.moves || {}).houses || 0) * CONST.MARKET_FLEET_SHARE * (1.5 - dial('aggression'))
+                         + ((VOICE[o.register] || 0) + (MOOD[o.register] || 0)) * 3;
         const best = opts.slice().sort((x, y) => worth(y) - worth(x))[0];
         if (best) answerBoard(state, id, best.register);
       }

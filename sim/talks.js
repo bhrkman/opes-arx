@@ -339,8 +339,14 @@
     const ok = kind => legal(kind) && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'backfired'
                     && landing(who, kind, ctx.abs, !!who.temperKnown) !== 'faded';
     let kind = null;
+    /* §CENSUS the house's own manner: a schemer buys a sour hand with a promise it may not keep; a hard house dresses
+       down the idle rather than drive them */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     if (!who.temperKnown && (caps.has(who.id) || loy(who) < 40)) kind = 'hear';
     else if (who.temperKnown && ok(TEMPERS[who.temper].doubles)) kind = TEMPERS[who.temper].doubles;
+    else if (loy(who) < 40 && dial('treachery') >= 0.55 && ok('promise')) kind = 'promise';
+    else if (str(who) < 30 && dial('aggression') >= 0.7 && dial('patience') <= 0.45 && ok('dress')) kind = 'dress';
     else if (loy(who) < 40 && ok('praise')) kind = 'praise';
     else if (str(who) < 30 && ok('drive')) kind = 'drive';
     else if (ok('praise')) kind = 'praise';

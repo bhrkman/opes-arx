@@ -141,6 +141,31 @@
     f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
   };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
+  /* §CENSUS AN ENGINE OA ANSWERS AS ITSELF. Measured: ten dispatches were answered one way by every house, every
+     time — a brawl always punished, an offer always refused, every quirk moment the first option. Each policy now
+     weighs its options by the house's dials and its situation; the best-scoring option is the answer. */
+  const dialOf = (c, k) => ((c.profile && c.profile.dials && typeof c.profile.dials[k] === 'number') ? c.profile.dials[k] : 50) / 100;
+  /* what a house's character makes of an act's qualities, beside what its stands make of them */
+  const CHARACTER = { blood: ['aggression', 1], grit: ['aggression', 0.5], glory: ['showmanship', 1], care: ['patience', 1],
+                      word: ['tradition', 1], craft: ['tradition', 0.5] };
+  function appealOf(c, q) {
+    if (!q) return 0;
+    const taste = c.rep && REP.tasteOf ? REP.tasteOf(c.rep) : null;
+    let v = 0;
+    for (const k in q) {
+      if (taste && taste[k] != null) v += q[k] * taste[k];
+      const ch = CHARACTER[k]; if (ch) v += q[k] * (dialOf(c, ch[0]) - 0.5) * ch[1];
+    }
+    if (q.word) v -= q.word * (dialOf(c, 'treachery') - 0.5);   /* a schemer sets less store by a word kept */
+    return v;
+  }
+  const bestOf = scores => Object.keys(scores).sort((a, b) => scores[b] - scores[a])[0];
+  /* how much a hand matters to the house: their place in the roster's order, 1 = the best */
+  function rankOf(c, f) {
+    const q = x => { const s = x.stats || {}; return (s.aim || 0) + (s.tactics || 0) + (s.resolve || 0) + (s.grit || 0); };
+    const a = alive(c).filter(x => !x.mirror_of).sort((x, y) => q(y) - q(x));
+    return a.length ? (a.indexOf(f) + 1) / a.length : 1;
+  }
 
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
@@ -212,7 +237,13 @@
         if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
-      ai: () => 'a'
+      /* §CENSUS the option its stands and its character like better */
+      ai: (c) => {
+        /* what it costs weighs too: a careful house minds the money, a hard one minds the strain less */
+        const cost = o => (o[1] === 'credits' && o[2] < 0 ? o[2] / 10000 * (0.5 + dialOf(c, 'thrift')) : 0)
+                        - (o[1] === 'stress' && o[2] > 0 ? o[2] / 40 * (1 - dialOf(c, 'aggression')) : 0);
+        return appealOf(c, m.b[4]) + cost(m.b) > appealOf(c, m.a[4]) + cost(m.a) ? 'b' : 'a';
+      }
     };
   }
   const POOL = [
@@ -242,7 +273,15 @@
         if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
         stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
-      ai: (c, e) => spare(c) > e.ask * 20 ? 'grant' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f), thrift = dialOf(c, 'thrift');
+        return bestOf({
+          grant: (spare(c) > e.ask * 12 * (0.5 + thrift * 1.5) ? 0.3 : -1) + (1 - r) * 0.6 + dialOf(c, 'patience') * 0.3,
+          refuse: 0.2 + thrift * 0.9 + r * 0.4,
+          release: r > 0.6 ? thrift * 0.6 + (1 - dialOf(c, 'tradition')) * 0.3 + (r - 0.6) : 0
+        });
+      }
     },
     {
       id: 'debt', weight: 1.0,
@@ -264,7 +303,15 @@
         wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
-      ai: (c) => spare(c) > CONST.DEBT_CALL * 6 ? 'pay' : 'ignore'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'ignore';
+        const r = rankOf(c, f);
+        return bestOf({
+          pay: (spare(c) > CONST.DEBT_CALL * (3 + 5 * dialOf(c, 'thrift')) ? 0.3 : -1) + dialOf(c, 'patience') * 0.4 + (1 - r) * 0.4,
+          ignore: 0.3 + dialOf(c, 'aggression') * 0.4 + r * 0.2,
+          sell: r > 0.5 ? dialOf(c, 'thrift') * 0.5 + dialOf(c, 'treachery') * 0.3 + (r - 0.5) * 0.6 : 0
+        });
+      }
     },
     {
       id: 'brawl', weight: 1.0,
@@ -291,7 +338,11 @@
         if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
         alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
-      ai: () => 'punish'
+      ai: (c) => bestOf({
+        punish: dialOf(c, 'tradition') * 0.7 + dialOf(c, 'aggression') * 0.4,
+        fine: dialOf(c, 'thrift') * 0.8 + 0.15,
+        lie: dialOf(c, 'patience') * 0.6 + (1 - dialOf(c, 'tradition')) * 0.4
+      })
     },
     {
       id: 'memo', weight: 0.9,
@@ -311,7 +362,7 @@
         if (opt === 'accept') { c.rep.goal.priority = e.subject; c.rep.patience = Math.min(100, (c.rep.patience || 0) + 2); return 'The Card\u2019s Priority Moved'; }
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3); return 'The Card Held as It Stood';
       },
-      ai: (c) => (c.rep && c.rep.patience < 50) ? 'accept' : 'push'
+      ai: (c) => (c.rep && c.rep.patience < 35 + 35 * (1 - dialOf(c, 'tradition'))) ? 'accept' : 'push'
     },
     {
       id: 'poach', weight: 1.1,
@@ -343,7 +394,15 @@
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
         if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'The Offer Was Refused';
       },
-      ai: (c, e) => spare(c) < 20000 ? 'accept' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f);
+        return bestOf({
+          accept: (spare(c) < 20000 ? 0.8 : 0) + dialOf(c, 'thrift') * 0.4 + r * 0.5,
+          refuse: 0.5 + (1 - r) * 0.5 + dialOf(c, 'tradition') * 0.2,
+          counter: dialOf(c, 'treachery') * 0.6 + dialOf(c, 'showmanship') * 0.3 + r * 0.2
+        });
+      }
     },
     {
       id: 'insult', weight: 0.8,
@@ -362,7 +421,11 @@
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
         REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
-      ai: (c) => (c.rep && REP.standing(c.rep, 'crowd') < 50) ? 'answer' : 'laugh'
+      ai: (c) => bestOf({
+        answer: dialOf(c, 'aggression') * 0.8 + (c.rep && REP.standing(c.rep, 'crowd') < 50 ? 0.3 : 0),
+        laugh: dialOf(c, 'showmanship') * 0.5 + dialOf(c, 'patience') * 0.4,
+        ignore: dialOf(c, 'tradition') * 0.3 + (1 - dialOf(c, 'showmanship')) * 0.3
+      })
     },
     {
       id: 'dealer', weight: 0.9,
@@ -385,7 +448,7 @@
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
       /* the engine buys what it can issue soon, not what it will store for years */
-      ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
+      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
   function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
@@ -415,7 +478,10 @@
         if (c.rep) REP.act(c.rep, 'took_the_collection', {});
         return 'The Collection Was Taken';
       },
-      ai: (c) => (c.rep && (c.rep.shares.families || 0) > 0.2) ? 'families' : 'take'
+      ai: (c, e) => bestOf({
+        families: (c.rep ? ((c.rep.shares.families || 0) + (c.rep.shares.diehards || 0) * 0.5) * 1.5 : 0) + dialOf(c, 'tradition') * 0.3 + dialOf(c, 'patience') * 0.3,
+        take: 0.15 + dialOf(c, 'thrift') * 0.5 + (spare(c) < e.amount * 20 ? 0.3 : 0)
+      })
     },
     {
       id: 'tip', weight: 0.8,
@@ -433,7 +499,10 @@
         if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
         return 'The Papers Were Read';
       },
-      ai: (c) => 'read'
+      ai: (c) => bestOf({
+        read: 0.35 + dialOf(c, 'treachery') * 0.6 + dialOf(c, 'aggression') * 0.1,
+        return: dialOf(c, 'tradition') * 0.5 + (1 - dialOf(c, 'treachery')) * 0.3
+      })
     },
     {
       id: 'protest', weight: 1.1,
@@ -451,7 +520,11 @@
         if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
         if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
       },
-      ai: (c) => 'meet'
+      ai: (c) => bestOf({
+        meet: 0.3 + dialOf(c, 'showmanship') * 0.5 + (c.rep && c.rep.patience > 40 ? 0.1 : -0.2),
+        shut: dialOf(c, 'aggression') * 0.5 + (1 - dialOf(c, 'tradition')) * 0.3,
+        ignore: dialOf(c, 'patience') * 0.4 + (c.rep && c.rep.patience > 60 ? 0.2 : -0.3)
+      })
     },
     {
       id: 'strike', weight: 0.9,
@@ -469,7 +542,7 @@
         c._noDrill = ctx.state.season * 100 + ctx.state.month;
         return 'The Drill Stood Idle';
       },
-      ai: (c, e) => spare(c) > e.amount * 4 ? 'pay' : 'wait'
+      ai: (c, e) => spare(c) > e.amount * (2 + 4 * dialOf(c, 'thrift')) && dialOf(c, 'patience') < 0.75 ? 'pay' : 'wait'
     },
     {
       id: 'leak', weight: 0.8,
@@ -486,7 +559,7 @@
         c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
         return 'The Leak Ran';
       },
-      ai: (c) => spare(c) > CONST.LEAK_HUNT * 4 ? 'find' : 'let'
+      ai: (c) => spare(c) > CONST.LEAK_HUNT * (2 + 5 * (1 - dialOf(c, 'treachery')) + 2 * dialOf(c, 'thrift')) ? 'find' : 'let'
     }
   );
   /* §MEDIA THE PRESS: what a columnist wants between media days */
@@ -603,6 +676,10 @@
     ai: (c, e) => {
       const f = alive(c).find(x => x.id === e.subject);
       if (!f) return 'away';
+      /* §CENSUS a house that sets little store by a hand turns them away; one with a Sergeant sends them, keeping its word */
+      const r = rankOf(c, f);
+      if (r > 0.7 && dialOf(c, 'patience') < 0.45 && dialOf(c, 'aggression') > 0.5) return 'away';
+      if (e.options.some(o => o.id === 'sergeant') && (r > 0.4 || dialOf(c, 'patience') < 0.5)) return 'sergeant';
       const t = f.temperKnown ? TALKS.TEMPERS[TALKS.temperOf(f)] : null;
       if (t && t.doubles !== 'promise' && e.options.some(o => o.id === t.doubles)) return t.doubles;
       if (t && t.doubles === 'promise' && e.ask !== 'captain' && e.ask !== 'strain') return 'promise';
@@ -782,7 +859,7 @@
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
       /* a petition is a stance, not a reflex: only an OA the edict cuts against by
          temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'boom') return d('thrift') > 0.6 ? 'petition' : 'accept';
+      if (e.fleet === 'boom') return (d('thrift') + d('aggression')) / 2 > 0.55 || d('thrift') > 0.6 ? 'petition' : 'accept';   /* dear kit hurts the careful and the warlike */
       return 'accept';
     }
   };

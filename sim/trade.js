@@ -308,6 +308,30 @@
       raised += each * n;
     }
     const offer = { gear: gear, credits: Math.round(credits) };
+    /* §CENSUS A HOUSE SHORT OF MONEY PAYS IN KIND. An engine letter only ever carried credits and gear; a house that
+       could not cover the price now puts up a hand of its own it can spare, or what it knows about a third house —
+       a schemer reaching for the dossier first */
+    const dl = (them.profile && them.profile.dials) || {};
+    const schemer = (typeof dl.treachery === 'number' ? dl.treachery : 50) >= 55;
+    const addIntel = () => {
+      if (raised >= target * 0.9) return;
+      const sheets = (them._intel && them._intel.rivals) || {};
+      const about = Object.keys(sheets).filter(k => k !== me.id && k !== them.id && Object.keys((sheets[k] || {}).rows || {}).length)[0];
+      if (!about) return;
+      const rows = Object.keys(sheets[about].rows).length;
+      offer.intel = [{ about, rows }];
+      raised += intelPrice(rows, opts.focusPointPrice, opts.rowsPerPip);
+    };
+    const addBody = () => {
+      if (raised >= target * 0.9) return;
+      const gap = target - raised;
+      const spare = (them.roster || []).filter(f => (f.status === 'active' || f.status === 'injured') && !f.mirror_of && !f.bond_partner)
+        .map(f => ({ f, v: netOf(f) })).filter(x => x.v > 0 && x.v <= gap * 1.2).sort((a, b) => b.v - a.v)[0];
+      if (!spare) return;
+      offer.units = [spare.f.id];
+      raised += spare.v;
+    };
+    if (schemer) { addIntel(); addBody(); } else { addBody(); addIntel(); }
     const ask = { units: [want.id] };
     /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
        the receiver's lights, which is the opposite of why anybody proposes anything: an OA

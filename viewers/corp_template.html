@@ -3578,7 +3578,7 @@
     /* THE NAMING MONTH. One of yours goes, chosen from the fit as fighter cards; unnamed, your
        best goes. The seeding as it stands beside them. */
     var fit = me.roster.filter(function (f) { return f.status === 'active' && !f.mirror_of && !(f.condition && (f.condition.injuries || []).length); });
-    var def = SEASON.eightPick(me), named = E.names[G.me];
+    var def = SEASON.eightPick(me, true), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
     var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
     var A = [], B = []; order.forEach(function (id, i) { var pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(id); });
