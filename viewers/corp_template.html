@@ -1225,21 +1225,32 @@
   /* --- courting desk --- */
   .ctbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
   /* §FACILITIES the grounds */
-  .fcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-  @media (max-width:900px){.fcgrid{grid-template-columns:1fr}}
-  .fccard{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-  .fccard.building{border-color:var(--cred)}
-  .fccard .fh{display:flex;justify-content:space-between;align-items:baseline}
-  .fccard .fh .ft{font-weight:bold;letter-spacing:.04em}
-  .fccard .fh .fp{font-size:10px;color:var(--dim)}
-  .fcpips{display:flex;gap:4px}
-  .fcpips i{width:22px;height:6px;border-radius:2px;background:var(--a-dim)}
-  .fcpips i.on{background:var(--a)} .fcpips i.bld{background:var(--cred)}
-  .fcdoes{font-size:10.5px;display:flex;flex-direction:column;gap:2px}
-  .fcdoes .had{color:var(--ink)} .fcdoes .next{color:var(--dim)}
-  .fcnext{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px;border-top:1px solid #131f30;padding-top:6px}
-  .fcnext .k{color:var(--dim)} .fcnext .v{text-align:right}
-  .fcbanner{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;margin-bottom:10px;border:1px solid var(--cred);border-radius:5px;background:var(--a-deep);font-size:11.5px}
+  /* §FACILITIES the Ladder: six ladders climbed from the bottom, the staffer at the foot */
+  .fcstrip{display:flex;gap:28px;align-items:baseline;padding:8px 12px;margin-bottom:10px;border:1px solid var(--line2);border-radius:6px;background:var(--panel)}
+  .fcstrip .k{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .fcstrip .v{font-size:16px;font-weight:700} .fcstrip .s{font-size:10px;color:var(--dim)}
+  .fcstrip .fill{flex:1} .fcstrip .rule{font-size:10.5px;color:var(--dim)} .fcstrip .v.cr{color:var(--cred)}
+  .fcfoot b.warn{color:var(--warn)}
+  .fcladders{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+  @media (max-width:1100px){.fcladders{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:640px){.fcladders{grid-template-columns:1fr}}
+  .fclad{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px;min-height:330px}
+  .fclad.bld{border-color:var(--cred)}
+  .fclad .t{font-weight:700;letter-spacing:.04em;font-size:12px;line-height:1.2}
+  .fclad .t small{display:block;color:var(--dim);font-weight:400;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+  .fcrungs{display:flex;flex-direction:column-reverse;gap:5px;flex:1;justify-content:flex-start}
+  .fcrung{border:1px solid var(--line);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--faint);line-height:1.35;min-height:44px}
+  .fcrung .h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1px}
+  .fcrung .h span:last-child{letter-spacing:.04em;text-transform:none}
+  .fcrung.on{border-color:var(--a-dim);background:var(--a-deep);color:var(--ink)} .fcrung.on .h{color:var(--a)}
+  .fcrung.next{border-color:var(--cred);color:var(--ink);background:rgba(240,192,74,.05)} .fcrung.next .h{color:var(--cred)}
+  .fcrung.bld{border-color:var(--cred);border-style:dashed;color:var(--ink)} .fcrung.bld .h{color:var(--cred)}
+  .fcrung .price{color:var(--cred);font-weight:700;margin-top:3px;display:flex;justify-content:space-between;align-items:center;gap:4px}
+  .fcrung .price button{margin-left:auto}
+  .fcfoot{border-top:1px solid #131f30;padding-top:6px;font-size:10px;color:var(--dim)}
+  .fcfoot b{color:var(--ink);font-weight:600}
+  .fcfoot .up{display:flex;justify-content:space-between;gap:6px}
+  .fcfoot .up.warn{color:var(--warn)}
   .prow.locked{opacity:.5;cursor:default}
   /* §STAFF the backroom */
   .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
@@ -5851,36 +5862,53 @@
   /* ============================ FACILITIES (§FACILITIES) ============================
      Six facilities, levels, one build a month, ready the month after. The Armoury decides what gear can be issued. */
   /* §FACILITIES what sits in the rack that the Armoury cannot yet issue: the case for the next level */
-  function armouryStoredHtml(me) {
-    var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
-    for (var id in rack) { var it = ITEM_BY_ID[id]; if (it && it.tier > tier && rack[id] > 0) { n += rack[id]; best = Math.max(best, it.tier); } }
-    return n ? '<div class="fcnext"><span class="k">Stored</span><span class="v">' + n + ' Piece' + (n === 1 ? '' : 's') + ' up to Tier ' + best + '</span></div>' : '';
+  function fcWhy(w) { return /^Not Enough/.test(w) ? 'Not Enough' : /Doctrine/.test(w) ? 'Doctrine Cap' : w; }   /* the rung is narrow */
+  function fcFoot(me, id, fac, L) {
+    var S = SEASON.STAFF, post = fac.post, name = S.POST_NAME[post];
+    var V = SEASON.backroomFor(G.state, G.me), st = V && V.posts[post];
+    var h = '<div class="fcfoot">';
+    if (!L) h += '<div class="up"><span>' + name + '</span><b>Unbuilt</b></div>';
+    else if (!st) h += '<div class="up"><span>' + name + '</span><b class="warn">Vacant</b></div>';
+    else {
+      h += '<div class="up"><span>' + name + '</span><b style="color:' + raceColour(st) + '">' + esc(st.name) + '</b></div>' +
+           '<div class="up"><span>Craft</span><b>' + Math.round(st.craft[post] || 0) + '</b></div>';
+      if (post === 'surgeon' && st.school === 'cutter' && !SEASON.FAC.cutterAllowed(me)) h += '<div class="up warn"><span>Cutter</span><span>Needs Level 2</span></div>';
+      if (post === 'spymaster' && st.school === 'mole' && !SEASON.FAC.moleAllowed(me)) h += '<div class="up warn"><span>Mole</span><span>Needs Level 2</span></div>';
+      var rec = bkRecord(st); if (rec) h += '<div class="up"><span>This Post</span><b>' + esc(rec) + '</b></div>';
+    }
+    if (id === 'armoury') {
+      var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
+      for (var iid in rack) { var it = ITEM_BY_ID[iid]; if (it && it.tier > tier && rack[iid] > 0) { n += rack[iid]; best = Math.max(best, it.tier); } }
+      if (n) h += '<div class="up"><span>Stored</span><b>' + n + ' to Tier ' + best + '</b></div>';
+    }
+    return h + '</div>';
   }
   function renderGrounds() {
     var host = $('grounds'); if (!host || !G || !G.state) return;
     var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
-    var h = '';
-    if (g.build) {
-      var bf = F.FACILITIES[g.build.id];
-      h += '<div class="fcbanner"><span>Building · <b>' + esc(bf.name) + ' Level ' + g.build.level + '</b></span><span>Ready Next Month</span></div>';
-    }
-    h += '<div class="fcgrid">';
+    var mult = SEASON.priceMult(G.state), up = F.upkeep(me);
+    var h = '<div class="fcstrip">' +
+      '<div><div class="k">Upkeep</div><div class="v">' + crs(up) + '<span class="s">/mo</span></div></div>' +
+      (g.build ? '<div><div class="k">Building</div><div class="v cr">' + esc(F.FACILITIES[g.build.id].name) + ' ' + g.build.level + '</div><div class="s">Ready Next Month</div></div>' : '') +
+      '<div class="fill"></div><div class="rule">One Build a Month · Paid When Ordered</div></div>';
+    h += '<div class="fcladders">';
     F.IDS.forEach(function (id) {
-      var fac = F.FACILITIES[id], L = F.level(me, id), nx = F.nextLevel(me, id), building = g.build && g.build.id === id;
-      var can = F.canBuild(me, id);
-      h += '<div class="fccard' + (building ? ' building' : '') + '"><div class="fh"><span class="ft">' + esc(fac.name) + '</span><span class="fp">' +
-           SEASON.STAFF.POST_NAME[fac.post] + '</span></div>' +
-        '<div class="fcpips">' + fac.levels.map(function (_, i) { return '<i class="' + (i < L ? 'on' : building && i === L ? 'bld' : '') + '"></i>'; }).join('') + '</div>' +
-        '<div class="fcdoes">' + fac.does.map(function (d, i) { return '<span class="' + (i < L ? 'had' : 'next') + '">' + (i + 1) + ' \u00b7 ' + esc(d) + '</span>'; }).join('') + '</div>' +
-        (id === 'armoury' ? armouryStoredHtml(me) : '') +
-        (L > 0 ? '<div class="fcnext"><span class="k">Upkeep</span><span class="v">' + crs(fac.levels[L - 1].upkeep) + '/mo</span></div>' : '') +
-        (nx ? '<div class="fcnext"><span class="k">Level ' + nx.level + '</span><span class="v">' + crs(nx.cost) + ' · ' + nx.months + ' Months</span>' +
-              '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
-              '<div class="bar">' + (sel.ask === id
-                 ? '<button class="tiny" data-fcgo="' + id + '">Confirm · ' + crs(nx.cost) + '</button><button class="tiny" data-fckeep="1">Cancel</button>'
-                 : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + (building ? 'Ready Next Month' : can.ok ? 'Build Level ' + nx.level : esc(can.why)) + '</button>') + '</div>'
-            : '<div class="m">At the Top</div>') +
-        '</div>';
+      var fac = F.FACILITIES[id], L = F.level(me, id), building = g.build && g.build.id === id, can = F.canBuild(me, id, mult);
+      var rungs = fac.levels.map(function (lv, i) {
+        var n = i + 1, lines = F.does(id, n).map(function (d) { return '<div>' + esc(d) + '</div>'; }).join(''), cls, head, foot = '';
+        if (n <= L) { cls = 'on'; head = cr(lv.upkeep) + '/mo'; }
+        else if (building && n === g.build.level) { cls = 'bld'; head = 'Building'; foot = '<div class="price"><span>Ready Next Month</span></div>'; }
+        else if (n === L + 1 && !building) {
+          cls = 'next'; head = cr(lv.upkeep) + '/mo';
+          var cost = can.ok ? can.next.cost : Math.round(lv.cost * mult / 1000) * 1000;
+          foot = '<div class="price"><span>' + crs(cost) + '</span>' + (sel.ask === id
+            ? '<button class="tiny" data-fcgo="' + id + '">Confirm</button><button class="tiny" data-fckeep="1">Cancel</button>'
+            : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + esc(can.ok ? 'Build' : fcWhy(can.why)) + '</button>') + '</div>';
+        } else { cls = ''; head = cr(lv.upkeep) + '/mo'; foot = '<div class="price"><span>' + crs(Math.round(lv.cost * mult / 1000) * 1000) + '</span></div>'; }
+        return '<div class="fcrung ' + cls + '"><div class="h"><span>Level ' + n + '</span><span>' + head + '</span></div>' + lines + foot + '</div>';
+      }).join('');
+      h += '<div class="fclad' + (building ? ' bld' : '') + '"><div class="t">' + esc(fac.name) + '<small>' + SEASON.STAFF.POST_NAME[fac.post] + '</small></div>' +
+           '<div class="fcrungs">' + rungs + '</div>' + fcFoot(me, id, fac, L) + '</div>';
     });
     h += '</div>';
     if (sel.msg) h += '<div class="bkgone warn">' + esc(sel.msg) + '</div>';

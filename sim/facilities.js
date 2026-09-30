@@ -29,23 +29,17 @@
                  levels: [{ cost: 0, upkeep: 600 },
                           { cost: 110000, upkeep: 1600 },
                           { cost: 240000, upkeep: 3200 },
-                          { cost: 420000, upkeep: 5200 }],
-                 does: ['Issues Tiers 1–2', 'Issues Tier 3', 'Issues Tier 4', 'Issues Tier 5'] },
+                          { cost: 420000, upkeep: 5200 }] },
     infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
-                 levels: [{ cost: 55000, upkeep: 900 }, { cost: 130000, upkeep: 2000 }, { cost: 280000, upkeep: 3800 }],
-                 does: ['A Surgeon Can Work · Wounds Mend Faster', 'A Cutter Can Operate · Faster Still', 'Wounds Mend Fastest'] },
+                 levels: [{ cost: 55000, upkeep: 900 }, { cost: 130000, upkeep: 2000 }, { cost: 280000, upkeep: 3800 }] },
     yard:      { name: 'Training Yard', post: 'drill', start: 0, seen: { craft: 1.0, grit: 0.3 },
-                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }],
-                 does: ['A Drillmaster Can Work · Drills Gain More', 'Drills Gain More', 'Drills Gain Most'] },
+                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }] },
     barracks:  { name: 'Barracks', post: 'sergeant', start: 0, seen: { care: 0.7, word: 0.3 },
-                 levels: [{ cost: 45000, upkeep: 800 }, { cost: 110000, upkeep: 1800 }, { cost: 240000, upkeep: 3400 }],
-                 does: ['A Sergeant Can Work · Strain Eases', 'Strain Eases More · Loyalty Settles', 'Strain Eases Most · Loyalty Settles Faster'] },
+                 levels: [{ cost: 45000, upkeep: 800 }, { cost: 110000, upkeep: 1800 }, { cost: 240000, upkeep: 3400 }] },
     press:     { name: 'Press Office', post: 'fixer', start: 0, seen: { glory: 1.0 },
-                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }],
-                 does: ['A Fixer Can Work · A Bigger Gate', 'A Bigger Gate', 'The Biggest Gate'] },
+                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }] },
     listening: { name: 'Listening Post', post: 'spymaster', start: 0, seen: { craft: 0.8, word: -0.2 },
-                 levels: [{ cost: 55000, upkeep: 1000 }, { cost: 130000, upkeep: 2200 }, { cost: 280000, upkeep: 4000 }],
-                 does: ['A Spymaster Can Work', 'A Mole Can Be Planted', 'Reports Every Month, Staffed or Not'] }
+                 levels: [{ cost: 55000, upkeep: 1000 }, { cost: 130000, upkeep: 2200 }, { cost: 280000, upkeep: 4000 }] }
   };
   const IDS = Object.keys(FACILITIES);
   const FOR_POST = {}; for (const id of IDS) FOR_POST[FACILITIES[id].post] = id;
@@ -78,7 +72,7 @@
   function nextLevel(corp, id) {
     const F = FACILITIES[id], L = level(corp, id);
     if (L >= F.levels.length) return null;
-    return Object.assign({ level: L + 1, does: F.does[L] }, F.levels[L]);
+    return Object.assign({ level: L + 1, does: does(id, L + 1) }, F.levels[L]);
   }
   /** can a build start: one at a time, and paid in full */
   /* the doctrine's ceiling is the Armoury's: past it, a level would open nothing */
@@ -118,6 +112,25 @@
     return n;
   }
 
+  /** What a level does, in numbers read off the constants above, so the page never says more than the rules do.
+      Every level above one also multiplies the staffer's Craft (`staffMult`). */
+  const POST_WORD = { infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
+  function does(id, L) {
+    const pct = x => Math.round(x * 100);
+    const staff = L >= 2 ? ['Staff ×' + (1 + CONST.STAFF_PER_LEVEL * (L - 1)).toFixed(2).replace(/0$/, '')] : [];
+    const opens = L === 1 && POST_WORD[id] ? ['A ' + POST_WORD[id] + ' May Work'] : [];
+    switch (id) {
+      case 'armoury': return [L === 1 ? 'Issues Tiers 1–2' : 'Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)].concat(staff);
+      case 'infirmary': return opens.concat(['Mending +' + pct(CONST.INFIRMARY_BASE * L) + '%'], L === 2 ? ['A Cutter May Operate'] : [], staff);
+      case 'yard': return opens.concat(['Drills +' + pct(CONST.YARD_BASE * L) + '%'], staff);
+      case 'barracks': return opens.concat(['Strain −' + (CONST.BARRACKS_CALM * L) + ' a Month'],
+                                           L >= 2 ? ['Loyalty +' + (CONST.BARRACKS_LOYALTY * (L - 1)).toFixed(1) + ' a Month, to 60'] : [], staff);
+      case 'press': return opens.concat(['Gate +' + pct(CONST.PRESS_GATE * L) + '%'], staff);
+      case 'listening': return opens.concat(L === 2 ? ['A Mole May Be Planted'] : [], L === 3 ? [CONST.LISTEN_LEVELS + ' Reports a Month, Unstaffed'] : [], staff);
+    }
+    return staff;
+  }
+
   /* ------------------------------------------------------------------ what they do alone */
   function yardYield(corp) { return 1 + CONST.YARD_BASE * level(corp, 'yard'); }
   function mendMult(corp) { return 1 + CONST.INFIRMARY_BASE * level(corp, 'infirmary'); }
@@ -151,7 +164,7 @@
     return opts.length ? opts[0].id : null;
   }
 
-  return { FACILITIES, IDS, FOR_POST, CONST, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
+  return { FACILITIES, IDS, FOR_POST, CONST, does, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
            tick, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
            cutterAllowed, moleAllowed, aiChoose };
 });
