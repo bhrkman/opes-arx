@@ -1389,6 +1389,7 @@
       if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
       stats.deals.push(deal);
       stats.ransoms = (stats.ransoms || 0) + 1;
+      (stats.captiveLog = stats.captiveLog || []).push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor.id, out: 'ransomed', price: deal.price, day: deal.day });
       if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
     }
     stats._settleRansom = settleRansom;
@@ -4575,6 +4576,16 @@
               fights: since,
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
+              /* §SEATS who of yours is held, and whom you hold: a capture was never told to anybody */
+              captives: (function () {
+                const taken = [], held = [];
+                for (const o of corps) for (const f of (o.allBodies || [])) {
+                  if (f.status !== 'captured' || !f._capturedBy) continue;
+                  if (o.id === seatId) taken.push({ fighter: f.id, name: f.name, by: f._capturedBy });
+                  else if (f._capturedBy === seatId) held.push({ fighter: f.id, name: f.name, from: o.id });
+                }
+                return { taken: taken, held: held };
+              })(),
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
               /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
               landings: (stats.landings || []).filter(l => l.corp === seatId),
@@ -6213,12 +6224,35 @@
        existing contract, which is the second mechanism in the project that moves a developed
        person between corps without money changing hands. */
     stats.captiveOutcomes = { released: 0, kept: 0, killed: 0 };
+    stats.captiveLog = stats.captiveLog || [];
+    /* §SEATS (ruled) A PERSON DECIDES WHAT BECOMES OF THOSE THEY HOLD. The engine rolled it from the captor's character
+       for every seat, and nobody was ever told. Each seat a person holds with captives is asked, captive by captive;
+       unanswered, a captive is released. */
+    const FATES = ['released', 'kept', 'killed'];
+    const heldBy = {};
+    for (const owner of corps) for (const f of owner.allBodies) {
+      if (f.status !== 'captured' || !f._capturedBy || !isHumanOA(f._capturedBy)) continue;
+      (heldBy[f._capturedBy] = heldBy[f._capturedBy] || []).push({ fighter: f.id, name: f.name, race: f.race, from: owner.id, fame: Math.round(f.fame || 0) });
+    }
+    const fateOf = {};
+    const holders = Object.keys(heldBy);
+    if (holders.length) {
+      const views = {};
+      for (const id of holders) views[id] = { kind: 'captives', day: day, captives: heldBy[id], you: { id: id } };
+      const reply = yield Object.assign({}, views[holders[0]], { seats: views, lead: holders[0] });
+      for (const id of holders) {
+        const a = reply && reply.bySeat ? reply.bySeat[id] : reply;
+        const pick = (a && a.captiveFate) || {};
+        for (const k in pick) if (FATES.indexOf(pick[k]) >= 0) fateOf[k] = pick[k];
+      }
+    }
     for (const owner of corps) {
       for (const f of owner.allBodies) {
         if (f.status !== 'captured') continue;
         const captor = corps.find(c => c.id === f._capturedBy) || null;
-        const out = captor ? NEG.resolveCaptive(rng, captor, owner, f) : 'released';
+        const out = !captor ? 'released' : isHumanOA(captor.id) ? (fateOf[f.id] || 'released') : NEG.resolveCaptive(rng, captor, owner, f);
         stats.captiveOutcomes[out]++;
+        stats.captiveLog.push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
         if (out === 'killed') f.status = 'dead';
         else if (out === 'released') f.status = 'injured';
         else { f.status = 'active'; f._transferredTo = captor ? captor.id : null; }

@@ -22867,6 +22867,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
       stats.deals.push(deal);
       stats.ransoms = (stats.ransoms || 0) + 1;
+      (stats.captiveLog = stats.captiveLog || []).push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor.id, out: 'ransomed', price: deal.price, day: deal.day });
       if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
     }
     stats._settleRansom = settleRansom;
@@ -26053,6 +26054,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               fights: since,
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
+              /* §SEATS who of yours is held, and whom you hold: a capture was never told to anybody */
+              captives: (function () {
+                const taken = [], held = [];
+                for (const o of corps) for (const f of (o.allBodies || [])) {
+                  if (f.status !== 'captured' || !f._capturedBy) continue;
+                  if (o.id === seatId) taken.push({ fighter: f.id, name: f.name, by: f._capturedBy });
+                  else if (f._capturedBy === seatId) held.push({ fighter: f.id, name: f.name, from: o.id });
+                }
+                return { taken: taken, held: held };
+              })(),
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
               /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
               landings: (stats.landings || []).filter(l => l.corp === seatId),
@@ -27691,12 +27702,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        existing contract, which is the second mechanism in the project that moves a developed
        person between corps without money changing hands. */
     stats.captiveOutcomes = { released: 0, kept: 0, killed: 0 };
+    stats.captiveLog = stats.captiveLog || [];
+    /* §SEATS (ruled) A PERSON DECIDES WHAT BECOMES OF THOSE THEY HOLD. The engine rolled it from the captor's character
+       for every seat, and nobody was ever told. Each seat a person holds with captives is asked, captive by captive;
+       unanswered, a captive is released. */
+    const FATES = ['released', 'kept', 'killed'];
+    const heldBy = {};
+    for (const owner of corps) for (const f of owner.allBodies) {
+      if (f.status !== 'captured' || !f._capturedBy || !isHumanOA(f._capturedBy)) continue;
+      (heldBy[f._capturedBy] = heldBy[f._capturedBy] || []).push({ fighter: f.id, name: f.name, race: f.race, from: owner.id, fame: Math.round(f.fame || 0) });
+    }
+    const fateOf = {};
+    const holders = Object.keys(heldBy);
+    if (holders.length) {
+      const views = {};
+      for (const id of holders) views[id] = { kind: 'captives', day: day, captives: heldBy[id], you: { id: id } };
+      const reply = yield Object.assign({}, views[holders[0]], { seats: views, lead: holders[0] });
+      for (const id of holders) {
+        const a = reply && reply.bySeat ? reply.bySeat[id] : reply;
+        const pick = (a && a.captiveFate) || {};
+        for (const k in pick) if (FATES.indexOf(pick[k]) >= 0) fateOf[k] = pick[k];
+      }
+    }
     for (const owner of corps) {
       for (const f of owner.allBodies) {
         if (f.status !== 'captured') continue;
         const captor = corps.find(c => c.id === f._capturedBy) || null;
-        const out = captor ? NEG.resolveCaptive(rng, captor, owner, f) : 'released';
+        const out = !captor ? 'released' : isHumanOA(captor.id) ? (fateOf[f.id] || 'released') : NEG.resolveCaptive(rng, captor, owner, f);
         stats.captiveOutcomes[out]++;
+        stats.captiveLog.push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
         if (out === 'killed') f.status = 'dead';
         else if (out === 'released') f.status = 'injured';
         else { f.status = 'active'; f._transferredTo = captor ? captor.id : null; }
@@ -30802,9 +30836,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
    * exactly what the first chain did. A poor corp signs fewer, so the difficulty gradient
    * shows up in PEOPLE as well as in money.
    */
-  function recruit(rng, corp) {
+  function recruit(rng, corp, person) {
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const target = Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
+    /* §SEATS (ruled) THE FLOOR IS A RULE; THE REST OF A ROSTER IS A CHOICE. This filled every seat to the engine's
+       target with strangers and the seat's own money; a person's roster is filled only to the muster minimum. */
+    const target = person ? CONST.ROSTER_MIN : Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
     /* what this corp can actually afford to sign and then pay for a year */
@@ -31841,9 +31877,17 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   const SLOT_MIN = 48;
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
+    /* §SEATS a person's landings are their squad board's: as many as the squads they have filled (ruled). Read
+       fresh, never cached — the board can change until the Lock. With no board set, the formula stands in. */
+    if (isHuman(state, corpId)) {
+      const at = (c._seat && c._seat.plan && c._seat.plan.at) || {};
+      const alive = new Set(c.roster.filter(f => f.status === 'active').map(f => f.id));
+      const used = new Set(); for (const fid in at) if (alive.has(fid) && at[fid] != null) used.add(at[fid]);
+      if (used.size >= 2) return Math.min(DIVIDE.CONST.SQUADS_MAX || 6, used.size);
+    }
     if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
     const alive = c.roster.filter(f => f.status === 'active').length;
-    const n = DIVIDE.squadCountFor(alive, c.profile || {}, isHuman(state, corpId) ? (c._wantSquads || 0) : 0);
+    const n = DIVIDE.squadCountFor(alive, c.profile || {}, 0);
     c._squadPlan = { season: state.season, n };
     return n;
   }
@@ -32490,7 +32534,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (!isHuman(state, id)) aiStaff(state, id, { renew: false });
       spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
-                            choices && choices[id], landed[id], state.corps);
+                            /* §SEATS (ruled) a person's month is theirs: unanswered, it spends nothing — the engine
+                               does not pick their focus, their talk or their Sergeant's word for them */
+                            (choices && choices[id]) || (isHuman(state, id) ? {} : undefined), landed[id], state.corps);
       /* §CENSUS and its grounds every month: a build is a month now, and twice a year left it far behind a person */
       if (!isHuman(state, id)) aiBuild(state.corps[id], state);
     }
@@ -32946,7 +32992,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          SEASONS.md always said the roster settles first and the money follows it. */
       c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
                              c._off.expired, c._off.freed, state);
-      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c);
+      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c, isHuman(state, id));
       /* the calls are answered: they are this year's, not a standing instruction */
       c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -36763,7 +36809,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       G.plan.hand[b.id] = h2;
       if (b.bond_partner) G.plan.hand[b.bond_partner] = JSON.parse(JSON.stringify(h2));
     });
-    G._wantSquads = N;
     dlog('<span class="m">\\u00bb four squads of five set and kitted (dev)</span>');
     if (typeof renderSquads === 'function') renderSquads();
     if (typeof renderRoster === 'function') renderRoster();
@@ -38375,6 +38420,40 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   window.syncWindowBtns = syncWindowBtns; window.renderWordWindow = renderWordWindow;
   function syncWindowBtns() {}
 
+  /* §SEATS the captives a seat holds when the shooting stops: release, keep or kill, each; unanswered, released */
+  var CAPTIVE_FATE = [['released', 'Release', 'Home, Hurt \u00b7 Their House Remembers It'],
+                      ['kept', 'Keep Them', 'On Your Roster \u00b7 Their House Cools'],
+                      ['killed', 'Kill Them', 'The Stands Split \u00b7 Their House Never Forgets']];
+  function renderCaptiveWindow(v) {
+    var fate = {}; (v.captives || []).forEach(function (c) { fate[c.fighter] = 'released'; });
+    var box = $('dispatch');
+    $('dhead').innerHTML = 'Day ' + v.day + ' \u00b7 <b>Those You Hold</b>';
+    $('dcount').textContent = (v.captives || []).length + ' Held';
+    $('eight').innerHTML = '';
+    var draw = function () {
+      $('events').innerHTML = '<div class="evgrid">' + (v.captives || []).map(function (c) {
+        return '<div class="evcard ev-word"><div class="evk"><span>A Captive</span><span>From ' + cSpan(c.from) + '</span></div>' +
+          '<div class="et">' + esc(c.name) + (c.fame ? ' \u00b7 Fame ' + c.fame : '') + '</div>' +
+          '<div class="evopts">' + CAPTIVE_FATE.map(function (o) {
+            return '<button class="evopt' + (fate[c.fighter] === o[0] ? ' sel' : '') + '" data-cap="' + esc(c.fighter) + '" data-fate="' + o[0] + '"><span class="ol">' + o[1] + '</span><span class="oc">' + o[2] + '</span></button>';
+          }).join('') + '</div></div>';
+      }).join('') + '</div>';
+      Array.prototype.forEach.call($('events').querySelectorAll('[data-cap]'), function (b) {
+        b.onclick = function () { fate[b.getAttribute('data-cap')] = b.getAttribute('data-fate'); draw(); };
+      });
+    };
+    draw();
+    $('dfoot').textContent = 'The Settlement Waits on You';
+    $('dlaterw').textContent = 'Settle';
+    $('dlater').onclick = function () {
+      SEASON.answerContest(G.state, G.me, { captiveFate: fate });
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      advanceDivide();
+    };
+    $('dscrim').onclick = null;
+    $('dscrim').classList.add('on'); box.classList.add('on');
+    $('advwin').style.display = 'none';
+  }
   function renderWordWindow(v) {
     var keep = {}; (v.promises || []).forEach(function (p) { keep[p.to] = true; });
     var box = $('dispatch');
@@ -38469,6 +38548,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
         $('gday').value = '1';
       }
+    } else if (step.value && (step.value.kind === 'captives' || (step.value.seats && step.value.seats[G.me] && step.value.seats[G.me].kind === 'captives'))) {
+      /* §SEATS THOSE YOU HOLD: the shooting has stopped, and what becomes of each captive is yours to say */
+      renderCaptiveWindow(step.value.seats && step.value.seats[G.me] ? step.value.seats[G.me] : step.value);
     } else if (step.value && step.value.settlement) {
       /* §SEATS THE WINNER'S WORD: the contest is decided and the engine asks the seat, promise by promise,
          whether it keeps what it said at the table; the settlement waits on the answer */
@@ -38505,6 +38587,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         }
       }
       $('divstate').textContent = 'Day ' + step.value.day + ' \u00b7 Comms Window ' + G.div.windows;
+      var capW = G.div.win && G.div.win.captives;
+      if (capW && (capW.taken.length || capW.held.length))
+        $('divstate').textContent += (capW.taken.length ? ' \u00b7 ' + capW.taken.length + ' of Yours Held' : '') + (capW.held.length ? ' \u00b7 Holding ' + capW.held.length : '');
     }
     renderGround(); renderEncounters(); renderTable();
     renderBench(); renderSquads();
@@ -41065,6 +41150,23 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (r === 'cap') return 'Fought to the Cap';
     return capWords(r);
   }
+  /* §SEATS who of yours was taken, whom you took, and what became of each */
+  var CAPTIVE_OUT = { ransomed: 'Ransomed', released: 'Released', kept: 'Kept', killed: 'Killed' };
+  function captivesHtml() {
+    if (!G || !G.div) return '';
+    var rows = [];
+    var fin = G.div.final, win = G.div.win;
+    if (fin && fin.captiveLog) {
+      fin.captiveLog.forEach(function (c) {
+        if (c.owner === G.me) rows.push('<span class="warn">' + esc(c.name) + '</span> \u00b7 Taken by ' + cSpan(c.captor) + ' \u00b7 <b>' + CAPTIVE_OUT[c.out] + '</b>');
+        else if (c.captor === G.me) rows.push(esc(c.name) + ' \u00b7 Taken From ' + cSpan(c.owner) + ' \u00b7 <b>' + CAPTIVE_OUT[c.out] + '</b>');
+      });
+    } else if (win && win.captives) {
+      (win.captives.taken || []).forEach(function (c) { rows.push('<span class="warn">' + esc(c.name) + '</span> \u00b7 Held by ' + cSpan(c.by)); });
+      (win.captives.held || []).forEach(function (c) { rows.push(esc(c.name) + ' \u00b7 Held From ' + cSpan(c.from)); });
+    }
+    return rows.length ? '<div class="m" style="margin:2px 0">Captives</div>' + rows.map(function (r) { return '<div class="poolrow"><span>' + r + '</span></div>'; }).join('') : '';
+  }
   function renderEncounters() {
     if (!G) return;
     var h = '';
@@ -41098,6 +41200,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            ' <span class="m">\u2014 ' + resultWords(b) + '</span></span>' +
            '<button class="tiny" data-watch="' + i + '">Watch</button></div>';
     });
+    h = captivesHtml() + h;
     $('encounters').innerHTML = h || '<span class="m">The Ground Is Quiet</span>';
     Array.prototype.forEach.call(document.querySelectorAll('[data-watch]'), function (btn) {
       btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); openFight('table'); };

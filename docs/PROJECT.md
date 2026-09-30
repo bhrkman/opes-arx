@@ -81,8 +81,10 @@ the drop or the year's end. The board sets a card of three demands and watches s
 casualties and popularity beside it; its patience is the number a manager lives by.
 
 The engine's OAs play the same year by the same rules, answering the same dispatches and
-signing at the same windows. Any seat may be a person or the engine, and a system only one of
-them could use is a fault.
+signing at the same windows, each by its own temperament. Any seat may be a person or the
+engine, and a system only one of them could use is a fault. Nothing is decided for a person's
+seat: an unanswered month spends nothing, the year-end fill stops at the muster minimum, their
+landings are their squad board's, and they say what becomes of the captives they hold.
 
 ## The Divide
 
@@ -105,6 +107,8 @@ A fight is fought on a grid with cover, line of sight and fog: a body is seen, h
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
 two sides fight on a wider board and a flank is worth the trouble of making it. Winners take
 the ground and what the fallen carried. The wounded are recovered or lost; the dead are dead.
+A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
+kept or killed by whoever holds them.
 
 Everything an OA knows on the ground is what its squads have seen: rival positions are last
 sightings, rival strength is the broadcast count, and a seat is never sent what it has not

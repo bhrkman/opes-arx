@@ -2326,9 +2326,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
    * exactly what the first chain did. A poor corp signs fewer, so the difficulty gradient
    * shows up in PEOPLE as well as in money.
    */
-  function recruit(rng, corp) {
+  function recruit(rng, corp, person) {
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const target = Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
+    /* §SEATS (ruled) THE FLOOR IS A RULE; THE REST OF A ROSTER IS A CHOICE. This filled every seat to the engine's
+       target with strangers and the seat's own money; a person's roster is filled only to the muster minimum. */
+    const target = person ? CONST.ROSTER_MIN : Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
     /* what this corp can actually afford to sign and then pay for a year */
@@ -3365,9 +3367,17 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   const SLOT_MIN = 48;
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
+    /* §SEATS a person's landings are their squad board's: as many as the squads they have filled (ruled). Read
+       fresh, never cached — the board can change until the Lock. With no board set, the formula stands in. */
+    if (isHuman(state, corpId)) {
+      const at = (c._seat && c._seat.plan && c._seat.plan.at) || {};
+      const alive = new Set(c.roster.filter(f => f.status === 'active').map(f => f.id));
+      const used = new Set(); for (const fid in at) if (alive.has(fid) && at[fid] != null) used.add(at[fid]);
+      if (used.size >= 2) return Math.min(DIVIDE.CONST.SQUADS_MAX || 6, used.size);
+    }
     if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
     const alive = c.roster.filter(f => f.status === 'active').length;
-    const n = DIVIDE.squadCountFor(alive, c.profile || {}, isHuman(state, corpId) ? (c._wantSquads || 0) : 0);
+    const n = DIVIDE.squadCountFor(alive, c.profile || {}, 0);
     c._squadPlan = { season: state.season, n };
     return n;
   }
@@ -4014,7 +4024,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (!isHuman(state, id)) aiStaff(state, id, { renew: false });
       spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
-                            choices && choices[id], landed[id], state.corps);
+                            /* §SEATS (ruled) a person's month is theirs: unanswered, it spends nothing — the engine
+                               does not pick their focus, their talk or their Sergeant's word for them */
+                            (choices && choices[id]) || (isHuman(state, id) ? {} : undefined), landed[id], state.corps);
       /* §CENSUS and its grounds every month: a build is a month now, and twice a year left it far behind a person */
       if (!isHuman(state, id)) aiBuild(state.corps[id], state);
     }
@@ -4470,7 +4482,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          SEASONS.md always said the roster settles first and the money follows it. */
       c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
                              c._off.expired, c._off.freed, state);
-      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c);
+      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c, isHuman(state, id));
       /* the calls are answered: they are this year's, not a standing instruction */
       c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');

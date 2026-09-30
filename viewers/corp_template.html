@@ -5252,7 +5252,6 @@
       G.plan.hand[b.id] = h2;
       if (b.bond_partner) G.plan.hand[b.bond_partner] = JSON.parse(JSON.stringify(h2));
     });
-    G._wantSquads = N;
     dlog('<span class="m">\\u00bb four squads of five set and kitted (dev)</span>');
     if (typeof renderSquads === 'function') renderSquads();
     if (typeof renderRoster === 'function') renderRoster();
@@ -6864,6 +6863,40 @@
   window.syncWindowBtns = syncWindowBtns; window.renderWordWindow = renderWordWindow;
   function syncWindowBtns() {}
 
+  /* §SEATS the captives a seat holds when the shooting stops: release, keep or kill, each; unanswered, released */
+  var CAPTIVE_FATE = [['released', 'Release', 'Home, Hurt \u00b7 Their House Remembers It'],
+                      ['kept', 'Keep Them', 'On Your Roster \u00b7 Their House Cools'],
+                      ['killed', 'Kill Them', 'The Stands Split \u00b7 Their House Never Forgets']];
+  function renderCaptiveWindow(v) {
+    var fate = {}; (v.captives || []).forEach(function (c) { fate[c.fighter] = 'released'; });
+    var box = $('dispatch');
+    $('dhead').innerHTML = 'Day ' + v.day + ' \u00b7 <b>Those You Hold</b>';
+    $('dcount').textContent = (v.captives || []).length + ' Held';
+    $('eight').innerHTML = '';
+    var draw = function () {
+      $('events').innerHTML = '<div class="evgrid">' + (v.captives || []).map(function (c) {
+        return '<div class="evcard ev-word"><div class="evk"><span>A Captive</span><span>From ' + cSpan(c.from) + '</span></div>' +
+          '<div class="et">' + esc(c.name) + (c.fame ? ' \u00b7 Fame ' + c.fame : '') + '</div>' +
+          '<div class="evopts">' + CAPTIVE_FATE.map(function (o) {
+            return '<button class="evopt' + (fate[c.fighter] === o[0] ? ' sel' : '') + '" data-cap="' + esc(c.fighter) + '" data-fate="' + o[0] + '"><span class="ol">' + o[1] + '</span><span class="oc">' + o[2] + '</span></button>';
+          }).join('') + '</div></div>';
+      }).join('') + '</div>';
+      Array.prototype.forEach.call($('events').querySelectorAll('[data-cap]'), function (b) {
+        b.onclick = function () { fate[b.getAttribute('data-cap')] = b.getAttribute('data-fate'); draw(); };
+      });
+    };
+    draw();
+    $('dfoot').textContent = 'The Settlement Waits on You';
+    $('dlaterw').textContent = 'Settle';
+    $('dlater').onclick = function () {
+      SEASON.answerContest(G.state, G.me, { captiveFate: fate });
+      closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeDispatch; $('dlaterw').textContent = 'Later';
+      advanceDivide();
+    };
+    $('dscrim').onclick = null;
+    $('dscrim').classList.add('on'); box.classList.add('on');
+    $('advwin').style.display = 'none';
+  }
   function renderWordWindow(v) {
     var keep = {}; (v.promises || []).forEach(function (p) { keep[p.to] = true; });
     var box = $('dispatch');
@@ -6958,6 +6991,9 @@
         G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
         $('gday').value = '1';
       }
+    } else if (step.value && (step.value.kind === 'captives' || (step.value.seats && step.value.seats[G.me] && step.value.seats[G.me].kind === 'captives'))) {
+      /* §SEATS THOSE YOU HOLD: the shooting has stopped, and what becomes of each captive is yours to say */
+      renderCaptiveWindow(step.value.seats && step.value.seats[G.me] ? step.value.seats[G.me] : step.value);
     } else if (step.value && step.value.settlement) {
       /* §SEATS THE WINNER'S WORD: the contest is decided and the engine asks the seat, promise by promise,
          whether it keeps what it said at the table; the settlement waits on the answer */
@@ -6994,6 +7030,9 @@
         }
       }
       $('divstate').textContent = 'Day ' + step.value.day + ' \u00b7 Comms Window ' + G.div.windows;
+      var capW = G.div.win && G.div.win.captives;
+      if (capW && (capW.taken.length || capW.held.length))
+        $('divstate').textContent += (capW.taken.length ? ' \u00b7 ' + capW.taken.length + ' of Yours Held' : '') + (capW.held.length ? ' \u00b7 Holding ' + capW.held.length : '');
     }
     renderGround(); renderEncounters(); renderTable();
     renderBench(); renderSquads();
@@ -9554,6 +9593,23 @@
     if (r === 'cap') return 'Fought to the Cap';
     return capWords(r);
   }
+  /* §SEATS who of yours was taken, whom you took, and what became of each */
+  var CAPTIVE_OUT = { ransomed: 'Ransomed', released: 'Released', kept: 'Kept', killed: 'Killed' };
+  function captivesHtml() {
+    if (!G || !G.div) return '';
+    var rows = [];
+    var fin = G.div.final, win = G.div.win;
+    if (fin && fin.captiveLog) {
+      fin.captiveLog.forEach(function (c) {
+        if (c.owner === G.me) rows.push('<span class="warn">' + esc(c.name) + '</span> \u00b7 Taken by ' + cSpan(c.captor) + ' \u00b7 <b>' + CAPTIVE_OUT[c.out] + '</b>');
+        else if (c.captor === G.me) rows.push(esc(c.name) + ' \u00b7 Taken From ' + cSpan(c.owner) + ' \u00b7 <b>' + CAPTIVE_OUT[c.out] + '</b>');
+      });
+    } else if (win && win.captives) {
+      (win.captives.taken || []).forEach(function (c) { rows.push('<span class="warn">' + esc(c.name) + '</span> \u00b7 Held by ' + cSpan(c.by)); });
+      (win.captives.held || []).forEach(function (c) { rows.push(esc(c.name) + ' \u00b7 Held From ' + cSpan(c.from)); });
+    }
+    return rows.length ? '<div class="m" style="margin:2px 0">Captives</div>' + rows.map(function (r) { return '<div class="poolrow"><span>' + r + '</span></div>'; }).join('') : '';
+  }
   function renderEncounters() {
     if (!G) return;
     var h = '';
@@ -9587,6 +9643,7 @@
            ' <span class="m">\u2014 ' + resultWords(b) + '</span></span>' +
            '<button class="tiny" data-watch="' + i + '">Watch</button></div>';
     });
+    h = captivesHtml() + h;
     $('encounters').innerHTML = h || '<span class="m">The Ground Is Quiet</span>';
     Array.prototype.forEach.call(document.querySelectorAll('[data-watch]'), function (btn) {
       btn.onclick = function () { loadBattle(+btn.getAttribute('data-watch')); openFight('table'); };

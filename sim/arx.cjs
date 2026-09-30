@@ -970,6 +970,40 @@ function worldSeeding() {
   ok('the rules read no clock and no unseeded dice', clocks.length === 0, clocks.join(', '));
 }
 
+/* =========================================================================
+   SEAT RULES — nothing is decided for a seat a person holds (ruled).
+   ========================================================================= */
+function seatRules() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const me = 'nevlon_collective';
+  const rng = P.mulberry32(P.seedFrom('ct1'));
+  const corps = SEASONMOD.openFleet(rng, oa, { worldSeed: 1 });
+  const st = SEASONMOD.beginSeason(rng, corps, oa, { human: me });
+  const acts0 = corps[me].rep.memory.length;
+  SEASONMOD.stepMonth(st, {});   /* nothing submitted for the person */
+  const spent = corps[me].rep.memory.slice(acts0).filter(m => /drilled_hard|rested_them|courted|scouted/.test(m.t)).length;
+  ok('an unanswered month spends nothing for a person', spent === 0, spent + ' focus acts');
+  ok('nor has a word or a Sergeant sent for them', !(corps[me]._talked && corps[me]._talked.abs === st.season * 100 + 1), '');
+  while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st, { [me]: {} });
+  const alive = c => c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
+  const before = alive(corps[me]);
+  SEASONMOD.closeSeasonToDrop(st);
+  ok('the year-end fill stops at the muster minimum for a person', alive(corps[me]) <= Math.max(before, SEASONMOD.CONST.ROSTER_MIN),
+     before + ' before, ' + alive(corps[me]) + ' after, minimum ' + SEASONMOD.CONST.ROSTER_MIN);
+  SEASONMOD.beginContest(st);
+  let asked = null, guard = 0;
+  while (guard++ < 400) {
+    const status = SEASONMOD.contestStatus(st); if (!status || status.done) break;
+    const v = SEASONMOD.contestView(st, me);
+    if (v && v.kind === 'captives') { asked = v.captives; const f = {}; for (const x of v.captives) f[x.fighter] = 'kept'; SEASONMOD.answerContest(st, me, { captiveFate: f }); }
+    SEASONMOD.advanceContest(st, { force: true });
+  }
+  const res = SEASONMOD.contestResult(st);
+  const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed');
+  ok('a person is asked what becomes of the captives they hold', !!asked && asked.length > 0, asked ? asked.length + ' asked' : 'never asked');
+  ok('and their answer stands', mine.length > 0 && mine.every(x => x.out === 'kept'), mine.map(x => x.out).join(','));
+}
+
 function facilityRules() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const F = req('facilities.js'), IT = req('items.js');
@@ -4045,6 +4079,7 @@ function runRegression() {
   phase('staff', staffRules);
   phase('facilities', facilityRules);
   phase('worldSeeding', worldSeeding);
+  phase('seatRules', seatRules);
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('negotiationRules', negotiationRules);
@@ -4354,6 +4389,6 @@ else if (cmd === 'probe') {
 }
 else if (cmd === 'survey') buildSurvey();
 else if (cmd === 'lab') runLab(Number(process.argv[3]) || 6, process.argv[4]);
-else if (cmd === 'phase') { const f = { worldSeeding, theSeam }[process.argv[3]]; if (!f) { console.log('phase needs: worldSeeding | theSeam'); process.exitCode = 1; } else { f(); console.log(pass + ' passed, ' + fail + ' failed'); failures.forEach(x => console.log('  ✗ ' + x)); } }
+else if (cmd === 'phase') { const f = { worldSeeding, theSeam, seatRules }[process.argv[3]]; if (!f) { console.log('phase needs: worldSeeding | theSeam'); process.exitCode = 1; } else { f(); console.log(pass + ' passed, ' + fail + ' failed'); failures.forEach(x => console.log('  ✗ ' + x)); } }
 else if (cmd === 'all') { runRegression(); console.log(''); runAcceptance(); }
 else usage();
