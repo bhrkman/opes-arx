@@ -997,9 +997,9 @@ function facilityRules() {
   const t0 = c.account.treasury;
   const b1 = SEASONMOD.buildFacility(st, ids[0], 'infirmary');
   ok('a build is paid in full when it starts', b1.ok && t0 - c.account.treasury === F.FACILITIES.infirmary.levels[0].cost, '');
-  ok('one build at a time', !SEASONMOD.buildFacility(st, ids[0], 'yard').ok, '');
-  for (let i = 0; i < 3; i++) SEASONMOD.stepMonth(st, { [ids[0]]: {} });
-  ok('it stands when its months are up', F.level(c, 'infirmary') === 1 && !c.facilities.build, 'level ' + F.level(c, 'infirmary'));
+  ok('one build a month', !SEASONMOD.buildFacility(st, ids[0], 'yard').ok, '');
+  SEASONMOD.stepMonth(st, { [ids[0]]: {} });
+  ok('it stands when the month turns', F.level(c, 'infirmary') === 1 && !c.facilities.build, 'level ' + F.level(c, 'infirmary'));
   ok('and then a post is open', SEASONMOD.appoint(st, ids[0], f0.id, 'surgeon').ok, '');
   const led0 = c.account.ledger.length;
   SEASONMOD.stepMonth(st, { [ids[0]]: {} });

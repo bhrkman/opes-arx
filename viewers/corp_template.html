@@ -1239,9 +1239,7 @@
   .fcdoes .had{color:var(--ink)} .fcdoes .next{color:var(--dim)}
   .fcnext{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:10.5px;border-top:1px solid #131f30;padding-top:6px}
   .fcnext .k{color:var(--dim)} .fcnext .v{text-align:right}
-  .fcbanner{display:flex;gap:10px;align-items:center;padding:8px 10px;margin-bottom:10px;border:1px solid var(--cred);border-radius:5px;background:var(--a-deep);font-size:11.5px}
-  .fcbanner .bkbar{flex:1}
-  .fcbanner .bkbar i{background:var(--cred)}
+  .fcbanner{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;margin-bottom:10px;border:1px solid var(--cred);border-radius:5px;background:var(--a-deep);font-size:11.5px}
   .prow.locked{opacity:.5;cursor:default}
   /* §STAFF the backroom */
   .bkposts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
@@ -5851,7 +5849,7 @@
 
 
   /* ============================ FACILITIES (§FACILITIES) ============================
-     Six facilities, levels, one build at a time. The Armoury decides what gear can be issued. */
+     Six facilities, levels, one build a month, ready the month after. The Armoury decides what gear can be issued. */
   /* §FACILITIES what sits in the rack that the Armoury cannot yet issue: the case for the next level */
   function armouryStoredHtml(me) {
     var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
@@ -5863,10 +5861,8 @@
     var me = G.corps[G.me], F = SEASON.FAC, g = F.grounds(me), sel = G._fc || (G._fc = {});
     var h = '';
     if (g.build) {
-      var bf = F.FACILITIES[g.build.id], left = F.monthsLeft(me, G.state.season, G.state.month), tot = Math.max(1, g.build.ready - g.build.from);
-      h += '<div class="fcbanner"><span>Building · <b>' + esc(bf.name) + ' Level ' + g.build.level + '</b></span>' +
-           '<span class="bkbar"><i style="width:' + Math.round(100 * (1 - left / tot)) + '%"></i></span>' +
-           '<span>' + (left ? left + ' Month' + (left === 1 ? '' : 's') + ' Left' : 'Stands Next Month') + '</span></div>';
+      var bf = F.FACILITIES[g.build.id];
+      h += '<div class="fcbanner"><span>Building · <b>' + esc(bf.name) + ' Level ' + g.build.level + '</b></span><span>Ready Next Month</span></div>';
     }
     h += '<div class="fcgrid">';
     F.IDS.forEach(function (id) {
@@ -5882,7 +5878,7 @@
               '<span class="k">Then</span><span class="v">' + crs(nx.upkeep) + '/mo</span></div>' +
               '<div class="bar">' + (sel.ask === id
                  ? '<button class="tiny" data-fcgo="' + id + '">Confirm · ' + crs(nx.cost) + '</button><button class="tiny" data-fckeep="1">Cancel</button>'
-                 : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + (building ? 'Building' : can.ok ? 'Build Level ' + nx.level : esc(can.why)) + '</button>') + '</div>'
+                 : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + (building ? 'Ready Next Month' : can.ok ? 'Build Level ' + nx.level : esc(can.why)) + '</button>') + '</div>'
             : '<div class="m">At the Top</div>') +
         '</div>';
     });

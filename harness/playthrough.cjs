@@ -191,7 +191,7 @@ function playYear(year) {
   const F = S.FAC, lv = F.IDS.filter(id => F.level(c, id) > 0).map(id => F.FACILITIES[id].name + ' ' + F.level(c, id));
   say('Facilities: ' + (lv.length ? lv.join(' · ') : 'none') + (c.facilities && c.facilities.build ? ' · building the ' + F.FACILITIES[c.facilities.build.id].name + ' to level ' + c.facilities.build.level : '') + ' (issues up to tier ' + F.maxTier(c) + ').');
   const want = F.aiChoose(c, 120000);
-  if (want) { const r = S.buildFacility(state, ME, want); if (r.ok) say('- Began building the ' + F.FACILITIES[want].name + ' to level ' + r.build.level + ' (ready in ' + (r.build.ready - r.build.from) + ' months).'); }
+  if (want) { const r = S.buildFacility(state, ME, want); if (r.ok) say('- Began building the ' + F.FACILITIES[want].name + ' to level ' + r.build.level + ', ready next month.'); }
   while (state.month <= S.CONST.PREP_MONTHS) {
     const m = state.month, win = S.MONTHS[m];
     say('\n## Month ' + m + ' · ' + win.name + '\n');

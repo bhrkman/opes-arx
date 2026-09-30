@@ -9,8 +9,8 @@
      Each level above opens the next tier, to tier five at level four. Gear above an OA's tier is
      STORED, never lost — captured kit waits in the rack for the day the Armoury can issue it.
      A mercenary's own gear is theirs, and they carry it whatever the Armoury says.
-   - Building is paid in full when it starts and takes months; the months run through the Divide
-     and the winter, so a big build started in spring stands next spring. One build at a time.
+   - Building is paid in full when it is ordered and stands at the start of next month (ruled: a
+     build that did nothing for a year was a toll, not a choice). One build a month.
    - A standing facility costs upkeep every month. The board does not judge construction (it is
      capital, not a year's spending); it does see the upkeep.
    - No board sign-off: the money is the only gate.
@@ -23,28 +23,28 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  /* levels[i] is what level i+1 costs: credits up front, months to build, upkeep a month once standing */
+  /* levels[i] is what level i+1 costs: credits up front, and upkeep a month once standing */
   const FACILITIES = {
     armoury:   { name: 'Armoury', post: 'quartermaster', start: 1, seen: { blood: 0.8, craft: 0.4 },
-                 levels: [{ cost: 0, months: 0, upkeep: 600 },
-                          { cost: 110000, months: 6, upkeep: 1600 },
-                          { cost: 240000, months: 9, upkeep: 3200 },
-                          { cost: 420000, months: 12, upkeep: 5200 }],
+                 levels: [{ cost: 0, upkeep: 600 },
+                          { cost: 110000, upkeep: 1600 },
+                          { cost: 240000, upkeep: 3200 },
+                          { cost: 420000, upkeep: 5200 }],
                  does: ['Issues Tiers 1–2', 'Issues Tier 3', 'Issues Tier 4', 'Issues Tier 5'] },
     infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
-                 levels: [{ cost: 55000, months: 3, upkeep: 900 }, { cost: 130000, months: 6, upkeep: 2000 }, { cost: 280000, months: 12, upkeep: 3800 }],
+                 levels: [{ cost: 55000, upkeep: 900 }, { cost: 130000, upkeep: 2000 }, { cost: 280000, upkeep: 3800 }],
                  does: ['A Surgeon Can Work · Wounds Mend Faster', 'A Cutter Can Operate · Faster Still', 'Wounds Mend Fastest'] },
     yard:      { name: 'Training Yard', post: 'drill', start: 0, seen: { craft: 1.0, grit: 0.3 },
-                 levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
+                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }],
                  does: ['A Drillmaster Can Work · Drills Gain More', 'Drills Gain More', 'Drills Gain Most'] },
     barracks:  { name: 'Barracks', post: 'sergeant', start: 0, seen: { care: 0.7, word: 0.3 },
-                 levels: [{ cost: 45000, months: 3, upkeep: 800 }, { cost: 110000, months: 6, upkeep: 1800 }, { cost: 240000, months: 12, upkeep: 3400 }],
+                 levels: [{ cost: 45000, upkeep: 800 }, { cost: 110000, upkeep: 1800 }, { cost: 240000, upkeep: 3400 }],
                  does: ['A Sergeant Can Work · Strain Eases', 'Strain Eases More · Loyalty Settles', 'Strain Eases Most · Loyalty Settles Faster'] },
     press:     { name: 'Press Office', post: 'fixer', start: 0, seen: { glory: 1.0 },
-                 levels: [{ cost: 50000, months: 3, upkeep: 900 }, { cost: 120000, months: 6, upkeep: 2000 }, { cost: 260000, months: 12, upkeep: 3600 }],
+                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }],
                  does: ['A Fixer Can Work · A Bigger Gate', 'A Bigger Gate', 'The Biggest Gate'] },
     listening: { name: 'Listening Post', post: 'spymaster', start: 0, seen: { craft: 0.8, word: -0.2 },
-                 levels: [{ cost: 55000, months: 3, upkeep: 1000 }, { cost: 130000, months: 6, upkeep: 2200 }, { cost: 280000, months: 12, upkeep: 4000 }],
+                 levels: [{ cost: 55000, upkeep: 1000 }, { cost: 130000, upkeep: 2200 }, { cost: 280000, upkeep: 4000 }],
                  does: ['A Spymaster Can Work', 'A Mole Can Be Planted', 'Reports Every Month, Staffed or Not'] }
   };
   const IDS = Object.keys(FACILITIES);
@@ -91,7 +91,7 @@
     const g = grounds(corp), nx = nextLevel(corp, id);
     if (!nx) return { ok: false, why: 'At the Top' };
     if (capped(corp, id)) return { ok: false, why: 'The Doctrine Goes No Higher' };
-    if (g.build) return { ok: false, why: 'Already Building' };
+    if (g.build) return { ok: false, why: 'One a Month' };
     nx.cost = Math.round(nx.cost * (mult || 1) / 1000) * 1000;   /* the fleet's month moves the builders' prices too */
     if (((corp.account && corp.account.treasury) || 0) < nx.cost) return { ok: false, why: 'Not Enough in the Treasury' };
     return { ok: true, next: nx };
@@ -100,7 +100,7 @@
     const c = canBuild(corp, id, mult); if (!c.ok) return c;
     const g = grounds(corp);
     if (post) post(corp.account, 'expense', 'Building the ' + FACILITIES[id].name, -c.next.cost);
-    g.build = { id, level: c.next.level, from: absOf(season, month), ready: absOf(season, month) + c.next.months };
+    g.build = { id, level: c.next.level, ready: absOf(season, month) + 1 };   /* stands when this month turns */
     return { ok: true, build: g.build };
   }
   /** time passes: a build that has stood long enough stands. Returns what finished. */
@@ -112,7 +112,6 @@
     while (g.history.length > 30) g.history.shift();
     return b;
   }
-  function monthsLeft(corp, season, month) { const b = grounds(corp).build; return b ? Math.max(0, b.ready - absOf(season, month)) : 0; }
   function upkeep(corp) {
     let n = 0;
     for (const id of IDS) { const L = level(corp, id); if (L > 0) n += FACILITIES[id].levels[L - 1].upkeep; }
@@ -153,6 +152,6 @@
   }
 
   return { FACILITIES, IDS, FOR_POST, CONST, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
-           tick, monthsLeft, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
+           tick, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
            cutterAllowed, moleAllowed, aiChoose };
 });

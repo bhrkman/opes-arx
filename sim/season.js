@@ -3914,7 +3914,7 @@
         delete cc._tipOn; delete cc._leakTo;
       }
       if (stood[id]) {
-        landed[id].push({ kind: 'facility', text: 'The ' + FAC.FACILITIES[stood[id].id].name + ' Stands at Level ' + stood[id].level });
+        landed[id].push({ kind: 'facility', text: FAC.FACILITIES[stood[id].id].name + ' · Level ' + stood[id].level });
         /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
         if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
       }

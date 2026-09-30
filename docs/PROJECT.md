@@ -65,8 +65,8 @@ fighters, and ask more at each renewal.
 Facilities are what an OA builds and keeps: the Armoury, Infirmary, Training Yard, Barracks,
 Press Office and Listening Post, each tied to a backroom post. A facility's first level is
 needed before its post can be staffed, and each level above multiplies what that staffer's
-Craft does; each facility also does a little on its own. A build is paid in full, takes months
-that run through the Divide and the winter, and one runs at a time; what stands costs upkeep.
+Craft does; each facility also does a little on its own. A build is paid in full when it is
+ordered and stands at the start of next month, one a month; what stands costs upkeep.
 The Armoury gates gear: every OA begins at its first level, which issues tiers one and two, and
 each level above opens the next tier, to tier five. Every weapon type, armour role, sidearm and
 the medkit exists at every tier that matters. Gear above an OA's tier is stored, not issued or
