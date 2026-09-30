@@ -221,11 +221,12 @@
        ring of 0.085 R is 0.0247 across — and two squads dropped at random in that disc sit on
        average 0.0223 apart, WIDER than contact. So the last two survivors could dodge each
        other indefinitely: measured, the field was down to two OAs by day 19 and still running
-       at day 36, a long quiet tail that dragged the whole last third down. 0.05 R is 0.0145,
-       comfortably inside contact, so the ground itself ends the contest. */
+       at day 36, a long quiet tail that dragged the whole last third down. The last ground is
+       0.030 R: 0.0174 ACROSS, inside contact, so the ground itself ends the contest. (It was 0.045,
+       set off a note that gave 0.05 R's radius — 0.0145 — as its width; across, it was 0.0261.) */
     ZONE_STEPS: [1, 0.72, 0.46, 0.27, 0.15, 0.050],  // [C] x PLANET_RADIUS
     LAST_GROUND_DAY: 24,                  // [S] N18 — the ring stops closing; the fight does not
-    LAST_GROUND_FRAC: 0.045,              // [S] the ground a Divide is decided on
+    LAST_GROUND_FRAC: 0.030,              // [S] the ground a Divide is decided on: narrower than contact
     ZONE_DRIFT: 0.85,                     // [C] how far a new centre may sit off the old
     /* The line is a wall, not a hazard (ruled). Nothing survives outside it because
        nothing is outside it: the field closes and what it touches is moved. There is no

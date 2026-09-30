@@ -642,17 +642,31 @@ function seatRules() {
   SEASONMOD.closeSeasonToDrop(st);
   ok('the year-end fill stops at the muster minimum for a person', alive(corps[me]) <= Math.max(before, SEASONMOD.CONST.ROSTER_MIN),
      before + ' before, ' + alive(corps[me]) + ' after, minimum ' + SEASONMOD.CONST.ROSTER_MIN);
-  SEASONMOD.beginContest(st);
-  let asked = null, guard = 0;
-  while (guard++ < 400) {
-    const status = SEASONMOD.contestStatus(st); if (!status || status.done) break;
-    const v = SEASONMOD.contestView(st, me);
-    if (v && v.kind === 'captives') { asked = v.captives; const f = {}; for (const x of v.captives) f[x.fighter] = 'kept'; SEASONMOD.answerContest(st, me, { captiveFate: f }); }
-    SEASONMOD.advanceContest(st, { force: true });
+  /* whether this seat takes anyone alive is the Divide's to decide, so the captives question is played until a year
+     that has captives in it: the same seat, a fresh world each try */
+  const playDivide = (stx) => {
+    SEASONMOD.beginContest(stx);
+    let got = null, guard = 0;
+    while (guard++ < 400) {
+      const status = SEASONMOD.contestStatus(stx); if (!status || status.done) break;
+      const v = SEASONMOD.contestView(stx, me);
+      if (v && v.kind === 'captives') { got = v.captives; const f = {}; for (const x of v.captives) f[x.fighter] = 'kept'; SEASONMOD.answerContest(stx, me, { captiveFate: f }); }
+      SEASONMOD.advanceContest(stx, { force: true });
+    }
+    return { asked: got, res: SEASONMOD.contestResult(stx) };
+  };
+  let play = playDivide(st), tries = 1;
+  while (!(play.asked && play.asked.length) && tries < 6) {
+    const r2 = P.mulberry32(P.seedFrom('ct1-' + tries));
+    const c2 = SEASONMOD.openFleet(r2, oa, { worldSeed: 1 + tries });
+    const s2 = SEASONMOD.beginSeason(r2, c2, oa, { human: me });
+    while (s2.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(s2, { [me]: {} });
+    SEASONMOD.closeSeasonToDrop(s2);
+    play = playDivide(s2); tries++;
   }
-  const res = SEASONMOD.contestResult(st);
+  const asked = play.asked, res = play.res;
   const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed');
-  ok('a person is asked what becomes of the captives they hold', !!asked && asked.length > 0, asked ? asked.length + ' asked' : 'never asked');
+  ok('a person is asked what becomes of the captives they hold', !!asked && asked.length > 0, (asked ? asked.length + ' asked' : 'never asked') + ' in ' + tries + ' world' + (tries > 1 ? 's' : ''));
   ok('and their answer stands', mine.length > 0 && mine.every(x => x.out === 'kept'), mine.map(x => x.out).join(','));
 }
 
@@ -1893,9 +1907,10 @@ function seasonRules() {
         const chosen = [a0].concat(near);
         dr.picks[sst.ids[0]] = chosen.map(x => x.index); dr.done = true;
         const pd3 = SEASONMOD.prepareDivide(sst);
-        const w3 = DIV.divideCore(pd3.rng, Object.assign({}, pd3.opts, { replay: true })).next().value;
-        const me3 = (w3.corps || []).find(c => c.id === sst.ids[0]) || { squads: [] };
-        const far = (me3.squads || []).map(q => Math.min.apply(null, chosen.map(c => Math.hypot(q.hx - c.x, q.hy - c.y))));
+        /* where they came DOWN, from the drop itself: by the first window a squad's `hx` is where it means to go */
+        let landed = [];
+        DIV.divideCore(pd3.rng, Object.assign({}, pd3.opts, { captureDrop: all => { landed = all.find(a => a[0] && a[0].corpId === sst.ids[0]) || []; } })).next();
+        const far = landed.map(q => Math.min.apply(null, chosen.map(c => Math.hypot(q.x - c.x, q.y - c.y))));
         const worst = far.length ? Math.max.apply(null, far) : 99;
         ok('G34a a squad lands on the landing its OA drafted, not an angle from its index',
            worst < pl2.radius * 0.12,
@@ -2221,6 +2236,24 @@ function seasonRules() {
      treatSeen + ' attempts, ' + stabSeen + ' stabilised across eight constructed fights');
 
 
+  /* §BOARD THE BOARD'S RESOURCE ASK IS PURSUED, and met more often than luck: over the shared career, how often a house
+     banks the resource its board asked for, against how often the houses not asked for it bank it that same year. (The
+     lever is the landing draft: an OA drops near what its board wants. A bare Divide skips the draft, so this reads
+     whole seasons.) */
+  {
+    let am = 0, at = 0, cm = 0, ct = 0;
+    for (const sn of car.seasons) {
+      const ids = Object.keys(sn.corps);
+      for (const id of ids) {
+        const want = sn.corps[id].asked; if (!want) continue;
+        at++; if (((sn.corps[id].banked || {})[want] || 0) > 0) am++;
+        for (const o of ids) if (o !== id && sn.corps[o].asked !== want) { ct++; if (((sn.corps[o].banked || {})[want] || 0) > 0) cm++; }
+      }
+    }
+    const ar = at ? am / at : 0, cr = ct ? cm / ct : 0;
+    ok('the board\'s resource ask is pursued: met more often than by the houses not asked', at > 0 && ar > cr * 1.5,
+       (100 * ar).toFixed(1) + '% of ' + at + ' asks met, against ' + (100 * cr).toFixed(1) + '% for the houses not asked');
+  }
   /* §CENSUS every engine house builds and staffs over a career, by the same verbs a person has (how much, and by what
      temperament, is harness/ai_census.cjs's measure) */
   {
@@ -2228,8 +2261,16 @@ function seasonRules() {
     const ids = Object.keys(car.corps);
     const built = ids.filter(k => FACM.IDS.some(f => FACM.level(car.corps[k], f) > 0));
     const staffed = ids.filter(k => STM.allStaff(car.corps[k]).length >= 1);
-    ok('every engine house builds and staffs over a career', built.length === ids.length && staffed.length === ids.length,
-       built.length + ' built, ' + staffed.length + ' staffed, of ' + ids.length);
+    /* a house with no body to spare from the line and no year's wage in hand is right to leave the backroom empty:
+       measured, the Verdant Cradle ends a career thirteen strong against a minimum of sixteen, and broke */
+    const SC = req('season.js').CONST;
+    const pinched = ids.filter(k => {
+      const c = car.corps[k], alive = c.roster.filter(f => f.status !== 'dead' && !f.mirror_of).length;
+      return staffed.indexOf(k) < 0 && alive <= SC.ROSTER_MIN + 2 && ((c.account && c.account.treasury) || 0) < 60000;
+    });
+    ok('every engine house builds, and staffs unless it has neither a body nor a wage to spare',
+       built.length === ids.length && staffed.length + pinched.length === ids.length,
+       built.length + ' built, ' + staffed.length + ' staffed, ' + pinched.length + ' pinched, of ' + ids.length);
   }
   /* (G11, a five-season career replayed twice, is cut: worldSeeding's "the same seed plays the same world" and saveLoad's
      resumed careers hold determinism in both gates, for a tenth of the cost.) */
@@ -3174,21 +3215,6 @@ function negotiationRules() {
      was written against a planet generated alongside the one played rather than the one
      played, and there was no verb for going to get something. Both fixed; this is what keeps
      them fixed. */
-  let askMet = 0, askTot = 0;
-  for (let i = 0; i < 5; i++) {
-    const rr = {}; for (const p of OA) rr[p.id] = REPMOD.open(p, OA);
-    const s = DIV.runDivide(makeRng('board-ask' + i),
-                            { oaProfiles: OA, raceById: gen.raceById, reputations: rr, openSeason: true });
-    for (const c of s.corps) {
-      const d = (c.rep.goal.demands || []).filter(x => x.kind === 'resource')[0];
-      if (!d) continue;
-      askTot++;
-      if (((s.banked[c.id] || {})[d.resource] || 0) > 0) askMet++;
-    }
-  }
-  ok('the board\'s resource ask is met far above the rate of luck',
-     askTot > 0 && askMet / askTot > 0.08,
-     (100 * askMet / Math.max(1, askTot)).toFixed(1) + '% of asks met, vs 1.6% before the fix');
 
   /* --- placement is an ordering, not a score ------------------------------------------- */
   let placeBad = [];

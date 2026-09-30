@@ -4739,6 +4739,25 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        only exists when nobody has stepped the contest */
     const persist = state._persist || {};
 
+    /* §THRIFT THE GOING RATE. A board's sense of an ordinary year is what an ordinary year
+       costs across the fleet now, not what its stipend covered when the stipend was set.
+       Wages and the backroom outgrew the grant, so a stipend-only yardstick read every year of
+       every house as overspent and thrift could only ever cost. Each house's commitment is
+       still measured against its OWN stipend — a rich board still expects less of its
+       purse — and that share is then read against the fleet's middle share this season. */
+    const committed = function (id) {
+      const c = corps[id];
+      const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
+      const kit = (persist[id] && persist[id].kitValue) || 0;
+      return (kit + (c._wages || 0) + (c._staffPaid || 0)) / funded;
+    };
+    const goingRate = (function () {
+      const r = ids.map(committed).sort((x, y) => x - y);
+      if (!r.length) return 1;
+      const m = r.length >> 1;
+      return Math.max(0.01, r.length % 2 ? r[m] : (r[m - 1] + r[m]) / 2);
+    })();
+
     /* ---- SETTLEMENT ---- */
     for (const id of ids) {
       const c = corps[id];
@@ -4842,33 +4861,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
         permanentLosses: dead.length + (c._eightDead || 0),
-        /* R25 — the two standing demands. `spendRatio` is what this corp actually laid out on
-           wages and kit against WHAT A FULL COMMITMENT WOULD HAVE COST: the whole ceiling, and
-           every living body paid in full. Field sixteen instead of twenty-four and it drops
-           below one, which is a board pleased with a cheap year.
-
-           THE DENOMINATOR USED TO BE `allowanceFor(season) + c._wages` — the corp's OWN actual
-           wage bill — so the identical term sat on both sides of the ratio and every credit
-           saved by resting somebody cancelled itself out exactly. A corp that saved 32,040 in
-           purses watched its expectation fall by 32,040 and scored the same. The comment above
-           this line already claimed the effect the arithmetic could not produce; the baseline
-           has to be what the season COULD have cost, or a ratio measures nothing but itself. */
-        spendRatio: (function () {
-          /* WHAT THE BOARD PUT IN, which REPUTATION.md §6.5 already defines as an ordinary
-             year: the stipend "covers wages, the entry fee, and arming twenty-four people,
-             and nothing else". Living inside it is neutral, under it is thrift, over it is a
-             board watching its money go. One is exceedable in both directions and needs no
-             fitted constant — which the previous version did, and it was fitted to the median
-             of a fleet that the very next change made stop existing.
-
-             It also puts the difficulty gradient in the card, where §6.5 says it already
-             lives: Violet's stipend covers a full commitment and the Verdant Cradle's does
-             not, so the poor corp disappoints its board on money by existing. That is the
-             intended shape, and it is not balanced here. */
-          const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
-          const actual = kit + (c._wages || 0) + (c._staffPaid || 0);   /* §STAFF the backroom is spending too */
-          return actual / funded;
-        })(),
+        /* R25 — the two standing demands. `spendRatio` is what this corp laid out on kit,
+           wages and the backroom as a share of its own stipend, read against the fleet's
+           going rate this season (§THRIFT above): 1.0 is an ordinary year for the economy as
+           it stands, under it is thrift, over it a board watching its money go. The corp's own
+           wage bill is never the yardstick — that put the same term on both sides and every
+           credit saved cancelled itself out. */
+        spendRatio: committed(id) / goingRate,
         lossRate: dropped.length ? dead.length / dropped.length : 0,
         /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
@@ -4947,6 +4946,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                        freed: (c._off && c._off.freed) ? c._off.freed.length : 0,
                        walked: (c._renew && c._renew.walked) || 0,
                        payout: c._payout || 0, bonus: c._bonus || 0,
+                       /* what it brought home by resource, and what its board asked for: so a board's ask can be read
+                          against the fleet's luck with the same resource */
+                       banked: Object.assign({}, (res.banked || {})[id] || {}),
+                       asked: (((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(d => d.kind === 'resource') || {}).resource || null,
                        kitValue: kit, kitSpend: spend,
                        locker: c._armoury ? c._armoury.depth : null,
                        lootRecovered: c._armoury ? c._armoury.recovered : 0,

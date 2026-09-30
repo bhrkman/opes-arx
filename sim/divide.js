@@ -406,7 +406,11 @@
     DROP_RING: 0.82,                    // [C] share of the planet radius the drop lands on
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
-    DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
+    /* §LANDINGS no rival lands in sight of another. This was 0.17 — three and a half sight ranges, most of a radius —
+       from before the draft, and it shoved every drafted landing near a rival's half a radius off the ground its OA
+       picked. Out of sight is what the drop owes; where is the draft's. */
+    DROP_MIN_GAP: 0.05,                 // [C] just past SIGHT_RANGE
+    CMD_W_ASKED: 2.2,                   // [C] a deposit of the resource the OA's board demanded, beside 1.0 for any other
     /* §STORY what a name does to the loudness of the notice its death makes */
     /* §RANK what a captaincy changing hands is worth to a man who wanted it */
     RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
@@ -2996,8 +3000,16 @@
      is working it when the odds allow, not walking about looking for people to kill. The best live objective in reach,
      inside tomorrow's line, by what it is worth to this OA; one an enemy is on counts for more to a bold squad and is
      skipped if that enemy is more than it can take. */
+  /* §BOARD THE BOARD'S ASK IS PURSUED. Every deposit was worth the same to every OA, so nothing went looking for the
+     resource the board had demanded and it was met about as often as the right site fell into a squad's lap (3%). The
+     deposit that holds what the board asked for is worth more to the OA whose board asked. */
+  function askedResource(corp) {
+    const g = corp && corp.rep && corp.rep.goal;
+    const d = g && (g.demands || []).find(x => x.kind === 'resource' && x.resource);
+    return d ? d.resource : null;
+  }
   function objectiveWorth(o, corp) {
-    if (o.type === 'resource_site') return 1.0;
+    if (o.type === 'resource_site') return o.resource && o.resource === askedResource(corp) ? CONST.CMD_W_ASKED : 1.0;
     if (o.type === 'sponsor_cache') return corp.reserve && corp.reserve.length ? (o.litBy && o.litBy !== corp.id ? 1.3 : 1.1) : 0;
     if (o.type === 'strongpoint') return o.heldBy === corp.id ? 0 : 0.8;
     if (o.type === 'munitions_drop' || o.type === 'ration_site') return 0.55;

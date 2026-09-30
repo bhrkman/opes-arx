@@ -35,6 +35,7 @@
        never changes with the fleet — a light fleet leaves most of them unclaimed, which is the
        point: an OA that scouted knows which of the unused ground was worth having. */
     SLOTS: 48,
+    SLOT_ASKED_W: 5.0,           // [C] a landing near the resource the OA's board asked for, per unit of it (measured: asked 24% met against 6% for the unasked)
     SLOT_APART: 0.11,            // [C] the least ground between two landings, as a share of the radius
     SLOT_TRIES: 9,               // [C] how many nudges before a point is allowed to crowd another
     SLOT_NUDGE_A: 0.07,          // [C] a step round
@@ -82,6 +83,10 @@
   function slots(planet, n) {
     const out = [];
     const R = planet.radius;
+    /* §LANDINGS EVERY LANDING OFFERED IS A LEGAL ONE. They were laid out round the planet's centre, and the first ring
+       sits off it: rim landings fell outside it and the squads that drafted them were walked a fifth of a radius inward
+       at the drop, off the ground their OA chose. They are laid out round the day-one ring now, inside the line it keeps. */
+    const Z = (MAP.zoneOn && planet.zone) ? MAP.zoneOn(planet, 1) : { cx: planet.cx, cy: planet.cy, r: R };
     /* rings from the rim inward, each holding fewer than the last */
     const bands = CONST.SLOT_BANDS;
     const total = bands.reduce((t, b) => t + b.share, 0);
@@ -100,15 +105,21 @@
       let x, y, ok = false;
       for (let t = 0; t < CONST.SLOT_TRIES && !ok; t++) {
         const aa = a + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * CONST.SLOT_NUDGE_A : 0);
-        const dd = R * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
-        x = planet.cx + Math.cos(aa) * dd; y = planet.cy + Math.sin(aa) * dd;
+        const dd = Z.r * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
+        x = Z.cx + Math.cos(aa) * dd; y = Z.cy + Math.sin(aa) * dd;
         if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
+        /* a snap to passable ground can step back over the line: bring it in */
+        const off = MAP.dist(x, y, Z.cx, Z.cy);
+        if (off > Z.r * 0.87) { const k = Z.r * 0.87 / off; x = Z.cx + (x - Z.cx) * k; y = Z.cy + (y - Z.cy) * k; }
         ok = out.every(o => MAP.dist(o.x, o.y, x, y) >= R * CONST.SLOT_APART);
       }
-      let prize = 0;
-      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
+      let prize = 0; const near = {};
+      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) {
+        prize += (o.potency || 1);
+        if (o.resource) near[o.resource] = Math.round(((near[o.resource] || 0) + (o.potency || 1)) * 10) / 10;   /* what is near, not only how much */
+      }
       out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),
-                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10,
+                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10, resources: near,
                  toCentre: MAP.dist(x, y, planet.cx, planet.cy) / R });
     }
     return out;
@@ -117,7 +128,7 @@
   function readSlot(slot, intel) {
     const seen = { index: slot.index, angle: slot.angle, x: slot.x, y: slot.y };
     if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = slot.terrain; seen.conceal = slot.conceal; seen.height = slot.height; }
-    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; }
+    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; seen.resources = slot.resources; }
     return seen;
   }
   /** §DROP THE DRAFT'S PICK. An AI corp values a free slot by what it can see of the ground
@@ -130,12 +141,16 @@
     const dials = (corp.profile && corp.profile.dials) || {};
     const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;
     const mine = strengthOf(corp.id);
+    const ask = ((corp.rep && corp.rep.goal && corp.rep.goal.demands) || []).find(d => d.kind === 'resource' && d.resource);
+    const asked = ask ? ask.resource : null;
     let best = null, bestV = -Infinity;
     for (const s of slots) {
       if (taken[s.index] != null) continue;
       const seen = readSlot(s, intel);
       let v = 0;
       if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8);
+      /* §BOARD and most of all the ground that holds what its board asked for, where the survey shows it */
+      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.SLOT_ASKED_W;
       if (seen.conceal != null) v += (1 / Math.max(0.2, seen.conceal)) * (1 - aggr) * 0.6 + (seen.height || 0.5) * 0.4;
       /* the neighbours: who has landed within two slots either way */
       for (const k in taken) {

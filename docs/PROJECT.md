@@ -127,6 +127,9 @@ purses, bonuses, death benefits and pensions are charged. Placement sets next ye
 order (weakest first in a first year, last place first after) and what the market charges the
 champion. Fame is earned in the fight and in the press; standing moves with the acts the year
 saw; the board judges its card and the sponsors judge their conditions.
+A board judges spending against the going rate: what each house laid out as a share of its own
+stipend, read against the fleet's middle share that year, so an ordinary year is neutral and a
+lean one pleases.
 
 ## Rulings that bind
 

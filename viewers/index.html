@@ -11972,11 +11972,12 @@
        ring of 0.085 R is 0.0247 across — and two squads dropped at random in that disc sit on
        average 0.0223 apart, WIDER than contact. So the last two survivors could dodge each
        other indefinitely: measured, the field was down to two OAs by day 19 and still running
-       at day 36, a long quiet tail that dragged the whole last third down. 0.05 R is 0.0145,
-       comfortably inside contact, so the ground itself ends the contest. */
+       at day 36, a long quiet tail that dragged the whole last third down. The last ground is
+       0.030 R: 0.0174 ACROSS, inside contact, so the ground itself ends the contest. (It was 0.045,
+       set off a note that gave 0.05 R's radius — 0.0145 — as its width; across, it was 0.0261.) */
     ZONE_STEPS: [1, 0.72, 0.46, 0.27, 0.15, 0.050],  // [C] x PLANET_RADIUS
     LAST_GROUND_DAY: 24,                  // [S] N18 — the ring stops closing; the fight does not
-    LAST_GROUND_FRAC: 0.045,              // [S] the ground a Divide is decided on
+    LAST_GROUND_FRAC: 0.030,              // [S] the ground a Divide is decided on: narrower than contact
     ZONE_DRIFT: 0.85,                     // [C] how far a new centre may sit off the old
     /* The line is a wall, not a hazard (ruled). Nothing survives outside it because
        nothing is outside it: the field closes and what it touches is moved. There is no
@@ -21282,6 +21283,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        never changes with the fleet — a light fleet leaves most of them unclaimed, which is the
        point: an OA that scouted knows which of the unused ground was worth having. */
     SLOTS: 48,
+    SLOT_ASKED_W: 5.0,           // [C] a landing near the resource the OA's board asked for, per unit of it (measured: asked 24% met against 6% for the unasked)
     SLOT_APART: 0.11,            // [C] the least ground between two landings, as a share of the radius
     SLOT_TRIES: 9,               // [C] how many nudges before a point is allowed to crowd another
     SLOT_NUDGE_A: 0.07,          // [C] a step round
@@ -21329,6 +21331,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function slots(planet, n) {
     const out = [];
     const R = planet.radius;
+    /* §LANDINGS EVERY LANDING OFFERED IS A LEGAL ONE. They were laid out round the planet's centre, and the first ring
+       sits off it: rim landings fell outside it and the squads that drafted them were walked a fifth of a radius inward
+       at the drop, off the ground their OA chose. They are laid out round the day-one ring now, inside the line it keeps. */
+    const Z = (MAP.zoneOn && planet.zone) ? MAP.zoneOn(planet, 1) : { cx: planet.cx, cy: planet.cy, r: R };
     /* rings from the rim inward, each holding fewer than the last */
     const bands = CONST.SLOT_BANDS;
     const total = bands.reduce((t, b) => t + b.share, 0);
@@ -21347,15 +21353,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       let x, y, ok = false;
       for (let t = 0; t < CONST.SLOT_TRIES && !ok; t++) {
         const aa = a + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * CONST.SLOT_NUDGE_A : 0);
-        const dd = R * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
-        x = planet.cx + Math.cos(aa) * dd; y = planet.cy + Math.sin(aa) * dd;
+        const dd = Z.r * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
+        x = Z.cx + Math.cos(aa) * dd; y = Z.cy + Math.sin(aa) * dd;
         if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
+        /* a snap to passable ground can step back over the line: bring it in */
+        const off = MAP.dist(x, y, Z.cx, Z.cy);
+        if (off > Z.r * 0.87) { const k = Z.r * 0.87 / off; x = Z.cx + (x - Z.cx) * k; y = Z.cy + (y - Z.cy) * k; }
         ok = out.every(o => MAP.dist(o.x, o.y, x, y) >= R * CONST.SLOT_APART);
       }
-      let prize = 0;
-      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) prize += (o.potency || 1);
+      let prize = 0; const near = {};
+      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) {
+        prize += (o.potency || 1);
+        if (o.resource) near[o.resource] = Math.round(((near[o.resource] || 0) + (o.potency || 1)) * 10) / 10;   /* what is near, not only how much */
+      }
       out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),
-                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10,
+                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10, resources: near,
                  toCentre: MAP.dist(x, y, planet.cx, planet.cy) / R });
     }
     return out;
@@ -21364,7 +21376,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function readSlot(slot, intel) {
     const seen = { index: slot.index, angle: slot.angle, x: slot.x, y: slot.y };
     if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = slot.terrain; seen.conceal = slot.conceal; seen.height = slot.height; }
-    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; }
+    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; seen.resources = slot.resources; }
     return seen;
   }
   /** §DROP THE DRAFT'S PICK. An AI corp values a free slot by what it can see of the ground
@@ -21377,12 +21389,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const dials = (corp.profile && corp.profile.dials) || {};
     const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;
     const mine = strengthOf(corp.id);
+    const ask = ((corp.rep && corp.rep.goal && corp.rep.goal.demands) || []).find(d => d.kind === 'resource' && d.resource);
+    const asked = ask ? ask.resource : null;
     let best = null, bestV = -Infinity;
     for (const s of slots) {
       if (taken[s.index] != null) continue;
       const seen = readSlot(s, intel);
       let v = 0;
       if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8);
+      /* §BOARD and most of all the ground that holds what its board asked for, where the survey shows it */
+      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.SLOT_ASKED_W;
       if (seen.conceal != null) v += (1 / Math.max(0.2, seen.conceal)) * (1 - aggr) * 0.6 + (seen.height || 0.5) * 0.4;
       /* the neighbours: who has landed within two slots either way */
       for (const k in taken) {
@@ -21879,7 +21895,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     DROP_RING: 0.82,                    // [C] share of the planet radius the drop lands on
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
-    DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
+    /* §LANDINGS no rival lands in sight of another. This was 0.17 — three and a half sight ranges, most of a radius —
+       from before the draft, and it shoved every drafted landing near a rival's half a radius off the ground its OA
+       picked. Out of sight is what the drop owes; where is the draft's. */
+    DROP_MIN_GAP: 0.05,                 // [C] just past SIGHT_RANGE
+    CMD_W_ASKED: 2.2,                   // [C] a deposit of the resource the OA's board demanded, beside 1.0 for any other
     /* §STORY what a name does to the loudness of the notice its death makes */
     /* §RANK what a captaincy changing hands is worth to a man who wanted it */
     RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
@@ -24469,8 +24489,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      is working it when the odds allow, not walking about looking for people to kill. The best live objective in reach,
      inside tomorrow's line, by what it is worth to this OA; one an enemy is on counts for more to a bold squad and is
      skipped if that enemy is more than it can take. */
+  /* §BOARD THE BOARD'S ASK IS PURSUED. Every deposit was worth the same to every OA, so nothing went looking for the
+     resource the board had demanded and it was met about as often as the right site fell into a squad's lap (3%). The
+     deposit that holds what the board asked for is worth more to the OA whose board asked. */
+  function askedResource(corp) {
+    const g = corp && corp.rep && corp.rep.goal;
+    const d = g && (g.demands || []).find(x => x.kind === 'resource' && x.resource);
+    return d ? d.resource : null;
+  }
   function objectiveWorth(o, corp) {
-    if (o.type === 'resource_site') return 1.0;
+    if (o.type === 'resource_site') return o.resource && o.resource === askedResource(corp) ? CONST.CMD_W_ASKED : 1.0;
     if (o.type === 'sponsor_cache') return corp.reserve && corp.reserve.length ? (o.litBy && o.litBy !== corp.id ? 1.3 : 1.1) : 0;
     if (o.type === 'strongpoint') return o.heldBy === corp.id ? 0 : 0.8;
     if (o.type === 'munitions_drop' || o.type === 'ration_site') return 0.55;
@@ -33236,6 +33264,25 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        only exists when nobody has stepped the contest */
     const persist = state._persist || {};
 
+    /* §THRIFT THE GOING RATE. A board's sense of an ordinary year is what an ordinary year
+       costs across the fleet now, not what its stipend covered when the stipend was set.
+       Wages and the backroom outgrew the grant, so a stipend-only yardstick read every year of
+       every house as overspent and thrift could only ever cost. Each house's commitment is
+       still measured against its OWN stipend — a rich board still expects less of its
+       purse — and that share is then read against the fleet's middle share this season. */
+    const committed = function (id) {
+      const c = corps[id];
+      const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
+      const kit = (persist[id] && persist[id].kitValue) || 0;
+      return (kit + (c._wages || 0) + (c._staffPaid || 0)) / funded;
+    };
+    const goingRate = (function () {
+      const r = ids.map(committed).sort((x, y) => x - y);
+      if (!r.length) return 1;
+      const m = r.length >> 1;
+      return Math.max(0.01, r.length % 2 ? r[m] : (r[m - 1] + r[m]) / 2);
+    })();
+
     /* ---- SETTLEMENT ---- */
     for (const id of ids) {
       const c = corps[id];
@@ -33339,33 +33386,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
         permanentLosses: dead.length + (c._eightDead || 0),
-        /* R25 — the two standing demands. `spendRatio` is what this corp actually laid out on
-           wages and kit against WHAT A FULL COMMITMENT WOULD HAVE COST: the whole ceiling, and
-           every living body paid in full. Field sixteen instead of twenty-four and it drops
-           below one, which is a board pleased with a cheap year.
-
-           THE DENOMINATOR USED TO BE `allowanceFor(season) + c._wages` — the corp's OWN actual
-           wage bill — so the identical term sat on both sides of the ratio and every credit
-           saved by resting somebody cancelled itself out exactly. A corp that saved 32,040 in
-           purses watched its expectation fall by 32,040 and scored the same. The comment above
-           this line already claimed the effect the arithmetic could not produce; the baseline
-           has to be what the season COULD have cost, or a ratio measures nothing but itself. */
-        spendRatio: (function () {
-          /* WHAT THE BOARD PUT IN, which REPUTATION.md §6.5 already defines as an ordinary
-             year: the stipend "covers wages, the entry fee, and arming twenty-four people,
-             and nothing else". Living inside it is neutral, under it is thrift, over it is a
-             board watching its money go. One is exceedable in both directions and needs no
-             fitted constant — which the previous version did, and it was fitted to the median
-             of a fleet that the very next change made stop existing.
-
-             It also puts the difficulty gradient in the card, where §6.5 says it already
-             lives: Violet's stipend covers a full commitment and the Verdant Cradle's does
-             not, so the poor corp disappoints its board on money by existing. That is the
-             intended shape, and it is not balanced here. */
-          const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
-          const actual = kit + (c._wages || 0) + (c._staffPaid || 0);   /* §STAFF the backroom is spending too */
-          return actual / funded;
-        })(),
+        /* R25 — the two standing demands. `spendRatio` is what this corp laid out on kit,
+           wages and the backroom as a share of its own stipend, read against the fleet's
+           going rate this season (§THRIFT above): 1.0 is an ordinary year for the economy as
+           it stands, under it is thrift, over it a board watching its money go. The corp's own
+           wage bill is never the yardstick — that put the same term on both sides and every
+           credit saved cancelled itself out. */
+        spendRatio: committed(id) / goingRate,
         lossRate: dropped.length ? dead.length / dropped.length : 0,
         /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
@@ -33444,6 +33471,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                        freed: (c._off && c._off.freed) ? c._off.freed.length : 0,
                        walked: (c._renew && c._renew.walked) || 0,
                        payout: c._payout || 0, bonus: c._bonus || 0,
+                       /* what it brought home by resource, and what its board asked for: so a board's ask can be read
+                          against the fleet's luck with the same resource */
+                       banked: Object.assign({}, (res.banked || {})[id] || {}),
+                       asked: (((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(d => d.kind === 'resource') || {}).resource || null,
                        kitValue: kit, kitSpend: spend,
                        locker: c._armoury ? c._armoury.depth : null,
                        lootRecovered: c._armoury ? c._armoury.recovered : 0,
