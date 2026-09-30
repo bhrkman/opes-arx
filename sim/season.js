@@ -1833,11 +1833,11 @@
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE - Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM);
+      /* §FACILITIES the Barracks eases more of it */
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - (CONST.REST_STRESS_BASE + Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM) * FAC.barracksEase(corp));
       /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
       f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
-      /* §FACILITIES a Barracks worth the name: strain eases, loyalty settles toward content */
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - FAC.barracksCalm(corp));
+      /* §FACILITIES a Barracks worth the name: loyalty settles toward content */
       const bl = FAC.barracksLoyalty(corp);
       if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field

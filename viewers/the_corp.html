@@ -14224,33 +14224,35 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  /* levels[i] is what level i+1 costs: credits up front, and upkeep a month once standing */
+  /* levels[i] is what level i+1 costs: credits up front, and upkeep a month once standing. RULED (the value pass):
+     one price for every facility, set so a level pays for itself in about two years at a typical house — the first
+     sooner, the third later. Measured against the Press Office, the one facility that pays in credits. */
+  const LEVELS = [{ cost: 30000, upkeep: 300 }, { cost: 75000, upkeep: 700 }, { cost: 150000, upkeep: 1200 }];
   const FACILITIES = {
     armoury:   { name: 'Armoury', post: 'quartermaster', start: 0, seen: { blood: 0.8, craft: 0.4 },
-                 levels: [{ cost: 110000, upkeep: 1600 },
-                          { cost: 240000, upkeep: 3200 },
-                          { cost: 420000, upkeep: 5200 }] },
+                 levels: LEVELS },
     infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
-                 levels: [{ cost: 55000, upkeep: 900 }, { cost: 130000, upkeep: 2000 }, { cost: 280000, upkeep: 3800 }] },
+                 levels: LEVELS },
     yard:      { name: 'Training Yard', post: 'drill', start: 0, seen: { craft: 1.0, grit: 0.3 },
-                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }] },
+                 levels: LEVELS },
     barracks:  { name: 'Barracks', post: 'sergeant', start: 0, seen: { care: 0.7, word: 0.3 },
-                 levels: [{ cost: 45000, upkeep: 800 }, { cost: 110000, upkeep: 1800 }, { cost: 240000, upkeep: 3400 }] },
+                 levels: LEVELS },
     press:     { name: 'Press Office', post: 'fixer', start: 0, seen: { glory: 1.0 },
-                 levels: [{ cost: 50000, upkeep: 900 }, { cost: 120000, upkeep: 2000 }, { cost: 260000, upkeep: 3600 }] },
+                 levels: LEVELS },
     listening: { name: 'Listening Post', post: 'spymaster', start: 0, seen: { craft: 0.8, word: -0.2 },
-                 levels: [{ cost: 55000, upkeep: 1000 }, { cost: 130000, upkeep: 2200 }, { cost: 280000, upkeep: 4000 }] }
+                 levels: LEVELS }
   };
   const IDS = Object.keys(FACILITIES);
   const FOR_POST = {}; for (const id of IDS) FOR_POST[FACILITIES[id].post] = id;
 
   const CONST = {
     STAFF_PER_LEVEL: 0.25,       // [C] what each level above one adds to a staffer's Craft's reach
-    YARD_BASE: 0.06,             // [C] drill yield per level, staffed or not
-    INFIRMARY_BASE: 0.20,        // [C] the body's own mending per level
-    BARRACKS_CALM: 1.0,          // [C] stress off everyone a month, per level
+    /* [C] RULED (the value pass): what a level adds to the thing it works on — the gate, the drills, the mending,
+       the month's easing of strain. The same at every facility, so a level reads the same wherever it stands. At a
+       typical house's gate the Press Office pays back its first level in about eighteen months and its second in
+       about three and a half years; the third is capped here rather than doubling the gate, and is the long one. */
+    LEVEL_PCT: [0, 0.18, 0.40, 0.60],
     BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
-    PRESS_GATE: 0.05,            // [C] gate per level
     LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
     TIER_OFFSET: 2               // [S] the Armoury issues up to level + this: tiers one and two unbuilt
   };
@@ -14323,27 +14325,29 @@
       Every level above one also multiplies the staffer's Craft (`staffMult`). */
   const POST_WORD = { armoury: 'Quartermaster', infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
   function does(id, L) {
-    const pct = x => Math.round(x * 100);
+    const pct = () => Math.round(CONST.LEVEL_PCT[L] * 100);
     const staff = L >= 2 ? ['Staff ×' + (1 + CONST.STAFF_PER_LEVEL * (L - 1)).toFixed(2).replace(/0$/, '')] : [];
     const opens = L === 1 && id !== 'armoury' ? ['A ' + POST_WORD[id] + ' May Work'] : [];
     switch (id) {
       case 'armoury': return (L === 1 ? ['A Quartermaster May Work'] : []).concat(['Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)], staff);
-      case 'infirmary': return opens.concat(['Mending +' + pct(CONST.INFIRMARY_BASE * L) + '%'], L === 2 ? ['A Cutter May Operate'] : [], staff);
-      case 'yard': return opens.concat(['Drills +' + pct(CONST.YARD_BASE * L) + '%'], staff);
-      case 'barracks': return opens.concat(['Strain −' + (CONST.BARRACKS_CALM * L) + ' a Month'],
+      case 'infirmary': return opens.concat(['Mending +' + pct() + '%'], L === 2 ? ['A Cutter May Operate'] : [], staff);
+      case 'yard': return opens.concat(['Drills +' + pct() + '%'], staff);
+      case 'barracks': return opens.concat(['Strain Eases +' + pct() + '%'],
                                            L >= 2 ? ['Loyalty +' + (CONST.BARRACKS_LOYALTY * (L - 1)).toFixed(1) + ' a Month, to 60'] : [], staff);
-      case 'press': return opens.concat(['Gate +' + pct(CONST.PRESS_GATE * L) + '%'], staff);
+      case 'press': return opens.concat(['Gate +' + pct() + '%'], staff);
       case 'listening': return opens.concat(L === 2 ? ['A Mole May Be Planted'] : [], L === 3 ? [CONST.LISTEN_LEVELS + ' Reports a Month, Unstaffed'] : [], staff);
     }
     return staff;
   }
 
   /* ------------------------------------------------------------------ what they do alone */
-  function yardYield(corp) { return 1 + CONST.YARD_BASE * level(corp, 'yard'); }
-  function mendMult(corp) { return 1 + CONST.INFIRMARY_BASE * level(corp, 'infirmary'); }
-  function barracksCalm(corp) { return CONST.BARRACKS_CALM * level(corp, 'barracks'); }
+  const pctAt = (corp, id) => CONST.LEVEL_PCT[Math.min(CONST.LEVEL_PCT.length - 1, level(corp, id))] || 0;
+  function yardYield(corp) { return 1 + pctAt(corp, 'yard'); }
+  function mendMult(corp) { return 1 + pctAt(corp, 'infirmary'); }
+  /** how much more of a month's strain eases: the natural easing times this */
+  function barracksEase(corp) { return 1 + pctAt(corp, 'barracks'); }
   function barracksLoyalty(corp) { return CONST.BARRACKS_LOYALTY * Math.max(0, level(corp, 'barracks') - 1); }
-  function gateMult(corp) { return 1 + CONST.PRESS_GATE * level(corp, 'press'); }
+  function gateMult(corp) { return 1 + pctAt(corp, 'press'); }
   function listenLevels(corp) { return level(corp, 'listening') >= 3 ? CONST.LISTEN_LEVELS : 0; }
   function cutterAllowed(corp) { return level(corp, 'infirmary') >= 2; }
   function moleAllowed(corp) { return level(corp, 'listening') >= 2; }
@@ -14372,7 +14376,7 @@
   }
 
   return { FACILITIES, IDS, FOR_POST, CONST, does, grounds, level, maxTier, postOpen, staffMult, nextLevel, canBuild, startBuild,
-           tick, upkeep, capped, yardYield, mendMult, barracksCalm, barracksLoyalty, gateMult, listenLevels,
+           tick, upkeep, capped, yardYield, mendMult, barracksEase, barracksLoyalty, gateMult, listenLevels,
            cutterAllowed, moleAllowed, aiChoose };
 });
 
@@ -30166,11 +30170,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE - Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM);
+      /* §FACILITIES the Barracks eases more of it */
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - (CONST.REST_STRESS_BASE + Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM) * FAC.barracksEase(corp));
       /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
       f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
-      /* §FACILITIES a Barracks worth the name: strain eases, loyalty settles toward content */
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - FAC.barracksCalm(corp));
+      /* §FACILITIES a Barracks worth the name: loyalty settles toward content */
       const bl = FAC.barracksLoyalty(corp);
       if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
