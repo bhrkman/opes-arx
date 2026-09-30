@@ -26,7 +26,7 @@ vc.on('jsdomError', (e) => { console.log('  PAGE LOAD ERROR: ' + String(e).slice
 vc.forwardTo(console, { jsdomErrors: 'none' });   /* jsdom 30: forwardTo, not sendTo */
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true,
                               virtualConsole: vc,
-                              url: 'http://opesarx.test/?seed=corp-1' });   /* a url so localStorage lives */
+                              url: 'http://opesarx.test/?seed=' + (process.env.DRIVE_SEED || 'corp-1') });   /* a url so localStorage lives */
 /* the ledger turn is three seconds of animation the drive does not need to sit through */
 dom.window.__noTurn = true;
 const { window } = dom;

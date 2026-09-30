@@ -200,8 +200,8 @@
   }
 
   /** An AI corp's pick. Deliberately plain, and it uses the same intel gate a player does. */
-  function chooseSector(rng, corp, secs, taken) {
-    const intel = corp._scouted || 0;
+  function chooseSector(rng, corp, secs, taken, intel) {
+    intel = intel || 0;
     let best = null, bestV = -Infinity;
     for (const s of secs) {
       const seen = readSector(s, intel);

@@ -168,8 +168,10 @@
     const purse = (corp.account && corp.account.treasury) || 0;
     const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
       .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && purse - o.nx.cost >= reserve)
-      /* the cheaper next step of a wanted thing first: a house climbs, it does not leap */
-      .map(o => ({ id: o.id, score: want[o.id] / (1 + o.nx.cost / 100000) / (1 + 0.5 * (o.nx.level - 1)) }))
+      /* §CENSUS A HOUSE CLIMBS WHAT IT CARES FOR. Measured: with a flat penalty on every level above one, all eight
+         houses built all six first levels before any second, so a militarist had its Listening Post before a better
+         Armoury. Want is squared: a strong taste outbids a cheap level of a thing the house barely wants. */
+      .map(o => ({ id: o.id, score: want[o.id] * want[o.id] / (1 + o.nx.cost / 100000) }))
       .sort((a, b) => b.score - a.score);
     return opts.length ? opts[0].id : null;
   }

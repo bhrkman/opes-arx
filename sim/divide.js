@@ -421,7 +421,7 @@
                                         //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
-    SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
+    SPREAD_BASE: 0.25,                  // [C] the net every OA casts before its dials (was a `greed` dial no profile has, read as 0.5 × 0.5)
     SPREAD_AGGRESSION: 0,               // [C] §FLANK (ruled) appetite for contact no longer spreads an OA thin: measured, a
                                         //     force split small loses whatever its stance (two squads 20% of titles, five 8%);
                                         //     the bold concentrate, and work their squads together (the strike planner)
@@ -865,8 +865,8 @@
      and so fielded three, which is why nobody noticed the draft only dealt three landings. The
      rule allows six, and six is a real choice with real terms: more squads means more landings
      drafted, more ground covered and more deposits worked at once — and thinner squads that
-     lose the fights they pick. An OA leans on its dials: the greedy spread to reach more
-     ground, the aggressive spread to be everywhere a fight is, and the careful mass. */
+     lose the fights they pick. An OA leans on its dials: the aggressive spread to be everywhere a fight is, and the
+     patient mass. */
   function squadCountFor(n, profile, want) {
     const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
     const most = Math.max(2, Math.min(CONST.SQUADS_MAX, Math.floor(n / CONST.SQUAD_MIN)));
@@ -874,7 +874,7 @@
     const d = (profile && profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* what an OA wants: ground-hunger and appetite for contact push it wider */
-    const spread = dial('greed') * CONST.SPREAD_GREED
+    const spread = CONST.SPREAD_BASE
                  + dial('aggression') * CONST.SPREAD_AGGRESSION
                  - dial('patience') * CONST.SPREAD_PATIENCE;
     const reach = Math.round(packed + spread * (most - packed) * 2);

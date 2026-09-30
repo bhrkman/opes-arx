@@ -33,7 +33,11 @@
     for (const k in src) { const c = src[k]; if (c && typeof c === 'object' && c._worldSeed != null) return c._worldSeed; }
     return 0;
   }
-  function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
+  /* §CENSUS a listener for the one decision the outside cannot read back (the month's focus): the AI usage census
+   (harness/ai_census.cjs) counts what each seat does. Nothing in the game sets it. */
+let CENSUS = null;
+function useCensus(fn) { CENSUS = fn || null; }
+function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
 
   const CONST = {
     /* --- the roster (S2, S3) --- */
@@ -1399,10 +1403,18 @@
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
     const win = MONTHS[month];
     const stressed = alive.filter(f => ((f.condition && f.condition.stress) || 0) >= 50).length;
+    /* §CENSUS CHARACTER WEIGHS THE NEED. Measured: all eight houses split their month within three points of one
+       another, because need alone ranked the tracks and each took the same cap. A traditional house drills, a
+       patient one rests, a scheming one watches; need still leads. */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const lean = k => 0.4 + 1.2 * dial(k);
+    const planetKnown = corp._intel && corp._intel.planet && INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
     const weights = [
-      ['rest', hurt.length + stressed * 0.3],
-      ['train', green.length * 0.5],
-      ['scout', interest == null ? 0.5 : interest - CONST.SCOUT_APATHY],
+      ['rest', (hurt.length + stressed * 0.3) * lean('patience')],
+      ['train', green.length * 0.5 * lean('tradition')],
+      /* scouting is the board's interest in the ground, or a schemer's in its rivals once the ground is known */
+      ['scout', Math.max(planetKnown ? 0 : (interest == null ? 0.5 : interest - CONST.SCOUT_APATHY), dial('treachery') - 0.35) * lean('treachery')],
       /* §SPONSORS HOW BADLY A HOUSE WANTS A BACKER IS A MATTER OF CHARACTER. This was a flat
          0.55 for every OA in the fleet, so all eight courted with the same weight from the
          same month and crossed the benchmark in the same month — four suppliers signing at
@@ -1413,17 +1425,38 @@
     ].filter(w => w[1] > 0 && open[w[0]]).sort((a, b) => b[1] - a[1]);
     const focus = {};
     let left = CONST.FOCUS_POINTS;
-    for (const [kind, w] of weights) {
-      if (!left) break;
-      /* §SPONSORS HOW MUCH, NOT ONLY WHETHER. Every track took the whole cap it could, so
-         every OA that courted at all courted with the same three focus and reached the
-         benchmark in the same month. Courting takes what its appetite is worth — a hungry
-         OA throws the cap at it, a lukewarm one puts a point in and waits. */
-      const cap = kind === 'court'
-        ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP)))
-        : CONST.FOCUS_CAP;
-      const f = Math.min(cap, left);
-      focus[kind] = f; left -= f;
+    /* §CENSUS POINTS BY WEIGHT, ONE AT A TIME (the D'Hondt way): each point goes to the track whose weight per point
+       already held is highest, up to its cap. Measured: taking each track's cap in rank order put three on training
+       and three on rest for every house every month, whatever its character. Courting still takes only what its
+       appetite is worth — a hungry OA throws the cap at it, a lukewarm one puts a point in and waits. */
+    const capOf = (kind, w) => kind === 'court' ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP))) : CONST.FOCUS_CAP;
+    while (left > 0) {
+      let best = null, bestV = 0;
+      for (const [kind, w] of weights) {
+        const has = focus[kind] || 0;
+        if (has >= capOf(kind, w)) continue;
+        const v = w / (has + 1);
+        if (v > bestV) { bestV = v; best = kind; }
+      }
+      if (!best) break;
+      focus[best] = (focus[best] || 0) + 1; left--;
+    }
+    /* §CENSUS WHERE THE EYES GO: the planet until it is known, then the rivals — the one it is most wary of first
+       (the house the crowd loves most, which is the house that will be hardest to beat), a schemer sooner */
+    if (focus.scout) {
+      const map = {};
+      let pips = focus.scout;
+      const rivalShare = planetKnown ? 1 : Math.max(0, dial('treachery') - 0.4);
+      const toRivals = Math.min(pips, Math.round(pips * rivalShare));
+      if (pips - toRivals > 0) map.planet = pips - toRivals;
+      if (toRivals > 0 && STATE_REF && STATE_REF.corps && STATE_REF.corps[corp.id] === corp) {
+        const rivals = STATE_REF.ids.filter(x => x !== corp.id).map(x => STATE_REF.corps[x])
+          .sort((a, b) => (b.rep ? REP.standing(b.rep, 'crowd') : 50) - (a.rep ? REP.standing(a.rep, 'crowd') : 50));
+        const known = r => rivalPreparedness(corp, r.id, STATE_REF.season || 0);
+        const pick = rivals.find(r => known(r) < CONST.INTEL_RIVAL_PREP * 0.8);   /* the most loved not yet well read */
+        if (pick) map[pick.id] = toRivals; else map.planet = (map.planet || 0) + toRivals;
+      } else if (toRivals > 0) map.planet = (map.planet || 0) + toRivals;
+      focus.intelTarget = map;
     }
     /* COURTING PICKS A HOUSE. If the AI spent focus on courting, aim it at the sponsor it fits
        best (weighted by any standing regard) — the same targeted courting a person paints on the
@@ -1913,6 +1946,7 @@
        through the function a human would use; this is the other half of that bargain. */
     const focus = wanted ? validateFocus(corp, month, wanted)
                          : chooseFocus(corp, month);
+    if (CENSUS) CENSUS(corp.id, 'focus', { month, focus, engine: !wanted });   /* §CENSUS what a seat spent its month on */
     /* §STANDING a strike stood the drill idle this month: whatever was painted on it goes unspent */
     if (corp._noDrill === (season || 0) * 100 + month) delete focus.train;
     /* §TALKS THE MONTH'S WORD, before the work it may sharpen or blunt. A person's rides their
@@ -1935,8 +1969,6 @@
       }
     }
     staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
-    /* §FACILITIES the engine looks again at its grounds mid-year, when the gate has paid in */
-    if (!wanted && month === 6) aiBuild(corp, STATE_REF && STATE_REF.corps && STATE_REF.corps[corp.id] === corp ? STATE_REF : { season: season || 0, month });
     for (const kind in focus) {
       if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
@@ -2122,9 +2154,9 @@
            Absent a map, a bare scout falls to the planet with all its focus. */
         const perPip = (focus._boost && focus._boost.scout)
           ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
-        const map = (wanted && wanted.intelTarget && typeof wanted.intelTarget === 'object'
-                     && !wanted.intelTarget.target)
-          ? wanted.intelTarget : { planet: fpts };   /* legacy/bare scout → all on the planet */
+        const asked = wanted ? wanted.intelTarget : focus.intelTarget;   /* §CENSUS the engine paints its own map */
+        const map = (asked && typeof asked === 'object' && !asked.target)
+          ? asked : { planet: fpts };   /* legacy/bare scout → all on the planet */
         const intelNow = ensureIntel(corp, season || 0);
         const absMonth = (season || 0) * 100 + month;
         let anyGathered = false;
@@ -3054,13 +3086,13 @@
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
     staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
-    /* §FACILITIES builds run through the Divide and the winter; the engine starts its own */
+    /* §FACILITIES a build ordered last year's end stands as this one opens; the engine starts its own */
     for (const id of state.ids) {
       const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
       c._doctrineCap = (ITEMS.doctrineForCorp(id) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
       if (!isHuman(state, id)) aiBuild(c, state);
     }
-    for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id); }
+    for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id, { renew: true }); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -3613,12 +3645,12 @@
   }
   /** the engine hires the way a person would: its own veterans for the military posts, strangers
       for the rest when it can pay them, and a rival's best when it is bold and rich enough */
-  function aiStaff(state, id) {
+  function aiStaff(state, id, opts) {
     const c = state.corps[id], o = STAFF.office(c);
     const d = (c.profile && c.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* the year's renewals: keep whoever is worth what they ask */
-    for (const p of STAFF.POSTS) { const st = o.posts[p]; if (st && st.asking) STAFF.renew(c, p, STAFF.worthKeeping(st, p)); }
+    if (!opts || opts.renew) for (const p of STAFF.POSTS) { const st = o.posts[p]; if (st && st.asking) STAFF.renew(c, p, STAFF.worthKeeping(st, p)); }
     const purse = (c.account && c.account.treasury) || 0;
     const spare = () => aliveOf(c).filter(f => !f.mirror_of).length - CONST.ROSTER_MIN;
     for (const p of STAFF.POSTS) {
@@ -3637,7 +3669,7 @@
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
-    if ((dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
+    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.6 && purse > 160000) {
       let best = null;
       for (const oid of state.ids) {
         if (oid === id) continue;
@@ -3648,7 +3680,7 @@
           if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
         }
       }
-      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) poach(state, id, best.oid, best.p);
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.2) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
     }
   }
 
@@ -3918,9 +3950,15 @@
         /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
         if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
       }
+      /* §CENSUS THE ENGINE LOOKS AT ITS BACKROOM EVERY MONTH. It hired only as the year opened, and a facility ordered
+         then stands a month later — so no post it built for was ever open when it looked, and the fleet went years
+         without staff. A post that opens now is filled now, by the same verbs a person uses. */
+      if (!isHuman(state, id)) aiStaff(state, id, { renew: false });
       spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
                             choices && choices[id], landed[id], state.corps);
+      /* §CENSUS and its grounds every month: a build is a month now, and twice a year left it far behind a person */
+      if (!isHuman(state, id)) aiBuild(state.corps[id], state);
     }
     /* the work is SPENT when its window fires: scouting the tryouts does not help you at the
        merc deadline, and it does not bank across seasons either. A credit that never clears is
@@ -4132,7 +4170,11 @@
         const pick = state.drop.sectors[other];
         if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
       }
-      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken);
+      /* §CENSUS with the ground it surveyed: this read a scalar nothing had written for a whole step, so every engine
+         OA was guessing at every sector however much it had scouted */
+      const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
+      const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1 : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
+      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken, secIntel);
       /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
     }
   }
@@ -5147,7 +5189,7 @@
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+  return { useCensus, isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
