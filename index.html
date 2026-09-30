@@ -1234,20 +1234,26 @@
   .fcladders{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
   @media (max-width:1100px){.fcladders{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media (max-width:640px){.fcladders{grid-template-columns:1fr}}
-  .fclad{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px;min-height:330px}
+  /* every ladder the same shape: a fixed head, three fixed rungs, a fixed foot — a clean grid whatever the words */
+  .fclad{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px}
   .fclad.bld{border-color:var(--cred)}
-  .fclad .t{font-weight:700;letter-spacing:.04em;font-size:12px;line-height:1.2}
+  .fclad .t{font-weight:700;letter-spacing:.04em;font-size:12px;line-height:1.2;height:30px}
   .fclad .t small{display:block;color:var(--dim);font-weight:400;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
-  .fcrungs{display:flex;flex-direction:column-reverse;gap:5px;flex:1;justify-content:flex-start}
-  .fcrung{border:1px solid var(--line);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--faint);line-height:1.35;min-height:44px}
-  .fcrung .h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1px}
+  .fcrungs{display:flex;flex-direction:column;gap:6px}
+  /* each level its own colour: one, two, three */
+  .fcrung{--lv:var(--hit);height:104px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--line);border-left:3px solid color-mix(in srgb,var(--lv) 35%,transparent);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--faint);line-height:1.4}
+  .fcrung.l2{--lv:var(--a)} .fcrung.l3{--lv:var(--wall)}
+  .fcrung .h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px;color:color-mix(in srgb,var(--lv) 55%,var(--faint))}
   .fcrung .h span:last-child{letter-spacing:.04em;text-transform:none}
-  .fcrung.on{border-color:var(--a-dim);background:var(--a-deep);color:var(--ink)} .fcrung.on .h{color:var(--a)}
-  .fcrung.next{border-color:var(--cred);color:var(--ink);background:rgba(240,192,74,.05)} .fcrung.next .h{color:var(--cred)}
-  .fcrung.bld{border-color:var(--cred);border-style:dashed;color:var(--ink)} .fcrung.bld .h{color:var(--cred)}
-  .fcrung .price{color:var(--cred);font-weight:700;margin-top:3px;display:flex;justify-content:space-between;align-items:center;gap:4px}
+  .fcrung.on{border-color:color-mix(in srgb,var(--lv) 45%,transparent);border-left-color:var(--lv);background:color-mix(in srgb,var(--lv) 15%,var(--panel));color:var(--ink)}
+  .fcrung.on .h{color:var(--lv)}
+  .fcrung.next{border:1px dashed color-mix(in srgb,var(--lv) 60%,transparent);border-left:3px solid color-mix(in srgb,var(--lv) 60%,transparent);color:var(--ink)}
+  .fcrung.next .h{color:var(--lv)}
+  .fcrung.bld{border:1px dashed var(--cred);border-left:3px solid var(--lv);color:var(--ink)} .fcrung.bld .h{color:var(--lv)}
+  .fcrung.bld .h span:last-child{color:var(--cred)}
+  .fcrung .price{color:var(--cred);font-weight:700;margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:4px}
   .fcrung .price button{margin-left:auto}
-  .fcfoot{border-top:1px solid #131f30;padding-top:6px;font-size:10px;color:var(--dim)}
+  .fcfoot{border-top:1px solid #131f30;padding-top:6px;font-size:10px;color:var(--dim);height:68px;overflow:hidden}
   .fcfoot b{color:var(--ink);font-weight:600}
   .fcfoot .up{display:flex;justify-content:space-between;gap:6px}
   .fcfoot .up.warn{color:var(--warn)}
@@ -14200,8 +14206,8 @@
    - Six facilities, each tied to a backroom post. Level one of a facility is needed before a
      staffer can hold its post; every level above one multiplies what that staffer's Craft does.
      The facility also does a little on its own, staffed or not.
-   - THE ARMOURY GATES GEAR. Everyone begins with the Armoury at level one: tiers one and two.
-     Each level above opens the next tier, to tier five at level four. Gear above an OA's tier is
+   - THE ARMOURY GATES GEAR. Everyone begins without one, issuing tiers one and two. Each level
+     opens the next tier, to tier five at level three. Gear above an OA's tier is
      STORED, never lost — captured kit waits in the rack for the day the Armoury can issue it.
      A mercenary's own gear is theirs, and they carry it whatever the Armoury says.
    - Building is paid in full when it is ordered and stands at the start of next month (ruled: a
@@ -14220,9 +14226,8 @@
 
   /* levels[i] is what level i+1 costs: credits up front, and upkeep a month once standing */
   const FACILITIES = {
-    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1, seen: { blood: 0.8, craft: 0.4 },
-                 levels: [{ cost: 0, upkeep: 600 },
-                          { cost: 110000, upkeep: 1600 },
+    armoury:   { name: 'Armoury', post: 'quartermaster', start: 0, seen: { blood: 0.8, craft: 0.4 },
+                 levels: [{ cost: 110000, upkeep: 1600 },
                           { cost: 240000, upkeep: 3200 },
                           { cost: 420000, upkeep: 5200 }] },
     infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
@@ -14247,11 +14252,18 @@
     BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
     PRESS_GATE: 0.05,            // [C] gate per level
     LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
-    TIER_OFFSET: 1               // [S] the Armoury issues up to level + this
+    TIER_OFFSET: 2               // [S] the Armoury issues up to level + this: tiers one and two unbuilt
   };
 
   function grounds(corp) {
-    corp.facilities = corp.facilities || { levels: {}, build: null, history: [] };
+    corp.facilities = corp.facilities || { levels: {}, build: null, history: [], v: 2 };
+    const g0 = corp.facilities;
+    /* a save from before the Armoury's free first level was cut: every level moves down one */
+    if (g0.v !== 2) {
+      if (g0.levels.armoury != null) g0.levels.armoury = Math.max(0, g0.levels.armoury - 1);
+      if (g0.build && g0.build.id === 'armoury') g0.build.level = Math.max(1, g0.build.level - 1);
+      g0.v = 2;
+    }
     for (const id of IDS) if (corp.facilities.levels[id] == null) corp.facilities.levels[id] = FACILITIES[id].start;
     return corp.facilities;
   }
@@ -14309,13 +14321,13 @@
 
   /** What a level does, in numbers read off the constants above, so the page never says more than the rules do.
       Every level above one also multiplies the staffer's Craft (`staffMult`). */
-  const POST_WORD = { infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
+  const POST_WORD = { armoury: 'Quartermaster', infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
   function does(id, L) {
     const pct = x => Math.round(x * 100);
     const staff = L >= 2 ? ['Staff ×' + (1 + CONST.STAFF_PER_LEVEL * (L - 1)).toFixed(2).replace(/0$/, '')] : [];
-    const opens = L === 1 && POST_WORD[id] ? ['A ' + POST_WORD[id] + ' May Work'] : [];
+    const opens = L === 1 && id !== 'armoury' ? ['A ' + POST_WORD[id] + ' May Work'] : [];
     switch (id) {
-      case 'armoury': return [L === 1 ? 'Issues Tiers 1–2' : 'Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)].concat(staff);
+      case 'armoury': return (L === 1 ? ['A Quartermaster May Work'] : []).concat(['Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)], staff);
       case 'infirmary': return opens.concat(['Mending +' + pct(CONST.INFIRMARY_BASE * L) + '%'], L === 2 ? ['A Cutter May Operate'] : [], staff);
       case 'yard': return opens.concat(['Drills +' + pct(CONST.YARD_BASE * L) + '%'], staff);
       case 'barracks': return opens.concat(['Strain −' + (CONST.BARRACKS_CALM * L) + ' a Month'],
@@ -15074,7 +15086,7 @@
       ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
-  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 1) + 1); }
+  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
@@ -37126,6 +37138,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     if (id === 'armoury') {
       var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
+      h += '<div class="up"><span>Issues</span><b>Tiers 1–' + tier + '</b></div>';
       for (var iid in rack) { var it = ITEM_BY_ID[iid]; if (it && it.tier > tier && rack[iid] > 0) { n += rack[iid]; best = Math.max(best, it.tier); } }
       if (n) h += '<div class="up"><span>Stored</span><b>' + n + ' to Tier ' + best + '</b></div>';
     }
@@ -37153,7 +37166,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             ? '<button class="tiny" data-fcgo="' + id + '">Confirm</button><button class="tiny" data-fckeep="1">Cancel</button>'
             : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + esc(can.ok ? 'Build' : fcWhy(can.why)) + '</button>') + '</div>';
         } else { cls = ''; head = cr(lv.upkeep) + '/mo'; foot = '<div class="price"><span>' + crs(Math.round(lv.cost * mult / 1000) * 1000) + '</span></div>'; }
-        return '<div class="fcrung ' + cls + '"><div class="h"><span>Level ' + n + '</span><span>' + head + '</span></div>' + lines + foot + '</div>';
+        return '<div class="fcrung l' + n + ' ' + cls + '"><div class="h"><span>Level ' + n + '</span><span>' + head + '</span></div>' + lines + foot + '</div>';
       }).join('');
       h += '<div class="fclad' + (building ? ' bld' : '') + '"><div class="t">' + esc(fac.name) + '<small>' + SEASON.STAFF.POST_NAME[fac.post] + '</small></div>' +
            '<div class="fcrungs">' + rungs + '</div>' + fcFoot(me, id, fac, L) + '</div>';
@@ -37427,7 +37440,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + (lk ? ' locked' : '') + '"' + (lk ? '' : ' data-pick="' + it.id + '"') + '>' + tierHtml(it.id) +
               '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
               '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
-              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - 1) + '</span>'
+              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - SEASON.FAC.CONST.TIER_OFFSET) + '</span>'
                   : mine ? '<span class="rack">Their Own</span>'
                   : have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
@@ -39921,7 +39934,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
           '<button class="stepbtn" data-madd="' + i.id + '"' + (tierLocked ? ' disabled' : '') + '>+</button>' +
-        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - 1) + '</span>' : '') + '</div>';
+        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - SEASON.FAC.CONST.TIER_OFFSET) + '</span>' : '') + '</div>';
       if (open) {
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +

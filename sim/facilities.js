@@ -5,8 +5,8 @@
    - Six facilities, each tied to a backroom post. Level one of a facility is needed before a
      staffer can hold its post; every level above one multiplies what that staffer's Craft does.
      The facility also does a little on its own, staffed or not.
-   - THE ARMOURY GATES GEAR. Everyone begins with the Armoury at level one: tiers one and two.
-     Each level above opens the next tier, to tier five at level four. Gear above an OA's tier is
+   - THE ARMOURY GATES GEAR. Everyone begins without one, issuing tiers one and two. Each level
+     opens the next tier, to tier five at level three. Gear above an OA's tier is
      STORED, never lost — captured kit waits in the rack for the day the Armoury can issue it.
      A mercenary's own gear is theirs, and they carry it whatever the Armoury says.
    - Building is paid in full when it is ordered and stands at the start of next month (ruled: a
@@ -25,9 +25,8 @@
 
   /* levels[i] is what level i+1 costs: credits up front, and upkeep a month once standing */
   const FACILITIES = {
-    armoury:   { name: 'Armoury', post: 'quartermaster', start: 1, seen: { blood: 0.8, craft: 0.4 },
-                 levels: [{ cost: 0, upkeep: 600 },
-                          { cost: 110000, upkeep: 1600 },
+    armoury:   { name: 'Armoury', post: 'quartermaster', start: 0, seen: { blood: 0.8, craft: 0.4 },
+                 levels: [{ cost: 110000, upkeep: 1600 },
                           { cost: 240000, upkeep: 3200 },
                           { cost: 420000, upkeep: 5200 }] },
     infirmary: { name: 'Infirmary', post: 'surgeon', start: 0, seen: { care: 1.0 },
@@ -52,11 +51,18 @@
     BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
     PRESS_GATE: 0.05,            // [C] gate per level
     LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
-    TIER_OFFSET: 1               // [S] the Armoury issues up to level + this
+    TIER_OFFSET: 2               // [S] the Armoury issues up to level + this: tiers one and two unbuilt
   };
 
   function grounds(corp) {
-    corp.facilities = corp.facilities || { levels: {}, build: null, history: [] };
+    corp.facilities = corp.facilities || { levels: {}, build: null, history: [], v: 2 };
+    const g0 = corp.facilities;
+    /* a save from before the Armoury's free first level was cut: every level moves down one */
+    if (g0.v !== 2) {
+      if (g0.levels.armoury != null) g0.levels.armoury = Math.max(0, g0.levels.armoury - 1);
+      if (g0.build && g0.build.id === 'armoury') g0.build.level = Math.max(1, g0.build.level - 1);
+      g0.v = 2;
+    }
     for (const id of IDS) if (corp.facilities.levels[id] == null) corp.facilities.levels[id] = FACILITIES[id].start;
     return corp.facilities;
   }
@@ -114,13 +120,13 @@
 
   /** What a level does, in numbers read off the constants above, so the page never says more than the rules do.
       Every level above one also multiplies the staffer's Craft (`staffMult`). */
-  const POST_WORD = { infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
+  const POST_WORD = { armoury: 'Quartermaster', infirmary: 'Surgeon', yard: 'Drillmaster', barracks: 'Sergeant', press: 'Fixer', listening: 'Spymaster' };
   function does(id, L) {
     const pct = x => Math.round(x * 100);
     const staff = L >= 2 ? ['Staff ×' + (1 + CONST.STAFF_PER_LEVEL * (L - 1)).toFixed(2).replace(/0$/, '')] : [];
-    const opens = L === 1 && POST_WORD[id] ? ['A ' + POST_WORD[id] + ' May Work'] : [];
+    const opens = L === 1 && id !== 'armoury' ? ['A ' + POST_WORD[id] + ' May Work'] : [];
     switch (id) {
-      case 'armoury': return [L === 1 ? 'Issues Tiers 1–2' : 'Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)].concat(staff);
+      case 'armoury': return (L === 1 ? ['A Quartermaster May Work'] : []).concat(['Issues Tier ' + Math.min(5, L + CONST.TIER_OFFSET)], staff);
       case 'infirmary': return opens.concat(['Mending +' + pct(CONST.INFIRMARY_BASE * L) + '%'], L === 2 ? ['A Cutter May Operate'] : [], staff);
       case 'yard': return opens.concat(['Drills +' + pct(CONST.YARD_BASE * L) + '%'], staff);
       case 'barracks': return opens.concat(['Strain −' + (CONST.BARRACKS_CALM * L) + ' a Month'],

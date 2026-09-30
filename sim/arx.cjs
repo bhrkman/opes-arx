@@ -984,8 +984,8 @@ function facilityRules() {
   const rng = P.mulberry32(P.seedFrom('fac-guard'));
   const corps = SEASONMOD.openFleet(rng, oa, {});
   const ids = Object.keys(corps), c = corps[ids[0]];
-  ok('everyone opens at the Armoury’s first level: tiers one and two', ids.every(k => F.level(corps[k], 'armoury') === 1 && F.maxTier(corps[k]) === 2), '');
-  ok('and nothing else built', ids.every(k => F.IDS.filter(f => f !== 'armoury').every(f => F.level(corps[k], f) === 0)), '');
+  ok('everyone opens with no Armoury: tiers one and two', ids.every(k => F.level(corps[k], 'armoury') === 0 && F.maxTier(corps[k]) === 2), '');
+  ok('and nothing else built', ids.every(k => F.IDS.every(f => F.level(corps[k], f) === 0)), '');
   ok('the founding racks hold nothing the Armoury cannot issue',
      ids.every(k => Object.keys(corps[k].armoury || {}).every(id => (IT.byId(id) || { tier: 1 }).tier <= 2)), '');
   const st = SEASONMOD.beginSeason(rng, corps, oa, { human: ids[0] });
@@ -1004,11 +1004,11 @@ function facilityRules() {
   const led0 = c.account.ledger.length;
   SEASONMOD.stepMonth(st, { [ids[0]]: {} });
   ok('what stands costs upkeep', c.account.ledger.slice(led0).some(l => l.label === 'Facility Upkeep' && l.amount < 0), '');
-  c.facilities.levels.armoury = 2;
-  ok('a better Armoury opens the next tier', F.maxTier(c) === 3 && SEASONMOD.buyItems(st, ids[0], { [t3.id]: 1 }).ok, '');
+  c.facilities.levels.armoury = 1;
+  ok('an Armoury opens the next tier', F.maxTier(c) === 3 && SEASONMOD.buyItems(st, ids[0], { [t3.id]: 1 }).ok, '');
   ok('a Cutter needs the Infirmary’s second level, a Mole the Listening Post’s', !F.cutterAllowed(c) && !F.moleAllowed(c), '');
   /* the quartermaster issues within the Armoury; a mercenary carries their own */
-  c.facilities.levels.armoury = 1;
+  c.facilities.levels.armoury = 0;
   const plan = IT.planForce(IT.doctrineForCorp(ids[0]).id, 12, { maxTier: 2, armoury: { [t3.id]: 12 }, budget: 50000 });
   const issued = plan && plan.bodies ? plan.bodies.map(b => IT.byId(b.loadout.primary)).filter(Boolean) : [];
   ok('the quartermaster issues nothing above the Armoury, whatever the rack holds', issued.every(i => i.tier <= 2), issued.map(i => i.tier).join(','));
@@ -1017,7 +1017,7 @@ function facilityRules() {
   ok('a mercenary comes with their own kit, tier two to four', mk && IT.byId(mk.primary) && mk.tier >= 2 && mk.tier <= 4, JSON.stringify(mk));
   /* the engine builds, over a career */
   const car = sharedCareer(oa);
-  const built = Object.keys(car.corps).filter(k => F.IDS.some(f => f !== 'armoury' && F.level(car.corps[k], f) > 0));
+  const built = Object.keys(car.corps).filter(k => F.IDS.some(f => F.level(car.corps[k], f) > 0));
   ok('the engine builds, by the same rules', built.length >= 4, built.length + ' of ' + Object.keys(car.corps).length);
 }
 function staffRules() {

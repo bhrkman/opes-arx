@@ -1234,20 +1234,26 @@
   .fcladders{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
   @media (max-width:1100px){.fcladders{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media (max-width:640px){.fcladders{grid-template-columns:1fr}}
-  .fclad{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px;min-height:330px}
+  /* every ladder the same shape: a fixed head, three fixed rungs, a fixed foot — a clean grid whatever the words */
+  .fclad{border:1px solid var(--line2);border-radius:6px;background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px}
   .fclad.bld{border-color:var(--cred)}
-  .fclad .t{font-weight:700;letter-spacing:.04em;font-size:12px;line-height:1.2}
+  .fclad .t{font-weight:700;letter-spacing:.04em;font-size:12px;line-height:1.2;height:30px}
   .fclad .t small{display:block;color:var(--dim);font-weight:400;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
-  .fcrungs{display:flex;flex-direction:column-reverse;gap:5px;flex:1;justify-content:flex-start}
-  .fcrung{border:1px solid var(--line);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--faint);line-height:1.35;min-height:44px}
-  .fcrung .h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1px}
+  .fcrungs{display:flex;flex-direction:column;gap:6px}
+  /* each level its own colour: one, two, three */
+  .fcrung{--lv:var(--hit);height:104px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--line);border-left:3px solid color-mix(in srgb,var(--lv) 35%,transparent);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--faint);line-height:1.4}
+  .fcrung.l2{--lv:var(--a)} .fcrung.l3{--lv:var(--wall)}
+  .fcrung .h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px;color:color-mix(in srgb,var(--lv) 55%,var(--faint))}
   .fcrung .h span:last-child{letter-spacing:.04em;text-transform:none}
-  .fcrung.on{border-color:var(--a-dim);background:var(--a-deep);color:var(--ink)} .fcrung.on .h{color:var(--a)}
-  .fcrung.next{border-color:var(--cred);color:var(--ink);background:rgba(240,192,74,.05)} .fcrung.next .h{color:var(--cred)}
-  .fcrung.bld{border-color:var(--cred);border-style:dashed;color:var(--ink)} .fcrung.bld .h{color:var(--cred)}
-  .fcrung .price{color:var(--cred);font-weight:700;margin-top:3px;display:flex;justify-content:space-between;align-items:center;gap:4px}
+  .fcrung.on{border-color:color-mix(in srgb,var(--lv) 45%,transparent);border-left-color:var(--lv);background:color-mix(in srgb,var(--lv) 15%,var(--panel));color:var(--ink)}
+  .fcrung.on .h{color:var(--lv)}
+  .fcrung.next{border:1px dashed color-mix(in srgb,var(--lv) 60%,transparent);border-left:3px solid color-mix(in srgb,var(--lv) 60%,transparent);color:var(--ink)}
+  .fcrung.next .h{color:var(--lv)}
+  .fcrung.bld{border:1px dashed var(--cred);border-left:3px solid var(--lv);color:var(--ink)} .fcrung.bld .h{color:var(--lv)}
+  .fcrung.bld .h span:last-child{color:var(--cred)}
+  .fcrung .price{color:var(--cred);font-weight:700;margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:4px}
   .fcrung .price button{margin-left:auto}
-  .fcfoot{border-top:1px solid #131f30;padding-top:6px;font-size:10px;color:var(--dim)}
+  .fcfoot{border-top:1px solid #131f30;padding-top:6px;font-size:10px;color:var(--dim);height:68px;overflow:hidden}
   .fcfoot b{color:var(--ink);font-weight:600}
   .fcfoot .up{display:flex;justify-content:space-between;gap:6px}
   .fcfoot .up.warn{color:var(--warn)}
@@ -5878,6 +5884,7 @@
     }
     if (id === 'armoury') {
       var rack = me.armoury || {}, tier = SEASON.FAC.maxTier(me), n = 0, best = 0;
+      h += '<div class="up"><span>Issues</span><b>Tiers 1–' + tier + '</b></div>';
       for (var iid in rack) { var it = ITEM_BY_ID[iid]; if (it && it.tier > tier && rack[iid] > 0) { n += rack[iid]; best = Math.max(best, it.tier); } }
       if (n) h += '<div class="up"><span>Stored</span><b>' + n + ' to Tier ' + best + '</b></div>';
     }
@@ -5905,7 +5912,7 @@
             ? '<button class="tiny" data-fcgo="' + id + '">Confirm</button><button class="tiny" data-fckeep="1">Cancel</button>'
             : '<button class="tiny" data-fcask="' + id + '"' + (can.ok ? '' : ' disabled') + '>' + esc(can.ok ? 'Build' : fcWhy(can.why)) + '</button>') + '</div>';
         } else { cls = ''; head = cr(lv.upkeep) + '/mo'; foot = '<div class="price"><span>' + crs(Math.round(lv.cost * mult / 1000) * 1000) + '</span></div>'; }
-        return '<div class="fcrung ' + cls + '"><div class="h"><span>Level ' + n + '</span><span>' + head + '</span></div>' + lines + foot + '</div>';
+        return '<div class="fcrung l' + n + ' ' + cls + '"><div class="h"><span>Level ' + n + '</span><span>' + head + '</span></div>' + lines + foot + '</div>';
       }).join('');
       h += '<div class="fclad' + (building ? ' bld' : '') + '"><div class="t">' + esc(fac.name) + '<small>' + SEASON.STAFF.POST_NAME[fac.post] + '</small></div>' +
            '<div class="fcrungs">' + rungs + '</div>' + fcFoot(me, id, fac, L) + '</div>';
@@ -6179,7 +6186,7 @@
       rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + (lk ? ' locked' : '') + '"' + (lk ? '' : ' data-pick="' + it.id + '"') + '>' + tierHtml(it.id) +
               '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
               '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
-              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - 1) + '</span>'
+              (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - SEASON.FAC.CONST.TIER_OFFSET) + '</span>'
                   : mine ? '<span class="rack">Their Own</span>'
                   : have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
     });
@@ -8673,7 +8680,7 @@
           '<button class="stepbtn" data-mdrop="' + i.id + '"' + (n2 ? '' : ' disabled') + '>\u2212</button>' +
           '<span class="stepn' + (n2 ? ' on' : '') + '">' + n2 + '</span>' +
           '<button class="stepbtn" data-madd="' + i.id + '"' + (tierLocked ? ' disabled' : '') + '>+</button>' +
-        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - 1) + '</span>' : '') + '</div>';
+        '</span>' + (tierLocked ? '<span class="ktag">Armoury ' + (i.tier - SEASON.FAC.CONST.TIER_OFFSET) + '</span>' : '') + '</div>';
       if (open) {
         h += '<div class="mpanel">' +
           '<span class="st">Tier <b>' + i.tier + '</b></span>' +

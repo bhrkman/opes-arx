@@ -388,7 +388,7 @@
       ai: (c, e) => spare(c) > e.price * 5 && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
-  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 1) + 1); }
+  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
   const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);

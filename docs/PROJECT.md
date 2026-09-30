@@ -67,8 +67,8 @@ Press Office and Listening Post, each tied to a backroom post. A facility's firs
 needed before its post can be staffed, and each level above multiplies what that staffer's
 Craft does; each facility also does a little on its own. A build is paid in full when it is
 ordered and stands at the start of next month, one a month; what stands costs upkeep.
-The Armoury gates gear: every OA begins at its first level, which issues tiers one and two, and
-each level above opens the next tier, to tier five. Every weapon type, armour role, sidearm and
+The Armoury gates gear: every OA begins without one and issues tiers one and two; each level
+opens the next tier, to tier five at the third. Every weapon type, armour role, sidearm and
 the medkit exists at every tier that matters. Gear above an OA's tier is stored, not issued or
 sold to it; a mercenary carries their own gear whatever the Armoury says, and their price
 includes it. The engine builds by the same rules.
