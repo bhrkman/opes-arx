@@ -1051,14 +1051,7 @@
   function standing(corp) {
     const base = STANCE_STANDING[corp.policy] != null ? STANCE_STANDING[corp.policy] : 0.5;
     const v = base + CONST.STANDING_PER_ENGAGEMENT * corp.engagements
-                   + CONST.STANDING_PER_SITE * corp.sitesClaimed
-    /* CROSS-STEP FIX. Step 6 charges a corp for quitting, for buying a win and for breaking
-       its word, and wrote the total to `crowdHit` — which nothing read. Step 4's `standing`
-       was the crowd's opinion and never moved for any of it. Two numbers for one idea, one
-       of them write-only. The charge now lands on the number that does the work, so a corp
-       that sells its claim really does become less interesting to hunt.
-       Step 7 replaces this whole scalar with the four audiences; until then it is ONE number. */
-                   - (corp.crowdHit || 0);
+                   + CONST.STANDING_PER_SITE * corp.sitesClaimed;   /* (the crowd charge that stood here is cut: nothing wrote it) */
     return Math.max(CONST.STANDING_MIN, Math.min(CONST.STANDING_MAX, v));
   }
 
@@ -6584,7 +6577,6 @@
       pc.won = stats.winner === c.id;
       pc.withdrawn = c.withdrawn ? { day: c.withdrawn.day, toId: c.withdrawn.toId } : null;
       pc.standDown = !!c.standDown;
-      pc.crowdHit = c.crowdHit || 0;
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;
     }

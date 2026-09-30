@@ -84,11 +84,6 @@
        where they belong: the first two in reputation.js, and the fourth is left unpriced and
        said so, because it needs people to survive a Divide and they do not yet. */
     REPLACEMENT_SIGNING: 1.00,          // [C] §10.3 recruiting the body that fills the gap
-    MIN_ASK_FRAC: 0.12,                 // [C] §10.2 nobody hands over a claim for nothing,
-                                        //     however hopeless. The floor the deleted
-                                        //     additive penalty used to supply by accident
-                                        //     paid even by a corp cut down to three people
-                                        //     selling a contest you could have won
 
     /* §5.3a GREED — the appetite that got these corporations into this business.
 

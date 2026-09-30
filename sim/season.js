@@ -170,13 +170,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     INTEL_RIVAL_PREP: 0.20,      // [C] readiness a full, fresh rival sheet buys against them
     INTEL_PLANET_PREP: 0.15,     // [C] readiness a complete planet sheet buys on the ground
     INTEL_DECAY_YEARS: 3,        // [H] years a rival row takes to fade from full to blank
-    /* [C] INTEL ARRIVES WHEN YOU LOOK FOR IT. Ruled: you focus on the intel, you get the
-       intel — no delay. This was three months, which nobody ever asked for, and it made
-       the verb incoherent: a report landing three months on is old news about a rival who
-       has since moved, it cannot be acted on in the month you paid for it, and it fought
-       the ruling that intel can be gathered repeatedly across a year. Zero means the
-       gather resolves in the same month it is bought, every month, all year. */
-    SURVEY_MONTHS: 0,
     SCOUT_APATHY: 0.45,          // [H] board interest below which a corp does not survey at all
     /* --- the Dividend (S17), the mid-year show-match at T3 --- */
     /* --- the merc deadline (S18), T5. A free professional picks their employer. --- */
@@ -1537,11 +1530,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* the scouts report the month they are sent, so this track is open all year and
          never has to explain a wait it no longer imposes */
       { kind: 'scout', cap: CONST.FOCUS_CAP, name: 'Gather Intel',
-        available: month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS,
+        available: true,
         subject: 0,
-        why: month + CONST.SURVEY_MONTHS > CONST.PREP_MONTHS
-               ? 'Scouts Sent Now Cannot Report Before the Lock'
-               : 'Reports This Month' +
+        why: 'Reports This Month' +
                  (interest == null ? '' : ' \u00b7 Board Interest ' + interest.toFixed(2)) },
       /* COURT SPONSORS. Spend focus to court houses; each sponsor backs one OA a year and signs
          the highest-standing courter at the lock, so courting builds toward THIS year's board.
@@ -3638,7 +3629,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const abs = (season || 0) * 100 + month;
     applySpin(corp);
     const sp = STAFF.eff(corp, 'spymaster');
-    if (sp.st && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+    if (sp.st && month <= CONST.PREP_MONTHS) {
       ensureIntel(corp, season || 0);
       if (sp.school === 'watcher' || !FAC.moleAllowed(corp)) {   /* §FACILITIES a mole needs the Listening Post's second level */
         const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
@@ -3683,7 +3674,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
     const lp = FAC.listenLevels(corp);
-    if (lp && month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS) {
+    if (lp && month <= CONST.PREP_MONTHS) {
       ensureIntel(corp, season || 0);
       gatherIntel(corp, 'planet', null, lp, abs, null);
     }
