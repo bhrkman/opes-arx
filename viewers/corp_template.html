@@ -5054,6 +5054,8 @@
   wireDividend();
 
   $('endmonth').onclick = function () {
+    /* §WINDOWS the month's business closes with the month: a window left open does not outlive its month */
+    if (typeof hideBiz === 'function' && BIZ.kind) hideBiz();
     if (!G || !G.state || G.state.month >= 12) return;
     /* WHILE THE LIGHTS ARE UP THE MONTH BELONGS TO THE FLOOR. End Month does nothing until
        the manager has taken it; without this the show could be resolved from the desk with
