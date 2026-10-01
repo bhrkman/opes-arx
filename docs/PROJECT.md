@@ -115,8 +115,9 @@ sightings, rival strength is the broadcast count, and a seat is never sent what 
 earned. The manager sees the fights his people fought and the plan they were given.
 
 Deals at the table are truces, sweetened with credits, and a truce is never broken: the Aleas
-mandate it and the drones enforce it. A manager's truce is struck at his own table or not at
-all. An OA may leave the ground: by walking, or by selling its exit to the field for promises
+mandate it and the drones enforce it, and they mandate none between the last two banners
+standing, since with nobody else to fight a truce would be the contest's end by other means. A
+manager's truce is struck at his own table or not at all. An OA may leave the ground: by walking, or by selling its exit to the field for promises
 against the pot, kept or broken at the settlement and remembered across years. The last OA
 standing has won and does not leave.
 

@@ -612,9 +612,16 @@
    * pay; an OA doing worse than you wants the truce and will mostly say yes. Deterministic,
    * so the beam can read it before the word goes out.
    */
+  /* §TRUCE THE ALEAS MANDATE NO TRUCE BETWEEN THE LAST TWO (ruled). A truce is never broken, so two banners
+     left alone on the last ground that kept striking one — every window, four or five days at a time — stood
+     interleaved within a squad's reach for twelve days of overtime and nobody shot: the contest could not end.
+     With two banners standing there is nobody else to fight, and a truce would be the contest's end by other
+     means; the Aleas refuse to mandate it. Every seat alike. */
+  function lastTwo(ctx) { return (ctx.banners || 0) <= 2; }
   function pactChance(a, b, ctx, terms) {
     if (ctx.sealed(a) || ctx.sealed(b)) return { possible: false, why: 'they do not deal', p: 0 };
     if (ctx.principalOf(a).id === ctx.principalOf(b).id) return { possible: false, why: 'same banner', p: 0 };
+    if (lastTwo(ctx)) return { possible: false, why: 'no truce between the last two', p: 0 };
     const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
     const credits = Math.max(0, (terms && terms.credits) || 0);
     const sweet = Math.min(0.45, credits / Math.max(1, (ctx.pot || 1) * CONST.PACT_CREDIT_SCALE));
@@ -636,6 +643,7 @@
   function considerPact(rng, a, b, ctx) {
     if (ctx.sealed(a) || ctx.sealed(b)) return null;
     if (ctx.principalOf(a).id === ctx.principalOf(b).id) return null;
+    if (lastTwo(ctx)) return null;
     const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
     /* The weaker side wants it; the stronger side wants paying for it. §6.13: a hungry OA wants
        no truce, one that wants out wants one badly; an OA that will not deal with you will not

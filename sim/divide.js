@@ -4870,6 +4870,7 @@
             e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length,
             a: c.allBodies.filter(b => b.status === 'active').length,
             w: c.allBodies.filter(b => b.status === 'injured').length,
+            h: c.allBodies.filter(b => b.status === 'captured').length,   /* §CAPTIVES held by another OA: not lost, not up */
             o: c.hauled, si: c.sitesClaimed, st: c.policy,
             sd: Math.round(standing(c) * 100)
           })),
@@ -5890,8 +5891,25 @@
               const tag = String.fromCharCode(65 + gi);
               const g = groups[gi];
               const lost = broke[tag] || (m && m[1] === 'both');
+              /* §COMMAND A BEATEN GROUP RUNS TOGETHER. Each squad ran straight away from the fight's centre, so four
+                 squads of one OA that stood around it ran four ways, finished further apart than `CMD_GROUP_R`, and
+                 never planned as one again: watched, a whole OA met on day 9, scattered on day 10 and was gone on
+                 day 11, every squad alone. An OA's squads in one fight share one line of retreat — away from the
+                 fight toward where they stood, or when they stood on it, toward the room the ring still has. */
+              const lineOf = {};
+              if (lost) for (const sq of g) {
+                const cid = sq.corp.id; if (lineOf[cid]) continue;
+                const own = g.filter(q => q.corp.id === cid), ow = own.reduce((t, q) => t + Math.max(1, squadHead(q).length), 0);
+                let lx = own.reduce((t, q) => t + q.x * Math.max(1, squadHead(q).length), 0) / ow - mx;
+                let ly = own.reduce((t, q) => t + q.y * Math.max(1, squadHead(q).length), 0) / ow - my;
+                if (Math.hypot(lx, ly) < 0.004) { const zc = MAP.zoneOn(planet, day + 1); lx = zc.cx - mx; ly = zc.cy - my; }
+                if (Math.hypot(lx, ly) < 1e-6) { lx = 1; ly = 0; }
+                lineOf[cid] = [lx, ly];
+                if (own.length > 1) stats.audit.ranTogether = (stats.audit.ranTogether || 0) + 1;
+              }
               for (const sq of g) {
                 let dx = sq.x - mx, dy = sq.y - my;
+                if (lost && lineOf[sq.corp.id]) { dx = lineOf[sq.corp.id][0]; dy = lineOf[sq.corp.id][1]; }
                 /* §COMMAND A BEATEN SQUAD FALLS BACK ON ITS OWN. Away from the fight, it ran straight away from it —
                    often away from the rest of its OA too. With friends of its operation standing clear of this fight,
                    it runs toward them. */

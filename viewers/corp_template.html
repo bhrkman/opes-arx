@@ -147,6 +147,7 @@
   #skiptolock{position:fixed;left:14px;bottom:14px;z-index:20;font:inherit;font-size:9.5px;letter-spacing:.1em;
     background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
   #skiptolock:hover{border-color:var(--bad);color:var(--bad)}
+  body.divideon #skiptolock,body.divideon #fillsquads,body.contestrun #superbox{display:none}
   body.yearline #skiptolock{left:18px}
   #fillsquads{position:fixed;left:14px;bottom:44px;z-index:20;font:inherit;font-size:9.5px;letter-spacing:.1em;background:transparent;border:1px dashed var(--line2);color:var(--faint);border-radius:4px;padding:4px 8px;cursor:pointer}
   body.yearline #fillsquads{left:18px}
@@ -3912,6 +3913,9 @@
     var host = $('yearline'); if (!host) return;
     var live = G && G.state && G.state.month < 12;
     document.body.classList.toggle('yearline', !!live);
+    /* §DEV the skip and the fill are for reaching the Lock; in the Divide they only sat on the Ground's legend */
+    document.body.classList.toggle('divideon', !!(G && G.state && G.state.month >= 12));
+    document.body.classList.toggle('contestrun', !!(G && G.div && G.div.started));
     if (!live) { host.innerHTML = ''; if ($('agenda')) $('agenda').innerHTML = ''; document.body.classList.remove('agendaopen'); return; }
     var m = G.state.month, h = '<div class="yhead">Year ' + G.state.season + '<b>Month ' + m + ' \u00b7 ' + esc((SEASON.MONTHS[m] || {}).name || '') + '</b></div><div class="yl">';
     for (var k = 1; k <= 12; k++) {
@@ -7190,12 +7194,17 @@
         $('gscrub').style.display = '';
         $('gday').max = String(days.length);
         $('gday').value = String(days.length);
-        /* a finished contest opens where it started — the drop — so the whole thing
-           can be watched forward; the slider still reaches the end at a drag. The line
-           that set this to the LAST day lived here and quietly won, because it ran
-           after: the page opened on the aftermath every time. */
-        G.gday = 1; G.gstage = 'morning'; G.gmi = 0;
-        $('gday').value = '1';
+        /* §GROUND THE END IS WALKED TO, LIKE ANY WINDOW. A finished contest opened on the drop and played nothing,
+           so a seat whose banner fell between its last window and the end pressed once and read "the Divide is
+           over" with the two days that destroyed it never shown. The manager stays where he stood and the walk
+           plays forward to the day his banner fell — or to the last day, if he stood to the end; the slider still
+           reaches the drop at a drag. */
+        var stood = Math.max(1, Math.min(G.gday || 1, days.length));
+        var endAt = fell && fell.day ? Math.max(stood, Math.min(days.length, fell.day)) : days.length;
+        if (G.div.windows <= 1) { stood = 1; G.gstage = 'morning'; } else if (G.gday > days.length) G.gstage = 'complete';
+        G.gday = stood; G.gmi = 0;
+        $('gday').value = String(stood);
+        G._playTo = endAt > stood || G.gstage !== 'complete' ? endAt : null;
       }
     } else if (step.value && (step.value.kind === 'captives' || (step.value.seats && step.value.seats[G.me] && step.value.seats[G.me].kind === 'captives'))) {
       /* §SEATS THOSE YOU HOLD: the shooting has stopped, and what becomes of each captive is yours to say */
@@ -7363,6 +7372,7 @@
                return {
                a: c.allBodies.filter(function (b) { return b.status === 'active'; }).length,
                w: c.allBodies.filter(function (b) { return b.status === 'injured'; }).length,
+               h: c.allBodies.filter(function (b) { return b.status === 'captured'; }).length,
                p: c.allBodies.filter(function (b) { return b.status === 'dead'; }).length,
                si: c.sitesClaimed, gone: !!c.withdrawn }; }) };
   }
@@ -8074,7 +8084,8 @@
       (G.div.win && G.div.win.weather && G.div.win.day === D.d ? '<div style="margin-top:4px">' + weatherWords(G.div.win.weather) + '</div>' : '');
     /* §WITHDRAWAL (stage 5) the column is the OA, not a banner: nobody stands under anybody
        else's flag now — an OA is on the ground or it has conceded and gone */
-    var rows = '<tr><th>OA</th><th>Up</th><th>Hurt</th><th>Lost</th><th>Sites</th></tr>';
+    /* §CAPTIVES the four columns sum to who was fielded: a man another OA holds is neither up nor lost */
+    var rows = '<tr><th>OA</th><th>Up</th><th>Hurt</th><th>Held</th><th>Lost</th><th>Sites</th></tr>';
     for (var bi = 0; bi < (D.corp || []).length; bi++) {
       var cc = D.corp[bi];
       var bid = oaIdOf(bi), mine = bid === G.me;
@@ -8082,21 +8093,29 @@
         '"><td><span class="sw" style="background:' + colFor(bid) + '"></span>' +
         '<span style="color:' + colFor(bid) + '">' + markFor(bid, 13) + ' ' + esc(bannerName(bi)) + '</span>' +
         (mine ? ' <span class="youtag">You</span>' : '') + '</td><td>' + cc.a +
-        '</td><td>' + (cc.w == null ? '\u2014' : cc.w) + '</td><td>' + cc.p + '</td><td>' + (cc.si || 0) + '</td></tr>';
+        '</td><td>' + (cc.w == null ? '\u2014' : cc.w) + '</td><td>' + (cc.h == null ? (cc.w == null ? '\u2014' : 0) : cc.h) + '</td><td>' + cc.p + '</td><td>' + (cc.si || 0) + '</td></tr>';
     }
     $('gboard').innerHTML = rows;
+    /* §GROUND SINCE THE LAST WINDOW IS EVERY DAY SINCE IT. This listed the fights of the one day on the map, so
+       once the walk had moved on to day 2, day 1's fight was gone from the panel while the day card had counted it
+       and the board showed the hurt. The panel reads from the last window's day to the day shown, each dated. */
     var out = '';
-    (D.ev || []).forEach(function (v) {
-      if (v.t !== 'fight') return;
-      out += '<div class="ev fight">Day ' + D.d + ' \u00b7 <b>' +
-             (v.corps || []).map(cSpan).join(' Met ') +
-             '</b>' + (v.result ? ' \u2014 ' + esc(capWords(v.result)) : '') +
-             (v.ex != null ? ' \u00b7 ' + v.ex + ' Exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
+    var allDays = gDays() || [], from = Math.max(1, Math.min(G.div.prevDay || 1, G.gday || 1)), upto = Math.max(from, Math.min(G.gday || 1, allDays.length));
+    var span = allDays.length ? allDays.slice(from - 1, upto) : [D];
+    span.forEach(function (DD) {
+      (DD.ev || []).forEach(function (v) {
+        if (v.t !== 'fight') return;
+        out += '<div class="ev fight">Day ' + DD.d + ' \u00b7 <b>' +
+               (v.corps || []).map(cSpan).join(' Met ') +
+               '</b>' + (v.result ? ' \u2014 ' + esc(capWords(v.result)) : '') +
+               (v.ex != null ? ' \u00b7 ' + v.ex + ' Exchange' + (v.ex === 1 ? '' : 's') : '') + '</div>';
+      });
     });
-    /* §RESERVE your landings that day */
+    /* §RESERVE your landings in those days */
+    var dayNos = span.map(function (DD) { return DD.d; });
     ((G.div.win && G.div.win.landings) || []).forEach(function (l) {
-      if (l.day !== D.d) return;
-      out += '<div class="ev land">Day ' + D.d + ' \u00b7 <b>' + esc(l.name) + (l.pair ? ' (a Pair)' : '') + '</b> Landed at the ' +
+      if (dayNos.indexOf(l.day) < 0) return;
+      out += '<div class="ev land">Day ' + l.day + ' \u00b7 <b>' + esc(l.name) + (l.pair ? ' (a Pair)' : '') + '</b> Landed at the ' +
              esc(l.site || 'Landing Beacon') + ' \u2014 ' + esc((G.plan && G.plan.names && G.plan.names[l.squad]) || ('Squad ' + squadLetter(l.squad))) + '</div>';
     });
     $('gevents').innerHTML = out || '<div class="ev m">Quiet Since the Last Window</div>';
@@ -8654,13 +8673,14 @@
         if (q.c !== meIdx || q.ghost) return;
         var prev = di > 0 ? days[di - 1].sq.filter(function (p) { return p.c === q.c && p.s === q.s; })[0] : null;
         var dist = prev && prev.n && q.n ? Math.hypot(q.x - prev.x, q.y - prev.y) / MARCH : 0;
-        var mine = fights.filter(function (v) { return Math.hypot(v.x - q.x, v.y - q.y) < REACH * (q.hb ? 1.6 : 1); });
+        /* a squad with nobody left meets nobody: a fight beside where it went down is somebody else's */
+        var mine = q.n ? fights.filter(function (v) { return Math.hypot(v.x - q.x, v.y - q.y) < REACH * (q.hb ? 1.6 : 1); }) : [];
         (squads[q.s] = squads[q.s] || []).push({ d: D.d, why: q.w, dist: dist, fights: mine, n: q.n, st: q.st, rat: q.rat, hb: q.hb, di: di });
       });
     });
     var h = '';
     Object.keys(squads).sort(function (a, b) { return +a - +b; }).forEach(function (si) {
-      h += '<div class="rq">Squad ' + (+si + 1) + '</div>';
+      h += '<div class="rq">' + esc((G.plan && G.plan.names && G.plan.names[+si]) || ('Squad ' + squadLetter(+si))) + '</div>';
       squads[si].forEach(function (r) {
         var what = r.n ? capWords(r.why) + (r.dist >= 0.05 ? ' \u00b7 ' + r.dist.toFixed(1) + ' March' + (r.dist >= 1.05 ? 'es' : '') : ' \u00b7 Held') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
         var f = r.fights.map(function (v) {
