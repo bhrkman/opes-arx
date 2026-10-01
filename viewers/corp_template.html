@@ -1126,7 +1126,19 @@
   .drfpk.now::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--o-drf)}
   .drfpk.now .who .wait{color:var(--o-drf);font-style:normal;font-weight:700}
   .drfpk.mine .who .got{color:var(--o-drf)}
-  .drfdone{text-align:center;color:var(--dim);font-size:11px;padding:18px 0}
+  /* §DRAFT the replay: the card being taken lights in the picker's colour, its name flies to the slot */
+  .pc.picking{outline:2px solid var(--pk);outline-offset:1px;box-shadow:0 0 18px color-mix(in srgb,var(--pk) 45%,transparent);transition:opacity .25s,transform .25s}
+  .pc.picking.gone{opacity:.25;transform:scale(.97)}
+  .drffly{position:fixed;z-index:60;pointer-events:none;padding:4px 10px;border-radius:5px;border:1px solid var(--pk);color:var(--pk);background:#0b1019;
+    font-size:11.5px;font-weight:700;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.6),0 0 14px color-mix(in srgb,var(--pk) 40%,transparent);
+    transition:transform .34s cubic-bezier(.45,.05,.25,1),opacity .34s ease-in}
+  .drffly.fly{transform:translate(var(--dx),var(--dy)) scale(.82)}
+  .drfpk.just{animation:drfland .7s ease-out}
+  @keyframes drfland{0%{background:color-mix(in srgb,currentColor 30%,transparent)}100%{background:transparent}}
+  .drfpk.now .who .wait{animation:drfpulse 1s ease-in-out infinite}
+  @keyframes drfpulse{50%{opacity:.45}}
+  @media (prefers-reduced-motion: reduce){.drffly{transition:none}.drfpk.just,.drfpk.now .who .wait{animation:none}}
+  .drfdone{text-align:center;color:var(--dim);font-size:11px;padding:6px 0 14px}
   @media (max-width:900px){.drfcols{grid-template-columns:1fr}}
   .pspec{display:flex;flex-direction:column;gap:5px;margin-top:6px}
   .pspec .mbar{grid-template-columns:62px 1fr 34px}
@@ -3365,7 +3377,7 @@
       foot = '<div class="bidbtns">' + opts.join('') +
              (mine ? '<button class="pcbtn" data-nobid="' + f.id + '">Withdraw</button>' : '') + '</div>';
     }
-    return '<div class="pc' + (f.yourBid ? ' taken' : '') + '">' +
+    return '<div class="pc' + (f.yourBid ? ' taken' : '') + '"' + (signing === 'draft' ? ' data-drfid="' + f.id + '"' : '') + '>' +
       (f.yourBid ? '<div class="pc-flag">' + (signing === 'tryouts' ? 'Signing' : signing === 'bastille'
                      ? 'Offered ' + f.yourBid + ' Divide' + (f.yourBid === 1 ? '' : 's') : 'Bid ' + crs(f.yourBid)) + '</div>' : '') +
       /* a prospect has a mark before they have an OA: the ring is neutral until they sign */
@@ -3598,45 +3610,114 @@
   function renderRecruitDraft() {
     var host = $('rostdraft'); if (!host) return;
     var R = draftLive();
-    if (!R) { host.innerHTML = ''; return; }
+    if (!R || (R.done && draftShown(R) >= R.picks.length)) { host.innerHTML = ''; return; }   /* done is done: nothing to open */
     host.innerHTML = docketHtml('draft', 'The Draft', draftState());
     wireDocket(host);
     if (BIZ.kind === 'draft') renderBiz();
   }
   /* §WINDOWS the Draft's board and sheet, in the window */
+  /* §DRAFT THE PICKS ARE SEEN BEING MADE. The engine settles every engine pick the moment the
+     turn reaches it, so the window replays them: `shown` is how many picks the board has shown,
+     and each one after it lights its card in the picking OA's colour, its name flies to that OA's
+     slot, and the next follows. Yours flies too. A harness, the dev skip, or Later skips to the end. */
+  var DRAFT_STEP = 460, DRAFT_FLY = 340;
+  function draftShown(R) {
+    var key = G.state.season;
+    if (!G._draftSeen || G._draftSeen.season !== key) G._draftSeen = { season: key, n: 0 };
+    if (window.__noTurn || G._devSkip) G._draftSeen.n = R.picks.length;
+    return Math.min(G._draftSeen.n, R.picks.length);
+  }
+  function draftCatchUp() { var R = draftLive(); if (R) { draftShown(R); G._draftSeen.n = R.picks.length; } clearTimeout(G._draftTimer); G._draftTimer = null; }
   function renderDraftWin(host) {
     var R = draftLive(); if (!R) { host.innerHTML = ''; return; }
-    var n = G.state.ids.length, whose = R.done ? null : R.order[R.i], mine = whose === G.me;
-    var right = draftState();
-    $('bhead').innerHTML = '<span class="dot"></span>Month 1 \u00b7 <b>The Draft</b>';
+    var shown = draftShown(R), playing = shown < R.picks.length;
+    var n = G.state.ids.length;
+    /* the board as the eye has it: the pick at `shown` is the one being made */
+    var at = playing ? shown : R.i, done = !playing && R.done;
+    var whose = done ? null : R.order[at], mine = whose === G.me && !playing;
+    var right = done ? 'The Draft Is Done' : 'Round ' + (Math.floor(at / n) + 1) + ' · Pick ' + (at + 1) + ' of ' + R.order.length +
+                ' · ' + (mine ? 'Your Pick' : whose === G.me ? 'Your Pick' : esc(tName(whose)) + ' Picking');
+    $('bhead').innerHTML = '<span class="dot"></span>Month 1 · <b>The Draft</b>';
     $('bcount').textContent = right;
-    $('bfoot').textContent = R.done ? '' : mine ? 'Unanswered at the Turn: the Best Remaining, Assigned' : '';
-    $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (R.done ? 'Done' : 'Later') + '</span><small>To the Page</small></button>';
-    var byPick = {}; R.picks.forEach(function (p) { byPick[p.pick] = p; });
+    $('bfoot').textContent = done ? '' : mine ? 'Unanswered at the Turn: the Best Remaining, Assigned' : '';
+    $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (done ? 'Done' : 'Later') + '</span><small>To the Page</small></button>';
+    var byPick = {}; R.picks.slice(0, shown).forEach(function (p) { byPick[p.pick] = p; });
     var board = '';
     R.order.forEach(function (id, k) {
       if (k % n === 0) board += '<div class="rh' + (k ? ' r2' : '') + '">Round ' + (Math.floor(k / n) + 1) + '</div>';
-      var p = byPick[k + 1], cls = p ? 'done' : k === R.i && !R.done ? 'now' : '';
+      var p = byPick[k + 1], cls = p ? 'done' : k === at && !done ? 'now' : '';
       if (id === G.me) cls += ' mine';
+      if (p && G._draftJust === k + 1) cls += ' just';
       var pf = p ? (G.corps[p.corp].roster || []).find(function (x) { return x.id === p.fighter; }) : null;
-      board += '<div class="drfpk ' + cls + '" style="color:' + colFor(id) + '"><span class="no">' + (k + 1) + '</span><i class="sw"></i>' +
+      board += '<div class="drfpk ' + cls + '" data-k="' + k + '" style="color:' + colFor(id) + '"><span class="no">' + (k + 1) + '</span><i class="sw"></i>' +
         '<span class="who"><span class="oa oaname" data-oa="' + esc(id) + '">' + esc(tName(id)) + '</span>' +
-        (p ? '<span class="got">' + (pf ? nameHtml(pf) : esc(p.name)) + (p.how === 'assigned' ? ' <span class="m">\u00b7 Assigned</span>' : '') + '</span>'
-           : '<span class="wait">' + (k === R.i && !R.done ? (mine ? 'Your Pick' : 'Picking') : 'Waits') + '</span>') +
+        (p ? '<span class="got">' + (pf ? nameHtml(pf) : esc(p.name)) + (p.how === 'assigned' ? ' <span class="m">· Assigned</span>' : '') + '</span>'
+           : '<span class="wait">' + (k === at && !done ? (id === G.me ? 'Your Pick' : 'Picking') : 'Waits') + '</span>') +
         '</span></div>';
     });
-    var pool = R.pool.filter(function (f) { return !f.mirror_of; }).sort(function (a, b) {
+    G._draftJust = null;
+    /* the pool as the eye has it: everyone not yet SHOWN taken is still on the sheet */
+    var still = R.pool.filter(function (f) { return !f.mirror_of; });
+    R.picks.slice(shown).forEach(function (p) {
+      var f = (G.corps[p.corp].roster || []).find(function (x) { return x.id === p.fighter; });
+      if (f) still.push(f);
+    });
+    var pool = still.sort(function (a, b) {
       var sa = 0, sb = 0; STAT_KEYS.forEach(function (k) { sa += a.stats[k] || 0; sb += b.stats[k] || 0; }); return sb - sa;
     });
-    var sheet = R.done ? '<div class="drfdone">Every Pick Made \u00b7 Your Draftees on the Books</div>'
-              : '<div class="pcs">' + pool.map(function (f) { return prospectCard(f, 'draft'); }).join('') + '</div>';
+    var mineGot = done ? R.picks.filter(function (p) { return p.corp === G.me; }).map(function (p) {
+      return (G.corps[G.me].roster || []).find(function (x) { return x.id === p.fighter; }); }).filter(Boolean) : [];
+    var sheet = done ? '<div><div class="drfdone">Every Pick Made \u00b7 Your Draftees on the Books</div>' +
+                       '<div class="pcs">' + mineGot.map(function (f) { return prospectCard(f, 'draft'); }).join('') + '</div></div>'
+              : '<div class="pcs' + (playing ? ' drfplay' : '') + '">' + pool.map(function (f) { return prospectCard(f, 'draft'); }).join('') + '</div>';
     host.innerHTML = '<div class="acq w-drf"><div class="drfcols"><div class="drfboard">' + board + '</div>' + sheet + '</div></div>';
+    if (playing) {
+      /* no Pick while the board is still catching up */
+      Array.prototype.forEach.call(host.querySelectorAll('[data-rdpick]'), function (b) { b.parentNode.removeChild(b); });
+      if (!G._draftTimer) G._draftTimer = setTimeout(draftStep, shown === 0 && !G._draftStarted ? 700 : 140);
+    }
+  }
+  function draftStep() {
+    G._draftTimer = null;
+    var R = draftLive(); if (!R || BIZ.kind !== 'draft') return;
+    var shown = draftShown(R); if (shown >= R.picks.length) return;
+    G._draftStarted = true;
+    var p = R.picks[shown], host = $('bizbody');
+    var card = host.querySelector('[data-drfid="' + p.fighter + '"]'), slot = host.querySelector('.drfpk[data-k="' + (p.pick - 1) + '"]');
+    var land = function () {
+      G._draftSeen.n = shown + 1; G._draftJust = p.pick;
+      renderBiz(); renderRoster();
+      if (G._draftSeen.n < R.picks.length) { clearTimeout(G._draftTimer); G._draftTimer = setTimeout(draftStep, DRAFT_STEP - DRAFT_FLY); }
+    };
+    if (!card || !slot) { land(); return; }
+    var col = colFor(p.corp);
+    card.style.setProperty('--pk', col); card.classList.add('picking');
+    if (card.scrollIntoView) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    var f = (G.corps[p.corp].roster || []).find(function (x) { return x.id === p.fighter; });
+    G._draftTimer = setTimeout(function () {
+      var a = (card.querySelector('.pc-top') || card).getBoundingClientRect(), b = slot.getBoundingClientRect();
+      var chip = document.createElement('div');
+      chip.className = 'drffly'; chip.style.setProperty('--pk', col);
+      chip.textContent = f ? (f.pair_name || f.name) : p.name;
+      chip.style.left = a.left + 'px'; chip.style.top = a.top + 'px';
+      document.body.appendChild(chip);
+      void chip.offsetWidth;
+      chip.style.setProperty('--dx', (b.left + 30 - a.left) + 'px'); chip.style.setProperty('--dy', (b.top + 14 - a.top) + 'px');
+      chip.classList.add('fly');
+      chip.style.opacity = '.7';
+      card.classList.add('gone');
+      G._draftTimer = setTimeout(function () { if (chip.parentNode) chip.parentNode.removeChild(chip); land(); }, DRAFT_FLY);
+    }, Math.round(DRAFT_STEP * 0.35));
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-rdpick]');
     if (!b || !G || !G.state) return;
+    var R = draftLive(), before = R ? draftShown(R) : 0;
     var r = SEASON.recruitDraftPick(G.state, G.me, b.getAttribute('data-rdpick'));
-    if (r.ok) { if (typeof renderRoster === 'function') renderRoster(); if (typeof renderDesk === 'function') renderDesk(); if (BIZ.kind === 'draft') renderBiz(); }
+    if (r.ok) {
+      if (R && G._draftSeen) { G._draftSeen.n = before; G._draftStarted = true; }   /* your pick and the ones after it are played, not jumped to */
+      if (typeof renderRoster === 'function') renderRoster(); if (typeof renderDesk === 'function') renderDesk(); if (BIZ.kind === 'draft') renderBiz();
+    }
   });
   function renderEight() {
     var host = $('eight'); if (!host || !G || !G.state) return;
@@ -3752,11 +3833,12 @@
     $('dscrim').classList.add('on'); box.classList.add('on');
   }
   function hideBiz() {
+    if (BIZ.kind === 'draft') { draftCatchUp(); var fl = document.querySelectorAll('.drffly'); Array.prototype.forEach.call(fl, function (x) { x.parentNode.removeChild(x); }); }
     BIZ.kind = null; BIZ.arg = null;
     $('bizwin').classList.remove('on');
     if (!$('dispatch').classList.contains('on')) $('dscrim').classList.remove('on');
   }
-  function closeBiz() { hideBiz(); nextWindow(); }
+  function closeBiz() { var was = BIZ.kind; hideBiz(); if (was === 'draft') renderRoster(); nextWindow(); }
   function renderBiz() {
     if (!BIZ.kind || !G || !G.state) return;
     var body = $('bizbody');
