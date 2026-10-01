@@ -22,12 +22,12 @@
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one; split down an umbrella it is still years. The pot has to stay
        immense AFTER the deals, or the deals are not worth making. */
-    POT_BASE: 1200000,                  // [H] credits, a whole planet (ruled 1.4M → 1.2M: the pot a little less, sites worth more)
+    POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, promises and umbrella shares paid out of it
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
        surplus of a store already full. Sized so a won planet's overflow is worth having. */
-    SURPLUS_VALUE: 220000,                 // [H] §2.2 what the fleet pays for a unit an OA sells on
+    SURPLUS_VALUE: 30000,                  // [H] §2.2 what the fleet pays for a unit an OA sells on (ruled 220k → 30k: the overflow was a second pot)
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary
@@ -84,12 +84,6 @@
        where they belong: the first two in reputation.js, and the fourth is left unpriced and
        said so, because it needs people to survive a Divide and they do not yet. */
     REPLACEMENT_SIGNING: 1.00,          // [C] §10.3 recruiting the body that fills the gap
-    MIN_ASK_FRAC: 0.12,                 // [C] §10.2 nobody hands over a claim for nothing,
-                                        //     however hopeless. The floor the deleted
-                                        //     additive penalty used to supply by accident
-    FOLD_BASE: 0.06,                    // [H] the crowd's charge for quitting, at its worst
-                                        //     paid even by a corp cut down to three people
-                                        //     selling a contest you could have won
 
     /* §5.3a GREED — the appetite that got these corporations into this business.
 
@@ -102,14 +96,6 @@
        Two directions, because greed cuts both ways at a table:
          HOLDOUT — I would rather fight you for all of it than be bought at a fair price
          MERCY   — you are finished, and I will pay you accordingly */
-    /* [C] how much more a seller demands than the maths says. WAS 0.55, and at 0.55 the seller's
-       stack (aggression × relationship × holdout × the crowd's premium) cleared the buyer's
-       ceiling by 1.2–2.2× in four refusals of five: one or two joins a Divide, none in kind,
-       five or six banners standing at the end. Measured with measure_table.cjs over four
-       seeds — 0.25: four or five joins, the first deals in kind, two or three banners
-       standing, the crowd's wall now the main refusal (the design working). 0.10 overshoots:
-       a seed collapsed under the favourite on day 8. */
-    GREED_HOLDOUT: 0.25,
 
     /* §8 the Aleas */
                                         //     grudge. Checked at EVERY window by every allied
@@ -347,10 +333,6 @@
   /* §5.3 valuation, §6 the table                                        */
   /* ------------------------------------------------------------------ */
 
-  /* Step 7 telemetry. MIN_ASK_FRAC is a floor, and a floor that never binds is a constant
-     wired to a condition that never becomes true — the exact fault the Step 6 audit found
-     nine times. A guard asserts this counter is non-zero. */
-  const TELEMETRY = { floorBinds: 0, valuations: 0, wallsSeller: 0, wallsBuyer: 0 };
 
   const dial = (c, k) => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
 
@@ -414,17 +396,18 @@
        OA nobody minds fighting under is joined for less, and an OA the fleet despises has
        to pay for the shame of it. */
     const fleetRep = to && to.rep && to.rep.base ? (to._fleetStanding != null ? to._fleetStanding : null) : null;
-    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, fleetRep / 100 * CONST.BANNER_SHAME));
+    if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, (fleetRep - 50) / 50 * CONST.BANNER_SHAME));
     return v;
   }
 
   /* HOW `who` FEELS ABOUT `about`, today. The memory lives on the OA that ACTED: `x.rep`
-     keeps, per other OA, what that OA's supporters think of x. So what `who` thinks of
-     `about` is read off `about.rep` under `who`'s name. Signed, roughly ±100; null when nobody
-     has an opinion. (The first cut read it from the wrong end and moved the wrong price.) */
+     keeps, per other OA, how that house regards x. So what `who` thinks of `about` is read off `about.rep` under
+     `who`'s name — 0..100, returned here as −100..100 around indifference, the span this module's prices were set
+     on; null when nobody has an opinion. */
   function livingRegard(who, about) {
     if (!who || !about || !about.rep || !REP || !REP.standing) return null;
-    const v = REP.standing(about.rep, 'rival', who.id);
+    if (!about.rep.base || !about.rep.base.houses || about.rep.base.houses[who.id] == null) return null;
+    const v = (REP.standing(about.rep, 'house', who.id) - 50) * 2;
     return typeof v === 'number' && isFinite(v) ? Math.max(-100, Math.min(100, v)) : null;
   }
 
@@ -917,7 +900,7 @@
 
   const api = {
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard, priceModifier, relationship, TELEMETRY, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
+    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
     wantOf, settleHaul,
     ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     settle

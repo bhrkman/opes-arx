@@ -24,7 +24,9 @@ while (!step.done && windows < 8) {
     if ((v.record || []).some(day => (day.sq || []).some(q => q.c !== idx))) fails.push('window ' + windows + ': another OA in ' + seat + "'s record");
     /* a prisoner you took is yours to know: the captor's side of a ransom names the rival fighter it holds */
     const table = v.table ? Object.assign({}, v.table, { ransoms: (v.table.ransoms || []).filter(r => r.side !== 'captor') }) : v.table;
-    const bare = Object.assign({}, v, { fights: undefined, seats: undefined, table: table });
+    /* and so are the captives it holds: the window names whom you took, and from whom */
+    const captives = v.captives ? { taken: v.captives.taken, held: [] } : v.captives;
+    const bare = Object.assign({}, v, { fights: undefined, seats: undefined, table: table, captives: captives });
     const seen = new WeakSet();   /* a view still holds live engine objects, which point at each other */
     const text = JSON.stringify(bare, (k, val) => { if (val && typeof val === 'object') { if (seen.has(val)) return undefined; seen.add(val); } return val; });
     for (const other of st.ids) if (other !== seat) for (const fid of idsOf[other])

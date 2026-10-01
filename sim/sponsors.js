@@ -90,8 +90,8 @@
                       blurb: 'a salvage combine; its drops arrive with conditions, and the conditions have conditions' },
     spn_meridian:   { wants: 'talent',     obligation: 'field_talent',
                       blurb: 'optics and targeting; backs whoever fields the year’s standout, wherever the talent is' },
-    spn_ferrous:    { wants: 'constancy',  obligation: 'keep_policy',
-                      blurb: 'an old armour guild; long money and heirloom gear for corps that keep their declared policy' },
+    spn_ferrous:    { wants: 'constancy',  obligation: 'mostly_ballistic',
+                      blurb: 'an old armour guild; long money and heirloom gear for corps that fight with powder and steel' },
     spn_almsdesk:   { wants: 'anyone',     obligation: 'blood_the_green',
                       blurb: 'a relief charter; medkits and evac to any banner, and it is paid either way' }
   };
@@ -102,7 +102,7 @@
   const OBLIGATION_TEXT = {
     aggressive:      'Field at Least 20 Fighters and Call No Early Withdrawal',
     no_scandal:      'Bury No More Than a Third of the Fighters You Field',
-    keep_policy:     'Keep Your Declared Engagement Policy All Year',
+    mostly_ballistic: 'Field a Drop of 75% Ballistic Weapons or More',
     field_talent:    'Field a Fighter Who Ends the Year at Fame 25 or Better',
     stay_lean:       'Field No More Than 20 Fighters',
     accept_terms:    'End the Year With a Treasury Above Zero',
@@ -145,8 +145,11 @@
     spn_castellan:        { flavor: 'outcome',      key: 'no_scandal',
                           text: 'Bury No More Than a Third of the Fighters You Field',
                           reward: { kind: 'standing', standing: 'armourer' } },
-    spn_ferrous:    { flavor: 'prerequisite', key: 'keep_policy',
-                          text: 'Keep Your Declared Engagement Policy All Year',
+    /* §SPONSORS RETIRED (ruled): 'keep_policy' — keep your declared engagement policy all year. Stances are set per squad
+       at every window now, so there is no declared policy to keep, and nothing ever wrote the flag it judged: the
+       condition could not break. The guild asks the mirror of Helion's instead, judged off the same drop record. */
+    spn_ferrous:    { flavor: 'limitation',   key: 'mostly_ballistic',
+                          text: 'Field a Drop of 75% Ballistic Weapons or More',
                           reward: { kind: 'standing', standing: 'ballistic_yard' } },
     spn_meridian:       { flavor: 'outcome',      key: 'field_talent',
                           text: 'Field a Fighter Who Ends the Year at Fame 25 or Better',
@@ -283,7 +286,7 @@
         const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
         const fleetStanding = id => {
           const rep = corps[id].rep;
-          return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+          return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
         };
         for (const id of ids) {
           const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
@@ -317,7 +320,7 @@
       const contractsWith = id => ((corps[id].sponsors || {}).contracts || []).length;
       const fleetStanding = id => {
         const rep = corps[id].rep;
-        return rep && REP && REP.standing ? REP.standing(rep, 'fleet') : 0;
+        return rep && REP && REP.standing ? REP.standing(rep, 'houses') : 50;
       };
       for (const id of ids) {
         const eff = ((corps[id].sponsors || {}).courting || {})[h] || 0;
@@ -387,7 +390,7 @@
         case 'mostly_energy':   ok = (record.energyFraction || 0) >= CONST.SPONSOR_ENERGY_FRAC; break;
         case 'stay_lean':       ok = (record.dropSize != null ? record.dropSize : sent) <= 20; break;
         /* --- prerequisite flavour: a standing gate that must hold all year --- */
-        case 'keep_policy':     ok = !record.policyChanged; break;
+        case 'mostly_ballistic': ok = (1 - (record.energyFraction || 0)) >= CONST.SPONSOR_ENERGY_FRAC; break;
         /* --- outcome flavour: judged against the season's figures --- */
         /* BURIALS. The graves you dig, and nothing else. */
         case 'no_scandal':      ok = sent === 0 || dead / sent <= 1 / 3; break;
@@ -505,10 +508,8 @@
     const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
     const bestFame = alive.reduce((m, f) => Math.max(m, f.fame || 0), 0);
     switch (contract.key) {
-      case 'keep_policy':
-        return corp._policyChanged
-          ? { state: 'atrisk', word: 'Policy Changed \u00b7 Broken' }
-          : { state: 'holding', word: 'Policy Held So Far' };
+      case 'mostly_ballistic':
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 ' + Math.round(CONST.SPONSOR_ENERGY_FRAC * 100) + '% Ballistic or More' };
       case 'accept_terms':
         return (corp.account.treasury || 0) > 0
           ? { state: 'holding', word: 'In surplus' }
@@ -518,13 +519,16 @@
           ? { state: 'met', word: 'A Standout Is Already Fielded' }
           : { state: 'holding', word: 'Best on the Books \u00b7 Fame ' + Math.round(bestFame) };
       case 'stay_lean':
-        return alive.length <= 20
-          ? { state: 'holding', word: 'Fielding ' + alive.length + ' \u00b7 Under the 20 Cap' }
-          : { state: 'atrisk', word: 'Fielding ' + alive.length + ' \u00b7 Must Field 20 or Fewer' };
+        /* judged on the DROP (`judge` reads record.dropSize), not the books: the status counted the roster and said
+           Must Field 20 or Fewer to an OA whose drop was 16 */
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 20 Fielded or Fewer' };
+      case 'blood_the_green':
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 A Third Unproven' };
       case 'none':
-        return { state: 'met', word: 'Field a Drop That Is a Third Unproven Fighters' };
+        /* a supplier that asks nothing: it read blood_the_green's words, which belong to the Almsdesk */
+        return { state: 'met', word: 'No Condition' };
       case 'mostly_energy':
-        return { state: 'pending', word: 'Judged at the Drop \u00b7 60% Energy or More' };
+        return { state: 'pending', word: 'Judged at the Drop \u00b7 ' + Math.round(CONST.SPONSOR_ENERGY_FRAC * 100) + '% Energy or More' };
       case 'no_scandal':
         return { state: 'pending', word: 'Judged at the Drop \u00b7 Under a Third Buried' };
       case 'bring_them_home':

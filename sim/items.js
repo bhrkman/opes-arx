@@ -25,11 +25,10 @@
        DROP_MAX from here rather than declaring a second copy, because the two numbers are the
        same fact and this project has three times found a constant declared twice. */
     DROP_MAX: 24,
-    KIT_ALLOWANCE_PER_BODY: 2500,   // [H] a standard loadout is 2020, so ~10% of the force
-                                    //     can be genuinely upgraded rather than only rearranged
-    ALLOWANCE_ESCALATOR: 1.06,      // [H] per season, compounding. The catalog never inflates;
-                                    //     the allowance does, so old kit stays honest while more
-                                    //     of it becomes fieldable. Read from Step 8 (seasons).
+    /* §2.2 THE ALEAS CEILING IS GONE (ruled at the money pass). A kit allowance — 2,500 a body, 60,000 a
+       force, up 6% a year — capped what any OA could field. It was there to stop a rich OA buying the field;
+       the economy now does that (a year's kit is a year's wages), and a ceiling is the kind of thing this
+       project cuts. What bounds a force's kit is its treasury and the bulk its people can carry. */
 
     /* §2.3 bulk */
     SQUAD_BULK_PER_HEAD: 8,         // [C] a standard kit is exactly 8
@@ -79,8 +78,10 @@
                                     //     poor planet drags the whole fleet to the floor
                                     //     together, which re-flattens the field it is meant
                                     //     to spread
-    KIT_BUDGET_REFERENCE: 4.8,      // [C] budget-per-body, in caps, at which a corp can
-                                    //     comfortably field to the ceiling
+    KIT_BUDGET_REFERENCE: 9000,     // [C] budget per body, in credits, at which a corp is rich for kit: its locker
+                                    //     is deep and it fields tier 4 for everyone (a tier-4 kit is ~7,400)
+    KIT_GUN_SHARE: 0.62,            // [C] of a body's share of the OA's kit outlay, what the gun may take; the armour the rest
+    KIT_SHARE_SLACK: 1.35,          // [C] and how far past an even share one body's piece may go
     KIT_TASTE_SWING: 12,            // [C] §QUARTERMASTER the doctrine's favourite gun is worth this much Aim in the choosing
     KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
@@ -93,7 +94,7 @@
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
     CONSUMABLE_SLOTS: 2,            // [S] §3
-    EXOTIC_PRICE_FLOOR_MULT: 3.0    // [C] cheapest exotic vs dearest formula item
+    EXOTIC_PRICE_FLOOR_MULT: 1.5    // [C] cheapest exotic vs dearest formula item (3.0 → 1.5 at the money pass: tiers 1–4 doubled, the exotics held)
   };
 
   /* The default loadout. Chosen so a fielded force is numerically identical to the
@@ -113,11 +114,13 @@
 
      If you are measuring whether something works, equip the way the contest does, or run the
      contest. This constant is for filling a gap, not for building a world to measure. */
+  /* §FACILITIES THE FALLBACK IS ISSUE KIT, AND ISSUE KIT IS THE ARMOURY'S FIRST LEVEL. It was a tier-three
+     carbine and plate, which handed an OA that could not arm its drop better kit than one that could. */
   const DEFAULT_LOADOUT = {
-    primary: "itm_carbine",
+    primary: "itm_pattern_auto",
     mods: [],
     sidearm: null,
-    armor: "itm_plate_carrier",
+    armor: "itm_patrol_vest",
     consumables: []
   };
   /* There is no free kit (ruled). A body the armoury cannot cover carries nothing, which
@@ -392,15 +395,15 @@
     opts = (typeof opts === 'number') ? { season: opts } : (opts || {});
     const d = api.doctrine(doctrineId);
     if (!d) return null;
-    /* Two different numbers, and conflating them was a design error worth naming:
-       `allowance` is the Aleas CEILING, shared by every corp and bought by nobody.
-       `budget` is treasury credits, which is what actually buys the kit (§14).
-       A corp fields min(budget, allowance) — the rich are cap-bound, the poor wallet-bound. */
-    const allow = opts.allowance != null ? opts.allowance : allowanceFor(opts.season);
+    /* Two numbers: `allowance` is what THIS OA means to lay out on kit for this drop (its own target, from its
+       budget and its will — the Aleas' ceiling it once was is gone), and `budget` is the treasury credits that
+       actually buy it (§14). A corp fields min(budget, allowance); with no target given, the money is the limit. */
+    const allow = opts.allowance != null ? opts.allowance : Infinity;
     const budget = Math.max(0, opts.budget || 0);
     const armoury = opts.armoury || foundingArmoury(doctrineId, bodyCount, opts).stock;
     const taste = d.taste || [];
-    const maxTier = d.armoury_max_tier || 5;
+    /* §FACILITIES the Armoury decides what can be issued: the doctrine's ceiling, and the Armoury's below it */
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5);
     const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0);
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
@@ -488,11 +491,15 @@
     if (!shortfall) {
       for (const q of queue) {
         reserve -= floorCost(q.slot);
-        const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve);
+        /* THE OUTLAY IS SHARED: a body buys within its share of what the OA means to spend (a gun most of it), a
+           little past it for a piece worth having — the first body in the queue does not buy the railgun and leave
+           the rest surplus rifles. Measured, the tier everyone carries is what wins fights. */
+        const share = (allow / bodies.length) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
+        const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve, share);
         const ranked = listFor(q.b, q.slot);
         const fits = ranked.filter(c => spent + c.cost <= mustAllow);
-        /* never past the cap for a gun this hand merely prefers: if nothing they would rather carry fits, they take
-           what the rack holds before anything is bought over the Aleas' line */
+        /* never past its outlay for a gun this hand merely prefers: if nothing they would rather carry fits, they take
+           what the rack holds before anything is bought over the line */
         let pick = fits.find(c => c.cost <= ceilingHere);
         if (!pick) {
           /* the rack before any purchase — but short of the essentials too, like everything else here */
@@ -642,7 +649,7 @@
       const step = want > 0 ? bodies.length / want : 0;
       for (let k = 0; k < want; k++) {
         const b = bodies[Math.floor(k * step)]; if (!b) continue;
-        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv) continue;
+        const dId = DEVICE_IDS[k % 2], dv = byId(dId); if (!dv || (dv.tier || 1) > maxTier) continue;   /* §FACILITIES within the Armoury */
         if ((b.loadout.consumables || []).indexOf(dId) >= 0) continue;
         const cons = (b.loadout.consumables || []).slice();
         if (cons.length >= CONST.CONSUMABLE_SLOTS) {
@@ -683,7 +690,7 @@
     const d = api.doctrine(doctrineId);
     if (!d) return { stock: {}, value: 0 };
     const depth = opts.depth == null ? CONST.FOUNDING_DEPTH : opts.depth;
-    const maxTier = d.armoury_max_tier || 5, taste = d.taste || [];
+    const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5), taste = d.taste || [];
     const n = bodyCount;
     const stock = {};
     const add = (id, k) => { if (id && k > 0) stock[id] = (stock[id] || 0) + k; };
@@ -716,47 +723,10 @@
     for (const id in stock) value += byId(id).cost * stock[id];
     /* §DEVICES a rich OA founds with devices in the rack, in proportion to its wealth (ruled) */
     const devN = Math.round(n * CONST.DEVICE_SHARE * Math.max(0, Math.min(1, (opts && opts.wealth) || 0)));
-    for (let k = 0; k < devN; k++) add(k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone', 1);
+    for (let k = 0; k < devN; k++) { const dv = k % 2 ? 'itm_auto_turret' : 'itm_spotter_drone'; if ((byId(dv) || { tier: 9 }).tier <= maxTier) add(dv, 1); }
     return { stock, value };
   }
 
-
-  /**
-   * §2.2 — THE ALEAS CEILING. One number per corp per season, and it does NOT move with how
-   * many bodies you field.
-   *
-   * This multiplied by `bodyCount` from Step 5 until Step 8.5, which meant a corp fielding
-   * sixteen got a ceiling of 40,000 and a corp fielding twenty-four got 60,000 — a flat 2,500
-   * a body either way, so there was nothing to concentrate and the small-force build of
-   * `SEASONS.md` §4.1 was arithmetically impossible.
-   *
-   * THAT WAS NEVER DECIDED. The changelog shows `KIT_ALLOWANCE_PER_BODY` moving 2000 → 2050 →
-   * 2250 → 2500, and every one of those adjustments reasons about **headroom per body in a full
-   * force** — "at 2050 only one body in a squad could be meaningfully upgraded", "widen the
-   * window at the top" — with "(54,000 for 24)" written beside it as the derived total. The
-   * per-body figure was the unit the cap was TUNED in. It was never a rule that the ceiling
-   * shrinks when you bring fewer people.
-   *
-   * It was invisible for three steps because every corp always fielded exactly 24, and under
-   * that assumption `per-body × count` and `a flat corp cap` are the same number. `DROP_MIN`
-   * falling to 16 made them different and nobody re-derived it. A formula that was correct
-   * under an assumption which later stopped holding, never re-tested because it never failed.
-   *
-   * So: the ceiling is `KIT_ALLOWANCE_PER_BODY × DROP_MAX`, escalated. Field twenty-four and it
-   * is 2,500 each, exactly as before. Field sixteen and it is 3,750 each — you may concentrate
-   * what you saved into the people you actually sent, which is what quality-against-quantity
-   * means and what S3 has always claimed was on offer.
-   */
-  function allowanceFor(season) {
-    const s = Math.max(1, season || 1);
-    return Math.round(CONST.KIT_ALLOWANCE_PER_BODY * Math.pow(CONST.ALLOWANCE_ESCALATOR, s - 1))
-           * CONST.DROP_MAX;
-  }
-
-  /** The ceiling expressed per body actually fielded — what a planner spends against. */
-  function allowancePerBody(bodyCount, season) {
-    return allowanceFor(season) / Math.max(1, bodyCount || CONST.DROP_MAX);
-  }
 
   /** §2.3 — bulk pools at the squad, so light bodies pay for the gunner. */
   function squadBulk(bodies, carryBonus) {
@@ -821,7 +791,7 @@
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
     normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury,
-    allowanceFor, allowancePerBody, squadBulk, equip, equipForce,
+    squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },

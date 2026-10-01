@@ -27,32 +27,16 @@ function mkCorp(id) {
            sponsors: { regard: {}, contracts: [], offers: [], courted: {}, courting: {} } };
 }
 
-/* ---- the cost curve falls as contracts are taken, floored ---- */
-const board = SPON.openBoard(houses);
-const a = mkCorp('a');
-const c0 = SPON.courtCost(board, a, houses[0]);
-board.taken = 3;
-const c3 = SPON.courtCost(board, a, houses[0]);
-board.taken = 99;
-const cFloor = SPON.courtCost(board, a, houses[0]);
-check(c3 < c0, 'courting cost falls as contracts are taken: ' + c0.toFixed(2) + ' -> ' + c3.toFixed(2));
-check(cFloor >= CO.COURT_COST_FLOOR - 1e-9, 'the cost never falls below the floor: ' + cFloor.toFixed(2));
-
-/* ---- regard discounts the cost ---- */
-const board2 = SPON.openBoard(houses);
-const b = mkCorp('b');
-const costCold = SPON.courtCost(board2, b, houses[0]);
-SPON.bumpRegard(b, houses[0], CO.REGARD_SPAN);       /* max regard */
-const costWarm = SPON.courtCost(board2, b, houses[0]);
-check(costWarm < costCold, 'regard discounts the courting cost: ' + costCold.toFixed(2) + ' -> ' + costWarm.toFixed(2));
-
+/* §SPONSORS courting is paid in FOCUS, not credits: `courtCost` is 0 by ruling and `courtStanding` is regard alone
+   (the effort is folded into regard at once). The checks that priced courting and summed a separate effort were
+   the old system's and read against a mechanic that no longer exists. */
 /* ---- courting raises regard and records effort; standing sums them ---- */
 const cc = mkCorp('cc');
 SPON.court(cc, houses[0], 3);
 check(SPON.regardOf(cc, houses[0]) === 3 * CO.SPONSOR_COURT_REGARD,
       'courting raises regard by the effort put in');
-check(SPON.courtStanding(cc, houses[0]) > SPON.regardOf(cc, houses[0]),
-      'standing is regard PLUS this year\u2019s effort, so it exceeds bare regard');
+check(SPON.courtStanding(cc, houses[0]) === SPON.regardOf(cc, houses[0]),
+      'standing is regard: the effort is already in it');
 
 /* ---- the board signs the highest-standing courter, one per house ---- */
 const board3 = SPON.openBoard(houses);
@@ -135,15 +119,15 @@ lean2.sponsors.contracts = [mkContract('spn_arrowline', 'stay_lean', 'limitation
 check(SPON.judge(lean2, { dropped: 30, dead: 0, dropSize: 26 }).broken.length === 1,
       'stay-lean is broken by a fat drop (26 fielded)');
 
-/* PREREQUISITE: keep-policy holds unless the policy changed in-year. */
+/* THE GUILD'S MIRROR: mostly-ballistic is Helion's condition the other way round, off the same drop record. */
 const preOk = mkCorp('preOk');
-preOk.sponsors.contracts = [mkContract('spn_ferrous', 'keep_policy', 'prerequisite')];
-check(SPON.judge(preOk, { dropped: 20, dead: 1, policyChanged: false }).kept.length === 1,
-      'a prerequisite holds when the policy was kept all year');
+preOk.sponsors.contracts = [mkContract('spn_ferrous', 'mostly_ballistic', 'limitation')];
+check(SPON.judge(preOk, { dropped: 20, dead: 1, energyFraction: 0.1 }).kept.length === 1,
+      'mostly-ballistic holds on a powder-and-steel drop');
 const preNo = mkCorp('preNo');
-preNo.sponsors.contracts = [mkContract('spn_ferrous', 'keep_policy', 'prerequisite')];
-check(SPON.judge(preNo, { dropped: 20, dead: 1, policyChanged: true }).broken.length === 1,
-      'a prerequisite fails the moment the policy changed');
+preNo.sponsors.contracts = [mkContract('spn_ferrous', 'mostly_ballistic', 'limitation')];
+check(SPON.judge(preNo, { dropped: 20, dead: 1, energyFraction: 0.5 }).broken.length === 1,
+      'mostly-ballistic is broken by a half-energy drop');
 
 /* IN-KIND REWARD: the verdict carries a kit reward for the granter to honour (no cash paid). */
 const kitCorp = mkCorp('kit');
@@ -164,10 +148,8 @@ check(statusFor('accept_terms', { account: { treasury: 5000, ledger: [] } }).sta
       'accept-terms reads holding while in surplus');
 check(statusFor('accept_terms', { account: { treasury: -100, ledger: [] } }).state === 'atrisk',
       'accept-terms reads at-risk while in the red');
-check(statusFor('keep_policy', { _policyChanged: false }).state === 'holding',
-      'keep-policy holds until the policy changes');
-check(statusFor('keep_policy', { _policyChanged: true }).state === 'atrisk',
-      'keep-policy reads broken once the policy changed');
+check(statusFor('mostly_ballistic').state === 'pending',
+      'mostly-ballistic reads pending until the drop exists');
 check(statusFor('mostly_energy').state === 'pending',
       'a drop-dependent limitation reads pending until the drop exists');
 check(statusFor('none').state === 'met',

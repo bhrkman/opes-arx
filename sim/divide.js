@@ -357,6 +357,11 @@
     CMD_W_STRIKE: 0.7,                  // [C] §COMMAND a strike on a squad in the open (× seek)
     CMD_W_STRIKE_OBJ: 1.4,              //     on a squad standing on an objective (× seek)
     CMD_W_HOLD: 0.3,                    // [C] §COMMAND holding ground where it is, a little toward the ring's future (× caution)
+    /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
+    CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
+    UNDERDOG_MORALE: 6,                 // [C] a day's morale a warm, full-share Underdogs faction lends an OA past hope
+    BLOODHOUND_FAME: 1.0,               // [C] how much further a kill's fame travels with a warm, full-share Bloodhounds faction
+    CMD_W_SUPPLY: 0.5,                  // [C] §COMMAND what a rest site, or a still day on the ground, is worth to a group short of rations
     CMD_W_JOIN: 0.9,                    // [C] §COMMAND linking up with another group of the OA's own (the careful more)
     CMD_W_ADVANCE: 0.25,                // [C] §COMMAND moving on toward ground beyond reach, a day at a time (× boldness)
     CMD_ADVANCE_HORIZON: 5,             // [C] §COMMAND the furthest ground (days' march) worth advancing toward
@@ -401,7 +406,11 @@
     DROP_RING: 0.82,                    // [C] share of the planet radius the drop lands on
     DROP_RING_JITTER: 0.10,             // [C]
     DROP_FAN: 0.22,                     // [C] radians a corp's squads spread across
-    DROP_MIN_GAP: 0.17,                 // [C] no corp opens a Divide already surrounded
+    /* §LANDINGS no rival lands in sight of another. This was 0.17 — three and a half sight ranges, most of a radius —
+       from before the draft, and it shoved every drafted landing near a rival's half a radius off the ground its OA
+       picked. Out of sight is what the drop owes; where is the draft's. */
+    DROP_MIN_GAP: 0.05,                 // [C] just past SIGHT_RANGE
+    CMD_W_ASKED: 2.2,                   // [C] a deposit of the resource the OA's board demanded, beside 1.0 for any other
     /* §STORY what a name does to the loudness of the notice its death makes */
     /* §RANK what a captaincy changing hands is worth to a man who wanted it */
     RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
@@ -416,7 +425,7 @@
                                         //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
-    SPREAD_GREED: 0.5,                  // [C] how much ground-hunger widens the net
+    SPREAD_BASE: 0.25,                  // [C] the net every OA casts before its dials (was a `greed` dial no profile has, read as 0.5 × 0.5)
     SPREAD_AGGRESSION: 0,               // [C] §FLANK (ruled) appetite for contact no longer spreads an OA thin: measured, a
                                         //     force split small loses whatever its stance (two squads 20% of titles, five 8%);
                                         //     the bold concentrate, and work their squads together (the strike planner)
@@ -497,6 +506,7 @@
                                  endowment: the grab, beside the prize the winner takes */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
+    RATION_CARRY_DAYS: 14,              // [C] §5.2 — what one body can carry: foraging fills to this and no further
     /* §7.5 ELEVATION, read three ways */
     HEIGHT_SPOT: 0.60,                  // [C] detection × (1 + this × height difference): the high see the low
     HEIGHT_CLIMB: 0.50,                 // [C] pace × (1 − this × slope): steep ground is slow ground
@@ -628,41 +638,28 @@
    *
    * Returns the allowance the corp CHOOSES to field to, never above the Aleas cap.
    */
+  /* §2.2 WHAT AN OA MEANS TO SPEND ON KIT (ruled at the money pass: no ceiling). It read an Aleas allowance —
+     2,500 a body, up 6% a year — as the cap every OA fielded under, and the fleet bought surplus rifles under it
+     (₡200–700 a body, tier 1) while a person buying tier 3 took +13 points of win rate off every fight. The
+     allowance is gone. An OA spends from its procurement budget (`ledger.procurementBudget`: what is free after
+     wages, the entry and the reserve, at KIT_SHARE), tempered by its WILL — a fat planet opens the purse, a thrifty
+     board closes it — and the money is laid out evenly across the force (`planForce` shares it), because the
+     measured worth of kit is in the tier everyone carries, not in one railgun: each tier step is worth about
+     ten points of win rate and half the casualties. Wealth, for the locker's depth, is budget per body against
+     KIT_BUDGET_REFERENCE, the point at which a corp is rich enough to field tier 4 for all. */
   function kitIntent(profile, planet, bodyCount, kitBudget, season) {
-    /* THE ESCALATOR, AT LAST. This read `KIT_ALLOWANCE_PER_BODY` flat, so the 6%-a-season
-       rise `allowanceFor` has implemented since Step 5 could not reach the ground: measured
-       over a twelve-season career, kit fielded per body topped out at exactly 2,500 in season
-       one and in season twelve alike. It was named as an inherited dead wire at Step 8 and
-       reported closed, and it was not — the guard called `allowanceFor` directly and proved
-       the function escalates, which is a different claim from the game ever calling it with a
-       season. The cap is one number for everyone (P1); what rises is the number itself. */
-    /* Step 8.5b: the ceiling stopped scaling with headcount, so this asks for the per-body
-       share of a corp ceiling divided by who is actually going — which is the number a planner
-       spends against, and which RISES when a corp fields fewer. */
-    const cap = ITEMS.allowancePerBody(bodyCount, season);
-    /* CROSS-STEP FIX. This used to re-derive a corp's wealth from its treasury band with its
-       own hand-rolled 0-1 scale, while `ledger.js` computed `procurementBudget` — real credits,
-       after wages, the Aleas entry and the reserve floor — and the day loop ignored it. Two
-       steps answering "what can this corp spend on kit" by different methods, and disagreeing.
-       Step 5's economy is the source of truth now; this reads it. */
     const budget = kitBudget != null ? kitBudget : 0;
     const perBodyAfford = budget / Math.max(1, bodyCount);
-    const w = Math.max(0, Math.min(1, perBodyAfford / (cap * ITEMS.CONST.KIT_BUDGET_REFERENCE)));
+    const w = Math.max(0, Math.min(1, perBodyAfford / ITEMS.CONST.KIT_BUDGET_REFERENCE));
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
-
-    /* WILL — a fat planet opens the purse; a thrifty board closes it. A corp that reckons a
-       poor rock is not worth the outlay drops under its means deliberately. */
     const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
     const thrift = ((profile.dials && profile.dials.thrift) || 50) / 100;
     let will = 0.90
              + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2
              - ITEMS.CONST.WILL_THRIFT_PULL * (thrift - 0.5) * 2;
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
-
-    /* CAN — money is the other half. The poorest corps cannot reach the cap however keen. */
-    const perBody = (0.35 + 0.85 * w) * cap;
-    const target = Math.round(Math.min(cap, perBody * will));
+    const target = Math.round(perBodyAfford * will);
     return {
       allowance: Math.max(ITEMS.CONST.KIT_FLOOR_PER_BODY, target) * bodyCount,
       depth: depth, will: will, wealth: w
@@ -686,7 +683,7 @@
        money that decided kit was the band midpoint no matter what last season did. A
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
-    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies);
+    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies) * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the
@@ -699,20 +696,30 @@
     for (const f of corp.allBodies) f._handKitted = false;   /* bodies persist across locks */
     const handSrc = (corp.persist && corp.persist.hand) || null;
     const baseArmoury = (corp.persist && corp.persist.armoury)
-          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth }).stock;
+          || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth, maxTier: (corp.persist && corp.persist.maxTier) || 5 }).stock;
     const handStock = {};
     for (const k in baseArmoury) handStock[k] = baseArmoury[k];
     let handSpend = 0, handValue = 0, handed = 0;
     corp.handRefused = 0;
+    /* §FACILITIES A MERCENARY'S OWN GEAR IS THEIRS: carried whatever the Armoury allows, and not drawn from the rack */
+    for (const f of corp.allBodies) {
+      if (!f.ownKit || (handSrc && handSrc[f.id])) continue;
+      ITEMS.equip(f, { primary: f.ownKit.primary, armor: f.ownKit.armor, sidearm: f.ownKit.sidearm || null, mods: [], consumables: [] });
+      f._handKitted = true; handed++;
+    }
     if (handSrc) {
-      const maxTier = (ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5;
+      /* §FACILITIES the Armoury's tier, and the doctrine's, bound a manager's hand as they bind the quartermaster */
+      const maxTier = Math.min((ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5, (corp.persist && corp.persist.maxTier) || 5);
+      let own = null;
       const slotOk = (id, slot) => {
         const it = id ? ITEMS.byId(id) : null;
-        return it && it.slot === slot && it.tier <= maxTier ? it : null;
+        const mine = own && [own.primary, own.armor, own.sidearm].indexOf(id) >= 0;   /* a merc's own piece is always theirs to carry */
+        return it && it.slot === slot && (it.tier <= maxTier || mine) ? it : null;
       };
       for (const f of corp.allBodies) {
         const h = handSrc[f.id];
         if (!h) continue;
+        own = f.ownKit || null;
         const prim = slotOk(h.primary, 'primary');
         const arm = slotOk(h.armor, 'armor');
         if (!prim || !arm) { corp.handRefused++; continue; }
@@ -743,6 +750,7 @@
     }
     const bareFighters = corp.allBodies.filter(f => !f._handKitted);
     let plan = ITEMS.planForce(doc.id, total - handed, {
+      maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -773,6 +781,7 @@
       if (raised > 0) {
         corp.kitBudget = (corp.kitBudget || 0) + raised;
         plan = ITEMS.planForce(doc.id, total - handed, {
+          maxTier: (corp.persist && corp.persist.maxTier) || 5,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -824,6 +833,7 @@
          the same fourteen days' load feeds the squad longer */
       const vict = SPON && SPON.standingValue ? SPON.standingValue(corp, 'victualler') : 0;
       if (vict) sq.rations = Math.round(sq.rations * (1 + vict));
+      sq._rationPerHead = (sq.rations - packs * CONST.RATION_PACK_DAYS) / Math.max(1, sq.bodies.length);
       /* §CHARGES every fighter lands with the charges its stores carry for the Divide */
       for (const f of sq.bodies) chargeUp(f);
       sq.medkits = medkitCharges(sq.bodies);
@@ -859,8 +869,8 @@
      and so fielded three, which is why nobody noticed the draft only dealt three landings. The
      rule allows six, and six is a real choice with real terms: more squads means more landings
      drafted, more ground covered and more deposits worked at once — and thinner squads that
-     lose the fights they pick. An OA leans on its dials: the greedy spread to reach more
-     ground, the aggressive spread to be everywhere a fight is, and the careful mass. */
+     lose the fights they pick. An OA leans on its dials: the aggressive spread to be everywhere a fight is, and the
+     patient mass. */
   function squadCountFor(n, profile, want) {
     const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
     const most = Math.max(2, Math.min(CONST.SQUADS_MAX, Math.floor(n / CONST.SQUAD_MIN)));
@@ -868,7 +878,7 @@
     const d = (profile && profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* what an OA wants: ground-hunger and appetite for contact push it wider */
-    const spread = dial('greed') * CONST.SPREAD_GREED
+    const spread = CONST.SPREAD_BASE
                  + dial('aggression') * CONST.SPREAD_AGGRESSION
                  - dial('patience') * CONST.SPREAD_PATIENCE;
     const reach = Math.round(packed + spread * (most - packed) * 2);
@@ -933,8 +943,8 @@
       if (!bodies.length) continue;          /* a named group whose bodies all fell unfit */
       let cap = bodies[0];
       for (const b of bodies) if (b.stats.tactics > cap.stats.tactics) cap = b;
-      const led = leaders && leaders[i] && bodies.some(b => b.id === leaders[i])
-                ? leaders[i] : cap.id;
+      const named = !!(leaders && leaders[i] && bodies.some(b => b.id === leaders[i]));
+      const led = named ? leaders[i] : cap.id;
       /* the squad's index is its place in the LIST — a skipped empty group must not leave
          a gap that `_squadIdx` lookups fall into — and rations feed the bodies that stand */
       const si = corp.squads.length;
@@ -949,13 +959,41 @@
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
         _rivalIntel: (persist && persist.rivalIntel) || null,
         claiming: null, movedToday: false, foughtToday: false, engagements: 0,
-        _startN: bodies.length           /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _startN: bodies.length,          /* §RESERVE what it dropped with: a squad below this has losses to replace */
+        _named: named
       });
       /* SEASONS.md S6 — which squad somebody actually stood in. The grief rule needs this to
          know who was CLOSE to the dead, and nothing recorded it: the close-loss multiplier
          read a field that no code anywhere ever set. */
       for (const b of bodies) b._squadIdx = si;
       corp.allBodies.push(...bodies);
+    }
+    /* §TALKS THE YEAR'S CAPTAINS LEAD WHERE THEY LAND. A dealt drop (no manager's groups) moves a
+       second captain in one squad across to a squad that has none, trading places with its least
+       tactical single hand; then every squad without a leader named at the Lock is led by the
+       sharpest captain standing in it. A pair is never split to do it. No dice. */
+    const capSet = new Set((persist && persist.captains) || []);
+    if (capSet.size && corp.squads.length) {
+      const single = b => !b.mirror_of && !b.bond_partner;
+      if (!groups) {
+        const bare = corp.squads.filter(sq => !sq.bodies.some(b => capSet.has(b.id)));
+        for (const sq of corp.squads) {
+          const cs = sq.bodies.filter(b => capSet.has(b.id) && single(b));
+          while (cs.length > 1 && bare.length) {
+            const extra = cs.pop(), dest = bare.shift();
+            const swap = dest.bodies.filter(b => !capSet.has(b.id) && single(b))
+              .sort((a, b) => a.stats.tactics - b.stats.tactics)[0];
+            if (!swap) continue;
+            sq.bodies[sq.bodies.indexOf(extra)] = swap; dest.bodies[dest.bodies.indexOf(swap)] = extra;
+            swap._squadIdx = sq.sIdx; extra._squadIdx = dest.sIdx;
+          }
+        }
+      }
+      for (const sq of corp.squads) {
+        if (sq._named) continue;
+        const cs = sq.bodies.filter(b => capSet.has(b.id));
+        if (cs.length) sq.captainId = cs.sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id;
+      }
     }
     /* PROCUREMENT.md §15 — kit the force. Planning draws no RNG, so it cannot shift the
        stream; what it changes is what everybody is holding when the shooting starts.
@@ -1017,14 +1055,7 @@
   function standing(corp) {
     const base = STANCE_STANDING[corp.policy] != null ? STANCE_STANDING[corp.policy] : 0.5;
     const v = base + CONST.STANDING_PER_ENGAGEMENT * corp.engagements
-                   + CONST.STANDING_PER_SITE * corp.sitesClaimed
-    /* CROSS-STEP FIX. Step 6 charges a corp for quitting, for buying a win and for breaking
-       its word, and wrote the total to `crowdHit` — which nothing read. Step 4's `standing`
-       was the crowd's opinion and never moved for any of it. Two numbers for one idea, one
-       of them write-only. The charge now lands on the number that does the work, so a corp
-       that sells its claim really does become less interesting to hunt.
-       Step 7 replaces this whole scalar with the four audiences; until then it is ONE number. */
-                   - (corp.crowdHit || 0);
+                   + CONST.STANDING_PER_SITE * corp.sitesClaimed;   /* (the crowd charge that stood here is cut: nothing wrote it) */
     return Math.max(CONST.STANDING_MIN, Math.min(CONST.STANDING_MAX, v));
   }
 
@@ -1104,6 +1135,9 @@
     const by = new Map();
     for (const c of corps) {
       if (!c.allBodies.some(b => b.status === 'active' || b.status === 'injured')) continue;
+      /* an OA that stood down took its people home standing: still 'active' bodies, no longer a banner. Left in,
+         it drew a share of everyone's Chance of Winning after it had left the ground. */
+      if (c.withdrawn) continue;
       const p = principalOf(c);
       if (!by.has(p.id)) by.set(p.id, { principal: p, members: [] });
       by.get(p.id).members.push(c);
@@ -1241,12 +1275,13 @@
     const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
     return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
   }
-  function standDown(c, day, stats, corps) {
+  function standDown(c, day, stats, corps, how) {
     if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
-    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: true };
+    /* `how`: 'withdrew' (its own call, or a sold exit) or 'pulled' (the Aleas took a spent banner off the ground) */
+    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: how !== 'pulled', how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
       for (const b of q.bodies || []) if (b.status === 'active') b._withdrew = day;
@@ -1274,6 +1309,12 @@
       if (c.withdrawn) continue;
       const o = odds[principalOf(c).id] || 0;
       if (c._minOdds == null || o < c._minOdds) { c._minOdds = o; c._engAtLow = c.engagements || 0; }
+      /* §STANDING THE UNDERDOGS SING LOUDEST WHEN IT IS HOPELESS: an OA below half its fair share of the odds, with a warm
+         Underdogs faction, finds its people steadier each day it holds on */
+      if (o < 0.5 / Math.max(1, umbrellas.length)) {
+        const lift = Math.max(0, factionLeanOf(c, 'underdogs')) * CONST.UNDERDOG_MORALE;
+        if (lift > 0) for (const q of c.squads) for (const b of squadHead(q)) b.condition.morale = Math.min(95, b.condition.morale + lift);
+      }
       if (c._openingOdds == null) c._openingOdds = o;     /* §6.12 what it dropped with */
     }
 
@@ -1345,6 +1386,7 @@
       if (owner.rep) REP.act(owner.rep, 'ransomed_home', { targetId: captor.id });
       stats.deals.push(deal);
       stats.ransoms = (stats.ransoms || 0) + 1;
+      (stats.captiveLog = stats.captiveLog || []).push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor.id, out: 'ransomed', price: deal.price, day: deal.day });
       if (stats._rec) stats._rec({ t: 'ransom', c: owner.id, from: captor.id, p: deal.price });
     }
     stats._settleRansom = settleRansom;
@@ -1418,7 +1460,11 @@
            many. */
         /* the same reckoning the leaver used: what this OA would gain by its going — the odds, and the losses it is
            spared — against what the leaver asks of the pot it hopes to win */
-        const asked = Math.max(0, Math.min(1, (off.terms && off.terms.credits) || 0));
+        /* §CENSUS a share of the stores is weighed too, at the rate the settlement weighs it (a quarter of a credit
+           share): this read the credits alone, so an ask for no credits and all the stores was waved through */
+        let storeAsk = 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) storeAsk += Math.max(0, Math.min(1, off.terms[k] || 0));
+        const asked = Math.max(0, Math.min(1, ((off.terms && off.terms.credits) || 0) + storeAsk / 4));
         let yes = asked <= maxAskFor(leaver, c).maxAsk;
         yes = decide('withdrawReply', { corp: c.id, from: off.from }, yes, [true, false]);
         off.replies[c.id] = yes;
@@ -1448,11 +1494,16 @@
       const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
       if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
         stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
-        standDown(c, day, stats, corps);
+        standDown(c, day, stats, corps, 'pulled');
       }
     }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
+      /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
+         stood at dawn, so three could each find staying worthless and all three walk in one pass, the third off an
+         empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
+         nothing to leave. */
+      if (corps.filter(onGround).length <= 1) { stats.audit.lastStood = (stats.audit.lastStood || 0) + 1; break; }
       /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
          shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
       const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
@@ -1460,8 +1511,12 @@
       const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) * margin - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
-        const ask = (off.terms && off.terms.credits) || 0;
-        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true);
+        let ask = (off.terms && off.terms.credits) || 0;
+        for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) ask += Math.max(0, Math.min(1, off.terms[k] || 0)) / 4;   /* its stores at their worth */
+        /* §CENSUS a promise from a house that is itself leaving is worth nothing — only a winner pays — and seven
+           houses had been standing down on the strength of each other's yeses, off an empty ground by the evening */
+        const leaving = j => !!(stats.withdrawOffers || {})[j.id] || !onGround(j);
+        const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true && !leaving(r.j));
         if (got - cost > stay) standDown(c, day, stats, corps);
         else { delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
       } else if (!off) {
@@ -1469,7 +1524,7 @@
         for (const r of rows) {
           const ask = Math.floor(r.maxAsk * 100) / 100;
           if (ask <= 0) continue;
-          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask);
+          const ev = promisesWorth(rows, ask, x => x.maxAsk >= ask && !(stats.withdrawOffers || {})[x.j.id]);   /* not from those already on their way out */
           if (ev > best.ev) best = { ask: ask, ev: ev };
         }
         /* §WITHDRAWAL AN OA CAN WALK AWAY WITH NOTHING. It could leave only through a deal — an offer some rival
@@ -1484,7 +1539,11 @@
           continue;
         }
         if (best.ask > 0 && best.ev - cost > stay) {
-          postWithdrawOffer(c, { credits: best.ask }, day, stats);
+          /* §CENSUS a house whose board wants a store takes part of its price in that store, at the same worth */
+          const terms = { credits: best.ask };
+          const dem = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(g => g.kind === 'resource' && g.category);
+          if (dem && planet.pot) { terms.credits = Math.round(best.ask * 0.75 * 100) / 100; terms[dem.category] = Math.min(1, Math.round(best.ask * 100) / 100); }
+          postWithdrawOffer(c, terms, day, stats);
           (stats.audit.offerLog = stats.audit.offerLog || []).push({ from: c.id, day: day, ask: best.ask,
             odds: Math.round((odds[c.id] || 0) * 1000) / 1000,
             standing: (c.allBodies || []).filter(b => b.status === 'active').length + '/' + (c.allBodies || []).length });
@@ -1504,6 +1563,10 @@
       for (let j = i + 1; j < corps.length; j++) {
         const a = corps[i], b = corps[j];
         if (a.withdrawn || b.withdrawn) continue;
+        /* §TRUCE (ruled) A MANAGER'S TRUCE IS THE MANAGER'S TO STRIKE. This pass is the engine's OAs agreeing among
+           themselves; a truce with a person's OA is made at their table, on their answer, or not at all. Without
+           this the engine could put a manager under a truce — rations taken, fights stopped — with nothing shown. */
+        if (isHumanOA(a.id) || isHumanOA(b.id)) continue;
         if (!a.allBodies.some(x => x.status === 'active') || !b.allBodies.some(x => x.status === 'active')) continue;
         if (pactHolds(a, b, day)) continue;
         const pact = NEG.considerPact(rng, a, b, ctx);
@@ -1827,7 +1890,22 @@
     return demand;
   }
 
+  /* §5.2 FORAGING IS A DAY'S WORK, NOT A BACKGROUND HUM. It ran every morning for every squad, marching or fighting
+     or not, with no ceiling on what a squad could hold — so on any ground better than barren the rations only grew
+     (70 at the drop, 321 by day 20 in the play-through) and supply never bound anything. Now a squad forages at
+     camp only on a day it neither marched nor fought, and carries no more than its people landed with plus the
+     packs they brought: a column on the move eats down, a squad that holds good ground eats up. The planner knows
+     it: a group short of rations weighs a rest site and holding ground higher (`CMD_W_SUPPLY`). */
+  function rationCap(sq) {
+    const packs = (sq.bodies || []).reduce((s, f) => s + ((f.loadout && f.loadout.consumables) || []).filter(c => c === "itm_field_rations").length, 0);
+    /* a victualler's standing order stretched the drop's load past the plain carry; what they landed with per head is the cap */
+    return Math.max(CONST.RATION_CARRY_DAYS, sq._rationPerHead || 0) * squadHead(sq).length + packs * CONST.RATION_PACK_DAYS;
+  }
   function forage(rng, sq, planet, hooksOfSquad, posture, stats) {
+    /* a squad that fought, or marched more than half a day, had no day to forage; a short shift to better ground did */
+    if (sq.foughtToday || (sq._marched || 0) > CONST.DAY_MARCH * 0.5) return 0;
+    const cap = rationCap(sq);
+    if (sq.rations >= cap) return 0;
     let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round(planet.forageAt(sq.x, sq.y))))] || 0;
     /* A forager whose people can eat what the rest cannot. The guard used to require
        `yieldPer === 0` — an exactly-barren tile — which never occurred on any archetype, so
@@ -1842,7 +1920,7 @@
     if (hooksOfSquad.has('forage_bonus')) yieldPer *= 1.4;
     if (hooksOfSquad.has('forage_value_up')) yieldPer *= 1.25;
     if (posture === 'forage') yieldPer *= CONST.FORAGE_POSTURE_MULT;
-    const got = Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng()));
+    const got = Math.min(cap - sq.rations, Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng())));
     sq.rations += got;
     if (stats) { stats.audit.forageEvents++; stats.audit.forageYield += got; }
     return got;
@@ -1968,7 +2046,8 @@
        the heavy weapons at all. Over capacity is legal; it is not free. */
     {
       const heads = squadHead(sq);
-      const bonus = heads.reduce((s, b) => s + ((b.race && b.race.carry_bonus) || 0), 0)
+      /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
+      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0)
                   + heads.filter(b => C.hooksOf(b, ROSTER.traitById).has('carry_bulk_up_2')).length * 2;
       const load = ITEMS.squadBulk(heads, bonus);
       sq.overBulk = load.over;
@@ -2348,15 +2427,23 @@
      fight, the wall, running from a lost fight — and return to their role at the next dawn.
      ====================================================================================================== */
   function commandCorp(rng, corp, planet, day, stats, foreign, mine) {
-    const dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard;
-    const seek = dials.seek;
+    /* §STANCE THE PLAN'S BOLDNESS IS THE SQUADS' STANCE. The planner read the OA's declared stance, which a manager
+       cannot set from the table — so the stances set on his squads at every window changed how they fought and
+       never what the OA planned, and a founded OA (declared Avoid) held its ground for twenty days with four full
+       squads told to Engage. A group plans by the mean notch of the squads in it: the engine's seats seat their
+       squads around their declared stance, so nothing changes for them. */
     const all = corp.allBodies || [];
     const lostFrac = 1 - all.filter(b => b.status === 'active').length / Math.max(1, all.length);
     const heads = q => squadHead(q).length;
-    const speed = CONST.DAY_MARCH * dials.ground;
     const fresh = foreign.filter(e => day - e.day <= 2);
     const threatAt = (x, y, r) => fresh.filter(e => MAP.dist(e.x, e.y, x, y) <= r).reduce((t, e) => t + (e.n || 1), 0);
-    const need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    let dials = STANCE_DIALS[corp.policy] || STANCE_DIALS.standard, seek = dials.seek, speed = CONST.DAY_MARCH * dials.ground;
+    let need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
+    const groupDials = (g) => {
+      const idx = g.map(q => NOTCHES.indexOf(squadStance(q))).filter(i => i >= 0);
+      const mean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : NOTCHES.indexOf(corp.policy || 'standard');
+      return STANCE_DIALS[NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, Math.round(mean)))]] || STANCE_DIALS.standard;
+    };
     const A = stats.audit.cmd = stats.audit.cmd || { plans: 0, replans: 0, kinds: {}, why: {}, kept: 0, switched: 0, groups: 0 };
     const isWindow = MAP.isWindowDay(planet, day);
 
@@ -2376,6 +2463,8 @@
     return;
 
     function command(g) {
+      dials = groupDials(g); seek = dials.seek; speed = CONST.DAY_MARCH * dials.ground;
+      need = CONST.STRIKE_ODDS_BASE - CONST.STRIKE_ODDS_SEEK * seek;
       const force = g.reduce((t, q) => t + heads(q), 0);
       const cx = g.reduce((t, q) => t + q.x * heads(q), 0) / Math.max(1, force);
       const cy = g.reduce((t, q) => t + q.y * heads(q), 0) / Math.max(1, force);
@@ -2423,6 +2512,9 @@
       const gAll = [].concat.apply([], g.map(q => q.bodies));
       const hurtN = gAll.filter(b => b.status === 'injured').length;
       const reserve = (corp.reserve || []).length;
+      /* §5.2 short of rations: fewer days in hand than the short mark, across the group */
+      const gHeads = g.reduce((t, q) => t + heads(q), 0), gRations = g.reduce((t, q) => t + (q.rations || 0), 0);
+      const short = gHeads > 0 && gRations / gHeads < CONST.RATION_SHORT_AT * 2;
       for (const o of planet.objectives) {
         if (!MAP.siteLive(o, day)) continue;
         const d = MAP.dist(cx, cy, o.x, o.y), eta = d / Math.max(1e-6, speed);
@@ -2433,7 +2525,7 @@
           if (!reserve) continue;
           kind = 'reinforce'; w = CONST.CMD_W_BEACON + lostFrac * CONST.CMD_W_BEACON_PER_LOSS;
         } else if (o.type === 'ration_site') {
-          kind = 'mend'; w = hurtN ? CONST.CMD_W_MEND + hurtN / Math.max(1, gAll.length) * 2 : objectiveWorth(o, corp) * 0.6;
+          kind = 'mend'; w = (hurtN ? CONST.CMD_W_MEND + hurtN / Math.max(1, gAll.length) * 2 : objectiveWorth(o, corp) * 0.6) + (short ? CONST.CMD_W_SUPPLY : 0);
         } else { kind = 'take'; w = objectiveWorth(o, corp); }
         if (!w) continue;
         const t = threatAt(o.x, o.y, CONST.CMD_THREAT_R);
@@ -2499,7 +2591,9 @@
           if (d < CONST.CMD_THREAT_R * 1.5 && d > 1e-6) { gx += (gx - e.x) / d * CONST.DAY_MARCH * 0.5; gy += (gy - e.y) / d * CONST.DAY_MARCH * 0.5; }
         }
         const p = MAP.clampInside(planet, day + 2, gx, gy);
-        cands.push({ kind: 'hold', x: p.x, y: p.y, score: CONST.CMD_W_HOLD * (1 - seek) + lostFrac * 0.3 });
+        /* short of rations, a still day on ground that feeds is worth having (the yield class where the group stands) */
+        const feeds = short && planet.forageAt ? CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round(planet.forageAt(cx, cy))))] || 0 : 0;
+        cands.push({ kind: 'hold', x: p.x, y: p.y, score: CONST.CMD_W_HOLD * (1 - seek) + lostFrac * 0.3 + (feeds >= 1 ? CONST.CMD_W_SUPPLY : 0) });
       }
       /* §COMMAND ON THE LAST GROUND NOTHING IS BENEATH FIGHTING (N18): there is no ground left to take or hold, and a
          group that kept its distance on the last circle could outlast the contest's rail with nobody winning. It closes
@@ -2906,8 +3000,16 @@
      is working it when the odds allow, not walking about looking for people to kill. The best live objective in reach,
      inside tomorrow's line, by what it is worth to this OA; one an enemy is on counts for more to a bold squad and is
      skipped if that enemy is more than it can take. */
+  /* §BOARD THE BOARD'S ASK IS PURSUED. Every deposit was worth the same to every OA, so nothing went looking for the
+     resource the board had demanded and it was met about as often as the right site fell into a squad's lap (3%). The
+     deposit that holds what the board asked for is worth more to the OA whose board asked. */
+  function askedResource(corp) {
+    const g = corp && corp.rep && corp.rep.goal;
+    const d = g && (g.demands || []).find(x => x.kind === 'resource' && x.resource);
+    return d ? d.resource : null;
+  }
   function objectiveWorth(o, corp) {
-    if (o.type === 'resource_site') return 1.0;
+    if (o.type === 'resource_site') return o.resource && o.resource === askedResource(corp) ? CONST.CMD_W_ASKED : 1.0;
     if (o.type === 'sponsor_cache') return corp.reserve && corp.reserve.length ? (o.litBy && o.litBy !== corp.id ? 1.3 : 1.1) : 0;
     if (o.type === 'strongpoint') return o.heldBy === corp.id ? 0 : 0.8;
     if (o.type === 'munitions_drop' || o.type === 'ration_site') return 0.55;
@@ -2986,7 +3088,10 @@
       case 'resupplying': {
         /* A SQUAD LOW ON ROUNDS wants a munitions drop as much as a hungry one wants water.
            Being dry was a state nothing wanted anything about. */
-        const dry = 1 - Math.max(0, Math.min(1, (sq.ammo == null ? CONST.AMMO_LOAD : sq.ammo) / CONST.AMMO_LOAD));
+        /* rounds are carried by the people (combat.js LOADOUT_AMMO); `CONST.AMMO_LOAD` never existed, so this was NaN and never fired */
+        const hd = squadHead(sq), full = hd.length * C.CONST.LOADOUT_AMMO;
+        const have = hd.reduce((t, b) => t + (b.ammo == null ? C.CONST.LOADOUT_AMMO : b.ammo), 0);
+        const dry = full ? 1 - Math.max(0, Math.min(1, have / full)) : 0;
         if (dry > 0.6) return 0.55 + dry * 0.2;
       }
       /* falls through to the kit and ration reasons */
@@ -3031,7 +3136,7 @@
            them come to it */
         const good = planet.heightAt ? planet.heightAt(sq.x, sq.y) : 0.5;
         const inZone = MAP.dist(sq.x, sq.y, z.cx, z.cy) < z.r * 0.8;
-        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < CONST.CLAIM_RANGE ? 0.15 : 0);
+        return (good > 0.55 && inZone ? 0.30 : 0) + (head >= 5 ? 0.10 : 0) + (site && sd < MAP.CONST.CLAIM_RADIUS * 2 ? 0.15 : 0);   /* `CONST.CLAIM_RANGE` never existed */
       }
       case 'baiting': {
         /* let ourselves be seen on ground of our choosing, and meet whoever comes on it */
@@ -3538,7 +3643,8 @@
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
       case 'ration_site': {
-        sq.rations += CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot;
+        /* §5.2 a site fills the packs; it does not make them bigger (the carry cap holds here as at the forage) */
+        sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
         /* §SITES and it mends: a day's shelter and care takes the edge off every wound the
            squad is carrying, and stands a lightly hurt fighter back up */
         /* in a contest a wound is carried as `_recovery`, the days until a fighter can stand
@@ -3658,6 +3764,23 @@
       q.stance = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
     });
   }
+  /* §CENSUS THE GROUND HAS A SAY ABOUT EACH RIVAL. An engine OA set its notch at every rival once, at the drop, by
+     regard, and never looked again. Each window it now starts from that and weighs what is on the ground: a rival much
+     stronger than it is handled more carefully, a bled one pressed harder by a house with the stomach for it. */
+  function reconsiderRivals(corp, corps) {
+    if (!corp._stanceBase) return;
+    const living = j => (j.allBodies || []).filter(b => b.status === 'active').length;
+    const mine = Math.max(1, living(corp));
+    const d = (corp.profile && corp.profile.dials) || {};
+    const bold = (typeof d.aggression === 'number' ? d.aggression : 50) / 100;
+    for (const other of corps) {
+      if (other === corp || corp._stanceBase[other.id] == null) continue;
+      const ratio = living(other) / mine;
+      const adj = ratio > 1.6 ? -1 : ratio < 0.6 && bold > 0.5 ? 1 : 0;
+      const base = NOTCHES.indexOf(corp._stanceBase[other.id]);
+      corp._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + adj))];
+    }
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -3766,8 +3889,12 @@
     if (vp === 1) m += CONST.CHAMPION_FAME_BONUS;
     return Math.max(CONST.UNDERDOG_FAME_FLOOR, m);
   }
+  /* §STANDING a faction's lean, −1..1 about indifference and weighted by its share of the stands */
+  function factionLeanOf(corp, f) { return corp && corp.rep ? (corp.rep.shares[f] || 0) * (REP.standing(corp.rep, f) - 50) / 50 : 0; }
   function transferFame(victim, takers, victimCorp, takerCorp) {
-    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp);
+    /* §STANDING a warm Bloodhounds faction roars for a kill: the name travels further */
+    const gain = REP.fameTransfer(victim.fame || 0, 1) * underdogMult(victimCorp, takerCorp)
+               * (1 + Math.max(0, factionLeanOf(takerCorp, 'bloodhounds')) * CONST.BLOODHOUND_FAME);
     if (!(gain > 0) || !takers.length) return 0;
     const each = gain / takers.length;
     for (const t of takers) {
@@ -3934,7 +4061,7 @@
          the ground have to be the same object. */
       if (opts.openSeason) {
         REP.openSeason(corp.rep, planet,
-                       P.mulberry32(P.seedFrom('goal' + (opts.season || 1) + profile.id)),
+                       P.mulberry32(P.seedFrom('w' + ((persist && persist._worldSeed) || 0) + ':goal' + (opts.season || 1) + profile.id)),
                        { expect: Math.max(2, 3 + (profile.difficulty || 3)),
                          thinTreasury: (profile.finance || {}).treasury_band === 'low' });
       }
@@ -4020,7 +4147,7 @@
        negotiation can price a banner by what it costs a joiner's people to fight under it */
     if (REP && opts.reputations) for (const c of corps) {
       const rp = opts.reputations[c.id];
-      if (rp) c._fleetStanding = REP.standing(rp, 'fleet');
+      if (rp) c._fleetStanding = REP.standing(rp, 'houses');
       /* §MIND an AI OA leans the way its own regard leans: it seeks out the OAs it
          thinks least of and gives the ones it respects a wider berth */
       /* §STANCE AN OA IS NOT ONE MIND. An AI OA gives each of its squads a notch around its
@@ -4037,10 +4164,13 @@
         const base = NOTCHES.indexOf(c.policy || 'standard');
         for (const other of corps) {
           if (other === c) continue;
-          const r = REP.standing(rp, 'rival', other.id);
+          /* how c regards `other`: kept on other's record, under c's name, as −100..100 */
+          const orp = opts.reputations[other.id];
+          const r = orp && orp.base.houses[c.id] != null ? (REP.standing(orp, 'house', c.id) - 50) * 2 : 0;
           const step = r < -20 ? 2 : r < -5 ? 1 : r > 20 ? -2 : r > 5 ? -1 : 0;
           c._stance[other.id] = NOTCHES[Math.max(0, Math.min(NOTCHES.length - 1, (base < 0 ? 2 : base) + step))];
         }
+        c._stanceBase = Object.assign({}, c._stance);   /* what it thinks of each before the ground has a say */
       }
     }
     /* guarantee, not hope: nudge apart anything that still landed inside sight range */
@@ -4174,6 +4304,13 @@
     /* Drop day: the devout arrive elated. Declared in traits.json since Step 2 and read by
        nothing until the Step 6 audit. Placed here rather than at corp construction because
        the squad hook cache does not exist until the loop is set up. */
+    /* §STANDING THE CROWD GOES DOWN WITH THEM: a loved OA's people drop steadier, a jeered one's shaken */
+    for (const c of corps) {
+      if (!c.rep) continue;
+      const lean = (REP.standing(c.rep, 'crowd') - 50) / 50;
+      for (const q of c.squads) for (const b of squadHead(q))
+        b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + lean * CONST.CROWD_DROP_MORALE));
+    }
     for (const c of corps) {
       for (const q of c.squads) {
         const h = squadHooks(q);
@@ -4237,7 +4374,7 @@
       for (const c of corps) for (const sq of c.squads) {
         if (!squadHead(sq).length) continue;
         sq._day = day; sq._st = stats;
-        sq.movedToday = false; sq.foughtToday = false; sq._lostDay = false; sq._hunted = false;
+        sq.movedToday = false; sq._marched = 0; sq.foughtToday = false; sq._lostDay = false; sq._hunted = false;
       }
       if (MAP.isWindowDay(planet, day)) stats.windows++;
 
@@ -4326,7 +4463,7 @@
             if (got && got.corp && STANCE_DIALS[got.corp] && got.corp !== c.policy) { c.policy = got.corp; c.stanceChanges++; stats.stanceChanges++; }
             if (got && got.squads) { for (const q of c.squads) { const n = got.squads[q.sIdx]; if (n && STANCE_DIALS[n]) q.stance = n; } }
             else seatSquadStances(c);
-          } else reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 });
+          } else { reconsiderStance(rng, c, stats, { penned: penned, ahead: mine > 0.28 }); reconsiderRivals(c, corps); }
         }
 
         /* THE WINDOW. Comms are up; this is where a manager speaks to their people and to the
@@ -4337,8 +4474,13 @@
            answer. Now the window is built for each seat a person holds, the Divide pauses once holding every
            view, and each answer is applied to its own OA. With one person the pause carries that person's view
            exactly as before (and a plain answer is theirs); several send `{ bySeat: { id: answer } }`. */
-        if (_humans.size) {
-          const seatIds = corps.filter(c => isHumanOA(c.id)).map(c => c.id);
+        /* §SEATS A WINDOW OPENS FOR A SEAT THAT IS STILL ON THE GROUND. A person whose last squad had fallen kept
+           getting windows — nothing to set, 0% to win, and rivals selling their exits to an OA with nobody there
+           (the play-through sat through eight of them). Out is out: the contest runs on to its end and the seat
+           reads it at the settlement, which says which day its last squad fell. */
+        const standsNow = (c) => !c.withdrawn && (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+        const seatIds = corps.filter(c => isHumanOA(c.id) && standsNow(c)).map(c => c.id);
+        if (seatIds.length) {
           stats._fightCursor = stats._fightCursor || {};
           stats._echo = stats._echo || {};
           /* §SECRECY (ruled: each seat sees only what it knows) A SEAT'S VIEW HOLDS ITS OWN OA IN FULL AND EVERY OTHER AS A
@@ -4439,6 +4581,16 @@
               fights: since,
               cadence: MAP.windowCadence(planet, day),
               odds: board, penned: penned, zone: zNow, table: table,
+              /* §SEATS who of yours is held, and whom you hold: a capture was never told to anybody */
+              captives: (function () {
+                const taken = [], held = [];
+                for (const o of corps) for (const f of (o.allBodies || [])) {
+                  if (f.status !== 'captured' || !f._capturedBy) continue;
+                  if (o.id === seatId) taken.push({ fighter: f.id, name: f.name, by: f._capturedBy });
+                  else if (f._capturedBy === seatId) held.push({ fighter: f.id, name: f.name, from: o.id });
+                }
+                return { taken: taken, held: held };
+              })(),
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
               /* §RESERVE who of yours has landed at a beacon, and how many are still in orbit */
               landings: (stats.landings || []).filter(l => l.corp === seatId),
@@ -4454,6 +4606,10 @@
               }),
               picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
               leanings: Object.assign({}, you._leanings || {}),
+              /* §CONTACT what your OA has had with each rival, for the deal page's "Hunting You / Beat You / You Beat
+                 Them / Fought You": the accessor lived on the negotiation context, not on the window, so the page
+                 read Not Met for everyone all contest */
+              contact: (function () { const o = {}; for (const c of corps) if (c.id !== you.id) { const r = contactWith(you, c, corps); if (r.fights || r.huntedBy || r.hunting) o[c.id] = r; } return o; })(),
               /* the wall's remaining beats, so a manager can plan against the clock */
               wall: MAP.wallSchedule(planet, day),
               /* §STORES WHAT THE GROUND HAS GIVEN YOU SO FAR, in the units the board asks in,
@@ -4580,7 +4736,7 @@
               }
             }
             /* the manager stands down on the replies he has: whoever said yes is on record */
-            if (answer && answer.withdrawNow && you2 && !you2.withdrawn) standDown(you2, day, stats, corps);
+            if (answer && answer.withdrawNow && you2 && !you2.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you2, day, stats, corps);   /* the last one standing has won */
             /* §CHOICES his answer to a ransom case: Pay or Decline as the owner, Sell or Keep as the captor */
             if (answer && answer.deal && you2 && /^ransom_/.test(answer.deal.kind || '')) {
               const d = answer.deal, yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
@@ -4769,7 +4925,6 @@
       for (const sq of liveSquads()) {
         const hooks = squadHooks(sq);
         consumeRations(sq, planet, raceById, hooks, stats);
-        forage(rng, sq, planet, hooks, posture, stats);
         stats.squadDays++;
         if (sq.rationShort) stats.rationShortDays++;
         if (sq.rationDry) { addStress(sq, CONST.STRESS.rationDry, stats); stats.audit.rationDryDays++; }
@@ -5023,7 +5178,7 @@
           }
           const inside = MAP.clampInside(planet, day + 1, nx, ny);   /* the wall is a wall — and it is closing */
           sq.x = inside.x; sq.y = inside.y;
-          sq.movedToday = true;
+          sq.movedToday = true; sq._marched = (sq._marched || 0) + step;
           for (const b of squadHead(sq)) b.condition.fatigue = Math.min(100, b.condition.fatigue + CONST.FATIGUE_MARCH);
           if (tick === 0 && rng() < CONST.NIGHT_MARCH_P && !hooks.has('march_efficiency_up')) {
             stats.audit.nightMarch++;
@@ -6034,6 +6189,8 @@
           stats._lightDay = day; stats._lightShare = lit / CONST.TICKS_PER_DAY;
         }
         camp(rng, c, sq, squadHooks(sq), stats);
+        forage(rng, sq, planet, squadHooks(sq), posture, stats);   /* §5.2 a still day is a foraging day */
+        if (sq.rations > rationCap(sq)) sq.rations = rationCap(sq);   /* and what the packs cannot hold is left on the ground */
         if (!sq.foughtToday) addStress(sq, CONST.STRESS.quietDay, stats);
         if (sq._successions) { stats.audit.successions += sq._successions; sq._successions = 0; }
       }
@@ -6072,12 +6229,35 @@
        existing contract, which is the second mechanism in the project that moves a developed
        person between corps without money changing hands. */
     stats.captiveOutcomes = { released: 0, kept: 0, killed: 0 };
+    stats.captiveLog = stats.captiveLog || [];
+    /* §SEATS (ruled) A PERSON DECIDES WHAT BECOMES OF THOSE THEY HOLD. The engine rolled it from the captor's character
+       for every seat, and nobody was ever told. Each seat a person holds with captives is asked, captive by captive;
+       unanswered, a captive is released. */
+    const FATES = ['released', 'kept', 'killed'];
+    const heldBy = {};
+    for (const owner of corps) for (const f of owner.allBodies) {
+      if (f.status !== 'captured' || !f._capturedBy || !isHumanOA(f._capturedBy)) continue;
+      (heldBy[f._capturedBy] = heldBy[f._capturedBy] || []).push({ fighter: f.id, name: f.name, race: f.race, from: owner.id, fame: Math.round(f.fame || 0) });
+    }
+    const fateOf = {};
+    const holders = Object.keys(heldBy);
+    if (holders.length) {
+      const views = {};
+      for (const id of holders) views[id] = { kind: 'captives', day: day, captives: heldBy[id], you: { id: id } };
+      const reply = yield Object.assign({}, views[holders[0]], { seats: views, lead: holders[0] });
+      for (const id of holders) {
+        const a = reply && reply.bySeat ? reply.bySeat[id] : reply;
+        const pick = (a && a.captiveFate) || {};
+        for (const k in pick) if (FATES.indexOf(pick[k]) >= 0) fateOf[k] = pick[k];
+      }
+    }
     for (const owner of corps) {
       for (const f of owner.allBodies) {
         if (f.status !== 'captured') continue;
         const captor = corps.find(c => c.id === f._capturedBy) || null;
-        const out = captor ? NEG.resolveCaptive(rng, captor, owner, f) : 'released';
+        const out = !captor ? 'released' : isHumanOA(captor.id) ? (fateOf[f.id] || 'released') : NEG.resolveCaptive(rng, captor, owner, f);
         stats.captiveOutcomes[out]++;
+        stats.captiveLog.push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
         if (out === 'killed') f.status = 'dead';
         else if (out === 'released') f.status = 'injured';
         else { f.status = 'active'; f._transferredTo = captor ? captor.id : null; }
@@ -6178,8 +6358,9 @@
     for (const c of corps) {
       if (stats.winner === c.id) continue;
       if ((stats.fallen || []).some(f => f.id === c.id)) continue;
-      const alive = c.allBodies.some(b => b.status === 'active' || b.status === 'injured');
-      recordFall(stats, c.id, c._downedOn || stats.days || 30, alive ? 'standing' : 'wiped');
+      /* on its feet means a squad with a body standing; the wounded lying in the holds are not a banner */
+      const alive = (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+      recordFall(stats, c.id, c._downedOn || stats.days || 30, c.withdrawn ? (c.withdrawn.how || 'withdrew') : alive ? 'standing' : 'wiped');
     }
     /* §7.4 — what each corp actually dug out, by name. The assay bank was a single credit
        figure; the sites carry a resource now, so what comes home can be counted in the thing
@@ -6237,7 +6418,7 @@
       if (!c.rep) continue;
       const place = stats.placement[c.id];
       if (place != null) {
-        REP.act(c.rep, 'finished', { count: Math.max(0, corps.length - place) });
+        REP.act(c.rep, 'finished', { count: (corps.length + 1) / 2 - place });   /* above the middle of the table glory, below it the reverse */
       }
       if (stats.winner === c.id) REP.act(c.rep, 'won_planet', { rivalIds: corpIds });
       /* §3.1a held out: never sold, odds fell under the floor, and fought on from there */
@@ -6281,6 +6462,23 @@
     {
       const w = stats.winner ? corps.filter(c => c.id === stats.winner)[0] : null;
       const take = (stats.settlement && stats.settlement.take) || {};
+      /* §SEATS (ruled: eight players) A PERSON'S WORD IS THEIRS TO KEEP. The engine's OAs answer for their word
+         out of their character below; a person's OA was rolled the same way, and the fleet charged a manager
+         for a betrayal nobody chose. The winner's seat, if a person holds it, is asked once here — a settlement
+         window carrying each promise and what keeping it costs — and answers `{ keepWord: { toId: true|false } }`.
+         Unanswered, a promise is kept: the honest default. */
+      const owed = (stats.promises || []).filter(pr => w && pr.from === w.id);
+      if (w && isHumanOA(w.id) && owed.length) {
+        const ask = owed.map(pr => {
+          const share = Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0));
+          const stores = {}; for (const cat in (stats.potResources || {})) { const f = Math.max(0, Math.min(1, (pr.terms && pr.terms[cat]) || 0)); if (f > 0) stores[cat] = f; }
+          return { to: pr.to, day: pr.day, share: share, owed: Math.round((take[w.id] || 0) * share), stores: stores };
+        });
+        const view = { day: day, settlement: true, winner: w.id, promises: ask, you: { id: w.id } };
+        const reply = yield Object.assign({}, view, { seats: { [w.id]: view }, lead: w.id });
+        const answer = (reply && reply.bySeat) ? reply.bySeat[w.id] : reply;
+        stats._keepWord = (answer && answer.keepWord) || {};
+      }
       for (const pr of (stats.promises || [])) {
         if (!w || pr.from !== w.id) { pr.moot = true; continue; }
         /* §HALF-BUILT A WIN THAT WAS BOUGHT: the winner promised a rival a share to leave the planet, and the
@@ -6307,7 +6505,9 @@
         /* the settlement is past the last window, so this is not a manager's choice to make
            and takes no `decide` hook: an OA answers for its word out of its own character. */
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
-        const keep = rng() < keepChance(w, share + storesAsked / 4);   /* §MARKET the same trust the leaver priced */
+        const keep = isHumanOA(w.id)
+          ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
+          : rng() < keepChance(w, share + storesAsked / 4);            /* §MARKET the same trust the leaver priced */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
@@ -6389,7 +6589,6 @@
       pc.won = stats.winner === c.id;
       pc.withdrawn = c.withdrawn ? { day: c.withdrawn.day, toId: c.withdrawn.toId } : null;
       pc.standDown = !!c.standDown;
-      pc.crowdHit = c.crowdHit || 0;
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;
     }

@@ -19,8 +19,8 @@
   const isNode = typeof module !== "undefined" && module.exports;
 
   const CONST = {
-    WEALTH_LOW: 100000,   // [C] §DEVICES a founding band this poor fits no devices
-    WEALTH_HIGH: 400000,  // [C] and this rich fits them across a third of its force
+    WEALTH_LOW: 75000,    // [C] §DEVICES a founding band this poor fits no devices (the bands ×0.75 at the money pass)
+    WEALTH_HIGH: 300000,  // [C] and this rich fits them across a third of its force
     /* [S] A season is ONE YEAR OF TWELVE MONTHS — an ordinary Earth calendar, kept in space.
        This was 13 and the calendar it came from had thirteen months, which also gave the Divide
        two months while C1 says it runs the LAST MONTH of the year, singular. Both wrong, and the
@@ -42,7 +42,7 @@
        crowd; standing decides whether they come back. */
     /* §MONEY cut a quarter at the first money pass: with the grant the gate was a second
        income of the same order, and pay sat at a quarter of what came in */
-    GATE_BASE: 1950,                 // [C] a month's gate for an OA nobody minds
+    GATE_BASE: 5800,                 // [C] a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
     GATE_PER_STANDING: 41,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
     GATE_PER_FAME: 16,               // [C] per point of roster fame (the draw)
@@ -97,25 +97,22 @@
    * Step 6 — book one Divide's outcome into the account.
    *
    * The settlement figure is what the corp WON. `squadBonus` is what reaches its own books:
-   * the rest is the OA's, because the OA is who the planet was taken for. The bonus rises
-   * with the season on the same escalator as the Kit Allowance, per ruling — what a win is
-   * worth grows at the same rate as what it costs to field a force, so year ten is not year
-   * one with bigger numbers on one side only.
+   * the rest is the OA's, because the OA is who the planet was taken for. (It rose with the
+   * season on the kit allowance's escalator; the allowance is gone and nothing else inflates.)
    *
    * Ransoms are NOT cut. A ransom is one corp paying another for a body; the arkship has no
    * claim on it and both sides book it whole.
    */
-  function squadBonus(payout, season, escalator) {
+  function squadBonus(payout) {
     if (!(payout > 0)) return 0;
-    const s = Math.max(1, season || 1);
-    return Math.round(payout * CONST.SQUAD_BONUS_SHARE * Math.pow(escalator || 1, s - 1));
+    return Math.round(payout * CONST.SQUAD_BONUS_SHARE);   /* it rode the kit allowance's escalator; the allowance is gone */
   }
 
   function bookDivide(acct, result) {
     result = result || {};
     if (result.payout) {
       const share = result.squadShare != null ? result.squadShare
-                  : squadBonus(result.payout, result.season || acct.season, result.escalator);
+                  : squadBonus(result.payout);
       post(acct, 'income', 'Divide bonus (the OA takes the rights)', share);
       acct.lastSettlement = result.payout;
       acct.lastBonus = share;
@@ -187,10 +184,11 @@
    *
    *   retainerBill(roster) + purseBill(dropped) = what the season actually cost in people.
    */
-  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw. */
-  function gateFor(ownStanding, fleetStanding, rosterFame) {
+  /** §GATE what the fans are worth this month. Standing is the multiplier on the draw: the crowd and the houses, each
+      0..100, read as −100..100 around indifference. */
+  function gateFor(crowd, houses, rosterFame) {
     const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
-    const good = (ownStanding || 0) + (fleetStanding || 0) * CONST.GATE_FLEET_SHARE;
+    const good = ((crowd == null ? 50 : crowd) - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }

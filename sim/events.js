@@ -18,9 +18,9 @@
    ============================================================================================ */
 (function (root, factory) {
   const isNode = typeof module !== "undefined" && module.exports;
-  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"));
-  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS);
-})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS) {
+  if (isNode) module.exports = factory(require("./prng.js"), require("./ledger.js"), require("./reputation.js"), require("./items.js"), require("./talks.js"));
+  else root.CDEVENTS = factory(root.CDPRNG, root.CDLEDGER, root.CDREP, root.CDITEMS, root.CDTALKS);
+})(typeof self !== "undefined" ? self : this, function (P, LED, REP, ITEMS, TALKS) {
   "use strict";
 
   const CONST = {
@@ -45,9 +45,36 @@
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
        the same card; a petition costs, and if half the fleet petitions the edict is withdrawn. */
     FLEET_MONTH: 7,              // [S]
+    /* §MEDIA MEDIA DAY (ruled: an annual event, M11): the fleet's press boards every OA the week of the drop. Standing
+       is on the signed -100..100 audience scale, so these are points on it. Who fronts it decides what the crowd
+       hears and how much of your true strength rivals learn by watching (the read, at the negotiation table). */
+    MEDIA_MONTH: 11,             // [S]
+    CROWD_WARM: 66,              // [C] §STANDING a faction's warmth at which it starts bringing things to the airlock
+    CROWD_COLD: 40,              // [C] and at which it starts bringing trouble (the faction that feels it: Cold on the one scale)
+    CROWD_FACTION_SHARE: 0.10,   // [C] a faction with less of the stands than this brings nothing to the airlock
+    DONATION_PER_POINT: 600,     // [C] a collection, per point of warmth over indifference
+    STRIKE_PER_HEAD: 400,        // [C] what it costs a head to end a strike
+    LEAK_HUNT: 3000,             // [C] what finding a leak costs
+    MERC_MONTHS: [9, 10],        // [S] the mercenary windows, where the board warns of a short roster
+    MEDIA_BASE: 7,               // [H] the media_day act's weight at mult 1
+    MEDIA_FAME_SCALE: 0.22,      // [H] extra per point of the front's fame
+    MEDIA_REVEAL: { standout: 0.35, steady: 0.2, manager: 0.1 },   // [H] how much rivals learn, by who fronts it
+    MEDIA_MULT: { steady: 0.75, manager: 0.55 },                   // [H] a quieter front, a quieter day
+    MEDIA_FAME: { standout: 6, steady: 3 },                        // [C] what the front gains for being seen
+    MEDIA_STRESS: 8,             // [C] the pressure of the cameras
+    MEDIA_CUT_P: 0.35,           // [H] a villain edit's chance of the piece being cut against you
+    MEDIA_PATIENCE: 1,           // [C] the board likes a manager who fronts the OA himself
+    /* §MEDIA THE PRESS between media days: a profile before the drop, and last year reviewed */
+    PROFILE_FAME: 8,             // [C] a long piece on your standout
+    PROFILE_STRESS: 6,           // [C] a week under the lens
+    PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
-    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35   // [C] the shelf's prices for the year
+    PRICE_CRASH: 0.75, PRICE_BOOM: 1.35,  // [C] the shelf's prices for the year
+    WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
+    WORD_SOUR: 45,               // [C] loyalty under which a hand has something to say
+    WORD_STRAINED: 55,           // [C] stress over which a hand has something to say
+    TURN_AWAY_LOYALTY: -8        // [C] what being turned away costs
   };
   /* §ALEAS THE ALEAS' RULINGS ARE CUT (ruled). Four of this pool were the Aleas changing the year's rules —
      the wall closed early, a stun-grade Divide, no truces, a levy — invasive, rarely noticed and not much
@@ -75,6 +102,8 @@
      event asks for one of those — "a fight in the barracks" — and gets whoever in the OA has
      a quirk that answers to it, whatever that quirk is called this year. Rewrite the catalogue
      and the events follow it. */
+  /* §SEEDS the career's seed, carried on every OA: every dispatch roll is that seed and a name */
+  function worldOf(state) { const c = state && state.corps && state.ids && state.corps[state.ids[0]]; return (c && c._worldSeed) || 0; }
   function tiesOf(state, f) {
     const idx = traitIndexOf(state), out = [];
     for (const tid of (f.traits || [])) {
@@ -97,13 +126,46 @@
     if (!fit.length) return null;
     /* §DETERMINISM never unseeded: with no dice passed, the cast is drawn from dice seeded by the season, the month,
        the OA and the tie — the same every time the same moment is played, as every other draw in the engine is */
-    const dice = rng || P.mulberry32(P.seedFrom('cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
+    const dice = rng || P.mulberry32(P.seedFrom('w' + worldOf(state) + ':cast:' + ((state && state.season) || 0) + ':' + ((state && state.month) || 0) + ':' +
                                                 ((corp && corp.id) || '') + ':' + tie));
     return fit[Math.floor(dice() * fit.length)];
   }
   const hasQuirk = (f, q) => ((f.quirks || f.traits || []).map(x => String(x).toLowerCase()).some(x => x.indexOf(q) >= 0));
   const stress = (f, d) => { if (f.condition) f.condition.stress = Math.max(0, Math.min(100, (f.condition.stress || 0) + d)); };
+  /* §WOUNDS a wound is a number on the books: N days down costs N points of health (the season's WOUND_PER_DAY, 1) */
+  const wound = (f, rng, type, lo, hi) => {
+    const days = P.int(rng, lo, hi);
+    f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
+    f.condition.injuries.push({ type: type, severity: 'minor', days_remaining: days, untreated: false });
+    f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
+    f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
+  };
   const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
+  /* §CENSUS AN ENGINE OA ANSWERS AS ITSELF. Measured: ten dispatches were answered one way by every house, every
+     time — a brawl always punished, an offer always refused, every quirk moment the first option. Each policy now
+     weighs its options by the house's dials and its situation; the best-scoring option is the answer. */
+  const dialOf = (c, k) => ((c.profile && c.profile.dials && typeof c.profile.dials[k] === 'number') ? c.profile.dials[k] : 50) / 100;
+  /* what a house's character makes of an act's qualities, beside what its stands make of them */
+  const CHARACTER = { blood: ['aggression', 1], grit: ['aggression', 0.5], glory: ['showmanship', 1], care: ['patience', 1],
+                      word: ['tradition', 1], craft: ['tradition', 0.5] };
+  function appealOf(c, q) {
+    if (!q) return 0;
+    const taste = c.rep && REP.tasteOf ? REP.tasteOf(c.rep) : null;
+    let v = 0;
+    for (const k in q) {
+      if (taste && taste[k] != null) v += q[k] * taste[k];
+      const ch = CHARACTER[k]; if (ch) v += q[k] * (dialOf(c, ch[0]) - 0.5) * ch[1];
+    }
+    if (q.word) v -= q.word * (dialOf(c, 'treachery') - 0.5);   /* a schemer sets less store by a word kept */
+    return v;
+  }
+  const bestOf = scores => Object.keys(scores).sort((a, b) => scores[b] - scores[a])[0];
+  /* how much a hand matters to the house: their place in the roster's order, 1 = the best */
+  function rankOf(c, f) {
+    const q = x => { const s = x.stats || {}; return (s.aim || 0) + (s.tactics || 0) + (s.resolve || 0) + (s.grit || 0); };
+    const a = alive(c).filter(x => !x.mirror_of).sort((x, y) => q(y) - q(x));
+    return a.length ? (a.indexOf(f) + 1) / a.length : 1;
+  }
 
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
@@ -122,32 +184,32 @@
   const MOMENTS = [
     { id: 'q_argued_the_plan', tie: 'an argument with his captain', title: 'An Argument Over the Plan',
       text: n => n + ' told the captain the approach was wrong, in front of the squad.',
-      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down'],
-      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken'] },
+      a: ['Back the Captain', 'stress', 10, n => n + ' Was Overruled, and Sat Down', { craft: 0.4, word: 0.3 }],
+      b: ['Hear Him Out', 'stress', -8, n => n + '\u2019s Reading Was Taken', { craft: 0.6, care: 0.3 }] },
     { id: 'q_wound_hidden', tie: 'a wound he did not report', title: 'A Wound Off the Books',
       text: n => 'The medic signed ' + n + ' fit. The medic is not sure ' + n + ' was honest.',
-      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining'],
-      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It'] },
+      a: ['Stand Him Down', 'health', 8, n => n + ' Was Rested, Complaining', { care: 0.8 }],
+      b: ['Take Him at His Word', 'stress', 8, n => n + ' Carried On, and Carried It', { grit: 0.6, word: 0.3, care: -0.4 }] },
     { id: 'q_captaincy_snub', tie: 'a captaincy he was passed over for', title: 'The Armband Went Elsewhere',
       text: n => n + ' heard about the captaincy from somebody else.',
-      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation'],
-      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice'] },
+      a: ['Explain the Call', 'stress', -8, n => n + ' Took the Explanation', { word: 0.6, care: 0.3 }],
+      b: ['Let It Stand', 'stress', 12, n => n + ' Was Not Told Twice', { craft: 0.3, care: -0.4 }] },
     { id: 'q_evac_retainer', tie: 'an evac retainer the desk had to budget for', title: 'The Evac Retainer',
       text: n => 'Medical have written to the desk about ' + n + ' again. They would like it in writing.',
-      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n],
-      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan'] },
+      a: ['Pay the Retainer', 'credits', -4000, n => 'The Retainer Was Paid for ' + n, { care: 1.0 }],
+      b: ['Take the Chance', 'stress', 10, n => n + ' Was Left on the Cheaper Plan', { care: -0.8, blood: 0.2 }] },
     { id: 'q_squad_cut_down', tie: 'a squad cut to a handful', title: 'What Is Left of the Squad',
       text: n => 'There are four of them now, and ' + n + ' has stopped asking for replacements.',
-      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head'],
-      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had'] },
+      a: ['Bring It Back to Strength', 'stress', 8, n => 'The Squad Was Filled Out Over ' + n + '\u2019s Head', { craft: 0.6, word: -0.2 }],
+      b: ['Leave Them as They Are', 'stress', -8, n => n + ' Was Left the Squad He Had', { grit: 0.7, word: 0.3 }] },
     { id: 'q_captain_fell', tie: 'a captain who fell in front of him', title: 'The Captain Went Down',
       text: n => n + ' has not been the same since the armband changed hands.',
-      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month'],
-      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out'] },
+      a: ['Give Him Time', 'stress', -10, n => n + ' Was Given the Month', { care: 0.9 }],
+      b: ['Put Him Straight Back', 'stress', 12, n => n + ' Went Straight Back Out', { grit: 0.6, blood: 0.3, care: -0.4 }] },
     { id: 'q_long_shot', tie: 'a shot that decided a fight', title: 'The Shot They Are Still Talking About',
       text: n => 'The clip of ' + n + '\u2019s shot has been round the fleet twice.',
-      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview'],
-      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It'] }
+      a: ['Put Him on Camera', 'fame', 6, n => n + ' Gave the Interview', { glory: 1.0 }],
+      b: ['Keep Him Off It', 'stress', -6, n => n + ' Was Kept Out of It', { care: 0.5, craft: 0.3 }] }
   ];
   function momentSpec(m) {
     return {
@@ -172,9 +234,16 @@
         else if (kind === 'loyalty') f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + amount));
         else if (kind === 'fame') { if (amount > 0) REP.earnFame(f, amount); else f.fame = Math.max(0, (f.fame || 0) + amount); }
         else if (kind === 'credits') LED.post(c.account, amount < 0 ? 'expense' : 'income', 'Discretionary', amount);
+        if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
-      ai: () => 'a'
+      /* §CENSUS the option its stands and its character like better */
+      ai: (c) => {
+        /* what it costs weighs too: a careful house minds the money, a hard one minds the strain less */
+        const cost = o => (o[1] === 'credits' && o[2] < 0 ? o[2] / 10000 * (0.5 + dialOf(c, 'thrift')) : 0)
+                        - (o[1] === 'stress' && o[2] > 0 ? o[2] / 40 * (1 - dialOf(c, 'aggression')) : 0);
+        return appealOf(c, m.b[4]) + cost(m.b) > appealOf(c, m.a[4]) + cost(m.a) ? 'b' : 'a';
+      }
     };
   }
   const POOL = [
@@ -201,10 +270,18 @@
         f._raiseAsked = true;
         /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
         if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
-        if (opt === 'release') { f.status = 'retired'; f._released = true; return f.name + ' Was Released'; }
-        stress(f, 18); f._discontent = (f._discontent || 0) + 1; return f.name + ' Was Refused, and Soured';
+        if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
+        stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
-      ai: (c, e) => spare(c) > e.ask * 20 ? 'grant' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f), thrift = dialOf(c, 'thrift');
+        return bestOf({
+          grant: (spare(c) > e.ask * 12 * (0.5 + thrift * 1.5) ? 0.3 : -1) + (1 - r) * 0.6 + dialOf(c, 'patience') * 0.3,
+          refuse: 0.2 + thrift * 0.9 + r * 0.4,
+          release: r > 0.6 ? thrift * 0.6 + (1 - dialOf(c, 'tradition')) * 0.3 + (r - 0.6) : 0
+        });
+      }
     },
     {
       id: 'debt', weight: 1.0,
@@ -221,12 +298,20 @@
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._debtCalled = true;
         if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
-        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); return f.name + '\u2019s Contract Was Sold'; }
-        f.condition.injuries.push({ type: 'inj_arm', severity: 'minor', days_remaining: P.int(ctx.rng, 6, 14), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(ctx.rng, 6, 14); f._untreatedDays = 0; stress(f, 12);
+        if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + '\u2019s Contract Was Sold'; }
+        if (c.rep) REP.act(c.rep, 'left_a_debtor', {});
+        wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
         return f.name + ' Was Found by Their Creditors';
       },
-      ai: (c) => spare(c) > CONST.DEBT_CALL * 6 ? 'pay' : 'ignore'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'ignore';
+        const r = rankOf(c, f);
+        return bestOf({
+          pay: (spare(c) > CONST.DEBT_CALL * (3 + 5 * dialOf(c, 'thrift')) ? 0.3 : -1) + dialOf(c, 'patience') * 0.4 + (1 - r) * 0.4,
+          ignore: 0.3 + dialOf(c, 'aggression') * 0.4 + r * 0.2,
+          sell: r > 0.5 ? dialOf(c, 'thrift') * 0.5 + dialOf(c, 'treachery') * 0.3 + (r - 0.5) * 0.6 : 0
+        });
+      }
     },
     {
       id: 'brawl', weight: 1.0,
@@ -248,12 +333,16 @@
       resolve: (c, e, opt, ctx) => {
         const hot = alive(c).find(x => x.id === e.subject), oth = alive(c).find(x => x.id === e.other);
         if (hot) hot._brawled = true;
-        if (oth) { oth.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(ctx.rng, 5, 9), untreated: false }); oth.status = 'injured'; oth._recovery = P.int(ctx.rng, 5, 9); oth._untreatedDays = 0; }
-        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
-        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); return 'Both Were Fined'; }
-        alive(c).forEach(f => stress(f, 5)); return 'It Was Let Lie';
+        if (oth) wound(oth, ctx.rng, 'inj_torso', 5, 9);
+        if (opt === 'punish') { if (hot) stress(hot, 20); alive(c).forEach(f => { if (f !== hot) stress(f, -4); }); if (c.rep) REP.act(c.rep, 'disciplined', {}); return (hot ? hot.name : 'The Hothead') + ' Was Punished'; }
+        if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
+        alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
-      ai: () => 'punish'
+      ai: (c) => bestOf({
+        punish: dialOf(c, 'tradition') * 0.7 + dialOf(c, 'aggression') * 0.4,
+        fine: dialOf(c, 'thrift') * 0.8 + 0.15,
+        lie: dialOf(c, 'patience') * 0.6 + (1 - dialOf(c, 'tradition')) * 0.4
+      })
     },
     {
       id: 'memo', weight: 0.9,
@@ -273,7 +362,7 @@
         if (opt === 'accept') { c.rep.goal.priority = e.subject; c.rep.patience = Math.min(100, (c.rep.patience || 0) + 2); return 'The Card\u2019s Priority Moved'; }
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3); return 'The Card Held as It Stood';
       },
-      ai: (c) => (c.rep && c.rep.patience < 50) ? 'accept' : 'push'
+      ai: (c) => (c.rep && c.rep.patience < 35 + 35 * (1 - dialOf(c, 'tradition'))) ? 'accept' : 'push'
     },
     {
       id: 'poach', weight: 1.1,
@@ -300,12 +389,20 @@
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
-          if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + ' Went for ' + fmtCr(price); };
+          if (c.rep) REP.act(c.rep, 'sold_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Went for ' + fmtCr(price); };
         if (opt === 'accept') return sell(e.price);
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
         if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'The Offer Was Refused';
       },
-      ai: (c, e) => spare(c) < 20000 ? 'accept' : 'refuse'
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
+        const r = rankOf(c, f);
+        return bestOf({
+          accept: (spare(c) < 20000 ? 0.8 : 0) + dialOf(c, 'thrift') * 0.4 + r * 0.5,
+          refuse: 0.5 + (1 - r) * 0.5 + dialOf(c, 'tradition') * 0.2,
+          counter: dialOf(c, 'treachery') * 0.6 + dialOf(c, 'showmanship') * 0.3 + r * 0.2
+        });
+      }
     },
     {
       id: 'insult', weight: 0.8,
@@ -322,18 +419,24 @@
         if (!c.rep) return 'The Slight Passed';
         if (opt === 'answer') { REP.act(c.rep, 'answered_a_slight', { targetId: e.from }); return 'The Slight Was Answered'; }
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
-        return 'The Slight Was Laughed Off';
+        REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
-      ai: (c) => (c.rep && REP.standing(c.rep, 'own') < 0) ? 'answer' : 'laugh'
+      ai: (c) => bestOf({
+        answer: dialOf(c, 'aggression') * 0.8 + (c.rep && REP.standing(c.rep, 'crowd') < 50 ? 0.3 : 0),
+        laugh: dialOf(c, 'showmanship') * 0.5 + dialOf(c, 'patience') * 0.4,
+        ignore: dialOf(c, 'tradition') * 0.3 + (1 - dialOf(c, 'showmanship')) * 0.3
+      })
     },
     {
       id: 'dealer', weight: 0.9,
       when: (c, ctx) => { const tiers = CONST.RARE_PIECE_TIERS; const pieces = ITEMS.bySlot('primary').filter(i => i.tier >= tiers[0] && i.tier <= tiers[1]); return pieces.length ? pieces[Math.floor(ctx.rng() * pieces.length)] : null; },
-      make: (it) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+      make: (it, c) => { const price = Math.round((it.cost || 0) * CONST.RARE_MARKUP);
+        /* §FACILITIES a piece above the Armoury is bought to be stored, and the dealer says so */
+        const issues = armouryTier(c), stored = (it.tier || 1) > issues;
         return { kind: 'dealer', subject: it.id, price: price, title: 'A Dealer at the Airlock',
           text: 'Somebody with a case and no paperwork is offering a ' + it.name + ' for ' + fmtCr(price) + '. Tonight only.',
           options: [
-            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) },
+            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + ((it.tier || 1) - 1) : '') },
             { id: 'pass', label: 'Pass', cost: 'Nothing' }
           ], def: 'pass' }; },
       resolve: (c, e, opt) => {
@@ -341,22 +444,254 @@
         if (c.account.treasury < e.price) return 'The Money Was Not There';
         LED.post(c.account, 'expense', 'A Dealer\u2019s Piece', -e.price);
         c.armoury = c.armoury || {}; c.armoury[e.subject] = (c.armoury[e.subject] || 0) + 1;
+        if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
-      ai: (c, e) => spare(c) > e.price * 5 ? 'buy' : 'pass'
+      /* the engine buys what it can issue soon, not what it will store for years */
+      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
     }
   ];
+  function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
+  /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
+     cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
+  const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
+  /* the faction that feels it: warm or cold past the mark, and enough of the stands to matter */
+  const facAt = (c, f) => (c.rep && (c.rep.shares[f] || 0) >= CONST.CROWD_FACTION_SHARE ? REP.standing(c.rep, f) : 50);
+  const warmOf = (c, fs) => fs.filter(f => facAt(c, f) >= CONST.CROWD_WARM)[0] || null;
+  const coldOf = (c, fs) => fs.filter(f => facAt(c, f) <= CONST.CROWD_COLD)[0] || null;
+  const FNAME = { bloodhounds: 'Bloodhounds', tacticians: 'Tacticians', fairweathers: 'Fairweathers', underdogs: 'Underdogs', families: 'Families', diehards: 'Diehards' };
+  POOL.push(
+    {
+      id: 'donation', weight: 1.0,
+      when: (c, ctx) => !ctx.corpFlags(c)['donation' + ctx.season] ? warmOf(c, ['families', 'diehards']) : null,
+      make: (f, c) => { const amt = Math.max(1000, Math.round((facAt(c, f) - 50) * CONST.DONATION_PER_POINT / 100) * 100);
+        return { kind: 'donation', amount: amt, faction: f, title: 'The Stands Pass the Hat',
+          text: 'Your ' + FNAME[f] + ' have taken a collection for the OA, and want to hand it over in person.',
+          options: [
+            { id: 'take', label: 'Take It', cost: '+' + fmtCr(amt) },
+            { id: 'families', label: 'Give It to the Families of the Dead', cost: 'Nothing to the Books \u00b7 the Families and Diehards Remember' }
+          ], def: 'take' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['donation' + ctx.state.season] = true;
+        if (opt === 'families') { if (c.rep) REP.act(c.rep, 'gave_it_away', {}); return 'The Collection Went to the Families'; }
+        LED.post(c.account, 'income', 'The Stands\u2019 Collection', e.amount);
+        if (c.rep) REP.act(c.rep, 'took_the_collection', {});
+        return 'The Collection Was Taken';
+      },
+      ai: (c, e) => bestOf({
+        families: (c.rep ? ((c.rep.shares.families || 0) + (c.rep.shares.diehards || 0) * 0.5) * 1.5 : 0) + dialOf(c, 'tradition') * 0.3 + dialOf(c, 'patience') * 0.3,
+        take: 0.15 + dialOf(c, 'thrift') * 0.5 + (spare(c) < e.amount * 20 ? 0.3 : 0)
+      })
+    },
+    {
+      id: 'tip', weight: 0.8,
+      when: (c, ctx) => warmOf(c, ['tacticians']) && ctx.rivals.length && !ctx.corpFlags(c)['tip' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (from) => ({ kind: 'tip', from: from, title: 'A Supporter With a Rival\u2019s Papers',
+        text: 'One of your Tacticians crews on a rival\u2019s ship, and has copied what their squads are drilling.',
+        options: [
+          { id: 'read', label: 'Read Them', cost: 'A Dossier on That OA \u00b7 That House Cools If It Hears' },
+          { id: 'return', label: 'Send Them Back Unread', cost: 'That House Warms \u00b7 the Diehards Approve' }
+        ], def: 'read' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['tip' + ctx.state.season] = true;
+        if (opt === 'return') { if (c.rep) REP.act(c.rep, 'sent_the_papers_back', { targetId: e.from }); return 'The Papers Went Back Unread'; }
+        c._tipOn = e.from;                            /* the season reads it into the dossier this month */
+        if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
+        return 'The Papers Were Read';
+      },
+      ai: (c) => bestOf({
+        read: 0.35 + dialOf(c, 'treachery') * 0.6 + dialOf(c, 'aggression') * 0.1,
+        return: dialOf(c, 'tradition') * 0.5 + (1 - dialOf(c, 'treachery')) * 0.3
+      })
+    },
+    {
+      id: 'protest', weight: 1.1,
+      when: (c, ctx) => !ctx.corpFlags(c)['protest' + ctx.season] ? coldOf(c, ['diehards', 'fairweathers']) : null,
+      make: (f) => ({ kind: 'protest', faction: f, title: 'They Are Booing at the Gate',
+        text: 'Your ' + FNAME[f] + ' are outside the gate, and they want the manager.',
+        options: [
+          { id: 'meet', label: 'Go Out to Them', cost: 'Patience \u22122 \u00b7 the Crowd Warms a Little' },
+          { id: 'shut', label: 'Shut the Gate', cost: 'No Gate This Month \u00b7 the Diehards Mind' },
+          { id: 'ignore', label: 'Wait It Out', cost: 'Patience \u22124' }
+        ], def: 'ignore' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['protest' + ctx.state.season] = true;
+        if (opt === 'meet') { if (c.rep) { c.rep.patience = Math.max(0, c.rep.patience - 2); REP.act(c.rep, 'went_out_to_them', {}); } return 'You Went Out to Them'; }
+        if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
+        if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
+      },
+      ai: (c) => bestOf({
+        meet: 0.3 + dialOf(c, 'showmanship') * 0.5 + (c.rep && c.rep.patience > 40 ? 0.1 : -0.2),
+        shut: dialOf(c, 'aggression') * 0.5 + (1 - dialOf(c, 'tradition')) * 0.3,
+        ignore: dialOf(c, 'patience') * 0.4 + (c.rep && c.rep.patience > 60 ? 0.2 : -0.3)
+      })
+    },
+    {
+      id: 'strike', weight: 0.9,
+      when: (c, ctx) => coldOf(c, ['families']) && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
+        return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
+          text: 'Your people have heard what their Families think of the OA, and have stopped drilling until somebody pays them to start.',
+          options: [
+            { id: 'pay', label: 'Pay Them Back to Work', cost: '\u2212' + fmtCr(bill) },
+            { id: 'wait', label: 'Let Them Sit', cost: 'No Drill This Month' }
+          ], def: 'wait' }; },
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['strike' + ctx.state.season] = true;
+        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Strike Settled', -e.amount); if (c.rep) REP.act(c.rep, 'settled_a_strike', {}); return 'The Strike Was Paid Off'; }
+        c._noDrill = ctx.state.season * 100 + ctx.state.month;
+        return 'The Drill Stood Idle';
+      },
+      ai: (c, e) => spare(c) > e.amount * (2 + 4 * dialOf(c, 'thrift')) && dialOf(c, 'patience') < 0.75 ? 'pay' : 'wait'
+    },
+    {
+      id: 'leak', weight: 0.8,
+      when: (c, ctx) => coldOf(c, ['underdogs', 'families']) && ctx.rivals.length && !ctx.corpFlags(c)['leak' + ctx.season] ? ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] : null,
+      make: (to) => ({ kind: 'leak', to: to, title: 'Somebody Is Talking',
+        text: 'A disgruntled hand has been seen drinking with a rival\u2019s crew, and what your squads are drilling is going with them.',
+        options: [
+          { id: 'find', label: 'Find Them', cost: '\u2212' + fmtCr(CONST.LEAK_HUNT) },
+          { id: 'let', label: 'Let It Go', cost: 'That OA Learns What You Are Drilling' }
+        ], def: 'let' }),
+      resolve: (c, e, opt, ctx) => {
+        ctx.corpFlags(c)['leak' + ctx.state.season] = true;
+        if (opt === 'find') { LED.post(c.account, 'expense', 'A Leak Found', -CONST.LEAK_HUNT); return 'The Leak Was Found'; }
+        c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
+        return 'The Leak Ran';
+      },
+      ai: (c) => spare(c) > CONST.LEAK_HUNT * (2 + 5 * (1 - dialOf(c, 'treachery')) + 2 * dialOf(c, 'thrift')) ? 'find' : 'let'
+    }
+  );
+  /* §MEDIA THE PRESS: what a columnist wants between media days */
+  const standoutOf = c => alive(c).filter(f => !f.mirror_of).sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] || null;
+  POOL.push({
+    id: 'profile', weight: 0.9,
+    when: (c, ctx) => { if (ctx.month < 8 || ctx.month > 10) return null; const f = standoutOf(c);
+      return f && (f.fame || 0) >= 12 && !(c._eventFlags && c._eventFlags['profile' + ctx.season]) ? f : null; },
+    make: (f, c, ctx) => { ctx.corpFlags(c)['profile' + ctx.season] = true;
+      return { kind: 'profile', subject: f.id, title: 'A Profile Piece',
+        text: 'A fleet columnist wants a week with ' + f.name + ' for a long piece before the drop.',
+        options: [{ id: 'grant', label: 'Grant the Week', cost: 'Fame +' + CONST.PROFILE_FAME + ' \u00b7 a Week Under the Lens' },
+                  { id: 'decline', label: 'Decline', cost: 'Written Anyway, From the Postings' }], def: 'decline' }; },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
+      const loud = storyMult(ctx.state, f, true);
+      if (opt === 'grant') { f.fame = (f.fame || 0) + Math.round(CONST.PROFILE_FAME * loud); stress(f, CONST.PROFILE_STRESS);
+        if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
+      f.fame = (f.fame || 0) + CONST.PROFILE_DECLINED_FAME; return 'The Piece Ran Anyway, Thinner';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
+  });
+  POOL.push({
+    id: 'coverage', weight: 0.8,
+    when: (c, ctx) => ctx.month === 1 && c._lastPlace ? c._lastPlace : null,
+    make: (place, c, ctx) => ({ kind: 'coverage', place: place, title: 'Last Year, Reviewed',
+      text: place === 1 ? 'The fleet\u2019s press wants the champion on the record before the new year starts.'
+          : 'A columnist is writing up last year\u2019s Divide and wants a word about finishing ' + ordinal(place) + '.',
+      options: [{ id: 'sit', label: 'Sit Down With Them', cost: place <= 3 ? 'The Fleet Warms' : 'Your Own People Hear You Own It' },
+                { id: 'none', label: 'No Comment', cost: 'They Write It Without You' }], def: 'none' }),
+    resolve: (c, e, opt) => {
+      if (opt === 'sit') { if (c.rep) REP.act(c.rep, e.place <= 3 ? 'spoke_well' : 'owned_it', {}); return 'You Went on the Record'; }
+      if (c.rep && e.place > 3) REP.act(c.rep, 'no_comment', {}); return 'They Wrote It Without You';
+    },
+    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 35 ? 'sit' : 'none'
+  });
+  function ordinal(n) { return n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'); }
+
   /* THE MOMENTS JOIN THE POOL BEFORE THE INDEX IS BUILT. Pushed in after it, they drew and
      displayed perfectly and then ANSWERED NOTHING: `answer` looks a spec up by id in BY_ID, and
      BY_ID had been built from the pool as it stood a moment earlier. An event that draws but
      cannot be answered is the worst of both — it looks like content and is furniture. */
+
+  /* §TALKS SOMEBODY ASKS FOR A WORD. A sour or strained hand comes to the manager with
+     something to say, and the answer IS the month's talk: take the meeting and that is who you
+     spoke to this month; turn them away and they feel it. The talks are the five a manager
+     always has, costed as far as the manager knows the person. */
+  let TALKER = null;
+  function useTalker(fn) { TALKER = fn || null; }
+  /* §STAFF a Sergeant can take the meeting in the manager's place: their talk, not the manager's */
+  let SERGEANT = null;
+  function useSergeant(h) { SERGEANT = h || null; }
+  const WORD_ASKS = {
+    drop:   { title: n => n + ' Wants a Place on the Drop', text: n => n + ' has watched the drop list all year and wants to know where they stand on it.' },
+    lead:   { title: n => n + ' Wants a Squad', text: n => n + ' thinks they could lead better than the ones who do, and has come to say so.' },
+    eight:  { title: n => n + ' Wants the Eight', text: n => n + ' wants to be the one the OA sends to the Eight, and wants you to say it.' },
+    strain: { title: n => n + ' Is Coming Apart', text: n => n + ' has not slept properly in weeks and has asked to see you.' },
+    captain:{ title: n => n + ' Will Not Serve Under Their Captain', text: n => n + ' has had enough of the one leading them, and says so to your face.' }
+  };
+  POOL.push({
+    id: 'word', weight: CONST.WORD_WEIGHT,
+    when: (c, ctx) => {
+      if (!TALKER || !ctx.state) return null;
+      const st = ctx.state, abs = st.season * 100 + st.month;
+      if (c._talked && c._talked.abs === abs) return null;
+      const caps = (c.captains && c.captains.season === st.season) ? c.captains.ids : [];
+      const cand = alive(c).filter(f => !f.mirror_of && f._askedWord !== st.season &&
+        ((f.loyalty == null ? 50 : f.loyalty) < CONST.WORD_SOUR || ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED));
+      if (!cand.length) return null;
+      const f = cand[Math.floor(ctx.rng() * cand.length)];
+      TALKS.temperOf(f);
+      const strained = ((f.condition && f.condition.stress) || 0) > CONST.WORD_STRAINED;
+      /* a grievance with a captain needs a captain over them: on a squad board, their own squad's */
+      const plan = c._ownSquads && c._seat && c._seat.plan;
+      const underOne = plan ? (plan.at && plan.at[f.id] != null && caps.some(id => id !== f.id && plan.at[id] === plan.at[f.id]))
+                            : caps.length && caps.indexOf(f.id) < 0;
+      const ask = strained ? 'strain'
+                : underOne && ctx.rng() < 0.35 ? 'captain'
+                : f.want === 'eight' && st.month > 8 ? 'drop' : f.want;
+      return { f, ask };
+    },
+    make: (hit, c, ctx) => {
+      const f = hit.f, st = ctx.state, abs = st.season * 100 + st.month, n = f.name, a = WORD_ASKS[hit.ask];
+      const promiseKind = hit.ask === 'drop' || hit.ask === 'lead' || hit.ask === 'eight' ? hit.ask : 'drop';
+      const cost = (kind, pk) => TALKS.describe(TALKS.preview(f, kind, abs, pk)) + (f.temperKnown ? '' : ' · Temper Unknown');
+      const options = [
+        { id: 'hear',    label: 'Hear Them Out',  cost: cost('hear') },
+        { id: 'praise',  label: 'Reassure Them',  cost: cost('praise') },
+        { id: 'promise', label: 'Promise ' + TALKS.PROMISES[promiseKind].mid, cost: cost('promise', promiseKind), promise: promiseKind },
+        { id: 'dress',   label: 'Tell Them to Get On With It', cost: cost('dress') },
+        { id: 'drive',   label: 'Put Them Back to Work', cost: cost('drive') },
+        { id: 'away',    label: 'Turn Them Away', cost: 'Loyalty ' + '−' + Math.abs(CONST.TURN_AWAY_LOYALTY) + ' · Keeps Your Talk This Month' }
+      ];
+      const sgp = SERGEANT && !(c._sgtTalked && c._sgtTalked.abs === abs) ? SERGEANT.preview(st, c.id, f.id) : null;
+      if (sgp) options.splice(5, 0, { id: 'sergeant', label: 'Send ' + sgp.sergeant + ' · ' + sgp.talk,
+        cost: TALKS.describe(sgp) + ' · Keeps Your Talk This Month' + (f.temperKnown ? '' : ' · Temper Unknown') });
+      return { kind: 'word', subject: f.id, ask: hit.ask, title: a.title(n), text: a.text(n) + ' Taking the meeting is this month’s talk.',
+               options, def: 'away' };
+    },
+    resolve: (c, e, opt, ctx) => {
+      const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
+      f._askedWord = ctx.state.season;
+      const turn = () => { f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) + CONST.TURN_AWAY_LOYALTY); return f.name + ' Was Turned Away'; };
+      if (opt === 'away') return turn();
+      if (opt === 'sergeant') {
+        const r = SERGEANT && SERGEANT.now(ctx.state, c.id, f.id);
+        return r ? r.line : turn();
+      }
+      const o = e.options.find(x => x.id === opt);
+      const res = TALKER && TALKER(ctx.state, c.id, { fighterId: f.id, kind: opt, promise: o && o.promise });
+      if (!res) return turn();
+      return res.line + (res.revealed ? ' · ' + res.temper : '');
+    },
+    ai: (c, e) => {
+      const f = alive(c).find(x => x.id === e.subject);
+      if (!f) return 'away';
+      /* §CENSUS a house that sets little store by a hand turns them away; one with a Sergeant sends them, keeping its word */
+      const r = rankOf(c, f);
+      if (r > 0.7 && dialOf(c, 'patience') < 0.45 && dialOf(c, 'aggression') > 0.5) return 'away';
+      if (e.options.some(o => o.id === 'sergeant') && (r > 0.4 || dialOf(c, 'patience') < 0.5)) return 'sergeant';
+      const t = f.temperKnown ? TALKS.TEMPERS[TALKS.temperOf(f)] : null;
+      if (t && t.doubles !== 'promise' && e.options.some(o => o.id === t.doubles)) return t.doubles;
+      if (t && t.doubles === 'promise' && e.ask !== 'captain' && e.ask !== 'strain') return 'promise';
+      if (!t) return 'hear';
+      return t.backfires === 'praise' ? 'hear' : 'praise';
+    }
+  });
   MOMENTS.forEach(m => POOL.push(momentSpec(m)));
   const BY_ID = {}; POOL.forEach(e => { BY_ID[e.id] = e; });
 
   /* the acts the events lean on, if the reputation module has not got them */
-  const ACTS = { sold_a_fighter: { own: -4, residue: 0.2 }, refused_an_offer: { rival: -2, residue: 0.15 },
-                 answered_a_slight: { fleet: 2, rival: -4, residue: 0.2 }, ignored_a_slight: { own: -2, residue: 0.15 } };
-  if (REP && REP.ACTS) for (const k in ACTS) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS[k];
+  /* the dispatches' acts live in reputation.js's one table, with what each is made of */
 
   /* ------------------------------------------------------------------ the fleet's month ---- */
   /* §QUIRKS does this fighter carry a hook? The pool's events wanted to ask and had no way to:
@@ -382,9 +717,13 @@
      saved mid-year came back wrong. Neither belongs in a save: they are derived from the
      catalogue, which every build already has. */
   const SEED_CACHE = new WeakMap();
+  /* §STAFF WHO IS ABOARD, NOT HOW MANY. The cache was keyed on the roster's length, and a hand moved
+     to the backroom and another signed leave the length alone — so a resumed year, with a fresh
+     cache, drew different events from the one it was saved from. */
+  function rosterKey(corp) { return corp.roster.map(f => f.id + (f.status === 'dead' || f.status === 'retired' ? '-' : '')).join(','); }
   function corpSeeds(state, corp) {
-    const cached = SEED_CACHE.get(corp);
-    if (cached && cached.n === corp.roster.length) return cached.set;
+    const cached = SEED_CACHE.get(corp), key = rosterKey(corp);
+    if (cached && cached.n === key) return cached.set;
     const idx = traitIndexOf(state), set = new Set();
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -393,7 +732,7 @@
         if (tr && tr.effects) for (const h of (tr.effects.hooks || [])) if (/_seed|_amplified/.test(h)) set.add(h);
       }
     }
-    SEED_CACHE.set(corp, { n: corp.roster.length, set });
+    SEED_CACHE.set(corp, { n: key, set });
     return set;
   }
   function seedWeight(state, corp, specId) {
@@ -412,8 +751,8 @@
   const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
   const LUCK_CACHE = new WeakMap();
   function luckOf(state, corp) {
-    const c = LUCK_CACHE.get(corp);
-    if (c && c.n === corp.roster.length) return c.v;
+    const c = LUCK_CACHE.get(corp), key = rosterKey(corp);
+    if (c && c.n === key) return c.v;
     let v = 1;
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired') continue;
@@ -421,7 +760,7 @@
       if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
     }
     v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
-    LUCK_CACHE.set(corp, { n: corp.roster.length, v });
+    LUCK_CACHE.set(corp, { n: key, v });
     return v;
   }
   let TRAIT_INDEX = null;
@@ -467,7 +806,7 @@
      about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
      one worse, a blame magnet wears whatever went wrong, and a company family's dead are
      mourned louder. These were six hooks wanting a press office; they are one multiplier. */
-  /* PARKED (ruled): nothing calls this yet — it waits for authored stories, which will raise acts through it */
+  /* §MEDIA read by media day and the press: a soundbite machine is heard louder, a villain edit cut against */
   function storyMult(state, f, good) {
     if (!f) return 1;
     let m = 1;
@@ -489,7 +828,7 @@
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
     /* seeded by the world, not the year alone: two fleets on two planets meet two different months */
     const world = state.planet ? (state.planet.archetype || '') + (state.planet.patches || []).map(q => (q.type || '')[0]).join('') : '';
-    const rng = P.mulberry32(P.seedFrom('fleet' + state.season + world));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':fleet' + state.season + world));
     const spec = P.weightedPick(rng, FLEET_POOL.map(f => [f, f.w]));
     state.fleet.pending = { season: state.season, id: spec.id, petitions: 0, applied: false, withdrawn: false };
     return state.fleet.pending;
@@ -508,7 +847,7 @@
     resolve: (c, e, opt, ctx) => {
       if (opt === 'petition' && c.account.treasury >= CONST.PETITION_COST) {
         LED.post(c.account, 'expense', 'A Petition to the Aleas', -CONST.PETITION_COST);
-        if (c.rep) REP.act(c.rep, 'petitioned_the_aleas', {});
+        if (c.rep) REP.act(c.rep, 'petitioned', {});
         ctx.state.fleet.pending.petitions++;
         return 'You Petitioned Against It';
       }
@@ -520,7 +859,7 @@
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
       /* a petition is a stance, not a reflex: only an OA the edict cuts against by
          temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'boom') return d('thrift') > 0.6 ? 'petition' : 'accept';
+      if (e.fleet === 'boom') return (d('thrift') + d('aggression')) / 2 > 0.55 || d('thrift') > 0.6 ? 'petition' : 'accept';   /* dear kit hurts the careful and the warlike */
       return 'accept';
     }
   };
@@ -538,8 +877,87 @@
     }
     return { id: spec.id, title: spec.title, withdrawn: pend.withdrawn, petitions: pend.petitions, need };
   }
-  const ACTS_FLEET = { petitioned_the_aleas: { aleas: -1, fleet: 1, residue: 0.1 } };
-  if (REP && REP.ACTS) for (const k in ACTS_FLEET) if (!REP.ACTS[k]) REP.ACTS[k] = ACTS_FLEET[k];
+
+  /* ------------------------------------------------------------------------- media day ---- */
+  /* §MEDIA one card, every OA, the month before the drop: who fronts it. The fronts are built from the roster — the
+     standout (most fame), the steadiest hand who is not the standout (most presence) — and the manager. */
+  function shortCard(state, corp) {
+    const n = alive(corp).filter(f => !f.mirror_of).length, last = state.month === CONST.MERC_MONTHS[1];
+    return { id: 'short-' + state.season + '-' + state.month, pool: 'short', kind: 'short',
+             title: last ? 'The Board Counts the Books' : 'Short of the Drop',
+             text: n + ' on the books against a drop of ' + state.rosterMin + '. ' + (last
+               ? 'This is the last window. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'
+               : 'Two mercenary windows remain. Whoever is still missing at the Lock, the board hires itself — at their price, and ' + state.scrapePatience + ' of its patience.'),
+             options: [{ id: 'accept', label: 'Noted', cost: (state.rosterMin - n) + ' Short' }], def: 'accept', resolved: null };
+  }
+  const SHORT_SPEC = { resolve: () => 'The Count Was Noted', ai: () => 'accept' };
+  /* §STAFF WHAT HAPPENED IN THE BACKROOM OVER THE WINTER: who retired, who was taken, whose paper is up */
+  const POST_NAME = { drill: 'Drillmaster', sergeant: 'Sergeant', quartermaster: 'Quartermaster', fixer: 'Fixer', surgeon: 'Surgeon', spymaster: 'Spymaster' };
+  function backroomCard(state, corp) {
+    const o = corp.staff; if (!o) return null;
+    const gone = (o.gone || []).filter(g => g.season === state.season && (g.why === 'retired' || g.why === 'poached'));
+    const due = Object.keys(o.posts || {}).map(p => o.posts[p]).filter(st => st && st.asking);
+    /* §FACILITIES and what the builders finished while nobody was looking */
+    const FNAME = { armoury: 'Armoury', infirmary: 'Infirmary', yard: 'Training Yard', barracks: 'Barracks', press: 'Press Office', listening: 'Listening Post' };
+    const stood = ((corp.facilities && corp.facilities.history) || []).filter(h => h.season === state.season);
+    if (!gone.length && !due.length && !stood.length) return null;
+    const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'))
+      .concat(stood.map(h => 'The ' + FNAME[h.id] + ' stands at level ' + h.level + '.'));
+    return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'Over the Winter',
+             text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };
+  }
+  const BACKROOM_SPEC = { resolve: () => 'The Backroom Was Noted', ai: () => 'accept' };
+  function mediaCard(state, corp) {
+    const so = standoutOf(corp);
+    /* §STAFF a Fixer's hand on how the day is heard, in the figures the card quotes */
+    const spinGood = (corp.rep && corp.rep._spin && corp.rep._spin.good) || 1;
+    const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
+    const loudOf = f => storyMult(state, f, true);
+    const options = [];
+    const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
+    if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
+            (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
+    if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
+    options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager * spinGood) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
+    options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
+    return { id: 'media-' + state.season, pool: 'media', kind: 'media', title: 'Media Day',
+             text: 'The fleet\u2019s press corps boards every OA the week of the drop. Who you put in front of them decides what the crowd hears, and what your rivals learn by watching.',
+             options, def: 'regrets', resolved: null };
+  }
+  const MEDIA_SPEC = {
+    resolve: (c, e, opt, ctx) => {
+      const state = ctx.state; state.drop = state.drop || {}; state.drop.media = state.drop.media || {};
+      const rec = (reveal, gain) => { state.drop.media[c.id] = { gain, reveal }; c._mediaReveal = reveal; };
+      if (opt === 'regrets') { if (c.rep) REP.act(c.rep, 'sent_regrets', {}); rec(0, 0); return 'You Sent Regrets'; }
+      if (opt === 'manager') { const mult = CONST.MEDIA_MULT.manager; if (c.rep) { REP.act(c.rep, 'media_day', { mult }); c.rep.patience = Math.min(100, (c.rep.patience || 0) + CONST.MEDIA_PATIENCE); }
+        rec(CONST.MEDIA_REVEAL.manager, CONST.MEDIA_BASE * mult); return 'You Fronted Media Day Yourself'; }
+      const o = e.options.find(x => x.id === opt), f = o && alive(c).find(x => x.id === o.fighter);
+      if (!f) { rec(0, 0); return 'Nobody Went'; }
+      const loud = storyMult(state, f, true);
+      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
+      f.fame = (f.fame || 0) + CONST.MEDIA_FAME[opt]; stress(f, CONST.MEDIA_STRESS);
+      rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
+      if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
+        if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });
+        return 'The Piece Was Cut Against ' + f.name;
+      }
+      if (c.rep) REP.act(c.rep, 'media_day', { mult });
+      return 'The Fleet Heard ' + f.name;
+    },
+    ai: (c, e) => {
+      const show = ((c.profile || {}).dials || {}).showmanship || 50;
+      const has = id => e.options.some(o => o.id === id);
+      if (show < 20) return 'regrets';
+      if (show >= 65 && has('standout')) return 'standout';
+      if (show >= 40 && has('steady')) return 'steady';
+      return 'manager';
+    }
+  };
 
   /* ---------------------------------------------------------------------- the machinery ---- */
   function ctxFor(rng, state, corpId) {
@@ -554,11 +972,16 @@
     const key = state.season + ':' + state.month;
     const have = state.events[corpId];
     if (have && have.month === key) return have.list;
-    const rng = P.mulberry32(P.seedFrom('ev' + state.season + 'm' + state.month + corpId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':ev' + state.season + 'm' + state.month + corpId));
     const corp = state.corps[corpId], ctx = ctxFor(rng, state, corpId);
     const list = [];
     /* the fleet's month: the same card for every OA, first */
     if (state.month === CONST.FLEET_MONTH) list.push(fleetCard(state));
+    /* §MEDIA media day: the same card for every OA, the month before the drop */
+    if (state.month === CONST.MEDIA_MONTH) list.push(mediaCard(state, corp));
+    if (state.month === 1) { const bc = backroomCard(state, corp); if (bc) list.push(bc); }
+    /* §ROSTER short of the drop in the mercenary months: the board says now what it will do at the last door */
+    if (state.rosterMin && (state.month === CONST.MERC_MONTHS[0] || state.month === CONST.MERC_MONTHS[1]) && alive(corp).filter(f => !f.mirror_of).length < state.rosterMin) list.push(shortCard(state, corp));
     const tries = rng() < CONST.EVENT_P ? (rng() < CONST.SECOND_P ? 2 : 1) : 0;
     const used = {};
     for (let t = 0; t < tries; t++) {
@@ -579,9 +1002,9 @@
   function answer(state, corpId, eventId, optionId) {
     const box = state.events && state.events[corpId]; if (!box) return null;
     const ev = box.list.find(e => e.id === eventId && !e.resolved); if (!ev) return null;
-    const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool]; if (!spec) return null;
+    const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool]; if (!spec) return null;
     const opt = ev.options.some(o => o.id === optionId) ? optionId : ev.def;
-    const rng = P.mulberry32(P.seedFrom('evr' + eventId + optionId));
+    const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':evr' + eventId + optionId));
     const ctx = ctxFor(rng, state, corpId); ctx.state = state;
     const line = spec.resolve(state.corps[corpId], ev, opt, ctx);
     ev.resolved = { option: opt, line, defaulted: optionId === '__default' };
@@ -594,7 +1017,7 @@
     const out = [];
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
-      const spec = ev.pool === 'fleet' ? FLEET_SPEC : BY_ID[ev.pool];
+      const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool];
       const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
@@ -605,7 +1028,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, storyMult, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });

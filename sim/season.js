@@ -13,13 +13,31 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
   'use strict';
+
+  /* §SEEDS ONE SEED PER CAREER, AND EVERY ROLL IS NAMED. A career's world seed is drawn once, at the founding,
+     from the game's own seed (the host's, in a shared game), and saved on every OA. Every roll the year makes is
+     that seed plus a name for what is being rolled — never the season number alone, which made every career's
+     Dividend, lots, letters and winters the same — and never a clock or an unseeded random. Two machines with the
+     same seed and the same decisions compute the same world. */
+  function worldOf(src) {
+    if (!src) return 0;
+    if (src._worldSeed != null) return src._worldSeed;
+    if (src.corps) return worldOf(src.corps);
+    for (const k in src) { const c = src[k]; if (c && typeof c === 'object' && c._worldSeed != null) return c._worldSeed; }
+    return 0;
+  }
+  /* §CENSUS a listener for the one decision the outside cannot read back (the month's focus): the AI usage census
+   (harness/ai_census.cjs) counts what each seat does. Nothing in the game sets it. */
+let CENSUS = null;
+function useCensus(fn) { CENSUS = fn || null; }
+function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
 
   const CONST = {
     /* --- the roster (S2, S3) --- */
@@ -72,12 +90,24 @@
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
     WOUND_CRIPPLED: 33,          // [S] and below this he is Crippling: he cannot train at all
     WOUND_STRESS_SERIOUS: 5,     // [C] extra stress a month for working while Serious
     WOUND_STRESS_CRIPPLED: 11,   // [C] and while Crippling
     WOUND_DECAY: 0.5,            // [C] stat points lost a month at Crippling with no care
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
+    /* §STANDING WHAT THE CROWD DOES FOR AN OA'S PEOPLE (ruled at the standing pass). The crowd's warmth runs 0..100
+       about an indifferent 50; each of these reads it as −1..1 from there. */
+    CROWD_LOYALTY: 1.2,          // [C] a month's pull on every hand's loyalty at a crowd of 100 (or 0, the other way)
+    CROWD_LOT: 2,                // [C] how many more (or fewer) natural-born turn up to trial, at the ends
+    CROWD_LOT_STATS: 12,         // [C] and how much better (or worse) they are, on every stat
+    FAMILIES_CALM: 4,            // [C] §STANDING a warm Families faction takes this much more stress off everyone monthly, at a full share
+    TACTICIANS_INTEL: 0.6,       // [C] a warm Tacticians faction lifts a month's intel by this share, at a full share
+    FAME_WATCHED: 0.5,           // [C] and a loved OA is written about: a rival scouting it gets this much more, at a crowd of 100
+    FAIRWEATHER_GATE: 1.5,
+    CROWD_INTEL_LEVELS: 4,       // [C] what a supporter's papers, or a leak, is worth in intel levels       // [C] how much harder the Fairweathers swing the gate than the rest of the crowd
+    BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off indifference
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
        STRESS. Both come down on their own every month; focus speeds either up sharply, and
@@ -111,7 +141,6 @@
     EIGHT_FAME: 12,              // [C] fame for standing in it
     EIGHT_FAME_WIN: 14,          // [C] more for the winning four
     EIGHT_STRESS: 14,            // [C] the pressure of it
-    TREAT_DAYS: 45,              // [C] days of healing bought by one full block of physical focus
     TRAIN_GAIN: 3.0,             // [C] stat movement toward potential per drill block (×10 scale)
     /* [C] THE INVERSE-BREADTH RULE. The same pip is worth more the narrower its target, so a
        pip's gain to any one (body, stat) it touches is TRAIN_GAIN scaled by its tier. The four
@@ -141,13 +170,6 @@
     INTEL_RIVAL_PREP: 0.20,      // [C] readiness a full, fresh rival sheet buys against them
     INTEL_PLANET_PREP: 0.15,     // [C] readiness a complete planet sheet buys on the ground
     INTEL_DECAY_YEARS: 3,        // [H] years a rival row takes to fade from full to blank
-    /* [C] INTEL ARRIVES WHEN YOU LOOK FOR IT. Ruled: you focus on the intel, you get the
-       intel — no delay. This was three months, which nobody ever asked for, and it made
-       the verb incoherent: a report landing three months on is old news about a rival who
-       has since moved, it cannot be acted on in the month you paid for it, and it fought
-       the ruling that intel can be gathered repeatedly across a year. Zero means the
-       gather resolves in the same month it is bought, every month, all year. */
-    SURVEY_MONTHS: 0,
     SCOUT_APATHY: 0.45,          // [H] board interest below which a corp does not survey at all
     /* --- the Dividend (S17), the mid-year show-match at T3 --- */
     /* --- the merc deadline (S18), T5. A free professional picks their employer. --- */
@@ -172,7 +194,7 @@
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
-    LEAN_TREASURY: 210000,    // [C] and the money to become something — measured against a
+    LEAN_TREASURY: 180000,    // [H] and the money to become something (ruled 210k → 180k at the money pass) — measured against a
                               //     year: the entry, the wages, and a market worth entering
     /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
        he founds at the desk, so its year is the year the game is tuned to, and the eight are
@@ -253,7 +275,7 @@
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 20000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled; ₡5k → ₡20k: sites worth more, the pot a little less) */
+    SITE_CASH: 15000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled ₡5k → ₡20k → ₡15k with the pot at 400k: 4% of it a site) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is
@@ -411,11 +433,9 @@
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
     p.race_weights = {};
     Object.keys(races).forEach(r => { p.race_weights[r] = 1; });
-    /* LIKED AT HOME means what the page's own-people bands mean by it: under 40 reads
-       Mutinous, 40–65 Strained, 65–85 Loyal. Read off the dials the founder came out at 29 —
-       a crew close to walking off, on the first morning. Ruled at 60: warm, not yet loyal;
-       loyalty is earned by the year. The fleet has no opinion yet. */
-    p.reputation = Object.assign({}, p.reputation || {}, { fleet: 0, own: 60 });
+    /* §STANDING a founded OA's crowd opens balanced and indifferent, and every house stands at 50 with it: what it
+       becomes is earned by its record (reputation.js reads `founding: 'lean'`) */
+    p.reputation = {};
     p.id = id || 'custom_house';
     p.name = name || 'The Founded OA';
     p.tag = 'The Founder';
@@ -423,6 +443,9 @@
     p.archetype = 'founder';
     p.lore = 'An OA with no history: the fleet average in every number, and nothing on its banner yet.';
     p.no_negotiation = false;
+    /* the fleet's most common lean is Avoid; a founded OA declares Engage, the middle notch, and its manager sets the
+       rest squad by squad at the table */
+    p.engagement_lean = 'standard';
     p.relationships = [];
     p.canon_status = 'player-founded';
     p.founding = 'lean';
@@ -461,8 +484,9 @@
       corps[profile.id] = {
         id: profile.id, profile,
         roster: roster,
-        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH }).stock)
-                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile) }).stock,
+        /* §FACILITIES every OA opens with the Armoury at its first level: tiers one and two, and nothing above */
+        armoury: lean ? leanArmoury(ITEMS.foundingArmoury(doc.id, size, { depth: CONST.LEAN_DEPTH, maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock)
+                      : ITEMS.foundingArmoury(doc.id, size, { wealth: LED.wealthOf(profile), maxTier: FAC.FACILITIES.armoury.start + FAC.CONST.TIER_OFFSET }).stock,
         /* §FOUNDING ONE KIND OF WEALTH, SPENT DIFFERENTLY (ruled). An AI OA founded with its
            profile's whole band IN CASH as well as a full roster and a decade of kit, so it began
            the game with one and a half to two and a half times the manager's wealth. It arrives
@@ -486,8 +510,11 @@
        standing about with nothing on them. They are issued from what is on the shelf, best
        first, and what they take comes off it. */
     for (const id of Object.keys(corps)) issueFromLocker(corps[id]);
+    /* §SEEDS the career's world seed is drawn here, once, from the game's seed */
+    const worldSeed = opts.worldSeed != null ? opts.worldSeed : Math.floor(rng() * 1e9);
+    for (const id of Object.keys(corps)) corps[id]._worldSeed = worldSeed;
     for (const id of Object.keys(corps))
-      lastYearsMarks(P.mulberry32(P.seedFrom('scars' + id)), corps[id]);
+      lastYearsMarks(rngOf(corps, 'scars' + id), corps[id]);
     return corps;
   }
 
@@ -553,6 +580,27 @@
   function setWound(f, v) {
     f.condition = f.condition || {};
     f.condition.health = Math.max(0, Math.min(100, v));
+  }
+  /* §WOUNDS THE LIST FOLLOWS THE NUMBER. `injuries` names what the wounds are; `health` says how hurt the
+     body is. Nothing ever counted a wound's `days_remaining` down, so a body mended to 100 still "carried an
+     injury" on every screen, for good — the play-through showed seven hurt for eleven months with rest on
+     them all year. A whole body carries only the wounds that are carried for good. */
+  function settleWounds(f) {
+    if (!f.condition) return;
+    if (woundOf(f) < 100) return;
+    const inj = f.condition.injuries || [];
+    f.condition.injuries = inj.filter(w => w.permanent || w.careerEnding);
+    if (f.status === 'injured' && !f.condition.injuries.length) f.status = 'active';
+  }
+  /* §WOUNDS A WOUND COMES HOME AS A NUMBER. In a contest, an event or the Eight a wound is `_recovery`, days until
+     the body can stand; on the books it is `health`. Nothing wrote the one from the other: a fighter came home
+     "injured" with a whole body, so the verb that mends had nothing to mend and the status never lifted. */
+  function bringWoundHome(f) {
+    if (f.status !== 'injured') return;
+    const days = Math.max(0, f._recovery || 0);
+    if (days > 0) setWound(f, Math.min(woundOf(f), 100 - days * CONST.WOUND_PER_DAY));
+    f._recovery = 0;
+    if (woundOf(f) >= 100) f.status = 'active';
   }
   function woundBand(f) {
     const h = woundOf(f);
@@ -700,8 +748,11 @@
         dividendLoadout(f, i);
       });
       const side = (corp, bodies) => {
-        let cap = bodies[0];
-        for (const f of bodies) if (f.stats.tactics > cap.stats.tactics) cap = f;
+        /* §TALKS the year's captain leads if they are on the card; otherwise the sharpest head */
+        const caps = captainsOf(corp, season);
+        const pool = bodies.some(f => caps.indexOf(f.id) >= 0) ? bodies.filter(f => caps.indexOf(f.id) >= 0) : bodies;
+        let cap = pool[0];
+        for (const f of pool) if (f.stats.tactics > cap.stats.tactics) cap = f;
         return { tag: corp.id, corpId: corp.id, policy: 'standard', policyName: 'standard',
                  hasMedkit: true,
                  units: bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
@@ -713,7 +764,7 @@
          way everything in state does. The resolve keeps its own seeded stream, so keeping
          the footage costs the world no rolls. */
       const sA = side(A, bodiesA), sB = side(B, bodiesB);
-      const res = TAC.resolve(P.mulberry32(P.seedFrom('dividend' + season + A.id)),
+      const res = TAC.resolve(rngOf(corps, 'dividend' + season + A.id),
                               sA, sB,
                               { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5] });
 
@@ -759,6 +810,8 @@
         /* §HALF-BUILT the Dividend taken is a thing the fleet and your own people notice (`took_the_purse`,
            written and never raised) */
         if (winner.rep) REP.act(winner.rep, 'took_the_purse', {});
+        const loser = winner === A ? B : A;
+        if (loser && loser.rep) REP.act(loser.rep, 'lost_the_dividend', {});
         tally.purses++;
         for (const f of (winner === A ? bodiesA : bodiesB)) {
           REP.earnFame(f, CONST.DIVIDEND_FAME_WIN);
@@ -781,11 +834,22 @@
     }
   }
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
-  function eightPick(corp) {
+  function eightPick(corp, asRule) {
     const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length));
     if (!fit.length) return null;
-    const score = f => (f.fame || 0) * 0.6 + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
-    return fit.slice().sort((a, b) => score(b) - score(a))[0];
+    /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
+    const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
+      .map(p => fit.find(f => f.id === p.fighterId)).filter(Boolean);
+    if (owed.length) return owed[0];
+    /* §CENSUS who a house risks: a bold or showy house sends its best and most famous; a careful one keeps its best
+       home and sends a good hand from further down, since the Eight can kill */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.fame || 0) * (0.2 + 0.8 * dial('showmanship')) + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
+    const ranked = fit.slice().sort((a, b) => score(b) - score(a));
+    /* an unnamed person's seat is the rule's, not a character's: its best goes (ruled) */
+    const care = asRule ? 0 : Math.max(0, dial('patience') - dial('aggression'));   /* 0 for the bold, up to about a half for the careful */
+    return ranked[Math.min(ranked.length - 1, Math.floor(ranked.length * care * 0.5))];
   }
   /** a manager names a fighter — a choice for the month's end. RULED: every OA sends
       someone; there is no declining. Unnamed, the OA's best goes. */
@@ -801,12 +865,23 @@
     const entrants = [];
     for (const id of ids) {
       let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
-      if (!f) f = eightPick(corps[id]);
+      if (!f) f = eightPick(corps[id], isHuman(state, id));
       if (f) entrants.push({ corp: corps[id], f });
+    }
+    /* §TALKS whoever was promised the Eight either went or was passed over */
+    for (const id of ids) {
+      const c = corps[id], went = entrants.find(e => e.corp === c);
+      for (const p of TALKS.promisesOf(c).filter(p => p.kind === 'eight' && p.status === 'open' && p.season === season)) {
+        const f = c.roster.find(x => x.id === p.fighterId);
+        const out = went && went.f === f ? 'kept'
+                  : (!f || f.status !== 'active' || (f.condition && (f.condition.injuries || []).length)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, p, out, f);
+        (c._promiseNews = c._promiseNews || []).push({ season, name: p.name, kind: 'eight', outcome: out });
+      }
     }
     if (entrants.length < 4) { E.result = { held: false, why: 'Too Few OAs Entered' }; return E.result; }
     /* seeded by standing with the fleet: 1,8,3,6 against 2,7,4,5 */
-    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'fleet') : 0) - (a.corp.rep ? REP.standing(a.corp.rep, 'fleet') : 0));
+    entrants.sort((a, b) => (b.corp.rep ? REP.standing(b.corp.rep, 'houses') : 50) - (a.corp.rep ? REP.standing(a.corp.rep, 'houses') : 50));
     const n = entrants.length, A = [], B = [];
     entrants.forEach((e, i) => { const pos = i % 4; ((pos === 0 || pos === 3) ? A : B).push(e); });
     const pot = entrants.length * CONST.EIGHT_ENTRY + CONST.EIGHT_PURSE;
@@ -817,16 +892,17 @@
     const stun = false;   /* §ALEAS the stun-grade ruling is cut: The Eight is fought to the end */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
-    const res = TAC.resolve(P.mulberry32(P.seedFrom('eight' + season)), sA, sB,
+    const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
       { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun, toTheEnd: !stun });
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
     const land = (S, team) => S.units.forEach((u, i) => {
       const e = team[i], f = e.f;
-      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1; }
+      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
+        if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
@@ -843,6 +919,7 @@
     if (win) {
       const share = Math.round(pot / win.length);
       for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); REP.earnFame(e.f, CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
+      for (const e of (win === A ? B : A)) if (e.corp.rep) REP.act(e.corp.rep, 'lost_the_eight', {});
     }
     E.result = { held: true, season, teams: { A: A.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })), B: B.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })) },
                  winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy, stun,
@@ -895,8 +972,8 @@
        WIDER FLEET, which is the one that watches everybody rather than one corp's own ships.
        It is a signed scale — being loathed is a real position — so this maps the whole of it,
        and a corp the fleet detests now reads worse to a free agent than an unknown one. */
-    const fleet = REP.standing(corp.rep, 'fleet');
-    const standing = Math.max(0, Math.min(1, (fleet + CONST.MERC_FAME_SPAN) / (2 * CONST.MERC_FAME_SPAN)));
+    /* how the fleet's houses regard the OA, 0..1: a free agent asks around before he signs */
+    const standing = Math.max(0, Math.min(1, REP.standing(corp.rep, 'houses') / 100));
     return CONST.MERC_W_MONEY * money
          + CONST.MERC_W_SAFETY * safety
          + CONST.MERC_W_FAME * standing
@@ -917,7 +994,7 @@
      starts with the roster's own */
   function openLot(rng, kind, corpId, pool, corp) {
     const spec = {
-      tryouts:  { n: CONST.TRYOUT_LOT,   mix: [['nattie', 1]] },
+      tryouts:  { n: Math.max(3, CONST.TRYOUT_LOT + Math.round(crowdLean(corp) * CONST.CROWD_LOT)), mix: [['nattie', 1]] },
       mercs:    { n: CONST.MERC_LOT,     mix: [['mercenary', 1]] },
       bastille: { n: CONST.BASTILLE_LOT, mix: [['prisoner', 1]] }
     }[kind];
@@ -925,6 +1002,20 @@
     const taken = new Set((corp && corp.roster || []).map(f => f.name));
     const lot = ROSTER.generateSquad(rng, spec.n, { corpId: corpId || null, poolMix: spec.mix, taken }).bodies;
     for (const f of lot) { f.divides = 0; f.seasonsHere = 0; f.retired = false; }
+    /* §FACILITIES a mercenary's own kit, and its worth in what they ask */
+    if (kind === 'mercs') for (const f of lot) {
+      const k = mercKit(rng, f);
+      if (!k) continue;
+      f.ownKit = k;
+      ITEMS.equip(f, { primary: k.primary, armor: k.armor, sidearm: k.sidearm || null, mods: [], consumables: [] });   /* they arrive carrying it */
+      const worth = [k.primary, k.armor, k.sidearm].reduce((a, id) => a + ((id && ITEMS.byId(id) && ITEMS.byId(id).cost) || 0), 0);
+      if (f.contract && f.contract.salary) f.contract.salary = Math.round(f.contract.salary + worth / LED.CONST.SALARY_MONTHS);
+    }
+    /* §STANDING THE SHIP'S CHILDREN WANT TO JOIN A LOVED OA: its own tryouts come deeper and better, a jeered one's thinner */
+    if (kind === 'tryouts' && corp) {
+      const lift = Math.round(crowdLean(corp) * CONST.CROWD_LOT_STATS);
+      if (lift) for (const f of lot) for (const k in (f.stats || {})) f.stats[k] = Math.max(10, Math.min(200, f.stats[k] + lift));
+    }
     /* the premium and discount pools of the Natural-Born window: the same ship, a different
        year of it — dearer and greener, or cheaper and nearer the ceiling */
     const shape = pool === 'premium' ? CONST.POOL_PREMIUM : pool === 'discount' ? CONST.POOL_DISCOUNT : null;
@@ -944,7 +1035,8 @@
   function askingPrice(f, corp) {
     const flat = Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
     if (!corp || !corp.rep) return flat;
-    const good = REP.standing(corp.rep, 'own') + REP.standing(corp.rep, 'fleet') * CONST.MARKET_FLEET_SHARE;
+    /* −100..100: the crowd's warmth and the houses' regard, each centred on indifference */
+    const good = (REP.standing(corp.rep, 'crowd') - 50) * 2 + (REP.standing(corp.rep, 'houses') - 50) * 2 * CONST.MARKET_FLEET_SHARE;
     let mult = 1 - Math.max(-CONST.MARKET_SWING, Math.min(CONST.MARKET_SWING, good / 100 * CONST.MARKET_SWING));
     /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
        what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
@@ -1019,13 +1111,14 @@
       f.contract.salary = Math.round(pick.bid / LED.CONST.SALARY_MONTHS);
       f._fameAtSigning = f.fame || 0;
       pick.corp.roster.push(f);
+      if (pick.corp.rep) REP.act(pick.corp.rep, kind === 'mercs' ? 'hired_a_gun' : 'signed_our_own', { scale: Math.min(1, (f.fame || 0) / 60) });
       LED.post(pick.corp.account, 'expense', kind + ' signing',
                -((f.contract && f.contract.signing_cost) || 0));
       tally.signed++;
       /* who got them, and what everybody else offered — so a manager can be TOLD they were
          outbid and by how much, rather than watching a number fail to change. */
       (tally.results = tally.results || []).push({
-        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid,
+        fighterId: f.id, name: f.name, to: pick.corp.id, at: pick.bid, month: state ? state.month : null,
         offers: offers.map(o => ({ corp: o.corp.id, bid: o.bid }))
       });
     }
@@ -1043,7 +1136,9 @@
     const ask = askingPrice(f, null);
     if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
     const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
-    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER));
+    /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
+    const beyond = f.ownKit && f.ownKit.tier > FAC.maxTier(c) ? 1.15 : 1;
+    return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER) * beyond);
   }
   /* the tryouts: the best of its own sheet by what they ARE, up to its need */
   function aiTryoutMarks(lot, depth) {
@@ -1119,6 +1214,7 @@
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         corp.roster.push(f);
+        if (corp.rep) REP.act(corp.rep, 'signed_our_own', {});
         lots[id] = lots[id].filter(x => x !== f);
         tally.signed++; took++;
         if (byPolicy) corp._nattieYear.signed++;   /* the year's cap is the policy's appetite, not a rule for a person */
@@ -1214,6 +1310,7 @@
       f.divides = 0; f.seasonsHere = 0; f.retired = false;
       f._fameAtSigning = f.fame || 0;
       c.roster.push(f);
+      if (c.rep) REP.act(c.rep, 'took_a_conscript', {});
       LED.post(c.account, 'expense', 'Kier processing', -fee);
       const bought = sentence - win.term;
       if (bought > 0) {
@@ -1306,10 +1403,18 @@
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
     const win = MONTHS[month];
     const stressed = alive.filter(f => ((f.condition && f.condition.stress) || 0) >= 50).length;
+    /* §CENSUS CHARACTER WEIGHS THE NEED. Measured: all eight houses split their month within three points of one
+       another, because need alone ranked the tracks and each took the same cap. A traditional house drills, a
+       patient one rests, a scheming one watches; need still leads. */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const lean = k => 0.4 + 1.2 * dial(k);
+    const planetKnown = corp._intel && corp._intel.planet && INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
     const weights = [
-      ['rest', hurt.length + stressed * 0.3],
-      ['train', green.length * 0.5],
-      ['scout', interest == null ? 0.5 : interest - CONST.SCOUT_APATHY],
+      ['rest', (hurt.length + stressed * 0.3) * lean('patience')],
+      ['train', green.length * 0.5 * lean('tradition')],
+      /* scouting is the board's interest in the ground, or a schemer's in its rivals once the ground is known */
+      ['scout', Math.max(planetKnown ? 0 : (interest == null ? 0.5 : interest - CONST.SCOUT_APATHY), dial('treachery') - 0.35) * lean('treachery')],
       /* §SPONSORS HOW BADLY A HOUSE WANTS A BACKER IS A MATTER OF CHARACTER. This was a flat
          0.55 for every OA in the fleet, so all eight courted with the same weight from the
          same month and crossed the benchmark in the same month — four suppliers signing at
@@ -1320,17 +1425,47 @@
     ].filter(w => w[1] > 0 && open[w[0]]).sort((a, b) => b[1] - a[1]);
     const focus = {};
     let left = CONST.FOCUS_POINTS;
-    for (const [kind, w] of weights) {
-      if (!left) break;
-      /* §SPONSORS HOW MUCH, NOT ONLY WHETHER. Every track took the whole cap it could, so
-         every OA that courted at all courted with the same three focus and reached the
-         benchmark in the same month. Courting takes what its appetite is worth — a hungry
-         OA throws the cap at it, a lukewarm one puts a point in and waits. */
-      const cap = kind === 'court'
-        ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP)))
-        : CONST.FOCUS_CAP;
-      const f = Math.min(cap, left);
-      focus[kind] = f; left -= f;
+    /* §CENSUS POINTS BY WEIGHT, ONE AT A TIME (the D'Hondt way): each point goes to the track whose weight per point
+       already held is highest, up to its cap. Measured: taking each track's cap in rank order put three on training
+       and three on rest for every house every month, whatever its character. Courting still takes only what its
+       appetite is worth — a hungry OA throws the cap at it, a lukewarm one puts a point in and waits. */
+    const capOf = (kind, w) => kind === 'court' ? Math.max(1, Math.min(CONST.FOCUS_CAP, Math.round(w * CONST.FOCUS_CAP))) : CONST.FOCUS_CAP;
+    while (left > 0) {
+      let best = null, bestV = 0;
+      for (const [kind, w] of weights) {
+        const has = focus[kind] || 0;
+        if (has >= capOf(kind, w)) continue;
+        const v = w / (has + 1);
+        if (v > bestV) { bestV = v; best = kind; }
+      }
+      if (!best) break;
+      focus[best] = (focus[best] || 0) + 1; left--;
+    }
+    /* §CENSUS A BOOST IS A LUXURY: the last two months before the Lock, a flush and eager house doubles the track that
+       matters most for the drop — rest if it has hurt to mend, else the drill — and pays for it */
+    if (month >= 9 && month <= 10) {
+      const purse = (corp.account && corp.account.treasury) || 0;
+      const want = hurt.length >= 3 ? 'rest' : 'train';
+      const bill = (focus[want] || 0) * CONST.BOOST_PER_POINT;
+      if (focus[want] && purse - bill > 80000 + 80000 * dial('thrift') && dial('aggression') + dial('showmanship') > 1.0)
+        focus._boost = { [want]: true };
+    }
+    /* §CENSUS WHERE THE EYES GO: the planet until it is known, then the rivals — the one it is most wary of first
+       (the house the crowd loves most, which is the house that will be hardest to beat), a schemer sooner */
+    if (focus.scout) {
+      const map = {};
+      let pips = focus.scout;
+      const rivalShare = planetKnown ? 1 : Math.max(0, dial('treachery') - 0.4);
+      const toRivals = Math.min(pips, Math.round(pips * rivalShare));
+      if (pips - toRivals > 0) map.planet = pips - toRivals;
+      if (toRivals > 0 && STATE_REF && STATE_REF.corps && STATE_REF.corps[corp.id] === corp) {
+        const rivals = STATE_REF.ids.filter(x => x !== corp.id).map(x => STATE_REF.corps[x])
+          .sort((a, b) => (b.rep ? REP.standing(b.rep, 'crowd') : 50) - (a.rep ? REP.standing(a.rep, 'crowd') : 50));
+        const known = r => rivalPreparedness(corp, r.id, STATE_REF.season || 0);
+        const pick = rivals.find(r => known(r) < CONST.INTEL_RIVAL_PREP * 0.8);   /* the most loved not yet well read */
+        if (pick) map[pick.id] = toRivals; else map.planet = (map.planet || 0) + toRivals;
+      } else if (toRivals > 0) map.planet = (map.planet || 0) + toRivals;
+      focus.intelTarget = map;
     }
     /* COURTING PICKS A HOUSE. If the AI spent focus on courting, aim it at the sponsor it fits
        best (weighted by any standing regard) — the same targeted courting a person paints on the
@@ -1387,7 +1522,7 @@
                Math.max(1, alive.length)) },
       { kind: 'train', cap: CONST.FOCUS_CAP, name: 'Drill the Green',
         available: green.length > 0, subject: green.length,
-        why: green.length ? green.length + ' Short of Their Ceiling' : 'Nobody Has Room to Grow' },
+        why: green.length ? green.length + ' With Room to Grow' : 'Nobody Has Room to Grow' },
       /* A survey party sent this late cannot get back before the drop, so the verb is shut —
          a fact about the world, which is the only thing `available` is allowed to mean. The AI
          reads this same list, so it stops buying reports that arrive after the lock rather than
@@ -1395,11 +1530,9 @@
       /* the scouts report the month they are sent, so this track is open all year and
          never has to explain a wait it no longer imposes */
       { kind: 'scout', cap: CONST.FOCUS_CAP, name: 'Gather Intel',
-        available: month + CONST.SURVEY_MONTHS <= CONST.PREP_MONTHS,
+        available: true,
         subject: 0,
-        why: month + CONST.SURVEY_MONTHS > CONST.PREP_MONTHS
-               ? 'Scouts Sent Now Cannot Report Before the Lock'
-               : 'Reports This Month' +
+        why: 'Reports This Month' +
                  (interest == null ? '' : ' \u00b7 Board Interest ' + interest.toFixed(2)) },
       /* COURT SPONSORS. Spend focus to court houses; each sponsor backs one OA a year and signs
          the highest-standing courter at the lock, so courting builds toward THIS year's board.
@@ -1409,7 +1542,7 @@
         available: month + SPON.CONST.COURT_MONTHS <= CONST.PREP_MONTHS,
         subject: ((corp.sponsors || {}).contracts || []).length,
         why: month + SPON.CONST.COURT_MONTHS > CONST.PREP_MONTHS
-               ? 'Sponsors Commit at the Lock \\u2014 Too Late to Build Standing Now'
+               ? 'Sponsors Commit at the Lock — Too Late to Build Standing Now'
                : (((corp.sponsors || {}).contracts || []).length
                    ? 'Backed by ' + corp.sponsors.contracts.map(c => c.house).join(', ')
                    : 'Court a Backer for the Year') }
@@ -1428,10 +1561,18 @@
     const open = {}; for (const o of monthTracks(corp, month)) open[o.kind] = o.available;
     const focus = {};
     let left = CONST.FOCUS_POINTS;
+    /* §FOCUS THE CAP IS THE BUDGET. A track was clamped to FOCUS_CAP (3) here while its target map — the drill's
+       and the rest's painted pips, which is what the spend actually reads — carried every pip a person placed: eight
+       on the drill trained as eight and was tallied and reported as three ("Focus · 3 On Train"). FOCUS_CAP is
+       the most one CELL of a grid takes and the engine's own spread; a track takes what was placed, and the
+       eight-point budget is the only clamp. A painted map's pips are the track's figure. */
+    const pipsOf = (map) => { let n = (map && map.all) || 0; for (const t of ['col', 'row', 'cell']) for (const k in ((map || {})[t] || {})) n += (map[t][k] || 0); return n; };
     for (const kind in (wanted || {})) {
-      if (kind === '_boost' || kind === 'trainTarget') continue;
+      if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;
       if (!open[kind] || !left) continue;
-      const f = Math.min(CONST.FOCUS_CAP, Math.max(0, Math.floor(wanted[kind] || 0)), left);
+      const map = kind === 'train' ? wanted.trainTarget : kind === 'rest' ? wanted.restTarget : null;
+      const asked = map && (map.all != null || map.col || map.row || map.cell) ? pipsOf(map) : Math.max(0, Math.floor(wanted[kind] || 0));
+      const f = Math.min(asked, left);
       if (f) { focus[kind] = f; left -= f; }
     }
     /* a boost only survives for a track that actually took focus — no paying to double
@@ -1442,6 +1583,8 @@
         if (focus[k]) focus._boost[k] = true;
     }
     if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
+    if (wanted && wanted.restTarget) focus.restTarget = wanted.restTarget;
+    if (wanted && wanted.intelTarget) focus.intelTarget = wanted.intelTarget;
     /* courting's per-OA map is a rider like trainTarget — carried through so the player's
        painted OAs reach the spend, and clamped to nothing exotic (it is read as data). */
     if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
@@ -1658,8 +1801,9 @@
       case 'kit': {
         const arm = them.armoury || {};
         const held = Object.keys(arm).reduce((s, k) => s + (arm[k] || 0), 0);
-        if (full) return held + ' Pieces in the Armoury';
-        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury';
+        const tierNote = ' \u00b7 Issues to Tier ' + FAC.maxTier(them);   /* §FACILITIES the Armoury is plain to see */
+        if (full) return held + ' Pieces in the Armoury' + tierNote;
+        return band('kit', held, { min: 0, floor: 4 }) + ' Pieces in the Armoury' + tierNote;
       }
       case 'training': {
         /* "Drilling unknown" was a paid-for row that said less than silence. Training is
@@ -1729,7 +1873,13 @@
     for (const f of corp.roster) {
       if (f.status === 'dead' || f.status === 'retired' || !f.condition) continue;
       f.condition.fatigue = Math.max(0, (f.condition.fatigue || 0) - 40);
-      f.condition.stress = Math.max(0, (f.condition.stress || 0) - CONST.REST_STRESS_BASE);
+      /* §FACILITIES the Barracks eases more of it */
+      f.condition.stress = Math.max(0, (f.condition.stress || 0) - (CONST.REST_STRESS_BASE + Math.max(0, factionLean(corp, 'families')) * CONST.FAMILIES_CALM) * FAC.barracksEase(corp));
+      /* §STANDING THE CROWD'S MOOD REACHES THE BARRACKS: a loved OA's people come to want to stay, a jeered one's to leave */
+      f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + crowdLean(corp) * CONST.CROWD_LOYALTY));
+      /* §FACILITIES a Barracks worth the name: loyalty settles toward content */
+      const bl = FAC.barracksLoyalty(corp);
+      if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */
@@ -1738,11 +1888,40 @@
          next month, which is the whole point of having a verb for it */
       const before = woundOf(f);
       if (before < 100) {
-        setWound(f, before + CONST.WOUND_DRIFT);
-        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active'; }
+        const sgn = STAFF.surgeonFor(corp);   /* §STAFF the surgeon's hand on the body's own mending */
+        setWound(f, before + CONST.WOUND_DRIFT * sgn.drift);
+        if (sgn.calm) f.condition.stress = Math.max(0, (f.condition.stress || 0) - sgn.calm);
+        if (woundOf(f) >= 100) { mended++; if (f.status === 'injured') f.status = 'active';
+          const sgR = STAFF.holder(corp, 'surgeon'); if (sgR) sgR.record.mended = (sgR.record.mended || 0) + 1; }
       }
+      settleWounds(f);
     }
     tally.mended += mended;
+    /* §TALKS A CAPTAIN'S MOOD IS THE BARRACKS'. The roster's loyalty leans toward its captains'
+       a little every month, and leading wears on the one who does it. */
+    const caps = captainsOf(corp, season || 0);
+    if (caps.length) {
+      const capF = caps.map(id => corp.roster.find(f => f.id === id)).filter(Boolean);
+      const loyOf = f => (f.loyalty == null ? 50 : f.loyalty);
+      const mean = capF.reduce((a, f) => a + loyOf(f), 0) / Math.max(1, capF.length);
+      /* on a board, each squad leans toward its own captain; without one, the roster toward them all */
+      const toward = {};
+      for (const cf of capF) { const sq = squadOfCaptain(corp, cf.id); if (sq) for (const m of sq) toward[m.id] = loyOf(cf); }
+      const board = !!yearPlan(corp);
+      for (const f of aliveOf(corp)) {
+        if (caps.indexOf(f.id) >= 0) {
+          if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + TALKS.CONST.CAPTAIN_STRESS);
+          continue;
+        }
+        const target = board ? toward[f.id] : mean;
+        if (target == null) continue;
+        const l = loyOf(f);
+        f.loyalty = Math.max(0, Math.min(100, l + (target - l) * TALKS.CONST.CAPTAIN_SWAY));
+      }
+    }
+    if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
+    /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
+    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
        block toward their ceiling whether or not anybody watches. Green-gated like the
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
@@ -1753,7 +1932,7 @@
       let drifted = false;
       for (const k of CONST.MIND)
         if (f.stats[k] < cap - CONST.TRAIN_GREEN_GAP) {
-          f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN * CONST.TRAIN_BASELINE);
+          f.stats[k] = Math.min(cap, f.stats[k] + CONST.TRAIN_GAIN * CONST.TRAIN_BASELINE * STAFF.drillFor(corp, k).yield);   /* §STAFF a drillmaster works every day */
           drifted = true;
         }
       if (drifted && f.condition)
@@ -1774,8 +1953,31 @@
        through the function a human would use; this is the other half of that bargain. */
     const focus = wanted ? validateFocus(corp, month, wanted)
                          : chooseFocus(corp, month);
+    if (CENSUS) CENSUS(corp.id, 'focus', { month, focus, engine: !wanted });   /* §CENSUS what a seat spent its month on */
+    /* §STANDING a strike stood the drill idle this month: whatever was painted on it goes unspent */
+    if (corp._noDrill === (season || 0) * 100 + month) delete focus.train;
+    /* §TALKS THE MONTH'S WORD, before the work it may sharpen or blunt. A person's rides their
+       choices; the engine chooses its own by the same rules. A request for a word answered
+       earlier this month has already had it. */
+    const talkAbs = (season || 0) * 100 + month;
+    const talkWant = wanted ? wanted.talk
+      : TALKS.aiTalk(corp, { abs: talkAbs, captains: caps, promisable: promisable(month),
+                             drilled: focus.train ? new Set(aliveOf(corp).map(f => f.id)) : null });
+    const talked = holdTalk(corp, talkWant, season || 0, month, landedOut);
+    if (talked) tally.talks = (tally.talks || 0) + 1;
+    /* §STAFF the engine's Sergeant has their word too; a person sends theirs from the sheet */
+    if (!wanted) {
+      const sgWho = aiSergeant(corp, month, season || 0);
+      if (sgWho) {
+        const sg = STAFF.sergeantTalk(corp), fw = aliveOf(corp).find(x => x.id === sgWho);
+        const r = fw && TALKS.talk(corp, fw, sg.kind, { abs: talkAbs, season: season || 0, captains: caps, roster: aliveOf(corp),
+                                                       squad: squadOfCaptain(corp, fw.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+        if (r) sg.st.record.talks = (sg.st.record.talks || 0) + 1;
+      }
+    }
+    staffMonth(corp, month, season || 0, corps, landedOut, !wanted);
     for (const kind in focus) {
-      if (kind === '_boost' || kind === 'trainTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
+      if (kind === '_boost' || kind === 'trainTarget' || kind === 'restTarget' || kind === 'intelTarget' || kind === 'courtTarget') continue;   /* riders, not tracks */
       const fpts = focus[kind];
       if (!fpts) continue;
       /* BOOST rides the focus map as `_boost: { track: true }`. Where set on a non-purchase
@@ -1797,6 +1999,10 @@
       const third = fpts / 3 * mult;     /* three focus = one old act, ruled; boost doubles it */
       tally.focus += fpts;
       tally.acts[kind] = (tally.acts[kind] || 0) + fpts;
+      /* §STANDING THE STANDS SEE THE YEAR'S WORK: a hard drill pleases the Tacticians and the Bloodhounds and wears on
+         the Families, rest the reverse, a scouting party the Tacticians, courting a backer the Fairweathers */
+      const SEEN = { train: 'drilled_hard', rest: 'rested_them', scout: 'scouted', court: 'courted' };
+      if (corp.rep && SEEN[kind]) REP.act(corp.rep, SEEN[kind], { count: fpts });
       const a = { kind: kind };
       if (a.kind === 'rest') {
         /* --- THE RECOVERY GRID. Two tracks per body — `wounds` and `stress` — painted at
@@ -1844,9 +2050,10 @@
               /* §SPONSORS a backer's ward mends faster, for good: `med_recovery` is a standing
                  the OA keeps, so every month of every later career is treated in it */
               const ward = 1 + SPON.standingValue(corp, 'med_recovery');
-              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward;
+              const room = 100 - have, want = CONST.WOUND_FOCUS * wB * ward * STAFF.surgeonFor(corp).focus;
               setWound(f, have + Math.min(room, want));
               if (woundOf(f) >= 100 && f.status === 'injured') f.status = 'active';
+              settleWounds(f);
               tally.treated++;
               /* whatever the effort could have mended and found nothing to mend */
               const spare = Math.max(0, want - room);
@@ -1906,7 +2113,8 @@
              simply not learning, which is the cost of fielding a broken hand. */
           if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
           const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
-                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1);
+                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1)
+                      * TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -1926,6 +2134,8 @@
             gain += w(map.cell[f.id + ':' + k] || 0, CONST.TRAIN_W_CELL);
             if (gain <= 0) continue;
             gain *= learn;                       /* §QUIRKS a quick study, and the mentored young */
+            gain *= STAFF.drillFor(corp, k).yield;   /* §STAFF the drillmaster, best in what they were best at */
+            if (corp.staff && corp.staff.posts && corp.staff.posts.drill) corp.staff.posts.drill.record.gains = (corp.staff.posts.drill.record.gains || 0) + gain;
             store[k] = Math.min(cap, cur + gain);
             if (k === 'aim') trainCarried(f, gain, cap);
             tally.trained++;
@@ -1933,7 +2143,7 @@
           }
           if (drilled && f.condition)
             f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) +
-                                          CONST.TRAIN_STRESS_FOCUS * third);
+                                          CONST.TRAIN_STRESS_FOCUS * third * STAFF.drillFor(corp, 'aim').strain);
         }
       } else if (a.kind === 'scout') {
         /* GATHER INTEL. Focus is painted PER TARGET — the planet and any rivals — so the
@@ -1951,22 +2161,26 @@
            Absent a map, a bare scout falls to the planet with all its focus. */
         const perPip = (focus._boost && focus._boost.scout)
           ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
-        const map = (wanted && wanted.intelTarget && typeof wanted.intelTarget === 'object'
-                     && !wanted.intelTarget.target)
-          ? wanted.intelTarget : { planet: fpts };   /* legacy/bare scout → all on the planet */
+        const asked = wanted ? wanted.intelTarget : focus.intelTarget;   /* §CENSUS the engine paints its own map */
+        const map = (asked && typeof asked === 'object' && !asked.target)
+          ? asked : { planet: fpts };   /* legacy/bare scout → all on the planet */
         const intelNow = ensureIntel(corp, season || 0);
         const absMonth = (season || 0) * 100 + month;
         let anyGathered = false;
         for (const key in map) {
           const pips = map[key] || 0;
           if (pips <= 0) continue;
-          const levels = pips * perPip;
+          /* §STANDING a warm Tacticians faction sends its own eyes; and a loved OA is written about, so a rival looking
+             at it finds more (fame cuts both ways) */
+          let levels = pips * perPip * (1 + Math.max(0, factionLean(corp, 'tacticians')) * CONST.TACTICIANS_INTEL);
           if (key !== 'planet' && corps && corps[key]) {
             const them = corps[key];
+            levels *= 1 + Math.max(0, crowdLean(them)) * CONST.FAME_WATCHED;
+            levels = Math.round(levels);
             gatherIntel(corp, 'rival', key, levels, absMonth,
                         (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
           } else {
-            gatherIntel(corp, 'planet', null, levels, absMonth, null);
+            gatherIntel(corp, 'planet', null, Math.round(levels), absMonth, null);
           }
           anyGathered = true;
         }
@@ -1988,7 +2202,7 @@
           for (const house in map) {
             const pips = map[house] || 0;
             if (pips <= 0) continue;
-            SPON.court(corp, house, pips);
+            SPON.court(corp, house, pips * STAFF.courtMult(corp));   /* §STAFF a fixer's introductions */
             tally.courted = (tally.courted || 0) + 1;
           }
         }
@@ -2058,7 +2272,7 @@
         f.condition.injuries = inj.filter(w => {
           if (w.careerEnding) { careerEnding = true; return true; }
           if (w.permanent) { permanent++; return true; }
-          return w.days_remaining > 0;
+          return woundOf(f) < 100;   /* §WOUNDS the number is the state: a whole body carries no wound */
         });
         out.injured += f.condition.injuries.length ? 1 : 0;
         if (careerEnding) { f.retired = true; f.status = 'retired'; out.retired.push(f); continue; }
@@ -2103,9 +2317,11 @@
    * exactly what the first chain did. A poor corp signs fewer, so the difficulty gradient
    * shows up in PEOPLE as well as in money.
    */
-  function recruit(rng, corp) {
+  function recruit(rng, corp, person) {
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const target = Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
+    /* §SEATS (ruled) THE FLOOR IS A RULE; THE REST OF A ROSTER IS A CHOICE. This filled every seat to the engine's
+       target with strangers and the seat's own money; a person's roster is filled only to the muster minimum. */
+    const target = person ? CONST.ROSTER_MIN : Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
     /* what this corp can actually afford to sign and then pay for a year */
@@ -2151,6 +2367,9 @@
      for less to stay; one who does not asks for more, and asks for a lot more if he is only
      here for the wage. This is where `loyalty_cap_reduced` becomes a consequence rather than a
      system: a fighter who can never be fully loyal simply never reaches the discount. */
+  /* §STANDING the crowd as −1..1 about indifference, and a faction's share-weighted lean, for the payoffs */
+  function crowdLean(c) { return c && c.rep ? (REP.standing(c.rep, 'crowd') - 50) / 50 : 0; }
+  function factionLean(c, f) { return c && c.rep ? (c.rep.shares[f] || 0) * (REP.standing(c.rep, f) - 50) / 50 : 0; }
   function loyaltyOf(state, f) {
     let l = f.loyalty == null ? 50 : f.loyalty;
     if (state && EVENTS.fighterHas(state, f, 'loyalty_cap_reduced'))
@@ -2162,7 +2381,11 @@
     const fame = (f.fame || 0) - (f._fameAtSigning || 0);
     /* 50 is indifferent; the pull runs either way from there */
     const pull = 1 - ((loyaltyOf(state, f) - 50) / 50) * CONST.RENEWAL_LOYALTY_PULL;
-    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull));
+    /* §TALKS a hand dressed down against their temper remembers it when the paper comes round */
+    const grudge = f._grudge ? TALKS.CONST.GRUDGE_RENEWAL : 1;
+    /* §STAFF and one a sergeant talked up has been told what they are worth */
+    const talkedUp = 1 + (f._talkedUp || 0) * TALKS.CONST.UP_RENEWAL;
+    return Math.max(1, Math.round(base * (1 + CONST.RENEWAL_FAME_PULL * (fame / 100)) * pull * grudge * talkedUp));
   }
 
   /**
@@ -2223,8 +2446,8 @@
     /* The freed choose first, because whether they stay changes what the wage bill is.
        A corp its own ships think well of is a corp a released prisoner signs with again. */
     for (const f of (freed || [])) {
-      const own = corp.rep ? REP.standing(corp.rep, 'own') : 0;
-      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, own / 100)));
+      const own = corp.rep ? REP.standing(corp.rep, 'crowd') : 50;
+      const p = CONST.FREED_RESIGN_BASE * (1 + 0.6 * Math.max(-1, Math.min(1, (own - 50) / 50)));
       if (rng() < p) {
         f.status = 'active';
         f.contract = f.contract || {};
@@ -2253,9 +2476,25 @@
       let headroom = staying.length + expiring.length - CONST.ROSTER_MIN;
       /* §RESIGN a manager's own calls stand before the arithmetic does */
       const calls = corp._renewalCalls || {};
+      /* §CENSUS AN ENGINE OA SITS AT THE TABLE TOO. It paid every ask it could afford and released only when it could
+         not; it never haggled and never let a hand go by choice. Now it makes the calls a person makes: a careful house
+         offers under the ask (and may lose the hand over it), and one with a deep roster lets its weakest walk. */
+      const engineCalls = {};
+      if (state && !isHuman(state, corp.id)) {
+        const d = (corp.profile && corp.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const order = aliveOf(corp).filter(x => !x.mirror_of).sort((a, b) => worth(b) - worth(a));
+        let spareHeads = headroom;
+        for (const f of expiring) {
+          if (calls[f.id]) continue;
+          const r = order.length ? (order.indexOf(f) + 1) / order.length : 0;
+          if (spareHeads > 2 && r > 0.8 && dial('tradition') < 0.6) { engineCalls[f.id] = { how: 'release' }; spareHeads--; continue; }
+          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round(renewalSalary(f, state) * (1 - 0.3 * (dial('thrift') - 0.4))) };
+        }
+      }
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
         if (gone.indexOf(f) >= 0) continue;
-        const call = calls[f.id];
+        const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
           const asked = renewalSalary(f, state);
@@ -2276,7 +2515,7 @@
             const over = Math.min(1, (paying - asked) / Math.max(1, asked));
             f.loyalty = Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + Math.round(over * CONST.OVER_ASK_LOYALTY));
           }
-          f.contract.salary = paying;
+          f.contract.salary = paying; delete f._grudge; delete f._talkedUp;   /* §TALKS the paper is settled, and so is what it carried */
           /* §PAPER THE TERM WAS NEVER RENEWED. A hand the manager re-signed kept the contract
              that had just run out — `seasons_remaining` at zero — so the offseason expired him
              again the next year, every year, and `fitBodies` had a man with no paper standing
@@ -2295,7 +2534,7 @@
         const year = ask * LED.CONST.SALARY_MONTHS;
         if (year <= budget || headroom <= 0) {
           budget -= year;
-          f.contract.salary = ask;
+          f.contract.salary = ask; delete f._grudge; delete f._talkedUp;
           f.contract.seasons_remaining = renewalTerm(f);
         f.contract.seasons_total = renewalTerm(f);
           f._fameAtSigning = f.fame || 0;
@@ -2305,6 +2544,12 @@
       }
     }
 
+    /* §STANDING the stands watch who leaves: a long-served hand let go is felt, a star grave to the Diehards */
+    if (corp.rep) for (const f of gone) {
+      const years = f.seasonsHere || f.divides || 0;
+      if (years >= 1 || (f.fame || 0) >= 20)
+        REP.act(corp.rep, 'let_a_veteran_go', { scale: Math.min(1, years / 6 + (f.fame || 0) / 120), grave: (f.fame || 0) >= 60 || years >= 5 });
+    }
     if (gone.length) corp.roster = corp.roster.filter(f => gone.indexOf(f) < 0);
     return out;
   }
@@ -2384,8 +2629,17 @@
        the ruling describes, made by culture through `lockLean`. */
     const lean = opts.lean || lockLean(corp);
     const quality = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit) / 40;
+    /* §TALKS a place on the drop promised is a place on the drop, if they can stand */
+    const owed = new Set(TALKS.promisesOf(corp).filter(p => (p.kind === 'drop' || p.kind === 'lead') && p.status === 'open').map(p => p.fighterId));
+    /* §CENSUS A SCHEMER'S WORD IS WORTH WHAT IT COSTS. An engine OA kept every promise, however poor the hand it had
+       promised; a treacherous house now breaks the ones that would put its weakest on the ground, and pays for it with
+       the stands and the hand as a person would */
+    const dl = (corp.profile && corp.profile.dials) || {};
+    const treach = (typeof dl.treachery === 'number' ? dl.treachery : 50) / 100;
+    const qs = fit.map(quality).sort((a, b) => a - b), median = qs.length ? qs[Math.floor(qs.length / 2)] : 0;
+    const honours = f => !(treach >= 0.55 && quality(f) < median - (1 - treach) * 0.5);
     const score = f => {
-      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4;
+      let v = quality(f) + Math.min(3, (f.divides || 0)) * 0.4 + (owed.has(f.id) && honours(f) ? 100 : 0);
       /* an unserved term pulls its holder toward the drop — the corp bought the clause
          and the clause only advances on the ground; a served-out term stops pulling */
       if (f.contract && f.contract.divides_required != null) {
@@ -2513,7 +2767,9 @@
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
       /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
-      const ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      let ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
+      /* §FACILITIES a mercenary's own kit goes home with the mercenary, not into the rack */
+      if (f.ownKit && f.status !== 'dead') { const own = [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm]; ids = ids.filter(id => own.indexOf(id) < 0); }
       const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
       if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
       /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
@@ -2647,7 +2903,7 @@
      per reader) */
   function writeLetters(state) {
     if (!TRADE || !TRADE.tradingOpen(state.month)) return;
-    const rng = P.mulberry32(P.seedFrom('letters' + state.season + ':' + state.month));
+    const rng = rngOf(state, 'letters' + state.season + ':' + state.month);
     for (const toId of state.ids) {
       if (tradeLetters(state, toId).length) continue;
       const writers = state.ids.filter(id => id !== toId && !isHuman(state, id));
@@ -2669,9 +2925,17 @@
      (The landing-slot pick before the drop is the Drop.) */
   const DRAFT = { POOL: 16, ROUNDS: 2, SPREAD: 1.8, SEASONS: 2 };
   function draftScore(f) { const st = f.stats || {}; let t = 0; for (const k in st) t += st[k] || 0; return t; }
+  /* what a house looks for in a rookie: every stat counts, and its character counts some twice */
+  function draftTaste(c) {
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const w = { aim: 1 + dial('aggression') * 0.8, grit: 1 + dial('aggression') * 0.5, tactics: 1 + dial('tradition') * 0.8,
+                resolve: 1 + dial('patience') * 0.6, presence: 1 + dial('showmanship') * 0.8, fieldcraft: 1 + dial('treachery') * 0.6,
+                reflex: 1.2 };
+    return f => { const st = f.stats || {}; let t = 0; for (const k in st) t += (st[k] || 0) * (w[k] || 1); return t; };
+  }
   function openRecruitDraft(state) {
-    const ws = state.corps[state.ids[0]] && state.corps[state.ids[0]]._worldSeed;
-    const rng = P.mulberry32(P.seedFrom('recruit-draft' + state.season + ':' + (ws || 0)));
+    const rng = rngOf(state, 'recruit-draft' + state.season);
     /* sixteen BEINGS: a Mon-Wa pair is one being in two records (a lead and its mirror), one pick, and never split */
     const pool = ROSTER.generateSquad(rng, DRAFT.POOL, { corpId: null, poolMix: [['nattie', 1]] }).bodies;
     const keys = Object.keys((pool[0] && pool[0].stats) || {});
@@ -2728,8 +2992,12 @@
       if (!best) { R.done = true; break; }
       if (isHuman(state, who)) {
         if (!(opts && opts.force)) break;
-        takeDraftee(state, who, best, 'assigned');
-      } else takeDraftee(state, who, best, 'policy');
+        takeDraftee(state, who, best, 'assigned');   /* an unmade pick is the Aleas' rule: the best left */
+      } else {
+        /* §CENSUS an engine OA drafts to its own taste, not the one sort every house used */
+        const taste = draftTaste(state.corps[who]);
+        takeDraftee(state, who, draftLeads(R).sort((a, b) => taste(b) - taste(a))[0], 'policy');
+      }
     }
     return R;
   }
@@ -2755,8 +3023,11 @@
       ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
                                       if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
-                               : offseason(P.mulberry32(P.seedFrom('off' + season + id)), c);
+                               : offseason(rngOf(corps, 'off' + season + id), c);
       c._off = off;
+      /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
+      c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
+      c._staffPaid = 0;
     }
 
     /* ---- THE PREP CALENDAR, M1-M11 (S16) ----
@@ -2815,18 +3086,26 @@
        carried on the corps so a save rebuilds the same planet, and every year's planet is
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
-    for (const id of ids) corps[id]._worldSeed = worldSeed;
-    const planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + season + ':' + worldSeed)), {});
+    for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
+    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
-    planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + season)), planet.archetype, planet.richness);
+    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    /* §STANDING each house watches the others with the taste of the stands it has now */
+    for (const id of ids) {
+      const c = corps[id];
+      if (!c.rep) continue;
+      const tastes = {};
+      for (const oid of ids) if (oid !== id && corps[oid].rep) tastes[oid] = REP.tasteOf(corps[oid].rep);
+      REP.setHouseTastes(c.rep, tastes);
+    }
     for (const id of ids) {
       const c = corps[id];
       if (!c.rep) continue;
       REP.openSeason(c.rep, planet,
-                     P.mulberry32(P.seedFrom('goal' + season + id)),
+                     rngOf(corps, 'goal' + season + id),
                      { expect: Math.max(2, 3 + ((c.profile || {}).difficulty || 3)),
                        thinTreasury: ((c.profile || {}).finance || {}).treasury_band === 'low',
                        lastPlace: c._lastPlace || null });      /* §SNOWBALL the champion's board raises the bar */
@@ -2835,6 +3114,8 @@
     const seats = humansOf(opts);
     const state = {
       rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      /* the drop's floor and what the board charges in patience to fill it, for the dispatch that warns of it */
+      rosterMin: CONST.ROSTER_MIN, scrapePatience: CONST.SCRAPE_PATIENCE,
       /* §CONTROLLER who holds each seat: a person, or the engine */
       controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
@@ -2848,6 +3129,15 @@
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
     ensureLot(state);
+    openCaptains(state);                /* §TALKS the year opens with its captains named */
+    staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
+    /* §FACILITIES a build ordered last year's end stands as this one opens; the engine starts its own */
+    for (const id of state.ids) {
+      const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
+      c._doctrineCap = (ITEMS.doctrineForCorp(id) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
+      if (!isHuman(state, id)) aiBuild(c, state);
+    }
+    for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id, { renew: true }); }
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
@@ -2882,13 +3172,13 @@
          the refresh is a different year of the same ship. */
       const byCorp = {};
       for (const id of state.ids)
-        byCorp[id] = openLot(P.mulberry32(P.seedFrom(seed + id)), kind, id, win.pool, state.corps[id]);
+        byCorp[id] = openLot(rngOf(state, seed + id), kind, id, win.pool, state.corps[id]);
       state.lots[kind] = byCorp;
       return;
     }
     /* the shared markets: a fresh lot, and in the second month whoever nobody took in the
        first, still there at a markdown */
-    const fresh = openLot(P.mulberry32(P.seedFrom(seed)), kind, null, win.pool);
+    const fresh = openLot(rngOf(state, seed), kind, null, win.pool);
     const carried = (win.pool === 'second' && state.carry && state.carry[kind]) || [];
     for (const f of carried) {
       if (f.contract && f.contract.salary && !f._carried) f.contract.salary = Math.round(f.contract.salary * CONST.CARRY_MARKDOWN);
@@ -2963,7 +3253,8 @@
       freedomReq: f.contract && f.contract.divides_required,
       record: f.experience || null,
       pool: f._pool || null,
-      carried: !!f._carried
+      carried: !!f._carried,
+      ownKit: f.ownKit || null   /* §FACILITIES a mercenary's own gear, which is part of what the price buys */
       };
       return kind === 'bastille' ? apparentOnly(rec, f) : rec;
     });
@@ -2995,7 +3286,11 @@
     let lot = state.lots[kind]; if (lot && lot[corpId]) lot = lot[corpId];
     const f = (lot || []).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not on the Sheet' };
-    const year = askingPrice(f, c) * LED.CONST.SALARY_MONTHS;
+    /* §PAPER A NATTIE SIGNS FLAT (ruled): the listed wage for the listed years, paid month by month with the rest of
+       the retainers, and no fee — which is what the engine's seats pay at the same window (`runTryouts`). The desk
+       charged `askingPrice × SALARY_MONTHS` on signing: askingPrice is already a year's figure, so a manager paid
+       twelve years' wages up front for a three-year contract and the engine paid nothing. */
+    const year = askingPrice(f, c);
     if (signingBudget(c) < year) return { ok: false, why: 'The Money Is Not There' };
     /* off the sheet and onto the roster, this moment */
     const idx = lot.indexOf(f); if (idx >= 0) lot.splice(idx, 1);
@@ -3007,8 +3302,8 @@
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
     c.roster.push(f);
-    LED.post(c.account, 'expense', 'A Contract Signed', -year);
-    return { ok: true, name: f.name, cost: year };
+    if (c.rep) REP.act(c.rep, 'signed_our_own', {});
+    return { ok: true, name: f.name, cost: 0, year: year };
   }
 
   /* ------------------------------------------------------------------------- the seam ---- */
@@ -3063,11 +3358,483 @@
   const SLOT_MIN = 48;
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
+    /* §SEATS a person's landings are their squad board's: as many as the squads they have filled (ruled). Read
+       fresh, never cached — the board can change until the Lock. With no board set, the formula stands in. */
+    if (isHuman(state, corpId)) {
+      const at = (c._seat && c._seat.plan && c._seat.plan.at) || {};
+      const alive = new Set(c.roster.filter(f => f.status === 'active').map(f => f.id));
+      const used = new Set(); for (const fid in at) if (alive.has(fid) && at[fid] != null) used.add(at[fid]);
+      if (used.size >= 2) return Math.min(DIVIDE.CONST.SQUADS_MAX || 6, used.size);
+    }
     if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
     const alive = c.roster.filter(f => f.status === 'active').length;
-    const n = DIVIDE.squadCountFor(alive, c.profile || {}, isHuman(state, corpId) ? (c._wantSquads || 0) : 0);
+    const n = DIVIDE.squadCountFor(alive, c.profile || {}, 0);
     c._squadPlan = { season: state.season, n };
     return n;
+  }
+
+  /* ============================================================ §TALKS CAPTAINS AND THE MONTH'S WORD
+     RULED: captains are named for the YEAR, not at the Lock alone. They lead in the Dividend and
+     the Divide (the Eight is one hand an OA, and has no captain of its own), their loyalty pulls
+     the roster's toward it month by month, and they carry a little more strain for it. Being
+     named is a promise — a squad to lead at the drop — so the naming is free until the year's
+     first month turns, and a captain stood down after that is a promise broken.
+     One talk a month, human or engine (talks.js). */
+  const EIGHT_MONTH = +Object.keys(MONTHS).find(k => MONTHS[k].event === 'eight');
+  function aliveOf(c) { return c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'); }
+  /* RULED: A CAPTAIN IS A SQUAD'S LEADER. There is one system: a person's squad board (`_seat.plan`
+     — who stands in which squad, and the star on who leads it) is where their captains are named,
+     all year, and the engine reads it from there. An engine seat has no board during the year, so
+     it names its own — as many as the squads it means to drop, the sharpest heads first. */
+  function yearPlan(corp) { return corp && corp._ownSquads && corp._seat && corp._seat.plan ? corp._seat.plan : null; }
+  function captainsOf(corp, season) {
+    if (!corp) return [];
+    const alive = new Set(aliveOf(corp).map(f => f.id));
+    if (corp._ownSquads) {
+      const plan = yearPlan(corp); if (!plan) return [];
+      return Object.keys(plan.leaderOf || {}).filter(id => plan.leaderOf[id] && plan.at && plan.at[id] != null && alive.has(id));
+    }
+    const k = corp.captains;
+    if (!k || k.season !== season) return [];
+    return k.ids.filter(id => alive.has(id));
+  }
+  /** who stands under a captain this year: their squad on the board, or null where there is no board */
+  function squadOfCaptain(corp, capId) {
+    const plan = yearPlan(corp);
+    if (!plan || !plan.at || plan.at[capId] == null) return null;
+    const si = plan.at[capId];
+    return aliveOf(corp).filter(f => f.id !== capId && plan.at[f.id] === si);
+  }
+  function pickCaptains(corp, n) {
+    /* §CENSUS who a house trusts to lead: the head for it first, then what the house prizes — a traditional house
+       its loyal and its long-served, a showman its famous, a hard one its toughest */
+    const d = (corp.profile && corp.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    const score = f => (f.stats.tactics || 0) + (f.stats.presence || 0) * 0.5
+      + ((f.loyalty == null ? 50 : f.loyalty) - 50) * dial('tradition') * 0.8 + (f.divides || 0) * 6 * dial('tradition')
+      + (f.fame || 0) * dial('showmanship') * 0.6 + (f.stats.grit || 0) * dial('aggression') * 0.3;
+    return aliveOf(corp).filter(f => f.status === 'active' && !f.mirror_of)
+      .sort((a, b) => score(b) - score(a)).slice(0, n).map(f => f.id);
+  }
+  /** the year opens: a person's captains are their board's stars; the engine names its own */
+  function openCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      c._ownSquads = isHuman(state, id);
+      c.captains = { season: state.season, ids: c._ownSquads ? [] : pickCaptains(c, Math.min(6, squadPlanFor(state, id))), promised: false };
+      if (c._ownSquads) c.captains.ids = captainsOf(c, state.season);
+    }
+  }
+  function appointed(c, fid, state) {
+    const f = c.roster.find(x => x.id === fid); if (!f) return;
+    f.loyalty = Math.max(0, Math.min(100, (f.loyalty == null ? 50 : f.loyalty) + TALKS.CONST.CAPTAIN_NAMED_LOYALTY));
+    TALKS.makePromise(c, f, 'lead', state.season, state.season * 100 + state.month, 'captain');
+  }
+  /** Each month turns: whoever leads now is owed their squad. The first turn names the year's
+      captains (free until then); after it, a star taken away is a promise broken. */
+  function reconcileCaptains(state) {
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      const k = c.captains && c.captains.season === state.season ? c.captains
+              : (c.captains = { season: state.season, ids: [], promised: false });
+      const now = captainsOf(c, state.season);
+      if (!k.promised) { k.promised = true; for (const fid of now) appointed(c, fid, state); k.ids = now; continue; }
+      for (const fid of k.ids) if (now.indexOf(fid) < 0) {
+        const f = c.roster.find(x => x.id === fid);
+        const gone = !f || f.status === 'dead' || f.status === 'retired' || f.status === 'captured';
+        const p = f && TALKS.openPromise(c, f, 'lead', state.season);
+        if (p && p.source === 'captain') {
+          TALKS.settlePromise(c, p, gone ? 'void' : 'broken', gone ? null : f);
+          if (!gone) (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: f.name, kind: 'lead', outcome: 'broken' });
+        }
+      }
+      for (const fid of now) if (k.ids.indexOf(fid) < 0) appointed(c, fid, state);
+      k.ids = now;
+    }
+  }
+
+  /* ============================================================ §STAFF THE BACKROOM
+     Six posts at home (staff.js holds the numbers). Here: who can be appointed, hired and
+     poached, what each post does to the month, and the engine's own hiring — the same verbs a
+     person has, called the same way. Nobody on the staff goes into the Divide. */
+  function staffPoolOf(state) {
+    if (!state.staffPool || state.staffPool.season !== state.season)
+      state.staffPool = { season: state.season, list: STAFF.specialistPool(state.season, worldOf(state)) };
+    return state.staffPool.list;
+  }
+  /** who of your own could take a post: anyone standing on the roster (not half of a pair), and this year's retirees */
+  function ownCandidates(corp) {
+    const out = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !f.mirror_of && !f.bond_partner);
+    for (const f of ((corp._off && corp._off.retired) || [])) if (f && f.status === 'retired' && !f._released && !f._staffed && !f.mirror_of && !f.bond_partner) out.push(f);
+    return out;
+  }
+  function regardOf(corp, houseId) { return corp.rep ? REP.standing(corp.rep, 'house', houseId) : 50; }
+  /** the Backroom as one OA sees it: its posts, and every candidate — its own exactly, strangers as a range */
+  function backroomFor(state, corpId) {
+    const c = state.corps[corpId]; if (!c) return null;
+    const o = STAFF.office(c);
+    const own = ownCandidates(c).map(f => ({ id: f.id, name: f.name, race: f.race, age: f.age, retiring: f.status === 'retired',
+                                             craft: STAFF.veteranCraft(f), f }));
+    const spec = staffPoolOf(state).map(st => {
+      const est = {}; for (const p of STAFF.POSTS) est[p] = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_SPEC);
+      return { st, est, wage: st.wage };
+    });
+    const rivals = [];
+    for (const id of state.ids) {
+      if (id === corpId) continue;
+      const them = state.corps[id], ro = STAFF.office(them);
+      for (const p of STAFF.POSTS) {
+        const st = ro.posts[p]; if (!st) continue;
+        const est = STAFF.estimate(st, p, STAFF.CONST.ESTIMATE_RIVAL);
+        rivals.push({ from: id, post: p, st, est, fee: STAFF.feeOf(st), wage: Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10,
+                      willing: STAFF.willing(st, regardOf(c, id)) });
+      }
+    }
+    return { posts: o.posts, own, spec, rivals };
+  }
+  function prepOpen(state) { return !state.done && state.month <= CONST.PREP_MONTHS; }
+  /** a fighter leaves the line for a post. No going back. */
+  function appoint(state, corpId, fighterId, post) {
+    const c = state.corps[corpId];
+    if (!c || STAFF.POSTS.indexOf(post) < 0) return { ok: false, why: 'No Such Post' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
+    const f = ownCandidates(c).find(x => x.id === fighterId);
+    if (!f) return { ok: false, why: 'Not One of Yours' };
+    const st = STAFF.fromFighter(f, post);
+    o.posts[post] = st;
+    const i = c.roster.indexOf(f);
+    if (i >= 0) c.roster.splice(i, 1);
+    else f._staffed = true;
+    const plan = c._seat && c._seat.plan;
+    if (plan) { if (plan.at) delete plan.at[f.id]; if (plan.leaderOf) delete plan.leaderOf[f.id]; if (plan.hand) delete plan.hand[f.id]; }
+    if (state.eight && state.eight.names && state.eight.names[corpId] === f.id) delete state.eight.names[corpId];
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  function hireSpecialist(state, corpId, specId, post) {
+    const c = state.corps[corpId];
+    if (!c) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const pool = staffPoolOf(state), st = pool.find(x => x.id === specId);
+    if (!st) return { ok: false, why: 'Already Taken' };
+    post = post || st.specialty;
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'The Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
+    pool.splice(pool.indexOf(st), 1);
+    st.post = post; st.school = STAFF.schoolFor(st, post);
+    st.wage = STAFF.wageFor(st.craft[post], 'specialist');
+    o.posts[post] = st;
+    applySpin(c);
+    return { ok: true, staffer: st };
+  }
+  /** pay a house's release fee and take its staffer, if they will come */
+  function poach(state, corpId, fromId, post) {
+    const c = state.corps[corpId], them = state.corps[fromId];
+    if (!c || !them || corpId === fromId) return { ok: false, why: 'No Such OA' };
+    if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
+    const st = STAFF.holder(them, post);
+    if (!st) return { ok: false, why: 'Nobody in That Post' };
+    const o = STAFF.office(c);
+    if (o.posts[post]) return { ok: false, why: 'Your Post Is Held' };
+    if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
+    if (!STAFF.willing(st, regardOf(c, fromId))) return { ok: false, why: 'They Will Not Come' };
+    const fee = STAFF.feeOf(st);
+    if ((c.account.treasury || 0) < fee) return { ok: false, why: 'Not Enough in the Treasury' };
+    LED.post(c.account, 'expense', 'A Release Fee', -fee);
+    LED.post(them.account, 'income', 'A Release Fee', fee);
+    STAFF.office(them).posts[post] = null;
+    STAFF.office(them).gone.push({ name: st.name, post, why: 'poached', by: corpId, season: state.season });
+    st.wage = Math.round(st.wage * STAFF.CONST.POACH_RAISE / 10) * 10;
+    st.loyalty = 50; st.term = st.origin === 'specialist' ? STAFF.CONST.SPEC_TERM : STAFF.CONST.VET_TERM;
+    st.years = Object.assign({}, st.years); st.from = fromId;
+    o.posts[post] = st;
+    if (c.rep) REP.act(c.rep, 'poached_staff', { targetId: fromId });
+    /* they know their old house, and go on telling you a while */
+    ensureIntel(c, state.season || 0);
+    gatherIntel(c, 'rival', fromId, STAFF.CONST.POACH_INTEL_LEVELS, state.season * 100 + state.month,
+                (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
+    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: state.season * 100 + state.month + STAFF.CONST.POACH_INTEL_MONTHS });
+    applySpin(c); applySpin(them);
+    return { ok: true, staffer: st, fee };
+  }
+  function letStaffGo(state, corpId, post) {
+    const c = state.corps[corpId]; const o = c && STAFF.office(c);
+    if (!o || !o.posts[post]) return { ok: false, why: 'Nobody in That Post' };
+    o.gone.push({ name: o.posts[post].name, post, why: 'let go', season: state.season });
+    o.posts[post] = null; applySpin(c);
+    return { ok: true };
+  }
+  function renewStaff(state, corpId, post, yes) {
+    const c = state.corps[corpId]; if (!c) return { ok: false };
+    const done = STAFF.renew(c, post, !!yes); applySpin(c);
+    return { ok: done };
+  }
+  /** the Fixer's hand on how the stands hear this OA */
+  function applySpin(c) { if (c && c.rep) c.rep._spin = STAFF.spin(c); }
+  /** the Sergeant's free word: the person is the manager's choice, the talk is the Sergeant's */
+  function sergeantNow(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const sg = STAFF.sergeantTalk(c); if (!sg) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._sgtTalked && c._sgtTalked.abs === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId); if (!f) return null;
+    const res = TALKS.talk(c, f, sg.kind, { abs, season: state.season, captains: captainsOf(c, state.season), roster: aliveOf(c),
+                                            squad: squadOfCaptain(c, f.id), by: 'sergeant', byName: sg.st.name, scale: sg.scale });
+    if (res) { sg.st.record.talks = (sg.st.record.talks || 0) + 1; }
+    return res;
+  }
+  function sergeantPreview(state, corpId, fighterId) {
+    const c = state.corps[corpId], sg = c && STAFF.sergeantTalk(c);
+    const f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!sg || !f) return null;
+    const pv = TALKS.preview(f, sg.kind, state.season * 100 + state.month);
+    pv.loyalty = Math.round(pv.loyalty * sg.scale); pv.stress = Math.round(pv.stress * sg.scale);
+    if (pv.drill !== 1) pv.drill = 1 + (pv.drill - 1) * sg.scale;
+    return Object.assign(pv, { sergeant: sg.st.name, talk: sg.name });
+  }
+  /** a Cutter operates on a crippled hand: whole, dead, or no better. Once a month. */
+  function operate(state, corpId, fighterId) {
+    const c = state.corps[corpId];
+    if (!c || !prepOpen(state)) return null;
+    const odds = STAFF.operateOdds(c); if (!odds) return null;
+    const abs = state.season * 100 + state.month;
+    if (c._operated === abs) return null;
+    const f = aliveOf(c).find(x => x.id === fighterId);
+    if (!f || woundBand(f) !== 'crippled') return null;
+    c._operated = abs;
+    const r = rngOf(state, 'operate' + abs + f.id)();
+    const sg = STAFF.holder(c, 'surgeon');
+    if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
+      sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
+    if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
+      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
+      sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
+    return { outcome: 'none', line: sg.name + ' Could Do Nothing for ' + f.name };
+  }
+  function setMole(state, corpId, targetId) {
+    const c = state.corps[corpId], sp = c && STAFF.holder(c, 'spymaster');
+    if (!sp || sp.school !== 'mole' || !state.corps[targetId] || targetId === corpId) return { ok: false };
+    if (!FAC.moleAllowed(c)) return { ok: false, why: 'Needs the Listening Post at Level 2' };
+    STAFF.office(c).mole = { target: targetId, season: state.season };
+    return { ok: true };
+  }
+
+  /* the backroom's month: the Spymaster's reports, a poached hand's old house, and a Nurse's calm */
+  function staffMonth(corp, month, season, corps, landedOut, isAI) {
+    const abs = (season || 0) * 100 + month;
+    applySpin(corp);
+    const sp = STAFF.eff(corp, 'spymaster');
+    if (sp.st && month <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      if (sp.school === 'watcher' || !FAC.moleAllowed(corp)) {   /* §FACILITIES a mole needs the Listening Post's second level */
+        const lv = Math.round(STAFF.CONST.WATCHER_LEVELS * sp.e);
+        if (lv > 0) {
+          const planetFull = INTEL_PLANET_ROWS.every(k => intelRow(corp._intel.planet, k).depth >= 3);
+          if (!planetFull) gatherIntel(corp, 'planet', null, lv, abs, null);
+          else {
+            const rid = Object.keys(corps || {}).filter(k => k !== corp.id).sort((a, b) => rivalPreparedness(corp, a, season || 0) - rivalPreparedness(corp, b, season || 0))[0];
+            if (rid) gatherIntel(corp, 'rival', rid, lv, abs, (rowKey, depth) => snapshotRival(corps[rid], rowKey, depth, season || 0));
+          }
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+        }
+      } else {
+        const o = STAFF.office(corp);
+        if (isAI && (!o.mole || o.mole.season !== season)) {
+          const best = Object.keys(corps || {}).filter(k => k !== corp.id && corps[k].rep)
+            .sort((a, b) => REP.standing(corps[b].rep, 'crowd') - REP.standing(corps[a].rep, 'crowd'))[0];
+          if (best) o.mole = { target: best, season };
+        }
+        const mo = o.mole;
+        if (mo && mo.season === season && corps[mo.target]) {
+          const them = corps[mo.target];
+          gatherIntel(corp, 'rival', mo.target, Math.round(STAFF.CONST.MOLE_LEVELS * sp.e) + 1, abs, (rowKey, depth) => snapshotRival(them, rowKey, depth, season || 0));
+          sp.st.record.reports = (sp.st.record.reports || 0) + 1;
+          if (rngOf(corp, 'mole' + abs + corp.id)() < STAFF.CONST.MOLE_EXPOSE * (1 - sp.e / 2)) {
+            if (corp.rep) REP.act(corp.rep, 'mole_exposed', { targetId: mo.target });
+            o.mole = null;
+            if (landedOut) landedOut.push({ kind: 'staff', text: 'Your Mole in ' + ((them.profile && them.profile.name) || mo.target) + ' Was Found' });
+          }
+        }
+      }
+    }
+    /* the engine's Cutter operates when the odds are good and the hand is worth it */
+    const odds = isAI && STAFF.operateOdds(corp);
+    if (odds && odds.live >= 0.6 && corp._operated !== abs) {
+      const f = aliveOf(corp).filter(x => woundBand(x) === 'crippled').sort((a, b) => draftScore(b) - draftScore(a))[0];
+      if (f) {
+        corp._operated = abs;
+        const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
+        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
+        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
+      }
+    }
+    const lp = FAC.listenLevels(corp);
+    if (lp && month <= CONST.PREP_MONTHS) {
+      ensureIntel(corp, season || 0);
+      gatherIntel(corp, 'planet', null, lp, abs, null);
+    }
+    if (corp._poachIntel && corp._poachIntel.length) {
+      corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
+      for (const x of corp._poachIntel) {
+        ensureIntel(corp, season || 0);
+        gatherIntel(corp, 'rival', x.from, STAFF.CONST.POACH_INTEL_MONTHLY, abs, (rowKey, depth) => snapshotRival(corps[x.from], rowKey, depth, season || 0));
+      }
+    }
+  }
+  /** the engine's Sergeant picks whom to speak to, by the talk it knows its Sergeant has */
+  function aiSergeant(corp, month, season) {
+    const sg = STAFF.sergeantTalk(corp); if (!sg) return null;
+    const abs = (season || 0) * 100 + month;
+    const alive = aliveOf(corp).filter(f => !f.mirror_of);
+    const loy = f => (f.loyalty == null ? 50 : f.loyalty), str = f => ((f.condition && f.condition.stress) || 0);
+    const ok = f => { TALKS.temperOf(f); const how = TALKS.landing(f, sg.kind, abs, !!f.temperKnown); return how !== 'backfired' && how !== 'faded'; };
+    const pool = alive.filter(ok);
+    if (!pool.length) return null;
+    let who;
+    if (sg.kind === 'hear') who = pool.filter(f => !f.temperKnown)[0] || pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'praise') who = pool.sort((a, b) => loy(a) - loy(b))[0];
+    else if (sg.kind === 'up') who = pool.filter(f => ((f.contract || {}).seasons_remaining || 0) >= 2).sort((a, b) => (a.age || 30) - (b.age || 30))[0];
+    else who = pool.filter(f => str(f) < 40).sort((a, b) => str(a) - str(b))[0];
+    return who ? who.id : null;
+  }
+  /** the engine hires the way a person would: its own veterans for the military posts, strangers
+      for the rest when it can pay them, and a rival's best when it is bold and rich enough */
+  function aiStaff(state, id, opts) {
+    const c = state.corps[id], o = STAFF.office(c);
+    const d = (c.profile && c.profile.dials) || {};
+    const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+    /* the year's renewals: keep whoever is worth what they ask */
+    if (!opts || opts.renew) for (const p of STAFF.POSTS) { const st = o.posts[p]; if (st && st.asking) STAFF.renew(c, p, STAFF.worthKeeping(st, p)); }
+    const purse = (c.account && c.account.treasury) || 0;
+    const spare = () => aliveOf(c).filter(f => !f.mirror_of).length - CONST.ROSTER_MIN;
+    for (const p of STAFF.POSTS) {
+      if (o.posts[p]) continue;
+      /* a veteran, if the roster can spare one who is past their best on the line */
+      /* who the line can spare: the retiring, and anyone outside the best the OA would drop */
+      const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+      const standing = aliveOf(c).filter(f => !f.mirror_of).sort((a, b) => q(b) - q(a));
+      const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
+      const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
+        .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
+      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => b.craft[p] - a.craft[p])[0];
+      const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
+      const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
+      if (vet && (!canSpec || vet.v >= spec.craft[p] - 15)) appoint(state, id, vet.f.id, p);
+      else if (canSpec) hireSpecialist(state, id, spec.id, p);
+    }
+    /* one poach a year, for a bold house with money to spare */
+    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.55 && purse > 100000) {
+      let best = null;
+      for (const oid of state.ids) {
+        if (oid === id) continue;
+        for (const p of STAFF.POSTS) {
+          const st = STAFF.holder(state.corps[oid], p); if (!st) continue;
+          if (o.posts[p]) continue;                 /* it poaches into an empty post, never over its own */
+          if (!STAFF.willing(st, regardOf(c, oid))) continue;
+          if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
+        }
+      }
+      if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.25) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
+    }
+  }
+
+  /* ============================================================ §FACILITIES THE GROUNDS
+     facilities.js holds the numbers. Here: a person builds from the Facilities page, the engine
+     from its temperament, both through `buildFacility`. */
+  function buildFacility(state, corpId, facId) {
+    const c = state.corps[corpId];
+    if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
+    if (state.done) return { ok: false, why: 'The Year Is Over' };
+    return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
+  }
+  /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
+  function aiBuild(c, state) {
+    const d = (c.profile && c.profile.dials) || {};
+    const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
+    const reserve = 60000 + 80000 * thrift;
+    const pick = FAC.aiChoose(c, reserve);
+    if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
+  }
+  /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
+     best, armour and a sidearm, at a tier set by how good they are — tier two to four, whatever the buyer's Armoury */
+  function mercKit(rng, f) {
+    const st = f.stats || {};
+    const q = ((st.aim || 0) + (st.tactics || 0) + (st.resolve || 0) + (st.grit || 0)) / 4;
+    const tier = Math.max(2, Math.min(4, Math.round(1 + q / 60 + (rng() - 0.5))));
+    const prims = ITEMS.bySlot('primary').filter(it => it.tier === tier && !it.exotic && !((it.effects.tags || []).indexOf('nonlethal') >= 0));
+    const sk = f.skills || {};
+    const typeOf = it => ITEMS.skillTypeOf(it);
+    prims.sort((a, b) => ((sk[typeOf(b)] || 0) - (sk[typeOf(a)] || 0)) || (a.cost - b.cost));
+    const gun = prims[0];
+    const arms = ITEMS.bySlot('armor').filter(it => it.tier === tier && !it.exotic);
+    const arm = arms[Math.floor(rng() * arms.length)];
+    const sides = ITEMS.bySlot('sidearm').filter(it => it.tier <= tier).sort((a, b) => b.tier - a.tier);
+    const side = sides[0];
+    if (!gun || !arm) return null;
+    return { primary: gun.id, armor: arm.id, sidearm: side ? side.id : null, tier };
+  }
+  /** what a promise can be of this month */
+  function promisable(month) { const k = ['drop', 'lead']; if (month <= EIGHT_MONTH) k.push('eight'); return k; }
+  /** The month's one talk, if it has not been had. `t` = { fighterId, kind, promise }. */
+  function holdTalk(corp, t, season, month, landedOut) {
+    const abs = (season || 0) * 100 + month;
+    if (!t || !TALKS || TALKS.talkedThisMonth(corp, abs)) return null;
+    const f = aliveOf(corp).find(x => x.id === t.fighterId);
+    if (!f) return null;
+    if (t.kind === 'promise' && promisable(month).indexOf(t.promise) < 0) return null;
+    const res = TALKS.talk(corp, f, t.kind, { abs, season: season || 0, promise: t.promise,
+                                              captains: captainsOf(corp, season || 0), roster: aliveOf(corp),
+                                              squad: squadOfCaptain(corp, f.id) });
+    if (res && landedOut) landedOut.push({ kind: 'talk', text: res.line, talk: res });
+    return res;
+  }
+  /** a person asks for a word: the month's talk, taken now (events.js) */
+  function talkNow(state, corpId, t) {
+    const c = state.corps[corpId];
+    if (!c || state.done || state.month > CONST.PREP_MONTHS) return null;
+    return holdTalk(c, t, state.season, state.month, null);
+  }
+  /** how the month's talk with somebody would land, as far as their manager can know */
+  function talkPreview(state, corpId, fighterId, kind, promise) {
+    const c = state.corps[corpId], f = c && aliveOf(c).find(x => x.id === fighterId);
+    if (!f) return null;
+    return TALKS.preview(f, kind, (state.season || 0) * 100 + state.month, promise);
+  }
+  /** The promises due at the drop come due: a place on it, and a squad to lead. Idempotent. */
+  function settleDropPromises(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id], p = per[id] || {};
+      const drop = new Set(((p.drop || c._drop) || []).map(f => f.id));
+      const caps = captainsOf(c, state.season);
+      const leads = new Set();
+      if (p.groups && p.groups.length) {
+        p.groups.forEach((g, i) => {
+          if (p.leaders && p.leaders[i]) { leads.add(p.leaders[i]); return; }
+          const inG = g.filter(x => caps.indexOf(x) >= 0);
+          if (inG.length) leads.add(inG.map(x => c.roster.find(f => f.id === x)).filter(Boolean)
+            .sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id);
+        });
+      } else for (const x of caps) if (drop.has(x)) leads.add(x);
+      for (const pr of TALKS.promisesOf(c)) {
+        if (pr.status !== 'open' || pr.season !== state.season) continue;
+        const f = c.roster.find(x => x.id === pr.fighterId);
+        const gone = !f || f.status === 'dead' || f.status === 'retired' || f.status === 'captured';
+        const unfit = !gone && !!(f.condition && (f.condition.injuries || []).length);
+        let out;
+        if (pr.kind === 'eight') out = 'void';          /* the Eight was fought without it being settled: nobody's doing */
+        else if (gone) out = 'void';
+        else if (pr.kind === 'drop') out = drop.has(f.id) ? 'kept' : unfit ? 'void' : 'broken';
+        else out = leads.has(f.id) ? 'kept' : (unfit && !drop.has(f.id)) ? 'void' : 'broken';
+        TALKS.settlePromise(c, pr, out, gone ? null : f);
+        (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: pr.name, kind: pr.kind, outcome: out });
+      }
+    }
   }
   function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
   function ensureDraft(state) {
@@ -3087,7 +3854,7 @@
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
-    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? REP.standing(c.rep, 'fleet') / 400 : 0);
+    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);
   }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
@@ -3131,6 +3898,10 @@
     state.opts = state.opts || {};
     state.opts.humans = seats; state.opts.human = seats[0] || null;
     if (state._divideOpts) { state._divideOpts.humans = seats.slice(); state._divideOpts.human = seats[0] || null; }
+    /* §TALKS a seat taken by a person keeps its captains on its squad board; one given to the engine names its own */
+    const c0 = state.corps[id];
+    c0._ownSquads = state.controllers[id] === 'human';
+    if (c0.captains && c0.captains.season === state.season) c0.captains.ids = captainsOf(c0, state.season);
     return { ok: true, humans: seats };
   }
   function waitingOn(state) { return state.ids.filter(id => isHuman(state, id) && !(state._submitted || {})[id]); }
@@ -3165,7 +3936,7 @@
       }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
-      const rng = P.mulberry32(P.seedFrom('draft' + state.season + who + D.round));
+      const rng = rngOf(state, 'draft' + state.season + who + D.round);
       let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
       if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
       draftPick(state, who, slot);
@@ -3181,16 +3952,8 @@
 
 
 
-  /** Perform, or don't. Paid in standing, charged in concealment. */
-  function attendMediaDay(state, corpId) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'Media Day Is the Week of the Drop' };
-    state.drop.media = state.drop.media || {};
-    if (state.drop.media[corpId]) return { ok: false, why: 'You Have Already Been' };
-    const r = PRE.mediaDay(state.corps[corpId]);
-    state.drop.media[corpId] = r;
-    return { ok: true, gain: r.gain, reveal: r.reveal };
-  }
-
+  /* §MEDIA media day is an event now (events.js `mediaCard`): every seat answers the same card in Month 11, a person at
+     the Desk and the engine by showmanship, and the answer writes `state.drop.media` for the drop to read. */
   /** What a given corp could do in the month the season is currently sitting on. */
   function optionsFor(state, corpId) {
     return monthTracks(state.corps[corpId], state.month);
@@ -3213,6 +3976,11 @@
     if (EVENTS && EVENTS.useTraitIndex) EVENTS.useTraitIndex(ROSTER && ROSTER.traitById);
     const m = state.month, win = MONTHS[m] || { name: 'Month ' + m, event: null };
     const spent = {}, landed = {}, eventsOut = {};
+    reconcileCaptains(state);   /* §TALKS the naming was free until now; a star taken away after it is a promise broken */
+    /* §FACILITIES what the builders finish this month stands from now */
+    const stood = {};
+    /* a build of N months started in month M stands as month M+N opens: it finishes at this month's end */
+    for (const id of state.ids) { const b = FAC.tick(state.corps[id], state.season, m + 1); if (b) stood[id] = b; }
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -3222,10 +3990,36 @@
         const ans = (choices && choices[id] && choices[id].events) || {};
         for (const evId in ans) EVENTS.answer(state, id, evId, ans[evId]);
         eventsOut[id] = EVENTS.settle(state, id, !isHuman(state, id));
+        /* §STANDING what the crowd's dispatches set: a supporter's papers read into the dossier, a leak into a rival's */
+        const cc = state.corps[id], absM = state.season * 100 + m;
+        ensureIntel(cc, state.season || 0);
+        if (cc._tipOn && state.corps[cc._tipOn]) {
+          const them = state.corps[cc._tipOn];
+          gatherIntel(cc, 'rival', cc._tipOn, CONST.CROWD_INTEL_LEVELS, absM, (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
+        }
+        if (cc._leakTo && state.corps[cc._leakTo]) {
+          const to = state.corps[cc._leakTo];
+          ensureIntel(to, state.season || 0);
+          gatherIntel(to, 'rival', id, CONST.CROWD_INTEL_LEVELS, absM, (rowKey, depth) => snapshotRival(cc, rowKey, depth, state.season || 0));
+        }
+        delete cc._tipOn; delete cc._leakTo;
       }
-      spent[id] = prepMonth(P.mulberry32(P.seedFrom('prep' + state.season + id + m)),
+      if (stood[id]) {
+        landed[id].push({ kind: 'facility', text: FAC.FACILITIES[stood[id].id].name + ' · Level ' + stood[id].level });
+        /* §FACILITIES the stands see what an OA builds, each faction what it cares for */
+        if (state.corps[id].rep) REP.act(state.corps[id].rep, 'raised_a_facility', { q: FAC.FACILITIES[stood[id].id].seen });
+      }
+      /* §CENSUS THE ENGINE LOOKS AT ITS BACKROOM EVERY MONTH. It hired only as the year opened, and a facility ordered
+         then stands a month later — so no post it built for was ever open when it looked, and the fleet went years
+         without staff. A post that opens now is filled now, by the same verbs a person uses. */
+      if (!isHuman(state, id)) aiStaff(state, id, { renew: false });
+      spent[id] = prepMonth(rngOf(state, 'prep' + state.season + id + m),
                             state.corps[id], m, state.season, state.corps[id]._prep,
-                            choices && choices[id], landed[id], state.corps);
+                            /* §SEATS (ruled) a person's month is theirs: unanswered, it spends nothing — the engine
+                               does not pick their focus, their talk or their Sergeant's word for them */
+                            (choices && choices[id]) || (isHuman(state, id) ? {} : undefined), landed[id], state.corps);
+      /* §CENSUS and its grounds every month: a build is a month now, and twice a year left it far behind a person */
+      if (!isHuman(state, id)) aiBuild(state.corps[id], state);
     }
     /* the work is SPENT when its window fires: scouting the tryouts does not help you at the
        merc deadline, and it does not bank across seasons either. A credit that never clears is
@@ -3233,25 +4027,25 @@
 
 
     if (win.event === 'dividend')
-      runDividend(P.mulberry32(P.seedFrom('div' + state.season)), state.corps, state.ids, state.season, state.dividend);
+      runDividend(rngOf(state, 'div' + state.season), state.corps, state.ids, state.season, state.dividend);
     if (win.event === 'eight') {
       for (const id of state.ids) {
         const ch = choices && choices[id];
         if (ch && Object.prototype.hasOwnProperty.call(ch, 'eight')) nameForEight(state, id, ch.eight);
       }
-      runEight(P.mulberry32(P.seedFrom('eight' + state.season)), state.corps, state.ids, state.season, state);
+      runEight(rngOf(state, 'eight-run' + state.season), state.corps, state.ids, state.season, state);
     }
     state.carry = state.carry || {};
     if (win.event === 'tryouts') {
       state.tryouts.season = state.season;
-      runTryouts(P.mulberry32(P.seedFrom('try' + state.season + 'm' + m)), state.corps, state.ids,
+      runTryouts(rngOf(state, 'try' + state.season + 'm' + m), state.corps, state.ids,
                  state.lots.tryouts || [], state.tryouts, state.bids.tryouts,
                  (id) => isHuman(state, id));
       state.lots.tryouts = null; state.bids.tryouts = {};       /* nothing carries: a total refresh */
     }
     if (win.event === 'bastille') {
       const lot = state.lots.bastille || [];
-      bastilleIntake(P.mulberry32(P.seedFrom('bas' + state.season + 'm' + m)), state.corps, state.ids,
+      bastilleIntake(rngOf(state, 'bas' + state.season + 'm' + m), state.corps, state.ids,
                      state.season, state.bastille, lot, state.bids.bastille, state);
       /* the second window is a fresh intake: terms for a man who was carried over are offered
          again, knowingly, not inherited from a month ago */
@@ -3263,7 +4057,7 @@
     }
     if (win.event === 'mercs') {
       const lot = state.lots.mercs || [];
-      runMercMarket(P.mulberry32(P.seedFrom('merc' + state.season + 'm' + m)), state.corps, state.ids,
+      runMercMarket(rngOf(state, 'merc' + state.season + 'm' + m), state.corps, state.ids,
                     lot, state.mercs, state.bids.mercs, state);
       /* anyone offered a contract has chosen and is gone, one way or the other; whoever nobody
          offered is still on the market for the refresh */
@@ -3281,7 +4075,7 @@
         const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
         const short = CONST.ROSTER_MIN - alive.length;
         if (short <= 0) continue;
-        const rngS = P.mulberry32(P.seedFrom('scrape' + state.season + id));
+        const rngS = rngOf(state, 'scrape' + state.season + id);
         const filled = ROSTER.generateSquad(rngS, short, { corpId: id }).bodies
           .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
         let bill = 0;
@@ -3318,7 +4112,12 @@
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
-      const gate = LED.gateFor(c.rep ? REP.standing(c.rep, 'own') : 0, c.rep ? REP.standing(c.rep, 'fleet') : 0, fame);
+      /* §STANDING the Fairweathers are the gate's swing — a warm lot fill the stands, a sour lot empty them — and the
+         Diehards its floor: they buy a ticket whatever the year was */
+      const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
+      const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
+      const shut = c._gateShut === state.season * 100 + m;
+      const gate = shut ? 0 : Math.round(Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame)) * FAC.gateMult(c));   /* §FACILITIES the Press Office */
       /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
          were carried by people and read by nothing at all: an OA with a marketable hand
          aboard takes more at the gate, and the crowd repeats what they say. */
@@ -3350,6 +4149,14 @@
         LED.post(c.account, 'expense', 'retainers', -payroll);
         landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
       }
+      /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
+      const staffPay = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
+      if (staffPay > 0) { LED.post(c.account, 'expense', 'Staff Wages', -staffPay); c._staffPaid = (c._staffPaid || 0) + staffPay; }
+      /* §FACILITIES what stands costs to keep standing */
+      const up = FAC.upkeep(c);
+      if (up > 0) { LED.post(c.account, 'expense', 'Facility Upkeep', -up); c._staffPaid = (c._staffPaid || 0) + up; }
+      /* a renewal nobody answered by the first month's end is signed at what was asked */
+      if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
       if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
@@ -3363,7 +4170,7 @@
     /* §TRADE the engine's OAs shop too — see trade.js fleetTrades — by POSTING offers to the market, a person's
        OA included, who answers it rather than being sold from */
     if (TRADE && TRADE.tradingOpen(m))
-      TRADE.fleetTrades(P.mulberry32(P.seedFrom('fleettrade' + state.season + m)),
+      TRADE.fleetTrades(rngOf(state, 'fleettrade' + state.season + m),
                         state.corps, state.ids, m, { post: LED.post, isHuman: (id) => isHuman(state, id),
                           postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask) });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
@@ -3388,6 +4195,11 @@
   function eventsFor(state, corpId) { return EVENTS ? EVENTS.draw(state, corpId) : []; }
   /** the shelf's price this year: the fleet's month may have moved it */
   function priceMult(state) { return (state && state.fleet && state.fleet.priceMult) || 1; }
+  /** §STAFF one item's price on the shelf to one OA: the fleet's month, less what its quartermaster haggles */
+  function shelfPrice(state, corpId, it) {
+    const c = state.corps[corpId];
+    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)));
+  }
   /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
       market, so it lives once rather than three times. */
   function hasHookF(f, h) {
@@ -3413,16 +4225,17 @@
     for (const id of state.ids) {
       if (isHuman(state, id)) continue;
       const c = state.corps[id];
-      const rng = P.mulberry32(P.seedFrom('seam' + state.season + id));
+      const rng = rngOf(state, 'seam' + state.season + id);
       const taken = {};
       for (const other of state.ids) {
         const pick = state.drop.sectors[other];
         if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
       }
-      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken);
-      /* showmanship decides whether an OA performs — the dial was already written */
-      const show = ((c.profile || {}).dials || {}).showmanship || 50;
-      if (rng() < show / 100) attendMediaDay(state, id);
+      /* §CENSUS with the ground it surveyed: this read a scalar nothing had written for a whole step, so every engine
+         OA was guessing at every sector however much it had scouted */
+      const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
+      const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1 : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
+      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken, secIntel);
       /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
     }
   }
@@ -3544,7 +4357,7 @@
       fleet: state.ids.filter(x => x !== id).map(x => {
         const r = state.corps[x];
         return { id: x, profile: lite(r),
-                 standing: r.rep ? { own: Math.round(REP.standing(r.rep, 'own')), fleet: Math.round(REP.standing(r.rep, 'fleet')) } : null,
+                 standing: r.rep ? { crowd: Math.round(REP.standing(r.rep, 'crowd')), houses: Math.round(REP.standing(r.rep, 'houses')) } : null,
                  people: r.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length };
       }),
       planet: { archetype: pl.archetype, archetypeName: pl.archetypeName, radius: pl.radius, cycle: pl.cycle, pot: pl.pot,
@@ -3565,6 +4378,15 @@
         /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
            Divide writes into the same object, so the lesson survives the lock */
         dealRecord: (c._dealRecord = c._dealRecord || {}),
+        /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
+           it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
+        wordRecord: (c._wordRecord = c._wordRecord || {}),
+        /* §TALKS the year's captains lead the squads they land in */
+        captains: captainsOf(c, season),
+        /* §STAFF an Armourer finds more for the kit than the books alone would */
+        kitBoost: STAFF.kitBoost(c),
+        /* §FACILITIES what the Armoury can issue */
+        maxTier: FAC.maxTier(c),
         /* the planet dossier's completeness, carried to the ground as readiness (Gather Intel) */
         intel: planetPreparedness(c),
         /* per-rival readiness: what this corp knows about each other OA, freshness-scaled,
@@ -3649,9 +4471,9 @@
          its first season: eight signings a corp a year, wages never charged, which is a
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
-      c._renew = renewRoster(P.mulberry32(P.seedFrom('renew' + season + id)), c,
+      c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
                              c._off.expired, c._off.freed, state);
-      c._recruit = recruit(P.mulberry32(P.seedFrom('sign' + season + id)), c);
+      c._recruit = recruit(rngOf(corps, 'sign' + season + id), c, isHuman(state, id));
       /* the calls are answered: they are this year's, not a standing instruction */
       c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
@@ -3736,14 +4558,17 @@
   function buyItems(state, corpId, cart) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
-    let total = 0, lines = 0, pieces = 0;
+    let total = 0, full = 0, lines = 0, pieces = 0;
     const clean = {};
     for (const id in (cart || {})) {
       const it = ITEMS.byId(id), n = Math.floor(cart[id] || 0);
       if (!it || n <= 0 || !(it.cost > 0) || it.price_model === 'none') continue;
-      clean[id] = n; total += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
+      if ((it.tier || 1) > FAC.maxTier(c)) return { ok: false, why: 'Needs the Armoury at Level ' + ((it.tier || 1) - FAC.CONST.TIER_OFFSET) };
+      clean[id] = n; total += shelfPrice(state, corpId, it) * n; full += Math.round(it.cost * priceMult(state)) * n; lines++; pieces += n;
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
+    /* §STAFF a quartermaster haggles: the price on the shelf is already theirs */
+    const q = STAFF.holder(c, 'quartermaster'); if (q && full > total) q.record.saved = (q.record.saved || 0) + (full - total);
     if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
     c.armoury = c.armoury || {};
     for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
@@ -3839,8 +4664,9 @@
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
+    settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
     return { opts: state._divideOpts,
-             rng: P.mulberry32(P.seedFrom('divide' + state.season)) };
+             rng: rngOf(state, 'divide' + state.season) };
   }
 
   /** Settle a contest that has already been fought, stepped or otherwise. */
@@ -3877,7 +4703,21 @@
       c._board = { season: state.season, outcome: boardOutcomeFor(res, id), answered: null };
       if (!isHuman(state, id)) {
         const opts = REP.addressOptions(c.rep, c._board.outcome);
-        const worth = o => ((o.moves || {}).own || 0) + ((o.moves || {}).fleet || 0) * CONST.MARKET_FLEET_SHARE;
+        /* §CENSUS this read `moves.own` and `moves.fleet`, which the options do not carry (they carry `crowd` and
+           `houses`), so every answer scored nothing and the first — gracious — was every house's every year. What
+           the answer moves, weighed by what the house cares for, and then how the house talks. */
+        const d = (c.profile && c.profile.dials) || {};
+        const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
+        const VOICE = { gracious: dial('showmanship') * 0.6 + dial('patience') * 0.3, defiant: dial('aggression') * 0.9,
+                        humble: dial('patience') * 0.6 + (1 - dial('showmanship')) * 0.3, candid: dial('tradition') * 0.8,
+                        deflecting: dial('treachery') * 0.6 + dial('showmanship') * 0.2, evasive: dial('treachery') * 0.7 };
+        /* and the year it is answering for: a winner is gracious or humble about it, a beaten house candid, defiant
+           or deflecting, each as its character runs */
+        const oc = c._board.outcome || {}, beaten = !oc.won && (oc.placement == null || oc.placement > 3);
+        const MOOD = oc.won ? { gracious: 0.3, humble: 0.2 } : beaten ? { candid: 0.2, defiant: 0.2, deflecting: 0.2, evasive: 0.1 } : { candid: 0.15, humble: 0.1 };
+        const worth = o => ((o.moves || {}).crowd || 0) * (0.5 + dial('showmanship'))
+                         + ((o.moves || {}).houses || 0) * CONST.MARKET_FLEET_SHARE * (1.5 - dial('aggression'))
+                         + ((VOICE[o.register] || 0) + (MOOD[o.register] || 0)) * 3;
         const best = opts.slice().sort((x, y) => worth(y) - worth(x))[0];
         if (best) answerBoard(state, id, best.register);
       }
@@ -3898,6 +4738,25 @@
        the two halves are no longer one function and a local that spans them is a local that
        only exists when nobody has stepped the contest */
     const persist = state._persist || {};
+
+    /* §THRIFT THE GOING RATE. A board's sense of an ordinary year is what an ordinary year
+       costs across the fleet now, not what its stipend covered when the stipend was set.
+       Wages and the backroom outgrew the grant, so a stipend-only yardstick read every year of
+       every house as overspent and thrift could only ever cost. Each house's commitment is
+       still measured against its OWN stipend — a rich board still expects less of its
+       purse — and that share is then read against the fleet's middle share this season. */
+    const committed = function (id) {
+      const c = corps[id];
+      const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
+      const kit = (persist[id] && persist[id].kitValue) || 0;
+      return (kit + (c._wages || 0) + (c._staffPaid || 0)) / funded;
+    };
+    const goingRate = (function () {
+      const r = ids.map(committed).sort((x, y) => x - y);
+      if (!r.length) return 1;
+      const m = r.length >> 1;
+      return Math.max(0.01, r.length % 2 ? r[m] : (r[m - 1] + r[m]) / 2);
+    })();
 
     /* ---- SETTLEMENT ---- */
     for (const id of ids) {
@@ -3935,6 +4794,9 @@
       const kit = (persist[id] && persist[id].kitValue) || 0;
       const spend = (persist[id] && persist[id].kitSpend) || 0;
       if (spend) LED.post(c.account, 'expense', 'procurement', -spend);
+      /* §STAFF and haggles at the drop, for a part of what they win at the market */
+      const qmOff = Math.round(spend * STAFF.shelfDiscount(c) * STAFF.CONST.QM_PROCURE);
+      if (qmOff > 0) { LED.post(c.account, 'income', 'The Quartermaster\u2019s Haggling', qmOff); const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + qmOff; }
 
       /* ---- THE MONEY THE DIVIDE WAS WORTH ----
          `ledger.bookDivide` has existed since Step 6 and had no caller anywhere in the season
@@ -3948,7 +4810,7 @@
          This is the largest dead wire in the project so far and it is the oldest. */
       const pc = (res.perCorp || []).find(x => x.id === id) || {};
       LED.bookDivide(c.account, {
-        season: season, escalator: ITEMS.CONST.ALLOWANCE_ESCALATOR,
+        season: season,
         payout: pc.payout || 0,
         bonuses: pc.won ? ((res.settlement && res.settlement.bonuses
                             && res.settlement.bonuses.total) || 0) : 0,
@@ -3981,7 +4843,7 @@
       const heldGround = res.placement && res.placement[id] != null && res.placement[id] <= 3;
       /* §RESERVE whoever waited in orbit and never landed comes home with the kit they were issued */
       const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
-      c._armoury = settleArmoury(P.mulberry32(P.seedFrom('arm' + season + id)),
+      c._armoury = settleArmoury(rngOf(corps, 'arm' + season + id),
                                  c, (dropped || []).concat(unlanded), dead, heldGround);
       const griefed = grieve(c, dead);
 
@@ -3999,37 +4861,17 @@
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
         permanentLosses: dead.length + (c._eightDead || 0),
-        /* R25 — the two standing demands. `spendRatio` is what this corp actually laid out on
-           wages and kit against WHAT A FULL COMMITMENT WOULD HAVE COST: the whole ceiling, and
-           every living body paid in full. Field sixteen instead of twenty-four and it drops
-           below one, which is a board pleased with a cheap year.
-
-           THE DENOMINATOR USED TO BE `allowanceFor(season) + c._wages` — the corp's OWN actual
-           wage bill — so the identical term sat on both sides of the ratio and every credit
-           saved by resting somebody cancelled itself out exactly. A corp that saved 32,040 in
-           purses watched its expectation fall by 32,040 and scored the same. The comment above
-           this line already claimed the effect the arithmetic could not produce; the baseline
-           has to be what the season COULD have cost, or a ratio measures nothing but itself. */
-        spendRatio: (function () {
-          /* WHAT THE BOARD PUT IN, which REPUTATION.md §6.5 already defines as an ordinary
-             year: the stipend "covers wages, the entry fee, and arming twenty-four people,
-             and nothing else". Living inside it is neutral, under it is thrift, over it is a
-             board watching its money go. One is exceedable in both directions and needs no
-             fitted constant — which the previous version did, and it was fitted to the median
-             of a fleet that the very next change made stop existing.
-
-             It also puts the difficulty gradient in the card, where §6.5 says it already
-             lives: Violet's stipend covers a full commitment and the Verdant Cradle's does
-             not, so the poor corp disappoints its board on money by existing. That is the
-             intended shape, and it is not balanced here. */
-          const funded = Math.max(1, (c.account.grant || 0) - LED.CONST.ALEAS_ENTRY);
-          const actual = kit + (c._wages || 0);
-          return actual / funded;
-        })(),
+        /* R25 — the two standing demands. `spendRatio` is what this corp laid out on kit,
+           wages and the backroom as a share of its own stipend, read against the fleet's
+           going rate this season (§THRIFT above): 1.0 is an ordinary year for the economy as
+           it stands, under it is thrift, over it a board watching its money go. The corp's own
+           wage bill is never the yardstick — that put the same term on both sides and every
+           credit saved cancelled itself out. */
+        spendRatio: committed(id) / goingRate,
         lossRate: dropped.length ? dead.length / dropped.length : 0,
         /* §5.3 what the crowd thought of the OA this year: its own people, and the fleet's
            watching from other ships */
-        popularity: c.rep ? REP.standing(c.rep, 'own') + REP.standing(c.rep, 'fleet') * LED.CONST.GATE_FLEET_SHARE : 0,
+        popularity: c.rep ? REP.standing(c.rep, 'crowd') + (REP.standing(c.rep, 'houses') - 50) * LED.CONST.GATE_FLEET_SHARE : 50,
         /* §3.1c and what the year said about the OA to the people who work in it */
         _own: (function () {
           if (!c.rep) return 0;
@@ -4076,6 +4918,7 @@
       if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
+      for (const f of c.roster) bringWoundHome(f);   /* §WOUNDS the ground's wounds become the year's */
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
                        /* §BOARD where it finished, so the Board can show the fleet's last
@@ -4103,6 +4946,10 @@
                        freed: (c._off && c._off.freed) ? c._off.freed.length : 0,
                        walked: (c._renew && c._renew.walked) || 0,
                        payout: c._payout || 0, bonus: c._bonus || 0,
+                       /* what it brought home by resource, and what its board asked for: so a board's ask can be read
+                          against the fleet's luck with the same resource */
+                       banked: Object.assign({}, (res.banked || {})[id] || {}),
+                       asked: (((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(d => d.kind === 'resource') || {}).resource || null,
                        kitValue: kit, kitSpend: spend,
                        locker: c._armoury ? c._armoury.depth : null,
                        lootRecovered: c._armoury ? c._armoury.recovered : 0,
@@ -4139,7 +4986,6 @@
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
         calledWithdrawal: !!c._calledWithdrawal,
-        policyChanged: !!c._policyChanged,
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
@@ -4322,6 +5168,10 @@
            their units), so a save at the drop — which the page never made, and a resumable contest must — crashed on
            it; the record is history, and it rides as plain data */
         bastille: state.bastille, bids: state.bids, rec: toPlain(state.rec), drop: state.drop,
+        /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
+           them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
+        events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
+        staffPool: toPlain(state.staffPool || null),   /* §STAFF who is still looking for a post this year */
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -4386,17 +5236,17 @@
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
       drop: o.drop || { sectors: {}, media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
+      events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    const ws = corps[Object.keys(corps)[0]] && corps[Object.keys(corps)[0]]._worldSeed;
-    state.planet = MAP.generatePlanet(P.mulberry32(P.seedFrom('planet' + o.season + (ws != null ? ':' + ws : ''))), {});
-    state.planet.pot = NEG.rollPot(P.mulberry32(P.seedFrom('pot' + o.season)),
+    state.planet = MAP.generatePlanet(rngOf(corps, 'planet' + o.season), {});
+    state.planet.pot = NEG.rollPot(rngOf(corps, 'pot' + o.season),
                                    state.planet.archetype, state.planet.richness);
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
        lock can resolve it from the restored courting. */
-    state.sponsorBoard = SPON.openBoard(SPON.houseIds());
+    state.sponsorBoard = o.sponsorBoard || SPON.openBoard(SPON.houseIds());   /* the year's signings stand */
     if (!o.lotSpent) ensureLot(state);
     return { corps: corps, state: state };
   }
@@ -4413,7 +5263,11 @@
      by running more careers hoping to see one. A corp murderous enough to be turned down by
      every free agent on the market should not appear in an ordinary decade, so the only honest
      way to know the branch is alive is to build the state and fire it. */
-  return { isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+  /* §TALKS a person asking for a word takes the month's talk through the season, where the captains are */
+  if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
+  /* §STAFF and a Sergeant can take the meeting instead */
+  if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
+  return { useCensus, isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
@@ -4422,6 +5276,8 @@
      buyItems, pickDividend, lockSquads, answerBoard,
      postTrade, answerTrade, tradeLetters, lapseTrades, writeLetters,
      CONST, MONTHS, DIVIDEND_MONTH, eventsFor, answerEvent, priceMult, nameForEight, eightPick,
+     captainsOf, promisable, talkNow, talkPreview, TALKS,
+     FAC, buildFacility, mercKit, STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
            openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
@@ -4429,7 +5285,7 @@
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, attendMediaDay, askingPrice, signingBudget, lotFor, placeBid,
+           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,

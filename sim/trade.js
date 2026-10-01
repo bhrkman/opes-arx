@@ -40,6 +40,7 @@
   const REP = isNode ? require('./reputation.js') : global.CDREP;
 
   const CONST = {
+    LETTER_REGARD: 0.15,        // [C] §STANDING how far a house's regard moves what it opens a letter at, either way
     /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
        fleet's own wage bill pays about this much for a point of quality (median salary ×
        12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
@@ -140,7 +141,7 @@
     const give = valueBundle(me, mine, opts);
     const ask = valueBundle(them, theirs, opts);
     const regard = typeof opts.regard === 'number' ? opts.regard
-      : (them.rep && REP ? REP.standing(them.rep, 'rival', me.id) : 0);
+      : (me.rep && REP && me.rep.base.houses[them.id] != null ? (REP.standing(me.rep, 'house', them.id) - 50) * 2 : 0);   /* −100..100: how THEY regard ME */
     /* what they need to see, softened or hardened by what they think of you */
     const need = ask * (1 - regard / CONST.REGARD_SWING);
     let ratio;
@@ -282,9 +283,18 @@
        negotiation by overpaying — and they fill with gear that FITS rather than rounding
        up: the first cut took a third rifle to cover two rifles' worth of gap, overpaid by
        a quarter, and then correctly refused its own offer, which is why no OA ever wrote. */
-    const target = price * 0.95;
+    /* §STANDING A HOUSE WRITES AS IT REGARDS YOU: one that likes you opens near the whole price, one that does not opens
+       low — and one that loathes you opens so low it is an insult, and the fairness test below keeps it from writing */
+    const regard = me.rep && REP && me.rep.base && me.rep.base.houses && me.rep.base.houses[them.id] != null
+      ? (REP.standing(me.rep, 'house', them.id) - 50) / 50 : 0;
+    const target = price * (0.95 + CONST.LETTER_REGARD * regard);
+    /* MONEY FIRST. It filled with gear and paid the remainder in credits, so an OA sitting on a quarter of a
+       million wrote "₡52, a plasma caster, four carbines, five vests and five rifles for your best man" — a letter
+       that reads as junk and trains a manager to bin the box. An OA pays in credits as far as it can spare them
+       (the same two-fifths of the treasury as before) and fills what is left from the shelf. */
+    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), target);
     const gear = [];
-    let raised = 0;
+    let raised = credits;
     const shelf = Object.keys(them.armoury || {})
       .filter(k => them.armoury[k] > 0)
       .sort((x, y) => gearPrice(y) - gearPrice(x));
@@ -297,9 +307,31 @@
       gear.push({ id: id, n: n });
       raised += each * n;
     }
-    const short = Math.max(0, target - raised);
-    const credits = Math.min(Math.max(0, them.account.treasury * 0.4), short);
     const offer = { gear: gear, credits: Math.round(credits) };
+    /* §CENSUS A HOUSE SHORT OF MONEY PAYS IN KIND. An engine letter only ever carried credits and gear; a house that
+       could not cover the price now puts up a hand of its own it can spare, or what it knows about a third house —
+       a schemer reaching for the dossier first */
+    const dl = (them.profile && them.profile.dials) || {};
+    const schemer = (typeof dl.treachery === 'number' ? dl.treachery : 50) >= 55;
+    const addIntel = () => {
+      if (raised >= target * 0.9) return;
+      const sheets = (them._intel && them._intel.rivals) || {};
+      const about = Object.keys(sheets).filter(k => k !== me.id && k !== them.id && Object.keys((sheets[k] || {}).rows || {}).length)[0];
+      if (!about) return;
+      const rows = Object.keys(sheets[about].rows).length;
+      offer.intel = [{ about, rows }];
+      raised += intelPrice(rows, opts.focusPointPrice, opts.rowsPerPip);
+    };
+    const addBody = () => {
+      if (raised >= target * 0.9) return;
+      const gap = target - raised;
+      const spare = (them.roster || []).filter(f => (f.status === 'active' || f.status === 'injured') && !f.mirror_of && !f.bond_partner)
+        .map(f => ({ f, v: netOf(f) })).filter(x => x.v > 0 && x.v <= gap * 1.2).sort((a, b) => b.v - a.v)[0];
+      if (!spare) return;
+      offer.units = [spare.f.id];
+      raised += spare.v;
+    };
+    if (schemer) { addIntel(); addBody(); } else { addBody(); addIntel(); }
     const ask = { units: [want.id] };
     /* THE TEST IS THEIRS, NOT YOURS. The first cut asked whether the offer was generous by
        the receiver's lights, which is the opposite of why anybody proposes anything: an OA

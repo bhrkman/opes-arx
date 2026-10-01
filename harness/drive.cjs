@@ -26,7 +26,7 @@ vc.on('jsdomError', (e) => { console.log('  PAGE LOAD ERROR: ' + String(e).slice
 vc.forwardTo(console, { jsdomErrors: 'none' });   /* jsdom 30: forwardTo, not sendTo */
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true,
                               virtualConsole: vc,
-                              url: 'http://opesarx.test/' });   /* a url so localStorage lives */
+                              url: 'http://opesarx.test/?seed=' + (process.env.DRIVE_SEED || 'corp-1') });   /* a url so localStorage lives */
 /* the ledger turn is three seconds of animation the drive does not need to sit through */
 dom.window.__noTurn = true;
 const { window } = dom;
@@ -185,7 +185,7 @@ setTimeout(() => {
       check(/overflow-y:auto/.test(rule),
             'the founding overlay scrolls when it is taller than the screen');
     }
-    doc.getElementById('seed').value = 'corp-1';
+    doc.getElementById('seed').value = process.env.DRIVE_SEED || 'corp-1';
     /* §FOUNDING a manager founds an OA; the eight are the fleet, not a character select */
     doc.getElementById('cname').value = 'The Probe Concern';
     doc.getElementById('cfound').click();
@@ -233,16 +233,27 @@ setTimeout(() => {
     {
       const GP = window.__G, S6 = window.CDSEASON;
       const paper = S6.renewalsFor(GP.state, GP.me) || [];
-      check(paper.length >= 1 && doc.querySelectorAll('#resigning .rscard').length === paper.length,
-            'the expiring paper stands on the Roster in the Review (' + paper.length + ')');
-      const signBtn = doc.querySelector('#resigning [data-rs="sign"]');
+      /* a world where nothing expires in Year 1 has no Paper (about half of them): the docket must then be absent */
+      if (!paper.length) check(!doc.querySelector('#resigning [data-docket]'), 'no Paper docket in a year with nothing expiring');
+      else {
+      /* §WINDOWS the Paper is a window over the page: a docket line on the Roster opens it */
+      check(paper.length >= 1 && /The Paper/.test(text('#resigning')) && doc.querySelector('#resigning [data-docket="paper"]'),
+            'the Paper\'s docket stands on the Roster in the Review (' + paper.length + ')');
+      doc.querySelector('#resigning [data-docket="paper"]').click();
+      check(doc.getElementById('bizwin').classList.contains('on') && doc.querySelectorAll('#bizwin .rscard').length === paper.length,
+            'and opens the Paper as a window with every expiring hand in it');
+      const signBtn = doc.querySelector('#bizwin [data-rs="sign"]');
       const who = signBtn.getAttribute('data-rsid');
       signBtn.click();
-      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#resigning')),
+      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#bizwin')),
             'a hand is re-signed at what they ask');
-      const goBtn = doc.querySelectorAll('#resigning [data-rs="release"]')[0];
+      const goBtn = doc.querySelectorAll('#bizwin [data-rs="release"]')[0];
       if (goBtn) { const gone = goBtn.getAttribute('data-rsid'); goBtn.click();
         check((GP.corps[GP.me]._renewalCalls || {})[gone].how === 'release', 'and another is let go'); }
+      doc.getElementById('bizlater').click();
+      check(!(doc.getElementById('bizwin').classList.contains('on') && /The Paper/.test(text('#bhead'))), 'Later closes the Paper');
+      for (let k = 0; k < 3 && doc.getElementById('bizwin').classList.contains('on'); k++) doc.getElementById('bizlater').click();   /* and whatever came in turn behind it */
+      }
     }
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
@@ -574,7 +585,7 @@ setTimeout(() => {
             /Units of 9,000/.test(text('#boardholds')) && /a Month/.test(text('#boardholds')),
             'the four holds are barred in a fleet\'s own units, falling monthly');
       [...doc.querySelectorAll('.tab')].filter(x => /Squads/.test(x.textContent))[0].click();
-      check(/Kit Cap|of .*Cap/.test(text('#planstate')), 'the Squads plan line carries the kit cap: ' + text('#planstate').trim());
+      check(!/Cap\b/.test(text('#planstate').replace(/Drop Cap/, '')), 'the Squads plan line carries no kit cap (the Aleas ceiling is gone): ' + text('#planstate').trim());
       const focusBefore = text('#focusdesk');
       const t0 = meM.account.treasury;
       const id = doc.querySelector('#mktledger .mtile').getAttribute('data-mopen');
@@ -700,14 +711,14 @@ setTimeout(() => {
          proportion to their fame, and the selling side's fans warm to whoever took them. */
       {
         const REPM = window.CDREP, seller = GT.corps[themId];
-        const ownBefore = REPM.standing(seller.rep, 'own');
-        const fansBefore = REPM.standing(seller.rep, 'rival', GT.me);
+        const ownBefore = REPM.standing(seller.rep, 'crowd');
+        const fansBefore = REPM.standing(seller.rep, 'house', GT.me);
         const star = seller.roster.slice().sort((a, b) => (b.fame || 0) - (a.fame || 0))[0];
         const mates = seller.roster.filter(f => f !== star).slice(0, 3).map(f => f.loyalty);
         window.CDTRADE.execute(seller, GT.corps[GT.me], { units: [star.id] }, {}, {});
-        check(REPM.standing(seller.rep, 'own') < ownBefore,
+        check(REPM.standing(seller.rep, 'crowd') < ownBefore,
               'selling somebody costs you with your own people');
-        check(REPM.standing(seller.rep, 'rival', GT.me) > fansBefore,
+        check(REPM.standing(seller.rep, 'house', GT.me) > fansBefore,
               'and their supporters warm to the OA that took them');
         const after = seller.roster.slice(0, 3).map(f => f.loyalty);
         check(after.some((v, i) => mates[i] != null && v < mates[i]),
@@ -912,10 +923,11 @@ setTimeout(() => {
       const purseBefore = GS.corps[GS.me].account.treasury;
       doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
       doc.querySelectorAll('#rostmarket [data-signnow]')[0].click();
+      /* §PAPER a nattie signs flat: no fee at the desk, the wage month by month with the retainers (as the engine's seats) */
       check(GS.corps[GS.me].roster.length === rosterBefore + 2 &&
             doc.querySelectorAll('#rostmarket .pc').length === sheetBefore - 2 &&
-            GS.corps[GS.me].account.treasury < purseBefore,
-            'two sign on the spot: off the sheet, onto the roster, paid for');
+            GS.corps[GS.me].account.treasury === purseBefore,
+            'two sign on the spot: off the sheet, onto the roster, no fee');
     }
     endMonth();               /* month 3 ends and its pool signs; month 4 raises the lights */
     openRoster();
@@ -1008,7 +1020,7 @@ setTimeout(() => {
       const dvc = doc.querySelectorAll('#dvpick .fcard[data-dvdrop]').length;
       check(dvc >= 1, 'the card\'s fighters are whole-card click targets (' + dvc + ')');
     }
-    check(/the Dividend/.test(text('#desklights')),
+    check(/the Dividend/i.test(text('#desklights')),
           'the Dividend surfaces on the Desk\'s shelf, not a month log');
     check(doc.getElementById('deskligwrap').style.display !== 'none',
           'the lights stand on the Desk\'s shelf from month 7');
@@ -1016,9 +1028,9 @@ setTimeout(() => {
        recap — it used to carry the summer's exhibition into the Divide, which is why the
        Table opened on a list of fights that had nothing to do with the ground. */
     const lightRows = doc.querySelectorAll('#desklights [data-watchd]').length;
-    check(lightRows >= 1 && /the Dividend/.test(text('#desklights')),
+    check(lightRows >= 1 && /the Dividend/i.test(text('#desklights')),
           'the show-matches stand on the Desk\'s shelf for watching (' + lightRows + ' lights)');
-    check(!/the Dividend/.test(text('#encounters')),
+    check(!/the Dividend/i.test(text('#encounters')),
           'the contest\'s recap carries only the ground, not the summer\'s exhibition');
     doc.querySelector('#desklights [data-watchd]').click();
     check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/.test(text('#frLbl')),
@@ -1089,10 +1101,16 @@ setTimeout(() => {
       pl.rows = JSON.parse(keep);    /* the reading was a look, not a purchase */
       openRoster();
     })();
-    /* §ALEAS THE BACK ROOM IS GONE (ruled), and with it everything this section walked: its acts, the
-       evidence and its three uses, and the Aleas' cases. The tab must not come back by accident. */
-    check(![...doc.querySelectorAll('.tab')].some(x => /Back ?room/i.test(x.textContent)) && !doc.getElementById('backroom'),
-          'there is no Back Room: no tab, and no page');
+    /* §ALEAS THE ALEAS' BACK ROOM IS GONE (ruled): its favours, evidence and cases. §STAFF The name now belongs to
+       the staff — six posts at home — and the old favours must not come back under it. */
+    {
+      const bkTab = [...doc.querySelectorAll('.tab')].find(x => /Backroom/i.test(x.textContent));
+      if (bkTab) bkTab.click();
+      const bk = doc.getElementById('backroom'), bt = bk ? bk.textContent : '';
+      check(!!bkTab && /Drillmaster/.test(bt) && /Spymaster/.test(bt) && !/Favour|Evidence|Aleas/i.test(bt),
+            'the Backroom is the staff: six posts, and none of the Aleas\u2019 old favours');
+      openRoster();
+    }
     [...doc.querySelectorAll('.tab')].filter(x => /Desk/.test(x.textContent))[0].click();
     /* THE EVENTS: something asks for a decision. Force one onto the month, answer it, and see it
        resolve; leave another and see it default in the recap. */
@@ -1126,7 +1144,7 @@ setTimeout(() => {
        and the letter is gone and the OA remembers being snubbed */
     {
       const GL = window.__G, from = GL.state.ids.find(x => x !== GL.me);
-      const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
+      const memBefore = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter' && m.hx && m.hx[from] != null).length;
       /* §TRADE a letter is POSTED to the one market, as the engine's OAs post them */
       const planted = { from: from, ask: { units: [GL.corps[GL.me].roster[0].id], credits: 0, gear: [], intel: [] }, offer: { credits: 10000, gear: [], units: [], intel: [] } };
       window.CDSEASON.postTrade(GL.state, planted.from, GL.me, planted.offer, planted.ask);
@@ -1139,7 +1157,7 @@ setTimeout(() => {
       /* THE TEST WAS THAT NO LETTER STOOD AFTERWARDS, and the fleet writes every month: a
          new letter arriving in the same step is the game working, not the snub failing. What
          matters is that THIS letter lapsed and was remembered. */
-      const memAfter = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter').length;
+      const memAfter = GL.corps[GL.me].rep.memory.filter(m => m.t === 'snubbed_letter' && m.hx && m.hx[from] != null).length;   /* THIS writer's: another letter may lapse the same month */
       check(memAfter === memBefore + 1 && (!GL._tradeOffer || GL._tradeOffer.from !== from),
             'the letter lapsed and the OA remembers the snub (' + memBefore + ' \u2192 ' + memAfter + ')');
     }
@@ -1459,7 +1477,7 @@ setTimeout(() => {
     /* Beta holds one now and reads short; send them home so the lock below sees one squad */
     { const hb = doc.querySelector('#sqboxes .sqcard[data-si="1"] [data-home]'); if (hb) hb.click(); }
     endMonth();               /* month 11 — the lock; the year turns to the Divide */
-    check(/the Divide/.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
+    check(/the Divide/i.test(text('#clock')), 'eleven months spent: ' + text('#clock'));
     check(/The Draft|Drop/.test(((doc.getElementById('turngo') || {}).textContent || '')),
           'at the lock the corner is the draft, not a month');
     check(!doc.body.classList.contains('yearline'), 'the year line stands down for the Divide');
@@ -1766,19 +1784,18 @@ setTimeout(() => {
       check(!!boardTab && /urgent/.test(boardTab.className),
             'after a Divide the Board calls for the manager');
       boardTab.click();
-      /* §BOARD the audiences keep their rows — two now: the Aleas' is hidden until the media system gives it a
-         meaning (§ALEAS) — and the fleet is a LEDGER, seven rows */
-      check(doc.querySelectorAll('#audiences .audrow2').length === 2 &&
+      /* §STANDING the Board reads the crowd and its six factions, then the seven houses */
+      check(doc.querySelectorAll('#audiences .audrow2').length === 7 &&
             doc.querySelectorAll('#audiences .fleetbox .fleetrow:not(.hd)').length === 7,
-            'the Board reads its two audiences and the seven (' +
-            doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 in the ledger)');
+            'the Board reads the crowd, its six factions and the seven houses (' +
+            doc.querySelectorAll('#audiences .audrow2').length + ' rows, 7 houses)');
       check(doc.querySelectorAll('#audiences .fleetbox .fleetrow svg').length >= 7 &&
             doc.querySelectorAll('#audiences .fleetbox [data-oa]').length === 7,
             'each OA carries its own mark and opens its sheet');
       check(!/Not yet joined/.test(text('#audiences') + text('#boarddemand')),
             'the Board is joined, not a placard');
-      check(doc.querySelectorAll('#audiences .amem').length === 2 && /\d/.test(text('#audiences')),
-            'each audience carries one line of what moved it');
+      check(doc.querySelectorAll('#audiences .amem').length === 6 && /\d/.test(text('#audiences')),
+            'each faction carries one line of what moved it');
       /* §BOARD the head is a strip now: the year and patience are figures under their labels,
          patience with a bar and a word for what the board is at */
       check(/Year/.test(text('#boardhead')) && /Patience/.test(text('#boardhead')) &&
@@ -1790,7 +1807,7 @@ setTimeout(() => {
       check(regs.length === 6, 'the board asks, and all six registers are offered (' + regs.length + ')');
       regs[0].click();
       const after = REPM.readAll(GB.corps[GB.me].rep, rivals);
-      const moved = ['own', 'fleet', 'aleas'].some(a => Math.abs(after[a] - before[a]) > 0.001);
+      const moved = Math.abs(after.crowd - before.crowd) > 0.001 || Math.abs(after.housesMean - before.housesMean) > 0.001;
       check(moved, 'answering the board moves the audiences rather than scoring the manager');
       check(/You Answered/.test(text('#boardq')),
             'the answer is on the record and cannot be taken back');
@@ -1813,7 +1830,7 @@ setTimeout(() => {
     check(enc >= 1, 'encounters from the ground arrived in the Table\'s recap (' + enc + ')');
     /* re-ruled with the recap split: the Table speaks for the contest, the Desk's shelf
        for the year's lights. Two lists, two places. */
-    check(!/the Dividend/.test(text('#encounters')),
+    check(!/the Dividend/i.test(text('#encounters')),
           'the Table\'s recap stays on the ground; the lights stay on the shelf');
     doc.querySelector('#encounters [data-watch]').click();
     /* the check is that the encounter REPLAYS, not that it was a long one: a squad with
