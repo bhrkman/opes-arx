@@ -233,6 +233,9 @@ setTimeout(() => {
     {
       const GP = window.__G, S6 = window.CDSEASON;
       const paper = S6.renewalsFor(GP.state, GP.me) || [];
+      /* a world where nothing expires in Year 1 has no Paper (about half of them): the docket must then be absent */
+      if (!paper.length) check(!doc.querySelector('#resigning [data-docket]'), 'no Paper docket in a year with nothing expiring');
+      else {
       /* §WINDOWS the Paper is a window over the page: a docket line on the Roster opens it */
       check(paper.length >= 1 && /The Paper/.test(text('#resigning')) && doc.querySelector('#resigning [data-docket="paper"]'),
             'the Paper\'s docket stands on the Roster in the Review (' + paper.length + ')');
@@ -250,6 +253,7 @@ setTimeout(() => {
       doc.getElementById('bizlater').click();
       check(!(doc.getElementById('bizwin').classList.contains('on') && /The Paper/.test(text('#bhead'))), 'Later closes the Paper');
       for (let k = 0; k < 3 && doc.getElementById('bizwin').classList.contains('on'); k++) doc.getElementById('bizlater').click();   /* and whatever came in turn behind it */
+      }
     }
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
