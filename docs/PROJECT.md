@@ -147,6 +147,11 @@ lean one pleases.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
+- The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js, the
+  rebuild in progress). A zone is where one squad stands; a region has one terrain and one pace;
+  routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
+  reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
+  month. Windows fall every other day and daily once few regions stand.
 - What happens and is done leaves the page: the Dispatches, the Paper, the Draft and the Word open
   over whatever page is on, in one shell, and come back through Waiting On You or a docket line where
   they stood. What is always there stays on its page.

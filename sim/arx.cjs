@@ -2598,6 +2598,43 @@ function doctrineRules() {
    board cards are well formed. Cheap, and so in both gates (it sat inside the heavy negotiation phase, so the edit
    loop never ran it).
    ========================================================================= */
+/* =========================================================================
+   GROUND RULES — the Divide rebuild's ground (sim/ground.js): regions of three to eight zones cut
+   from a relief, every region reachable, one site a zone, a wall that takes whole regions and reaches
+   the last at month's end, windows every other day and daily when few stand. Twelve worlds across the
+   archetypes, read as the design was ruled, before anything moves on them.
+   ========================================================================= */
+function groundRules() {
+  const GR = req('ground.js'), MAPM = req('map.js');
+  const archs = Object.keys(MAPM.ARCHETYPES);
+  const worlds = [];
+  for (let i = 0; i < 12; i++) worlds.push(GR.generate(makeRng('ground' + i), { archetype: archs[i % archs.length] }));
+  const bad = (name, f) => { const hits = worlds.map((g, i) => f(g) ? null : i).filter(x => x != null); ok(name, !hits.length, hits.length ? 'worlds ' + hits.join(',') : ''); };
+  bad('a world has ten to eighteen regions', g => g.regions.length >= GR.CONST.REGIONS[0] && g.regions.length <= GR.CONST.REGIONS[1]);
+  bad('every region has three to eight zones', g => g.regions.every(r => r.zones.length >= 3 && r.zones.length <= 8));
+  bad('zone links run both ways and stay inside the region', g => g.zones.every(z => z.nb.every(n => g.zones[n].nb.indexOf(z.id) >= 0 && g.zones[n].region === z.region)));
+  bad('every zone is reachable from every other: nothing is impassable, only unrouted', g => g.zones.every(z => !!GR.ticksBetween(g, 0, z.id)));
+  bad('every region has at least one route out', g => g.regions.every(r => r.links.length >= 1));
+  bad('a route leaves from a zone of its region and lands in a zone of the other', g => g.regions.every(r => r.links.every(l => g.zones[l.from].region === r.id && g.zones[l.at].region === l.to && l.ticks >= 1)));
+  bad('every region has a high ground, and heights run low to commanding', g => g.regions.every(r => r.zones.some(id => g.zones[id].height >= 1) && r.zones.every(id => GR.CONST.HEIGHT_LEVELS.indexOf(g.zones[id].height) >= 0)));
+  bad('one site a zone, and no region holds more than three', g => g.zones.every(z => !z.site || z.site.zone === z.id) && g.regions.every(r => r.zones.filter(id => g.zones[id].site).length <= GR.CONST.SITES_PER_REGION));
+  bad('at least four deposits, each opening before the wall takes its region', g => g.sites.filter(s => s.kind === 'deposit').length >= 4 &&
+      g.sites.filter(s => s.kind === 'deposit').every(s => { const t = g.wall.takeAt.find(x => x.region === g.zones[s.zone].region); return !t || s.opens < t.day; }));
+  bad('the wall takes every region but the last, once each, between the second window and the second-last', g => {
+      const ids = g.wall.takeAt.map(t => t.region); const w = g.wall.windows;
+      return ids.indexOf(g.wall.last) < 0 && new Set(ids).size === g.regions.length - 1 && g.wall.takeAt.every(t => t.day >= w[1] && t.day <= w[w.length - 2]); });
+  bad('the last region stands at month\'s end', g => GR.standingOn(g, g.days).length === 1 && GR.standingOn(g, g.days)[0].id === g.wall.last);
+  bad('the wall is announced a window ahead: what goes next is known on the window before', g => { const nxt = GR.nextToGo(g, 1); return nxt.length >= 1 && nxt.every(id => g.wall.takeAt.find(t => t.region === id).day === g.wall.windows[1]); });
+  bad('windows fall every other day, then daily once few regions stand', g => { let few = 1; while (few <= g.days && GR.standingOn(g, few).length > g.windows.dailyWhenLeft) few++; const even = few + (few % 2 === 0 ? 0 : 1);
+      return GR.isWindowDay(g, 1) && !GR.isWindowDay(g, 2) && GR.isWindowDay(g, 3) && few < g.days && GR.isWindowDay(g, even); });
+  bad('a commanding zone sees farther than a flat one', g => { const hi = g.zones.filter(z => z.height >= 2)[0], flat = g.zones.filter(z => z.height === 0 && z.region === (hi || {}).region)[0]; return !hi || !flat || GR.seenFrom(g, hi.id).length >= GR.seenFrom(g, flat.id).length; });
+  const a = JSON.stringify(GR.generate(makeRng('ground-same'), {})), b = JSON.stringify(GR.generate(makeRng('ground-same'), {}));
+  ok('the same seed is the same ground', a === b);
+  ok('different seeds are different grounds', JSON.stringify(worlds[0]) !== JSON.stringify(worlds[1]));
+  const widths = worlds.map(g => Math.max.apply(null, g.zones.map(z => (GR.ticksBetween(g, g.regions[g.wall.last].zones[0], z.id) || { ticks: 0 }).ticks)));
+  ok('the ground is days wide, not weeks: the farthest zone from the last ground is under five days\' walk', widths.every(w => w <= 60), 'widest ' + Math.max.apply(null, widths) + ' ticks');
+}
+
 function structureRules() {
   /* --- the crush, asserted from LIVE constants in both files -----------------------
      N15/N18: the last ground has to be narrower than the range at which squads meet, or
@@ -3368,6 +3405,7 @@ function runRegression() {
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('structure', structureRules);
+  phase('groundRules', groundRules);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);

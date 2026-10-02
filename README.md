@@ -24,8 +24,8 @@ Hosting is any static host pointed at the repo root; `index.html` is the whole g
 
 ```
 cd sim
-node arx.cjs regress --fast     174 checks · the edit loop
-node arx.cjs regress            261 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     191 checks · the edit loop
+node arx.cjs regress            278 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the
@@ -34,6 +34,8 @@ node audit_cross.cjs            does one step's work reach the next, or just sit
 node audit_hooks.cjs            every trait hook does something or says why it does not
 node audit_code.cjs             dead functions, unread constants, helpers written twice
 node measure_fight.cjs          the shape of a fight
+node ../harness/ground_view.cjs [out.html] [seed…]
+                                the rebuilt ground, drawn: generated worlds as the Ground page will show them
 node probe_sponsor.cjs          the sponsor board's rules
 
 cd ../harness
