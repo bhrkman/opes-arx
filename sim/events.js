@@ -576,9 +576,9 @@
     resolve: (c, e, opt, ctx) => {
       const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
       const loud = storyMult(ctx.state, f, true);
-      if (opt === 'grant') { f.fame = (f.fame || 0) + Math.round(CONST.PROFILE_FAME * loud); stress(f, CONST.PROFILE_STRESS);
+      if (opt === 'grant') { REP.addFame(f, Math.round(CONST.PROFILE_FAME * loud)); stress(f, CONST.PROFILE_STRESS);
         if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
-      f.fame = (f.fame || 0) + CONST.PROFILE_DECLINED_FAME; return 'The Piece Ran Anyway, Thinner';
+      REP.addFame(f, CONST.PROFILE_DECLINED_FAME); return 'The Piece Ran Anyway, Thinner';
     },
     ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
   });
@@ -827,7 +827,7 @@
     state.fleet = state.fleet || { priceMult: 1 };
     if (state.fleet.pending && state.fleet.pending.season === state.season) return state.fleet.pending;
     /* seeded by the world, not the year alone: two fleets on two planets meet two different months */
-    const world = state.planet ? (state.planet.archetype || '') + (state.planet.patches || []).map(q => (q.type || '')[0]).join('') : '';
+    const world = state.planet ? (state.planet.archetype || '') + ((state.ground && state.ground.regions) || []).map(r => (r.terrain || '')[0]).join('') : '';
     const rng = P.mulberry32(P.seedFrom('w' + worldOf(state) + ':fleet' + state.season + world));
     const spec = P.weightedPick(rng, FLEET_POOL.map(f => [f, f.w]));
     state.fleet.pending = { season: state.season, id: spec.id, petitions: 0, applied: false, withdrawn: false };
@@ -940,7 +940,7 @@
       if (!f) { rec(0, 0); return 'Nobody Went'; }
       const loud = storyMult(state, f, true);
       const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
-      f.fame = (f.fame || 0) + CONST.MEDIA_FAME[opt]; stress(f, CONST.MEDIA_STRESS);
+      REP.addFame(f, CONST.MEDIA_FAME[opt]); stress(f, CONST.MEDIA_STRESS);   /* fame is 0 to 100, like every standing */
       rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
       if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
         if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });

@@ -182,7 +182,6 @@
     their_dead:         { q: { blood: 1.0, craft: 0.2, glory: 0.25 }, mag: { per: 0.35 }, target: { per: -0.5 }, famousMult: 3, residue: 0.15 },
     worthy_fight:       { q: { blood: 0.5, craft: 0.5, grit: 0.3 }, mag: { per: 1.2 }, houses: { per: 0.3 }, residue: 0.15 },
     hid:                { q: { blood: -1.0, grit: -0.6 }, mag: { per: 1.2 }, houses: { per: -0.5 }, residue: 0.15 },
-    kept_truce:         { q: { word: 1.0 }, mag: 3, target: 8, residue: 0.15 },
     betrayed:           { q: { word: -1.0 }, mag: 22, target: -45, houses: -8, grave: true, residue: 0.85 },
     generous_terms:     { q: { word: 0.5 }, mag: 2, target: 6, residue: 0.20 },
     ransomed_home:      { q: { care: 1.0, word: 0.4 }, mag: 8, target: 4, residue: 0.15 },

@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'), require('./ground.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC, root.CDGROUND);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC, GROUND) {
   'use strict';
 
   /* §SEEDS ONE SEED PER CAREER, AND EVERY ROLL IS NAMED. A career's world seed is drawn once, at the founding,
@@ -38,6 +38,20 @@
 let CENSUS = null;
 function useCensus(fn) { CENSUS = fn || null; }
 function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
+  /* §GROUND THE YEAR'S WORLD. The ground (regions and zones, the wall's order, the sites) is generated from the world
+     seed and the season — the page draws the same one from the same key — and the planet dossier is drawn around it:
+     the same archetype, the ground's composition and richness, and its sites as the objectives the board, the
+     scouting and the settlement read. One world, two readings of it. */
+  function worldFor(corps, season) {
+    const ground = GROUND.generate(rngOf(corps, 'ground' + season), {});
+    ground.season = season;
+    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), { archetype: ground.archetype });
+    planet.ground = ground;
+    planet.composition = ground.composition; planet.richness = ground.pot ? ground.pot.richness : planet.richness;
+    planet.objectives = GROUND.objectivesOf(ground);
+    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    return { ground, planet };
+  }
 
   const CONST = {
     /* --- the roster (S2, S3) --- */
@@ -3087,12 +3101,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
     for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
-    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
-    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    const world = worldFor(corps, season), planet = world.planet, ground = world.ground;
     /* §STANDING each house watches the others with the taste of the stands it has now */
     for (const id of ids) {
       const c = corps[id];
@@ -3113,14 +3126,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
     const seats = humansOf(opts);
     const state = {
-      rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet, ground,
       /* the drop's floor and what the board charges in patience to fill it, for the dispatch that warns of it */
       rosterMin: CONST.ROSTER_MIN, scrapePatience: CONST.SCRAPE_PATIENCE,
       /* §CONTROLLER who holds each seat: a person, or the engine */
       controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
       /* the seam: everything decided at M11 that the Divide will read */
-      drop: { sectors: {}, media: {} },
+      drop: { media: {} },
       dividend: { matches: 0, fought: 0, purses: 0, conversions: 0, draws: 0 },
       mercs: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
       tryouts: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
@@ -3306,39 +3319,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return { ok: true, name: f.name, cost: 0, year: year };
   }
 
-  /* ------------------------------------------------------------------------- the seam ---- */
-
-  /**
-   * THE SECTORS, as this corp can see them. What you know is what your survey bought: without
-   * one they are names on a ring, and a corp that spent the year looking knows which ground is
-   * worth arguing over. This is the other half of the survey verb — until now it paid a flat
-   * readiness number nobody could point at.
-   */
-  function sectorsFor(state, corpId) {
-    const c = state.corps[corpId];
-    const secs = PRE.sectors(state.planet);
-    const taken = {};
-    for (const id of state.ids) {
-      const pick = (state.drop.sectors || {})[id];
-      if (pick != null && id !== corpId) taken[pick] = (taken[pick] || 0) + 1;
-    }
-    /* the planet dossier's `sectors` row is what buys ground detail now: its depth maps onto
-       the reader's thresholds — 1 = the ground (terrain), 2+ = the prize, and it also unlocks
-       seeing which rivals chose where. (Gather Intel replaced the old flat `_scouted` scalar.) */
-    const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
-    const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1
-                   : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE
-                   : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
-    return secs.map(sec => {
-      const seen = PRE.readSector(sec, secIntel);
-      /* who ELSE you know is going there. You only see a rival's choice if you scouted the
-         sectors — otherwise the first you know of it is on the ground. */
-      seen.rivals = secIntel >= PRE.CONST.INTEL_TERRAIN ? (taken[sec.index] || 0) : null;
-      seen.yours = (state.drop.sectors || {})[corpId] === sec.index;
-      return seen;
-    });
-  }
-
   /* ------------------------------------------------------------------------ THE DRAFT ---- */
   /** The 24 slots are drafted at the lock, strictly lowest standing first, three rounds. A
       OA picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
@@ -3351,11 +3331,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      splitting was punished by a coincidence nobody had noticed. Rounds run to the largest
      count in the fleet, and an OA with fewer simply has no pick in the later rounds. The
      ring grows with the fleet's appetite so there is always ground to come down on. */
-  /* THE GROUND DOES NOT SHRINK TO FIT THE FLEET. The ring grew with what the fleet meant to
-     field, which made the map a function of the OAs on it; the planet has the landings it
-     has (`PRE.CONST.SLOTS`), and a light fleet simply leaves most of them unclaimed. Ground
-     going unused is the point — an OA that scouted knows which of it was worth having. */
-  const SLOT_MIN = 48;
+  /* §GROUND THE LANDINGS ARE THE GROUND'S ZONES, all but the last ground's: one squad a zone, one squad a region
+     for each OA. A light fleet leaves most of them unclaimed, which is the point — an OA that scouted knows which
+     of the unused ground was worth having. */
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
     /* §SEATS a person's landings are their squad board's: as many as the squads they have filled (ruled). Read
@@ -3836,16 +3814,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
   }
-  function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
+  function landingsFor(state) { return PRE.landings(state.ground); }
   function ensureDraft(state) {
-    state.drop = state.drop || { sectors: {} };
+    state.drop = state.drop || {};
     if (state.drop.draft && state.drop.draft.season === state.season) return state.drop.draft;
     const order = state.ids.slice().sort((a, b) => strengthRead(state, a) - strengthRead(state, b));   /* weakest first */
     const want = {};
     let rounds = 0;
     for (const id of state.ids) { want[id] = squadPlanFor(state, id); rounds = Math.max(rounds, want[id]); }
     state.drop.draft = { season: state.season, order, round: 0, turn: 0, picks: {}, taken: {},
-                         want, rounds, slots: slotCountFor(state), done: false, log: [] };
+                         want, rounds, slots: landingsFor(state).length, done: false, log: [] };
     for (const id of state.ids) state.drop.draft.picks[id] = [];
     return state.drop.draft;
   }
@@ -3873,7 +3851,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function draftPick(state, corpId, slot) {
     const D = ensureDraft(state);
     if (D.done || draftWhose(state) !== corpId) return false;
-    if (slot == null || slot < 0 || slot >= D.slots || D.taken[slot] != null) return false;
+    const all = landingsFor(state), l = all.find(x => x.index === slot);
+    if (!l || !PRE.allowed(l, D.taken, D.picks[corpId], all)) return false;   /* free, and not a region it already has a squad in */
     D.taken[slot] = corpId; D.picks[corpId].push(slot); D.log.push({ round: D.round, corp: corpId, slot });
     D.turn++;
     if (D.turn >= D.order.length) { D.turn = 0; D.round++; }
@@ -3921,33 +3900,28 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      choice made for them */
   function draftAdvance(state, choices, opts) {
     const D = ensureDraft(state);
-    const slots = PRE.slots(state.planet, D.slots);
+    const all = landingsFor(state);
     const strengthOf = id => strengthRead(state, id);
     let guard = 0;
     while (!D.done && guard++ < 64) {
       const who = draftWhose(state);
       const given = choices && choices[who] && Array.isArray(choices[who].slots) ? choices[who].slots[D.round] : undefined;
-      if (given != null && D.taken[given] == null) { draftPick(state, who, given); continue; }
+      if (given != null && draftPick(state, who, given)) continue;
       if (isHuman(state, who) && given == null) {
         if (!(opts && opts.force)) break;
-        const free = slots.find(sl => D.taken[sl.index] == null);
+        const free = all.find(l => PRE.allowed(l, D.taken, D.picks[who], all));
         if (!free) break;
         draftPick(state, who, free.index); D.assigned = (D.assigned || 0) + 1; continue;
       }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
       const rng = rngOf(state, 'draft' + state.season + who + D.round);
-      let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
-      if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
+      let slot = PRE.chooseLanding(rng, c, all, D.taken, D.picks[who], strengthOf, depth);
+      if (slot == null) { const free = all.find(l => PRE.allowed(l, D.taken, D.picks[who], all)); slot = free ? free.index : null; }
+      if (slot == null) { D.done = true; break; }
       draftPick(state, who, slot);
     }
     return D;
-  }
-  function chooseDropSector(state, corpId, index) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
-    state.drop.sectors = state.drop.sectors || {};
-    state.drop.sectors[corpId] = index;
-    return { ok: true };
   }
 
 
@@ -4221,23 +4195,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* THE DRAFT opens at the seam: the AI's turns run; a human's turn waits for the page (or
        for choices[id].slots when the closing is driven without one) */
     draftAdvance(state, state._draftChoices || null);
-    const secs = PRE.sectors(state.planet);
-    for (const id of state.ids) {
-      if (isHuman(state, id)) continue;
-      const c = state.corps[id];
-      const rng = rngOf(state, 'seam' + state.season + id);
-      const taken = {};
-      for (const other of state.ids) {
-        const pick = state.drop.sectors[other];
-        if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
-      }
-      /* §CENSUS with the ground it surveyed: this read a scalar nothing had written for a whole step, so every engine
-         OA was guessing at every sector however much it had scouted */
-      const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
-      const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1 : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
-      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken, secIntel);
-      /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
-    }
   }
 
   /**
@@ -4415,13 +4372,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
          second card over the one the manager spent the year working against, which is the same
          bug in the other direction. */
-      openSeason: false, groundTruth: state.planet,
+      openSeason: false, groundTruth: state.planet, siteCash: CONST.SITE_CASH,
       /* the edict's own share, from where the edict is written, rather than a number typed
          again in the Divide where nobody would think to change it */
       /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
          whom before anyone had seen anything. */
-      dropSectors: state.drop.sectors,
-      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: (state.drop.draft && state.drop.draft.slots) || SLOT_MIN,
+      /* §GROUND the ground itself, and where the draft put everybody: zone ids a squad */
+      ground: state.ground,
+      dropZones: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null,
       mediaRevealed: state.drop.media,
       human: theManager({ opts: opts }),
       humans: humansOf(opts)
@@ -5234,15 +5192,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       ids: Object.keys(corps), season: o.season, rec: o.rec,
       month: o.month, done: o.done,
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
-      drop: o.drop || { sectors: {}, media: {} },
+      drop: o.drop || { media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
       events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    state.planet = MAP.generatePlanet(rngOf(corps, 'planet' + o.season), {});
-    state.planet.pot = NEG.rollPot(rngOf(corps, 'pot' + o.season),
-                                   state.planet.archetype, state.planet.richness);
+    { const world = worldFor(corps, o.season); state.planet = world.planet; state.ground = world.ground; }
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
        lock can resolve it from the restored courting. */
@@ -5285,7 +5241,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
+           ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,

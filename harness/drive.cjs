@@ -40,7 +40,7 @@ let skipped = 0;
 const note = (msg) => { skipped++; console.log('  note  ' + msg); };
 const check = (ok, what) => { console.log((ok ? '  ok    ' : '  FAIL  ') + what); if (!ok) failed++; };
 const text = (sel) => (doc.querySelector(sel) ? doc.querySelector(sel).textContent : '');
-window.addEventListener('error', (e) => { console.log('  PAGE ERROR: ' + e.message); failed++; });
+window.addEventListener('error', (e) => { console.log('  PAGE ERROR: ' + e.message + (process.env.DRIVE_STACK && e.error ? '\n' + String(e.error.stack).split('\n').slice(0, 6).join('\n') : '')); failed++; });
 
 const dropOf = (s) => { const m = s.match(/drop (\d+) in \d+ squads[\s\S]*?drop (\d+) in \d+ squads/);
                         return m ? { mine: +m[1], theirs: +m[2] } : null; };
@@ -1517,48 +1517,48 @@ setTimeout(() => {
       const bid = (window.__G.corps[window.__G.me].roster.filter(f => f.status === 'active')[0] || {}).id;
       if (bid) { window.__G.plan.at[bid] = 0; }
     }
-    /* THE DRAFT: twenty-four slots at the lock, drafted weakest first, three each; the AI's turns
-       run until it is yours; you pick by slot; Drop when the draft is done */
+    /* §DROP THE DRAFT: the zones at the lock, drafted weakest first, one a squad; the AI's turns run until it is
+       yours; you open a region and pick a zone in it; Drop when the draft is done */
     {
-      const GD2 = window.__G, S3 = window.CDSEASON;
-      const Dft = GD2.state.drop.draft;
+      const GD2 = window.__G, S3 = window.CDSEASON, PRE4 = window.CDPREDIVIDE;
+      const Dft = GD2.state.drop.draft, gnd = GD2.state.ground;
       check(Dft && Dft.order.length === 8 && doc.querySelectorAll('#landing .dpick').length === 8,
             'the draft opens at the lock with the eight OAs in order, weakest first: ' + Dft.order.slice(0, 3).join(' > ') + ' …');
-      let guard = 0;
+      const all = PRE4.landings(gnd);
+      let guard = 0, clicked = 0;
       while (!Dft.done && guard++ < 6) {
         if (S3.draftWhose(GD2.state) === GD2.me) {
           check(/Your Pick/.test(text('#landing')), 'the page says it is your pick');
-          const free = []; for (let i = 0; i < (Dft.slots || S3.SLOT_MIN); i++) if (Dft.taken[i] == null) free.push(i);
-          S3.draftPick(GD2.state, GD2.me, free[Math.floor(free.length / 2)]);
+          const free = all.filter(l => PRE4.allowed(l, Dft.taken, Dft.picks[GD2.me], all));
+          const pick = free[Math.floor(free.length / 2)];
+          /* through the page: open the region on the overview, then the zone */
+          const reg = doc.querySelector('#landmap [data-gvreg="' + pick.region + '"]');
+          if (reg) reg.dispatchEvent(new window.Event('click'));
+          const zoneEl = doc.querySelector('#landing [data-landz="' + pick.index + '"]');
+          if (zoneEl) { zoneEl.dispatchEvent(new window.Event('click')); clicked++; }
+          else S3.draftPick(GD2.state, GD2.me, pick.index);
         }
         S3.draftAdvance(GD2.state);
         [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
       }
-      /* §DRAFT an OA drafts a landing for every squad it fields, so the counts differ by
-         OA and the ring is as wide as the fleet's appetite */
+      check(clicked > 0, 'a pick is made on the page: the region opened on the overview, the zone chosen in it (' + clicked + ' clicked)');
+      /* §DRAFT an OA drafts a landing for every squad it fields, so the counts differ by OA */
       const wanted = Object.keys(Dft.want).reduce((t, k) => t + Dft.want[k], 0);
       check(Dft.done && Dft.picks[GD2.me].length === Dft.want[GD2.me] &&
             Object.keys(Dft.taken).length === wanted && Dft.slots >= wanted,
             'the draft completes: a landing for every squad in the fleet (' + wanted +
-            ' of ' + Dft.slots + ' slots, yours ' + Dft.picks[GD2.me].length + ')');
-      /* §DROP the ground does not shrink to fit the fleet: forty-eight landings whatever is
-         fielded, most of them left unclaimed, scattered rather than strung on one ring */
-      const S4b = window.CDSEASON, PRE4 = window.CDPREDIVIDE;
-      const laid = PRE4.slots(GD2.state.planet, Dft.slots);
-      const depths = laid.map(l => l.toCentre);
-      check(Dft.slots === PRE4.CONST.SLOTS && wanted < Dft.slots,
-            'the planet keeps its ' + Dft.slots + ' landings and the fleet leaves ' +
-            (Dft.slots - wanted) + ' unclaimed');
-      check(Math.min(...depths) < 0.2 && Math.max(...depths) > 0.8,
-            'they are scattered from the middle to the rim, not strung on one ring (' +
-            Math.min(...depths).toFixed(2) + ' to ' + Math.max(...depths).toFixed(2) + ')');
-      check(depths.filter(d => d < 0.35).length < depths.filter(d => d > 0.7).length,
-            'and they thin toward the middle, where the ground is worth more');
-      void S4b;
+            ' of ' + Dft.slots + ' zones, yours ' + Dft.picks[GD2.me].length + ')');
+      /* one squad a zone, one squad a region for each OA, and nobody on the last ground */
+      const perRegion = {};
+      let oneARegion = true, offLast = true;
+      Object.keys(Dft.taken).forEach(z => { const id = Dft.taken[z], r = gnd.zones[+z].region; const k = id + ':' + r; if (perRegion[k]) oneARegion = false; perRegion[k] = 1; if (r === gnd.wall.last) offLast = false; });
+      check(oneARegion && offLast, 'one squad a zone, one a region for each OA, and nobody lands on the last ground');
+      check(Dft.slots === all.length && wanted < Dft.slots,
+            'the ground keeps its ' + Dft.slots + ' landings and the fleet leaves ' + (Dft.slots - wanted) + ' unclaimed');
       const turnNow = () => ((doc.getElementById('turngo') || {}).textContent || '').replace(/\s+/g, ' ').trim();
       check(/Drop/.test(turnNow()), 'the corner reads Drop once the draft is done: ' + turnNow().slice(0, 40));
-      check(doc.querySelectorAll('#landing .sector.yours').length === Dft.want[GD2.me] && /Every Landing/.test(text('#landing')),
-            'your landings are listed, one a squad, and every landing is posted');
+      check(doc.querySelectorAll('#landing .sector.yours').length >= Dft.want[GD2.me],
+            'your landings are listed, one a squad');
     }
     if (false && process.env.ARX_SHOT_WORLD) {   /* (the world shot predates the draft; re-cut when the Drop settles) */
       const GW = window.__G, keepPl = GW.state.planet;
@@ -1586,39 +1586,24 @@ setTimeout(() => {
       check(!!(per && per.hand && per.hand[leadId]),
             'the manager\'s hand rode into the real Divide\'s options');
     })();
-    /* §GROUND the first window stands AT THE DROP: it used to play straight through to the
-       current day, so a manager met his squads two days in with fights already fought */
-    check(window.__G.gday === 1 && window.__G.gstage === 'morning',
-          'the first window opens at the landing, not two days into the contest (day ' + window.__G.gday + ')');
-    /* §GROUND YOU SEE WHO YOU FOUGHT. A watched day comes from the record, which holds your
-       squads and the day's fights but no enemy — so a manager could watch a whole contest and
-       never see another OA. Every day with a fight of yours puts them on the map. */
+    /* §GROUND the first window stands AT THE DROP: the Ground page shows day one, every banner's squads on
+       their landings (the broadcast: a manager sees whose and where) */
     {
-      const GG = window.__G, was = { d: GG.gday, s: GG.gstage };
-      let withFight = 0, withMet = 0;
-      for (let dd = 1; dd <= ((GG.div.win.record || []).length); dd++) {
-        GG.gday = dd; GG.gstage = 'complete';
-        const DD = window.__gDay ? window.__gDay() : null;
-        if (!DD) break;
-        const mineFight = (DD.ev || []).some(e => e.t === 'fight' &&
-          (e.corps || []).some(c => (typeof c === 'string' ? c : null) === GG.me));
-        if (mineFight) { withFight++; if ((DD.sq || []).some(q => q.met)) withMet++; }
-      }
-      GG.gday = was.d; GG.gstage = was.s;
-      check(withFight === 0 || withMet === withFight,
-            'every day you fought puts the other OA on the map (' + withMet + ' of ' + withFight + ')');
+      const DD0 = window.__gDay ? window.__gDay() : null;
+      check(!!DD0 && DD0.day === 1, 'the first window opens at the landing, not two days into the contest (day ' + (DD0 ? DD0.day : '?') + ')');
+      const oas0 = new Set((DD0 ? DD0.squads : []).map(q => q.oa));
+      check(oas0.size === 8, 'the broadcast puts every banner\'s squads on the ground from the drop (' + oas0.size + ' banners)');
     }
     check(/Comms Window/.test(text('#divstate')),
           'the Divide began and paused at a comms window: ' +
           text('#divstate').replace(/\s+/g, ' ').trim());
-    try {
-      const cv = doc.getElementById('gmap');
-      const px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
-      let lit = 0;
-      for (let p = 0; p < px.length; p += 4) if (px[p] + px[p + 1] + px[p + 2] > 24) lit++;
-      check(lit > 20000, 'the ground painted (' + lit + ' lit pixels — planet, wall, squads)');
-    } catch (e) { note('ground pixel check skipped'); }
-    check(doc.querySelectorAll('#gboard tr').length === 9, 'all eight banners stand on the board');
+    {
+      [...doc.querySelectorAll('.tab')].filter(x => /^The Ground$/.test(x.textContent.trim()))[0].click();
+      const regs = doc.querySelectorAll('#gvmap [data-gvreg]').length, marks = doc.querySelectorAll('#gvmap [data-gvoa]').length;
+      check(regs >= 10 && marks >= 8, 'the ground is drawn: every region a circle, every squad a mark on it (' + regs + ' regions, ' + marks + ' squads)');
+      check(doc.querySelectorAll('#gvboard tr').length >= 9, 'all eight banners stand on the board');
+      [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
+    }
 
     /* ---- the Table: the window answered, not ignored ---- */
     check(hasTab('Desk') && hasTab('Negotiation'), 'the Desk and Negotiation sit live on the Divide\'s rail');
@@ -1656,8 +1641,8 @@ setTimeout(() => {
       check(/Rounds/.test(text('#tsquads')) && doc.querySelectorAll('#tsquads .bar2').length >= 1,
             'each squad shows its rounds beside its rations');
       /* §THE CLOCK the wall says when it moves next, and to what */
-      check(/Closes (Tomorrow|in \d+ Days)|The Dome Holds/.test(text('#dayhead')),
-            'the strip says when the wall closes next: ' + (text('#dayhead').match(/Closes[^A-Z]{0,30}|The Dome Holds/) || ['\u2014'])[0].replace(/\s+/g, ' '));
+      check(/Closes (Tomorrow|in \d+ Days)|The Wall Holds/.test(text('#dayhead')),
+            'the strip says when the wall closes next: ' + (text('#dayhead').match(/Closes[^A-Z]{0,30}|The Wall Holds/) || ['\u2014'])[0].replace(/\s+/g, ' '));
       /* A WIPED SQUAD HAS NO CAPTAIN TO NAME, AND SAYING SO IS THE PANEL WORKING. This asked
          for a clickable captain on every squad — so the moment a manager's last squad was
          killed to the man, a correct "Nobody Leading" read as a failure. What the panel owes
@@ -1720,33 +1705,19 @@ setTimeout(() => {
       [...doc.querySelectorAll('#tstrip [data-tsel]')].forEach(ch => {
         ch.click();
         const td = text('#tdeal');
-        if (/You Offer|Do Not Deal|Fight Under|Nothing To Put|Forbid/.test(td)) opened++;
+        if (/Ransoms|Do Not Deal|No Ransom Between You/.test(td)) opened++;
         ch.click();
       });
       check(opened === doc.querySelectorAll('#tstrip [data-tsel]').length,
-            'every OA on the strip opens a composer, or says why it will not deal (' + opened + ')');
+            'every OA on the strip opens on its ransoms, or says there is none, or that it does not deal (' + opened + ')');
     }
-    /* §JOINING RETIRED COMPOSE A TRUCE AT THE FIRST WINDOW THAT OFFERS ONE. This walked the windows for a
-       join or a take row — joining's deals — and when none could appear (they cannot now) it quietly
-       composed nothing and reported success anyway. A truce is what the table puts to an OA, so that is
-       what it composes, and if no OA will hear one on this seed it says so. */
-    let composed = null, tries = 0;
-    while (!composed && !/over/.test(text('#divstate')) && tries++ < 12) {
-      const W = window.__G.div.win;
-      const pactRow = ((W.table && W.table.pacts) || []).find(r => r.viable);
-      if (pactRow) {
-        doc.querySelector('#tstrip [data-tsel="' + pactRow.corp + '"]').click();
-        const kb = doc.querySelector('#tdeal [data-tkind="pact"]'); if (kb) kb.click();
-        check(/Truce/i.test(text('#tdeal')), 'the composer opens on the one deal at the table: ' +
-              text('#tdeal').replace(/\s+/g, ' ').trim().slice(0, 70));
-        const send = doc.querySelector('#tdeal [data-tsend="pact"]');
-        if (send) { send.click(); composed = 'pact'; }
-      }
+    /* §TRUCES CUT there is no truce at the table: no composer offers one, in any window */
+    let composed = null, tries = 0, pactSeen = false;
+    while (!/over/.test(text('#divstate')) && tries++ < 4) {
+      [...doc.querySelectorAll('#tstrip [data-tsel]')].forEach(ch => { ch.click(); if (doc.querySelector('#tdeal [data-tkind="pact"], #tdeal [data-tsend="pact"]')) pactSeen = true; ch.click(); });
       doc.getElementById('advwin').click();
     }
-    check(!!composed || tries >= 12, 'a truce was put to an OA, or no OA would hear one in a dozen windows' +
-          (composed ? '' : ' (none on this seed)'));
-
+    check(!pactSeen, 'no truce is offered at the table: the composer has no pact to put');
     if (!/over/.test(text('#divstate'))) {
       /* §STANCE what round-trips is the notch each squad carries: the card reads it back off
          the corp the engine handed out, so a notch the engine never received cannot show lit */
@@ -1850,49 +1821,27 @@ setTimeout(() => {
     check(+doc.getElementById('gday').max >= 5,
           'the whole contest scrubs day by day (' + doc.getElementById('gday').max + ' days recorded)');
 
-    /* ---- the Ground moves: the animation, guarded ----
-       The mock proved the grammar; these prove the page kept it. The fault that made
-       this pass necessary was a first press that relocated every squad at once, so the
-       decisive check is that stepping a day moves nobody who is not walking. */
+    /* ---- the Ground scrubs: day by day, forward and back ---- */
     (function () {
       const G = window.__G;
-      check(G.gstage === 'morning' && G.gday === 1,
-            'a finished contest opens at the drop, not at its last day');
+      [...doc.querySelectorAll('.tab')].filter(x => /^The Ground$/.test(x.textContent.trim()))[0].click();
       const days = G.div.final.replay.days;
-      const withTracks = days[1] && days[1].sq.filter(q => q.tr && q.tr.length >= 4).length;
-      check(withTracks > 0,
-            'the recording carries real walked tracks (' + withTracks + ' squads on day 2)');
-
-      /* every squad's drawn position, before and after one by-squad step */
-      doc.getElementById('gbysquad').checked = true;
-      doc.getElementById('gnoanim').checked = true;      /* settle instantly, no timers */
-      const shot = () => days[G.gday - 1].sq.map((q, qi) => window.__gDisp(q, qi).pos);
-      const before = shot();
+      const withTracks = days[1] && days[1].sq.filter(q => q.tr && q.tr.length >= 2).length;
+      check(withTracks > 0, 'the recording carries real walked tracks (' + withTracks + ' squads on day 2)');
+      const shown = () => (window.__gDay() || {}).day;
+      doc.getElementById('gday').value = '1'; doc.getElementById('gday').dispatchEvent(new window.Event('input'));
+      check(shown() === 1, 'the scrubber opens the contest at the drop (day ' + shown() + ')');
       doc.getElementById('gfwd').click();
-      const after = shot();
-      let moved = 0, worst = 0;
-      for (let i = 0; i < Math.min(before.length, after.length); i++) {
-        const d = Math.hypot(before[i][0] - after[i][0], before[i][1] - after[i][1]);
-        if (d > 0.002) { moved++; worst = Math.max(worst, d); }
-      }
-      check(moved <= 1,
-            'stepping by squad moves one squad, not the map (' + moved +
-            ' moved, worst ' + worst.toFixed(3) + ')');
-      check(G.gstage === 'stepping' || G.gstage === 'complete',
-            'the day is being stepped through, in order (' + G.gstage + ' ' + G.gmi + ')');
-
-      /* the back button un-happens the last move rather than jumping a day */
-      const dayAt = G.gday;
+      check(shown() === 2, 'stepping forward shows the next day (day ' + shown() + ')');
       doc.getElementById('gback').click();
-      check(G.gday === dayAt, 'stepping back un-happens the move, it does not skip the day');
-
-      doc.getElementById('greach').checked = true;
-      doc.getElementById('gday').dispatchEvent(new window.Event('input'));
-      check(G.gstage === 'complete',
-            'scrubbing lands on a finished day and never animates');
-      doc.getElementById('gbysquad').checked = false;
-      doc.getElementById('gnoanim').checked = false;
-      doc.getElementById('greach').checked = false;
+      check(shown() === 1, 'stepping back shows the day before (day ' + shown() + ')');
+      const last = days.length;
+      doc.getElementById('gday').value = String(last); doc.getElementById('gday').dispatchEvent(new window.Event('input'));
+      check(shown() === days[last - 1].d, 'scrubbing to the end shows the last day (day ' + shown() + ')');
+      const regEl = doc.querySelector('#gvmap [data-gvreg]');
+      if (regEl) { regEl.dispatchEvent(new window.Event('click')); }
+      check(doc.querySelectorAll('#gvregion [data-gvzone]').length >= 1, 'opening a region shows its zones');
+      [...doc.querySelectorAll('.tab')].filter(x => /^Desk$/.test(x.textContent.trim()))[0].click();
     })();
     const benchTally = () => {
       const t = {};

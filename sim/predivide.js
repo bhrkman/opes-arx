@@ -1,25 +1,13 @@
 /* Capital Divide — /sim/predivide.js
  *
- * THE SEAM. M11 is where the preparation year hands over to the Divide, and until now it held
- * exactly one decision — how many to send, and which lean. Everything else about the drop was
- * the engine's: corps landed evenly spaced around a ring at a random spin, nobody had spoken to
- * anybody before the drop, and the last month of the year was the quietest.
+ * THE SEAM. M11 is where the preparation year hands over to the Divide: how many to send, which
+ * lean, and WHERE THEY COME DOWN. The ground is regions of zones (sim/ground.js), and the draft
+ * deals landings on it — one squad a zone, one squad a region for each OA, straight weakest-first.
+ * What an OA can read of a landing is what its survey bought: unscouted, a zone is a name in a
+ * region; scouted, its ground; scouted well, the prize within reach. Every pick is public.
  *
- * Three decisions live here, and they are deliberately entangled rather than three menus:
- *
- *  - **WHERE YOU LAND.** The ring is cut into sectors, and what is in each one is read off the
- *    planet the board wrote its card against. Rich ground is contested ground. You pick blind
- *    unless you paid for a survey, which is what makes the survey verb worth its point.
- *  - **WHO YOU HAVE AN UNDERSTANDING WITH.** A pact struck here is struck BLIND — before anyone
- *    knows where anyone landed or how strong they turned out to be. That is the whole difference
- *    from the in-Divide truces that already exist, which are bargains between people who can see
- *    each other. A pre-Divide pact is a bet on a rival's character.
- *  - **WHETHER YOU PERFORM.** Media day pays in standing with the four audiences and costs you
- *    concealment: turn up and rivals arrive knowing what you brought.
- *
- * The entanglement is the point. Landing next to somebody is survivable if you have a pact and
- * ruinous if you do not; performing makes you a more attractive pact partner and a more
- * attractive target; a survey tells you which sector is worth arguing over.
+ * (The sector seam that cut the old ring into six is gone with the ring; a pre-drop pact went
+ * with the truces.)
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports)
@@ -29,211 +17,80 @@
   'use strict';
 
   const CONST = {
-    /* §DROP THE LANDINGS. Forty-eight points across the whole ground, on rings that thin
-       toward the middle: the centre is the shortest walk to everything and the last ground the
-       wall leaves, so a landing there is worth more and there are fewer to take. The count
-       never changes with the fleet — a light fleet leaves most of them unclaimed, which is the
-       point: an OA that scouted knows which of the unused ground was worth having. */
-    SLOTS: 48,
-    SLOT_ASKED_W: 5.0,           // [C] a landing near the resource the OA's board asked for, per unit of it (measured: asked 24% met against 6% for the unasked)
-    SLOT_APART: 0.11,            // [C] the least ground between two landings, as a share of the radius
-    SLOT_TRIES: 9,               // [C] how many nudges before a point is allowed to crowd another
-    SLOT_NUDGE_A: 0.07,          // [C] a step round
-    SLOT_NUDGE_D: 0.05,          // [C] and a step inward
-    SLOT_BANDS: [
-      { d: 0.86, share: 18, spin: 0.00 },     // the rim: the most room, the longest walk
-      { d: 0.66, share: 14, spin: 0.17 },
-      { d: 0.46, share: 9,  spin: 0.34 },
-      { d: 0.27, share: 5,  spin: 0.11 },
-      { d: 0.10, share: 2,  spin: 0.50 }      // the middle: two places, and everybody wants them
-    ],
-    SECTORS: 6,                  // [S] how the ring is cut. Fewer than corps, so it is contested.
-    /* [H] What a survey buys you HERE, which is the second half of a verb that previously paid
-       only a flat readiness bonus nobody could see. Below the first threshold a sector reads as
-       rumour; above it you know the ground; above the second you know the prize. */
+    LANDING_ASKED_W: 5.0,        // [C] a landing near the resource the OA's board asked for, per unit of it (measured: asked 24% met against 6% for the unasked)
+    LANDING_NEXT_W: 0.5,         // [C] a deposit in the region next door counts this much of one in the region
+    /* [H] What a survey buys you HERE. Below the first threshold a landing reads as a name in a region; above it
+       you know the ground; above the second you know the prize. */
     INTEL_TERRAIN: 0.12,
-    INTEL_PRIZE: 0.30,
-    /* [H] CONTESTED GROUND SHARES OUT, it is not taxed. This was a flat subtraction, and a flat
-       subtraction against a prize that ranges from 0 to over 6 never bites — seven of eight
-       corps piled into the single best sector and the choice meant nothing. Dividing is
-       scale-free: land somewhere with three rivals and there is a quarter of it for you,
-       whatever the sector was worth to begin with. */
-    CROWDING_SHARE: 1.0,
-    /* [H] Pacts struck blind. Cheaper to agree than an in-Divide truce because neither side
-       knows yet what they are giving up, and correspondingly easier to regret. */
+    INTEL_PRIZE: 0.30
   };
 
-  /**
-   * The ring, cut into sectors, with what is actually in each. Read off the planet object the
-   * Divide will fight on — not a parallel description of it, because a sector map that disagreed
-   * with the ground would be the survey lying to the player in the game's own voice.
-   */
-  /** §DROP — THE SLOTS. `n` landing points round the ring (the drop ring at DROP_RING × R),
-      each with dry footing, each reading like a sector: its ground, its cover, its height,
-      the prize within reach, its distance to the centre. The draft picks from these. */
-  /* §DROP THE LANDINGS ARE SCATTERED, NOT STRUNG ON A RING. A single ring at 0.82 of the
-     radius meant the whole fleet came down at one distance from the middle, and which ground a
-     OA got was whatever happened to fall on that circle — scouting the planet told a manager
-     almost nothing, because the choice was only ever WHERE ROUND, never HOW DEEP. The points
-     are laid across the whole ground now, on rings that thin toward the centre: the middle is
-     the shortest walk to everything and the last ground the wall leaves, so a landing there is
-     worth more and there are fewer of them to take. The count is FIXED (SLOTS) whatever the
-     fleet fields — eighteen squads on forty-eight points leaves thirty unclaimed, which is the
-     point: ground goes unused, and an OA that scouted knows which of it was worth having. */
-  function slots(planet, n) {
+  /** §DROP THE LANDINGS. Every zone of the ground but the last ground's: its region, the going, its cover and
+      height, the site on it, and the prize within reach — the deposits of its region and half of the next
+      regions' — read off the ground the Divide is fought on, not a parallel description of it. */
+  function landings(ground) {
     const out = [];
-    const R = planet.radius;
-    /* §LANDINGS EVERY LANDING OFFERED IS A LEGAL ONE. They were laid out round the planet's centre, and the first ring
-       sits off it: rim landings fell outside it and the squads that drafted them were walked a fifth of a radius inward
-       at the drop, off the ground their OA chose. They are laid out round the day-one ring now, inside the line it keeps. */
-    const Z = (MAP.zoneOn && planet.zone) ? MAP.zoneOn(planet, 1) : { cx: planet.cx, cy: planet.cy, r: R };
-    /* rings from the rim inward, each holding fewer than the last */
-    const bands = CONST.SLOT_BANDS;
-    const total = bands.reduce((t, b) => t + b.share, 0);
-    const plan = [];
-    bands.forEach((b, bi) => {
-      const count = bi === bands.length - 1 ? n - plan.length : Math.round(n * b.share / total);
-      for (let k = 0; k < count; k++) plan.push({ d: b.d, k: k, of: Math.max(1, count), spin: b.spin });
-    });
-    for (let i = 0; i < plan.length; i++) {
-      const p = plan[i];
-      const a = (p.k / p.of) * Math.PI * 2 + p.spin;
-      /* TWO LANDINGS MUST NOT BE ONE. Snapping a point to the nearest passable ground can walk
-         two of them onto the same tile — a lake between them and both slide to the same shore —
-         and a draft that deals the same ground twice is a draft that lies. Each point is tried
-         a few steps round and in before it is allowed to sit near another. */
-      let x, y, ok = false;
-      for (let t = 0; t < CONST.SLOT_TRIES && !ok; t++) {
-        const aa = a + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * CONST.SLOT_NUDGE_A : 0);
-        const dd = Z.r * p.d * (1 - (t > 3 ? (t - 3) * CONST.SLOT_NUDGE_D : 0));
-        x = Z.cx + Math.cos(aa) * dd; y = Z.cy + Math.sin(aa) * dd;
-        if (planet.nearestPassable) { const q = planet.nearestPassable(x, y); x = q.x; y = q.y; }
-        /* a snap to passable ground can step back over the line: bring it in */
-        const off = MAP.dist(x, y, Z.cx, Z.cy);
-        if (off > Z.r * 0.87) { const k = Z.r * 0.87 / off; x = Z.cx + (x - Z.cx) * k; y = Z.cy + (y - Z.cy) * k; }
-        ok = out.every(o => MAP.dist(o.x, o.y, x, y) >= R * CONST.SLOT_APART);
-      }
+    const depositsIn = {};
+    for (const s of ground.sites) if (s.kind === 'deposit') { const r = ground.zones[s.zone].region; (depositsIn[r] = depositsIn[r] || []).push(s); }
+    for (const z of ground.zones) {
+      if (z.region === ground.wall.last) continue;
+      const reg = ground.regions[z.region];
       let prize = 0; const near = {};
-      for (const o of planet.objectives || []) if (o.type === 'resource_site' && MAP.dist(o.x, o.y, x, y) < R * 0.36) {
-        prize += (o.potency || 1);
-        if (o.resource) near[o.resource] = Math.round(((near[o.resource] || 0) + (o.potency || 1)) * 10) / 10;   /* what is near, not only how much */
-      }
-      out.push({ index: i, angle: a, x, y, terrain: planet.terrainAt(x, y), conceal: planet.concealAt(x, y),
-                 height: planet.heightAt ? planet.heightAt(x, y) : 0.5, prize: Math.round(prize * 10) / 10, resources: near,
-                 toCentre: MAP.dist(x, y, planet.cx, planet.cy) / R });
+      const count = (list, w) => { for (const s of (list || [])) { prize += (s.units || 1) * w; if (s.resource) near[s.resource] = Math.round(((near[s.resource] || 0) + (s.units || 1) * w) * 10) / 10; } };
+      count(depositsIn[z.region], 1);
+      for (const l of reg.links) count(depositsIn[l.to], CONST.LANDING_NEXT_W);
+      out.push({ index: z.id, zone: z.id, region: z.region, regionName: reg.name, terrain: reg.terrain, ticks: reg.ticks,
+                 cover: z.cover, height: z.height, hiding: z.hiding, site: z.site ? z.site.kind : null, siteLabel: z.site ? (z.site.label || null) : null,
+                 prize: Math.round(prize * 10) / 10, resources: near, x: z.x, y: z.y, links: reg.links.map(l => l.to) });
     }
     return out;
   }
-  /** what a corp can read of a slot at its survey depth; the draft itself is public */
-  function readSlot(slot, intel) {
-    const seen = { index: slot.index, angle: slot.angle, x: slot.x, y: slot.y };
-    if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = slot.terrain; seen.conceal = slot.conceal; seen.height = slot.height; }
-    if (intel >= CONST.INTEL_PRIZE) { seen.prize = slot.prize; seen.toCentre = slot.toCentre; seen.resources = slot.resources; }
+  /** what a corp can read of a landing at its survey depth; the draft itself is public */
+  function readLanding(l, intel) {
+    const seen = { index: l.index, zone: l.zone, region: l.region, regionName: l.regionName, x: l.x, y: l.y };
+    if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = l.terrain; seen.ticks = l.ticks; seen.cover = l.cover; seen.height = l.height; seen.hiding = l.hiding; }
+    if (intel >= CONST.INTEL_PRIZE) { seen.prize = l.prize; seen.resources = l.resources; seen.site = l.site; seen.siteLabel = l.siteLabel; }
     return seen;
   }
-  /** §DROP THE DRAFT'S PICK. An AI corp values a free slot by what it can see of the ground
-      and by who has already landed near it: the prize and the cover by its greed; the
-      neighbours by whether it is stronger than them and how aggressive it is (a hunter drops
-      near a weaker OA, a careful one away from a stronger); its own earlier picks by
-      whether it wants its squads together (careful) or spread to flank (aggressive). Every
-      OA sees every pick, so this is a real read of the board. */
-  function chooseSlot(rng, corp, slots, taken, ownPicks, strengthOf, intel) {
+  /** a landing an OA may still take: free, and in a region none of its own squads has landed in */
+  function allowed(l, taken, ownPicks, all) {
+    if (taken[l.index] != null) return false;
+    const regionsMine = (ownPicks || []).map(i => { const o = all.find(x => x.index === i); return o ? o.region : -1; });
+    return regionsMine.indexOf(l.region) < 0;
+  }
+  /** §DROP THE DRAFT'S PICK. An AI corp values a free landing by what it can see of the ground and by who has
+      already landed near it: the prize and the cover by its greed; the neighbours (the same region, and the next
+      ones) by whether it is stronger than them and how aggressive it is; its own earlier picks by whether it wants
+      its squads together (careful) or spread (aggressive). Every OA sees every pick, so this is a real read. */
+  function chooseLanding(rng, corp, all, taken, ownPicks, strengthOf, intel) {
     const dials = (corp.profile && corp.profile.dials) || {};
     const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;
     const mine = strengthOf(corp.id);
     const ask = ((corp.rep && corp.rep.goal && corp.rep.goal.demands) || []).find(d => d.kind === 'resource' && d.resource);
     const asked = ask ? ask.resource : null;
+    const regionOf = {}, linksOf = {}; for (const l of all) { regionOf[l.index] = l.region; linksOf[l.region] = l.links; }
     let best = null, bestV = -Infinity;
-    for (const s of slots) {
-      if (taken[s.index] != null) continue;
-      const seen = readSlot(s, intel);
+    for (const l of all) {
+      if (!allowed(l, taken, ownPicks, all)) continue;
+      const seen = readLanding(l, intel);
       let v = 0;
       if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8);
-      /* §BOARD and most of all the ground that holds what its board asked for, where the survey shows it */
-      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.SLOT_ASKED_W;
-      if (seen.conceal != null) v += (1 / Math.max(0.2, seen.conceal)) * (1 - aggr) * 0.6 + (seen.height || 0.5) * 0.4;
-      /* the neighbours: who has landed within two slots either way */
+      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.LANDING_ASKED_W;
+      if (seen.cover != null) v += seen.cover * (1 - aggr) * 0.6 + Math.max(0, seen.height) * 0.4;
+      if (seen.site && seen.site !== 'beacon') v += 0.6;
+      /* the neighbours: who has landed in this region, and in the regions a route away */
       for (const k in taken) {
-        const other = taken[k], dist = Math.min(Math.abs(+k - s.index), slots.length - Math.abs(+k - s.index));
-        if (dist > 2) continue;
-        const near = 1 - dist / 3;
+        const other = taken[k], r = regionOf[k];
+        const near = r === l.region ? 1 : 0.45;
+        if (r !== l.region && (linksOf[l.region] || []).indexOf(r) < 0) continue;
         if (other === corp.id) { v += (thrift * 1.2 - aggr * 0.8) * near; continue; }   /* cluster if careful, spread if aggressive */
-        const edge = mine - strengthOf(other);                                              /* + means I am the stronger */
+        const edge = mine - strengthOf(other);                                           /* + means I am the stronger */
         v += near * (edge > 0 ? aggr * 1.4 * Math.min(1, edge) : -(1.6 - aggr) * Math.min(1, -edge));
       }
-      v += rng() * 0.15;                                                                    /* a little of the unknown */
-      if (v > bestV) { bestV = v; best = s; }
+      v += rng() * 0.15;                                                                 /* a little of the unknown */
+      if (v > bestV) { bestV = v; best = l; }
     }
     return best ? best.index : null;
   }
-  function sectors(planet) {
-    const out = [];
-    /* named for where they are: index 0 sits at angle 0 (east) and the ring runs clockwise
-       with y down, so 1 is south-east, 3 is west, 5 is north-east */
-    const NAMES = ['east cut', 'south-east flats', 'south-west scree',
-                   'west shelf', 'north-west ridge', 'north-east reach'];
-    for (let i = 0; i < CONST.SECTORS; i++) {
-      const a = (i / CONST.SECTORS) * Math.PI * 2;
-      const d = planet.radius * 0.82;
-      const x = planet.cx + Math.cos(a) * d;
-      const y = planet.cy + Math.sin(a) * d;
-      /* what a survey party would actually have found: the going, the cover, and how much of
-         the prize is nearby */
-      const terrain = planet.terrainAt ? planet.terrainAt(x, y) : 'open_basin';
-      const conceal = planet.concealAt ? planet.concealAt(x, y) : 0.5;
-      let prize = 0;
-      for (const o of (planet.objectives || [])) {
-        const dd = MAP.dist(x, y, o.x, o.y);
-        if (dd < planet.radius * 0.55) prize += (1 - dd / (planet.radius * 0.55));
-      }
-      /* how far from the first ring's centre — near ground is fought over sooner */
-      const toCentre = MAP.dist(x, y, planet.cx, planet.cy) / Math.max(1e-6, planet.radius);
-      out.push({ index: i, name: NAMES[i % NAMES.length], angle: a, x: x, y: y,
-                 terrain: terrain, conceal: conceal, prize: prize, toCentre: toCentre });
-    }
-    return out;
-  }
-
-  /**
-   * What a corp is allowed to KNOW about a sector, given what it paid for. Intel is the prep
-   * year's survey, and this is where it stops being an invisible readiness number.
-   */
-  function readSector(sector, intel) {
-    const seen = { index: sector.index, name: sector.name };
-    if (intel >= CONST.INTEL_TERRAIN) { seen.terrain = sector.terrain; seen.conceal = sector.conceal; }
-    if (intel >= CONST.INTEL_PRIZE) { seen.prize = sector.prize; seen.toCentre = sector.toCentre; }
-    seen.known = intel >= CONST.INTEL_PRIZE ? 'full'
-               : intel >= CONST.INTEL_TERRAIN ? 'ground' : 'rumour';
-    return seen;
-  }
-
-  /** What a sector is worth to a corp that can see it, before anyone else picks. */
-  function sectorValue(sector, corp) {
-    const dials = (corp.profile && corp.profile.dials) || {};
-    const greed = 0.5 + (dials.aggression || 50) / 200;
-    return sector.prize * greed + sector.conceal * (1 - greed) * 0.8;
-  }
-
-  /** An AI corp's pick. Deliberately plain, and it uses the same intel gate a player does. */
-  function chooseSector(rng, corp, secs, taken, intel) {
-    intel = intel || 0;
-    let best = null, bestV = -Infinity;
-    for (const s of secs) {
-      const seen = readSector(s, intel);
-      /* what you cannot see, you cannot value — an unsurveyed corp is guessing */
-      const raw = seen.known === 'rumour' ? rng() * 0.5 : sectorValue(s, corp);
-      const v = raw / (1 + (taken[s.index] || 0) * CONST.CROWDING_SHARE) + rng() * 0.15;
-      if (v > bestV) { bestV = v; best = s; }
-    }
-    return best ? best.index : 0;
-  }
-
-  /**
-   * MEDIA DAY. Standing with the four audiences, bought with a day of performing, paid for in
-   * concealment. `reveal` is what rivals learn — it is returned rather than applied here, so the
-   * Divide's belief model stays the one place that decides what anybody believes.
-   */
-  /* §MEDIA media day moved to events.js: it is a card every seat answers, not a roll */
-
-  return { CONST, sectors, slots, readSlot, chooseSlot, readSector, sectorValue, chooseSector };
+  return { CONST, landings, readLanding, chooseLanding, allowed };
 }));

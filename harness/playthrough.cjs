@@ -308,7 +308,6 @@ function playDivide(year) {
     mySq.forEach((q) => { const up = q.bodies.filter(b => b.status === 'active').length; const st2 = up >= 4 ? 'standard' : up >= 2 ? 'measured' : 'preservationist'; answer.squadStance[q.sIdx != null ? q.sIdx : you.squads.indexOf(q)] = st2; });
     const NW = { preservationist: 'Avoid', measured: 'Wary', standard: 'Engage', unyielding: 'Press', death_or_glory: 'All In' };
     words.push('stances set ' + mySq.map((q) => sqName(q) + ' ' + NW[answer.squadStance[q.sIdx != null ? q.sIdx : you.squads.indexOf(q)]]).join(', '));
-    if (strongest && myUp < strongest.standing.up * 0.7 && table[strongest.id] && table[strongest.id].pact && !v.pacts) { answer.deal = { kind: 'pact', corp: strongest.id, terms: { credits: 2000 } }; words.push('sought a truce with ' + oaName(strongest.id) + ', sweetened ' + cr(2000)); }
     if (asks.length) { answer.withdrawReplies = {}; const promised = Object.keys(you._promisedTo || {}).length;
       asks.forEach((a, i) => { const yes = (a.terms.credits || 0) <= 0.1 && promised + i < 2; answer.withdrawReplies[a.from] = yes; if (yes) (you._promisedTo = you._promisedTo || {})[a.from] = 1; words.push((yes ? 'promised ' : 'refused ') + oaName(a.from) + ' (' + Math.round((a.terms.credits || 0) * 100) + '%)'); }); }
     if (myUp <= 4 && others.some(x => !x.withdrawn) && !v.withdrawOffer) { answer.withdrawOffer = { credits: 0.12 }; words.push('posted an offer to leave for 12% of the pot'); }
@@ -317,7 +316,6 @@ function playDivide(year) {
     S.advanceContest(state, { force: true });
     st = S.contestStatus(state);
     const echo = S.contestView(state, ME) && S.contestView(state, ME).echo;
-    if (echo && echo.kind === 'pact') say('- The truce was ' + (echo.accepted ? 'accepted' : 'refused') + ' (chance ' + Math.round((echo.chance || 0) * 100) + '%).');
   }
   const res = S.contestResult(state);
   say('\n## The settlement\n');

@@ -89,19 +89,20 @@ landings are their squad board's, and they say what becomes of the captives they
 ## The Divide
 
 Twenty-four fighters go down the well in squads the manager has set, each with its captain,
-kit, rations and a stance. The ring closes on a schedule and stops at the last ground; a
-squad outside the ring at dawn is dead, and no OA is ever there. Sites are revealed in waves
-and worked for credits; beacons land reinforcements; rest sites mend. The contest ends when
-one OA is left standing; there is no clock and nothing is adjudicated.
+kit, rations and a stance, each on the zone its OA drafted. The ground is regions of zones; the
+wall takes whole regions on a schedule timed to the month and stops at the last ground; a squad
+in a region the wall takes at dawn is dead, and no OA is ever there. Every site is known from the
+drop and a deposit opens on its day; sites are worked for credits, beacons land reinforcements,
+rest sites mend. The contest ends when one OA is left standing; there is no clock and nothing
+is adjudicated.
 
-The ground is the manager's only through comms windows. Between windows the OA's own command
-plans for it: squads within reach of one another form a group, each group runs one operation
-(take a site, land the reserve, mend, strike a force it can beat, link up, advance, hold) that
-stands until the next window unless the ground overturns it, and every squad gets a role each
-dawn. The plan is drawn on the Ground as flags so a manager reads the day by what his people
-meant to do. At a window the manager sets each squad's stance toward the enemy, from Avoid to
-All In, and that is a light dial on a plan that already knows what it wants: boldness is
-fighting for contested objectives and the beacons that bring reinforcements, not hunting.
+The ground is the manager's only through comms windows. Between windows every seat's planner —
+a person's and the engine's alike — walks its squads over the regions: it takes ground worth
+having, leaves a region before the wall, and stops short of a rival, which is a fight. At a
+window the manager sets each squad's stance toward the enemy, from Avoid to All In, may order a
+squad to a zone or to hold, and decides the captives his people took. The Ground page shows
+every banner's squads, whose and where (the broadcast), the fights of the day, the wall's
+standing and its next regions, and inside the region he opens, the zones.
 
 A fight is fought on a grid with cover, line of sight and fog: a body is seen, heard, or
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
@@ -110,14 +111,12 @@ the ground and what the fallen carried. The wounded are recovered or lost; the d
 A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
 kept or killed by whoever holds them.
 
-Everything an OA knows on the ground is what its squads have seen: rival positions are last
-sightings, rival strength is the broadcast count, and a seat is never sent what it has not
-earned. The manager sees the fights his people fought and the plan they were given.
+A squad on the ground knows what it has seen and heard and what its seat told it at the last
+window; a seat reads the broadcast — every squad, whose and where — and the fights its own
+people fought.
 
-Deals at the table are truces, sweetened with credits, and a truce is never broken: the Aleas
-mandate it and the drones enforce it, and they mandate none between the last two banners
-standing, since with nobody else to fight a truce would be the contest's end by other means. A
-manager's truce is struck at his own table or not at all. An OA may leave the ground: by walking, or by selling its exit to the field for promises
+There are no truces. The one deal over the wire is a ransom: a captive is priced, paid for or
+left. An OA may leave the ground: by walking, or by selling its exit to the field for promises
 against the pot, kept or broken at the settlement and remembered across years. The last OA
 standing has won and does not leave.
 
@@ -140,20 +139,23 @@ lean one pleases.
   once from its mark.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
 - Every seat sees only what it knows, in the year and on the ground.
-- Outside the ring is death, and a truce is never broken.
+- Outside the ring is death, and there are no truces.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
-- The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js, the
-  rebuild in progress). A zone is where one squad stands; a region has one terrain and one pace;
+- The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js). The
+  planet is the dossier — what it is made of and worth, its hazards, its light — and its
+  objectives are the ground's sites. A zone is where one squad stands; a region has one terrain and one pace;
   routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
   reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
   month. Windows fall every other day and daily once few regions stand. The wall's order never
   cuts the standing ground in two.
-- On that ground (sim/contest.js, the rebuild in progress) a squad sees the zones next to it, a ring
+- On that ground (sim/contest.js, driven by divide.js's day loop, which keeps the economy: kit,
+  rations, camp, forage, weather, loot, fame, stress, the table, the reserve, the awards, the
+  settlement) a squad sees the zones next to it, a ring
   more a level up and only its own in a hollow; it is heard across its region by what it carries,
   summed over its bodies, marching, firing or fighting, muffled by cover, thick ground and night;
   the window briefs it on every rival in its own and the adjacent regions. Every seat's planner
@@ -169,8 +171,9 @@ lean one pleases.
   are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive walks
   with the squad, costs it a tick a step and attention in a fight; a wiped holder's captives pass to
   the wiper. A squad that will not close picks at the stronger rival next door with its long rifles,
-  loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid
-  once bodies are handed to it (step e); until then a stand-in of the same shape.
+  loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid,
+  handed the sides built from the squads' bodies (a stand-in of the same shape runs the contest's
+  own harness and suite).
 - What happens and is done leaves the page: the Dispatches, the Paper, the Draft and the Word open
   over whatever page is on, in one shell, and come back through Waiting On You or a docket line where
   they stood. What is always there stays on its page.

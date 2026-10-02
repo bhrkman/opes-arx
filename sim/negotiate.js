@@ -45,11 +45,6 @@
 
     /* §6 the table */
     BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for a banner moves its price
-    PACT_CREDIT_SCALE: 0.06,            // [C] §4.1 credits equal to this share of the pot buy the full sweetener
-    PACT_DAYS: [2, 5],                  // [C] §4 how long a truce runs. NEGOTIATION.md quoted
-                                        //     this by name and the code had it inlined — the
-                                        //     doc described a constant that did not exist
-                                        //     a corp waits for rather than closing now
     /* §7 the crowd counterweight — REPLACED IN STEP 7.
 
        CROWD_CREDIT_RATE lived here: one number saying what a point of standing was worth as
@@ -102,7 +97,7 @@
                                         //     pair, so the per-Divide rate is ~20x this.
 
     /* §9 captives */
-    /* §6.13 ONE VALUATION. Ransoms, captives and pacts priced from their own dials and fixed
+    /* §6.13 ONE VALUATION. Ransoms and captives priced from their own dials and fixed
        constants; none read the body price the table uses, the living regard between OAs, or
        appetite. Now a ransom is asked at what the body is worth to lose (pension plus the
        replacement, as `bodyMoney` prices it), marked up, and the owner pays when it wants him
@@ -601,66 +596,7 @@
 
 
 
-  /* ------------------------------------------------------------------ */
-  /* §4 non-aggression pacts                                             */
-  /* ------------------------------------------------------------------ */
-
-
-  /**
-   * §4.1 THE CHANCE OF A PACT, for a manager's offer. Nothing here is impossible short of a
-   * sealed OA or the same banner: an OA doing better than you wants paying, and credits
-   * pay; an OA doing worse than you wants the truce and will mostly say yes. Deterministic,
-   * so the beam can read it before the word goes out.
-   */
-  /* §TRUCE THE ALEAS MANDATE NO TRUCE BETWEEN THE LAST TWO (ruled). A truce is never broken, so two banners
-     left alone on the last ground that kept striking one — every window, four or five days at a time — stood
-     interleaved within a squad's reach for twelve days of overtime and nobody shot: the contest could not end.
-     With two banners standing there is nobody else to fight, and a truce would be the contest's end by other
-     means; the Aleas refuse to mandate it. Every seat alike. */
-  function lastTwo(ctx) { return (ctx.banners || 0) <= 2; }
-  function pactChance(a, b, ctx, terms) {
-    if (ctx.sealed(a) || ctx.sealed(b)) return { possible: false, why: 'they do not deal', p: 0 };
-    if (ctx.principalOf(a).id === ctx.principalOf(b).id) return { possible: false, why: 'same banner', p: 0 };
-    if (lastTwo(ctx)) return { possible: false, why: 'no truce between the last two', p: 0 };
-    const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
-    const credits = Math.max(0, (terms && terms.credits) || 0);
-    const sweet = Math.min(0.45, credits / Math.max(1, (ctx.pot || 1) * CONST.PACT_CREDIT_SCALE));
-    let p, why;
-    if (oa < ob) {
-      /* they are ahead: the truce is your relief, not theirs. Thrift makes them take the quiet;
-         the gap makes them want it less; credits make up the difference. */
-      const gap = Math.min(1, (ob - oa) / 0.3);
-      p = (0.35 + 0.4 * dial(b, 'thrift')) * (1 - 0.6 * gap) + sweet;
-      why = gap > 0.5 ? 'they are well ahead of you' : 'they are ahead of you';
-    } else {
-      /* you are ahead: the truce is theirs to want */
-      p = 0.55 + 0.35 * Math.min(1, (oa - ob) / 0.2) + sweet * 0.5;
-      why = 'they need the quiet more than you do';
-    }
-    return { possible: true, p: Math.max(0.03, Math.min(0.95, p)), why };
-  }
-
-  function considerPact(rng, a, b, ctx) {
-    if (ctx.sealed(a) || ctx.sealed(b)) return null;
-    if (ctx.principalOf(a).id === ctx.principalOf(b).id) return null;
-    if (lastTwo(ctx)) return null;
-    const oa = ctx.odds[ctx.principalOf(a).id] || 0, ob = ctx.odds[ctx.principalOf(b).id] || 0;
-    /* The weaker side wants it; the stronger side wants paying for it. §6.13: a hungry OA wants
-       no truce, one that wants out wants one badly; an OA that will not deal with you will not
-       sign a truce with you either. */
-    if (oa >= ob) return null;
-    if (refusesOutright(b, a) || refusesOutright(a, b)) return null;
-    const app = ctx.corps ? appetite(a, ctx).value : 1;
-    const want = (ob - oa) * (1 - dial(a, 'aggression')) * (2 - app);
-    if (want < 0.05) return null;
-    if (rng() > 0.35 + 0.4 * dial(b, 'thrift')) return null;
-    return {
-      kind: 'pact', a: a.id, b: b.id,
-      days: CONST.PACT_DAYS[0] + Math.floor(rng() * (CONST.PACT_DAYS[1] - CONST.PACT_DAYS[0] + 1)),
-      supply: Math.round(band(rng, [1, 4])),      /* rations handed over as recompense */
-      day: ctx.day
-    };
-  }
+  /* §TRUCES CUT (ruled): there is no truce at the table; what is priced over the wire is a ransom. */
 
   /* ------------------------------------------------------------------ */
   /* §9 captives                                                         */
@@ -908,7 +844,7 @@
 
   const api = {
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue, considerPact, pactChance,
+    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue,
     wantOf, settleHaul,
     ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
     settle

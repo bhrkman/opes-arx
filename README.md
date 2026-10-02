@@ -14,7 +14,7 @@ is a tab of it. The single-surface dev viewers that used to sit beside it were r
 | | |
 |---|---|
 | `docs/PROJECT.md` | The vision the rules serve and the rulings that bind them. The code holds every number. |
-| `sim/` | The engine: `season.js` (the year), `divide.js` (the contest), `tactical.js` (a fight), `negotiate.js`, `events.js`, `sponsors.js`, `reputation.js`, `items.js`, `roster.js`, `map.js`; the rebuild in progress: `ground.js` (regions and zones), `contest.js` (movement, sight, noise, the planner over them, and fights: who is in one, from where, who walks in late, who breaks off where, the captured). |
+| `sim/` | The engine: `season.js` (the year), `divide.js` (the contest's day loop and economy: kit, rations, camp, weather, loot, fame, the table, the reserve, the settlement), `ground.js` (the ground: regions and zones), `contest.js` (movement, sight, noise, the planner and fights over them), `tactical.js` (a fight), `negotiate.js`, `events.js`, `sponsors.js`, `reputation.js`, `items.js`, `roster.js`, `map.js` (the planet dossier). |
 | `viewers/corp_template.html` | The page. `node sim/build_corp.cjs` inlines the engine and writes `index.html`. |
 | `data/` | The catalogues: peoples, traits, items, OA profiles. |
 
@@ -24,8 +24,8 @@ Hosting is any static host pointed at the repo root; `index.html` is the whole g
 
 ```
 cd sim
-node arx.cjs regress --fast     219 checks · the edit loop
-node arx.cjs regress            306 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     218 checks · the edit loop
+node arx.cjs regress            303 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the
@@ -35,14 +35,14 @@ node audit_hooks.cjs            every trait hook does something or says why it d
 node audit_code.cjs             dead functions, unread constants, helpers written twice
 node measure_fight.cjs          the shape of a fight
 node ../harness/ground_view.cjs [out.html] [seed…]
-                                the rebuilt ground, drawn: generated worlds as the Ground page will show them
+                                the ground, drawn: generated worlds as the Ground page shows them
 node ../harness/contest_watch.cjs [seed] [--quiet]
-                                a month on the rebuilt ground, window by window: who walked, met, fought, was wiped, was taken, was caught
+                                a month on the ground, squads alone (no bodies, the stand-in resolver): who walked, met, fought, was wiped, was taken, was caught
 node probe_sponsor.cjs          the sponsor board's rules
 
 cd ../harness
 npm install                     once, for jsdom (node_modules is gitignored)
-node drive.cjs                  93 checks · drives the BUILT page through a whole year
+node drive.cjs                  331 checks · drives the BUILT page through a whole year
 node drive_*.cjs                one surface each: the draft, the map, the market, the reserve, the withdrawal…
 node probe_*.cjs                seats, secrecy, handover, resume, time, the wall, the market, the reserve
 node stat_scale_proof.cjs check the fight resolver against its recorded baseline (record after a behaviour change)

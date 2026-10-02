@@ -294,7 +294,20 @@
     return [...seen];
   }
 
-  const api = { CONST, generate, standingOn, nextToGo, isWindowDay, ticksBetween, seenFrom };
+  /** §SITES the ground's sites in the shape the season, the board and the settlement read: an objective a site, on
+      its zone, placed in its region; a deposit's potency is its units; every site is known from the drop (the ground is
+      scouted) and a deposit is worked from the day it opens */
+  const OBJ_TYPE = { deposit: 'resource_site', rest: 'ration_site', strongpoint: 'strongpoint', munitions: 'munitions_drop', mast: 'relay_mast', beacon: 'sponsor_cache' };
+  const OBJ_LABEL = { rest: 'Rest Site', strongpoint: 'Strongpoint', munitions: 'Munitions Drop', mast: 'Relay Mast', beacon: 'Landing Beacon' };
+  function objectivesOf(ground) {
+    return ground.sites.map((s, i) => { const z = ground.zones[s.zone], r = ground.regions[z.region];
+      return { id: 'obj_' + i, type: OBJ_TYPE[s.kind] || s.kind, kind: s.kind, zone: s.zone, region: z.region,
+               x: z.x, y: z.y, place: r.name, label: s.label || OBJ_LABEL[s.kind] || s.kind,
+               resource: s.resource || null, category: s.category || null, potency: s.kind === 'deposit' ? (s.units || 1) : 1, tier: 2,
+               revealed: true, revealDay: 1, opens: s.kind === 'deposit' ? s.opens : 1, wave: 0,
+               looted: false, lootedBy: null, work: {}, dark: 0 }; });
+  }
+  const api = { CONST, generate, standingOn, nextToGo, isWindowDay, ticksBetween, seenFrom, objectivesOf, OBJ_TYPE };
   if (isNode) module.exports = api;
   global.CDGROUND = api;
 })(typeof window !== "undefined" ? window : globalThis);
