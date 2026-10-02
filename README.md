@@ -24,8 +24,8 @@ Hosting is any static host pointed at the repo root; `index.html` is the whole g
 
 ```
 cd sim
-node arx.cjs regress --fast     218 checks · the edit loop
-node arx.cjs regress            303 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     226 checks · the edit loop
+node arx.cjs regress            311 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the
@@ -38,11 +38,13 @@ node ../harness/ground_view.cjs [out.html] [seed…]
                                 the ground, drawn: generated worlds as the Ground page shows them
 node ../harness/contest_watch.cjs [seed] [--quiet]
                                 a month on the ground, squads alone (no bodies, the stand-in resolver): who walked, met, fought, was wiped, was taken, was caught
+node ../harness/divide_watch.cjs <out> [seed]
+                                a contest played on the built page, window to window on the Ground: frames, a log, the video
 node probe_sponsor.cjs          the sponsor board's rules
 
 cd ../harness
 npm install                     once, for jsdom (node_modules is gitignored)
-node drive.cjs                  331 checks · drives the BUILT page through a whole year
+node drive.cjs                  331 steps · drives the BUILT page through a whole year
 node drive_*.cjs                one surface each: the draft, the map, the market, the reserve, the withdrawal…
 node probe_*.cjs                seats, secrecy, handover, resume, time, the wall, the market, the reserve
 node stat_scale_proof.cjs check the fight resolver against its recorded baseline (record after a behaviour change)

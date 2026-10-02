@@ -7211,10 +7211,12 @@
     draw();
     $('dfoot').textContent = 'Their Fate Waits on You';
     $('dlaterw').textContent = 'Decide';
+    /* the fates ride the window's word: decided, the window closes onto the Desk and the contest waits for Next */
     $('dlater').onclick = function () {
-      SEASON.answerContest(G.state, G.me, { captiveFate: fate });
+      G.div.answer = G.div.answer || {}; G.div.answer.captiveFate = fate;
       closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeAnyWindow; $('dlaterw').textContent = 'Later';
-      advanceDivide();
+      $('advwin').style.display = ''; if (window.syncWindowBtns) syncWindowBtns();
+      renderTable();
     };
     $('dscrim').onclick = null;
     $('dscrim').classList.add('on'); box.classList.add('on');

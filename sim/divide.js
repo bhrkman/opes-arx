@@ -1,11 +1,11 @@
-/* Capital Divide — /sim/divide.js  (Step 4)
+/* Capital Divide — /sim/divide.js
  *
- * The day loop that sits above combat. Implements DIVIDE.md end to end:
- *   §2 shape and comms windows · §4 the tick · §5 movement, supply, hazards, camp
- *   §6 encounters · §7 declared stance · §8 captain stress · §9 objectives · §10 closures
- *
- * The declared stance governs FIGHT SELECTION here (D1). What happens once shooting
- * starts belongs to combat.js, which no longer knows what a stance is beyond two nudges.
+ * THE DIVIDE'S DAY LOOP AND ITS ECONOMY. The ground is sim/ground.js and what happens on it — movement,
+ * sight, noise, the planner, the shape of a fight — is sim/contest.js, ticked from here. This file owns
+ * what the people carry and what it costs: building the corps and their kit, rations, forage, camp and
+ * the weather, the grid fight built from the squads' bodies and booked back to them, loot and fame,
+ * stress, the sites worked, the reserve landed on beacons, the captives, the windows and the table
+ * (ransoms and the Withdrawal; there are no truces), and the settlement.
  *
  * Pure logic: no DOM, no Math.random, no I/O. Seed ⇒ identical Divide, map included.
  */

@@ -12068,7 +12068,7 @@
 })(typeof window !== "undefined" ? window : globalThis);
 
 /* ==== ground.js ==== */
-/* Capital Divide — /sim/ground.js  (the Divide rebuild, step a)
+/* Capital Divide — /sim/ground.js
  *
  * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of three to
  * eight zones. A zone is where a squad stands: one squad holds it, it has a height, cover and
@@ -12383,14 +12383,13 @@
 })(typeof window !== "undefined" ? window : globalThis);
 
 /* ==== contest.js ==== */
-/* Capital Divide — /sim/contest.js  (the Divide rebuild, step c)
+/* Capital Divide — /sim/contest.js
  *
- * THE CONTEST ON THE GROUND: movement, sight and noise, and the engine seats' planner over regions.
- * This is the rebuilt Divide's day loop, built beside divide.js and switched in when the table,
- * reserve, captives and settlement are ported (conversion list, item 31). A contact is a fight: the
- * fight is shaped here (who is in it, from which edge, who walks in late, how long it holds the
- * zone, who breaks off where, what becomes of the captured) and resolved by a resolver — the grid,
- * once step e hands it bodies; a stand-in of the same shape until then.
+ * THE CONTEST ON THE GROUND: movement, sight and noise, and every seat's planner over regions,
+ * ticked by divide.js's day loop. A contact is a fight: the fight is shaped here (who is in it, from
+ * which edge, who walks in late, how long it holds the zone, who breaks off where, what becomes of
+ * the captured) and resolved by the resolver divide.js hands it — the grid, built from the squads'
+ * bodies; run alone (harness/contest_watch.cjs, contestRules), a stand-in of the same shape.
  *
  * The clock is ticks: twelve a day, two hours each. A squad stands in one zone, or is on its way
  * to the next one paying ticks against the step; nobody else's squad stands in its zone. Sight is
@@ -21835,14 +21834,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 }));
 
 /* ==== divide.js ==== */
-/* Capital Divide — /sim/divide.js  (Step 4)
+/* Capital Divide — /sim/divide.js
  *
- * The day loop that sits above combat. Implements DIVIDE.md end to end:
- *   §2 shape and comms windows · §4 the tick · §5 movement, supply, hazards, camp
- *   §6 encounters · §7 declared stance · §8 captain stress · §9 objectives · §10 closures
- *
- * The declared stance governs FIGHT SELECTION here (D1). What happens once shooting
- * starts belongs to combat.js, which no longer knows what a stance is beyond two nudges.
+ * THE DIVIDE'S DAY LOOP AND ITS ECONOMY. The ground is sim/ground.js and what happens on it — movement,
+ * sight, noise, the planner, the shape of a fight — is sim/contest.js, ticked from here. This file owns
+ * what the people carry and what it costs: building the corps and their kit, rations, forage, camp and
+ * the weather, the grid fight built from the squads' bodies and booked back to them, loot and fame,
+ * stress, the sites worked, the reserve landed on beacons, the captives, the windows and the table
+ * (ransoms and the Withdrawal; there are no truces), and the settlement.
  *
  * Pure logic: no DOM, no Math.random, no I/O. Seed ⇒ identical Divide, map included.
  */
@@ -35899,10 +35898,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     draw();
     $('dfoot').textContent = 'Their Fate Waits on You';
     $('dlaterw').textContent = 'Decide';
+    /* the fates ride the window's word: decided, the window closes onto the Desk and the contest waits for Next */
     $('dlater').onclick = function () {
-      SEASON.answerContest(G.state, G.me, { captiveFate: fate });
+      G.div.answer = G.div.answer || {}; G.div.answer.captiveFate = fate;
       closeDispatch(); $('dlater').onclick = closeDispatch; $('dscrim').onclick = closeAnyWindow; $('dlaterw').textContent = 'Later';
-      advanceDivide();
+      $('advwin').style.display = ''; if (window.syncWindowBtns) syncWindowBtns();
+      renderTable();
     };
     $('dscrim').onclick = null;
     $('dscrim').classList.add('on'); box.classList.add('on');

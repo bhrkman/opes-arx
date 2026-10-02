@@ -1,11 +1,10 @@
-/* Capital Divide — /sim/contest.js  (the Divide rebuild, step c)
+/* Capital Divide — /sim/contest.js
  *
- * THE CONTEST ON THE GROUND: movement, sight and noise, and the engine seats' planner over regions.
- * This is the rebuilt Divide's day loop, built beside divide.js and switched in when the table,
- * reserve, captives and settlement are ported (conversion list, item 31). A contact is a fight: the
- * fight is shaped here (who is in it, from which edge, who walks in late, how long it holds the
- * zone, who breaks off where, what becomes of the captured) and resolved by a resolver — the grid,
- * once step e hands it bodies; a stand-in of the same shape until then.
+ * THE CONTEST ON THE GROUND: movement, sight and noise, and every seat's planner over regions,
+ * ticked by divide.js's day loop. A contact is a fight: the fight is shaped here (who is in it, from
+ * which edge, who walks in late, how long it holds the zone, who breaks off where, what becomes of
+ * the captured) and resolved by the resolver divide.js hands it — the grid, built from the squads'
+ * bodies; run alone (harness/contest_watch.cjs, contestRules), a stand-in of the same shape.
  *
  * The clock is ticks: twelve a day, two hours each. A squad stands in one zone, or is on its way
  * to the next one paying ticks against the step; nobody else's squad stands in its zone. Sight is

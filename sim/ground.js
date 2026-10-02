@@ -1,4 +1,4 @@
-/* Capital Divide — /sim/ground.js  (the Divide rebuild, step a)
+/* Capital Divide — /sim/ground.js
  *
  * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of three to
  * eight zones. A zone is where a squad stands: one squad holds it, it has a height, cover and

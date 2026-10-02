@@ -2763,6 +2763,44 @@ function contestRules() {
   ok('the same ground, seed and drop are the same contest', ev(sA) === ev(sB));
 }
 
+function divideRules() {
+  /* §GROUND THE RULES OF THE CONTEST, HELD ON REAL DIVIDES. contestRules holds the contest on squads alone; this holds
+     the switched Divide — bodies, the grid, the economy, the table — to the same rules, over three seasons run to
+     their drop and fought: the record carries every day, the windows fall on the ground's own cadence, nobody stands
+     on ground the wall has taken, nobody with a free way out is caught, no fight runs past a window or past half a
+     day, every captive is decided, there are no truces, and one banner is left. */
+  const GR = req('ground.js'), CT = req('contest.js');
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  let recordAll = true, cadence = true, onStanding = true, freeCaught = 0, fightsOk = true, capOk = true, truces = 0, ended = 0, fights = 0, captives = 0;
+  const notes = [];
+  for (const seed of ['dr1', 'dr2', 'dr3']) {
+    const rr = makeRng('divrules-' + seed), fleet = SEASONMOD.openFleet(rr, oa, {}), st = SEASONMOD.beginSeason(rr, fleet, oa, {});
+    while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
+    SEASONMOD.closeSeasonToDrop(st);
+    const d = SEASONMOD.prepareDivide(st);
+    const r = DIV.runDivide(d.rng, Object.assign({}, d.opts, { replay: true }));
+    const g = r.planet.ground, days = r.replay.days, cst = r._cst;
+    if (days.length !== r.days) { recordAll = false; notes.push(seed + ': ' + days.length + ' days recorded of ' + r.days); }
+    for (const D of days) if (!!D.window !== GR.isWindowDay(g, D.d)) { cadence = false; notes.push(seed + ': day ' + D.d + ' window ' + D.window); }
+    const goneBy = {}; for (const t of g.wall.takeAt) goneBy[t.region] = t.day;
+    for (const D of days) for (const q of D.sq) if (q.n > 0 && goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
+    freeCaught += (r.wallDeaths || []).filter(w => w.free).length;
+    const nextWin = dd => { for (let k = dd + 1; k <= g.days + 1; k++) if (GR.isWindowDay(g, k)) return k * 12; return (g.days + 1) * 12; };
+    for (const f of cst.fights) { fights++; if (!(f.ticks >= 1 && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.until <= nextWin(f.day))) fightsOk = false; }
+    for (const c of (r.captiveLog || [])) { captives++; if (['released', 'kept', 'killed', 'ransomed'].indexOf(c.out) < 0) capOk = false; }
+    truces += (r.deals || []).filter(x => x.kind === 'pact').length;
+    if (r.bannersStanding <= 1 && r.winner && !r.overtimeExhausted) ended++;
+  }
+  ok('the Divide\'s record carries every day it ran', recordAll, notes.filter(n => /recorded/.test(n)).join(' | '));
+  ok('the windows fall on the ground\'s cadence: every other day, then daily once few regions stand', cadence, notes.filter(n => /window/.test(n)).slice(0, 3).join(' | '));
+  ok('nobody stands on ground the wall has taken', onStanding, notes.filter(n => /gone/.test(n)).slice(0, 3).join(' | '));
+  ok('nobody with a free way out at the last dawn is caught by the wall', freeCaught === 0, freeCaught + ' caught with a way out');
+  ok('every fight holds its zone a tick to half a day and never runs past a window', fights > 0 && fightsOk, fights + ' fights');
+  ok('every captive is released, kept, killed or ransomed', capOk, captives + ' captives');
+  ok('no Divide strikes a truce', truces === 0, truces + ' truces');
+  ok('every Divide ends with one banner standing, inside the overtime', ended === 3, ended + ' of 3');
+}
+
 function structureRules() {
   /* --- the crush is the ground's (ruled): the wall takes whole regions on a schedule timed to the month and leaves
      one last ground; groundRules holds that the order never cuts the standing ground in two and that every region is
@@ -3507,6 +3545,7 @@ function runRegression() {
   phase('structure', structureRules);
   phase('groundRules', groundRules);
   phase('contestRules', contestRules);
+  phase('divideRules', divideRules);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);
