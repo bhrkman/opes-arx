@@ -160,6 +160,17 @@ lean one pleases.
   reads the same map: it takes ground worth having, leaves a region two days before the wall or
   sooner when its way out is long, keeps to the way it chose, waits on a friend in the road and
   stops short of a rival. A squad a tick along a route stands in neither region.
+- A contact is a fight, there and then, on the holder's zone: the grid is fed the zone (terrain,
+  cover, height against the comers', night), every squad comes on from the edge facing the zone it
+  came from and squads of one banner from different zones flank; neighbours in the zones next door
+  walk in late, a turn for every tick of their step. A fight holds the zone for the ticks it ran,
+  never past the window at dawn and never longer than half a day; the beaten break off a zone back
+  together, the winner holds the ground, a beaten squad with nowhere to go is overrun. The captured
+  are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive walks
+  with the squad, costs it a tick a step and attention in a fight; a wiped holder's captives pass to
+  the wiper. A squad that will not close picks at the stronger rival next door with its long rifles,
+  loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid
+  once bodies are handed to it (step e); until then a stand-in of the same shape.
 - What happens and is done leaves the page: the Dispatches, the Paper, the Draft and the Word open
   over whatever page is on, in one shell, and come back through Waiting On You or a docket line where
   they stood. What is always there stays on its page.

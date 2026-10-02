@@ -14,7 +14,7 @@ is a tab of it. The single-surface dev viewers that used to sit beside it were r
 | | |
 |---|---|
 | `docs/PROJECT.md` | The vision the rules serve and the rulings that bind them. The code holds every number. |
-| `sim/` | The engine: `season.js` (the year), `divide.js` (the contest), `tactical.js` (a fight), `negotiate.js`, `events.js`, `sponsors.js`, `reputation.js`, `items.js`, `roster.js`, `map.js`; the rebuild in progress: `ground.js` (regions and zones), `contest.js` (movement, sight, noise and the planner over them). |
+| `sim/` | The engine: `season.js` (the year), `divide.js` (the contest), `tactical.js` (a fight), `negotiate.js`, `events.js`, `sponsors.js`, `reputation.js`, `items.js`, `roster.js`, `map.js`; the rebuild in progress: `ground.js` (regions and zones), `contest.js` (movement, sight, noise, the planner over them, and fights: who is in one, from where, who walks in late, who breaks off where, the captured). |
 | `viewers/corp_template.html` | The page. `node sim/build_corp.cjs` inlines the engine and writes `index.html`. |
 | `data/` | The catalogues: peoples, traits, items, OA profiles. |
 
@@ -24,8 +24,8 @@ Hosting is any static host pointed at the repo root; `index.html` is the whole g
 
 ```
 cd sim
-node arx.cjs regress --fast     205 checks · the edit loop
-node arx.cjs regress            292 checks · the full shipping gate, before packaging
+node arx.cjs regress --fast     219 checks · the edit loop
+node arx.cjs regress            306 checks · the full shipping gate, before packaging
 node audit_open.cjs             what is actually built, tested by running the game
 node audit_docs.cjs             does the document still agree with the code
 node ../harness/audit_ui.cjs    the UI audit: Title Case, no explanatory prose, colour from the
@@ -37,7 +37,7 @@ node measure_fight.cjs          the shape of a fight
 node ../harness/ground_view.cjs [out.html] [seed…]
                                 the rebuilt ground, drawn: generated worlds as the Ground page will show them
 node ../harness/contest_watch.cjs [seed] [--quiet]
-                                a month on the rebuilt ground, window by window: who walked, met, was heard, was caught
+                                a month on the rebuilt ground, window by window: who walked, met, fought, was wiped, was taken, was caught
 node probe_sponsor.cjs          the sponsor board's rules
 
 cd ../harness

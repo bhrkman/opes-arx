@@ -2662,7 +2662,8 @@ function contestRules() {
   ok('one squad a zone, every tick of the month (a squad on the road between regions stands in neither)', oneAZone);
   ok('a step is paid in ticks, never more than it costs', paid);
   ok('after the wall has taken a region at dawn, nobody alive stands in it', inStanding);
-  ok('the month runs its days and the windows fall', st.day >= 28 && st.audit.windows >= 14, 'day ' + st.day + ', ' + st.audit.windows + ' windows');
+  const banners = new Set(st.squads.filter(q => q.alive).map(q => q.oa)).size;
+  ok('the contest runs to the month\'s end or to the last banner standing, and the windows fall', st.done && (st.day > 28 || banners <= 1) && st.audit.windows >= Math.floor(st.day / 2) - 1, 'day ' + st.day + ', ' + banners + ' banners, ' + st.audit.windows + ' windows');
   ok('squads walk, hear and meet', st.audit.steps > 50 && st.audit.heard > 20 && st.audit.contacts > 5, st.audit.steps + ' steps, ' + st.audit.heard + ' heard, ' + st.audit.contacts + ' contacts');
   /* a sparse field: with room to move, the wall catches nobody and everybody reaches a site */
   const st2 = CT.open(makeRng('contest-run2'), g, dropOf(makeRng('contest-drop2'), g, ['a', 'b']), {});
@@ -2701,6 +2702,57 @@ function contestRules() {
   const q0 = st5.squads[0], regs = [g.zones[q0.zone].region].concat(g.regions[g.zones[q0.zone].region].links.map(l => l.to));
   const rivalsNear = st5.squads.filter(o => o.oa !== q0.oa && regs.indexOf(g.zones[o.zone].region) >= 0);
   ok('the window briefs a squad on every rival in its own and the adjacent regions', rivalsNear.every(o => q0.know[o.zone] && q0.know[o.zone].oa === o.oa), rivalsNear.length + ' rivals near');
+  /* ---- step d: contact is a fight ---- */
+  const abs = e => e.day * 12 + e.tick;
+  const nextWindowAbs = d => { for (let k = d + 1; k <= g.days + 1; k++) if (GR.isWindowDay(g, k)) return k * 12; return (g.days + 1) * 12; };
+  const fights = st.events.filter(e => e.t === 'fight'), overs = st.events.filter(e => e.t === 'fight_over');
+  ok('a contact opens a fight, or waits on the one already in that zone', fights.length > 0 && fights.length <= st.audit.contacts, fights.length + ' fights from ' + st.audit.contacts + ' contacts');
+  ok('no fight runs past the window at dawn, nor longer than the pile-up', st.fights.every(f => f.until <= nextWindowAbs(f.day) && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.ticks >= 1));
+  ok('every fight that opened is settled', st.fights.every(f => f.done) && overs.length === fights.length, overs.length + ' of ' + fights.length);
+  const moved = {}; for (const e of st.events) if (e.t === 'move' && e.kind !== 'break' && e.kind !== 'took') (moved[e.squad] = moved[e.squad] || []).push(abs(e));
+  ok('a squad in a fight stays in it: it walks nowhere until the fight is over', st.fights.every(f => f.sides.every(S => S.squads.every(x => !(moved[x.id] || []).some(t => t > f.day * 12 + f.tick && t < f.until)))));
+  ok('a late joiner walks in from the zone next door, a turn late for every tick of its step', st.fights.every(f => f.sides.every(S => S.squads.every(x => x.from === f.zone || g.zones[f.zone].nb.indexOf(x.from) >= 0 || st.squads[x.id].visited.indexOf(x.from) >= 0) && S.squads.filter(x => x.atTurn > 1).every(x => g.zones[f.zone].nb.indexOf(x.from) >= 0 && x.atTurn === 1 + g.regions[g.zones[x.from].region].ticks * CT.CONST.JOIN_TURNS_PER_TICK))));
+  ok('a fight is fed what the zone is: terrain, cover, height, night, and every side\'s readiness and edge', st.fights.every(f => f.ctx && f.ctx.terrain && f.ctx.cover != null && f.ctx.height != null && f.ctx.prep.length === f.sides.length && f.ctx.bearings.length === f.sides.length));
+  /* who stands where after: replay the events — at every fight_over the winner's banner holds the zone and nobody of a beaten banner stands on it */
+  let standsRight = true;
+  { const pos = {}; for (const q of st.squads) pos[q.id] = q.visited[0]; const al = {}; for (const q of st.squads) al[q.id] = true;
+    for (const e of st.events) { if (e.t === 'move') pos[e.squad] = e.to; if (e.t === 'road') pos[e.squad] = -1; if (e.t === 'wiped' || e.t === 'wall') al[e.squad] = false;
+      if (e.t === 'fight_over') { const f = st.fights[e.fight]; const onIt = st.squads.filter(q => al[q.id] && pos[q.id] === f.zone);
+        if (onIt.length > 1) standsRight = false;
+        if (e.winner && !(onIt.length === 1 && onIt[0].oa === e.winner)) standsRight = false;
+        for (const S of f.sides) if (S.oa !== e.winner && e.winner) for (const x of S.squads) if (al[x.id] && pos[x.id] === f.zone) standsRight = false; } } }
+  ok('after a fight the winner holds the zone and the beaten stand a zone back', standsRight);
+  const caps = st.events.filter(e => e.t === 'captive');
+  ok('left with nothing worth the walk, a squad picks at the stronger rival next door rather than close', st.audit.harassed > 0, st.audit.harassed + ' ticks of harassing fire');
+  ok('every captive is decided at the capture: killed, kept or let go', caps.length > 0 && caps.every(c => ['kill', 'keep', 'release'].indexOf(c.fate) >= 0), caps.length + ' captives');
+  ok('and a kept captive walks with its captor', caps.filter(c => c.fate === 'keep').length === 0 || st.squads.some(q => q.captives.length > 0) || st.events.some(e => e.t === 'captives_pass') || st.events.some(e => e.t === 'wiped' && st.squads[e.squad].captives.length === 0));
+  /* constructed: a banner that keeps captives is wiped by another; the captives pass to the wiper */
+  { const two = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), zB = two.zones.find(z => g.zones[z].nb.length >= 2), z = [g.zones[zB].nb[0], zB, g.zones[zB].nb[1]];
+    const stP = CT.open(makeRng('contest-pass'), g, [{ oa: 'a', s: 0, zone: z[0], n: 6, stance: 'standard' }, { oa: 'b', s: 0, zone: z[1], n: 4, stance: 'standard' }, { oa: 'c', s: 0, zone: z[2], n: 9, stance: 'unyielding' }],
+      { resolve: (s, f) => { const bigger = f.sides.slice().sort((p, q) => q.squads.reduce((t, x) => t + x.n, 0) - p.squads.reduce((t, x) => t + x.n, 0))[0]; const squads = {};
+          for (const S of f.sides) for (const x of S.squads) squads[x.id] = S === bigger ? { dead: 0, down: 0, captured: 0 } : { dead: Math.max(0, x.n - 2), down: 0, captured: Math.min(2, x.n) }; return { turns: 8, winner: bigger.tag, squads }; } });
+    stP.squads[0].intent = { type: 'take', zone: z[1], why: 'order' }; stP.squads[0].path = [z[1]]; stP.squads[2].intent = { type: 'hold', zone: z[2], why: 'order' }; stP.squads[1].intent = { type: 'hold', zone: z[1], why: 'order' };
+    for (let i = 0; i < 12 && !stP.fights.some(f => f.done); i++) CT.tick(stP);
+    const a = stP.squads[0], kept0 = a.captives.length;
+    a.intent = { type: 'hold', zone: a.zone, why: 'order' }; a.moving = null; a.path = null;
+    stP.squads[2].intent = { type: 'take', zone: a.zone, why: 'order' }; stP.squads[2].path = [a.zone]; stP.squads[2].moving = null;
+    for (let i = 0; i < 24 && a.alive; i++) CT.tick(stP);
+    ok('wiping a holder passes its captives to the wiper', kept0 > 0 && !a.alive && stP.squads[2].captives.length >= kept0 && stP.events.some(e => e.t === 'captives_pass'), kept0 + ' kept, ' + stP.squads[2].captives.length + ' with the wiper'); }
+  /* constructed: a weak squad next to a strong one it knows picks at it from its own zone; the strong one, by its dial, rushes */
+  { const reg = g.regions.find(r => r.zones.length >= 4 && r.zones.some(z => g.zones[z].nb.length >= 2)), z0 = reg.zones.find(z => g.zones[z].nb.length >= 2), z1 = g.zones[z0].nb[0];
+    const stH = CT.open(makeRng('contest-harass'), g, [{ oa: 'a', s: 0, zone: z0, n: 3, stance: 'measured', long: 1 }, { oa: 'b', s: 0, zone: z1, n: 8, stance: 'death_or_glory' }], {});
+    stH.squads[0].intent = { type: 'harass', zone: z1, why: 'order' }; stH.squads[1].intent = { type: 'hold', zone: z1, why: 'order' };
+    for (let i = 0; i < 36; i++) CT.tick(stH);
+    const hr = stH.events.filter(e => e.t === 'harass'), rushed = stH.events.some(e => e.t === 'contact' && e.mover === 1);
+    ok('a squad that will not close picks at the stronger one next door with its long rifles, and is loud doing it', stH.audit.harassed > 0 && (hr.length > 0 || stH.audit.harassed >= 3), stH.audit.harassed + ' ticks of fire, ' + hr.length + ' hits');
+    ok('and the squad under fire may rush it, which is a contact and a fight with the rifles caught looking', rushed && stH.events.some(e => e.t === 'fight'), 'rushed ' + rushed); }
+  /* constructed: two squads of one banner from two sides of a zone flank */
+  { const reg = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), mid = reg.zones.find(z => g.zones[z].nb.length >= 2), [l, r] = g.zones[mid].nb;
+    const stF = CT.open(makeRng('contest-flank'), g, [{ oa: 'a', s: 0, zone: l, n: 6, stance: 'unyielding' }, { oa: 'a', s: 1, zone: r, n: 6, stance: 'unyielding' }, { oa: 'b', s: 0, zone: mid, n: 5 }], {});
+    stF.squads[0].intent = { type: 'take', zone: mid, why: 'the ground' }; stF.squads[0].path = [mid]; stF.squads[1].intent = { type: 'hold', zone: r };
+    for (let i = 0; i < 12 && !stF.fights.length; i++) CT.tick(stF);
+    const f0 = stF.fights[0], sideA = f0 && f0.sides.find(S => S.oa === 'a');
+    ok('squads of one banner that came on from different zones flank: their bearings differ on the grid', !!f0 && sideA.squads.length === 2 && sideA.squads[0].from !== sideA.squads[1].from && Math.abs(sideA.squads[0].bearing - sideA.squads[1].bearing) > 0.3, f0 ? sideA.squads.length + ' on side a' : 'no fight'); }
   /* determinism */
   const ev = s => JSON.stringify(s.events.map(e => [e.t, e.day, e.tick, e.zone, e.squad, e.region]));
   const sA = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sA);

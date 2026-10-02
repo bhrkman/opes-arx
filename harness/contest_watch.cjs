@@ -39,9 +39,14 @@ while (!st.done) {
   ct.forEach(c => { contactsByDay[c.day] = (contactsByDay[c.day] || 0) + 1; if (firstContact == null) firstContact = c.day; });
   say(`\n— Day ${st.day} · window · ${C.standing(st).length} regions stand · ${st.squads.filter(q => q.alive).length} squads`);
   if (gone.length) say(`  the wall took ${gone.map(e => g.regions[e.region].name).join(', ')}` + (wl.length ? ` · caught ${wl.map(e => short(e.oa) + e.squad).join(' ')}` : ''));
-  say(`  ${mv} steps walked · ${ct.length} contacts` + (ct.length ? ': ' + ct.map(c => `${short(c.oas[0])} on ${short(c.oas[1])} at ${g.regions[g.zones[c.zone].region].name}`).join(', ') : ''));
+  const fg = ev.filter(e => e.t === 'fight'), ov = ev.filter(e => e.t === 'fight_over'), wp = ev.filter(e => e.t === 'wiped'), cp = ev.filter(e => e.t === 'captive'), hr = ev.filter(e => e.t === 'harass');
+  say(`  ${mv} steps walked · ${ct.length} contacts · ${fg.length} fights` + (fg.length ? ': ' + fg.map(f => { const o = ov.find(x => x.fight === f.fight); return `${f.sides.map(S => short(S.oa) + (S.squads.length > 1 ? '×' + S.squads.length : '')).join(' v ')} at ${g.regions[g.zones[f.zone].region].name} ${f.ticks}t` + (o ? (o.winner ? ' → ' + short(o.winner) : ' → both broke') : ' (on)'); }).join(', ') : ''));
+  if (wp.length || cp.length || hr.length) say(`  wiped ${wp.map(e => short(e.oa) + e.squad + (e.how ? ' (' + e.how + ')' : '')).join(' ') || '—'} · captives ${cp.length}` + (cp.length ? ' (' + ['kill', 'keep', 'release'].map(k => k + ' ' + cp.filter(c => c.fate === k).length).join(', ') + ')' : '') + ` · harassing fire ${hr.length} hits`);
   say('  ' + where());
 }
 const a = st.audit, aliveN = st.squads.filter(q => q.alive).length;
 const visitedSites = st.squads.filter(q => q.visited.some(z => g.zones[z].site && g.zones[z].site.kind !== 'beacon')).length;
-console.log(`\n${seed}: days ${st.day - 1} · steps ${a.steps} (${(a.steps / Math.max(1, st.day - 1) / 32).toFixed(2)} a squad a day) · contacts ${a.contacts} (first day ${firstContact}) · heard ${a.heard} · wall took ${a.wall} · alive ${aliveN}/32 · squads that reached a site ${visitedSites}/32 · windows ${a.windows}`);
+const bodies0 = 0; void bodies0;
+const lost = st.squads.reduce((t, q) => t + q.lost, 0), oasLeft = new Set(st.squads.filter(q => q.alive).map(q => q.oa)).size;
+const ticksOf = st.fights.map(f => f.ticks), avgT = ticksOf.length ? (ticksOf.reduce((a, b) => a + b, 0) / ticksOf.length).toFixed(1) : '-';
+console.log(`\n${seed}: days ${st.day - 1} · steps ${a.steps} (${(a.steps / Math.max(1, st.day - 1) / 32).toFixed(2)} a squad a day) · contacts ${a.contacts} (first day ${firstContact}) · fights ${a.fights} (${avgT} ticks each, ${a.joined} walked in late) · harassed ${a.harassed} ticks · bodies lost ${lost} · captives ${a.captured} · wiped ${a.wiped} · heard ${a.heard} · wall took ${a.wall} · alive ${aliveN}/32 in ${oasLeft} banners · reached a site ${visitedSites}/32 · windows ${a.windows}`);
