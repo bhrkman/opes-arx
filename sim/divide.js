@@ -280,8 +280,19 @@
     CHAMPION_FAME_BONUS: 0.5,           // [C] and half again on top for one of the champion's own
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
-    STANDING_CREDIT: 2000,              // [H] a point of it in credits: about a year of gate (₡68/month) and its pull
-                                        //     on prices, mercenaries and sponsors; an OA's pride scales it 0.5–1.5×
+    STANDING_CREDIT: 2000,
+    /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
+    CAPTIVE_COMP: 14,                   // [C] composure a captive costs a squad, shared across its people
+    CAPTIVE_COMP_MAX: 30,               // [C] and the most it can cost any one of them
+    CAPTIVE_RANSOM_P: 0.5,              // [C] the chance a held captive is bought back, as an engine seat reckons it
+    CAPTIVE_ROSTER_SHARE: 0.6,          // [C] what a captive kept to the end is worth on the captor's roster, of what he cost his own
+    CAPTIVE_FIGHT_RISK: 0.004,          // [M] the share of a squad's worth one more captive puts at risk in a fight: measured on the grid, equal
+                                        //     squads of six, 2000 fights a count — 0, 1, 2 and 4 held cost 1.87, 1.87, 1.83, 1.76 of their own
+                                        //     against 1.80, 1.80, 1.79, 1.61 of the enemy's: about 0.02 of a body each, inside the noise
+    CAPTIVE_SHORT_DAY: 0.08,            // [C] a ration-day short, as a share of a body's worth (dry squads shoot and stand worse)
+    CAPTIVE_TICK_COST: 0.01,            // [C] a tick added to every step, as a share of the squad's worth a day, pressed by the wall times four
+    CAPTIVE_REP_W: 0.25,                // [C] a point of an act's weighted taste, as standing points an engine seat prices at STANDING_CREDIT
+    CAPTIVE_GRUDGE_W: 0.5,              // [C] how much of a captive's worth what his captor thinks of his OA swings toward killing (a grudge) or sparing (warmth)
     STANCE_HYSTERESIS: 0.6,             // [C] §COMMAND how far its target must be from where an OA stands before it changes notch
   };
 
@@ -1341,6 +1352,11 @@
         u.pair = pair; o.pair = pair; u.comp = o.comp = pair.comp;
       }
     }
+    /* §CAPTIVES EVERY CAPTIVE IS SOMEBODY'S EYES OFF THE FIGHT. The squad's composure falls with the captives it is
+       watching, shared across its people — two captives on eight fighters is a nuisance, eight on four is a squad
+       half looking the wrong way. (Readiness, the first move and the first shot, falls with them too: gridResolve.) */
+    const held = sq._cq ? sq._cq.captives.length : 0;
+    if (held && units.length) { const drop = Math.min(CONST.CAPTIVE_COMP_MAX, CONST.CAPTIVE_COMP * held / units.length); for (const u of units) u.comp = Math.max(5, u.comp - drop); }
     /* §9 a munitions site is FOR this: the squad fights the next engagement resupplied */
     if (sq.ammoResupplied > 0) {
       for (const u of units) u.ammo = Math.round(u.ammo * CONST.RESUPPLY_MULT);
@@ -1463,6 +1479,8 @@
       const r = raceById[b.race];
       d += (r && r.supply_mult) ? r.supply_mult : 1.0;
     }
+    /* §CAPTIVES a captive eats what anybody eats, out of the captor's packs */
+    for (const k of (sq._cq ? sq._cq.captives : [])) { const r = k.body && raceById[k.body.race]; d += (r && r.supply_mult) ? r.supply_mult : 1.0; }
     return d;
   }
 
@@ -2541,12 +2559,71 @@
       const heads = squadHead(sq); if (!heads.length) return 0;
       return heads.filter(b => b.loadout && b.loadout.kit && b.loadout.kit.weapon && (b.loadout.kit.weapon.range || 0) >= 2).length / heads.length;
     }
-    /* §CAPTIVES (ruled: case by case, at the capture) an engine seat decides by its stance; a person's seat is asked at
-       its next window, and holds the captive until it answers */
+    /* §CAPTIVES (ruled: case by case, at the capture) a person's seat is asked at its next window and holds the captive
+       until it answers. An engine seat weighs it: what the captive is worth held (bought back, or a fighter on its
+       roster at the end) against what ONE MORE costs the squad holding him — his food out of their packs over the
+       days left, a tick on every step pressed by how close the wall is, attention in the fights it expects — and
+       what killing, sparing or keeping does to its standing, read through its own crowd's taste. What it thinks of
+       the owner leans it; its stance is how many fights it expects. No fate is fixed to a stance. */
+    const lastGroundDay = (() => { const w = ground.wall; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
+    function captiveWorths(cq, body, n, ownerId) {
+      const c = corpById[cq.oa], owner = corpById[ownerId];
+      const sq = cq.ref, heads = squadHead(sq);
+      const worthOf = b => Math.max(300, NEG.bodyWorth(b));
+      const squadWorth = heads.reduce((t, b) => t + worthOf(b), 0) || 300;
+      const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
+      const soon = Math.min(daysLeft, CONST.LEAVE_RATE_HORIZON);
+      /* two ways to hold him: sell him back at the price it would ask (held a few days), or keep him to the end for its
+         own roster (held, fed and walked every day that is left) */
+      const price = owner ? NEG.ransomPrice(body) * NEG.priceModifier(c, owner) : 0;
+      /* his food: the days the squad's packs last with and without him, short against the days he is held */
+      const r = raceById[body.race], eats = ((r && r.supply_mult) || 1) * planet.supplyStrain;
+      const now = Math.max(0.001, rationDemand(sq, raceById) * planet.supplyStrain - (n < cq.captives.length ? eats : 0));
+      const lasts = d => (sq.rations || 0) / d;
+      const food = span => (Math.max(0, span - lasts(now + eats)) - Math.max(0, span - lasts(now))) * heads.length * CONST.CAPTIVE_SHORT_DAY * (squadWorth / Math.max(1, heads.length));
+      /* his weight on the march, pressed by the wall: four times over once its ground is announced */
+      const reg = Z[cq.zone].region, takes = ground.wall.takeAt.find(t => t.region === reg);
+      const goes = Math.min(takes ? takes.day : Infinity, GROUND.zoneGoesOn(ground, cq.zone));
+      const press = goes === Infinity ? 1 : 1 + 3 * Math.max(0, Math.min(1, 1 - (goes - day - CONTEST.CONST.PLAN_MARGIN_DAYS) / CONTEST.CONST.PLAN_MARGIN_DAYS));
+      const ticks = span => (CONTEST.captiveTicks(n + 1) - CONTEST.captiveTicks(n)) * CONST.CAPTIVE_TICK_COST * squadWorth * span * press;
+      /* his watching in a fight: the share of the squad one more captive puts at risk, by the fights it expects */
+      const dial = STANCE_DIALS[cq.stance] || STANCE_DIALS.standard;
+      /* the fights it expects: the field's rate so far, a squad a day, leaned by how hard the squad looks for them */
+      const squadsUp = cst.squads.filter(x => x.alive).length || 1;
+      const rate = (cst.audit.fights || 0) / Math.max(1, day) / squadsUp * 2;
+      const fights = span => squadWorth * CONST.CAPTIVE_FIGHT_RISK * rate * span * (0.5 + dial.seek);
+      const costs = span => food(span) + ticks(span) + fights(span);
+      const held = Math.max(price * CONST.CAPTIVE_RANSOM_P - costs(soon), worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE - costs(daysLeft));
+      /* standing: each act read through what its own crowd and the houses would make of it */
+      const rep = act => { if (!c || !c.rep || !owner) return 0; const s = REP.impactSummary(c.rep, REP.impact(c.rep, act, { targetId: owner.id })); return (s.crowd + s.houses) * CONST.CAPTIVE_REP_W * CONST.STANDING_CREDIT; };
+      /* what it thinks of the owner: a grudge leans to killing (a gun off a rival for good), warmth to sparing */
+      const regard = owner && c ? (NEG.livingRegard(c, owner) || 0) / 100 : 0;
+      const lean = worthOf(body) * CONST.CAPTIVE_GRUDGE_W;
+      return {
+        keep: held + rep('kept_captive'),
+        release: rep('released_captives') + Math.max(0, regard) * lean,
+        kill: rep('killed_captives') + Math.max(0, -regard) * lean * (0.5 + dial.seek)
+      };
+    }
+    function bestFate(w) { return w.keep >= w.release && w.keep >= w.kill ? 'keep' : w.release >= w.kill ? 'release' : 'kill'; }
     function captiveFate(captor, from, body) {
       if (isHumanOA(captor.oa)) return 'pending';
-      const s = captor.stance;
-      return s === 'death_or_glory' ? 'kill' : (s === 'preservationist' || s === 'measured') ? 'release' : 'keep';
+      if (!body) return 'keep';
+      return bestFate(captiveWorths(captor, body, captor.captives.length, from.oa));
+    }
+    /* §CAPTIVES AND AT EACH WINDOW an engine seat weighs again the last captive each squad took, against what he costs
+       now: as the packs run down or the wall closes, sparing or killing him starts to win */
+    function reviewCaptives() {
+      for (const cq of cst.squads) {
+        if (!cq.alive || isHumanOA(cq.oa)) continue;
+        for (let i = cq.captives.length - 1; i >= 0; i--) {
+          const k = cq.captives[i]; if (!k.body || k.fate !== 'keep') continue;
+          const fate = bestFate(captiveWorths(cq, k.body, cq.captives.length - 1, k.oa));
+          if (fate === 'keep') break;
+          k.fate = fate;
+        }
+        settleCaptives(cq);
+      }
     }
     function applyFate(body, fate, captorId, ownerId) {
       const captor = corpById[captorId], owner = corpById[ownerId];
@@ -2855,6 +2932,7 @@
         const mind = captainMind(q);
         q._mind = { judge: Math.round(mind.judge * 100) / 100, sight: Math.round(mind.sight * 100) / 100, nerve: Math.round(mind.nerve * 100) / 100, cap: mind.cap ? mind.cap.name : null };
       }
+      if (windowDay) reviewCaptives();
       /* --- THE CORP CHANNEL at the window: ransoms, withdrawals, the winner's word (NEGOTIATION.md §11) --- */
       if (!opts.noNegotiation && windowDay) {
         if (runCorpChannel(rng, corps, planet, day, stats, opts) === true) break;

@@ -59,7 +59,7 @@
     HARASS_TICKS: 6,                 // [C] a squad picks at a zone this long before it thinks again
     HARASS_RUSHED_PREP: -0.25,       // [C] a harasser that is rushed is caught at long range with its eye on the next zone
     /* §CAPTIVES decided at the capture: kept ones walk with the squad */
-    CAPTIVE_STEP_TICKS: 1,           // [C] a step costs this much more with captives in tow
+    CAPTIVE_STEP_TICKS: 0.5,         // [C] a step costs this much more for every captive in tow, rounded up: one adds a tick, four add two, eight four
     CAPTIVE_PREP: -0.04,             // [C] readiness lost to every captive watched in a fight
     CAPTURE_SHARE: 0.35,             // [C] stand-in only: of a broken side's down, the share taken alive when the field is held against it
     STANDIN_HIT: 0.04                // [C] stand-in only: a body's chance a turn to put a body down
@@ -360,10 +360,12 @@
     if (!q.path || !q.path.length) { if (!q.wait) q.wait = 0; if (++q.wait > 6) { q.intent = { type: 'hold', zone: q.zone }; q.wait = 0; } return; }
     q.wait = 0;
     const stp = stepOf(st, q, q.path[0]); if (!stp) { q.path = null; return; }
-    q.moving = { to: stp.to, paid: 1, cost: stp.cost + (q.captives.length ? CONST.CAPTIVE_STEP_TICKS : 0), kind: stp.kind };
+    q.moving = { to: stp.to, paid: 1, cost: stp.cost + captiveTicks(q.captives.length), kind: stp.kind };
     if (stp.kind === 'route') st.events.push({ t: 'road', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: stp.to });   /* on the road: in neither zone till it arrives */
   }
 
+  /** the ticks captives add to a step: every one slows the column */
+  function captiveTicks(n) { return n > 0 ? Math.ceil(n * CONST.CAPTIVE_STEP_TICKS) : 0; }
   /* ---------------- fights ---------------- */
   /** §FIGHT A CONTACT IS A FIGHT. The mover is at the holder's edge; the fight is on the holder's zone, and the
       grid is fed what the zone is: its region's terrain, its cover, its height against the comers', night. Every
@@ -465,8 +467,8 @@
     return null;
   }
   /** §CAPTIVES decided at the capture, one by one, by the captor's seat: killed, kept or let go. Keeping costs a
-      tick a step and attention in a fight (and rations, step e); an execution costs standing and sparing warms the
-      other banner (step e prices both; the events carry it) */
+      tick a step for every second captive and attention in a fight; the driver feeds them and prices the standing
+      of each fate (divide.js §CAPTIVES) */
   function takeCaptives(st, winner, from, who, f) {
     const w = st.squads[winner.squads[0].id]; if (!w || !w.alive) return;
     const list = Array.isArray(who) ? who : new Array(who).fill(null);
@@ -474,7 +476,9 @@
       const fate = st.captivePolicy(st, w, from, f, body) || 'keep';
       st.audit.captured++;
       st.events.push({ t: 'captive', day: st.day, tick: st.tick, zone: f.zone, captor: w.id, captorOa: w.oa, from: from.id, fromOa: from.oa, fate, body: body ? (body.id || null) : null });
-      if (fate === 'keep' || fate === 'pending') w.captives.push({ oa: from.oa, squad: from.id, day: st.day, body: body || null, fate });
+      /* a driven contest hands every decided captive to its driver, which kills or frees the body as the fight settles;
+         alone, the contest keeps only those it holds */
+      if (fate === 'keep' || fate === 'pending' || (st.driven && body)) w.captives.push({ oa: from.oa, squad: from.id, day: st.day, body: body || null, fate });
     }
   }
   function captiveByStance(st, captor, from) {
@@ -603,7 +607,7 @@
              standing: standing(st), next: GROUND.nextToGo(st.ground, st.day) };
   }
 
-  const api = { CONST, STANCE, open, tick, dawn, plans, runDay, runToWindow, run, view, sees, hears, loudness, plan, standing, onRoad, standIn, holder, zoneDist, absTick, syncHeads };
+  const api = { captiveTicks, CONST, STANCE, open, tick, dawn, plans, runDay, runToWindow, run, view, sees, hears, loudness, plan, standing, onRoad, standIn, holder, zoneDist, absTick, syncHeads };
   if (isNode) module.exports = api;
   global.CDCONTEST = api;
 })(typeof window !== "undefined" ? window : globalThis);

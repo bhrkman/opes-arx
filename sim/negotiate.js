@@ -173,7 +173,6 @@
        OA's own odds. This is a weak OA's leverage, and it was priced at nothing. */
     /* §4.3 A NAMED CLAIM: one revealed site, dug by the banner but banked to the joiner. Priced
        like a share of the haul — the site's units, discounted by the chance the banner digs it. */
-    CAPTIVE_KEEP: 0.34, CAPTIVE_RELEASE: 0.42, CAPTIVE_KILL: 0.24,  // [C] base weights
 
     /* §6.2 THE PRINCIPAL IS A PARTY TO THE DEAL. Until this pass a joiner computed BOTH sides'
        limits — the principal's private ceiling included, off dials it could not know — picked
@@ -651,32 +650,6 @@
     return ransomWorthPaying(owner, fighter, deal.price, ctx) ? deal : null;
   }
 
-  /**
-   * N10 — an unransomed captive is left to the whims of their captor. Killed, released, or
-   * kept: leaned by who the captor is, not rolled flat.
-   */
-  function resolveCaptive(rng, captor, owner, fighter) {
-    let keep = CONST.CAPTIVE_KEEP * (0.6 + dial(captor, 'thrift') + dial(captor, 'treachery'));
-    let rel = CONST.CAPTIVE_RELEASE * (0.6 + dial(captor, 'tradition') + (1 - dial(captor, 'aggression')));
-    let kill = CONST.CAPTIVE_KILL * (0.5 + 1.5 * dial(captor, 'aggression'));
-    const d = relationship(captor, owner);
-    if (WARM.indexOf(d) >= 0) { rel *= 1.8; kill *= 0.4; }
-    if (HOSTILE.indexOf(d) >= 0) { kill *= 1.6; rel *= 0.6; }
-    /* §6.13 and what the captor actually thinks of the owner today, which the profiles'
-       written relationships never move: an OA that was spared releases; one left to die kills */
-    const living = livingRegard(captor, owner);
-    if (living != null) {
-      if (living > 30) { rel *= 1 + living / 100; kill *= 1 - living / 200; }
-      else if (living < -30) { kill *= 1 - living / 100; rel *= 1 + living / 200; }
-    }
-    if (captor.policy === 'death_or_glory') { kill *= 2.2; rel *= 0.3; }
-    const tot = keep + rel + kill;
-    let roll = rng() * tot;
-    if ((roll -= rel) <= 0) return 'released';
-    if ((roll -= keep) <= 0) return 'kept';
-    return 'killed';
-  }
-
   /* ------------------------------------------------------------------ */
   /* §8 betrayal                                                         */
   /* ------------------------------------------------------------------ */
@@ -846,7 +819,7 @@
     CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
     corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue,
     wantOf, settleHaul,
-    ransomPrice, considerRansom, ransomOffer, ransomWorthPaying, resolveCaptive,
+    ransomPrice, considerRansom, ransomOffer, ransomWorthPaying,
     settle
   };
   if (isNode) module.exports = api;
