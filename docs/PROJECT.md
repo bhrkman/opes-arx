@@ -151,7 +151,15 @@ lean one pleases.
   rebuild in progress). A zone is where one squad stands; a region has one terrain and one pace;
   routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
   reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
-  month. Windows fall every other day and daily once few regions stand.
+  month. Windows fall every other day and daily once few regions stand. The wall's order never
+  cuts the standing ground in two.
+- On that ground (sim/contest.js, the rebuild in progress) a squad sees the zones next to it, a ring
+  more a level up and only its own in a hollow; it is heard across its region by what it carries,
+  summed over its bodies, marching, firing or fighting, muffled by cover, thick ground and night;
+  the window briefs it on every rival in its own and the adjacent regions. Every seat's planner
+  reads the same map: it takes ground worth having, leaves a region two days before the wall or
+  sooner when its way out is long, keeps to the way it chose, waits on a friend in the road and
+  stops short of a rival. A squad a tick along a route stands in neither region.
 - What happens and is done leaves the page: the Dispatches, the Paper, the Draft and the Word open
   over whatever page is on, in one shell, and come back through Waiting On You or a docket line where
   they stood. What is always there stays on its page.

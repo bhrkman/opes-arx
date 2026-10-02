@@ -2635,6 +2635,79 @@ function groundRules() {
   ok('the ground is days wide, not weeks: the farthest zone from the last ground is under five days\' walk', widths.every(w => w <= 60), 'widest ' + Math.max.apply(null, widths) + ' ticks');
 }
 
+/* =========================================================================
+   CONTEST RULES — the rebuilt Divide's day loop (sim/contest.js): one squad a zone, movement paid in ticks,
+   sight by height, hearing by loudness, the window's briefing, the wall's kill. Read on the ground the
+   suite generates; the fights are step d's and are not here.
+   ========================================================================= */
+function contestRules() {
+  const GR = req('ground.js'), CT = req('contest.js');
+  const OAS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const dropOf = (rng, g, oas) => { const out = [], taken = {};
+    for (let round = 0; round < 4; round++) oas.forEach(oa => { const mine = out.filter(q => q.oa === oa).map(q => g.zones[q.zone].region);
+      let free = g.zones.filter(z => !taken[z.id] && mine.indexOf(z.region) < 0 && z.region !== g.wall.last); if (!free.length) free = g.zones.filter(z => !taken[z.id]);
+      const z = free[Math.floor(rng() * free.length)]; taken[z.id] = true; out.push({ oa, s: round, zone: z.id, n: 4 + Math.floor(rng() * 3) }); });
+    return out; };
+  const g = GR.generate(makeRng('contest-ground'), {});
+  /* the full field, every tick checked */
+  const st = CT.open(makeRng('contest-run'), g, dropOf(makeRng('contest-drop'), g, OAS), {});
+  let oneAZone = true, inStanding = true, paid = true, ticks = 0;
+  while (!st.done && ticks++ < 28 * 12 + 1) {
+    CT.tick(st);
+    const seen = {}; for (const q of st.squads) { if (!q.alive || CT.onRoad(q)) continue; if (seen[q.zone]) oneAZone = false; seen[q.zone] = 1;
+      if (q.moving && (q.moving.paid > q.moving.cost || q.moving.cost < 1)) paid = false; }
+    const live = new Set(CT.standing(st));
+    if (st.tick === 1) for (const q of st.squads) if (q.alive && !live.has(g.zones[q.zone].region)) inStanding = false;
+  }
+  ok('one squad a zone, every tick of the month (a squad on the road between regions stands in neither)', oneAZone);
+  ok('a step is paid in ticks, never more than it costs', paid);
+  ok('after the wall has taken a region at dawn, nobody alive stands in it', inStanding);
+  ok('the month runs its days and the windows fall', st.day >= 28 && st.audit.windows >= 14, 'day ' + st.day + ', ' + st.audit.windows + ' windows');
+  ok('squads walk, hear and meet', st.audit.steps > 50 && st.audit.heard > 20 && st.audit.contacts > 5, st.audit.steps + ' steps, ' + st.audit.heard + ' heard, ' + st.audit.contacts + ' contacts');
+  /* a sparse field: with room to move, the wall catches nobody and everybody reaches a site */
+  const st2 = CT.open(makeRng('contest-run2'), g, dropOf(makeRng('contest-drop2'), g, ['a', 'b']), {});
+  CT.run(st2);
+  const reached = st2.squads.filter(q => q.visited.some(z => g.zones[z].site && g.zones[z].site.kind !== 'beacon')).length;
+  ok('the wall catches nobody who had a free way out at the last dawn: a pressed squad leaves in time', st2.audit.wallFree === 0 && st.audit.wallFree === 0, st2.audit.wallFree + ' and ' + st.audit.wallFree + ' caught with a way out');
+  ok('and the planner takes every squad to a site', reached >= 7, reached + ' of 8 reached a site');
+  /* sight and hearing */
+  /* sight: in one region of five or more zones, the high zone sees at least what the flat zone beside it sees, and
+     more where the region has a second ring; a low zone sees only itself */
+  const regS = g.regions.find(r => r.zones.length >= 5 && r.zones.some(z => g.zones[z].height >= 1) && r.zones.some(z => g.zones[z].height === 0));
+  const hiZ = regS && regS.zones.find(z => g.zones[z].height >= 1), flatZ = regS && regS.zones.find(z => g.zones[z].height === 0);
+  const st3 = CT.open(makeRng('contest-run3'), g, regS ? [{ oa: 'a', s: 0, zone: hiZ, n: 5 }, { oa: 'b', s: 0, zone: flatZ, n: 5 }] : dropOf(makeRng('contest-drop3'), g, ['a', 'b']), {});
+  const seesHi = regS ? CT.sees(st3, st3.squads[0]).length : 0, seesFlat = regS ? CT.sees(st3, st3.squads[1]).length : 0;
+  ok('a squad on high ground sees a ring further than one on the flat of the same region', !regS || (seesHi >= seesFlat && seesHi > 1 + g.zones[hiZ].nb.length) || seesHi === regS.zones.length, (regS ? regS.name + ': ' : 'no such region: ') + seesHi + ' zones from the height, ' + seesFlat + ' from the flat');
+  const lowZ = g.zones.find(z => z.height === -1);
+  ok('a squad in a hollow sees only its own zone', !lowZ || GR.seenFrom(g, lowZ.id).length === 1);
+  /* a loud marching squad is heard across a region; a small quiet one is not */
+  /* on open ground (no cover, nothing to hide in) the loud squad stands three zones from the quiet one */
+  const far = (a, b) => { const d = { [a]: 0 }, q = [a]; while (q.length) { const c = q.shift(); for (const n of g.zones[c].nb) if (d[n] == null) { d[n] = d[c] + 1; q.push(n); } } return d[b] || 0; };
+  let best = null;
+  for (const r of g.regions) for (const a of r.zones) for (const b of r.zones) { const za = g.zones[a]; if (za.cover || za.hiding < 1) continue; const d = far(a, b); if (d === 3 && !best) best = [a, b, d]; }
+  if (!best) for (const r of g.regions) for (const a of r.zones) for (const b of r.zones) { const d = far(a, b); if (d === 3 && !best) best = [a, b, d]; }
+  const st4 = CT.open(makeRng('contest-run4'), g, [{ oa: 'a', s: 0, zone: best[0], n: 8 }, { oa: 'b', s: 0, zone: best[1], n: 3 }], {});
+  st4.squads[0].moving = { to: best[0], paid: 0, cost: 9 };
+  const heardLoud = CT.hears(st4, st4.squads[1]).length > 0, heardQuiet = CT.hears(st4, st4.squads[0]).length > 0, loudA = CT.loudness(st4, st4.squads[0]), quietB = CT.loudness(st4, st4.squads[1]);
+  ok('a marching squad of eight is louder than a standing squad of three', loudA > quietB * 1.5, loudA.toFixed(2) + ' against ' + quietB.toFixed(2) + ' at ' + best[2] + ' zones (' + g.regions[g.zones[best[0]].region].terrainName + ')');
+  ok('and carries three zones across open ground where the three do not', heardLoud && !heardQuiet, 'loud heard ' + heardLoud + ', quiet heard ' + heardQuiet);
+  /* the same eight under cover in a hollow of thick ground carry less */
+  const dim = g.zones.find(z => z.cover >= 1 && z.hiding < 1);
+  if (dim) { const st6 = CT.open(makeRng('contest-run6'), g, [{ oa: 'a', s: 0, zone: dim.id, n: 8 }], {}); st6.squads[0].moving = { to: dim.id, paid: 0, cost: 9 };
+    ok('the same eight marching under cover in thick ground carry less', CT.loudness(st6, st6.squads[0]) < loudA * 0.8, CT.loudness(st6, st6.squads[0]).toFixed(2) + ' against ' + loudA.toFixed(2)); }
+  /* the briefing: after a window, a squad knows the rivals in its own and the adjacent regions */
+  const st5 = CT.open(makeRng('contest-run5'), g, dropOf(makeRng('contest-drop5'), g, OAS), {});
+  CT.tick(st5);
+  const q0 = st5.squads[0], regs = [g.zones[q0.zone].region].concat(g.regions[g.zones[q0.zone].region].links.map(l => l.to));
+  const rivalsNear = st5.squads.filter(o => o.oa !== q0.oa && regs.indexOf(g.zones[o.zone].region) >= 0);
+  ok('the window briefs a squad on every rival in its own and the adjacent regions', rivalsNear.every(o => q0.know[o.zone] && q0.know[o.zone].oa === o.oa), rivalsNear.length + ' rivals near');
+  /* determinism */
+  const ev = s => JSON.stringify(s.events.map(e => [e.t, e.day, e.tick, e.zone, e.squad, e.region]));
+  const sA = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sA);
+  const sB = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sB);
+  ok('the same ground, seed and drop are the same contest', ev(sA) === ev(sB));
+}
+
 function structureRules() {
   /* --- the crush, asserted from LIVE constants in both files -----------------------
      N15/N18: the last ground has to be narrower than the range at which squads meet, or
@@ -3406,6 +3479,7 @@ function runRegression() {
   phase('decisionWindow', decisionWindow);
   phase('structure', structureRules);
   phase('groundRules', groundRules);
+  phase('contestRules', contestRules);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);

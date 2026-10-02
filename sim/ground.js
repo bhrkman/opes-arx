@@ -182,7 +182,13 @@
     /* ---- the wall: a last ground near the centre, the rest outermost first with a drawn shuffle ---- */
     const byCentre = regions.slice().sort((a, b) => dist(a.cx, a.cy, CX, CY) - dist(b.cx, b.cy, CX, CY));
     const last = P.pick(rng, byCentre.slice(0, Math.min(CONST.LAST_GROUND_PICK, byCentre.length)));
-    const rest = regions.filter(r => r !== last).map(r => ({ r, d: dist(r.cx, r.cy, last.cx, last.cy) + (rng() - 0.5) * R * 0.18 })).sort((a, b) => b.d - a.d).map(x => x.r.id);
+    /* outermost first, with a drawn shuffle — and never a region whose going would cut the standing ground in two:
+       whoever is left must always have a way to the last ground */
+    const scored = regions.filter(r => r !== last).map(r => ({ id: r.id, d: dist(r.cx, r.cy, last.cx, last.cy) + (rng() - 0.5) * R * 0.18 })).sort((a, b) => b.d - a.d);
+    const rest = [], gone = new Set();
+    const connectedWithout = (id) => { const live = regions.filter(r => !gone.has(r.id) && r.id !== id).map(r => r.id); if (!live.length) return true;
+      const seen = new Set([live[0]]), q = [live[0]]; while (q.length) { const c = q.shift(); for (const l of regions[c].links) if (!gone.has(l.to) && l.to !== id && !seen.has(l.to)) { seen.add(l.to); q.push(l.to); } } return seen.size === live.length; };
+    while (scored.length) { let k = scored.findIndex(x => connectedWithout(x.id)); if (k < 0) k = 0; const x = scored.splice(k, 1)[0]; rest.push(x.id); gone.add(x.id); }
     const windows = []; for (let d = 1; d <= CONST.DAYS; d += CONST.WINDOW_EVERY) windows.push(d);
     /* regions go from the second window to the second-last, spread as evenly as the count allows */
     const slots = windows.slice(1, windows.length - 1), takeAt = [];
