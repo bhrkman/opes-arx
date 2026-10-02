@@ -276,8 +276,6 @@
     UNDERDOG_FAME_PER_PLACE: 0.12,      // [C] §SNOWBALL fame for a kill, per place the victim's OA finished above the killer's
     UNDERDOG_FAME_FLOOR: 0.4,           // [C] and the least it falls to, hitting all the way down
     CHAMPION_FAME_BONUS: 0.5,           // [C] and half again on top for one of the champion's own
-    BANNER_PULL_AT: 0.45,
-    PULL_MARGIN: 0.25,                  // [C] §MARKET how far above the line a force's staying starts to lose its worth               // [C] §BASELINE (temporary) below this share standing, an OA's banner is pulled
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,              // [H] a point of it in credits: about a year of gate (₡68/month) and its pull
@@ -885,8 +883,8 @@
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
-    /* `how`: 'withdrew' (its own call, or a sold exit) or 'pulled' (the Aleas took a spent banner off the ground) */
-    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: how !== 'pulled', how: how || 'withdrew' };
+    /* `how`: 'withdrew' — its own call, or a sold exit. Nobody is taken off the ground: an OA stays until it leaves or falls. */
+    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: true, how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
       for (const b of q.bodies || []) if (b.status === 'active') b._withdrew = day;
@@ -1095,20 +1093,6 @@
        still do; otherwise it takes the offer back and fights on. (It replaced "leave below 4% odds" — ruled an
        oversimplification, and chosen for keeping a fatality rate steady, which the standing instruction says
        is not to be considered at all.) */
-    /* §BASELINE THE ALEAS PULL A SPENT BANNER (temporary, ruled; a rule for every seat alike): an OA with fewer than
-       this share of its people still standing is out of the contest, and those still standing come home. Measured:
-       of 32 OA-contests 28 were eliminated and none left — a fighter is worth ₡3–10k and the pot ₡1.28M, so fighting
-       to the last is the rational play — and the fallen lost 60% of those they fielded dead. No tuning of a hit moved
-       that below ~42%: gentler hits only meant more fights. This rule, with severity's power weight at 0.75, puts
-       a Divide at ~31% (six fresh Divides, 24–35% each); contests run ~21 days, not 28. */
-    if (day >= CONST.LEAVE_EARLIEST_DAY) for (const c of corps) {
-      if (!onGround(c)) continue;
-      const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
-      if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
-        stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
-        standDown(c, day, stats, corps, 'pulled');
-      }
-    }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
       /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
@@ -1116,17 +1100,13 @@
          empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
          nothing to leave. */
       if (corps.filter(onGround).length <= 1) { stats.audit.lastStood = (stats.audit.lastStood || 0) + 1; break; }
-      /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
-         shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
-      const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
-      const margin = Math.max(0, Math.min(1, (upShare - CONST.BANNER_PULL_AT) / CONST.PULL_MARGIN));
       /* §GROUND WHAT STAYING IS WORTH IS THE POT AND THE GROUND. The pot share alone never paid for a month of
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || GROUND.standingOn(planet.ground, day).some(r => r.id === o.region))).length;
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * (odds[c.id] || 0);
-      const rows = leaveRows(c), stay = (POT * (odds[c.id] || 0) + digWorth) * margin - stayCost(c), cost = standingCost(c);
+      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) + digWorth - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;

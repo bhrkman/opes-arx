@@ -2785,7 +2785,7 @@ function divideRules() {
     const goneBy = {}; for (const t of g.wall.takeAt) goneBy[t.region] = t.day;
     for (const D of days) for (const q of D.sq) if (q.n > 0 && goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
     freeCaught += (r.wallDeaths || []).filter(w => w.free).length;
-    const nextWin = dd => { for (let k = dd + 1; k <= g.days + 1; k++) if (GR.isWindowDay(g, k)) return k * 12; return (g.days + 1) * 12; };
+    const nextWin = dd => { for (let k = dd + 1; k <= dd + 3; k++) if (GR.isWindowDay(g, k)) return k * 12; return (dd + 3) * 12; };
     for (const f of cst.fights) { fights++; if (!(f.ticks >= 1 && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.until <= nextWin(f.day))) fightsOk = false; }
     for (const c of (r.captiveLog || [])) { captives++; if (['released', 'kept', 'killed', 'ransomed'].indexOf(c.out) < 0) capOk = false; }
     truces += (r.deals || []).filter(x => x.kind === 'pact').length;

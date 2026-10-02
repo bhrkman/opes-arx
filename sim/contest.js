@@ -148,7 +148,7 @@
     q.brief = { until: nextWindowDay(st), known };
     Object.assign(q.know, known);
   }
-  function nextWindowDay(st) { for (let d = st.day + 1; d <= st.ground.days + 1; d++) if (GROUND.isWindowDay(st.ground, d)) return d; return st.ground.days + 1; }
+  function nextWindowDay(st) { for (let d = st.day + 1; d <= st.day + 3; d++) if (GROUND.isWindowDay(st.ground, d)) return d; return st.day + 1; }
 
   /* ---------------- the planner, over regions ---------------- */
   /** what a group knows about a zone: the freshest of its squads' knowledge */
@@ -350,7 +350,7 @@
       the winner holds the ground, and the captured are decided then and there. */
   const absTick = st => st.day * CONST.TICKS_A_DAY + st.tick;
   function bearingOf(st, from, to) { const A = st.ground.zones[from], B = st.ground.zones[to]; return Math.atan2(B.y - A.y, B.x - A.x); }
-  function ticksToWindow(st) { for (let d = st.day + 1; d <= st.ground.days + 1; d++) if (GROUND.isWindowDay(st.ground, d)) return (d - st.day) * CONST.TICKS_A_DAY - st.tick; return CONST.TICKS_A_DAY; }
+  function ticksToWindow(st) { for (let d = st.day + 1; d <= st.day + 3; d++) if (GROUND.isWindowDay(st.ground, d)) return (d - st.day) * CONST.TICKS_A_DAY - st.tick; return CONST.TICKS_A_DAY - st.tick; }   /* past the month the windows are daily */
   function prepOf(st, q, zone, holdsIt) {
     const z = st.ground.zones[zone], from = st.ground.zones[q.zone];
     let p = 0.5 + CONST.HEIGHT_PREP * ((holdsIt ? z.height : from.height) - (holdsIt ? from.height : z.height)) + (holdsIt && z.cover >= 1 ? CONST.COVER_PREP : 0);

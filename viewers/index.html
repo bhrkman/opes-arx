@@ -21760,7 +21760,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* [H] What a survey buys you HERE. Below the first threshold a landing reads as a name in a region; above it
        you know the ground; above the second you know the prize. */
     INTEL_TERRAIN: 0.12,
-    INTEL_PRIZE: 0.30
+    INTEL_PRIZE: 0.30,
+    /* [C] §DROP what a rival near a landing costs, before the dials: in the next zone, elsewhere in the region, a route
+       away, two routes away */
+    LAND_RIVAL_MIND: 2.4,
+    LAND_RING_COST: [1.0, 0.35, 0.15, 0.05],
+    LAND_AGGR_EASE: 0.5,           // [C] the most aggressive OA minds a neighbour half as much
+    LAND_STRENGTH_W: 0.6           // [C] a stronger rival costs this much more, a weaker one up to half this less
   };
 
   /** §DROP THE LANDINGS. Every zone of the ground but the last ground's: its region, the going, its cover and
@@ -21779,7 +21785,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       for (const l of reg.links) count(depositsIn[l.to], CONST.LANDING_NEXT_W);
       out.push({ index: z.id, zone: z.id, region: z.region, regionName: reg.name, terrain: reg.terrain, ticks: reg.ticks,
                  cover: z.cover, height: z.height, hiding: z.hiding, site: z.site ? z.site.kind : null, siteLabel: z.site ? (z.site.label || null) : null,
-                 prize: Math.round(prize * 10) / 10, resources: near, x: z.x, y: z.y, links: reg.links.map(l => l.to) });
+                 prize: Math.round(prize * 10) / 10, resources: near, x: z.x, y: z.y, links: reg.links.map(l => l.to), nb: z.nb.slice() });
     }
     return out;
   }
@@ -21797,34 +21803,50 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return regionsMine.indexOf(l.region) < 0;
   }
   /** §DROP THE DRAFT'S PICK. An AI corp values a free landing by what it can see of the ground and by who has
-      already landed near it: the prize and the cover by its greed; the neighbours (the same region, and the next
-      ones) by whether it is stronger than them and how aggressive it is; its own earlier picks by whether it wants
-      its squads together (careful) or spread (aggressive). Every OA sees every pick, so this is a real read. */
+      already landed near it — a judgement, not a rule: nothing is barred but a taken zone and a second squad in a
+      region. The prize and the ground by its greed; and the RIVALS NEAR IT as a cost every OA pays, because a squad
+      that lands beside a rival fights before it has worked anything or read the ground: a rival in the next zone
+      costs most, one elsewhere in the region much less, one a route away less again, one two routes away a little; a stronger rival costs more, a weaker one
+      less, and an aggressive OA minds it least — but none goes looking for a fight at the drop, which is the one
+      moment nobody can see what they are walking into. With some ninety zones and thirty squads there is nearly
+      always somewhere quiet; a crowded ground is crowded because the OAs chose it, for the prize. Its own earlier
+      picks: together if careful, apart if aggressive. Every OA sees every pick, so this is a real read. */
   function chooseLanding(rng, corp, all, taken, ownPicks, strengthOf, intel) {
     const dials = (corp.profile && corp.profile.dials) || {};
     const aggr = (dials.aggression || 50) / 100, thrift = (dials.thrift || 50) / 100;
     const mine = strengthOf(corp.id);
     const ask = ((corp.rep && corp.rep.goal && corp.rep.goal.demands) || []).find(d => d.kind === 'resource' && d.resource);
     const asked = ask ? ask.resource : null;
-    const regionOf = {}, linksOf = {}; for (const l of all) { regionOf[l.index] = l.region; linksOf[l.region] = l.links; }
+    const regionOf = {}, linksOf = {}, byIdx = {}; for (const l of all) { regionOf[l.index] = l.region; linksOf[l.region] = l.links; byIdx[l.index] = l; }
+    /* how near two landings are: the next zone (contact the first tick anybody moves), the same region a step or more
+       away, the region next door, two routes off */
+    const ringOf = (a, bIdx) => {
+      const b = byIdx[bIdx], rb = b ? b.region : regionOf[bIdx];
+      if (a.region === rb) return (a.nb || []).indexOf(bIdx) >= 0 ? 0 : 1;
+      const l1 = linksOf[a.region] || []; if (l1.indexOf(rb) >= 0) return 2;
+      for (const r of l1) if ((linksOf[r] || []).indexOf(rb) >= 0) return 3;
+      return 4; };
+    const mind = CONST.LAND_RIVAL_MIND * (1 - CONST.LAND_AGGR_EASE * aggr);
     let best = null, bestV = -Infinity;
     for (const l of all) {
       if (!allowed(l, taken, ownPicks, all)) continue;
       const seen = readLanding(l, intel);
-      let v = 0;
-      if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8);
-      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.LANDING_ASKED_W;
+      let v = 0, rivalsHere = 0;
+      /* the rivals near it */
+      for (const k in taken) {
+        const other = taken[k]; if (other === corp.id) continue;
+        const ring = ringOf(l, +k); if (ring > 3) continue;
+        const edge = strengthOf(other) - mine;                                            /* + means they are the stronger */
+        v -= mind * CONST.LAND_RING_COST[ring] * (1 + CONST.LAND_STRENGTH_W * Math.max(-0.5, Math.min(1, edge * 4)));
+        if (ring <= 1) rivalsHere++;
+      }
+      /* the prize, shared with whoever landed in its region */
+      if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8) / (1 + rivalsHere);
+      if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.LANDING_ASKED_W / (1 + rivalsHere);
       if (seen.cover != null) v += seen.cover * (1 - aggr) * 0.6 + Math.max(0, seen.height) * 0.4;
       if (seen.site && seen.site !== 'beacon') v += 0.6;
-      /* the neighbours: who has landed in this region, and in the regions a route away */
-      for (const k in taken) {
-        const other = taken[k], r = regionOf[k];
-        const near = r === l.region ? 1 : 0.45;
-        if (r !== l.region && (linksOf[l.region] || []).indexOf(r) < 0) continue;
-        if (other === corp.id) { v += (thrift * 1.2 - aggr * 0.8) * near; continue; }   /* cluster if careful, spread if aggressive */
-        const edge = mine - strengthOf(other);                                           /* + means I am the stronger */
-        v += near * (edge > 0 ? aggr * 1.4 * Math.min(1, edge) : -(1.6 - aggr) * Math.min(1, -edge));
-      }
+      /* its own: together if careful, apart if aggressive */
+      for (const k in taken) if (taken[k] === corp.id && ringOf(l, +k) === 2) v += thrift * 1.2 - aggr * 0.8;
       v += rng() * 0.15;                                                                 /* a little of the unknown */
       if (v > bestV) { bestV = v; best = l; }
     }
@@ -22112,8 +22134,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     UNDERDOG_FAME_PER_PLACE: 0.12,      // [C] §SNOWBALL fame for a kill, per place the victim's OA finished above the killer's
     UNDERDOG_FAME_FLOOR: 0.4,           // [C] and the least it falls to, hitting all the way down
     CHAMPION_FAME_BONUS: 0.5,           // [C] and half again on top for one of the champion's own
-    BANNER_PULL_AT: 0.45,
-    PULL_MARGIN: 0.25,                  // [C] §MARKET how far above the line a force's staying starts to lose its worth               // [C] §BASELINE (temporary) below this share standing, an OA's banner is pulled
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,              // [H] a point of it in credits: about a year of gate (₡68/month) and its pull
@@ -22721,8 +22741,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const off = (stats.withdrawOffers || {})[c.id];
     const promises = [];
     if (off) for (const id in off.replies) if (off.replies[id]) promises.push({ to: c.id, from: id, terms: off.terms, day: day });
-    /* `how`: 'withdrew' (its own call, or a sold exit) or 'pulled' (the Aleas took a spent banner off the ground) */
-    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: how !== 'pulled', how: how || 'withdrew' };
+    /* `how`: 'withdrew' — its own call, or a sold exit. Nobody is taken off the ground: an OA stays until it leaves or falls. */
+    c.withdrawn = { day: day, toId: null, terms: (off && off.terms) || null, promises: promises, byChoice: true, how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
       for (const b of q.bodies || []) if (b.status === 'active') b._withdrew = day;
@@ -22931,20 +22951,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        still do; otherwise it takes the offer back and fights on. (It replaced "leave below 4% odds" — ruled an
        oversimplification, and chosen for keeping a fatality rate steady, which the standing instruction says
        is not to be considered at all.) */
-    /* §BASELINE THE ALEAS PULL A SPENT BANNER (temporary, ruled; a rule for every seat alike): an OA with fewer than
-       this share of its people still standing is out of the contest, and those still standing come home. Measured:
-       of 32 OA-contests 28 were eliminated and none left — a fighter is worth ₡3–10k and the pot ₡1.28M, so fighting
-       to the last is the rational play — and the fallen lost 60% of those they fielded dead. No tuning of a hit moved
-       that below ~42%: gentler hits only meant more fights. This rule, with severity's power weight at 0.75, puts
-       a Divide at ~31% (six fresh Divides, 24–35% each); contests run ~21 days, not 28. */
-    if (day >= CONST.LEAVE_EARLIEST_DAY) for (const c of corps) {
-      if (!onGround(c)) continue;
-      const all = c.allBodies || [], up = all.filter(b => b.status === 'active').length;
-      if (all.length && up / all.length < CONST.BANNER_PULL_AT && corps.filter(onGround).length > 1) {
-        stats.audit.bannersPulled = (stats.audit.bannersPulled || 0) + 1;
-        standDown(c, day, stats, corps, 'pulled');
-      }
-    }
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
       /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
@@ -22952,17 +22958,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
          nothing to leave. */
       if (corps.filter(onGround).length <= 1) { stats.audit.lastStood = (stats.audit.lastStood || 0) + 1; break; }
-      /* §MARKET THE DEADLINE: a force nearing the line is about to be pulled with nothing, so what fighting on is worth
-         shrinks to nothing at the line — which is what makes selling an exit, while the force still counts, the play */
-      const allB = c.allBodies || [], upShare = allB.length ? allB.filter(b => b.status === 'active').length / allB.length : 1;
-      const margin = Math.max(0, Math.min(1, (upShare - CONST.BANNER_PULL_AT) / CONST.PULL_MARGIN));
       /* §GROUND WHAT STAYING IS WORTH IS THE POT AND THE GROUND. The pot share alone never paid for a month of
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || GROUND.standingOn(planet.ground, day).some(r => r.id === o.region))).length;
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * (odds[c.id] || 0);
-      const rows = leaveRows(c), stay = (POT * (odds[c.id] || 0) + digWorth) * margin - stayCost(c), cost = standingCost(c);
+      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) + digWorth - stayCost(c), cost = standingCost(c);
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;
@@ -35985,7 +35987,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var fell = (step.value.fallen || []).filter(function (f) { return f.id === G.me; })[0];
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
         ' days \u00b7 winner ' + (step.value.winner ? cSpan(step.value.winner) : 'nobody') +
-        (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'pulled' ? ' \u00b7 The Aleas Pulled Your Banner on Day ' + fell.day : '') +
+        (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'withdrew' ? ' \u00b7 You Left the Ground on Day ' + fell.day : '') +
         (mine.payout ? ' \u00b7 Your Take ' + crs(mine.payout) : '') +
         ' \u00b7 Settled to the Books';
       renderSponsorVerdict(seasonRec);
