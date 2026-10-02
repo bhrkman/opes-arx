@@ -5267,7 +5267,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { useCensus, isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
