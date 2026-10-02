@@ -5564,7 +5564,10 @@
     var sched = g.sites.filter(function (st) { return st.kind === 'deposit'; }).map(function (st) { return [st.opens, esc(st.label) + ' of ' + esc(capWords(String(st.resource || '').replace(/_/g, ' '))) + ' Opens \u00b7 ' + esc(g.regions[g.zones[st.zone].region].name)]; });
     var byDay = {}; g.wall.takeAt.forEach(function (t) { (byDay[t.day] = byDay[t.day] || []).push(g.regions[t.region].name); });
     Object.keys(byDay).forEach(function (d) { sched.push([+d, 'The Wall Takes ' + byDay[d].map(esc).join(' and ')]); });
-    sched.push([g.days, 'The Last Ground \u00b7 ' + esc(g.regions[g.wall.last].name)]);
+    /* §ENDGAME the last ground closes a zone at a time to its final zone on the month's last day */
+    var zByDay = {}; (g.wall.zoneAt || []).forEach(function (t) { zByDay[t.day] = (zByDay[t.day] || 0) + 1; });
+    Object.keys(zByDay).forEach(function (d) { sched.push([+d, 'The Wall Takes ' + zByDay[d] + ' Zone' + (zByDay[d] === 1 ? '' : 's') + ' of ' + esc(g.regions[g.wall.last].name)]); });
+    sched.push([g.days, 'The Last Zone \u00b7 ' + esc(g.regions[g.wall.last].name)]);
     sched.sort(function (a, b) { return a[0] - b[0]; });
     $('gvsched').innerHTML = sched.map(function (x) { return '<div class="gvev' + (x[0] <= day ? ' past' : '') + '"><span class="d gold">Day ' + x[0] + '</span>' + x[1] + '</div>'; }).join('');
     $('gvorders').innerHTML = view.squads.filter(function (q) { return q.oa === view.me; }).sort(function (a, b) { return a.s - b.s; }).map(function (q) {
@@ -5597,8 +5600,10 @@
     zs.forEach(function (z) { z.nb.forEach(function (n) { if (n < z.id) return; var a = pt(z), b = pt(g.zones[n]); h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + col + '" stroke-width="1.5" opacity=".6"/>'; }); });
     r.links.forEach(function (l) { var a = pt(g.zones[l.from]), o = g.regions[l.to], ang = Math.atan2(o.cy - r.cy, o.cx - r.cx), e = [a[0] + Math.cos(ang) * 34, a[1] + Math.sin(ang) * 34];
       h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + e[0] + '" y2="' + e[1] + '" stroke="' + TOK.faint + '" stroke-width="2" stroke-dasharray="3 3"/><text x="' + (e[0] + Math.cos(ang) * 8) + '" y="' + (e[1] + Math.sin(ang) * 8 + 3) + '" fill="' + TOK.dim + '" font-size="7.5" text-anchor="' + (Math.cos(ang) > .3 ? 'start' : Math.cos(ang) < -.3 ? 'end' : 'middle') + '" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(o.name) + ' \u00b7 ' + l.ticks + '</text>'; });
+    var zg = function (zid) { return GROUND.zoneGone(g, zid, view.day); }, zNext = GROUND.nextZonesToGo(g, view.day);
     zs.forEach(function (z) { var p = pt(z), here = gvSquadsAt(view, z.id), fight = view.fights.some(function (f) { return f.zone === z.id; });
-      h += '<g data-gvzone="' + z.id + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="' + col + '22" stroke="' + (fight ? 'var(--red)' : col) + '" stroke-width="' + (fight ? 2.5 : 1.5) + '"/>';
+      var goneZ = r.id === g.wall.last && zg(z.id), burnZ = r.id === g.wall.last && zNext.indexOf(z.id) >= 0, finalZ = z.id === g.wall.finalZone;
+      h += '<g data-gvzone="' + z.id + '" opacity="' + (goneZ ? .35 : 1) + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="' + col + '22" stroke="' + (fight || burnZ ? 'var(--red)' : finalZ ? 'var(--mag)' : col) + '" stroke-width="' + (fight || burnZ || finalZ ? 2.5 : 1.5) + '"/>' + (goneZ ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="url(#gvhatch)"/>' : '');
       var glyph = function (x, y, small) { var out = ''; if (z.site) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 5)) + '" fill="' + GV_SITE[z.site.kind][1] + '" font-size="' + (small ? 9 : 15) + '" text-anchor="middle">' + GV_SITE[z.site.kind][0] + '</text>';
         else if (GV_HGLYPH[z.height]) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 4)) + '" fill="' + TOK.ink + '" font-size="' + (small ? 7 : 11) + '" text-anchor="middle" opacity=".85">' + GV_HGLYPH[z.height] + '</text>'; return out; };
       if (!here.length) { h += glyph(p[0], p[1]); if (z.site && GV_HGLYPH[z.height]) h += '<text x="' + (p[0] + 11) + '" y="' + (p[1] - 9) + '" fill="' + TOK.ink + '" font-size="7" text-anchor="middle">' + GV_HGLYPH[z.height] + '</text>'; }
@@ -7365,6 +7370,7 @@
     if (e.t === 'fight') return (e.corps || []).map(name).join(' v ') + ' at ' + esc(at) + ' · ' + (e.res && /^disengage/.test(e.res) ? 'Broken Off' : e.res === 'cleared' ? 'Cleared' : 'Fought to Dark') + (e.lost ? ' · ' + e.lost + ' Lost' : '') + (e.flank ? ' · Flanked' : '');
     if (e.t === 'wall') return 'The Wall Took ' + name(e.c) + ' at ' + esc(e.region || at) + ' · ' + e.n + ' Lost';
     if (e.t === 'region_gone') return 'The Wall Took ' + esc(e.name);
+    if (e.t === 'zone_gone') return 'The Wall Took a Zone of ' + esc(e.name);
     if (e.t === 'claim') return name(e.c) + ' Worked the ' + esc(e.lbl) + ' at ' + esc(e.place);
     if (e.t === 'relay') return name(e.c) + ' Fired the Mast at ' + esc(e.place);
     if (e.t === 'landed') return name(e.c) + ' Landed ' + esc(e.name) + ' at ' + esc(e.place);

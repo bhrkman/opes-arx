@@ -117,7 +117,12 @@ people fought.
 
 There are no truces. The one deal over the wire is a ransom: a captive is priced, paid for or
 left. An OA may leave the ground: by walking, or by selling its exit to the field for promises
-against the pot, kept or broken at the settlement and remembered across years. The last OA
+against the pot, kept or broken at the settlement and remembered across years. Nobody is taken
+off the ground: an OA stays until it leaves or falls, and it decides by reading itself truly (its
+hurt count only if they will be up before the end), its real chance at the pot, the ground still
+open, the people the coming days and the certain showdown on the last zone will cost it, and the
+standing a loss costs whether it walks or is wiped. A seat goes for a rival it can beat by how far
+it outnumbers it, how much of that banner the squad is, and how few banners are left. The last OA
 standing has won and does not leave.
 
 ## The settlement
@@ -152,7 +157,9 @@ lean one pleases.
   routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
   reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
   month. Windows fall every other day and daily once few regions stand. The wall's order never
-  cuts the standing ground in two.
+  cuts the standing ground in two. Once the last region-taking is past, the wall closes the last
+  ground a zone at a time, farthest from its final zone first, so that one zone stands alone on the
+  month's last day and whoever is left is on it.
 - On that ground (sim/contest.js, driven by divide.js's day loop, which keeps the economy: kit,
   rations, camp, forage, weather, loot, fame, stress, the table, the reserve, the awards, the
   settlement) a squad sees the zones next to it, a ring

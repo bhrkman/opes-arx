@@ -2636,6 +2636,20 @@ function groundRules() {
   ok('different seeds are different grounds', JSON.stringify(worlds[0]) !== JSON.stringify(worlds[1]));
   const widths = worlds.map(g => Math.max.apply(null, g.zones.map(z => (GR.ticksBetween(g, g.regions[g.wall.last].zones[0], z.id) || { ticks: 0 }).ticks)));
   ok('the ground is days wide, not weeks: the farthest zone from the last ground is under five days\' walk', widths.every(w => w <= 60), 'widest ' + Math.max.apply(null, widths) + ' ticks');
+  /* §ENDGAME the last ground closes a zone at a time after the last region goes, to its final zone on the month's last day,
+     and never cuts what is left of it in two */
+  let zoneWall = true, zoneConn = true;
+  for (const g of worlds) {
+    const lz = g.regions[g.wall.last].zones, lastTake = Math.max.apply(null, g.wall.takeAt.map(t => t.day));
+    if (g.wall.zoneAt.length !== lz.length - 1 || g.wall.zoneAt.some(t => t.day <= lastTake || t.day > g.days || t.zone === g.wall.finalZone) || lz.indexOf(g.wall.finalZone) < 0) zoneWall = false;
+    for (const t of g.wall.zoneAt) {
+      const left = lz.filter(z => !GR.zoneGone(g, z, t.day)); if (left.length <= 1) continue;
+      const seen = new Set([left[0]]), q = [left[0]]; while (q.length) { const c = q.shift(); for (const n of g.zones[c].nb) if (left.indexOf(n) >= 0 && !seen.has(n)) { seen.add(n); q.push(n); } }
+      if (seen.size !== left.length) zoneConn = false;
+    }
+  }
+  ok('the last ground closes a zone at a time after the last region goes, to one zone on the month\'s last day', zoneWall);
+  ok('and never cuts what is left of it in two', zoneConn);
 }
 
 /* =========================================================================
@@ -2783,7 +2797,7 @@ function divideRules() {
     if (days.length !== r.days) { recordAll = false; notes.push(seed + ': ' + days.length + ' days recorded of ' + r.days); }
     for (const D of days) if (!!D.window !== GR.isWindowDay(g, D.d)) { cadence = false; notes.push(seed + ': day ' + D.d + ' window ' + D.window); }
     const goneBy = {}; for (const t of g.wall.takeAt) goneBy[t.region] = t.day;
-    for (const D of days) for (const q of D.sq) if (q.n > 0 && goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
+    for (const D of days) for (const q of D.sq) if (q.n > 0 && ((goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) || (D.gz || []).some(z => z === q.z && (g.wall.zoneAt.find(t => t.zone === z) || {}).day <= D.d - 1))) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
     freeCaught += (r.wallDeaths || []).filter(w => w.free).length;
     const nextWin = dd => { for (let k = dd + 1; k <= dd + 3; k++) if (GR.isWindowDay(g, k)) return k * 12; return (dd + 3) * 12; };
     for (const f of cst.fights) { fights++; if (!(f.ticks >= 1 && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.until <= nextWin(f.day))) fightsOk = false; }

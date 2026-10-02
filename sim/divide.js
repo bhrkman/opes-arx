@@ -134,6 +134,8 @@
     STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
     SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
+    SHOWDOWN_HORIZON: 12,
+    LEAVE_RATE_HORIZON: 4,              // [C] §WITHDRAWAL days the loss rate since the last window is projected over: the next two windows               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
     /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
     CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
@@ -1037,14 +1039,24 @@
       for (const j of corps) { const a2 = j.allBodies || []; bodiesAll += a2.length; lostAll += since(j); }
       return bodiesAll ? lostAll / bodiesAll / cadenceDays : 0;
     })();
-    const lastGroundDay = (() => { const t = (planet.ground && planet.ground.wall.takeAt) || []; return t.length ? t[t.length - 1].day : GROUND.CONST.DAYS; })();
+    const lastGroundDay = (() => { const w = planet.ground && planet.ground.wall; if (!w) return GROUND.CONST.DAYS; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
+    const aliveOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
     const stayCost = (c) => {
       if (day < CONST.LEAVE_EARLIEST_DAY) return 0;
       const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
       const lost = since(c);
       const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
       const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / cadenceDays) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
-      const expect = Math.min(alive.length, rate * all.length * daysLeft);
+      /* §ENDGAME AND THE END IS CERTAIN. The last ground closes to one zone at the month's end, so whoever is still on
+         the ground then fights it out: what that costs is the share of its people an OA loses against everyone else
+         still standing — little to a strong house, nearly all to a spent one. Read as the days run out, beside the
+         rate it has been losing at; a quiet week is not a cheap month when the wall will put everybody together. */
+      const rivals = corps.filter(j => j !== c && onGround(j)).reduce((t, j) => t + aliveOf(j), 0);
+      const showdown = alive.length * rivals / Math.max(1, alive.length + rivals);
+      const near = Math.max(0, Math.min(1, 1 - (lastGroundDay - day) / CONST.SHOWDOWN_HORIZON));
+      /* the rate it has been losing at, over the days until it next decides — it reconsiders every window, so the rate
+         is not a month's sentence — beside the showdown the end will cost it */
+      const expect = Math.min(alive.length, Math.max(rate * all.length * Math.min(daysLeft, CONST.LEAVE_RATE_HORIZON), showdown * near));
       const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.salary) || 0) *
                     LED.CONST.SALARY_MONTHS + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
@@ -1106,7 +1118,20 @@
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || GROUND.standingOn(planet.ground, day).some(r => r.id === o.region))).length;
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * (odds[c.id] || 0);
-      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) + digWorth - stayCost(c), cost = standingCost(c);
+      /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
+         reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
+         and was wiped to the last man. It knows its own tent: the hurt who will be up before the end count, the rest
+         do not. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
+         or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
+         the people the end will cost it. */
+      const meanEng = corps.reduce((t, j) => t + (j.engagements || 0), 0) / Math.max(1, corps.length);
+      const daysToEnd = Math.max(0, lastGroundDay - day);
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
+      const seenF = Math.max(0.0001, NEG.believedForce(c, meanEng));
+      const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenF, NEG.CONST.ODDS_SHARPNESS);
+      const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
+      const cost = standingCost(c);
+      const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;
@@ -2800,10 +2825,11 @@
          it does not know, who lie where they fell */
       const dawnEv = cst.events.slice(evBefore);
       for (const e of dawnEv) {
-        if (e.t !== 'region_gone') continue;
-        rec({ t: 'region_gone', region: e.region, name: RG[e.region].name });
+        if (e.t !== 'region_gone' && e.t !== 'zone_gone') continue;
+        if (e.t === 'region_gone') rec({ t: 'region_gone', region: e.region, name: RG[e.region].name });
+        else rec({ t: 'zone_gone', zone: e.zone, region: e.region, name: RG[e.region].name });
         for (const c of corps) for (const sq of c.squads) {
-          if (sq.zone == null || Z[sq.zone].region !== e.region) continue;
+          if (sq.zone == null || (e.t === 'region_gone' ? Z[sq.zone].region !== e.region : sq.zone !== e.zone)) continue;
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
           let took = 0;
           for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
@@ -2942,7 +2968,7 @@
               leanings: Object.assign({}, you._leanings || {}),
               contact: (function () { const o = {}; for (const c of corps) if (c.id !== you.id) { const r = contactWith(you, c, corps); if (r.fights || r.huntedBy || r.hunting) o[c.id] = r; } return o; })(),
               /* the wall: what stands, what goes next and when */
-              wall: { standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), takeAt: ground.wall.takeAt.filter(x => x.day > day), last: ground.wall.last },
+              wall: { standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), nextZones: GROUND.nextZonesToGo(ground, day), zoneAt: (ground.wall.zoneAt || []).filter(x => x.day > day), takeAt: ground.wall.takeAt.filter(x => x.day > day), last: ground.wall.last },
               banked: Object.assign({}, you._banked || {}),
               bankedBy: (function () { const by = {}; for (const rid in (you._banked || {})) { const cat = MAP.resourceCategory ? MAP.resourceCategory(rid) : null; if (cat) by[cat] = (by[cat] || 0) + you._banked[rid]; } return by; })(),
               openBy: (function () { const by = {}; for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || o.looted) continue; const cat = o.category || (MAP.resourceCategory ? MAP.resourceCategory(o.resource) : null); if (cat) by[cat] = (by[cat] || 0) + Math.round(o.potency || 1); } return by; })(),
@@ -3102,6 +3128,7 @@
         }));
         REC.days.push({
           d: day, standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), window: windowDay,
+          gz: (ground.wall.zoneAt || []).filter(t => t.day <= day).map(t => t.zone), nz: GROUND.nextZonesToGo(ground, day),
           sq: sqRec,
           obj: planet.objectives.map(o => ({ id: o.id, z: o.zone, h: o.heldBy || null, t: o.type, lbl: o.label, open: siteLive(o, day), on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),
           corp: corps.map(c => ({ e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length, a: c.allBodies.filter(b => b.status === 'active').length,

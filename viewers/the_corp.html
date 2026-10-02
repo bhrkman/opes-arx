@@ -12263,7 +12263,24 @@
     /* regions go from the second window to the second-last, spread as evenly as the count allows */
     const slots = windows.slice(1, windows.length - 1), takeAt = [];
     rest.forEach((id, i) => takeAt.push({ region: id, day: slots[Math.floor(i / rest.length * slots.length)] }));
-    const wall = { last: last.id, order: rest, takeAt, windows };
+    /* §ENDGAME THE WALL CLOSES INSIDE THE LAST GROUND (ruled). Once the last region-taking is past, the wall goes on
+       a zone at a time, the zones farthest from the final one first and never one that cuts the rest in two, so that
+       the final zone stands alone on the month's last day: whoever is left is on the same ground by then. Spread from
+       the day after the last region goes to the month's end, several a day if the month is short of days. */
+    const lastTake = takeAt.reduce((m, t) => Math.max(m, t.day), 1);
+    const lz = last.zones.slice(), finalZone = lz.slice().sort((a, b) => dist(zones[a].x, zones[a].y, last.cx, last.cy) - dist(zones[b].x, zones[b].y, last.cx, last.cy) || zones[b].height - zones[a].height)[0];
+    const zDist = {}; { const q = [finalZone]; zDist[finalZone] = 0; while (q.length) { const c0 = q.shift(); for (const n0 of zones[c0].nb) if (zDist[n0] == null && zones[n0].region === last.id) { zDist[n0] = zDist[c0] + 1; q.push(n0); } } }
+    const zLeft = new Set(lz), zoneOrder = [];
+    const zConnectedWithout = (id) => { const live = [...zLeft].filter(z => z !== id); if (!live.length) return true; const seen = new Set([live[0]]), q = [live[0]];
+      while (q.length) { const c0 = q.shift(); for (const n0 of zones[c0].nb) if (zLeft.has(n0) && n0 !== id && !seen.has(n0)) { seen.add(n0); q.push(n0); } } return seen.size === live.length; };
+    while (zLeft.size > 1) {
+      const cands = [...zLeft].filter(z => z !== finalZone).sort((a, b) => (zDist[b] || 0) - (zDist[a] || 0) || a - b);
+      const pick = cands.find(z => zConnectedWithout(z)) || cands[0];
+      zoneOrder.push(pick); zLeft.delete(pick);
+    }
+    const zFirst = Math.min(CONST.DAYS, lastTake + 1), zSpan = Math.max(1, CONST.DAYS - zFirst + 1);
+    const zoneAt = zoneOrder.map((z, i) => ({ zone: z, day: Math.min(CONST.DAYS, zFirst + Math.floor(i * zSpan / Math.max(1, zoneOrder.length))) }));
+    const wall = { last: last.id, order: rest, takeAt, windows, zoneAt, finalZone };
 
     /* ---- sites: one a zone, few a region; deposits from what the world is made of ---- */
     const composition = MAP.rollComposition ? MAP.rollComposition(rng, archKey) : [];
@@ -12329,6 +12346,21 @@
 
   /* ---------------- reading a ground ---------------- */
   /** the regions still standing on a day */
+  /** whether the wall has taken a zone by `day`: its region gone, or (on the last ground) the zone itself */
+  function zoneGone(ground, zid, day) {
+    const r = ground.zones[zid].region;
+    if (ground.wall.takeAt.some(t => t.region === r && t.day <= day)) return true;
+    return (ground.wall.zoneAt || []).some(t => t.zone === zid && t.day <= day);
+  }
+  /** the day the wall takes a zone (Infinity for the final zone) */
+  function zoneGoesOn(ground, zid) {
+    const r = ground.zones[zid].region, t = ground.wall.takeAt.find(x => x.region === r);
+    if (t) return t.day;
+    const z = (ground.wall.zoneAt || []).find(x => x.zone === zid);
+    return z ? z.day : Infinity;
+  }
+  /** the zones of the last ground the wall takes next, after `day` */
+  function nextZonesToGo(ground, day) { const next = (ground.wall.zoneAt || []).map(t => t.day).filter(d => d > day).sort((a, b) => a - b)[0]; return next == null ? [] : ground.wall.zoneAt.filter(t => t.day === next).map(t => t.zone); }
   function standingOn(ground, day) { const gone = new Set(ground.wall.takeAt.filter(t => t.day <= day).map(t => t.region)); return ground.regions.filter(r => !gone.has(r.id)); }
   /** the regions the wall takes by the next window after `day` */
   function nextToGo(ground, day) { const next = ground.wall.takeAt.map(t => t.day).filter(d => d > day).sort((a, b) => a - b)[0]; return next == null ? [] : ground.wall.takeAt.filter(t => t.day === next).map(t => t.region); }
@@ -12377,7 +12409,7 @@
                revealed: true, revealDay: 1, opens: s.kind === 'deposit' ? s.opens : 1, wave: 0,
                looted: false, lootedBy: null, work: {}, dark: 0 }; });
   }
-  const api = { CONST, generate, standingOn, nextToGo, isWindowDay, ticksBetween, seenFrom, objectivesOf, OBJ_TYPE };
+  const api = { CONST, generate, standingOn, zoneGone, zoneGoesOn, nextZonesToGo, nextToGo, isWindowDay, ticksBetween, seenFrom, objectivesOf, OBJ_TYPE };
   if (isNode) module.exports = api;
   global.CDGROUND = api;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -12429,7 +12461,8 @@
     PLAN_LEAVE_SLACK: 12,            // [C] ticks: a squad leaves when the wall is this close beyond its cheapest way out
     PATH_DETOUR: 6,                  // [C] ticks: a way round a squad in the road is taken only if it is at most this much longer
     PLAN_INWARD_FROM: 8,             // [C] with this few regions standing, everyone drifts inward
-    SEEN_ENEMY_W: 1.5,               // [C] a zone a stronger enemy is known to hold is worth this much less
+    SEEN_ENEMY_W: 1.5,
+    HUNT_W: 2.0,                     // [C] §HUNT what a rival squad it can beat is worth, before the stance, the edge and the close-out               // [C] a zone a stronger enemy is known to hold is worth this much less
     /* §FIGHT a contact is a fight on the grid; the grid's own clock is turns, six to a tick (divide.js) */
     FIGHT_TURNS_PER_TICK: 6,         // [H] grid turns inside one two-hour block
     FIGHT_TICKS_MAX: 6,              // [H] the pile-up: no fight holds a zone longer than half a day, and none runs past a window
@@ -12487,7 +12520,9 @@
   const holder = (st, zid) => st.squads.find(q => q.alive && q.zone === zid && !onRoad(q));
   const isHuman = (st, oa) => !!st.human[oa];
   function standing(st) { return GROUND.standingOn(st.ground, st.day).map(r => r.id); }
-  function deadZone(st, zid) { return goesOn(st, st.ground.zones[zid].region) <= st.day; }
+  function deadZone(st, zid) { return GROUND.zoneGone(st.ground, zid, st.day); }
+  /** the day the wall takes a zone: its region's day, or on the last ground its own */
+  function zoneGoes(st, zid) { return GROUND.zoneGoesOn(st.ground, zid); }
   function goesOn(st, regId) { const t = st.ground.wall.takeAt.find(x => x.region === regId); return t ? t.day : Infinity; }
 
   /* ---------------- sight and noise ---------------- */
@@ -12563,7 +12598,9 @@
     /* §PRESSED pressed is the wall against the real way out: a region whose one exit is sixteen ticks off
        presses two days sooner than one whose exit is three */
     const goes = goesOn(st, rid), ticksLeft = (goes - st.day) * CONST.TICKS_A_DAY - st.tick;
-    const pressed = goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK);   /* the announcement, or the way out against the clock */
+    /* on the last ground the wall comes zone by zone: a squad whose own zone goes soon is pressed toward the zones that last */
+    const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= CONST.PLAN_MARGIN_DAYS);
+    const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
     /* the regions in reach: this one and up to PLAN_REACH_ROUTES routes out */
     const reach = { [rid]: 0 }, edge = [rid];
     for (let k = 0; k < CONST.PLAN_REACH_ROUTES; k++) { const nxt = []; for (const r of edge) for (const l of G.regions[r].links) if (reach[l.to] == null) { reach[l.to] = k + 1; nxt.push(l.to); } edge.splice(0, edge.length, ...nxt); }
@@ -12572,17 +12609,30 @@
       const reg = G.regions[+r], rg = goesOn(st, reg.id);
       if (rg <= st.day + CONST.PLAN_MARGIN_DAYS && reg.id !== G.wall.last) continue;   /* not worth walking into */
       for (const zid of reg.zones) {
-        const z = G.zones[zid];
+        const z = G.zones[zid], zg = Math.min(rg, zoneGoes(st, zid));
+        if (reg.id === G.wall.last && zg <= st.day + CONST.PLAN_MARGIN_DAYS && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
         let worth = 0;
         if (z.site && z.site.kind !== 'beacon') { if (z.site.kind === 'deposit') { if (z.site.opens <= st.day + 1) worth += CONST.PLAN_WORTH.deposit + (z.site.units || 0) * 0.3; } else worth += CONST.PLAN_WORTH[z.site.kind] || 0; }
         if (z.height >= 1) worth += CONST.PLAN_WORTH.high * z.height;
-        if (left <= CONST.PLAN_INWARD_FROM || pressed) worth += (G.days + 2 - rg) <= 0 ? 0 : Math.min(3, (rg - st.day) / 6);   /* late, ground that lasts is worth something */
+        if (left <= CONST.PLAN_INWARD_FROM || pressed) worth += zg === Infinity ? 3 : (G.days + 2 - zg) <= 0 ? 0 : Math.min(3, (zg - st.day) / 6);   /* late, ground that lasts is worth something */
         const own = group.some(q => q.zone === zid) || st.squads.some(q => q.alive && q.oa === oa && q.zone === zid && group.indexOf(q) < 0);
         if (own) continue;
         /* §STANCE a zone a rival is known to hold: beyond what the stance accepts it is no objective at all (pressed by
            the wall, it is a poor one); within it, a fight the stance seeks */
         const k = groupKnows(group, zid);
-        if (k && k.oa && !st.allied(k.oa, oa)) { if (k.n > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; } else if (pressed) worth -= CONST.SEEN_ENEMY_W; else worth += dial.seek * 0.8; }
+        if (k && k.oa && !st.allied(k.oa, oa)) {
+          if (k.n > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; }
+          else {
+            /* §HUNT A FIGHT WORTH TAKING. A rival it can beat is worth going for by how far it outnumbers it, how much of
+               that banner the squad is — taking the last squad of a house closes it out — and how few banners are left,
+               where every one gone is a share of the pot; the stance says how much it wants that. */
+            const theirs = alive(st).filter(o => o.oa === k.oa).reduce((t, o) => t + o.n, 0) || k.n;
+            const edge = Math.max(0, Math.min(2, force / Math.max(1, k.n) - 1));
+            const closes = Math.min(1, k.n / Math.max(1, theirs));
+            const late = left <= CONST.PLAN_INWARD_FROM ? 1 + (CONST.PLAN_INWARD_FROM - left) / CONST.PLAN_INWARD_FROM : 1;
+            worth += (pressed ? 0.5 : 1) * CONST.HUNT_W * dial.seek * edge * (0.5 + closes) * late;
+          }
+        }
         /* and the rivals known in that region as a whole, fresh within a day: a region held in strength beyond the
            stance's acceptance is not walked into for a site */
         if (!pressed && reg.id !== rid) { const near = knownIn(st, group, reg, now - CONST.TICKS_A_DAY); if (near > force * dial.accept) continue; }
@@ -12606,11 +12656,18 @@
         if (q.shut && q.shut[c.zid] === st.day) continue;   /* a zone it was turned back from today is not tried again today */
         const path = GROUND.ticksBetween(G, q.zone, c.zid, { avoid: v => deadZone(st, v) || (v !== c.zid && !!holder(st, v) && holder(st, v).oa !== oa) });   /* friends are passed when they move; the way waits for them */
         if (!path) continue;
-        if (pressed && c.reg !== rid && path.ticks > ticksLeft - 1) continue;   /* it would not get there */
-        const v = c.worth - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && c.reg !== rid ? 2 : 0);
+        if (pressed && !zonePressed && c.reg !== rid && path.ticks > ticksLeft - 1) continue;   /* it would not get there */
+        const v = c.worth - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && (c.reg !== rid || zonePressed) ? 2 : 0);
         if (v > bestV) { bestV = v; best = { zid: c.zid, path }; }
       }
       const before = q.intent && q.intent.type === 'take' ? q.intent.zone : null;
+      if (!best && zonePressed) {
+        /* the last ground closing on it and nothing it can take: the nearest zone that lasts longer, whoever stands in it */
+        let to = null, dT = Infinity; const mine = zoneGoes(st, q.zone);
+        for (const zid of G.regions[rid].zones) { if (zoneGoes(st, zid) <= mine || deadZone(st, zid)) continue;
+          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) }); if (p && p.ticks < dT) { dT = p.ticks; to = { zid, path: p }; } }
+        if (to) { best = to; bestV = 0; }
+      }
       if (!best && pressed && goesOn(st, rid) !== Infinity) {
         /* nothing it can reach: the nearest door out, whoever stands in it; a friend makes way, a rival is a contact */
         let door = null, dT = Infinity;
@@ -12898,6 +12955,11 @@
         for (const q of alive(st)) if (G.zones[q.zone].region === t.region && !(onRoad(q) && G.zones[q.moving.to].region !== t.region)) { q.alive = false; st.events.push({ t: 'wall', day: st.day, squad: q.id, oa: q.oa, region: t.region, free: !!q.freeWay && !q.metToday }); st.audit.wall++; if (q.freeWay && !q.metToday) st.audit.wallFree = (st.audit.wallFree || 0) + 1; }
         st.events.push({ t: 'region_gone', day: st.day, region: t.region });
       }
+      /* §ENDGAME the last ground closes a zone at a time */
+      for (const t of (G.wall.zoneAt || [])) if (t.day === st.day) {
+        for (const q of alive(st)) if (q.zone === t.zone && !onRoad(q)) { q.alive = false; st.events.push({ t: 'wall', day: st.day, squad: q.id, oa: q.oa, region: G.zones[t.zone].region, zone: t.zone, free: !!q.freeWay && !q.metToday }); st.audit.wall++; if (q.freeWay && !q.metToday) st.audit.wallFree = (st.audit.wallFree || 0) + 1; }
+        st.events.push({ t: 'zone_gone', day: st.day, zone: t.zone, region: G.zones[t.zone].region });
+      }
       if (GROUND.isWindowDay(G, st.day)) {
         st.audit.windows++; st.events.push({ t: 'window', day: st.day, next: GROUND.nextToGo(G, st.day) });
         for (const q of alive(st)) brief(st, q);   /* every seat briefs its squads with the broadcast; a person's seat the same (step e lets him choose) */
@@ -12908,6 +12970,10 @@
       for (const q of alive(st)) { const rid = G.zones[q.zone].region; q.freeWay = false; q.metToday = false;
         if (goesOn(st, rid) === st.day + 1 && !onRoad(q)) for (const l of G.regions[rid].links) { if (goesOn(st, l.to) <= st.day + 1) continue;
           const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) || !!holder(st, v) });
+          if (p && p.ticks <= CONST.TICKS_A_DAY - 1) { q.freeWay = true; break; } }
+        /* on the last ground: a zone that lasts longer, reachable past nobody within the day */
+        if (goesOn(st, rid) === Infinity && zoneGoes(st, q.zone) === st.day + 1 && !onRoad(q)) for (const zid of G.regions[rid].zones) { if (zoneGoes(st, zid) <= st.day + 1 || holder(st, zid)) continue;
+          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) || (!!holder(st, v) && v !== q.zone) });
           if (p && p.ticks <= CONST.TICKS_A_DAY - 1) { q.freeWay = true; break; } } }
     }
   }
@@ -21992,6 +22058,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
     SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
+    SHOWDOWN_HORIZON: 12,
+    LEAVE_RATE_HORIZON: 4,              // [C] §WITHDRAWAL days the loss rate since the last window is projected over: the next two windows               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
     /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
     CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
@@ -22895,14 +22963,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       for (const j of corps) { const a2 = j.allBodies || []; bodiesAll += a2.length; lostAll += since(j); }
       return bodiesAll ? lostAll / bodiesAll / cadenceDays : 0;
     })();
-    const lastGroundDay = (() => { const t = (planet.ground && planet.ground.wall.takeAt) || []; return t.length ? t[t.length - 1].day : GROUND.CONST.DAYS; })();
+    const lastGroundDay = (() => { const w = planet.ground && planet.ground.wall; if (!w) return GROUND.CONST.DAYS; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
+    const aliveOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
     const stayCost = (c) => {
       if (day < CONST.LEAVE_EARLIEST_DAY) return 0;
       const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
       const lost = since(c);
       const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
       const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / cadenceDays) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
-      const expect = Math.min(alive.length, rate * all.length * daysLeft);
+      /* §ENDGAME AND THE END IS CERTAIN. The last ground closes to one zone at the month's end, so whoever is still on
+         the ground then fights it out: what that costs is the share of its people an OA loses against everyone else
+         still standing — little to a strong house, nearly all to a spent one. Read as the days run out, beside the
+         rate it has been losing at; a quiet week is not a cheap month when the wall will put everybody together. */
+      const rivals = corps.filter(j => j !== c && onGround(j)).reduce((t, j) => t + aliveOf(j), 0);
+      const showdown = alive.length * rivals / Math.max(1, alive.length + rivals);
+      const near = Math.max(0, Math.min(1, 1 - (lastGroundDay - day) / CONST.SHOWDOWN_HORIZON));
+      /* the rate it has been losing at, over the days until it next decides — it reconsiders every window, so the rate
+         is not a month's sentence — beside the showdown the end will cost it */
+      const expect = Math.min(alive.length, Math.max(rate * all.length * Math.min(daysLeft, CONST.LEAVE_RATE_HORIZON), showdown * near));
       const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.salary) || 0) *
                     LED.CONST.SALARY_MONTHS + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
@@ -22964,7 +23042,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || GROUND.standingOn(planet.ground, day).some(r => r.id === o.region))).length;
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * (odds[c.id] || 0);
-      const rows = leaveRows(c), stay = POT * (odds[c.id] || 0) + digWorth - stayCost(c), cost = standingCost(c);
+      /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
+         reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
+         and was wiped to the last man. It knows its own tent: the hurt who will be up before the end count, the rest
+         do not. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
+         or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
+         the people the end will cost it. */
+      const meanEng = corps.reduce((t, j) => t + (j.engagements || 0), 0) / Math.max(1, corps.length);
+      const daysToEnd = Math.max(0, lastGroundDay - day);
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
+      const seenF = Math.max(0.0001, NEG.believedForce(c, meanEng));
+      const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenF, NEG.CONST.ODDS_SHARPNESS);
+      const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
+      const cost = standingCost(c);
+      const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;
@@ -24658,10 +24749,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          it does not know, who lie where they fell */
       const dawnEv = cst.events.slice(evBefore);
       for (const e of dawnEv) {
-        if (e.t !== 'region_gone') continue;
-        rec({ t: 'region_gone', region: e.region, name: RG[e.region].name });
+        if (e.t !== 'region_gone' && e.t !== 'zone_gone') continue;
+        if (e.t === 'region_gone') rec({ t: 'region_gone', region: e.region, name: RG[e.region].name });
+        else rec({ t: 'zone_gone', zone: e.zone, region: e.region, name: RG[e.region].name });
         for (const c of corps) for (const sq of c.squads) {
-          if (sq.zone == null || Z[sq.zone].region !== e.region) continue;
+          if (sq.zone == null || (e.t === 'region_gone' ? Z[sq.zone].region !== e.region : sq.zone !== e.zone)) continue;
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
           let took = 0;
           for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
@@ -24800,7 +24892,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               leanings: Object.assign({}, you._leanings || {}),
               contact: (function () { const o = {}; for (const c of corps) if (c.id !== you.id) { const r = contactWith(you, c, corps); if (r.fights || r.huntedBy || r.hunting) o[c.id] = r; } return o; })(),
               /* the wall: what stands, what goes next and when */
-              wall: { standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), takeAt: ground.wall.takeAt.filter(x => x.day > day), last: ground.wall.last },
+              wall: { standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), nextZones: GROUND.nextZonesToGo(ground, day), zoneAt: (ground.wall.zoneAt || []).filter(x => x.day > day), takeAt: ground.wall.takeAt.filter(x => x.day > day), last: ground.wall.last },
               banked: Object.assign({}, you._banked || {}),
               bankedBy: (function () { const by = {}; for (const rid in (you._banked || {})) { const cat = MAP.resourceCategory ? MAP.resourceCategory(rid) : null; if (cat) by[cat] = (by[cat] || 0) + you._banked[rid]; } return by; })(),
               openBy: (function () { const by = {}; for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || o.looted) continue; const cat = o.category || (MAP.resourceCategory ? MAP.resourceCategory(o.resource) : null); if (cat) by[cat] = (by[cat] || 0) + Math.round(o.potency || 1); } return by; })(),
@@ -24960,6 +25052,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }));
         REC.days.push({
           d: day, standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), window: windowDay,
+          gz: (ground.wall.zoneAt || []).filter(t => t.day <= day).map(t => t.zone), nz: GROUND.nextZonesToGo(ground, day),
           sq: sqRec,
           obj: planet.objectives.map(o => ({ id: o.id, z: o.zone, h: o.heldBy || null, t: o.type, lbl: o.label, open: siteLive(o, day), on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),
           corp: corps.map(c => ({ e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length, a: c.allBodies.filter(b => b.status === 'active').length,
@@ -34253,7 +34346,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var sched = g.sites.filter(function (st) { return st.kind === 'deposit'; }).map(function (st) { return [st.opens, esc(st.label) + ' of ' + esc(capWords(String(st.resource || '').replace(/_/g, ' '))) + ' Opens \u00b7 ' + esc(g.regions[g.zones[st.zone].region].name)]; });
     var byDay = {}; g.wall.takeAt.forEach(function (t) { (byDay[t.day] = byDay[t.day] || []).push(g.regions[t.region].name); });
     Object.keys(byDay).forEach(function (d) { sched.push([+d, 'The Wall Takes ' + byDay[d].map(esc).join(' and ')]); });
-    sched.push([g.days, 'The Last Ground \u00b7 ' + esc(g.regions[g.wall.last].name)]);
+    /* §ENDGAME the last ground closes a zone at a time to its final zone on the month's last day */
+    var zByDay = {}; (g.wall.zoneAt || []).forEach(function (t) { zByDay[t.day] = (zByDay[t.day] || 0) + 1; });
+    Object.keys(zByDay).forEach(function (d) { sched.push([+d, 'The Wall Takes ' + zByDay[d] + ' Zone' + (zByDay[d] === 1 ? '' : 's') + ' of ' + esc(g.regions[g.wall.last].name)]); });
+    sched.push([g.days, 'The Last Zone \u00b7 ' + esc(g.regions[g.wall.last].name)]);
     sched.sort(function (a, b) { return a[0] - b[0]; });
     $('gvsched').innerHTML = sched.map(function (x) { return '<div class="gvev' + (x[0] <= day ? ' past' : '') + '"><span class="d gold">Day ' + x[0] + '</span>' + x[1] + '</div>'; }).join('');
     $('gvorders').innerHTML = view.squads.filter(function (q) { return q.oa === view.me; }).sort(function (a, b) { return a.s - b.s; }).map(function (q) {
@@ -34286,8 +34382,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     zs.forEach(function (z) { z.nb.forEach(function (n) { if (n < z.id) return; var a = pt(z), b = pt(g.zones[n]); h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + col + '" stroke-width="1.5" opacity=".6"/>'; }); });
     r.links.forEach(function (l) { var a = pt(g.zones[l.from]), o = g.regions[l.to], ang = Math.atan2(o.cy - r.cy, o.cx - r.cx), e = [a[0] + Math.cos(ang) * 34, a[1] + Math.sin(ang) * 34];
       h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + e[0] + '" y2="' + e[1] + '" stroke="' + TOK.faint + '" stroke-width="2" stroke-dasharray="3 3"/><text x="' + (e[0] + Math.cos(ang) * 8) + '" y="' + (e[1] + Math.sin(ang) * 8 + 3) + '" fill="' + TOK.dim + '" font-size="7.5" text-anchor="' + (Math.cos(ang) > .3 ? 'start' : Math.cos(ang) < -.3 ? 'end' : 'middle') + '" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(o.name) + ' \u00b7 ' + l.ticks + '</text>'; });
+    var zg = function (zid) { return GROUND.zoneGone(g, zid, view.day); }, zNext = GROUND.nextZonesToGo(g, view.day);
     zs.forEach(function (z) { var p = pt(z), here = gvSquadsAt(view, z.id), fight = view.fights.some(function (f) { return f.zone === z.id; });
-      h += '<g data-gvzone="' + z.id + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="' + col + '22" stroke="' + (fight ? 'var(--red)' : col) + '" stroke-width="' + (fight ? 2.5 : 1.5) + '"/>';
+      var goneZ = r.id === g.wall.last && zg(z.id), burnZ = r.id === g.wall.last && zNext.indexOf(z.id) >= 0, finalZ = z.id === g.wall.finalZone;
+      h += '<g data-gvzone="' + z.id + '" opacity="' + (goneZ ? .35 : 1) + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="' + col + '22" stroke="' + (fight || burnZ ? 'var(--red)' : finalZ ? 'var(--mag)' : col) + '" stroke-width="' + (fight || burnZ || finalZ ? 2.5 : 1.5) + '"/>' + (goneZ ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="url(#gvhatch)"/>' : '');
       var glyph = function (x, y, small) { var out = ''; if (z.site) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 5)) + '" fill="' + GV_SITE[z.site.kind][1] + '" font-size="' + (small ? 9 : 15) + '" text-anchor="middle">' + GV_SITE[z.site.kind][0] + '</text>';
         else if (GV_HGLYPH[z.height]) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 4)) + '" fill="' + TOK.ink + '" font-size="' + (small ? 7 : 11) + '" text-anchor="middle" opacity=".85">' + GV_HGLYPH[z.height] + '</text>'; return out; };
       if (!here.length) { h += glyph(p[0], p[1]); if (z.site && GV_HGLYPH[z.height]) h += '<text x="' + (p[0] + 11) + '" y="' + (p[1] - 9) + '" fill="' + TOK.ink + '" font-size="7" text-anchor="middle">' + GV_HGLYPH[z.height] + '</text>'; }
@@ -36054,6 +36152,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (e.t === 'fight') return (e.corps || []).map(name).join(' v ') + ' at ' + esc(at) + ' · ' + (e.res && /^disengage/.test(e.res) ? 'Broken Off' : e.res === 'cleared' ? 'Cleared' : 'Fought to Dark') + (e.lost ? ' · ' + e.lost + ' Lost' : '') + (e.flank ? ' · Flanked' : '');
     if (e.t === 'wall') return 'The Wall Took ' + name(e.c) + ' at ' + esc(e.region || at) + ' · ' + e.n + ' Lost';
     if (e.t === 'region_gone') return 'The Wall Took ' + esc(e.name);
+    if (e.t === 'zone_gone') return 'The Wall Took a Zone of ' + esc(e.name);
     if (e.t === 'claim') return name(e.c) + ' Worked the ' + esc(e.lbl) + ' at ' + esc(e.place);
     if (e.t === 'relay') return name(e.c) + ' Fired the Mast at ' + esc(e.place);
     if (e.t === 'landed') return name(e.c) + ' Landed ' + esc(e.name) + ' at ' + esc(e.place);

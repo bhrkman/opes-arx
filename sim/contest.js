@@ -44,7 +44,8 @@
     PLAN_LEAVE_SLACK: 12,            // [C] ticks: a squad leaves when the wall is this close beyond its cheapest way out
     PATH_DETOUR: 6,                  // [C] ticks: a way round a squad in the road is taken only if it is at most this much longer
     PLAN_INWARD_FROM: 8,             // [C] with this few regions standing, everyone drifts inward
-    SEEN_ENEMY_W: 1.5,               // [C] a zone a stronger enemy is known to hold is worth this much less
+    SEEN_ENEMY_W: 1.5,
+    HUNT_W: 2.0,                     // [C] §HUNT what a rival squad it can beat is worth, before the stance, the edge and the close-out               // [C] a zone a stronger enemy is known to hold is worth this much less
     /* §FIGHT a contact is a fight on the grid; the grid's own clock is turns, six to a tick (divide.js) */
     FIGHT_TURNS_PER_TICK: 6,         // [H] grid turns inside one two-hour block
     FIGHT_TICKS_MAX: 6,              // [H] the pile-up: no fight holds a zone longer than half a day, and none runs past a window
@@ -102,7 +103,9 @@
   const holder = (st, zid) => st.squads.find(q => q.alive && q.zone === zid && !onRoad(q));
   const isHuman = (st, oa) => !!st.human[oa];
   function standing(st) { return GROUND.standingOn(st.ground, st.day).map(r => r.id); }
-  function deadZone(st, zid) { return goesOn(st, st.ground.zones[zid].region) <= st.day; }
+  function deadZone(st, zid) { return GROUND.zoneGone(st.ground, zid, st.day); }
+  /** the day the wall takes a zone: its region's day, or on the last ground its own */
+  function zoneGoes(st, zid) { return GROUND.zoneGoesOn(st.ground, zid); }
   function goesOn(st, regId) { const t = st.ground.wall.takeAt.find(x => x.region === regId); return t ? t.day : Infinity; }
 
   /* ---------------- sight and noise ---------------- */
@@ -178,7 +181,9 @@
     /* §PRESSED pressed is the wall against the real way out: a region whose one exit is sixteen ticks off
        presses two days sooner than one whose exit is three */
     const goes = goesOn(st, rid), ticksLeft = (goes - st.day) * CONST.TICKS_A_DAY - st.tick;
-    const pressed = goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK);   /* the announcement, or the way out against the clock */
+    /* on the last ground the wall comes zone by zone: a squad whose own zone goes soon is pressed toward the zones that last */
+    const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= CONST.PLAN_MARGIN_DAYS);
+    const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
     /* the regions in reach: this one and up to PLAN_REACH_ROUTES routes out */
     const reach = { [rid]: 0 }, edge = [rid];
     for (let k = 0; k < CONST.PLAN_REACH_ROUTES; k++) { const nxt = []; for (const r of edge) for (const l of G.regions[r].links) if (reach[l.to] == null) { reach[l.to] = k + 1; nxt.push(l.to); } edge.splice(0, edge.length, ...nxt); }
@@ -187,17 +192,30 @@
       const reg = G.regions[+r], rg = goesOn(st, reg.id);
       if (rg <= st.day + CONST.PLAN_MARGIN_DAYS && reg.id !== G.wall.last) continue;   /* not worth walking into */
       for (const zid of reg.zones) {
-        const z = G.zones[zid];
+        const z = G.zones[zid], zg = Math.min(rg, zoneGoes(st, zid));
+        if (reg.id === G.wall.last && zg <= st.day + CONST.PLAN_MARGIN_DAYS && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
         let worth = 0;
         if (z.site && z.site.kind !== 'beacon') { if (z.site.kind === 'deposit') { if (z.site.opens <= st.day + 1) worth += CONST.PLAN_WORTH.deposit + (z.site.units || 0) * 0.3; } else worth += CONST.PLAN_WORTH[z.site.kind] || 0; }
         if (z.height >= 1) worth += CONST.PLAN_WORTH.high * z.height;
-        if (left <= CONST.PLAN_INWARD_FROM || pressed) worth += (G.days + 2 - rg) <= 0 ? 0 : Math.min(3, (rg - st.day) / 6);   /* late, ground that lasts is worth something */
+        if (left <= CONST.PLAN_INWARD_FROM || pressed) worth += zg === Infinity ? 3 : (G.days + 2 - zg) <= 0 ? 0 : Math.min(3, (zg - st.day) / 6);   /* late, ground that lasts is worth something */
         const own = group.some(q => q.zone === zid) || st.squads.some(q => q.alive && q.oa === oa && q.zone === zid && group.indexOf(q) < 0);
         if (own) continue;
         /* §STANCE a zone a rival is known to hold: beyond what the stance accepts it is no objective at all (pressed by
            the wall, it is a poor one); within it, a fight the stance seeks */
         const k = groupKnows(group, zid);
-        if (k && k.oa && !st.allied(k.oa, oa)) { if (k.n > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; } else if (pressed) worth -= CONST.SEEN_ENEMY_W; else worth += dial.seek * 0.8; }
+        if (k && k.oa && !st.allied(k.oa, oa)) {
+          if (k.n > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; }
+          else {
+            /* §HUNT A FIGHT WORTH TAKING. A rival it can beat is worth going for by how far it outnumbers it, how much of
+               that banner the squad is — taking the last squad of a house closes it out — and how few banners are left,
+               where every one gone is a share of the pot; the stance says how much it wants that. */
+            const theirs = alive(st).filter(o => o.oa === k.oa).reduce((t, o) => t + o.n, 0) || k.n;
+            const edge = Math.max(0, Math.min(2, force / Math.max(1, k.n) - 1));
+            const closes = Math.min(1, k.n / Math.max(1, theirs));
+            const late = left <= CONST.PLAN_INWARD_FROM ? 1 + (CONST.PLAN_INWARD_FROM - left) / CONST.PLAN_INWARD_FROM : 1;
+            worth += (pressed ? 0.5 : 1) * CONST.HUNT_W * dial.seek * edge * (0.5 + closes) * late;
+          }
+        }
         /* and the rivals known in that region as a whole, fresh within a day: a region held in strength beyond the
            stance's acceptance is not walked into for a site */
         if (!pressed && reg.id !== rid) { const near = knownIn(st, group, reg, now - CONST.TICKS_A_DAY); if (near > force * dial.accept) continue; }
@@ -221,11 +239,18 @@
         if (q.shut && q.shut[c.zid] === st.day) continue;   /* a zone it was turned back from today is not tried again today */
         const path = GROUND.ticksBetween(G, q.zone, c.zid, { avoid: v => deadZone(st, v) || (v !== c.zid && !!holder(st, v) && holder(st, v).oa !== oa) });   /* friends are passed when they move; the way waits for them */
         if (!path) continue;
-        if (pressed && c.reg !== rid && path.ticks > ticksLeft - 1) continue;   /* it would not get there */
-        const v = c.worth - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && c.reg !== rid ? 2 : 0);
+        if (pressed && !zonePressed && c.reg !== rid && path.ticks > ticksLeft - 1) continue;   /* it would not get there */
+        const v = c.worth - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && (c.reg !== rid || zonePressed) ? 2 : 0);
         if (v > bestV) { bestV = v; best = { zid: c.zid, path }; }
       }
       const before = q.intent && q.intent.type === 'take' ? q.intent.zone : null;
+      if (!best && zonePressed) {
+        /* the last ground closing on it and nothing it can take: the nearest zone that lasts longer, whoever stands in it */
+        let to = null, dT = Infinity; const mine = zoneGoes(st, q.zone);
+        for (const zid of G.regions[rid].zones) { if (zoneGoes(st, zid) <= mine || deadZone(st, zid)) continue;
+          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) }); if (p && p.ticks < dT) { dT = p.ticks; to = { zid, path: p }; } }
+        if (to) { best = to; bestV = 0; }
+      }
       if (!best && pressed && goesOn(st, rid) !== Infinity) {
         /* nothing it can reach: the nearest door out, whoever stands in it; a friend makes way, a rival is a contact */
         let door = null, dT = Infinity;
@@ -513,6 +538,11 @@
         for (const q of alive(st)) if (G.zones[q.zone].region === t.region && !(onRoad(q) && G.zones[q.moving.to].region !== t.region)) { q.alive = false; st.events.push({ t: 'wall', day: st.day, squad: q.id, oa: q.oa, region: t.region, free: !!q.freeWay && !q.metToday }); st.audit.wall++; if (q.freeWay && !q.metToday) st.audit.wallFree = (st.audit.wallFree || 0) + 1; }
         st.events.push({ t: 'region_gone', day: st.day, region: t.region });
       }
+      /* §ENDGAME the last ground closes a zone at a time */
+      for (const t of (G.wall.zoneAt || [])) if (t.day === st.day) {
+        for (const q of alive(st)) if (q.zone === t.zone && !onRoad(q)) { q.alive = false; st.events.push({ t: 'wall', day: st.day, squad: q.id, oa: q.oa, region: G.zones[t.zone].region, zone: t.zone, free: !!q.freeWay && !q.metToday }); st.audit.wall++; if (q.freeWay && !q.metToday) st.audit.wallFree = (st.audit.wallFree || 0) + 1; }
+        st.events.push({ t: 'zone_gone', day: st.day, zone: t.zone, region: G.zones[t.zone].region });
+      }
       if (GROUND.isWindowDay(G, st.day)) {
         st.audit.windows++; st.events.push({ t: 'window', day: st.day, next: GROUND.nextToGo(G, st.day) });
         for (const q of alive(st)) brief(st, q);   /* every seat briefs its squads with the broadcast; a person's seat the same (step e lets him choose) */
@@ -523,6 +553,10 @@
       for (const q of alive(st)) { const rid = G.zones[q.zone].region; q.freeWay = false; q.metToday = false;
         if (goesOn(st, rid) === st.day + 1 && !onRoad(q)) for (const l of G.regions[rid].links) { if (goesOn(st, l.to) <= st.day + 1) continue;
           const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) || !!holder(st, v) });
+          if (p && p.ticks <= CONST.TICKS_A_DAY - 1) { q.freeWay = true; break; } }
+        /* on the last ground: a zone that lasts longer, reachable past nobody within the day */
+        if (goesOn(st, rid) === Infinity && zoneGoes(st, q.zone) === st.day + 1 && !onRoad(q)) for (const zid of G.regions[rid].zones) { if (zoneGoes(st, zid) <= st.day + 1 || holder(st, zid)) continue;
+          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) || (!!holder(st, v) && v !== q.zone) });
           if (p && p.ticks <= CONST.TICKS_A_DAY - 1) { q.freeWay = true; break; } } }
     }
   }

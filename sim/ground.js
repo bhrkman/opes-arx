@@ -193,7 +193,24 @@
     /* regions go from the second window to the second-last, spread as evenly as the count allows */
     const slots = windows.slice(1, windows.length - 1), takeAt = [];
     rest.forEach((id, i) => takeAt.push({ region: id, day: slots[Math.floor(i / rest.length * slots.length)] }));
-    const wall = { last: last.id, order: rest, takeAt, windows };
+    /* §ENDGAME THE WALL CLOSES INSIDE THE LAST GROUND (ruled). Once the last region-taking is past, the wall goes on
+       a zone at a time, the zones farthest from the final one first and never one that cuts the rest in two, so that
+       the final zone stands alone on the month's last day: whoever is left is on the same ground by then. Spread from
+       the day after the last region goes to the month's end, several a day if the month is short of days. */
+    const lastTake = takeAt.reduce((m, t) => Math.max(m, t.day), 1);
+    const lz = last.zones.slice(), finalZone = lz.slice().sort((a, b) => dist(zones[a].x, zones[a].y, last.cx, last.cy) - dist(zones[b].x, zones[b].y, last.cx, last.cy) || zones[b].height - zones[a].height)[0];
+    const zDist = {}; { const q = [finalZone]; zDist[finalZone] = 0; while (q.length) { const c0 = q.shift(); for (const n0 of zones[c0].nb) if (zDist[n0] == null && zones[n0].region === last.id) { zDist[n0] = zDist[c0] + 1; q.push(n0); } } }
+    const zLeft = new Set(lz), zoneOrder = [];
+    const zConnectedWithout = (id) => { const live = [...zLeft].filter(z => z !== id); if (!live.length) return true; const seen = new Set([live[0]]), q = [live[0]];
+      while (q.length) { const c0 = q.shift(); for (const n0 of zones[c0].nb) if (zLeft.has(n0) && n0 !== id && !seen.has(n0)) { seen.add(n0); q.push(n0); } } return seen.size === live.length; };
+    while (zLeft.size > 1) {
+      const cands = [...zLeft].filter(z => z !== finalZone).sort((a, b) => (zDist[b] || 0) - (zDist[a] || 0) || a - b);
+      const pick = cands.find(z => zConnectedWithout(z)) || cands[0];
+      zoneOrder.push(pick); zLeft.delete(pick);
+    }
+    const zFirst = Math.min(CONST.DAYS, lastTake + 1), zSpan = Math.max(1, CONST.DAYS - zFirst + 1);
+    const zoneAt = zoneOrder.map((z, i) => ({ zone: z, day: Math.min(CONST.DAYS, zFirst + Math.floor(i * zSpan / Math.max(1, zoneOrder.length))) }));
+    const wall = { last: last.id, order: rest, takeAt, windows, zoneAt, finalZone };
 
     /* ---- sites: one a zone, few a region; deposits from what the world is made of ---- */
     const composition = MAP.rollComposition ? MAP.rollComposition(rng, archKey) : [];
@@ -259,6 +276,21 @@
 
   /* ---------------- reading a ground ---------------- */
   /** the regions still standing on a day */
+  /** whether the wall has taken a zone by `day`: its region gone, or (on the last ground) the zone itself */
+  function zoneGone(ground, zid, day) {
+    const r = ground.zones[zid].region;
+    if (ground.wall.takeAt.some(t => t.region === r && t.day <= day)) return true;
+    return (ground.wall.zoneAt || []).some(t => t.zone === zid && t.day <= day);
+  }
+  /** the day the wall takes a zone (Infinity for the final zone) */
+  function zoneGoesOn(ground, zid) {
+    const r = ground.zones[zid].region, t = ground.wall.takeAt.find(x => x.region === r);
+    if (t) return t.day;
+    const z = (ground.wall.zoneAt || []).find(x => x.zone === zid);
+    return z ? z.day : Infinity;
+  }
+  /** the zones of the last ground the wall takes next, after `day` */
+  function nextZonesToGo(ground, day) { const next = (ground.wall.zoneAt || []).map(t => t.day).filter(d => d > day).sort((a, b) => a - b)[0]; return next == null ? [] : ground.wall.zoneAt.filter(t => t.day === next).map(t => t.zone); }
   function standingOn(ground, day) { const gone = new Set(ground.wall.takeAt.filter(t => t.day <= day).map(t => t.region)); return ground.regions.filter(r => !gone.has(r.id)); }
   /** the regions the wall takes by the next window after `day` */
   function nextToGo(ground, day) { const next = ground.wall.takeAt.map(t => t.day).filter(d => d > day).sort((a, b) => a - b)[0]; return next == null ? [] : ground.wall.takeAt.filter(t => t.day === next).map(t => t.region); }
@@ -307,7 +339,7 @@
                revealed: true, revealDay: 1, opens: s.kind === 'deposit' ? s.opens : 1, wave: 0,
                looted: false, lootedBy: null, work: {}, dark: 0 }; });
   }
-  const api = { CONST, generate, standingOn, nextToGo, isWindowDay, ticksBetween, seenFrom, objectivesOf, OBJ_TYPE };
+  const api = { CONST, generate, standingOn, zoneGone, zoneGoesOn, nextZonesToGo, nextToGo, isWindowDay, ticksBetween, seenFrom, objectivesOf, OBJ_TYPE };
   if (isNode) module.exports = api;
   global.CDGROUND = api;
 })(typeof window !== "undefined" ? window : globalThis);
