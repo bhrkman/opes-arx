@@ -7298,7 +7298,7 @@
       var fell = (step.value.fallen || []).filter(function (f) { return f.id === G.me; })[0];
       $('divstate').innerHTML = '<b>the Divide is over</b> \u00b7 ' + step.value.days +
         ' days \u00b7 winner ' + (step.value.winner ? cSpan(step.value.winner) : 'nobody') +
-        (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'withdrew' ? ' \u00b7 You Left the Ground on Day ' + fell.day : '') +
+        (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'withdrew' ? ' \u00b7 Withdrew Day ' + fell.day : '') +
         (mine.payout ? ' \u00b7 Your Take ' + crs(mine.payout) : '') +
         ' \u00b7 Settled to the Books';
       renderSponsorVerdict(seasonRec);
