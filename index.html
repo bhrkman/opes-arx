@@ -722,7 +722,7 @@
   #tsquads .row{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:14px;align-items:center;font-size:10.5px}
   #tsquads .who{display:flex;gap:3px}
   #tsquads .who i{width:12px;height:18px;border-radius:3px;background:var(--b);display:block}
-  #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.out{background:var(--line)}
+  #tsquads .who i.light{background:var(--cred)} #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.crit{background:var(--red);opacity:.55} #tsquads .who i.out{background:var(--line)}
   #tsquads .g{display:flex;flex-direction:column;gap:2px;min-width:0}
   #tsquads .g .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   #tsquads .g .bar{height:6px;border-radius:3px;background:var(--line);position:relative}
@@ -21736,9 +21736,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §WOUNDS THE SHADES OF HURT (ruled). A minor wound stands and fights and barely slows the march; a serious one
        fights at a heavy cost and slows it; a critical one is carried, cannot fight, and slows it most — but no one body
        stops a squad. Each wounded body takes its share off the squad's pace; a squad never stops altogether. */
+    /* §WOUNDS the shade is the body's health, the season's own 0–100: whole down to 80, lightly hurt to 50, seriously
+       to 10, critically below (ruled). A fight writes it from what is left of the body's strength; it mends day by day,
+       faster tended, so a wound climbs back up through the shades; an untended one may slide. */
+    WOUND_BANDS: { minor: 80, serious: 50, critical: 10 },   // [C] health under which a body is lightly, seriously, critically hurt
     WOUND_PACE: { minor: 0.03, serious: 0.12, critical: 0.30 },   // [C] the pace each wounded body costs its squad
     WOUND_PACE_FLOOR: 0.15,             // [C] the slowest a squad ever walks, everyone carried
-    SERIOUS_FIGHT_HP: 0.5,              // [C] the share of a body's strength a serious wound leaves it to fight with
+    WOUND_HEAL_TENDED: 5,               // [C] health a tended wound gains a day on the ground
+    WOUND_HEAL_UNTENDED: 2,             // [C] and one nobody tended
+    WOUND_SLIDE: 15,                    // [C] health an untended wound loses when it worsens
+    WOUND_REST: 25,                     // [C] health a day at a rest site gives back
+    WOUND_HAZARD: [10, 30],             // [C] health weather and the ground take off the body they find
+    WOUND_HARASS: [10, 25],             // [C] health a long round across a zone takes
+    WOUND_RELEASED: 60,                 // [C] the most health a released captive walks home with
     /* [C] §STANCE share of a side down before it pulls out, by stance (standard is the grid's own 35%) */
     STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
@@ -21773,8 +21783,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     REFORM_AT: 3,                       // [C] below this the survivors are redistributed
     REST_TICKS_AFTER: 2,                // [C] §GROUND a squad that fought stands where it ended for this many ticks before it walks on
     REST_RECOVERY_MULT: 1.6,            // [C] a squad that rests the day recovers faster for it
-    HARASS_WOUND_DAYS: 6,               // [C] §GROUND a body put down by fire across a zone is out this many days
-    RELEASED_RECOVERY: 4,               // [C] §CAPTIVES a released captive walks home hurt: out at least this many days
     /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
        same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
        led by a frightened corporal. A captain now brings three things to the decision:
@@ -21797,8 +21805,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     HOLD_RICH: 1.0,
     SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites together carry of its
                                  endowment: the grab, beside the prize the winner takes */
-    REST_HALVES: 0.5,         /* [H] §SITES what is left of each wound after a rest site */
-    REST_STANDS_UNDER: 12,    /* [H] §SITES a wound it brings under this many days stands up */
     STRONGPOINT_PREP: 0.25,   /* [H] §SITES the ground a held strongpoint gives the one on it */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
@@ -22286,15 +22292,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (corp.reserve.length) corp.allBodies = onGroundBodies.concat(corp.reserve);
     equipCorp(corp, profile, loadout, planet, season);
     corp.allBodies = onGroundBodies;
+    /* §WOUNDS a body comes down as hurt as the year left it: the shade is its health */
+    for (const b of onGroundBodies.concat(corp.reserve)) if (b.status === 'active' || b.status === 'injured') setHealth(b, healthOf(b));
     return corp;
   }
 
   /** §WOUNDS how badly a body is hurt: none, minor, serious or critical — the worst wound it carries on the ground */
+  function healthOf(b) { const h = b.condition && b.condition.health; return h == null ? 100 : h; }
   function woundTier(b) {
-    if (b.status !== 'injured') return null;
-    let worst = -1; const order = ['minor', 'serious', 'critical'];
-    for (const w of ((b.condition && b.condition.injuries) || [])) { if (w.permanent || w.careerEnding) continue; worst = Math.max(worst, order.indexOf(w.severity)); }
-    return worst < 0 ? 'serious' : order[worst];
+    if (b.status !== 'injured' && b.status !== 'active') return null;
+    const h = healthOf(b), B = CONST.WOUND_BANDS;
+    return h >= B.minor ? null : h >= B.serious ? 'minor' : h >= B.critical ? 'serious' : 'critical';
+  }
+  /** §WOUNDS set a body's health on the ground: its status follows the shade (hurt or whole), never the other way */
+  function setHealth(b, h) {
+    b.condition = b.condition || {}; b.condition.health = Math.max(1, Math.min(100, Math.round(h)));
+    if (b.status === 'active' || b.status === 'injured') b.status = woundTier(b) ? 'injured' : 'active';
+    b._recovery = 0;
   }
   /** who stands: the whole, the lightly hurt and the seriously hurt (who fight at a cost); the critical are carried */
   function standsUp(b) { return b.status === 'active' || (b.status === 'injured' && woundTier(b) !== 'critical'); }
@@ -22395,10 +22409,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function comeHome(f) {
     f._capturedBy = null;
     f.status = 'injured';
-    f._recovery = Math.max(f._recovery || 0, CONST.RELEASED_RECOVERY);
+    setHealth(f, Math.min(healthOf(f), CONST.WOUND_RELEASED));
     f.condition = f.condition || {}; f.condition.injuries = f.condition.injuries || [];
     if (!f.condition.injuries.some(x => (x.days_remaining || 0) > 0))
-      f.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: CONST.RELEASED_RECOVERY, untreated: false });
+      f.condition.injuries.push({ type: 'inj_torso', severity: 'minor', untreated: false });
   }
 
   /**
@@ -22652,7 +22666,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
       const daysToEnd = Math.max(0, lastGroundDay - day);
-      const trueF = (c.allBodies || []).reduce((t, b) => t + (standsUp(b) ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (standsUp(b) ? 1 : b.status === 'injured' && healthOf(b) + CONST.WOUND_HEAL_TENDED * daysToEnd >= CONST.WOUND_BANDS.critical ? 1 : 0), 0);
       /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them will be up */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
@@ -22840,11 +22854,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       health: (f.condition || {}).health, stress: (f.condition || {}).stress,
       captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
-    /* §WOUNDS the hurt go into the fight hurt: a minor wound as the grid's own light one; a serious one light, at half
-       its strength and with the heavier aim of a body fighting through it */
-    for (const u of units) { const t = woundTier(u.ref); if (!t) continue;
-      u.state = 'light';
-      if (t === 'serious') { u.hpMax = C.hpFor(u.ref); u.hp = Math.max(1, Math.round(u.hpMax * CONST.SERIOUS_FIGHT_HP)); u.seriousWound = true; } }
+    /* §WOUNDS the hurt go into the fight hurt: with the strength their health leaves them; a light wound as the grid's
+       own light one, a serious one with the heavier aim of a body fighting through it */
+    for (const u of units) { const t = woundTier(u.ref); u.hpMax = C.hpFor(u.ref); u.hp = Math.max(1, Math.round(u.hpMax * healthOf(u.ref) / 100));
+      if (!t) continue;
+      u.state = 'light'; if (t === 'serious') u.seriousWound = true; }
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
        What stood here was a squad-wide `gearTier` scalar and a five-row {power, protection}
        table, and when the tier was not exactly 3 it did not adjust a fighter's weapon, it
@@ -23116,7 +23130,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
         const victim = bodies[Math.floor(rng() * bodies.length)];
         victim.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 4, 10), untreated: false });
-        victim.status = 'injured'; victim._recovery = P.int(rng, 4, 10); victim._untreatedDays = 0;
+        setHealth(victim, healthOf(victim) - P.int(rng, CONST.WOUND_HAZARD[0], CONST.WOUND_HAZARD[1])); victim._untreatedDays = 0;
         stats.hazardInjuries++;
         if (stats._rec) stats._rec({ t: 'hazard', x: sq.x, y: sq.y, kind: w.kind, c: sq.corpId });
       }
@@ -23234,7 +23248,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
     /* a steady pair of hands gets the wounded back on their feet sooner */
     if (hooksOfSquad.has('evac_stabilize_bonus')) {
-      for (const b of sq.bodies) if (b.status === 'injured' && b._recovery > 0) b._recovery -= 0.35;
+      for (const b of sq.bodies) if (b.status === 'injured') setHealth(b, healthOf(b) + CONST.WOUND_HEAL_UNTENDED);
       stats.audit.traitHooks++;
     }
     if (hooksOfSquad.has('camp_morale_contagion_both_ways')) moraleDelta *= 1.5;
@@ -23246,28 +23260,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       b.condition.fatigue = Math.max(0, b.condition.fatigue - rec);
       b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + moraleDelta));
     }
-    /* untreated wounds degrade in the field — nothing leaves a Divide (§5.4) */
+    /* §WOUNDS a day's mending: a tended wound climbs back up through the shades, an untended one more slowly, and one
+       left untended long enough may slide instead (COMBAT.md §7.1: only wounds nobody has tended worsen) */
     for (const b of sq.bodies) {
       if (b.status !== 'injured') continue;
-      b._recovery = (b._recovery || 0) - 1;
-      if (b._recovery <= 0) { b.status = 'active'; b.condition.fatigue = 25; continue; }
-      /* COMBAT.md §7.1 degradation applies ONLY to wounds nobody has tended. A fighter
-         carried back to your own camp is being tended — that is what a recovery IS. A
-         squad with no medical kit cannot do that in the field, and those wounds walk.
-         Guarding this on a flag nothing sets made every wound terminal (129/Divide). */
-      const inj = b.condition.injuries[b.condition.injuries.length - 1];
-      if (!inj || !inj.untreated) continue;
-      b._untreatedDays = (b._untreatedDays || 0) + 1;
-      if (b._untreatedDays < CONST.UNTREATED_DEGRADE_DAYS) continue;
-      b._untreatedDays = 0;
-      stats.audit.degradeChecks++;
-      if (rng() >= CONST.DEGRADE_P) continue;
-      const steps = ['minor', 'serious', 'critical'];      // never straight to permanent
-      const i = steps.indexOf(inj.severity);
-      if (i < 0 || i >= steps.length - 1) continue;
-      inj.severity = steps[i + 1];
-      stats.degradations++;
-      b._recovery += 12;
+      const inj = b.condition.injuries[b.condition.injuries.length - 1], untended = !!(inj && inj.untreated);
+      if (untended) {
+        b._untreatedDays = (b._untreatedDays || 0) + 1;
+        if (b._untreatedDays >= CONST.UNTREATED_DEGRADE_DAYS) { b._untreatedDays = 0; stats.audit.degradeChecks++;
+          if (rng() < CONST.DEGRADE_P) { setHealth(b, healthOf(b) - CONST.WOUND_SLIDE); stats.degradations++; continue; } }
+      }
+      setHealth(b, healthOf(b) + (untended ? CONST.WOUND_HEAL_UNTENDED : CONST.WOUND_HEAL_TENDED));
+      if (b.status === 'active') b.condition.fatigue = Math.max(b.condition.fatigue || 0, 25);
     }
   }
 
@@ -23410,20 +23414,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
         /* §SITES and it mends: a day's shelter and care takes the edge off every wound the
            squad is carrying, and stands a lightly hurt fighter back up */
-        /* in a contest a wound is carried as `_recovery`, the days until a fighter can stand
-           again (the season's `condition` is written from it at the close) */
-        /* A wound in a contest runs 20 to 95 days, and a contest runs about 24: a fixed six
-           days off could never stand anybody back up — it was inert by construction. Shelter
-           halves what is left of every wound, and stands up anyone whose wound it brings under
-           a few days, which is the difference between a fighter lost for the contest and one
-           who can walk the last ground. */
+        /* §WOUNDS a day's shelter and care gives every hurt body back a share of its health */
         for (const b of sq.bodies || []) {
           if (b.status !== 'injured') continue;
-          b._recovery = (b._recovery || 0) * CONST.REST_HALVES;
-          if (b._recovery <= CONST.REST_STANDS_UNDER) {
-            b.status = 'active'; b._recovery = 0;
-            stats.audit.restedBack = (stats.audit.restedBack || 0) + 1;
-          }
+          setHealth(b, healthOf(b) + CONST.WOUND_REST);
+          if (b.status === 'active') stats.audit.restedBack = (stats.audit.restedBack || 0) + 1;
         }
         stats.audit.restSites = (stats.audit.restSites || 0) + 1;
         break;
@@ -23698,13 +23693,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         f.condition.injuries.push(u.injury);
         downed++;
         if (u.injury.permanent) { f.status = 'retired'; stats.careerEnded++; }
-        else { f.status = 'injured'; f._recovery = u.injury.days_remaining; f._untreatedDays = 0; stats.injured++; }
+        else { f.status = 'injured'; f._untreatedDays = 0; stats.injured++;
+          /* §WOUNDS put down: critically hurt, the deeper the round carried past empty the nearer nothing */
+          const deep = Math.max(0, -(u.hp || 0)) / C.CONST.HP_OVERKILL;
+          setHealth(f, Math.min(healthOf(f), 1 + (CONST.WOUND_BANDS.critical - 1) * (1 - Math.min(1, deep)) - 0.5)); }
       } else if (u._braindead || u._traumatized) { f.status = 'retired'; stats.careerEnded++; }
       else {
         f.condition.morale = Math.max(5, Math.min(95, Math.round(0.7 * f.condition.morale + 0.3 * u.comp)));
         f.condition.fatigue = Math.min(100, f.condition.fatigue + 12
           + (u.hooks.has('post_engagement_fatigue_spike') ? 8 : 0));
         if (u.wounds.length) stats.lightWounds++;
+        /* §WOUNDS still on their feet: what the fight left of their strength is their health */
+        if (f.status === 'active' || f.status === 'injured') { const full = C.hpFor(f), left = u.hp == null ? full : u.hp;
+          setHealth(f, Math.min(healthOf(f), 100 * Math.max(0, left) / full)); }
       }
     }
     if (side._parts) {
@@ -24608,11 +24609,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) {
               /* §HARASS a long round across a zone: a wound like any other — on whoever it finds, tended if a kit is to hand */
               const heads = squadHead(h); if (!heads.length) break; const b = heads[Math.floor(rng() * heads.length)];
-              const inj = { type: 'inj_torso', severity: 'minor', days_remaining: CONST.HARASS_WOUND_DAYS, untreated: false };
+              const inj = { type: 'inj_torso', severity: 'minor', untreated: false };
               const kit = medkitHolder(h);
               if (kit) { kit.medkits--; kit.hasMedkit = kit.medkits > 0; takeMedkitCharge(kit.bodies || []); stats.audit.medkitsUsed = (stats.audit.medkitsUsed || 0) + 1; }
               else { inj.untreated = true; stats.audit.untendedWounds = (stats.audit.untendedWounds || 0) + 1; }
-              b.condition.injuries.push(inj); b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; b._untreatedDays = 0; stats.injured++;
+              b.condition.injuries.push(inj); setHealth(b, healthOf(b) - P.int(rng, CONST.WOUND_HARASS[0], CONST.WOUND_HARASS[1])); b._untreatedDays = 0; stats.injured++;
               addStress(h, CONST.STRESS.downed, stats); }
             CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
           if (e.t === 'wiped' && e.how === 'overrun') rec({ t: 'overrun', zone: e.zone, c: cst.squads[e.squad].oa, by: e.by });
@@ -24983,7 +24984,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      way the replay's two frame builders drifted. */
   const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
                 NOTCH_WORDS, squadStance, standing, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, bannersStanding, umbrellasOf, sealedCorp: sealed,
-    squadStress, WEATHER };
+    squadStress, WEATHER, woundTier, standsUp, healthOf };
   if (isNode) module.exports = api;
   global.CDDIVIDE = api;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -37604,7 +37605,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
     /* ---- the day: where you stand, what the sky is doing, and the clock ---- */
     var mine = you.squads || [], up = 0, hurt = 0, dead = 0;
-    (you.allBodies || []).forEach(function (b) { if (b.status === 'active') up++; else if (b.status === 'injured') hurt++; else if (b.status === 'dead') dead++; });
+    (you.allBodies || []).forEach(function (b) { if (b.status === 'dead') dead++; else if (DIVIDE.woundTier(b)) hurt++; else if (b.status === 'active') up++; });
     /* §DESK ONE STRIP FOR THE DAY. It was a run of eleven figures in a line, all the same
        weight, so nothing in it was read first. The day, the wall closing on you as a bar with
        its rate, your chance, what is still standing, and the weather with what it DOES — the
@@ -37662,9 +37663,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        in their own colour), its stress, what it is DOING in words, its stance and its orders. */
     var sqh = '';
     mine.forEach(function (q, i) {
-      var alive = q.bodies.filter(function (b) { return b.status === 'active'; }).length;
-      var hurtN = q.bodies.filter(function (b) { return b.status === 'injured'; }).length;
-      var gone = q.bodies.length - alive - hurtN;
+      /* §WOUNDS who stands is everyone but the critically hurt, who are carried */
+      var alive = q.bodies.filter(function (b) { return DIVIDE.standsUp(b); }).length;
+      var hurtN = q.bodies.filter(function (b) { return DIVIDE.woundTier(b); }).length;
+      var gone = q.bodies.length - q.bodies.filter(function (b) { return b.status === 'active' || b.status === 'injured'; }).length;
       var nm = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
       var wq = (w.squads || []).filter(function (x) { return x.s === (q.sIdx != null ? q.sIdx : i); })[0];
       var days = alive ? (wq && wq.food != null ? wq.food : Math.floor((q.rations || 0) / Math.max(1, alive))) : 0;
@@ -37677,7 +37679,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var here = zq ? terrainName(gz.regions[zq.region].terrain) + (zq.height >= 1 ? ' \u00b7 High' : zq.height < 0 ? ' \u00b7 Low' : '') : '\u2014';
       var stress = Math.round(q._stress || (q.bodies.reduce(function (t, b) { return t + ((b.condition && b.condition.stress) || 0); }, 0) / Math.max(1, q.bodies.length)));
       var pips = q.bodies.map(function (b) {
-        return '<i class="' + (b.status === 'active' ? '' : b.status === 'injured' ? 'wound' : 'out') + '"></i>';
+        var t = DIVIDE.woundTier(b);
+        return '<i class="' + (b.status !== 'active' && b.status !== 'injured' ? 'out' : t === 'minor' ? 'light' : t === 'serious' ? 'wound' : t === 'critical' ? 'crit' : '') + '" title="' + Math.round(DIVIDE.healthOf(b)) + '%"></i>';
       }).join('');
       var state = !alive ? ' down' : hurtN >= alive ? ' hurt' : '';
       sqh += '<div class="tsq ' + SQCLASS[i % 6] + state + '">' +

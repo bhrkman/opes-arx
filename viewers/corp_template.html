@@ -722,7 +722,7 @@
   #tsquads .row{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:14px;align-items:center;font-size:10.5px}
   #tsquads .who{display:flex;gap:3px}
   #tsquads .who i{width:12px;height:18px;border-radius:3px;background:var(--b);display:block}
-  #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.out{background:var(--line)}
+  #tsquads .who i.light{background:var(--cred)} #tsquads .who i.wound{background:var(--bad)} #tsquads .who i.crit{background:var(--red);opacity:.55} #tsquads .who i.out{background:var(--line)}
   #tsquads .g{display:flex;flex-direction:column;gap:2px;min-width:0}
   #tsquads .g .lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
   #tsquads .g .bar{height:6px;border-radius:3px;background:var(--line);position:relative}
@@ -9258,7 +9258,7 @@
 
     /* ---- the day: where you stand, what the sky is doing, and the clock ---- */
     var mine = you.squads || [], up = 0, hurt = 0, dead = 0;
-    (you.allBodies || []).forEach(function (b) { if (b.status === 'active') up++; else if (b.status === 'injured') hurt++; else if (b.status === 'dead') dead++; });
+    (you.allBodies || []).forEach(function (b) { if (b.status === 'dead') dead++; else if (DIVIDE.woundTier(b)) hurt++; else if (b.status === 'active') up++; });
     /* §DESK ONE STRIP FOR THE DAY. It was a run of eleven figures in a line, all the same
        weight, so nothing in it was read first. The day, the wall closing on you as a bar with
        its rate, your chance, what is still standing, and the weather with what it DOES — the
@@ -9316,9 +9316,10 @@
        in their own colour), its stress, what it is DOING in words, its stance and its orders. */
     var sqh = '';
     mine.forEach(function (q, i) {
-      var alive = q.bodies.filter(function (b) { return b.status === 'active'; }).length;
-      var hurtN = q.bodies.filter(function (b) { return b.status === 'injured'; }).length;
-      var gone = q.bodies.length - alive - hurtN;
+      /* §WOUNDS who stands is everyone but the critically hurt, who are carried */
+      var alive = q.bodies.filter(function (b) { return DIVIDE.standsUp(b); }).length;
+      var hurtN = q.bodies.filter(function (b) { return DIVIDE.woundTier(b); }).length;
+      var gone = q.bodies.length - q.bodies.filter(function (b) { return b.status === 'active' || b.status === 'injured'; }).length;
       var nm = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
       var wq = (w.squads || []).filter(function (x) { return x.s === (q.sIdx != null ? q.sIdx : i); })[0];
       var days = alive ? (wq && wq.food != null ? wq.food : Math.floor((q.rations || 0) / Math.max(1, alive))) : 0;
@@ -9331,7 +9332,8 @@
       var here = zq ? terrainName(gz.regions[zq.region].terrain) + (zq.height >= 1 ? ' \u00b7 High' : zq.height < 0 ? ' \u00b7 Low' : '') : '\u2014';
       var stress = Math.round(q._stress || (q.bodies.reduce(function (t, b) { return t + ((b.condition && b.condition.stress) || 0); }, 0) / Math.max(1, q.bodies.length)));
       var pips = q.bodies.map(function (b) {
-        return '<i class="' + (b.status === 'active' ? '' : b.status === 'injured' ? 'wound' : 'out') + '"></i>';
+        var t = DIVIDE.woundTier(b);
+        return '<i class="' + (b.status !== 'active' && b.status !== 'injured' ? 'out' : t === 'minor' ? 'light' : t === 'serious' ? 'wound' : t === 'critical' ? 'crit' : '') + '" title="' + Math.round(DIVIDE.healthOf(b)) + '%"></i>';
       }).join('');
       var state = !alive ? ' down' : hurtN >= alive ? ' hurt' : '';
       sqh += '<div class="tsq ' + SQCLASS[i % 6] + state + '">' +
