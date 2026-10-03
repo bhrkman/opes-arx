@@ -1073,13 +1073,14 @@ function zoneWall() {
     const g = s._corps[0]._ground, standing = GR.standingOn(g, s.days).map(r => r.id);
     for (const c of s._corps || []) for (const sq of c.squads || []) {
       if (!(sq.bodies || []).some(b => b.status === 'active' || b.status === 'injured')) continue;
+      if (c.withdrawn || c._downedOn != null) continue;   /* an OA that has left or fallen has nobody on the ground */
       living++;
       if (sq.zone != null && standing.indexOf(g.zones[sq.zone].region) < 0) outside++;
     }
-    for (const w of (s.wallDeaths || [])) { took += w.took; if (w.free) freeCaught++; }
+    for (const w of (s.wallDeaths || [])) { took += w.took; freeCaught++; }
   }
   ok('the wall is a wall: nobody living ends a Divide in a region it has taken', outside === 0, outside + ' of ' + living + ' living squads');
-  ok('and nobody it took had a free way out past nobody at the last dawn', freeCaught === 0, freeCaught + ' squads caught with a way out (' + took + ' bodies taken in four Divides)');
+  ok('the wall takes nobody: a death to the wall is a failure of the AI (ruled)', freeCaught === 0, freeCaught + ' squads caught (' + took + ' bodies taken in four Divides)');
 }
 
 function energyInvariants(n) {
@@ -1467,7 +1468,8 @@ function seasonRules() {
   /* §PAPER a contract renewed at the turn keeps the man: every one of last year's expired or freed hands the
      renewals did not let go (nor death, retirement or freedom take since) is on a roster this year */
   { let renewed = 0; const missing = [];
-    const onSome = f => Object.keys(corps).some(k => corps[k].roster.indexOf(f) >= 0);
+    const STF = req('staff.js');   /* a hand appointed to a post has left the line for the backroom, not the house */
+    const onSome = f => Object.keys(corps).some(k => corps[k].roster.indexOf(f) >= 0 || Object.values(STF.office(corps[k]).posts || {}).some(st => st && st.id === f.id));
     for (const k of Object.keys(corps)) { const c = corps[k], rn = c._renew; if (!rn || !(rn.renewed > 0 || rn.resigned > 0)) continue;
       renewed += (rn.renewed || 0) + (rn.resigned || 0); const gone = rn.gone || [];
       for (const f of ((c._off && c._off.expired) || []).concat((c._off && c._off.freed) || []))
@@ -2702,12 +2704,12 @@ function contestRules() {
   let oneAZone = true, inStanding = true, paid = true, ticks = 0;
   while (!st.done && ticks++ < 28 * 12 + 1) {
     CT.tick(st);
-    const seen = {}; for (const q of st.squads) { if (!q.alive || CT.onRoad(q)) continue; if (seen[q.zone]) oneAZone = false; seen[q.zone] = 1;
+    const seen = {}; for (const q of st.squads) { if (!q.alive || CT.onRoad(q)) continue; const was = seen[q.zone]; if (was && !(CT.zoneEnds(st, q.zone) === Infinity && was === q.oa)) oneAZone = false; seen[q.zone] = q.oa;   /* the final zone holds friends together */
       if (q.moving && (q.moving.paid > q.moving.cost || q.moving.cost < 1)) paid = false; }
     const live = new Set(CT.standing(st));
     if (st.tick === 1) for (const q of st.squads) if (q.alive && !CT.onRoad(q) && !live.has(g.zones[q.zone].region)) inStanding = false;   /* one on the road out stands in neither */
   }
-  ok('one squad a zone, every tick of the month (a squad on the road between regions stands in neither)', oneAZone);
+  ok('one squad a zone, every tick of the month, but friends together on the final zone (a squad on the road between regions stands in neither)', oneAZone);
   ok('a step is paid in ticks, never more than it costs', paid);
   ok('after the wall has taken a region at dawn, nobody alive stands in it (a squad on the road out is outside already)', inStanding);
   const banners = new Set(st.squads.filter(q => q.alive).map(q => q.oa)).size;
@@ -2717,7 +2719,7 @@ function contestRules() {
   const st2 = CT.open(makeRng('contest-run2'), g, dropOf(makeRng('contest-drop2'), g, ['a', 'b']), {});
   CT.run(st2);
   const reached = st2.squads.filter(q => q.visited.some(z => g.zones[z].site && g.zones[z].site.kind !== 'beacon')).length;
-  ok('the wall catches nobody who had a free way out at the last dawn: a pressed squad leaves in time', st2.audit.wallFree === 0 && st.audit.wallFree === 0, st2.audit.wallFree + ' and ' + st.audit.wallFree + ' caught with a way out');
+  ok('the wall catches nobody: a pressed squad leaves in time', st2.audit.wall === 0 && st.audit.wall === 0, st2.audit.wall + ' and ' + st.audit.wall + ' caught');
   ok('and the planner takes every squad to a site', reached >= 7, reached + ' of 8 reached a site');
   /* sight and hearing */
   /* sight: in one region of five or more zones, the high zone sees at least what the flat zone beside it sees, and
@@ -2794,9 +2796,10 @@ function contestRules() {
     const refA = { bodies: [0, 1, 2, 3, 4, 5].map(i => body('a', i)) }, refB = { bodies: [0, 1, 2].map(i => body('b', i)) };
     const drop = [{ oa: 'a', s: 0, zone: zA, n: 6, stance: 'standard', ref: refA, bodies: refA.bodies }, { oa: 'b', s: 0, zone: zB, n: 3, stance: 'standard', ref: refB, bodies: refB.bodies }];
     for (const z of g.zones) if (z.id !== zA && z.id !== zB) drop.push({ oa: 'c', s: drop.length, zone: z.id, n: 1, stance: 'standard' });
-    const stO = CT.open(makeRng('contest-overrun'), g, drop, {
+    const gO = Object.assign({}, g, { wall: Object.assign({}, g.wall, { takeAt: [], zoneAt: [] }) });   /* no wall: the squads around hold their ground, and only the overrun is asked */
+    const stO = CT.open(makeRng('contest-overrun'), gO, drop, {
       headOf: ref => ref.bodies.filter(b => b.status === 'active').length,
-      onOverrun: (s, cq, by) => { const t = cq.ref.bodies.filter(b => b.status === 'active'); for (const b of t) { b.status = 'captured'; b._capturedBy = by; } return t; },
+      onOverrun: (s, cq, by) => { if (!cq.ref) return cq.n; const t = cq.ref.bodies.filter(b => b.status === 'active'); for (const b of t) { b.status = 'captured'; b._capturedBy = by; } return t; },
       resolve: (s, f) => { const win = f.sides.find(S => S.oa === 'a'), squads = {}; for (const S of f.sides) for (const x of S.squads) squads[x.id] = { dead: 0, down: 0, captured: 0 }; return { turns: 6, winner: win ? win.tag : null, squads }; } });
     for (const q of stO.squads) q.intent = { type: 'hold', zone: q.zone, why: 'order' };
     stO.squads[0].intent = { type: 'take', zone: zB, why: 'order' }; stO.squads[0].path = [zB];
@@ -2862,9 +2865,13 @@ function divideRules() {
     };
     CT.open = function (rng0, ground0, squads) {
       for (const q of squads || []) openedWith.push({ long: q.long || 0, carries: (q.bodies || []).some(b => b.status === 'active' && b.loadout && b.loadout.kit && b.loadout.kit.weapon && b.loadout.kit.weapon.range === 'long') });
-      return open0.apply(this, arguments);
+      const st0 = open0.apply(this, arguments);
+      /* what the planner was told each site is worth to each OA, day by day: an aim at a zone is an aim FOR its site only
+         if the planner was told the site was worth something */
+      const sf0 = st0.siteFor; if (sf0) st0.siteFor = function (zid, oa0) { const v = sf0.apply(this, arguments); if (v) sitesWorth.add(st0.day + ':' + oa0 + ':' + zid); return v; };
+      return st0;
     };
-    let r;
+    let r; const sitesWorth = new Set();
     try { r = DIV.runDivide(d.rng, Object.assign({}, d.opts, { replay: true })); } finally { TACMOD.resolve = resolve0; CT.open = open0; }
     const g = r.planet.ground, days = r.replay.days, cst = r._cst;
     /* 1 · 2 the fight's deployment: a comer faces the zone it came from, the holder the opposite of its comers' mean;
@@ -2903,6 +2910,7 @@ function divideRules() {
         if (!q.n || q.az == null || q.w !== 'walking' || onRoadAt(q.i, D.d)) continue;
         const z = q.az, o = objAtZ[z], a = at(Pd, z), b = at(D, z); if (!o || !a || !b) continue;
         if (g.zones[z].height >= 1 || rivalAt(D, z, q.c) || rivalAt(Pd, z, q.c) || fightOn.has(D.d + ':' + z)) continue;
+        if (!sitesWorth.has(Pd.d + ':' + ids[q.c] + ':' + z) && !sitesWorth.has(D.d + ':' + ids[q.c] + ':' + z)) continue;   /* it walked there for the ground, not the site */
         A.aims++;
         const spent = o.type === 'resource_site' ? (o.opens || 1) <= Pd.d && !a.open && !b.open
                     : (o.type === 'relay_mast' || o.type === 'munitions_drop' || o.type === 'ration_site') ? !a.open && !b.open
@@ -2953,7 +2961,7 @@ function divideRules() {
     if (cst.events.some(e => e.t === 'captive' && !e.body) || cst.squads.some(q => q.captives.some(k => !k.body))) A.overrun.push(seed + ' a captive held without a body');
     const standing = cst.squads.find(q => q.alive && q.ref && q.ref.bodies.some(b => b.status === 'active'));
     if (standing) {
-      const by = ids.find(id => id !== standing.oa), heads = standing.ref.bodies.filter(b => b.status === 'active');
+      const by = ids.find(id => id !== standing.oa), heads = standing.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt go with them */
       const taken = typeof cst.onOverrun === 'function' ? cst.onOverrun(cst, standing, by) : null;
       if (!Array.isArray(taken) || taken.length !== heads.length || !taken.every(b => b.status === 'captured' && b._capturedBy === by)) A.overrun.push(seed + ' the overrun hook handed ' + (Array.isArray(taken) ? taken.length : 'no') + ' bodies of ' + heads.length);
     }
@@ -2961,7 +2969,7 @@ function divideRules() {
     for (const D of days) if (!!D.window !== GR.isWindowDay(g, D.d)) { cadence = false; notes.push(seed + ': day ' + D.d + ' window ' + D.window); }
     const goneBy = {}; for (const t of g.wall.takeAt) goneBy[t.region] = t.day;
     for (const D of days) for (const q of D.sq) if (q.n > 0 && ((goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) || (D.gz || []).some(z => z === q.z && (g.wall.zoneAt.find(t => t.zone === z) || {}).day <= D.d - 1))) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
-    freeCaught += (r.wallDeaths || []).filter(w => w.free).length;
+    freeCaught += (r.wallDeaths || []).length;
     const nextWin = dd => { for (let k = dd + 1; k <= dd + 3; k++) if (GR.isWindowDay(g, k)) return k * 12; return (dd + 3) * 12; };
     for (const f of cst.fights) { fights++; if (!(f.ticks >= 1 && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.until <= nextWin(f.day))) fightsOk = false; }
     for (const c of (r.captiveLog || [])) { captives++; if (['released', 'kept', 'killed', 'ransomed'].indexOf(c.out) < 0) capOk = false; }
@@ -2971,7 +2979,7 @@ function divideRules() {
   ok('the Divide\'s record carries every day it ran', recordAll, notes.filter(n => /recorded/.test(n)).join(' | '));
   ok('the windows fall on the ground\'s cadence: every other day, then daily once few regions stand', cadence, notes.filter(n => /window/.test(n)).slice(0, 3).join(' | '));
   ok('nobody stands on ground the wall has taken', onStanding, notes.filter(n => /gone/.test(n)).slice(0, 3).join(' | '));
-  ok('nobody with a free way out at the last dawn is caught by the wall', freeCaught === 0, freeCaught + ' caught with a way out');
+  ok('nobody is caught by the wall (ruled: a death to the wall is a failure of the AI)', freeCaught === 0, freeCaught + ' caught');
   ok('every fight holds its zone a tick to half a day and never runs past a window', fights > 0 && fightsOk, fights + ' fights');
   ok('every captive is released, kept, killed or ransomed', capOk, captives + ' captives');
   ok('no Divide strikes a truce', truces === 0, truces + ' truces');
@@ -2980,7 +2988,7 @@ function divideRules() {
      A.comers > 0 && A.comerBad === 0 && A.holders > 0 && A.holderBad === 0 && A.flank > 0,
      A.comerBad + ' of ' + A.comers + ' comers off their bearing, ' + A.holderBad + ' of ' + A.holders + ' holders, ' + A.flank + ' flank fights');
   ok('no fighter is fielded twice in one grid fight', A.grid > 0 && A.twice === 0, A.twice + ' fielded twice in ' + A.grid + ' grid fights');
-  ok('an overrun squad\'s standing bodies go to its captor, marked taken, and no captive is held without a body', A.overrun.length === 0, A.overrun.slice(0, 3).join(' | '));
+  ok('an overrun squad\'s standing and hurt bodies go to its captor, marked taken, and no captive is held without a body', A.overrun.length === 0, A.overrun.slice(0, 3).join(' | '));
   ok('the planner never walks for a spent site: a dug, emptied or dark one, or a strongpoint its own OA holds', A.aims > 0 && A.spentAims.length === 0,
      A.spentAims.length + ' of ' + A.aims + ' aims at sites: ' + A.spentAims.slice(0, 3).join(' | '));
   ok('a strongpoint an OA holds is not claimed again by it', A.spClaims > 0 && A.reclaims.length === 0, A.reclaims.length + ' of ' + A.spClaims + ' strongpoint claims: ' + A.reclaims.slice(0, 3).join(' | '));

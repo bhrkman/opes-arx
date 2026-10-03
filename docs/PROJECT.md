@@ -91,7 +91,7 @@ landings are their squad board's, and they say what becomes of the captives they
 Up to twenty-four fighters go down the well in squads the manager has set (an engine OA fields a squad for each landing it drafted), each with its captain,
 kit, rations and a stance, each on the zone its OA drafted. The ground is regions of zones; the
 wall takes whole regions on a schedule timed to the month and stops at the last ground; a squad
-in a region the wall takes at dawn is dead, and no OA is ever there. Every site is known from the
+in a region the wall takes at dawn is dead, and no OA is ever there: a death to the wall is a failure of the AI. Every site is known from the
 drop and a deposit opens on its day; sites are worked for credits, beacons land reinforcements,
 rest sites mend. The contest ends when one OA is left standing; there is no clock and nothing
 is adjudicated.
@@ -159,7 +159,7 @@ lean one pleases.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
 - The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js). The
   planet is the dossier — what it is made of and worth, its hazards, its light — and its
-  objectives are the ground's sites. A zone is where one squad stands; a region has one terrain and one pace;
+  objectives are the ground's sites. A zone is where one squad stands, but the final zone holds whoever is left, friends together; a region has one terrain and one pace;
   routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
   reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
   month. Windows fall every other day and daily once few regions stand. The wall's order never
@@ -177,9 +177,22 @@ lean one pleases.
   reads the same map: it takes ground worth having — a site as it stands now (a spent, dug or dark
   one is nothing, a strongpoint its OA holds or a seam it is working is worth staying on, a beacon
   draws an OA with a reserve to land, a rest site the hurt and hungry, the deposit its board asked
-  for more) — leaves a region two days before the wall or sooner when its way out is long or its
+  for more) — leaves a region three days before the wall or sooner when its way out is long or its
   captives slow it, keeps to the way it chose, waits on a friend in the road and stops short of a
   rival. A deposit opens with days enough to reach and work it before its region goes. A squad a tick along a route stands in neither region.
+- Nobody is ever left for the wall. Every tick every squad on ground that goes weighs the walk out —
+  at storm pace, slowed by its captives and a lost bearing, a held door counted as a fight — against
+  the ticks left, and leaves with a day in hand, over any order, hold included; one carrying as many
+  hurt as it has standing leaves a day sooner. It never steps onto ground that goes sooner than its
+  own before it is through, nor goes round a friend through it. A fight on ground the wall is
+  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. A
+  squad that cannot get its captives out in time lets them go; a squad guards at most two captives
+  for each of its standing. A rescue is sent the hour a squad goes down, from anywhere, standing
+  through fights on the way, and goes in wherever it can get there and back out. The overrun and the
+  field's wounded are taken by whoever stands; a beaten squad with nowhere to break and nobody to
+  take it stays on the ground and walks out like anyone; the beaten break to ground they would not
+  have to leave at once, never to ground the wall takes within two dawns. An OA that has fallen or
+  left has nobody on the ground.
 - A contact is a fight, there and then, on the holder's zone: the grid is fed the zone (terrain,
   cover, height against the comers', night), every comer comes on from the edge facing the zone it
   came from, the holder stands facing them, and a side whose enemies came at it from two arcs is

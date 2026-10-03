@@ -255,6 +255,7 @@
     CAPTIVE_ROSTER_SHARE: 0.6,          // [C] what a captive kept to the end is worth on the captor's roster, of what he cost his own
     CAPTIVE_SHORT_DAY: 0.08,            // [C] a ration-day short, as a share of a body's worth (dry squads shoot and stand worse)
     CAPTIVE_TICK_COST: 0.01,            // [C] a tick added to every step, as a share of the squad's worth a day, pressed by the wall times four
+    CAPTIVES_PER_GUARD: 2,              // [C] the captives a squad can hold for each of its people standing
     CAPTIVE_REP_W: 0.25,                // [C] a point of an act's weighted taste, as standing points an engine seat prices at STANDING_CREDIT
     CAPTIVE_GRUDGE_W: 0.5,              // [C] how much of a captive's worth what his captor thinks of his OA swings toward killing (a grudge) or sparing (warmth)
     STANCE_HYSTERESIS: 0.6,             // [C] §COMMAND how far its target must be from where an OA stands before it changes notch
@@ -2239,7 +2240,7 @@
     }
     const liveSquads = () => { const out = []; for (const c of corps) for (const sq of c.squads) if (squadHead(sq).length >= 1) out.push(sq); return out; };
 
-    let day = 0;
+    let day = 0, sendRescues = () => {};
     let engagementsRun = 0;
     const OVERTIME_MAX = 12;
     let overtime = false;
@@ -2271,6 +2272,7 @@
       seed: 'contest', driven: true,
       allied: (a, b) => a === b,
       headOf: sq => squadHead(sq).length,
+      hurtOf: sq => sq.bodies.filter(b => b.status === 'injured').length,   /* the hurt a squad carries: one more down and nobody carries them */
       resolve: (st, f, rngF) => gridResolve(st, f),
       captivePolicy: (st, captor, from, f, body) => captiveFate(captor, from, body),
       onSettle: (st, f, winnerOa) => afterFight(st, f, winnerOa),
@@ -2293,12 +2295,19 @@
           need = 1 + 2 * bodies.filter(b => b.status === 'injured').length / Math.max(1, bodies.length) + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
         return need === 1 ? site : Object.assign({}, site, { need });
       },
+      /* §WALL a column the wall would catch with its captives lets them go — every seat's alike: it is that or the wall */
+      onShed: (st, cq) => { for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
+          comeHome(k.body); for (const rc of (stats.ransomCases || [])) if (!rc.done && rc.fighter === k.body.id) rc.done = true;
+          (stats.captiveLog = stats.captiveLog || []).push({ fighter: k.body.id, name: k.body.name, owner: k.oa, captor: cq.oa, out: 'released', day, shed: true });
+          stats.captiveOutcomes = stats.captiveOutcomes || { released: 0, kept: 0, killed: 0 }; stats.captiveOutcomes.released++;
+          rec({ t: 'captive', c: cq.oa, from: k.oa, name: k.body.name, out: 'released' }); }
+        cq.captives = []; },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
       reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
       /* overrun: every body still standing is taken by the winner */
-      onOverrun: (st, cq, winnerOa) => { const taken = squadHead(cq.ref);
+      onOverrun: (st, cq, winnerOa) => { const taken = cq.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt with them */
         for (const b of taken) { b.status = 'captured'; b._capturedBy = winnerOa; stats.captured++; stats.audit.capturedAlive++; }
         stats.audit.overrun = (stats.audit.overrun || 0) + 1; return taken; }
     });
@@ -2341,7 +2350,9 @@
       const ticks = span => (CONTEST.captiveTicks(n + 1) - CONTEST.captiveTicks(n)) * CONST.CAPTIVE_TICK_COST * squadWorth * span * press;
       const dial = STANCE_DIALS[cq.stance] || STANCE_DIALS.standard;
       const costs = span => food(span) + ticks(span);
-      const held = Math.max(price * CONST.CAPTIVE_RANSOM_P - costs(soon), worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE - costs(daysLeft));
+      let held = Math.max(price * CONST.CAPTIVE_RANSOM_P - costs(soon), worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE - costs(daysLeft));
+      /* a squad guards no more captives than twice the people it has standing: past that he walks off anyway */
+      if (n + 1 > CONST.CAPTIVES_PER_GUARD * heads.length) held = -Infinity;
       /* standing: each act read through what its own crowd and the houses would make of it */
       const rep = act => { if (!c || !c.rep || !owner) return 0; const s = REP.impactSummary(c.rep, REP.impact(c.rep, act, { targetId: owner.id })); return (s.crowd + s.houses) * CONST.CAPTIVE_REP_W * CONST.STANDING_CREDIT; };
       /* what it thinks of the owner: a grudge leans to killing (a gun off a rival for good), warmth to sparing */
@@ -2585,8 +2596,11 @@
         if (squadHead(sq).length) continue;
         const carriers = sidesSq[gi].filter(s2 => s2 !== sq && s2.corpId === sq.corpId && squadHead(s2).length);
         if (carriers.length) { const wounded = sq.bodies.filter(b => b.status === 'injured'); for (const b of wounded) { carriers[0].bodies.push(b); sq.bodies.splice(sq.bodies.indexOf(b), 1); } if (wounded.length) stats.audit.carriedOut = (stats.audit.carriedOut || 0) + wounded.length; continue; }
-        if (winnerGi < 0 || winnerGi === gi) continue;
-        const takerId = sidesSq[winnerGi][0].corpId;
+        /* no single winner: whoever is still on its feet across from them holds the field, and them */
+        let tg = winnerGi;
+        if (tg < 0) { let most = 0; for (let hi = 0; hi < groups.length; hi++) { if (hi === gi) continue; const up = sidesSq[hi].reduce((t, s2) => t + squadHead(s2).length, 0); if (up > most) { most = up; tg = hi; } } }
+        if (tg < 0 || tg === gi) continue;
+        const takerId = sidesSq[tg][0].corpId;
         for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'captured'; b._capturedBy = takerId; stats.captured++; stats.audit.capturedAlive++; stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1; }
       }
       lootField(sidesSq, broke, arrivals, deadBefore, day, stats, Z[zone].x, Z[zone].y);
@@ -2676,6 +2690,7 @@
       /* --- DAWN: the wall takes its regions, the windows brief --- */
       const evBefore = cst.events.length;
       CONTEST.dawn(cst);
+      mirror();   /* the fights dawn settled moved the beaten: the wall reads where they are now */
       /* §WALL the wall takes everyone in the region — the standing, whom the contest counted, and the immobilised
          it does not know, who lie where they fell */
       const dawnEv = cst.events.slice(evBefore);
@@ -2684,6 +2699,8 @@
         if (e.t === 'region_gone') rec({ t: 'region_gone', region: e.region, name: RG[e.region].name });
         else rec({ t: 'zone_gone', zone: e.zone, region: e.region, name: RG[e.region].name });
         for (const c of corps) for (const sq of c.squads) {
+          /* an OA that has left the ground, or fallen, has nobody on it: its hurt went with it */
+          if (c.withdrawn || c._downedOn != null) continue;
           if (sq.zone == null || (e.t === 'region_gone' ? Z[sq.zone].region !== e.region : sq.zone !== e.zone)) continue;
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
           let took = 0;
@@ -2912,16 +2929,33 @@
       for (const c of corps) if (c.withdrawn) for (const sq of c.squads) if (sq._cq && sq._cq.alive) { sq._cq.alive = false; sq._cq.gone = true; }
       /* --- the plans: every seat's squads, on the same planner --- */
       CONTEST.plans(cst);
-      /* somebody goes back for the immobilised: the nearest standing squad of the corp in the region is ordered to them */
-      for (const c of corps) for (const sq of c.squads) {
-        if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
-        const cands = c.squads.filter(s2 => s2 !== sq && squadHead(s2).length && s2._cq && s2._cq.fight == null && Z[s2.zone].region === Z[sq.zone].region && !(s2._cq.intent && s2._cq.intent.why === 'order'));
-        if (!cands.length) continue;
-        const best = cands.sort((a, b) => (CONTEST.zoneDist(cst, a.zone, sq.zone) || 9) - (CONTEST.zoneDist(cst, b.zone, sq.zone) || 9))[0];
-        best._cq.intent = { type: 'take', zone: sq.zone, why: 'order' }; best._cq.path = null; best._cq.wait = 0;
+      /* §WALL NOBODY IS LEFT FOR THE WALL. Somebody goes back for the immobilised: the standing squad of the OA with the
+         shortest walk to them, wherever it is, is sent — a squad with nobody standing cannot march, and the wall does
+         not wait. A seat's own order to a squad is not overridden for it unless no other squad can go. */
+      /* a rescue is over when nobody of its own is left lying where it was going */
+      for (const c of corps) for (const s2 of c.squads) { const o = s2._cq && s2._cq.order; if (!o || !o.rescue) continue;
+        if (!c.squads.some(d2 => d2.zone === o.zone && !squadHead(d2).length && d2.bodies.some(b => b.status === 'injured'))) { s2._cq.order = null; if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null; } }
+      /* sent at the plans, and again the hour a squad goes down, if nobody is on the way to it already */
+      sendRescues = (fresh) => { for (const c of corps) { if (c.withdrawn) continue; for (const sq of c.squads) {
+        if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured') || sq.zone == null) continue;
+        if (fresh && c.squads.some(s2 => s2._cq && s2._cq.alive && s2._cq.order && s2._cq.order.rescue && s2._cq.order.zone === sq.zone)) continue;
+        const able = c.squads.filter(s2 => s2 !== sq && squadHead(s2).length && s2._cq && s2._cq.alive && s2._cq.fight == null);
+        const free = able.filter(s2 => !(s2._cq.intent && s2._cq.intent.why === 'order' && s2._cq.intent.zone !== sq.zone));
+        const pool = free.length ? free : able; if (!pool.length) continue;
+        let best = null, bt = Infinity;
+        /* the walk past rivals if there is one; else through them, each a fight on the way */
+        for (const s2 of pool) { let p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) || (v !== sq.zone && !!CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id) });
+          if (!p) { p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) }); if (p) p = { ticks: p.ticks + p.path.filter(v => v !== sq.zone && CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id).length * CONTEST.CONST.EXIT_HELD_TICKS }; }
+          if (p && p.ticks < bt) { bt = p.ticks; best = s2; } }
+        if (!best) continue;
+        /* not into ground that will go before the rescuer can walk in and back out */
+        const tk = ground.wall.takeAt.find(t => t.region === Z[sq.zone].region), goes = Math.min(tk ? tk.day : Infinity, GROUND.zoneGoesOn(ground, sq.zone));
+        void goes;   /* the wall's own reflex turns the rescuer back in time if it cannot make it: the attempt is always made */
+        best._cq.intent = { type: 'take', zone: sq.zone, why: 'order', rescue: true }; best._cq.order = Object.assign({}, best._cq.intent);   /* it stands through any fight on the way */ best._cq.path = null; best._cq.wait = 0;
         stats.audit.rescuesSent = (stats.audit.rescuesSent || 0) + 1;
         rec({ t: 'rescue', zone: sq.zone, x: sq.x, y: sq.y, c: sq.corpId });
-      }
+      } } };
+      sendRescues(false);
 
       /* --- DAY: supply --- */
       for (const sq of liveSquads()) {
@@ -2947,6 +2981,7 @@
         const before = cst.events.length;
         CONTEST.tick(cst);
         mirror();
+        sendRescues(true);
         for (const e of cst.events.slice(before)) {
           if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
@@ -2964,17 +2999,28 @@
         }
         /* the sites: whoever stands on one and is not fighting works it */
         for (const sq of liveSquads()) siteTick(sq);
-        if (cst.tick === CONST.DAY_TICKS - 1) {
-          /* dusk: the pickup — a standing squad on or beside an immobilised squad of its own gathers the wounded */
+        {
+          /* the pickup, any hour: a standing squad on or beside an immobilised squad of its own gathers the wounded */
           for (const c of corps) for (const sq of c.squads) {
             if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
             for (const s2 of c.squads) {
               if (s2 === sq || !squadHead(s2).length) continue;
               if (s2.zone !== sq.zone && Z[s2.zone].nb.indexOf(sq.zone) < 0) continue;
               for (let bi3 = sq.bodies.length - 1; bi3 >= 0; bi3--) { const b3 = sq.bodies[bi3]; if (b3.status !== 'injured') continue; s2.bodies.push(b3); sq.bodies.splice(bi3, 1); stats.audit.carriedOut = (stats.audit.carriedOut || 0) + 1; }
-              if (s2._cq.intent && s2._cq.intent.why === 'order' && s2._cq.intent.zone === sq.zone) s2._cq.intent = null;
+              if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null;
+              if (s2._cq.order && s2._cq.order.rescue) s2._cq.order = null;
               break;
             }
+          }
+          /* §CAPTIVES a captive whose guards are all down walks off: he goes home, hurt, nobody's to decide */
+          for (const cq of cst.squads) if (cq.captives.length && cq.ref && !squadHead(cq.ref).length) {
+            for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
+              comeHome(k.body); for (const rc of (stats.ransomCases || [])) if (!rc.done && rc.fighter === k.body.id) rc.done = true;
+              (stats.captiveLog = stats.captiveLog || []).push({ fighter: k.body.id, name: k.body.name, owner: k.oa, captor: cq.oa, out: 'released', day, walked: true });
+              stats.captiveOutcomes = stats.captiveOutcomes || { released: 0, kept: 0, killed: 0 }; stats.captiveOutcomes.released++;
+              rec({ t: 'captive', c: cq.oa, from: k.oa, name: k.body.name, out: 'released' });
+            }
+            cq.captives = [];
           }
         }
       }

@@ -40,7 +40,12 @@
     PLAN_REACH_ROUTES: 2,            // [C] an objective is at most this many regions away
     PLAN_TICK_COST: 1 / 12,          // [C] a day's walk is worth this much of a site's worth
     PLAN_WORTH: { deposit: 3.0, rest: 1.2, strongpoint: 1.6, mast: 1.4, munitions: 1.0, beacon: 3.3, high: 0.5 },   // [C] a beacon only to an OA with a reserve to land (the driver says so)
-    PLAN_MARGIN_DAYS: 2,             // [C] the wall is announced this many days ahead: a region is left, and not walked into, from then
+    PLAN_MARGIN_DAYS: 3,             // [C] a region is left, and not walked into, this many days before the wall takes it: two left squads caught at a held door with no day to try another
+    EXIT_HELD_TICKS: 12,
+    PRESSED_HELD_W: 4,
+    WALL_REFLEX_SLACK: 24,
+    WALL_WORST_PACE: 0.55,
+    WALL_CROSS_SLACK: 12,            // [C] ground crossed on the way out must stand this many ticks past the squad's passing           // [C] the slowest a day's weather makes the march (a storm): the wall's walk is reckoned at it            // [C] ticks of margin a squad keeps between the walk to lasting ground and the wall               // [C] what a rival on a zone takes off its worth to a squad leaving ahead of the wall             // [C] what a door a rival is known to hold adds to the way out: a fight, and maybe a day to find another
     PLAN_LEAVE_SLACK: 12,            // [C] ticks: a squad leaves when the wall is this close beyond its cheapest way out
     PATH_DETOUR: 6,                  // [C] ticks: a way round a squad in the road is taken only if it is at most this much longer
     PLAN_INWARD_FROM: 8,             // [C] with this few regions standing, everyone drifts inward
@@ -57,6 +62,7 @@
     HUNT_W: 2.0,                     // [C] §HUNT what a rival squad it can beat is worth, before the stance, the edge and the close-out               // [C] a zone a stronger enemy is known to hold is worth this much less
     /* §FIGHT a contact is a fight on the grid; the grid's own clock is turns, six to a tick (divide.js) */
     FIGHT_TURNS_PER_TICK: 6,         // [H] grid turns inside one two-hour block
+    WALL_FIGHT_SLACK: 6,             // [C] ticks a fight on ground the wall takes leaves before the wall, to walk out in
     FIGHT_TICKS_MAX: 6,              // [H] the pile-up: no fight holds a zone longer than half a day, and none runs past a window
     JOIN_TURNS_PER_TICK: 6,          // [C] a neighbour walks in a turn late for every tick its step costs
     HEIGHT_PREP: 0.08,               // [C] readiness edge a level of height gives the side that holds it
@@ -93,9 +99,10 @@
                        moving: null, intent: null, know: {}, brief: null, alive: true, rest: 0, visited: [q.zone], fightTicks: 0, fight: null, captives: [], lost: 0 });
     });
     st.fights = []; st.resolve = opts.resolve || standIn; st.allied = opts.allied || ((a, b) => a === b); st.captivePolicy = opts.captivePolicy || captiveByStance;
+    st.hurtOf = opts.hurtOf || null;   /* with bodies behind a squad, how many hurt it carries */
     st.headOf = opts.headOf || null;   /* with bodies behind a squad, how many stand: read at dawn and after every fight */
     st.driven = !!opts.driven;         /* a day loop outside drives the clock: the contest does not call its own end */
-    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.reportOf = opts.reportOf || null;
+    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.onShed = opts.onShed || null; st.reportOf = opts.reportOf || null;
     st.audit.fights = 0; st.audit.joined = 0; st.audit.harassed = 0; st.audit.captured = 0; st.audit.wiped = 0;
     const taken = {}; for (const q of st.squads) { if (taken[q.zone]) throw new Error('contest: two squads dropped on one zone ' + q.zone); taken[q.zone] = q.id; }
     st.rng = rng;
@@ -114,6 +121,65 @@
   /** the day the wall takes a zone: its region's day, or on the last ground its own */
   function zoneGoes(st, zid) { return GROUND.zoneGoesOn(st.ground, zid); }
   function goesOn(st, regId) { const t = st.ground.wall.takeAt.find(x => x.region === regId); return t ? t.day : Infinity; }
+  /** the day a zone goes: its region's, or on the last ground its own */
+  function zoneEnds(st, zid) { return Math.min(goesOn(st, st.ground.zones[zid].region), zoneGoes(st, zid)); }
+  /** §WALL THE WALL IS NEVER LET CATCH ANYBODY. Every tick, every squad on ground that goes weighs the walk to ground
+      that lasts — a zone that stands at least a day past its own, past nobody if it can, a held one counted as a fight
+      in the way; its captives, the weather and a lost bearing slow the walk — against the ticks left. When the walk
+      eats into the margin, it drops whatever it was doing and goes; a fight it is in is broken off for it. */
+  function wallWay(st, q) {
+    const G = st.ground, mine = zoneEnds(st, q.zone); if (mine === Infinity) return null;
+    const left = (mine - st.day) * CONST.TICKS_A_DAY - st.tick;
+    /* the weather can turn by morning: the walk is reckoned at the worst pace the sky gives, or today's if worse */
+    const today = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+    /* a friend's zone is no place to stand (one squad a zone) but the final zone, and a way through it waits on the friend */
+    const friendAt = zid => { const h = holder(st, zid); return !!(h && h !== q && st.allied(h.oa, q.oa) && zoneEnds(st, zid) !== Infinity); };
+    const ok = zid => !deadZone(st, zid) && zoneEnds(st, zid) > Math.max(mine, st.day + 2) && !friendAt(zid);
+    let best = null;
+    /* reckoned at the worst pace with time in hand first; failing that, at today's pace with none: it goes anyway */
+    for (const [clear, worst] of [[true, true], [false, true], [true, false], [false, false]]) {
+      const pace = worst ? Math.min(CONST.WALL_WORST_PACE, today) : today, slack = worst ? CONST.WALL_CROSS_SLACK : 0;
+      const cost = {}, prev = {}, done = new Set(); cost[q.zone] = 0;
+      while (true) {
+        let u = null; for (const k in cost) if (!done.has(+k) && (u == null || cost[k] < cost[u])) u = +k;
+        if (u == null) break; done.add(u);
+        if (u !== q.zone && ok(u)) { best = { zone: u, ticks: cost[u] }; break; }
+        const outs = G.zones[u].nb.map(v => [v, G.regions[G.zones[u].region].ticks]).concat(G.regions[G.zones[u].region].links.filter(l => l.from === u).map(l => [l.at, l.ticks]));
+        for (const [v, t0] of outs) { if (deadZone(st, v)) continue; const h = holder(st, v);
+          const held = (h && !st.allied(h.oa, q.oa)) || friendAt(v); if (held && clear) continue;
+          const c = cost[u] + Math.ceil(t0 / pace) + captiveTicks(q.captives.length) + (held ? CONST.EXIT_HELD_TICKS : 0);
+          /* never through ground that will be gone by the time it gets there */
+          if (zoneEnds(st, v) !== Infinity && (zoneEnds(st, v) - st.day) * CONST.TICKS_A_DAY - st.tick <= c + slack) continue;
+          if (cost[v] == null || c < cost[v]) { cost[v] = c; prev[v] = u; } }
+      }
+      if (best) { best.path = []; for (let z = best.zone; z !== q.zone; z = prev[z]) best.path.unshift(z); best.left = left; break; }
+    }
+    return best || { zone: null, ticks: Infinity, left };
+  }
+  function wallReflex(st) {
+    for (const q of alive(st)) {
+      if (onRoad(q) && q.fight == null) continue;
+      const w = wallWay(st, q); if (!w) continue;
+      if (w.left - w.ticks > CONST.WALL_REFLEX_SLACK) continue;
+      /* a rescue goes on while there is time to get in, come back, and still walk out from here */
+      if (q.fight == null && q.intent && q.intent.rescue && q.intent.zone !== q.zone) {
+        const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+        const p = GROUND.ticksBetween(st.ground, q.zone, q.intent.zone, { avoid: v => deadZone(st, v) });
+        const there = p ? Math.ceil(p.ticks / pace) : Infinity, tEnd = (zoneEnds(st, q.intent.zone) - st.day) * CONST.TICKS_A_DAY - st.tick;
+        if (tEnd >= there * 2 && w.left - there * 2 - w.ticks >= 0) continue; }
+      if (q.fight != null) { const f = st.fights[q.fight]; if (f && !f.done && f.until > absTick(st)) { f.until = absTick(st); st.audit.wallBreaks = (st.audit.wallBreaks || 0) + 1; } continue; }
+      if (onRoad(q)) continue;
+      /* a column too slow to make it with its captives lets them go: they walk off, and the squad lives */
+      if (q.captives.length && (w.zone == null || w.left - w.ticks <= 0) && st.onShed) {
+        const before = q.captives.length; st.onShed(st, q); if (q.captives.length < before) { st.audit.shed = (st.audit.shed || 0) + 1; const w2 = wallWay(st, q); if (w2) { w.zone = w2.zone; w.path = w2.path; w.ticks = w2.ticks; } } }
+      if (w.zone == null) continue;
+      const same = q.intent && q.intent.why === 'the wall' && q.intent.zone === w.zone && q.path && q.path.length && q.path[0] === w.path[0];
+      if (same) continue;
+      q.intent = { type: 'take', zone: w.zone, why: 'the wall' }; q.path = w.path.slice(); q.wait = 0;
+      if (q.moving && !onRoad(q) && q.moving.to !== w.path[0]) q.moving = null;
+      st.audit.wallReflex = (st.audit.wallReflex || 0) + 1;
+    }
+  }
 
   /* ---------------- sight and noise ---------------- */
   /** the zones this squad sees from where it stands */
@@ -186,8 +252,9 @@
     const G = st.ground, reg = G.regions[G.zones[group[0].zone].region]; let best = Infinity;
     for (const q of group) for (const l of reg.links) { if (goesOn(st, l.to) <= goesOn(st, reg.id)) continue;
       const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) });
-      /* its captives slow every step of the way out */
-      const t = p ? p.ticks + Math.max(0, p.path.length - 1) * captiveTicks(q.captives.length) : Infinity;
+      /* its captives slow every step of the way out, and a door a rival holds is a fight first */
+      const k = groupKnows(group, l.at), held = k && k.oa && !st.allied(k.oa, q.oa);
+      const t = p ? p.ticks + Math.max(0, p.path.length - 1) * captiveTicks(q.captives.length) + (held ? CONST.EXIT_HELD_TICKS : 0) : Infinity;
       if (t < best) best = t; }
     return best;
   }
@@ -215,8 +282,11 @@
     const pace = Math.min(...group.map(q => (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1)));
     const goes = goesOn(st, rid), ticksLeft = Math.floor(((goes - st.day) * CONST.TICKS_A_DAY - st.tick) * pace);
     /* on the last ground the wall comes zone by zone: a squad whose own zone goes soon is pressed toward the zones that last */
-    const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= CONST.PLAN_MARGIN_DAYS);
-    const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
+    /* a squad carrying as many hurt as it has standing is one bad day from lying where it is: it leaves a day sooner */
+    const fragile = !!st.hurtOf && group.some(q => q.ref && st.hurtOf(q.ref) >= q.n);
+    const margin = CONST.PLAN_MARGIN_DAYS + (fragile ? 1 : 0);
+    const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= margin);
+    const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= margin || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
     /* the regions in reach: this one and up to PLAN_REACH_ROUTES routes out */
     const reach = { [rid]: 0 }, edge = [rid];
     for (let k = 0; k < CONST.PLAN_REACH_ROUTES; k++) { const nxt = []; for (const r of edge) for (const l of G.regions[r].links) if (reach[l.to] == null) { reach[l.to] = k + 1; nxt.push(l.to); } edge.splice(0, edge.length, ...nxt); }
@@ -224,10 +294,10 @@
     for (const r in reach) {
       const reg = G.regions[+r], rg = goesOn(st, reg.id);
       /* a column slowed by captives needs a day more to get back out of a region than one that walks free */
-      if (rg <= st.day + CONST.PLAN_MARGIN_DAYS + (reg.id !== rid && group.some(q => captiveTicks(q.captives.length) >= 2) ? 1 : 0) && reg.id !== G.wall.last) continue;   /* not worth walking into */
+      if (rg <= st.day + margin + (reg.id !== rid && group.some(q => captiveTicks(q.captives.length) >= 2) ? 1 : 0) && reg.id !== G.wall.last) continue;   /* not worth walking into */
       for (const zid of reg.zones) {
         const z = G.zones[zid], zg = Math.min(rg, zoneGoes(st, zid));
-        if (reg.id === G.wall.last && zg <= st.day + CONST.PLAN_MARGIN_DAYS && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
+        if (reg.id === G.wall.last && zg <= st.day + margin && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
         let worth = 0;
         worth += siteWorth(siteOf(zid, false));
         if (z.height >= 1) worth += CONST.PLAN_WORTH.high * z.height;
@@ -239,6 +309,7 @@
         const k = groupKnows(group, zid);
         if (k && k.oa && !st.allied(k.oa, oa)) {
           if (feared(lead, k.n) > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; }
+          if (pressed) worth -= CONST.PRESSED_HELD_W;   /* §WALL leaving, a held zone is a fight in the way: an open door first */
           else {
             /* §HUNT A FIGHT WORTH TAKING. A rival it can beat is worth going for by how far it outnumbers it, how much of
                that banner the squad is — taking the last squad of a house closes it out — and how few banners are left,
@@ -276,7 +347,7 @@
       let best = null, bestV = -Infinity;
       for (const c of cands) {
         if (taken[c.zid]) continue;
-        if (q.shut && q.shut[c.zid] === st.day) continue;   /* a zone it was turned back from today is not tried again today */
+        if (q.shut && q.shut[c.zid] >= st.day - (pressed ? 1 : 0)) continue;   /* a zone it was turned back from is not tried again today — nor tomorrow, with the wall coming */
         const path = GROUND.ticksBetween(G, q.zone, c.zid, { avoid: v => deadZone(st, v) || (v !== c.zid && !!holder(st, v) && holder(st, v).oa !== oa) });   /* friends are passed when they move; the way waits for them */
         if (!path) continue;
         if (pressed && !zonePressed && c.reg !== rid && path.ticks + Math.max(0, path.path.length - 1) * captiveTicks(q.captives.length) > ticksLeft - 1) continue;   /* it would not get there */
@@ -298,7 +369,7 @@
       if (!best && pressed && goesOn(st, rid) !== Infinity) {
         /* nothing it can reach: the nearest door out, whoever stands in it; a friend makes way, a rival is a contact */
         let door = null, dT = Infinity;
-        for (const l of G.regions[rid].links) { if (goesOn(st, l.to) <= goesOn(st, rid) || (q.shut && q.shut[l.at] === st.day)) continue;
+        for (const l of G.regions[rid].links) { if (goesOn(st, l.to) <= goesOn(st, rid) || (q.shut && q.shut[l.at] >= st.day - 1)) continue;
           const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) }); if (p && p.ticks < dT) { dT = p.ticks; door = { zid: l.at, path: p }; } }
         if (door) { best = door; bestV = 0; }
       }
@@ -345,6 +416,10 @@
     if (!q.alive) return;
     if (q.rest > 0) { q.rest--; return; }
     if (q.moving) {
+      /* §WEATHER the going changes under a squad already walking: what is left of the step is walked at the pace now */
+      const paceNow = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+      if (q.moving.pace && paceNow !== q.moving.pace && q.moving.paid < q.moving.cost) {
+        q.moving.cost = q.moving.paid + Math.max(1, Math.ceil((q.moving.cost - q.moving.paid) * q.moving.pace / paceNow)); q.moving.pace = paceNow; }
       if (q.moving.paid < q.moving.cost) q.moving.paid++;
       if (q.moving.paid < q.moving.cost) return;
       const to = q.moving.to, h = holder(st, to);
@@ -366,7 +441,8 @@
         openFight(st, q, h, to);
         return;
       }
-      if (h && st.allied(h.oa, q.oa)) {
+      /* §WALL the final zone holds whoever is left: friends stand on it together */
+      if (h && st.allied(h.oa, q.oa) && zoneEnds(st, to) !== Infinity) {
         /* a friend stands there: wait for it to move on, unless a way around it is open; two friends each
            bound for the other's zone pass each other */
         q.moving.paid = q.moving.cost;
@@ -375,7 +451,7 @@
           h.zone = q.zone; q.zone = to; h.moving = null; q.moving = null; q.visited.push(to); h.visited.push(h.zone); st.audit.steps += 2;
           if (q.path && q.path[0] === to) q.path.shift(); if (h.path && h.path[0] === h.zone) h.path.shift(); return; }
         if (q.intent && to !== q.intent.zone && !onRoad(q)) {   /* one on the road is at the far door and goes round nothing */
-          const around = GROUND.ticksBetween(st.ground, q.zone, q.intent.zone, { avoid: v => deadZone(st, v) || (!!holder(st, v) && v !== q.intent.zone) });
+          const around = GROUND.ticksBetween(st.ground, q.zone, q.intent.zone, { avoid: v => offLimits(st, q, q.intent.zone, v) || (!!holder(st, v) && v !== q.intent.zone) });   /* round a friend, never through ground the wall is about to take */
           if (around && around.path.length >= 2) { q.moving = null; q.path = around.path.slice(1); return; }
         }
         /* no way around: a friend standing still in the door makes way, to the nearest free zone of its own */
@@ -408,7 +484,16 @@
     const stp = stepOf(st, q, q.path[0]); if (!stp) { q.path = null; return; }
     /* §WEATHER the day's weather slows the march; a squad that has lost its bearings makes a third of its way */
     const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
-    q.moving = { to: stp.to, paid: 1, cost: Math.ceil(stp.cost / pace) + captiveTicks(q.captives.length), kind: stp.kind };
+    const cost = Math.ceil(stp.cost / pace) + captiveTicks(q.captives.length);
+    /* §WALL never a step onto ground that goes sooner than its own and before the squad is through it: it stops and thinks again
+       (the wall's own walk was reckoned already) */
+    const ends = zoneEnds(st, stp.to);
+    const toEnd = (ends - st.day) * CONST.TICKS_A_DAY - st.tick;
+    /* a rescue goes in if it can get there and back out: it picks its people up as it arrives */
+    const inAndOut = q.intent.rescue && stp.to === target && toEnd >= cost * 2;
+    if (ends !== Infinity && ends < zoneEnds(st, q.zone) && toEnd <= cost + CONST.WALL_CROSS_SLACK && q.intent.why !== 'the wall' && !inAndOut) {
+      q.path = null; q.intent = { type: 'hold', zone: q.zone, why: 'the wall ahead' }; st.audit.wallAhead = (st.audit.wallAhead || 0) + 1; return; }
+    q.moving = { to: stp.to, paid: 1, cost, kind: stp.kind, pace };
     if (stp.kind === 'route') st.events.push({ t: 'road', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: stp.to });   /* on the road: in neither zone till it arrives */
   }
 
@@ -440,6 +525,7 @@
     /* a squad that came by road fights from the road's end and stands in neither zone till it is over */
     const put = (q, from, late) => { const S = sideFor(q.oa); S.squads.push({ id: q.id, from, bearing: from === zone ? null : bearingOf(st, zone, from), prep: prepOf(st, q, zone, from === zone), atTurn: late || 1, n: q.n, stance: q.stance }); q.fight = f.id; if (onRoad(q)) q.moving.paid = q.moving.cost; else q.moving = null; q.path = null; };
     put(held, zone); put(mover, mover.zone);
+    for (const o of st.squads) if (o.alive && o !== held && o !== mover && o.zone === zone && o.fight == null && !onRoad(o)) put(o, zone);   /* friends standing with the holder on the final zone */
     /* the neighbours: anybody in a zone next door, not in a fight, not on the road, not pressed by the wall */
     const Z = st.ground.zones;
     for (const nb of Z[zone].nb) { const o = holder(st, nb); if (!o || o === mover || o.fight != null || onRoad(o)) continue;
@@ -454,7 +540,10 @@
               prep: f.sides.map(S => S.squads[0].prep), bearings: f.sides.map(S => S.squads[0].bearing) };
     const res = st.resolve(st, f, st.rng);
     f.res = res;
-    const ticks = Math.max(1, Math.min(CONST.FIGHT_TICKS_MAX, ticksToWindow(st), Math.ceil((res.turns || 1) / CONST.FIGHT_TURNS_PER_TICK)));
+    /* §WALL no fight runs into the wall: on ground that goes, it is over with time left to walk out */
+    const goesAt = Math.min(goesOn(st, f.region), zoneGoes(st, zone));
+    const toWall = goesAt === Infinity ? Infinity : (goesAt - st.day) * CONST.TICKS_A_DAY - st.tick - CONST.WALL_FIGHT_SLACK;
+    const ticks = Math.max(1, Math.min(CONST.FIGHT_TICKS_MAX, ticksToWindow(st), toWall, Math.ceil((res.turns || 1) / CONST.FIGHT_TURNS_PER_TICK)));
     f.ticks = ticks; f.until = absTick(st) + ticks;
     for (const S of f.sides) for (const x of S.squads) { const q = st.squads[x.id]; q.fightTicks = ticks; q.firing = st.reportOf ? st.reportOf(q) : q.n; q.intent = { type: 'fight', zone, why: 'contact' }; }
     st.fights.push(f); st.audit.fights++;
@@ -470,7 +559,7 @@
       wasRoad[q.id] = onRoad(q);
       const capN = Array.isArray(r.captured) ? r.captured.length : (r.captured || 0);
       const gone = (r.dead || 0) + (r.down || 0) + capN;
-      q.n = Math.max(0, q.n - gone); q.lost += gone; q.fight = null; q.fightTicks = 0; q.firing = 0; q.harass = null; q.moving = null;
+      q.n = st.headOf && q.ref ? st.headOf(q.ref) : Math.max(0, q.n - gone); q.lost += gone;   /* a driver's bodies are the count: one the grid had down but who stands is standing */ q.fight = null; q.fightTicks = 0; q.firing = 0; q.harass = null; q.moving = null;
       if (capN && winner && winner !== S) takeCaptives(st, winner, q, r.captured, f);
       if (q.n <= 0) { q.alive = false; wiped.push(q); st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null });
         /* wiping a holder passes its captives to the wiper */
@@ -481,13 +570,19 @@
        together: a beaten group shares its line of retreat */
     const live = S => S.squads.map(x => st.squads[x.id]).filter(q => q.alive);
     const back = (q, from) => { let to = from;
-      const other = v => st.squads.some(o => o.alive && o !== q && o.zone === v && !onRoad(o));
-      if (to === f.zone || deadZone(st, to) || other(to)) to = nearestFree(st, f.zone, q);
-      if (to == null) {
+      const other = v => st.squads.some(o => o.alive && o !== q && o.zone === v && !onRoad(o) && !(zoneEnds(st, v) === Infinity && st.allied(o.oa, q.oa)));
+      if (to === f.zone || deadZone(st, to) || zoneEnds(st, to) <= st.day + 2 || other(to)) to = nearestFree(st, f.zone, q);
+      /* nowhere free to break to and nobody standing against it to take it: it stays on the ground the fight was on,
+         and the wall reflex walks it out from there like anyone else */
+      const byOf = () => (winner && !st.allied(winner.oa, q.oa) ? winner : null) || f.sides.filter(S => !st.allied(S.oa, q.oa) && live(S).length).sort((a, b) => live(b).reduce((t, x) => t + x.n, 0) - live(a).reduce((t, x) => t + x.n, 0))[0] || null;
+      if (to == null && !byOf()) to = deadZone(st, f.zone) ? from : f.zone;
+      if (to == null || deadZone(st, to)) {
         /* beaten with nowhere to break to: overrun, and every body still standing is a captive of the winner */
         q.alive = false; st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null, how: 'overrun' });
         /* a driver that holds the bodies hands over the ones taken (and marks them held); alone, a count */
-        if (winner) takeCaptives(st, winner, q, st.onOverrun ? st.onOverrun(st, q, winner.oa) : q.n, f); q.n = 0; q.gone = true; return;
+        /* taken by the winner, or with no winner by whoever across the zone is still standing strongest */
+        const by = byOf();
+        if (by) takeCaptives(st, by, q, st.onOverrun ? st.onOverrun(st, q, by.oa) : q.n, f); q.n = 0; q.gone = true; return;
       }
       if (to !== q.zone || wasRoad[q.id]) { st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: 'break' }); q.zone = to; q.visited.push(to); }
       q.intent = { type: 'hold', zone: to, why: 'beaten' }; q.shut = q.shut || {}; q.shut[f.zone] = st.day; };
@@ -498,10 +593,11 @@
       for (const S of f.sides) if (S !== winner) for (const q of live(S)) { const x = S.squads.find(y => y.id === q.id); if (q.zone === -1) q.zone = f.zone; back(q, x.from === f.zone ? f.zone : x.from); }
       ws.forEach((q, i) => { const x = winner.squads.find(y => y.id === q.id);
         if (i === 0) { if (q.zone !== f.zone || wasRoad[q.id]) { st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: f.zone, kind: 'took' }); q.zone = f.zone; q.visited.push(f.zone); } q.intent = { type: 'hold', zone: f.zone, why: 'won' }; }
+        else if (x.from === f.zone && zoneEnds(st, f.zone) === Infinity) q.intent = { type: 'hold', zone: f.zone, why: 'won' };   /* stood on it with the lead: stays */
         else back(q, x.from); });
     } else {
       /* everyone broke, or nobody: each side back the way it came; the holder keeps the ground only if it stood */
-      for (const S of f.sides) for (const q of live(S)) { const x = S.squads.find(y => y.id === q.id); if (x.from === f.zone && holderNow === q) { q.intent = { type: 'hold', zone: q.zone, why: 'stood' }; continue; } back(q, x.from); }
+      for (const S of f.sides) for (const q of live(S)) { const x = S.squads.find(y => y.id === q.id); if (x.from === f.zone && holderNow && (holderNow === q || (zoneEnds(st, f.zone) === Infinity && st.allied(holderNow.oa, q.oa)))) { q.intent = { type: 'hold', zone: q.zone, why: 'stood' }; continue; } back(q, x.from); }
       /* a road squad that stood its ground at the far door is back where it started */
     }
     syncHeads(st);
@@ -510,10 +606,14 @@
     st.events.push({ t: 'fight_over', day: st.day, tick: st.tick, fight: f.id, zone: f.zone, winner: winner ? winner.oa : null, result: res.result || null });
   }
   function nearestFree(st, zone, q) {
-    const Z = st.ground.zones, d = { [zone]: 0 }, queue = [zone];
-    while (queue.length) { const c = queue.shift(); if (c !== zone && !deadZone(st, c) && !st.squads.some(o => o.alive && o !== q && o.zone === c && !onRoad(o))) return c;
-      const outs = Z[c].nb.concat(st.ground.regions[Z[c].region].links.filter(l => l.from === c).map(l => l.at));
-      for (const n of outs) if (d[n] == null) { d[n] = d[c] + 1; queue.push(n); } }
+    const Z = st.ground.zones;
+    /* §WALL a zone the wall takes within two dawns is nowhere to break to: the walk out of it may already be shut; the
+       beaten break first to ground they would not have to leave at once, and only failing that to ground that lasts two days */
+    for (const days of [CONST.PLAN_MARGIN_DAYS, 2]) {
+      const d = { [zone]: 0 }, queue = [zone];
+      while (queue.length) { const c = queue.shift(); if (c !== zone && !deadZone(st, c) && zoneEnds(st, c) > st.day + days && !st.squads.some(o => o.alive && o !== q && o.zone === c && !onRoad(o) && !(zoneEnds(st, c) === Infinity && st.allied(o.oa, q.oa)))) return c;
+        const outs = Z[c].nb.concat(st.ground.regions[Z[c].region].links.filter(l => l.from === c).map(l => l.at));
+        for (const n of outs) if (d[n] == null) { d[n] = d[c] + 1; queue.push(n); } } }
     return null;
   }
   /** §CAPTIVES decided at the capture, one by one, by the captor's seat: killed, kept or let go. Keeping costs a
@@ -586,6 +686,9 @@
     if (st.dawned === st.day) return;
     st.dawned = st.day;
     syncHeads(st);
+    /* §WALL a fight still on where the wall comes this dawn is over before it comes: the beaten break to ground that
+       stands, or are taken; the winner walks out with the rest */
+    for (const f of st.fights) if (!f.done && (zoneEnds(st, f.zone) <= st.day || f.sides.some(S => S.squads.some(x => zoneEnds(st, st.squads[x.id].zone) <= st.day)))) { f.until = absTick(st); settleFight(st, f); }
     {
       for (const t of G.wall.takeAt) if (t.day === st.day) {
         /* a squad on the road out — a tick or more along a route to a region that stands — is outside already */
@@ -634,6 +737,7 @@
     }
     st.night = st.dark != null ? !!st.dark : (st.tick >= 9 || st.tick < 3);   /* the planet's dark when a driver reads it; the fleet's clock else */
     st.camp = st.tick >= CONST.DAY_TICKS;
+    wallReflex(st);
     for (const f of st.fights) if (!f.done && f.until <= absTick(st)) settleFight(st, f);
     for (const q of alive(st)) perceive(st, q);
     for (const q of alive(st)) if (q.fight == null && (!st.camp || q.moving || (q.intent && (q.intent.why === 'the wall' || q.intent.why === 'rushing' || q.intent.why === 'order')))) move(st, q);
@@ -657,7 +761,7 @@
              standing: standing(st), next: GROUND.nextToGo(st.ground, st.day) };
   }
 
-  const api = { captiveTicks, CONST, STANCE, open, tick, dawn, plans, runDay, runToWindow, run, view, sees, hears, loudness, plan, standing, onRoad, standIn, holder, zoneDist, absTick, syncHeads };
+  const api = { wallWay, zoneEnds, captiveTicks, CONST, STANCE, open, tick, dawn, plans, runDay, runToWindow, run, view, sees, hears, loudness, plan, standing, onRoad, standIn, holder, zoneDist, absTick, syncHeads };
   if (isNode) module.exports = api;
   global.CDCONTEST = api;
 })(typeof window !== "undefined" ? window : globalThis);

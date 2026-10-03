@@ -28,7 +28,9 @@
     LAND_RIVAL_MIND: 2.4,
     LAND_RING_COST: [1.0, 0.35, 0.15, 0.05],
     LAND_AGGR_EASE: 0.5,           // [C] the most aggressive OA minds a neighbour half as much
-    LAND_STRENGTH_W: 0.6           // [C] a stronger rival costs this much more, a weaker one up to half this less
+    LAND_STRENGTH_W: 0.6,          // [C] a stronger rival costs this much more, a weaker one up to half this less
+    LAND_WALL_HORIZON: 9,          // [C] a landing whose region the wall takes before this day costs for every day short of it
+    LAND_WALL_W: 1.0               // [C] what each of those days costs, against a rival next door at 2.4
   };
 
   /** §DROP THE LANDINGS. Every zone of the ground but the last ground's: its region, the going, its cover and
@@ -41,13 +43,14 @@
     for (const z of ground.zones) {
       if (z.region === ground.wall.last) continue;
       const reg = ground.regions[z.region];
+      const tk = ground.wall.takeAt.find(t => t.region === z.region), goes = tk ? tk.day : ground.days;
       let prize = 0; const near = {};
       const count = (list, w) => { for (const s of (list || [])) { prize += (s.units || 1) * w; if (s.resource) near[s.resource] = Math.round(((near[s.resource] || 0) + (s.units || 1) * w) * 10) / 10; } };
       count(depositsIn[z.region], 1);
       for (const l of reg.links) count(depositsIn[l.to], CONST.LANDING_NEXT_W);
       out.push({ index: z.id, zone: z.id, region: z.region, regionName: reg.name, terrain: reg.terrain, ticks: reg.ticks,
                  cover: z.cover, height: z.height, hiding: z.hiding, site: z.site ? z.site.kind : null, siteLabel: z.site ? (z.site.label || null) : null,
-                 prize: Math.round(prize * 10) / 10, resources: near, x: z.x, y: z.y, links: reg.links.map(l => l.to), nb: z.nb.slice() });
+                 prize: Math.round(prize * 10) / 10, resources: near, goes, x: z.x, y: z.y, links: reg.links.map(l => l.to), nb: z.nb.slice() });
     }
     return out;
   }
@@ -102,6 +105,10 @@
         v -= mind * CONST.LAND_RING_COST[ring] * (1 + CONST.LAND_STRENGTH_W * Math.max(-0.5, Math.min(1, edge * 4)));
         if (ring <= 1) rivalsHere++;
       }
+      /* §WALL the wall's schedule is public: a region it takes in the first days must be left almost at once, through
+         doors everybody else is landing at, and what is in it will not be worked for long */
+      const early = Math.max(0, CONST.LAND_WALL_HORIZON - (l.goes || CONST.LAND_WALL_HORIZON));
+      v -= early * CONST.LAND_WALL_W;
       /* the prize, shared with whoever landed in its region */
       if (seen.prize != null) v += seen.prize * (0.6 + aggr * 0.8) / (1 + rivalsHere);
       if (asked && seen.resources) v += (seen.resources[asked] || 0) * CONST.LANDING_ASKED_W / (1 + rivalsHere);
