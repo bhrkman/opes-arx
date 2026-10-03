@@ -176,7 +176,7 @@
       cycle,
       archetype: archKey, archetypeName: arch.name,
       composition, richness,             // §7.2, §7.3 — one source for how good this world is
-      supplyStrain: arch.supplyStrain, salvage: !!arch.salvage,
+      supplyStrain: arch.supplyStrain, forageMult: arch.forageMult, salvage: !!arch.salvage,
       hazards: arch.hazards, bandBias: arch.bandBias, waterName: arch.waterName || 'Water',
       /* the weather's flood, kept as a figure for the day's reading */
       setFlood: h => { flood = Math.max(0, h || 0); }, floodNow: () => flood

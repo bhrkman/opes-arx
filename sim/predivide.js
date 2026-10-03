@@ -114,5 +114,7 @@
     }
     return best ? best.index : null;
   }
-  return { CONST, landings, readLanding, chooseLanding, allowed };
+  /** §SEATS the survey's depth (0 to 3) as the share of the ground it reads: one scale for the engine and the page */
+  function intelOfDepth(depth) { return depth >= 2 ? CONST.INTEL_PRIZE : depth >= 1 ? CONST.INTEL_TERRAIN : 0; }
+  return { CONST, landings, readLanding, chooseLanding, allowed, intelOfDepth };
 }));

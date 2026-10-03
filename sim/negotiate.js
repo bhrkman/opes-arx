@@ -807,8 +807,8 @@
           bonuses.natties += b; bonuses.total += b;
         }
       }
-      take[winnerId] -= bonuses.total;
-      lines.push({ corp: winnerId, kind: 'win_bonuses', amount: -bonuses.total });
+      /* the bonuses are the winner's own contracts, charged to its books with the rest of its wages (ledger.bookDivide);
+         taken off the pot here as well, they were paid twice */
     }
 
     return { lines: lines, take: take, pot: pot, winnerId: winnerId,

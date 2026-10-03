@@ -84,6 +84,8 @@
       full[id] = (full[id] || 0) + ((it && it.charges) || 1);
     }
     if (!keep || !f._charges) { f._charges = full; return; }
+    /* 'restock' (a munitions drop): every store back up to full, and what he picked up besides kept */
+    if (keep === 'restock') { for (const id in full) f._charges[id] = Math.max(f._charges[id] || 0, full[id]); return; }
     for (const id in full) if (f._charges[id] == null) f._charges[id] = full[id];
   }
   function medkitCharges(bodies) {
@@ -281,6 +283,7 @@
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    PLAN_ASKED: 2.2,                    // [C] §BOARD a deposit of the resource the OA's board demanded, against 1 for any other (the old CMD_W_ASKED)
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
     CAPTIVE_RANSOM_P: 0.5,              // [C] the chance a held captive is bought back, as an engine seat reckons it
     CAPTIVE_ROSTER_SHARE: 0.6,          // [C] what a captive kept to the end is worth on the captor's roster, of what he cost his own
@@ -474,12 +477,10 @@
        returned this since Step 5 and nothing has ever read it, because the locker was
        rebuilt free every Divide. It is now the corp's actual remaining stock. */
     if (corp.persist && plan.mustered) corp.persist.stockLeft = plan.stockLeft;
-    if (!plan.mustered) {                    /* §3.1 — the ledger's problem, not the day loop's */
-      ITEMS.equipForce(corp.allBodies, ITEMS.DEFAULT_LOADOUT);
-      return corp;
-    }
-    corp.kitValue = plan.total + handValue;              /* catalog value FIELDED */
-    corp.kitSpend = (plan.spentCash || 0) + handSpend;   /* CASH SPENT — the ledger's charge */
+    /* §3.1 a muster that failed is the ledger's problem, not the day loop's: whoever was not kitted by hand (a
+       manager's own, a mercenary's own) carries the default issue, and the squads are stocked as any other */
+    corp.kitValue = (plan.mustered ? plan.total : 0) + handValue;              /* catalog value FIELDED */
+    corp.kitSpend = (plan.mustered ? (plan.spentCash || 0) : 0) + handSpend;   /* CASH SPENT — the ledger's charge */
     corp.handKitted = handed;
 
     /* §QUARTERMASTER each un-kitted fighter was planned AS THEMSELVES (items.js planForce) — a gun from the
@@ -487,7 +488,7 @@
        carries what was planned for them. The role-by-role deal that stood here (templates, a round-robin,
        whoever-fits-the-role, a rack swap and a specialist's purchase bolted on after) is gone with roles. */
     const planned = {};
-    for (const b of plan.bodies) if (b.fighter) planned[b.fighter] = b.loadout;
+    if (plan.mustered) for (const b of plan.bodies) if (b.fighter) planned[b.fighter] = b.loadout;
     const nSq = corp.squads.length;
     for (let si = 0; si < nSq; si++) {
       const sq = corp.squads[si];
@@ -515,6 +516,10 @@
       sq.medkits = medkitCharges(sq.bodies);
       sq.hasMedkit = sq.medkits > 0;
     }
+    /* §RESERVE and the fighters held in orbit carry what was planned for them: they were planned and paid for with
+       the force, and land with it at a beacon. (The issue walked the squads only, so the reserve landed with the
+       dress kit it came in, or none.) */
+    for (const f of (corp.reserve || [])) { if (f._handKitted) continue; ITEMS.equip(f, planned[f.id] || ITEMS.DEFAULT_LOADOUT); chargeUp(f); }
     return corp;
   }
 
@@ -564,7 +569,7 @@
     /* SEASONS.md — the drop force is BORROWED when a persistent Corp supplies one. The
        people outlive the Divide; the squads, positions and banner do not. Without a Corp
        the roster is generated as it always was, so a one-off Divide is unchanged. */
-    const drop = persist && persist.drop && persist.drop.length ? persist.drop.slice() : null;
+    let drop = persist && persist.drop && persist.drop.length ? persist.drop.slice() : null;
     /* THE MANAGER'S OWN SQUADS. A persistent Corp may hand in `persist.groups` — arrays of
        body ids partitioning the drop — and `persist.leaders`, one id per group (or null to
        let tactics decide, which is the rule below and always was). This is only who stands
@@ -597,6 +602,15 @@
       persist: persist || null
     };
     let taken = 0;
+    /* §MON-WA a pair's two bodies stand side by side in the order dealt, lead first, so a squad never closes between them */
+    if (drop && !groups) {
+      const byId = {}; for (const b of drop) byId[b.id] = b;
+      const seen = new Set(), ordered = [];
+      for (const b of drop) { if (seen.has(b.id)) continue;
+        const lead = b.mirror_of && byId[b.mirror_of] ? byId[b.mirror_of] : b, mate = lead.bond_partner && byId[lead.bond_partner];
+        for (const x of [lead, mate]) if (x && !seen.has(x.id)) { seen.add(x.id); ordered.push(x); } }
+      drop = ordered;
+    }
     for (let i = 0; i < sizes.length; i++) {
       /* deal SEATS: a pair's second body rides with its partner and does not spend a seat,
          and a squad never closes between two halves */
@@ -654,14 +668,23 @@
       if (!groups) {
         const bare = corp.squads.filter(sq => !sq.bodies.some(b => capSet.has(b.id)));
         for (const sq of corp.squads) {
-          const cs = sq.bodies.filter(b => capSet.has(b.id) && single(b));
-          while (cs.length > 1 && bare.length) {
-            const extra = cs.pop(), dest = bare.shift();
-            const swap = dest.bodies.filter(b => !capSet.has(b.id) && single(b))
-              .sort((a, b) => a.stats.tactics - b.stats.tactics)[0];
-            if (!swap) continue;
-            sq.bodies[sq.bodies.indexOf(extra)] = swap; dest.bodies[dest.bodies.indexOf(swap)] = extra;
-            swap._squadIdx = sq.sIdx; extra._squadIdx = dest.sIdx;
+          /* every captain here counts (a pair's captain too); only a single body can be moved, so with two captains in
+             one squad the single one goes, whoever has the better tactics */
+          const all = sq.bodies.filter(b => capSet.has(b.id) && !b.mirror_of);
+          const movable = all.filter(single).sort((a, b) => a.stats.tactics - b.stats.tactics);
+          let extra = all.length - 1;
+          while (extra > 0 && movable.length && bare.length) {
+            const mover = movable.shift();
+            let placed = false;
+            for (let k = 0; k < bare.length && !placed; k++) {
+              const dest = bare[k];
+              const swap = dest.bodies.filter(b => !capSet.has(b.id) && single(b)).sort((a, b) => a.stats.tactics - b.stats.tactics)[0];
+              if (!swap) continue;
+              sq.bodies[sq.bodies.indexOf(mover)] = swap; dest.bodies[dest.bodies.indexOf(swap)] = mover;
+              swap._squadIdx = sq.sIdx; mover._squadIdx = dest.sIdx; bare.splice(k, 1); placed = true;
+            }
+            if (!placed) break;
+            extra--;
           }
         }
       }
@@ -671,6 +694,8 @@
         if (cs.length) sq.captainId = cs.sort((a, b) => b.stats.tactics - a.stats.tactics)[0].id;
       }
     }
+    /* §TALKS who actually led a squad down: a promise of a squad to lead is judged on this, not on who was named */
+    if (persist) persist.ledAtDrop = corp.squads.map(sq => sq.captainId).filter(Boolean);
     /* PROCUREMENT.md §15 — kit the force. Planning draws no RNG, so it cannot shift the
        stream; what it changes is what everybody is holding when the shooting starts.
 
@@ -808,6 +833,17 @@
    * between them, the last day of contact, how many of those it lost to them and how many it
    * won, and whether they are hunting it now. `a` and `b` are corps.
    */
+  /** §CAPTIVES a captive given back — bought, or let go — comes home hurt: held, marched and kept from his kit, he is
+      off his feet a few days, with the wound on his sheet like any other */
+  function comeHome(f) {
+    f._capturedBy = null;
+    f.status = 'injured';
+    f._recovery = Math.max(f._recovery || 0, CONST.RELEASED_RECOVERY);
+    f.condition = f.condition || {}; f.condition.injuries = f.condition.injuries || [];
+    if (!f.condition.injuries.some(x => (x.days_remaining || 0) > 0))
+      f.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: CONST.RELEASED_RECOVERY, untreated: false });
+  }
+
   function noteContact(a, b, day, what) {
     if (!a || !b || a === b) return;
     a._contact = a._contact || {};
@@ -988,8 +1024,9 @@
 
     /* a ransom paid: he comes home hurt, the money moves at the books, both crowds notice */
     function settleRansom(deal, f, owner, captor) {
-      f.status = 'injured';                     /* they come home, and they come home hurt */
-      f._capturedBy = null;
+      comeHome(f);                              /* they come home, and they come home hurt */
+      /* and the captor's squad no longer walks him */
+      if (stats._cst) for (const cq of stats._cst.squads) cq.captives = cq.captives.filter(k => k.body !== f);
       owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
       captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
       /* §3.1 — buying your people back is the thing your own ships care about most, and
@@ -1079,6 +1116,7 @@
       for (const c of corps) {
         if (!leaver || c.id === off.from || c.withdrawn) continue;
         if (isHumanOA(c.id)) continue;        /* a person answers at their own window */
+        if (sealed(c)) { off.replies[c.id] = false; continue; }   /* N11 no deals, of any size */
         if (!(c.squads || []).some(q => squadHead(q).length)) continue;
         if (off.replies[c.id] != null) continue;
         /* What his going is worth to THIS OA: the odds it gains by having one fewer rival,
@@ -1113,6 +1151,7 @@
        is not to be considered at all.) */
     for (const c of corps) {
       if (isHumanOA(c.id) || !onGround(c)) continue;
+      if (sealed(c)) continue;   /* N11 the OA that does not deal does not retreat either: it is on the ground to the end */
       /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
          stood at dawn, so three could each find staying worthless and all three walk in one pass, the third off an
          empty ground: a contest with nobody left and no winner (one in forty). Once the others have gone, there is
@@ -1122,20 +1161,22 @@
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
-      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || GROUND.standingOn(planet.ground, day).some(r => r.id === o.region))).length;
-      const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * (odds[c.id] || 0);
+      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
          and was wiped to the last man. It knows its own tent: the hurt who will be up before the end count, the rest
          do not. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
-      const meanEng = corps.reduce((t, j) => t + (j.engagements || 0), 0) / Math.max(1, corps.length);
       const daysToEnd = Math.max(0, lastGroundDay - day);
       const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
-      const seenF = Math.max(0.0001, NEG.believedForce(c, meanEng));
-      const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenF, NEG.CONST.ODDS_SHARPNESS);
+      /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them will be up */
+      const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
+      const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
       const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
+      /* a site pays whoever digs it, win or lose: the open deposits are worth its share of the field that will reach them */
+      const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
+      const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
       const cost = standingCost(c);
       const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
       const off = (stats.withdrawOffers || {})[c.id];
@@ -1231,7 +1272,7 @@
           price = Math.round(NEG.ransomPrice(f) * NEG.priceModifier(captor, owner));
           worth = Math.round(Math.max(300, NEG.bodyWorth(f)));
         }
-        const ownerYes = aiOwner ? NEG.ransomWorthPaying(owner, f, price, ctx) : null;
+        const ownerYes = aiOwner ? (!sealed(owner) && NEG.ransomWorthPaying(owner, f, price, ctx)) : null;   /* N11 a sealed OA buys nobody back */
         if (ownerYes === false) continue;                              /* the owner will not pay that */
         const k = { fighter: f.id, name: f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
                     day: day, captorYes: aiCaptor ? true : null, ownerYes: ownerYes, done: false };
@@ -1433,7 +1474,7 @@
       g.f._lootedPrimary = true;
       if (best) {
         const lo = best.b.loadout;
-        best.b._spareKit = [lo.primary].concat(lo.mods || []);       /* his own comes home on his back */
+        best.b._spareKit = (best.b._spareKit || []).concat([lo.primary], lo.mods || []);       /* his own comes home on his back, beside anything he carried already */
         ITEMS.equip(best.b, { primary: g.id, mods: [], sidearm: lo.sidearm, armor: lo.armor, consumables: lo.consumables || [] });
         L.guns++; took = true;
         stats._rec && stats._rec({ t: 'loot', x: mx, y: my, c: best.q.corpId, name: best.b.name, gun: it.name || g.id });
@@ -1510,7 +1551,8 @@
     const cap = rationCap(sq);
     if (sq.rations >= cap) return 0;
     const reg = planet.ground && sq.zone != null ? planet.ground.regions[planet.ground.zones[sq.zone].region] : null;
-    let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round(reg ? reg.forage : 1)))] || 0;
+    /* the ground's forage class, thinned or thickened by the world it is on (an ice shelf yields a quarter of a cradle) */
+    let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round((reg ? reg.forage : 1) * (planet.forageMult || 1))))] || 0;
     /* A forager whose people can eat what the rest cannot. The guard used to require
        `yieldPer === 0` — an exactly-barren tile — which never occurred on any archetype, so
        the trait was inert. It now applies wherever the ground is poor, which is what the
@@ -1624,9 +1666,12 @@
     /* §6 — cells recharge overnight, and only overnight. A squad that fought twice today
        goes into tomorrow thin, which is the whole cost of carrying energy weapons. */
     for (const f of sq.bodies) {
-      if (f._chargeMax == null) {
+      /* the cell's size is the gun's: read again whenever the gun in his hands is not the one it was read for */
+      const gunId = f.loadout && f.loadout.primary;
+      if (f._chargeMax == null || f._chargeFor !== gunId) {
         const k = f.loadout && f.loadout.kit;
-        f._chargeMax = (k && k.charge) || 0;
+        f._chargeMax = (k && k.charge) || 0; f._chargeFor = gunId;
+        if (f._charge != null && f._charge > f._chargeMax) f._charge = f._chargeMax;
       }
       /* §LIGHT a sun-fed weapon is not charged at camp from cells: it takes what the day's light gave it —
          a whole day of sun fills it, a day of dark leaves it as it was */
@@ -1654,7 +1699,7 @@
     }
 
     let recovery = CONST.FATIGUE_RECOVERY;
-    if (sq._resting) recovery *= CONST.REST_RECOVERY_MULT;
+    if (sq._resting || sq.foughtToday) recovery *= CONST.REST_RECOVERY_MULT;   /* a squad that fought today rests tonight */
     /* §13.1 stakeout_fatigue_reduced: holding position costs a squad far less */
     if (!sq.movedToday && hooksOfSquad.has('stakeout_fatigue_reduced')) recovery *= 1.5;
     if (hooksOfSquad.has('fatigue_recovery_down')) recovery *= 0.6;
@@ -1937,33 +1982,15 @@
       obj.dark = (sq._day || 0) + MAP.CONST.RELAY_COOLDOWN;
       obj.work = {};
       obj.lootedBy = sq.corpId;
-      /* N22 (ruled) — an UMBRELLA shares intelligence. A mast fired by one member maps the
-         planet for everyone under the same banner, not just the corp that climbed the tower.
-         This is a real benefit of joining, and one of the few that costs the principal
-         nothing to give: a banner that can see is a banner worth being under.
-
-         Note who is excluded. Corps in a non-aggression pact are NOT allied — a truce is an
-         agreement not to shoot, not a shared map — and neither is a corp that has stood down,
-         since standing down is a promise not to fight rather than a promise to be blind. */
-      const sharers = [];
-      for (const c of (stats._corps || [])) if (allied(sq.corp, c)) sharers.push(c);
-      if (!sharers.length) sharers.push(sq.corp);
-      for (const holder of sharers) {
-        for (const mate of holder.squads) {
-          if (!squadHead(mate).length) continue;
-          mate.intelUntil = (sq._day || 0) + CONST.RELAY_INTEL_DAYS + (obj.wave || 0);
-          mate.known = mate.known || {};
-          for (const c of (stats._corps || [])) {
-            if (allied(sq.corp, c)) continue;             /* you already know your own side */
-            for (const other of c.squads) {
-              if (!squadHead(other).length) continue;
-              mate.known[other.corpId + ':' + other.sIdx] = sq._day || 0;
-              recordSighting(holder, other, sq._day || 0, false, 'relay');
-            }
-          }
-        }
+      /* §RELAY the mast maps the planet: every squad of the OA that fired it learns where every rival squad stands,
+         as of now — knowledge its planner reads, and that a fight reads as having seen them first */
+      const cst = stats._cst;
+      if (cst) {
+        const now = cst.day * CONTEST.CONST.TICKS_A_DAY + cst.tick;
+        const mine = cst.squads.filter(q => q.alive && q.oa === sq.corpId);
+        for (const o of cst.squads) { if (!o.alive || o.oa === sq.corpId) continue;
+          for (const q of mine) q.know[o.zone] = { at: now, oa: o.oa, n: o.n, squad: o.id, how: 'relay' }; }
       }
-      if (sharers.length > 1) stats.intelShared = (stats.intelShared || 0) + sharers.length - 1;
       sq.noise = 1;                          /* you transmitted: everyone heard it */
       if (stats._rec) stats._rec({ t: 'relay', x: obj.x, y: obj.y, c: sq.corpId, place: obj.place });
       stats.relayFirings = (stats.relayFirings || 0) + 1;
@@ -1994,7 +2021,7 @@
     sq.corp.sitesClaimed++;
     stats.claims++;
     switch (obj.type) {
-      case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
+      case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f, 'restock'); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
         sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
       case 'ration_site': {
@@ -2281,6 +2308,8 @@
     if (side._parts) for (const p of side._parts) for (const u of p.units) owner[u.id] = p._sq;
     for (const u of side.units) {
       const f = u.ref;
+      /* §XP a fight fought is a battle on the career */
+      if (u.state !== 'dead' && f) { f.experience = f.experience || {}; f.experience.battles = (f.experience.battles || 0) + 1; }
       if (u.state === 'dead') {
         f.status = 'dead'; stats.dead++; killed++;
         /* §3.1 / §4.2 — who did it, whose they were, and how well known they were. Without
@@ -2367,6 +2396,12 @@
     const ground = opts.ground || planet.ground || GROUND.generate(rng, { archetype: planet.archetype });
     if (planet.ground !== ground) { planet.ground = ground; planet.objectives = GROUND.objectivesOf(ground); }
     const objAt = {}; for (const o of planet.objectives) if (o.zone != null) objAt[o.zone] = o;
+    /* §PRIZE what a dug deposit banks, as a share of a hold: its part of SITE_SHARE of the planet's endowment, by its
+       depth against the other deposits of its kind (the settlement banks exactly this; the window shows it) */
+    const siteTotals = {};
+    for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || !o.resource) continue; const c0 = MAP.resourceCategory(o.resource); if (c0) siteTotals[c0] = (siteTotals[c0] || 0) + (o.potency || 1); }
+    const endowment = CONST.HOLD_RICH * Math.max(0.2, Math.min(1, planet.richness != null ? planet.richness : 1));
+    const holdShareOf = (o) => { const cat = o.resource && MAP.resourceCategory(o.resource); return cat ? endowment * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1)) : 0; };
     const LAST_DAY = ground.days;
     const Z = ground.zones, RG = ground.regions;
     /* §SITES whether a site is worth standing on today */
@@ -2385,6 +2420,11 @@
       else stance = STANCE_OVERRIDE[profile.id] || profile.engagement_lean || 'standard';
       const rigidity = opts.flatRigidity != null ? opts.flatRigidity : null;
       const persist = (opts.corps && opts.corps[profile.id]) || null;
+      /* §DRAFT an engine OA fields as many squads as it drafted landings: the draft was sized off the roster, the
+         squads off the drop, and the two disagreed in half the fleet (wasted picks, squads on undrafted ground). A
+         person's squads are its squad board's, as its landings are. */
+      const drafted = opts.dropZones && opts.dropZones[profile.id] ? opts.dropZones[profile.id].length : 0;
+      if (persist && drafted >= 2 && !(persist.groups && persist.groups.length)) persist._wantSquads = drafted;
       const corp = buildCorp(rng, profile, stance, split, rigidity, null, planet, persist, opts.season || 1);
       if (persist) { persist.fielded = corp.allBodies; persist.kitValue = corp.kitValue || 0; persist.kitSpend = corp.kitSpend || 0; }
       /* REPUTATION.md R1 — the ONE thing that survives a Divide. */
@@ -2398,7 +2438,7 @@
       }
       corps.push(corp);
     }
-    for (const c of corps) { c._corps = corps; c._ground = ground; }
+    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; } }   /* last year's captivity is over */
     for (const c of corps) { const m = (opts.mediaRevealed || {})[c.id]; if (m) c._mediaReveal = m.reveal || 0; }
 
     /* §DROP WHERE EVERYBODY COMES DOWN. The draft dealt zones (`opts.dropZones = { corpId: [zone a squad] }`): one
@@ -2542,16 +2582,44 @@
       headOf: sq => squadHead(sq).length,
       resolve: (st, f, rngF) => gridResolve(st, f),
       captivePolicy: (st, captor, from, f, body) => captiveFate(captor, from, body),
-      onSettle: (st, f, winnerOa) => afterFight(st, f, winnerOa)
+      onSettle: (st, f, winnerOa) => afterFight(st, f, winnerOa),
+      /* §SITES what a site is to a group now, for the planner: gone once spent, dug or dark; a strongpoint its own OA
+         holds only to the squad standing on it; a beacon only while the OA has a reserve to land, more to a group that
+         has lost people; a rest site more to the hurt and the hungry; the deposit the board asked for more */
+      siteFor: (zid, oa, group, staying) => {
+        const o = objAt[zid], site = Z[zid].site; if (!o || !site) return null;
+        const corp = corpById[oa]; let need = 1;
+        if (o.type === 'resource_site') { if (o.looted) return null;
+          const g = corp && corp.rep && corp.rep.goal, d = g && (g.demands || []).find(x => x.kind === 'resource' && x.resource);
+          if (d && o.resource === d.resource) need = CONST.PLAN_ASKED; }
+        else if (o.type === 'relay_mast') { if (day < (o.dark || 0)) return null; }
+        else if (o.type === 'strongpoint') { if (o.heldBy === oa && !staying) return null; }
+        else if (o.type === 'sponsor_cache') { const left = corp && corp.reserve ? corp.reserve.filter(fb => !fb.mirror_of).length : 0; if (!left) return null;
+          const bodies = group.reduce((t, q) => t.concat(q.ref ? q.ref.bodies : []), []);
+          need = 1 + bodies.filter(b => b.status !== 'active').length / Math.max(1, bodies.length); }
+        else if (o.looted) return null;
+        else if (o.type === 'ration_site') { const bodies = group.reduce((t, q) => t.concat(q.ref ? squadHead(q.ref).concat(q.ref.bodies.filter(b => b.status === 'injured')) : []), []);
+          need = 1 + 2 * bodies.filter(b => b.status === 'injured').length / Math.max(1, bodies.length) + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
+        return need === 1 ? site : Object.assign({}, site, { need });
+      },
+      /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
+      reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
+        const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
+        return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
+      /* overrun: every body still standing is taken by the winner */
+      onOverrun: (st, cq, winnerOa) => { const taken = squadHead(cq.ref);
+        for (const b of taken) { b.status = 'captured'; b._capturedBy = winnerOa; stats.captured++; stats.audit.capturedAlive++; }
+        stats.audit.overrun = (stats.audit.overrun || 0) + 1; return taken; }
     });
     for (const cq of cst.squads) { squadOf.set(cq, cq.ref); cqOf.set(cq.ref, cq); cq.ref._cq = cq; }
+    stats._cst = cst;
     const corpById = {}; for (const c of corps) corpById[c.id] = c;
     const mirror = () => { for (const cq of cst.squads) { const sq = cq.ref; sq.zone = cq.zone; sq.x = Z[cq.zone].x; sq.y = Z[cq.zone].y; sq.stance = sq.stance || cq.stance; cq.stance = squadStance(sq); } };
     const regionName = zid => RG[Z[zid].region].name;
     function longShare(sq) {
       /* the share of a squad that reaches the next zone: long rifles and heavier */
       const heads = squadHead(sq); if (!heads.length) return 0;
-      return heads.filter(b => b.loadout && b.loadout.kit && b.loadout.kit.weapon && (b.loadout.kit.weapon.range || 0) >= 2).length / heads.length;
+      return heads.filter(b => b.loadout && b.loadout.kit && b.loadout.kit.weapon && b.loadout.kit.weapon.range === 'long').length / heads.length;
     }
     /* §CAPTIVES (ruled: case by case, at the capture) a person's seat is asked at its next window and holds the captive
        until it answers. An engine seat weighs it: what the captive is worth held (bought back, or a fighter on its
@@ -2620,7 +2688,9 @@
       stats.captiveLog = stats.captiveLog || [];
       const out = fate === 'kill' ? 'killed' : fate === 'release' ? 'released' : 'kept';
       if (out === 'killed') { body.status = 'dead'; stats.dead++; }
-      else if (out === 'released') { body.status = 'injured'; body._recovery = Math.max(body._recovery || 0, CONST.RELEASED_RECOVERY); body._released = day; }
+      else if (out === 'released') { comeHome(body); body._released = day; }
+      /* decided: no ransom can be asked for him now */
+      for (const k of (stats.ransomCases || [])) if (!k.done && k.fighter === body.id) k.done = true;
       if (out !== 'kept') {
         stats.captiveOutcomes[out]++;
         stats.captiveLog.push({ fighter: body.id, name: body.name, owner: ownerId, captor: captorId, out, day });
@@ -2647,7 +2717,25 @@
       const sidesSq = f.sides.map(S => S.squads.map(x => st.squads[x.id].ref));
       const early = f.sides.map((S, i) => S.squads.filter(x => x.atTurn <= 1).map(x => st.squads[x.id].ref));
       const late = []; f.sides.forEach((S, i) => { for (const x of S.squads) if (x.atTurn > 1) late.push({ gi: i, sq: st.squads[x.id].ref, x }); });
-      const groups = early.map((g, i) => g.length ? g : [sidesSq[i][0]]);
+      /* a side that is all late comers (a third banner walking in) needs somebody on the board at the start: its first
+         comer stands in from the off, and is taken out of the late so it is not fielded twice */
+      const groups = early.map((g, i) => {
+        if (g.length) return g;
+        const k = late.findIndex(L => L.gi === i); if (k >= 0) return [late.splice(k, 1)[0].sq];
+        return [sidesSq[i][0]];
+      });
+      /* §DEPLOY every comer comes on at the edge facing where it came from; the holder stands with its back to the
+         ground behind it, facing the way its comers came (their mean bearing turned about) */
+      const comers = []; f.sides.forEach(S => { for (const x of S.squads) if (x.bearing != null) comers.push(x.bearing); });
+      const holderBearing = comers.length ? Math.atan2(-comers.reduce((t, b) => t + Math.sin(b), 0), -comers.reduce((t, b) => t + Math.cos(b), 0)) : 0;
+      const edgeOf = xs => xs && xs.bearing != null ? xs.bearing : holderBearing;
+      /* §FLANK a side is flanked when two of its enemies' squads came at it from arcs this far apart */
+      const angGap = (a, b) => { let g = Math.abs(a - b) % (Math.PI * 2); return g > Math.PI ? Math.PI * 2 - g : g; };
+      const flanked = f.sides.map((S, gi) => {
+        const foes = []; f.sides.forEach((O, oi) => { if (oi !== gi) for (const x of O.squads) foes.push(edgeOf(x)); });
+        return foes.some((a, k) => foes.some((b, l) => l > k && angGap(a, b) >= TACTICAL.CONST.FLANK_SPLIT_ARC));
+      });
+      if (flanked.some(Boolean)) stats.audit.flankFights = (stats.audit.flankFights || 0) + 1;
       const built = groups.map(g => liveSquadGroup(rng, g, day, engagementsRun, traitIndex));
       if (built.some(b => !b)) return { turns: 1, winner: null, result: 'cap', squads: {} };
       const holderSide = f.sides.findIndex(S => S.squads.some(x => x.from === zone));
@@ -2655,12 +2743,26 @@
       const ctx = {
         day, night, terrain,
         openingBand: P.weightedPick(rng, Z[zone].cover >= 1 ? [[0, 46], [1, 42], [2, 12]] : Z[zone].height >= 1 ? [[0, 16], [1, 46], [2, 38]] : [[0, 28], [1, 50], [2, 22]]),
-        objectiveValue, flanked: f.sides.map(() => false),
+        objectiveValue, flanked,
         firstEngagement: engagementsRun === 0,
         log: groups.some(g => g.some(sq => isHumanOA(sq.corpId))) ? undefined : false,
         prep: groups.map((g, gi) => {
           const lead = g[0];
-          const theyKnewUs = g.some(s => Object.keys(s.known || {}).length > 0);
+          /* what each squad was doing when it met them, read off the contest: the holder holding its ground, a squad
+             that went for them hunting (and came looking, so takes what is there), a squad still settling from its
+             last fight resting; a comer has walked today, whenever in the day the walk was booked */
+          for (const sq of g) { const cq = sq._cq, xs = cq && f.sides[gi].squads.find(y => y.id === cq.id); if (!cq || !xs) continue;
+            const going = cq.intent && cq.intent.type === 'fight';
+            sq.approach = xs.from === zone ? 'holding' : going ? 'hunting' : null;
+            sq._hunted = !!(going && xs.from !== zone);
+            if (sq._hunted) groups.forEach((og, oi) => { if (oi !== gi) for (const os of og) if (os.corp !== sq.corp) { noteContact(sq.corp, os.corp, day, 'hunting'); noteContact(os.corp, sq.corp, day, 'huntedBy'); } });
+            sq._resting = cq.rest > 0;
+            if (xs.from !== zone) sq.movedToday = true; }
+          /* §SIGHT saw them first: one of this side's squads knew where an enemy squad in this fight stood before the
+             tick it met them — seen, heard, briefed or relayed */
+          const nowT = st.day * CONTEST.CONST.TICKS_A_DAY + st.tick;
+          const foeIds = new Set(); f.sides.forEach((O, oi) => { if (oi !== gi) for (const y of O.squads) foeIds.add(y.id); });
+          const theyKnewUs = g.some(sq => sq._cq && Object.values(sq._cq.know).some(k => k.squad != null && foeIds.has(k.squad) && k.at < nowT));
           let rivalEdge = 0; const ri = lead && lead._rivalIntel;
           if (ri) groups.forEach((og, oi) => { if (oi === gi) return; og.forEach(os => { if (os.corpId && ri[os.corpId] > rivalEdge) rivalEdge = ri[os.corpId]; }); });
           /* §7.5 the side that holds the zone fights from its height and its cover; the comers from theirs */
@@ -2670,7 +2772,7 @@
           const rushed = st.squads[xs.id].harass && st.squads[xs.id].harass.rushed ? CONTEST.CONST.HARASS_RUSHED_PREP : 0;
           return Math.max(0, Math.min(1, preparedness(lead, { sawFirst: theyKnewUs, rivalEdge, strongpoint: !!strong }) + heightEdge + rushed));
         }),
-        bearings: f.sides.map(S => S.squads[0].bearing != null ? S.squads[0].bearing : 0)
+        bearings: f.sides.map(S => edgeOf(S.squads[0]))
       };
       /* the late: a neighbour walks in on the side of its own banner, a turn a tick of its step */
       const arrivals = [];
@@ -2684,7 +2786,7 @@
           if (!host._parts) host._parts = [{ units: host.units.slice(), _sq: groups[L.gi][0] }];
           host._parts.push(side);
           arrivals.push({ sq: L.sq, side, gi: L.gi });
-          ctx.reinforce.push({ side, bearing: L.x.bearing != null ? L.x.bearing : 0, prep: 0.5, atTurn: L.x.atTurn });
+          ctx.reinforce.push({ side, bearing: edgeOf(L.x), prep: 0.5, atTurn: L.x.atTurn });
           L.sq._joinedToday = true;
         }
         stats.audit.joinedInProgress = (stats.audit.joinedInProgress || 0) + ctx.reinforce.length;
@@ -2692,7 +2794,7 @@
       /* §FLANK every squad comes on where it came from */
       built.forEach((side, gi) => { const parts = side._parts || [side];
         for (const part of parts) { const q = part._sq; if (!q) continue; const xs = f.sides[gi].squads.find(y => st.squads[y.id].ref === q);
-          const b = xs && xs.bearing != null ? xs.bearing : (xs && xs.from === zone ? Math.PI : 0); for (const u of part.units) u._bearing = b; } });
+          const b = edgeOf(xs); for (const u of part.units) u._bearing = b; } });
       for (const R of (ctx.reinforce || [])) for (const u of (R.side.units || [])) u._bearing = R.bearing;
       ctx.forceBearings = true;
       /* §GRUDGE a man fighting the OA he remembers */
@@ -2773,6 +2875,12 @@
           const here = []; for (const q of sidesSq[winnerGi]) if (q.corpId === captorId) here.push(...squadHead(q));
           victors = { corp: vc, bodies: here };
           for (const c of corpsHere) if (c && c !== vc) { noteContact(c, vc, day, 'lost'); noteContact(vc, c, day, 'beat'); if (standing(vc) > standing(c) * 1.35) c._worthyFights = (c._worthyFights || 0) + 1; }
+        } else if (groups.length > 1) {
+          /* no side held the field (both broke, the turn cap, or this side won): its dead are still somebody's kills —
+             the biggest side that faced it — though nobody holds prisoners */
+          let k = -1; for (let hi = 0; hi < groups.length; hi++) if (hi !== gi && (k < 0 || built[hi].units.length > built[k].units.length)) k = hi;
+          const kc = corpById[sidesSq[k][0].corpId], here = []; for (const q of sidesSq[k]) if (q.corpId === kc.id) here.push(...squadHead(q));
+          victors = { corp: kc, bodies: here };
         }
         applyOutcome(sidesSq[gi][0], side, stats, captorId, victors);
         for (let k = 0; k < corpsHere.length; k++) {
@@ -2858,6 +2966,7 @@
       cq.beacon = false;
       if (!o || !siteLive(o, day) || cq.moving || cq.fight != null || sq.foughtToday) { sq.claiming = null; return; }
       if (o.type === 'sponsor_cache') { beaconTick(sq, o); return; }
+      if (o.type === 'strongpoint' && o.heldBy === sq.corpId) { sq.claiming = null; return; }   /* held: nothing more to take */
       const rival = Z[cq.zone].nb.some(v => { const h = CONTEST.holder(cst, v); return h && h.oa !== cq.oa; });
       if (rival) { sq.claiming = o.id; o.work = {}; return; }
       const key = sq.corpId + ':' + sq.sIdx;
@@ -2904,6 +3013,7 @@
           const w = dawnEv.find(x => x.t === 'wall' && x.squad === sq._cq.id);
           (stats.wallDeaths = stats.wallDeaths || []).push({ day, corp: sq.corpId, s: sq.sIdx, took, at: 'dawn', region: RG[e.region].name, free: !!(w && w.free), stance: squadStance(sq), intent: sq._cq.intent && sq._cq.intent.type });
           stats.audit.domeDeaths = (stats.audit.domeDeaths || 0) + took;
+          stats.dead += took;   /* the wall's dead are dead like any other */
           (stats.audit.wallBy = stats.audit.wallBy || {})[sq.corpId] = ((stats.audit.wallBy || {})[sq.corpId] || 0) + took;
           rec({ t: 'wall', zone: sq.zone, x: sq.x, y: sq.y, c: sq.corpId, n: took, region: RG[e.region].name });
         }
@@ -2913,12 +3023,18 @@
         if (!squadHead(sq).length) continue;
         sq._day = day; sq._st = stats;
         sq.movedToday = false; sq._marched = 0; sq.foughtToday = false; sq._lostDay = false; sq._hunted = false; sq._heldToday = 0; sq._joinedToday = false;
+        sq.medkits = medkitCharges(sq.bodies); sq.hasMedkit = sq.medkits > 0;   /* the kits are what its people carry, after any reform or carry-out */
       }
       const windowDay = GROUND.isWindowDay(ground, day);
       if (windowDay) stats.windows++;
-      for (const c of corps) for (const q of c.squads) if (!q._mind && squadHead(q).length) {
+      /* §CAPTAIN every morning the captain's mind is read afresh — a new captain after a death, a tired or strained one —
+         and handed to the contest, whose planner it steers: how far the squad sees, how it counts a rival, how well it
+         weighs ground */
+      for (const c of corps) for (const q of c.squads) if (squadHead(q).length) {
         const mind = captainMind(q);
         q._mind = { judge: Math.round(mind.judge * 100) / 100, sight: Math.round(mind.sight * 100) / 100, nerve: Math.round(mind.nerve * 100) / 100, cap: mind.cap ? mind.cap.name : null };
+        if (q._cq) q._cq.mind = { judge: mind.judge, sight: mind.sight, nerve: mind.nerve };
+        if (q._cq) q._cq.long = longShare(q);   /* the long guns it carries now: after deaths, loot and landings */
       }
       if (windowDay) reviewCaptives();
       /* --- THE CORP CHANNEL at the window: ransoms, withdrawals, the winner's word (NEGOTIATION.md §11) --- */
@@ -2988,11 +3104,31 @@
             };
             return clone(c);
           };
+          /* §SECRECY a seat's record of the contest: its own squads in full; a rival squad only on a day one of its
+             squads knew where it stood (its zone and head count, nothing more), and at each window as the broadcast
+             showed it; the events its own people were in, and the wall's and the weather's, which everyone sees; a
+             rival banner's count as the last broadcast gave it */
+          const recordFor = (seatId) => {
+            if (!REC) return null;
+            const ci = corps.findIndex(c => c.id === seatId), PUBLIC = { weather: 1, wall: 1, region_gone: 1, zone_gone: 1 };
+            const lastA = {};
+            return REC.days.map(D => {
+              const known = (D.kn && D.kn[seatId]) || [];
+              if (D.bc) { for (const k in lastA) lastA[k] = 0; for (const b of D.bc) if (b.c !== ci) lastA[b.c] = (lastA[b.c] || 0) + b.n; }
+              return {
+                d: D.d, standing: D.standing, next: D.next, window: D.window, gz: D.gz, nz: D.nz, obj: D.obj, bc: D.bc,
+                sq: D.sq.filter(q => q.c === ci || known.indexOf(q.i) >= 0).map(q => q.c === ci ? q : { i: q.i, c: q.c, s: q.s, z: q.z, n: q.n, seen: 1 }),
+                corp: D.corp.map((cr, k) => k === ci ? cr : { a: lastA[k] != null ? lastA[k] : null, sd: cr.sd }),
+                ev: (D.ev || []).filter(e => PUBLIC[e.t] || [e.c, e.on, e.by, e.from].indexOf(seatId) >= 0 || (e.corps || []).indexOf(seatId) >= 0)
+              };
+            });
+          };
           const worldFor = (seatId) => {
             if (opts.debugViews) return { corps, stats, planet, ground, record: REC ? REC.days : null };
             return { corps: corps.map(c => c.id === seatId ? snapshotOwn(c) : shellOf(c)),
-                     record: REC ? REC.days : null };
+                     record: recordFor(seatId) };
           };
+          stats._broadcast = { day, field: cst.squads.filter(cq => cq.alive).map(cq => ({ c: corps.findIndex(c => c.id === cq.oa), s: cq.s, z: cq.zone, n: cq.n })) };
           const viewFor = (seatId) => {
             const world = worldFor(seatId);
             const you = corps.filter(c => c.id === seatId)[0];
@@ -3027,7 +3163,10 @@
               /* the picture: where this seat's squads last saw each rival squad, by zone */
               picture: pictureForMap(you, day).map(e => ({ key: e.corpId + ':' + e.sq.sIdx, corpId: e.corpId, zone: e.zone, x: e.x, y: e.y, day: e.day, n: e.n, landing: !!e.landing, via: e.via || 'contact', down: !!e.down, stale: !!e.stale })),
               /* §SEATS its own squads: where each stands, what it is doing, whom it holds */
-              squads: cst.squads.filter(cq => cq.oa === seatId).map(cq => ({ s: cq.s, zone: cq.zone, alive: cq.alive, n: cq.n, intent: cq.intent, moving: cq.moving ? { to: cq.moving.to, paid: cq.moving.paid, cost: cq.moving.cost } : null, fight: cq.fight, captives: cq.captives.length, stance: cq.stance })),
+              squads: cst.squads.filter(cq => cq.oa === seatId).map(cq => ({ s: cq.s, zone: cq.zone, alive: cq.alive, n: cq.n, intent: cq.intent, moving: cq.moving ? { to: cq.moving.to, paid: cq.moving.paid, cost: cq.moving.cost } : null, fight: cq.fight, captives: cq.captives.length, stance: cq.stance,
+                /* the days its packs last at what it eats now (its people, its captives, the world, the weather), and whether it is working the site it stands on */
+                food: cq.ref ? Math.floor((cq.ref.rations || 0) / Math.max(0.001, rationDemand(cq.ref, raceById) * planet.supplyStrain * ((stats.weatherToday && stats.weatherToday.fx.rations) || 1))) : 0,
+                working: !!(cq.ref && cq.ref.claiming) })),
               /* §VISION the broadcast: a manager sees every squad on the ground, whose and where (ruled) */
               field: cst.squads.map(cq => ({ oa: cq.oa, s: cq.s, zone: cq.zone, alive: cq.alive, n: cq.n, fight: cq.fight })),
               fightsOn: cst.fights.filter(fx => !fx.done).map(fx => ({ zone: fx.zone, sides: fx.sides.map(S => S.oa), until: fx.until })),
@@ -3036,8 +3175,10 @@
               /* the wall: what stands, what goes next and when */
               wall: { standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), nextZones: GROUND.nextZonesToGo(ground, day), zoneAt: (ground.wall.zoneAt || []).filter(x => x.day > day), takeAt: ground.wall.takeAt.filter(x => x.day > day), last: ground.wall.last },
               banked: Object.assign({}, you._banked || {}),
-              bankedBy: (function () { const by = {}; for (const rid in (you._banked || {})) { const cat = MAP.resourceCategory ? MAP.resourceCategory(rid) : null; if (cat) by[cat] = (by[cat] || 0) + you._banked[rid]; } return by; })(),
-              openBy: (function () { const by = {}; for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || o.looted) continue; const cat = o.category || (MAP.resourceCategory ? MAP.resourceCategory(o.resource) : null); if (cat) by[cat] = (by[cat] || 0) + Math.round(o.potency || 1); } return by; })(),
+              /* in the settlement's measure, a share of a hold: what this seat has dug, and what stands open, by kind */
+              bankedBy: (function () { const by = {}; for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || !o.looted || o.lootedBy !== seatId) continue; const cat = MAP.resourceCategory(o.resource); if (cat) by[cat] = (by[cat] || 0) + holdShareOf(o); } return by; })(),
+              siteShare: Object.fromEntries((planet.objectives || []).filter(o => o.type === 'resource_site').map(o => [o.zone, holdShareOf(o)])),
+              openBy: (function () { const by = {}; for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || o.looted) continue; const cat = o.category || (MAP.resourceCategory ? MAP.resourceCategory(o.resource) : null); if (cat) by[cat] = (by[cat] || 0) + holdShareOf(o); } return by; })(),
               record: world.record,
               corps: world.corps, you: opts.debugViews ? you : world.corps.find(c => c.id === seatId), echo,
               stats: opts.debugViews ? stats : undefined, planet: opts.debugViews ? planet : undefined, ground: opts.debugViews ? ground : undefined
@@ -3081,8 +3222,10 @@
             if (answer && answer.withdrawOffer && you && !you.withdrawn) postWithdrawOffer(you, answer.withdrawOffer, day, stats);
             if (answer && answer.withdrawReplies && you && !you.withdrawn) for (const fromId in answer.withdrawReplies) { const o = (stats.withdrawOffers || {})[fromId]; if (o && o.from !== you.id) o.replies[you.id] = !!answer.withdrawReplies[fromId]; }
             if (answer && answer.withdrawNow && you && !you.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you, day, stats, corps);
-            if (answer && answer.deal && you && /^ransom_/.test(answer.deal.kind || '')) {
-              const d = answer.deal, yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
+            /* §RANSOM every case a seat holds is answered at its window, one answer a case */
+            const dealsIn = answer && you ? (answer.deals ? Object.keys(answer.deals).map(k => answer.deals[k]) : answer.deal ? [answer.deal] : []) : [];
+            for (const d of dealsIn) if (d && /^ransom_/.test(d.kind || '')) {
+              const yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
               const k = (stats.ransomCases || []).find(x => !x.done && x.fighter === d.fighter);
               if (k && k.owner === you.id && (d.kind === 'ransom_pay' || d.kind === 'ransom_decline')) k.ownerYes = yes;
               if (k && k.captor === you.id && (d.kind === 'ransom_sell' || d.kind === 'ransom_keep')) k.captorYes = yes;
@@ -3126,6 +3269,9 @@
       }
       /* --- DAY: hazards --- */
       for (const sq of liveSquads()) weatherCheck(rng, sq, planet, squadHooks(sq), stats);
+      /* §WEATHER and the day's weather on the ground: sight and pace for everyone, the lost for those who lost their way */
+      cst.weather = stats.weatherToday ? stats.weatherToday.fx : null;
+      for (const cq of cst.squads) cq.lostDay = !!(cq.ref && cq.ref._lostDay);
 
       /* --- THE DAY, IN TWELVE TICKS: six of march, six of camp; the contest moves, meets and fights --- */
       for (const cq of cst.squads) cq.track = [cq.zone];
@@ -3140,7 +3286,16 @@
         for (const e of cst.events.slice(before)) {
           if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
-          if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) { const b = squadHead(h)[0]; if (!b) break; b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; stats.injured++; } CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
+          if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) {
+              /* §HARASS a long round across a zone: a wound like any other — on whoever it finds, tended if a kit is to hand */
+              const heads = squadHead(h); if (!heads.length) break; const b = heads[Math.floor(rng() * heads.length)];
+              const inj = { type: 'inj_torso', severity: 'minor', days_remaining: CONST.HARASS_WOUND_DAYS, untreated: false };
+              const kit = medkitHolder(h);
+              if (kit) { kit.medkits--; kit.hasMedkit = kit.medkits > 0; takeMedkitCharge(kit.bodies || []); stats.audit.medkitsUsed = (stats.audit.medkitsUsed || 0) + 1; }
+              else { inj.untreated = true; stats.audit.untendedWounds = (stats.audit.untendedWounds || 0) + 1; }
+              b.condition.injuries.push(inj); b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; b._untreatedDays = 0; stats.injured++;
+              addStress(h, CONST.STRESS.downed, stats); }
+            CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
           if (e.t === 'wiped' && e.how === 'overrun') rec({ t: 'overrun', zone: e.zone, c: cst.squads[e.squad].oa, by: e.by });
         }
         noticed();
@@ -3186,14 +3341,20 @@
           if (!alive && !q._downAt) q._downAt = { zone: q.zone };
           const demand = Math.max(0.001, rationDemand(q, raceById) * planet.supplyStrain);
           const it = cq.intent || {};
-          sqRec.push({ c: ci, s: si, z: alive ? cq.zone : q._downAt.zone, x: alive ? q.x : Z[q._downAt.zone].x, y: alive ? q.y : Z[q._downAt.zone].y,
+          sqRec.push({ i: cq.id, c: ci, s: si, z: alive ? cq.zone : q._downAt.zone, x: alive ? q.x : Z[q._downAt.zone].x, y: alive ? q.y : Z[q._downAt.zone].y,
                        az: alive && it.type === 'take' ? it.zone : null,
                        w: alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
                        n: alive, st: Math.round(squadStress(q)), rat: Math.round(Math.min(30, q.rations / demand)), g: q.crates, cl: q.claiming ? 1 : 0,
                        hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: cq.captives.length, tr: alive ? cq.track.slice() : [] });
         }));
+        /* §SECRECY what each seat's squads knew of the rivals today (seen, heard, briefed, relayed): a seat's record
+           carries those rival squads and no others */
+        const dayStart = day * CONTEST.CONST.TICKS_A_DAY, kn = {};
+        for (const cq of cst.squads) { if (!cq.alive) continue; const set = kn[cq.oa] = kn[cq.oa] || [];
+          for (const zid in cq.know) { const k = cq.know[zid]; if (k.at >= dayStart && k.squad != null && k.oa && k.oa !== cq.oa && set.indexOf(k.squad) < 0) set.push(k.squad); } }
         REC.days.push({
-          d: day, standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), window: windowDay,
+          d: day, standing: CONTEST.standing(cst), next: GROUND.nextToGo(ground, day), window: windowDay, kn,
+          bc: windowDay && stats._broadcast && stats._broadcast.day === day ? stats._broadcast.field : null,
           gz: (ground.wall.zoneAt || []).filter(t => t.day <= day).map(t => t.zone), nz: GROUND.nextZonesToGo(ground, day),
           sq: sqRec,
           obj: planet.objectives.map(o => ({ id: o.id, z: o.zone, h: o.heldBy || null, t: o.type, lbl: o.label, open: siteLive(o, day), on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),
@@ -3229,7 +3390,7 @@
         const out = captor ? 'kept' : 'released';
         stats.captiveOutcomes[out]++;
         stats.captiveLog.push({ fighter: f.id, name: f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
-        if (out === 'released') f.status = 'injured';
+        if (out === 'released') comeHome(f);
         else { f.status = 'active'; f._transferredTo = captor.id; }
         if (captor && captor.rep) REP.act(captor.rep, 'kept_captive', { targetId: owner.id, rivalIds: corpIds });
       }
@@ -3325,13 +3486,7 @@
        a hold from empty, a moderate one about 40%, a slim one about 20% — which is `richness`,
        already derived in map.js from the composition, spread across the sites that carry the
        category and weighted by how deep each one is. */
-    const siteTotals = {};
-    for (const o of planet.objectives || []) {
-      if (o.type !== 'resource_site' || !o.resource) continue;
-      const cat0 = MAP.resourceCategory(o.resource); if (!cat0) continue;
-      siteTotals[cat0] = (siteTotals[cat0] || 0) + (o.potency || 1);
-    }
-    const endowment = CONST.HOLD_RICH * Math.max(0.2, Math.min(1, planet.richness != null ? planet.richness : 1));
+
     /* §PRIZE THE SITES ARE THE QUICK GRAB, THE PLANET IS THE PRIZE (ruled). The fight is for a
        planet's mineral rights, and the circle the squads fight on is a sliver of it: the dug
        sites are something a squad can run for and keep, guaranteed, win or lose — but they are
@@ -3339,7 +3494,7 @@
        endowment is the winner's, as the pot's resources (below). This spread the WHOLE
        endowment across the sites, which made "a rich planet fills a hold" a statement about
        digging when it was meant to be a statement about winning. */
-    const yieldOf = (o, cat) => endowment * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1));
+    const yieldOf = (o) => holdShareOf(o);
     for (const c of corps) stats.banked[c.id] = {};
     /* §4.3 named claims: a site dug by the banner (the principal or anyone under it) that a
        deal promised to a joiner banks to the joiner */
@@ -3418,12 +3573,15 @@
          for a betrayal nobody chose. The winner's seat, if a person holds it, is asked once here — a settlement
          window carrying each promise and what keeping it costs — and answers `{ keepWord: { toId: true|false } }`.
          Unanswered, a promise is kept: the honest default. */
+      /* §WITHDRAWAL a promise is a share OF THE POT, as it was offered, priced and shown — not of whatever the winner
+         has left once earlier promises are paid, which shrank every later one */
+      const POT_V = (planet.pot && planet.pot.value) || 0;
       const owed = (stats.promises || []).filter(pr => w && pr.from === w.id);
       if (w && isHumanOA(w.id) && owed.length) {
         const ask = owed.map(pr => {
           const share = Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0));
           const stores = {}; for (const cat in (stats.potResources || {})) { const f = Math.max(0, Math.min(1, (pr.terms && pr.terms[cat]) || 0)); if (f > 0) stores[cat] = f; }
-          return { to: pr.to, day: pr.day, share: share, owed: Math.round((take[w.id] || 0) * share), stores: stores };
+          return { to: pr.to, day: pr.day, share: share, owed: Math.round(POT_V * share), stores: stores };
         });
         const view = { day: day, settlement: true, winner: w.id, promises: ask, you: { id: w.id } };
         const reply = yield Object.assign({}, view, { seats: { [w.id]: view }, lead: w.id });
@@ -3437,7 +3595,7 @@
            whether or not the promise is then kept, which is judged on its own below */
         if (w.rep) REP.act(w.rep, 'bought_win', { targetId: pr.to, rivalIds: corps.map(c => c.id) });
         const share = Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0));
-        const owed = Math.round((take[w.id] || 0) * share);
+        const owed = Math.round(POT_V * share);
         /* §PRIZE and a share of the PLANET'S STORES: what the winner took into its holds with
            the ground, not what it happened to dig — which is what a manager was asking for when
            he dragged a store's slider, and what the tile on the tab says is there to be won */
@@ -3468,10 +3626,12 @@
           }
         }
         if (keep && owed > 0) {
-          take[w.id] = (take[w.id] || 0) - owed;
-          take[pr.to] = (take[pr.to] || 0) + owed;
+          /* a winner cannot pay out more than it took: past that, what is left is all there is */
+          const pay = Math.min(owed, Math.max(0, take[w.id] || 0)); pr.paid = pay;
+          take[w.id] = (take[w.id] || 0) - pay;
+          take[pr.to] = (take[pr.to] || 0) + pay;
           (stats.settlement.lines = stats.settlement.lines || []).push(
-            { corp: pr.to, kind: 'promise_kept', amount: owed, from: w.id });
+            { corp: pr.to, kind: 'promise_kept', amount: pay, from: w.id });
           REP.act(w.rep, 'generous_terms', { targetId: pr.to });
         } else if (!keep) {
           (stats.settlement.lines = stats.settlement.lines || []).push(
@@ -3539,6 +3699,13 @@
         .filter(l => l.kind === 'owed' && l.corp === c.id).map(l => ({ to: l.to, amount: Math.abs(l.amount || 0) }));
       pc.won = stats.winner === c.id;
       pc.withdrawn = c.withdrawn ? { day: c.withdrawn.day, toId: c.withdrawn.toId } : null;
+      /* §BOARD what the board asks about: where it placed, whether and when it walked, whom it lost (the wall's dead
+         with the rest), and how many of them the fleet knew by name */
+      pc.placement = stats.placement ? stats.placement[c.id] : null;
+      pc.ceded = !!c.withdrawn; pc.cededDay = c.withdrawn ? c.withdrawn.day : null;
+      const lostHere = (c.allBodies || []).filter(b => b.status === 'dead' || b.status === 'retired');
+      pc.permanent = lostHere.length; pc.dead = lostHere.length;
+      pc.famousLosses = lostHere.filter(b => (b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35).length;
       pc.standDown = !!c.standDown;
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;

@@ -671,7 +671,9 @@ function seatRules() {
     play = playDivide(s2); tries++;
   }
   const asked = play.asked, res = play.res;
-  const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed');
+  /* the ones it answered: a captive taken after the last window was never asked, and is held when the shooting stops */
+  const askedIds = new Set((asked || []).map(x => x.fighter));
+  const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed' && askedIds.has(x.fighter));
   ok('a person is asked at the window what becomes of each captive their squads hold', !!asked && asked.length > 0, (asked ? asked.length + ' asked' : 'never asked') + ' in ' + tries + ' world' + (tries > 1 ? 's' : ''));
   ok('and their answer stands', mine.length > 0 && mine.every(x => x.out === 'released'), mine.map(x => x.out).join(','));
 }
@@ -3116,7 +3118,8 @@ function negotiationRules() {
     if (st) {
       let outTotal = 0;
       for (const id in st.take) outTotal += st.take[id];
-      const expected = (st.winnerId ? st.pot : 0) - (st.bonuses.total || 0);
+      /* the winner's bonuses are its own wages, charged to its books by the ledger, not taken off the pot */
+      const expected = st.winnerId ? st.pot : 0;
       if (Math.abs(outTotal - expected) > 2) {
         bad.push('settlement does not conserve: paid ' + Math.round(outTotal) +
                  ' against ' + Math.round(expected));

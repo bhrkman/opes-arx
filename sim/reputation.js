@@ -631,8 +631,10 @@
      §6 — the board
      ================================================================================ */
 
-  /** §6.1 — the stores drain every season and are refilled by what comes home. */
-  function drainHolds(rep, scale) {
+  /** §6.1 — the stores drain every season and are refilled by what comes home. The year's fall is taken a month at a
+      time (drainHolds, below); this is the whole year's, for a season settled without stepping its months. (It shared
+      drainHolds's name, and the later one won, so a season's open took a month's drain on top of the eleven.) */
+  function drainSeason(rep, scale) {
     const s = scale == null ? 1 : scale;
     for (const c of CATEGORIES) {
       /* the year's fall is taken monthly now (drainHolds); what remains here is the share for
@@ -691,9 +693,10 @@
          (1/9) while `banked` counts assay units, so the test compared 3 units against 0.11
          and every resource demand on every card passed the moment a corp dug anything. The
          board asks for a share of a store IN THE UNITS THAT FILL IT. */
-      const want = Math.max(1, Math.round(CONST.UNITS_PER_STORE * CONST.RESOURCE_ASK));
+      /* §HOLDS the ask is a share of a store, in the measure a Divide banks: what comes home is a share of a hold
+         (a dug site's part of the planet's endowment, or the winner's whole of it), so the board asks in the same */
       pool.push({ weight: 2.2 * (1 - (rep.holds[cat] || 0)), demand: {
-        kind: 'resource', category: cat, resource: pick.id, units: want, amount: want
+        kind: 'resource', category: cat, resource: pick.id, share: CONST.RESOURCE_ASK
       } });
       break;                                    /* one, not one per shortage */
     }
@@ -820,10 +823,12 @@
     return bag.length - 1;
   }
 
+  /** the share of a store a resource demand asks for (a card written before the ask was a share read its units back) */
+  function askOf(d) { return d.share != null ? d.share : d.units != null ? d.units / CONST.UNITS_PER_STORE : (d.amount || 0); }
   /** Was a demand met? `outcome` is what the season actually produced. */
   function demandMet(d, outcome, rep) {
     switch (d.kind) {
-      case 'resource':  return ((outcome.banked || {})[d.category] || 0) >= (d.units != null ? d.units : d.amount);
+      case 'resource':  return ((outcome.banked || {})[d.category] || 0) >= askOf(d);
       case 'placement': return (outcome.placement || 99) <= d.at;
       case 'win':       return !!outcome.won;
       case 'surplus':   return (outcome.surplus || 0) >= d.amount;
@@ -1039,7 +1044,7 @@
 
   function openSeason(rep, planet, rng, opts) {
     rep.calls = 0;
-    drainHolds(rep, (opts && opts.drainScale) || 1);
+    drainSeason(rep, (opts && opts.drainScale) || 1);
     goalCard(rep, planet, rng, opts);
     return rep;
   }
@@ -1087,7 +1092,7 @@
 
   const api = {
     CONST, ACTS, AUDIENCES, FACTIONS, QUALITIES, TASTE, HALFLIFE, CATEGORIES, REGISTERS, DISPOSITION,
-    open, standing, readAll, act, impact, impactSummary, why, decay, foldTail, soft, drift, drainHolds,
+    open, standing, readAll, act, impact, impactSummary, askOf, why, decay, foldTail, soft, drift, drainHolds,
     openingShares, normShares, tasteOf, tasteOfShares, setHouseTastes, shiftShares, fade,
     fameTransfer, addFame, decayFame, presenceFameMult, earnFame,
     placements,

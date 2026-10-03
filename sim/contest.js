@@ -39,12 +39,21 @@
     /* §PLAN the engine's planner over regions */
     PLAN_REACH_ROUTES: 2,            // [C] an objective is at most this many regions away
     PLAN_TICK_COST: 1 / 12,          // [C] a day's walk is worth this much of a site's worth
-    PLAN_WORTH: { deposit: 3.0, rest: 1.2, strongpoint: 1.6, mast: 1.4, munitions: 1.0, beacon: 0.4, high: 0.5 },   // [C]
+    PLAN_WORTH: { deposit: 3.0, rest: 1.2, strongpoint: 1.6, mast: 1.4, munitions: 1.0, beacon: 3.3, high: 0.5 },   // [C] a beacon only to an OA with a reserve to land (the driver says so)
     PLAN_MARGIN_DAYS: 2,             // [C] the wall is announced this many days ahead: a region is left, and not walked into, from then
     PLAN_LEAVE_SLACK: 12,            // [C] ticks: a squad leaves when the wall is this close beyond its cheapest way out
     PATH_DETOUR: 6,                  // [C] ticks: a way round a squad in the road is taken only if it is at most this much longer
     PLAN_INWARD_FROM: 8,             // [C] with this few regions standing, everyone drifts inward
     SEEN_ENEMY_W: 1.5,
+    /* §CAPTAIN the squad's captain reads the ground for it (divide.js captainMind: judge 1.1–3.4, sight 0.10–0.55, nerve 0–1) */
+    NERVE_SWING: 0.45,               // [C] how far nerve bends the count of what is out there: a shaken captain sees more of them
+    JUDGE_NOISE: 0.6,                // [C] how far a captain misweighs what a zone is worth, divided by his judgement
+    SIGHT_FAR_AT: 0.45,              // [C] a captain who reads ground this well sees a ring further than the ground alone gives
+    SIGHT_SHORT_AT: 0.2,             // [C] and one below this sees no further than the zones next to him, whatever the height
+    /* §WEATHER the day's weather on the ground (divide.js rolls it) */
+    WEATHER_BLIND_AT: 0.3,           // [C] sight cut below this: a squad sees only its own zone
+    WEATHER_SHORT_AT: 0.6,           // [C] below this: only the zones next to it
+    LOST_PACE: 0.3,                  // [C] a squad that has lost its bearings makes this much of its way
     HUNT_W: 2.0,                     // [C] §HUNT what a rival squad it can beat is worth, before the stance, the edge and the close-out               // [C] a zone a stronger enemy is known to hold is worth this much less
     /* §FIGHT a contact is a fight on the grid; the grid's own clock is turns, six to a tick (divide.js) */
     FIGHT_TURNS_PER_TICK: 6,         // [H] grid turns inside one two-hour block
@@ -86,7 +95,7 @@
     st.fights = []; st.resolve = opts.resolve || standIn; st.allied = opts.allied || ((a, b) => a === b); st.captivePolicy = opts.captivePolicy || captiveByStance;
     st.headOf = opts.headOf || null;   /* with bodies behind a squad, how many stand: read at dawn and after every fight */
     st.driven = !!opts.driven;         /* a day loop outside drives the clock: the contest does not call its own end */
-    st.onSettle = opts.onSettle || null;
+    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.reportOf = opts.reportOf || null;
     st.audit.fights = 0; st.audit.joined = 0; st.audit.harassed = 0; st.audit.captured = 0; st.audit.wiped = 0;
     const taken = {}; for (const q of st.squads) { if (taken[q.zone]) throw new Error('contest: two squads dropped on one zone ' + q.zone); taken[q.zone] = q.id; }
     st.rng = rng;
@@ -109,7 +118,19 @@
 
   /* ---------------- sight and noise ---------------- */
   /** the zones this squad sees from where it stands */
-  function sees(st, q) { return GROUND.seenFrom(st.ground, q.zone); }
+  function sees(st, q) {
+    const G = st.ground, z = G.zones[q.zone]; if (z.height <= -1) return [q.zone];
+    const m = q.mind ? q.mind.sight : CONST.SIGHT_FAR_AT - 0.1;
+    let rings = 1 + Math.max(0, z.height) + (m >= CONST.SIGHT_FAR_AT ? 1 : 0) - (m < CONST.SIGHT_SHORT_AT ? Math.max(0, z.height) : 0);
+    const w = st.weather && st.weather.sight != null ? st.weather.sight : 1;
+    if (w < CONST.WEATHER_BLIND_AT) rings = 0; else if (w < CONST.WEATHER_SHORT_AT) rings = Math.min(rings, 1);
+    if (st.night) rings = Math.min(rings, 1);   /* §LIGHT in the dark a squad sees the zones next to it at most */
+    const seen = new Set([q.zone]); let edge = [q.zone];
+    for (let r = 0; r < rings; r++) { const nxt = []; for (const id of edge) for (const n of G.zones[id].nb) if (!seen.has(n)) { seen.add(n); nxt.push(n); } edge = nxt; }
+    return [...seen];
+  }
+  /** how a squad's captain counts a rival force: his nerve bends it (a shaken man sees more of them) */
+  function feared(q, n) { const nerve = q && q.mind ? q.mind.nerve : 0.5; return n * (1 + (0.5 - nerve) * CONST.NERVE_SWING * 2); }
   /** distance in zones inside a region (null across regions) */
   function zoneDist(st, a, b) {
     const Z = st.ground.zones; if (Z[a].region !== Z[b].region) return null;
@@ -120,7 +141,7 @@
   /** what a squad sounds like this tick */
   function loudness(st, q) {
     let L = CONST.LOUD_HOLD + CONST.LOUD_PER_BODY * q.n + (q.moving ? CONST.LOUD_MARCH : 0) + (q.fightTicks > 0 ? CONST.LOUD_FIGHT : 0) + (q.beacon ? CONST.LOUD_BEACON : 0);
-    if (q.firing) L += q.firing * CONST.LOUD_REPORT;    /* set by the fight step (d): bodies that fired, suppressors counted as half */
+    if (q.firing) L += q.firing * CONST.LOUD_REPORT;    /* the guns firing: what each carries, a silenced one half a report (the driver counts them) */
     const z = st.ground.zones[q.zone];
     if (z.cover >= 1) L *= CONST.LOUD_COVER;
     if (z.hiding < 1) L *= z.hiding;
@@ -139,7 +160,7 @@
     for (const zid of seen) { const h = holder(st, zid); q.know[zid] = { at: now, oa: h && h.oa !== q.oa ? h.oa : null, n: h && h.oa !== q.oa ? h.n : 0, squad: h && h.oa !== q.oa ? h.id : null, how: 'seen' };
       /* §STANCE a rival seen on its way, or on its objective, beyond what the stance accepts: it thinks again */
       if (h && !st.allied(h.oa, q.oa) && q.intent && q.intent.type === 'take' && q.intent.why !== 'the wall' && q.intent.why !== 'order' && q.intent.why !== 'rushing'
-          && (zid === q.intent.zone || (q.path && q.path[0] === zid)) && h.n > q.n * (STANCE[q.stance] || STANCE.standard).accept) { q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: zid }; if (q.moving && q.moving.to === zid && !onRoad(q)) q.moving = null; q.path = null; } }
+          && (zid === q.intent.zone || (q.path && q.path[0] === zid)) && feared(q, h.n) > q.n * (STANCE[q.stance] || STANCE.standard).accept) { q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: zid }; if (q.moving && q.moving.to === zid && !onRoad(q)) q.moving = null; q.path = null; } }
     for (const hd of hears(st, q)) { if (seen.indexOf(hd.squad.zone) >= 0) continue; q.know[hd.squad.zone] = { at: now, oa: null, n: Math.round(hd.loud / CONST.LOUD_PER_BODY / 2), squad: hd.squad.id, how: 'heard' }; st.audit.heard++; }
   }
   /** the briefing a seat gives at the window: the overview of the squad's own and adjacent regions */
@@ -165,7 +186,10 @@
   function exitTicks(st, group) {
     const G = st.ground, reg = G.regions[G.zones[group[0].zone].region]; let best = Infinity;
     for (const q of group) for (const l of reg.links) { if (goesOn(st, l.to) <= goesOn(st, reg.id)) continue;
-      const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) }); if (p && p.ticks < best) best = p.ticks; }
+      const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) });
+      /* its captives slow every step of the way out */
+      const t = p ? p.ticks + Math.max(0, p.path.length - 1) * captiveTicks(q.captives.length) : Infinity;
+      if (t < best) best = t; }
     return best;
   }
   /** the rival strength a group knows of in a region, from knowledge no older than `since` */
@@ -177,9 +201,20 @@
   function planGroup(st, oa, group, rid, left, opts) {
     const G = st.ground, dial = STANCE[group[0].stance] || STANCE.standard, now = st.day * CONST.TICKS_A_DAY + st.tick;
     const force = group.reduce((t, q) => t + q.n, 0);
+    const lead = group.slice().sort((a, b) => b.n - a.n)[0];   /* the biggest squad's captain reads for the group */
+    /* §SITES what a zone's site is to this group now: a driver that keeps the sites says whether it is spent, held,
+       dark or wanted (a beacon only with a reserve to land; a rest site more to the hurt and the hungry; the deposit the
+       board asked for more); alone, the ground's own site */
+    const siteOf = (zid, staying) => st.siteFor ? st.siteFor(zid, oa, group, staying) : G.zones[zid].site;
+    const siteWorth = (site) => { if (!site) return 0;
+      if (site.kind === 'deposit') return site.opens <= st.day + 1 ? (CONST.PLAN_WORTH.deposit + (site.units || 0) * 0.3) * (site.need || 1) : 0;
+      if (site.kind === 'beacon' && !st.siteFor) return 0;
+      return (CONST.PLAN_WORTH[site.kind] || 0) * (site.need || 1); };
     /* §PRESSED pressed is the wall against the real way out: a region whose one exit is sixteen ticks off
        presses two days sooner than one whose exit is three */
-    const goes = goesOn(st, rid), ticksLeft = (goes - st.day) * CONST.TICKS_A_DAY - st.tick;
+    /* §WEATHER the day's pace, and a squad that has lost its way, shorten the time left in walking terms */
+    const pace = Math.min(...group.map(q => (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1)));
+    const goes = goesOn(st, rid), ticksLeft = Math.floor(((goes - st.day) * CONST.TICKS_A_DAY - st.tick) * pace);
     /* on the last ground the wall comes zone by zone: a squad whose own zone goes soon is pressed toward the zones that last */
     const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= CONST.PLAN_MARGIN_DAYS);
     const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= CONST.PLAN_MARGIN_DAYS || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
@@ -189,12 +224,13 @@
     const cands = [];
     for (const r in reach) {
       const reg = G.regions[+r], rg = goesOn(st, reg.id);
-      if (rg <= st.day + CONST.PLAN_MARGIN_DAYS && reg.id !== G.wall.last) continue;   /* not worth walking into */
+      /* a column slowed by captives needs a day more to get back out of a region than one that walks free */
+      if (rg <= st.day + CONST.PLAN_MARGIN_DAYS + (reg.id !== rid && group.some(q => captiveTicks(q.captives.length) >= 2) ? 1 : 0) && reg.id !== G.wall.last) continue;   /* not worth walking into */
       for (const zid of reg.zones) {
         const z = G.zones[zid], zg = Math.min(rg, zoneGoes(st, zid));
         if (reg.id === G.wall.last && zg <= st.day + CONST.PLAN_MARGIN_DAYS && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
         let worth = 0;
-        if (z.site && z.site.kind !== 'beacon') { if (z.site.kind === 'deposit') { if (z.site.opens <= st.day + 1) worth += CONST.PLAN_WORTH.deposit + (z.site.units || 0) * 0.3; } else worth += CONST.PLAN_WORTH[z.site.kind] || 0; }
+        worth += siteWorth(siteOf(zid, false));
         if (z.height >= 1) worth += CONST.PLAN_WORTH.high * z.height;
         if (left <= CONST.PLAN_INWARD_FROM || pressed) worth += zg === Infinity ? 3 : (G.days + 2 - zg) <= 0 ? 0 : Math.min(3, (zg - st.day) / 6);   /* late, ground that lasts is worth something */
         const own = group.some(q => q.zone === zid) || st.squads.some(q => q.alive && q.oa === oa && q.zone === zid && group.indexOf(q) < 0);
@@ -203,7 +239,7 @@
            the wall, it is a poor one); within it, a fight the stance seeks */
         const k = groupKnows(group, zid);
         if (k && k.oa && !st.allied(k.oa, oa)) {
-          if (k.n > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; }
+          if (feared(lead, k.n) > force * dial.accept) { if (!pressed) continue; worth -= CONST.SEEN_ENEMY_W * 2; }
           else {
             /* §HUNT A FIGHT WORTH TAKING. A rival it can beat is worth going for by how far it outnumbers it, how much of
                that banner the squad is — taking the last squad of a house closes it out — and how few banners are left,
@@ -217,7 +253,7 @@
         }
         /* and the rivals known in that region as a whole, fresh within a day: a region held in strength beyond the
            stance's acceptance is not walked into for a site */
-        if (!pressed && reg.id !== rid) { const near = knownIn(st, group, reg, now - CONST.TICKS_A_DAY); if (near > force * dial.accept) continue; }
+        if (!pressed && reg.id !== rid) { const near = knownIn(st, group, reg, now - CONST.TICKS_A_DAY); if (feared(lead, near) > force * dial.accept) continue; }
         if (worth <= 0 && !pressed) continue;
         cands.push({ zid, worth, reg: reg.id });
       }
@@ -238,10 +274,14 @@
         if (q.shut && q.shut[c.zid] === st.day) continue;   /* a zone it was turned back from today is not tried again today */
         const path = GROUND.ticksBetween(G, q.zone, c.zid, { avoid: v => deadZone(st, v) || (v !== c.zid && !!holder(st, v) && holder(st, v).oa !== oa) });   /* friends are passed when they move; the way waits for them */
         if (!path) continue;
-        if (pressed && !zonePressed && c.reg !== rid && path.ticks > ticksLeft - 1) continue;   /* it would not get there */
-        const v = c.worth - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && (c.reg !== rid || zonePressed) ? 2 : 0);
+        if (pressed && !zonePressed && c.reg !== rid && path.ticks + Math.max(0, path.path.length - 1) * captiveTicks(q.captives.length) > ticksLeft - 1) continue;   /* it would not get there */
+        /* §CAPTAIN a captain weighs what a zone is worth only as well as his judgement lets him */
+        const judged = c.worth * (1 + (r01(st) - 0.5) * 2 * CONST.JUDGE_NOISE / (q.mind ? q.mind.judge : 2));
+        const v = judged - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && (c.reg !== rid || zonePressed) ? 2 : 0);
         if (v > bestV) { bestV = v; best = { zid: c.zid, path }; }
       }
+      /* §SITES the ground it stands on can be worth staying for: a strongpoint its OA holds, a deposit it is working */
+      if (best && !pressed) { const stay = siteWorth(siteOf(q.zone, true)); if (stay > 0 && stay >= bestV) { best = null; bestV = -Infinity; st.audit.stayed = (st.audit.stayed || 0) + 1; } }
       const before = q.intent && q.intent.type === 'take' ? q.intent.zone : null;
       if (!best && zonePressed) {
         /* the last ground closing on it and nothing it can take: the nearest zone that lasts longer, whoever stands in it */
@@ -260,7 +300,7 @@
       if (best && (bestV > 0 || pressed)) { taken[best.zid] = true; q.intent = { type: 'take', zone: best.zid, why: pressed ? 'the wall' : 'the ground' }; st.audit.plans++; }
       else {
         /* nothing worth walking to: a known rival next door it will not close with is picked at from here */
-        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && k.n > q.n * dial.accept && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
+        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && feared(q, k.n) > q.n * dial.accept && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
         q.intent = nb != null && !pressed ? { type: 'harass', zone: nb, why: 'picking' } : { type: 'hold', zone: q.zone };
         if (q.intent.type !== 'harass') q.firing = 0;
       }
@@ -313,7 +353,7 @@
         /* §STANCE arriving to find the zone held in strength beyond what it accepts, a squad that is not driven
            stops short and thinks again; the fight is the one it chooses */
         const must = q.intent && (q.intent.why === 'the wall' || q.intent.why === 'order' || q.intent.why === 'rushing');
-        if (!must && h.n > q.n * (STANCE[q.stance] || STANCE.standard).accept) {
+        if (!must && feared(q, h.n) > q.n * (STANCE[q.stance] || STANCE.standard).accept) {
           if (onRoad(q)) { q.moving.paid = q.moving.cost; q.intent = { type: 'hold', zone: q.zone, why: 'contact', at: to }; return; }
           q.moving = null; q.path = null; q.shut = q.shut || {}; q.shut[to] = st.day;
           q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: to }; plan(st, q.oa, { only: ['seen'] }); return;
@@ -325,7 +365,9 @@
         /* a friend stands there: wait for it to move on, unless a way around it is open; two friends each
            bound for the other's zone pass each other */
         q.moving.paid = q.moving.cost;
-        if (h.moving && h.moving.to === q.zone && h.moving.paid >= h.moving.cost) { h.zone = q.zone; q.zone = to; h.moving = null; q.moving = null; q.visited.push(to); h.visited.push(h.zone); st.audit.steps += 2;
+        if (h.moving && h.moving.to === q.zone && h.moving.paid >= h.moving.cost) {
+          st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: h.id, oa: h.oa, from: h.zone, to: q.zone, kind: 'pass' }, { t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: 'pass' });
+          h.zone = q.zone; q.zone = to; h.moving = null; q.moving = null; q.visited.push(to); h.visited.push(h.zone); st.audit.steps += 2;
           if (q.path && q.path[0] === to) q.path.shift(); if (h.path && h.path[0] === h.zone) h.path.shift(); return; }
         if (q.intent && to !== q.intent.zone && !onRoad(q)) {   /* one on the road is at the far door and goes round nothing */
           const around = GROUND.ticksBetween(st.ground, q.zone, q.intent.zone, { avoid: v => deadZone(st, v) || (!!holder(st, v) && v !== q.intent.zone) });
@@ -359,7 +401,9 @@
     if (!q.path || !q.path.length) { if (!q.wait) q.wait = 0; if (++q.wait > 6) { q.intent = { type: 'hold', zone: q.zone }; q.wait = 0; } return; }
     q.wait = 0;
     const stp = stepOf(st, q, q.path[0]); if (!stp) { q.path = null; return; }
-    q.moving = { to: stp.to, paid: 1, cost: stp.cost + captiveTicks(q.captives.length), kind: stp.kind };
+    /* §WEATHER the day's weather slows the march; a squad that has lost its bearings makes a third of its way */
+    const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+    q.moving = { to: stp.to, paid: 1, cost: Math.ceil(stp.cost / pace) + captiveTicks(q.captives.length), kind: stp.kind };
     if (stp.kind === 'route') st.events.push({ t: 'road', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: stp.to });   /* on the road: in neither zone till it arrives */
   }
 
@@ -375,6 +419,8 @@
       as many ticks as it ran, never past the window at dawn. At its end the beaten break off a zone back together,
       the winner holds the ground, and the captured are decided then and there. */
   const absTick = st => st.day * CONST.TICKS_A_DAY + st.tick;
+  /** the compass direction from one zone to another: a comer's bearing is the way back to where it came from, the edge
+      of the fight's board it comes on at */
   function bearingOf(st, from, to) { const A = st.ground.zones[from], B = st.ground.zones[to]; return Math.atan2(B.y - A.y, B.x - A.x); }
   function ticksToWindow(st) { for (let d = st.day + 1; d <= st.day + 3; d++) if (GROUND.isWindowDay(st.ground, d)) return (d - st.day) * CONST.TICKS_A_DAY - st.tick; return CONST.TICKS_A_DAY - st.tick; }   /* past the month the windows are daily */
   function prepOf(st, q, zone, holdsIt) {
@@ -387,7 +433,7 @@
     const f = { id: st.fights.length, zone, region: st.ground.zones[zone].region, day: st.day, tick: st.tick, sides: [], joiners: [], done: false };
     const sideFor = oa => { let S = f.sides.find(x => st.allied(x.oa, oa)); if (!S) { S = { tag: String.fromCharCode(65 + f.sides.length), oa, squads: [] }; f.sides.push(S); } return S; };
     /* a squad that came by road fights from the road's end and stands in neither zone till it is over */
-    const put = (q, from, late) => { const S = sideFor(q.oa); S.squads.push({ id: q.id, from, bearing: from === zone ? null : bearingOf(st, from, zone), prep: prepOf(st, q, zone, from === zone), atTurn: late || 1, n: q.n, stance: q.stance }); q.fight = f.id; if (onRoad(q)) q.moving.paid = q.moving.cost; else q.moving = null; q.path = null; };
+    const put = (q, from, late) => { const S = sideFor(q.oa); S.squads.push({ id: q.id, from, bearing: from === zone ? null : bearingOf(st, zone, from), prep: prepOf(st, q, zone, from === zone), atTurn: late || 1, n: q.n, stance: q.stance }); q.fight = f.id; if (onRoad(q)) q.moving.paid = q.moving.cost; else q.moving = null; q.path = null; };
     put(held, zone); put(mover, mover.zone);
     /* the neighbours: anybody in a zone next door, not in a fight, not on the road, not pressed by the wall */
     const Z = st.ground.zones;
@@ -405,7 +451,7 @@
     f.res = res;
     const ticks = Math.max(1, Math.min(CONST.FIGHT_TICKS_MAX, ticksToWindow(st), Math.ceil((res.turns || 1) / CONST.FIGHT_TURNS_PER_TICK)));
     f.ticks = ticks; f.until = absTick(st) + ticks;
-    for (const S of f.sides) for (const x of S.squads) { const q = st.squads[x.id]; q.fightTicks = ticks; q.intent = { type: 'fight', zone, why: 'contact' }; }
+    for (const S of f.sides) for (const x of S.squads) { const q = st.squads[x.id]; q.fightTicks = ticks; q.firing = st.reportOf ? st.reportOf(q) : q.n; q.intent = { type: 'fight', zone, why: 'contact' }; }
     st.fights.push(f); st.audit.fights++;
     st.events.push({ t: 'fight', day: st.day, tick: st.tick, zone, fight: f.id, sides: f.sides.map(S => ({ oa: S.oa, squads: S.squads.map(x => x.id) })), ticks, turns: res.turns });
   }
@@ -419,7 +465,7 @@
       wasRoad[q.id] = onRoad(q);
       const capN = Array.isArray(r.captured) ? r.captured.length : (r.captured || 0);
       const gone = (r.dead || 0) + (r.down || 0) + capN;
-      q.n = Math.max(0, q.n - gone); q.lost += gone; q.fight = null; q.fightTicks = 0; q.harass = null; q.moving = null;
+      q.n = Math.max(0, q.n - gone); q.lost += gone; q.fight = null; q.fightTicks = 0; q.firing = 0; q.harass = null; q.moving = null;
       if (capN && winner && winner !== S) takeCaptives(st, winner, q, r.captured, f);
       if (q.n <= 0) { q.alive = false; wiped.push(q); st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null });
         /* wiping a holder passes its captives to the wiper */
@@ -435,7 +481,8 @@
       if (to == null) {
         /* beaten with nowhere to break to: overrun, and every body still standing is a captive of the winner */
         q.alive = false; st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null, how: 'overrun' });
-        if (winner) takeCaptives(st, winner, q, q.n, f); q.n = 0; return;
+        /* a driver that holds the bodies hands over the ones taken (and marks them held); alone, a count */
+        if (winner) takeCaptives(st, winner, q, st.onOverrun ? st.onOverrun(st, q, winner.oa) : q.n, f); q.n = 0; q.gone = true; return;
       }
       if (to !== q.zone || wasRoad[q.id]) { st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: 'break' }); q.zone = to; q.visited.push(to); }
       q.intent = { type: 'hold', zone: to, why: 'beaten' }; q.shut = q.shut || {}; q.shut[f.zone] = st.day; };

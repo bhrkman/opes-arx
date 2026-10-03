@@ -39,6 +39,7 @@
     DEPOSITS: [4, 6],               // [C]
     SITES_PER_REGION: 3,            // [C] at most
     DEPOSIT_OPENS: [2, 16],         // [C] the first and last day a deposit opens
+    DEPOSIT_WINDOW: 4,              // [C] days a deposit stands open before its region goes: the planner leaves two days ahead, and a seam takes a day to reach and work
     LAST_GROUND_PICK: 3             // [C] the last region is drawn from the N nearest the centre
   };
   /* ticks a step costs, by the terrain's going: open ground two, marsh five */
@@ -227,16 +228,20 @@
     for (let i = 0; i < nDep; i++) {
       const res = composition.length ? composition[i % composition.length] : null;
       const opens = Math.round(CONST.DEPOSIT_OPENS[0] + (CONST.DEPOSIT_OPENS[1] - CONST.DEPOSIT_OPENS[0]) * i / Math.max(1, nDep - 1));
-      place('deposit', { resource: res ? res.id : null, category: res ? res.category : null, label: res ? (MAP.DEPOSIT_LABEL[res.category] || 'Deposit') : 'Deposit', opens, units: res ? Math.max(1, Math.round((res.density || 0.5) * 4)) : 2 },
-            z => z.region !== last.id || i === nDep - 1);
+      /* §SITES a deposit is placed where its region stands long enough after it opens to be reached and worked: a seam
+         the planner must leave the day it opens is no seam (40% of them were) */
+      const lasts = z => { const t = takeAt.find(x => x.region === z.region); return t ? t.day - opens >= CONST.DEPOSIT_WINDOW : true; };
+      const base = z => z.region !== last.id || i === nDep - 1;
+      const extra = { resource: res ? res.id : null, category: res ? res.category : null, label: res ? (MAP.DEPOSIT_LABEL[res.category] || 'Deposit') : 'Deposit', opens, units: res ? Math.max(1, Math.round((res.density || 0.5) * 4)) : 2 };
+      if (!place('deposit', extra, z => base(z) && lasts(z))) place('deposit', extra, base);
     }
     for (let i = 0; i < CONST.SITES.beacon; i++) place('beacon', {}, z => z.region !== last.id);
     for (let i = 0; i < CONST.SITES.rest; i++) place('rest', {});
     for (let i = 0; i < CONST.SITES.strongpoint; i++) place('strongpoint', {}, z => outerHalf.indexOf(z.region) >= 0);
     for (let i = 0; i < CONST.SITES.munitions; i++) place('munitions', {});
     for (let i = 0; i < CONST.SITES.mast; i++) place('mast', {}, z => z.height >= 1);
-    /* a deposit that opens after its region is gone opens the day before instead */
-    for (const s of sites) if (s.kind === 'deposit') { const t = takeAt.find(x => x.region === zones[s.zone].region); if (t && s.opens >= t.day) s.opens = Math.max(2, t.day - 2); }
+    /* a deposit that would open too near its region's going opens early enough to be worked */
+    for (const s of sites) if (s.kind === 'deposit') { const t = takeAt.find(x => x.region === zones[s.zone].region); if (t && t.day - s.opens < CONST.DEPOSIT_WINDOW) s.opens = Math.max(2, t.day - CONST.DEPOSIT_WINDOW); }
 
     const ground = {
       name, archetype: archKey, archetypeName: arch.name, days: CONST.DAYS,
