@@ -1,7 +1,7 @@
 /* Capital Divide — /sim/ground.js
  *
- * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of three to
- * eight zones. A zone is where a squad stands: one squad holds it, it has a height, cover and
+ * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of twelve to
+ * twenty-four zones. A zone is where a squad stands: one squad holds it, it has a height, cover and
  * hiding, and may carry one site. A region is the unit of character and of the wall: it has
  * one terrain and one pace, its zones are linked to their neighbours, and routes join it to
  * the regions beside it at a cost in ticks. Nothing is impassable: where the relief forbids a
@@ -26,11 +26,14 @@
     WINDOW_EVERY: 2,                // [C] a comms window every other day from the drop
     DAILY_WHEN_LEFT: 3,             // [C] and every day once this few regions stand
     REGIONS: [10, 18],              // [C] a planet's region count, before the archetype leans on it
-    ZONES_PER_REGION: [3, 8],       // [C] ruled
-    ZONES_TARGET: 5.4,              // [C] the mean the generator aims at; a region's area decides its share
+    ZONES_PER_REGION: [12, 24],     // [C] ruled: a region is a space with room in it, not a handful of posts
+    ZONES_TARGET: 17,               // [C] the mean the generator aims at; a region's area decides its share
+    /* [C] a step between zones is shorter now there are more of them: a region takes as long to cross as it did when it
+       held five, so a step costs the terrain's going scaled by how much nearer its zones stand */
+    STEP_SCALE_FROM: 5.4,
     REGION_MIN_GAP: 0.055,          // [C] seeds no nearer than this, as a share of the disc
-    SAMPLE: 64,                     // [C] the relief is read on this grid when regions are cut
-    ZONE_LINKS: 2,                  // [C] each zone links to this many nearest in its region, then the region is joined up
+    SAMPLE: 96,                     // [C] the relief is read on this grid when regions are cut (fine enough to be drawn as land)
+    ZONE_LINKS: 3,                  // [C] each zone links to this many nearest in its region, then the region is joined up
     ROUTE_UNIT: 0.06,               // [C] one route-length of this many disc units costs one step's ticks
     ROUTE_WATER_MULT: 2.0,          // [C] a route that crosses water is the long way round
     ROUTE_WATER_CUT: 0.6,           // [C] a route more than this share water does not exist, unless nothing else joins the region
@@ -40,7 +43,7 @@
     SITES_PER_REGION: 3,            // [C] at most
     DEPOSIT_OPENS: [2, 16],         // [C] the first and last day a deposit opens
     DEPOSIT_WINDOW: 4,              // [C] days a deposit stands open before its region goes: the planner leaves two days ahead, and a seam takes a day to reach and work
-    LAST_GROUND_PICK: 3             // [C] the last region is drawn from the N nearest the centre
+    LAST_GROUND_PICK: 1             // [C] the last ground is the region nearest the centre: the wall closes on the middle
   };
   /* ticks a step costs, by the terrain's going: open ground two, marsh five */
   const TICKS = { open_basin: 2, salt_flats: 2, broken_ground: 3, ruins: 3, forest: 4, deep_canopy: 4, entrenched: 4,
@@ -114,7 +117,7 @@
         return [t, Math.max(1, w * lean)];
       });
       reg.terrain = P.weightedPick(rng, mix);
-      reg.ticks = TICKS[reg.terrain] || 3;
+      reg.ticks = Math.max(1, Math.round((TICKS[reg.terrain] || 3) * Math.sqrt(CONST.STEP_SCALE_FROM / CONST.ZONES_TARGET)));
       reg.forage = (MAP.TERRAIN[reg.terrain] || {}).forage || 0;
     }
 
@@ -185,7 +188,8 @@
     const last = P.pick(rng, byCentre.slice(0, Math.min(CONST.LAST_GROUND_PICK, byCentre.length)));
     /* outermost first, with a drawn shuffle — and never a region whose going would cut the standing ground in two:
        whoever is left must always have a way to the last ground */
-    const scored = regions.filter(r => r !== last).map(r => ({ id: r.id, d: dist(r.cx, r.cy, last.cx, last.cy) + (rng() - 0.5) * R * 0.18 })).sort((a, b) => b.d - a.d);
+    /* outermost from the CENTRE of the disc, as the dome closed: a ring tightening on the middle, not on wherever the last ground fell */
+    const scored = regions.filter(r => r !== last).map(r => ({ id: r.id, d: dist(r.cx, r.cy, CX, CY) + (rng() - 0.5) * R * 0.08 })).sort((a, b) => b.d - a.d);
     const rest = [], gone = new Set();
     const connectedWithout = (id) => { const live = regions.filter(r => !gone.has(r.id) && r.id !== id).map(r => r.id); if (!live.length) return true;
       const seen = new Set([live[0]]), q = [live[0]]; while (q.length) { const c = q.shift(); for (const l of regions[c].links) if (!gone.has(l.to) && l.to !== id && !seen.has(l.to)) { seen.add(l.to); q.push(l.to); } } return seen.size === live.length; };
@@ -250,11 +254,21 @@
       zones: zones.map(z => ({ id: z.id, region: z.region, x: round3(z.x), y: round3(z.y), height: z.height, cover: z.cover, hiding: round3(z.hiding), site: z.site, nb: z.nb })),
       sites, wall, windows: { every: CONST.WINDOW_EVERY, dailyWhenLeft: CONST.DAILY_WHEN_LEFT },
       composition, pot: MAP.richnessOf ? { richness: MAP.richnessOf(composition) } : null,
-      seaLevel, water: cells.filter(c => c.water).length / cells.length
+      seaLevel, water: cells.filter(c => c.water).length / cells.length,
+      /* §GROUND the relief as it was cut, for the page to draw: every sample of the disc, its region (-1 water) and its height
+         in tenths, row by row; off the disc is left out */
+      relief: reliefOf(cells, N)
     };
     return ground;
   }
 
+  /** §GROUND the relief, packed for the page: row by row, a character a sample — '.' off the disc, '~' water, else the region
+      (from '0', one character each) — and the height in tenths as a digit */
+  function reliefOf(cells, N) {
+    const reg = new Array(N * N).fill('.'), h = new Array(N * N).fill('0');
+    for (const c of cells) { const i = Math.round(c.y * N - 0.5) * N + Math.round(c.x * N - 0.5); reg[i] = c.water ? '~' : String.fromCharCode(48 + c.region); h[i] = String(Math.max(0, Math.min(9, Math.round(c.h * 9)))); }
+    return { n: N, reg: reg.join(''), h: h.join('') };
+  }
   /* the zone of `a` nearest `b`: where a route leaves from */
   function gateway(a, b, zones) { return a.zones.map(id => zones[id]).sort((p, q) => dist(p.x, p.y, b.cx, b.cy) - dist(q.x, q.y, b.cx, b.cy))[0]; }
   function round3(v) { return Math.round(v * 1000) / 1000; }

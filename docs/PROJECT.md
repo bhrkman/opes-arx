@@ -157,11 +157,11 @@ lean one pleases.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
-- The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js). The
+- The Divide's ground is regions of twelve to twenty-four zones cut from a relief (sim/ground.js); a step costs the terrain's going scaled to how near the zones stand. The
   planet is the dossier — what it is made of and worth, its hazards, its light — and its
   objectives are the ground's sites. A zone is where one squad stands, but the final zone holds whoever is left, friends together; a region has one terrain and one pace;
   routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
-  reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
+  reachable. The wall takes whole regions, outermost from the centre first, closing on the last ground at the middle, announced a window ahead, timed to a
   month. Windows fall every other day and daily once few regions stand. The wall's order never
   cuts the standing ground in two. Once the last region-taking is past, the wall closes the last
   ground a zone at a time, farthest from its final zone first, so that one zone stands alone on the

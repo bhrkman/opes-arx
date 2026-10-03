@@ -363,13 +363,13 @@
   .holdrow .hv{text-align:right;font-size:10.5px}
   /* THE LANDING RING: six sectors, what the survey bought about each, and the choice */
   /* the map takes the room; the landings are a sliver beside it; the key fills what is left */
-  .landcols{display:grid;grid-template-columns:minmax(520px,780px) 280px minmax(300px,1fr);gap:12px;align-items:start;margin-bottom:12px}
+  .landcols{display:grid;grid-template-columns:minmax(480px,1fr) minmax(360px,480px);gap:12px;align-items:start;margin-bottom:12px}
   .landcols canvas{max-height:780px}
   .landcols .legendside{display:contents}
   .landcols .sector{padding:6px 9px}
   .landcols .sector .sn{font-size:11.5px}
   .landcols .sector .m{font-size:10px}
-  @media (max-width: 1400px){ .landcols{grid-template-columns:minmax(420px,1fr) 260px} .landcols .legendside{display:contents} .landcols > .legendside > .box{grid-column:1/-1} }
+  @media (max-width: 1400px){ .landcols{grid-template-columns:minmax(420px,1fr) minmax(340px,420px)} .landcols .legendside{display:contents} .landcols > .legendside > .box{grid-column:1/-1} }
   .dstrip{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:8px}
   .dpick{padding:3px 6px;font-size:10px} .dpick .ds{margin-top:2px;min-height:14px}
   .dpick{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--faint);border-radius:5px;padding:5px 8px;font-size:10.5px}
@@ -2166,13 +2166,14 @@
     <div><div class="gvwrap" id="gvwrap"><svg id="gvmap" viewBox="0 0 900 900"></svg><div class="gvcard" id="gvcard"></div><div class="gvtip" id="gvtip"></div></div>
       <div class="box" id="gvlegend" style="margin-top:8px"></div></div>
     <div>
-      <div class="box" id="gvplanet"><span class="m">No Contest On the Ground</span></div>
+      <!-- §GROUND the region opened sits beside the map it was opened on, so both are in view at once -->
+      <h2 style="margin-top:0">Inside the Region</h2><div class="box" id="gvregion"></div>
+      <div class="box" id="gvplanet" style="margin-top:12px"><span class="m">No Contest On the Ground</span></div>
+      <h2>Since the Last Window</h2><div class="box log" id="gvsince"></div>
       <h2>The Schedule</h2><div class="box" id="gvsched"></div>
       <h2>The Ground’s Deposits</h2><div class="box" id="tground"><span class="m">&mdash;</span></div>
       <h2>Yours</h2><div class="box" id="gvorders"></div>
       <h2>Still on the Ground</h2><div class="box"><table id="gvboard"></table></div>
-      <h2>Since the Last Window</h2><div class="box log" id="gvsince"></div>
-      <h2>Inside the Region</h2><div class="box" id="gvregion"></div>
       <h2>The Record</h2><div class="box log" id="grecord"><div class="m">&mdash;</div></div>
     </div>
   </div>
@@ -12037,8 +12038,8 @@
 /* ==== ground.js ==== */
 /* Capital Divide — /sim/ground.js
  *
- * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of three to
- * eight zones. A zone is where a squad stands: one squad holds it, it has a height, cover and
+ * THE GROUND AS REGIONS AND ZONES (ruled). A planet is a relief cut into regions of twelve to
+ * twenty-four zones. A zone is where a squad stands: one squad holds it, it has a height, cover and
  * hiding, and may carry one site. A region is the unit of character and of the wall: it has
  * one terrain and one pace, its zones are linked to their neighbours, and routes join it to
  * the regions beside it at a cost in ticks. Nothing is impassable: where the relief forbids a
@@ -12063,11 +12064,14 @@
     WINDOW_EVERY: 2,                // [C] a comms window every other day from the drop
     DAILY_WHEN_LEFT: 3,             // [C] and every day once this few regions stand
     REGIONS: [10, 18],              // [C] a planet's region count, before the archetype leans on it
-    ZONES_PER_REGION: [3, 8],       // [C] ruled
-    ZONES_TARGET: 5.4,              // [C] the mean the generator aims at; a region's area decides its share
+    ZONES_PER_REGION: [12, 24],     // [C] ruled: a region is a space with room in it, not a handful of posts
+    ZONES_TARGET: 17,               // [C] the mean the generator aims at; a region's area decides its share
+    /* [C] a step between zones is shorter now there are more of them: a region takes as long to cross as it did when it
+       held five, so a step costs the terrain's going scaled by how much nearer its zones stand */
+    STEP_SCALE_FROM: 5.4,
     REGION_MIN_GAP: 0.055,          // [C] seeds no nearer than this, as a share of the disc
-    SAMPLE: 64,                     // [C] the relief is read on this grid when regions are cut
-    ZONE_LINKS: 2,                  // [C] each zone links to this many nearest in its region, then the region is joined up
+    SAMPLE: 96,                     // [C] the relief is read on this grid when regions are cut (fine enough to be drawn as land)
+    ZONE_LINKS: 3,                  // [C] each zone links to this many nearest in its region, then the region is joined up
     ROUTE_UNIT: 0.06,               // [C] one route-length of this many disc units costs one step's ticks
     ROUTE_WATER_MULT: 2.0,          // [C] a route that crosses water is the long way round
     ROUTE_WATER_CUT: 0.6,           // [C] a route more than this share water does not exist, unless nothing else joins the region
@@ -12077,7 +12081,7 @@
     SITES_PER_REGION: 3,            // [C] at most
     DEPOSIT_OPENS: [2, 16],         // [C] the first and last day a deposit opens
     DEPOSIT_WINDOW: 4,              // [C] days a deposit stands open before its region goes: the planner leaves two days ahead, and a seam takes a day to reach and work
-    LAST_GROUND_PICK: 3             // [C] the last region is drawn from the N nearest the centre
+    LAST_GROUND_PICK: 1             // [C] the last ground is the region nearest the centre: the wall closes on the middle
   };
   /* ticks a step costs, by the terrain's going: open ground two, marsh five */
   const TICKS = { open_basin: 2, salt_flats: 2, broken_ground: 3, ruins: 3, forest: 4, deep_canopy: 4, entrenched: 4,
@@ -12151,7 +12155,7 @@
         return [t, Math.max(1, w * lean)];
       });
       reg.terrain = P.weightedPick(rng, mix);
-      reg.ticks = TICKS[reg.terrain] || 3;
+      reg.ticks = Math.max(1, Math.round((TICKS[reg.terrain] || 3) * Math.sqrt(CONST.STEP_SCALE_FROM / CONST.ZONES_TARGET)));
       reg.forage = (MAP.TERRAIN[reg.terrain] || {}).forage || 0;
     }
 
@@ -12222,7 +12226,8 @@
     const last = P.pick(rng, byCentre.slice(0, Math.min(CONST.LAST_GROUND_PICK, byCentre.length)));
     /* outermost first, with a drawn shuffle — and never a region whose going would cut the standing ground in two:
        whoever is left must always have a way to the last ground */
-    const scored = regions.filter(r => r !== last).map(r => ({ id: r.id, d: dist(r.cx, r.cy, last.cx, last.cy) + (rng() - 0.5) * R * 0.18 })).sort((a, b) => b.d - a.d);
+    /* outermost from the CENTRE of the disc, as the dome closed: a ring tightening on the middle, not on wherever the last ground fell */
+    const scored = regions.filter(r => r !== last).map(r => ({ id: r.id, d: dist(r.cx, r.cy, CX, CY) + (rng() - 0.5) * R * 0.08 })).sort((a, b) => b.d - a.d);
     const rest = [], gone = new Set();
     const connectedWithout = (id) => { const live = regions.filter(r => !gone.has(r.id) && r.id !== id).map(r => r.id); if (!live.length) return true;
       const seen = new Set([live[0]]), q = [live[0]]; while (q.length) { const c = q.shift(); for (const l of regions[c].links) if (!gone.has(l.to) && l.to !== id && !seen.has(l.to)) { seen.add(l.to); q.push(l.to); } } return seen.size === live.length; };
@@ -12287,11 +12292,21 @@
       zones: zones.map(z => ({ id: z.id, region: z.region, x: round3(z.x), y: round3(z.y), height: z.height, cover: z.cover, hiding: round3(z.hiding), site: z.site, nb: z.nb })),
       sites, wall, windows: { every: CONST.WINDOW_EVERY, dailyWhenLeft: CONST.DAILY_WHEN_LEFT },
       composition, pot: MAP.richnessOf ? { richness: MAP.richnessOf(composition) } : null,
-      seaLevel, water: cells.filter(c => c.water).length / cells.length
+      seaLevel, water: cells.filter(c => c.water).length / cells.length,
+      /* §GROUND the relief as it was cut, for the page to draw: every sample of the disc, its region (-1 water) and its height
+         in tenths, row by row; off the disc is left out */
+      relief: reliefOf(cells, N)
     };
     return ground;
   }
 
+  /** §GROUND the relief, packed for the page: row by row, a character a sample — '.' off the disc, '~' water, else the region
+      (from '0', one character each) — and the height in tenths as a digit */
+  function reliefOf(cells, N) {
+    const reg = new Array(N * N).fill('.'), h = new Array(N * N).fill('0');
+    for (const c of cells) { const i = Math.round(c.y * N - 0.5) * N + Math.round(c.x * N - 0.5); reg[i] = c.water ? '~' : String.fromCharCode(48 + c.region); h[i] = String(Math.max(0, Math.min(9, Math.round(c.h * 9)))); }
+    return { n: N, reg: reg.join(''), h: h.join('') };
+  }
   /* the zone of `a` nearest `b`: where a route leaves from */
   function gateway(a, b, zones) { return a.zones.map(id => zones[id]).sort((p, q) => dist(p.x, p.y, b.cx, b.cy) - dist(q.x, q.y, b.cx, b.cy))[0]; }
   function round3(v) { return Math.round(v * 1000) / 1000; }
@@ -33779,6 +33794,48 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var GV_HEIGHT = { '-1': 'Low Ground', '0': '', '1': 'High Ground', '2': 'Commanding' };
   var GV_HGLYPH = { '-1': '\u25BD', '0': '', '1': '\u25B2', '2': '\u25B2\u25B2' };
   function gvTerrainCol(t) { return GV_TCOL[t] || TOK.dim; }
+  /* §GROUND THE RELIEF, DRAWN. The ground is cut from a relief and the page drew it as circles on a blank disc. Each sample
+     of the relief is painted in its region's terrain, brighter the higher it stands, water dark, the line between regions
+     drawn; the regions the wall has taken go dark and hatched. One picture per ground and day of the wall, painted once on a
+     canvas and laid under the map as an image. */
+  var GV_RELIEF = {};
+  function gvReliefImage(g, gone) {
+    var R = g.relief; if (!R || typeof document === 'undefined') return null;
+    var key = g.name + '|' + g.season + '|' + Object.keys(gone).filter(function (k) { return gone[k]; }).join(',');
+    if (GV_RELIEF[key] !== undefined) return GV_RELIEF[key];
+    var N = R.n, small = document.createElement('canvas'); small.width = small.height = N;
+    var sx = small.getContext && small.getContext('2d'); if (!sx) { GV_RELIEF[key] = null; return null; }
+    var at = function (x, y) { return x < 0 || y < 0 || x >= N || y >= N ? '.' : R.reg.charAt(y * N + x); };
+    /* a sample a pixel: the terrain's hue, brighter the higher; water dark; the taken ground grey */
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      var ch = at(x, y); if (ch === '.') continue;
+      var rid = ch.charCodeAt(0) - 48, h = +R.h.charAt(y * N + x);
+      sx.fillStyle = ch === '~' ? TOK.fogWater : gone[rid] ? rgba(TOK.gHatch, 0.45 + h * 0.02) : rgba(gvTerrainCol(g.regions[rid].terrain), 0.16 + h * 0.045);
+      sx.fillRect(x, y, 1, 1);
+    }
+    /* drawn up smooth, so the land reads as land and not as tiles; the regions' edges laid faintly over it */
+    var K = 8, cv = document.createElement('canvas'); cv.width = cv.height = N * K;
+    var cx = cv.getContext('2d'); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; cx.drawImage(small, 0, 0, N * K, N * K);
+    cx.fillStyle = rgba(TOK.ink, 0.13);
+    for (var y1 = 0; y1 < N; y1++) for (var x1 = 0; x1 < N; x1++) { var c1 = at(x1, y1); if (c1 === '.' || c1 === '~') continue;
+      var e = at(x1 + 1, y1), s2 = at(x1, y1 + 1);
+      if (e !== c1 && e !== '.' && e !== '~') cx.fillRect(x1 * K + K - 1, y1 * K, 1.5, K);
+      if (s2 !== c1 && s2 !== '.' && s2 !== '~') cx.fillRect(x1 * K, y1 * K + K - 1, K, 1.5); }
+    /* the taken ground hatched */
+    cx.strokeStyle = rgba(TOK.ink, 0.09); cx.lineWidth = 1.2;
+    for (var y2 = 0; y2 < N; y2++) for (var x2 = 0; x2 < N; x2++) { var c2 = at(x2, y2); if (c2 === '.' || c2 === '~' || !gone[c2.charCodeAt(0) - 48]) continue;
+      if ((x2 + y2) % 2) continue; cx.beginPath(); cx.moveTo(x2 * K, y2 * K + K); cx.lineTo(x2 * K + K, y2 * K); cx.stroke(); }
+    GV_RELIEF[key] = cv.toDataURL('image/png');
+    return GV_RELIEF[key];
+  }
+  function gvGoneOn(g, day) { var st = GROUND.standingOn(g, day), gone = {}; g.regions.forEach(function (r) { gone[r.id] = st.indexOf(r) < 0; }); return gone; }
+  /* §WALL the wall, drawn as the dome it is: a circle on the centre of the ground taking in every sample still standing */
+  function gvWallRadius(g, gone) {
+    var R = g.relief; if (!R) return null; var N = R.n, best = 0;
+    for (var i = 0; i < R.reg.length; i++) { var ch = R.reg.charAt(i); if (ch === '.' || ch === '~' || gone[ch.charCodeAt(0) - 48]) continue;
+      var x = (i % N + 0.5) / N, y = (Math.floor(i / N) + 0.5) / N, d = Math.sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)) + 0.7 / N; if (d > best) best = d; }
+    return best;
+  }
   function gvGround() {
     if (!G || !G.state) return null;
     if (!G.ground || G.ground.season !== G.state.season) {
@@ -33818,6 +33875,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var h = '<defs><pattern id="gvhatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="' + TOK.gHatch + '" stroke-width="2"/></pattern>' +
       '<filter id="gvburn" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
     h += '<circle cx="450" cy="450" r="438" fill="' + TOK.gDisc + '" stroke="' + TOK.line + '"/>';
+    var relief = gvReliefImage(g, gone);
+    if (relief) h += '<clipPath id="gvdisc"><circle cx="450" cy="450" r="430"/></clipPath><image href="' + relief + '" x="20" y="20" width="' + S + '" height="' + S + '" clip-path="url(#gvdisc)" preserveAspectRatio="none"/>';
+    var wr = gvWallRadius(g, gone);
+    if (wr != null && wr < 0.495) h += '<circle cx="450" cy="450" r="' + (wr * S).toFixed(1) + '" fill="none" stroke="' + TOK.wall + '" stroke-width="2.5" stroke-dasharray="10 6" opacity=".85"/>';
     var drawn = {};
     g.regions.forEach(function (r) { r.links.forEach(function (l) {
       var k = Math.min(r.id, l.to) + '|' + Math.max(r.id, l.to); if (drawn[k]) return; drawn[k] = 1;
@@ -33831,14 +33892,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var fight = view.fights.some(function (f) { return g.zones[f.zone].region === r.id; });
       var open = GV.open === r.id, col = gvTerrainCol(r.terrain);
       h += '<g class="gvreg" data-gvreg="' + r.id + '" opacity="' + (gone[r.id] ? .3 : 1) + '">';
-      if (burn[r.id]) h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="43" fill="none" stroke="var(--red)" stroke-width="4" opacity=".85" filter="url(#gvburn)"><animate attributeName="opacity" values=".45;.95;.45" dur="2.2s" repeatCount="indefinite"/></circle>';
-      h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="40" fill="' + col + '22" stroke="' + (open ? 'var(--a)' : fight ? 'var(--red)' : burn[r.id] ? 'var(--red)' : r.id === g.wall.last ? 'var(--mag)' : col) + '" stroke-width="' + (open || fight ? 3 : 1.5) + '"/>';
-      if (gone[r.id]) h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="40" fill="url(#gvhatch)"/>';
+      if (burn[r.id]) h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="33" fill="none" stroke="var(--red)" stroke-width="4" opacity=".85" filter="url(#gvburn)"><animate attributeName="opacity" values=".45;.95;.45" dur="2.2s" repeatCount="indefinite"/></circle>';
+      h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="30" fill="' + TOK.gBg + 'b0" stroke="' + (open ? 'var(--a)' : fight ? 'var(--red)' : burn[r.id] ? 'var(--red)' : r.id === g.wall.last ? 'var(--mag)' : col) + '" stroke-width="' + (open || fight ? 3 : 1.5) + '"/>';
       sites.forEach(function (st, i) { h += '<text x="' + (c[0] + (i - (sites.length - 1) / 2) * 16) + '" y="' + (c[1] - 5) + '" fill="' + GV_SITE[st.kind][1] + '" font-size="15" text-anchor="middle">' + GV_SITE[st.kind][0] + '</text>'; });
       if (!sites.length) h += '<text x="' + c[0] + '" y="' + (c[1] - 4) + '" fill="' + TOK.faint + '" font-size="9" text-anchor="middle">' + r.zones.length + ' ZONES</text>';
       oas.forEach(function (oa, i) { var x = c[0] + (i - (oas.length - 1) / 2) * 13, y = c[1] + 16, cnt = here.filter(function (q) { return q.oa === oa; }).length;
         h += '<circle data-gvoa="' + esc(oa) + '" cx="' + x + '" cy="' + y + '" r="5" fill="' + colFor(oa) + '" stroke="' + (oa === view.me ? 'var(--a)' : TOK.gBg) + '" stroke-width="' + (oa === view.me ? 1.5 : 1) + '"/>' + (cnt > 1 ? '<text x="' + (x + 6) + '" y="' + (y + 3) + '" fill="' + TOK.ink + '" font-size="8">\u00d7' + cnt + '</text>' : ''); });
-      h += '<text x="' + c[0] + '" y="' + (c[1] - 48) + '" fill="' + (open ? 'var(--a)' : '' + TOK.name + '') + '" font-size="11.5" letter-spacing="1.5" text-anchor="middle" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(r.name.toUpperCase()) + '</text>';
+      h += '<text x="' + c[0] + '" y="' + (c[1] - 37) + '" fill="' + (open ? 'var(--a)' : '' + TOK.name + '') + '" font-size="11.5" letter-spacing="1.5" text-anchor="middle" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(r.name.toUpperCase()) + '</text>';
       h += '</g>';
     });
     return h;
@@ -33849,6 +33909,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var g = view.ground, day = view.day;
     var standing = GROUND.standingOn(g, day), gone = {}; g.regions.forEach(function (r) { gone[r.id] = standing.indexOf(r) < 0; });
     var next = GROUND.nextToGo(g, day), burn = {}; next.forEach(function (id) { burn[id] = true; });
+    /* a region is always open beside the map: the one your first squad stands in, else the last ground */
+    if (GV.open == null) { var mine0 = view.squads.filter(function (q) { return q.oa === view.me; })[0]; GV.open = mine0 ? g.zones[mine0.zone].region : g.wall.last; }
     var h = gvOverviewSvg(view, standing, gone, burn);
     $('gvmap').innerHTML = h;
     Array.prototype.forEach.call(document.querySelectorAll('#gvmap [data-gvreg]'), function (el) { el.onclick = function () { GV.open = +el.getAttribute('data-gvreg'); renderGroundPage(); }; });
@@ -33882,34 +33944,67 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     renderGroundRegion(view);
     gvWireTips(view);
   }
-  function renderGroundRegion(view) {
-    var host = $('gvregion'), g = view.ground;
-    if (GV.open == null || !g.regions[GV.open]) { host.innerHTML = '<span class="m">Open a Region</span>'; return; }
-    var r = g.regions[GV.open], zs = r.zones.map(function (id) { return g.zones[id]; });
-    var xs = zs.map(function (z) { return z.x; }), ys = zs.map(function (z) { return z.y; });
-    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-    var sc = 220 / Math.max(0.02, Math.max(x1 - x0, y1 - y0));
-    var pt = function (z) { return [40 + (z.x - x0) * sc + (220 - (x1 - x0) * sc) / 2, 30 + (z.y - y0) * sc + (220 - (y1 - y0) * sc) / 2]; };
-    var col = gvTerrainCol(r.terrain), t = g.wall.takeAt.filter(function (x) { return x.region === r.id; })[0];
-    var h = '<div class="gvsub"><b style="color:' + col + '">' + esc(r.name) + '</b><span class="m">' + r.zones.length + ' Zones \u00b7 ' + esc(r.terrainName) + ' \u00b7 ' + r.ticks + ' Ticks a Step' + (r.id === g.wall.last ? ' \u00b7 The Last Ground' : t ? ' \u00b7 Goes Day ' + t.day : '') + '</span></div>';
-    h += '<svg viewBox="0 0 300 280" style="width:100%;height:auto;background:' + TOK.gBg + ';border:1px solid var(--line);border-radius:4px">';
-    zs.forEach(function (z) { z.nb.forEach(function (n) { if (n < z.id) return; var a = pt(z), b = pt(g.zones[n]); h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + col + '" stroke-width="1.5" opacity=".6"/>'; }); });
-    r.links.forEach(function (l) { var a = pt(g.zones[l.from]), o = g.regions[l.to], ang = Math.atan2(o.cy - r.cy, o.cx - r.cx), e = [a[0] + Math.cos(ang) * 34, a[1] + Math.sin(ang) * 34];
-      h += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + e[0] + '" y2="' + e[1] + '" stroke="' + TOK.faint + '" stroke-width="2" stroke-dasharray="3 3"/><text x="' + (e[0] + Math.cos(ang) * 8) + '" y="' + (e[1] + Math.sin(ang) * 8 + 3) + '" fill="' + TOK.dim + '" font-size="7.5" text-anchor="' + (Math.cos(ang) > .3 ? 'start' : Math.cos(ang) < -.3 ? 'end' : 'middle') + '" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(o.name) + ' \u00b7 ' + l.ticks + '</text>'; });
+  /* §GROUND INSIDE A REGION: its own stretch of the relief, zoomed to fit, the neighbours' ground faint around it, its zones
+     at their size against the land, the ways to the next regions at their doors. Shared by the Ground page and the drop:
+     `opts.pick` makes the zones a manager may take clickable, with whose they already are */
+  function gvRegionSvg(view, rid, opts) {
+    opts = opts || {};
+    var g = view.ground, r = g.regions[rid], zs = r.zones.map(function (id) { return g.zones[id]; }), R = g.relief;
+    var col = gvTerrainCol(r.terrain), W = 400, H = 340;
+    var N = R ? R.n : 64, cx0 = Infinity, cx1 = -Infinity, cy0 = Infinity, cy1 = -Infinity;
+    if (R) for (var i = 0; i < R.reg.length; i++) if (R.reg.charCodeAt(i) - 48 === rid) { var xx = i % N, yy = Math.floor(i / N); cx0 = Math.min(cx0, xx); cx1 = Math.max(cx1, xx); cy0 = Math.min(cy0, yy); cy1 = Math.max(cy1, yy); }
+    if (!isFinite(cx0)) { zs.forEach(function (z) { cx0 = Math.min(cx0, z.x * N); cx1 = Math.max(cx1, z.x * N); cy0 = Math.min(cy0, z.y * N); cy1 = Math.max(cy1, z.y * N); }); }
+    cx0 -= 1.5; cy0 -= 1.5; cx1 += 2.5; cy1 += 2.5;
+    var sc = Math.min((W - 24) / (cx1 - cx0), (H - 24) / (cy1 - cy0)), ox = (W - (cx1 - cx0) * sc) / 2, oy = (H - (cy1 - cy0) * sc) / 2;
+    var px = function (gx, gy) { return [ox + (gx - cx0) * sc, oy + (gy - cy0) * sc]; };
+    var pt = function (z) { return px(z.x * N, z.y * N); };
+    var gone = function (id) { return GROUND.standingOn(g, view.day).indexOf(g.regions[id]) < 0; };
+    var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;background:' + TOK.gBg + ';border:1px solid var(--line);border-radius:4px">';
+    /* the land: the same relief the map is painted from, this region lit and the rest of the ground under a veil */
+    var img = gvReliefImage(g, gvGoneOn(g, view.day));
+    if (img) {
+      var o0 = px(0, 0), mid = 'gvrm' + rid;
+      h += '<image href="' + img + '" x="' + o0[0].toFixed(1) + '" y="' + o0[1].toFixed(1) + '" width="' + (N * sc).toFixed(1) + '" height="' + (N * sc).toFixed(1) + '" preserveAspectRatio="none"/>';
+      var runs = '';
+      for (var y = Math.max(0, Math.floor(cy0)); y <= Math.min(N - 1, Math.ceil(cy1)); y++) { var run = -1;
+        for (var x = Math.max(0, Math.floor(cx0)); x <= Math.min(N - 1, Math.ceil(cx1)) + 1; x++) { var inR = x < N && R.reg.charCodeAt(y * N + x) - 48 === rid;
+          if (inR && run < 0) run = x; if (!inR && run >= 0) { var q0 = px(run, y); runs += '<rect x="' + q0[0].toFixed(1) + '" y="' + q0[1].toFixed(1) + '" width="' + ((x - run) * sc + 0.5).toFixed(1) + '" height="' + (sc + 0.5).toFixed(1) + '"/>'; run = -1; } } }
+      h += '<defs><filter id="' + mid + 'b"><feGaussianBlur stdDeviation="' + (sc * 0.35).toFixed(1) + '"/></filter><mask id="' + mid + '"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/><g fill="#000" filter="url(#' + mid + 'b)">' + runs + '</g></mask></defs>';
+      h += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="' + TOK.gBg + '" opacity=".72" mask="url(#' + mid + ')"/>';
+    }
+    /* the zone's size against the land: a little under half the nearest spacing */
+    var near = Infinity; zs.forEach(function (z) { z.nb.forEach(function (n) { var a = pt(z), b = pt(g.zones[n]); near = Math.min(near, Math.hypot(a[0] - b[0], a[1] - b[1])); }); });
+    var zr = Math.max(6, Math.min(12, (isFinite(near) ? near : 40) * 0.3)), big = zr >= 10;
+    zs.forEach(function (z) { z.nb.forEach(function (n) { if (n < z.id) return; var a = pt(z), b = pt(g.zones[n]); h += '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '" stroke="' + col + '" stroke-width="1.2" opacity=".55"/>'; }); });
+    r.links.forEach(function (l) { var a = pt(g.zones[l.from]), o = g.regions[l.to], ang = Math.atan2(o.cy - r.cy, o.cx - r.cx), e = [a[0] + Math.cos(ang) * 30, a[1] + Math.sin(ang) * 30];
+      e[0] = Math.max(8, Math.min(W - 8, e[0])); e[1] = Math.max(10, Math.min(H - 6, e[1]));
+      h += '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '" stroke="' + TOK.dim + '" stroke-width="1.6" stroke-dasharray="3 3"/><text x="' + e[0].toFixed(1) + '" y="' + (e[1] + (Math.sin(ang) > 0.3 ? 10 : -4)).toFixed(1) + '" fill="' + TOK.name + '" font-size="8.5" text-anchor="' + (Math.cos(ang) > .3 ? 'end' : Math.cos(ang) < -.3 ? 'start' : 'middle') + '" paint-order="stroke" stroke="' + TOK.gBg + '" stroke-width="3">' + esc(o.name) + ' · ' + l.ticks + '</text>'; });
     var zg = function (zid) { return GROUND.zoneGone(g, zid, view.day); }, zNext = GROUND.nextZonesToGo(g, view.day);
     zs.forEach(function (z) { var p = pt(z), here = gvSquadsAt(view, z.id), fight = view.fights.some(function (f) { return f.zone === z.id; });
       var goneZ = r.id === g.wall.last && zg(z.id), burnZ = r.id === g.wall.last && zNext.indexOf(z.id) >= 0, finalZ = z.id === g.wall.finalZone;
-      h += '<g data-gvzone="' + z.id + '" opacity="' + (goneZ ? .35 : 1) + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="' + col + '22" stroke="' + (fight || burnZ ? 'var(--red)' : finalZ ? 'var(--mag)' : col) + '" stroke-width="' + (fight || burnZ || finalZ ? 2.5 : 1.5) + '"/>' + (goneZ ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="17" fill="url(#gvhatch)"/>' : '');
-      var glyph = function (x, y, small) { var out = ''; if (z.site) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 5)) + '" fill="' + GV_SITE[z.site.kind][1] + '" font-size="' + (small ? 9 : 15) + '" text-anchor="middle">' + GV_SITE[z.site.kind][0] + '</text>';
-        else if (GV_HGLYPH[z.height]) out += '<text x="' + x + '" y="' + (y + (small ? 3 : 4)) + '" fill="' + TOK.ink + '" font-size="' + (small ? 7 : 11) + '" text-anchor="middle" opacity=".85">' + GV_HGLYPH[z.height] + '</text>'; return out; };
-      if (!here.length) { h += glyph(p[0], p[1]); if (z.site && GV_HGLYPH[z.height]) h += '<text x="' + (p[0] + 11) + '" y="' + (p[1] - 9) + '" fill="' + TOK.ink + '" font-size="7" text-anchor="middle">' + GV_HGLYPH[z.height] + '</text>'; }
-      else { if (z.site || GV_HGLYPH[z.height]) h += '<circle cx="' + (p[0] - 12) + '" cy="' + (p[1] - 12) + '" r="8" fill="' + TOK.gBg + '" stroke="' + col + '" stroke-width="1"/>' + glyph(p[0] - 12, p[1] - 12, true);
-        here.forEach(function (q, i) { h += gvMark(view, q, p[0] + (here.length > 1 ? (i - (here.length - 1) / 2) * 14 : 0), p[1], true); }); }
-      if (z.cover) h += '<text x="' + (p[0] + 12) + '" y="' + (p[1] + 14) + '" fill="' + TOK.name + '" font-size="7" text-anchor="middle">\u2261</text>';
+      var can = opts.pick && opts.pick.can(z.id), owner = opts.pick && opts.pick.owner(z.id);
+      /* §SECRECY at the drop a zone shows only what the survey bought: its ground, then its prize */
+      var seen = opts.seen ? opts.seen(z.id) : null, zSite = seen ? (seen.site ? z.site : null) : z.site, zH = seen ? (seen.height != null ? z.height : 0) : z.height, zCov = seen ? !!seen.cover : !!z.cover;
+      h += '<g data-gvzone="' + z.id + '"' + (can ? ' data-landz="' + z.id + '" style="cursor:pointer"' : '') + ' opacity="' + (goneZ ? .35 : 1) + '"><circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + zr.toFixed(1) + '" fill="' + (owner ? colFor(owner) + '55' : TOK.gBg + 'cc') + '" stroke="' + (can ? 'var(--a)' : fight || burnZ ? 'var(--red)' : finalZ ? 'var(--mag)' : owner ? colFor(owner) : col) + '" stroke-width="' + (can || fight || burnZ || finalZ || owner ? 2.2 : 1.3) + '"' + (can ? ' stroke-dasharray="3 2"' : '') + '/>' + (goneZ ? '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + zr.toFixed(1) + '" fill="url(#gvhatch)"/>' : '');
+      var fs = big ? 12 : 9.5;
+      if (zSite) h += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + fs * 0.35).toFixed(1) + '" fill="' + GV_SITE[zSite.kind][1] + '" font-size="' + fs + '" text-anchor="middle">' + GV_SITE[zSite.kind][0] + '</text>';
+      else if (GV_HGLYPH[zH]) h += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + fs * 0.3).toFixed(1) + '" fill="' + TOK.ink + '" font-size="' + (fs * 0.75).toFixed(1) + '" text-anchor="middle" opacity=".85">' + GV_HGLYPH[zH] + '</text>';
+      if (zSite && GV_HGLYPH[zH]) h += '<text x="' + (p[0] + zr * 0.8).toFixed(1) + '" y="' + (p[1] - zr * 0.6).toFixed(1) + '" fill="' + TOK.ink + '" font-size="6.5" text-anchor="middle">' + GV_HGLYPH[zH] + '</text>';
+      if (zCov) h += '<text x="' + (p[0] + zr * 0.75).toFixed(1) + '" y="' + (p[1] + zr + 2).toFixed(1) + '" fill="' + TOK.name + '" font-size="7" text-anchor="middle">≡</text>';
+      here.forEach(function (q, i) { h += gvMark(view, q, p[0] + (here.length > 1 ? (i - (here.length - 1) / 2) * 12 : 0), p[1] + zr * 0.15, false); });
       h += '</g>'; });
-    h += '</svg>';
-    h += zs.map(function (z) { var here = gvSquadsAt(view, z.id);
-      return '<div class="gvz"><span class="g">' + (z.site ? '<span style="color:' + GV_SITE[z.site.kind][1] + '">' + GV_SITE[z.site.kind][0] + '</span>' : GV_HGLYPH[z.height] || '\u00b7') + '</span><span>' + (z.site ? GV_SITE[z.site.kind][2] + (z.site.resource ? ' \u00b7 ' + esc(capWords(String(z.site.resource).replace(/_/g, ' '))) : '') + (z.site.kind === 'deposit' && z.site.opens > view.day ? ' \u00b7 Opens Day ' + z.site.opens : '') : GV_HEIGHT[z.height] || 'Open') + (z.cover ? ' \u00b7 Cover' : '') + '</span><span class="who">' + (here.map(function (q) { return '<span style="color:' + colFor(q.oa) + '">' + esc(tName(q.oa)) + ' \u00b7 ' + esc(gvSquadName(view, q)) + '</span>'; }).join(' \u00b7 ') || '\u2014') + '</span></div>'; }).join('');
+    return h + '</svg>';
+  }
+  function renderGroundRegion(view) {
+    var host = $('gvregion'), g = view.ground;
+    if (GV.open == null || !g.regions[GV.open]) { host.innerHTML = '<span class="m">Open a Region on the Map</span>'; return; }
+    var r = g.regions[GV.open], zs = r.zones.map(function (id) { return g.zones[id]; });
+    var col = gvTerrainCol(r.terrain), t = g.wall.takeAt.filter(function (x) { return x.region === r.id; })[0];
+    var h = '<div class="gvsub"><b style="color:' + col + '">' + esc(r.name) + '</b><span class="m">' + r.zones.length + ' Zones · ' + esc(r.terrainName) + ' · ' + r.ticks + ' Tick' + (r.ticks === 1 ? '' : 's') + ' a Step' + (r.id === g.wall.last ? ' · The Last Ground' : t ? ' · Goes Day ' + t.day : '') + '</span></div>';
+    h += gvRegionSvg(view, r.id);
+    /* the zones with something on them: sites, squads, high ground */
+    h += zs.filter(function (z) { return z.site || gvSquadsAt(view, z.id).length; }).map(function (z) { var here = gvSquadsAt(view, z.id);
+      return '<div class="gvz"><span class="g">' + (z.site ? '<span style="color:' + GV_SITE[z.site.kind][1] + '">' + GV_SITE[z.site.kind][0] + '</span>' : GV_HGLYPH[z.height] || '·') + '</span><span>' + (z.site ? GV_SITE[z.site.kind][2] + (z.site.resource ? ' · ' + esc(capWords(String(z.site.resource).replace(/_/g, ' '))) : '') + (z.site.kind === 'deposit' && z.site.opens > view.day ? ' · Opens Day ' + z.site.opens : '') : GV_HEIGHT[z.height] || 'Open') + (z.cover ? ' · Cover' : '') + '</span><span class="who">' + (here.map(function (q) { return '<span style="color:' + colFor(q.oa) + '">' + esc(tName(q.oa)) + ' · ' + esc(gvSquadName(view, q)) + '</span>'; }).join(' · ') || '—') + '</span></div>'; }).join('');
     host.innerHTML = h;
   }
   function gvWireTips(view) {
@@ -33918,7 +34013,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var el = e.target.closest ? e.target.closest('[data-gvreg]') : null; if (!el) { tip.style.display = 'none'; return; }
       var r = g.regions[+el.getAttribute('data-gvreg')], here = view.squads.filter(function (q) { return g.zones[q.zone].region === r.id; });
       var t = g.wall.takeAt.filter(function (x) { return x.region === r.id; })[0];
-      tip.innerHTML = '<b>' + esc(r.name) + '</b> \u00b7 ' + r.zones.length + ' Zones \u00b7 ' + esc(r.terrainName) + ' \u00b7 ' + r.ticks + ' Ticks a Step' + (r.id === g.wall.last ? ' \u00b7 The Last Ground' : t ? ' \u00b7 Goes Day ' + t.day : '') +
+      tip.innerHTML = '<b>' + esc(r.name) + '</b> \u00b7 ' + r.zones.length + ' Zones \u00b7 ' + esc(r.terrainName) + ' \u00b7 ' + r.ticks + ' Tick' + (r.ticks === 1 ? '' : 's') + ' a Step' + (r.id === g.wall.last ? ' \u00b7 The Last Ground' : t ? ' \u00b7 Goes Day ' + t.day : '') +
         '<div class="m">' + (here.length ? here.map(function (q) { return '<span style="color:' + colFor(q.oa) + '">' + esc(tName(q.oa)) + ' ' + esc(gvSquadName(view, q)) + '</span>'; }).join(' \u00b7 ') : 'Nobody Here') + '</div>';
       tip.style.display = 'block';
       var b = wrap.getBoundingClientRect(); tip.style.left = Math.min(b.width - 290, e.clientX - b.left + 14) + 'px'; tip.style.top = (e.clientY - b.top + 14) + 'px';
@@ -35763,7 +35858,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       days.forEach(function (D, di) {
         var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; });
         D.sq.forEach(function (q) {
-          if (q.c !== meIdx) return;
+          if (q.c !== meIdx || q.w == null) return;   /* the day still being played has no line yet */
           var mine = q.n ? fights.filter(function (v) { return (q.tr || []).indexOf(v.zone) >= 0 || g.zones[v.zone].nb.indexOf(q.z) >= 0 || v.zone === q.z; }) : [];
           (squads[q.s] = squads[q.s] || []).push({ d: D.d, why: q.w, steps: Math.max(0, (q.tr || []).length - 1), fights: mine, n: q.n, st: q.st, rat: q.rat, di: di, where: g.regions[g.zones[q.z].region].name });
         });
@@ -37444,7 +37539,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var prizeWord = function (p) { return p >= 3 ? 'Rich' : p >= 1.5 ? 'Fair' : p > 0.3 ? 'Thin' : 'Bare'; };
     var read = function (l) {
       var seen = CDPREDIVIDE.readLanding(l, intel), bits = [];
-      if (seen.terrain) bits.push('<span style="color:' + gvTerrainCol(seen.terrain) + '">' + esc(capWords(seen.terrain.replace(/_/g, ' '))) + '</span> · ' + seen.ticks + ' Ticks a Step');
+      if (seen.terrain) bits.push('<span style="color:' + gvTerrainCol(seen.terrain) + '">' + esc(capWords(seen.terrain.replace(/_/g, ' '))) + '</span> · ' + seen.ticks + ' Tick' + (seen.ticks === 1 ? '' : 's') + ' a Step');
       if (seen.height != null && GV_HEIGHT[seen.height]) bits.push('<span class="' + (seen.height >= 1 ? 'good' : 'bad') + '">' + GV_HEIGHT[seen.height] + '</span>');
       if (seen.cover) bits.push('Cover');
       if (seen.site && seen.site !== 'beacon') bits.push('<span style="color:' + GV_SITE[seen.site][1] + '">' + GV_SITE[seen.site][0] + ' ' + GV_SITE[seen.site][2] + '</span>');
@@ -37474,10 +37569,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       '<div class="legendside"><div><h2 style="margin-top:0">Your Landings</h2><div class="ring">' +
         (mine.length ? mine.map(function (z, i) { return '<div class="sector yours"><div class="sn">' + zoneName(z) + '<span class="you">Squad ' + squadLetter(i) + '</span></div><div class="m" style="margin-top:4px">' + read(byZone[z]) + '</div></div>'; }).join('')
                      : '<div class="sector"><div class="m">None Yet</div></div>') +
-      '</div><h2>' + (LAND.open != null ? esc(g.regions[LAND.open].name) : 'Open a Region') + '</h2><div class="dzones">' +
-        (LAND.open != null ? g.regions[LAND.open].zones.map(function (zid, k) { var l = byZone[zid], owner = D.taken[zid];
-          var can = myTurn && !D.done && l && CDPREDIVIDE.allowed(l, D.taken, mine, all);
-          return '<div class="sector' + (owner === G.me ? ' yours' : '') + (can ? ' can' : '') + '" ' + (can ? 'data-landz="' + zid + '"' : '') + '><div class="sn">Zone ' + (k + 1) + (owner ? '<span style="color:' + colFor(owner) + '">' + esc(tName(owner)) + '</span>' : can ? '<span class="you">Take It</span>' : '') + '</div><div class="m" style="margin-top:4px">' + (l ? read(l) : 'The Last Ground · Nobody Lands Here') + '</div></div>'; }).join('') : '<div class="m">No Region Open</div>') +
+      '</div><h2>' + (LAND.open != null ? esc(g.regions[LAND.open].name) : 'Open a Region on the Map') + '</h2><div class="dzones">' +
+        (LAND.open != null ? (function () {
+          var rz = g.regions[LAND.open].zones, l0 = byZone[rz[0]];
+          var pick = { can: function (zid) { var l = byZone[zid]; return myTurn && !D.done && !!l && CDPREDIVIDE.allowed(l, D.taken, mine, all); }, owner: function (zid) { return D.taken[zid] || null; } };
+          /* §DROP the region opened is the same map the ground is read on: a zone you may take is ringed, a click takes it */
+          var seenOf = function (zid) { var l = byZone[zid]; return l ? CDPREDIVIDE.readLanding(l, intel) : {}; };
+          var out = '<div class="m" style="margin-bottom:6px">' + (l0 ? read(l0) : 'The Last Ground · Nobody Lands Here') + '</div>' + gvRegionSvg(view, LAND.open, { pick: pick, seen: seenOf });
+          out += rz.filter(function (zid) { var sn = seenOf(zid); return D.taken[zid] || sn.site || (sn.height != null && sn.height >= 1); }).map(function (zid) { var l = byZone[zid], owner = D.taken[zid], sn = seenOf(zid);
+            return '<div class="gvz"' + (pick.can(zid) ? ' data-landz="' + zid + '" style="cursor:pointer"' : '') + '><span class="g">' + (sn.site ? '<span style="color:' + GV_SITE[sn.site][1] + '">' + GV_SITE[sn.site][0] + '</span>' : GV_HGLYPH[sn.height] || '·') + '</span><span>' + (l ? read(l) : '—') + '</span><span class="who">' + (owner ? '<span style="color:' + colFor(owner) + '">' + esc(tName(owner)) + '</span>' : pick.can(zid) ? '<span class="you">Take It</span>' : '') + '</span></div>'; }).join('');
+          return out; })() : '<div class="m">No Region Open</div>') +
       '</div></div></div></div>';
     host.innerHTML = h;
     Array.prototype.forEach.call(host.querySelectorAll('#landmap [data-gvreg]'), function (el) { el.onclick = function () { LAND.open = +el.getAttribute('data-gvreg'); renderLanding(); }; });

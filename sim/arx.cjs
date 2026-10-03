@@ -2628,7 +2628,7 @@ function doctrineRules() {
    loop never ran it).
    ========================================================================= */
 /* =========================================================================
-   GROUND RULES — the Divide rebuild's ground (sim/ground.js): regions of three to eight zones cut
+   GROUND RULES — the Divide rebuild's ground (sim/ground.js): regions of twelve to twenty-four zones cut
    from a relief, every region reachable, one site a zone, a wall that takes whole regions and reaches
    the last at month's end, windows every other day and daily when few stand. Twelve worlds across the
    archetypes, read as the design was ruled, before anything moves on them.
@@ -2640,7 +2640,7 @@ function groundRules() {
   for (let i = 0; i < 12; i++) worlds.push(GR.generate(makeRng('ground' + i), { archetype: archs[i % archs.length] }));
   const bad = (name, f) => { const hits = worlds.map((g, i) => f(g) ? null : i).filter(x => x != null); ok(name, !hits.length, hits.length ? 'worlds ' + hits.join(',') : ''); };
   bad('a world has ten to eighteen regions', g => g.regions.length >= GR.CONST.REGIONS[0] && g.regions.length <= GR.CONST.REGIONS[1]);
-  bad('every region has three to eight zones', g => g.regions.every(r => r.zones.length >= 3 && r.zones.length <= 8));
+  bad('every region has twelve to twenty-four zones', g => g.regions.every(r => r.zones.length >= 12 && r.zones.length <= 24));
   bad('zone links run both ways and stay inside the region', g => g.zones.every(z => z.nb.every(n => g.zones[n].nb.indexOf(z.id) >= 0 && g.zones[n].region === z.region)));
   bad('every zone is reachable from every other: nothing is impassable, only unrouted', g => g.zones.every(z => !!GR.ticksBetween(g, 0, z.id)));
   bad('every region has at least one route out', g => g.regions.every(r => r.links.length >= 1));
@@ -2808,21 +2808,31 @@ function contestRules() {
     const held = stO.squads[0].captives, caps = stO.events.filter(e => e.t === 'captive' && e.from === B.id);
     ok('an overrun squad stays down, and its captor holds the bodies it took', over && !B.alive && held.length === 3 && held.every(k => k.body && k.body.status === 'captured') && caps.every(e => e.body),
        (over ? 'overrun' : 'not overrun') + ', ' + (B.alive ? 'standing again' : 'down') + ' on day ' + stO.day + ', ' + held.filter(k => k.body).length + ' of ' + held.length + ' captives with a body'); }
-  /* constructed: a weak squad next to a strong one it knows picks at it from its own zone; the strong one, by its dial, rushes */
-  { const reg = g.regions.find(r => r.zones.length >= 4 && r.zones.some(z => g.zones[z].nb.length >= 2)), z0 = reg.zones.find(z => g.zones[z].nb.length >= 2), z1 = g.zones[z0].nb[0];
-    const stH = CT.open(makeRng('contest-harass'), g, [{ oa: 'a', s: 0, zone: z0, n: 3, stance: 'measured', long: 1 }, { oa: 'b', s: 0, zone: z1, n: 8, stance: 'death_or_glory' }], {});
-    stH.squads[0].intent = { type: 'harass', zone: z1, why: 'order' }; stH.squads[1].intent = { type: 'hold', zone: z1, why: 'order' };
-    for (let i = 0; i < 36; i++) CT.tick(stH);
-    const hr = stH.events.filter(e => e.t === 'harass'), rushed = stH.events.some(e => e.t === 'contact' && e.mover === 1);
-    ok('a squad that will not close picks at the stronger one next door with its long rifles, and is loud doing it', stH.audit.harassed > 0 && (hr.length > 0 || stH.audit.harassed >= 3), stH.audit.harassed + ' ticks of fire, ' + hr.length + ' hits');
-    ok('and the squad under fire may rush it, which is a contact and a fight with the rifles caught looking', rushed && stH.events.some(e => e.t === 'fight'), 'rushed ' + rushed); }
+  /* constructed: a weak squad next to a strong one it knows picks at it from its own zone; the strong one, by its dial, rushes.
+     A rush and a join are rolls: the construction is run on a few streams and the mechanism must show on them */
+  { const gH = Object.assign({}, g, { wall: Object.assign({}, g.wall, { takeAt: [], zoneAt: [] }) });   /* no wall: only the harass is asked */
+    const reg = gH.regions.find(r => r.zones.length >= 4 && r.zones.some(z => gH.zones[z].nb.length >= 2)), z0 = reg.zones.find(z => gH.zones[z].nb.length >= 2), z1 = gH.zones[z0].nb[0];
+    let fired = 0, hits = 0, rushed = false, fought = false;
+    for (const k of [0, 1, 2, 3]) {
+      const stH = CT.open(makeRng('contest-harass' + (k || '')), gH, [{ oa: 'a', s: 0, zone: z0, n: 3, stance: 'measured', long: 1 }, { oa: 'b', s: 0, zone: z1, n: 8, stance: 'death_or_glory' }], {});
+      stH.squads[0].intent = { type: 'harass', zone: z1, why: 'order' }; stH.squads[1].intent = { type: 'hold', zone: z1, why: 'order' };
+      for (let i = 0; i < 36; i++) CT.tick(stH);
+      fired += stH.audit.harassed; hits += stH.events.filter(e => e.t === 'harass').length;
+      if (stH.events.some(e => e.t === 'contact' && e.mover === 1)) { rushed = true; if (stH.events.some(e => e.t === 'fight')) fought = true; } }
+    ok('a squad that will not close picks at the stronger one next door with its long rifles, and is loud doing it', fired > 0 && hits > 0, fired + ' ticks of fire, ' + hits + ' hits over four runs');
+    ok('and the squad under fire may rush it, which is a contact and a fight with the rifles caught looking', rushed && fought, 'rushed ' + rushed); }
   /* constructed: two squads of one banner from two sides of a zone flank */
-  { const reg = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), mid = reg.zones.find(z => g.zones[z].nb.length >= 2), [l, r] = g.zones[mid].nb;
-    const stF = CT.open(makeRng('contest-flank'), g, [{ oa: 'a', s: 0, zone: l, n: 6, stance: 'unyielding' }, { oa: 'a', s: 1, zone: r, n: 6, stance: 'unyielding' }, { oa: 'b', s: 0, zone: mid, n: 5 }], {});
-    stF.squads[0].intent = { type: 'take', zone: mid, why: 'the ground' }; stF.squads[0].path = [mid]; stF.squads[1].intent = { type: 'hold', zone: r };
-    for (let i = 0; i < 12 && !stF.fights.length; i++) CT.tick(stF);
-    const f0 = stF.fights[0], sideA = f0 && f0.sides.find(S => S.oa === 'a');
-    ok('squads of one banner that came on from different zones flank: their bearings differ on the grid', !!f0 && sideA.squads.length === 2 && sideA.squads[0].from !== sideA.squads[1].from && Math.abs(sideA.squads[0].bearing - sideA.squads[1].bearing) > 0.3, f0 ? sideA.squads.length + ' on side a' : 'no fight'); }
+  { const gF = Object.assign({}, g, { wall: Object.assign({}, g.wall, { takeAt: [], zoneAt: [] }) });   /* no wall: only the flank is asked */
+    const reg = gF.regions.find(r => r.zones.some(z => gF.zones[z].nb.length >= 2)), mid = reg.zones.find(z => gF.zones[z].nb.length >= 2), [l, r] = gF.zones[mid].nb;
+    let flank = false, seen = 'no fight';
+    for (const k of [0, 1, 2, 3]) {
+      const stF = CT.open(makeRng('contest-flank' + (k || '')), gF, [{ oa: 'a', s: 0, zone: l, n: 6, stance: 'unyielding' }, { oa: 'a', s: 1, zone: r, n: 6, stance: 'unyielding' }, { oa: 'b', s: 0, zone: mid, n: 5 }], {});
+      stF.squads[0].intent = { type: 'take', zone: mid, why: 'the ground' }; stF.squads[0].path = [mid]; stF.squads[1].intent = { type: 'hold', zone: r };
+      for (let i = 0; i < 12 && !stF.fights.length; i++) CT.tick(stF);
+      const f0 = stF.fights[0], sideA = f0 && f0.sides.find(S => S.oa === 'a');
+      if (f0) seen = sideA.squads.length + ' on side a';
+      if (f0 && sideA.squads.length === 2 && sideA.squads[0].from !== sideA.squads[1].from && Math.abs(sideA.squads[0].bearing - sideA.squads[1].bearing) > 0.3) { flank = true; break; } }
+    ok('squads of one banner that came on from different zones flank: their bearings differ on the grid', flank, seen); }
   /* determinism */
   const ev = s => JSON.stringify(s.events.map(e => [e.t, e.day, e.tick, e.zone, e.squad, e.region]));
   const sA = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sA);
