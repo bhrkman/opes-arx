@@ -50,6 +50,7 @@ const CONST = {
      These were bare numbers in aimEff, written on the invisible copy's scale. */
   TRAIT_AIM: { accuracy: 20, squadLink: 10, overwatch: 20, firstStrike: 30, firstShotLong: 40, optics: 10 },
   FATIGUE_AIM_STEP: 10,                   // [C] aim lost per 25 fatigue, three steps at most
+  SERIOUS_WOUND_AIM: 15,                  // [C] what a serious wound costs the aim on top of a light one's (ruled: serious fights at a large cost)
   LIGHT_WOUND_AIM: 10,                    // [C] aim a light wound costs                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
   HIT_MIN: 0.04, HIT_MAX: 0.72,           // [C]
@@ -845,6 +846,7 @@ function aimEff(c, bandIdx, ctx) {
 
   a -= CONST.FATIGUE_AIM_STEP * Math.min(3, Math.floor(c.fatigue / 25));
   if (c.state === 'light') a -= CONST.LIGHT_WOUND_AIM;
+  if (c.seriousWound) a -= CONST.SERIOUS_WOUND_AIM;   /* §WOUNDS fighting through a serious wound */
   if (c.gogglesBroken) a -= CONST.GIL_GOGGLE_AIM_PENALTY;
   if (ctx.night && !c.hooks.has('night_encounter_bonus')) a -= CONST.NIGHT_AIM_PENALTY;
   return a;

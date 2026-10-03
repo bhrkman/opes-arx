@@ -99,10 +99,11 @@
                        moving: null, intent: null, know: {}, brief: null, alive: true, rest: 0, visited: [q.zone], fightTicks: 0, fight: null, captives: [], lost: 0 });
     });
     st.fights = []; st.resolve = opts.resolve || standIn; st.allied = opts.allied || ((a, b) => a === b); st.captivePolicy = opts.captivePolicy || captiveByStance;
-    st.hurtOf = opts.hurtOf || null;   /* with bodies behind a squad, how many hurt it carries */
+    st.livingOf = opts.livingOf || null;   /* with bodies behind a squad, how many are on the ground with it, carried or not */
+    st.paceOf = opts.paceOf || null;       /* with bodies behind a squad, the pace its hurt leave it */
     st.headOf = opts.headOf || null;   /* with bodies behind a squad, how many stand: read at dawn and after every fight */
     st.driven = !!opts.driven;         /* a day loop outside drives the clock: the contest does not call its own end */
-    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.onShed = opts.onShed || null; st.reportOf = opts.reportOf || null;
+    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.onShed = opts.onShed || null; st.onTaken = opts.onTaken || null; st.reportOf = opts.reportOf || null;
     st.audit.fights = 0; st.audit.joined = 0; st.audit.harassed = 0; st.audit.captured = 0; st.audit.wiped = 0;
     const taken = {}; for (const q of st.squads) { if (taken[q.zone]) throw new Error('contest: two squads dropped on one zone ' + q.zone); taken[q.zone] = q.id; }
     st.rng = rng;
@@ -123,6 +124,10 @@
   function goesOn(st, regId) { const t = st.ground.wall.takeAt.find(x => x.region === regId); return t ? t.day : Infinity; }
   /** the day a zone goes: its region's, or on the last ground its own */
   function zoneEnds(st, zid) { return Math.min(goesOn(st, st.ground.zones[zid].region), zoneGoes(st, zid)); }
+  /** §WOUNDS §WEATHER how fast a squad walks now: the day's going, a lost bearing, and the hurt it carries */
+  function walkPace(st, q) { return (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1) * (st.paceOf && q.ref ? st.paceOf(q.ref) : 1); }
+  /** a squad with nobody left standing: everyone in it is carried, it cannot fight, and whoever reaches it takes it */
+  function helpless(q) { return q.alive && q.n <= 0; }
   /** §WALL THE WALL IS NEVER LET CATCH ANYBODY. Every tick, every squad on ground that goes weighs the walk to ground
       that lasts — a zone that stands at least a day past its own, past nobody if it can, a held one counted as a fight
       in the way; its captives, the weather and a lost bearing slow the walk — against the ticks left. When the walk
@@ -131,14 +136,14 @@
     const G = st.ground, mine = zoneEnds(st, q.zone); if (mine === Infinity) return null;
     const left = (mine - st.day) * CONST.TICKS_A_DAY - st.tick;
     /* the weather can turn by morning: the walk is reckoned at the worst pace the sky gives, or today's if worse */
-    const today = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+    const today = walkPace(st, q);
     /* a friend's zone is no place to stand (one squad a zone) but the final zone, and a way through it waits on the friend */
     const friendAt = zid => { const h = holder(st, zid); return !!(h && h !== q && st.allied(h.oa, q.oa) && zoneEnds(st, zid) !== Infinity); };
     const ok = zid => !deadZone(st, zid) && zoneEnds(st, zid) > Math.max(mine, st.day + 2) && !friendAt(zid);
     let best = null;
     /* reckoned at the worst pace with time in hand first; failing that, at today's pace with none: it goes anyway */
     for (const [clear, worst] of [[true, true], [false, true], [true, false], [false, false]]) {
-      const pace = worst ? Math.min(CONST.WALL_WORST_PACE, today) : today, slack = worst ? CONST.WALL_CROSS_SLACK : 0;
+      const pace = worst ? Math.min(CONST.WALL_WORST_PACE * (q.lostDay ? CONST.LOST_PACE : 1) * (st.paceOf && q.ref ? st.paceOf(q.ref) : 1), today) : today, slack = worst ? CONST.WALL_CROSS_SLACK : 0;
       const cost = {}, prev = {}, done = new Set(); cost[q.zone] = 0;
       while (true) {
         let u = null; for (const k in cost) if (!done.has(+k) && (u == null || cost[k] < cost[u])) u = +k;
@@ -161,18 +166,16 @@
       if (onRoad(q) && q.fight == null) continue;
       const w = wallWay(st, q); if (!w) continue;
       if (w.left - w.ticks > CONST.WALL_REFLEX_SLACK) continue;
-      /* a rescue goes on while there is time to get in, come back, and still walk out from here */
-      if (q.fight == null && q.intent && q.intent.rescue && q.intent.zone !== q.zone) {
-        const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
-        const p = GROUND.ticksBetween(st.ground, q.zone, q.intent.zone, { avoid: v => deadZone(st, v) });
-        const there = p ? Math.ceil(p.ticks / pace) : Infinity, tEnd = (zoneEnds(st, q.intent.zone) - st.day) * CONST.TICKS_A_DAY - st.tick;
-        if (tEnd >= there * 2 && w.left - there * 2 - w.ticks >= 0) continue; }
       if (q.fight != null) { const f = st.fights[q.fight]; if (f && !f.done && f.until > absTick(st)) { f.until = absTick(st); st.audit.wallBreaks = (st.audit.wallBreaks || 0) + 1; } continue; }
       if (onRoad(q)) continue;
       /* a column too slow to make it with its captives lets them go: they walk off, and the squad lives */
       if (q.captives.length && (w.zone == null || w.left - w.ticks <= 0) && st.onShed) {
         const before = q.captives.length; st.onShed(st, q); if (q.captives.length < before) { st.audit.shed = (st.audit.shed || 0) + 1; const w2 = wallWay(st, q); if (w2) { w.zone = w2.zone; w.path = w2.path; w.ticks = w2.ticks; } } }
       if (w.zone == null) continue;
+      /* a step already under way on the walk out is finished, not thrown away for a way a tick cheaper: a slow column
+         that turned each time the reckoning tied walked in place until the wall came */
+      if (q.intent && q.intent.why === 'the wall' && q.moving && !onRoad(q) && !deadZone(st, q.moving.to)
+          && zoneEnds(st, q.moving.to) >= zoneEnds(st, q.zone) && (zoneEnds(st, q.moving.to) - st.day) * CONST.TICKS_A_DAY - st.tick > q.moving.cost - q.moving.paid) continue;
       const same = q.intent && q.intent.why === 'the wall' && q.intent.zone === w.zone && q.path && q.path.length && q.path[0] === w.path[0];
       if (same) continue;
       q.intent = { type: 'take', zone: w.zone, why: 'the wall' }; q.path = w.path.slice(); q.wait = 0;
@@ -242,10 +245,25 @@
   /** what a group knows about a zone: the freshest of its squads' knowledge */
   function groupKnows(group, zid) { let best = null; for (const q of group) { const k = q.know[zid]; if (k && (!best || k.at > best.at)) best = k; } return best; }
   function plan(st, oa, opts) {
-    const G = st.ground, mine = alive(st).filter(q => q.oa === oa);
+    const G = st.ground, mine = alive(st).filter(q => q.oa === oa && !helpless(q));
+    for (const q of alive(st)) if (q.oa === oa && helpless(q)) planCarried(st, q);
     const byRegion = {}; for (const q of mine) (byRegion[G.zones[q.zone].region] = byRegion[G.zones[q.zone].region] || []).push(q);
     const left = standing(st).length;
     for (const rid in byRegion) planGroup(st, oa, byRegion[rid], +rid, left, opts || {});
+  }
+  /** §WOUNDS a squad with nobody standing makes for its own: the nearest free zone beside a squad of its OA that can
+      fight, past every rival and off ground the wall is about to take; with none, it lies low where it is. The wall's
+      walk overrides this as it overrides everything. */
+  function planCarried(st, q) {
+    if (q.intent && q.intent.why === 'the wall') return;
+    const G = st.ground; let best = null, bt = Infinity;
+    for (const o of alive(st)) { if (o === q || !st.allied(o.oa, q.oa) || helpless(o)) continue;
+      if (G.zones[q.zone].nb.indexOf(o.zone) >= 0) { best = null; bt = 0; break; }
+      for (const v of G.zones[o.zone].nb) { if (deadZone(st, v) || holder(st, v) || zoneEnds(st, v) <= st.day + CONST.PLAN_MARGIN_DAYS && zoneEnds(st, v) < zoneEnds(st, q.zone)) continue;
+        const p = GROUND.ticksBetween(G, q.zone, v, { avoid: z => offLimits(st, q, v, z) || (z !== v && !!holder(st, z) && !st.allied(holder(st, z).oa, q.oa)) });
+        if (p && p.ticks < bt) { bt = p.ticks; best = v; } } }
+    if (best != null) { if (!(q.intent && q.intent.type === 'take' && q.intent.zone === best)) { q.intent = { type: 'take', zone: best, why: 'carried' }; q.path = null; q.wait = 0; } }
+    else q.intent = { type: 'hold', zone: q.zone, why: 'carried' };
   }
   /** the cheapest way out of a group's region, over its squads, to any route's far end on ground that stands */
   function exitTicks(st, group) {
@@ -279,13 +297,13 @@
     /* §PRESSED pressed is the wall against the real way out: a region whose one exit is sixteen ticks off
        presses two days sooner than one whose exit is three */
     /* §WEATHER the day's pace, and a squad that has lost its way, shorten the time left in walking terms */
-    const pace = Math.min(...group.map(q => (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1)));
+    const pace = Math.min(...group.map(q => walkPace(st, q)));
     const goes = goesOn(st, rid), ticksLeft = Math.floor(((goes - st.day) * CONST.TICKS_A_DAY - st.tick) * pace);
     /* on the last ground the wall comes zone by zone: a squad whose own zone goes soon is pressed toward the zones that last */
-    /* a squad carrying as many hurt as it has standing is one bad day from lying where it is: it leaves a day sooner */
-    const fragile = !!st.hurtOf && group.some(q => q.ref && st.hurtOf(q.ref) >= q.n);
-    const margin = CONST.PLAN_MARGIN_DAYS + (fragile ? 1 : 0);
-    const zonePressed = goes === Infinity && group.some(q => zoneGoes(st, q.zone) - st.day <= margin);
+    const margin = CONST.PLAN_MARGIN_DAYS;   /* the hurt a group carries is in its pace, and so in its walk out */
+    /* ... or whose walk to ground that lasts, at its own pace, leaves less than the margin in hand */
+    const zonePressed = goes === Infinity && group.some(q => { if (zoneGoes(st, q.zone) - st.day <= margin) return true;
+      const w = wallWay(st, q); return !!w && w.left - w.ticks <= margin * CONST.TICKS_A_DAY; });
     const pressed = zonePressed || (goes !== Infinity && (goes - st.day <= margin || ticksLeft <= exitTicks(st, group) + CONST.PLAN_LEAVE_SLACK));   /* the announcement, or the way out against the clock */
     /* the regions in reach: this one and up to PLAN_REACH_ROUTES routes out */
     const reach = { [rid]: 0 }, edge = [rid];
@@ -417,13 +435,21 @@
     if (q.rest > 0) { q.rest--; return; }
     if (q.moving) {
       /* §WEATHER the going changes under a squad already walking: what is left of the step is walked at the pace now */
-      const paceNow = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+      const paceNow = walkPace(st, q);
       if (q.moving.pace && paceNow !== q.moving.pace && q.moving.paid < q.moving.cost) {
         q.moving.cost = q.moving.paid + Math.max(1, Math.ceil((q.moving.cost - q.moving.paid) * q.moving.pace / paceNow)); q.moving.pace = paceNow; }
       if (q.moving.paid < q.moving.cost) q.moving.paid++;
       if (q.moving.paid < q.moving.cost) return;
       const to = q.moving.to, h = holder(st, to);
       if (deadZone(st, to)) { q.moving = null; q.intent = null; q.path = null; return; }   /* the ground it was walking to is gone */
+      /* §WOUNDS a zone held by nobody who can fight is taken by whoever walks in standing; nobody standing walks into a rival */
+      if (h && !st.allied(h.oa, q.oa) && helpless(q)) { q.moving = null; q.path = null; q.shut = q.shut || {}; q.shut[to] = st.day; q.intent = { type: 'hold', zone: q.zone, why: 'carried' }; return; }
+      if (h && !st.allied(h.oa, q.oa) && h.fight == null) {
+        const theirs = st.squads.filter(o => o.alive && o.zone === to && !onRoad(o) && st.allied(o.oa, h.oa));
+        if (theirs.every(helpless)) { for (const o of theirs) takeCarried(st, q, o, to); }
+      }
+      const h2 = holder(st, to);
+      if (h2 !== h) return move(st, q);   /* the zone is free now: walk on in */
       if (h && !st.allied(h.oa, q.oa)) {
         /* §CONTACT the zone is held against it: a fight, there and then, unless one is already on in that zone,
            in which case it waits at the edge for the end of it */
@@ -483,15 +509,13 @@
     q.wait = 0;
     const stp = stepOf(st, q, q.path[0]); if (!stp) { q.path = null; return; }
     /* §WEATHER the day's weather slows the march; a squad that has lost its bearings makes a third of its way */
-    const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
+    const pace = walkPace(st, q);
     const cost = Math.ceil(stp.cost / pace) + captiveTicks(q.captives.length);
     /* §WALL never a step onto ground that goes sooner than its own and before the squad is through it: it stops and thinks again
        (the wall's own walk was reckoned already) */
     const ends = zoneEnds(st, stp.to);
     const toEnd = (ends - st.day) * CONST.TICKS_A_DAY - st.tick;
-    /* a rescue goes in if it can get there and back out: it picks its people up as it arrives */
-    const inAndOut = q.intent.rescue && stp.to === target && toEnd >= cost * 2;
-    if (ends !== Infinity && ends < zoneEnds(st, q.zone) && toEnd <= cost + CONST.WALL_CROSS_SLACK && q.intent.why !== 'the wall' && !inAndOut) {
+    if (ends !== Infinity && ends < zoneEnds(st, q.zone) && toEnd <= cost + CONST.WALL_CROSS_SLACK && q.intent.why !== 'the wall') {
       q.path = null; q.intent = { type: 'hold', zone: q.zone, why: 'the wall ahead' }; st.audit.wallAhead = (st.audit.wallAhead || 0) + 1; return; }
     q.moving = { to: stp.to, paid: 1, cost, kind: stp.kind, pace };
     if (stp.kind === 'route') st.events.push({ t: 'road', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: stp.to });   /* on the road: in neither zone till it arrives */
@@ -525,10 +549,10 @@
     /* a squad that came by road fights from the road's end and stands in neither zone till it is over */
     const put = (q, from, late) => { const S = sideFor(q.oa); S.squads.push({ id: q.id, from, bearing: from === zone ? null : bearingOf(st, zone, from), prep: prepOf(st, q, zone, from === zone), atTurn: late || 1, n: q.n, stance: q.stance }); q.fight = f.id; if (onRoad(q)) q.moving.paid = q.moving.cost; else q.moving = null; q.path = null; };
     put(held, zone); put(mover, mover.zone);
-    for (const o of st.squads) if (o.alive && o !== held && o !== mover && o.zone === zone && o.fight == null && !onRoad(o)) put(o, zone);   /* friends standing with the holder on the final zone */
+    for (const o of st.squads) if (o.alive && !helpless(o) && o !== held && o !== mover && o.zone === zone && o.fight == null && !onRoad(o)) put(o, zone);   /* friends standing with the holder on the final zone */
     /* the neighbours: anybody in a zone next door, not in a fight, not on the road, not pressed by the wall */
     const Z = st.ground.zones;
-    for (const nb of Z[zone].nb) { const o = holder(st, nb); if (!o || o === mover || o.fight != null || onRoad(o)) continue;
+    for (const nb of Z[zone].nb) { const o = holder(st, nb); if (!o || o === mover || o.fight != null || onRoad(o) || helpless(o)) continue;   /* nobody standing joins nothing */
       if (o.intent && (o.intent.why === 'the wall' || o.intent.why === 'order')) continue;   /* pressed, or under orders */
       const dial = STANCE[o.stance] || STANCE.standard, friend = f.sides.some(S => st.allied(S.oa, o.oa));
       const foe = f.sides.filter(S => !st.allied(S.oa, o.oa)).reduce((t, S) => t + S.squads.reduce((u, x) => u + x.n, 0), 0);
@@ -561,7 +585,7 @@
       const gone = (r.dead || 0) + (r.down || 0) + capN;
       q.n = st.headOf && q.ref ? st.headOf(q.ref) : Math.max(0, q.n - gone); q.lost += gone;   /* a driver's bodies are the count: one the grid had down but who stands is standing */ q.fight = null; q.fightTicks = 0; q.firing = 0; q.harass = null; q.moving = null;
       if (capN && winner && winner !== S) takeCaptives(st, winner, q, r.captured, f);
-      if (q.n <= 0) { q.alive = false; wiped.push(q); st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null });
+      if ((st.livingOf && q.ref ? st.livingOf(q.ref) : q.n) <= 0) { q.alive = false; wiped.push(q);   /* §WOUNDS nobody left on the field of it: the carried nobody took are still with it */ st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null });
         /* wiping a holder passes its captives to the wiper */
         if (winner && q.captives.length) { const w = st.squads[winner.squads[0].id]; if (w.alive) { w.captives = w.captives.concat(q.captives); st.events.push({ t: 'captives_pass', day: st.day, from: q.id, to: w.id, n: q.captives.length }); } q.captives = []; }
       }
@@ -592,7 +616,9 @@
       for (const S of f.sides) if (S !== winner) for (const q of live(S)) { if (q.zone === f.zone) q.zone = -1; }   /* off the ground first */
       for (const S of f.sides) if (S !== winner) for (const q of live(S)) { const x = S.squads.find(y => y.id === q.id); if (q.zone === -1) q.zone = f.zone; back(q, x.from === f.zone ? f.zone : x.from); }
       ws.forEach((q, i) => { const x = winner.squads.find(y => y.id === q.id);
-        if (i === 0) { if (q.zone !== f.zone || wasRoad[q.id]) { st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: f.zone, kind: 'took' }); q.zone = f.zone; q.visited.push(f.zone); } q.intent = { type: 'hold', zone: f.zone, why: 'won' }; }
+        if (i === 0) { if (q.zone !== f.zone || wasRoad[q.id]) { st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: f.zone, kind: 'took' }); q.zone = f.zone; q.visited.push(f.zone); } q.intent = { type: 'hold', zone: f.zone, why: 'won' };
+          /* §WOUNDS whoever of the beaten lies on the ground it took, nobody standing, is taken with it */
+          for (const o of st.squads) if (helpless(o) && o.zone === f.zone && !onRoad(o) && !st.allied(o.oa, q.oa)) takeCarried(st, q, o, f.zone); }
         else if (x.from === f.zone && zoneEnds(st, f.zone) === Infinity) q.intent = { type: 'hold', zone: f.zone, why: 'won' };   /* stood on it with the lead: stays */
         else back(q, x.from); });
     } else {
@@ -631,6 +657,15 @@
       if (fate === 'keep' || fate === 'pending' || (st.driven && body)) w.captives.push({ oa: from.oa, squad: from.id, day: st.day, body: body || null, fate });
     }
   }
+  /** §WOUNDS a squad with nobody standing, reached by a rival who can fight: everybody in it is taken */
+  function takeCarried(st, q, h, zone) {
+    const bodies = st.onOverrun ? st.onOverrun(st, h, q.oa) : h.n;
+    takeCaptives(st, { squads: [{ id: q.id }] }, h, bodies, { zone });
+    if (h.captives.length) { q.captives = q.captives.concat(h.captives); st.events.push({ t: 'captives_pass', day: st.day, from: h.id, to: q.id, n: h.captives.length }); h.captives = []; }
+    h.alive = false; h.gone = true; h.n = 0; h.moving = null; h.path = null; st.audit.wiped++;
+    st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: h.id, oa: h.oa, zone, by: q.oa, how: 'taken' });
+    if (st.onTaken) st.onTaken(st, q, h);
+  }
   function captiveByStance(st, captor, from) {
     const s = captor.stance; return s === 'death_or_glory' ? 'kill' : (s === 'preservationist' || s === 'measured') ? 'release' : 'keep';
   }
@@ -638,12 +673,12 @@
       and the squad under it may rush — a harasser rushed is caught looking the wrong way */
   function harass(st, q) {
     const tgt = q.intent.zone, h = holder(st, tgt);
-    if (!h || st.allied(h.oa, q.oa) || st.ground.zones[q.zone].nb.indexOf(tgt) < 0 || h.fight != null) { q.intent = { type: 'hold', zone: q.zone, why: 'harass_done' }; q.harass = null; q.firing = 0; return; }
+    if (!h || st.allied(h.oa, q.oa) || st.ground.zones[q.zone].nb.indexOf(tgt) < 0 || h.fight != null || helpless(h) || helpless(q)) { q.intent = { type: 'hold', zone: q.zone, why: 'harass_done' }; q.harass = null; q.firing = 0; return; }
     q.harass = q.harass || { zone: tgt, ticks: 0, hits: 0 }; q.harass.ticks++;
     const rifles = Math.max(1, Math.round(q.n * q.long)); q.firing = rifles;
     let hits = 0; for (let i = 0; i < rifles; i++) if (r01(st) < CONST.HARASS_P) hits++;
     if (hits) { h.n = Math.max(0, h.n - hits); h.lost += hits; q.harass.hits += hits; st.events.push({ t: 'harass', day: st.day, tick: st.tick, from: q.id, oa: q.oa, zone: tgt, on: h.id, hits });
-      if (h.n <= 0) { h.alive = false; st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: h.id, oa: h.oa, zone: tgt, by: q.oa, how: 'picked off' }); } }
+      if (h.n <= 0 && !st.livingOf) { h.alive = false; st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: h.id, oa: h.oa, zone: tgt, by: q.oa, how: 'picked off' }); } }   /* a driver's bodies say who is left: syncHeads */
     st.audit.harassed++;
     h.know[q.zone] = { at: absTick(st), oa: q.oa, n: q.n, how: 'fired on' };
     /* the squad under fire: by its dial it rushes the rifles or holds; a rush is a contact at the harasser's zone */
@@ -721,8 +756,9 @@
   /** squads with bodies behind them stand as many as their bodies do */
   function syncHeads(st) {
     if (!st.headOf) return;
-    for (const q of st.squads) { if (!q.ref) continue; const n = st.headOf(q.ref); q.n = n;
-      if (n <= 0 && q.alive && q.fight == null) { q.alive = false; q.moving = null; } if (n > 0 && !q.alive && !q.gone) q.alive = true; }
+    /* §WOUNDS a squad is on the ground while anybody in it lives, standing or carried; `n` is who can fight */
+    for (const q of st.squads) { if (!q.ref) continue; const n = st.headOf(q.ref), on = st.livingOf ? st.livingOf(q.ref) : n; q.n = n;
+      if (on <= 0 && q.alive && q.fight == null) { q.alive = false; q.moving = null; } if (on > 0 && !q.alive && !q.gone) q.alive = true; }
   }
   function tick(st) {
     if (st.done) return;

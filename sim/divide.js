@@ -119,6 +119,12 @@
   };
 
   const CONST = {
+    /* §WOUNDS THE SHADES OF HURT (ruled). A minor wound stands and fights and barely slows the march; a serious one
+       fights at a heavy cost and slows it; a critical one is carried, cannot fight, and slows it most — but no one body
+       stops a squad. Each wounded body takes its share off the squad's pace; a squad never stops altogether. */
+    WOUND_PACE: { minor: 0.03, serious: 0.12, critical: 0.30 },   // [C] the pace each wounded body costs its squad
+    WOUND_PACE_FLOOR: 0.15,             // [C] the slowest a squad ever walks, everyone carried
+    SERIOUS_FIGHT_HP: 0.5,              // [C] the share of a body's strength a serious wound leaves it to fight with
     /* [C] §STANCE share of a side down before it pulls out, by stance (standard is the grid's own 35%) */
     STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
@@ -669,7 +675,23 @@
     return corp;
   }
 
-  function squadHead(sq) { return sq.bodies.filter(b => b.status === 'active'); }
+  /** §WOUNDS how badly a body is hurt: none, minor, serious or critical — the worst wound it carries on the ground */
+  function woundTier(b) {
+    if (b.status !== 'injured') return null;
+    let worst = -1; const order = ['minor', 'serious', 'critical'];
+    for (const w of ((b.condition && b.condition.injuries) || [])) { if (w.permanent || w.careerEnding) continue; worst = Math.max(worst, order.indexOf(w.severity)); }
+    return worst < 0 ? 'serious' : order[worst];
+  }
+  /** who stands: the whole, the lightly hurt and the seriously hurt (who fight at a cost); the critical are carried */
+  function standsUp(b) { return b.status === 'active' || (b.status === 'injured' && woundTier(b) !== 'critical'); }
+  function squadHead(sq) { return sq.bodies.filter(standsUp); }
+  /** everyone on the ground with the squad, standing or carried */
+  function squadLiving(sq) { return sq.bodies.filter(b => b.status === 'active' || b.status === 'injured'); }
+  /** §WOUNDS the squad's pace: every wounded body takes its share off it, down to the floor */
+  function squadPace(sq) {
+    let off = 0; for (const b of sq.bodies) { const t = woundTier(b); if (t) off += CONST.WOUND_PACE[t]; }
+    return Math.max(CONST.WOUND_PACE_FLOOR, 1 - off);
+  }
 
   /* ------------------------------------------------------------------ */
   /* Step 6 — who stands on the field (NEGOTIATION.md §3)               */
@@ -691,7 +713,7 @@
     const live = new Set();
     for (const c of corps) {
       if (c.withdrawn) continue;
-      if ((c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'))) live.add(principalOf(c).id);
+      if ((c.squads || []).some(q => (q.bodies || []).some(b => standsUp(b)))) live.add(principalOf(c).id);
     }
     return live;
   }
@@ -894,7 +916,7 @@
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
        the strength on the ground, of what fighting on would have cost it. A BIG THREAT GOING spares a lot, which
        is why a strong OA can ask a hefty share and still be promised it. */
-    const livingOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
+    const livingOf = (j) => (j.allBodies || []).filter(b => standsUp(b)).length;
     const spared = (leaver, j) => {
       const total = corps.filter(onGround).reduce((t, x) => t + livingOf(x), 0);
       return total ? stayCost(j) * livingOf(leaver) / total : 0;
@@ -923,7 +945,7 @@
        first day and quiet after, so a rate read since day one — written for a ring where nobody met before day
        five — priced the whole month at the drop's pace and sent six banners home at the second window. What an OA
        reads now is what the last window cost it, and the field, over the days the wall leaves. */
-    const since = (j) => { const a2 = j.allBodies || [], was = j._aliveAtWindow != null ? j._aliveAtWindow : a2.length; return Math.max(0, was - a2.filter(b => b.status === 'active').length); };
+    const since = (j) => { const a2 = j.allBodies || [], was = j._aliveAtWindow != null ? j._aliveAtWindow : a2.length; return Math.max(0, was - a2.filter(b => standsUp(b)).length); };
     const cadenceDays = Math.max(1, day - (stats._lastWindowDay || 1));
     const fieldRate = (() => {
       let lostAll = 0, bodiesAll = 0;
@@ -931,10 +953,10 @@
       return bodiesAll ? lostAll / bodiesAll / cadenceDays : 0;
     })();
     const lastGroundDay = (() => { const w = planet.ground && planet.ground.wall; if (!w) return GROUND.CONST.DAYS; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
-    const aliveOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
+    const aliveOf = (j) => (j.allBodies || []).filter(b => standsUp(b)).length;
     const stayCost = (c) => {
       if (day < CONST.LEAVE_EARLIEST_DAY) return 0;
-      const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
+      const all = c.allBodies || [], alive = all.filter(b => standsUp(b));
       const lost = since(c);
       const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
       const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / cadenceDays) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
@@ -1016,13 +1038,13 @@
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
       const daysToEnd = Math.max(0, lastGroundDay - day);
-      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (standsUp(b) ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
       /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them will be up */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
       const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
       /* a site pays whoever digs it, win or lose: the open deposits are worth its share of the field that will reach them */
-      const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
+      const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => standsUp(b)).length, 0);
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
       const cost = standingCost(c);
       const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
@@ -1063,7 +1085,7 @@
           postWithdrawOffer(c, terms, day, stats);
           (stats.audit.offerLog = stats.audit.offerLog || []).push({ from: c.id, day: day, ask: best.ask,
             odds: Math.round((odds[c.id] || 0) * 1000) / 1000,
-            standing: (c.allBodies || []).filter(b => b.status === 'active').length + '/' + (c.allBodies || []).length });
+            standing: (c.allBodies || []).filter(b => standsUp(b)).length + '/' + (c.allBodies || []).length });
         }
       }
     }
@@ -1132,7 +1154,7 @@
     }
 
     /* what this window leaves standing, for the next window's reckoning */
-    for (const j of corps) j._aliveAtWindow = (j.allBodies || []).filter(b => b.status === 'active').length;
+    for (const j of corps) j._aliveAtWindow = (j.allBodies || []).filter(b => standsUp(b)).length;
     stats._lastWindowDay = day;
   }
 
@@ -1204,6 +1226,11 @@
       health: (f.condition || {}).health, stress: (f.condition || {}).stress,
       captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
+    /* §WOUNDS the hurt go into the fight hurt: a minor wound as the grid's own light one; a serious one light, at half
+       its strength and with the heavier aim of a body fighting through it */
+    for (const u of units) { const t = woundTier(u.ref); if (!t) continue;
+      u.state = 'light';
+      if (t === 'serious') { u.hpMax = C.hpFor(u.ref); u.hp = Math.max(1, Math.round(u.hpMax * CONST.SERIOUS_FIGHT_HP)); u.seriousWound = true; } }
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
        What stood here was a squad-wide `gearTier` scalar and a five-row {power, protection}
        table, and when the tier was not exactly 3 it did not adjust a fighter's weapon, it
@@ -1683,7 +1710,7 @@
        among the others lifts (or drags) what the captain can hold together — which is what a
        squad's steadiest hand is FOR, and the second thing the stat now does. */
     let nerve = band((st.resolve || CONST.MIND_MID) * 0.65 + (st.presence || CONST.MIND_MID) * 0.35);
-    const others = (sq && sq.bodies || []).filter(b => b !== c && b.status === 'active');
+    const others = (sq && sq.bodies || []).filter(b => b !== c && standsUp(b));
     if (others.length) {
       const best = Math.max.apply(null, others.map(b => (b.stats && b.stats.presence) || 90));
       nerve = Math.max(0, Math.min(1, nerve + ((best - 90) / 110) * CONST.PRESENCE_STEADIES));
@@ -2240,7 +2267,7 @@
     }
     const liveSquads = () => { const out = []; for (const c of corps) for (const sq of c.squads) if (squadHead(sq).length >= 1) out.push(sq); return out; };
 
-    let day = 0, sendRescues = () => {};
+    let day = 0;
     let engagementsRun = 0;
     const OVERTIME_MAX = 12;
     let overtime = false;
@@ -2272,7 +2299,8 @@
       seed: 'contest', driven: true,
       allied: (a, b) => a === b,
       headOf: sq => squadHead(sq).length,
-      hurtOf: sq => sq.bodies.filter(b => b.status === 'injured').length,   /* the hurt a squad carries: one more down and nobody carries them */
+      livingOf: sq => squadLiving(sq).length,   /* the carried are on the ground too: a squad with nobody standing still walks */
+      paceOf: sq => squadPace(sq),
       resolve: (st, f, rngF) => gridResolve(st, f),
       captivePolicy: (st, captor, from, f, body) => captiveFate(captor, from, body),
       onSettle: (st, f, winnerOa) => afterFight(st, f, winnerOa),
@@ -2307,6 +2335,9 @@
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
       /* overrun: every body still standing is taken by the winner */
+      /* §WOUNDS a squad with nobody standing taken where it lay: the captives it held pass on, and every one is decided */
+      onTaken: (st, cq, h) => { for (const k of cq.captives) if (k.body) k.body._capturedBy = cq.oa; settleCaptives(cq);
+        rec({ t: 'taken', zone: cq.zone, c: cq.oa, from: h.oa }); },
       onOverrun: (st, cq, winnerOa) => { const taken = cq.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt with them */
         for (const b of taken) { b.status = 'captured'; b._capturedBy = winnerOa; stats.captured++; stats.audit.capturedAlive++; }
         stats.audit.overrun = (stats.audit.overrun || 0) + 1; return taken; }
@@ -2632,7 +2663,7 @@
     }
 
     /* ---- the day's bookkeeping on the ground ---- */
-    const standsNow = (c) => !c.withdrawn && (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+    const standsNow = (c) => !c.withdrawn && (c.squads || []).some(q => (q.bodies || []).some(b => standsUp(b)));
     /* §RESERVE a beacon zone draws an OA's reserve down while its squad stands on it uncontested: a rival in the
        zones next door stops the landing; while it is in use it fires — every rival hears it across the region and
        knows whose it is */
@@ -2680,6 +2711,8 @@
     while (true) {
       day++;
       for (const c of corps) if (c._downedOn == null && (c.withdrawn || !(c.squads || []).some(q => squadHead(q).length))) c._downedOn = day - 1;
+      /* an OA with nobody standing anywhere has fallen: its carried leave the ground with it, as a withdrawn OA's do */
+      for (const c of corps) if (c._downedOn != null) for (const sq of c.squads) if (sq._cq && sq._cq.alive) { sq._cq.alive = false; sq._cq.gone = true; }
       stats.days = day;
       rollWeather(rng, planet, stats, day);
       overtime = day > LAST_DAY;
@@ -2703,6 +2736,7 @@
           if (c.withdrawn || c._downedOn != null) continue;
           if (sq.zone == null || (e.t === 'region_gone' ? Z[sq.zone].region !== e.region : sq.zone !== e.zone)) continue;
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
+          if (sq._cq && sq._cq.gone) continue;   /* a squad overrun, taken or gone home: whoever of it lives is a captive or walked off, not on this ground */
           let took = 0;
           for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
           for (const k of (sq._cq ? sq._cq.captives : [])) if (k.body && k.body.status === 'captured') { k.body.status = 'dead'; took++; }
@@ -2778,7 +2812,7 @@
           stats._fightCursor = stats._fightCursor || {}; stats._echo = stats._echo || {};
           const shellOf = (c) => { const all = c.allBodies || [];
             return { id: c.id, profile: c.profile ? { id: c.profile.id, name: c.profile.name } : null, withdrawn: c.withdrawn ? { day: c.withdrawn.day } : null,
-                     standing: { up: all.filter(b => b.status === 'active').length, of: all.length }, squads: [], allBodies: [], shell: true }; };
+                     standing: { up: all.filter(b => standsUp(b)).length, of: all.length }, squads: [], allBodies: [], shell: true }; };
           const snapshotOwn = (c) => {
             const seen = new Map(), rivals = new Set(corps.filter(x => x.id !== c.id).map(x => x.id));
             const DROP = { _corps: 1, persist: 1, _cq: 1 };
@@ -2929,33 +2963,6 @@
       for (const c of corps) if (c.withdrawn) for (const sq of c.squads) if (sq._cq && sq._cq.alive) { sq._cq.alive = false; sq._cq.gone = true; }
       /* --- the plans: every seat's squads, on the same planner --- */
       CONTEST.plans(cst);
-      /* §WALL NOBODY IS LEFT FOR THE WALL. Somebody goes back for the immobilised: the standing squad of the OA with the
-         shortest walk to them, wherever it is, is sent — a squad with nobody standing cannot march, and the wall does
-         not wait. A seat's own order to a squad is not overridden for it unless no other squad can go. */
-      /* a rescue is over when nobody of its own is left lying where it was going */
-      for (const c of corps) for (const s2 of c.squads) { const o = s2._cq && s2._cq.order; if (!o || !o.rescue) continue;
-        if (!c.squads.some(d2 => d2.zone === o.zone && !squadHead(d2).length && d2.bodies.some(b => b.status === 'injured'))) { s2._cq.order = null; if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null; } }
-      /* sent at the plans, and again the hour a squad goes down, if nobody is on the way to it already */
-      sendRescues = (fresh) => { for (const c of corps) { if (c.withdrawn) continue; for (const sq of c.squads) {
-        if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured') || sq.zone == null) continue;
-        if (fresh && c.squads.some(s2 => s2._cq && s2._cq.alive && s2._cq.order && s2._cq.order.rescue && s2._cq.order.zone === sq.zone)) continue;
-        const able = c.squads.filter(s2 => s2 !== sq && squadHead(s2).length && s2._cq && s2._cq.alive && s2._cq.fight == null);
-        const free = able.filter(s2 => !(s2._cq.intent && s2._cq.intent.why === 'order' && s2._cq.intent.zone !== sq.zone));
-        const pool = free.length ? free : able; if (!pool.length) continue;
-        let best = null, bt = Infinity;
-        /* the walk past rivals if there is one; else through them, each a fight on the way */
-        for (const s2 of pool) { let p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) || (v !== sq.zone && !!CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id) });
-          if (!p) { p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) }); if (p) p = { ticks: p.ticks + p.path.filter(v => v !== sq.zone && CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id).length * CONTEST.CONST.EXIT_HELD_TICKS }; }
-          if (p && p.ticks < bt) { bt = p.ticks; best = s2; } }
-        if (!best) continue;
-        /* not into ground that will go before the rescuer can walk in and back out */
-        const tk = ground.wall.takeAt.find(t => t.region === Z[sq.zone].region), goes = Math.min(tk ? tk.day : Infinity, GROUND.zoneGoesOn(ground, sq.zone));
-        void goes;   /* the wall's own reflex turns the rescuer back in time if it cannot make it: the attempt is always made */
-        best._cq.intent = { type: 'take', zone: sq.zone, why: 'order', rescue: true }; best._cq.order = Object.assign({}, best._cq.intent);   /* it stands through any fight on the way */ best._cq.path = null; best._cq.wait = 0;
-        stats.audit.rescuesSent = (stats.audit.rescuesSent || 0) + 1;
-        rec({ t: 'rescue', zone: sq.zone, x: sq.x, y: sq.y, c: sq.corpId });
-      } } };
-      sendRescues(false);
 
       /* --- DAY: supply --- */
       for (const sq of liveSquads()) {
@@ -2981,7 +2988,6 @@
         const before = cst.events.length;
         CONTEST.tick(cst);
         mirror();
-        sendRescues(true);
         for (const e of cst.events.slice(before)) {
           if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
@@ -3000,18 +3006,6 @@
         /* the sites: whoever stands on one and is not fighting works it */
         for (const sq of liveSquads()) siteTick(sq);
         {
-          /* the pickup, any hour: a standing squad on or beside an immobilised squad of its own gathers the wounded */
-          for (const c of corps) for (const sq of c.squads) {
-            if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
-            for (const s2 of c.squads) {
-              if (s2 === sq || !squadHead(s2).length) continue;
-              if (s2.zone !== sq.zone && Z[s2.zone].nb.indexOf(sq.zone) < 0) continue;
-              for (let bi3 = sq.bodies.length - 1; bi3 >= 0; bi3--) { const b3 = sq.bodies[bi3]; if (b3.status !== 'injured') continue; s2.bodies.push(b3); sq.bodies.splice(bi3, 1); stats.audit.carriedOut = (stats.audit.carriedOut || 0) + 1; }
-              if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null;
-              if (s2._cq.order && s2._cq.order.rescue) s2._cq.order = null;
-              break;
-            }
-          }
           /* §CAPTIVES a captive whose guards are all down walks off: he goes home, hurt, nobody's to decide */
           for (const cq of cst.squads) if (cq.captives.length && cq.ref && !squadHead(cq.ref).length) {
             for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
@@ -3045,16 +3039,16 @@
       if (REC) {
         const sqRec = [];
         corps.forEach((c, ci) => c.squads.forEach((q, si) => {
-          const cq = q._cq, alive = squadHead(q).length;
-          if (alive) q._downAt = null;
-          if (!alive && !q._downAt) q._downAt = { zone: q.zone };
+          const cq = q._cq, alive = squadHead(q).length, onGround = alive || (cq.alive && squadLiving(q).length);   /* §WOUNDS the carried walk too */
+          if (onGround) q._downAt = null;
+          if (!onGround && !q._downAt) q._downAt = { zone: q.zone };
           const demand = Math.max(0.001, rationDemand(q, raceById) * planet.supplyStrain);
           const it = cq.intent || {};
-          sqRec.push({ i: cq.id, c: ci, s: si, z: alive ? cq.zone : q._downAt.zone, x: alive ? q.x : Z[q._downAt.zone].x, y: alive ? q.y : Z[q._downAt.zone].y,
-                       az: alive && it.type === 'take' ? it.zone : null,
-                       w: alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
+          sqRec.push({ i: cq.id, c: ci, s: si, z: onGround ? cq.zone : q._downAt.zone, x: onGround ? q.x : Z[q._downAt.zone].x, y: onGround ? q.y : Z[q._downAt.zone].y,
+                       az: onGround && it.type === 'take' ? it.zone : null,
+                       w: !alive && onGround ? (it.why === 'the wall' ? 'wall' : 'carried') : alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
                        n: alive, st: Math.round(squadStress(q)), rat: Math.round(Math.min(30, q.rations / demand)), g: q.crates, cl: q.claiming ? 1 : 0,
-                       hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: cq.captives.length, tr: alive ? cq.track.slice() : [] });
+                       hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: cq.captives.length, tr: onGround ? cq.track.slice() : [] });
         }));
         /* §SECRECY what each seat's squads knew of the rivals today (seen, heard, briefed, relayed): a seat's record
            carries those rival squads and no others */
@@ -3067,7 +3061,7 @@
           gz: (ground.wall.zoneAt || []).filter(t => t.day <= day).map(t => t.zone), nz: GROUND.nextZonesToGo(ground, day),
           sq: sqRec,
           obj: planet.objectives.map(o => ({ id: o.id, z: o.zone, h: o.heldBy || null, t: o.type, lbl: o.label, open: siteLive(o, day), on: o.type === 'sponsor_cache' && o.litDay === day ? o.litBy : null })),
-          corp: corps.map(c => ({ e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length, a: c.allBodies.filter(b => b.status === 'active').length,
+          corp: corps.map(c => ({ e: c.engagements, p: c.allBodies.filter(b => b.status === 'dead' || b.status === 'retired').length, a: c.allBodies.filter(b => standsUp(b)).length,
                                   w: c.allBodies.filter(b => b.status === 'injured').length, h: c.allBodies.filter(b => b.status === 'captured').length,
                                   o: c.hauled, si: c.sitesClaimed, st: c.policy, sd: Math.round(standing(c) * 100) })),
           ev: dayEvents
@@ -3167,7 +3161,7 @@
       if (stats.winner === c.id) continue;
       if ((stats.fallen || []).some(f => f.id === c.id)) continue;
       /* on its feet means a squad with a body standing; the wounded lying in the holds are not a banner */
-      const alive = (c.squads || []).some(q => (q.bodies || []).some(b => b.status === 'active'));
+      const alive = (c.squads || []).some(q => (q.bodies || []).some(b => standsUp(b)));
       recordFall(stats, c.id, c._downedOn || stats.days || 30, c.withdrawn ? (c.withdrawn.how || 'withdrew') : alive ? 'standing' : 'wiped');
     }
     /* §7.4 — what each corp actually dug out, by name. The assay bank was a single credit

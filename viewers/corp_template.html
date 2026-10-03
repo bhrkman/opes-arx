@@ -7369,7 +7369,7 @@
     if (e.t === 'harass') return name(e.c) + ' Fired Across the Zone at ' + name(e.on) + ' · ' + e.hits + ' Hit';
     if (e.t === 'overrun') return name(e.c) + ' Overrun at ' + esc(at) + (e.by ? ' by ' + name(e.by) : '');
     if (e.t === 'captive') return name(e.c) + ' ' + (e.out === 'killed' ? 'Killed' : e.out === 'released' ? 'Released' : 'Kept') + ' ' + esc(e.name) + ' of ' + name(e.from);
-    if (e.t === 'rescue') return name(e.c) + ' Sent for Its Wounded at ' + esc(at);
+    if (e.t === 'taken') return name(e.c) + ' Took the Wounded of ' + name(e.from) + ' at ' + esc(at);
     if (e.t === 'hazard') return name(e.c) + ' Caught in ' + esc(capWords(String(e.kind || 'Weather').replace(/_/g, ' ')));
     return null;
   }
@@ -7458,7 +7458,7 @@
       Object.keys(squads).sort(function (a, b) { return +a - +b; }).forEach(function (si) {
         h += '<div class="rq">' + esc((G.plan && G.plan.names && G.plan.names[+si]) || ('Squad ' + squadLetter(+si))) + '</div>';
         squads[si].forEach(function (r) {
-          var what = r.n ? capWords(r.why) + ' · ' + esc(r.where) + (r.steps ? ' · ' + r.steps + ' Step' + (r.steps > 1 ? 's' : '') : '') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
+          var what = r.n || r.why === 'carried' || r.why === 'wall' ? capWords(r.why === 'carried' ? 'carrying its wounded' : r.why) + ' · ' + esc(r.where) + (r.steps ? ' · ' + r.steps + ' Step' + (r.steps > 1 ? 's' : '') : '') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
           var f = r.fights.map(function (v) {
             var others = (v.corps || []).filter(function (id) { return id !== G.me; }).map(cSpan).join(', ');
             return '<span class="f' + (v.lost ? '' : ' ok') + '">Met ' + (others || 'the Enemy') + ' · ' + (/^disengage/.test(String(v.res)) ? 'Broken Off' : 'Fought to Dark') + '</span>';
@@ -9303,6 +9303,7 @@
       var it = x.intent || {};
       if (x.fight != null || it.type === 'fight') return 'Fighting';
       if (it.type === 'harass') return 'Picking at Them';
+      if (it.why === 'carried') return 'Carrying Its Wounded';
       if (it.type === 'take') return it.why === 'order' ? 'Under Orders' : /wall/.test(it.why || '') ? 'Ahead of the Wall' : it.why === 'rushing' ? 'Rushing Them' : 'Moving';
       if (it.why === 'order') return 'Holding on Orders';
       if (x.working) return 'Working the Site';
