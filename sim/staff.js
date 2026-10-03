@@ -52,7 +52,6 @@
     POOL_SIZE: 9,                       // [S] specialists looking for a post each year
     ESTIMATE_SPEC: 15,                  // [S] how wide a specialist's Craft is guessed, either way
     ESTIMATE_RIVAL: 10,                 // [S] and a rival's staffer, whom the fleet has watched work
-    POACH_REGARD: -10,                  // [C] what the house loses toward you for taking its people
     POACH_INTEL_LEVELS: 6,              // [C] what they tell you of their old house on arrival
     POACH_INTEL_MONTHS: 12,             // [S] and they go on telling you, a little, this long
     POACH_INTEL_MONTHLY: 2,             // [C]

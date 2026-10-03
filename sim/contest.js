@@ -85,7 +85,7 @@
   /** `squads`: [{ oa, s, bodies:[{status, silenced?}] or n, stance?, zone }] placed at the drop (one a zone, one a region per OA is the draft's business) */
   function open(rng, ground, squads, opts) {
     opts = opts || {};
-    const st = { ground, day: 1, tick: 0, seed: opts.seed || 'contest', squads: [], events: [], log: [], human: opts.human || {}, done: false,
+    const st = { ground, day: 1, tick: 0, seed: opts.seed || 'contest', squads: [], events: [], log: [], done: false,
                  audit: { steps: 0, contacts: 0, heard: 0, plans: 0, wall: 0, wallFree: 0, windows: 0 }, _contacts: {} };
     squads.forEach((q, i) => {
       const n = q.bodies ? q.bodies.filter(b => !b.status || b.status === 'active').length : (q.n || 5);
@@ -109,7 +109,6 @@
       out along a route who still 'held' the door) */
   const onRoad = q => !!(q.moving && q.moving.kind === 'route' && q.moving.paid >= 1);
   const holder = (st, zid) => st.squads.find(q => q.alive && q.zone === zid && !onRoad(q));
-  const isHuman = (st, oa) => !!st.human[oa];
   function standing(st) { return GROUND.standingOn(st.ground, st.day).map(r => r.id); }
   function deadZone(st, zid) { return GROUND.zoneGone(st.ground, zid, st.day); }
   /** the day the wall takes a zone: its region's day, or on the last ground its own */
@@ -261,6 +260,12 @@
     /* mid-day (after a contact) only the squads turned back think again; the rest keep their way, and their
        objectives stay taken */
     /* an order from the seat (why 'order') stands until it is carried out or the seat changes it */
+    /* §ORDERS an order stands until it is carried out or the seat changes it: whatever the squad did meanwhile (a
+       fight, a harass, a turn back), it goes back to its order when it next thinks */
+    for (const q of group) if (q.order && q.fight == null) {
+      if (q.order.type === 'take' && q.zone === q.order.zone) q.order = null;
+      else if (!q.intent || q.intent.why !== 'order') { q.intent = Object.assign({}, q.order); q.path = null; q.wait = 0; }
+    }
     const again = q => !(q.intent && q.intent.why === 'order' && (q.intent.type !== 'take' || q.intent.zone !== q.zone)) && (!opts.only || (q.intent && opts.only.indexOf(q.intent.why) >= 0));
     const taken = {};
     for (const q of group) if (!again(q) && q.intent && q.intent.type === 'take') taken[q.intent.zone] = true;

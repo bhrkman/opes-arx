@@ -35,9 +35,6 @@
     OVER_BULK_FATIGUE: 3,           // [C] per point over, per day
 
     /* §6 energy weapons — declared here, read from 5b-3 */
-    HEAT_SHED: 2,                   // [S] per exchange not firing
-    VENT_EXCHANGES: 1,              // [S] 2 with vent_2
-    CELL_RECHARGE: 24,              // [C] per night at camp
 
     /* §12 loot — declared here, read from 5b-3. `LOOT_DAMAGE_P` and `REPAIR_COST_FRAC` stood
        beside this one and are DELETED with the gear-damage cut (COMBAT.md §9.2). Neither was

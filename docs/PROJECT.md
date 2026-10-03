@@ -88,7 +88,7 @@ landings are their squad board's, and they say what becomes of the captives they
 
 ## The Divide
 
-Twenty-four fighters go down the well in squads the manager has set, each with its captain,
+Up to twenty-four fighters go down the well in squads the manager has set (an engine OA fields a squad for each landing it drafted), each with its captain,
 kit, rations and a stance, each on the zone its OA drafted. The ground is regions of zones; the
 wall takes whole regions on a schedule timed to the month and stops at the last ground; a squad
 in a region the wall takes at dawn is dead, and no OA is ever there. Every site is known from the
@@ -98,11 +98,14 @@ is adjudicated.
 
 The ground is the manager's only through comms windows. Between windows every seat's planner —
 a person's and the engine's alike — walks its squads over the regions: it takes ground worth
-having, leaves a region before the wall, and stops short of a rival, which is a fight. At a
-window the manager sets each squad's stance toward the enemy, from Avoid to All In, may order a
-squad to a zone or to hold, and decides the captives his people took. The Ground page shows
-every banner's squads, whose and where (the broadcast), the fights of the day, the wall's
-standing and its next regions, and inside the region he opens, the zones.
+having, leaves a region before the wall, and stops short of a rival, which is a fight. Each squad's
+captain reads the ground for it: his judgement weighs what a zone is worth, his sight sets how far
+the squad sees, his nerve how many of the enemy he counts. At a window the manager sets each squad's
+stance toward the enemy, from Avoid to All In, may order a squad to a zone or to hold — an order
+stands, through any fight on the way, until it is carried out or changed — and decides the captives
+his people took. The Ground page opens on the window itself: every banner's squads, whose and where
+(the broadcast), the wall's standing and its next regions, and every day since the last window as
+his own people lived it; inside the region he opens, the zones.
 
 A fight is fought on a grid with cover, line of sight and fog: a body is seen, heard, or
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
@@ -111,9 +114,10 @@ the ground and what the fallen carried. The wounded are recovered or lost; the d
 A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
 kept or killed by whoever holds them.
 
-A squad on the ground knows what it has seen and heard and what its seat told it at the last
-window; a seat reads the broadcast — every squad, whose and where — and the fights its own
-people fought.
+A squad on the ground knows what it has seen and heard, what a relay mast showed it, and what its
+seat told it at the last window; a seat reads the broadcast at each window — every squad, whose and
+where — and, between windows, its own squads, the rivals its people knew of that day, and the fights
+its own people fought. A side that knew where its enemy stood before they met fights readier.
 
 There are no truces. The one deal over the wire is a ransom: a captive is priced, paid for or
 left. An OA may leave the ground: by walking, or by selling its exit to the field for promises
@@ -127,8 +131,10 @@ standing has won and does not leave.
 
 ## The settlement
 
-The pot is paid to the winner less what was promised; sites dug pay everyone who dug them;
-purses, bonuses, death benefits and pensions are charged. Placement sets next year's draft
+The pot is paid to the winner less what was promised, a promise being a share of the pot (never
+more than the winner has left); sites dug pay everyone who dug them; purses, the winner's bonuses
+(once, on its books), death benefits and pensions are charged. A board's resource demand asks for a
+share of a store, the measure a Divide banks. Placement sets next year's draft
 order (weakest first in a first year, last place first after) and what the market charges the
 champion. Fame is earned in the fight and in the press; standing moves with the acts the year
 saw; the board judges its card and the sponsors judge their conditions.
@@ -163,15 +169,21 @@ lean one pleases.
 - On that ground (sim/contest.js, driven by divide.js's day loop, which keeps the economy: kit,
   rations, camp, forage, weather, loot, fame, stress, the table, the reserve, the awards, the
   settlement) a squad sees the zones next to it, a ring
-  more a level up and only its own in a hollow; it is heard across its region by what it carries,
+  more a level up and only its own in a hollow, a ring further with a captain who reads ground well
+  and none past the next zone with one who does not, in the dark, or in weather that cuts sight; the
+  day's weather slows the march, and a squad that loses its bearings makes a third of its way; it is heard across its region by what it carries,
   summed over its bodies, marching, firing or fighting, muffled by cover, thick ground and night;
   the window briefs it on every rival in its own and the adjacent regions. Every seat's planner
-  reads the same map: it takes ground worth having, leaves a region two days before the wall or
-  sooner when its way out is long, keeps to the way it chose, waits on a friend in the road and
-  stops short of a rival. A squad a tick along a route stands in neither region.
+  reads the same map: it takes ground worth having — a site as it stands now (a spent, dug or dark
+  one is nothing, a strongpoint its OA holds or a seam it is working is worth staying on, a beacon
+  draws an OA with a reserve to land, a rest site the hurt and hungry, the deposit its board asked
+  for more) — leaves a region two days before the wall or sooner when its way out is long or its
+  captives slow it, keeps to the way it chose, waits on a friend in the road and stops short of a
+  rival. A deposit opens with days enough to reach and work it before its region goes. A squad a tick along a route stands in neither region.
 - A contact is a fight, there and then, on the holder's zone: the grid is fed the zone (terrain,
-  cover, height against the comers', night), every squad comes on from the edge facing the zone it
-  came from and squads of one banner from different zones flank; neighbours in the zones next door
+  cover, height against the comers', night), every comer comes on from the edge facing the zone it
+  came from, the holder stands facing them, and a side whose enemies came at it from two arcs is
+  flanked; neighbours in the zones next door
   walk in late, a turn for every tick of their step. A fight holds the zone for the ticks it ran,
   never past the window at dawn and never longer than half a day; the beaten break off a zone back
   together, the winner holds the ground, a beaten squad with nowhere to go is overrun. The captured

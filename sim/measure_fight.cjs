@@ -16,7 +16,7 @@ const N = +(process.argv[2] || 16);
 const mk = (n, tag) => {
   const rng = P.mulberry32(P.seedFrom('shape' + n));
   const planet = MAP.generatePlanet(rng, {});
-  const c = D.buildCorp(rng, oa[n % oa.length], 'standard', null, 0.5, null, planet, null, 1);
+  const c = D.buildCorp(rng, oa[n % oa.length], 'standard', 0.5, null, planet, null, 1);
   return { tag, corpId: tag, policy: 'standard', policyName: 'standard',
            units: c.squads[0].bodies.map((f, i) => C.makeCombatant(f, { traitIndex: R.traitById, isCaptain: i === 0, day: 1 })) };
 };

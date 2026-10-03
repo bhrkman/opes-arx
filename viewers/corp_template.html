@@ -876,7 +876,6 @@
   
   
   /* the leanings: a five-point thumb on the scale, per OA */
-  .leans{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
   
   
   
@@ -1960,8 +1959,8 @@
     <button class="menubtn" id="mNew">New Game</button>
     <button class="menubtn" id="mLoad">Load Game</button>
     <button class="menubtn" id="mResume" style="display:none">Resume</button>
-    <button class="menubtn" disabled title="not yet">Multiplayer</button>
-    <button class="menubtn" disabled title="not yet">Options</button>
+    <button class="menubtn" disabled title="Not Yet">Multiplayer</button>
+    <button class="menubtn" disabled title="Not Yet">Options</button>
     <button class="menubtn" id="mExit">Exit Game</button>
     <div class="m" id="mNote"></div>
     <!-- the eight OAs' own marks, the real ones, so the stage says what the game is -->
@@ -2204,7 +2203,7 @@
         <div class="box" id="encounters"><span class="m">The Ground Is Quiet</span></div>
       </div>
       <div>
-        <h2>The Fleet · How Hard You Go at Each</h2>
+        <h2>The Fleet</h2>
         <div class="box" id="tstance"><span class="m">&mdash;</span></div>
         <h2>Your Word</h2>
         <div class="box" id="tword"><span class="m">&mdash;</span></div>
@@ -2390,7 +2389,7 @@
   var STATNAME = { aim:'Aim', grit:'Grit', reflex:'Reflex', fieldcraft:'Fieldcraft', tactics:'Tactics', presence:'Presence', resolve:'Resolve' };
   /* §STATS (ruled) WHAT A STAT IS FOR, IN A FEW WORDS, ON HOVER — in a small card, on every stat cell */
   var STAT_TIP = { aim: 'Hitting What They Shoot At', grit: 'Taking a Wound and Staying Up',
-    reflex: 'Acting First, Marching Faster', fieldcraft: 'Seeing Further, Finding More',
+    reflex: 'Acting First', fieldcraft: 'Seeing Further, Finding More',
     tactics: 'Leading a Squad Well', presence: 'Getting Famous, Steadying a Captain',
     resolve: 'Holding Their Nerve Under Fire' };
   function statCell(key, label, v) {
@@ -4028,7 +4027,7 @@
     /* the tints are derived in the stylesheet from these two, at a third */
     w.style.setProperty('--from', kf.c); w.style.setProperty('--to', kt.c);
     var name = to >= 12 ? 'The Divide' : ((SEASON.MONTHS[to] || {}).name || 'Month ' + to);
-    var opens = to >= 12 ? 'Twenty-Four Go Down the Well' : ((SEASON.MONTHS[to] || {}).opens || '');
+    var opens = to >= 12 ? 'The Squads Go Down the Well' : ((SEASON.MONTHS[to] || {}).opens || '');
     w.innerHTML = '<div class="veil"></div><div class="band"></div><div class="tick"><div class="n">Month</div><div class="mno">' + from + '</div>' +
                   '<div class="wn">' + esc(name) + '</div><div class="rule"></div><div class="op">' + esc(opens) + '</div></div>';
     document.body.appendChild(w);
@@ -4162,9 +4161,6 @@
   /* THE NAME AS MARKUP, for every screen that prints one. `displayName` is the plain string
      (titles, tooltips); this is what goes on the page, so a Mon-Wa pair reads in two tones
      wherever it is written rather than only where `nameSpan` happened to be used. */
-  /* §WITHDRAWAL the OA this one conceded the ground to, if it has: the page asked `joinedTo`
-     for a banner it stood under, and there are no banners now. */
-  function concededTo(c) { return (c && c.withdrawn && c.withdrawn.toId) || null; }
   function nameHtml(b) { return (b && b.race === 'mon_wa' && monWaName(b)) || esc(displayName(b)); }
   function nameSpan(b) {
     var mw = b.race === 'mon_wa' ? monWaName(b) : null;
@@ -4586,26 +4582,12 @@
 
   function renderIntelGrid() {
     var host = $('intelgrid');
-    var tracks = SEASON.monthTracks(G.corps[G.me], G.state.month);
-    var canGather = tracks.some(function (o) { return o.kind === 'scout' && o.available; });
-    /* after M8 the scouts can no longer report before the lock, so gathering closes — but the
-       dossiers you already paid for stay READABLE: the list shows, names still open a dossier,
-       only the pip tracks and budget line drop away. */
-    var me = G.corps[G.me], hasAny = me._intel && ((me._intel.planet &&
-      SEASON.INTEL_PLANET_ROWS.some(function (k) { return me._intel.planet.rows[k] && me._intel.planet.rows[k].depth; })) ||
-      (me._intel.rivals && Object.keys(me._intel.rivals).some(function (id) {
-        return SEASON.INTEL_RIVAL_ROWS.some(function (k) { return me._intel.rivals[id].rows[k] && me._intel.rivals[id].rows[k].depth; });
-      })));
-    if (!canGather && !hasAny) { host.innerHTML = ''; return; }   /* nothing to gather or read */
-
     var sel = intelSel();
-    if (canGather) G._focusSel.scout = intelPips();   /* board value tracks painted targets */
+    G._focusSel.scout = intelPips();   /* board value tracks painted targets */
     var spent = intelPips() + otherFocusIntel(), full = spent >= SEASON.CONST.FOCUS_POINTS;
 
     var h = '<div class="tgwrap' + (deskFolded('intel') ? ' shut' : '') + '"><div class="tghead foldable" data-foldhead="intel">' +
       '<span class="tgtitle">Gather Intel</span>' + boostTag('intel') + foldTag('intel') +
-      (canGather ? ''
-        : '<span class="m">The Scouts Report No Further Before the Lock</span>') +
       '</div>';
     h += '<table class="itbl">';
     intelTargets().forEach(function (t) {
@@ -4620,7 +4602,7 @@
         (t.planet ? 'data-doss="' + t.id + '"' : 'data-oa="' + t.id + '"') +
         (t.planet ? '' : ' style="color:' + colFor(t.id) + '"') + '>' +
         (t.planet ? '\u25c8 ' : markFor(t.id, 13) + ' ') + esc(t.name) + '</span></td>' +
-        '<td class="ipips">' + (canGather ? intelPipTrack(t.id, n) : '') + '</td>' +
+        '<td class="ipips">' + intelPipTrack(t.id, n) + '</td>' +
         '<td class="istat" style="color:' + st.color + '">' + st.word + '</td></tr>';
       /* the dossier opens beneath its own row, the Training grid's habit */
       if (G._dossier === t.id) h += '<tr class="idossrow"><td colspan="3" id="dossier">' + dossierHtml(t.id) + '</td></tr>';
@@ -4817,16 +4799,16 @@
       var rw = r.reward || {};
       var paidWord = rw.kind === 'kit'
         ? '<span class="kit">' + (rw.count || 1) + '&times; ' + (rw.tag === 'energy' ? 'Energy Kit'
-            : rw.tag === 'medical' ? 'Medical Kit' : rw.tag + ' kit') + '</span> delivered'
-        : crs(SEASON.SPON.CONST.SPONSOR_REWARD) + ' paid';
+            : rw.tag === 'medical' ? 'Medical Kit' : capWords(rw.tag) + ' Kit') + '</span> Delivered'
+        : crs(SEASON.SPON.CONST.SPONSOR_REWARD) + ' Paid';
       h += '<tr><td><span class="cname">' + esc(SEASON.SPON.houseName(r.house)) + '</span>' +
-           '<span class="csigned you">&mdash; kept</span>' +
-           '<div class="cpay">reward ' + paidWord + '</div></td></tr>';
+           '<span class="csigned you">&mdash; Kept</span>' +
+           '<div class="cpay">Reward ' + paidWord + '</div></td></tr>';
     });
     /* broken — nothing paid, regard soured */
     (sp.broken || []).forEach(function (house) {
       h += '<tr class="signed"><td><span class="cname">' + esc(SEASON.SPON.houseName(house)) + '</span>' +
-           '<span class="csigned">&mdash; broken</span>' +
+           '<span class="csigned">&mdash; Broken</span>' +
            '<div class="ccond">Condition Missed \u2014 No Reward</div></td></tr>';
     });
     h += '</table></div>';
@@ -4840,7 +4822,7 @@
   var IROWLABEL = { roster: 'Roster', finances: 'Finances', kit: 'Kit', training: 'Training',
                     moves: 'Moves', board: 'Board',
                     ground: 'The Ground', veins: 'The Veins', sites: 'The Sites',
-                    terrain: 'Terrain', hazards: 'Hazards', supply: 'Supply', sectors: 'The Landing Ring' };
+                    terrain: 'Terrain', hazards: 'Hazards', supply: 'Supply', sectors: 'The Landings' };
   var DEPTHWORD = ['Blank', 'Sparse', 'Read', 'Full'];
   function ageWord(months) {
     if (months <= 0) return 'This Month';
@@ -4928,10 +4910,9 @@
         var keys = Object.keys(pt).sort(function (a, b) { return pt[b] - pt[a]; });
         if (!keys.length) return 'Open Ground';
         var total = keys.reduce(function (t, k) { return t + pt[k]; }, 0);
-        var mapWord = ['', ' <span class="m">\u00b7 Coarse</span>', ' <span class="m">\u00b7 With Height</span>', ' <span class="m">\u00b7 Exact</span>'][depth] || '';
-        if (depth < 2) return 'Mostly ' + terrainName(keys[0]) + mapWord;
+        if (depth < 2) return 'Mostly ' + terrainName(keys[0]);
         return keys.slice(0, depth >= 3 ? 9 : 2).map(function (t) {
-          return terrainName(t) + ' <span class="m">' + (depth >= 3 ? Math.round(pt[t] / total * 100) + '%' : pt[t]) + '</span>'; }).join(' \u00b7 ') + mapWord;
+          return terrainName(t) + ' <span class="m">' + (depth >= 3 ? Math.round(pt[t] / total * 100) + '%' : pt[t]) + '</span>'; }).join(' \u00b7 ');
       }
       case 'hazards': {
         var hz = (pl.hazards || []).slice().sort(function (a, b) { return b[1] - a[1]; });
@@ -4952,10 +4933,8 @@
           return weatherWords({ kind: x[0] }).replace('<span class="warn">', '<span style="color:var(--ink)">') + ' <span class="m">' + Math.round(x[1] / tot * 100) + '% of Bad Days</span>'; }).join('<br>'));
       }
       case 'sectors': {
-        /* what the row unlocks at the lock, when the drop sector is chosen */
-        var n = (window.CDPREDIVIDE && CDPREDIVIDE.sectors) ? CDPREDIVIDE.sectors(pl).length : 0;
-        var got = depth >= 3 ? 'Ground, Prize and Landings' : depth >= 2 ? 'Ground and Prize' : 'The Ground';
-        return (n ? n + ' Sectors \u00b7 ' : '') + 'Read at the Drop: ' + got + (depth < 3 ? ' <span class="m">\u00b7 Rivals\u2019 Landings at Full</span>' : '');
+        /* §DROP what the draft reads of each landing (predivide.js intelOfDepth / readLanding): its ground, then its prize and site */
+        return 'Each Landing\u2019s Ground' + (CDPREDIVIDE.intelOfDepth(depth) >= CDPREDIVIDE.CONST.INTEL_PRIZE ? ', Prize and Site' : '');
       }
       case 'supply': {
         var st = pl.supplyStrain || 1;
@@ -4964,7 +4943,7 @@
         var pct = Math.round((st - 1) * 100);
         var h2 = word + ' \u00b7 Rations Burn ' + (pct >= 0 ? '+' : '') + pct + '%';
         if (depth >= 3) { var rs = (pl.objectives || []).filter(function (o) { return o.type === 'ration_site'; }).length;
-          h2 += ' \u00b7 ' + rs + ' Ration Site' + (rs === 1 ? '' : 's') + ' on the Ground'; }
+          h2 += ' \u00b7 ' + rs + ' Rest Site' + (rs === 1 ? '' : 's') + ' on the Ground'; }
         return h2;
       }
     }
@@ -5071,8 +5050,8 @@
     var total = r.total, lines = r.lines, pieces = r.pieces;
     MKT.cart = {};
     renderShelf();
-    $('mktnote').innerHTML = 'Bought ' + pieces + ' piece' + (pieces === 1 ? '' : 's') +
-      ' across ' + lines + ' line' + (lines === 1 ? '' : 's') + ' \u00b7 ' +
+    $('mktnote').innerHTML = 'Bought ' + pieces + ' Piece' + (pieces === 1 ? '' : 's') +
+      ' Across ' + lines + ' Line' + (lines === 1 ? '' : 's') + ' \u00b7 ' +
       crs(-total);   /* §ITEMS one negative figure, through the shared formatter */
   };
   if ($('mktclear')) $('mktclear').onclick = function () { MKT.cart = {}; renderShelf(); };
@@ -5132,11 +5111,11 @@
     var gateLine = ((res.landed && res.landed[G.me]) || []).filter(function (l) { return l.kind === 'gate'; })[0];
     if (gateLine) lines.push('<b>Gate and Merchandise</b> \u2014 <span class="cr pos">' + crs(gateLine.amount) + '</span>' + ' <span class="m">\u00b7 What the Crowd Paid</span>');
     ((res.landed || {})[G.me] || []).forEach(function (x) {
-      lines.push('<span class="gold">landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
+      lines.push('<span class="gold">Landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
     });
     var joined = me.roster.filter(function (b) { return !before[b.id]; });
     if (joined.length)
-      lines.push('<span class="good">signed:</span> ' + joined.map(nameSpan).join(', '));
+      lines.push('<span class="good">Signed:</span> ' + joined.map(nameSpan).join(', '));
     if (res.event === 'eight' && G.state.eight && G.state.eight.result) {
       var R8 = G.state.eight.result, meIn = R8.held ? ['A', 'B'].filter(function (k) { return R8.teams[k].some(function (t) { return t.corp === G.me; }); })[0] : null;
       lines.push('<b>The Eight</b> \u2014 ' + (R8.held ? (meIn ? (R8.winner === meIn ? '<span class="good">Your Fighter\u2019s Four Won: ' + crs(R8.share) + '</span>' : R8.winner ? '<span class="warn">Your Fighter\u2019s Four Lost</span>' : 'Drawn') : 'You Sent Nobody') +
@@ -5261,7 +5240,7 @@
     var plainOf = function (h) { return String(h).replace(/<[^>]*>/g, ''); };
     var headline = '', deck = [];
     /* the log's lines less the money (the money column has every ledger line already) */
-    var lineTexts = (R.lines || []).filter(function (l) { return !/landed:|Gate and Merchandise|^Focus/.test(l); });
+    var lineTexts = (R.lines || []).filter(function (l) { return !/Landed:|Gate and Merchandise|^Focus/.test(l); });
     if (R.event === 'eight' && G.state.eight && G.state.eight.result && G.state.eight.result.held) {
       var ER = G.state.eight.result, mineSide = ER.winner && ER.teams && ER.teams[ER.winner] && ER.teams[ER.winner].some(function (t) { return t.corp === G.me; });
       headline = 'The Eight Was Fought \u00b7 ' + (ER.winner ? (mineSide ? '<b>Your Four Took It</b>' : 'Your Four <b>Lost</b>') : '<b>Drawn</b>');
@@ -5562,7 +5541,7 @@
     var liveN = standing.length;
     $('gvcard').innerHTML = '<span class="n">Day</span><span class="d">' + day + '</span><span class="w">' + (view.fights.length ? view.fights.length + ' Contact' + (view.fights.length === 1 ? '' : 's') : view.preview ? 'The Drop \u00b7 A Preview' : 'No Contact') + ' \u00b7 ' + liveN + ' of ' + g.regions.length + ' Regions Inside the Wall</span>';
     $('gvstate').textContent = view.preview ? 'The Ground Before the Drop' : 'Day ' + day + (view.latest ? ' \u00b7 ' + (GROUND.isWindowDay(g, day + 1) || GROUND.isWindowDay(g, day) ? 'At the Window' : 'Between Windows') : ' \u00b7 Watched Back');
-    $('gvplanet').innerHTML = '<b>' + esc(g.name) + '</b> <span class="m">\u00b7 ' + esc(g.archetypeName) + '</span><div class="m" style="margin-top:2px">' + g.regions.length + ' Regions \u00b7 ' + g.zones.length + ' Zones \u00b7 ' + g.sites.length + ' Sites \u00b7 Day ' + day + ' of ' + g.days +
+    $('gvplanet').innerHTML = '<b>' + esc(g.name) + '</b> <span class="m">\u00b7 ' + esc(g.archetypeName) + '</span><div class="m" style="margin-top:2px">' + g.regions.length + ' Regions \u00b7 ' + g.zones.length + ' Zones \u00b7 ' + g.sites.length + ' Sites \u00b7 Day ' + day +
       (next.length ? ' \u00b7 Next to the Wall: ' + next.map(function (id) { return esc(g.regions[id].name); }).join(', ') : '') + '</div>';
     var sched = g.sites.filter(function (st) { return st.kind === 'deposit'; }).map(function (st) { return [st.opens, esc(st.label) + ' of ' + esc(capWords(String(st.resource || '').replace(/_/g, ' '))) + ' Opens \u00b7 ' + esc(g.regions[g.zones[st.zone].region].name)]; });
     var byDay = {}; g.wall.takeAt.forEach(function (t) { (byDay[t.day] = byDay[t.day] || []).push(g.regions[t.region].name); });
@@ -5809,12 +5788,12 @@
     return '<div class="fcard' + (G._sqsel === b.id ? ' sel' : '') + '" ' +
       (opts.pick ? 'data-' + opts.pick + '="' + b.id + '"' : opts.drop ? '' : 'data-id="' + b.id + '"') +
       (inSquad ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
-      '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="read the sheet" style="color:' + raceColour(b) + '">' +
+      '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="Read the Sheet" style="color:' + raceColour(b) + '">' +
         (lead ? '<span class="lead">\u2605</span>' : '') + nameHtml(b) + '</span></span>' +
         '<span class="kn">' + fighterMark(b, 20, colFor(G.me)) + ' ' + ratingHtml(b) + ' ' + (prim ? tierHtml(prim.id) + esc(prim.name) : '<span style="color:var(--faint)">Unarmed</span>') + '</span>' +
         (inSquad ? '<span class="ctl"><span class="star' + (lead ? ' on' : '') + '" data-lead="' + b.id + '" title="' + (lead ? 'Leads the Squad' : 'Make Leader') + '">\u2605</span>' +
-                   '<span class="x" data-home="' + b.id + '" title="send home">\u2715</span></span>' : '') +
-        (opts.drop ? '<span class="ctl"><span class="x" data-' + opts.drop + '="' + b.id + '" title="take off the card">\u2715</span></span>' : '') +
+                   '<span class="x" data-home="' + b.id + '" title="Send Home">\u2715</span></span>' : '') +
+        (opts.drop ? '<span class="ctl"><span class="x" data-' + opts.drop + '="' + b.id + '" title="Take Off the Card">\u2715</span></span>' : '') +
       '</div>' + stripHtml(b) + (opts.extra || '') + '</div>';
   }
   /* THE TIER BADGE, the one standard: 1 grey, 2 green, 3 blue, 4 orange, 5 red */
@@ -5930,10 +5909,10 @@
       var bad = n > 0 && (n < MIN || n > MAX);
       var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX;
       h += '<div class="sqcard ' + SQCLASS[si] + (n ? ' filled' : '') + (canPlace ? ' target' : '') + (bad ? ' badct' : '') + '" data-si="' + si + '">' +
-        '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="click to rename">' + esc(G.plan.names[si]) + '</span>' +
+        '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="Rename">' + esc(G.plan.names[si]) + '</span>' +
 
         '<span class="ct' + (bad ? ' bad' : '') + '">' + n + ' of ' + MAX +
-        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 needs ' + MIN : '') + '</span></div>';
+        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 Needs ' + MIN : '') + '</span></div>';
       /* §SQUADS A SQUAD IS EIGHT PORTRAITS. The first cut of "make it less like a list" made
          the list TALLER — eight full-width rows, each with a wall of stats, and every empty slot
          shouting for a fighter the moment one was picked up. A squad is eight portrait tiles:
@@ -6010,7 +5989,7 @@
       ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">Kit ' + crs(fieldedKit) + '</span>'
       : '';
     $('planstate').innerHTML = kitLine +
-      (refused ? '<span class="over" title="a hand needs a primary and armor, or the quartermaster overrides it">' + refused + ' hand' + (refused === 1 ? '' : 's') + ' incomplete</span>' : '') +
+      (refused ? '<span class="over" title="Needs a Primary and Armor">' + refused + ' Hand' + (refused === 1 ? '' : 's') + ' Incomplete</span>' : '') +
       (total > SEASON.CONST.DROP_MAX
         ? '<span class="over">' + total + ' Fielding \u2014 Over the Drop Cap of ' + SEASON.CONST.DROP_MAX + '</span>' : '');
     if (G._clearAsk) { G._clearAsk = false; renderClearButton(); }
@@ -6199,7 +6178,7 @@
         chatHtml(b) +
         sheetBlocks(b) +
         '<div class="colblk"><div class="clab">Loadout' +
-          (hand ? '<span class="ktag hand">Hand-Kitted</span><span class="ktag rel" id="pclear" title="hand the kit back to the quartermaster">Release</span>'
+          (hand ? '<span class="ktag hand">Hand-Kitted</span><span class="ktag rel" id="pclear" title="Hand the Kit Back">Release</span>'
                 : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
@@ -6461,7 +6440,7 @@
         '<span class="ol">' + esc(t.id === 'promise' ? 'Promise ' + PROMISE_MID[pk] : t.name) + '</span><span class="oc">' + esc(cost) + '</span>' + prom + '</div>';
     }).join('') + '</div>';
     var chosen = picked.kind ? SEASON.TALKS.TALKS.filter(function (t) { return t.id === picked.kind; })[0] : null;
-    $('bfoot').textContent = chosen ? (chosen.id === 'promise' ? 'Promise ' + PROMISE_MID[picked.promise || 'drop'] : chosen.name) + ' \u00b7 Spoken Now \u00b7 the Month\u2019s Word' : 'Choose a Talk';
+    $('bfoot').textContent = chosen ? (chosen.id === 'promise' ? 'Promise ' + PROMISE_MID[picked.promise || 'drop'] : chosen.name) + ' \u00b7 Spoken Now \u00b7 The Month\u2019s Word' : 'Choose a Talk';
     $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon ghost"><span class="w">Not Now</span><small>Keep the Word</small></button>' +
       '<button id="pspeak" class="rbeacon"' + (picked.kind ? '' : ' disabled') + '><span class="w">Speak</span><small>' + (chosen ? esc(chosen.id === 'promise' ? 'The Promise' : chosen.name) : 'Choose a Talk') + '</small></button>';
     Array.prototype.forEach.call(host.querySelectorAll('[data-wtalk]'), function (el) {
@@ -6865,7 +6844,7 @@
         }
       }
     }
-    $('frLbl').textContent = 'turn ' + F.turn + ' of ' + F0.res.turns +
+    $('frLbl').textContent = 'Turn ' + F.turn + ' of ' + F0.res.turns +
                              ' \u00b7 ' + (F0.i + 1) + '/' + F0.res.frames.length;
     paintPanels(F);
   }
@@ -7097,12 +7076,11 @@
     if (fx.fatigue) bits.push('Fatigue +' + fx.fatigue);
     if (fx.lost) bits.push('Bearings Unreliable');
     if (fx.hurt) bits.push((fx.hurt.terrain ? 'Injuries on ' + terrainName(fx.hurt.terrain) : 'Injuries Anywhere') + ' (' + Math.round(fx.hurt.p * 100) + '%)');
-    if (fx.flood) bits.push('The Water Rises');
     return '<span class="warn">' + (WEATHER_NAME[w.kind] || capWords(w.kind)) + '</span>' + (bits.length ? ' <span class="m">\u00b7 ' + bits.join(' \u00b7 ') + '</span>' : '');
   }
   var bannerName = function (ci) {
     var L = (G && G.oa) || OA;
-    return (L[ci % L.length] || {}).name || ('corp ' + ci);
+    return (L[ci % L.length] || {}).name || ('OA ' + ci);
   };
 
   function onBattle(b) {
@@ -8168,7 +8146,7 @@
       var short = pick.length < DV_MIN;
       $('dvpick').innerHTML = '<div class="sqcard sqA' + (short ? ' badct' : '') + '"><div class="sqhead"><span class="dot"></span>' +
         '<span class="sqname" style="cursor:default">On the Card</span>' +
-        '<span class="ct' + (short ? ' bad' : '') + '">' + pick.length + ' of ' + DV_MAX + (short ? ' \u00b7 needs ' + DV_MIN : '') + '</span></div>' +
+        '<span class="ct' + (short ? ' bad' : '') + '">' + pick.length + ' of ' + DV_MAX + (short ? ' \u00b7 Needs ' + DV_MIN : '') + '</span></div>' +
         '<div class="sqbody">' + onCard.map(function (f) { return fighterCard(f, false, { pick: 'dvdrop', drop: 'dvdrop', extra: extra(f) }); }).join('') +
         (pick.length < DV_MAX ? '<div class="fcard open">Open</div>' : '<div class="fcard full">Full</div>') + '</div></div>';
       $('dvcard').innerHTML = '';
@@ -8392,7 +8370,7 @@
       '<div class="neghead">' +
         '<div class="OA" style="border-left:3px solid ' + colFor(G.me) + '">' + markFor(G.me, 16) + cSpan(G.me) + '<span class="m">' + crs(me.account.treasury) + '</span></div>' +
         '<div class="mid">They Regard You<b>' + (view.regard > 0 ? '+' : '') + Math.round(view.regard) + ' \u00b7 ' + regardWord + '</b></div>' +
-        '<div class="OA theirs" style="border-right:3px solid ' + colFor(TSEL) + '"><span class="m" title="what your dossier knows of their purse">Purse ' + theirPurse(TSEL) + '</span>' + cSpan(TSEL) + markFor(TSEL, 16) + '</div>' +
+        '<div class="OA theirs" style="border-right:3px solid ' + colFor(TSEL) + '"><span class="m" title="What Your Dossier Knows of Their Purse">Purse ' + theirPurse(TSEL) + '</span>' + cSpan(TSEL) + markFor(TSEL, 16) + '</div>' +
       '</div>' +
       '<div class="pressure"><div class="tscale"><i style="left:' + pct + '%"></i></div>' +
         '<div class="pw"><span class="m">Your Side ' + crs(view.give) + '</span><span class="verdict ' + vcls + '">' + verdict + '</span><span class="m">Their Side ' + crs(view.ask) + '</span></div>' +
@@ -8557,6 +8535,32 @@
     return '<span class="ard"><b class="' + b.cls + '">' + b.word + '</b><span class="af">' + Math.round(v) + '</span>' +
            '<span class="d ' + (dv > 0.05 ? 'good' : dv < -0.05 ? 'dn' : 'm') + '">' + dtxt + '</span></span>';
   }
+  /* §STANDING an act's id (reputation.js ACTS) in the Board's words */
+  var ACT_WORD = {
+    won_planet: 'Won the Planet', finished: 'Where You Finished', ceded: 'Withdrew', bought_win: 'Bought the Win',
+    held_out: 'Held Out', refused_all: 'Refused Every Offer', last_ground: 'On the Last Ground',
+    everyone_came_home: 'Everyone Came Home', few_lost: 'Few Lost', our_dead: 'Our Dead', their_dead: 'Their Dead',
+    worthy_fight: 'A Worthy Fight', hid: 'Hid', betrayed: 'Betrayed', generous_terms: 'Generous Terms',
+    ransomed_home: 'Ransomed Home', abandoned_ours: 'Abandoned Our Own', released_captives: 'Released Captives',
+    killed_captives: 'Killed Captives', kept_captive: 'Kept a Captive', a_star_rose: 'A Star Rose',
+    took_the_purse: 'Took the Purse', the_gate_was_good: 'A Good Gate', won_the_eight: 'Won the Eight',
+    paid_the_wages: 'Paid the Wages', granted_a_raise: 'Granted a Raise', kept_a_debtor: 'Kept a Debtor',
+    silent_before_board: 'Silent Before the Board', snubbed_letter: 'Snubbed a Letter', media_day: 'Media Day',
+    sold_away: 'Sold Away', sold_anyone: 'Made a Sale', said_gracious: 'Spoke Graciously', said_defiant: 'Spoke Defiantly',
+    said_humble: 'Spoke Humbly', said_deflecting: 'Deflected', said_candid: 'Spoke Candidly', said_evasive: 'Spoke Evasively',
+    sold_a_fighter: 'Sold a Fighter', refused_an_offer: 'Refused an Offer', answered_a_slight: 'Answered a Slight',
+    ignored_a_slight: 'Ignored a Slight', laughed_off_a_slight: 'Laughed Off a Slight', profiled: 'Profiled',
+    spoke_well: 'Spoke Well', owned_it: 'Owned It', no_comment: 'No Comment', media_cut_against: 'The Media Cut Against You',
+    sent_regrets: 'Sent Regrets', petitioned: 'Petitioned', refused_a_raise: 'Refused a Raise',
+    released_a_fighter: 'Released a Fighter', left_a_debtor: 'Left a Debtor', disciplined: 'Disciplined',
+    fined_both: 'Fined Both', let_it_lie: 'Let It Lie', bought_rare_kit: 'Bought Rare Kit', a_hand_handled: 'A Hand Handled',
+    lost_the_dividend: 'Lost the Dividend', lost_the_eight: 'Lost the Eight', drilled_hard: 'Drilled Hard',
+    rested_them: 'Rested Them', scouted: 'Scouted', courted: 'Courted', signed_our_own: 'Signed Our Own',
+    hired_a_gun: 'Hired a Gun', took_a_conscript: 'Took a Conscript', let_a_veteran_go: 'Let a Veteran Go',
+    gave_it_away: 'Gave It Away', took_the_collection: 'Took the Collection', read_the_papers: 'Read the Papers',
+    sent_the_papers_back: 'Sent the Papers Back', went_out_to_them: 'Went Out to Them', shut_the_gate: 'Shut the Gate',
+    settled_a_strike: 'Settled a Strike', kept_a_promise: 'Kept a Promise', broke_a_promise: 'Broke a Promise',
+    poached_staff: 'Poached Staff', mole_exposed: 'A Mole Exposed', raised_a_facility: 'Raised a Facility' };
   function whyLine(list) {
     /* one line per act, summed: three months of drilling is one entry, not three */
     var by = {}, order = [];
@@ -8565,7 +8569,7 @@
     return '<div class="amem">' + (list.length
       ? list.map(function (m) { var up = m.now > 0;
           return '<span class="' + (up ? 'up' : m.now < 0 ? 'dn' : 'm') + '">' + (up ? '\u25b2 ' : m.now < 0 ? '\u25bc ' : '') +
-                 esc(capWords(String(m.act).replace(/_/g, ' '))) + '</span>'; }).join('')
+                 esc(ACT_WORD[m.act] || capWords(String(m.act))) + '</span>'; }).join('')
       : '<span class="m">Unmoved</span>') + '</div>';
   }
   function renderBoard() {
@@ -8686,7 +8690,7 @@
   /* mid-contest, the board's own reading of a placement or a win is your banner's chance */
   function liveChance() {
     if (!G.div || !G.div.win || G.div.done) return null;
-    var w = G.div.win, p = (w.odds || {})[concededTo(w.you) || G.me] || 0;
+    var w = G.div.win, p = (w.odds || {})[G.me] || 0;
     return { txt: 'Chance of Winning ' + Math.round(p * 100) + '%', good: p >= 0.5, bad: p < 0.1 };
   }
   /* WHERE THE EIGHT STAND, for a placement demand. A lit "5th" in a row of ordinals never
@@ -9004,9 +9008,9 @@
         var m = lights[+(btn.getAttribute('data-watchl') || btn.getAttribute('data-watchd'))];
         if (!m) return;
         loadRec({ res: m.res, sides: m.sides, corps: m.corps },
-          '<b>the Dividend</b><div class="m">' + cSpan(m.corps[0]) + ' ' + m.score[0] +
+          '<b>The Dividend</b><div class="m">' + cSpan(m.corps[0]) + ' ' + m.score[0] +
           ' \u2013 ' + m.score[1] + ' ' + cSpan(m.corps[1]) +
-          (m.winnerId ? '<br>' + cSpan(m.winnerId) + ' Took the Purse' : '<br>drawn') +
+          (m.winnerId ? '<br>' + cSpan(m.winnerId) + ' Took the Purse' : '<br>Drawn') +
           '</div>');
         /* Back returns to the page the Watch button stands on */
         var pg = btn.closest ? btn.closest('.page') : null;
@@ -9065,7 +9069,7 @@
                 names: b.sides.map(function (S, si) {
                   if (b.teamsOf) return si === 0 ? 'The First Four' : 'The Second Four';
                   var id = b.corps[si];
-                  return (G.corps[id] && G.corps[id].profile.name) || id || ('side ' + (si + 1)); }) };
+                  return (G.corps[id] && G.corps[id].profile.name) || id || ('Side ' + (si + 1)); }) };
     $('fr').max = String(Math.max(0, b.res.frames.length - 1));
     $('fr').value = '0';
     if (resultHtml) {
@@ -9106,8 +9110,6 @@
   function tName(id) { return (G.corps[id] && G.corps[id].profile.name) || id; }
 
   var TSEL_DIV = null;   /* the OA selected on the Table's strip */
-  var TKIND = null;      /* pact: the one deal made at the table */
-  function stanceWords(n) { return capWords(n); }
 
   /* §DROP THE LANDING: at the lock the Table shows the ground. The draft deals zones — one squad a zone, one squad a
      region for each OA, weakest first, every pick posted. What the survey bought reads on each landing: the ground at
@@ -9220,7 +9222,7 @@
     var cls = n.in <= 1 ? 'bad' : n.in <= 3 ? 'warn' : '';
     return 'The Wall Closes <b class="' + cls + '">Day ' + n.day + '</b> <span class="m">' +
       (n.in === 1 ? 'Tomorrow' : 'in ' + n.in) + ' \u00b7 to ' + Math.round(n.share * 100) + '%' +
-      (n.last ? ' \u00b7 the Last Ground' : '') + '</span>';
+      (n.last ? ' \u00b7 The Last Ground' : '') + '</span>';
   }
   /* §HOLDS ONE MEASURE. A Divide banks a share of a hold; the page says it in the fleet's units, a full store being
      UNITS_PER_STORE thousand — the same figures the Board's holds, the ask, the haul and the deposits all use */
@@ -9255,7 +9257,6 @@
     renderGroundAssay();
 
     /* ---- the day: where you stand, what the sky is doing, and the clock ---- */
-    var myOdds0 = (w.odds || {})[concededTo(you) || G.me] || 0;
     var mine = you.squads || [], up = 0, hurt = 0, dead = 0;
     (you.allBodies || []).forEach(function (b) { if (b.status === 'active') up++; else if (b.status === 'injured') hurt++; else if (b.status === 'dead') dead++; });
     /* §DESK ONE STRIP FOR THE DAY. It was a run of eleven figures in a line, all the same
@@ -9278,14 +9279,13 @@
           '<span class="bar"><i style="width:' + left + '%"></i></span>' +
           '<span class="v ' + wallCls + '">' + (sch0
             ? left + '% of the Ground Left \u00b7 ' + (sch0.last ? 'A Zone Goes ' : 'Closes ') + (sch0.in === 1 ? 'Tomorrow' : 'in ' + sch0.in + ' Days') +
-              (sch0.last ? ' \u00b7 the Last Ground' : '')
+              (sch0.last ? ' \u00b7 The Last Ground' : '')
             : 'The Wall Holds') + '</span></span>' +
 
         '<span class="dkv">Standing<b>' + up + '</b><small>' +
           (hurt ? hurt + ' Hurt' : 'None Hurt') + (dead ? ' \u00b7 ' + dead + ' Lost' : '') + '</small></span>' +
         lightCell(w) +
         '<span class="dwx">' + weatherWords(w.weather) + '</span>' +
-        (concededTo(you) ? '<span class="dkv">Conceded To<b>' + cSpan(concededTo(you)) + '</b></span>' : '') +
       '</div>' +
       '<div class="dhaul">' + haulStrip(w) +
         (ans.deals && Object.keys(ans.deals).length ? ' \u00b7 <span class="gold">A Word Rides With the Advance</span>' : '') + '</div>' +
@@ -9364,15 +9364,6 @@
     if (!mine.length) sqh = '<div class="box m">Nobody on the Ground</div>';
     $('tsquads').innerHTML = sqh;
 
-    /* ---- the stance: five notches, each saying what it does ---- */
-    /* §STANCE ONE CONTROL, AT EACH OA. A stance for the whole contest and then a 1–5 leaning
-       at each rival were two dials saying nearly the same thing, and the second rarely bit —
-       an OA meets two or three of the seven in a Divide. The notch a manager sets AT an OA is
-       now the stance his people take toward it: Avoid · Wary · Engage · Press · All In, which
-       are the five stances the game already had, read against one OA instead of the world.
-       A row at the head sets all seven at once, for a manager who does not want to think
-       about each; under each name, the three facts that inform the choice — whether they are
-       on you, what they think of you, and where they stand on strength. */
     /* §STANCE THE FLEET IS READ, NOT SET. A notch aimed at each rival bought a tenth of a fight
        between its ends, so the ladder moved onto each SQUAD (above) and this section keeps the
        three facts a manager weighs about each OA: whether they are on him, what they think of
@@ -9413,13 +9404,11 @@
       el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
     });
 
-    /* ---- the head: the day, your odds, your banner ---- */
+    /* ---- the head: the day ---- */
     if ($('dealhead')) {
-      var myOdds = (w.odds || {})[concededTo(you) || G.me] || 0;
       /* §NO ODDS whether you can still win is a judgement a manager makes, not a number the
          simulation hands him (ruled; the withdrawal tab dropped it for the same reason) */
-      $('dealhead').innerHTML = '<span>Day <b>' + w.day + '</b>' +
-        (concededTo(you) ? ' \u00b7 You Have Conceded to ' + cSpan(concededTo(you)) : '') + '</span>' +
+      $('dealhead').innerHTML = '<span>Day <b>' + w.day + '</b></span>' +
         '<span>' + (ans.deals && Object.keys(ans.deals).length ? 'A Word Rides With the Advance' : 'No Word Composed') + '</span>';
     }
     /* ---- the strip: every other OA, its odds, and where it stands to you ---- */
@@ -9439,9 +9428,7 @@
       hub: '<b>' + esc(shortOA(G.me)) + '</b>',
       sub: function (id) {
         var t = byId[id] || {}, rel = '';
-        if (concededTo(you) === id) rel = 'Your Banner';
-        else if (concededTo(G.corps[id]) === G.me) rel = 'Under You';
-        else if (t.ransoms) rel = 'A Ransom';
+        if (t.ransoms) rel = 'A Ransom';
         /* §NEGOTIATION who is on you, read from the contact record the Desk uses. This read the
            dead join tables, so every OA was labelled "0%" — a number the engine never produced,
            where odds were ruled out anyway — and "Hunting You" and hunger never showed (audit 2) */
@@ -9452,7 +9439,7 @@
       }
     });
     Array.prototype.forEach.call($('tstrip').querySelectorAll('[data-tsel]'), function (c) {
-      c.onclick = function () { TSEL_DIV = TSEL_DIV === c.getAttribute('data-tsel') ? null : c.getAttribute('data-tsel'); TKIND = null; renderTable(); };
+      c.onclick = function () { TSEL_DIV = TSEL_DIV === c.getAttribute('data-tsel') ? null : c.getAttribute('data-tsel'); renderTable(); };
     });
 
     /* ---- the composer for the selected OA: the Talks' shape, You Offer | The Beam |
@@ -9515,36 +9502,12 @@
       ? '<span class="good">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">' + (e.kind === 'ransom_pay' ? 'Ransomed' : 'Sold Back') + '</span>'
       : e.kind === 'ransom_decline' || e.kind === 'ransom_keep'
       ? '<span class="warn">' + esc(e.name || '') + '</span> <span class="m">' + (e.kind === 'ransom_decline' ? 'Left With Them' : 'Kept') + '</span>'
-      : '<span class="warn">Refused</span> <span class="m">by ' + cSpan(e.corp) +
+      : '<span class="warn">Refused</span> <span class="m">By ' + cSpan(e.corp) +
         (e.note ? ' \u2014 ' + esc(capWords(e.note)) : '') +
-        (e.short ? ' \u00b7 short by ' + crs(e.short) : '') +
-        (e.over ? ' \u00b7 over by ' + crs(e.over) : '') + '</span>';
+        (e.short ? ' \u00b7 Short by ' + crs(e.short) : '') +
+        (e.over ? ' \u00b7 Over by ' + crs(e.over) : '') + '</span>';
   }
 
-  /* the beam's fine print as label · value rows; a null label drops the row */
-  function beamFacts(rows) {
-    return '<div class="facts">' + rows.filter(function (r) { return r && r[0]; }).map(function (r) {
-      return '<span class="fk">' + r[0] + '</span><span class="fv' + (r[2] ? ' ' + r[2] : '') + '">' + r[1] + '</span>'; }).join('') + '</div>';
-  }
-  /* the terms the engine reads, from the chips on both sides. THE HOOK-UP POINT: a term
-     kind the engine learns to price (a claim, a ransom, a day of quiet) is read here into
-     whatever field evaluateOffer scores, and its pool row loses `dead`. */
-  /* a claimed site's resource, from the planet or from the window's own pricing of it */
-  function claimResource(id) {
-    var o = ((G.div && G.div.planet || {}).objectives || []).filter(function (x) { return x.id === id; })[0];
-    return o ? (RES_NAME[o.resource] || capWords(o.resource || 'Ore')) : 'Ore';
-  }
-  function termsOf(C) {
-    var terms = { share: 0, credits: 0, standDown: false, resources: [], claims: [] };
-    C.give.concat(C.get).forEach(function (c) {
-      if (c.k === 'cut') terms.share = (c.pct || 0) / 100;
-      if (c.k === 'credits') terms.credits = c.n || 0;
-      if (c.k === 'stand') terms.standDown = true;
-      if (c.cat) terms.resources.push({ category: c.cat, share: (c.pct || 0) / 100, when: c.when || 'always' });
-      if (c.site) terms.claims.push(c.site);
-    });
-    return terms;
-  }
   /* THE GROUND'S ASSAY: what is on the planet, and who has dug what. The board's demand is
      written in these units; the joiner the AI courts is courted for them. */
   function renderGroundAssay() {
@@ -9556,13 +9519,10 @@
             (comp.length ? '<div class="m">In the Ground: ' + comp.map(function (r) { return esc(RES_NAME[r.id] || capWords(r.id)); }).join(', ') + '</div>' : '') + '</div>';
     /* after the contest: what came home, and what the deals in kind moved */
     if (G.div.done && G._boardOutcome) {
-      var bk = G._boardOutcome.banked || {}, hl = (G._boardOutcome.haul || []).concat(G._boardOutcome.claims || []);
+      var bk = G._boardOutcome.banked || {};
       var cats = REP.CATEGORIES.filter(function (c) { return (bk[c] || 0) > 0; });
       h += '<div class="m" style="margin-bottom:6px">Came Home: ' + (cats.length ? cats.map(function (c) {
-             return '<b style="color:var(--ink)">' + unitsOf(bk[c]).toLocaleString('en-US') + '</b> ' + CAT_NAME[c]; }).join(' \u00b7 ') : 'Nothing') + '</div>' +
-           hl.map(function (l) {
-             return '<div class="m">' + (l.to === G.me ? '<span class="good">+' + unitsOf(l.units).toLocaleString('en-US') + '</span> ' + CAT_NAME[l.category] + ' From ' + cSpan(l.from)
-                                                       : '<span class="bad">\u2212' + unitsOf(l.units).toLocaleString('en-US') + '</span> ' + CAT_NAME[l.category] + ' To ' + cSpan(l.to)) + ' Under Terms</div>'; }).join('');
+             return '<b style="color:var(--ink)">' + unitsOf(bk[c]).toLocaleString('en-US') + '</b> ' + CAT_NAME[c]; }).join(' \u00b7 ') : 'Nothing') + '</div>';
     }
     var known = sites, share = (G.div.win && G.div.win.siteShare) || G.div.siteShare || {};
     if (G.div.win && G.div.win.siteShare) G.div.siteShare = G.div.win.siteShare;
@@ -9644,7 +9604,7 @@
                       replaced: G.custom ? G.custom.replaced : null,
                       plan: G.plan,
                       career: SEASON.saveCareer(G.state) });
-    $('clock').textContent = 'saved: ' + name;
+    $('clock').textContent = 'Saved: ' + name;
     setTimeout(applyPhase, 1200);
   }
 

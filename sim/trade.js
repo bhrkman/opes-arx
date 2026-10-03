@@ -1,8 +1,8 @@
 /* ============================================================================
  * trade.js — DEALING BETWEEN CORPORATIONS, ACROSS THE PREP YEAR.
  *
- * The Divide's own dealing (joining under a banner, ceding, ransoms, pacts) lives in
- * negotiate.js and happens inside a contest. This is the other thing: two OAs sitting
+ * The Divide's own dealing (ransoms, and the Withdrawal's promises) lives in negotiate.js
+ * and divide.js and happens inside a contest. This is the other thing: two OAs sitting
  * down between contests and swapping what one has for what the other needs — gear,
  * people, credits, and what you know about somebody else.
  *

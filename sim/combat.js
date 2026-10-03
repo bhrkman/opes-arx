@@ -13,24 +13,6 @@
  */
 
 const CONST = {
-  /* §3.3 exchange loop */
-  /* ============================================================================================
-     THE ABSTRACT MODEL'S DIALS. Everything marked [ABSTRACT] below belongs to the exchange-based
-     model the tactical grid replaced: exchange caps, band shifts, suppression weights, turret
-     and drone timings, stalemate rules. The housekeeping audit found thirty-odd constants that
-     nothing reads, and this is almost all of them — not rot, but the old model's instrument
-     panel left bolted to the wall beside the new one.
-
-     THEY ARE KEPT, DELIBERATELY, AND LABELLED: the grid's own numbers were derived FROM these,
-     several rulings in the docs are written in their terms, and the abstract model is still the
-     cheap answer for anything that ever needs to resolve a thousand fights without frames. What
-     is not acceptable is a reader thinking they still decide something — which is what happened
-     with MONWA_TETHER_COMP, ratified and unread, while the tether was built beside it with a
-     number somebody invented. Anything below marked [ABSTRACT] is not read by the grid.
-     ============================================================================================ */
-  EXCHANGE_CAP: 12,                       // [C] [ABSTRACT]
-  STALEMATE_EXCHANGES: 7,                 // [ABSTRACT] [C] consecutive scoreless exchanges before both break off
-
   /* §3.4 actions */
   AMMO: { shot: 1, suppress: 3, overwatch: 1 },        // [S]
   /* §GUNS the magazine is the gun's own (`mag`); a fighter carries SPARE magazines, and a reload costs rounds */
@@ -42,8 +24,6 @@ const CONST = {
   LOADOUT_AMMO: 16,                       // [C] NEW in v1 — COMBAT.md v0.3 should adopt this
   LOADOUT_RATE_CAP: 1.5,                  // [C] a fast weapon is issued more, but not unboundedly
   LOADOUT_BELT: 6,                        // [C] what a belt-fed weapon carries beyond a magazine
-  SUPPRESS_WEIGHT: 0.18,                  // [ABSTRACT] [C]
-  OVERWATCH_WEIGHT: 0.06,                 // [ABSTRACT] [C]
 
   /* COMPOSITION.md §4 — TEMPO. Shots per fighter per exchange.
    *
@@ -102,9 +82,6 @@ const CONST = {
     lava_field:     [0.20, 0.30, 0.40, 0.10],   // basalt ridges: hard cover, hard going
     tidal_marsh:    [0.35, 0.45, 0.20, 0.00]    // reeds and channels: soft cover, soft ground
   },
-  COVER_POSITIONS_PER_FIGHTER: 1.6,       // [ABSTRACT] [C] slack in the pool — room to move, not room for everyone
-  COVER_IMPROVE_P: 0.75,                  // [ABSTRACT] [C] chance the take-cover action lands a better slot
-  COVER_SUPPRESSED_DEGRADE_P: 0.12,       // [ABSTRACT] [C] sustained fire chips a position down a grade
   MOTION_HOLD: 1.00, MOTION_REPOS: 1.15, MOTION_HOVER: 1.35,   // [S]
   TETHER_AIM_MULT: 0.82,                  // [C] §RACES what a stretched half's shooting is worth
   SVALBARD_MOVING: 1.22,                  // [C] §RACES what firing on the move is worth to them
@@ -130,39 +107,12 @@ const CONST = {
   UNSPOTTED_AIM: 30,                                            // [H]
   BAND_HIT_MULT: [0.80, 1.00, 1.32],      // [C] §3.2 long / medium / short
   BAND_SEV_BONUS: [-7, 0, 6],             // [C] §3.2 lethality by band
-  BAND_COMP_DRAIN: [0, -1, -2],           // [ABSTRACT] [C] §3.2 "composure collapses fast" at short
-  BAND_SHIFT_AGREED: 0.38,                // [ABSTRACT] [C] both sides want the same range
-  BAND_SHIFT_CONTESTED: 0.24,             // [ABSTRACT] [C] winner of the contest moves it
 
-  /* COMPOSITION.md §5.2 — CLOSING AND OPENING ARE DIFFERENT ACTS.
-   *
-   * The contest above was a symmetric tug-of-war, and the equilibrium of a symmetric tug-of-war
-   * is the midpoint: measured, a long squad against a short squad settled at medium 58% of the
-   * time. Nobody could impose a band on an unwilling enemy, so nothing was ever swarmed and
-   * nothing was ever picked off from a ridge, and reach — the only axis separating weapons —
-   * did nothing. You can cross ground if you are willing to be shot at while you do it; you
-   * cannot reliably back away, because breaking contact under fire exposes you.
-   */
-  BAND_OPEN_UNDER_FIRE: 0.35,             // [ABSTRACT] [C] how badly backing away goes while being shot at
-  /* And crossing costs the exchange. Without this line closing is free and the short build
-     loses to nothing at all. The ground decides how survivable it is, which is what makes the
-     planet a counter to a composition through the terrain system that already exists. */
   CROSS_EXPOSURE: 1.30,                   // [C] motion penalty while crossing
-  CROSS_COST_P: { open_basin: 0.95, broken_ground: 0.70, forest: 0.55,   // [ABSTRACT]
-                  ruins: 0.50, entrenched: 0.62,
-                  crevasse_field: 0.72, deep_canopy: 0.50, salt_flats: 0.98,
-                  lava_field: 0.66, tidal_marsh: 0.80 },   // [C] chance a crosser loses the exchange
-  /* §5.1 — a pinned squad does not cross ground. This is the half that turns suppression from
-     a small aim debuff into the thing the machine gun exists for. */
-  SUPPRESS_PIN: 1.0,                      // [ABSTRACT] [S] share of a suppressed unit's push that is lost
 
   /* COMPOSITION.md §6 — tags that were declared, priced, sold, and inert. */
   DISORIENT_COMP: -8,                     // [C] composure a disorienting hit costs beyond the wound
-  ARC_CHAIN_FRAC: 0.5,                    // [ABSTRACT] [C] what the second body in the arc takes
   RICOCHET_P: 0.25,                       // [C] chance a miss finds somebody else
-  MOB_STEP: 1,                            // [ABSTRACT] [S] what mob_up / mob_down move a weapon's mobility by
-
-  BAND_CLOSE_BIAS: 1.55,                  // [ABSTRACT] [C] closing is marginally easier than opening under fire
   BAND_MISMATCH_PENALTY: 15,             // [S] per band off optimal — softened from 2 in Step 3b
   /* A SPECIALIST IS SPECIALISED. On the grid, fights settle toward medium, so a medium-band
      weapon is in its element about half the time whatever happens while a long or short weapon
@@ -230,7 +180,6 @@ const CONST = {
   RECOVER_BY_SEV: { graze: 0.94, light: 0.90, serious: 0.78, critical: 0.60, killed: 0.45 },
 
   /* §3.7 downed */
-  BLEED_SERIOUS: 6, BLEED_CRITICAL: 3,    // [ABSTRACT] [C] exchanges
   TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
   /* MEDKIT_RATE deleted at Step 5b-2: whether a squad has medical kit is no longer a
      coin flip, it is whether somebody bought one and is carrying it (PROCUREMENT.md §10). */
@@ -248,32 +197,20 @@ const CONST = {
   },
   COMP_BANDS: { steady: 70, shaken: 45, rattled: 25 },           // [S]
   AIM_PENALTY_BY_BAND: { steady: 0, shaken: 10, rattled: 30, broken: 50 },  // [S]
-  ROUT_SLOPE: 0.018, ROUT_MAX: 0.60, ROUT_THRESHOLD: 25,         // [ABSTRACT] [C] aligned to §4.3's broken band
   /* §6 energy weapons: heat inside the fight, charge across the day. A ballistic weapon
      is limited by supply; an energy weapon is limited by tempo. */
   HEAT_SHED: 2,                           // [S] per exchange the weapon does not fire
-  HEAT_SUPPRESS_MULT_RETIRED: 3,                  // [S] holding an arc down is what cooks a laser
-  /* THE OVERHEAT'S OWN DIALS, RETIRED WITH IT. They are labelled rather than deleted because
-     a heat rule may well come back — the family wants SOME cost for its output, and this is
-     where it would land — but nothing reads them now and nobody should think they decide
-     anything. */
-  VENT_EXCHANGES_RETIRED: 1,                      // [S] 2 with the vent_2 quirk
   /* §10 consumables — single use, each a real action in the exchange, not a modifier. */
   GRENADE_POWER: 7,                       // [C] frag; incendiary adds its quirk on top
-  GRENADE_TARGETS: 3,                     // [ABSTRACT] [S] up to three in band
   GRENADE_WEIGHT: 0.22,                   // [H] how readily a fighter reaches for one
   GRENADE_LAND_P: 0.50,                   // [C] per target, before cover: it is thrown, not aimed
   GRENADE_COVER_P: 0.16,                  // [C] each grade of cover this much less likely to matter
-  SMOKE_EXCHANGES: 2,                     // [ABSTRACT] [S] how long a screen lasts
-  STIM_COMPOSURE: 25,                     // [ABSTRACT] [C]
   /* §DEVICES the abstract model's turret and drone constants lived here — designed, tuned and never
      run once the grid replaced that resolver. The turret and the drone are the grid's now
      (tactical.js, §DEVICES). Two ideas from this block are recorded in PROJECT.md for the grid's
      turret: it can be shot and destroyed, and it draws fire, being the loudest thing there. */
   /* REMOVED in the Step 6 audit: SIDEARM_TIER_FLOOR. Declared, never read. */
   MOTION_AIM_RECOVERY: 20,                 // [C] what `stabilized` gives back when firing on the move
-  WITHDRAW_ROUT_MULT: 0.62,               // [ABSTRACT] [C] a called withdrawal is not a rout — bounding, not scattering
-  CAPTAIN_STEADY_MAX: 0.72,               // [ABSTRACT] [C] floor on the multiplier a standing captain can apply
 
   /* §5 rout / capture */
   ROUT_SQUAD_FRACTION: 0.40,              // [C] squad breaks when this share has routed
@@ -281,8 +218,6 @@ const CONST = {
 
   /* §8.1 (DIVIDE.md) captain judgment — replaces the deleted policy notch table.
      `own_down` is a COUNT, so HOLD_BASE is calibrated up from the spec's 1.4. */
-  BASE_COVER_BIAS: 0.35,                  // [ABSTRACT] [C] was POLICY.coverBias; now flat (D1)
-  RECOVERY_BASE_P: 0.72,                  // [ABSTRACT] [C] eagerness to go to a downed squadmate
   TREAT_EXPOSURE_MULT: 1.30,              // [S] §3.7 worse than open ground; see hitChance
 
   /* §7 injuries */
@@ -748,12 +683,6 @@ function loadoutFor(weapon) {
              ? CONST.LOADOUT_BELT : 0;
   return Math.round(CONST.LOADOUT_AMMO * t) + belt;
 }
-
-/* TWO RULES SHARED ONE NAME. `bandOf` here takes a FIGHTER and reads the band their weapon
-   was built for; `bandOf` in tactical.js takes a DISTANCE and says which band that is. Neither
-   was wrong and either could be read as the other, which is the sort of thing that survives
-   every test and ruins one afternoon. This one is named for what it asks. */
-function weaponBandOf(c) { return BANDS.indexOf(c.weapon.range || 'medium'); }
 
 /* Verbose-only: what this fighter chose to do, so a viewer can step one BODY at a time
    instead of one exchange at a time. Costs nothing when verbose is off. */

@@ -1,10 +1,10 @@
 /* Capital Divide — /sim/negotiate.js  (Step 6)
  *
- * The table. Implements NEGOTIATION.md end to end:
- *   §2 the pot · §3 banners and the umbrella · §4 terms · §5 leverage and price
- *   §6 the AI · §7 the crowd counterweight · §8 betrayal · §9 captives · §10.3 settlement
+ * The table: §2 the pot · §5 the odds board and price · §6.12 appetite · §9 captives ·
+ * §10.3 settlement. The one deal struck over the wire is a ransom; the Withdrawal is priced in
+ * divide.js against the board this file keeps.
  *
- * WHAT THIS OWNS: what a deal is worth, who offers what to whom, and who is paid at the end.
+ * WHAT THIS OWNS: what a deal is worth and who is paid at the end.
  * WHAT THIS DOES NOT OWN: the ending itself. A Divide ends when one banner is left standing
  * (N18) and that is the day loop's business — `divide.js` decides when the shooting stops,
  * this file decides what it was worth. Nothing here adjudicates a winner, scores a corp, or
@@ -20,9 +20,8 @@
   const CONST = {
     /* §2.1 the pot — sized against the annual board grants in oa_profiles (130k–290k) and
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
-       and ten for a poor one; split down an umbrella it is still years. The pot has to stay
-       immense AFTER the deals, or the deals are not worth making. */
-    POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, promises and umbrella shares paid out of it
+       and ten for a poor one. */
+    POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, and the Withdrawal's promises are paid out of it
     POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
@@ -39,112 +38,33 @@
     ODDS_KIT_WEIGHT: 0.38,              // [C] how much visible gear moves the board
     KIT_REFERENCE_PER_BODY: 1750,       // [C] the fleet's middling loadout, the board's yardstick
     INJURED_WEIGHT: 0.45,               // [C] a body in the camp tent is worth something
-    STANDDOWN_WEIGHT: 0.55,             // [C] §3.3 alive, and eventually in front of someone
 
-    /* §5.4 anchors — opening asks as a share of the principal's take */
-
-    /* §6 the table */
-    BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for a banner moves its price
-    /* §7 the crowd counterweight — REPLACED IN STEP 7.
-
-       CROWD_CREDIT_RATE lived here: one number saying what a point of standing was worth as
-       a share of a whole pot, declared honestly as a placeholder and marked for replacement
-       "by the actual relationship between standing and next season's grant".
-
-       That replacement was overruled by designer ruling (REPUTATION.md R2). A point of
-       popularity has no price in credits: it touches everything, money arrives from more than
-       one place, and no single rate can be honest. So the constant is DELETED rather than
-       re-derived, and the arithmetic that needed it is gone with it — see valueJoin below.
-       What a corp does now is charge MORE for an ugly deal (`priceOfBeingSeen.premium`) and,
-       past a wall, refuse it at any price. Nothing anywhere states what a point is worth.
-
-       A guard fails if either deleted name returns. */
-
-    /* §5.3 — what staying costs. This is the term that makes a corp deal BEFORE the crush
-       rather than after it: a banner that fights on is not just risking the pot, it is
-       spending people, and the last ground is where most of that spending happens.
-
-       LIFE_CREDIT_VALUE lived here: one figure for a fighter, standing in for five ledgers of
-       which only one was a number. Deleted in Step 7 for the same reason as the rate above
-       (REPUTATION.md R3) — a life has no price either.
-
-       What replaces it is REAL money and nothing else: the death benefit written into that
-       fighter's own contract, the signing cost already sunk into them, and the signing cost of
-       whoever replaces them. Three things the ledger actually pays. It varies by corp, because
-       a corp of expensive mercenaries genuinely does fear losses more than a corp of Natties,
-       which the single figure could never express.
-
-       The three channels a death costs that are NOT money — the standing it costs, the board
-       demand it threatens, and the developed person and the survivors' morale — are handled
-       where they belong: the first two in reputation.js, and the fourth is left unpriced and
-       said so, because it needs people to survive a Divide and they do not yet. */
+    BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for an OA moves its price
+    /* §5.3 — what a body costs to lose is REAL money and nothing else: the death benefit written
+       into that fighter's own contract, the signing cost already sunk into them, and the signing
+       cost of whoever replaces them. A life has no price beyond that (REPUTATION.md R3). */
     REPLACEMENT_SIGNING: 1.00,          // [C] §10.3 recruiting the body that fills the gap
 
-    /* §5.3a GREED — the appetite that got these corporations into this business.
-
-       The model was missing it entirely. Corps behaved like rational agents splitting a
-       surplus, taking any deal that beat their expected value. That is not who they are:
-       these are megacorporations monetising a bloodsport to strip planets. They want the
-       WHOLE thing, they are hard to buy off, and they are not generous to a rival they have
-       already broken. The only thing reining any of it in is what the public will wear.
-
-       Two directions, because greed cuts both ways at a table:
-         HOLDOUT — I would rather fight you for all of it than be bought at a fair price
-         MERCY   — you are finished, and I will pay you accordingly */
-
-    /* §8 the Aleas */
-                                        //     grudge. Checked at EVERY window by every allied
-                                        //     pair, so the per-Divide rate is ~20x this.
-
-    /* §9 captives */
-    /* §6.13 ONE VALUATION. Ransoms and captives priced from their own dials and fixed
-       constants; none read the body price the table uses, the living regard between OAs, or
-       appetite. Now a ransom is asked at what the body is worth to lose (pension plus the
-       replacement, as `bodyMoney` prices it), marked up, and the owner pays when it wants him
-       back — more when it means to keep fighting. */
+    /* §9 captives — §6.13 a ransom is asked at what the body is worth to lose (pension plus
+       the replacement), marked up, and the owner pays when it wants him back — more when it
+       means to keep fighting. */
     RANSOM_MARKUP: 1.25,                // [H] the captor asks this much over what the body costs to replace
     RANSOM_PAYS_UP_TO: 1.6,             // [H] an owner pays up to this much of the body's worth, at appetite 1
     RANSOM_FAME: 0.02,                  // [C] per point of fame, on both
-    /* §6.5 THE FORM OF PAYMENT IS BARGAINED, NOT ROLLED. `RESOURCE_TERM_P` (0.22) put a cut in
-       kind on a coin toss at a fixed share with a fixed discount. Now a joiner composes its
-       terms from what each side values (`composeTerms`): a site or a category it wants more
-       than the principal does is asked for first — that is where the surplus at a table lives
-       — and the balance in share and credits. The same composer serves invitations. */
-    /* §4.1 A SHARE OF THE HAUL. A resource term is a share of what the principal actually
-       banks in a category, paid down the chain like the pot: nothing banked, nothing owed, and
-       a joiner's joiner gets a share of a share. Each side values a unit by its own WANT —
-       a board short of food pays dearly for food and gives up minerals it does not need
-       cheaply — and the gap between the two wants is the surplus that makes a deal. */
+    /* §4.1 what a unit of a category is worth to an OA, by its own WANT: a board short of food
+       pays dearly for food and gives up minerals it does not need cheaply */
     RESOURCE_WANT_BASE: 0.55,           // [C] what a full-hold, unasked category is worth, as a fraction of HAUL_VALUE
     RESOURCE_WANT_SHORT: 1.10,          // [C] added at an empty hold, scaling with the shortage
     RESOURCE_WANT_ASKED: 0.80,          // [C] added when the board's card asks for the category
     RESOURCE_WANT_PRIORITY: 1.60,       // [C] instead of ASKED, when it is the card's priority
-    /* §6.6 WHOM TO APPROACH. A joiner went to the two strongest banners, always. RULED: the
-       table is for the OA you are actually engaged with — the one hunting you, the one you
-       are beating — not the leaderboard. A banner's value to a joiner is scaled by CONTACT
-       (§6.9: fights between them, whether it is hunting you, whether you have lost to it), and
-       a banner you have never met is worth half. Kingmaking — a banner whose win keeps a
-       grudged favourite from winning — is a circumstance and stays, small. What an OA
-       THINKS of another is not a reason to join it: teaming up for alliance's sake is what
-       the Aleas and the fans punish (COLD_ALLIANCE), so regard moves the price, not the choice. */
-                                        //     which a rich cold banner still outranked the OA on top of you a
-                                        //     quarter of the time (audit_table T1)
-    /* §6.10 A COLD ALLIANCE. A deal between two OAs whose squads have not met this Divide is
-       an arrangement, not a surrender, and the crowd knows the difference: the folder needs more
-       to be worth the shame, the buyer will pay less for a win nobody watched him earn, and both
-       are remembered for it (reputation.js: cold_alliance). Ruled strongly frowned upon. */
-    /* [H] §6 what the rest of the contest is worth to the OA giving it up: at the drop a
-       concession costs the buyer this much again, at the last day nothing extra. */
     /* [H] §6 how heavily an OA weighs what a leaver ASKS against the odds his going buys it:
        above 1 it is stingy, below 1 it buys peace cheaply. */
-    CONCESSION_ASK_WEIGHT: 1.0,                  // [H] on the joiner's floor with no contact
+    CONCESSION_ASK_WEIGHT: 1.0,
     /* §6.12 APPETITE — how much an OA wants to keep fighting THIS Divide, one number from what
        it knew going in and what has happened since: the board's demands, its interest in the
        planet's resources, its squads' health, its combats so far, and its strength now against
-       its strength at the drop. Ruled: the decision to give up is variable on those. Stance is
-       NOT in it — stance already governs how much Divide an OA goes looking for, and applying
-       it at the table too double-counted it (the STANCE_LIFE_MULT note). Appetite scales the
-       joiner's floor (hungry to stay, dear to fold) and, gently, the principal's ceiling. */
+       its strength at the drop. Stance is NOT in it — stance already governs how much Divide an
+       OA goes looking for. Appetite is what an owner will pay to have a captive back. */
     APPETITE_BOARD_WIN: 0.15,           // [H] a board that demanded a win or a placement, while it still can
     APPETITE_BOARD_RESOURCE: 0.20,      // [H] a board that demanded what this planet holds
     APPETITE_BOARD_FLEET: 0.10,         // [H] a board that wants fleet standing (held_out is liked)
@@ -158,44 +78,7 @@
     APPETITE_COMBAT: 0.12,              // [H] at ±3 net fights won this Divide
     APPETITE_STRENGTH: 0.15,            // [H] at half or one-and-a-half the odds it dropped with
     APPETITE_FLOOR: 0.45, APPETITE_CAP: 1.8,
-    /* §6.7 WHEN TO ACT. An OA offered whenever the numbers said yes. Now a patient OA with
-       a live chance waits — for a better window, or for the field to thin — and an impatient or
-       sinking one acts at once. */
-    /* §6.8 PRINCIPALS REACH OUT. Nobody courted anyone: every deal began with a joiner. A
-       principal now invites, each window, the OA whose joining would improve its odds most
-       (measured: the spoiler — what an OA costs a banner by staying — is a body or so, ₡3k
-       against gains of ₡150k, so it is not the trigger), at a little over what it guesses that
-       OA's floor to be; the OA answers by its own arithmetic. */
-                                        //     this much more than the banner does
-    /* §4.2 THE SPOILER. An OA that stays out and keeps fighting costs the banner people. The
-       share of the banner's expected losses this OA accounts for — its force against
-       everything else still standing — is worth paying to take off the board, whatever the
-       OA's own odds. This is a weak OA's leverage, and it was priced at nothing. */
-    /* §4.3 A NAMED CLAIM: one revealed site, dug by the banner but banked to the joiner. Priced
-       like a share of the haul — the site's units, discounted by the chance the banner digs it. */
-
-    /* §6.2 THE PRINCIPAL IS A PARTY TO THE DEAL. Until this pass a joiner computed BOTH sides'
-       limits — the principal's private ceiling included, off dials it could not know — picked
-       a point between them by patience, and the deal was struck: the principal decided
-       nothing, nobody could be wrong, and every deal was a perfectly informed split of the
-       surplus. A calculator, not a table. Now the joiner asks from an ESTIMATE of the ceiling
-       and can ask too much; the principal answers, and shades its ceiling by two things beside
-       the money — small things, by ruling: the money and the odds are the spine of the table,
-       these are terms inside it. */
-    /* §6.3 BEYOND THIS DIVIDE. An OA can be left out to dry: refuse its surrender and finish
-       it, and next year it is paying pensions and replacing bodies while you are not. A
-       principal counts a fraction of what finishing them would cost THEM against what taking
-       them is worth — more the more aggressive and treacherous its culture, more with a grudge,
-       nothing at all for an OA it is warm to. The joiner's expected losses are priced in the
-       joiner's own real money, the same way the joiner prices them itself. */
-    /* §6.4 MERCY IS WORTH SOMETHING TOO. A traditional or kindly OA pays a little over the
-       arithmetic to take a beaten rival in, and is remembered for it — by that OA, by its
-       fans, by the fleet (reputation.js: spared, generous_terms, left_to_die). */
-    RIVAL_PRICE: 0.20,                  // [C] what an OA's LIVING opinion of you moves its price, at ±100
-    /* §6.14 what its own dealings with you came to, learned inside a career */
-    DEAL_PAID_AT: 0.6,                  // [C] a joiner counts a deal paid when the take reaches this much of the promise
-    DEAL_BURNED: 0.10,                  // [H] on the price per deal that did not pay, less per one that did
-    DEAL_MEMORY_CAP: 0.30               // [C] the most the lesson can move a price either way
+    RIVAL_PRICE: 0.20                   // [C] what an OA's LIVING opinion of you moves its price, at ±100
   };
 
   /* ------------------------------------------------------------------ */
@@ -240,7 +123,6 @@
       else if (b.status === 'injured') injured++;
     }
     let f = active + CONST.INJURED_WEIGHT * injured;
-    if (corp.standDown) f *= CONST.STANDDOWN_WEIGHT;
     /* supply and condition — private, so only the corp's own valuation sees the truth */
     let dry = 0, n = 0;
     for (const sq of corp.squads) { n++; if (sq.rationDry) dry++; }
@@ -266,7 +148,6 @@
       seen++;
     }
     let f = seen;
-    if (corp.standDown) f *= CONST.STANDDOWN_WEIGHT;
     /* MEDIA DAY IS PAID FOR HERE. A corp that performed the week of the drop was watched doing
        it, so the fleet's estimate of them is sharper — the guesswork this function exists to
        model is exactly what they gave away. `_mediaReveal` was set at the seam and read by
@@ -287,20 +168,16 @@
   }
 
   /**
-   * The odds board over banners. `umbrellas` is a list of { principal, members }.
-   * Returns a map of principal id → probability of winning the planet.
+   * The odds board over the OAs standing. `umbrellas` is a list of { principal, members }
+   * (one OA each). Returns a map of OA id → probability of winning the planet.
    */
   function oddsBoard(umbrellas, opts) {
     opts = opts || {};
     const mean = opts.meanEngagements || 0;
-    /* `negotiation_bluff_detection` — a psion who reads pressure sees past the public board
-       to what a rival's force actually is. Declared in traits.json since Step 2 and read by
-       nothing; it is the one trait that touches the imperfect-information model directly. */
-    const reader = opts.reader && opts.hasHook && opts.hasHook(opts.reader, 'negotiation_bluff_detection');
     const raw = {}; let tot = 0;
     for (const u of umbrellas) {
       let f = 0;
-      for (const c of u.members) f += (opts.truth || reader ? corpForce(c) : believedForce(c, mean));
+      for (const c of u.members) f += believedForce(c, mean);
       const w = Math.pow(Math.max(0.0001, f), CONST.ODDS_SHARPNESS);
       raw[u.principal.id] = w; tot += w;
     }
@@ -310,53 +187,10 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* §7 the crowd counterweight                                          */
+  /* §5.3 price                                                          */
   /* ------------------------------------------------------------------ */
-
-  /**
-   * The cost of folding. Scales with how much of a shot you were giving up and how early —
-   * folding on day three with a full roster is the egregious act; folding on day 27 with
-   * nine people left is not.
-   *
-   * This is deliberately thin. The full model — standing with your own OA, with each rival's
-   * fanbase, with the non-OA public, and with the Aleas — is its own system and is deferred.
-   */
-
-
-  /* ------------------------------------------------------------------ */
-  /* §5.3 valuation, §6 the table                                        */
-  /* ------------------------------------------------------------------ */
-
 
   const dial = (c, k) => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
-
-
-  /* §5.3 — STANCE IS NOT APPLIED HERE, and the reason is a correction worth keeping.
-     
-     The first build gave each notch a multiplier on what it thought a life was worth, running
-     2.20 at preservationist down to 0.28 at death_or_glory. The notch ladder promptly blew out
-     to nine permanent losses between the poles, against a design that wants roughly two.
-
-     The fault was not the size of the multiplier, it was its existence. Declared stance
-     already governs fight selection in the day loop — six dials deciding how much Divide a
-     corp goes looking for — and DIVIDE.md is explicit that this is where stance lives. Adding
-     a second stance effect down here meant stance was applied TWICE: once to how often a corp
-     fought, and again to how readily it dealt its way out. The ladder was double-counting.
-
-     So every corp values a life at the same figure, and the difference between the poles
-     emerges where it is supposed to: a careful corp fights less, keeps more people, reads
-     better on the odds board, and sells that position for a larger share. C9 falls out of
-     the situation instead of being asserted by a table. Measured spread after removing it:
-     1.96 permanent losses between the poles, against 3.23 with it. */
-  const STANCE_LIFE_MULT = {
-    preservationist: 1.00, measured: 1.00, standard: 1.00, unyielding: 1.00, death_or_glory: 1.00
-  };
-
-  /**
-   * What fighting on from here is expected to cost this corp, in credits, if it stays under
-   * its own banner to the end. Bodies on their feet, times the share of them the rest of the
-   * Divide takes, times what this corp thinks a body is worth.
-   */
 
 
   function relationship(a, b) {
@@ -382,13 +216,8 @@
        you, an OA you left to die asks more, or will not deal at all. */
     const living = livingRegard(from, to);          /* how `from` feels about `to` */
     if (living != null) v *= 1 - living / 100 * CONST.RIVAL_PRICE;
-    /* §6.14 and what its own deals with `to` came to */
-    const rec = ((from.persist && from.persist.dealRecord) || from._dealRecord || {})[to.id];
-    if (rec) v *= 1 + Math.max(-CONST.DEAL_MEMORY_CAP, Math.min(CONST.DEAL_MEMORY_CAP, CONST.DEAL_BURNED * (rec.bad - rec.good)));
-    /* §5.3b WHO YOU FIGHT UNDER IS SEEN. An OA's own people have to live with the banner
-       their manager takes, so the fleet's regard for a banner is a real part of its price: a
-       OA nobody minds fighting under is joined for less, and an OA the fleet despises has
-       to pay for the shame of it. */
+    /* §5.3b the fleet's regard for `to` is a real part of its price: an OA the fleet despises
+       pays for the shame of dealing with it */
     const fleetRep = to && to.rep && to.rep.base ? (to._fleetStanding != null ? to._fleetStanding : null) : null;
     if (fleetRep != null) v *= 1 - Math.max(-CONST.BANNER_SHAME, Math.min(CONST.BANNER_SHAME, (fleetRep - 50) / 50 * CONST.BANNER_SHAME));
     return v;
@@ -413,40 +242,10 @@
     return living != null && living <= -60 && dial(from, 'tradition') > 0.5;
   }
 
-  /**
-   * What a joiner gets by staying versus by joining, per §5.3. Both sides are valued with
-   * the SAME function, so anything a human can see, an AI corp can see too.
-   */
-  /* REMOVED in the Step 6 audit: `valueJoin` and `principalIdOf`. Both were left behind when
-     `considerJoin` was split into `offerRange` + `evaluateOffer`, and neither had been called
-     since. Dead code that reads like live design is worse than no code at all — someone
-     reasoning about how a joiner is valued would have read the wrong function. */
-
-
-
   /* ------------------------------------------------------------------ */
-  /* §6 forming and answering an offer                                   */
+  /* §6.12 appetite                                                      */
   /* ------------------------------------------------------------------ */
 
-  function band(rng, b) { return b[0] + rng() * (b[1] - b[0]); }
-
-  /* REMOVED in the Step 6 audit: `openingAsk` and the four ASK_* anchor bands. NEGOTIATION.md
-     §5.4 documented them as the opening asks — 30-45% intact, 8-18% mauled — and the function
-     had not been called since `offerRange` began computing the floor and ceiling directly from
-     both sides' positions. A documented mechanism that does not run is a lie in the design
-     doc, so both the code and §5.4 are gone rather than one of them. */
-
-  /**
-   * THE RANGE. What the joiner will not go under, what the principal will not go over, and
-   * every number behind both — computed once, in credits, and used by the AI and by a human
-   * alike. Returns null when the pair cannot deal at all.
-   *
-   * Split out of `considerJoin` so that a human's offer is scored by the IDENTICAL function
-   * that scores an AI's. If they ran down separate paths the claim that a reasonable offer
-   * gets a reasonable answer would be untestable, which it was until now.
-   */
-
-  /** What a set of terms is actually worth to the joiner, in credits. */
   /* §4.1 what a category is worth to an OA, per unit banked, in credits */
   function wantOf(corp, category) {
     const rep = corp.rep || {};
@@ -459,63 +258,9 @@
     });
     return w * CONST.HAUL_VALUE;
   }
-  /* §4.3 the value of each revealed, undug site as a claim, to each side */
-  function termsValue(terms, range, side) {
-    let v = (terms.share || 0) * range.expectedTake + (terms.credits || 0);
-    const rates = range.resources || {};
-    for (const t of terms.resources || []) {
-      const r = rates[t.category]; if (!r) continue;
-      v += (t.share || 0) * (side === 'principal' ? r.principal : r.joiner);
-    }
-    const crates = range.claims || {};
-    for (const id of terms.claims || []) {
-      const c = crates[id]; if (!c) continue;
-      v += side === 'principal' ? c.principal : c.joiner;
-    }
-    return v;
-  }
-
-  /**
-   * Score an offer nobody in this file authored — a human's, or a counter. Same range, same
-   * arithmetic, and a refusal that says WHICH side was short and by how much, because "no"
-   * with no number attached is useless to a manager and hides bugs from us.
-   */
-
-  /**
-   * The AI's own offer. Finds the range, then picks a point inside it — patience holds out
-   * for better, thrift pushes percentage rather than cash.
-   */
-
-  /**
-   * §6.5 COMPOSE THE TERMS for a value the joiner wants, in the form that costs the principal
-   * least for what it gives the joiner. Sites and categories the joiner values more than the
-   * principal come first, best ratio first, each taken only if it does not overshoot; then
-   * credits by how badly the joiner wants cash (thrifty principals pay none); the balance in
-   * a share of the take. Returns { share, credits, resources, claims } or null.
-   */
-
-  /**
-   * §6.6 RANK THE BANNERS a joiner might approach: each viable banner's value to it at its
-   * guess, warmed by regard and by kingmaking. Returns [{ principal, umbrella, score, range }]
-   * best first; non-viable banners are still returned last, scored zero, so a refusal is
-   * recorded for the one the joiner would most have wanted.
-   */
-
-  /**
-   * §6.7 DOES THE OA ACT THIS WINDOW. Urgency is the worse of how far behind its banner is
-   * and how late it is; patience holds it back while it still has a chance.
-   */
-
-  /**
-   * §6.8 A PRINCIPAL INVITES an OA that is costing it: when the OA's spoiler value to the
-   * banner is real, the principal offers terms at a little over what it guesses the OA's
-   * floor to be. The OA answers by its own arithmetic (`evaluateOffer`). Returns the deal
-   * proposal or null.
-   */
   /**
    * §6.12 APPETITE: how much this OA wants to keep fighting this Divide. 1.0 is indifferent.
-   * Read by `offerRange` into the joiner's floor and the principal's ceiling; shown on the
-   * manager's window as a word. Everything it reads is on the corp or in the context.
+   * Read by `ransomWorthPaying`. Everything it reads is on the corp or in the context.
    */
   function appetite(corp, ctx) {
     let a = 1.0;
@@ -586,23 +331,12 @@
 
 
 
-  /**
-   * §6.2 THE PRINCIPAL ANSWERS. Given a joiner's proposal, re-price it from the principal's
-   * side — its true ceiling, spite and goodwill included — and accept or refuse with numbers.
-   * A refusal is remembered by the joiner (it asks less next time) and, if the joiner is later
-   * wiped, by everybody (`left_to_die`). Returns { accepted, reason, over, range, generous, beaten }.
-   */
-
-
-
-  /* §TRUCES CUT (ruled): there is no truce at the table; what is priced over the wire is a ransom. */
-
   /* ------------------------------------------------------------------ */
   /* §9 captives                                                         */
   /* ------------------------------------------------------------------ */
 
   /* what one body costs its OA to lose: the pension the contract promises and the signing it
-     takes to replace him — the same figure `bodyMoney` averages for the table */
+     takes to replace him */
   function bodyWorth(fighter) {
     const c = (fighter && fighter.contract) || {};
     return ((c.death_benefit || 0) + (c.signing_cost || 0) * (1 + CONST.REPLACEMENT_SIGNING))
@@ -613,15 +347,11 @@
   }
 
   /**
-   * N10 — a captive can be bought back DURING the games, as its own small deal. The price
-   * was written at the start of Step 6 and nobody ever offered it; only the end-of-Divide
-   * whim ran, so every prisoner's fate was decided by their captor's mood and never by
-   * their own corp caring enough to pay.
-   *
-   * The captor is weighing cash now against a body they can kill, keep, or hand back later
-   * for nothing. Thrift takes the money; aggression would rather have the prisoner.
+   * N10 — a captive can be bought back DURING the games, as its own small deal.
+   * THE CAPTOR'S SIDE: will it sell him back, and for how much. Null when it will not. The
+   * captor weighs cash now against a body it can kill, keep, or hand back later for nothing:
+   * thrift takes the money; aggression would rather have the prisoner.
    */
-  /* THE CAPTOR'S SIDE: will it sell him back, and for how much. Null when it will not. */
   function ransomOffer(rng, captor, owner, fighter, ctx) {
     if (ctx.sealed(captor)) return null;          /* N11 — they do not do deals, of any size */
     if (refusesOutright(captor, owner)) return null;   /* §6.4 they will not deal with this OA */
@@ -644,143 +374,35 @@
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
     return !(acct && acct.treasury < price);
   }
-  function considerRansom(rng, captor, owner, fighter, ctx) {
-    const deal = ransomOffer(rng, captor, owner, fighter, ctx);
-    if (!deal) return null;
-    return ransomWorthPaying(owner, fighter, deal.price, ctx) ? deal : null;
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* §8 betrayal                                                         */
-  /* ------------------------------------------------------------------ */
-
-  /** N17 — a corp may break a deal out of spite, against its own interest. */
-
-  /** The Aleas rules on it. Being in good odour buys you what an unpopular corp cannot. */
-
-
   /* ------------------------------------------------------------------ */
   /* §10.3 settlement                                                    */
   /* ------------------------------------------------------------------ */
 
   /**
-   * Pay everyone. `winnerId` is the principal of the last banner standing, or null if the
-   * contest somehow failed to resolve — in which case nothing is paid, because there is no
-   * winner to pay from and inventing one is exactly the adjudication N18 removes.
+   * Pay everyone. `winnerId` is the last banner standing, or null if the contest somehow
+   * failed to resolve — in which case nothing is paid, because there is no winner to pay from
+   * and inventing one is exactly the adjudication N18 removes. What is dug goes to the
+   * digger's stores at the season's close (reputation.js `fillHolds`), not here; a promise
+   * kept for a Withdrawal is paid out of the take in divide.js.
    *
-   * Conserves: every credit paid out is a credit that came from the pot or from a named
-   * treasury. Asserted in `regress`.
+   * Conserves: every credit paid out is a credit that came from the pot. Asserted in `regress`.
    */
-  /**
-   * §4.1 THE HAUL SETTLES DOWN THE CHAIN. `banked` is { corpId: { category: units, ... } } as
-   * dug. Each deal's resource terms move a share of what the principal HOLDS — its own digging
-   * plus what came down to it — to the joiner, roots first, so a share of a share is exactly
-   * that. A term marked `win` pays only under the winning banner. Nothing banked, nothing owed.
-   */
-  function settleHaul(banked, corps, deals, winnerId, categories) {
-    const cats = categories || ['minerals', 'fuels', 'luxuries', 'foods'];
-    const byPrincipal = {};
-    for (const d of deals || []) {
-      if (d.void || !(d.resources && d.resources.length)) continue;
-      (byPrincipal[d.principal] = byPrincipal[d.principal] || []).push(d);
-    }
-    const lines = [];
-    /* §WITHDRAWAL nobody stands under anybody: an OA that conceded took its people off the
-       planet, it did not become part of the buyer. Every corp answers for itself. */
-    const rootOf = id => id;
-    const paid = {};
-    function payChain(pid) {
-      if (paid[pid]) return; paid[pid] = true;
-      const list = (byPrincipal[pid] || []).slice().sort((a, b) => a.day - b.day);
-      for (const d of list) {
-        for (const t of d.resources) {
-          if (t.when === 'win' && rootOf(pid) !== winnerId) continue;
-          if (cats.indexOf(t.category) < 0) continue;
-          const held = (banked[pid] || {})[t.category] || 0;
-          const amt = held * t.share;
-          if (amt <= 0) continue;
-          banked[pid][t.category] = held - amt;
-          banked[d.joiner] = banked[d.joiner] || {};
-          banked[d.joiner][t.category] = (banked[d.joiner][t.category] || 0) + amt;
-          lines.push({ from: pid, to: d.joiner, category: t.category, units: amt, day: d.day });
-        }
-        payChain(d.joiner);
-      }
-    }
-    for (const c of corps) if (!c.joinedTo) payChain(c.id);
-    for (const c of corps) payChain(c.id);
-    return lines;
-  }
-
-  function settle(rng, corps, opts) {
+  function settle(corps, opts) {
     const pot = opts.pot;
     const winnerId = opts.winnerId;
-    const deals = opts.deals || [];
     const lines = [];
     const take = {};                    /* corp id → credits */
     for (const c of corps) take[c.id] = 0;
 
-    /* §2.2 WHAT A HAUL IS. The units an OA works out of the ground go to its OWN STORES —
-       that is the point of the Divide, and the board's demand is written in those units. What
-       is settled here is the second half of it: the fleet buys whatever an OA does not need
-       at the going rate, and that is the money on this line. The stores are filled from
-       `banked` at the season's close, not here; this is the sale, not the haul. */
-    /* §PRIZE THE HAUL IS NOT SOLD HERE ANY MORE. It paid every dug unit in credits at the
-       settlement AND stored it in the digger's holds, so a site paid twice for one haul; and it
-       paid the winner the credit value of every UNDUG site on top of the pot, which the pot's
-       resources now carry instead. What is dug goes to the digger's stores, and only what a
-       full store cannot hold is sold on — at the season's close, where the holds are (see
-       reputation.js `fillHolds`). */
-    const haulPaid = 0;
-
     if (winnerId == null) {
-      return { lines: lines, take: take, pot: pot, winnerId: null, paidFromPot: 0, bonuses: {} };
+      return { lines: lines, take: take, pot: pot, winnerId: null, bonuses: {} };
     }
 
-    /* 4 — the pot lands on the principal. */
+    /* the pot lands on the winner */
     take[winnerId] += pot;
     lines.push({ corp: winnerId, kind: 'pot', amount: pot });
 
-    /* 5 — settle down the chain, in the order the joins were formed, so a corp pays its
-       signatories out of what it actually received. A cut of a cut (N4). */
-    const byPrincipal = {};
-    for (const d of deals) {
-      if ((d.kind !== 'share' && d.kind !== 'flat') || d.void) continue;
-      (byPrincipal[d.principal] = byPrincipal[d.principal] || []).push(d);
-    }
-    const paid = {};
-    function payChain(pid) {
-      if (paid[pid]) return; paid[pid] = true;
-      const list = (byPrincipal[pid] || []).slice().sort((a, b) => a.day - b.day);
-      for (const d of list) {
-        /* §WITHDRAWAL (stage 3) A CONCESSION IS PAID, NOT WAGERED. Under the old deal the loser
-           fought on under the buyer's flag, so being paid a share of what the buyer won was
-           right: it was on their side. A withdrawal is the opposite — the ground was conceded
-           and the people went home — so the CREDITS agreed are a debt owed for that ground and
-           are paid first, before any share of winnings. Paying them last made a concession a
-           wager on the buyer: measured, two of three withdrawing OAs were paid NOTHING because
-           their buyer did not win, which is also part of why the price is wrong. */
-        const held = take[pid];
-        let cash, shareAmt;
-        if (d.withdraws) {
-          cash = Math.min(d.credits, Math.max(0, held));
-          shareAmt = Math.round(Math.max(0, held - cash) * d.share);
-          if (cash < d.credits) lines.push({ corp: pid, kind: 'owed', amount: -(d.credits - cash), to: d.joiner });
-        } else {
-          shareAmt = Math.round(held * d.share);
-          cash = Math.min(d.credits, Math.max(0, take[pid] - shareAmt));
-        }
-        const amt = shareAmt + cash;
-        if (amt <= 0) continue;
-        take[pid] -= amt; take[d.joiner] += amt;
-        lines.push({ corp: d.joiner, kind: 'settlement', amount: amt, from: pid });
-        lines.push({ corp: pid, kind: 'settlement_paid', amount: -amt, to: d.joiner });
-        payChain(d.joiner);
-      }
-    }
-    payChain(winnerId);
-
-    /* 6 — the winner pays its own people (N14). Winner's roster only. */
+    /* the winner pays its own people (N14). Winner's roster only. */
     const winner = corps.find(c => c.id === winnerId);
     const bonuses = { natties: 0, mercs: 0, freed: 0, total: 0 };
     if (winner) {
@@ -811,15 +433,13 @@
          taken off the pot here as well, they were paid twice */
     }
 
-    return { lines: lines, take: take, pot: pot, winnerId: winnerId,
-             paidFromPot: pot, haulPaid: haulPaid, bonuses: bonuses };
+    return { lines: lines, take: take, pot: pot, winnerId: winnerId, bonuses: bonuses };
   }
 
   const api = {
-    CONST, RICHNESS_LEAN, STANCE_LIFE_MULT, rollPot,
-    corpForce, believedForce, oddsBoard, priceModifier, relationship, livingRegard, appetite, bodyWorth, termsValue,
-    wantOf, settleHaul,
-    ransomPrice, considerRansom, ransomOffer, ransomWorthPaying,
+    CONST, rollPot,
+    oddsBoard, priceModifier, livingRegard, appetite, bodyWorth,
+    ransomPrice, ransomOffer, ransomWorthPaying,
     settle
   };
   if (isNode) module.exports = api;

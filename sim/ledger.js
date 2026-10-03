@@ -68,21 +68,9 @@
      *
      * The fix is not a smaller planet — that is ruled out and stays ruled out. The planet is
      * worth what it is worth. What reaches the manager's operating account is a **bonus on
-     * the win**, and the rest belongs to the arkship that sent them. The negotiation engine
-     * is untouched: every deal is still struck over the full value of the rights, because
-     * that is what the two corps are actually arguing about.
-     *
-     * Anchored, per ruling, against what a year of existing costs: wages, the entry fee, the
-     * bills, the gear, plus the growth the corp is trying to buy — better people, better
-     * kit, the fees that find their way in. Measured at 225,261 a corp-season with the
-     * growth room the ruling asks for, call it 260,000, and a win is worth 2.5 years of it.
+     * the win**, and the rest belongs to the arkship that sent them.
      */
-    /* [C] Re-derived at Step 7.5 after the calendar correction. Measured at 216,729 a
-       corp-season on twelve months (225,261 on the inflated thirteen), plus the growth room the
-       ruling asks for — better people, better kit, the fees that find their way in. */
-    SEASON_COST_ANCHOR: 250000,      // [C] what a year of existing costs, with room to grow
-    WIN_YEARS: 2.5,                  // [S] what taking a planet is worth, in years of existing
-    SQUAD_BONUS_SHARE: 0.34          // [C] derived: the share of a settlement that reaches the squad
+    SQUAD_BONUS_SHARE: 0.34          // [C] the share of a settlement that reaches the squad
   };
 
   /**
@@ -113,13 +101,13 @@
     if (result.payout) {
       const share = result.squadShare != null ? result.squadShare
                   : squadBonus(result.payout);
-      post(acct, 'income', 'Divide bonus (the OA takes the rights)', share);
+      post(acct, 'income', 'Divide Bonus', share);
       acct.lastSettlement = result.payout;
       acct.lastBonus = share;
     }
-    if (result.bonuses) post(acct, 'expense', 'winner bonuses', -result.bonuses);
-    if (result.ransomPaid) post(acct, 'expense', 'ransoms paid', -result.ransomPaid);
-    if (result.ransomTaken) post(acct, 'income', 'ransoms received', result.ransomTaken);
+    if (result.bonuses) post(acct, 'expense', 'Winner Bonuses', -result.bonuses);
+    if (result.ransomPaid) post(acct, 'expense', 'Ransoms Paid', -result.ransomPaid);
+    if (result.ransomTaken) post(acct, 'income', 'Ransoms Received', result.ransomTaken);
     return acct;
   }
 
@@ -214,7 +202,7 @@
   /** Charge the purse once the drop is known. S15. */
   function payPurse(acct, dropped) {
     const owed = purseBill(dropped);
-    if (owed > 0) post(acct, 'expense', 'purses', -owed);
+    if (owed > 0) post(acct, 'expense', 'Purses', -owed);
     return owed;
   }
 
@@ -254,7 +242,7 @@
   function callOnBoard(acct, rep, amount, REP) {
     if (!(amount > 0)) return { amount: 0, patienceCost: 0 };
     const out = REP.callOnBoard(rep, amount);
-    post(acct, 'income', 'board call (against patience)', amount);
+    post(acct, 'income', 'Board Call', amount);
     acct.boardCalls = (acct.boardCalls || 0) + 1;
     acct.patienceSpent = (acct.patienceSpent || 0) + out.patienceCost;
     return out;
@@ -269,21 +257,21 @@
       has been picked for is a number invented ahead of its answer. */
   function settleSeason(acct, roster, spend) {
     spend = spend || {};
-    post(acct, 'income', 'board grant', acct.grant);
+    post(acct, 'income', 'Board Grant', acct.grant);
     /* the season loop lands the retainer month by month through the prep year and passes
        `retainerMonths: 1` for the Divide month; a caller that has not is charged the year */
     const months = spend.retainerMonths != null ? spend.retainerMonths : CONST.SALARY_MONTHS;
-    post(acct, 'expense', 'retainers', -Math.round(retainerBill(roster) * months / CONST.SALARY_MONTHS));
+    post(acct, 'expense', 'Retainers', -Math.round(retainerBill(roster) * months / CONST.SALARY_MONTHS));
     /* §MONEY THE ENTRY FEE WAS TAKEN TWICE. "The entry fee was never taken" put a line at the
        lock in the season loop — from every OA that is going — while this one, in the
        settlement the same lock calls, was already posting it: ₡80,000 a year against a fee of
        ₡40,000. The season loop's is the one that knows who is going; this one is gone. */
-    if (spend.procurement) post(acct, 'expense', 'procurement', -spend.procurement);
-    if (spend.repairs) post(acct, 'expense', 'repairs', -spend.repairs);
-    if (spend.injuries) post(acct, 'expense', 'medical', -spend.injuries * CONST.MEDICAL_PER_INJURY);
+    if (spend.procurement) post(acct, 'expense', 'Procurement', -spend.procurement);
+    if (spend.repairs) post(acct, 'expense', 'Repairs', -spend.repairs);
+    if (spend.injuries) post(acct, 'expense', 'Medical', -spend.injuries * CONST.MEDICAL_PER_INJURY);
     /* the dead are paid for where they leave the books (season.js `Death benefits`, off each
        contract's own death_benefit); the estimate that lived here charged them a second time */
-    if (spend.windows) post(acct, 'expense', 'comms windows', -spend.windows * CONST.ALEAS_WINDOW_FEE);
+    if (spend.windows) post(acct, 'expense', 'Comms Windows', -spend.windows * CONST.ALEAS_WINDOW_FEE);
     acct.season++;
     acct.solvent = acct.treasury > 0;
     return acct;

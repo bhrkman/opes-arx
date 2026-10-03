@@ -297,7 +297,7 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._debtCalled = true;
-        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); f._loyal = true; return f.name + '\u2019s Debt Was Paid'; }
+        if (opt === 'pay') { LED.post(c.account, 'expense', 'A Debt Paid for ' + f.name, -CONST.DEBT_CALL); stress(f, -15); /* §HALF-BUILT and your people see you kept one of theirs */ if (c.rep) REP.act(c.rep, 'kept_a_debtor', {}); return f.name + '\u2019s Debt Was Paid'; }
         if (opt === 'sell') { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Contract Sold', Math.round(CONST.DEBT_CALL * 0.5)); if (c.rep) REP.act(c.rep, 'sold_a_fighter', {}); return f.name + '\u2019s Contract Was Sold'; }
         if (c.rep) REP.act(c.rep, 'left_a_debtor', {});
         wound(f, ctx.rng, 'inj_arm', 6, 14); stress(f, 12);
@@ -454,7 +454,6 @@
   function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
   /* §STANDING THE CROWD'S OWN DISPATCHES (ruled at the standing pass). A warm crowd brings things to the airlock; a
      cold one brings trouble. Each only turns up past its mark, so an OA the stands barely notice meets neither. */
-  const crowdOf = c => (c.rep ? REP.standing(c.rep, 'crowd') : 50);
   /* the faction that feels it: warm or cold past the mark, and enough of the stands to matter */
   const facAt = (c, f) => (c.rep && (c.rep.shares[f] || 0) >= CONST.CROWD_FACTION_SHARE ? REP.standing(c.rep, f) : 50);
   const warmOf = (c, fs) => fs.filter(f => facAt(c, f) >= CONST.CROWD_WARM)[0] || null;

@@ -848,7 +848,7 @@ setTimeout(() => {
     /* ---- the save is the game: save, step on, load, and be exactly where you were ---- */
     const rosterAtSave = doc.querySelectorAll('#roster .rcard').length;
     doc.getElementById('savebtn').click();
-    check(/saved: Y1 M3/.test(text('#clock')),
+    check(/saved: Y1 M3/i.test(text('#clock')),
           'a save is taken at month 3: ' + text('#clock').slice(0, 60));
     endMonth();
     check(/Month 4/.test(text('#clock')), 'the world steps on to month 4');
@@ -1033,7 +1033,7 @@ setTimeout(() => {
     check(!/the Dividend/i.test(text('#encounters')),
           'the contest\'s recap carries only the ground, not the summer\'s exhibition');
     doc.querySelector('#desklights [data-watchd]').click();
-    check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/.test(text('#frLbl')),
+    check(+doc.getElementById('fr').max > 5 && /turn \d+ of \d+/i.test(text('#frLbl')),
           'a show-match replays on the grid (' + (+doc.getElementById('fr').max + 1) +
           ' frames \u00b7 ' + text('#frLbl') + ')');
     /* either outcome is a valid exhibition — a purse taken or a draw — and the page writes
@@ -1092,8 +1092,9 @@ setTimeout(() => {
       if (plink) {
         plink.click();
         const dt = text('#dossier').replace(/\s+/g, ' ');
-        check(/Units to Play For/.test(dt) && /Rations Burn/.test(dt) && /Read at the Drop/.test(dt) && /Richness \d+%/.test(dt),
-              'the planet dossier reads as figures: units in the ground, ration burn, richness, what the ring unlocks');
+        /* (one measure since d5ee7c6: the veins read as Deep, Fair or Thin seams, not a sum of units) */
+        check(/(Deep|Fair|Thin) Seams/.test(dt) && /Rations Burn/.test(dt) && /Each Landing.s Ground/.test(dt) && /Richness \d+%/.test(dt),
+              'the planet dossier reads as figures: the seams, ration burn, richness, what the ring unlocks');
         check(!/_/.test(dt) && !/Partial|partial/.test(dt) && /Full/.test(dt),
               'the planet dossier has no snake_case and grades Blank / Sparse / Read / Full');
         GI._dossier = null;
@@ -1633,13 +1634,18 @@ setTimeout(() => {
             doc.querySelectorAll('#tsquads .tsq .sqnotch .nb').length ===
               doc.querySelectorAll('#tsquads .tsq .sqnotch').length * 5,
             'each squad standing carries its own five-notch ladder');
-      check(!doc.querySelector('#tsquads .ordsel'), 'the squads take no orders: what they do is theirs');
+      /* §ORDERS each standing squad's card carries an Orders select: as they judge, hold, or a zone to go to */
+      check(doc.querySelectorAll('#tsquads [data-sqorder]').length >= 1 &&
+            [...doc.querySelectorAll('#tsquads [data-sqorder]')].every(el => !!el.querySelector('option[value=""]') && !!el.querySelector('option[value="hold"]')),
+            'each standing squad\'s card carries Orders: as they judge, hold, or a zone (' + doc.querySelectorAll('#tsquads [data-sqorder]').length + ')');
+      /* §DESK the card says what the squad is doing, in the planner's terms */
+      check([...doc.querySelectorAll('#tsquads .tsq .doing')].every(el => /^(Moving|Fighting|Holding|Holding on Orders|Holding the Ground|Under Orders|Ahead of the Wall|Rushing Them|Picking at Them|Working the Site|Fell Back|Done)$/.test(el.textContent.trim())),
+            'each card says what its squad is doing: ' + [...doc.querySelectorAll('#tsquads .tsq .doing')].map(el => el.textContent.trim()).join(', '));
       /* THE CAPTAIN DECIDES: the row names them and says how they are reading the ground */
       /* §STORES the contest says what the ground has given, and what a squad has left to shoot */
       check(/Worked|Nothing Worked Yet/.test(text('#dayhead')),
             'the day head says what has come out of the ground: ' + (text('#dayhead').match(/Worked[^|]{0,60}/) || ['none'])[0].replace(/\s+/g, ' '));
-      check(/Rounds/.test(text('#tsquads')) && doc.querySelectorAll('#tsquads .bar2').length >= 1,
-            'each squad shows its rounds beside its rations');
+      /* (the card's Rounds cell left in the audit fixes, d5ee7c6: a card reads ground and food) */
       /* §THE CLOCK the wall says when it moves next, and to what */
       check(/Closes (Tomorrow|in \d+ Days)|The Wall Holds/.test(text('#dayhead')),
             'the strip says when the wall closes next: ' + (text('#dayhead').match(/Closes[^A-Z]{0,30}|The Wall Holds/) || ['\u2014'])[0].replace(/\s+/g, ' '));
@@ -1655,8 +1661,30 @@ setTimeout(() => {
             (!alive9 || doc.querySelectorAll('#tsquads [data-sheet]').length >= 1),
             'each squad names its captain and how well they read it, or says nobody leads it' +
             (alive9 ? '' : ' (every squad was killed to the man)'));
-      const anyMind = GO.div.win.you.squads.some(q => q._mind && q._mind.judge);
-      check(anyMind, 'a captain\'s judgement, sight and nerve are on the squad');
+      /* §CAPTAIN the leader line is the engine's reading of the captain who leads NOW: the mind the engine handed the
+         contest names that captain, and the card's words are that mind's bands (judgement Sharp/Steady/Struggling,
+         sight Sees Far/Sees Little/neither) */
+      {
+        const FAR = window.CDCONTEST.CONST.SIGHT_FAR_AT, SHORT = window.CDCONTEST.CONST.SIGHT_SHORT_AT;
+        const cardsL = [...doc.querySelectorAll('#tsquads .tsq')];
+        let read = 0; const bad = [];
+        (GO.div.win.you.squads || []).forEach((q, i) => {
+          const card = cardsL[i], up = (q.bodies || []).filter(b => b.status === 'active');
+          if (!card || !up.length) return;
+          const m = q._mind; if (!m) { bad.push('squad ' + i + ' has no mind'); return; }
+          const capEl = card.querySelector('[data-sheet]'), capB = capEl && up.find(b => b.id === capEl.getAttribute('data-sheet'));
+          if (!capB) { bad.push('squad ' + i + ' names nobody standing'); return; }
+          if (m.cap !== capB.name) bad.push('squad ' + i + ': the mind is ' + m.cap + '\'s, the card names ' + capB.name);
+          const t = card.querySelector('.head small').textContent;
+          const word = m.judge >= 2.8 ? 'Sharp' : m.judge >= 2.0 ? 'Steady' : 'Struggling';
+          if (t.indexOf(word) < 0) bad.push('squad ' + i + ' judge ' + m.judge + ' should read ' + word);
+          const sees = m.sight >= FAR ? 'Sees Far' : m.sight < SHORT ? 'Sees Little' : '';
+          if (sees ? t.indexOf(sees) < 0 : /Sees (Far|Little)/.test(t)) bad.push('squad ' + i + ' sight ' + m.sight + ' should read ' + (sees || 'neither'));
+          if (/Sees \d+%/.test(t)) bad.push('squad ' + i + ' still reads sight as a percentage');
+          read++;
+        });
+        check(read >= 1 && !bad.length, 'each standing squad\'s leader line reads the mind of the captain leading it (' + read + ' read' + (bad.length ? '; ' + bad.slice(0, 3).join('; ') : '') + ')');
+      }
       /* §STANCE ONE SQUAD HUNTS, ANOTHER KEEPS ITS HEAD DOWN — and the notch set on a card must
          actually reach THAT squad in the contest, not merely light up on the page */
       const cards = [...doc.querySelectorAll('#tsquads .tsq .sqnotch')];
@@ -1669,7 +1697,41 @@ setTimeout(() => {
       check(GO.div.answer.squadStance[sq0] === 'death_or_glory' &&
             (sq1 == null || GO.div.answer.squadStance[sq1] === 'preservationist'),
             'two squads can be set to different notches on their own cards');
+      /* §ORDERS send a standing squad that is not fighting to a zone from its card; the order must reach the engine
+         (the contest's journal carries it on this seat's answer) and the squad must carry it out (the record has it
+         under orders for that zone, or there) */
+      let ordered = null;
+      {
+        const ws = GO.div.win.squads || [];
+        const sel = [...doc.querySelectorAll('#tsquads [data-sqorder]')].find(el => { const k = +el.getAttribute('data-sqorder'), q = GO.div.win.you.squads[k], wq = q && ws.find(x => x.s === (q.sIdx != null ? q.sIdx : k)); return wq && wq.fight == null && el.querySelector('option[value]:not([value=""]):not([value="hold"])'); });
+        if (sel) {
+          const opt = sel.querySelector('option[value]:not([value=""]):not([value="hold"])');
+          const k = sel.getAttribute('data-sqorder'), q = GO.div.win.you.squads[+k];
+          sel.value = opt.value; sel.dispatchEvent(new window.Event('change'));
+          ordered = { k, s: q.sIdx != null ? q.sIdx : +k, zone: +opt.value, day: GO.div.win.day, journal: (GO.state._contestJournal || []).length };
+          check(!!GO.div.answer.orders && GO.div.answer.orders[k] && GO.div.answer.orders[k].zone === ordered.zone,
+                'a squad\'s Orders send it to a zone: squad ' + k + ' to zone ' + ordered.zone);
+        } else note('no standing squad out of a fight had a zone to be ordered to');
+      }
       doc.getElementById('advwin').click();
+      if (ordered) {
+        const J = (GO.state._contestJournal || [])[ordered.journal], mineA = J && J.bySeat && J.bySeat[GO.me];
+        check(!!mineA && !!mineA.orders && mineA.orders[ordered.k] && mineA.orders[ordered.k].zone === ordered.zone,
+              'the order reached the engine on this seat\'s answer: ' + JSON.stringify(mineA && mineA.orders));
+        /* an order stands until it is carried out or the seat changes it (contest.js §ORDERS): by this window the
+           squad is there, or still under that order, or down — whatever it met on the way */
+        const ci = (GO.div.win && GO.div.win.corps || []).findIndex(x => x.id === GO.me);
+        const days = ((GO.div.win && GO.div.win.record) || []).filter(D => D.d >= ordered.day);
+        const rows = days.map(D => (D.sq || []).find(r => r.c === ci && r.s === ordered.s)).filter(Boolean);
+        const nowQ = GO.div.win && (GO.div.win.squads || []).find(x => x.s === ordered.s);
+        const fought = (GO.div.win && GO.div.win.fights || []).filter(f => f.day >= ordered.day).map(f => 'day ' + f.day + ' ' + (f.result || ''));
+        const there = rows.some(r => r.z === ordered.zone || (r.tr || []).indexOf(ordered.zone) >= 0) || (nowQ && nowQ.zone === ordered.zone);
+        const still = nowQ && nowQ.intent && nowQ.intent.why === 'order' && nowQ.intent.zone === ordered.zone;
+        if (!GO.div.win) note('the contest ended on the window the order was sent');
+        else check(there || still || !nowQ || !nowQ.alive,
+          'the order stood until carried out: squad ' + ordered.s + ' to zone ' + ordered.zone + ' (days: ' + rows.map(r => r.w + (r.az != null ? '>' + r.az : '') + '@' + r.z).join(', ') +
+          '; now ' + (nowQ ? JSON.stringify(nowQ.intent) + '@' + nowQ.zone : 'gone') + (fought.length ? '; fights since: ' + fought.join(', ') : '') + ')');
+      }
       const you9 = GO.div.win && GO.div.win.you;
       check(!GO.div.win || ((you9.squads[+sq0] || {}).stance === 'death_or_glory' &&
             (sq1 == null || (you9.squads[+sq1] || {}).stance === 'preservationist')),
@@ -1711,14 +1773,9 @@ setTimeout(() => {
       check(opened === doc.querySelectorAll('#tstrip [data-tsel]').length,
             'every OA on the strip opens on its ransoms, or says there is none, or that it does not deal (' + opened + ')');
     }
-    /* §TRUCES CUT there is no truce at the table: no composer offers one, in any window */
-    let composed = null, tries = 0, pactSeen = false;
-    while (!/over/.test(text('#divstate')) && tries++ < 4) {
-      [...doc.querySelectorAll('#tstrip [data-tsel]')].forEach(ch => { ch.click(); if (doc.querySelector('#tdeal [data-tkind="pact"], #tdeal [data-tsend="pact"]')) pactSeen = true; ch.click(); });
-      doc.getElementById('advwin').click();
-    }
-    check(!pactSeen, 'no truce is offered at the table: the composer has no pact to put');
-    if (!/over/.test(text('#divstate'))) {
+    let tries = 0;
+    while (!/over/i.test(text('#divstate')) && tries++ < 4) doc.getElementById('advwin').click();
+    if (!/over/i.test(text('#divstate'))) {
       /* §STANCE what round-trips is the notch each squad carries: the card reads it back off
          the corp the engine handed out, so a notch the engine never received cannot show lit */
       {
@@ -1732,18 +1789,12 @@ setTimeout(() => {
               ((window.__G.div.answer || {}).squadStance || {})[sqi] === worn),
               'the squad\'s notch round-tripped through the engine: squad ' + sqi + ' at ' + (worn || ''));
       }
-      /* §JOINING RETIRED the echo read back a lowballed join's refusal and its number; what comes back from
-         the table now is the truce's answer — formed, or refused, and by whom */
-      if (composed)
-        check(/(Formed|Refused|Declined|Pact|Truce)/i.test(text('#techo')),
-              'the table\'s answer came back: ' +
-              text('#techo').replace(/\s+/g, ' ').trim().slice(0, 120));
     } else note('the contest ended early — table round-trip rides another seed');
     let winN = 1, guard = 0;
-    while (!/over/.test(text('#divstate')) && guard++ < 60) {
+    while (!/over/i.test(text('#divstate')) && guard++ < 60) {
       doc.getElementById('advwin').click(); winN++;
     }
-    check(/the Divide is over/.test(text('#divstate')),
+    check(/the Divide is over/i.test(text('#divstate')),
           'the Divide ran window to window to its end (' + winN + ' windows): ' +
           text('#divstate').replace(/\s+/g, ' ').trim().slice(0, 120));
     /* ---- THE BOARD, joined to the corporation at last. Reputation has run inside this
@@ -1809,7 +1860,7 @@ setTimeout(() => {
        measure_fight.cjs's question, not this one's */
     check(+doc.getElementById('fr').max >= 1,
           'a ground encounter replays on the grid (' + (+doc.getElementById('fr').max + 1) + ' frames)');
-    check(/turn \d+ of \d+/.test(text('#frLbl')), 'its turn label reads: ' + text('#frLbl'));
+    check(/turn \d+ of \d+/i.test(text('#frLbl')), 'its turn label reads: ' + text('#frLbl'));
     const rowsA = doc.querySelectorAll('#rosterA .unit').length;
     const rowsB = doc.querySelectorAll('#rosterB .unit').length;
     /* A SIDE PANEL IS A FIGHT, NOT A SQUAD. The band here was 1..6, written when a fight was

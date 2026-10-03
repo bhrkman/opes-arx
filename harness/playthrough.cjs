@@ -221,7 +221,7 @@ function playYear(year) {
     say('\n**The month closed:** ' + delta(before, after) + '.');
     const word = ((res.landed || {})[ME] || []).filter(l => l.kind === 'talk' || l.kind === 'staff');
     for (const l of word) say('- ' + (l.kind === 'talk' ? 'The month\u2019s word: ' : 'The backroom: ') + l.text + (l.talk && l.talk.revealed ? ' — their temper is ' + l.talk.temper : '') + '.');
-    const lines = me().account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
+    const lines = me().account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^Retainers$/.test(l.label));
     if (lines.length) say('- The ledger: ' + lines.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
     if (res.event === 'mercs') for (const r of ((state.mercs || {}).results || [])) {
       const mine = (r.offers || []).find(o => o.corp === ME); if (!mine || r.to === ME || r.month !== m) continue;
@@ -286,25 +286,35 @@ function playDivide(year) {
     win++;
     say('\n## Comms window ' + win + ' · day ' + v.day + '\n');
     const you = v.you, mySq = (you.squads || []).filter(q => (q.bodies || []).some(b => b.status === 'active'));
-    say('**The ground:** ' + Math.round((v.zone.r / (state.planet.radius || 1)) * 100) + '% inside the wall. ' + (v.weather && v.weather.kind ? 'Weather: ' + cap(v.weather.kind) + '. ' : ''));
-    const rec = v.record || [], lastDay = rec[rec.length - 1];
-    if (lastDay && (lastDay.ops || []).length) say('**Your plan (day ' + lastDay.d + '):** ' + lastDay.ops.map(o => cap(o.k) + (o.t ? ' ' + cap(o.t) : '') + ' with ' + o.n + ' squad' + (o.n > 1 ? 's' : '') + (o.why ? ' (' + o.why + ')' : '')).join('; ') + '.');
-    say('**Your squads:** ' + (mySq.length ? mySq.map(q => sqName(q) + ' — ' + q.bodies.filter(b => b.status === 'active').length + ' up, ' + (q._why || (q.intent && q.intent.role) || 'holding') + (q._op ? ' (op: ' + q._op.kind + ')' : '') + ', rations ' + Math.round(q.rations || 0) + 'd').join('; ') : 'none standing') + '.');
+    const W = v.wall || {};
+    say('**The ground:** ' + (W.standing || []).length + ' region' + ((W.standing || []).length === 1 ? '' : 's') + ' inside the wall' + ((W.next || []).length ? '; the next window takes ' + W.next.length + ' more' : '') + ((W.zoneAt || []).length ? '; on the last ground the next ' + W.nextZones.length + ' zone' + (W.nextZones.length > 1 ? 's go' : ' goes') + ' on day ' + W.zoneAt.map(t => t.day).sort((a, b) => a - b)[0] : '') + '. ' + (v.weather && v.weather.kind ? 'Weather: ' + cap(v.weather.kind) + '. ' : ''));
+    const rec = v.record || [], lastDay = rec[rec.length - 1], myCi = (v.corps || []).findIndex(x => x.id === ME);
+    const ownRec = lastDay ? (lastDay.sq || []).filter(q => q.c === myCi && !q.seen) : [];
+    if (ownRec.length) say('**Yesterday (day ' + lastDay.d + '):** ' + ownRec.map(q => SQN[q.s] + ' ' + q.w + (q.az != null ? ' to zone ' + q.az : '') + ' at zone ' + q.z + (q.tr && q.tr.length > 1 ? ' (walked ' + (q.tr.length - 1) + ')' : '')).join('; ') + '.');
+    const vsq = (v.squads || []).filter(q => q.alive);
+    const doing = q => q.fight != null ? 'fighting' : q.moving ? 'moving to zone ' + q.moving.to : q.intent ? (q.intent.type + (q.intent.zone != null && q.intent.zone !== q.zone ? ' zone ' + q.intent.zone : '') + (q.intent.why ? ' (' + q.intent.why + ')' : '')) : 'holding';
+    say('**Your squads:** ' + (vsq.length ? vsq.map(q => SQN[q.s] + ' — ' + q.n + ' up at zone ' + q.zone + ', ' + doing(q) + (q.working ? ', working the site' : '') + (q.captives ? ', ' + q.captives + ' captive' + (q.captives > 1 ? 's' : '') : '') + ', food ' + q.food + 'd').join('; ') : 'none standing') + '.');
+    const seenRivals = lastDay ? (lastDay.sq || []).filter(q => q.c !== myCi).length : 0;
+    say('**The broadcast:** ' + (v.field || []).filter(q => q.alive && q.oa !== ME).length + ' rival squads on the ground' + (seenRivals ? '; your people knew where ' + seenRivals + ' of them stood yesterday' : '') + '.');
     const others = (v.corps || []).filter(x => x.id !== ME);
     say('**The fleet:** ' + others.map(x => oaName(x.id) + ' ' + (x.withdrawn ? 'gone' : (x.standing ? x.standing.up + '/' + x.standing.of : '?')) + ((v.contact || {})[x.id] ? ' (' + ((v.contact[x.id].huntedBy && 'hunting you') || (v.contact[x.id].beat && 'you beat them') || (v.contact[x.id].lostTo && 'beat you') || 'fought') + ')' : '')).join(' · ') + '.');
     const fights = (v.fights || []).filter(f => (f.corps || []).indexOf(ME) >= 0);
     if (fights.length) say('**Since the last window:** ' + fights.map(f => 'day ' + f.day + (f.night ? ' (night)' : '') + ' ' + f.corps.map(oaName).join(' met ') + ' — ' + fightWords(f)).join('; ') + '.');
     const asks = v.withdrawAsks || [];
     if (asks.length) say('**Offers to leave:** ' + asks.map(a => oaName(a.from) + ' asks ' + Math.round((a.terms.credits || 0) * 100) + '% of the pot').join('; ') + '.');
-    const table = v.table || {};
-    const pactable = Object.keys(table).filter(id => table[id] && table[id].pact && table[id].pact.possible !== false);
-    if (v.ransoms && v.ransoms.length) say('**Ransoms:** ' + v.ransoms.length + ' on the table.');
+    const ransoms = (v.table || {}).ransoms || [];
+    if (ransoms.length) say('**Ransoms:** ' + ransoms.map(k => k.name + ' (' + (k.side === 'owner' ? oaName(k.corp) + ' holds them, asks ' : 'yours to sell to ' + oaName(k.corp) + ' for ') + cr(k.price) + ')').join('; ') + '.');
+    const caps = v.captives || {};
+    if ((caps.toDecide || []).length || (caps.taken || []).length) say('**Captives:** ' + (caps.toDecide || []).length + ' of theirs held by your squads awaiting a word, ' + (caps.taken || []).length + ' of yours held by others.');
     say('**Chance of winning:** ' + Math.round(((v.odds || {})[ME] || 0) * 100) + '%.');
     /* the answer: stances by circumstance, a truce with the strongest when weak, promises when a leaver asks */
     const answer = { squadStance: {} };
     const myUp = you.allBodies.filter(b => b.status === 'active').length;
     const strongest = others.filter(x => !x.withdrawn && x.standing).sort((a, b) => b.standing.up - a.standing.up)[0];
     const words = [];
+    /* the captives: keep them (a ransom may follow); the ransoms: pay for your own when it is cheap, sell theirs */
+    if ((caps.toDecide || []).length) { answer.captiveFate = {}; for (const k of caps.toDecide) answer.captiveFate[k.fighter] = 'keep'; words.push('kept ' + caps.toDecide.length + ' captive' + (caps.toDecide.length > 1 ? 's' : '')); }
+    if (ransoms.length) { answer.deals = {}; ransoms.forEach((k, i) => { const yes = k.side === 'captor' || k.price <= me().account.treasury * 0.1; answer.deals[i] = { kind: k.side === 'owner' ? (yes ? 'ransom_pay' : 'ransom_decline') : 'ransom_sell', fighter: k.fighter, corp: k.corp }; words.push((k.side === 'owner' ? (yes ? 'paid for ' : 'refused to pay for ') : 'offered to sell ') + k.name); }); }
     mySq.forEach((q) => { const up = q.bodies.filter(b => b.status === 'active').length; const st2 = up >= 4 ? 'standard' : up >= 2 ? 'measured' : 'preservationist'; answer.squadStance[q.sIdx != null ? q.sIdx : you.squads.indexOf(q)] = st2; });
     const NW = { preservationist: 'Avoid', measured: 'Wary', standard: 'Engage', unyielding: 'Press', death_or_glory: 'All In' };
     words.push('stances set ' + mySq.map((q) => sqName(q) + ' ' + NW[answer.squadStance[q.sIdx != null ? q.sIdx : you.squads.indexOf(q)]]).join(', '));
@@ -330,7 +340,7 @@ function playDivide(year) {
   const hist = c2.history && c2.history[c2.history.length - 1];
   if (hist && hist.card) say('The board’s card: ' + hist.card.map(l => demandWords(l.d) + ' — ' + (l.met ? 'met' : 'missed') + (l.priority ? ' (the priority)' : '')).join('; ') + '.');
   if (hist && hist.sponsors) say('The sponsors: ' + hist.sponsors.kept + ' kept, ' + hist.sponsors.broken.length + ' broken' + (hist.sponsors.paid ? ', ' + cr(hist.sponsors.paid) + ' paid' : '') + (hist.sponsors.standings.length ? ', standing granted: ' + hist.sponsors.standings.map(x => typeof x === 'string' ? x : (x.name + ' (' + x.what + ')')).join(', ') : '') + '.');
-  const settle = c2.account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^retainers$/.test(l.label));
+  const settle = c2.account.ledger.slice(ledgerAt).filter(l => !/Gate and Merchandise|^Retainers$/.test(l.label));
   if (settle.length) say('The ledger: ' + settle.map(l => cap(l.label) + ' ' + (l.amount >= 0 ? '+' : '−') + cr(Math.abs(l.amount))).join('; ') + '.');
   say('The stands: ' + REP.FACTIONS.map(f => cap(f) + ' ' + Math.round(REP.standing(c2.rep, f)) + ' (' + Math.round((c2.rep.shares[f] || 0) * 100) + '%)').join(' · ') + '.');
   say('The houses: ' + Object.keys(c2.rep.base.houses).map(id => oaName(id) + ' ' + Math.round(REP.standing(c2.rep, 'house', id))).join(' · ') + '.');
