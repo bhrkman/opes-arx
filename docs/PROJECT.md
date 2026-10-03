@@ -176,11 +176,11 @@ lean one pleases.
   never past the window at dawn and never longer than half a day; the beaten break off a zone back
   together, the winner holds the ground, a beaten squad with nowhere to go is overrun. The captured
   are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive walks
-  with the squad, eats from its packs, adds a tick to its steps for every second captive and costs it a
-  little readiness and composure in a fight; a wiped holder's captives pass to the wiper. An engine seat
+  with the squad, eats from its packs, adds a tick to its steps for every second captive, and costs it
+  nothing in a fight; a wiped holder's captives pass to the wiper. An engine seat
   weighs each one as it is taken, and again at every window: what he is worth held (bought back, or kept
   to the end for its roster) against what one more costs that squad (his food over the days he is held,
-  his weight on the march pressed by the wall, the fights it expects) and what killing, sparing or keeping
+  his weight on the march pressed by the wall) and what killing, sparing or keeping
   does to its standing, leaned by what it thinks of his OA. A squad that will not close picks at the stronger rival next door with its long rifles,
   loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid,
   handed the sides built from the squads' bodies (a stand-in of the same shape runs the contest's

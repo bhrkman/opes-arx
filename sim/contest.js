@@ -60,7 +60,6 @@
     HARASS_RUSHED_PREP: -0.25,       // [C] a harasser that is rushed is caught at long range with its eye on the next zone
     /* §CAPTIVES decided at the capture: kept ones walk with the squad */
     CAPTIVE_STEP_TICKS: 0.5,         // [C] a step costs this much more for every captive in tow, rounded up: one adds a tick, four add two, eight four
-    CAPTIVE_PREP: -0.04,             // [C] readiness lost to every captive watched in a fight
     CAPTURE_SHARE: 0.35,             // [C] stand-in only: of a broken side's down, the share taken alive when the field is held against it
     STANDIN_HIT: 0.04                // [C] stand-in only: a body's chance a turn to put a body down
   };
@@ -381,7 +380,6 @@
   function prepOf(st, q, zone, holdsIt) {
     const z = st.ground.zones[zone], from = st.ground.zones[q.zone];
     let p = 0.5 + CONST.HEIGHT_PREP * ((holdsIt ? z.height : from.height) - (holdsIt ? from.height : z.height)) + (holdsIt && z.cover >= 1 ? CONST.COVER_PREP : 0);
-    p += CONST.CAPTIVE_PREP * q.captives.length;
     if (q.harass && q.harass.rushed) p += CONST.HARASS_RUSHED_PREP;
     return Math.max(0, Math.min(1, p));
   }
@@ -467,7 +465,7 @@
     return null;
   }
   /** §CAPTIVES decided at the capture, one by one, by the captor's seat: killed, kept or let go. Keeping costs a
-      tick a step for every second captive and attention in a fight; the driver feeds them and prices the standing
+      tick a step for every second captive; the driver feeds them and prices the standing
       of each fate (divide.js §CAPTIVES) */
   function takeCaptives(st, winner, from, who, f) {
     const w = st.squads[winner.squads[0].id]; if (!w || !w.alive) return;
