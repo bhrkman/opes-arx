@@ -107,16 +107,16 @@ const BASELINE_DEFAULT = {
     "downs": 5
   },
   "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 12,
+    "result": "disengage_B",
+    "exchanges": 9,
     "band": "medium",
     "aDead": 1,
-    "aDown": 2,
-    "bDead": 2,
+    "aDown": 0,
+    "bDead": 3,
     "bDown": 2,
-    "shots": 137,
-    "hits": 34,
-    "downs": 7
+    "shots": 120,
+    "hits": 32,
+    "downs": 6
   },
   "long band, both cautious": {
     "result": "disengage_A",
@@ -2856,7 +2856,7 @@ function divideRules() {
   const PRE = req('predivide.js');
   const angGap = (a, b) => { let x = Math.abs(a - b) % (Math.PI * 2); return x > Math.PI ? Math.PI * 2 - x : x; };
   const A = { comers: 0, comerBad: 0, holders: 0, holderBad: 0, flank: 0, grid: 0, twice: 0, aims: 0, spentAims: [], spClaims: 0, reclaims: [], landed: 0, withReserve: 0, landedSome: 0,
-              longCarriers: 0, longBad: 0, ransomed: 0, ransomBack: [], board: [], bonus: [], kept: 0, promise: [], intel: [], squads: [], xpUp: 0, xpBad: 0, overrun: [] };
+              longCarriers: 0, longBad: 0, ransomed: 0, ransomBack: [], refused: 0, refusedKilled: 0, refusedBad: [], board: [], bonus: [], kept: 0, promise: [], intel: [], squads: [], xpUp: 0, xpBad: 0, overrun: [] };
   for (const seed of ['dr1', 'dr2', 'dr3']) {
     const rr = makeRng('divrules-' + seed), fleet = SEASONMOD.openFleet(rr, oa, {}), st = SEASONMOD.beginSeason(rr, fleet, oa, {});
     const choose0 = PRE.chooseLanding;
@@ -2942,6 +2942,9 @@ function divideRules() {
       if (c.out === 'ransomed') { A.ransomed++; lastRansom[c.fighter] = c.day != null ? c.day : 0; continue; }
       if (c.out === 'released' && lastRansom[c.fighter] != null && !cst.events.some(e => e.t === 'captive' && e.body === c.fighter && e.day >= lastRansom[c.fighter])) A.ransomBack.push(seed + ' ' + c.name + ' ransomed then released');
     }
+    /* 10b a ransom refused sends him back to his captor, who decides him; he is never then bought */
+    for (const x of (r.refusedLog || [])) { A.refused++; if (x.fate === 'kill') A.refusedKilled++;
+      if ((r.captiveLog || []).some(c => c.fighter === x.fighter && c.out === 'ransomed' && (c.day == null || c.day >= x.day))) A.refusedBad.push(seed + ' ' + x.fighter + ' refused then ransomed'); }
     for (const oa in cst.held) for (const k of cst.held[oa]) if (k.body && lastRansom[k.body.id] != null && (k.day == null || k.day < lastRansom[k.body.id])) A.ransomBack.push(seed + ' ' + k.body.name + ' still held by ' + oa);
     /* 18 an engine OA with no squad board fields one squad a drafted landing */
     for (const c of r._corps) { const dz = ((d.opts.dropZones || {})[c.id] || []).length, p = (d.opts.corps || {})[c.id] || {};
@@ -3008,6 +3011,8 @@ function divideRules() {
      A.landedSome + ' of ' + A.withReserve + ' OAs with a reserve landed some of it, ' + A.landed + ' fighters over three Divides');
   ok('a squad carrying long rifles counts them', A.longCarriers > 0 && A.longBad === 0, A.longBad + ' of ' + A.longCarriers + ' squads with long rifles counted none');
   ok('a ransomed captive leaves his captor\'s hold and is never then released', A.ransomed > 0 && A.ransomBack.length === 0, A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
+  ok('a ransom refused sends him back to his captor, who may end him, and he is never then bought (ruled)', A.refused > 0 && A.refusedBad.length === 0,
+     A.refused + ' refused, ' + A.refusedKilled + ' then killed; ' + A.refusedBad.slice(0, 3).join(' | '));
   ok('a fighter who lives through a Divide has one more Divide on his career', A.xpUp > 0 && A.xpBad === 0, A.xpBad + ' of ' + (A.xpUp + A.xpBad) + ' survivors not counted');
   ok('the board\'s outcome carries every OA\'s placement and whether it ceded', A.board.length === 0, A.board.slice(0, 3).join(' | '));
   ok('the settlement pays out the pot and charges the winner\'s bonuses once, on its books', A.bonus.length === 0, A.bonus.slice(0, 3).join(' | '));

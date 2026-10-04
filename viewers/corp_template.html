@@ -7252,7 +7252,7 @@
 
   /* §SEATS the captives a seat holds when the shooting stops: release, keep or kill, each; unanswered, released */
   var CAPTIVE_FATE = [['release', 'Release', 'Home, Hurt \u00b7 Their House Remembers It'],
-                      ['keep', 'Keep Them', 'They Walk With the Squad \u00b7 A Tick a Step, Rations, a Ransom'],
+                      ['keep', 'Keep Them', 'To Your Hold \u00b7 A Ransom, or Your Roster at the End'],
                       ['kill', 'Kill Them', 'The Stands Split \u00b7 Their House Never Forgets']];
   /* §CAPTIVES decided at the capture: the window carries the ones taken since the last one, each to be killed, kept
      or let go; what is kept walks with the squad and costs it */
@@ -7265,7 +7265,7 @@
     $('eight').innerHTML = '';
     var draw = function () {
       $('events').innerHTML = '<div class="evgrid">' + list.map(function (c) {
-        return '<div class="evcard ev-word"><div class="evk"><span>A Captive</span><span>From ' + cSpan(c.from) + '</span></div>' +
+        return '<div class="evcard ev-word"><div class="evk"><span>' + (c.refused ? 'Ransom Refused' : 'A Captive') + '</span><span>From ' + cSpan(c.from) + '</span></div>' +
           '<div class="et">' + esc(c.name) + (c.fame ? ' \u00b7 Fame ' + c.fame : '') + '</div>' +
           '<div class="evopts">' + CAPTIVE_FATE.map(function (o) {
             return '<button class="evopt' + (fate[c.fighter] === o[0] ? ' sel' : '') + '" data-cap="' + esc(c.fighter) + '" data-fate="' + o[0] + '"><span class="ol">' + o[1] + '</span><span class="oc">' + o[2] + '</span></button>';

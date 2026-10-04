@@ -120,7 +120,8 @@ where — and, between windows, its own squads, the rivals its people knew of th
 its own people fought. A side that knew where its enemy stood before they met fights readier.
 
 There are no truces. The one deal over the wire is a ransom: a captive is priced, paid for or
-left. An OA may leave the ground: by walking, or by selling its exit to the field for promises
+refused, and a refusal puts him back before his captor, who may end him: killing is what gives
+the ransom its teeth. An OA may leave the ground: by walking, or by selling its exit to the field for promises
 against the pot, kept or broken at the settlement and remembered across years. Nobody is taken
 off the ground: an OA stays until it leaves or falls, and it decides by reading itself truly (its
 hurt count only if they will be up before the end), its real chance at the pot, the ground still
@@ -145,7 +146,9 @@ lean one pleases.
 ## Rulings that bind
 
 - The game is designed as if eight humans played it; the engine fills an empty seat.
-- Nothing is tuned to hold a fatality rate, and balance is judged only with every system in.
+- Balance is judged only with every system in. The Divide's fatality aims near 30% of those
+  dropped (ruled). The killed-outright band was bumped one point as a stopgap toward it (critical
+  94.2 → 93.2, combat.js); it is the first thing swung back if fatality runs too high.
 - Copy is Title Case and never explanatory prose on the page; what a thing is for is learned
   once from its mark.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
@@ -202,7 +205,9 @@ lean one pleases.
   once to the captor's OA's hold (ruled): he never walks, eats or is guarded on the ground, and stays held
   whatever becomes of the squad that took him; he is ransomed or decided from there. An engine seat weighs
   each one as it is taken: what he is worth held (bought back, or kept to the end for its roster) against
-  what killing, sparing or keeping does to its standing, leaned by what it thinks of his OA. A squad that will not close picks at the stronger rival next door with its long rifles,
+  what killing, sparing or keeping does to its standing, leaned by what it thinks of his OA. A ransom refused or left unanswered sends him back before his
+  captor (ruled): a person decides him again at its window; an engine seat weighs him again with no
+  buyer left, and prices being believed the next time it asks. He is not offered again. A squad that will not close picks at the stronger rival next door with its long rifles,
   loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid,
   handed the sides built from the squads' bodies (a stand-in of the same shape runs the contest's
   own harness and suite).

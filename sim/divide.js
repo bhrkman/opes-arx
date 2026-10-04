@@ -255,6 +255,7 @@
     CAPTIVE_ROSTER_SHARE: 0.6,          // [C] what a captive kept to the end is worth on the captor's roster, of what he cost his own
     CAPTIVE_REP_W: 0.25,                // [C] a point of an act's weighted taste, as standing points an engine seat prices at STANDING_CREDIT
     CAPTIVE_GRUDGE_W: 0.5,              // [C] how much of a captive's worth what his captor thinks of his OA swings toward killing (a grudge) or sparing (warmth)
+    RANSOM_TEETH_W: 1.0,                // [C] §RANSOM after a refusal, what being believed next time is worth to the captor, of the price refused
     STANCE_HYSTERESIS: 0.6,             // [C] §COMMAND how far its target must be from where an OA stands before it changes notch
   };
 
@@ -1089,11 +1090,14 @@
       const owner = corps.find(c => c.id === k.owner), captor = corps.find(c => c.id === k.captor);
       const f = owner && owner.allBodies.find(b => b.id === k.fighter);
       if (!f || f.status !== 'captured' || !captor) { k.done = true; continue; }
-      if (k.ownerYes === false || k.captorYes === false) { k.done = true; continue; }
+      if (k.ownerYes === false) { k.done = true; if (stats._refusedRansom) stats._refusedRansom(k.captor, k.fighter); continue; }
+      if (k.captorYes === false) { k.done = true; continue; }
       /* §TIME a person's answer is waited for, but not for ever: unanswered through its windows, the case lapses */
       if (k.ownerYes == null || k.captorYes == null) {
         k.waited = (k.waited || 0) + 1;
-        if (k.waited > CONST.RANSOM_ANSWER_WINDOWS) { k.done = true; k.lapsed = true; stats.audit.ransomLapsed = (stats.audit.ransomLapsed || 0) + 1; continue; }
+        if (k.waited > CONST.RANSOM_ANSWER_WINDOWS) { k.done = true; k.lapsed = true; stats.audit.ransomLapsed = (stats.audit.ransomLapsed || 0) + 1;
+          /* the owner's silence is a refusal; the captor's own is not */
+          if (k.ownerYes == null && stats._refusedRansom) stats._refusedRansom(k.captor, k.fighter); continue; }
       }
       if (k.ownerYes && k.captorYes) {
         settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: k.price, day: day, worth: k.worth }, f, owner, captor);
@@ -1106,6 +1110,7 @@
         const captor = corps.find(c => c.id === f._capturedBy);
         if (!captor) continue;
         if (stats.ransomCases.some(k => k.fighter === f.id && !k.done)) continue;   /* already open */
+        if (f._ransomRefused) continue;                                /* refused once: his captor has had its answer */
         const aiCaptor = !isHumanOA(captor.id), aiOwner = !isHumanOA(owner.id);
         let price, worth;
         if (aiCaptor) {
@@ -1117,7 +1122,7 @@
           worth = Math.round(Math.max(300, NEG.bodyWorth(f)));
         }
         const ownerYes = aiOwner ? (!sealed(owner) && NEG.ransomWorthPaying(owner, f, price, ctx)) : null;   /* N11 a sealed OA buys nobody back */
-        if (ownerYes === false) continue;                              /* the owner will not pay that */
+        if (ownerYes === false) { if (stats._refusedRansom) stats._refusedRansom(captor.id, f.id); continue; }   /* the owner will not pay that */
         const k = { fighter: f.id, name: f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
                     day: day, captorYes: aiCaptor ? true : null, ownerYes: ownerYes, done: false };
         if (k.captorYes && k.ownerYes) {
@@ -2316,13 +2321,17 @@
        does to its standing, read through its own crowd's taste. What it thinks of the owner leans it, and the capturing
        squad's stance how hard a grudge pulls. No fate is fixed to a stance. */
     function heldOf(oa) { return (cst.held[oa] = cst.held[oa] || []); }
-    function captiveWorths(captorOa, stance, body, ownerId) {
+    function captiveWorths(captorOa, stance, body, ownerId, refused) {
       const c = corpById[captorOa], owner = corpById[ownerId];
       const worthOf = b => Math.max(300, NEG.bodyWorth(b));
       /* two ways to hold him: sell him back at the price it would ask, or keep him to the end for its own roster */
       const price = owner ? NEG.ransomPrice(body) * NEG.priceModifier(c, owner) : 0;
       const dial = STANCE_DIALS[stance] || STANCE_DIALS.standard;
-      const held = Math.max(price * CONST.CAPTIVE_RANSOM_P, worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE);
+      /* refused, nobody is buying him back: held, he is only a fighter on its roster at the end */
+      const held = refused ? worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE : Math.max(price * CONST.CAPTIVE_RANSOM_P, worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE);
+      /* §RANSOM (ruled: killing is the negotiation's teeth) a price refused and nothing done is a threat nobody believes
+         the next time it asks; ending him is what makes the next price paid */
+      const teeth = refused ? price * CONST.RANSOM_TEETH_W * (0.5 + dial.seek) : 0;
       /* standing: each act read through what its own crowd and the houses would make of it */
       const rep = act => { if (!c || !c.rep || !owner) return 0; const s = REP.impactSummary(c.rep, REP.impact(c.rep, act, { targetId: owner.id })); return (s.crowd + s.houses) * CONST.CAPTIVE_REP_W * CONST.STANDING_CREDIT; };
       /* what it thinks of the owner: a grudge leans to killing (a gun off a rival for good), warmth to sparing */
@@ -2331,7 +2340,7 @@
       return {
         keep: held + rep('kept_captive'),
         release: rep('released_captives') + Math.max(0, regard) * lean,
-        kill: rep('killed_captives') + Math.max(0, -regard) * lean * (0.5 + dial.seek)
+        kill: rep('killed_captives') + Math.max(0, -regard) * lean * (0.5 + dial.seek) + teeth
       };
     }
     function bestFate(w) { return w.keep >= w.release && w.keep >= w.kill ? 'keep' : w.release >= w.kill ? 'release' : 'kill'; }
@@ -2358,6 +2367,18 @@
       rec({ t: 'captive', c: captorId, from: ownerId, name: body.name, out });
     }
     /* an OA's hold, settled as its captives are decided */
+    /* §RANSOM a price refused, or never answered: the man goes back before his captor, to be killed, kept or let go.
+       A person decides at its window; an engine seat weighs it again, now that nobody is buying him. */
+    stats._refusedRansom = function (captorId, fighterId) {
+      const k = heldOf(captorId).find(x => x.body && x.body.id === fighterId); if (!k) return;
+      k.refused = day; k.body._ransomRefused = true;
+      stats.audit.ransomRefused = (stats.audit.ransomRefused || 0) + 1;
+      if (isHumanOA(captorId)) { k.fate = 'pending'; return; }
+      k.fate = bestFate(captiveWorths(captorId, k.stance, k.body, k.oa, true));
+      (stats.refusedLog = stats.refusedLog || []).push({ fighter: k.body.id, captor: captorId, day, fate: k.fate });
+      if (k.fate === 'kill') stats.audit.killedRefused = (stats.audit.killedRefused || 0) + 1;
+      settleHeld(captorId);
+    };
     function settleHeld(oa) {
       const H = heldOf(oa);
       for (let i = H.length - 1; i >= 0; i--) {
@@ -2787,7 +2808,7 @@
             const echo = stats._echo[seatId] || null; stats._echo[seatId] = null;
             /* §CAPTIVES the captives in this seat's hold it has not yet decided on */
             const toDecide = [];
-            for (const k of heldOf(seatId)) if (k.fate === 'pending' && k.body) toDecide.push({ fighter: k.body.id, name: k.body.name, race: k.body.race, from: k.oa, fame: Math.round(k.body.fame || 0), squad: cst.squads[k.captor] ? cst.squads[k.captor].s : 0, day: k.day });
+            for (const k of heldOf(seatId)) if (k.fate === 'pending' && k.body) toDecide.push({ fighter: k.body.id, name: k.body.name, race: k.body.race, from: k.oa, fame: Math.round(k.body.fame || 0), squad: cst.squads[k.captor] ? cst.squads[k.captor].s : 0, day: k.day, refused: k.refused != null ? 1 : 0 });
             return {
               kind: 'window', day, lastDay: LAST_DAY, fights: since,
               cadence: GROUND.isWindowDay(ground, day + 1) ? 1 : 2,
