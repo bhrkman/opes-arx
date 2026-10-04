@@ -253,9 +253,6 @@
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
     CAPTIVE_RANSOM_P: 0.5,              // [C] the chance a held captive is bought back, as an engine seat reckons it
     CAPTIVE_ROSTER_SHARE: 0.6,          // [C] what a captive kept to the end is worth on the captor's roster, of what he cost his own
-    CAPTIVE_SHORT_DAY: 0.08,            // [C] a ration-day short, as a share of a body's worth (dry squads shoot and stand worse)
-    CAPTIVE_TICK_COST: 0.01,            // [C] a tick added to every step, as a share of the squad's worth a day, pressed by the wall times four
-    CAPTIVES_PER_GUARD: 2,              // [C] the captives a squad can hold for each of its people standing
     CAPTIVE_REP_W: 0.25,                // [C] a point of an act's weighted taste, as standing points an engine seat prices at STANDING_CREDIT
     CAPTIVE_GRUDGE_W: 0.5,              // [C] how much of a captive's worth what his captor thinks of his OA swings toward killing (a grudge) or sparing (warmth)
     STANCE_HYSTERESIS: 0.6,             // [C] §COMMAND how far its target must be from where an OA stands before it changes notch
@@ -874,7 +871,7 @@
     function settleRansom(deal, f, owner, captor) {
       comeHome(f);                              /* they come home, and they come home hurt */
       /* and the captor's squad no longer walks him */
-      if (stats._cst) for (const cq of stats._cst.squads) cq.captives = cq.captives.filter(k => k.body !== f);
+      if (stats._cst) for (const oa in stats._cst.held) stats._cst.held[oa] = stats._cst.held[oa].filter(k => k.body !== f);
       owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
       captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
       /* §3.1 — buying your people back is the thing your own ships care about most, and
@@ -1358,8 +1355,6 @@
       const r = raceById[b.race];
       d += (r && r.supply_mult) ? r.supply_mult : 1.0;
     }
-    /* §CAPTIVES a captive eats what anybody eats, out of the captor's packs */
-    for (const k of (sq._cq ? sq._cq.captives : [])) { const r = k.body && raceById[k.body.race]; d += (r && r.supply_mult) ? r.supply_mult : 1.0; }
     return d;
   }
 
@@ -2295,13 +2290,6 @@
           need = 1 + 2 * bodies.filter(b => b.status === 'injured').length / Math.max(1, bodies.length) + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
         return need === 1 ? site : Object.assign({}, site, { need });
       },
-      /* §WALL a column the wall would catch with its captives lets them go — every seat's alike: it is that or the wall */
-      onShed: (st, cq) => { for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
-          comeHome(k.body); for (const rc of (stats.ransomCases || [])) if (!rc.done && rc.fighter === k.body.id) rc.done = true;
-          (stats.captiveLog = stats.captiveLog || []).push({ fighter: k.body.id, name: k.body.name, owner: k.oa, captor: cq.oa, out: 'released', day, shed: true });
-          stats.captiveOutcomes = stats.captiveOutcomes || { released: 0, kept: 0, killed: 0 }; stats.captiveOutcomes.released++;
-          rec({ t: 'captive', c: cq.oa, from: k.oa, name: k.body.name, out: 'released' }); }
-        cq.captives = []; },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
       reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
@@ -2322,37 +2310,19 @@
       return heads.filter(b => b.loadout && b.loadout.kit && b.loadout.kit.weapon && b.loadout.kit.weapon.range === 'long').length / heads.length;
     }
     /* §CAPTIVES (ruled: case by case, at the capture) a person's seat is asked at its next window and holds the captive
-       until it answers. An engine seat weighs it: what the captive is worth held (bought back, or a fighter on its
-       roster at the end) against what ONE MORE costs the squad holding him — his food out of their packs over the
-       days he is held and his weight on the march, pressed by how close the wall is — and what killing, sparing or
-       keeping does to its standing, read through its own crowd's taste. What it thinks of the owner leans it, and
-       its stance how hard a grudge pulls. No fate is fixed to a stance. */
-    const lastGroundDay = (() => { const w = ground.wall; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
-    function captiveWorths(cq, body, n, ownerId) {
-      const c = corpById[cq.oa], owner = corpById[ownerId];
-      const sq = cq.ref, heads = squadHead(sq);
+       until it answers. A captive kept goes at once to the captor's OA's hold (ruled): he is never fed, walked or guarded
+       on the ground, so what he costs is nothing but what keeping him does to the OA's name. An engine seat weighs what
+       he is worth held (bought back, or a fighter on its roster at the end) against what killing, sparing or keeping
+       does to its standing, read through its own crowd's taste. What it thinks of the owner leans it, and the capturing
+       squad's stance how hard a grudge pulls. No fate is fixed to a stance. */
+    function heldOf(oa) { return (cst.held[oa] = cst.held[oa] || []); }
+    function captiveWorths(captorOa, stance, body, ownerId) {
+      const c = corpById[captorOa], owner = corpById[ownerId];
       const worthOf = b => Math.max(300, NEG.bodyWorth(b));
-      const squadWorth = heads.reduce((t, b) => t + worthOf(b), 0) || 300;
-      const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
-      const soon = Math.min(daysLeft, CONST.LEAVE_RATE_HORIZON);
-      /* two ways to hold him: sell him back at the price it would ask (held a few days), or keep him to the end for its
-         own roster (held, fed and walked every day that is left) */
+      /* two ways to hold him: sell him back at the price it would ask, or keep him to the end for its own roster */
       const price = owner ? NEG.ransomPrice(body) * NEG.priceModifier(c, owner) : 0;
-      /* his food: the days the squad's packs last with and without him, short against the days he is held */
-      const r = raceById[body.race], eats = ((r && r.supply_mult) || 1) * planet.supplyStrain;
-      const now = Math.max(0.001, rationDemand(sq, raceById) * planet.supplyStrain - (n < cq.captives.length ? eats : 0));
-      const lasts = d => (sq.rations || 0) / d;
-      const food = span => (Math.max(0, span - lasts(now + eats)) - Math.max(0, span - lasts(now))) * heads.length * CONST.CAPTIVE_SHORT_DAY * (squadWorth / Math.max(1, heads.length));
-      /* his weight on the march, pressed by the wall: four times over once its ground is announced */
-      const reg = Z[cq.zone].region, takes = ground.wall.takeAt.find(t => t.region === reg);
-      const goes = Math.min(takes ? takes.day : Infinity, GROUND.zoneGoesOn(ground, cq.zone));
-      const press = goes === Infinity ? 1 : 1 + 3 * Math.max(0, Math.min(1, 1 - (goes - day - CONTEST.CONST.PLAN_MARGIN_DAYS) / CONTEST.CONST.PLAN_MARGIN_DAYS));
-      const ticks = span => (CONTEST.captiveTicks(n + 1) - CONTEST.captiveTicks(n)) * CONST.CAPTIVE_TICK_COST * squadWorth * span * press;
-      const dial = STANCE_DIALS[cq.stance] || STANCE_DIALS.standard;
-      const costs = span => food(span) + ticks(span);
-      let held = Math.max(price * CONST.CAPTIVE_RANSOM_P - costs(soon), worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE - costs(daysLeft));
-      /* a squad guards no more captives than twice the people it has standing: past that he walks off anyway */
-      if (n + 1 > CONST.CAPTIVES_PER_GUARD * heads.length) held = -Infinity;
+      const dial = STANCE_DIALS[stance] || STANCE_DIALS.standard;
+      const held = Math.max(price * CONST.CAPTIVE_RANSOM_P, worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE);
       /* standing: each act read through what its own crowd and the houses would make of it */
       const rep = act => { if (!c || !c.rep || !owner) return 0; const s = REP.impactSummary(c.rep, REP.impact(c.rep, act, { targetId: owner.id })); return (s.crowd + s.houses) * CONST.CAPTIVE_REP_W * CONST.STANDING_CREDIT; };
       /* what it thinks of the owner: a grudge leans to killing (a gun off a rival for good), warmth to sparing */
@@ -2368,21 +2338,7 @@
     function captiveFate(captor, from, body) {
       if (isHumanOA(captor.oa)) return 'pending';
       if (!body) return 'keep';
-      return bestFate(captiveWorths(captor, body, captor.captives.length, from.oa));
-    }
-    /* §CAPTIVES AND AT EACH WINDOW an engine seat weighs again the last captive each squad took, against what he costs
-       now: as the packs run down or the wall closes, sparing or killing him starts to win */
-    function reviewCaptives() {
-      for (const cq of cst.squads) {
-        if (!cq.alive || isHumanOA(cq.oa)) continue;
-        for (let i = cq.captives.length - 1; i >= 0; i--) {
-          const k = cq.captives[i]; if (!k.body || k.fate !== 'keep') continue;
-          const fate = bestFate(captiveWorths(cq, k.body, cq.captives.length - 1, k.oa));
-          if (fate === 'keep') break;
-          k.fate = fate;
-        }
-        settleCaptives(cq);
-      }
+      return bestFate(captiveWorths(captor.oa, captor.stance, body, from.oa));
     }
     function applyFate(body, fate, captorId, ownerId) {
       const captor = corpById[captorId], owner = corpById[ownerId];
@@ -2401,12 +2357,13 @@
       }
       rec({ t: 'captive', c: captorId, from: ownerId, name: body.name, out });
     }
-    /* the captives a contest squad walks with, settled as they are decided */
-    function settleCaptives(cq) {
-      for (let i = cq.captives.length - 1; i >= 0; i--) {
-        const k = cq.captives[i]; if (!k.body) continue;
+    /* an OA's hold, settled as its captives are decided */
+    function settleHeld(oa) {
+      const H = heldOf(oa);
+      for (let i = H.length - 1; i >= 0; i--) {
+        const k = H[i]; if (!k.body) continue;
         if (k.fate === 'pending') continue;
-        if (k.fate === 'kill' || k.fate === 'release') { applyFate(k.body, k.fate, cq.oa, k.oa); cq.captives.splice(i, 1); }
+        if (k.fate === 'kill' || k.fate === 'release') { applyFate(k.body, k.fate, oa, k.oa); H.splice(i, 1); }
       }
     }
 
@@ -2627,8 +2584,8 @@
       for (const S of f.sides) for (const x of S.squads) { const cq = st.squads[x.id]; if (cq.alive) cq.rest = CONST.REST_TICKS_AFTER; }
       const o = objAt[f.zone];
       if (winnerOa && o && o.type === 'strongpoint') { o.heldBy = winnerOa; stats.audit.tookTheGround = (stats.audit.tookTheGround || 0) + 1; }
-      /* a captor wiped passes its captives to the wiper: their bodies' keeper changes with them */
-      for (const S of f.sides) for (const x of S.squads) { const cq = st.squads[x.id]; for (const k of cq.captives) if (k.body) k.body._capturedBy = cq.oa; settleCaptives(cq); }
+      /* the captives this fight took, decided, are settled in their OAs' holds */
+      const oas = {}; for (const S of f.sides) oas[S.oa] = 1; for (const oa in oas) settleHeld(oa);
     }
 
     /* ---- the day's bookkeeping on the ground ---- */
@@ -2705,8 +2662,6 @@
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
           let took = 0;
           for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
-          for (const k of (sq._cq ? sq._cq.captives : [])) if (k.body && k.body.status === 'captured') { k.body.status = 'dead'; took++; }
-          if (sq._cq) sq._cq.captives = [];
           if (!took) continue;
           const w = dawnEv.find(x => x.t === 'wall' && x.squad === sq._cq.id);
           (stats.wallDeaths = stats.wallDeaths || []).push({ day, corp: sq.corpId, s: sq.sIdx, took, at: 'dawn', region: RG[e.region].name, free: !!(w && w.free), stance: squadStance(sq), intent: sq._cq.intent && sq._cq.intent.type });
@@ -2734,7 +2689,6 @@
         if (q._cq) q._cq.mind = { judge: mind.judge, sight: mind.sight, nerve: mind.nerve };
         if (q._cq) q._cq.long = longShare(q);   /* the long guns it carries now: after deaths, loot and landings */
       }
-      if (windowDay) reviewCaptives();
       /* --- THE CORP CHANNEL at the window: ransoms, withdrawals, the winner's word (NEGOTIATION.md §11) --- */
       if (windowDay) {
         if (runCorpChannel(rng, corps, planet, day, stats, opts) === true) break;
@@ -2752,8 +2706,6 @@
             const movers = q.bodies.slice(), share = q.rations / Math.max(1, hosts.length);
             movers.forEach((b, i) => { hosts[i % hosts.length].bodies.push(b); });
             for (const h of hosts) h.rations += share;
-            /* and the captives it walked with */
-            if (q._cq.captives.length) { hosts[0]._cq.captives = hosts[0]._cq.captives.concat(q._cq.captives); q._cq.captives = []; }
             q.bodies = []; q.rations = 0; q.intent = null; q._reformed = day; q._downAt = { zone: q.zone };
             stats.audit.reforms = (stats.audit.reforms || 0) + 1;
             rec({ t: 'reform', zone: q.zone, x: q.x, y: q.y, c: c.id, n, into: hosts.length });
@@ -2833,9 +2785,9 @@
             const since = (stats._fights || []).slice(cur).filter(fx => (fx.corps || []).indexOf(seatId) >= 0);
             stats._fightCursor[seatId] = (stats._fights || []).length;
             const echo = stats._echo[seatId] || null; stats._echo[seatId] = null;
-            /* §CAPTIVES the captives this seat's squads hold and have not yet decided on, squad by squad */
+            /* §CAPTIVES the captives in this seat's hold it has not yet decided on */
             const toDecide = [];
-            for (const cq of cst.squads) if (cq.oa === seatId && cq.alive) for (const k of cq.captives) if (k.fate === 'pending' && k.body) toDecide.push({ fighter: k.body.id, name: k.body.name, race: k.body.race, from: k.oa, fame: Math.round(k.body.fame || 0), squad: cq.s, day: k.day });
+            for (const k of heldOf(seatId)) if (k.fate === 'pending' && k.body) toDecide.push({ fighter: k.body.id, name: k.body.name, race: k.body.race, from: k.oa, fame: Math.round(k.body.fame || 0), squad: cst.squads[k.captor] ? cst.squads[k.captor].s : 0, day: k.day });
             return {
               kind: 'window', day, lastDay: LAST_DAY, fights: since,
               cadence: GROUND.isWindowDay(ground, day + 1) ? 1 : 2,
@@ -2851,8 +2803,8 @@
               withdrawReplies: (stats.withdrawOffers || {})[you.id] ? Object.assign({}, stats.withdrawOffers[you.id].replies) : null,
               withdrawAsks: Object.keys(stats.withdrawOffers || {}).filter(k => k !== you.id).map(k => { const o = stats.withdrawOffers[k]; return { from: k, terms: o.terms, sentDay: o.sentDay, yours: o.replies[you.id] == null ? null : o.replies[you.id] }; }),
               /* §SEATS its own squads: where each stands, what it is doing, whom it holds */
-              squads: cst.squads.filter(cq => cq.oa === seatId).map(cq => ({ s: cq.s, zone: cq.zone, alive: cq.alive, n: cq.n, intent: cq.intent, moving: cq.moving ? { to: cq.moving.to, paid: cq.moving.paid, cost: cq.moving.cost } : null, fight: cq.fight, captives: cq.captives.length, stance: cq.stance,
-                /* the days its packs last at what it eats now (its people, its captives, the world, the weather), and whether it is working the site it stands on */
+              squads: cst.squads.filter(cq => cq.oa === seatId).map(cq => ({ s: cq.s, zone: cq.zone, alive: cq.alive, n: cq.n, intent: cq.intent, moving: cq.moving ? { to: cq.moving.to, paid: cq.moving.paid, cost: cq.moving.cost } : null, fight: cq.fight, stance: cq.stance,
+                /* the days its packs last at what it eats now (its people, the world, the weather), and whether it is working the site it stands on */
                 food: cq.ref ? Math.floor((cq.ref.rations || 0) / Math.max(0.001, rationDemand(cq.ref, raceById) * planet.supplyStrain * ((stats.weatherToday && stats.weatherToday.fx.rations) || 1))) : 0,
                 working: !!(cq.ref && cq.ref.claiming) })),
               /* §VISION the broadcast: a manager sees every squad on the ground, whose and where (ruled) */
@@ -2899,9 +2851,8 @@
               if (o && (o.hold || (o.zone != null && Z[o.zone]))) q._cq.order = Object.assign({}, q._cq.intent);
             }
             /* §CAPTIVES the seat decides each captive it holds: kill, keep or release; the undecided stay pending */
-            if (answer && answer.captiveFate && you) for (const cq of cst.squads) { if (cq.oa !== seatId) continue;
-              for (const k of cq.captives) { const f = k.body && answer.captiveFate[k.body.id]; if (f === 'kill' || f === 'release' || f === 'keep') k.fate = f; }
-              settleCaptives(cq); }
+            if (answer && answer.captiveFate && you) { for (const k of heldOf(seatId)) { const f = k.body && answer.captiveFate[k.body.id]; if (f === 'kill' || f === 'release' || f === 'keep') k.fate = f; }
+              settleHeld(seatId); }
             if (answer && answer.withdrawOffer && you && !you.withdrawn) postWithdrawOffer(you, answer.withdrawOffer, day, stats);
             if (answer && answer.withdrawReplies && you && !you.withdrawn) for (const fromId in answer.withdrawReplies) { const o = (stats.withdrawOffers || {})[fromId]; if (o && o.from !== you.id) o.replies[you.id] = !!answer.withdrawReplies[fromId]; }
             if (answer && answer.withdrawNow && you && !you.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you, day, stats, corps);
@@ -2916,7 +2867,7 @@
                 const owner = corps.find(c => c.id === k.owner), captor = corps.find(c => c.id === k.captor);
                 const fb = owner && owner.allBodies.find(b => b.id === k.fighter);
                 if (fb && fb.status === 'captured' && captor && stats._settleRansom) { stats._settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: fb.id, price: k.price, day, worth: k.worth }, fb, owner, captor);
-                  for (const cq of cst.squads) cq.captives = cq.captives.filter(x => x.body !== fb); }
+                  cst.held[captor.id] = heldOf(captor.id).filter(x => x.body !== fb); }
                 k.done = true;
               }
               stats._echo[seatId] = { kind: d.kind, corp: d.corp, name: k ? k.name : '', price: k ? k.price : 0 };
@@ -3012,16 +2963,6 @@
               break;
             }
           }
-          /* §CAPTIVES a captive whose guards are all down walks off: he goes home, hurt, nobody's to decide */
-          for (const cq of cst.squads) if (cq.captives.length && cq.ref && !squadHead(cq.ref).length) {
-            for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
-              comeHome(k.body); for (const rc of (stats.ransomCases || [])) if (!rc.done && rc.fighter === k.body.id) rc.done = true;
-              (stats.captiveLog = stats.captiveLog || []).push({ fighter: k.body.id, name: k.body.name, owner: k.oa, captor: cq.oa, out: 'released', day, walked: true });
-              stats.captiveOutcomes = stats.captiveOutcomes || { released: 0, kept: 0, killed: 0 }; stats.captiveOutcomes.released++;
-              rec({ t: 'captive', c: cq.oa, from: k.oa, name: k.body.name, out: 'released' });
-            }
-            cq.captives = [];
-          }
         }
       }
       cst.tick = 0; cst.day = day + 1;   /* the contest's clock turns with the day loop's */
@@ -3054,7 +2995,7 @@
                        az: alive && it.type === 'take' ? it.zone : null,
                        w: alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
                        n: alive, st: Math.round(squadStress(q)), rat: Math.round(Math.min(30, q.rations / demand)), g: q.crates, cl: q.claiming ? 1 : 0,
-                       hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: cq.captives.length, tr: alive ? cq.track.slice() : [] });
+                       hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: q.sIdx === 0 ? heldOf(c.id).length : 0, tr: alive ? cq.track.slice() : [] });
         }));
         /* §SECRECY what each seat's squads knew of the rivals today (seen, heard, briefed, relayed): a seat's record
            carries those rival squads and no others */

@@ -185,9 +185,7 @@ lean one pleases.
   the ticks left, and leaves with a day in hand, over any order, hold included; one carrying as many
   hurt as it has standing leaves a day sooner. It never steps onto ground that goes sooner than its
   own before it is through, nor goes round a friend through it. A fight on ground the wall is
-  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. A
-  squad that cannot get its captives out in time lets them go; a squad guards at most two captives
-  for each of its standing. A rescue is sent the hour a squad goes down, from anywhere, standing
+  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. A rescue is sent the hour a squad goes down, from anywhere, standing
   through fights on the way, and goes in wherever it can get there and back out. The overrun and the
   field's wounded are taken by whoever stands; a beaten squad with nowhere to break and nobody to
   take it stays on the ground and walks out like anyone; the beaten break to ground they would not
@@ -200,13 +198,11 @@ lean one pleases.
   walk in late, a turn for every tick of their step. A fight holds the zone for the ticks it ran,
   never past the window at dawn and never longer than half a day; the beaten break off a zone back
   together, the winner holds the ground, a beaten squad with nowhere to go is overrun. The captured
-  are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive walks
-  with the squad, eats from its packs, adds a tick to its steps for every second captive, and costs it
-  nothing in a fight; a wiped holder's captives pass to the wiper. An engine seat
-  weighs each one as it is taken, and again at every window: what he is worth held (bought back, or kept
-  to the end for its roster) against what one more costs that squad (his food over the days he is held,
-  his weight on the march pressed by the wall) and what killing, sparing or keeping
-  does to its standing, leaned by what it thinks of his OA. A squad that will not close picks at the stronger rival next door with its long rifles,
+  are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive goes at
+  once to the captor's OA's hold (ruled): he never walks, eats or is guarded on the ground, and stays held
+  whatever becomes of the squad that took him; he is ransomed or decided from there. An engine seat weighs
+  each one as it is taken: what he is worth held (bought back, or kept to the end for its roster) against
+  what killing, sparing or keeping does to its standing, leaned by what it thinks of his OA. A squad that will not close picks at the stronger rival next door with its long rifles,
   loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid,
   handed the sides built from the squads' bodies (a stand-in of the same shape runs the contest's
   own harness and suite).

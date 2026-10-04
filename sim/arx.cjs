@@ -2775,19 +2775,19 @@ function contestRules() {
   const caps = st.events.filter(e => e.t === 'captive');
   ok('left with nothing worth the walk, a squad picks at the stronger rival next door rather than close', st.audit.harassed > 0, st.audit.harassed + ' ticks of harassing fire');
   ok('every captive is decided at the capture: killed, kept or let go', caps.length > 0 && caps.every(c => ['kill', 'keep', 'release'].indexOf(c.fate) >= 0), caps.length + ' captives');
-  ok('and a kept captive walks with its captor', caps.filter(c => c.fate === 'keep').length === 0 || st.squads.some(q => q.captives.length > 0) || st.events.some(e => e.t === 'captives_pass') || st.events.some(e => e.t === 'wiped' && st.squads[e.squad].captives.length === 0));
-  /* constructed: a banner that keeps captives is wiped by another; the captives pass to the wiper */
+  ok('and a kept captive goes at once to his captor\'s hold (ruled), not with the squad', caps.filter(c => c.fate === 'keep').length === 0 || Object.keys(st.held).some(oa => st.held[oa].length > 0));
+  /* constructed: a banner that keeps captives is wiped by another; the captives stay in its OA's hold */
   { const two = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), zB = two.zones.find(z => g.zones[z].nb.length >= 2), z = [g.zones[zB].nb[0], zB, g.zones[zB].nb[1]];
     const stP = CT.open(makeRng('contest-pass'), g, [{ oa: 'a', s: 0, zone: z[0], n: 6, stance: 'standard' }, { oa: 'b', s: 0, zone: z[1], n: 4, stance: 'standard' }, { oa: 'c', s: 0, zone: z[2], n: 9, stance: 'unyielding' }],
       { resolve: (s, f) => { const bigger = f.sides.slice().sort((p, q) => q.squads.reduce((t, x) => t + x.n, 0) - p.squads.reduce((t, x) => t + x.n, 0))[0]; const squads = {};
           for (const S of f.sides) for (const x of S.squads) squads[x.id] = S === bigger ? { dead: 0, down: 0, captured: 0 } : { dead: Math.max(0, x.n - 2), down: 0, captured: Math.min(2, x.n) }; return { turns: 8, winner: bigger.tag, squads }; } });
     stP.squads[0].intent = { type: 'take', zone: z[1], why: 'order' }; stP.squads[0].path = [z[1]]; stP.squads[2].intent = { type: 'hold', zone: z[2], why: 'order' }; stP.squads[1].intent = { type: 'hold', zone: z[1], why: 'order' };
     for (let i = 0; i < 12 && !stP.fights.some(f => f.done); i++) CT.tick(stP);
-    const a = stP.squads[0], kept0 = a.captives.length;
+    const a = stP.squads[0], kept0 = (stP.held[a.oa] || []).length;
     a.intent = { type: 'hold', zone: a.zone, why: 'order' }; a.moving = null; a.path = null;
     stP.squads[2].intent = { type: 'take', zone: a.zone, why: 'order' }; stP.squads[2].path = [a.zone]; stP.squads[2].moving = null;
     for (let i = 0; i < 24 && a.alive; i++) CT.tick(stP);
-    ok('wiping a holder passes its captives to the wiper', kept0 > 0 && !a.alive && stP.squads[2].captives.length >= kept0 && stP.events.some(e => e.t === 'captives_pass'), kept0 + ' kept, ' + stP.squads[2].captives.length + ' with the wiper'); }
+    ok('a squad wiped leaves its captives in its OA\'s hold', kept0 > 0 && !a.alive && (stP.held[a.oa] || []).length >= kept0 && !stP.events.some(e => e.t === 'captives_pass'), kept0 + ' kept, ' + (stP.held[a.oa] || []).length + ' still held after the wipe'); }
   /* constructed: a beaten squad with nowhere to break to (every other zone of the ground stood on) is overrun. With a
      driver that holds the bodies, as the Divide does, the captor takes the bodies themselves, and the squad stays down
      past the next dawn however its bodies are counted */
@@ -2805,7 +2805,7 @@ function contestRules() {
     stO.squads[0].intent = { type: 'take', zone: zB, why: 'order' }; stO.squads[0].path = [zB];
     for (let i = 0; i < 36; i++) CT.tick(stO);
     const B = stO.squads[1], over = stO.events.some(e => e.t === 'wiped' && e.squad === B.id && e.how === 'overrun');
-    const held = stO.squads[0].captives, caps = stO.events.filter(e => e.t === 'captive' && e.from === B.id);
+    const held = stO.held[stO.squads[0].oa] || [], caps = stO.events.filter(e => e.t === 'captive' && e.from === B.id);
     ok('an overrun squad stays down, and its captor holds the bodies it took', over && !B.alive && held.length === 3 && held.every(k => k.body && k.body.status === 'captured') && caps.every(e => e.body),
        (over ? 'overrun' : 'not overrun') + ', ' + (B.alive ? 'standing again' : 'down') + ' on day ' + stO.day + ', ' + held.filter(k => k.body).length + ' of ' + held.length + ' captives with a body'); }
   /* constructed: a weak squad next to a strong one it knows picks at it from its own zone; the strong one, by its dial, rushes.
@@ -2942,7 +2942,7 @@ function divideRules() {
       if (c.out === 'ransomed') { A.ransomed++; lastRansom[c.fighter] = c.day != null ? c.day : 0; continue; }
       if (c.out === 'released' && lastRansom[c.fighter] != null && !cst.events.some(e => e.t === 'captive' && e.body === c.fighter && e.day >= lastRansom[c.fighter])) A.ransomBack.push(seed + ' ' + c.name + ' ransomed then released');
     }
-    for (const q of cst.squads) for (const k of q.captives) if (k.body && lastRansom[k.body.id] != null && (k.day == null || k.day < lastRansom[k.body.id])) A.ransomBack.push(seed + ' ' + k.body.name + ' still walked by ' + q.oa);
+    for (const oa in cst.held) for (const k of cst.held[oa]) if (k.body && lastRansom[k.body.id] != null && (k.day == null || k.day < lastRansom[k.body.id])) A.ransomBack.push(seed + ' ' + k.body.name + ' still held by ' + oa);
     /* 18 an engine OA with no squad board fields one squad a drafted landing */
     for (const c of r._corps) { const dz = ((d.opts.dropZones || {})[c.id] || []).length, p = (d.opts.corps || {})[c.id] || {};
       if (dz >= 2 && !(p.groups && p.groups.length) && c.squads.length !== dz) A.squads.push(seed + ' ' + c.id + ' ' + c.squads.length + ' squads, ' + dz + ' landings'); }
@@ -2968,7 +2968,7 @@ function divideRules() {
     for (const [f, n0] of xp0) if (f.status !== 'dead') { if (((f.experience && f.experience.divides) || 0) > n0) A.xpUp++; else A.xpBad++; }
     /* 3 a driven Divide's overrun hands the squad's standing bodies to the captor, marked taken (asked of the Divide's own
        hook on a squad still standing at the end); and no captive is ever held without a body */
-    if (cst.events.some(e => e.t === 'captive' && !e.body) || cst.squads.some(q => q.captives.some(k => !k.body))) A.overrun.push(seed + ' a captive held without a body');
+    if (cst.events.some(e => e.t === 'captive' && !e.body) || Object.keys(cst.held).some(oa => cst.held[oa].some(k => !k.body))) A.overrun.push(seed + ' a captive held without a body');
     const standing = cst.squads.find(q => q.alive && q.ref && q.ref.bodies.some(b => b.status === 'active'));
     if (standing) {
       const by = ids.find(id => id !== standing.oa), heads = standing.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt go with them */
@@ -3007,7 +3007,7 @@ function divideRules() {
   ok('an OA with a reserve lands some of it', A.landed > 0 && A.landedSome * 3 >= A.withReserve,
      A.landedSome + ' of ' + A.withReserve + ' OAs with a reserve landed some of it, ' + A.landed + ' fighters over three Divides');
   ok('a squad carrying long rifles counts them', A.longCarriers > 0 && A.longBad === 0, A.longBad + ' of ' + A.longCarriers + ' squads with long rifles counted none');
-  ok('a ransomed captive leaves his captor\'s squad and is never then released', A.ransomed > 0 && A.ransomBack.length === 0, A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
+  ok('a ransomed captive leaves his captor\'s hold and is never then released', A.ransomed > 0 && A.ransomBack.length === 0, A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
   ok('a fighter who lives through a Divide has one more Divide on his career', A.xpUp > 0 && A.xpBad === 0, A.xpBad + ' of ' + (A.xpUp + A.xpBad) + ' survivors not counted');
   ok('the board\'s outcome carries every OA\'s placement and whether it ceded', A.board.length === 0, A.board.slice(0, 3).join(' | '));
   ok('the settlement pays out the pot and charges the winner\'s bonuses once, on its books', A.bonus.length === 0, A.bonus.slice(0, 3).join(' | '));
