@@ -102,7 +102,7 @@
     st.hurtOf = opts.hurtOf || null;   /* with bodies behind a squad, how many hurt it carries */
     st.headOf = opts.headOf || null;   /* with bodies behind a squad, how many stand: read at dawn and after every fight */
     st.driven = !!opts.driven;         /* a day loop outside drives the clock: the contest does not call its own end */
-    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.onShed = opts.onShed || null; st.reportOf = opts.reportOf || null;
+    st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.onShed = opts.onShed || null; st.captivesHeld = !!opts.captivesHeld; st.reportOf = opts.reportOf || null;
     st.audit.fights = 0; st.audit.joined = 0; st.audit.harassed = 0; st.audit.captured = 0; st.audit.wiped = 0;
     const taken = {}; for (const q of st.squads) { if (taken[q.zone]) throw new Error('contest: two squads dropped on one zone ' + q.zone); taken[q.zone] = q.id; }
     st.rng = rng;
@@ -147,7 +147,7 @@
         const outs = G.zones[u].nb.map(v => [v, G.regions[G.zones[u].region].ticks]).concat(G.regions[G.zones[u].region].links.filter(l => l.from === u).map(l => [l.at, l.ticks]));
         for (const [v, t0] of outs) { if (deadZone(st, v)) continue; const h = holder(st, v);
           const held = (h && !st.allied(h.oa, q.oa)) || friendAt(v); if (held && clear) continue;
-          const c = cost[u] + Math.ceil(t0 / pace) + captiveTicks(q.captives.length) + (held ? CONST.EXIT_HELD_TICKS : 0);
+          const c = cost[u] + Math.ceil(t0 / pace) + captiveTicks(carried(q)) + (held ? CONST.EXIT_HELD_TICKS : 0);
           /* never through ground that will be gone by the time it gets there */
           if (zoneEnds(st, v) !== Infinity && (zoneEnds(st, v) - st.day) * CONST.TICKS_A_DAY - st.tick <= c + slack) continue;
           if (cost[v] == null || c < cost[v]) { cost[v] = c; prev[v] = u; } }
@@ -170,7 +170,7 @@
       if (q.fight != null) { const f = st.fights[q.fight]; if (f && !f.done && f.until > absTick(st)) { f.until = absTick(st); st.audit.wallBreaks = (st.audit.wallBreaks || 0) + 1; } continue; }
       if (onRoad(q)) continue;
       /* a column too slow to make it with its captives lets them go: they walk off, and the squad lives */
-      if (q.captives.length && (w.zone == null || w.left - w.ticks <= 0) && st.onShed) {
+      if (carried(q) && (w.zone == null || w.left - w.ticks <= 0) && st.onShed) {
         const before = q.captives.length; st.onShed(st, q); if (q.captives.length < before) { st.audit.shed = (st.audit.shed || 0) + 1; const w2 = wallWay(st, q); if (w2) { w.zone = w2.zone; w.path = w2.path; w.ticks = w2.ticks; } } }
       if (w.zone == null) continue;
       const same = q.intent && q.intent.why === 'the wall' && q.intent.zone === w.zone && q.path && q.path.length && q.path[0] === w.path[0];
@@ -254,7 +254,7 @@
       const p = GROUND.ticksBetween(G, q.zone, l.at, { avoid: v => deadZone(st, v) });
       /* its captives slow every step of the way out, and a door a rival holds is a fight first */
       const k = groupKnows(group, l.at), held = k && k.oa && !st.allied(k.oa, q.oa);
-      const t = p ? p.ticks + Math.max(0, p.path.length - 1) * captiveTicks(q.captives.length) + (held ? CONST.EXIT_HELD_TICKS : 0) : Infinity;
+      const t = p ? p.ticks + Math.max(0, p.path.length - 1) * captiveTicks(carried(q)) + (held ? CONST.EXIT_HELD_TICKS : 0) : Infinity;
       if (t < best) best = t; }
     return best;
   }
@@ -294,7 +294,7 @@
     for (const r in reach) {
       const reg = G.regions[+r], rg = goesOn(st, reg.id);
       /* a column slowed by captives needs a day more to get back out of a region than one that walks free */
-      if (rg <= st.day + margin + (reg.id !== rid && group.some(q => captiveTicks(q.captives.length) >= 2) ? 1 : 0) && reg.id !== G.wall.last) continue;   /* not worth walking into */
+      if (rg <= st.day + margin + (reg.id !== rid && group.some(q => captiveTicks(carried(q)) >= 2) ? 1 : 0) && reg.id !== G.wall.last) continue;   /* not worth walking into */
       for (const zid of reg.zones) {
         const z = G.zones[zid], zg = Math.min(rg, zoneGoes(st, zid));
         if (reg.id === G.wall.last && zg <= st.day + margin && zid !== G.wall.finalZone) continue;   /* a zone of the last ground that goes soon */
@@ -350,7 +350,7 @@
         if (q.shut && q.shut[c.zid] >= st.day - (pressed ? 1 : 0)) continue;   /* a zone it was turned back from is not tried again today — nor tomorrow, with the wall coming */
         const path = GROUND.ticksBetween(G, q.zone, c.zid, { avoid: v => deadZone(st, v) || (v !== c.zid && !!holder(st, v) && holder(st, v).oa !== oa) });   /* friends are passed when they move; the way waits for them */
         if (!path) continue;
-        if (pressed && !zonePressed && c.reg !== rid && path.ticks + Math.max(0, path.path.length - 1) * captiveTicks(q.captives.length) > ticksLeft - 1) continue;   /* it would not get there */
+        if (pressed && !zonePressed && c.reg !== rid && path.ticks + Math.max(0, path.path.length - 1) * captiveTicks(carried(q)) > ticksLeft - 1) continue;   /* it would not get there */
         /* §CAPTAIN a captain weighs what a zone is worth only as well as his judgement lets him */
         const judged = c.worth * (1 + (r01(st) - 0.5) * 2 * CONST.JUDGE_NOISE / (q.mind ? q.mind.judge : 2));
         const v = judged - path.ticks * CONST.PLAN_TICK_COST / Math.max(0.3, dial.ground) + (pressed && (c.reg !== rid || zonePressed) ? 2 : 0);
@@ -484,7 +484,7 @@
     const stp = stepOf(st, q, q.path[0]); if (!stp) { q.path = null; return; }
     /* §WEATHER the day's weather slows the march; a squad that has lost its bearings makes a third of its way */
     const pace = (st.weather && st.weather.pace ? st.weather.pace : 1) * (q.lostDay ? CONST.LOST_PACE : 1);
-    const cost = Math.ceil(stp.cost / pace) + captiveTicks(q.captives.length);
+    const cost = Math.ceil(stp.cost / pace) + captiveTicks(carried(q));
     /* §WALL never a step onto ground that goes sooner than its own and before the squad is through it: it stops and thinks again
        (the wall's own walk was reckoned already) */
     const ends = zoneEnds(st, stp.to);
@@ -499,6 +499,8 @@
 
   /** the ticks captives add to a step: every one slows the column */
   function captiveTicks(n) { return n > 0 ? Math.ceil(n * CONST.CAPTIVE_STEP_TICKS) : 0; }
+  /** the captives a squad walks with: in a game whose captives go straight to their OA's hold, none */
+  function carried(q) { let n = 0; for (const k of q.captives) if (!k.held) n++; return n; }
   /* ---------------- fights ---------------- */
   /** §FIGHT A CONTACT IS A FIGHT. The mover is at the holder's edge; the fight is on the holder's zone, and the
       grid is fed what the zone is: its region's terrain, its cover, its height against the comers', night. Every
@@ -563,7 +565,7 @@
       if (capN && winner && winner !== S) takeCaptives(st, winner, q, r.captured, f);
       if (q.n <= 0) { q.alive = false; wiped.push(q); st.audit.wiped++; st.events.push({ t: 'wiped', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, zone: f.zone, by: winner ? winner.oa : null });
         /* wiping a holder passes its captives to the wiper */
-        if (winner && q.captives.length) { const w = st.squads[winner.squads[0].id]; if (w.alive) { w.captives = w.captives.concat(q.captives); st.events.push({ t: 'captives_pass', day: st.day, from: q.id, to: w.id, n: q.captives.length }); } q.captives = []; }
+        if (winner && carried(q)) { const w = st.squads[winner.squads[0].id]; if (w.alive) { w.captives = w.captives.concat(q.captives); st.events.push({ t: 'captives_pass', day: st.day, from: q.id, to: w.id, n: q.captives.length }); } q.captives = []; }
       }
     }
     /* who stands where: the winner's lead squad on the zone, the rest of it and the beaten back where they came from,
@@ -628,7 +630,7 @@
       st.events.push({ t: 'captive', day: st.day, tick: st.tick, zone: f.zone, captor: w.id, captorOa: w.oa, from: from.id, fromOa: from.oa, fate, body: body ? (body.id || null) : null });
       /* a driven contest hands every decided captive to its driver, which kills or frees the body as the fight settles;
          alone, the contest keeps only those it holds */
-      if (fate === 'keep' || fate === 'pending' || (st.driven && body)) w.captives.push({ oa: from.oa, squad: from.id, day: st.day, body: body || null, fate });
+      if (fate === 'keep' || fate === 'pending' || (st.driven && body)) w.captives.push({ oa: from.oa, squad: from.id, day: st.day, body: body || null, fate, held: !!st.captivesHeld });
     }
   }
   function captiveByStance(st, captor, from) {

@@ -119,6 +119,13 @@
   };
 
   const CONST = {
+    /* MEASURE ONLY (not ruled): two proposals run side by side. WOUNDS_IN_PLAY false = a wound short of being put down is
+       carried home as a result and costs nothing on the ground; the put-down are out; a squad with nobody standing goes
+       home. CAPTIVES: 'carried' (walk with the squad), 'hold' (sent at once to the OA's hold: never fed, walked or
+       guarded, still ransomed and decided), 'none_spare' (no prisoners: the beaten are left hurt and go home),
+       'none_kill' (no prisoners: the beaten are finished) */
+    WOUNDS_IN_PLAY: true,
+    CAPTIVES: 'carried',
     /* [C] §STANCE share of a side down before it pulls out, by stance (standard is the grid's own 35%) */
     STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
@@ -1359,7 +1366,7 @@
       d += (r && r.supply_mult) ? r.supply_mult : 1.0;
     }
     /* §CAPTIVES a captive eats what anybody eats, out of the captor's packs */
-    for (const k of (sq._cq ? sq._cq.captives : [])) { const r = k.body && raceById[k.body.race]; d += (r && r.supply_mult) ? r.supply_mult : 1.0; }
+    for (const k of (sq._cq ? sq._cq.captives : [])) { if (k.held) continue; const r = k.body && raceById[k.body.race]; d += (r && r.supply_mult) ? r.supply_mult : 1.0; }
     return d;
   }
 
@@ -1475,7 +1482,8 @@
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
         const victim = bodies[Math.floor(rng() * bodies.length)];
         victim.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 4, 10), untreated: false });
-        victim.status = 'injured'; victim._recovery = P.int(rng, 4, 10); victim._untreatedDays = 0;
+        if (CONST.WOUNDS_IN_PLAY) { victim.status = 'injured'; victim._recovery = P.int(rng, 4, 10); victim._untreatedDays = 0; }
+        else victim._postWound = Math.max(victim._postWound || 0, P.int(rng, 4, 10));   /* MEASURE: carried home, not felt here */
         stats.hazardInjuries++;
         if (stats._rec) stats._rec({ t: 'hazard', x: sq.x, y: sq.y, kind: w.kind, c: sq.corpId });
       }
@@ -1609,7 +1617,7 @@
     for (const b of sq.bodies) {
       if (b.status !== 'injured') continue;
       b._recovery = (b._recovery || 0) - 1;
-      if (b._recovery <= 0) { b.status = 'active'; b.condition.fatigue = 25; continue; }
+      if (b._recovery <= 0 && CONST.WOUNDS_IN_PLAY) { b.status = 'active'; b.condition.fatigue = 25; continue; }
       /* COMBAT.md §7.1 degradation applies ONLY to wounds nobody has tended. A fighter
          carried back to your own camp is being tended — that is what a recovery IS. A
          squad with no medical kit cannot do that in the field, and those wounds walk.
@@ -1779,7 +1787,7 @@
         for (const b of sq.bodies || []) {
           if (b.status !== 'injured') continue;
           b._recovery = (b._recovery || 0) * CONST.REST_HALVES;
-          if (b._recovery <= CONST.REST_STANDS_UNDER) {
+          if (b._recovery <= CONST.REST_STANDS_UNDER && CONST.WOUNDS_IN_PLAY) {
             b.status = 'active'; b._recovery = 0;
             stats.audit.restedBack = (stats.audit.restedBack || 0) + 1;
           }
@@ -2041,6 +2049,8 @@
           transferFame(f, victors.bodies || [], vsq && vsq.corp, victors.corp);
         }
       }
+      else if (u.state === 'captured' && CONST.CAPTIVES === 'none_kill') { f.status = 'dead'; stats.dead++; killed++; stats.audit.finished = (stats.audit.finished || 0) + 1; }
+      else if (u.state === 'captured' && CONST.CAPTIVES === 'none_spare') { f.status = 'injured'; f._recovery = Math.max(f._recovery || 0, 20); stats.injured++; downed++; stats.audit.leftHurt = (stats.audit.leftHurt || 0) + 1; }
       else if (u.state === 'captured') {
         f.status = 'captured'; stats.captured++; stats.audit.capturedAlive++;
         /* N10 — a captive belongs to somebody, and who that is decides their fate at the
@@ -2269,6 +2279,7 @@
     const csquads = [];
     for (const c of corps) for (const sq of c.squads) csquads.push({ oa: c.id, s: sq.sIdx, zone: sq.zone, bodies: sq.bodies, stance: squadStance(sq), ref: sq, long: longShare(sq) });
     const cst = CONTEST.open(rng, ground, csquads, {
+      captivesHeld: CONST.CAPTIVES === 'hold',
       seed: 'contest', driven: true,
       allied: (a, b) => a === b,
       headOf: sq => squadHead(sq).length,
@@ -2307,7 +2318,9 @@
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
       /* overrun: every body still standing is taken by the winner */
-      onOverrun: (st, cq, winnerOa) => { const taken = cq.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt with them */
+      onOverrun: (st, cq, winnerOa) => {
+        if (CONST.CAPTIVES === 'none_spare') { cq.ref._evac = true; return []; }
+        if (CONST.CAPTIVES === 'none_kill') { for (const b of cq.ref.bodies) if (b.status === 'active' || b.status === 'injured') { b.status = 'dead'; stats.dead++; } return []; } const taken = cq.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt with them */
         for (const b of taken) { b.status = 'captured'; b._capturedBy = winnerOa; stats.captured++; stats.audit.capturedAlive++; }
         stats.audit.overrun = (stats.audit.overrun || 0) + 1; return taken; }
     });
@@ -2349,10 +2362,10 @@
       const press = goes === Infinity ? 1 : 1 + 3 * Math.max(0, Math.min(1, 1 - (goes - day - CONTEST.CONST.PLAN_MARGIN_DAYS) / CONTEST.CONST.PLAN_MARGIN_DAYS));
       const ticks = span => (CONTEST.captiveTicks(n + 1) - CONTEST.captiveTicks(n)) * CONST.CAPTIVE_TICK_COST * squadWorth * span * press;
       const dial = STANCE_DIALS[cq.stance] || STANCE_DIALS.standard;
-      const costs = span => food(span) + ticks(span);
+      const costs = span => CONST.CAPTIVES === 'hold' ? 0 : food(span) + ticks(span);
       let held = Math.max(price * CONST.CAPTIVE_RANSOM_P - costs(soon), worthOf(body) * CONST.CAPTIVE_ROSTER_SHARE - costs(daysLeft));
       /* a squad guards no more captives than twice the people it has standing: past that he walks off anyway */
-      if (n + 1 > CONST.CAPTIVES_PER_GUARD * heads.length) held = -Infinity;
+      if (CONST.CAPTIVES !== 'hold' && n + 1 > CONST.CAPTIVES_PER_GUARD * heads.length) held = -Infinity;
       /* standing: each act read through what its own crowd and the houses would make of it */
       const rep = act => { if (!c || !c.rep || !owner) return 0; const s = REP.impactSummary(c.rep, REP.impact(c.rep, act, { targetId: owner.id })); return (s.crowd + s.houses) * CONST.CAPTIVE_REP_W * CONST.STANDING_CREDIT; };
       /* what it thinks of the owner: a grudge leans to killing (a gun off a rival for good), warmth to sparing */
@@ -2601,6 +2614,8 @@
         if (tg < 0) { let most = 0; for (let hi = 0; hi < groups.length; hi++) { if (hi === gi) continue; const up = sidesSq[hi].reduce((t, s2) => t + squadHead(s2).length, 0); if (up > most) { most = up; tg = hi; } } }
         if (tg < 0 || tg === gi) continue;
         const takerId = sidesSq[tg][0].corpId;
+        if (CONST.CAPTIVES === 'none_spare') continue;   /* MEASURE: no prisoners; the beaten's hurt go home */
+        if (CONST.CAPTIVES === 'none_kill') { for (const b of sq.bodies) if (b.status === 'injured') { b.status = 'dead'; stats.dead++; stats.audit.finished = (stats.audit.finished || 0) + 1; } continue; }
         for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'captured'; b._capturedBy = takerId; stats.captured++; stats.audit.capturedAlive++; stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1; }
       }
       lootField(sidesSq, broke, arrivals, deadBefore, day, stats, Z[zone].x, Z[zone].y);
@@ -2703,10 +2718,11 @@
           if (c.withdrawn || c._downedOn != null) continue;
           if (sq.zone == null || (e.t === 'region_gone' ? Z[sq.zone].region !== e.region : sq.zone !== e.zone)) continue;
           if (sq._cq && sq._cq.alive && CONTEST.onRoad(sq._cq) && Z[sq._cq.moving.to].region !== e.region) continue;   /* on the road out: outside already */
+          if (sq._evac) continue;   /* gone home with its hurt */
           let took = 0;
           for (const b of sq.bodies) if (b.status !== 'dead' && b.status !== 'retired') { b.status = 'dead'; took++; }
-          for (const k of (sq._cq ? sq._cq.captives : [])) if (k.body && k.body.status === 'captured') { k.body.status = 'dead'; took++; }
-          if (sq._cq) sq._cq.captives = [];
+          for (const k of (sq._cq ? sq._cq.captives : [])) if (!k.held && k.body && k.body.status === 'captured') { k.body.status = 'dead'; took++; }
+          if (sq._cq) sq._cq.captives = sq._cq.captives.filter(k => k.held);
           if (!took) continue;
           const w = dawnEv.find(x => x.t === 'wall' && x.squad === sq._cq.id);
           (stats.wallDeaths = stats.wallDeaths || []).push({ day, corp: sq.corpId, s: sq.sIdx, took, at: 'dawn', region: RG[e.region].name, free: !!(w && w.free), stance: squadStance(sq), intent: sq._cq.intent && sq._cq.intent.type });
@@ -2937,7 +2953,7 @@
         if (!c.squads.some(d2 => d2.zone === o.zone && !squadHead(d2).length && d2.bodies.some(b => b.status === 'injured'))) { s2._cq.order = null; if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null; } }
       /* sent at the plans, and again the hour a squad goes down, if nobody is on the way to it already */
       sendRescues = (fresh) => { for (const c of corps) { if (c.withdrawn) continue; for (const sq of c.squads) {
-        if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured') || sq.zone == null) continue;
+        if (sq._evac || squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured') || sq.zone == null) continue;
         if (fresh && c.squads.some(s2 => s2._cq && s2._cq.alive && s2._cq.order && s2._cq.order.rescue && s2._cq.order.zone === sq.zone)) continue;
         const able = c.squads.filter(s2 => s2 !== sq && squadHead(s2).length && s2._cq && s2._cq.alive && s2._cq.fight == null);
         const free = able.filter(s2 => !(s2._cq.intent && s2._cq.intent.why === 'order' && s2._cq.intent.zone !== sq.zone));
@@ -2992,7 +3008,7 @@
               const kit = medkitHolder(h);
               if (kit) { kit.medkits--; kit.hasMedkit = kit.medkits > 0; takeMedkitCharge(kit.bodies || []); stats.audit.medkitsUsed = (stats.audit.medkitsUsed || 0) + 1; }
               else { inj.untreated = true; stats.audit.untendedWounds = (stats.audit.untendedWounds || 0) + 1; }
-              b.condition.injuries.push(inj); b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; b._untreatedDays = 0; stats.injured++;
+              if (CONST.WOUNDS_IN_PLAY) { b.condition.injuries.push(inj); b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; b._untreatedDays = 0; stats.injured++; } else { b.condition.injuries.push(inj); b._postWound = Math.max(b._postWound || 0, CONST.HARASS_WOUND_DAYS); }
               addStress(h, CONST.STRESS.downed, stats); }
             CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
           if (e.t === 'wiped' && e.how === 'overrun') rec({ t: 'overrun', zone: e.zone, c: cst.squads[e.squad].oa, by: e.by });
@@ -3000,9 +3016,13 @@
         /* the sites: whoever stands on one and is not fighting works it */
         for (const sq of liveSquads()) siteTick(sq);
         {
+          /* MEASURE: with wounds out of play, a squad with nobody standing goes home with its hurt */
+          if (!CONST.WOUNDS_IN_PLAY) for (const c of corps) for (const sq of c.squads) {
+            if (sq._evac || !sq._cq || squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
+            sq._evac = true; sq._cq.alive = false; sq._cq.gone = true; sq._cq.moving = null; stats.audit.evacuated = (stats.audit.evacuated || 0) + 1; }
           /* the pickup, any hour: a standing squad on or beside an immobilised squad of its own gathers the wounded */
           for (const c of corps) for (const sq of c.squads) {
-            if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
+            if (sq._evac || squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
             for (const s2 of c.squads) {
               if (s2 === sq || !squadHead(s2).length) continue;
               if (s2.zone !== sq.zone && Z[s2.zone].nb.indexOf(sq.zone) < 0) continue;
@@ -3014,13 +3034,13 @@
           }
           /* §CAPTIVES a captive whose guards are all down walks off: he goes home, hurt, nobody's to decide */
           for (const cq of cst.squads) if (cq.captives.length && cq.ref && !squadHead(cq.ref).length) {
-            for (const k of cq.captives) if (k.body && k.body.status === 'captured') {
+            for (const k of cq.captives) if (!k.held && k.body && k.body.status === 'captured') {
               comeHome(k.body); for (const rc of (stats.ransomCases || [])) if (!rc.done && rc.fighter === k.body.id) rc.done = true;
               (stats.captiveLog = stats.captiveLog || []).push({ fighter: k.body.id, name: k.body.name, owner: k.oa, captor: cq.oa, out: 'released', day, walked: true });
               stats.captiveOutcomes = stats.captiveOutcomes || { released: 0, kept: 0, killed: 0 }; stats.captiveOutcomes.released++;
               rec({ t: 'captive', c: cq.oa, from: k.oa, name: k.body.name, out: 'released' });
             }
-            cq.captives = [];
+            cq.captives = cq.captives.filter(k => k.held);
           }
         }
       }
@@ -3352,6 +3372,8 @@
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;
     }
+    /* MEASURE: a wound the ground did not feel comes home as one */
+    for (const c of corps) for (const b of (c.allBodies || [])) if (b._postWound) { if (b.status === 'active') { b.status = 'injured'; b._recovery = Math.max(b._recovery || 0, b._postWound); stats.injured++; } b._postWound = 0; }
     if (REC) stats.replay = REC;
     stats.planet = planet;
     stats.corps = corps;
