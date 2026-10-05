@@ -152,6 +152,8 @@
        the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
        Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
     FINISH_WOUNDED: 0.05,            // [C]
+    FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
+    HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
                                      //     Not 1.0 on purpose: a dash that is as cautious as a
                                      //     walk is not a dash, and the mechanism exists to get
@@ -1023,7 +1025,7 @@
     return Math.max(2, mp);
   }
 
-  function candidates(map, taken, u, mp, near) {
+  function candidates(map, taken, u, mp, near, foes) {
     const reach = reachable(map, taken, u, mp);
     const out = [], seen = new Set();
     const keep = (c) => { const k = c.x + ',' + c.y; if (!seen.has(k)) { seen.add(k); out.push(c); } };
@@ -1063,6 +1065,22 @@
           let off = Math.abs(a2 - ang * 1); if (sign < 0) off = Math.abs(Math.PI - off);
           if (off > 0.7) continue;
           if (!best || d > best.d) best = { c: c, d: d };
+        }
+        if (best) keep(best.c);
+      }
+    }
+    /* §AI ROUND THE SIDE OF SOMEBODY'S COVER. The side-steps above are ninety degrees off the line to the nearest
+       enemy, and at range five tiles of that cannot get outside the arc his cover faces — so a flank was only ever
+       an accident. For the nearest few rivals the fighter can see who are in cover, the reachable tile nearest him
+       from which that cover no longer faces is offered too. */
+    if (foes && foes.length) {
+      const covered = foes.filter(f => concealAt(map, f) > 0).sort((a, b) => dist(u, a) - dist(u, b)).slice(0, CONST.FLANK_LOOK);
+      for (const f of covered) {
+        let best = null;
+        for (const c of reach) {
+          if (coverAgainst(map, f, c) !== 0 || !hasLOS(map, c, f)) continue;
+          const d = Math.hypot(c.x - f.x, c.y - f.y);
+          if (!best || d < best.d) best = { c: c, d: d };
         }
         if (best) keep(best.c);
       }
@@ -1137,10 +1155,13 @@
     /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
        reaction — both were wanted by hooks that had no way to ask */
     /* §LIGHT the planet's dark reaches every shot: aim suffers at night unless the fighter is at home in it */
-    const p = C.hitChance(shooter, target, band,
+    let p = C.hitChance(shooter, target, band,
                           { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night, dist: d }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
+    /* §AI (ruled) a snap reaction at a man crossing is never a better shot than an aimed one at him: the spotting bonus
+       and the reaction discount netted ×1.19, so overwatch out-shot aiming */
+    if (react) p = Math.min(p, C.hitChance(shooter, target, band, { unseen: !!unseen, side: shooter._side, night: !!_night, dist: d }, false) * CONST.SHOT_HIT_MULT);
     tel.shots++;
     /* THE THIRD COUNTER OF THAT SET, FINALLY RAISED. The note beside the declaration records
        that `vents`, `chargeOut` and `energyShots` were once missing from the telemetry object
@@ -1351,7 +1372,14 @@
        thing anybody does. Ruled: a body that cannot hurt anyone wants maximum distance, and the
        same pull that walked it in now walks it out. */
     if (!canHurt(c)) return CONST.BAND_TILE[0] + 8;
-    const r = (c.weapon && c.weapon.range) || 'medium';
+    /* §AI the distance a fighter wants is his own gun's, not his gun's band's: a short gun inside its reach, a long gun
+       between its `near` and its reach, a middling one at three-quarters of its reach */
+    const w = c.weapon || {}, r = w.range || 'medium';
+    if (w.reach != null) {
+      if (r === 'short') return Math.max(1, w.reach - 1);
+      if (r === 'long') return Math.round(((w.near || CONST.BAND_TILE[1]) + w.reach) / 2);
+      return Math.max(2, Math.round(w.reach * 0.75));
+    }
     if (r === 'long') return CONST.BAND_TILE[0] + 2;
     if (r === 'short') return Math.max(1, Math.round(CONST.BAND_TILE[1] * 0.5));
     return Math.round((CONST.BAND_TILE[0] + CONST.BAND_TILE[1]) / 2);
@@ -2077,20 +2105,34 @@
             const cov = coverAgainst(map, f, from);
             const sc = f.cover, sf = f.flanked;
             f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
-            const p = C.hitChance(u, f, bandOf(dist(from, f)), {}, false) * CONST.SHOT_HIT_MULT;
+            /* §AI the shot as it will be taken: at its distance, through the gun's range model, and as a snap shot from a
+               tile it has to move to — it read the old band step, so a marksman thought itself poor up close and the
+               scorer and the shot disagreed about every distance */
+            const dd = dist(from, f), moved = from.x !== u.x || from.y !== u.y;
+            const p = C.hitChance(u, f, bandOf(dd), { dist: dd, snap: moved }, false) * CONST.SHOT_HIT_MULT;
             f.cover = sc; f.flanked = sf;
             return p;
           };
+          /* §AI (ruled) A FIGHTER IS NOT EVERY ENEMY'S ONLY TARGET. Each rival's shot at a tile is weighed by the chance it
+             picks him out of everyone of his it can see — the threat summed every enemy's shot as if all six would fire at
+             this one man, against a gain that counted only his own one shot, so closing in never paid. And a rival on
+             overwatch fires again at anyone who moves into his view. */
+          const shareOf = new Map();
+          for (const f of foes) { let others = 0; for (const m of S.units) if (m !== u && (m.state === 'ok' || m.state === 'light') && hasLOS(map, f, m)) others++; shareOf.set(f, 1 / (1 + others)); }
+          const threatAt = (spot, moving, dashW) => { let t = 0;
+            for (const f of foes) { if (!hasLOS(map, f, spot)) continue; const w = shareOf.get(f) || 1;
+              t += incoming(f, u, spot, map) * w * (moving && f.overwatch ? 2 : 1); }
+            return t * (dashW || 1); };
           /* Between shots: a half-rate weapon spends this turn cycling the action. They can
              still move and still watch — they simply have nothing to fire. */
           /* `spool` — the catalog's own words: it cannot fire on the first turn of contact.
            `chill` — a hit last turn costs you this one's movement, not your shot. */
         if (u._chilled) { u._chilled = false; u._noMove = true; } else u._noMove = false;
         if (C.hasQuirk(u, 'spool') && tel.turn === 1) { if (u.ap > 0) { u.overwatch = true; u.ap = 0; } continue; }
-        if (u._skipNext) {
-            if (u.ap > 0) { u.overwatch = true; u.ap = 0; }
-            continue;
-          }
+        /* §AI (ruled) A GUN CYCLING ITS ACTION DOES NOT FIRE THIS TURN — not aimed, and not from overwatch either: the
+           cycling turn was spent on overwatch, so a half-rate rifle shot every turn and its slowness cost it nothing. It
+           may still move. */
+        const cycling = !!u._skipNext;
           /* ---- GOING BACK FOR THE WOUNDED --------------------------------------------
              `hasMedkit` was handed to this resolver and read by NOTHING: a squad that bought
              medical kit and a squad that did not fought identical fights, and a downed
@@ -2401,7 +2443,7 @@
           const meUnseen = fog && !!(E._seen) && !sideKnows(E, u);
           if (meUnseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) tel.softBootsMoves++;
           {
-            const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near);
+            const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near, seen);
             tel.candidates = (tel.candidates || 0) + spots.length;
             tel.candidateCalls = (tel.candidateCalls || 0) + 1;
             for (const cand of spots) {
@@ -2418,11 +2460,7 @@
                  Scoring cover as a flat 0.045 a grade against a hit chance of 0.15 meant any
                  marginal improvement in a shot was worth abandoning a wall for, and it is why
                  squads walked out of good ground on turn one. */
-              let threat = 0;
-              for (const f of foes) {
-                if (!hasLOS(map, f, spot)) continue;
-                threat += incoming(f, u, spot, map);
-              }
+              const threat = threatAt(spot, x !== u.x || y !== u.y);
               const bandOff = Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u));
               /* §RACES A HALF KEEPS STATION. A pair that pays for separation and never tries
                  to close is a pair being punished for the engine's indifference: a Mon-Wa
@@ -2460,8 +2498,10 @@
             }
           }
 
-          let stayThreat = 0;
-          for (const f of foes) { if (hasLOS(map, f, u)) stayThreat += incoming(f, u, u, map); }
+          const stayThreat = threatAt(u, false);
+          /* §AI a shot not worth taking is not a reason to stay: below HOPELESS_SHOT it is noise, and a fighter out of his
+             range moves rather than fire it (and on a cycling turn there is no shot at all) */
+          if (cycling || pNow < CONST.HOPELESS_SHOT) { pNow = 0; if (cycling) target = null; }
           const stayBandOff = Math.abs(dist(u, near) - wantTiles(u));
           const stayVal = pNow * CONST.SHOT_WEIGHT - stayThreat * CONST.THREAT_WEIGHT
                         - stayBandOff * CONST.BAND_PULL;
@@ -2528,7 +2568,7 @@
                second time. It is a commitment, not a free sprint — but it makes the far side
                of a rock reachable inside one turn instead of three. */
             if (u.ap > 0 && !u.suppressed && !u._noMove) {
-              const far = candidates(map, occupancy(sides), u, moveTilesFor(u, meUnseen), near);
+              const far = candidates(map, occupancy(sides), u, moveTilesFor(u, meUnseen), near, seen);
               let rush = null;
               for (const cand of far) {
                 if (cand.x === u.x && cand.y === u.y) continue;
@@ -2554,19 +2594,14 @@
                    Weighted at a FRACTION of the move scorer's. The dash exists so a short-range
                    squad can cross ground it otherwise never crosses; at full weight it would
                    become as cautious as an ordinary move and stop being a dash at all. */
-                let dThreat = 0;
-                for (const f of foes) {
-                  if (!hasLOS(map, f, { x: cand.x, y: cand.y })) continue;
-                  dThreat += incoming(f, u, { x: cand.x, y: cand.y }, map);
-                }
+                const dThreat = threatAt({ x: cand.x, y: cand.y }, true);
                 const val = best * CONST.SHOT_WEIGHT
                           - dThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                           - Math.abs(Math.hypot(cand.x - near.x, cand.y - near.y) - wantTiles(u))
                             * CONST.BAND_PULL;
                 if (!rush || val > rush.val) rush = { x: cand.x, y: cand.y, val: val, p: best };
               }
-              let hereThreat = 0;
-              for (const f of foes) { if (hasLOS(map, f, u)) hereThreat += incoming(f, u, u, map); }
+              const hereThreat = threatAt(u, false);
               const here = pNow * CONST.SHOT_WEIGHT
                          - hereThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                          - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
@@ -2589,8 +2624,8 @@
             }
           }
 
-          if (!target) {
-            if (u.ap > 0) { u.overwatch = true; u.ap = 0; }
+          if (!target || cycling || pNow < CONST.HOPELESS_SHOT) {
+            if (u.ap > 0 && !cycling) { u.overwatch = true; u.ap = 0; }
             continue;
           }
 
