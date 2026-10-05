@@ -1529,6 +1529,15 @@
        read in twenty-one places across three modules, and nothing downstream of the grid needs
        to know the model changed. */
     if (t.hp == null) t.hp = C.hpFor(t.ref || t);
+    /* §ARMOUR (fixed) A GRAZE THE ARMOUR TOOK IS NOTHING. Every hit cost at least a point of the pool and nearly half cost
+       exactly one, so a light vest could not lower them and the armour most of the field wore did nothing at all: a
+       round that met armour and only grazed is stopped by it */
+    if (sev === 'graze' && (t._effProt || 0) > 0) {
+      tel.absorbed = (tel.absorbed || 0) + 1;
+      comp(rng, t, C.CONST.COMP.nearMiss);
+      if (log) log.push({ t: tel.turn, type: 'absorbed', by: by.id, at: t.id, w: (by.weapon||{}).name, ammo: by.ammo, react: !!by._reacting });
+      return;
+    }
     let dmg = t._sevRoll != null ? C.damageOf(t._sevRoll) : C.CONST.DMG_MIN;
     /* §RACES LEATHERY, GRANITE-COLOURED FLESH. An Olmac's toughness was in the lore and in a
        grit lean and in nothing that took a round: what would drop a body takes more of them

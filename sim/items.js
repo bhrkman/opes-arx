@@ -397,6 +397,16 @@
   function gunScore(g, aim) { return Math.log(edgeOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }
   /* the engine does not arm anybody with a stun gun (ruled): that is a manager's own choice, at the Armoury, by hand */
   const engineIssues = (it) => !(it.slot === 'primary' && ((it.effects || {}).tags || []).indexOf('nonlethal') >= 0);
+  /* §ARMOUR (fixed) what a piece of armour stops: its protection on the share of hits it covers, against the field's
+     mix of rounds (mostly ballistic, some energy, a little explosive). Armour was ranked by taste tags it barely has and
+     then by catalogue order, so the muster took the cheapest vest and the rest took whatever came first. */
+  function armourWorth(it) {
+    const e = (it && it.effects) || {}, r = e.resist || {};
+    const prot = Math.max(0, (e.protection || 0) + 0.6 * (r.ballistic || 0) + 0.3 * (r.energy || 0) + 0.1 * (r.explosive || 0));
+    return prot * coverageShare(e.covers);
+  }
+  const rankArmour = (ids, taste) => ids.map(byId).filter(Boolean)
+    .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (armourWorth(b) - armourWorth(a)));
   /* the guns in a doctrine's order of taste, the better gun first where taste does not choose */
   const rankGuns = (ids, taste) => ids.map(byId).filter(Boolean)
     .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (edgeOf(b) - edgeOf(a)));
@@ -449,7 +459,7 @@
       }
       return gunTaste.slice().sort((x, y) => gunScore(y, shotOf(b.f, y) + tasteBonus[y.id]) - gunScore(x, shotOf(b.f, x) + tasteBonus[x.id]));
     };
-    const armours = rankBy(ofSlot('armor').map(a => a.id), taste);
+    const armours = rankArmour(ofSlot('armor').map(a => a.id), taste);
     const sidearms = rankBy(ofSlot('sidearm').map(a => a.id), taste);
     const listFor = (b, slot) => slot === 'primary' ? gunsFor(b) : slot === 'armor' ? armours : sidearms;
 
@@ -486,6 +496,11 @@
          favourite armour, handed to two-thirds of a force at the muster, spent the whole cap before a gun was chosen */
       const fairShare = mustAllow / bodies.length * CONST.KIT_MUSTER_BODY_SHARE;
       let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      /* and the cheap end of the armour rack is chosen from by what it stops, not by price alone */
+      if (slot === 'armor' && order2.length) {
+        const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
+        order2 = order2.filter(c => c.cost <= floor).sort((x, y) => armourWorth(y) - armourWorth(x)).concat(order2.filter(c => c.cost > floor));
+      }
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
         const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => gunScore(y, shotOf(b.f, y)) - gunScore(x, shotOf(b.f, x)));
@@ -720,12 +735,14 @@
     if (guns.length) { const lo = cheapest(guns).cost * CONST.KIT_MUSTER_SLACK;
       add(guns.filter(g => g.cost <= lo).sort((a, b) => edgeOf(b) / b.cost - edgeOf(a) / a.cost)[0].id, Math.ceil(n * CONST.FOUNDING_SPARES)); }
     for (const slot of ['armor', 'sidearm']) {
-      const ranked = rankBy(ofSlot(slot), taste);
+      const ranked = slot === 'armor' ? rankArmour(ofSlot(slot), taste) : rankBy(ofSlot(slot), taste);
       if (!ranked.length) continue;
       const main = Math.ceil(n * 2 / 3), alt = n - main;
       add(ranked[0].id, Math.ceil(main * depth));
       if (alt > 0 && ranked[1]) add(ranked[1].id, Math.ceil(alt * depth));
-      add(cheapest(ranked).id, Math.ceil(n * CONST.FOUNDING_SPARES));
+      /* the cheap spares: for armour, the piece at the cheap end that stops the most */
+      const lo = cheapest(ranked).cost * CONST.KIT_MUSTER_SLACK;
+      add(slot === 'armor' ? ranked.filter(a => a.cost <= lo).sort((a, b) => armourWorth(b) - armourWorth(a))[0].id : cheapest(ranked).id, Math.ceil(n * CONST.FOUNDING_SPARES));
     }
     for (const modId of (d.mod_wishlist || [])) {
       const m = byId(modId);
@@ -807,7 +824,7 @@
   const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf, armourWorth,
     squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
