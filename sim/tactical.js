@@ -152,6 +152,7 @@
        the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
        Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
     FINISH_WOUNDED: 0.05,            // [C]
+    FOLLOWUP_HIT: 0.6,               // [C] §GUNS a follow-up round of a burst hits at this share of the first
     FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
     HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
@@ -204,6 +205,7 @@
     COVER_BLAST_P: 0.55,             // [C] the same for an `area` weapon, which is the point of one
     COVER_BLAST_RADIUS: 1,           // [C] tiles around the burst that take the same chance
     DEPLOY_DEPTH: 5,                 // [C] how deep a deployment zone is
+    DEPLOY_SPAN: 10,                 // [C] §RANGE how many rows of the board a squad deploys across, centred
     /* §FLANK (ruled: option B) A FLANKED FIGHT IS FOUGHT ON MORE GROUND. A side whose squads walked in from different
        directions used to merge into one blob on one edge — a pincer on the map was a single rank on the grid. Now each
        squad comes on at its own edge, and when the approaches are this far apart the board grows to hold them, so the
@@ -241,7 +243,7 @@
        roughly, so people can shoot back at you badly. Neither — you are not a target at all. */
     /* §APPROACH the opening gaps, as shares of the long band's own edge */
     OPEN_LONG: 1.85,                 // [C] a long opening is well beyond sight: an approach
-    OPEN_MEDIUM: 1.05,               // [C] a medium one is at the edge of it
+    OPEN_MEDIUM: 0.72,               // [C] a medium one is in the medium band (it was 1.05: a 15-tile gap, already long)
     BOARD_MARGIN: 10,                // [C] ground either side of the gap to manoeuvre in
     BOARD_TALLER: 4,                 // [C] a longer board is a little deeper too
     /* what a fieldcraft score is worth as eyes, against the spread rosters actually deal */
@@ -835,8 +837,11 @@
       return place(rng, map, units, prep, spots, taken, opts);
     }
     const x0 = side === 0 ? 1 + inset : map.w - 1 - CONST.DEPLOY_DEPTH - inset;
+    /* §RANGE (fixed) a squad deploys facing the other across the middle of the board, not strung down its whole height:
+       spread over all eighteen rows, a "short" opening put the nearest rival six or seven tiles off — the edge of medium */
+    const yLo = Math.max(0, Math.floor((map.h - CONST.DEPLOY_SPAN) / 2)), yHi = Math.min(map.h, yLo + CONST.DEPLOY_SPAN);
     for (let x = x0; x < x0 + CONST.DEPLOY_DEPTH; x++) {
-      for (let y = 0; y < map.h; y++) {
+      for (let y = yLo; y < yHi; y++) {
         if (x < 0 || x >= map.w) continue;
         if (blocked(map, x, y)) continue;
         let adj = 0;
@@ -898,6 +903,7 @@
     for (const S of sides) {
       for (const w of alive(S.units)) {
         if (!w.overwatch || w.side === mover.side) continue;
+        if (w.suppressed) continue;          /* §SUPPRESSION (ruled) a pinned man is not watching, he is keeping his head down */
         if (!hasLOS(map, w, mover)) continue;
         /* YOU CANNOT REACT TO SOMEBODY YOU HAVE NOT SEEN. Line of sight alone used to be the
            whole test, which was right when everybody could see everybody. Under fog it would
@@ -1248,7 +1254,8 @@
          appeared in the replay as one, and 366 shots in twenty-five fights existed in the
          telemetry and nowhere a reader could see them. The counter and the record disagreed
          about the same event, and only the counter was ever checked. */
-      const tHit = rng() < p;
+      /* §GUNS (ruled) a fast gun's rate costs it here, on the rounds after the first, where the recoil is */
+      const tHit = rng() < p * CONST.FOLLOWUP_HIT;
       chipCoverFrom(rng, map, shooter, target, tel, log);
       if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id, why: (C.hitChance.why || []).slice(),
                           p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
@@ -1398,7 +1405,7 @@
     }
     /* being pinned shakes a man: COMP.suppressed was declared and never applied */
     if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
-    u.suppressed = true;
+    u.suppressed = true; u._pinServed = false;   /* lasts until he has had a turn under it */
     tel.pins = (tel.pins || 0) + 1;
   }
 
@@ -1984,6 +1991,10 @@
              flags rather than at end of turn, so it lasts the whole of the enemy's turn —
              which is the mistake `suppressed` makes, clearing for everyone simultaneously and
              expiring on half the people it was applied to before they ever act. */
+          /* §SUPPRESSION (ruled) A PIN LASTS UNTIL THE MAN UNDER IT HAS HAD HIS TURN. It was wiped for everyone at the end
+             of each round, so about half of all pins landed on somebody who had already acted and did nothing at all. A pin
+             he has already sat through one turn under comes off as his next begins. */
+          if (u.suppressed) { if (u._pinServed) { u.suppressed = false; u._pinServed = false; } else u._pinServed = true; }
           /* `recoil_heavy` — "aim worse in the exchange after repositioning": nothing ever wrote what it reads */
           u._movedLast = !!(u.repositioning || u._crossed);
           u.repositioning = false; u._crossed = false;
@@ -2086,7 +2097,7 @@
             /* §RETREAT (ruled: covering fire protects the people moving) a covering round is fired to keep a head down,
                whatever the gun: it pins what it is fired at, and the pin holds until that man has had his next turn */
             if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++;
-              if (cover.state === 'ok' || cover.state === 'light') { const was = cover.suppressed; pin(cover, tel, rng); if (cover.suppressed && !was) { cover._pinHold = true; tel.coverPins = (tel.coverPins || 0) + 1; } } }
+              if (cover.state === 'ok' || cover.state === 'light') { const was = cover.suppressed; pin(cover, tel, rng); if (cover.suppressed && !was) tel.coverPins = (tel.coverPins || 0) + 1; } }
             else u.overwatch = true;
             continue;
           }
@@ -2729,9 +2740,7 @@
         C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
-        /* pinning lasts until your next turn; a covering pin, laid on a man who may already have moved this round, holds
-           through the next */
-        if (u._pinHold) u._pinHold = false; else u.suppressed = false;
+        /* (a pin comes off when its man has had a turn under it: at his activation, above) */
       }
       /* THIS WAS A SECOND COPY OF `coolWeapons`, RUNNING RIGHT AFTER IT. The line above was
          added to fix cooling never happening at all; the inline workaround it replaced was left

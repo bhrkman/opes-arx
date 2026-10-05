@@ -40,7 +40,7 @@ const CONST = {
    */
   TEMPO: { single_shot: 0.5, burst: 2.0, suppressive: 1.6, suppressive_2: 2.4 },
   TEMPO_DEFAULT: 1.0,                     // [S]
-  TEMPO_AIM: 50,                         // [C] aim swing between the most deliberate and the loosest
+  TEMPO_AIM: 34,                         // [C] aim a slow gun earns per point of rate under one (the catalogue's single_shot: +1.7 at half rate); a fast gun pays none — its follow-up rounds pay (tactical FOLLOWUP_HIT)
   TEMPO_PIERCE: 1.6,                      // [C] protection a deliberate weapon defeats, per point under rate
 
   /* §3.5 shot resolution */
@@ -719,7 +719,12 @@ function tempoOf(c) {
 }
 /** Deliberate weapons aim better; spraying weapons aim worse. Centred on the default rate. */
 function tempoAim(c) {
-  return CONST.TEMPO_AIM * (CONST.TEMPO_DEFAULT - tempoOf(c));
+  /* §GUNS (fixed) rate was charged twice: a flat −50 aim a point of rate over one on every round, on top of the gun's own
+     handling, which already prices its precision — so an SMG sat on the hit floor at every range and could not buy its
+     accuracy back with volume. A slow gun's aim is the catalogue's; a fast gun's rate costs it on the rounds after the
+     first, where recoil lives (tactical.js). */
+  const r = tempoOf(c);
+  return r < CONST.TEMPO_DEFAULT ? CONST.TEMPO_AIM * (CONST.TEMPO_DEFAULT - r) : 0;
 }
 /** And they defeat protection, which is the other half of "hits when others cannot". */
 function tempoPierce(shooter) {
@@ -828,7 +833,10 @@ function aimEff(c, bandIdx, ctx) {
     const far = Math.max(0, ctx.dist - c.weapon.reach) * (c.weapon.falloff != null ? c.weapon.falloff : CONST.FALLOFF_DEFAULT);
     const near = Math.max(0, (c.weapon.near || 0) - ctx.dist) * CONST.NEAR_FALLOFF;
     mis = far + near;
-    if (mis === 0 && (c.weapon.range || 'medium') !== 'medium')
+    /* §GUNS (fixed) a specialist's bonus is for its own band: a long gun at long range, a short gun at short. It was
+       granted anywhere between `near` and `reach` — five to nineteen tiles for the marksman, so it shot best at four */
+    const own = (c.weapon.range === 'long' && bandIdx === 0) || (c.weapon.range === 'short' && bandIdx === 2);
+    if (mis === 0 && own)
       mis = -CONST.BAND_SPECIALIST_BONUS * (c.weapon.range === 'short' ? CONST.BAND_SPECIALIST_SHORT : 1);
   } else mis = bandMismatch(c, bandIdx);
   /* `smart_link` — "waives band_mismatch_penalty entirely": the penalty for the wrong distance, never the bonus for the
@@ -876,7 +884,8 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   if (overwatch && shooter.hooks.has('overwatch_fatigue_immune')) m *= 1.12;
   if (target.suppressed) m *= CONST.SUPPRESSED_HARDER_TO_HIT;
   if (target.hooks.has('bombardment_evasion_bonus') && overwatch) m *= 0.70;
-  m *= CONST.BAND_HIT_MULT[bandIdx];
+  /* the long band is hard shooting for a gun not built for it; a long gun is (fixed: it took the penalty too) */
+  m *= (bandIdx === 0 && shooter.weapon && shooter.weapon.range === 'long') ? 1 : CONST.BAND_HIT_MULT[bandIdx];
   /* §3.7 Going to a downed man is the most dangerous thing in a firefight — WORSE than
      simply standing in the open. You are not shooting, so nothing is keeping their heads
      down, and you are moving fast rather than carefully. */
