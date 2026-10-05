@@ -657,7 +657,7 @@ const QUIRK = {
 
   /* --- declared, no effect until their system exists --- */
   suppressive: {}, suppressive_2: {}, silent: {}, crowd_pleaser: {},
-  mobile_cover: {}, daylight: {}, vent_2: {}, heavy_draw: {}, nonlethal: {},
+  mobile_cover: {}, daylight: {}, heavy_draw: {}, nonlethal: {},
   mob_up: {}, mob_down: {}
 };
 

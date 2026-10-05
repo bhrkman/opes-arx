@@ -180,11 +180,6 @@
    "points": -0.6
   },
   {
-   "id": "vent_2",
-   "effect": "Vents for two exchanges instead of one.",
-   "points": -0.5
-  },
-  {
    "id": "heavy_draw",
    "effect": "2 charge per shot.",
    "points": -0.4
@@ -1400,14 +1395,13 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5030,
+   "cost": 5350,
    "bulk": 5,
    "effects": {
     "power": 9,
     "range": "short",
     "tags": [
-     "cover_shred",
-     "vent_2"
+     "cover_shred"
     ],
     "damage": "energy",
     "charge": 12,
@@ -1429,8 +1423,8 @@
    "identity": "Removes the argument and the furniture.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 1.089,
-    "of": "1pruoq0"
+    "edge": 0.887,
+    "of": "1rlkdb4"
    }
   },
   {
@@ -1440,15 +1434,14 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5440,
+   "cost": 5750,
    "bulk": 5,
    "effects": {
     "power": 8,
     "range": "medium",
     "tags": [
      "incendiary",
-     "area",
-     "vent_2"
+     "area"
     ],
     "damage": "explosive",
     "charge": 12,
@@ -1470,8 +1463,8 @@
    "identity": "The crowd's favourite, the Aleas' paperwork.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.508,
-    "of": "1fn95ap"
+    "edge": 1.774,
+    "of": "1cpe7ax"
    }
   },
   {

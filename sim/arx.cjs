@@ -2406,9 +2406,9 @@ function catalogIntegrity() {
   console.log('           \u2514 ' + (allTags.length - deadTags.length) + ' of ' + allTags.length +
               ' weapon tags are read by the game' +
               (deadTags.length ? '; still inert: ' + deadTags.join(', ') : ''));
-  /* THE INERT TAGS ARE NAMED, not counted: a threshold let a new dead tag in while an old one came alive. `vent_2`
-     belongs to the retired overheat (awaiting a ruling: bring heat back, or drop the tag). `emp` is live now. */
-  const INERT_TAGS = ['vent_2'];
+  /* THE INERT TAGS ARE NAMED, not counted: a threshold let a new dead tag in while an old one came alive. None now:
+     `emp` is live and `vent_2` was dropped with the overheat it belonged to (ruled). */
+  const INERT_TAGS = [];
   ok('quirks: no tag is declared, priced and then read by nothing, beyond the named ones',
      deadTags.every(t => INERT_TAGS.indexOf(t) >= 0), deadTags.filter(t => INERT_TAGS.indexOf(t) < 0).join(', ') || 'none');
 

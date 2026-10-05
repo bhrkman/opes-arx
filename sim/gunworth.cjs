@@ -7,6 +7,7 @@
  *
  *   node gunworth.cjs            all primaries, the shipping sample
  *   node gunworth.cjs 40 a,b     a quick look at a few, nothing written
+ *   node gunworth.cjs 150 a,b write   re-measure a few and write them back
  */
 const fs = require('fs');
 const D = __dirname + '/';
@@ -16,6 +17,7 @@ const REF = 'itm_vanguard_rifle', ARMOUR = 'itm_plate_carrier', SIZE = 5;
 const TERRAINS = ['broken_ground', 'open_plain', 'urban_ruin', 'forest'];
 const N = +(process.argv[2] || 150);
 const only = process.argv[3] ? process.argv[3].split(',') : null;
+const write = !only || process.argv[4] === 'write';   /* a few, written back: after a gun's stats change */
 
 function side(seed, gun, tag) {
   const rng = P.mulberry32(P.seedFrom('gunworth' + seed));
@@ -47,6 +49,6 @@ const guns = data.items.filter(it => it.slot === 'primary' && (!only || only.ind
 for (const it of guns) {
   const edge = measure(it.id);
   console.log(it.id.padEnd(28) + ' tier ' + it.tier + '  ' + String(it.cost).padStart(5) + '  edge ' + edge.toFixed(3));
-  if (!only) it.worth = { edge, of: ITEMS.statPrint(it) };
+  if (write) it.worth = { edge, of: ITEMS.statPrint(it) };
 }
-if (!only) { fs.writeFileSync(path, JSON.stringify(data, null, 1) + '\n'); console.log('written: ' + guns.length + ' guns'); }
+if (write) { fs.writeFileSync(path, JSON.stringify(data, null, 1) + '\n'); console.log('written: ' + guns.length + ' guns'); }
