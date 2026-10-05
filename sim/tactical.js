@@ -279,7 +279,8 @@
     PANIC_RESOLVE_DIV: 260,           // [C] high resolve almost never breaks
     PANIC_FLOOR: 0.04,               // [C] anyone can break, rarely
     BOUND_SHARE: 0.5,                // [S] how much of a withdrawing squad moves each turn
-    EXIT_COLS: 1                     // [S] reaching your own edge takes you off the field
+    EXIT_COLS: 1,                    // [S] reaching your own edge takes you off the field
+    BREAK_MARGIN: 3                  // [C] §RETREAT tiles past an enemy gun's reach a retreating body counts as out of it
   };
 
   /* ---------------------------------------------------------------- */
@@ -1418,6 +1419,19 @@
     if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
     return false;
   }
+  /* §RETREAT (ruled) A RETREAT ENDS WHEN CONTACT IS BROKEN, not at the map's edge: a retreating body is off the field
+     once no enemy that can see him can also reach him — out of their sight, or out past their guns. Walking the whole
+     board backwards under fire turned every retreat into the fight's killing ground. */
+  function contactBroken(u, S, sides, map, fog) {
+    for (const O of sides) {
+      if (O === S) continue;
+      const eyes = alive(O.units);
+      const seen = fog ? !!(O._seen && O._seen.has(u.id)) : eyes.some(f => dist(f, u) <= sightRange(f) && hasLOS(map, f, u));
+      if (!seen) continue;
+      if (eyes.some(f => dist(f, u) <= ((f.weapon && f.weapon.reach) || 12) + CONST.BREAK_MARGIN && hasLOS(map, f, u))) return false;
+    }
+    return true;
+  }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
   /** Nobody left on the field: dead, down, panicked away or withdrawn off the edge. */
   function finished(S) { return stillFighting(S) === 0; }
@@ -1937,6 +1951,8 @@
              cover them, and they swap over each turn. This is what makes a withdrawal read
              differently from a rout — it is still a fight, just one going backwards. */
           if (S.withdrawing) {
+            if (fog) ensureSpot(S);
+            if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
             const crew = alive(S.units);
             const idx = crew.indexOf(u);
             /* NOT BUILT, AND THE ATTEMPT IS RECORDED RATHER THAN LEFT IN. A forced break —
@@ -1975,6 +1991,8 @@
               triggerOverwatch(rng, u, sides, map, tel, log);
               if (u.state !== 'ok' && u.state !== 'light') continue;
               if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
+              if (fog) ensureSpot(S);
+              if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
               u.ap--;
             }
             /* covering fire: whether you moved or not, you shoot back */
@@ -1989,7 +2007,10 @@
               f.cover = sc; f.flanked = sf;
               if (p > bestp) { bestp = p; cover = f; }
             }
-            if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++; }
+            /* §RETREAT (ruled: covering fire protects the people moving) a covering round is fired to keep a head down,
+               whatever the gun: it pins what it is fired at, and the pin holds until that man has had his next turn */
+            if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++;
+              if (cover.state === 'ok' || cover.state === 'light') { const was = cover.suppressed; pin(cover, tel, rng); if (cover.suppressed && !was) { cover._pinHold = true; tel.coverPins = (tel.coverPins || 0) + 1; } } }
             else u.overwatch = true;
             continue;
           }
@@ -2617,7 +2638,9 @@
         C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
-        u.suppressed = false;                      /* pinning lasts until your next turn */
+        /* pinning lasts until your next turn; a covering pin, laid on a man who may already have moved this round, holds
+           through the next */
+        if (u._pinHold) u._pinHold = false; else u.suppressed = false;
       }
       /* THIS WAS A SECOND COPY OF `coolWeapons`, RUNNING RIGHT AFTER IT. The line above was
          added to fix cooling never happening at all; the inline workaround it replaced was left
