@@ -2391,6 +2391,26 @@
    "charges": 4
   },
   {
+   "id": "itm_stasis_injector",
+   "name": "Stasis Injector",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 1200,
+   "bulk": 1,
+   "uses": 1,
+   "action": "dose",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "A round that would kill its carrier leaves him down at a breath instead; up when the fight is over, as hurt as a body can be.",
+   "type": "Consumables",
+   "charges": 1
+  },
+  {
    "id": "itm_spotter_drone",
    "name": "Spotter Drone",
    "category": "consumable",

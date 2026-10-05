@@ -1404,13 +1404,18 @@
   function checkWithdraw(S) {
     if (S.noWithdraw) return false;          /* The Eight: nobody calls it */
     if (S.withdrawing) return true;
-    const total = S.units.length;
-    const gone = S.units.filter(u => u.state !== 'ok' && u.state !== 'light').length;
+    /* §WOUNDS (ruled: the call reads health, not heads) what the squad has lost is the health it came in with that is no
+       longer on its feet: the dead, the down and the gone count for all of theirs, the hurt for what they have lost. And
+       a squad that came in hurt has less to give: it calls it sooner by as much. */
+    let came = 0, left = 0, full = 0;
+    for (const u of S.units) { const max = u.hpMax || 1, start = u._hpStart != null ? u._hpStart : max;
+      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start)); }
+    const lost = came > 0 ? 1 - left / came : 1;
     /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
        holds a bad order longer */
     /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
-    const at = S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT;
-    if (gone / total >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
+    const at = (S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT) * (full > 0 ? came / full : 1);
+    if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
     return false;
   }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
@@ -1474,6 +1479,17 @@
       tel.down++;
       if (side) moraleShock(rng, side, t, 'down');
       if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, dmg: dmg,
+                          react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
+      return;
+    }
+    /* §CONSUMABLES (ruled) A STASIS INJECTOR: the round that would have killed its carrier leaves him down at a breath,
+       out of the fight and up when it is over at the lowest band — taken, if his side loses the field */
+    if (t.carried && t.carried.indexOf('itm_stasis_injector') >= 0) {
+      t.carried.splice(t.carried.indexOf('itm_stasis_injector'), 1);
+      t.hp = 1; t.state = 'down'; t._upAfter = true; t._killedBy = by; t._downSev = sev;
+      tel.down++; tel.consumables = (tel.consumables || 0) + 1; tel.stasis = (tel.stasis || 0) + 1;
+      if (side) moraleShock(rng, side, t, 'down');
+      if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, dmg: dmg, stasis: true,
                           react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
       return;
     }

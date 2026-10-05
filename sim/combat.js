@@ -413,6 +413,7 @@ function makeCombatant(fighter, opts) {
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) }, hooks,
     /* the wound pool — see `damageOf`; in a Divide it starts where the last fight left it (`_hpFrac`, divide.js §WOUNDS) */
     hpMax: hpFor(fighter), hp: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
+    _hpStart: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
     weapon, armor,
     state: 'ok',                 // ok | light | down | stable | dead | captured | routed
     comp: seedComposure(fighter, hooks, opts),
@@ -1071,7 +1072,7 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
            deaths across six seasons AFTER the round stopped killing and the bleed was stopped —
            they were dying on the recovery roll at the end of a show-match. A non-lethal weapon
            has to survive every death path in the resolver, not the one it fires down. */
-        else if (u._stunnedDown) { u.state = 'stable'; }
+        else if (u._stunnedDown || u._upAfter) { u.state = 'stable'; }   /* a stun round, or a stasis injector */
         else if (u._sharedDown && u.bleed == null) { u.state = 'stable'; }
         else if (rng() < recoverP) { u.state = 'stable'; }
         else { u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; onDeath(rng, u, S, log || [], tel); }

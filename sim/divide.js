@@ -1008,10 +1008,11 @@
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
-         and was wiped to the last man. It knows its own tent: the hurt have gone home and do not count. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
+         and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
+         heads), and the hurt who went home do not count at all. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
-      const trueF = (c.allBodies || []).filter(b => b.status === 'active').length;
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
       /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them stand */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
@@ -1838,7 +1839,8 @@
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
-    const alive = corp.allBodies.filter(b => b.status === 'active').length;
+    /* what it has left is health, not heads (ruled) */
+    const alive = corp.allBodies.reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
     const lostFrac = 1 - alive / Math.max(1, corp.allBodies.length);
 
     /* The situation's opinion, in notches away from home. */
@@ -2007,8 +2009,9 @@
            end. Recording it was missing: they were taken by nobody and resolved by nobody. */
         f._capturedBy = captorId || null;
       }
-      else if (u._stunnedDown) {
-        /* §WOUNDS (ruled) put down by a stun round: up again at the fight's end, at the lowest band */
+      else if (u._stunnedDown || u._upAfter) {
+        /* §WOUNDS (ruled) put down by a stun round, or held at a breath by a stasis injector: up again at the fight's
+           end, at the lowest band */
         f._hpFrac = CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; downed++;
         stats.audit.stunnedUp = (stats.audit.stunnedUp || 0) + 1;
       }
