@@ -176,7 +176,7 @@ const CONST = {
   HP_PER_GRIT: 0.035,              // [H] what being hard to put down is worth
   DMG_PER_POINT: 6,               // [H] severity points above a graze per point of damage
   DMG_MIN: 1,                     // [S] a hit that lands does something
-  HP_OVERKILL: 5,                 // [H] past empty, the round did not merely put them down
+  HP_OVERKILL: 5,                 // [H] how far past empty a stun round leaves a body (a live round past empty kills)
   /* [H] the chance a downed fighter is stabilised rather than dying, by the round that dropped
      them. Worn down by grazes and they are nearly always carried out; opened up by a critical
      and it is close to even. Half the deaths in the game come through here. */
@@ -411,8 +411,8 @@ function makeCombatant(fighter, opts) {
              presence: (fighter.stats.presence + (sit.presence || 0)),
              resolve: (fighter.stats.resolve + (sit.resolve || 0) +
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) }, hooks,
-    /* the wound pool, carried but not yet deciding anything — see `damageOf` */
-    hpMax: hpFor(fighter), hp: hpFor(fighter),
+    /* the wound pool — see `damageOf`; in a Divide it starts where the last fight left it (`_hpFrac`, divide.js §WOUNDS) */
+    hpMax: hpFor(fighter), hp: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
     weapon, armor,
     state: 'ok',                 // ok | light | down | stable | dead | captured | routed
     comp: seedComposure(fighter, hooks, opts),

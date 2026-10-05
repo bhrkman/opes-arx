@@ -1459,22 +1459,16 @@
                           w: (by.weapon||{}).name, ammo: by.ammo });
       return;
     }
-    /* the pool is out. Whether they are down or gone is how far past empty the round carried,
-       and a round the bands called outright fatal still is. */
-    /* `nonlethal` FIRES HERE, BEFORE the fatal branch — it was written below a `return`
-       further down this function, where it could never run: a stun round emptied a pool
-       and the grid called it a death anyway, so the Dividend killed 39 people across 32
-       matches while a counter reported the safety net firing. Step 7.5's lesson twice
-       over: the tag reached the grid, the grid never reached the tag. */
+    /* §WOUNDS (ruled) THE POOL IS OUT. A real gun that empties it has killed them: a bloodsport has no "down" for a live
+       round. Only a stun round — a stun gun, or the Aleas' stun grade for a match — puts a body on the ground, and it is
+       up again when the fight is over. (The pool once decided only whether a body was DOWN, and a roll at the fight's
+       end decided whether the down died: most did not, and walked on.) */
     if (C.hasQuirk(by, 'nonlethal') || STUN_GRADE) {
       if (sev === 'killed') { sev = 'critical'; tel.stunned = (tel.stunned || 0) + 1; }
       t._stunnedDown = true;
       t.hp = Math.max(t.hp, -C.CONST.HP_OVERKILL + 1);   /* stunned, not overkilled */
-    }
-    if (sev !== 'killed' && t.hp > -C.CONST.HP_OVERKILL) {
       t.state = 'down';
       t._killedBy = by;
-      /* what put them down, for the recovery roll at the end of the fight */
       t._downSev = sev;
       t.injury = C.rollInjury(rng, t, sev);
       tel.down++;
@@ -1488,24 +1482,6 @@
     if (side) moraleShock(rng, side, t, 'dead');
     if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, dmg: dmg,
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
-    return;
-    /* the `nonlethal` conversion MOVED UP, above the fatal branch, where it can run. */
-    if (sev === 'graze') { tel.grazes++; comp(rng, t, K.graze); if (log) log.push({ t: tel.turn, type: 'graze', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo }); return; }
-    if (sev === 'light') { t.state = 'light'; tel.light++; comp(rng, t, K.light);
-      if (log) log.push({ t: tel.turn, type: 'light', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo }); return; }
-    if (sev === 'killed') {
-      t.state = 'dead'; tel.dead++;
-    (tel._deathsThisTurn = tel._deathsThisTurn || []).push({ x: t.x, y: t.y });
-      if (side) moraleShock(rng, side, t, 'dead');
-      if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
-      return;
-    }
-    t.state = 'down';
-    t._killedBy = by;                    /* so rollInjury can see the round that did it */
-    t.injury = C.rollInjury(rng, t, sev);
-    tel.down++;
-    if (side) moraleShock(rng, side, t, 'down');
-    if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
   }
 
   /* Removed at this step: stepToward — defined here and called from nowhere in the tree.

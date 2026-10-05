@@ -153,7 +153,10 @@
     REFORM_AT: 3,                       // [C] below this the survivors are redistributed
     REST_TICKS_AFTER: 2,                // [C] §GROUND a squad that fought stands where it ended for this many ticks before it walks on
     REST_RECOVERY_MULT: 1.6,            // [C] a squad that rests the day recovers faster for it
-    HARASS_WOUND_DAYS: 6,               // [C] §GROUND a body hit by fire across a zone comes home with this many days to mend
+    /* §WOUNDS (ruled) WHAT A FIGHT LEAVES, CARRIED TO THE NEXT. Health at a fight's end falls into a band and the fighter
+       stands at the band's top until it mends after the Divide: 80% and over whole, 50–79 at 80%, 10–49 at 50%, under
+       10 at 10%. A wound does not make anyone fight worse; it is how much less it takes to kill them. */
+    HP_BANDS: [{ at: 0.8, to: 1 }, { at: 0.5, to: 0.8 }, { at: 0.1, to: 0.5 }, { at: 0, to: 0.1 }],
     RELEASED_RECOVERY: 4,               // [C] §CAPTIVES a released captive walks home hurt: out at least this many days
     /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
        same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
@@ -1469,7 +1472,7 @@
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
         const victim = bodies[Math.floor(rng() * bodies.length)];
         /* §WOUNDS a wound short of going down is a result, not a weight: it keeps walking, and comes home as one */
-        victim._postWound = Math.max(victim._postWound || 0, P.int(rng, 4, 10));
+        bandDown(victim);
         stats.hazardInjuries++;
         if (stats._rec) stats._rec({ t: 'hazard', x: sq.x, y: sq.y, kind: w.kind, c: sq.corpId });
       }
@@ -1593,6 +1596,11 @@
       b._stimmed = false;
       b.condition.fatigue = Math.max(0, b.condition.fatigue - rec);
       b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + moraleDelta));
+    }
+    /* §WOUNDS (ruled: a medkit has its work now that harm is carried) a charge, at camp, lifts the worst hurt one band */
+    if (sq.medkits > 0) {
+      const worst = bodies.filter(b => b._hpFrac != null && b._hpFrac < 1).sort((a, b) => a._hpFrac - b._hpFrac)[0];
+      if (worst) { bandUp(worst); sq.medkits--; sq.hasMedkit = sq.medkits > 0; takeMedkitCharge(sq.bodies); stats.audit.medkitsUsed = (stats.audit.medkitsUsed || 0) + 1; stats.audit.bandsMended = (stats.audit.bandsMended || 0) + 1; }
     }
   }
 
@@ -1966,6 +1974,10 @@
     return gain;
   }
 
+  function hpBand(frac) { for (const b of CONST.HP_BANDS) if (frac >= b.at) return b.to; return CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; }
+  /* one band down, never past the last (fire from across a zone, the weather) */
+  function bandDown(f) { const B = CONST.HP_BANDS, i = B.findIndex(b => b.to === hpBand(f._hpFrac == null ? 1 : f._hpFrac)); f._hpFrac = B[Math.min(B.length - 1, i + 1)].to; }
+  function bandUp(f) { const B = CONST.HP_BANDS, i = B.findIndex(b => b.to === hpBand(f._hpFrac == null ? 1 : f._hpFrac)); f._hpFrac = B[Math.max(0, i - 1)].to; }
   function applyOutcome(sq, side, stats, captorId, victors) {
     let killed = 0, downed = 0;
     /* a combined side hands each fighter back to the squad they marched in with */
@@ -1995,6 +2007,11 @@
            end. Recording it was missing: they were taken by nobody and resolved by nobody. */
         f._capturedBy = captorId || null;
       }
+      else if (u._stunnedDown) {
+        /* §WOUNDS (ruled) put down by a stun round: up again at the fight's end, at the lowest band */
+        f._hpFrac = CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; downed++;
+        stats.audit.stunnedUp = (stats.audit.stunnedUp || 0) + 1;
+      }
       else if (u.injury) {
         /* A wound is tended if there is a kit left to tend it with. Kits are finite and
            nothing resupplies them mid-Divide, so a squad that takes casualties steadily
@@ -2012,6 +2029,8 @@
         f.condition.fatigue = Math.min(100, f.condition.fatigue + 12
           + (u.hooks.has('post_engagement_fatigue_spike') ? 8 : 0));
         if (u.wounds.length) stats.lightWounds++;
+        /* §WOUNDS (ruled) the harm a fight did stays for the next one, in four bands */
+        f._hpFrac = hpBand((u.hp != null ? u.hp : u.hpMax) / Math.max(1, u.hpMax));
       }
     }
     if (side._parts) {
@@ -2096,7 +2115,7 @@
       }
       corps.push(corp);
     }
-    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; } }   /* last year's captivity is over */
+    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; } }   /* last year's captivity is over, and every body lands whole */
     for (const c of corps) { const m = (opts.mediaRevealed || {})[c.id]; if (m) c._mediaReveal = m.reveal || 0; }
 
     /* §DROP WHERE EVERYBODY COMES DOWN. The draft dealt zones (`opts.dropZones = { corpId: [zone a squad] }`): one
@@ -2883,7 +2902,7 @@
               /* §HARASS a long round across a zone: a wound short of going down, on whoever it finds; it keeps walking and
                  comes home as one (ruled: a wound is a result of the Divide) */
               const heads = squadHead(h); if (!heads.length) break; const b = heads[Math.floor(rng() * heads.length)];
-              b._postWound = Math.max(b._postWound || 0, CONST.HARASS_WOUND_DAYS);
+              bandDown(b);
               addStress(h, CONST.STRESS.downed, stats); }
             CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
           if (e.t === 'wiped' && e.how === 'overrun') rec({ t: 'overrun', zone: e.zone, c: cst.squads[e.squad].oa, by: e.by });
@@ -3073,15 +3092,16 @@
     const fellIds = (stats.fallen || []).slice().sort((a, b) => (a.day - b.day) || (upOf(a.id) - upOf(b.id))).map(f => f.id);
     stats.placement = REP.placements(fellIds, stats.winner, [], corps.length);
     /* (after the standing and the placings are read: a walking wound stood to the end) */
-    /* §WOUNDS a wound the ground did not feel comes home as one (ruled) */
+    /* §WOUNDS (ruled) what the Divide left on a body comes home as a wound, by its band, and mends there */
     for (const c of corps) for (const b of (c.allBodies || [])) {
-      if (!b._postWound) continue;
-      if (b.status === 'active' || b.status === 'injured') {
-        if (b.status === 'active') stats.injured++;
-        b.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: b._postWound, untreated: false });
-        b.status = 'injured'; b._recovery = Math.max(b._recovery || 0, b._postWound);
-      }
-      b._postWound = 0;
+      const frac = b._hpFrac; delete b._hpFrac;
+      if (frac == null || frac >= 1 || b.status !== 'active') continue;
+      const sev = frac >= 0.8 ? 'minor' : frac >= 0.5 ? 'serious' : 'critical';
+      const inj = sev === 'minor' ? { type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 5, 15), untreated: false }
+                : C.rollInjury(rng, { race: b.race && b.race.id ? b.race.id : b.race, hooks: C.hooksOf(b, ROSTER.traitById) }, sev);
+      b.condition.injuries.push(inj); stats.injured++;
+      if (inj.permanent) { b.status = 'retired'; stats.careerEnded++; }
+      else { b.status = 'injured'; b._recovery = inj.days_remaining; }
     }
 
     /* --- §3.1 the finish, and the planet ----------------------------------------------- */
