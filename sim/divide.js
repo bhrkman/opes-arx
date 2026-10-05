@@ -2264,6 +2264,8 @@
         return need === 1 ? site : Object.assign({}, site, { need });
       },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
+      /* §FIGHTS a squad weighs itself by the health its standing people have left (ruled) */
+      strengthOf: (sq) => squadHead(sq).reduce((t, b) => t + (b._hpFrac != null ? b._hpFrac : 1), 0),
       reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
