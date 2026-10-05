@@ -107,16 +107,16 @@ const BASELINE_DEFAULT = {
     "downs": 5
   },
   "short band, both aggressive": {
-    "result": "disengage_B",
-    "exchanges": 9,
+    "result": "disengage_A",
+    "exchanges": 12,
     "band": "medium",
     "aDead": 1,
-    "aDown": 0,
-    "bDead": 3,
+    "aDown": 2,
+    "bDead": 2,
     "bDown": 2,
-    "shots": 120,
-    "hits": 32,
-    "downs": 6
+    "shots": 137,
+    "hits": 34,
+    "downs": 7
   },
   "long band, both cautious": {
     "result": "disengage_A",

@@ -149,10 +149,10 @@ const CONST = {
   SEV_POWER_MULT: 0.75,                   // [H] §BASELINE (temporary, ruled): 1.15 → 0.75 — one of two levers toward a 25–30% Divide                   // [H] C12: retuned again in v1.2 (2 → 1.4 → 1.15)
   SEV_PROTECTION_MULT: 1.90,              // [H] C12: retuned again in v1.2 (3 → 2.0 → 1.65)
   SEV_GRIT_DIVISOR: 20,                    // [H]
-  /* FIRST TO SWING BACK. critical was 94.2; bumped to 93.2 (ruled, a stopgap toward the Divide's fatality
-     baseline, not a cure for whatever holds it down). If a later change pushes fatality too high, this is the
-     first number returned to 94.2. On 24 seeds the point moved killed-outright from 7.9 to 9.2 a Divide. */
-  SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 93.2 },  // [C] >critical = killed outright
+  /* SWUNG BACK (ruled). critical was bumped 94.2 → 93.2 as a stopgap toward the Divide's fatality baseline, flagged
+     the first thing returned if fatality ran too high. It did, once the wounded of a taken field died there
+     (37.7% of those dropped on 24 seeds, against a 30% aim), so it is back at 94.2. */
+  SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 94.2 },  // [C] >critical = killed outright
 
   /* --- THE WOUND POOL (ruled) ---
      A hit used to roll once and land in one of five outcomes with no memory between hits, so a

@@ -2568,8 +2568,9 @@
         }
         for (const sq of sidesSq[gi]) { sq.foughtToday = true; sq.engagements++; if (sq.ammoResupplied > 0) sq.ammoResupplied--; sq._heldToday = (sq._heldToday || 0) + fightTicks; }
       }
-      /* the standing carry the fallen of their own banner out of this fight; wounded with no friend standing fall to
-         whoever won */
+      /* the standing carry the fallen of their own banner out of this fight. Wounded with no friend standing are on a
+         field the other side has taken (ruled): they die there. The fight's own capture roll is the only way to be
+         taken alive; it took every one of them prisoner here, and a lost fight's dead came home as captives */
       for (let gi = 0; gi < groups.length; gi++) for (const sq of sidesSq[gi]) {
         if (squadHead(sq).length) continue;
         const carriers = sidesSq[gi].filter(s2 => s2 !== sq && s2.corpId === sq.corpId && squadHead(s2).length);
@@ -2579,7 +2580,11 @@
         if (tg < 0) { let most = 0; for (let hi = 0; hi < groups.length; hi++) { if (hi === gi) continue; const up = sidesSq[hi].reduce((t, s2) => t + squadHead(s2).length, 0); if (up > most) { most = up; tg = hi; } } }
         if (tg < 0 || tg === gi) continue;
         const takerId = sidesSq[tg][0].corpId;
-        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'captured'; b._capturedBy = takerId; stats.captured++; stats.audit.capturedAlive++; stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1; }
+        const tc = corpById[takerId], here = sidesSq[tg].filter(q => q.corpId === takerId).reduce((t, q) => t.concat(squadHead(q)), []);
+        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'dead'; stats.dead++; stats.audit.diedOnTakenField = (stats.audit.diedOnTakenField || 0) + 1; if (statusBefore.get(b) === 'injured') stats.audit.diedOnTakenFieldHurtBefore = (stats.audit.diedOnTakenFieldHurtBefore || 0) + 1;
+          /* the dead of a taken field are the takers' dead, as a round's are */
+          if (tc && tc.rep) { const bag = (tc._killsBy = tc._killsBy || {}), e = (bag[b._oaId || sq.corpId] = bag[b._oaId || sq.corpId] || { n: 0, famous: 0 });
+            e.n++; if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++; transferFame(b, here, sq.corp, tc); } }
       }
       lootField(sidesSq, broke, arrivals, deadBefore, day, stats, Z[zone].x, Z[zone].y);
       /* what every squad lost, for the contest's books: the captured by name, so their fate can be decided */

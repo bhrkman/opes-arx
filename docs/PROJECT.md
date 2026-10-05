@@ -111,6 +111,8 @@ A fight is fought on a grid with cover, line of sight and fog: a body is seen, h
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
 two sides fight on a wider board and a flank is worth the trouble of making it. Winners take
 the ground and what the fallen carried. The wounded are recovered or lost; the dead are dead.
+Wounded with nobody of their own left standing lie on a field the enemy has taken, and die there
+(ruled): being taken alive is rare, the fight's own roll and nothing else.
 A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
 kept or killed by whoever holds them.
 
@@ -147,8 +149,9 @@ lean one pleases.
 
 - The game is designed as if eight humans played it; the engine fills an empty seat.
 - Balance is judged only with every system in. The Divide's fatality aims near 30% of those
-  dropped (ruled). The killed-outright band was bumped one point as a stopgap toward it (critical
-  94.2 → 93.2, combat.js); it is the first thing swung back if fatality runs too high.
+  dropped (ruled). A one-point bump to the killed-outright band (critical 94.2 → 93.2) was the
+  stopgap toward it, flagged first to swing back; it was swung back when the wounded of a taken
+  field began dying there.
 - Copy is Title Case and never explanatory prose on the page; what a thing is for is learned
   once from its mark.
 - A cut system is deleted, not parked; a constant nothing reads is removed.

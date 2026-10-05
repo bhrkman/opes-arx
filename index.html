@@ -16635,10 +16635,10 @@ const CONST = {
   SEV_POWER_MULT: 0.75,                   // [H] §BASELINE (temporary, ruled): 1.15 → 0.75 — one of two levers toward a 25–30% Divide                   // [H] C12: retuned again in v1.2 (2 → 1.4 → 1.15)
   SEV_PROTECTION_MULT: 1.90,              // [H] C12: retuned again in v1.2 (3 → 2.0 → 1.65)
   SEV_GRIT_DIVISOR: 20,                    // [H]
-  /* FIRST TO SWING BACK. critical was 94.2; bumped to 93.2 (ruled, a stopgap toward the Divide's fatality
-     baseline, not a cure for whatever holds it down). If a later change pushes fatality too high, this is the
-     first number returned to 94.2. On 24 seeds the point moved killed-outright from 7.9 to 9.2 a Divide. */
-  SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 93.2 },  // [C] >critical = killed outright
+  /* SWUNG BACK (ruled). critical was bumped 94.2 → 93.2 as a stopgap toward the Divide's fatality baseline, flagged
+     the first thing returned if fatality ran too high. It did, once the wounded of a taken field died there
+     (37.7% of those dropped on 24 seeds, against a 30% aim), so it is back at 94.2. */
+  SEV_BANDS: { graze: 40, light: 70, serious: 88, critical: 94.2 },  // [C] >critical = killed outright
 
   /* --- THE WOUND POOL (ruled) ---
      A hit used to roll once and land in one of five outcomes with no memory between hits, so a
@@ -24153,8 +24153,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
         for (const sq of sidesSq[gi]) { sq.foughtToday = true; sq.engagements++; if (sq.ammoResupplied > 0) sq.ammoResupplied--; sq._heldToday = (sq._heldToday || 0) + fightTicks; }
       }
-      /* the standing carry the fallen of their own banner out of this fight; wounded with no friend standing fall to
-         whoever won */
+      /* the standing carry the fallen of their own banner out of this fight. Wounded with no friend standing are on a
+         field the other side has taken (ruled): they die there. The fight's own capture roll is the only way to be
+         taken alive; it took every one of them prisoner here, and a lost fight's dead came home as captives */
       for (let gi = 0; gi < groups.length; gi++) for (const sq of sidesSq[gi]) {
         if (squadHead(sq).length) continue;
         const carriers = sidesSq[gi].filter(s2 => s2 !== sq && s2.corpId === sq.corpId && squadHead(s2).length);
@@ -24164,7 +24165,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (tg < 0) { let most = 0; for (let hi = 0; hi < groups.length; hi++) { if (hi === gi) continue; const up = sidesSq[hi].reduce((t, s2) => t + squadHead(s2).length, 0); if (up > most) { most = up; tg = hi; } } }
         if (tg < 0 || tg === gi) continue;
         const takerId = sidesSq[tg][0].corpId;
-        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'captured'; b._capturedBy = takerId; stats.captured++; stats.audit.capturedAlive++; stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1; }
+        const tc = corpById[takerId], here = sidesSq[tg].filter(q => q.corpId === takerId).reduce((t, q) => t.concat(squadHead(q)), []);
+        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'dead'; stats.dead++; stats.audit.diedOnTakenField = (stats.audit.diedOnTakenField || 0) + 1; if (statusBefore.get(b) === 'injured') stats.audit.diedOnTakenFieldHurtBefore = (stats.audit.diedOnTakenFieldHurtBefore || 0) + 1;
+          /* the dead of a taken field are the takers' dead, as a round's are */
+          if (tc && tc.rep) { const bag = (tc._killsBy = tc._killsBy || {}), e = (bag[b._oaId || sq.corpId] = bag[b._oaId || sq.corpId] || { n: 0, famous: 0 });
+            e.n++; if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++; transferFame(b, here, sq.corp, tc); } }
       }
       lootField(sidesSq, broke, arrivals, deadBefore, day, stats, Z[zone].x, Z[zone].y);
       /* what every squad lost, for the contest's books: the captured by name, so their fate can be decided */
