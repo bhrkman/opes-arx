@@ -153,7 +153,7 @@
     REFORM_AT: 3,                       // [C] below this the survivors are redistributed
     REST_TICKS_AFTER: 2,                // [C] §GROUND a squad that fought stands where it ended for this many ticks before it walks on
     REST_RECOVERY_MULT: 1.6,            // [C] a squad that rests the day recovers faster for it
-    HARASS_WOUND_DAYS: 6,               // [C] §GROUND a body put down by fire across a zone is out this many days
+    HARASS_WOUND_DAYS: 6,               // [C] §GROUND a body hit by fire across a zone comes home with this many days to mend
     RELEASED_RECOVERY: 4,               // [C] §CAPTIVES a released captive walks home hurt: out at least this many days
     /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
        same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
@@ -177,8 +177,6 @@
     HOLD_RICH: 1.0,
     SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites together carry of its
                                  endowment: the grab, beside the prize the winner takes */
-    REST_HALVES: 0.5,         /* [H] §SITES what is left of each wound after a rest site */
-    REST_STANDS_UNDER: 12,    /* [H] §SITES a wound it brings under this many days stands up */
     STRONGPOINT_PREP: 0.25,   /* [H] §SITES the ground a held strongpoint gives the one on it */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
@@ -218,8 +216,6 @@
     FIGHT_TICKS_MAX: 6,                 // [H] no engagement swallows more than half a day
     FATIGUE_RECOVERY: 14,               // [C] per night
     CELL_RECHARGE: 24,                  // [C] §6 energy cells, per night at camp
-    UNTREATED_DEGRADE_DAYS: 3,          // [S] COMBAT.md §7.1
-    DEGRADE_P: 0.55,                    // [C] a wound left in the field usually worsens
     /* §8.2 captain stress */
     STRESS: {
       killed: 4, downed: 1.5, rationDry: 2, succession: 15, quietDay: -3, cleanWin: -5
@@ -711,7 +707,7 @@
   function umbrellasOf(corps) {
     const by = new Map();
     for (const c of corps) {
-      if (!c.allBodies.some(b => b.status === 'active' || b.status === 'injured')) continue;
+      if (!c.allBodies.some(b => b.status === 'active')) continue;   /* the hurt have gone home (ruled) */
       /* an OA that stood down took its people home standing: still 'active' bodies, no longer a banner. Left in,
          it drew a share of everyone's Chance of Winning after it had left the ground. */
       if (c.withdrawn) continue;
@@ -1009,13 +1005,11 @@
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
-         and was wiped to the last man. It knows its own tent: the hurt who will be up before the end count, the rest
-         do not. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
+         and was wiped to the last man. It knows its own tent: the hurt have gone home and do not count. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
-      const daysToEnd = Math.max(0, lastGroundDay - day);
-      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? 1 : b.status === 'injured' && (b._recovery || 0) <= daysToEnd ? 1 : 0), 0);
-      /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them will be up */
+      const trueF = (c.allBodies || []).filter(b => b.status === 'active').length;
+      /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them stand */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
       const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
@@ -1474,8 +1468,8 @@
       const onIt = fx.hurt.terrain ? (planet.ground && sq.zone != null && planet.ground.regions[planet.ground.zones[sq.zone].region].terrain === fx.hurt.terrain) : true;
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
         const victim = bodies[Math.floor(rng() * bodies.length)];
-        victim.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 4, 10), untreated: false });
-        victim.status = 'injured'; victim._recovery = P.int(rng, 4, 10); victim._untreatedDays = 0;
+        /* §WOUNDS a wound short of going down is a result, not a weight: it keeps walking, and comes home as one */
+        victim._postWound = Math.max(victim._postWound || 0, P.int(rng, 4, 10));
         stats.hazardInjuries++;
         if (stats._rec) stats._rec({ t: 'hazard', x: sq.x, y: sq.y, kind: w.kind, c: sq.corpId });
       }
@@ -1591,11 +1585,6 @@
     }
     if (hooksOfSquad.has('ankoth_sympathy_chemistry')
         && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
-    /* a steady pair of hands gets the wounded back on their feet sooner */
-    if (hooksOfSquad.has('evac_stabilize_bonus')) {
-      for (const b of sq.bodies) if (b.status === 'injured' && b._recovery > 0) b._recovery -= 0.35;
-      stats.audit.traitHooks++;
-    }
     if (hooksOfSquad.has('camp_morale_contagion_both_ways')) moraleDelta *= 1.5;
 
     for (const b of bodies) {
@@ -1604,29 +1593,6 @@
       b._stimmed = false;
       b.condition.fatigue = Math.max(0, b.condition.fatigue - rec);
       b.condition.morale = Math.max(5, Math.min(95, b.condition.morale + moraleDelta));
-    }
-    /* untreated wounds degrade in the field — nothing leaves a Divide (§5.4) */
-    for (const b of sq.bodies) {
-      if (b.status !== 'injured') continue;
-      b._recovery = (b._recovery || 0) - 1;
-      if (b._recovery <= 0) { b.status = 'active'; b.condition.fatigue = 25; continue; }
-      /* COMBAT.md §7.1 degradation applies ONLY to wounds nobody has tended. A fighter
-         carried back to your own camp is being tended — that is what a recovery IS. A
-         squad with no medical kit cannot do that in the field, and those wounds walk.
-         Guarding this on a flag nothing sets made every wound terminal (129/Divide). */
-      const inj = b.condition.injuries[b.condition.injuries.length - 1];
-      if (!inj || !inj.untreated) continue;
-      b._untreatedDays = (b._untreatedDays || 0) + 1;
-      if (b._untreatedDays < CONST.UNTREATED_DEGRADE_DAYS) continue;
-      b._untreatedDays = 0;
-      stats.audit.degradeChecks++;
-      if (rng() >= CONST.DEGRADE_P) continue;
-      const steps = ['minor', 'serious', 'critical'];      // never straight to permanent
-      const i = steps.indexOf(inj.severity);
-      if (i < 0 || i >= steps.length - 1) continue;
-      inj.severity = steps[i + 1];
-      stats.degradations++;
-      b._recovery += 12;
     }
   }
 
@@ -1767,24 +1733,6 @@
       case 'ration_site': {
         /* §5.2 a site fills the packs; it does not make them bigger (the carry cap holds here as at the forage) */
         sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
-        /* §SITES and it mends: a day's shelter and care takes the edge off every wound the
-           squad is carrying, and stands a lightly hurt fighter back up */
-        /* in a contest a wound is carried as `_recovery`, the days until a fighter can stand
-           again (the season's `condition` is written from it at the close) */
-        /* A wound in a contest runs 20 to 95 days, and a contest runs about 24: a fixed six
-           days off could never stand anybody back up — it was inert by construction. Shelter
-           halves what is left of every wound, and stands up anyone whose wound it brings under
-           a few days, which is the difference between a fighter lost for the contest and one
-           who can walk the last ground. */
-        for (const b of sq.bodies || []) {
-          if (b.status !== 'injured') continue;
-          b._recovery = (b._recovery || 0) * CONST.REST_HALVES;
-          if (b._recovery <= CONST.REST_STANDS_UNDER) {
-            b.status = 'active'; b._recovery = 0;
-            stats.audit.restedBack = (stats.audit.restedBack || 0) + 1;
-          }
-        }
-        stats.audit.restSites = (stats.audit.restSites || 0) + 1;
         break;
       }
       case 'strongpoint':
@@ -1882,7 +1830,7 @@
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
-    const alive = corp.allBodies.filter(b => b.status === 'active' || b.status === 'injured').length;
+    const alive = corp.allBodies.filter(b => b.status === 'active').length;
     const lostFrac = 1 - alive / Math.max(1, corp.allBodies.length);
 
     /* The situation's opinion, in notches away from home. */
@@ -2194,7 +2142,7 @@
       corpCount, perCorp: corps.map(c => ({ id: c.id, policy: c.policy, permanent: 0, injuredHome: 0, engagements: 0 })),
       archetype: planet.archetype,
       audit: {
-        forageEvents: 0, forageYield: 0, domeDeaths: 0, carriedOut: 0,
+        forageEvents: 0, forageYield: 0, domeDeaths: 0,
         awarded: {}, hazardKind: {}, terrainUsed: {}, bandOpen: [0, 0, 0],
         landed: 0, beaconContested: 0, ammoResupply: 0,
         stressApplied: 0, successions: 0, rationDryDays: 0, degradeChecks: 0,
@@ -2240,7 +2188,7 @@
     }
     const liveSquads = () => { const out = []; for (const c of corps) for (const sq of c.squads) if (squadHead(sq).length >= 1) out.push(sq); return out; };
 
-    let day = 0, sendRescues = () => {};
+    let day = 0;
     let engagementsRun = 0;
     const OVERTIME_MAX = 12;
     let overtime = false;
@@ -2272,7 +2220,6 @@
       seed: 'contest', driven: true,
       allied: (a, b) => a === b,
       headOf: sq => squadHead(sq).length,
-      hurtOf: sq => sq.bodies.filter(b => b.status === 'injured').length,   /* the hurt a squad carries: one more down and nobody carries them */
       resolve: (st, f, rngF) => gridResolve(st, f),
       captivePolicy: (st, captor, from, f, body) => captiveFate(captor, from, body),
       onSettle: (st, f, winnerOa) => afterFight(st, f, winnerOa),
@@ -2291,8 +2238,7 @@
           const bodies = group.reduce((t, q) => t.concat(q.ref ? q.ref.bodies : []), []);
           need = 1 + bodies.filter(b => b.status !== 'active').length / Math.max(1, bodies.length); }
         else if (o.looted) return null;
-        else if (o.type === 'ration_site') { const bodies = group.reduce((t, q) => t.concat(q.ref ? squadHead(q.ref).concat(q.ref.bodies.filter(b => b.status === 'injured')) : []), []);
-          need = 1 + 2 * bodies.filter(b => b.status === 'injured').length / Math.max(1, bodies.length) + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
+        else if (o.type === 'ration_site') { need = 1 + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
         return need === 1 ? site : Object.assign({}, site, { need });
       },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
@@ -2568,23 +2514,18 @@
         }
         for (const sq of sidesSq[gi]) { sq.foughtToday = true; sq.engagements++; if (sq.ammoResupplied > 0) sq.ammoResupplied--; sq._heldToday = (sq._heldToday || 0) + fightTicks; }
       }
-      /* the standing carry the fallen of their own banner out of this fight. Wounded with no friend standing are on a
-         field the other side has taken (ruled): they die there. The fight's own capture roll is the only way to be
-         taken alive; it took every one of them prisoner here, and a lost fight's dead came home as captives */
+      /* §WOUNDS (ruled: a wound is a result of the Divide, not a weight in it) THE FIGHT'S HURT LEAVE THE GROUND. A squad
+         with nobody standing, on a field another side still stands on, loses its downed to that side: taken. Every
+         other fighter put down in it (and anyone the fight ended) goes home hurt, out of the Divide, and walks with
+         nobody: there is no carrying, no rescue and no mending on the ground. */
       for (let gi = 0; gi < groups.length; gi++) for (const sq of sidesSq[gi]) {
         if (squadHead(sq).length) continue;
-        const carriers = sidesSq[gi].filter(s2 => s2 !== sq && s2.corpId === sq.corpId && squadHead(s2).length);
-        if (carriers.length) { const wounded = sq.bodies.filter(b => b.status === 'injured'); for (const b of wounded) { carriers[0].bodies.push(b); sq.bodies.splice(sq.bodies.indexOf(b), 1); } if (wounded.length) stats.audit.carriedOut = (stats.audit.carriedOut || 0) + wounded.length; continue; }
         /* no single winner: whoever is still on its feet across from them holds the field, and them */
         let tg = winnerGi;
         if (tg < 0) { let most = 0; for (let hi = 0; hi < groups.length; hi++) { if (hi === gi) continue; const up = sidesSq[hi].reduce((t, s2) => t + squadHead(s2).length, 0); if (up > most) { most = up; tg = hi; } } }
         if (tg < 0 || tg === gi) continue;
         const takerId = sidesSq[tg][0].corpId;
-        const tc = corpById[takerId], here = sidesSq[tg].filter(q => q.corpId === takerId).reduce((t, q) => t.concat(squadHead(q)), []);
-        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'dead'; stats.dead++; stats.audit.diedOnTakenField = (stats.audit.diedOnTakenField || 0) + 1; if (statusBefore.get(b) === 'injured') stats.audit.diedOnTakenFieldHurtBefore = (stats.audit.diedOnTakenFieldHurtBefore || 0) + 1;
-          /* the dead of a taken field are the takers' dead, as a round's are */
-          if (tc && tc.rep) { const bag = (tc._killsBy = tc._killsBy || {}), e = (bag[b._oaId || sq.corpId] = bag[b._oaId || sq.corpId] || { n: 0, famous: 0 });
-            e.n++; if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++; transferFame(b, here, sq.corp, tc); } }
+        for (const b of sq.bodies) { if (b.status !== 'injured') continue; b.status = 'captured'; b._capturedBy = takerId; stats.captured++; stats.audit.capturedAlive++; stats.audit.woundedTakenCaptive = (stats.audit.woundedTakenCaptive || 0) + 1; }
       }
       lootField(sidesSq, broke, arrivals, deadBefore, day, stats, Z[zone].x, Z[zone].y);
       /* what every squad lost, for the contest's books: the captured by name, so their fate can be decided */
@@ -2599,6 +2540,11 @@
       }
       /* CAPTIVES MARCH OFF THE FIELD */
       for (const g of sidesSq) for (const sq of g) for (let bi = sq.bodies.length - 1; bi >= 0; bi--) if (sq.bodies[bi].status === 'captured') { sq.bodies.splice(bi, 1); stats.audit.captivesMarchedOff = (stats.audit.captivesMarchedOff || 0) + 1; }
+      /* and the hurt go home (above) */
+      for (const g of sidesSq) for (const sq of g) for (let bi = sq.bodies.length - 1; bi >= 0; bi--) {
+        const b = sq.bodies[bi]; if (b.status !== 'injured' && b.status !== 'retired') continue;
+        sq.bodies.splice(bi, 1); stats.audit.wentHome = (stats.audit.wentHome || 0) + 1;
+      }
       rec({ t: 'fight', zone, x: Z[zone].x, y: Z[zone].y, corps: groups.map(g => g[0].corpId), squads: sidesSq.reduce((n, g) => n + g.length, 0), night, ex: t.exchanges, band: res.band, res: res.result, terrain,
             lost: (stats.dead - recBefore.d) + (stats.careerEnded - recBefore.c), obj: objectiveValue > 0, flank: !!(res.telemetry && res.telemetry.flankFight) });
       if (stats.dead === before.d && stats.injured === before.i && stats.careerEnded === before.c) stats.zeroCasualtyEngagements++;
@@ -2674,8 +2620,7 @@
       const evBefore = cst.events.length;
       CONTEST.dawn(cst);
       mirror();   /* the fights dawn settled moved the beaten: the wall reads where they are now */
-      /* §WALL the wall takes everyone in the region — the standing, whom the contest counted, and the immobilised
-         it does not know, who lie where they fell */
+      /* §WALL the wall takes everyone in the region (the hurt have gone home: there is nobody lying where they fell) */
       const dawnEv = cst.events.slice(evBefore);
       for (const e of dawnEv) {
         if (e.t !== 'region_gone' && e.t !== 'zone_gone') continue;
@@ -2906,33 +2851,6 @@
       for (const c of corps) if (c.withdrawn) for (const sq of c.squads) if (sq._cq && sq._cq.alive) { sq._cq.alive = false; sq._cq.gone = true; }
       /* --- the plans: every seat's squads, on the same planner --- */
       CONTEST.plans(cst);
-      /* §WALL NOBODY IS LEFT FOR THE WALL. Somebody goes back for the immobilised: the standing squad of the OA with the
-         shortest walk to them, wherever it is, is sent — a squad with nobody standing cannot march, and the wall does
-         not wait. A seat's own order to a squad is not overridden for it unless no other squad can go. */
-      /* a rescue is over when nobody of its own is left lying where it was going */
-      for (const c of corps) for (const s2 of c.squads) { const o = s2._cq && s2._cq.order; if (!o || !o.rescue) continue;
-        if (!c.squads.some(d2 => d2.zone === o.zone && !squadHead(d2).length && d2.bodies.some(b => b.status === 'injured'))) { s2._cq.order = null; if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null; } }
-      /* sent at the plans, and again the hour a squad goes down, if nobody is on the way to it already */
-      sendRescues = (fresh) => { for (const c of corps) { if (c.withdrawn) continue; for (const sq of c.squads) {
-        if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured') || sq.zone == null) continue;
-        if (fresh && c.squads.some(s2 => s2._cq && s2._cq.alive && s2._cq.order && s2._cq.order.rescue && s2._cq.order.zone === sq.zone)) continue;
-        const able = c.squads.filter(s2 => s2 !== sq && squadHead(s2).length && s2._cq && s2._cq.alive && s2._cq.fight == null);
-        const free = able.filter(s2 => !(s2._cq.intent && s2._cq.intent.why === 'order' && s2._cq.intent.zone !== sq.zone));
-        const pool = free.length ? free : able; if (!pool.length) continue;
-        let best = null, bt = Infinity;
-        /* the walk past rivals if there is one; else through them, each a fight on the way */
-        for (const s2 of pool) { let p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) || (v !== sq.zone && !!CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id) });
-          if (!p) { p = GROUND.ticksBetween(ground, s2.zone, sq.zone, { avoid: v => GROUND.zoneGone(ground, v, day) }); if (p) p = { ticks: p.ticks + p.path.filter(v => v !== sq.zone && CONTEST.holder(cst, v) && CONTEST.holder(cst, v).oa !== c.id).length * CONTEST.CONST.EXIT_HELD_TICKS }; }
-          if (p && p.ticks < bt) { bt = p.ticks; best = s2; } }
-        if (!best) continue;
-        /* not into ground that will go before the rescuer can walk in and back out */
-        const tk = ground.wall.takeAt.find(t => t.region === Z[sq.zone].region), goes = Math.min(tk ? tk.day : Infinity, GROUND.zoneGoesOn(ground, sq.zone));
-        void goes;   /* the wall's own reflex turns the rescuer back in time if it cannot make it: the attempt is always made */
-        best._cq.intent = { type: 'take', zone: sq.zone, why: 'order', rescue: true }; best._cq.order = Object.assign({}, best._cq.intent);   /* it stands through any fight on the way */ best._cq.path = null; best._cq.wait = 0;
-        stats.audit.rescuesSent = (stats.audit.rescuesSent || 0) + 1;
-        rec({ t: 'rescue', zone: sq.zone, x: sq.x, y: sq.y, c: sq.corpId });
-      } } };
-      sendRescues(false);
 
       /* --- DAY: supply --- */
       for (const sq of liveSquads()) {
@@ -2958,38 +2876,20 @@
         const before = cst.events.length;
         CONTEST.tick(cst);
         mirror();
-        sendRescues(true);
         for (const e of cst.events.slice(before)) {
           if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
           if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) {
-              /* §HARASS a long round across a zone: a wound like any other — on whoever it finds, tended if a kit is to hand */
+              /* §HARASS a long round across a zone: a wound short of going down, on whoever it finds; it keeps walking and
+                 comes home as one (ruled: a wound is a result of the Divide) */
               const heads = squadHead(h); if (!heads.length) break; const b = heads[Math.floor(rng() * heads.length)];
-              const inj = { type: 'inj_torso', severity: 'minor', days_remaining: CONST.HARASS_WOUND_DAYS, untreated: false };
-              const kit = medkitHolder(h);
-              if (kit) { kit.medkits--; kit.hasMedkit = kit.medkits > 0; takeMedkitCharge(kit.bodies || []); stats.audit.medkitsUsed = (stats.audit.medkitsUsed || 0) + 1; }
-              else { inj.untreated = true; stats.audit.untendedWounds = (stats.audit.untendedWounds || 0) + 1; }
-              b.condition.injuries.push(inj); b.status = 'injured'; b._recovery = CONST.HARASS_WOUND_DAYS; b._untreatedDays = 0; stats.injured++;
+              b._postWound = Math.max(b._postWound || 0, CONST.HARASS_WOUND_DAYS);
               addStress(h, CONST.STRESS.downed, stats); }
             CONTEST.syncHeads(cst); rec({ t: 'harass', zone: e.zone, c: e.oa, on: h.corpId, hits: e.hits }); }
           if (e.t === 'wiped' && e.how === 'overrun') rec({ t: 'overrun', zone: e.zone, c: cst.squads[e.squad].oa, by: e.by });
         }
         /* the sites: whoever stands on one and is not fighting works it */
         for (const sq of liveSquads()) siteTick(sq);
-        {
-          /* the pickup, any hour: a standing squad on or beside an immobilised squad of its own gathers the wounded */
-          for (const c of corps) for (const sq of c.squads) {
-            if (squadHead(sq).length || !sq.bodies.some(b => b.status === 'injured')) continue;
-            for (const s2 of c.squads) {
-              if (s2 === sq || !squadHead(s2).length) continue;
-              if (s2.zone !== sq.zone && Z[s2.zone].nb.indexOf(sq.zone) < 0) continue;
-              for (let bi3 = sq.bodies.length - 1; bi3 >= 0; bi3--) { const b3 = sq.bodies[bi3]; if (b3.status !== 'injured') continue; s2.bodies.push(b3); sq.bodies.splice(bi3, 1); stats.audit.carriedOut = (stats.audit.carriedOut || 0) + 1; }
-              if (s2._cq.intent && s2._cq.intent.rescue) s2._cq.intent = null;
-              if (s2._cq.order && s2._cq.order.rescue) s2._cq.order = null;
-              break;
-            }
-          }
-        }
       }
       cst.tick = 0; cst.day = day + 1;   /* the contest's clock turns with the day loop's */
 
@@ -3100,7 +3000,7 @@
       /* §3.1 — "reached the last ground" means the contest came down to you: your banner was
          still up when it ended. */
       if (!c.withdrawn
-          && c.allBodies.some(b => b.status === 'active' || b.status === 'injured')) {
+          && c.allBodies.some(b => b.status === 'active')) {
         REP.act(c.rep, 'last_ground', { rivalIds: corpIds });
       }
     }
@@ -3169,9 +3069,20 @@
     }
 
     /* earliest off the ground places lowest; on the same day, the one with fewer people still standing */
-    const upOf = (id) => { const c = corps.find(x => x.id === id); return c ? c.allBodies.filter(b => b.status === 'active' || b.status === 'injured').length : 0; };
+    const upOf = (id) => { const c = corps.find(x => x.id === id); return c ? c.allBodies.filter(b => b.status === 'active').length : 0; };
     const fellIds = (stats.fallen || []).slice().sort((a, b) => (a.day - b.day) || (upOf(a.id) - upOf(b.id))).map(f => f.id);
     stats.placement = REP.placements(fellIds, stats.winner, [], corps.length);
+    /* (after the standing and the placings are read: a walking wound stood to the end) */
+    /* §WOUNDS a wound the ground did not feel comes home as one (ruled) */
+    for (const c of corps) for (const b of (c.allBodies || [])) {
+      if (!b._postWound) continue;
+      if (b.status === 'active' || b.status === 'injured') {
+        if (b.status === 'active') stats.injured++;
+        b.condition.injuries.push({ type: 'inj_torso', severity: 'minor', days_remaining: b._postWound, untreated: false });
+        b.status = 'injured'; b._recovery = Math.max(b._recovery || 0, b._postWound);
+      }
+      b._postWound = 0;
+    }
 
     /* --- §3.1 the finish, and the planet ----------------------------------------------- */
     for (const c of corps) {

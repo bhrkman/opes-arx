@@ -7450,7 +7450,6 @@
     if (e.t === 'harass') return name(e.c) + ' Fired Across the Zone at ' + name(e.on) + ' · ' + e.hits + ' Hit';
     if (e.t === 'overrun') return name(e.c) + ' Overrun at ' + esc(at) + (e.by ? ' by ' + name(e.by) : '');
     if (e.t === 'captive') return name(e.c) + ' ' + (e.out === 'killed' ? 'Killed' : e.out === 'released' ? 'Released' : 'Kept') + ' ' + esc(e.name) + ' of ' + name(e.from);
-    if (e.t === 'rescue') return name(e.c) + ' Sent for Its Wounded at ' + esc(at);
     if (e.t === 'hazard') return name(e.c) + ' Caught in ' + esc(capWords(String(e.kind || 'Weather').replace(/_/g, ' ')));
     return null;
   }

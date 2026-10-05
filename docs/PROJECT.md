@@ -93,7 +93,7 @@ kit, rations and a stance, each on the zone its OA drafted. The ground is region
 wall takes whole regions on a schedule timed to the month and stops at the last ground; a squad
 in a region the wall takes at dawn is dead, and no OA is ever there: a death to the wall is a failure of the AI. Every site is known from the
 drop and a deposit opens on its day; sites are worked for credits, beacons land reinforcements,
-rest sites mend. The contest ends when one OA is left standing; there is no clock and nothing
+ration sites feed. The contest ends when one OA is left standing; there is no clock and nothing
 is adjudicated.
 
 The ground is the manager's only through comms windows. Between windows every seat's planner —
@@ -110,9 +110,11 @@ his own people lived it; inside the region he opens, the zones.
 A fight is fought on a grid with cover, line of sight and fog: a body is seen, heard, or
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
 two sides fight on a wider board and a flank is worth the trouble of making it. Winners take
-the ground and what the fallen carried. The wounded are recovered or lost; the dead are dead.
-Wounded with nobody of their own left standing lie on a field the enemy has taken, and die there
-(ruled): being taken alive is rare, the fight's own roll and nothing else.
+the ground and what the fallen carried. A wound is a result of the Divide, not a weight in it
+(ruled): a fighter hurt short of going down keeps walking and comes home with the wound; one put
+down is out, and goes home hurt at the fight's end. Nobody is carried, rescued or mended on the
+ground. A squad with nobody standing, on a field another side still stands on, loses its downed
+to that side; the dead are dead.
 A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
 kept or killed by whoever holds them.
 
@@ -150,8 +152,7 @@ lean one pleases.
 - The game is designed as if eight humans played it; the engine fills an empty seat.
 - Balance is judged only with every system in. The Divide's fatality aims near 30% of those
   dropped (ruled). A one-point bump to the killed-outright band (critical 94.2 → 93.2) was the
-  stopgap toward it, flagged first to swing back; it was swung back when the wounded of a taken
-  field began dying there.
+  stopgap toward it, flagged first to swing back; it was swung back.
 - Copy is Title Case and never explanatory prose on the page; what a thing is for is learned
   once from its mark.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
@@ -182,18 +183,15 @@ lean one pleases.
   the window briefs it on every rival in its own and the adjacent regions. Every seat's planner
   reads the same map: it takes ground worth having — a site as it stands now (a spent, dug or dark
   one is nothing, a strongpoint its OA holds or a seam it is working is worth staying on, a beacon
-  draws an OA with a reserve to land, a rest site the hurt and hungry, the deposit its board asked
-  for more) — leaves a region three days before the wall or sooner when its way out is long or its
-  captives slow it, keeps to the way it chose, waits on a friend in the road and stops short of a
+  draws an OA with a reserve to land, a ration site the hungry, the deposit its board asked
+  for more) — leaves a region three days before the wall or sooner when its way out is long, keeps to the way it chose, waits on a friend in the road and stops short of a
   rival. A deposit opens with days enough to reach and work it before its region goes. A squad a tick along a route stands in neither region.
 - Nobody is ever left for the wall. Every tick every squad on ground that goes weighs the walk out —
-  at storm pace, slowed by its captives and a lost bearing, a held door counted as a fight — against
-  the ticks left, and leaves with a day in hand, over any order, hold included; one carrying as many
-  hurt as it has standing leaves a day sooner. It never steps onto ground that goes sooner than its
+  at storm pace, slowed by a lost bearing, a held door counted as a fight — against
+  the ticks left, and leaves with a day in hand, over any order, hold included. It never steps onto ground that goes sooner than its
   own before it is through, nor goes round a friend through it. A fight on ground the wall is
-  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. A rescue is sent the hour a squad goes down, from anywhere, standing
-  through fights on the way, and goes in wherever it can get there and back out. The overrun and the
-  field's wounded are taken by whoever stands; a beaten squad with nowhere to break and nobody to
+  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. The overrun and the
+  field's downed are taken by whoever stands; a beaten squad with nowhere to break and nobody to
   take it stays on the ground and walks out like anyone; the beaten break to ground they would not
   have to leave at once, never to ground the wall takes within two dawns. An OA that has fallen or
   left has nobody on the ground.

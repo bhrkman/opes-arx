@@ -224,7 +224,6 @@ const CONST = {
   TREAT_EXPOSURE_MULT: 1.30,              // [S] §3.7 worse than open ground; see hitChance
 
   /* §7 injuries */
-  UNTREATED_DEGRADE_DAYS: 3,              // [S]
   SPINAL_PERMANENT_P: 0.55,               // [C]
   WING_SPAR_PERMANENT_P: 0.20,            // [C]
 

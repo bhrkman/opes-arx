@@ -3843,7 +3843,7 @@ function runRegression() {
        disagree.length === 0, disagree.join(' · ') || 'none');
     /* VENT_EXCHANGES left this list when the overheat was retired: the dial is labelled
        _RETIRED in combat.js and items.js no longer needs to agree with it. */
-    const KNOWN = ['DROP_MAX', 'UNTREATED_DEGRADE_DAYS'];
+    const KNOWN = ['DROP_MAX'];   /* UNTREATED_DEGRADE_DAYS left with the field's mending (ruled: wounds come home) */
     const names = agree.map(a => a.split(' [')[0]).sort();
     ok('the set of constants declared twice is the known set',
        names.join(',') === KNOWN.join(','),
