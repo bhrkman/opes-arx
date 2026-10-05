@@ -87,6 +87,8 @@
     /* §5.1 — suppression. `SUPPRESS_AP` was declared here at Step 5 and read by NOTHING: the
        grid resolver had no suppression of any kind, so every weapon whose entire purpose is
        to hold an arc down was, on the model that actually matters, a worse rifle. */
+    AREA_RADIUS: 3,                  // [C] §GUNS how near the mark a blast's other targets must stand (tiles)
+    MOBILE_COVER_RADIUS: 2,          // [C] §GUNS how near a standing wall-gun its squadmates are shielded (tiles)
     SUPPRESS_RADIUS: 2,              // [C] tiles either side of the mark that also go to ground
     SPREAD_HIT_MULT: 0.6,            // [C] §GUNS the chance a round's edge catches somebody beside the target, of the shot's
     SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
@@ -994,9 +996,14 @@
       it looked for the tag anywhere in `combat.js` rather than anywhere the grid can reach.
       On a grid the honest meaning of mobility is simply how much ground you cover. */
   function moveTilesFor(u, unseen) {
-    let mp = CONST.MOVE_TILES + ((u.weapon && u.weapon.mobility) || 0) * 0.5;
+    /* §ARMOUR what a body wears weighs on its feet as its gun does: armour's mobility and its mob tags were declared,
+       priced and never reached the grid, so heavy plate cost nothing to carry */
+    const at = (u.armor && u.armor.tags) || [];
+    let mp = CONST.MOVE_TILES + ((u.weapon && u.weapon.mobility) || 0) * 0.5 + ((u.armor && u.armor.mobility) || 0) * 0.5;
     if (C.hasQuirk(u, 'mob_down')) mp -= CONST.MOB_TILES;
     if (C.hasQuirk(u, 'mob_up')) mp += CONST.MOB_TILES;
+    if (at.indexOf('mob_down') >= 0) mp -= CONST.MOB_TILES;
+    if (at.indexOf('mob_up') >= 0) mp += CONST.MOB_TILES;
     /* SOFT BOOTS — "arrives places without the courtesy of being heard first". Named on the
        suite's own list of hooks read by no system at all, waiting for a spotting model. It
        pays while nobody has eyes on you, which is the only time moving quietly is worth
@@ -1072,13 +1079,17 @@
     const cov = coverWithSmoke(map, target, shooter);
     const saveCover = target.cover, saveFlank = target.flanked;
     target.cover = cov;
-    target.flanked = cov === 0 && saveCover > 0;     /* they had cover; it does not face you */
+    /* they had cover where they stand, and it does not face you. This read `target.cover`, which the grid never sets
+       (every body carries the 1 it was made with), so everybody in the open was "flanked" */
+    target.flanked = cov === 0 && concealAt(map, target) > 0;
     /* Every shot is a ROUND, not a volley. This is the whole argument for the tactical
        model over the abstract one: a magazine now runs out in front of you, an energy
        weapon cooks, and a fighter with neither finishes the fight on a pistol. */
     /* §GUNS A RELOAD IS NOT RUNNING DRY: the round goes on the magazine, the sidearm stays holstered — treating a
        reloading gun as an empty one drew pistols across the whole field, shooting at ranges no pistol reaches */
     if (shooter.reloading > 0) { tel.reloading = (tel.reloading || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
+    /* §GUNS `min_band_medium` — "cannot fire at short band at all": it does not, rather than firing at the floor */
+    if (band === 2 && !shooter.onSidearm && C.hasQuirk(shooter, 'min_band_medium')) { tel.tooClose = (tel.tooClose || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
     if (!C.primaryReady(shooter)) {
       if (!shooter.onSidearm && !C.useSidearm(shooter)) { tel.dry++; target.cover = saveCover; target.flanked = saveFlank; return false; }
       if (!shooter._drewFlag) { shooter._drewFlag = true; tel.sidearmDraws++; }
@@ -1184,16 +1195,25 @@
           tel.arcChains = (tel.arcChains || 0) + 1;
         }
       }
-      if (C.hasQuirk(shooter, 'crowd_pleaser') && target.state === 'dead') {
-        shooter._fameEarned = (shooter._fameEarned || 0) + 1;
-        tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
-      }
       if (log) log.push({ t: tel.turn, type: 'hit', by: shooter.id, at: target.id,
                           p: +p.toFixed(3), band, cover: cov,
                           w: (shooter.weapon || {}).name, ammo: shooter.ammo, react: !!react });
       chipCoverFrom(rng, map, shooter, target, tel, log);
-      applyHit(rng, target, C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn),
-               tel, log, shooter, E);
+      const sevMain = C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn);
+      applyHit(rng, target, sevMain, tel, log, shooter, E);
+      /* `emp` — "severity ×2 against turrets, drones and assault frames, and disables them". A frame it hits takes the
+         round twice and is dead weight after; a drone or turret of theirs near the mark is put out. (It was declared
+         with "nothing mechanical to hit yet"; the drones, turrets and frames have all existed since.) */
+      if (C.hasQuirk(shooter, 'emp')) {
+        if (target.armor && target.armor.id === 'itm_assault_frame' && (target.state === 'ok' || target.state === 'light')) {
+          applyHit(rng, target, sevMain, tel, log, shooter, E);
+          target.armor = Object.assign({}, target.armor, { protection: 0, resist: { ballistic: 0, energy: 0, explosive: 0 }, tags: [] });
+          tel.empFrames = (tel.empFrames || 0) + 1;
+        }
+        const foeTag = E.tag;
+        for (const L of [_drones, _turrets]) for (let i = L.length - 1; i >= 0; i--)
+          if (L[i].side === foeTag && Math.hypot(L[i].x - target.x, L[i].y - target.y) <= CONST.AREA_RADIUS) { L.splice(i, 1); tel.empDevices = (tel.empDevices || 0) + 1; if (S._fog) S._fog.dirty = true; }
+      }
     }
     /* TEMPO — the extra rounds this weapon puts down for the same action. A reaction shot is
        one round whatever the weapon is: you are firing at movement, not settling into a rate. */
@@ -1244,10 +1264,31 @@
     if (!hit) {
       comp(rng, target, C.CONST.COMP.nearMiss);
       if (log) log.push({ t: tel.turn, type: 'miss', by: shooter.id, at: target.id, p: +p.toFixed(3), band, cover: cov, why: (C.hitChance.why || []).slice(), w: (shooter.weapon||{}).name, ammo: shooter.ammo, react: !!react });
-      /* a miss still does something with the right weapon — `cover_shred`, `ricochet` */
-      for (const q of C.quirksOf(shooter)) {
-        const h = C.QUIRK[q];
-        if (h && h.onMiss) h.onMiss(rng, shooter, target, E);
+      /* a miss still does something with the right weapon. `cover_shred` — "a miss still chips the target's position
+         one grade": the piece he hides behind loses a grade. `ricochet` — "a miss has a 25% chance to hit another
+         enemy in band": it does, as a hit. (Both were wired to things the grid never read: a squad's cover pool it does
+         not have, and a flag nothing looked at.) */
+      if (C.hasQuirk(shooter, 'cover_shred') && map) { const spot = coverTileFor(map, shooter, target);
+        if (spot && chipTile(map, spot.x, spot.y, tel)) { tel.coverShred = (tel.coverShred || 0) + 1; if (S._fog) S._fog.dirty = true; } }
+      if (C.hasQuirk(shooter, 'ricochet') && rng() < C.CONST.RICOCHET_P) {
+        const others = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && bandOf(dist(shooter, f)) === band);
+        if (others.length) { const f = others[Math.floor(rng() * others.length)];
+          tel.ricochets = (tel.ricochets || 0) + 1;
+          if (log) log.push({ t: tel.turn, type: 'ricochet', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+          applyHit(rng, f, C.resolveSeverity(rng, shooter, f, S.policy, band, null, tel.turn), tel, log, shooter, E); }
+      }
+    }
+    /* §GUNS `area` — "resolves against up to 3 enemies in band": the blast is resolved against up to two more in the
+       same band near the mark, each on its own chance (it only chipped cover before) */
+    if (C.hasQuirk(shooter, 'area')) {
+      const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && bandOf(dist(shooter, f)) === band && dist(f, target) <= CONST.AREA_RADIUS)
+        .sort((a, b) => dist(a, target) - dist(b, target)).slice(0, 2);
+      for (const f of near) {
+        const pf = C.hitChance(shooter, f, band, { side: shooter._side, night: !!_night, dist: dist(shooter, f) }, false) * CONST.SHOT_HIT_MULT;
+        if (rng() >= pf) continue;
+        tel.areaHits = (tel.areaHits || 0) + 1;
+        if (log) log.push({ t: tel.turn, type: 'blast', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+        applyHit(rng, f, C.resolveSeverity(rng, shooter, f, S.policy, band, null, tel.turn), tel, log, shooter, E);
       }
     }
     /* ---- AND NOW THEY KNOW WHERE YOU ARE -------------------------------------------------
@@ -1327,6 +1368,8 @@
       tel.pinsRefused = (tel.pinsRefused || 0) + 1;
       return;
     }
+    /* being pinned shakes a man: COMP.suppressed was declared and never applied */
+    if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
     u.suppressed = true;
     tel.pins = (tel.pins || 0) + 1;
   }
@@ -1507,11 +1550,14 @@
                           react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
       return;
     }
-    t.state = 'dead'; tel.dead++;
+    t.state = 'dead'; tel.dead++; t._killedBy = by;
     (tel._deathsThisTurn = tel._deathsThisTurn || []).push({ x: t.x, y: t.y });
     if (side) moraleShock(rng, side, t, 'dead');
     if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, dmg: dmg,
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
+    /* what a death sets off — a Mon-Wa half's bond, a showman's fame — ran only for the old down-then-died path, so
+       once a live round killed outright neither ever fired */
+    C.onDeath(rng, t, side, log || [], tel);
   }
 
   /* Removed at this step: stepToward — defined here and called from nowhere in the tree.
@@ -1544,7 +1590,7 @@
     ctx = ctx || {};
     STUN_GRADE = !!ctx.stunGrade;
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
-    const closeFight = (ctx.openingBand || 1) === 0;
+    const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */
     /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
        and in nothing that fought: `squadLink` was read in the aim path and set by NOBODY. A
        latent Gil standing with a squad is worth something to everyone in it — the link steadies
@@ -1910,6 +1956,8 @@
              flags rather than at end of turn, so it lasts the whole of the enemy's turn —
              which is the mistake `suppressed` makes, clearing for everyone simultaneously and
              expiring on half the people it was applied to before they ever act. */
+          /* `recoil_heavy` — "aim worse in the exchange after repositioning": nothing ever wrote what it reads */
+          u._movedLast = !!(u.repositioning || u._crossed);
           u.repositioning = false; u._crossed = false;
           if (ambush && tel.turn === 1 && si !== first) { u.ap = 1; tel.ambushed++; }
           const taken = occupancy(sides);
@@ -2001,7 +2049,7 @@
               if (!hasLOS(map, u, f)) continue;
               const cov = coverAgainst(map, f, u);
               const sc = f.cover, sf = f.flanked;
-              f.cover = cov; f.flanked = cov === 0 && sc > 0;
+              f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
               /* §GUNS the scorer sees the shot as the shot will be taken: at its distance, with its gun's reach */
               const p = C.hitChance(u, f, bandOf(dist(u, f)), { dist: dist(u, f) }, false) * CONST.SHOT_HIT_MULT;
               f.cover = sc; f.flanked = sf;
@@ -2028,7 +2076,7 @@
             if (!canHurt(u)) return 0;
             const cov = coverAgainst(map, f, from);
             const sc = f.cover, sf = f.flanked;
-            f.cover = cov; f.flanked = cov === 0 && sc > 0;
+            f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
             const p = C.hitChance(u, f, bandOf(dist(from, f)), {}, false) * CONST.SHOT_HIT_MULT;
             f.cover = sc; f.flanked = sf;
             return p;
@@ -2405,7 +2453,7 @@
                   if (cc > ownCov) ownCov = cc;
                 }
                 tap.rows.push({ x, y, p: bestP, threat, bandOff, ownCov: ownCov,
-                                flanks: !!(tgt && tgt.cover > 0 &&
+                                flanks: !!(tgt && concealAt(map, tgt) > 0 &&
                                            coverAgainst(map, tgt, { x: x, y: y }) === 0) });
               }
               if (!move || val > move.val) move = { x, y, val, p: bestP, tgt, threat };
@@ -2489,7 +2537,7 @@
                   if (!hasLOS(map, { x: cand.x, y: cand.y }, f)) continue;
                   const cov = coverAgainst(map, f, { x: cand.x, y: cand.y });
                   const sc = f.cover, sf = f.flanked;
-                  f.cover = cov; f.flanked = cov === 0 && sc > 0;
+                  f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
                   /* §GUNS a shot from where the dash ends is a SNAP shot, at that distance — the scorer sees it as it will be */
                   const p = C.hitChance(u, f, bandOf(dist(cand, f)), { dist: dist(cand, f), snap: true }, false) * CONST.SHOT_HIT_MULT;
                   f.cover = sc; f.flanked = sf;
@@ -2631,10 +2679,18 @@
          weapon's heat never shed, a vent never ticked down, and nobody ever came off the sidearm
          once they were on it. Prose describing work that was not done. */
       for (const S of sides) C.coolWeapons(S);
-      /* `mobile_cover` — a gun heavy enough to be a wall. Dearest tag in the catalog and it
-         granted nothing until now, on either resolver. */
+      /* `mobile_cover` — "grants mobile_cover_provider to same-band squadmates while stationary": a gun or a frame heavy
+         enough to be a wall shields the squadmates beside it, a grade of cover, for as long as it stands still. It added
+         a hook nothing read. */
+      for (const S of sides) {
+        for (const u of S.units) u._shielded = false;
+        for (const w of S.units) {
+          if ((w.state !== 'ok' && w.state !== 'light') || w.repositioning || w._crossed) continue;
+          if (!C.hasQuirk(w, 'mobile_cover') && ((w.armor && w.armor.tags) || []).indexOf('mobile_cover') < 0) continue;
+          for (const m of S.units) if (m !== w && (m.state === 'ok' || m.state === 'light') && dist(m, w) <= CONST.MOBILE_COVER_RADIUS) { m._shielded = true; tel.shielded = (tel.shielded || 0) + 1; }
+        }
+      }
       for (const S of sides) for (const u of S.units) {
-        if (C.hasQuirk(u, 'mobile_cover')) u.hooks.add('mobile_cover_provider');
         C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;

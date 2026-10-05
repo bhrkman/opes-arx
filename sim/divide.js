@@ -157,6 +157,7 @@
        stands at the band's top until it mends after the Divide: 80% and over whole, 50–79 at 80%, 10–49 at 50%, under
        10 at 10%. A wound does not make anyone fight worse; it is how much less it takes to kill them. */
     HP_BANDS: [{ at: 0.8, to: 1 }, { at: 0.5, to: 0.8 }, { at: 0.1, to: 0.5 }, { at: 0, to: 0.1 }],
+    CROWD_PLEASER_FAME: 1.5,            // [C] fame a `crowd_pleaser` kill pays its shooter, on the fame scale (0–100)
     RELEASED_RECOVERY: 4,               // [C] §CAPTIVES a released captive walks home hurt: out at least this many days
     /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
        same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
@@ -1987,6 +1988,8 @@
     if (side._parts) for (const p of side._parts) for (const u of p.units) owner[u.id] = p._sq;
     for (const u of side.units) {
       const f = u.ref;
+      /* `crowd_pleaser` — "fame on kills": the kills were counted on the fighter in the fight and never paid out */
+      if (u._fameEarned && f && REP.addFame) { REP.addFame(f, u._fameEarned * CONST.CROWD_PLEASER_FAME); stats.audit.crowdFame = (stats.audit.crowdFame || 0) + u._fameEarned; }
       /* §XP a fight fought is a battle on the career */
       if (u.state !== 'dead' && f) { f.experience = f.experience || {}; f.experience.battles = (f.experience.battles || 0) + 1; }
       if (u.state === 'dead') {

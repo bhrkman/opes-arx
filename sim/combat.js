@@ -612,7 +612,7 @@ function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
      aim(q, c, bandIdx, ctx)         -> number added to aim_eff
      cover(q, shooter, target, idx)  -> new cover index for the target
      sev(q, shooter, target, band)   -> number added to the severity roll
-     onMiss(q, ...)                  -> side effects when a shot misses
+     (on a miss: `cover_shred`, `ricochet` act at the grid's shot)
    A quirk may implement any subset. Absent phase = no effect in that phase. */
 const QUIRK = {
   /* --- aim --- */
@@ -629,7 +629,7 @@ const QUIRK = {
      the tag became a flat, unconditional +3 aim — better than the specialist bonus and with
      none of the conditions. What is cheap to achieve is worth less. */
   sustained: { aim: (c, b, ctx) => 10 * Math.min(CONST.SUSTAINED_CAP, c._sustain || 0) },
-  smart_link: { aim: (c, b) => bandMismatch(c, b) },              /* refunds the whole penalty */
+  smart_link: {},                                                  /* waives the range penalty: in `aimEff` */
   min_band_medium: { aim: (c, b) => b === 2 ? -990 : 0 },          /* cannot engage at short */
   single_shot: {},                                                 /* handled in the action loop */
   spool: {},                                                       /* handled in the action loop */
@@ -637,23 +637,21 @@ const QUIRK = {
   burst: {},                                                       /* handled in the action loop */
 
   /* --- cover --- */
-  cover_shred: { onMiss: (rng, shooter, target, side) => degradeCover(side, target) },
-  /* `ricochet` claimed a call site that did not exist. A miss looks for somebody else. */
-  ricochet: { onMiss: (rng, shooter, target, enemySide) => {
-    if (rng() >= CONST.RICOCHET_P) return;
-    const others = enemySide.units.filter(u => u !== target && (u.state === 'ok' || u.state === 'light'));
-    if (others.length) others[Math.floor(rng() * others.length)]._ricochetHit = true;
-  } },
+  cover_shred: {}, ricochet: {},                                   /* on a miss, at the grid's call site */
 
   /* --- severity --- */
-  pierce_1: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(1, effectiveProtection(s, t))) },
-  pierce_2: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(2, effectiveProtection(s, t))) },
-  pierce_3: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(3, effectiveProtection(s, t))) },
-  flechette: { sev: (s, t) => (t.armor.protection || 0) <= 1 ? 6 : (t.armor.protection || 0) >= 4 ? -6 : 0 },
+  /* §ARMOUR (fixed) piercing is points of the target's protection defeated, and only the protection the round actually
+     met: `pierce` returns points, summed with the gun's `pen` and a slow gun's bite and capped at what was there.
+     Each was rounded into severity on its own, read the armour's protection even where the round missed it, and
+     together could defeat more than existed — so against a pen gun, wearing armour got you killed more often. */
+  pierce_1: { pierce: () => 1 },
+  pierce_2: { pierce: () => 2 },
+  pierce_3: { pierce: () => 3 },
+  flechette: { sev: (s, t) => { const p = t._effProt != null ? t._effProt : effectiveProtection(s, t); return p <= 1 ? 6 : p >= 4 ? -6 : 0; } },
   incendiary: { sev: () => 8 },
   disorient: {},                                                   /* composure, applied on hit */
   chill: {},                                                       /* movement, applied on hit */
-  emp: {},                                                         /* nothing mechanical to hit yet */
+  emp: {},                                                         /* frames, drones, turrets: at the grid's shot */
   arc_chain: {},                                                   /* second target, at the call site */
   area: {},                                                        /* multi-target, at the call site */
 
@@ -724,11 +722,9 @@ function tempoAim(c) {
   return CONST.TEMPO_AIM * (CONST.TEMPO_DEFAULT - tempoOf(c));
 }
 /** And they defeat protection, which is the other half of "hits when others cannot". */
-function tempoPierce(shooter, target) {
+function tempoPierce(shooter) {
   const under = CONST.TEMPO_DEFAULT - tempoOf(shooter);
-  if (under <= 0) return 0;
-  const bite = Math.min(under * CONST.TEMPO_PIERCE, effectiveProtection(shooter, target));
-  return Math.round(CONST.SEV_PROTECTION_MULT * bite);
+  return under > 0 ? under * CONST.TEMPO_PIERCE : 0;   /* points of protection, capped with the rest in `pierceSev` */
 }
 /** §8 — protection as this shooter's damage type actually meets it. */
 function effectiveProtection(shooter, target) {
@@ -762,13 +758,15 @@ function quirkCover(shooter, target, idx, bandIdx) {
 function quirkSev(shooter, target, bandIdx) {
   let s = 0;
   for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.sev) s += h.sev(shooter, target, bandIdx) || 0; }
-  /* §GUNS PENETRATION: what armour the round goes through, as the gun's own number — the `pierce_N` tags stay for a mod */
-  if (shooter.weapon && shooter.weapon.pen) s += Math.round(CONST.SEV_PROTECTION_MULT * Math.min(shooter.weapon.pen, effectiveProtection(shooter, target)));
   return s;
 }
-function degradeCover(side, target) {
-  if (!side || !side.pool || target.cover == null || target.cover <= 0) return;
-  target.cover = Math.max(0, target.cover - 1);
+/* §GUNS PENETRATION: what armour the round goes through — the gun's own `pen`, the `pierce_N` tags, a slow gun's bite —
+   as points of the protection this round met (`met`: none where it found no armour), never more than was there */
+function pierceSev(shooter, met) {
+  let pts = (shooter.weapon && shooter.weapon.pen) || 0;
+  for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.pierce) pts += h.pierce(); }
+  pts += tempoPierce(shooter);
+  return Math.round(CONST.SEV_PROTECTION_MULT * Math.min(pts, met));
 }
 
 
@@ -833,6 +831,10 @@ function aimEff(c, bandIdx, ctx) {
     if (mis === 0 && (c.weapon.range || 'medium') !== 'medium')
       mis = -CONST.BAND_SPECIALIST_BONUS * (c.weapon.range === 'short' ? CONST.BAND_SPECIALIST_SHORT : 1);
   } else mis = bandMismatch(c, bandIdx);
+  /* `smart_link` — "waives band_mismatch_penalty entirely": the penalty for the wrong distance, never the bonus for the
+     right one. It added `bandMismatch` itself, which at a gun's own band is the NEGATIVE of the specialist bonus, so
+     a smart-linked SMG lost thirty aim exactly where it was built to fight. */
+  if (mis > 0 && hasQuirk(c, 'smart_link')) mis = 0;
   a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
   /* §GUNS HANDLING is the gun's own precision, apart from the hand that holds it; and a SNAP SHOT — shooting in the same
@@ -857,6 +859,7 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - CONST.HIT_PIVOT) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
   let coverIdx = target.cover;
   if (target._bulwarked) coverIdx = Math.min(3, coverIdx + 1);        // Olmac walking_bulwark
+  if (target._shielded) coverIdx = Math.min(3, coverIdx + 1);         // §GUNS a squadmate's `mobile_cover`
   if (target.hovering) coverIdx = Math.max(0, coverIdx - 1);            // hover ignores a step of cover
   if (target.exposed) coverIdx = Math.max(0, coverIdx - 1);             // §3.4: you have to lean out to shoot
   if (target.flanked) coverIdx = Math.max(0, coverIdx - 1);             // §3.2b: cover faces one way
@@ -901,7 +904,7 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const why = [];
   const cw = ['No Cover', 'Light Cover', 'Hard Cover', 'Dug In'][coverIdx];
   if (coverIdx > 0) why.push([cw, CONST.COVER_MULT[coverIdx]]);
-  const bandName = ['Close', 'Medium', 'Long'][bandIdx] || '';
+  const bandName = ['Long', 'Medium', 'Close'][bandIdx] || '';   /* bands run long, medium, short */
   if (CONST.BAND_HIT_MULT[bandIdx] !== 1) why.push([bandName + ' Range', CONST.BAND_HIT_MULT[bandIdx]]);
   if (target.flanked) why.push(['Flanked', 1.4]);
   if (!target.spotted) why.push(['Unspotted', CONST.SPOT_UNSPOTTED]);
@@ -954,7 +957,7 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
   /* §ARMOUR COVERAGE: a hit that lands where the armour is not — a bare arm under a vest — gets none of it */
   const covered = target.armor.coverage == null || rng() < target.armor.coverage;
   const effProt = covered ? Math.max(0, (target.armor.protection || 0) + resist) : 0;
-  if (!covered) target._uncoveredHit = true;
+  target._effProt = effProt;   /* what this round met, for the quirks that read armour */
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
@@ -968,7 +971,7 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
      `_unseen` is set by the grid around the shot: the shooter is the one nobody has placed. */
   if (shooter.hooks.has('unspotted_open_fire_bonus') && shooter._unseen) roll += 12;
   const qs = quirkSev(shooter, target, bandIdx)                         /* §4.2 */
-           + tempoPierce(shooter, target);                             /* COMPOSITION.md §4 */
+           + pierceSev(shooter, effProt);                              /* COMPOSITION.md §4, §GUNS */
   roll += qs;
   /* casualty_scalar deleted (DIVIDE.md §7.2). Declared stance does not touch lethality;
      the ladder comes from how many fights a corp goes looking for. `policy` is retained
@@ -1102,7 +1105,7 @@ function onDeath(rng, unit, side, log, tel) {
      tracked through the wound chain, so credit goes to whoever on the other side is carrying
      one — a showy weapon gets the story whether or not it fired the round. */
   if (tel) tel._lastKillSide = side && side.tag;
-  if (unit._killedBy && hasQuirk(unit._killedBy, 'crowd_pleaser')) {
+  if (unit._killedBy && (hasQuirk(unit._killedBy, 'crowd_pleaser') || ((unit._killedBy.armor && unit._killedBy.armor.tags) || []).indexOf('crowd_pleaser') >= 0)) {
     unit._killedBy._fameEarned = (unit._killedBy._fameEarned || 0) + 1;
     if (tel) tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
   }
@@ -1188,7 +1191,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, onDeath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed

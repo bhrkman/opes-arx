@@ -259,7 +259,8 @@
                 handling: pe.handling, snap: pe.snap, pen: pe.pen, suppress: pe.suppress,
                 /* §GUNS stage 3: how many more it catches beside the one it hits, and how far a shot of it carries */
                 spread: pe.spread, noise: pe.noise },
-      armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
+      armor: { id: a ? a.id : null, name: a ? a.name : null, tags: (ae.tags || []).slice(),
+               protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },
                /* §ARMOUR what it covers, and the share of hits that land on it — from the injury table's own odds
                   (arm 18, leg 18, torso and chest 26, head 10, the rest 28 — the internal, burns, spinal and
