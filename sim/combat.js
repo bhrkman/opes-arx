@@ -1059,7 +1059,17 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
     tel.sidesEngaged = (tel.sidesEngaged || 0) + 1;
     if (overrun) tel.squadsBroken = (tel.squadsBroken || 0) + 1;
     const lost = overrun;
+    /* §CAPTIVES (fixed) A BODY LEFT LYING ON GROUND ITS SIDE HAS GIVEN UP IS TAKEN. Somebody stunned, or held at a breath
+       by an injector, cannot walk off with a withdrawal; when nobody of his is left standing on the field and the other
+       side is, they have him. Only an overrun took anyone — and a side that called its retreat was never overrun, so a
+       stun build could not take a prisoner, and its victims woke and were carried off by nobody. */
+    const abandoned = !active(S).length && active(E).length > 0 && E !== S;
     for (const u of S.units) {
+      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter)) {
+        u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
+        if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
+        continue;
+      }
       if (u.state === 'down') {
         /* D2: every squad carries its wounded out. Losing them is a consequence of being
            OVERRUN (§3.7), not of stance — which is why death-or-glory still loses more. */

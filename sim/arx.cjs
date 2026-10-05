@@ -96,63 +96,63 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_A",
-    "exchanges": 15,
+    "exchanges": 8,
     "band": "medium",
-    "aDead": 2,
-    "aDown": 2,
-    "bDead": 0,
-    "bDown": 1,
-    "shots": 230,
-    "hits": 34,
+    "aDead": 4,
+    "aDown": 0,
+    "bDead": 1,
+    "bDown": 0,
+    "shots": 104,
+    "hits": 28,
     "downs": 5
   },
   "short band, both aggressive": {
-    "result": "disengage_A",
-    "exchanges": 12,
+    "result": "disengage_B",
+    "exchanges": 4,
     "band": "medium",
     "aDead": 1,
-    "aDown": 2,
+    "aDown": 0,
     "bDead": 2,
-    "bDown": 2,
-    "shots": 137,
-    "hits": 34,
-    "downs": 7
+    "bDown": 0,
+    "shots": 63,
+    "hits": 25,
+    "downs": 3
   },
   "long band, both cautious": {
     "result": "disengage_A",
-    "exchanges": 12,
+    "exchanges": 6,
     "band": "medium",
-    "aDead": 1,
-    "aDown": 3,
+    "aDead": 5,
+    "aDown": 0,
     "bDead": 0,
-    "bDown": 1,
-    "shots": 197,
-    "hits": 28,
+    "bDown": 0,
+    "shots": 81,
+    "hits": 25,
     "downs": 5
   },
   "forest, standard v unyielding": {
     "result": "disengage_B",
-    "exchanges": 6,
+    "exchanges": 4,
     "band": "medium",
-    "aDead": 2,
+    "aDead": 1,
     "aDown": 0,
-    "bDead": 1,
-    "bDown": 3,
-    "shots": 85,
-    "hits": 29,
-    "downs": 6
+    "bDead": 3,
+    "bDown": 0,
+    "shots": 65,
+    "hits": 22,
+    "downs": 4
   },
   "entrenched, cautious v hunter": {
     "result": "disengage_A",
-    "exchanges": 6,
+    "exchanges": 9,
     "band": "medium",
-    "aDead": 3,
-    "aDown": 1,
-    "bDead": 0,
+    "aDead": 6,
+    "aDown": 0,
+    "bDead": 2,
     "bDown": 0,
-    "shots": 63,
-    "hits": 26,
-    "downs": 4
+    "shots": 80,
+    "hits": 30,
+    "downs": 8
   }
 };
 
@@ -650,6 +650,7 @@ function seatRules() {
      that has captives in it: the same seat, a fresh world each try. §CAPTIVES (ruled: case by case, at the capture)
      a person's seat is asked at its next window for each captive its squads hold, and answers kill, keep or release */
   const playDivide = (stx) => {
+    armToTake(stx.corps[me]);   /* §CAPTIVES taking anyone alive takes a stun gun, a person's choice (ruled) */
     SEASONMOD.beginContest(stx, { replay: true });   /* the whole record kept, to hold the seat's own against it */
     let got = null, guard = 0; const records = [];
     while (guard++ < 400) {
@@ -1101,6 +1102,8 @@ function energyInvariants(n) {
     const kit = kits[i % kits.length];
     const A = squad(rng, OA[1], 'standard', { loadout: kit });
     const B = squad(rng, OA[2], 'standard', {});
+    /* and nearly dry already: fights end in a handful of exchanges now, before a full magazine runs out */
+    for (const u of A.units) { u.ammo = 0; if (u.magLeft != null) u.magLeft = Math.min(u.magLeft, 2); if (u.charge != null && u.chargeMax > 0) u.charge = Math.min(u.charge, 2); }
     const r = TACMOD.resolve(rng, A, B, { day: 1, openingBand: 1, terrain: 'broken_ground' });
     vents += r.telemetry.vents || 0; draws += r.telemetry.sidearmDraws || 0;
     for (const u of A.units) {
@@ -2363,7 +2366,7 @@ function catalogIntegrity() {
      them. The counter is a CHECK now: a tag nothing reads fails here. */
   const combatSrc = fs.readFileSync(findFile('combat.js'), 'utf8');
   const gridSrc = fs.readFileSync(findFile('tactical.js'), 'utf8');
-  const tableLive = q => !!(table[q] && (table[q].aim || table[q].sev || table[q].cover || table[q].onMiss));
+  const tableLive = q => !!(table[q] && (table[q].aim || table[q].sev || table[q].cover || table[q].onMiss || table[q].pierce));
   /* LIVE MEANS REACHABLE FROM THE RESOLVER THAT RUNS.
      This asked whether the tag's name appeared anywhere in `combat.js`, which was true of
      `mob_up` and `mob_down` — and the only thing reading them was `bandMobility`, part of the
@@ -2395,16 +2398,17 @@ function catalogIntegrity() {
      narrowly — a bare mention still proves nothing. */
   const contestSrc = fs.readFileSync(findFile('divide.js'), 'utf8');
   const readsTags = (src, q) => new RegExp("tags \\|\\| \\[\\]\\)\\.indexOf\\('" + q + "'").test(src);
-  const siteLive = q => reads(gridSrc, q) || reads(spendSrc, q) || C.CONST.TEMPO[q] != null ||
+  /* and the shot's own rules in combat.js read some by name: `smart_link` in the aim, `crowd_pleaser` at a death */
+  const siteLive = q => reads(gridSrc, q) || reads(spendSrc, q) || reads(combatSrc, q) || C.CONST.TEMPO[q] != null ||
                         readsTags(contestSrc, q);
   const allTags = Object.keys(ITEMS.quirks);
   const deadTags = allTags.filter(q => !tableLive(q) && !siteLive(q));
   console.log('           \u2514 ' + (allTags.length - deadTags.length) + ' of ' + allTags.length +
               ' weapon tags are read by the game' +
               (deadTags.length ? '; still inert: ' + deadTags.join(', ') : ''));
-  /* THE INERT TAGS ARE NAMED, not counted: a threshold let a new dead tag in while an old one came alive. `emp` acts
-     on turrets the grid does not have; `vent_2` belongs to the retired overheat and goes with it. */
-  const INERT_TAGS = ['emp', 'vent_2'];
+  /* THE INERT TAGS ARE NAMED, not counted: a threshold let a new dead tag in while an old one came alive. `vent_2`
+     belongs to the retired overheat (awaiting a ruling: bring heat back, or drop the tag). `emp` is live now. */
+  const INERT_TAGS = ['vent_2'];
   ok('quirks: no tag is declared, priced and then read by nothing, beyond the named ones',
      deadTags.every(t => INERT_TAGS.indexOf(t) >= 0), deadTags.filter(t => INERT_TAGS.indexOf(t) < 0).join(', ') || 'none');
 
@@ -2853,6 +2857,10 @@ function contestRules() {
   ok('the same ground, seed and drop are the same contest', ev(sA) === ev(sB));
 }
 
+/** a corp whose people carry stun carbines of their own — the only way a body is taken alive (ruled) */
+function armToTake(c) {
+  for (const f of ((c && (c.roster || c.allBodies)) || [])) f.ownKit = { primary: 'itm_stun_carbine', armor: 'itm_padded_jacket', sidearm: null };
+}
 function divideRules() {
   /* §GROUND THE RULES OF THE CONTEST, HELD ON REAL DIVIDES. contestRules holds the contest on squads alone; this holds
      the switched Divide — bodies, the grid, the economy, the table — to the same rules, over three seasons run to
@@ -2878,6 +2886,9 @@ function divideRules() {
       while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
       SEASONMOD.closeSeasonToDrop(st);
     } finally { PRE.chooseLanding = choose0; }
+    /* §CAPTIVES (ruled) a body is only taken alive by a stun round — a manager's choice, never the engine's — so one OA
+       here carries stun carbines as its people's own gear, and the captive and ransom rules have captives to hold to */
+    armToTake(st.corps[st.ids[0]]);
     const d = SEASONMOD.prepareDivide(st);
     const reserve0 = {}; for (const id in (d.opts.corps || {})) reserve0[id] = (d.opts.corps[id].reserve || []).length;
     const xp0 = new Map(); for (const id of st.ids) for (const f of (st.corps[id]._drop || [])) xp0.set(f, (f.experience && f.experience.divides) || 0);

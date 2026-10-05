@@ -7278,6 +7278,26 @@
    "charges": 4
   },
   {
+   "id": "itm_stasis_injector",
+   "name": "Stasis Injector",
+   "category": "consumable",
+   "slot": "consumable",
+   "family": "any",
+   "tier": 3,
+   "cost": 1200,
+   "bulk": 1,
+   "uses": 1,
+   "action": "dose",
+   "effects": {
+    "tags": []
+   },
+   "price_model": "fixed",
+   "legality": "legal",
+   "identity": "A round that would kill its carrier leaves him down at a breath instead; up when the fight is over, as hurt as a body can be.",
+   "type": "Consumables",
+   "charges": 1
+  },
+  {
    "id": "itm_spotter_drone",
    "name": "Spotter Drone",
    "category": "consumable",
@@ -11589,7 +11609,8 @@
                 handling: pe.handling, snap: pe.snap, pen: pe.pen, suppress: pe.suppress,
                 /* §GUNS stage 3: how many more it catches beside the one it hits, and how far a shot of it carries */
                 spread: pe.spread, noise: pe.noise },
-      armor: { protection: ae.protection || 0, mobility: ae.mobility || 0,
+      armor: { id: a ? a.id : null, name: a ? a.name : null, tags: (ae.tags || []).slice(),
+               protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },
                /* §ARMOUR what it covers, and the share of hits that land on it — from the injury table's own odds
                   (arm 18, leg 18, torso and chest 26, head 10, the rest 28 — the internal, burns, spinal and
@@ -11726,6 +11747,16 @@
   function gunScore(g, aim) { return Math.log(edgeOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }
   /* the engine does not arm anybody with a stun gun (ruled): that is a manager's own choice, at the Armoury, by hand */
   const engineIssues = (it) => !(it.slot === 'primary' && ((it.effects || {}).tags || []).indexOf('nonlethal') >= 0);
+  /* §ARMOUR (fixed) what a piece of armour stops: its protection on the share of hits it covers, against the field's
+     mix of rounds (mostly ballistic, some energy, a little explosive). Armour was ranked by taste tags it barely has and
+     then by catalogue order, so the muster took the cheapest vest and the rest took whatever came first. */
+  function armourWorth(it) {
+    const e = (it && it.effects) || {}, r = e.resist || {};
+    const prot = Math.max(0, (e.protection || 0) + 0.6 * (r.ballistic || 0) + 0.3 * (r.energy || 0) + 0.1 * (r.explosive || 0));
+    return prot * coverageShare(e.covers);
+  }
+  const rankArmour = (ids, taste) => ids.map(byId).filter(Boolean)
+    .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (armourWorth(b) - armourWorth(a)));
   /* the guns in a doctrine's order of taste, the better gun first where taste does not choose */
   const rankGuns = (ids, taste) => ids.map(byId).filter(Boolean)
     .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (edgeOf(b) - edgeOf(a)));
@@ -11778,7 +11809,7 @@
       }
       return gunTaste.slice().sort((x, y) => gunScore(y, shotOf(b.f, y) + tasteBonus[y.id]) - gunScore(x, shotOf(b.f, x) + tasteBonus[x.id]));
     };
-    const armours = rankBy(ofSlot('armor').map(a => a.id), taste);
+    const armours = rankArmour(ofSlot('armor').map(a => a.id), taste);
     const sidearms = rankBy(ofSlot('sidearm').map(a => a.id), taste);
     const listFor = (b, slot) => slot === 'primary' ? gunsFor(b) : slot === 'armor' ? armours : sidearms;
 
@@ -11815,6 +11846,11 @@
          favourite armour, handed to two-thirds of a force at the muster, spent the whole cap before a gun was chosen */
       const fairShare = mustAllow / bodies.length * CONST.KIT_MUSTER_BODY_SHARE;
       let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      /* and the cheap end of the armour rack is chosen from by what it stops, not by price alone */
+      if (slot === 'armor' && order2.length) {
+        const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
+        order2 = order2.filter(c => c.cost <= floor).sort((x, y) => armourWorth(y) - armourWorth(x)).concat(order2.filter(c => c.cost > floor));
+      }
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
         const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => gunScore(y, shotOf(b.f, y)) - gunScore(x, shotOf(b.f, x)));
@@ -12049,12 +12085,14 @@
     if (guns.length) { const lo = cheapest(guns).cost * CONST.KIT_MUSTER_SLACK;
       add(guns.filter(g => g.cost <= lo).sort((a, b) => edgeOf(b) / b.cost - edgeOf(a) / a.cost)[0].id, Math.ceil(n * CONST.FOUNDING_SPARES)); }
     for (const slot of ['armor', 'sidearm']) {
-      const ranked = rankBy(ofSlot(slot), taste);
+      const ranked = slot === 'armor' ? rankArmour(ofSlot(slot), taste) : rankBy(ofSlot(slot), taste);
       if (!ranked.length) continue;
       const main = Math.ceil(n * 2 / 3), alt = n - main;
       add(ranked[0].id, Math.ceil(main * depth));
       if (alt > 0 && ranked[1]) add(ranked[1].id, Math.ceil(alt * depth));
-      add(cheapest(ranked).id, Math.ceil(n * CONST.FOUNDING_SPARES));
+      /* the cheap spares: for armour, the piece at the cheap end that stops the most */
+      const lo = cheapest(ranked).cost * CONST.KIT_MUSTER_SLACK;
+      add(slot === 'armor' ? ranked.filter(a => a.cost <= lo).sort((a, b) => armourWorth(b) - armourWorth(a))[0].id : cheapest(ranked).id, Math.ceil(n * CONST.FOUNDING_SPARES));
     }
     for (const modId of (d.mod_wishlist || [])) {
       const m = byId(modId);
@@ -12136,7 +12174,7 @@
   const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf, armourWorth,
     squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
@@ -12846,6 +12884,7 @@
     });
     st.fights = []; st.resolve = opts.resolve || standIn; st.allied = opts.allied || ((a, b) => a === b); st.captivePolicy = opts.captivePolicy || captiveByStance; st.held = {};   /* §CAPTIVES each OA's hold: a captive taken is sent there at once (ruled) */
     st.headOf = opts.headOf || null;   /* with bodies behind a squad, how many stand: read at dawn and after every fight */
+    st.strengthOf = opts.strengthOf || null;   /* and what they have left: the health of those who stand */
     st.driven = !!opts.driven;         /* a day loop outside drives the clock: the contest does not call its own end */
     st.onSettle = opts.onSettle || null; st.onOverrun = opts.onOverrun || null; st.siteFor = opts.siteFor || null; st.reportOf = opts.reportOf || null;
     st.audit.fights = 0; st.audit.joined = 0; st.audit.harassed = 0; st.audit.captured = 0; st.audit.wiped = 0;
@@ -12955,13 +12994,41 @@
     for (const o of alive(st)) { if (o === q || o.oa === q.oa) continue; const d = zoneDist(st, q.zone, o.zone); if (d == null) continue; if (loudness(st, o) >= d * CONST.HEAR_AT) out.push({ squad: o, dist: d, loud: loudness(st, o) }); }
     return out;
   }
+  /** §FIGHTS (ruled: a squad weighs itself by health, not heads) what a squad is worth in a fight: with bodies behind
+      it (a driver), the health its standing people have left; alone, its count */
+  function strOf(st, q) { return st.strengthOf && q.ref ? st.strengthOf(q.ref) : q.n; }
+  /** §FIGHTS (ruled: a squad slips a fight it should not take) a squad that sees rivals coming at it, or standing next
+      to it, beyond what its stance accepts against what it has left, steps away to free ground rather than wait to be
+      hit: away from them, onto ground that lasts, never onto ground a rival holds or is walking to. A squad the wall,
+      an order or a rush drives does not. */
+  function evade(st, q) {
+    if (q.fight != null || onRoad(q) || !st.headOf) return;
+    if (q.intent && ['the wall', 'order', 'rushing', 'evade'].indexOf(q.intent.why) >= 0) return;
+    const Z = st.ground.zones, now = st.day * CONST.TICKS_A_DAY + st.tick, near = new Set();
+    let them = 0;
+    for (const o of alive(st)) {
+      if (st.allied(o.oa, q.oa) || o.fight != null) continue;
+      const k = q.know[o.zone]; if (!k || k.how !== 'seen' || now - k.at > 1) continue;
+      const coming = o.moving && o.moving.to === q.zone, beside = Z[q.zone].nb.indexOf(o.zone) >= 0;
+      if (coming || beside) { them += o.n; near.add(o.zone); }
+    }
+    if (!them || feared(q, them) <= strOf(st, q) * (STANCE[q.stance] || STANCE.standard).accept) return;
+    const walking = new Set(alive(st).filter(o => !st.allied(o.oa, q.oa) && o.moving).map(o => o.moving.to));
+    const pressedBy = v => Z[v].nb.filter(x => near.has(x)).length;
+    const opts = Z[q.zone].nb.filter(v => !near.has(v) && !walking.has(v) && !holder(st, v) && !deadZone(st, v) && zoneEnds(st, v) > st.day + CONST.PLAN_MARGIN_DAYS && stepOf(st, q, v))
+      .sort((a, b) => pressedBy(a) - pressedBy(b));
+    if (!opts.length) return;
+    q.intent = { type: 'take', zone: opts[0], why: 'evade' }; q.path = [opts[0]]; q.moving = null; q.wait = 0;
+    st.audit.evaded = (st.audit.evaded || 0) + 1;
+    st.events.push({ t: 'evade', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: opts[0], n: them });
+  }
   /** refresh a squad's knowledge from sight, hearing and its briefing */
   function perceive(st, q) {
     const seen = sees(st, q), now = st.day * CONST.TICKS_A_DAY + st.tick;
     for (const zid of seen) { const h = holder(st, zid); q.know[zid] = { at: now, oa: h && h.oa !== q.oa ? h.oa : null, n: h && h.oa !== q.oa ? h.n : 0, squad: h && h.oa !== q.oa ? h.id : null, how: 'seen' };
       /* §STANCE a rival seen on its way, or on its objective, beyond what the stance accepts: it thinks again */
       if (h && !st.allied(h.oa, q.oa) && q.intent && q.intent.type === 'take' && q.intent.why !== 'the wall' && q.intent.why !== 'order' && q.intent.why !== 'rushing'
-          && (zid === q.intent.zone || (q.path && q.path[0] === zid)) && feared(q, h.n) > q.n * (STANCE[q.stance] || STANCE.standard).accept) { q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: zid }; if (q.moving && q.moving.to === zid && !onRoad(q)) q.moving = null; q.path = null; } }
+          && (zid === q.intent.zone || (q.path && q.path[0] === zid)) && feared(q, h.n) > strOf(st, q) * (STANCE[q.stance] || STANCE.standard).accept) { q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: zid }; if (q.moving && q.moving.to === zid && !onRoad(q)) q.moving = null; q.path = null; } }
     for (const hd of hears(st, q)) { if (seen.indexOf(hd.squad.zone) >= 0) continue; q.know[hd.squad.zone] = { at: now, oa: null, n: Math.round(hd.loud / CONST.LOUD_PER_BODY / 2), squad: hd.squad.id, how: 'heard' }; st.audit.heard++; }
   }
   /** the briefing a seat gives at the window: the overview of the squad's own and adjacent regions */
@@ -13002,7 +13069,7 @@
   }
   function planGroup(st, oa, group, rid, left, opts) {
     const G = st.ground, dial = STANCE[group[0].stance] || STANCE.standard, now = st.day * CONST.TICKS_A_DAY + st.tick;
-    const force = group.reduce((t, q) => t + q.n, 0);
+    const force = group.reduce((t, q) => t + strOf(st, q), 0);   /* §FIGHTS what it has left, not how many */
     const lead = group.slice().sort((a, b) => b.n - a.n)[0];   /* the biggest squad's captain reads for the group */
     /* §SITES what a zone's site is to this group now: a driver that keeps the sites says whether it is spent, held,
        dark or wanted (a beacon only with a reserve to land; a rest site more to the hurt and the hungry; the deposit the
@@ -13109,7 +13176,7 @@
       if (best && (bestV > 0 || pressed)) { taken[best.zid] = true; q.intent = { type: 'take', zone: best.zid, why: pressed ? 'the wall' : 'the ground' }; st.audit.plans++; }
       else {
         /* nothing worth walking to: a known rival next door it will not close with is picked at from here */
-        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && feared(q, k.n) > q.n * dial.accept && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
+        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && feared(q, k.n) > strOf(st, q) * dial.accept && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
         q.intent = nb != null && !pressed ? { type: 'harass', zone: nb, why: 'picking' } : { type: 'hold', zone: q.zone };
         if (q.intent.type !== 'harass') q.firing = 0;
       }
@@ -13166,7 +13233,7 @@
         /* §STANCE arriving to find the zone held in strength beyond what it accepts, a squad that is not driven
            stops short and thinks again; the fight is the one it chooses */
         const must = q.intent && (q.intent.why === 'the wall' || q.intent.why === 'order' || q.intent.why === 'rushing');
-        if (!must && feared(q, h.n) > q.n * (STANCE[q.stance] || STANCE.standard).accept) {
+        if (!must && feared(q, h.n) > strOf(st, q) * (STANCE[q.stance] || STANCE.standard).accept) {
           if (onRoad(q)) { q.moving.paid = q.moving.cost; q.intent = { type: 'hold', zone: q.zone, why: 'contact', at: to }; return; }
           q.moving = null; q.path = null; q.shut = q.shut || {}; q.shut[to] = st.day;
           q.intent = { type: 'hold', zone: q.zone, why: 'seen', at: to }; plan(st, q.oa, { only: ['seen'] }); return;
@@ -13261,7 +13328,7 @@
       if (o.intent && (o.intent.why === 'the wall' || o.intent.why === 'order')) continue;   /* pressed, or under orders */
       const dial = STANCE[o.stance] || STANCE.standard, friend = f.sides.some(S => st.allied(S.oa, o.oa));
       const foe = f.sides.filter(S => !st.allied(S.oa, o.oa)).reduce((t, S) => t + S.squads.reduce((u, x) => u + x.n, 0), 0);
-      const want = friend ? 0.9 : (foe <= o.n * dial.accept * 1.5 ? dial.seek : dial.seek * 0.4);
+      const want = friend ? 0.9 : (foe <= strOf(st, o) * dial.accept * 1.5 ? dial.seek : dial.seek * 0.4);
       if (r01(st) >= want) continue;
       const cost = st.ground.regions[Z[nb].region].ticks;
       put(o, nb, 1 + cost * CONST.JOIN_TURNS_PER_TICK); f.joiners.push(o.id); st.audit.joined++; }
@@ -13378,7 +13445,7 @@
     /* the squad under fire: by its dial it rushes the rifles or holds; a rush is a contact at the harasser's zone */
     if (h.alive && !h.moving && !(h.intent && h.intent.type === 'fight')) {
       const dial = STANCE[h.stance] || STANCE.standard;
-      if (q.n <= h.n * dial.accept * 1.3 && r01(st) < dial.seek + 0.3) { q.harass.rushed = true; h.intent = { type: 'take', zone: q.zone, why: 'rushing' }; h.path = [q.zone]; }
+      if (q.n <= strOf(st, h) * dial.accept * 1.3 && r01(st) < dial.seek + 0.3) { q.harass.rushed = true; h.intent = { type: 'take', zone: q.zone, why: 'rushing' }; h.path = [q.zone]; }
     }
     if (q.harass.ticks >= CONST.HARASS_TICKS) { q.intent = { type: 'hold', zone: q.zone, why: 'harass_done' }; q.firing = 0; }
   }
@@ -13469,7 +13536,8 @@
     wallReflex(st);
     for (const f of st.fights) if (!f.done && f.until <= absTick(st)) settleFight(st, f);
     for (const q of alive(st)) perceive(st, q);
-    for (const q of alive(st)) if (q.fight == null && (!st.camp || q.moving || (q.intent && (q.intent.why === 'the wall' || q.intent.why === 'rushing' || q.intent.why === 'order')))) move(st, q);
+    for (const q of alive(st)) evade(st, q);
+    for (const q of alive(st)) if (q.fight == null && (!st.camp || q.moving || (q.intent && (q.intent.why === 'the wall' || q.intent.why === 'rushing' || q.intent.why === 'order' || q.intent.why === 'evade')))) move(st, q);
     st.tick++;
     if (st.tick >= CONST.TICKS_A_DAY) { st.tick = 0; st.day++; }
     if (st.driven) return;
@@ -16860,7 +16928,7 @@ const CONST = {
    */
   TEMPO: { single_shot: 0.5, burst: 2.0, suppressive: 1.6, suppressive_2: 2.4 },
   TEMPO_DEFAULT: 1.0,                     // [S]
-  TEMPO_AIM: 50,                         // [C] aim swing between the most deliberate and the loosest
+  TEMPO_AIM: 34,                         // [C] aim a slow gun earns per point of rate under one (the catalogue's single_shot: +1.7 at half rate); a fast gun pays none — its follow-up rounds pay (tactical FOLLOWUP_HIT)
   TEMPO_PIERCE: 1.6,                      // [C] protection a deliberate weapon defeats, per point under rate
 
   /* §3.5 shot resolution */
@@ -17233,6 +17301,7 @@ function makeCombatant(fighter, opts) {
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) }, hooks,
     /* the wound pool — see `damageOf`; in a Divide it starts where the last fight left it (`_hpFrac`, divide.js §WOUNDS) */
     hpMax: hpFor(fighter), hp: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
+    _hpStart: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
     weapon, armor,
     state: 'ok',                 // ok | light | down | stable | dead | captured | routed
     comp: seedComposure(fighter, hooks, opts),
@@ -17431,7 +17500,7 @@ function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
      aim(q, c, bandIdx, ctx)         -> number added to aim_eff
      cover(q, shooter, target, idx)  -> new cover index for the target
      sev(q, shooter, target, band)   -> number added to the severity roll
-     onMiss(q, ...)                  -> side effects when a shot misses
+     (on a miss: `cover_shred`, `ricochet` act at the grid's shot)
    A quirk may implement any subset. Absent phase = no effect in that phase. */
 const QUIRK = {
   /* --- aim --- */
@@ -17448,7 +17517,7 @@ const QUIRK = {
      the tag became a flat, unconditional +3 aim — better than the specialist bonus and with
      none of the conditions. What is cheap to achieve is worth less. */
   sustained: { aim: (c, b, ctx) => 10 * Math.min(CONST.SUSTAINED_CAP, c._sustain || 0) },
-  smart_link: { aim: (c, b) => bandMismatch(c, b) },              /* refunds the whole penalty */
+  smart_link: {},                                                  /* waives the range penalty: in `aimEff` */
   min_band_medium: { aim: (c, b) => b === 2 ? -990 : 0 },          /* cannot engage at short */
   single_shot: {},                                                 /* handled in the action loop */
   spool: {},                                                       /* handled in the action loop */
@@ -17456,23 +17525,21 @@ const QUIRK = {
   burst: {},                                                       /* handled in the action loop */
 
   /* --- cover --- */
-  cover_shred: { onMiss: (rng, shooter, target, side) => degradeCover(side, target) },
-  /* `ricochet` claimed a call site that did not exist. A miss looks for somebody else. */
-  ricochet: { onMiss: (rng, shooter, target, enemySide) => {
-    if (rng() >= CONST.RICOCHET_P) return;
-    const others = enemySide.units.filter(u => u !== target && (u.state === 'ok' || u.state === 'light'));
-    if (others.length) others[Math.floor(rng() * others.length)]._ricochetHit = true;
-  } },
+  cover_shred: {}, ricochet: {},                                   /* on a miss, at the grid's call site */
 
   /* --- severity --- */
-  pierce_1: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(1, effectiveProtection(s, t))) },
-  pierce_2: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(2, effectiveProtection(s, t))) },
-  pierce_3: { sev: (s, t) => Math.round(CONST.SEV_PROTECTION_MULT * Math.min(3, effectiveProtection(s, t))) },
-  flechette: { sev: (s, t) => (t.armor.protection || 0) <= 1 ? 6 : (t.armor.protection || 0) >= 4 ? -6 : 0 },
+  /* §ARMOUR (fixed) piercing is points of the target's protection defeated, and only the protection the round actually
+     met: `pierce` returns points, summed with the gun's `pen` and a slow gun's bite and capped at what was there.
+     Each was rounded into severity on its own, read the armour's protection even where the round missed it, and
+     together could defeat more than existed — so against a pen gun, wearing armour got you killed more often. */
+  pierce_1: { pierce: () => 1 },
+  pierce_2: { pierce: () => 2 },
+  pierce_3: { pierce: () => 3 },
+  flechette: { sev: (s, t) => { const p = t._effProt != null ? t._effProt : effectiveProtection(s, t); return p <= 1 ? 6 : p >= 4 ? -6 : 0; } },
   incendiary: { sev: () => 8 },
   disorient: {},                                                   /* composure, applied on hit */
   chill: {},                                                       /* movement, applied on hit */
-  emp: {},                                                         /* nothing mechanical to hit yet */
+  emp: {},                                                         /* frames, drones, turrets: at the grid's shot */
   arc_chain: {},                                                   /* second target, at the call site */
   area: {},                                                        /* multi-target, at the call site */
 
@@ -17540,14 +17607,17 @@ function tempoOf(c) {
 }
 /** Deliberate weapons aim better; spraying weapons aim worse. Centred on the default rate. */
 function tempoAim(c) {
-  return CONST.TEMPO_AIM * (CONST.TEMPO_DEFAULT - tempoOf(c));
+  /* §GUNS (fixed) rate was charged twice: a flat −50 aim a point of rate over one on every round, on top of the gun's own
+     handling, which already prices its precision — so an SMG sat on the hit floor at every range and could not buy its
+     accuracy back with volume. A slow gun's aim is the catalogue's; a fast gun's rate costs it on the rounds after the
+     first, where recoil lives (tactical.js). */
+  const r = tempoOf(c);
+  return r < CONST.TEMPO_DEFAULT ? CONST.TEMPO_AIM * (CONST.TEMPO_DEFAULT - r) : 0;
 }
 /** And they defeat protection, which is the other half of "hits when others cannot". */
-function tempoPierce(shooter, target) {
+function tempoPierce(shooter) {
   const under = CONST.TEMPO_DEFAULT - tempoOf(shooter);
-  if (under <= 0) return 0;
-  const bite = Math.min(under * CONST.TEMPO_PIERCE, effectiveProtection(shooter, target));
-  return Math.round(CONST.SEV_PROTECTION_MULT * bite);
+  return under > 0 ? under * CONST.TEMPO_PIERCE : 0;   /* points of protection, capped with the rest in `pierceSev` */
 }
 /** §8 — protection as this shooter's damage type actually meets it. */
 function effectiveProtection(shooter, target) {
@@ -17581,13 +17651,15 @@ function quirkCover(shooter, target, idx, bandIdx) {
 function quirkSev(shooter, target, bandIdx) {
   let s = 0;
   for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.sev) s += h.sev(shooter, target, bandIdx) || 0; }
-  /* §GUNS PENETRATION: what armour the round goes through, as the gun's own number — the `pierce_N` tags stay for a mod */
-  if (shooter.weapon && shooter.weapon.pen) s += Math.round(CONST.SEV_PROTECTION_MULT * Math.min(shooter.weapon.pen, effectiveProtection(shooter, target)));
   return s;
 }
-function degradeCover(side, target) {
-  if (!side || !side.pool || target.cover == null || target.cover <= 0) return;
-  target.cover = Math.max(0, target.cover - 1);
+/* §GUNS PENETRATION: what armour the round goes through — the gun's own `pen`, the `pierce_N` tags, a slow gun's bite —
+   as points of the protection this round met (`met`: none where it found no armour), never more than was there */
+function pierceSev(shooter, met) {
+  let pts = (shooter.weapon && shooter.weapon.pen) || 0;
+  for (const q of quirksOf(shooter)) { const h = QUIRK[q]; if (h && h.pierce) pts += h.pierce(); }
+  pts += tempoPierce(shooter);
+  return Math.round(CONST.SEV_PROTECTION_MULT * Math.min(pts, met));
 }
 
 
@@ -17649,9 +17721,16 @@ function aimEff(c, bandIdx, ctx) {
     const far = Math.max(0, ctx.dist - c.weapon.reach) * (c.weapon.falloff != null ? c.weapon.falloff : CONST.FALLOFF_DEFAULT);
     const near = Math.max(0, (c.weapon.near || 0) - ctx.dist) * CONST.NEAR_FALLOFF;
     mis = far + near;
-    if (mis === 0 && (c.weapon.range || 'medium') !== 'medium')
+    /* §GUNS (fixed) a specialist's bonus is for its own band: a long gun at long range, a short gun at short. It was
+       granted anywhere between `near` and `reach` — five to nineteen tiles for the marksman, so it shot best at four */
+    const own = (c.weapon.range === 'long' && bandIdx === 0) || (c.weapon.range === 'short' && bandIdx === 2);
+    if (mis === 0 && own)
       mis = -CONST.BAND_SPECIALIST_BONUS * (c.weapon.range === 'short' ? CONST.BAND_SPECIALIST_SHORT : 1);
   } else mis = bandMismatch(c, bandIdx);
+  /* `smart_link` — "waives band_mismatch_penalty entirely": the penalty for the wrong distance, never the bonus for the
+     right one. It added `bandMismatch` itself, which at a gun's own band is the NEGATIVE of the specialist bonus, so
+     a smart-linked SMG lost thirty aim exactly where it was built to fight. */
+  if (mis > 0 && hasQuirk(c, 'smart_link')) mis = 0;
   a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
   /* §GUNS HANDLING is the gun's own precision, apart from the hand that holds it; and a SNAP SHOT — shooting in the same
@@ -17676,6 +17755,7 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - CONST.HIT_PIVOT) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
   let coverIdx = target.cover;
   if (target._bulwarked) coverIdx = Math.min(3, coverIdx + 1);        // Olmac walking_bulwark
+  if (target._shielded) coverIdx = Math.min(3, coverIdx + 1);         // §GUNS a squadmate's `mobile_cover`
   if (target.hovering) coverIdx = Math.max(0, coverIdx - 1);            // hover ignores a step of cover
   if (target.exposed) coverIdx = Math.max(0, coverIdx - 1);             // §3.4: you have to lean out to shoot
   if (target.flanked) coverIdx = Math.max(0, coverIdx - 1);             // §3.2b: cover faces one way
@@ -17692,7 +17772,8 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   if (overwatch && shooter.hooks.has('overwatch_fatigue_immune')) m *= 1.12;
   if (target.suppressed) m *= CONST.SUPPRESSED_HARDER_TO_HIT;
   if (target.hooks.has('bombardment_evasion_bonus') && overwatch) m *= 0.70;
-  m *= CONST.BAND_HIT_MULT[bandIdx];
+  /* the long band is hard shooting for a gun not built for it; a long gun is (fixed: it took the penalty too) */
+  m *= (bandIdx === 0 && shooter.weapon && shooter.weapon.range === 'long') ? 1 : CONST.BAND_HIT_MULT[bandIdx];
   /* §3.7 Going to a downed man is the most dangerous thing in a firefight — WORSE than
      simply standing in the open. You are not shooting, so nothing is keeping their heads
      down, and you are moving fast rather than carefully. */
@@ -17720,7 +17801,7 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const why = [];
   const cw = ['No Cover', 'Light Cover', 'Hard Cover', 'Dug In'][coverIdx];
   if (coverIdx > 0) why.push([cw, CONST.COVER_MULT[coverIdx]]);
-  const bandName = ['Close', 'Medium', 'Long'][bandIdx] || '';
+  const bandName = ['Long', 'Medium', 'Close'][bandIdx] || '';   /* bands run long, medium, short */
   if (CONST.BAND_HIT_MULT[bandIdx] !== 1) why.push([bandName + ' Range', CONST.BAND_HIT_MULT[bandIdx]]);
   if (target.flanked) why.push(['Flanked', 1.4]);
   if (!target.spotted) why.push(['Unspotted', CONST.SPOT_UNSPOTTED]);
@@ -17773,7 +17854,7 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
   /* §ARMOUR COVERAGE: a hit that lands where the armour is not — a bare arm under a vest — gets none of it */
   const covered = target.armor.coverage == null || rng() < target.armor.coverage;
   const effProt = covered ? Math.max(0, (target.armor.protection || 0) + resist) : 0;
-  if (!covered) target._uncoveredHit = true;
+  target._effProt = effProt;   /* what this round met, for the quirks that read armour */
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
@@ -17787,7 +17868,7 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
      `_unseen` is set by the grid around the shot: the shooter is the one nobody has placed. */
   if (shooter.hooks.has('unspotted_open_fire_bonus') && shooter._unseen) roll += 12;
   const qs = quirkSev(shooter, target, bandIdx)                         /* §4.2 */
-           + tempoPierce(shooter, target);                             /* COMPOSITION.md §4 */
+           + pierceSev(shooter, effProt);                              /* COMPOSITION.md §4, §GUNS */
   roll += qs;
   /* casualty_scalar deleted (DIVIDE.md §7.2). Declared stance does not touch lethality;
      the ladder comes from how many fights a corp goes looking for. `policy` is retained
@@ -17866,7 +17947,17 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
     tel.sidesEngaged = (tel.sidesEngaged || 0) + 1;
     if (overrun) tel.squadsBroken = (tel.squadsBroken || 0) + 1;
     const lost = overrun;
+    /* §CAPTIVES (fixed) A BODY LEFT LYING ON GROUND ITS SIDE HAS GIVEN UP IS TAKEN. Somebody stunned, or held at a breath
+       by an injector, cannot walk off with a withdrawal; when nobody of his is left standing on the field and the other
+       side is, they have him. Only an overrun took anyone — and a side that called its retreat was never overrun, so a
+       stun build could not take a prisoner, and its victims woke and were carried off by nobody. */
+    const abandoned = !active(S).length && active(E).length > 0 && E !== S;
     for (const u of S.units) {
+      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter)) {
+        u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
+        if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
+        continue;
+      }
       if (u.state === 'down') {
         /* D2: every squad carries its wounded out. Losing them is a consequence of being
            OVERRUN (§3.7), not of stance — which is why death-or-glory still loses more. */
@@ -17891,7 +17982,7 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
            deaths across six seasons AFTER the round stopped killing and the bleed was stopped —
            they were dying on the recovery roll at the end of a show-match. A non-lethal weapon
            has to survive every death path in the resolver, not the one it fires down. */
-        else if (u._stunnedDown) { u.state = 'stable'; }
+        else if (u._stunnedDown || u._upAfter) { u.state = 'stable'; }   /* a stun round, or a stasis injector */
         else if (u._sharedDown && u.bleed == null) { u.state = 'stable'; }
         else if (rng() < recoverP) { u.state = 'stable'; }
         else { u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; onDeath(rng, u, S, log || [], tel); }
@@ -17921,7 +18012,7 @@ function onDeath(rng, unit, side, log, tel) {
      tracked through the wound chain, so credit goes to whoever on the other side is carrying
      one — a showy weapon gets the story whether or not it fired the round. */
   if (tel) tel._lastKillSide = side && side.tag;
-  if (unit._killedBy && hasQuirk(unit._killedBy, 'crowd_pleaser')) {
+  if (unit._killedBy && (hasQuirk(unit._killedBy, 'crowd_pleaser') || ((unit._killedBy.armor && unit._killedBy.armor.tags) || []).indexOf('crowd_pleaser') >= 0)) {
     unit._killedBy._fameEarned = (unit._killedBy._fameEarned || 0) + 1;
     if (tel) tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
   }
@@ -18007,7 +18098,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, onDeath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed
@@ -18105,6 +18196,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §5.1 — suppression. `SUPPRESS_AP` was declared here at Step 5 and read by NOTHING: the
        grid resolver had no suppression of any kind, so every weapon whose entire purpose is
        to hold an arc down was, on the model that actually matters, a worse rifle. */
+    AREA_RADIUS: 3,                  // [C] §GUNS how near the mark a blast's other targets must stand (tiles)
+    MOBILE_COVER_RADIUS: 2,          // [C] §GUNS how near a standing wall-gun its squadmates are shielded (tiles)
     SUPPRESS_RADIUS: 2,              // [C] tiles either side of the mark that also go to ground
     SPREAD_HIT_MULT: 0.6,            // [C] §GUNS the chance a round's edge catches somebody beside the target, of the shot's
     SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
@@ -18168,6 +18261,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
        Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
     FINISH_WOUNDED: 0.05,            // [C]
+    FOLLOWUP_HIT: 0.6,               // [C] §GUNS a follow-up round of a burst hits at this share of the first
+    FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
+    HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
                                      //     Not 1.0 on purpose: a dash that is as cautious as a
                                      //     walk is not a dash, and the mechanism exists to get
@@ -18218,6 +18314,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     COVER_BLAST_P: 0.55,             // [C] the same for an `area` weapon, which is the point of one
     COVER_BLAST_RADIUS: 1,           // [C] tiles around the burst that take the same chance
     DEPLOY_DEPTH: 5,                 // [C] how deep a deployment zone is
+    DEPLOY_SPAN: 10,                 // [C] §RANGE how many rows of the board a squad deploys across, centred
     /* §FLANK (ruled: option B) A FLANKED FIGHT IS FOUGHT ON MORE GROUND. A side whose squads walked in from different
        directions used to merge into one blob on one edge — a pincer on the map was a single rank on the grid. Now each
        squad comes on at its own edge, and when the approaches are this far apart the board grows to hold them, so the
@@ -18255,7 +18352,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        roughly, so people can shoot back at you badly. Neither — you are not a target at all. */
     /* §APPROACH the opening gaps, as shares of the long band's own edge */
     OPEN_LONG: 1.85,                 // [C] a long opening is well beyond sight: an approach
-    OPEN_MEDIUM: 1.05,               // [C] a medium one is at the edge of it
+    OPEN_MEDIUM: 0.72,               // [C] a medium one is in the medium band (it was 1.05: a 15-tile gap, already long)
     BOARD_MARGIN: 10,                // [C] ground either side of the gap to manoeuvre in
     BOARD_TALLER: 4,                 // [C] a longer board is a little deeper too
     /* what a fieldcraft score is worth as eyes, against the spread rosters actually deal */
@@ -18297,7 +18394,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     PANIC_RESOLVE_DIV: 260,           // [C] high resolve almost never breaks
     PANIC_FLOOR: 0.04,               // [C] anyone can break, rarely
     BOUND_SHARE: 0.5,                // [S] how much of a withdrawing squad moves each turn
-    EXIT_COLS: 1                     // [S] reaching your own edge takes you off the field
+    EXIT_COLS: 1,                    // [S] reaching your own edge takes you off the field
+    BREAK_MARGIN: 3                  // [C] §RETREAT tiles past an enemy gun's reach a retreating body counts as out of it
   };
 
   /* ---------------------------------------------------------------- */
@@ -18848,8 +18946,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return place(rng, map, units, prep, spots, taken, opts);
     }
     const x0 = side === 0 ? 1 + inset : map.w - 1 - CONST.DEPLOY_DEPTH - inset;
+    /* §RANGE (fixed) a squad deploys facing the other across the middle of the board, not strung down its whole height:
+       spread over all eighteen rows, a "short" opening put the nearest rival six or seven tiles off — the edge of medium */
+    const yLo = Math.max(0, Math.floor((map.h - CONST.DEPLOY_SPAN) / 2)), yHi = Math.min(map.h, yLo + CONST.DEPLOY_SPAN);
     for (let x = x0; x < x0 + CONST.DEPLOY_DEPTH; x++) {
-      for (let y = 0; y < map.h; y++) {
+      for (let y = yLo; y < yHi; y++) {
         if (x < 0 || x >= map.w) continue;
         if (blocked(map, x, y)) continue;
         let adj = 0;
@@ -18911,6 +19012,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const S of sides) {
       for (const w of alive(S.units)) {
         if (!w.overwatch || w.side === mover.side) continue;
+        if (w.suppressed) continue;          /* §SUPPRESSION (ruled) a pinned man is not watching, he is keeping his head down */
         if (!hasLOS(map, w, mover)) continue;
         /* YOU CANNOT REACT TO SOMEBODY YOU HAVE NOT SEEN. Line of sight alone used to be the
            whole test, which was right when everybody could see everybody. Under fog it would
@@ -19011,9 +19113,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       it looked for the tag anywhere in `combat.js` rather than anywhere the grid can reach.
       On a grid the honest meaning of mobility is simply how much ground you cover. */
   function moveTilesFor(u, unseen) {
-    let mp = CONST.MOVE_TILES + ((u.weapon && u.weapon.mobility) || 0) * 0.5;
+    /* §ARMOUR what a body wears weighs on its feet as its gun does: armour's mobility and its mob tags were declared,
+       priced and never reached the grid, so heavy plate cost nothing to carry */
+    const at = (u.armor && u.armor.tags) || [];
+    let mp = CONST.MOVE_TILES + ((u.weapon && u.weapon.mobility) || 0) * 0.5 + ((u.armor && u.armor.mobility) || 0) * 0.5;
     if (C.hasQuirk(u, 'mob_down')) mp -= CONST.MOB_TILES;
     if (C.hasQuirk(u, 'mob_up')) mp += CONST.MOB_TILES;
+    if (at.indexOf('mob_down') >= 0) mp -= CONST.MOB_TILES;
+    if (at.indexOf('mob_up') >= 0) mp += CONST.MOB_TILES;
     /* SOFT BOOTS — "arrives places without the courtesy of being heard first". Named on the
        suite's own list of hooks read by no system at all, waiting for a spotting model. It
        pays while nobody has eyes on you, which is the only time moving quietly is worth
@@ -19033,7 +19140,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     return Math.max(2, mp);
   }
 
-  function candidates(map, taken, u, mp, near) {
+  function candidates(map, taken, u, mp, near, foes) {
     const reach = reachable(map, taken, u, mp);
     const out = [], seen = new Set();
     const keep = (c) => { const k = c.x + ',' + c.y; if (!seen.has(k)) { seen.add(k); out.push(c); } };
@@ -19077,6 +19184,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (best) keep(best.c);
       }
     }
+    /* §AI ROUND THE SIDE OF SOMEBODY'S COVER. The side-steps above are ninety degrees off the line to the nearest
+       enemy, and at range five tiles of that cannot get outside the arc his cover faces — so a flank was only ever
+       an accident. For the nearest few rivals the fighter can see who are in cover, the reachable tile nearest him
+       from which that cover no longer faces is offered too. */
+    if (foes && foes.length) {
+      const covered = foes.filter(f => concealAt(map, f) > 0).sort((a, b) => dist(u, a) - dist(u, b)).slice(0, CONST.FLANK_LOOK);
+      for (const f of covered) {
+        let best = null;
+        for (const c of reach) {
+          if (coverAgainst(map, f, c) !== 0 || !hasLOS(map, c, f)) continue;
+          const d = Math.hypot(c.x - f.x, c.y - f.y);
+          if (!best || d < best.d) best = { c: c, d: d };
+        }
+        if (best) keep(best.c);
+      }
+    }
     return out;
   }
 
@@ -19089,13 +19212,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const cov = coverWithSmoke(map, target, shooter);
     const saveCover = target.cover, saveFlank = target.flanked;
     target.cover = cov;
-    target.flanked = cov === 0 && saveCover > 0;     /* they had cover; it does not face you */
+    /* they had cover where they stand, and it does not face you. This read `target.cover`, which the grid never sets
+       (every body carries the 1 it was made with), so everybody in the open was "flanked" */
+    target.flanked = cov === 0 && concealAt(map, target) > 0;
     /* Every shot is a ROUND, not a volley. This is the whole argument for the tactical
        model over the abstract one: a magazine now runs out in front of you, an energy
        weapon cooks, and a fighter with neither finishes the fight on a pistol. */
     /* §GUNS A RELOAD IS NOT RUNNING DRY: the round goes on the magazine, the sidearm stays holstered — treating a
        reloading gun as an empty one drew pistols across the whole field, shooting at ranges no pistol reaches */
     if (shooter.reloading > 0) { tel.reloading = (tel.reloading || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
+    /* §GUNS `min_band_medium` — "cannot fire at short band at all": it does not, rather than firing at the floor */
+    if (band === 2 && !shooter.onSidearm && C.hasQuirk(shooter, 'min_band_medium')) { tel.tooClose = (tel.tooClose || 0) + 1; target.cover = saveCover; target.flanked = saveFlank; return false; }
     if (!C.primaryReady(shooter)) {
       if (!shooter.onSidearm && !C.useSidearm(shooter)) { tel.dry++; target.cover = saveCover; target.flanked = saveFlank; return false; }
       if (!shooter._drewFlag) { shooter._drewFlag = true; tel.sidearmDraws++; }
@@ -19143,10 +19270,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
        reaction — both were wanted by hooks that had no way to ask */
     /* §LIGHT the planet's dark reaches every shot: aim suffers at night unless the fighter is at home in it */
-    const p = C.hitChance(shooter, target, band,
+    let p = C.hitChance(shooter, target, band,
                           { unseen: !!unseen, overwatch: !!react, side: shooter._side, night: !!_night, dist: d }, !!react)
               * (react ? CONST.OVERWATCH_REACT : 1)
               * CONST.SHOT_HIT_MULT;
+    /* §AI (ruled) a snap reaction at a man crossing is never a better shot than an aimed one at him: the spotting bonus
+       and the reaction discount netted ×1.19, so overwatch out-shot aiming */
+    if (react) p = Math.min(p, C.hitChance(shooter, target, band, { unseen: !!unseen, side: shooter._side, night: !!_night, dist: d }, false) * CONST.SHOT_HIT_MULT);
     tel.shots++;
     /* THE THIRD COUNTER OF THAT SET, FINALLY RAISED. The note beside the declaration records
        that `vents`, `chargeOut` and `energyShots` were once missing from the telemetry object
@@ -19201,16 +19331,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           tel.arcChains = (tel.arcChains || 0) + 1;
         }
       }
-      if (C.hasQuirk(shooter, 'crowd_pleaser') && target.state === 'dead') {
-        shooter._fameEarned = (shooter._fameEarned || 0) + 1;
-        tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
-      }
       if (log) log.push({ t: tel.turn, type: 'hit', by: shooter.id, at: target.id,
                           p: +p.toFixed(3), band, cover: cov,
                           w: (shooter.weapon || {}).name, ammo: shooter.ammo, react: !!react });
       chipCoverFrom(rng, map, shooter, target, tel, log);
-      applyHit(rng, target, C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn),
-               tel, log, shooter, E);
+      const sevMain = C.resolveSeverity(rng, shooter, target, S.policy, band, null, tel.turn);
+      applyHit(rng, target, sevMain, tel, log, shooter, E);
+      /* `emp` — "severity ×2 against turrets, drones and assault frames, and disables them". A frame it hits takes the
+         round twice and is dead weight after; a drone or turret of theirs near the mark is put out. (It was declared
+         with "nothing mechanical to hit yet"; the drones, turrets and frames have all existed since.) */
+      if (C.hasQuirk(shooter, 'emp')) {
+        if (target.armor && target.armor.id === 'itm_assault_frame' && (target.state === 'ok' || target.state === 'light')) {
+          applyHit(rng, target, sevMain, tel, log, shooter, E);
+          target.armor = Object.assign({}, target.armor, { protection: 0, resist: { ballistic: 0, energy: 0, explosive: 0 }, tags: [] });
+          tel.empFrames = (tel.empFrames || 0) + 1;
+        }
+        const foeTag = E.tag;
+        for (const L of [_drones, _turrets]) for (let i = L.length - 1; i >= 0; i--)
+          if (L[i].side === foeTag && Math.hypot(L[i].x - target.x, L[i].y - target.y) <= CONST.AREA_RADIUS) { L.splice(i, 1); tel.empDevices = (tel.empDevices || 0) + 1; if (S._fog) S._fog.dirty = true; }
+      }
     }
     /* TEMPO — the extra rounds this weapon puts down for the same action. A reaction shot is
        one round whatever the weapon is: you are firing at movement, not settling into a rate. */
@@ -19224,7 +19363,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          appeared in the replay as one, and 366 shots in twenty-five fights existed in the
          telemetry and nowhere a reader could see them. The counter and the record disagreed
          about the same event, and only the counter was ever checked. */
-      const tHit = rng() < p;
+      /* §GUNS (ruled) a fast gun's rate costs it here, on the rounds after the first, where the recoil is */
+      const tHit = rng() < p * CONST.FOLLOWUP_HIT;
       chipCoverFrom(rng, map, shooter, target, tel, log);
       if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id, why: (C.hitChance.why || []).slice(),
                           p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,
@@ -19261,10 +19401,31 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!hit) {
       comp(rng, target, C.CONST.COMP.nearMiss);
       if (log) log.push({ t: tel.turn, type: 'miss', by: shooter.id, at: target.id, p: +p.toFixed(3), band, cover: cov, why: (C.hitChance.why || []).slice(), w: (shooter.weapon||{}).name, ammo: shooter.ammo, react: !!react });
-      /* a miss still does something with the right weapon — `cover_shred`, `ricochet` */
-      for (const q of C.quirksOf(shooter)) {
-        const h = C.QUIRK[q];
-        if (h && h.onMiss) h.onMiss(rng, shooter, target, E);
+      /* a miss still does something with the right weapon. `cover_shred` — "a miss still chips the target's position
+         one grade": the piece he hides behind loses a grade. `ricochet` — "a miss has a 25% chance to hit another
+         enemy in band": it does, as a hit. (Both were wired to things the grid never read: a squad's cover pool it does
+         not have, and a flag nothing looked at.) */
+      if (C.hasQuirk(shooter, 'cover_shred') && map) { const spot = coverTileFor(map, shooter, target);
+        if (spot && chipTile(map, spot.x, spot.y, tel)) { tel.coverShred = (tel.coverShred || 0) + 1; if (S._fog) S._fog.dirty = true; } }
+      if (C.hasQuirk(shooter, 'ricochet') && rng() < C.CONST.RICOCHET_P) {
+        const others = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && bandOf(dist(shooter, f)) === band);
+        if (others.length) { const f = others[Math.floor(rng() * others.length)];
+          tel.ricochets = (tel.ricochets || 0) + 1;
+          if (log) log.push({ t: tel.turn, type: 'ricochet', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+          applyHit(rng, f, C.resolveSeverity(rng, shooter, f, S.policy, band, null, tel.turn), tel, log, shooter, E); }
+      }
+    }
+    /* §GUNS `area` — "resolves against up to 3 enemies in band": the blast is resolved against up to two more in the
+       same band near the mark, each on its own chance (it only chipped cover before) */
+    if (C.hasQuirk(shooter, 'area')) {
+      const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && bandOf(dist(shooter, f)) === band && dist(f, target) <= CONST.AREA_RADIUS)
+        .sort((a, b) => dist(a, target) - dist(b, target)).slice(0, 2);
+      for (const f of near) {
+        const pf = C.hitChance(shooter, f, band, { side: shooter._side, night: !!_night, dist: dist(shooter, f) }, false) * CONST.SHOT_HIT_MULT;
+        if (rng() >= pf) continue;
+        tel.areaHits = (tel.areaHits || 0) + 1;
+        if (log) log.push({ t: tel.turn, type: 'blast', by: shooter.id, at: f.id, w: (shooter.weapon || {}).name });
+        applyHit(rng, f, C.resolveSeverity(rng, shooter, f, S.policy, band, null, tel.turn), tel, log, shooter, E);
       }
     }
     /* ---- AND NOW THEY KNOW WHERE YOU ARE -------------------------------------------------
@@ -19327,7 +19488,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        thing anybody does. Ruled: a body that cannot hurt anyone wants maximum distance, and the
        same pull that walked it in now walks it out. */
     if (!canHurt(c)) return CONST.BAND_TILE[0] + 8;
-    const r = (c.weapon && c.weapon.range) || 'medium';
+    /* §AI the distance a fighter wants is his own gun's, not his gun's band's: a short gun inside its reach, a long gun
+       between its `near` and its reach, a middling one at three-quarters of its reach */
+    const w = c.weapon || {}, r = w.range || 'medium';
+    if (w.reach != null) {
+      if (r === 'short') return Math.max(1, w.reach - 1);
+      if (r === 'long') return Math.round(((w.near || CONST.BAND_TILE[1]) + w.reach) / 2);
+      return Math.max(2, Math.round(w.reach * 0.75));
+    }
     if (r === 'long') return CONST.BAND_TILE[0] + 2;
     if (r === 'short') return Math.max(1, Math.round(CONST.BAND_TILE[1] * 0.5));
     return Math.round((CONST.BAND_TILE[0] + CONST.BAND_TILE[1]) / 2);
@@ -19344,7 +19512,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       tel.pinsRefused = (tel.pinsRefused || 0) + 1;
       return;
     }
-    u.suppressed = true;
+    /* being pinned shakes a man: COMP.suppressed was declared and never applied */
+    if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
+    u.suppressed = true; u._pinServed = false;   /* lasts until he has had a turn under it */
     tel.pins = (tel.pins || 0) + 1;
   }
 
@@ -19422,14 +19592,32 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function checkWithdraw(S) {
     if (S.noWithdraw) return false;          /* The Eight: nobody calls it */
     if (S.withdrawing) return true;
-    const total = S.units.length;
-    const gone = S.units.filter(u => u.state !== 'ok' && u.state !== 'light').length;
+    /* §WOUNDS (ruled: the call reads health, not heads) what the squad has lost is the health it came in with that is no
+       longer on its feet: the dead, the down and the gone count for all of theirs, the hurt for what they have lost. And
+       a squad that came in hurt has less to give: it calls it sooner by as much. */
+    let came = 0, left = 0, full = 0;
+    for (const u of S.units) { const max = u.hpMax || 1, start = u._hpStart != null ? u._hpStart : max;
+      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start)); }
+    const lost = came > 0 ? 1 - left / came : 1;
     /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
        holds a bad order longer */
     /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
-    const at = S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT;
-    if (gone / total >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
+    const at = (S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT) * (full > 0 ? came / full : 1);
+    if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
     return false;
+  }
+  /* §RETREAT (ruled) A RETREAT ENDS WHEN CONTACT IS BROKEN, not at the map's edge: a retreating body is off the field
+     once no enemy that can see him can also reach him — out of their sight, or out past their guns. Walking the whole
+     board backwards under fire turned every retreat into the fight's killing ground. */
+  function contactBroken(u, S, sides, map, fog) {
+    for (const O of sides) {
+      if (O === S) continue;
+      const eyes = alive(O.units);
+      const seen = fog ? !!(O._seen && O._seen.has(u.id)) : eyes.some(f => dist(f, u) <= sightRange(f) && hasLOS(map, f, u));
+      if (!seen) continue;
+      if (eyes.some(f => dist(f, u) <= ((f.weapon && f.weapon.reach) || 12) + CONST.BREAK_MARGIN && hasLOS(map, f, u))) return false;
+    }
+    return true;
   }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
   /** Nobody left on the field: dead, down, panicked away or withdrawn off the edge. */
@@ -19450,6 +19638,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        read in twenty-one places across three modules, and nothing downstream of the grid needs
        to know the model changed. */
     if (t.hp == null) t.hp = C.hpFor(t.ref || t);
+    /* §ARMOUR (fixed) A GRAZE THE ARMOUR TOOK IS NOTHING. Every hit cost at least a point of the pool and nearly half cost
+       exactly one, so a light vest could not lower them and the armour most of the field wore did nothing at all: a
+       round that met armour and only grazed is stopped by it */
+    if (sev === 'graze' && (t._effProt || 0) > 0) {
+      tel.absorbed = (tel.absorbed || 0) + 1;
+      comp(rng, t, C.CONST.COMP.nearMiss);
+      if (log) log.push({ t: tel.turn, type: 'absorbed', by: by.id, at: t.id, w: (by.weapon||{}).name, ammo: by.ammo, react: !!by._reacting });
+      return;
+    }
     let dmg = t._sevRoll != null ? C.damageOf(t._sevRoll) : C.CONST.DMG_MIN;
     /* §RACES LEATHERY, GRANITE-COLOURED FLESH. An Olmac's toughness was in the lore and in a
        grit lean and in nothing that took a round: what would drop a body takes more of them
@@ -19495,11 +19692,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                           react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
       return;
     }
-    t.state = 'dead'; tel.dead++;
+    /* §CONSUMABLES (ruled) A STASIS INJECTOR: the round that would have killed its carrier leaves him down at a breath,
+       out of the fight and up when it is over at the lowest band — taken, if his side loses the field */
+    if (t.carried && t.carried.indexOf('itm_stasis_injector') >= 0) {
+      t.carried.splice(t.carried.indexOf('itm_stasis_injector'), 1);
+      t.hp = 1; t.state = 'down'; t._upAfter = true; t._killedBy = by; t._downSev = sev;
+      tel.down++; tel.consumables = (tel.consumables || 0) + 1; tel.stasis = (tel.stasis || 0) + 1;
+      if (side) moraleShock(rng, side, t, 'down');
+      if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, dmg: dmg, stasis: true,
+                          react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
+      return;
+    }
+    t.state = 'dead'; tel.dead++; t._killedBy = by;
     (tel._deathsThisTurn = tel._deathsThisTurn || []).push({ x: t.x, y: t.y });
     if (side) moraleShock(rng, side, t, 'dead');
     if (log) log.push({ t: tel.turn, type: 'killed', by: by.id, at: t.id, dmg: dmg,
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
+    /* what a death sets off — a Mon-Wa half's bond, a showman's fame — ran only for the old down-then-died path, so
+       once a live round killed outright neither ever fired */
+    C.onDeath(rng, t, side, log || [], tel);
   }
 
   /* Removed at this step: stepToward — defined here and called from nowhere in the tree.
@@ -19532,7 +19743,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     ctx = ctx || {};
     STUN_GRADE = !!ctx.stunGrade;
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
-    const closeFight = (ctx.openingBand || 1) === 0;
+    const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */
     /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
        and in nothing that fought: `squadLink` was read in the aim path and set by NOBODY. A
        latent Gil standing with a squad is worth something to everyone in it — the link steadies
@@ -19898,6 +20109,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              flags rather than at end of turn, so it lasts the whole of the enemy's turn —
              which is the mistake `suppressed` makes, clearing for everyone simultaneously and
              expiring on half the people it was applied to before they ever act. */
+          /* §SUPPRESSION (ruled) A PIN LASTS UNTIL THE MAN UNDER IT HAS HAD HIS TURN. It was wiped for everyone at the end
+             of each round, so about half of all pins landed on somebody who had already acted and did nothing at all. A pin
+             he has already sat through one turn under comes off as his next begins. */
+          if (u.suppressed) { if (u._pinServed) { u.suppressed = false; u._pinServed = false; } else u._pinServed = true; }
+          /* `recoil_heavy` — "aim worse in the exchange after repositioning": nothing ever wrote what it reads */
+          u._movedLast = !!(u.repositioning || u._crossed);
           u.repositioning = false; u._crossed = false;
           if (ambush && tel.turn === 1 && si !== first) { u.ap = 1; tel.ambushed++; }
           const taken = occupancy(sides);
@@ -19939,6 +20156,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              cover them, and they swap over each turn. This is what makes a withdrawal read
              differently from a rout — it is still a fight, just one going backwards. */
           if (S.withdrawing) {
+            if (fog) ensureSpot(S);
+            if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
             const crew = alive(S.units);
             const idx = crew.indexOf(u);
             /* NOT BUILT, AND THE ATTEMPT IS RECORDED RATHER THAN LEFT IN. A forced break —
@@ -19977,6 +20196,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               triggerOverwatch(rng, u, sides, map, tel, log);
               if (u.state !== 'ok' && u.state !== 'light') continue;
               if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
+              if (fog) ensureSpot(S);
+              if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
               u.ap--;
             }
             /* covering fire: whether you moved or not, you shoot back */
@@ -19985,13 +20206,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               if (!hasLOS(map, u, f)) continue;
               const cov = coverAgainst(map, f, u);
               const sc = f.cover, sf = f.flanked;
-              f.cover = cov; f.flanked = cov === 0 && sc > 0;
+              f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
               /* §GUNS the scorer sees the shot as the shot will be taken: at its distance, with its gun's reach */
               const p = C.hitChance(u, f, bandOf(dist(u, f)), { dist: dist(u, f) }, false) * CONST.SHOT_HIT_MULT;
               f.cover = sc; f.flanked = sf;
               if (p > bestp) { bestp = p; cover = f; }
             }
-            if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++; }
+            /* §RETREAT (ruled: covering fire protects the people moving) a covering round is fired to keep a head down,
+               whatever the gun: it pins what it is fired at, and the pin holds until that man has had his next turn */
+            if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++;
+              if (cover.state === 'ok' || cover.state === 'light') { const was = cover.suppressed; pin(cover, tel, rng); if (cover.suppressed && !was) tel.coverPins = (tel.coverPins || 0) + 1; } }
             else u.overwatch = true;
             continue;
           }
@@ -20009,21 +20233,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (!canHurt(u)) return 0;
             const cov = coverAgainst(map, f, from);
             const sc = f.cover, sf = f.flanked;
-            f.cover = cov; f.flanked = cov === 0 && sc > 0;
-            const p = C.hitChance(u, f, bandOf(dist(from, f)), {}, false) * CONST.SHOT_HIT_MULT;
+            f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
+            /* §AI the shot as it will be taken: at its distance, through the gun's range model, and as a snap shot from a
+               tile it has to move to — it read the old band step, so a marksman thought itself poor up close and the
+               scorer and the shot disagreed about every distance */
+            const dd = dist(from, f), moved = from.x !== u.x || from.y !== u.y;
+            const p = C.hitChance(u, f, bandOf(dd), { dist: dd, snap: moved }, false) * CONST.SHOT_HIT_MULT;
             f.cover = sc; f.flanked = sf;
             return p;
           };
+          /* §AI (ruled) A FIGHTER IS NOT EVERY ENEMY'S ONLY TARGET. Each rival's shot at a tile is weighed by the chance it
+             picks him out of everyone of his it can see — the threat summed every enemy's shot as if all six would fire at
+             this one man, against a gain that counted only his own one shot, so closing in never paid. And a rival on
+             overwatch fires again at anyone who moves into his view. */
+          const shareOf = new Map();
+          for (const f of foes) { let others = 0; for (const m of S.units) if (m !== u && (m.state === 'ok' || m.state === 'light') && hasLOS(map, f, m)) others++; shareOf.set(f, 1 / (1 + others)); }
+          const threatAt = (spot, moving, dashW) => { let t = 0;
+            for (const f of foes) { if (!hasLOS(map, f, spot)) continue; const w = shareOf.get(f) || 1;
+              t += incoming(f, u, spot, map) * w * (moving && f.overwatch ? 2 : 1); }
+            return t * (dashW || 1); };
           /* Between shots: a half-rate weapon spends this turn cycling the action. They can
              still move and still watch — they simply have nothing to fire. */
           /* `spool` — the catalog's own words: it cannot fire on the first turn of contact.
            `chill` — a hit last turn costs you this one's movement, not your shot. */
         if (u._chilled) { u._chilled = false; u._noMove = true; } else u._noMove = false;
         if (C.hasQuirk(u, 'spool') && tel.turn === 1) { if (u.ap > 0) { u.overwatch = true; u.ap = 0; } continue; }
-        if (u._skipNext) {
-            if (u.ap > 0) { u.overwatch = true; u.ap = 0; }
-            continue;
-          }
+        /* §AI (ruled) A GUN CYCLING ITS ACTION DOES NOT FIRE THIS TURN — not aimed, and not from overwatch either: the
+           cycling turn was spent on overwatch, so a half-rate rifle shot every turn and its slowness cost it nothing. It
+           may still move. */
+        const cycling = !!u._skipNext;
           /* ---- GOING BACK FOR THE WOUNDED --------------------------------------------
              `hasMedkit` was handed to this resolver and read by NOTHING: a squad that bought
              medical kit and a squad that did not fought identical fights, and a downed
@@ -20334,7 +20572,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const meUnseen = fog && !!(E._seen) && !sideKnows(E, u);
           if (meUnseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) tel.softBootsMoves++;
           {
-            const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near);
+            const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near, seen);
             tel.candidates = (tel.candidates || 0) + spots.length;
             tel.candidateCalls = (tel.candidateCalls || 0) + 1;
             for (const cand of spots) {
@@ -20351,11 +20589,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                  Scoring cover as a flat 0.045 a grade against a hit chance of 0.15 meant any
                  marginal improvement in a shot was worth abandoning a wall for, and it is why
                  squads walked out of good ground on turn one. */
-              let threat = 0;
-              for (const f of foes) {
-                if (!hasLOS(map, f, spot)) continue;
-                threat += incoming(f, u, spot, map);
-              }
+              const threat = threatAt(spot, x !== u.x || y !== u.y);
               const bandOff = Math.abs(Math.hypot(x - near.x, y - near.y) - wantTiles(u));
               /* §RACES A HALF KEEPS STATION. A pair that pays for separation and never tries
                  to close is a pair being punished for the engine's indifference: a Mon-Wa
@@ -20386,15 +20620,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   if (cc > ownCov) ownCov = cc;
                 }
                 tap.rows.push({ x, y, p: bestP, threat, bandOff, ownCov: ownCov,
-                                flanks: !!(tgt && tgt.cover > 0 &&
+                                flanks: !!(tgt && concealAt(map, tgt) > 0 &&
                                            coverAgainst(map, tgt, { x: x, y: y }) === 0) });
               }
               if (!move || val > move.val) move = { x, y, val, p: bestP, tgt, threat };
             }
           }
 
-          let stayThreat = 0;
-          for (const f of foes) { if (hasLOS(map, f, u)) stayThreat += incoming(f, u, u, map); }
+          const stayThreat = threatAt(u, false);
+          /* §AI a shot not worth taking is not a reason to stay: below HOPELESS_SHOT it is noise, and a fighter out of his
+             range moves rather than fire it (and on a cycling turn there is no shot at all) */
+          if (cycling || pNow < CONST.HOPELESS_SHOT) { pNow = 0; if (cycling) target = null; }
           const stayBandOff = Math.abs(dist(u, near) - wantTiles(u));
           const stayVal = pNow * CONST.SHOT_WEIGHT - stayThreat * CONST.THREAT_WEIGHT
                         - stayBandOff * CONST.BAND_PULL;
@@ -20461,7 +20697,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                second time. It is a commitment, not a free sprint — but it makes the far side
                of a rock reachable inside one turn instead of three. */
             if (u.ap > 0 && !u.suppressed && !u._noMove) {
-              const far = candidates(map, occupancy(sides), u, moveTilesFor(u, meUnseen), near);
+              const far = candidates(map, occupancy(sides), u, moveTilesFor(u, meUnseen), near, seen);
               let rush = null;
               for (const cand of far) {
                 if (cand.x === u.x && cand.y === u.y) continue;
@@ -20470,7 +20706,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   if (!hasLOS(map, { x: cand.x, y: cand.y }, f)) continue;
                   const cov = coverAgainst(map, f, { x: cand.x, y: cand.y });
                   const sc = f.cover, sf = f.flanked;
-                  f.cover = cov; f.flanked = cov === 0 && sc > 0;
+                  f.cover = cov; f.flanked = cov === 0 && concealAt(map, f) > 0;
                   /* §GUNS a shot from where the dash ends is a SNAP shot, at that distance — the scorer sees it as it will be */
                   const p = C.hitChance(u, f, bandOf(dist(cand, f)), { dist: dist(cand, f), snap: true }, false) * CONST.SHOT_HIT_MULT;
                   f.cover = sc; f.flanked = sf;
@@ -20487,19 +20723,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                    Weighted at a FRACTION of the move scorer's. The dash exists so a short-range
                    squad can cross ground it otherwise never crosses; at full weight it would
                    become as cautious as an ordinary move and stop being a dash at all. */
-                let dThreat = 0;
-                for (const f of foes) {
-                  if (!hasLOS(map, f, { x: cand.x, y: cand.y })) continue;
-                  dThreat += incoming(f, u, { x: cand.x, y: cand.y }, map);
-                }
+                const dThreat = threatAt({ x: cand.x, y: cand.y }, true);
                 const val = best * CONST.SHOT_WEIGHT
                           - dThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                           - Math.abs(Math.hypot(cand.x - near.x, cand.y - near.y) - wantTiles(u))
                             * CONST.BAND_PULL;
                 if (!rush || val > rush.val) rush = { x: cand.x, y: cand.y, val: val, p: best };
               }
-              let hereThreat = 0;
-              for (const f of foes) { if (hasLOS(map, f, u)) hereThreat += incoming(f, u, u, map); }
+              const hereThreat = threatAt(u, false);
               const here = pNow * CONST.SHOT_WEIGHT
                          - hereThreat * CONST.THREAT_WEIGHT * CONST.DASH_THREAT_SHARE
                          - Math.abs(dist(u, near) - wantTiles(u)) * CONST.BAND_PULL;
@@ -20522,8 +20753,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             }
           }
 
-          if (!target) {
-            if (u.ap > 0) { u.overwatch = true; u.ap = 0; }
+          if (!target || cycling || pNow < CONST.HOPELESS_SHOT) {
+            if (u.ap > 0 && !cycling) { u.overwatch = true; u.ap = 0; }
             continue;
           }
 
@@ -20612,14 +20843,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          weapon's heat never shed, a vent never ticked down, and nobody ever came off the sidearm
          once they were on it. Prose describing work that was not done. */
       for (const S of sides) C.coolWeapons(S);
-      /* `mobile_cover` — a gun heavy enough to be a wall. Dearest tag in the catalog and it
-         granted nothing until now, on either resolver. */
+      /* `mobile_cover` — "grants mobile_cover_provider to same-band squadmates while stationary": a gun or a frame heavy
+         enough to be a wall shields the squadmates beside it, a grade of cover, for as long as it stands still. It added
+         a hook nothing read. */
+      for (const S of sides) {
+        for (const u of S.units) u._shielded = false;
+        for (const w of S.units) {
+          if ((w.state !== 'ok' && w.state !== 'light') || w.repositioning || w._crossed) continue;
+          if (!C.hasQuirk(w, 'mobile_cover') && ((w.armor && w.armor.tags) || []).indexOf('mobile_cover') < 0) continue;
+          for (const m of S.units) if (m !== w && (m.state === 'ok' || m.state === 'light') && dist(m, w) <= CONST.MOBILE_COVER_RADIUS) { m._shielded = true; tel.shielded = (tel.shielded || 0) + 1; }
+        }
+      }
       for (const S of sides) for (const u of S.units) {
-        if (C.hasQuirk(u, 'mobile_cover')) u.hooks.add('mobile_cover_provider');
         C.tickReload(u);                           /* §GUNS a magazine going in counts down between exchanges */
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
-        u.suppressed = false;                      /* pinning lasts until your next turn */
+        /* (a pin comes off when its man has had a turn under it: at his activation, above) */
       }
       /* THIS WAS A SECOND COPY OF `coolWeapons`, RUNNING RIGHT AFTER IT. The line above was
          added to fix cooling never happening at all; the inline workaround it replaced was left
@@ -22055,6 +22294,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        stands at the band's top until it mends after the Divide: 80% and over whole, 50–79 at 80%, 10–49 at 50%, under
        10 at 10%. A wound does not make anyone fight worse; it is how much less it takes to kill them. */
     HP_BANDS: [{ at: 0.8, to: 1 }, { at: 0.5, to: 0.8 }, { at: 0.1, to: 0.5 }, { at: 0, to: 0.1 }],
+    CROWD_PLEASER_FAME: 1.5,            // [C] fame a `crowd_pleaser` kill pays its shooter, on the fame scale (0–100)
     RELEASED_RECOVERY: 4,               // [C] §CAPTIVES a released captive walks home hurt: out at least this many days
     /* §MIND THE CAPTAIN DECIDES, AND CAPTAINS DIFFER. Every squad weighed its choices with the
        same cold arithmetic, so a squad led by a brilliant tactician behaved exactly like one
@@ -22906,10 +23146,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
-         and was wiped to the last man. It knows its own tent: the hurt have gone home and do not count. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
+         and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
+         heads), and the hurt who went home do not count at all. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
-      const trueF = (c.allBodies || []).filter(b => b.status === 'active').length;
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
       /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them stand */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
@@ -23736,7 +23977,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
-    const alive = corp.allBodies.filter(b => b.status === 'active').length;
+    /* what it has left is health, not heads (ruled) */
+    const alive = corp.allBodies.reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
     const lostFrac = 1 - alive / Math.max(1, corp.allBodies.length);
 
     /* The situation's opinion, in notches away from home. */
@@ -23883,6 +24125,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (side._parts) for (const p of side._parts) for (const u of p.units) owner[u.id] = p._sq;
     for (const u of side.units) {
       const f = u.ref;
+      /* `crowd_pleaser` — "fame on kills": the kills were counted on the fighter in the fight and never paid out */
+      if (u._fameEarned && f && REP.addFame) { REP.addFame(f, u._fameEarned * CONST.CROWD_PLEASER_FAME); stats.audit.crowdFame = (stats.audit.crowdFame || 0) + u._fameEarned; }
       /* §XP a fight fought is a battle on the career */
       if (u.state !== 'dead' && f) { f.experience = f.experience || {}; f.experience.battles = (f.experience.battles || 0) + 1; }
       if (u.state === 'dead') {
@@ -23905,8 +24149,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            end. Recording it was missing: they were taken by nobody and resolved by nobody. */
         f._capturedBy = captorId || null;
       }
-      else if (u._stunnedDown) {
-        /* §WOUNDS (ruled) put down by a stun round: up again at the fight's end, at the lowest band */
+      else if (u._stunnedDown || u._upAfter) {
+        /* §WOUNDS (ruled) put down by a stun round, or held at a breath by a stasis injector: up again at the fight's
+           end, at the lowest band */
         f._hpFrac = CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; downed++;
         stats.audit.stunnedUp = (stats.audit.stunnedUp || 0) + 1;
       }
@@ -24159,6 +24404,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         return need === 1 ? site : Object.assign({}, site, { need });
       },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
+      /* §FIGHTS a squad weighs itself by the health its standing people have left (ruled) */
+      strengthOf: (sq) => squadHead(sq).reduce((t, b) => t + (b._hpFrac != null ? b._hpFrac : 1), 0),
       reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
@@ -36349,7 +36596,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /* the charges a squad has left, summed across its people, one short word per item */
   var CHARGE_WORD = { itm_medkit: 'Medkits', itm_frag_grenade: 'Frags', itm_smoke_canister: 'Smoke',
-    itm_incendiary_charge: 'Incendiaries', itm_stim_shot: 'Stims', itm_spotter_drone: 'Drones',
+    itm_incendiary_charge: 'Incendiaries', itm_stim_shot: 'Stims', itm_stasis_injector: 'Stasis', itm_spotter_drone: 'Drones',
     itm_auto_turret: 'Turrets', itm_ammo_satchel: 'Satchels', itm_power_cell: 'Cells' };
   function chargeLine(q) {
     var tot = {};
