@@ -2418,6 +2418,19 @@ function catalogIntegrity() {
   }
   ok('catalog: formula prices regenerate exactly', drift.length === 0, drift.slice(0, 4).join(', '));
 
+  /* §QUARTERMASTER (ruled: a gun is chosen for what it does) every gun carries its measured edge, taken on the stats it
+     has now: a gun changed since its measure fails here — run sim/gunworth.cjs */
+  const unmeasured = cat.filter(it => it.slot === 'primary' && !(it.worth && it.worth.edge > 0 && it.worth.of === ITEMS.statPrint(it))).map(it => it.id);
+  ok('catalog: every gun carries the edge measured on its own stats', unmeasured.length === 0, unmeasured.slice(0, 4).join(', ') || 'all');
+  /* and the engine arms nobody with a stun gun (ruled): that is a manager's own choice */
+  const stunPlanned = [];
+  for (const d of (ITEMS.doctrines || [])) {
+    const pl = ITEMS.planForce(d.id, 12, { budget: 60000, allowance: 60000 });
+    if (pl && pl.bodies) for (const b of pl.bodies) { const g = ITEMS.byId(b.loadout.primary); if (g && (g.effects.tags || []).indexOf('nonlethal') >= 0) stunPlanned.push(d.id + ' ' + g.id); }
+    for (const id in ITEMS.foundingArmoury(d.id, 12).stock) { const g = ITEMS.byId(id); if (g && g.slot === 'primary' && (g.effects.tags || []).indexOf('nonlethal') >= 0) stunPlanned.push(d.id + ' stocks ' + id); }
+  }
+  ok('quartermaster: the engine neither stocks nor issues a stun gun', stunPlanned.length === 0, stunPlanned.slice(0, 4).join(', ') || 'none');
+
   /* §11.1 — exotica are hand-priced, and held only to the scarcity floor */
   /* §ALEAS held against ordinary GEAR — the weapons and armour exotica are — not against a one-charge grenade:
      the thermobaric, legal now and priced by the formula, is dearer than any ordinary gun, and that is no

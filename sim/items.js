@@ -80,6 +80,7 @@
     KIT_GUN_SHARE: 0.62,            // [C] of a body's share of the OA's kit outlay, what the gun may take; the armour the rest
     KIT_SHARE_SLACK: 1.35,          // [C] and how far past an even share one body's piece may go
     KIT_TASTE_SWING: 12,            // [C] §QUARTERMASTER the doctrine's favourite gun is worth this much Aim in the choosing
+    KIT_AIM_EDGE: 0.01,             // [C] §QUARTERMASTER a point of Aim with a gun, against its measured edge (log): ten points ≈ a tenth more
     KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
     KIT_BUY_MARGIN: 4,
@@ -382,6 +383,22 @@
      With no fighters named (the suite, the founding), bodies take the doctrine's favourite guns in turn.
      The phases and the economics are the old planner's, unchanged: the Aleas' cap, the reserve kept for
      sidearms and consumables, sponsor discounts, the muster before any upgrade, upgrades from the locker. */
+  /* §QUARTERMASTER (ruled: a gun is chosen for what it does) a gun's measured EDGE in a fight — what it takes out against
+     what it loses, beside one reference rifle (gunworth.cjs, written onto the catalog) — and the stats it was measured on */
+  function statPrint(it) {
+    const str = JSON.stringify({ t: it.tier, e: it.effects });
+    let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+  function edgeOf(g) { return (g && g.worth && g.worth.edge) || 1; }
+  /* what a gun is worth in this fighter's hands: its edge, and how well they shoot its kind (and the doctrine's taste) in
+     Aim points, on one scale */
+  function gunScore(g, aim) { return Math.log(edgeOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }
+  /* the engine does not arm anybody with a stun gun (ruled): that is a manager's own choice, at the Armoury, by hand */
+  const engineIssues = (it) => !(it.slot === 'primary' && ((it.effects || {}).tags || []).indexOf('nonlethal') >= 0);
+  /* the guns in a doctrine's order of taste, the better gun first where taste does not choose */
+  const rankGuns = (ids, taste) => ids.map(byId).filter(Boolean)
+    .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (edgeOf(b) - edgeOf(a)));
   function shotOf(f, g) {
     const a = (f && f.stats && f.stats.aim) || 100, sk = (f && f.skills) || {};
     const c = sk[skillClassOf(g)], t = sk[skillTypeOf(g)];
@@ -401,7 +418,7 @@
     const taste = d.taste || [];
     /* §FACILITIES the Armoury decides what can be issued: the doctrine's ceiling, and the Armoury's below it */
     const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5);
-    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0);
+    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0 && engineIssues(it));
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
     const take = (id) => { if (stock[id] > 0) { stock[id]--; return true; } return false; };
@@ -421,7 +438,7 @@
     let spent = 0, money = budget, cash = 0;
 
     /* what this body would carry, best first */
-    const gunTaste = rankBy(ofSlot('primary').map(g => g.id), taste);
+    const gunTaste = rankGuns(ofSlot('primary').map(g => g.id), taste);
     const tasteBonus = {};
     gunTaste.forEach((g, k) => { tasteBonus[g.id] = CONST.KIT_TASTE_SWING * (1 - k / Math.max(1, gunTaste.length - 1)); });
     const gunsFor = (b) => {
@@ -429,7 +446,7 @@
         const top = gunTaste.slice(0, Math.min(CONST.KIT_SPREAD, gunTaste.length)), k = b.i % Math.max(1, top.length);
         return top.slice(k).concat(top.slice(0, k)).concat(gunTaste.slice(top.length));
       }
-      return gunTaste.slice().sort((x, y) => (shotOf(b.f, y) + tasteBonus[y.id]) - (shotOf(b.f, x) + tasteBonus[x.id]));
+      return gunTaste.slice().sort((x, y) => gunScore(y, shotOf(b.f, y) + tasteBonus[y.id]) - gunScore(x, shotOf(b.f, x) + tasteBonus[x.id]));
     };
     const armours = rankBy(ofSlot('armor').map(a => a.id), taste);
     const sidearms = rankBy(ofSlot('sidearm').map(a => a.id), taste);
@@ -470,7 +487,7 @@
       let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
-        const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => shotOf(b.f, y) - shotOf(b.f, x));
+        const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => gunScore(y, shotOf(b.f, y)) - gunScore(x, shotOf(b.f, x)));
         order2 = cheapEnd.concat(order2.filter(c => c.cost > floor));
       }
       const got = order2.find(c => spent + priceOf(c) <= mustAllow && take(c.id));
@@ -691,14 +708,16 @@
     const n = bodyCount;
     const stock = {};
     const add = (id, k) => { if (id && k > 0) stock[id] = (stock[id] || 0) + k; };
-    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0).map(it => it.id);
+    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0 && engineIssues(it)).map(it => it.id);
     const cheapest = (items) => items.slice().sort((a, b) => a.cost - b.cost)[0];
     /* §QUARTERMASTER a locker a force of specialists can be armed from: the doctrine's favourite guns,
        SPREAD across several of them rather than two per role, so there is a type on the rack for more than
        one kind of hand — and, as ever, the old cheap kit that arms a body when the good ones are spoken for */
-    const guns = rankBy(ofSlot('primary'), taste), top = guns.slice(0, Math.min(CONST.KIT_SPREAD, guns.length));
+    const guns = rankGuns(ofSlot('primary'), taste), top = guns.slice(0, Math.min(CONST.KIT_SPREAD, guns.length));
     for (const g of top) add(g.id, Math.ceil(n / top.length * depth));
-    if (guns.length) add(cheapest(guns).id, Math.ceil(n * CONST.FOUNDING_SPARES));
+    /* the cheap spares are the best gun at the cheap end of the rack, not merely the cheapest */
+    if (guns.length) { const lo = cheapest(guns).cost * CONST.KIT_MUSTER_SLACK;
+      add(guns.filter(g => g.cost <= lo).sort((a, b) => edgeOf(b) / b.cost - edgeOf(a) / a.cost)[0].id, Math.ceil(n * CONST.FOUNDING_SPARES)); }
     for (const slot of ['armor', 'sidearm']) {
       const ranked = rankBy(ofSlot(slot), taste);
       if (!ranked.length) continue;
@@ -787,7 +806,7 @@
   const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf,
     squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },

@@ -69,6 +69,7 @@
     FLIGHT_AT: 6,                    // [C] the gap worth taking to the air to close
     DASH_EXPOSE: true,               // [S] spending both AP on movement means no cover this turn
     TILE_METRES: 6,                  // [C] what a tile is worth, for turning distance into a band
+    STUN_DMG: 0.5,                   // [C] §GUNS what a stun round charges the wound pool, of a lethal round's
     BAND_TILE: [14, 6],              // [C] >14 tiles is long, >6 medium, else short
     LOS_BLOCK_COVER: 3,              // [S] hard cover blocks line of sight entirely
     COVER_BLOCKS_MOVE: true,         // [S] every object is impassable, not just the tall ones
@@ -1438,6 +1439,9 @@
     if (t.race === 'olmac') dmg = Math.max(C.CONST.DMG_MIN, dmg * CONST.OLMAC_SOAK);
     /* §RACES and a gnoll in the frenzy hits like one */
     if (by && by._frenzy > 0) dmg *= C.CONST.ATTORAK_FRENZY_DMG;
+    /* §GUNS (ruled: a stun gun is a poor gun, for the Dividend and a captive-taker's own build) a stun round stings: it
+       takes more of them to put a body down. The Aleas' stun grade is a rule of the match, not a gun, and is not cut. */
+    if (by && !STUN_GRADE && C.hasQuirk(by, 'nonlethal')) dmg *= CONST.STUN_DMG;
     /* THE ROUND LANDS. An edit that added the two lines above deleted this one, so damage was
        computed and never applied: four hundred and thirty-eight fights in a whole contest with
        nobody wounded, and every fight ran out its clock because nobody could fall. */

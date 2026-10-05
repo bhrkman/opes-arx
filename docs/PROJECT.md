@@ -158,6 +158,11 @@ lean one pleases.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
 - Every seat sees only what it knows, in the year and on the ground.
 - Outside the ring is death, and there are no truces.
+- A gun is chosen for what it does (ruled): every gun carries its edge, measured in the grid against
+  one reference rifle (sim/gunworth.cjs), and the engine's quartermaster arms each fighter by that
+  edge and how well they shoot its kind, the doctrine's taste leaning it. A stun gun is a poor gun —
+  its round takes half from the pool, and it is priced where it stood — for the Dividend and for a
+  manager who builds to take captives; the engine never stocks or issues one.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
