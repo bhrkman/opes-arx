@@ -176,6 +176,8 @@ const CONST = {
   HP_PER_GRIT: 0.035,              // [H] what being hard to put down is worth
   DMG_PER_POINT: 6,               // [H] severity points above a graze per point of damage
   DMG_MIN: 1,                     // [S] a hit that lands does something
+  POWER_REF: 5,                   // [C] §GUNS the power whose round does the severity roll's damage as it stands; others scale from it
+  POWER_FLOOR: 0.2,               // [C] and the least a round does, of that (a gun of no power still lands)
   HP_OVERKILL: 5,                 // [H] how far past empty a stun round leaves a body (a live round past empty kills)
   /* [H] the chance a downed fighter is stabilised rather than dying, by the round that dropped
      them. Worn down by grazes and they are nearly always carried out; opened up by a critical

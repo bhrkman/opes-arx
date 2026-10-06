@@ -96,15 +96,15 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_A",
-    "exchanges": 8,
+    "exchanges": 5,
     "band": "medium",
-    "aDead": 4,
+    "aDead": 1,
     "aDown": 0,
-    "bDead": 1,
+    "bDead": 0,
     "bDown": 0,
-    "shots": 104,
-    "hits": 28,
-    "downs": 5
+    "shots": 66,
+    "hits": 20,
+    "downs": 1
   },
   "short band, both aggressive": {
     "result": "disengage_B",
@@ -124,35 +124,35 @@ const BASELINE_DEFAULT = {
     "band": "medium",
     "aDead": 5,
     "aDown": 0,
-    "bDead": 0,
+    "bDead": 1,
     "bDown": 0,
-    "shots": 81,
-    "hits": 25,
-    "downs": 5
+    "shots": 63,
+    "hits": 21,
+    "downs": 6
   },
   "forest, standard v unyielding": {
     "result": "disengage_B",
-    "exchanges": 4,
+    "exchanges": 8,
     "band": "medium",
-    "aDead": 1,
-    "aDown": 0,
-    "bDead": 3,
-    "bDown": 0,
-    "shots": 65,
-    "hits": 22,
-    "downs": 4
-  },
-  "entrenched, cautious v hunter": {
-    "result": "disengage_A",
-    "exchanges": 9,
-    "band": "medium",
-    "aDead": 6,
+    "aDead": 2,
     "aDown": 0,
     "bDead": 2,
     "bDown": 0,
-    "shots": 80,
-    "hits": 30,
-    "downs": 8
+    "shots": 96,
+    "hits": 23,
+    "downs": 4
+  },
+  "entrenched, cautious v hunter": {
+    "result": "disengage_B",
+    "exchanges": 6,
+    "band": "medium",
+    "aDead": 1,
+    "aDown": 0,
+    "bDead": 4,
+    "bDown": 0,
+    "shots": 48,
+    "hits": 21,
+    "downs": 5
   }
 };
 

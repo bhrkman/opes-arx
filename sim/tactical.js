@@ -69,7 +69,6 @@
     FLIGHT_AT: 6,                    // [C] the gap worth taking to the air to close
     DASH_EXPOSE: true,               // [S] spending both AP on movement means no cover this turn
     TILE_METRES: 6,                  // [C] what a tile is worth, for turning distance into a band
-    STUN_DMG: 0.5,                   // [C] §GUNS what a stun round charges the wound pool, of a lethal round's
     BAND_TILE: [14, 6],              // [C] >14 tiles is long, >6 medium, else short
     LOS_BLOCK_COVER: 3,              // [S] hard cover blocks line of sight entirely
     COVER_BLOCKS_MOVE: true,         // [S] every object is impassable, not just the tall ones
@@ -242,8 +241,8 @@
        one. Seen — somebody has eyes on you. Heard — you fired and gave your position away
        roughly, so people can shoot back at you badly. Neither — you are not a target at all. */
     /* §APPROACH the opening gaps, as shares of the long band's own edge */
-    OPEN_LONG: 1.85,                 // [C] a long opening is well beyond sight: an approach
-    OPEN_MEDIUM: 0.72,               // [C] a medium one is in the medium band (it was 1.05: a 15-tile gap, already long)
+    OPEN_LONG: 2.5,                 // [C] a long opening is well beyond sight: an approach
+    OPEN_MEDIUM: 1.05,               // [C] a medium one opens at the edge of sight (ruled: more ground to cover)
     BOARD_MARGIN: 10,                // [C] ground either side of the gap to manoeuvre in
     BOARD_TALLER: 4,                 // [C] a longer board is a little deeper too
     /* what a fieldcraft score is worth as eyes, against the spread rosters actually deal */
@@ -1545,9 +1544,13 @@
     if (t.race === 'olmac') dmg = Math.max(C.CONST.DMG_MIN, dmg * CONST.OLMAC_SOAK);
     /* §RACES and a gnoll in the frenzy hits like one */
     if (by && by._frenzy > 0) dmg *= C.CONST.ATTORAK_FRENZY_DMG;
-    /* §GUNS (ruled: a stun gun is a poor gun, for the Dividend and a captive-taker's own build) a stun round stings: it
-       takes more of them to put a body down. The Aleas' stun grade is a rule of the match, not a gun, and is not cut. */
-    if (by && !STUN_GRADE && C.hasQuirk(by, 'nonlethal')) dmg *= CONST.STUN_DMG;
+    /* §GUNS (ruled) A HEAVY ROUND HITS HARDER THAN A LIGHT ONE. Power reached damage only through the severity roll, at
+       three-quarters of a point a power — a power-3 round averaged 3.6 a hit and a power-9 round 4.1 — so a rifle's round
+       did a pellet's harm and rate of fire decided everything. What a round does scales with its gun's power. (A light
+       round grazes more often, too, and a graze that meets armour is stopped: armour's answer to many small hits.) */
+    if (by && by.weapon) dmg *= Math.max(C.CONST.POWER_FLOOR, (by.weapon.power || 0) / C.CONST.POWER_REF);   /* a sidearm's own power, when drawn */
+    /* (a stun gun is a poor gun — ruled — by its own low power now, which the round's harm follows; the separate halving
+       it carried before power counted would leave a captive-taker's build nothing to take with) */
     /* THE ROUND LANDS. An edit that added the two lines above deleted this one, so damage was
        computed and never applied: four hundred and thirty-eight fights in a whole contest with
        nobody wounded, and every fight ran out its clock because nobody could fall. */
