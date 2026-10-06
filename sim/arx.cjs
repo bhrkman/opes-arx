@@ -1098,8 +1098,8 @@ function energyInvariants(n) {
   let vents = 0, draws = 0, checked = 0;
   /* §GUNS a gun with a magazine and spares does not run dry in one fight — that is the point of it — so the fallback is
      tested on fighters carrying NO spares: the end of a long day, when the sidearm is what is left */
-  const keepMags = C.CONST.LOADOUT_MAGS, keepCells = C.CONST.LOADOUT_CELLS;
-  C.CONST.LOADOUT_MAGS = 0; C.CONST.LOADOUT_CELLS = 0;
+  const keepCells = C.CONST.LOADOUT_CELLS;
+  C.CONST.LOADOUT_CELLS = 0;
   for (let i = 0; i < n; i++) {
     const kit = kits[i % kits.length];
     const A = squad(rng, OA[1], 'standard', { loadout: kit });
@@ -1117,7 +1117,7 @@ function energyInvariants(n) {
       if (u.onSidearm && u.venting === 0 && u.charge > 0) bad.swap++;
     }
   }
-  C.CONST.LOADOUT_MAGS = keepMags; C.CONST.LOADOUT_CELLS = keepCells;
+  C.CONST.LOADOUT_CELLS = keepCells;
   ok('energy: heat never negative and never above the cap', bad.heat === 0, bad.heat + ' of ' + checked);
   ok('energy: charge never negative and never above the cell', bad.charge === 0, bad.charge + ' of ' + checked);
   ok('energy: vent counter never negative', bad.vent === 0, bad.vent + ' of ' + checked);

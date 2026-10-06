@@ -579,7 +579,8 @@
   function canHurt(c) {
     const w = c.weapon;
     if (!w || (w.power || 0) <= 0) return false;
-    return C.primaryReady ? (C.primaryReady(c) || !!(c.sidearm && !c.onSidearm)) : true;
+    const sideLeft = !!(c.sidearm && !c.onSidearm && (!c._sideRounds || c._sideRounds.mag + c._sideRounds.spare > 0));   /* §ROUNDS a sidearm with rounds in it */
+    return C.primaryReady ? (C.primaryReady(c) || sideLeft) : true;
   }
 
   function bandOf(d) {
@@ -1552,6 +1553,10 @@
     /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
     const at = (S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT) * (full > 0 ? came / full : 1);
     if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
+    /* §ROUNDS a squad with nothing left to shoot with goes: rounds carry now, and two dry remnants stood off till the
+       clock (5% of the Divide's fights ran the full 27 turns, a hit in seven turns, three in four of them at night) */
+    const up = S.units.filter(u => u.state === 'ok' || u.state === 'light');
+    if (up.length && !up.some(canHurt)) { S.withdrawing = true; S._dryOut = true; return true; }
     return false;
   }
   /* §RETREAT (ruled) A RETREAT ENDS WHEN CONTACT IS BROKEN, not at the map's edge: a retreating body is off the field

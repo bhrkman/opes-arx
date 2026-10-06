@@ -174,7 +174,10 @@ lean one pleases.
   brings to the next, for his sidearm too. A ballistic gun's rounds come back only from a munitions drop (a full load)
   or an ammunition satchel; a cell-fed gun's cell, and its spare cells after it, recharge at camp overnight (a sun-fed
   one by the day's light) and a spare power cell tops them up in the field. A squad running dry counts itself weaker,
-  in the fights it takes and in whether its OA stays, and wants a munitions drop the more. Carrying more rounds for more
+  in the fights it takes and in whether its OA stays, and wants a munitions drop the more. A load is sized in fights:
+  what a gun of its rate spends in a Divide fight, for four fights, in whole magazines (two at least, a support gun one
+  more), so a fighter needs resupply about when a squad has fought most of its Divide. A squad with nothing left to
+  shoot with leaves the fight. Carrying more rounds for more
   bulk (an extended magazine, a satchel) is for the quartermaster to weigh when it is rebuilt.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.

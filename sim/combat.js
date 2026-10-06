@@ -16,14 +16,19 @@ const CONST = {
   /* §3.4 actions */
   AMMO: { shot: 1, suppress: 3, overwatch: 1 },        // [S]
   /* §GUNS the magazine is the gun's own (`mag`); a fighter carries SPARE magazines, and a reload costs rounds */
-  LOADOUT_MAGS: 3,                        // [C] spare magazines a fighter carries into a Divide
+  /* §ROUNDS (ruled: rounds carry) A LOAD IS SIZED IN FIGHTS: what a gun of its rate spends in a Divide fight, for so many
+     fights, in whole magazines — so a fighter needs a munitions drop or a satchel about when a squad has fought most of
+     its Divide (a squad fights about five), and one bad fight never empties him */
+  LOAD_FIGHTS: 4,                         // [C] average fights a load lasts
+  LOAD_ROUNDS_PER_ROF: 6,                 // [C] rounds a fight takes, per point of rate (measured in the Divide: 3 at 0.5, 8 at 1.5, 13 at 2)
+  LOAD_MIN_MAGS: 2,                       // [C] never fewer than a magazine and a spare
+  LOAD_BELT_MAGS: 1,                      // [C] a support gun's belt beyond that: its lanes eat rounds
   LOADOUT_MAGS_SIDEARM: 2,                // [C] and spare magazines for the sidearm
   LOADOUT_CELLS: 1,                       // [C] spare cells for a cell-fed weapon (it used to carry none)
   NEAR_FALLOFF: 5,                        // [C] aim lost per tile inside a gun's `near` — a long gun in a knife fight
   FALLOFF_DEFAULT: 3,                     // [C] aim lost per tile beyond a gun's reach, when a gun names none
   LOADOUT_AMMO: 16,                       // [C] NEW in v1 — COMBAT.md v0.3 should adopt this
   LOADOUT_RATE_CAP: 1.5,                  // [C] a fast weapon is issued more, but not unboundedly
-  LOADOUT_BELT: 6,                        // [C] what a belt-fed weapon carries beyond a magazine
 
   /* COMPOSITION.md §4 — TEMPO. Shots per fighter per exchange.
    *
@@ -371,8 +376,12 @@ function chargedCarry(fighter, kit) {
    ballistic gun, cells for a cell-fed one, a bulk hand's extra and a mod's */
 function fullRounds(weapon, hooks, kit) {
   const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0);
-  return { mag: weapon.mag || loadoutFor(weapon),
-           spare: (weapon.mag ? weapon.mag * (weapon.damage === 'energy' ? CONST.LOADOUT_CELLS : CONST.LOADOUT_MAGS) : loadoutFor(weapon)) + extra };
+  if (!weapon.mag) return { mag: loadoutFor(weapon), spare: loadoutFor(weapon) + extra };
+  /* a cell-fed gun carries its cell and a spare, and renews them at camp; a magazine gun carries its fights' worth */
+  if (weapon.damage === 'energy') return { mag: weapon.mag, spare: weapon.mag * CONST.LOADOUT_CELLS + extra };
+  const want = CONST.LOAD_FIGHTS * CONST.LOAD_ROUNDS_PER_ROF * (weapon.rof || 1);
+  const mags = Math.max(CONST.LOAD_MIN_MAGS, Math.ceil(want / weapon.mag)) + ((weapon.suppress || 0) >= 1 ? CONST.LOAD_BELT_MAGS : 0);
+  return { mag: weapon.mag, spare: (mags - 1) * weapon.mag + extra };
 }
 const gunKey = w => w ? (w.id || w.name || '?') : '?';
 function carriedRounds(fighter, weapon, hooks, kit) {
@@ -714,11 +723,7 @@ const QUIRK = {
  */
 function loadoutFor(weapon) {
   const t = Math.max(0.5, Math.min(CONST.LOADOUT_RATE_CAP, tempoOf({ weapon: weapon })));
-  const tags = weapon.tags || [];
-  /* a gun's suppression is its own number now (§GUNS), so the belt read tags no support gun carries and was never issued */
-  const belt = ((weapon.suppress || 0) >= 1 || tags.indexOf('suppressive') >= 0 || tags.indexOf('suppressive_2') >= 0)
-             ? CONST.LOADOUT_BELT : 0;
-  return Math.round(CONST.LOADOUT_AMMO * t) + belt;
+  return Math.round(CONST.LOADOUT_AMMO * t);   /* (a gun that names no magazine; every catalogue primary names one — §ROUNDS) */
 }
 
 /* Verbose-only: what this fighter chose to do, so a viewer can step one BODY at a time
