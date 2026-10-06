@@ -142,7 +142,6 @@ const CONST = {
      The original number was right and the change was wrong twice over: wrong resolver, and
      underpowered. */
   SUPPRESSED_AIM_PENALTY: 40,
-  SUPPRESSED_HARDER_TO_HIT: 0.85,         // [C]
   NIGHT_AIM_PENALTY: 20,                   // [OPEN-C1] proposed
 
   /* §3.6 severity */
@@ -890,7 +889,6 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   /* `overwatch_fatigue_immune` — a long-watch sentry does not lose their edge holding it.
      Declared in traits.json since Step 2 and read by nothing until the Step 6 audit. */
   if (overwatch && shooter.hooks.has('overwatch_fatigue_immune')) m *= 1.12;
-  if (target.suppressed) m *= CONST.SUPPRESSED_HARDER_TO_HIT;
   if (target.hooks.has('bombardment_evasion_bonus') && overwatch) m *= 0.70;
   /* the long band is hard shooting for a gun not built for it; a long gun is (fixed: it took the penalty too) */
   m *= (bandIdx === 0 && shooter.weapon && shooter.weapon.range === 'long') ? 1 : CONST.BAND_HIT_MULT[bandIdx];
@@ -926,7 +924,6 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   if (target.flanked) why.push(['Flanked', 1.4]);
   if (!target.spotted) why.push(['Unspotted', CONST.SPOT_UNSPOTTED]);
   if (overwatch) why.push(['Overwatch', CONST.SPOT_OVERWATCH]);
-  if (target.suppressed) why.push(['Suppressed', CONST.SUPPRESSED_HARDER_TO_HIT]);
   if (target.hovering) why.push(['Hovering', CONST.MOTION_HOVER]);
   else if (target._crossed) why.push(['Caught Crossing', CONST.CROSS_EXPOSURE]);
   else if (target.repositioning) why.push(['Moving', CONST.MOTION_REPOS]);

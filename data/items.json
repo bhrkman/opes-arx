@@ -282,7 +282,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1920,
+   "cost": 1510,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -300,7 +300,7 @@
     "handling": 1,
     "snap": 2,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 1
    },
@@ -309,8 +309,8 @@
    "identity": "Two rounds where one was asked for.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.01,
-    "of": "1dak5hu"
+    "edge": 0.779,
+    "of": "stwugj"
    }
   },
   {
@@ -586,7 +586,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 3160,
+   "cost": 2580,
    "bulk": 4,
    "effects": {
     "power": 4,
@@ -605,7 +605,7 @@
     "handling": -3,
     "snap": 4,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 1,
     "noise": 2
    },
@@ -614,8 +614,8 @@
    "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.068,
-    "of": "1t3lsav"
+    "edge": 0.899,
+    "of": "1p6cizq"
    }
   },
   {
@@ -3087,7 +3087,7 @@
     "handling": 5,
     "snap": 4,
     "pen": 1,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 2
    },
@@ -3096,8 +3096,8 @@
    "identity": "What an OA buys when it has stopped counting.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 2.394,
-    "of": "szw02q"
+    "edge": 1.77,
+    "of": "zx8xhf"
    }
   },
   {
@@ -3107,7 +3107,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 1230,
+   "cost": 970,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -3125,7 +3125,7 @@
     "handling": 0,
     "snap": 2,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 1
    },
@@ -3134,8 +3134,8 @@
    "identity": "Loud, light, and honest about what it is.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.035,
-    "of": "gd13g5"
+    "edge": 0.779,
+    "of": "nadw7o"
    }
   },
   {
@@ -3145,7 +3145,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1920,
+   "cost": 1510,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -3163,7 +3163,7 @@
     "handling": 1,
     "snap": 2,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 1
    },
@@ -3172,8 +3172,8 @@
    "identity": "Made for corridors and the people who fight in them.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.01,
-    "of": "1dak5hu"
+    "edge": 0.779,
+    "of": "stwugj"
    }
   },
   {
@@ -3183,7 +3183,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 3410,
+   "cost": 2830,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -3202,7 +3202,7 @@
     "handling": 3,
     "snap": 1,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 1
    },
@@ -3211,8 +3211,8 @@
    "identity": "Points where you are already looking.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.758,
-    "of": "19shj64"
+    "edge": 1.295,
+    "of": "12v4qel"
    }
   },
   {
@@ -3222,7 +3222,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 6250,
+   "cost": 5240,
    "bulk": 2,
    "effects": {
     "power": 6,
@@ -3240,7 +3240,7 @@
     "handling": 3,
     "snap": 2,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 0
    },
@@ -3249,8 +3249,8 @@
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.788,
-    "of": "1cohk03"
+    "edge": 1.459,
+    "of": "s7uaua"
    }
   },
   {
@@ -3791,7 +3791,7 @@
     "handling": 5,
     "snap": 0,
     "pen": 1,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 1
    },
@@ -3801,8 +3801,8 @@
    "type": "Submachine Guns",
    "exotic": true,
    "worth": {
-    "edge": 2.557,
-    "of": "1mvzojk"
+    "edge": 2.117,
+    "of": "1n4bmu9"
    }
   },
   {
@@ -3903,7 +3903,7 @@
     "handling": 1,
     "snap": 2,
     "pen": 1,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 2,
     "noise": 2
    },
@@ -3913,8 +3913,8 @@
    "type": "Scatterguns",
    "exotic": true,
    "worth": {
-    "edge": 2.629,
-    "of": "sgf4qh"
+    "edge": 2.442,
+    "of": "csohaw"
    }
   },
   {
@@ -4529,7 +4529,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 2220,
+   "cost": 1820,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -4547,7 +4547,7 @@
     "handling": 2,
     "snap": 4,
     "pen": 0,
-    "suppress": 1,
+    "suppress": 0,
     "spread": 0,
     "noise": 0
    },
@@ -4556,8 +4556,8 @@
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.06,
-    "of": "1krxvr6"
+    "edge": 0.833,
+    "of": "64us6b"
    }
   },
   {

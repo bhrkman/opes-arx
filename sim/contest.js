@@ -473,6 +473,9 @@
         return;
       }
       /* §WALL the final zone holds whoever is left: friends stand on it together */
+      /* a friend's fight is on in that zone: it waits at the edge for the end of it, the same as at a rival's (it walked
+         in mid-fight on the final zone, where friends may stand together, and stood in a fight it was not in) */
+      if (h && st.allied(h.oa, q.oa) && h.fight != null) { q.moving.paid = q.moving.cost; return; }
       if (h && st.allied(h.oa, q.oa) && zoneEnds(st, to) !== Infinity) {
         /* a friend stands there: wait for it to move on, unless a way around it is open; two friends each
            bound for the other's zone pass each other */

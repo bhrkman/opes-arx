@@ -2145,12 +2145,12 @@
           /* §AI (ruled) A FIGHTER IS NOT EVERY ENEMY'S ONLY TARGET. Each rival's shot at a tile is weighed by the chance it
              picks him out of everyone of his it can see — the threat summed every enemy's shot as if all six would fire at
              this one man, against a gain that counted only his own one shot, so closing in never paid. And a rival on
-             overwatch fires again at anyone who moves into his view. */
+             overwatch fires again at anyone who moves into his view — unless he is pinned, when he is not watching. */
           const shareOf = new Map();
           for (const f of foes) { let others = 0; for (const m of S.units) if (m !== u && (m.state === 'ok' || m.state === 'light') && hasLOS(map, f, m)) others++; shareOf.set(f, 1 / (1 + others)); }
           const threatAt = (spot, moving, dashW) => { let t = 0;
             for (const f of foes) { if (!hasLOS(map, f, spot)) continue; const w = shareOf.get(f) || 1;
-              t += incoming(f, u, spot, map) * w * (moving && f.overwatch ? 2 : 1); }
+              t += incoming(f, u, spot, map) * w * (moving && f.overwatch && !f.suppressed ? 2 : 1); }
             return t * (dashW || 1); };
           /* Between shots: a half-rate weapon spends this turn cycling the action. They can
              still move and still watch — they simply have nothing to fire. */

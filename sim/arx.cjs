@@ -120,14 +120,14 @@ const BASELINE_DEFAULT = {
   },
   "long band, both cautious": {
     "result": "disengage_A",
-    "exchanges": 6,
+    "exchanges": 7,
     "band": "medium",
     "aDead": 5,
     "aDown": 0,
     "bDead": 1,
     "bDown": 0,
-    "shots": 63,
-    "hits": 21,
+    "shots": 65,
+    "hits": 25,
     "downs": 6
   },
   "forest, standard v unyielding": {
