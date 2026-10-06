@@ -231,7 +231,10 @@
     /* §RESERVE only an enemy ON the beacon stops a landing — the same radius as standing on a site — and any two enemy
        squads on one lit beacon are in contact (below). The first cut blocked from 0.04 against an engage range of 0.02,
        so a rival parked beside a beacon blocked every landing and could never be fought: a standoff by geometry. */
-    RESUPPLY_MULT: 1.75,                // [C] §9 what a claimed munitions site is worth
+    /* §ROUNDS (ruled) rounds carry from fight to fight; a squad short of them fights and chooses as one */
+    AMMO_READY_SHARE: 0.35,             // [C] of a full load, below which a fighter counts as running dry
+    AMMO_DRY_WORTH: 0.35,               // [C] what a fighter with nothing left for his gun counts for (his sidearm)
+    AMMO_DRY_NEED: 3,                   // [C] how much more a munitions drop is worth to a squad the drier it runs
     /* §6.3 standing */
     STANDING_PER_ENGAGEMENT: 0.015,     // [C] fighting in public builds your reputation
     STANDING_PER_SITE: 0.050,           // [C] holding ground the crowd can see
@@ -594,7 +597,7 @@
         hasMedkit: false,        // set by equipCorp from what the squad actually carries (§10)
         x: 0.5, y: 0.5, hx: 0.5, hy: 0.5,           // position, and where they came from
         rations: CONST.RATION_DROP_DAYS * bodies.length, rationDry: false,
-        crates: 0, ammoResupplied: 0,
+        crates: 0,
         /* S20 — the prep year's scouting, the same for every squad this corp drops */
         _intel: (persist && persist.intel) || 0,
         /* per-opponent readiness this corp gathered (Gather Intel), keyed by rival corpId */
@@ -1013,7 +1016,7 @@
          heads), and the hurt who went home do not count at all. And it prices losing honestly: whoever does not win loses the standing a fall costs whether it walks
          or is wiped, so only its real chance of winning buys anything by staying — that, the ground still open, and
          the people the end will cost it. */
-      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
+      const trueF = (c.allBodies || []).reduce((t, b) => t + (b.status === 'active' ? fightWorth(b) : 0), 0);
       /* like for like: the board counts every body not dead, retired or taken; the OA knows which of them stand */
       const seenN = Math.max(1, (c.allBodies || []).filter(b => b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured').length);
       const o0 = odds[c.id] || 0, tilt = Math.pow(Math.max(0.0001, trueF) / seenN, NEG.CONST.ODDS_SHARPNESS);
@@ -1237,10 +1240,6 @@
        the grid (equal squads of six, 2000 fights a count: 0, 1, 2 and 4 held lost 1.87, 1.87, 1.83, 1.76 of their own)
        and did nothing a fight could see; a cost is noticeable or it is not there. What holding costs is food, the
        march and standing. */
-    /* §9 a munitions site is FOR this: the squad fights the next engagement resupplied */
-    if (sq.ammoResupplied > 0) {
-      for (const u of units) u.ammo = Math.round(u.ammo * CONST.RESUPPLY_MULT);
-    }
     return Object.assign({
       corpId: corp.id, policy: corp.policy, units, hasMedkit: sq.hasMedkit,
       /* §STANCE HOW MUCH A SQUAD WILL LOSE BEFORE IT PULLS OUT — the one place a squad's stance
@@ -1519,7 +1518,14 @@
       const solar = f.loadout && f.loadout.kit && (f.loadout.kit.tags || []).indexOf('daylight') >= 0;
       const gain = solar ? Math.round(f._chargeMax * ((stats && stats._lightShare != null) ? stats._lightShare : 0.5))
                          : CONST.CELL_RECHARGE;
-      if (f._chargeMax > 0) f._charge = Math.min(f._chargeMax, (f._charge == null ? f._chargeMax : f._charge) + gain);
+      if (f._chargeMax > 0) {
+        const was = f._charge == null ? f._chargeMax : f._charge;
+        f._charge = Math.min(f._chargeMax, was + gain);
+        /* §ROUNDS and what the cell in the gun does not take goes into the spares he carries: a cell-fed gun renews itself
+           at camp, which a magazine never does */
+        const R = f._rounds; let left = gain - (f._charge - was);
+        if (R && R.cellMax > 0 && left > 0) R.spare = Math.min(R.spareMax, R.spare + left);
+      }
     }
 
     /* PROCUREMENT.md §2.3 — bulk. A squad carrying more than it can comfortably haul pays
@@ -1739,7 +1745,9 @@
     switch (obj.type) {
       case 'munitions_drop': for (const f of sq.bodies || []) chargeUp(f, 'restock'); sq.medkits = medkitCharges(sq.bodies || []); sq.hasMedkit = sq.medkits > 0;
         stats.audit.restocks = (stats.audit.restocks || 0) + 1;
-        sq.ammoResupplied += Math.max(1, Math.round(pot)); stats.audit.ammoResupply++; break;
+        /* §ROUNDS a munitions drop puts a full load back: every magazine, every spare, every cell */
+        for (const f of sq.bodies || []) { delete f._rounds; delete f._sideRounds; delete f._charge; }
+        stats.audit.ammoResupply++; break;
       case 'ration_site': {
         /* §5.2 a site fills the packs; it does not make them bigger (the carry cap holds here as at the forage) */
         sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
@@ -1841,7 +1849,7 @@
     ctx = ctx || {};
     const home = culturalHome(corp);
     /* what it has left is health, not heads (ruled) */
-    const alive = corp.allBodies.reduce((t, b) => t + (b.status === 'active' ? (b._hpFrac != null ? b._hpFrac : 1) : 0), 0);
+    const alive = corp.allBodies.reduce((t, b) => t + (b.status === 'active' ? fightWorth(b) : 0), 0);
     const lostFrac = 1 - alive / Math.max(1, corp.allBodies.length);
 
     /* The situation's opinion, in notches away from home. */
@@ -1979,6 +1987,12 @@
 
   function hpBand(frac) { for (const b of CONST.HP_BANDS) if (frac >= b.at) return b.to; return CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; }
   /* one band down, never past the last (fire from across a zone, the weather) */
+  /* §ROUNDS what a body is worth in a fight now: the health it has left, and whether it has the rounds to fight with */
+  function fightWorth(b) {
+    const hp = b._hpFrac != null ? b._hpFrac : 1, r = C.roundsShare(b);
+    const ready = r >= CONST.AMMO_READY_SHARE ? 1 : CONST.AMMO_DRY_WORTH + (1 - CONST.AMMO_DRY_WORTH) * r / CONST.AMMO_READY_SHARE;
+    return hp * ready;
+  }
   function bandDown(f) { const B = CONST.HP_BANDS, i = B.findIndex(b => b.to === hpBand(f._hpFrac == null ? 1 : f._hpFrac)); f._hpFrac = B[Math.min(B.length - 1, i + 1)].to; }
   function bandUp(f) { const B = CONST.HP_BANDS, i = B.findIndex(b => b.to === hpBand(f._hpFrac == null ? 1 : f._hpFrac)); f._hpFrac = B[Math.max(0, i - 1)].to; }
   function applyOutcome(sq, side, stats, captorId, victors) {
@@ -2121,7 +2135,7 @@
       }
       corps.push(corp);
     }
-    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; } }   /* last year's captivity is over, and every body lands whole */
+    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; delete b._rounds; delete b._sideRounds; delete b._charge; } }   /* last year's captivity is over, and every body lands whole, on a full load */
     for (const c of corps) { const m = (opts.mediaRevealed || {})[c.id]; if (m) c._mediaReveal = m.reveal || 0; }
 
     /* §DROP WHERE EVERYBODY COMES DOWN. The draft dealt zones (`opts.dropZones = { corpId: [zone a squad] }`): one
@@ -2263,12 +2277,15 @@
           const bodies = group.reduce((t, q) => t.concat(q.ref ? q.ref.bodies : []), []);
           need = 1 + bodies.filter(b => b.status !== 'active').length / Math.max(1, bodies.length); }
         else if (o.looted) return null;
+        else if (o.type === 'munitions_drop') { const bodies = group.reduce((t, q) => t.concat(q.ref ? squadHead(q.ref) : []), []);
+          const dry = bodies.length ? bodies.reduce((t, b) => t + (1 - C.roundsShare(b)), 0) / bodies.length : 0;
+          need = 1 + CONST.AMMO_DRY_NEED * dry; }   /* §ROUNDS a munitions drop to a squad running dry */
         else if (o.type === 'ration_site') { need = 1 + (group.some(q => q.ref && q.ref.rationShort) ? 1 : 0); }
         return need === 1 ? site : Object.assign({}, site, { need });
       },
       /* the report a squad's guns make when they fire: each gun's noise against an ordinary rifle's, a silenced one half */
-      /* §FIGHTS a squad weighs itself by the health its standing people have left (ruled) */
-      strengthOf: (sq) => squadHead(sq).reduce((t, b) => t + (b._hpFrac != null ? b._hpFrac : 1), 0),
+      /* §FIGHTS a squad weighs itself by the health its standing people have left (ruled), and the rounds (§ROUNDS) */
+      strengthOf: (sq) => squadHead(sq).reduce((t, b) => t + fightWorth(b), 0),
       reportOf: (cq) => squadHead(cq.ref).reduce((t, b) => { const k = b.loadout && b.loadout.kit; if (!k || k.unarmed) return t;
         const quiet = (k.tags || []).indexOf('silent') >= 0 || (k.weapon && k.weapon.noise === 0);
         return t + (quiet ? 0.5 : k.weapon && k.weapon.noise != null ? Math.max(0.5, k.weapon.noise / 2) : 1); }, 0),
@@ -2539,7 +2556,7 @@
           const now = tallyCorp(corpsHere[k]), p = pcOf[corpsHere[k].id];
           p.permanent += now.permanent - snap[k].permanent; p.injuredHome += now.injured - snap[k].injured; p.engagements++; corpsHere[k].engagements++;
         }
-        for (const sq of sidesSq[gi]) { sq.foughtToday = true; sq.engagements++; if (sq.ammoResupplied > 0) sq.ammoResupplied--; sq._heldToday = (sq._heldToday || 0) + fightTicks; }
+        for (const sq of sidesSq[gi]) { sq.foughtToday = true; sq.engagements++; sq._heldToday = (sq._heldToday || 0) + fightTicks; }
       }
       /* §WOUNDS (ruled: a wound is a result of the Divide, not a weight in it) THE FIGHT'S HURT LEAVE THE GROUND. A squad
          with nobody standing, on a field another side still stands on, loses its downed to that side: taken. Every

@@ -367,6 +367,32 @@ function chargedCarry(fighter, kit) {
   }
   return out;
 }
+/* §ROUNDS a full issue for a gun: the first magazine (or cell) loaded, and the spares beyond it — magazines for a
+   ballistic gun, cells for a cell-fed one, a bulk hand's extra and a mod's */
+function fullRounds(weapon, hooks, kit) {
+  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0);
+  return { mag: weapon.mag || loadoutFor(weapon),
+           spare: (weapon.mag ? weapon.mag * (weapon.damage === 'energy' ? CONST.LOADOUT_CELLS : CONST.LOADOUT_MAGS) : loadoutFor(weapon)) + extra };
+}
+const gunKey = w => w ? (w.id || w.name || '?') : '?';
+function carriedRounds(fighter, weapon, hooks, kit) {
+  const full = fullRounds(weapon, hooks, kit), R = fighter && fighter._rounds;
+  if (!R || R.gun !== gunKey(weapon)) return full;
+  return { mag: Math.min(full.mag, R.mag), spare: Math.min(full.spare, R.spare) };
+}
+function carriedSide(fighter, sidearm) {
+  const sm = sidearm.mag || CONST.LOADOUT_AMMO, full = { mag: sm, spare: sm * CONST.LOADOUT_MAGS_SIDEARM };
+  const R = fighter && fighter._sideRounds;
+  return (R && R.gun === gunKey(sidearm)) ? { mag: Math.min(full.mag, R.mag), spare: Math.min(full.spare, R.spare) } : full;
+}
+/** §ROUNDS how much of a full load a fighter still carries, 0 to 1 (1 if he has not fired since he was issued) */
+function roundsShare(fighter) {
+  const R = fighter && fighter._rounds;
+  if (!R || !(R.full > 0)) return 1;
+  const cell = R.cellMax > 0 ? (fighter._charge != null ? fighter._charge : R.cellMax) : 0;
+  return Math.max(0, Math.min(1, (R.mag + R.spare + cell) / R.full));
+}
+
 function makeCombatant(fighter, opts) {
   opts = opts || {};
   const hooks = hooksOf(fighter, opts.traitIndex);
@@ -428,8 +454,10 @@ function makeCombatant(fighter, opts) {
        balance patch, it is what a quartermaster does. */
     /* §GUNS the first magazine is loaded; `ammo` is every round the fighter carries BEYOND it (spare magazines,
        a bulk hand's extra, a mod's) — a gun that names no magazine keeps the old flat issue */
-    magLeft: weapon.mag || loadoutFor(weapon),
-    ammo: (weapon.mag ? weapon.mag * (weapon.damage === 'energy' ? CONST.LOADOUT_CELLS : CONST.LOADOUT_MAGS) : loadoutFor(weapon)) + (hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0),
+    /* §ROUNDS (ruled) WHAT HE CARRIES IS WHAT HE HAS: rounds carry from fight to fight through a Divide (`fighter._rounds`,
+       written at the fight's end), and only a munitions drop, a satchel or a new gun puts a full load back */
+    magLeft: carriedRounds(fighter, weapon, hooks, kit).mag,
+    ammo: carriedRounds(fighter, weapon, hooks, kit).spare,
     reloading: 0,
     /* §MODS what the fitted mods add to the shot (items.js resolve) */
     mod: (kit && kit.mod) || null,
@@ -453,10 +481,9 @@ function makeCombatant(fighter, opts) {
     _grudge: fighter._grudge || null,
     heat: 0, heatCap: (kit && kit.heatCap) || 0, heatPerShot: (kit && kit.heat) || 0,
     _heatShed: CONST.HEAT_SHED, _firedThisExchange: false,
-    /* §6 — charge is the fighter's, not the engagement's: it persists across every fight
-       in a day and only comes back at camp. Ammunition, by contrast, currently refills
-       between engagements (see [OPEN-P11]) — so the supply half of the contrast is not
-       modelled yet and the tempo half is. */
+    /* §6 — charge is the fighter's, not the engagement's: it persists across every fight and comes back at camp.
+       Ammunition persists too (§ROUNDS) and comes back only from a munitions drop or a satchel: the cell is small and
+       renews itself overnight, the magazine is deep and does not — that is the contrast between the families. */
     /* §ENERGY A CELL HOLDS WHAT THE WEAPON'S CELL HOLDS. What a fighter carried out of the
        last fight is remembered, and it was restored WITHOUT REGARD TO THE WEAPON THEY ARE
        HOLDING NOW: a hand who ended a fight with twenty-seven in a repeater and then drew a
@@ -466,6 +493,7 @@ function makeCombatant(fighter, opts) {
                      (kit && kit.charge) || 0),
     chargeMax: (kit && kit.charge) || 0, venting: 0,
     sidearm: (kit && kit.sidearm) || null, primary: null, onSidearm: false,
+    _sideRounds: kit && kit.sidearm ? carriedSide(fighter, kit.sidearm) : null,
     fatigue: (fighter.condition && fighter.condition.fatigue) || 0,
     suppressed: false, spotted: true, hovering: false, repositioning: false,
     bleed: null, wounds: [], gogglesBroken: false,
@@ -502,14 +530,15 @@ function useSidearm(u) {
   u._primaryRounds = { magLeft: u.magLeft, ammo: u.ammo, reloading: u.reloading };
   u.weapon = Object.assign({}, u.sidearm, { tags: u.sidearm.tags || [] });
   /* §GUNS the sidearm has a magazine of its own, and spares of its own */
-  const sm = u.weapon.mag || CONST.LOADOUT_AMMO;
-  u.magLeft = sm; u.ammo = sm * CONST.LOADOUT_MAGS_SIDEARM; u.reloading = 0;
+  const sr = u._sideRounds || { mag: u.weapon.mag || CONST.LOADOUT_AMMO, spare: (u.weapon.mag || CONST.LOADOUT_AMMO) * CONST.LOADOUT_MAGS_SIDEARM };
+  u.magLeft = sr.mag; u.ammo = sr.spare; u.reloading = 0;   /* §ROUNDS what is left of his own, not a fresh issue */
   u.onSidearm = true;
   u._justSwapped = true;
   return true;
 }
 function backToPrimary(u) {
   if (!u.onSidearm || !u.primary) return;
+  u._sideRounds = { mag: u.magLeft, spare: u.ammo };
   u.weapon = u.primary; u.primary = null; u.onSidearm = false;
   if (u._primaryRounds) { u.magLeft = u._primaryRounds.magLeft; u.ammo = u._primaryRounds.ammo; u.reloading = u._primaryRounds.reloading; u._primaryRounds = null; }
 }
@@ -518,9 +547,13 @@ function tickReload(u) {
   if (!(u.reloading > 0)) return;
   u.reloading--;
   if (u.reloading > 0) return;
+  /* §ROUNDS a reload TOPS UP: what was left in the magazine stays in it (it was thrown away, which a lane's three bursts
+     made a real loss once rounds carried) */
   const cap = (u.weapon && u.weapon.mag) || CONST.LOADOUT_AMMO;
-  const load = Math.min(cap, u.ammo);
-  if (isEnergy(u) && !u.onSidearm) u.charge = load; else u.magLeft = load;
+  const cell = isEnergy(u) && !u.onSidearm;
+  const have = cell ? (u.charge || 0) : (u.magLeft || 0);
+  const load = Math.max(0, Math.min(cap - have, u.ammo));
+  if (cell) u.charge = have + load; else u.magLeft = have + load;
   u.ammo -= load;
 }
 
@@ -1154,10 +1187,29 @@ function onDeath(rng, unit, side, log, tel) {
 
 /* roll injuries for everyone who took a serious+ wound and survived */
 /** §6 — hand the cells back to the people who carry them. */
+/* §ROUNDS AT THE FIGHT'S END WHAT HE CARRIES GOES HOME WITH HIM: the cell (it comes back at camp), the magazine and
+   the spares (they come back only from a munitions drop or a satchel), and the sidearm's own. Between fights a man
+   reloads, so the magazine is topped up from the spares. */
 function persistCharge(S, tel) {
   for (const u of S.units) {
-    if (u.chargeMax > 0 && u.ref) u.ref._charge = u.charge;
     if (tel) tel.vents += (u._vented || 0);
+    const f = u.ref; if (!f) continue;
+    if (u.chargeMax > 0) f._charge = u.charge;
+    const prim = u.onSidearm ? u.primary : u.weapon, pr = u.onSidearm ? (u._primaryRounds || {}) : { magLeft: u.magLeft, ammo: u.ammo };
+    const sr = u.onSidearm ? { mag: u.magLeft, spare: u.ammo } : u._sideRounds;
+    if (prim) {
+      const full = fullRounds(prim, u.hooks, { mod: u.mod });
+      const cellFed = u.chargeMax > 0;
+      let mag = cellFed ? 0 : Math.max(0, pr.magLeft || 0), spare = Math.max(0, pr.ammo || 0);
+      if (!cellFed) { const t = Math.min(full.mag - mag, spare); if (t > 0) { mag += t; spare -= t; } }
+      f._rounds = { gun: gunKey(prim), mag, spare, spareMax: full.spare, cellMax: cellFed ? u.chargeMax : 0,
+                    full: (cellFed ? u.chargeMax : full.mag) + full.spare };
+    }
+    if (sr && u.sidearm) {
+      const cap = u.sidearm.mag || CONST.LOADOUT_AMMO; let mag = Math.max(0, sr.mag || 0), spare = Math.max(0, sr.spare || 0);
+      const t = Math.min(cap - mag, spare); if (t > 0) { mag += t; spare -= t; }
+      f._sideRounds = { gun: gunKey(u.sidearm), mag, spare };
+    }
   }
 }
 
@@ -1217,7 +1269,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, onDeath, persistCharge, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, onDeath, persistCharge, roundsShare, fullRounds, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed

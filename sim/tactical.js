@@ -194,7 +194,7 @@
     GRENADE_MIN_CROWD: 2,            // [S] never spent on one man
     RESUPPLY_AT: 3,                  // [C] rounds left before reaching for the satchel
     RESUPPLY_ROUNDS: 12,             // [C] what a satchel is worth
-    RESUPPLY_CHARGE: 3,              // [C] what a cell is worth
+    RESUPPLY_CHARGE: 20,             // [C] what a spare cell is worth (the catalogue's twenty)
     DASH_COST: 0.18,                 // [C] the margin next turn's ground must beat this turn's shot
     CLUSTER_SPREAD: 2,               // [C] how far a bunch scatters from its anchor
     CLUSTER_SIZE: [2, 5],            // [C] tiles per bunch
@@ -2431,13 +2431,17 @@
 
             /* Resupply. An empty rifle is the commonest way a fighter stops mattering, and a
                satchel sitting in their kit while they draw a pistol is the system not running. */
-            const pack = C.isEnergy(u) ? 'itm_power_cell' : 'itm_ammo_satchel';
-            const low = C.isEnergy(u) ? u.charge <= 1 : u.ammo <= CONST.RESUPPLY_AT;
+            const cellGun = C.isEnergy(u), pack = cellGun ? 'itm_power_cell' : 'itm_ammo_satchel';
+            /* §ROUNDS the pack is for the PRIMARY, and goes into its spares. A man on his sidearm is there because the primary
+               is dry, so he reaches for it; otherwise both families reach for it when the spares are gone and the gun is
+               nearly flat. (A cell was worth three charge poured into the gun past its cell's size — the catalogue says
+               twenty — reached for with a spare still in the pouch; and a satchel opened on the sidearm filled the pistol.) */
+            const low = u.onSidearm ? true : cellGun ? (u.ammo <= 0 && u.charge <= CONST.RESUPPLY_AT) : u.ammo <= CONST.RESUPPLY_AT;
             if (low && u.carried.indexOf(pack) >= 0) {
               u.carried.splice(u.carried.indexOf(pack), 1);
-              if (C.isEnergy(u)) u.charge += CONST.RESUPPLY_CHARGE;
-              else u.ammo += CONST.RESUPPLY_ROUNDS;
-              if (u.onSidearm && C.primaryReady(u)) C.backToPrimary(u);
+              const add = cellGun ? CONST.RESUPPLY_CHARGE : CONST.RESUPPLY_ROUNDS;
+              if (u.onSidearm) { u._primaryRounds = u._primaryRounds || { magLeft: 0, ammo: 0, reloading: 0 }; u._primaryRounds.ammo += add; C.backToPrimary(u); }
+              else u.ammo += add;
               u.ap--;
               tel.consumables = (tel.consumables || 0) + 1;
               tel.resupply = (tel.resupply || 0) + 1;

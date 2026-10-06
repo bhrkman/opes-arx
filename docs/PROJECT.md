@@ -170,6 +170,12 @@ lean one pleases.
   is its mark alone and pins lightly; a support gun's is an arc out to its reach and pins hard,
   which is what a machine gun is for. An aimed shot no longer pins. Each fighter judges lane
   against shot by what each is worth in hits.
+- Rounds carry through a Divide (ruled): what a fighter has left in his gun and his spares at a fight's end is what he
+  brings to the next, for his sidearm too. A ballistic gun's rounds come back only from a munitions drop (a full load)
+  or an ammunition satchel; a cell-fed gun's cell, and its spare cells after it, recharge at camp overnight (a sun-fed
+  one by the day's light) and a spare power cell tops them up in the field. A squad running dry counts itself weaker,
+  in the fights it takes and in whether its OA stays, and wants a munitions drop the more. Carrying more rounds for more
+  bulk (an extended magazine, a satchel) is for the quartermaster to weigh when it is rebuilt.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

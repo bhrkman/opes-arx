@@ -2459,7 +2459,7 @@
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "+8 rounds at drop. Quota: 1 per body.",
+   "identity": "+12 rounds when he runs low. Quota: 1 per body.",
    "type": "Consumables",
    "charges": 6
   },
