@@ -9390,6 +9390,7 @@
       if (x.fight != null || it.type === 'fight') return 'Fighting';
       if (it.type === 'harass') return 'Picking at Them';
       if (it.type === 'take') return it.why === 'order' ? 'Under Orders' : /wall/.test(it.why || '') ? 'Ahead of the Wall' : it.why === 'rushing' ? 'Rushing Them' : 'Moving';
+      if (it.why === 'evade') return 'Stepping Away';
       if (it.why === 'order') return 'Holding on Orders';
       if (x.working) return 'Working the Site';
       return it.why === 'beaten' ? 'Fell Back' : it.why === 'won' ? 'Holding the Ground' : 'Holding';

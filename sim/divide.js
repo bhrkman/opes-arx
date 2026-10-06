@@ -2946,7 +2946,7 @@
           const it = cq.intent || {};
           sqRec.push({ i: cq.id, c: ci, s: si, z: alive ? cq.zone : q._downAt.zone, x: alive ? q.x : Z[q._downAt.zone].x, y: alive ? q.y : Z[q._downAt.zone].y,
                        az: alive && it.type === 'take' ? it.zone : null,
-                       w: alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
+                       w: alive ? (it.type === 'fight' ? 'fighting' : it.type === 'harass' ? 'picking' : it.type === 'take' ? (it.why === 'the wall' ? 'wall' : it.why === 'order' ? 'ordered' : it.why === 'rushing' ? 'rushing' : it.why === 'evade' ? 'evading' : 'walking') : it.why === 'beaten' ? 'beaten' : it.why === 'won' ? 'won' : 'holding') : (q._reformed ? 'folded' : 'down'),
                        n: alive, st: Math.round(squadStress(q)), rat: Math.round(Math.min(30, q.rations / demand)), g: q.crates, cl: q.claiming ? 1 : 0,
                        hb: q._heldToday || 0, jn: q._joinedToday ? 1 : 0, cp: q.sIdx === 0 ? heldOf(c.id).length : 0, tr: alive ? cq.track.slice() : [] });
         }));

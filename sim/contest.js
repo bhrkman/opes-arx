@@ -237,6 +237,22 @@
     st.audit.evaded = (st.audit.evaded || 0) + 1;
     st.events.push({ t: 'evade', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: opts[0], n: them });
   }
+  /** §HARASS (ruled: fire across a zone is a choice, not a last resort) a squad standing its ground with long rifles,
+      that sees a rival in the next zone it is not closing with, picks at it from where it stands — it was only ever done
+      by a squad with nothing worth walking to and a STRONGER rival next door, which in practice was never. The choice
+      leans on how much of the squad carries long rifles and on its stance's appetite. */
+  function opportunityFire(st, q) {
+    if (q.fight != null || q.moving || onRoad(q) || !(q.long > 0)) return;
+    if (!q.intent || q.intent.type !== 'hold' || q.intent.why === 'order' || q.intent.why === 'the wall') return;
+    const now = st.day * CONST.TICKS_A_DAY + st.tick, Z = st.ground.zones;
+    const v = Z[q.zone].nb.find(v => { const h = holder(st, v), k = q.know[v];
+      return h && !st.allied(h.oa, q.oa) && h.fight == null && k && k.how === 'seen' && now - k.at <= 1 && !deadZone(st, v); });
+    if (v == null) return;
+    const dial = STANCE[q.stance] || STANCE.standard;
+    if (r01(st) >= Math.min(1, q.long * (0.5 + dial.seek))) return;
+    q.intent = { type: 'harass', zone: v, why: 'picking' }; q.harass = null;
+    st.audit.harassChosen = (st.audit.harassChosen || 0) + 1;
+  }
   /** refresh a squad's knowledge from sight, hearing and its briefing */
   function perceive(st, q) {
     const seen = sees(st, q), now = st.day * CONST.TICKS_A_DAY + st.tick;
@@ -391,7 +407,7 @@
       if (best && (bestV > 0 || pressed)) { taken[best.zid] = true; q.intent = { type: 'take', zone: best.zid, why: pressed ? 'the wall' : 'the ground' }; st.audit.plans++; }
       else {
         /* nothing worth walking to: a known rival next door it will not close with is picked at from here */
-        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && feared(q, k.n) > strOf(st, q) * dial.accept && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
+        const nb = st.ground.zones[q.zone].nb.find(v => { const k = q.know[v], h = holder(st, v); return k && k.oa && !st.allied(k.oa, oa) && h && !st.allied(h.oa, oa) && h.fight == null && !(q.harass && q.harass.zone === v && q.harass.ticks >= CONST.HARASS_TICKS); });
         q.intent = nb != null && !pressed ? { type: 'harass', zone: nb, why: 'picking' } : { type: 'hold', zone: q.zone };
         if (q.intent.type !== 'harass') q.firing = 0;
       }
@@ -752,7 +768,8 @@
     for (const f of st.fights) if (!f.done && f.until <= absTick(st)) settleFight(st, f);
     for (const q of alive(st)) perceive(st, q);
     for (const q of alive(st)) evade(st, q);
-    for (const q of alive(st)) if (q.fight == null && (!st.camp || q.moving || (q.intent && (q.intent.why === 'the wall' || q.intent.why === 'rushing' || q.intent.why === 'order' || q.intent.why === 'evade')))) move(st, q);
+    for (const q of alive(st)) opportunityFire(st, q);
+    for (const q of alive(st)) if (q.fight == null && (!st.camp || q.moving || (q.intent && (q.intent.why === 'the wall' || q.intent.why === 'rushing' || q.intent.why === 'order' || q.intent.why === 'evade' || q.intent.type === 'harass')))) move(st, q);   /* a squad picking at the next zone keeps at it through camp */
     st.tick++;
     if (st.tick >= CONST.TICKS_A_DAY) { st.tick = 0; st.day++; }
     if (st.driven) return;

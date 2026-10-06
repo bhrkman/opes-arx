@@ -844,7 +844,13 @@ function aimEff(c, bandIdx, ctx) {
   /* `smart_link` — "waives band_mismatch_penalty entirely": the penalty for the wrong distance, never the bonus for the
      right one. It added `bandMismatch` itself, which at a gun's own band is the NEGATIVE of the specialist bonus, so
      a smart-linked SMG lost thirty aim exactly where it was built to fight. */
-  if (mis > 0 && hasQuirk(c, 'smart_link')) mis = 0;
+  if (mis > 0 && hasQuirk(c, 'smart_link')) {
+    /* …and only what the band penalty was: so many bands off its own, at BAND_MISMATCH_PENALTY each. Under the range model
+       the falloff past a gun's reach is not that penalty, and waiving all of it let an eight-tile SMG shoot at twenty
+       tiles as if it were in reach */
+    const off = Math.abs(BANDS.indexOf(c.weapon.range || 'medium') - bandIdx);
+    mis = Math.max(0, mis - off * CONST.BAND_MISMATCH_PENALTY);
+  }
   a -= (mis > 0 && md && md.bandMult != null) ? mis * md.bandMult : mis;
   a += quirkAim(c, bandIdx, ctx);                     /* PROCUREMENT.md §4.2 */
   /* §GUNS HANDLING is the gun's own precision, apart from the hand that holds it; and a SNAP SHOT — shooting in the same

@@ -151,7 +151,7 @@
        the hurt. Against a mean hit chance near 0.19 it is worth about a quarter of a shot.
        Moved here unchanged at 0.05: naming a number is not the moment to retune it. */
     FINISH_WOUNDED: 0.05,            // [C]
-    FOLLOWUP_HIT: 0.6,               // [C] §GUNS a follow-up round of a burst hits at this share of the first
+    FOLLOWUP_HIT: 0.6,               // [C] §GUNS each follow-up round of a burst hits at this share of the round before it
     FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
     HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
@@ -602,7 +602,11 @@
     const t = Math.max(0, Math.min(1, (fc - CONST.SIGHT_STAT_LOW) / (CONST.SIGHT_STAT_HIGH - CONST.SIGHT_STAT_LOW)));
     /* §LIGHT in the planet's dark a fighter sees a good deal less far — unless at home in the dark */
     const nightCut = _night && !(u.hooks && u.hooks.has('night_encounter_bonus')) ? CONST.NIGHT_SIGHT : 1;
-    return (CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR)) * nightCut;
+    /* §SIGHT (ruled) A LONG GUN'S SCOPE: its bearer sees out to the gun's reach. Eyes alone ran seven to fifteen tiles and
+       the long band starts past fourteen, so a marksman almost never had a target at the range his rifle was made for */
+    const eye = CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR);
+    const scope = (u.weapon && u.weapon.range === 'long' && !u.onSidearm && u.weapon.reach) ? u.weapon.reach : 0;
+    return Math.max(eye, scope) * nightCut;
   }
 
   /**
@@ -1245,7 +1249,9 @@
        one round whatever the weapon is: you are firing at movement, not settling into a rate. */
     let extra = react ? 0 : Math.min(CONST.TEMPO_MAX_BURST - 1, (shooter._rateBank || 0) | 0);
     shooter._rateBank = (shooter._rateBank || 0) - extra;
+    let recoil = 1;
     while (extra-- > 0 && C.spendShot(shooter, 'shot')) {
+      recoil *= CONST.FOLLOWUP_HIT;   /* §GUNS recoil builds: each round after the first lands at FOLLOWUP_HIT of the one before */
       tel.shots++; tel.tempoShots = (tel.tempoShots || 0) + 1;
       if (C.isEnergy(shooter) && !shooter.onSidearm) tel.energyShots++;   /* extra rounds count */
       /* EXTRA ROUNDS WERE COUNTED AND NEVER RECORDED. This loop raised `tel.shots` and resolved
@@ -1254,7 +1260,7 @@
          telemetry and nowhere a reader could see them. The counter and the record disagreed
          about the same event, and only the counter was ever checked. */
       /* §GUNS (ruled) a fast gun's rate costs it here, on the rounds after the first, where the recoil is */
-      const tHit = rng() < p * CONST.FOLLOWUP_HIT;
+      const tHit = rng() < p * recoil;
       chipCoverFrom(rng, map, shooter, target, tel, log);
       if (log) log.push({ t: tel.turn, type: tHit ? 'hit' : 'miss', by: shooter.id, at: target.id, why: (C.hitChance.why || []).slice(),
                           p: +p.toFixed(3), band: band, w: (shooter.weapon || {}).name,

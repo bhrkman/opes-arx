@@ -233,7 +233,7 @@
    "identity": "Someone's grandfather carried it. Still works.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 0.465,
+    "edge": 0.576,
     "of": "1kg38bt"
    }
   },
@@ -271,7 +271,7 @@
    "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 0.426,
+    "edge": 0.59,
     "of": "s5ayuk"
    }
   },
@@ -297,7 +297,7 @@
     "reach": 7,
     "near": 0,
     "falloff": 4,
-    "handling": 4,
+    "handling": 1,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -309,8 +309,8 @@
    "identity": "Two rounds where one was asked for.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.18,
-    "of": "hyg1br"
+    "edge": 1.01,
+    "of": "1dak5hu"
    }
   },
   {
@@ -347,7 +347,7 @@
    "identity": "Crowd-control kit that found a war.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.08,
+    "edge": 1.082,
     "of": "gbt0b4"
    }
   },
@@ -385,7 +385,7 @@
    "identity": "Ends rooms.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.312,
+    "edge": 1.357,
     "of": "1dmet3t"
    }
   },
@@ -423,7 +423,7 @@
    "identity": "The standard. Everything else is measured against it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.955,
+    "edge": 0.947,
     "of": "1f9s4jv"
    }
   },
@@ -462,7 +462,7 @@
    "identity": "Short enough to fight while moving.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.031,
+    "edge": 1.032,
     "of": "apuwev"
    }
   },
@@ -501,7 +501,7 @@
    "identity": "Full power, full weight. You will feel every metre you carry it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 0.87,
+    "edge": 0.888,
     "of": "ohgnms"
    }
   },
@@ -539,7 +539,7 @@
    "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 0.76,
+    "edge": 1.469,
     "of": "1kqenir"
    }
   },
@@ -575,7 +575,7 @@
    "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
    "type": "Support Guns",
    "worth": {
-    "edge": 0.78,
+    "edge": 0.797,
     "of": "coy4c8"
    }
   },
@@ -614,7 +614,7 @@
    "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.09,
+    "edge": 1.068,
     "of": "1t3lsav"
    }
   },
@@ -652,7 +652,7 @@
    "identity": "Devastating on the unarmoured, a rumour against plate.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 0.849,
+    "edge": 0.879,
     "of": "14flq94"
    }
   },
@@ -691,7 +691,7 @@
    "identity": "Rounds that accelerate - useless until they have flown.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.077,
+    "edge": 1.047,
     "of": "6ptsbq"
    }
   },
@@ -729,7 +729,7 @@
    "identity": "Fired at the wall, on purpose.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.484,
+    "edge": 1.495,
     "of": "1uoy8aa"
    }
   },
@@ -765,7 +765,7 @@
    "identity": "The shot nobody attributes.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 1.494,
+    "edge": 2.441,
     "of": "8hm1p9"
    }
   },
@@ -804,7 +804,7 @@
    "identity": "A machine gun that stopped apologising.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.548,
+    "edge": 1.489,
     "of": "1reurwi"
    }
   },
@@ -842,7 +842,7 @@
    "identity": "Two weapons, one awkward weight.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.472,
+    "edge": 1.481,
     "of": "4v6jup"
    }
   },
@@ -880,7 +880,7 @@
    "identity": "Magnetic acceleration. Wait for it.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.784,
+    "edge": 1.544,
     "of": "63yxz4"
    }
   },
@@ -918,7 +918,7 @@
    "identity": "Built for vehicles. Fielded against people.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 1.226,
+    "edge": 2.922,
     "of": "1rxs4rb"
    }
   },
@@ -956,7 +956,7 @@
    "identity": "Doesn't shoot around cover. Shoots the cover.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 1.22,
+    "edge": 1.262,
     "of": "y3sqaz"
    }
   },
@@ -995,7 +995,7 @@
    "identity": "Cheap, patient, and slow to answer.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.66,
+    "edge": 0.676,
     "of": "kj5ilp"
    }
   },
@@ -1035,7 +1035,7 @@
    "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.842,
+    "edge": 0.834,
     "of": "2vdats"
    }
   },
@@ -1074,7 +1074,7 @@
    "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 0.837,
+    "edge": 0.833,
     "of": "1i659rc"
    }
   },
@@ -1114,7 +1114,7 @@
    "identity": "Terrible against people. Ruinous against machines.",
    "type": "Carbines",
    "worth": {
-    "edge": 0.662,
+    "edge": 0.67,
     "of": "1y4v06w"
    }
   },
@@ -1153,7 +1153,7 @@
    "identity": "Drinks the day. Dreads the night.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 1.09,
+    "edge": 1.941,
     "of": "ekkvil"
    }
   },
@@ -1192,7 +1192,7 @@
    "identity": "Finds the second man without being asked.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.762,
+    "edge": 0.773,
     "of": "1e898ze"
    }
   },
@@ -1231,7 +1231,7 @@
    "identity": "Doesn't kill them. Stops them.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.32,
+    "edge": 1.35,
     "of": "184wtv5"
    }
   },
@@ -1270,7 +1270,7 @@
    "identity": "Gets hotter and better at once.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.331,
+    "edge": 1.357,
     "of": "1agtgv6"
    }
   },
@@ -1307,7 +1307,7 @@
    "identity": "No report, no flash, no witness.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 1.363,
+    "edge": 2.351,
     "of": "gltma7"
    }
   },
@@ -1347,7 +1347,7 @@
    "identity": "Sound goes where the bullet won't.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.198,
+    "edge": 1.213,
     "of": "1m1b1td"
    }
   },
@@ -1384,7 +1384,7 @@
    "identity": "A line drawn through the argument. Once, then twice, then nothing.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 1.86,
+    "edge": 3.746,
     "of": "739fm2"
    }
   },
@@ -1423,7 +1423,7 @@
    "identity": "Removes the argument and the furniture.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 1.116,
+    "edge": 1.129,
     "of": "1rlkdb4"
    }
   },
@@ -1463,7 +1463,7 @@
    "identity": "The crowd's favourite, the Aleas' paperwork.",
    "type": "Launchers",
    "worth": {
-    "edge": 2.331,
+    "edge": 2.342,
     "of": "1cpe7ax"
    }
   },
@@ -1503,7 +1503,7 @@
    "identity": "Short range, long memory.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.779,
+    "edge": 1.819,
     "of": "13wh9ws"
    }
   },
@@ -2519,7 +2519,7 @@
    "identity": "Sponsor theatre with a blast radius.",
    "type": "Launchers",
    "worth": {
-    "edge": 2.128,
+    "edge": 2.157,
     "of": "6wu6u5"
    }
   },
@@ -2558,7 +2558,7 @@
    "identity": "Ammunition x3. Nothing about it is reasonable.",
    "type": "Support Guns",
    "worth": {
-    "edge": 2.068,
+    "edge": 1.959,
     "of": "3eafj9"
    }
   },
@@ -2597,7 +2597,7 @@
    "identity": "One hole, all the way through.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 1.35,
+    "edge": 3.3,
     "of": "16nwsbo"
    }
   },
@@ -2637,7 +2637,7 @@
    "identity": "Removes the position and the argument.",
    "type": "Launchers",
    "worth": {
-    "edge": 2.066,
+    "edge": 2.146,
     "of": "1ub1pc"
    }
   },
@@ -2677,7 +2677,7 @@
    "identity": "One shot per three exchanges. It is enough.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 1.447,
+    "edge": 3.586,
     "of": "1uvicro"
    }
   },
@@ -2788,7 +2788,7 @@
    "identity": "Drops a man where he stands and he gets up angry. Dividend issue.",
    "type": "Stun-Grade",
    "worth": {
-    "edge": 0.193,
+    "edge": 0.266,
     "of": "f3336h"
    }
   },
@@ -2827,7 +2827,7 @@
    "identity": "The crowd can hear it from the stands. So can the man on the end of it.",
    "type": "Stun-Grade",
    "worth": {
-    "edge": 0.213,
+    "edge": 0.354,
     "of": "1vtkuyc"
    }
   },
@@ -2865,7 +2865,7 @@
    "identity": "Blinds a firing line without leaving a mark on any of them.",
    "type": "Stun-Grade",
    "worth": {
-    "edge": 0.217,
+    "edge": 0.233,
     "of": "blaeyc"
    }
   },
@@ -2903,7 +2903,7 @@
    "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.589,
+    "edge": 0.599,
     "of": "ciihaw"
    }
   },
@@ -2941,7 +2941,7 @@
    "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.631,
+    "edge": 0.656,
     "of": "1puw5t7"
    }
   },
@@ -2980,7 +2980,7 @@
    "identity": "Holds its line while you walk. The rest is practice.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.988,
+    "edge": 0.998,
     "of": "yrwb4g"
    }
   },
@@ -3018,7 +3018,7 @@
    "identity": "Heavier than it looks, and it goes through more than it should.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.569,
+    "edge": 1.545,
     "of": "11v9dsb"
    }
   },
@@ -3057,7 +3057,7 @@
    "identity": "Three flashes a second and a battery that resents it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.815,
+    "edge": 1.809,
     "of": "hmo3e"
    }
   },
@@ -3096,7 +3096,7 @@
    "identity": "What an OA buys when it has stopped counting.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 2.368,
+    "edge": 2.394,
     "of": "szw02q"
    }
   },
@@ -3134,7 +3134,7 @@
    "identity": "Loud, light, and honest about what it is.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.164,
+    "edge": 1.035,
     "of": "gd13g5"
    }
   },
@@ -3160,7 +3160,7 @@
     "reach": 7,
     "near": 0,
     "falloff": 4,
-    "handling": 4,
+    "handling": 1,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -3172,8 +3172,8 @@
    "identity": "Made for corridors and the people who fight in them.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.18,
-    "of": "hyg1br"
+    "edge": 1.01,
+    "of": "1dak5hu"
    }
   },
   {
@@ -3199,7 +3199,7 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 12,
+    "handling": 3,
     "snap": 1,
     "pen": 0,
     "suppress": 1,
@@ -3211,8 +3211,8 @@
    "identity": "Points where you are already looking.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.825,
-    "of": "1pbfuws"
+    "edge": 1.758,
+    "of": "19shj64"
    }
   },
   {
@@ -3237,7 +3237,7 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 11,
+    "handling": 3,
     "snap": 2,
     "pen": 0,
     "suppress": 1,
@@ -3249,8 +3249,8 @@
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.941,
-    "of": "yoqeb4"
+    "edge": 1.788,
+    "of": "1cohk03"
    }
   },
   {
@@ -3649,7 +3649,7 @@
    "identity": "Bought for deer. Kept for the long walk across open ground.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 0.674,
+    "edge": 0.962,
     "of": "7q90wb"
    }
   },
@@ -3686,7 +3686,7 @@
    "type": "Long Rifles",
    "exotic": true,
    "worth": {
-    "edge": 1.806,
+    "edge": 2.865,
     "of": "1vagtp2"
    }
   },
@@ -3724,7 +3724,7 @@
    "identity": "A glass sight bolted on by somebody who meant well.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 0.391,
+    "edge": 0.563,
     "of": "1tc0l0t"
    }
   },
@@ -3761,7 +3761,7 @@
    "type": "Marksman Rifles",
    "exotic": true,
    "worth": {
-    "edge": 1.857,
+    "edge": 3.191,
     "of": "1hs3q67"
    }
   },
@@ -3788,7 +3788,7 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 12,
+    "handling": 5,
     "snap": 0,
     "pen": 1,
     "suppress": 1,
@@ -3801,8 +3801,8 @@
    "type": "Submachine Guns",
    "exotic": true,
    "worth": {
-    "edge": 3.083,
-    "of": "1c423cm"
+    "edge": 2.557,
+    "of": "1mvzojk"
    }
   },
   {
@@ -3837,7 +3837,7 @@
    "identity": "Heavy, loud, and older than the man carrying it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.031,
+    "edge": 1.01,
     "of": "9bu6k1"
    }
   },
@@ -3873,7 +3873,7 @@
    "identity": "Two barrels, one decision.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 0.88,
+    "edge": 0.898,
     "of": "1k22qbz"
    }
   },
@@ -3913,7 +3913,7 @@
    "type": "Scatterguns",
    "exotic": true,
    "worth": {
-    "edge": 2.709,
+    "edge": 2.629,
     "of": "sgf4qh"
    }
   },
@@ -3949,7 +3949,7 @@
    "identity": "Short, light, and forgiving of cold hands.",
    "type": "Carbines",
    "worth": {
-    "edge": 0.773,
+    "edge": 0.799,
     "of": "utz82f"
    }
   },
@@ -3985,7 +3985,7 @@
    "identity": "Fits in a pack. Unfolds into a problem.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.079,
+    "edge": 1.103,
     "of": "tlpp0w"
    }
   },
@@ -4024,7 +4024,7 @@
    "type": "Carbines",
    "exotic": true,
    "worth": {
-    "edge": 1.847,
+    "edge": 1.839,
     "of": "iujc90"
    }
   },
@@ -4062,7 +4062,7 @@
    "identity": "Pipe, fuse, and faith.",
    "type": "Launchers",
    "worth": {
-    "edge": 0.568,
+    "edge": 0.579,
     "of": "19tms6a"
    }
   },
@@ -4100,7 +4100,7 @@
    "identity": "Lobs a problem over the wall they are hiding behind.",
    "type": "Launchers",
    "worth": {
-    "edge": 0.846,
+    "edge": 0.878,
     "of": "1tse3sx"
    }
   },
@@ -4138,7 +4138,7 @@
    "identity": "Six rounds of bad news, one after another.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.163,
+    "edge": 1.181,
     "of": "uxjp2d"
    }
   },
@@ -4174,7 +4174,7 @@
    "identity": "Kicks like the thing it was made for.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.426,
+    "edge": 0.757,
     "of": "1llwt8o"
    }
   },
@@ -4210,7 +4210,7 @@
    "identity": "Pulled off a wreck. Still finds armour through the smoke.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.507,
+    "edge": 1.037,
     "of": "mkcwtj"
    }
   },
@@ -4246,7 +4246,7 @@
    "identity": "Opens cover the way a key opens a door.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.693,
+    "edge": 1.478,
     "of": "1g8v2rm"
    }
   },
@@ -4284,7 +4284,7 @@
    "identity": "For the last three metres of any argument.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.522,
+    "edge": 0.536,
     "of": "p2i4lz"
    }
   },
@@ -4322,7 +4322,7 @@
    "identity": "Short barrel. Short conversation.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.661,
+    "edge": 0.671,
     "of": "z717hy"
    }
   },
@@ -4361,7 +4361,7 @@
    "type": "Close-Quarters",
    "exotic": true,
    "worth": {
-    "edge": 1.412,
+    "edge": 1.422,
     "of": "mok6ni"
    }
   },
@@ -4400,7 +4400,7 @@
    "identity": "Cattle took it badly. People take it worse.",
    "type": "Stun-Grade",
    "worth": {
-    "edge": 0.183,
+    "edge": 0.188,
     "of": "104zi2d"
    }
   },
@@ -4439,7 +4439,7 @@
    "identity": "Puts them down and keeps them down.",
    "type": "Stun-Grade",
    "worth": {
-    "edge": 0.321,
+    "edge": 0.566,
     "of": "167czel"
    }
   },
@@ -4479,7 +4479,7 @@
    "type": "Stun-Grade",
    "exotic": true,
    "worth": {
-    "edge": 0.415,
+    "edge": 0.661,
     "of": "i136xc"
    }
   },
@@ -4518,7 +4518,7 @@
    "identity": "A training beam somebody turned up past the stop.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.064,
+    "edge": 1.098,
     "of": "16a9y22"
    }
   },
@@ -4544,7 +4544,7 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 7,
+    "handling": 2,
     "snap": 4,
     "pen": 0,
     "suppress": 1,
@@ -4556,8 +4556,8 @@
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.215,
-    "of": "1473547"
+    "edge": 1.06,
+    "of": "1krxvr6"
    }
   },
   {
@@ -4593,7 +4593,7 @@
    "identity": "The first thing they see is the last thing they see.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 1.034,
+    "edge": 2.01,
     "of": "230tgm"
    }
   },
@@ -4633,7 +4633,7 @@
    "type": "Carbines",
    "exotic": true,
    "worth": {
-    "edge": 1.524,
+    "edge": 1.558,
     "of": "1sdmksq"
    }
   },
@@ -4671,7 +4671,7 @@
    "type": "Long Rifles",
    "exotic": true,
    "worth": {
-    "edge": 2.43,
+    "edge": 4.194,
     "of": "1cludkk"
    }
   },
@@ -4711,7 +4711,7 @@
    "type": "Support Guns",
    "exotic": true,
    "worth": {
-    "edge": 1.747,
+    "edge": 1.77,
     "of": "h45xes"
    }
   },
