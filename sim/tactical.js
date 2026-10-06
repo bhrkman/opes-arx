@@ -88,11 +88,22 @@
        to hold an arc down was, on the model that actually matters, a worse rifle. */
     AREA_RADIUS: 3,                  // [C] §GUNS how near the mark a blast's other targets must stand (tiles)
     MOBILE_COVER_RADIUS: 2,          // [C] §GUNS how near a standing wall-gun its squadmates are shielded (tiles)
-    SUPPRESS_RADIUS: 2,              // [C] tiles either side of the mark that also go to ground
+    SUPPRESS_RADIUS: 2,              // [C] how near the mark an arc_chain round jumps (tiles)
+    /* §SUPPRESSION (ruled) the lane: every gun can lay one, and a support gun lays a wider, heavier one */
+    LANE_RADIUS: 0,                  // [C] tiles about the mark an ordinary gun's lane holds (the mark alone)
+    LANE_ARC: 20,                    // [C] degrees either side of the line to the mark a support gun's arc holds, to its reach
+    LANE_ARC_2: 5,                   // [C] and a suppressive_2 gun's more
+    LANE_ARC_TRAIT: 4,               // [C] degrees a point of Trigger Itch / Ammo Miser is worth on an arc
+    LANE_PEN: 15,                    // [C] aim a man under an ordinary gun's lane loses
+    LANE_PEN_SUPPORT: 40,            // [C] and under a support gun's
+    LANE_HIT_MULT: 0.35,             // [C] the lane's own rounds: the chance, of an aimed shot's, each man in it is hit
+    LANE_POWER_MULT: 0.5,            // [C] and the power they carry (mostly grazes)
+    LANE_REACT_MULT: 0.6,            // [C] the burst at a man who gets up out of the lane, of an aimed shot's chance
+    LANE_OW_VALUE: 0.5,              // [C] what unwatching a watcher is worth to the side about to move, of his shot
+    LANE_WEIGHT: 1.5,                // [C] the lane against the aimed shot, hit for hit (the lane's worth runs past the turn)
     SPREAD_HIT_MULT: 0.6,            // [C] §GUNS the chance a round's edge catches somebody beside the target, of the shot's
     SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
     NOISE_TILES_PER_POINT: 8,        // [C] how far a shot carries, a point of noise
-    SUPPRESS_MIN_P: 0.04,            // [C] you can hose a position you could barely hit
     SUPPRESSED_MOVE_COST: 0.32,      // [C] what leaving cover is worth while under fire
     /* §5.1 — THE TRAIT VOCABULARY OF SUPPRESSION, wired at Step 8.10. Three hooks named a
        system that had existed since Step 5 and never read them, so Trigger Itch, Ammo Miser and
@@ -159,7 +170,6 @@
                                      //     walk is not a dash, and the mechanism exists to get
                                      //     short-range squads across ground they never crossed.
     MOB_TILES: 1.5,                  // [C] ground a mob_up / mob_down weapon gains or costs
-    COVERING_FIRE_MIN: 2,            // [C] bodies it must put down to be worth an action
     SMOKE_RADIUS: 2,                 // [C] tiles a screen covers
     SMOKE_TURNS: 3,                  // [S] how long before it drifts away
     /* §DEVICES the spotter drone and the auto-turret (their catalogue lines: the drone strips
@@ -903,6 +913,9 @@
    * moving first beat waiting, and why nobody had a reason to hold ground.
    */
   function triggerOverwatch(rng, mover, sides, map, tel, log) {
+    /* §SUPPRESSION getting up inside a lane draws its burst first */
+    leaveLanes(rng, mover, mover._actFrom || mover, sides, map, tel, log);
+    if (!upright(mover)) return;
     for (const S of sides) {
       for (const w of alive(S.units)) {
         if (!w.overwatch || w.side === mover.side) continue;
@@ -1273,27 +1286,7 @@
       } else comp(rng, target, C.CONST.COMP.nearMiss);
       if (target.state !== 'ok' && target.state !== 'light') break;
     }
-    /* §5.1 — a suppressive weapon suppresses what it fires at whether it hits or not, and the
-       heavier tag catches whoever is standing near them. A suppressed fighter on a grid does
-       not just aim worse: they will not cross open ground, which is the whole point. */
-    if (C.suppressOf(shooter) >= 1) {
-      pin(target, tel, rng);
-      /* `suppression_output_up` GRANTS the spread rather than merely widening it. Widening was
-         the wrong wiring: only `suppressive_2` weapons have a spread to widen, and Trigger Itch
-         is carried by people, not guns — the fighter who shoots at movement and shadows is
-         mostly holding an ordinary machine gun, which is `suppressive` and pins one man. So the
-         hook was live, referenced, and reached almost nothing; the suite measured 4610 against
-         4720 and correctly called it noise. Shooting at everywhere you might be is the trait. */
-      const spreads = C.suppressOf(shooter) >= 2 ||
-                      (shooter.hooks && shooter.hooks.has('suppression_output_up'));
-      if (spreads) {
-        const reach = suppressReach(shooter);
-        for (const f of E.units) {
-          if (f === target || (f.state !== 'ok' && f.state !== 'light')) continue;
-          if (dist(f, target) <= reach) pin(f, tel, rng);
-        }
-      }
-    }
+    /* (an aimed shot no longer pins: suppression is the lane, an action of its own — §SUPPRESSION) */
     if (!hit) {
       comp(rng, target, C.CONST.COMP.nearMiss);
       if (log) log.push({ t: tel.turn, type: 'miss', by: shooter.id, at: target.id, p: +p.toFixed(3), band, cover: cov, why: (C.hitChance.why || []).slice(), w: (shooter.weapon||{}).name, ammo: shooter.ammo, react: !!react });
@@ -1397,30 +1390,89 @@
     return Math.round((CONST.BAND_TILE[0] + CONST.BAND_TILE[1]) / 2);
   }
 
-  /* `rng` and `shooter` are passed so a pin can be REFUSED and so a shooter's arc can be
-     widened. Both were unreachable before: pin took neither, so no trait could touch it. */
-  function pin(u, tel, rng) {
-    if (u.state !== 'ok' && u.state !== 'light') return;
-    /* `suppression_bonus` — Smothering Fire. Reads as resistance on the fighter who has it:
-       they have been hosed before and know the difference between fire aimed at them and fire
-       aimed at where they might be. */
-    if (rng && u.hooks && u.hooks.has('suppression_bonus') && rng() < CONST.SUPPRESS_RESIST_P) {
-      tel.pinsRefused = (tel.pinsRefused || 0) + 1;
-      return;
+  /* §SUPPRESSION (ruled) SUPPRESSING FIRE IS AN ACTION EVERY GUN HAS, and the support guns are built for it. A fighter
+     lays fire on a LANE — the mark's tile and, for a gun that can hold an arc, the ground around it — which stands until
+     the layer's own next turn; a support gun's lane is an arc out to its reach. Everybody of the other side inside it is pinned: his aim suffers by the gun's weight, he
+     will not watch, and he will not willingly stand up. The rounds are real (ruled: the threat of being hit is what pins
+     a man): laying the lane rolls a light hit at each body in it, and a man who gets up and leaves it draws a burst. */
+  function laneOf(u) {
+    const sup = C.suppressOf(u);
+    /* `suppression_output_up` / `_down_slight` widen and narrow the lane; they are read here and nowhere else */
+    let t = 0;
+    if (u.hooks && u.hooks.has('suppression_output_up'))   t += CONST.SUPPRESS_OUT_UP;
+    if (u.hooks && u.hooks.has('suppression_output_down_slight')) t -= CONST.SUPPRESS_OUT_DOWN;
+    if (sup < 1) return { r: Math.max(0, CONST.LANE_RADIUS + t), pen: CONST.LANE_PEN, arc: null };
+    const deg = CONST.LANE_ARC + (sup >= 2 ? CONST.LANE_ARC_2 : 0) + t * CONST.LANE_ARC_TRAIT;
+    return { r: 0, pen: CONST.LANE_PEN_SUPPORT, arc: Math.max(1, deg) * Math.PI / 180 };
+  }
+  const lanesOf = tel => tel._lanes || (Object.defineProperty(tel, '_lanes', { value: [], enumerable: false }), tel._lanes);
+  /* a support gun's lane is an ARC: everything in its reach within a few degrees either side of the line to the mark */
+  const inLane = (L, f) => {
+    if (L.arc == null) return Math.hypot(f.x - L.x, f.y - L.y) <= L.r + 0.01;
+    const dx = f.x - L.ox, dy = f.y - L.oy, d = Math.hypot(dx, dy);
+    if (d < 0.5 || d > L.reach) return false;
+    let a = Math.abs(Math.atan2(dy, dx) - L.ang); if (a > Math.PI) a = 2 * Math.PI - a;
+    return a <= L.arc;
+  };
+  const upright = f => f.state === 'ok' || f.state === 'light';
+  /* who is pinned is read off the lanes standing, whenever one is laid or lifted */
+  function refreshPins(tel, sides) {
+    const lanes = lanesOf(tel);
+    for (let i = lanes.length - 1; i >= 0; i--) if (!upright(lanes[i].by)) lanes.splice(i, 1);
+    for (const S of sides) for (const u of S.units) {
+      let pen = 0;
+      for (const L of lanes) if (L.by.side !== u.side && upright(u) && inLane(L, u) && !L.refused.has(u.id)) pen = Math.max(pen, L.pen);
+      u.suppressed = pen > 0; u._supPen = pen;
     }
-    /* being pinned shakes a man: COMP.suppressed was declared and never applied */
+  }
+  /* a man the lane catches: Smothering Fire may refuse it, and being pinned shakes him */
+  function pin(u, L, tel, rng) {
+    if (!upright(u) || L.refused.has(u.id)) return;
+    /* `suppression_bonus` — Smothering Fire: hosed before, he knows fire at him from fire at where he might be */
+    if (rng && u.hooks && u.hooks.has('suppression_bonus') && rng() < CONST.SUPPRESS_RESIST_P) {
+      L.refused.add(u.id); tel.pinsRefused = (tel.pinsRefused || 0) + 1; return;
+    }
     if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
-    u.suppressed = true; u._pinServed = false;   /* lasts until he has had a turn under it */
     tel.pins = (tel.pins || 0) + 1;
   }
-
-  /* How far from the mark a shooter's fire reaches. `suppression_output_up` /
-     `_down_slight` are the only readers, and this is the only place they are read. */
-  function suppressReach(shooter) {
-    let r = CONST.SUPPRESS_RADIUS;
-    if (shooter.hooks && shooter.hooks.has('suppression_output_up'))   r += CONST.SUPPRESS_OUT_UP;
-    if (shooter.hooks && shooter.hooks.has('suppression_output_down_slight')) r -= CONST.SUPPRESS_OUT_DOWN;
-    return Math.max(0, r);
+  /* the light end of a burst: the lane's rounds carry part of the gun's power, so most of what lands is a graze */
+  function laneHit(rng, by, f, mult, power, map, S, E, tel, log) {
+    if (!hasLOS(map, by, f)) return;
+    const band = bandOf(dist(by, f));
+    const p = C.hitChance(by, f, band, { side: by._side, dist: dist(by, f), night: !!_night }, false) * CONST.SHOT_HIT_MULT * mult;
+    if (rng() >= p) return;
+    const round = power < 1 ? Object.assign({}, by, { weapon: Object.assign({}, by.weapon, { power: (by.weapon.power || 0) * power }) }) : by;
+    tel.laneHits = (tel.laneHits || 0) + 1;
+    if (log) log.push({ t: tel.turn, type: 'lane_hit', by: by.id, at: f.id, w: (by.weapon || {}).name });
+    applyHit(rng, f, C.resolveSeverity(rng, round, f, S.policy, band, null, tel.turn), tel, log, by, E);
+  }
+  function laneAt(u, mark) {
+    const lo = laneOf(u), L = { by: u, side: u.side, x: mark.x, y: mark.y, r: lo.r, pen: lo.pen, refused: new Set(), left: new Set() };
+    if (lo.arc != null) { L.arc = lo.arc; L.ox = u.x; L.oy = u.y; L.ang = Math.atan2(mark.y - u.y, mark.x - u.x); L.reach = Math.max(dist(u, mark), (u.weapon && u.weapon.reach) || 0); }
+    return L;
+  }
+  function layLane(rng, u, mark, sides, map, S, E, tel, log) {
+    const L = laneAt(u, mark);
+    const lanes = lanesOf(tel);
+    for (let i = lanes.length - 1; i >= 0; i--) if (lanes[i].by === u) lanes.splice(i, 1);
+    lanes.push(L);
+    const caught = E.units.filter(f => upright(f) && inLane(L, f));
+    for (const f of caught) pin(f, L, tel, rng);
+    refreshPins(tel, sides);
+    for (const f of caught) laneHit(rng, u, f, CONST.LANE_HIT_MULT, CONST.LANE_POWER_MULT, map, S, E, tel, log);
+    tel.coveringFire = (tel.coveringFire || 0) + 1;
+    tel.laneCaught = (tel.laneCaught || 0) + caught.length;
+    if (log) log.push({ t: tel.turn, type: 'covering', by: u.id, at: mark.id, n: caught.length, r: L.r, w: (u.weapon || {}).name, ammo: u.ammo });
+  }
+  /* a man who gets up out of a lane draws a burst from whoever laid it, once */
+  function leaveLanes(rng, mover, from, sides, map, tel, log) {
+    for (const L of lanesOf(tel).slice()) {
+      if (L.by.side === mover.side || !upright(L.by) || L.left.has(mover.id) || !inLane(L, from)) continue;
+      L.left.add(mover.id); tel.laneReacts = (tel.laneReacts || 0) + 1;
+      const S = sides[L.by.side], E = sides[mover.side];
+      if (S && E) laneHit(rng, L.by, mover, CONST.LANE_REACT_MULT, 1, map, S, E, tel, log);
+      if (!upright(mover)) return;
+    }
   }
 
   function comp(rng, u, delta) {
@@ -2009,10 +2061,11 @@
              flags rather than at end of turn, so it lasts the whole of the enemy's turn —
              which is the mistake `suppressed` makes, clearing for everyone simultaneously and
              expiring on half the people it was applied to before they ever act. */
-          /* §SUPPRESSION (ruled) A PIN LASTS UNTIL THE MAN UNDER IT HAS HAD HIS TURN. It was wiped for everyone at the end
-             of each round, so about half of all pins landed on somebody who had already acted and did nothing at all. A pin
-             he has already sat through one turn under comes off as his next begins. */
-          if (u.suppressed) { if (u._pinServed) { u.suppressed = false; u._pinServed = false; } else u._pinServed = true; }
+          /* §SUPPRESSION (ruled) A LANE STANDS UNTIL ITS LAYER'S NEXT TURN, so the men under it are pinned through their own
+             turn whatever the order: his own lanes lift as his turn begins, and who is pinned is read again. */
+          { const lanes = lanesOf(tel), had = lanes.length; for (let i = lanes.length - 1; i >= 0; i--) if (lanes[i].by === u) lanes.splice(i, 1);
+            if (lanes.length !== had) refreshPins(tel, sides); }
+          u._actFrom = { x: u.x, y: u.y };
           /* `recoil_heavy` — "aim worse in the exchange after repositioning": nothing ever wrote what it reads */
           u._movedLast = !!(u.repositioning || u._crossed);
           u.repositioning = false; u._crossed = false;
@@ -2113,9 +2166,9 @@
               if (p > bestp) { bestp = p; cover = f; }
             }
             /* §RETREAT (ruled: covering fire protects the people moving) a covering round is fired to keep a head down,
-               whatever the gun: it pins what it is fired at, and the pin holds until that man has had his next turn */
-            if (cover) { shoot(rng, u, cover, map, S, E, tel, log); tel.coveringFire++;
-              if (cover.state === 'ok' || cover.state === 'light') { const was = cover.suppressed; pin(cover, tel, rng); if (cover.suppressed && !was) tel.coverPins = (tel.coverPins || 0) + 1; } }
+               whatever the gun: it lays a lane on the man best placed to hurt them, and the lane stands till its next turn */
+            if (cover && !u._skipNext && C.spendShot(u, 'suppress')) { layLane(rng, u, cover, sides, map, S, E, tel, log); tel.coverPins = (tel.coverPins || 0) + 1; }
+            else if (cover) shoot(rng, u, cover, map, S, E, tel, log);
             else u.overwatch = true;
             continue;
           }
@@ -2393,44 +2446,35 @@
             }
           }
 
-          /* ---- COVERING FIRE ------------------------------------------------------------
-             `SUPPRESS_AP` has been declared since Step 5 and read by nothing, in both
-             resolvers. The abstract model at least had a suppress ACTION; the grid only ever
-             suppressed as a side effect of shooting at somebody, so a machine gun could hold
-             down exactly the one person it was already trying to hit.
-             That is not what the weapon is for. Measured, adding machine guns to a line made
-             it WORSE — the enabler failing the only test that could vindicate it — and this is
-             most of why: a gun whose job is holding an arc down could only ever hold down one
-             body at a time, and only by trying to kill it.
-             Covering fire spends an action and three rounds, kills nobody, and puts everyone
-             near the mark on the ground. It is taken when it pins more people than the shot
-             would have hurt, which is a decision the shooter can actually evaluate. */
-          if (u.ap > 0 && C.suppressOf(u) >= 1) {   /* §GUNS a gun that pins may hold an arc down */
-            let bestMark = null, bestCount = 0;
+          /* ---- SUPPRESSING FIRE ---------------------------------------------------------- */
+          /* §SUPPRESSION (ruled) WHETHER TO LAY A LANE OR TAKE THE SHOT, by what each is worth in hits: the shot by the
+             rounds it puts on its man; the lane by the hits it keeps off his own side — every man in it shooting worse for a
+             turn, a watcher who no longer watches — and by the light rounds it lands itself. */
+          let laid = false;
+          if (u.ap > 0 && !cycling && seen.length && canHurt(u)) {
+            const lo = laneOf(u), slope = C.CONST.HIT_SLOPE * CONST.SHOT_HIT_MULT;   /* lo: the lane's weight */
+            const burst = w => { const r = Math.max(1, Math.round((w && w.rof) || 1)); let t = 0, k = 1; for (let i = 0; i < r; i++) { t += k; k *= CONST.FOLLOWUP_HIT; } return t; };
+            const mine = S.units.filter(upright), threatOf = new Map();
+            for (const e of foes) { if (!upright(e)) continue; let b2 = 0;
+              for (const m of mine) { if (!hasLOS(map, e, m)) continue; const p = incoming(e, m, m, map); if (p > b2) b2 = p; }
+              threatOf.set(e, b2); }
+            let mark = null, laneVal = 0;
             for (const f of seen) {
-              let n = 0;
-              for (const g of foes) {
-                if (g.state !== 'ok' && g.state !== 'light') continue;
-                if (g.suppressed) continue;
-                if (dist(g, f) <= suppressReach(u)) n++;
+              let v = 0; const L = laneAt(u, f);
+              for (const e of foes) {
+                if (!upright(e) || !inLane(L, e)) continue;
+                const t = threatOf.get(e) || 0, have = e.suppressed ? (e._supPen || 0) : 0;
+                v += Math.min(t, slope * Math.max(0, lo.pen - have)) * burst(e.weapon);
+                if (e.overwatch && !e.suppressed) v += t * CONST.LANE_OW_VALUE;
+                v += shotAt(u, e) * CONST.LANE_HIT_MULT * CONST.LANE_POWER_MULT;
               }
-              if (n > bestCount) { bestCount = n; bestMark = f; }
+              if (v > laneVal) { laneVal = v; mark = f; }
             }
-            if (bestMark && bestCount >= CONST.COVERING_FIRE_MIN &&
-                C.spendShot(u, 'suppress')) {
-              /* the deliberate covering-fire action is the SECOND place a pin happens, and it
-                 read the bare constant — so a fighter's arc widened when they suppressed as a
-                 side effect of shooting and not when they chose to hold ground down, which is
-                 the case the trait is named for. Both sites read `suppressReach` now. */
-              const reach = suppressReach(u);
-              for (const g of foes) {
-                if (g.state !== 'ok' && g.state !== 'light') continue;
-                if (dist(g, bestMark) <= reach) pin(g, tel, rng);
-              }
-              tel.coveringFire++;
-              u.ap -= CONST.SUPPRESS_AP;
-              if (log) log.push({ t: tel.turn, type: 'covering', by: u.id, at: bestMark.id,
-                                  n: bestCount, w: (u.weapon || {}).name, ammo: u.ammo });
+            let shotVal = 0; for (const f of seen) shotVal = Math.max(shotVal, shotAt(u, f));
+            shotVal *= burst(u.weapon);
+            if (mark && laneVal * CONST.LANE_WEIGHT > shotVal && C.spendShot(u, 'suppress')) {
+              layLane(rng, u, mark, sides, map, S, E, tel, log);
+              laid = true; u.ap -= CONST.SUPPRESS_AP;
               if (u.ap <= 0) continue;
             }
           }
@@ -2530,7 +2574,7 @@
           const stayThreat = threatAt(u, false);
           /* §AI a shot not worth taking is not a reason to stay: below HOPELESS_SHOT it is noise, and a fighter out of his
              range moves rather than fire it (and on a cycling turn there is no shot at all) */
-          if (cycling || pNow < CONST.HOPELESS_SHOT) { pNow = 0; if (cycling) target = null; }
+          if (cycling || laid || pNow < CONST.HOPELESS_SHOT) { pNow = 0; if (cycling || laid) target = null; }
           const stayBandOff = Math.abs(dist(u, near) - wantTiles(u));
           const stayVal = pNow * CONST.SHOT_WEIGHT - stayThreat * CONST.THREAT_WEIGHT
                         - stayBandOff * CONST.BAND_PULL;
@@ -2653,8 +2697,8 @@
             }
           }
 
-          if (!target || cycling || pNow < CONST.HOPELESS_SHOT) {
-            if (u.ap > 0 && !cycling) { u.overwatch = true; u.ap = 0; }
+          if (!target || cycling || laid || pNow < CONST.HOPELESS_SHOT) {
+            if (u.ap > 0 && !cycling && !laid) { u.overwatch = true; u.ap = 0; }
             continue;
           }
 

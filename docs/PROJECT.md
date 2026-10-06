@@ -161,8 +161,15 @@ lean one pleases.
 - A gun is chosen for what it does (ruled): every gun carries its edge, measured in the grid against
   one reference rifle (sim/gunworth.cjs), and the engine's quartermaster arms each fighter by that
   edge and how well they shoot its kind, the doctrine's taste leaning it. A stun gun is a poor gun —
-  its round takes half from the pool, and it is priced where it stood — for the Dividend and for a
-  manager who builds to take captives; the engine never stocks or issues one.
+  by its own low power, priced where it stood — for the Dividend and for a manager who builds to
+  take captives; the engine never stocks or issues one.
+- Suppressing fire is an action every gun has (ruled): a fighter lays a lane on a mark that stands
+  until his own next turn, at three bursts' ammunition. Everyone of the other side in it is pinned —
+  aims worse, does not watch, will not willingly stand — and its rounds are real: laying it rolls a
+  light hit at each man in it, and a man who gets up out of it draws a burst. An ordinary gun's lane
+  is its mark alone and pins lightly; a support gun's is an arc out to its reach and pins hard,
+  which is what a machine gun is for. An aimed shot no longer pins. Each fighter judges lane
+  against shot by what each is worth in hits.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

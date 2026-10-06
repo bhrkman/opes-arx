@@ -149,6 +149,9 @@
           const c = cost[u] + Math.ceil(t0 / pace) + (held ? CONST.EXIT_HELD_TICKS : 0);
           /* never through ground that will be gone by the time it gets there */
           if (zoneEnds(st, v) !== Infinity && (zoneEnds(st, v) - st.day) * CONST.TICKS_A_DAY - st.tick <= c + slack) continue;
+          /* nor through ground that goes before it is through it: a squad stands in a zone till its next step is walked, so a
+             zone on the way must last till then (it stepped onto a zone with three ticks left and a longer step out of it) */
+          if (u !== q.zone && zoneEnds(st, u) !== Infinity && (zoneEnds(st, u) - st.day) * CONST.TICKS_A_DAY - st.tick <= c + slack) continue;
           if (cost[v] == null || c < cost[v]) { cost[v] = c; prev[v] = u; } }
       }
       if (best) { best.path = []; for (let z = best.zone; z !== q.zone; z = prev[z]) best.path.unshift(z); best.left = left; break; }

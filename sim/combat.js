@@ -141,7 +141,6 @@ const CONST = {
      and +0.004 at 4, over 225 fights a cell across two populations. 6 is no better than 4.
      The original number was right and the change was wrong twice over: wrong resolver, and
      underpowered. */
-  SUPPRESSED_AIM_PENALTY: 40,
   NIGHT_AIM_PENALTY: 20,                   // [OPEN-C1] proposed
 
   /* §3.6 severity */
@@ -543,7 +542,8 @@ function spendShot(u, kind) {
        small and fights short; the moment cells grew and hands fired half again as often, it
        showed up on seven of every eight energy fighters. */
     /* §LIGHT a sun-fed weapon DREADS THE NIGHT: in the planet's dark every shot costs it double */
-    const draw = (hasQuirk(u, 'heavy_draw') ? 2 : 1) * (u._dark && hasQuirk(u, 'daylight') ? 2 : 1);
+    const draw = (hasQuirk(u, 'heavy_draw') ? 2 : 1) * (u._dark && hasQuirk(u, 'daylight') ? 2 : 1)
+               * (kind === 'suppress' ? CONST.AMMO.suppress : 1);   /* §SUPPRESSION a lane empties a cell as it empties a magazine */
     if (u.reloading > 0) return false;
     if (u.charge < draw) {
       /* §GUNS the cell is spent: a spare goes in, and that takes the gun's reload rounds */
@@ -567,7 +567,8 @@ function spendShot(u, kind) {
        weapon that cannot be resupplied should do. */
     return true;
   }
-  let cost = ammoCost(u, kind === 'suppress' ? CONST.AMMO.suppress
+  /* §SUPPRESSION (ruled) laying a lane is firing far more: three times a burst of the gun's own rate */
+  let cost = ammoCost(u, kind === 'suppress' ? CONST.AMMO.suppress * Math.max(1, Math.round((u.weapon && u.weapon.rof) || 1))
                          : kind === 'overwatch' ? CONST.AMMO.overwatch : CONST.AMMO.shot);
   /* §MODS a recoil compensator holds suppressing fire down for a round less */
   if (kind === 'suppress' && u.mod && u.mod.suppressCost) cost = Math.max(1, cost - u.mod.suppressCost);
@@ -681,7 +682,8 @@ const QUIRK = {
 function loadoutFor(weapon) {
   const t = Math.max(0.5, Math.min(CONST.LOADOUT_RATE_CAP, tempoOf({ weapon: weapon })));
   const tags = weapon.tags || [];
-  const belt = (tags.indexOf('suppressive') >= 0 || tags.indexOf('suppressive_2') >= 0)
+  /* a gun's suppression is its own number now (§GUNS), so the belt read tags no support gun carries and was never issued */
+  const belt = ((weapon.suppress || 0) >= 1 || tags.indexOf('suppressive') >= 0 || tags.indexOf('suppressive_2') >= 0)
              ? CONST.LOADOUT_BELT : 0;
   return Math.round(CONST.LOADOUT_AMMO * t) + belt;
 }
@@ -857,7 +859,7 @@ function aimEff(c, bandIdx, ctx) {
      moving shooter before: `stabilized` gave twenty aim back for firing on the move, and there was nothing to give back. */
   if (c.weapon) { a += c.weapon.handling || 0; if (c.repositioning || ctx.snap) a -= c.weapon.snap || 0; }
   a += tempoAim(c);                                   /* COMPOSITION.md §4 */
-  if (c.suppressed) a -= CONST.SUPPRESSED_AIM_PENALTY;
+  if (c.suppressed) a -= c._supPen || 0;                 /* §SUPPRESSION the weight of the lane he is under */
 
   const cb = compBandOf(c);
   const kellisNerve = c.hooks.has('aim_bonus_under_pressure') && cb !== 'broken';
