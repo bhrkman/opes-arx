@@ -33,7 +33,22 @@
    "SIDEARM_QUIRK": 140,
    "ARMOR_BASE": 460,
    "PROTECTION_COST": 260,
-   "ROUND_TO": 10
+   "ROUND_TO": 10,
+   "WORTH_TIER_PRICE": {
+    "1": 910,
+    "2": 1560,
+    "3": 2300,
+    "4": 5000,
+    "5": 10570
+   },
+   "WORTH_TIER": {
+    "1": 0.9,
+    "2": 0.96,
+    "3": 1.02,
+    "4": 1.12,
+    "5": 1.24
+   },
+   "WORTH_ELASTICITY": 4
   },
   "TIER_MULT": {
    "1": 0.45,
@@ -208,7 +223,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 720,
+   "cost": 830,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -228,12 +243,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Someone's grandfather carried it. Still works.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 0.626,
+    "role": 0.879,
     "of": "1kg38bt"
    }
   },
@@ -244,10 +259,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1070,
+   "cost": 1630,
    "bulk": 3,
    "effects": {
-    "power": 4,
+    "power": 6,
     "range": "long",
     "tags": [
      "single_shot"
@@ -266,13 +281,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 0.564,
-    "of": "s5ayuk"
+    "role": 0.97,
+    "of": "1cuay6"
    }
   },
   {
@@ -282,7 +297,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1510,
+   "cost": 1410,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -304,12 +319,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Two rounds where one was asked for.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 0.772,
+    "role": 0.936,
     "of": "stwugj"
    }
   },
@@ -320,10 +335,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1640,
+   "cost": 1540,
    "bulk": 4,
    "effects": {
-    "power": 6,
+    "power": 5,
     "range": "short",
     "tags": [
      "recoil_heavy"
@@ -342,13 +357,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Crowd-control kit that found a war.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.26,
-    "of": "gbt0b4"
+    "role": 0.957,
+    "of": "13ltysz"
    }
   },
   {
@@ -358,10 +373,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 2060,
+   "cost": 1570,
    "bulk": 3,
    "effects": {
-    "power": 8,
+    "power": 5,
     "range": "short",
     "tags": [
      "spread"
@@ -373,20 +388,20 @@
     "reach": 6,
     "near": 0,
     "falloff": 5,
-    "handling": 0,
+    "handling": -12,
     "snap": 3,
     "pen": 0,
     "suppress": 0,
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Ends rooms.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.049,
-    "of": "1dmet3t"
+    "role": 0.961,
+    "of": "1whc5e2"
    }
   },
   {
@@ -396,7 +411,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2300,
+   "cost": 2310,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -418,12 +433,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The standard. Everything else is measured against it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.016,
+    "role": 1.021,
     "of": "1f9s4jv"
    }
   },
@@ -434,7 +449,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2690,
+   "cost": 2350,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -457,12 +472,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Short enough to fight while moving.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.021,
+    "role": 1.025,
     "of": "apuwev"
    }
   },
@@ -473,10 +488,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2360,
+   "cost": 2290,
    "bulk": 3,
    "effects": {
-    "power": 6,
+    "power": 5,
     "range": "medium",
     "tags": [
      "sustained",
@@ -489,20 +504,20 @@
     "reach": 14,
     "near": 2,
     "falloff": 1.5,
-    "handling": -3,
+    "handling": -11,
     "snap": 6,
     "pen": 0,
-    "suppress": 0,
+    "suppress": 1,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Full power, full weight. You will feel every metre you carry it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 0.991,
-    "of": "ohgnms"
+    "role": 1.019,
+    "of": "sos9dh"
    }
   },
   {
@@ -512,7 +527,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 1930,
+   "cost": 2230,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -534,12 +549,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 1.308,
+    "role": 1.012,
     "of": "1kqenir"
    }
   },
@@ -550,7 +565,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2060,
+   "cost": 2230,
    "bulk": 5,
    "effects": {
     "power": 4,
@@ -570,12 +585,12 @@
     "spread": 0,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
    "type": "Support Guns",
    "worth": {
-    "edge": 0.919,
+    "role": 1.012,
     "of": "coy4c8"
    }
   },
@@ -586,7 +601,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2580,
+   "cost": 2230,
    "bulk": 4,
    "effects": {
     "power": 4,
@@ -609,12 +624,12 @@
     "spread": 1,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 0.83,
+    "role": 1.012,
     "of": "1p6cizq"
    }
   },
@@ -625,7 +640,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2080,
+   "cost": 2220,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -647,12 +662,12 @@
     "spread": 1,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Devastating on the unarmoured, a rumour against plate.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 0.943,
+    "role": 1.011,
     "of": "14flq94"
    }
   },
@@ -663,7 +678,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2250,
+   "cost": 2120,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -686,12 +701,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Rounds that accelerate - useless until they have flown.",
    "type": "Carbines",
    "worth": {
-    "edge": 0.989,
+    "role": 0.999,
     "of": "6ptsbq"
    }
   },
@@ -702,7 +717,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 3940,
+   "cost": 5420,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -724,12 +739,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Fired at the wall, on purpose.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.33,
+    "role": 1.143,
     "of": "1uoy8aa"
    }
   },
@@ -740,7 +755,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 4260,
+   "cost": 4450,
    "bulk": 3,
    "effects": {
     "power": 6,
@@ -760,12 +775,12 @@
     "spread": 0,
     "noise": 0
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The shot nobody attributes.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 2.333,
+    "role": 1.088,
     "of": "8hm1p9"
    }
   },
@@ -776,10 +791,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 4960,
+   "cost": 4890,
    "bulk": 6,
    "effects": {
-    "power": 8,
+    "power": 10,
     "range": "medium",
     "tags": [
      "spool",
@@ -792,20 +807,20 @@
     "reach": 14,
     "near": 3,
     "falloff": 1.5,
-    "handling": -12,
+    "handling": 1,
     "snap": 14,
     "pen": 0,
     "suppress": 2,
     "spread": 0,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A machine gun that stopped apologising.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.326,
-    "of": "1reurwi"
+    "role": 1.114,
+    "of": "1l81w3o"
    }
   },
   {
@@ -815,7 +830,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 4880,
+   "cost": 5020,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -837,12 +852,12 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Two weapons, one awkward weight.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.421,
+    "role": 1.121,
     "of": "4v6jup"
    }
   },
@@ -853,7 +868,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 5140,
+   "cost": 5500,
    "bulk": 4,
    "effects": {
     "power": 9,
@@ -875,12 +890,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Magnetic acceleration. Wait for it.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 1.2,
+    "role": 1.147,
     "of": "63yxz4"
    }
   },
@@ -891,10 +906,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 5510,
+   "cost": 7510,
    "bulk": 5,
    "effects": {
-    "power": 10,
+    "power": 8,
     "range": "long",
     "tags": [
      "single_shot"
@@ -913,13 +928,13 @@
     "spread": 0,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Built for vehicles. Fielded against people.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 2.397,
-    "of": "1rxs4rb"
+    "role": 1.24,
+    "of": "4wlycu"
    }
   },
   {
@@ -929,7 +944,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 6310,
+   "cost": 5200,
    "bulk": 4,
    "effects": {
     "power": 10,
@@ -951,12 +966,12 @@
     "spread": 1,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Doesn't shoot around cover. Shoots the cover.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.998,
+    "role": 1.131,
     "of": "y3sqaz"
    }
   },
@@ -967,7 +982,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 1,
-   "cost": 950,
+   "cost": 1040,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -990,12 +1005,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Cheap, patient, and slow to answer.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.636,
+    "role": 0.931,
     "of": "kj5ilp"
    }
   },
@@ -1006,7 +1021,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 1960,
+   "cost": 1900,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -1023,20 +1038,20 @@
     "reach": 13,
     "near": 1,
     "falloff": 2,
-    "handling": 0,
+    "handling": 13,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.838,
-    "of": "2vdats"
+    "role": 0.973,
+    "of": "1avigci"
    }
   },
   {
@@ -1046,7 +1061,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 1910,
+   "cost": 2260,
    "bulk": 5,
    "effects": {
     "power": 4,
@@ -1069,12 +1084,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.003,
+    "role": 1.015,
     "of": "1i659rc"
    }
   },
@@ -1085,10 +1100,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 2210,
+   "cost": 2170,
    "bulk": 3,
    "effects": {
-    "power": 4,
+    "power": 5,
     "range": "medium",
     "tags": [
      "emp",
@@ -1109,13 +1124,13 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Terrible against people. Ruinous against machines.",
    "type": "Carbines",
    "worth": {
-    "edge": 0.72,
-    "of": "1y4v06w"
+    "role": 1.005,
+    "of": "i9at6h"
    }
   },
   {
@@ -1125,7 +1140,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 2120,
+   "cost": 2130,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -1148,12 +1163,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Drinks the day. Dreads the night.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 2.094,
+    "role": 1.001,
     "of": "ekkvil"
    }
   },
@@ -1164,7 +1179,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 2440,
+   "cost": 2500,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -1187,12 +1202,12 @@
     "spread": 1,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Finds the second man without being asked.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.72,
+    "role": 1.041,
     "of": "1e898ze"
    }
   },
@@ -1203,10 +1218,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 4180,
+   "cost": 4980,
    "bulk": 4,
    "effects": {
-    "power": 5,
+    "power": 6,
     "range": "medium",
     "tags": [
      "chill"
@@ -1226,13 +1241,13 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Doesn't kill them. Stops them.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.408,
-    "of": "184wtv5"
+    "role": 1.119,
+    "of": "17wbzhu"
    }
   },
   {
@@ -1242,10 +1257,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5290,
+   "cost": 4340,
    "bulk": 4,
    "effects": {
-    "power": 6,
+    "power": 5,
     "range": "medium",
     "tags": [
      "sustained"
@@ -1258,20 +1273,20 @@
     "reach": 14,
     "near": 2,
     "falloff": 1.5,
-    "handling": -5,
+    "handling": -12,
     "snap": 9,
     "pen": 0,
     "suppress": 1,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Gets hotter and better at once.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.631,
-    "of": "1agtgv6"
+    "role": 1.081,
+    "of": "1n6jqbb"
    }
   },
   {
@@ -1281,10 +1296,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 4260,
+   "cost": 5270,
    "bulk": 3,
    "effects": {
-    "power": 6,
+    "power": 7,
     "range": "long",
     "tags": [],
     "damage": "energy",
@@ -1295,20 +1310,20 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 9,
+    "handling": 0,
     "snap": 6,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 0
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "No report, no flash, no witness.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 2.43,
-    "of": "gltma7"
+    "role": 1.135,
+    "of": "w803r"
    }
   },
   {
@@ -1318,10 +1333,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 4730,
+   "cost": 4420,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 7,
     "range": "medium",
     "tags": [
      "disorient",
@@ -1335,20 +1350,20 @@
     "reach": 12,
     "near": 0,
     "falloff": 2,
-    "handling": 8,
+    "handling": -5,
     "snap": 2,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Sound goes where the bullet won't.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.058,
-    "of": "1m1b1td"
+    "role": 1.086,
+    "of": "qwms0j"
    }
   },
   {
@@ -1358,10 +1373,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 4600,
+   "cost": 5500,
    "bulk": 4,
    "effects": {
-    "power": 8,
+    "power": 7,
     "range": "long",
     "tags": [],
     "damage": "energy",
@@ -1379,13 +1394,13 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A line drawn through the argument. Once, then twice, then nothing.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 3.287,
-    "of": "739fm2"
+    "role": 1.147,
+    "of": "1n8r145"
    }
   },
   {
@@ -1395,10 +1410,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5350,
+   "cost": 5460,
    "bulk": 5,
    "effects": {
-    "power": 9,
+    "power": 7,
     "range": "short",
     "tags": [
      "cover_shred"
@@ -1418,13 +1433,13 @@
     "spread": 1,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Removes the argument and the furniture.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 1.129,
-    "of": "1rlkdb4"
+    "role": 1.145,
+    "of": "1lchisu"
    }
   },
   {
@@ -1434,10 +1449,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5750,
+   "cost": 6790,
    "bulk": 5,
    "effects": {
-    "power": 8,
+    "power": 6,
     "range": "medium",
     "tags": [
      "incendiary",
@@ -1451,20 +1466,20 @@
     "reach": 11,
     "near": 3,
     "falloff": 2,
-    "handling": -5,
+    "handling": 6,
     "snap": 8,
     "pen": 0,
     "suppress": 0,
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The crowd's favourite, the Aleas' paperwork.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.944,
-    "of": "1cpe7ax"
+    "role": 1.209,
+    "of": "1etwvg9"
    }
   },
   {
@@ -1474,10 +1489,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5920,
+   "cost": 6770,
    "bulk": 5,
    "effects": {
-    "power": 9,
+    "power": 7,
     "range": "short",
     "tags": [
      "incendiary",
@@ -1498,13 +1513,13 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Short range, long memory.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 1.628,
-    "of": "13wh9ws"
+    "role": 1.208,
+    "of": "1o25jxe"
    }
   },
   {
@@ -2490,7 +2505,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9800,
+   "cost": 12040,
    "bulk": 5,
    "effects": {
     "tags": [
@@ -2513,13 +2528,13 @@
     "spread": 2,
     "noise": 3
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "exotic": true,
    "identity": "Sponsor theatre with a blast radius.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.557,
+    "role": 1.281,
     "of": "6wu6u5"
    }
   },
@@ -2530,13 +2545,13 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 10800,
+   "cost": 9680,
    "bulk": 7,
    "effects": {
     "tags": [
      "spool"
     ],
-    "power": 8,
+    "power": 10,
     "range": "medium",
     "damage": "ballistic",
     "rof": 3,
@@ -2545,21 +2560,21 @@
     "reach": 14,
     "near": 3,
     "falloff": 1.5,
-    "handling": -4,
+    "handling": 6,
     "snap": 8,
     "pen": 0,
     "suppress": 2,
     "spread": 0,
     "noise": 3
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "exotic": true,
    "identity": "Ammunition x3. Nothing about it is reasonable.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.79,
-    "of": "3eafj9"
+    "role": 1.213,
+    "of": "zzrfn7"
    }
   },
   {
@@ -2569,13 +2584,13 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 11500,
+   "cost": 22150,
    "bulk": 6,
    "effects": {
     "tags": [
      "single_shot"
     ],
-    "power": 12,
+    "power": 10,
     "range": "long",
     "damage": "ballistic",
     "rof": 0.5,
@@ -2591,14 +2606,14 @@
     "spread": 0,
     "noise": 3
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "exotic": true,
    "identity": "One hole, all the way through.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 3.01,
-    "of": "16nwsbo"
+    "role": 1.492,
+    "of": "161e1ie"
    }
   },
   {
@@ -2608,7 +2623,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 12600,
+   "cost": 11590,
    "bulk": 6,
    "effects": {
     "tags": [
@@ -2631,13 +2646,13 @@
     "spread": 2,
     "noise": 3
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "exotic": true,
    "identity": "Removes the position and the argument.",
    "type": "Launchers",
    "worth": {
-    "edge": 1.543,
+    "role": 1.269,
     "of": "1ub1pc"
    }
   },
@@ -2648,13 +2663,13 @@
    "slot": "primary",
    "family": "energy",
    "tier": 5,
-   "cost": 13400,
+   "cost": 18540,
    "bulk": 5,
    "effects": {
     "tags": [
      "single_shot"
     ],
-    "power": 13,
+    "power": 11,
     "range": "long",
     "damage": "energy",
     "charge": 18,
@@ -2664,21 +2679,21 @@
     "reach": 23,
     "near": 8,
     "falloff": 1,
-    "handling": -8,
+    "handling": -23,
     "snap": 14,
     "pen": 3,
     "suppress": 0,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "exotic": true,
    "identity": "One shot per three exchanges. It is enough.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 3.148,
-    "of": "1uvicro"
+    "role": 1.427,
+    "of": "19zr20v"
    }
   },
   {
@@ -2876,7 +2891,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 950,
+   "cost": 1040,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -2891,20 +2906,20 @@
     "reach": 12,
     "near": 1,
     "falloff": 2.5,
-    "handling": -3,
+    "handling": -24,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.639,
-    "of": "ciihaw"
+    "role": 0.931,
+    "of": "1wr2fh"
    }
   },
   {
@@ -2914,7 +2929,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1470,
+   "cost": 1510,
    "bulk": 3,
    "effects": {
     "power": 4,
@@ -2936,12 +2951,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.622,
+    "role": 0.952,
     "of": "1puw5t7"
    }
   },
@@ -2952,7 +2967,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2630,
+   "cost": 2230,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -2975,12 +2990,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Holds its line while you walk. The rest is practice.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.011,
+    "role": 1.012,
     "of": "yrwb4g"
    }
   },
@@ -2991,10 +3006,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 4,
-   "cost": 5130,
+   "cost": 4040,
    "bulk": 4,
    "effects": {
-    "power": 7,
+    "power": 5,
     "range": "medium",
     "tags": [
      "burst"
@@ -3013,13 +3028,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Heavier than it looks, and it goes through more than it should.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.483,
-    "of": "11v9dsb"
+    "role": 1.062,
+    "of": "129t07d"
    }
   },
   {
@@ -3029,10 +3044,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 4480,
+   "cost": 4340,
    "bulk": 3,
    "effects": {
-    "power": 7,
+    "power": 5,
     "range": "medium",
     "tags": [
      "burst",
@@ -3052,13 +3067,13 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Three flashes a second and a battery that resents it.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.717,
-    "of": "hmo3e"
+    "role": 1.081,
+    "of": "7xaf94"
    }
   },
   {
@@ -3068,7 +3083,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 10900,
+   "cost": 10640,
    "bulk": 4,
    "effects": {
     "power": 8,
@@ -3091,12 +3106,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "What an OA buys when it has stopped counting.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 1.775,
+    "role": 1.242,
     "of": "zx8xhf"
    }
   },
@@ -3107,7 +3122,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 970,
+   "cost": 890,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -3129,12 +3144,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Loud, light, and honest about what it is.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 0.782,
+    "role": 0.896,
     "of": "nadw7o"
    }
   },
@@ -3145,7 +3160,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1510,
+   "cost": 1410,
    "bulk": 2,
    "effects": {
     "power": 4,
@@ -3167,12 +3182,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Made for corridors and the people who fight in them.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 0.772,
+    "role": 0.936,
     "of": "stwugj"
    }
   },
@@ -3183,7 +3198,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2830,
+   "cost": 2230,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -3206,12 +3221,12 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Points where you are already looking.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.353,
+    "role": 1.012,
     "of": "12v4qel"
    }
   },
@@ -3222,7 +3237,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 5240,
+   "cost": 4880,
    "bulk": 2,
    "effects": {
     "power": 6,
@@ -3244,12 +3259,12 @@
     "spread": 0,
     "noise": 0
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 1.593,
+    "role": 1.113,
     "of": "s7uaua"
    }
   },
@@ -3624,7 +3639,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1260,
+   "cost": 1500,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -3644,12 +3659,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Bought for deer. Kept for the long walk across open ground.",
    "type": "Long Rifles",
    "worth": {
-    "edge": 1.068,
+    "role": 0.95,
     "of": "7q90wb"
    }
   },
@@ -3660,10 +3675,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9900,
+   "cost": 10130,
    "bulk": 3,
    "effects": {
-    "power": 9,
+    "power": 11,
     "range": "long",
     "tags": [],
     "damage": "ballistic",
@@ -3680,14 +3695,14 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Nobody hears it. Nobody who needs to.",
    "type": "Long Rifles",
    "exotic": true,
    "worth": {
-    "edge": 2.802,
-    "of": "1vagtp2"
+    "role": 1.227,
+    "of": "t0nkwf"
    }
   },
   {
@@ -3697,10 +3712,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 690,
+   "cost": 910,
    "bulk": 3,
    "effects": {
-    "power": 4,
+    "power": 5,
     "range": "long",
     "tags": [
      "single_shot"
@@ -3719,13 +3734,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A glass sight bolted on by somebody who meant well.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 0.497,
-    "of": "1tc0l0t"
+    "role": 0.899,
+    "of": "ytnl8"
    }
   },
   {
@@ -3735,10 +3750,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9700,
+   "cost": 10430,
    "bulk": 3,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "long",
     "tags": [],
     "damage": "ballistic",
@@ -3748,21 +3763,21 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 13,
+    "handling": -2,
     "snap": 5,
     "pen": 2,
     "suppress": 0,
     "spread": 0,
     "noise": 0
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Every round an argument won at the first word.",
    "type": "Marksman Rifles",
    "exotic": true,
    "worth": {
-    "edge": 2.955,
-    "of": "1hs3q67"
+    "role": 1.236,
+    "of": "pzdf71"
    }
   },
   {
@@ -3772,10 +3787,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9600,
+   "cost": 9780,
    "bulk": 2,
    "effects": {
-    "power": 8,
+    "power": 7,
     "range": "short",
     "tags": [
      "burst",
@@ -3788,21 +3803,21 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 5,
+    "handling": 0,
     "snap": 0,
     "pen": 1,
     "suppress": 0,
     "spread": 0,
     "noise": 1
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A wall of small certainties.",
    "type": "Submachine Guns",
    "exotic": true,
    "worth": {
-    "edge": 2.392,
-    "of": "1n4bmu9"
+    "role": 1.216,
+    "of": "zstzbf"
    }
   },
   {
@@ -3812,10 +3827,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 1040,
+   "cost": 940,
    "bulk": 4,
    "effects": {
-    "power": 5,
+    "power": 4,
     "range": "short",
     "tags": [],
     "damage": "ballistic",
@@ -3825,20 +3840,20 @@
     "reach": 8,
     "near": 0,
     "falloff": 3,
-    "handling": -7,
+    "handling": -30,
     "snap": 6,
     "pen": 0,
     "suppress": 1,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Heavy, loud, and older than the man carrying it.",
    "type": "Support Guns",
    "worth": {
-    "edge": 1.102,
-    "of": "9bu6k1"
+    "role": 0.908,
+    "of": "1u64ld0"
    }
   },
   {
@@ -3848,7 +3863,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 990,
+   "cost": 1090,
    "bulk": 3,
    "effects": {
     "power": 7,
@@ -3861,20 +3876,20 @@
     "reach": 6,
     "near": 0,
     "falloff": 5,
-    "handling": -2,
+    "handling": -17,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Two barrels, one decision.",
    "type": "Scatterguns",
    "worth": {
-    "edge": 0.751,
-    "of": "1k22qbz"
+    "role": 0.942,
+    "of": "11zgiu3"
    }
   },
   {
@@ -3884,10 +3899,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9800,
+   "cost": 13990,
    "bulk": 4,
    "effects": {
-    "power": 11,
+    "power": 9,
     "range": "short",
     "tags": [
      "spread",
@@ -3907,14 +3922,14 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Empties a room without opening the door.",
    "type": "Scatterguns",
    "exotic": true,
    "worth": {
-    "edge": 2.039,
-    "of": "csohaw"
+    "role": 1.33,
+    "of": "dc2itd"
    }
   },
   {
@@ -3924,10 +3939,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 810,
+   "cost": 910,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 4,
     "range": "medium",
     "tags": [],
     "damage": "ballistic",
@@ -3937,20 +3952,20 @@
     "reach": 13,
     "near": 3,
     "falloff": 2,
-    "handling": 1,
+    "handling": -14,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Short, light, and forgiving of cold hands.",
    "type": "Carbines",
    "worth": {
-    "edge": 0.82,
-    "of": "utz82f"
+    "role": 0.901,
+    "of": "t8dlsf"
    }
   },
   {
@@ -3960,10 +3975,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1400,
+   "cost": 1460,
    "bulk": 3,
    "effects": {
-    "power": 6,
+    "power": 4,
     "range": "medium",
     "tags": [],
     "damage": "ballistic",
@@ -3980,13 +3995,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Fits in a pack. Unfolds into a problem.",
    "type": "Carbines",
    "worth": {
-    "edge": 1.08,
-    "of": "tlpp0w"
+    "role": 0.944,
+    "of": "dm0hrm"
    }
   },
   {
@@ -3996,10 +4011,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9500,
+   "cost": 11230,
    "bulk": 3,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "medium",
     "tags": [
      "ricochet"
@@ -4018,14 +4033,14 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Built for the first squad down and the last one out.",
    "type": "Carbines",
    "exotic": true,
    "worth": {
-    "edge": 1.693,
-    "of": "iujc90"
+    "role": 1.259,
+    "of": "86a8bv"
    }
   },
   {
@@ -4035,7 +4050,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 980,
+   "cost": 890,
    "bulk": 4,
    "effects": {
     "power": 4,
@@ -4057,12 +4072,12 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Pipe, fuse, and faith.",
    "type": "Launchers",
    "worth": {
-    "edge": 0.461,
+    "role": 0.896,
     "of": "19tms6a"
    }
   },
@@ -4073,7 +4088,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1670,
+   "cost": 1800,
    "bulk": 4,
    "effects": {
     "power": 5,
@@ -4095,12 +4110,12 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Lobs a problem over the wall they are hiding behind.",
    "type": "Launchers",
    "worth": {
-    "edge": 0.705,
+    "role": 0.995,
     "of": "1tse3sx"
    }
   },
@@ -4111,7 +4126,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2590,
+   "cost": 2560,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -4133,12 +4148,12 @@
     "spread": 2,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Six rounds of bad news, one after another.",
    "type": "Launchers",
    "worth": {
-    "edge": 0.983,
+    "role": 1.048,
     "of": "uxjp2d"
    }
   },
@@ -4149,7 +4164,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 780,
+   "cost": 1290,
    "bulk": 4,
    "effects": {
     "power": 5,
@@ -4169,12 +4184,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Kicks like the thing it was made for.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.676,
+    "role": 0.982,
     "of": "1llwt8o"
    }
   },
@@ -4185,7 +4200,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1360,
+   "cost": 1960,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -4205,12 +4220,12 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Pulled off a wreck. Still finds armour through the smoke.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 0.884,
+    "role": 1.016,
     "of": "mkcwtj"
    }
   },
@@ -4221,10 +4236,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 3,
-   "cost": 2140,
+   "cost": 2500,
    "bulk": 4,
    "effects": {
-    "power": 7,
+    "power": 9,
     "range": "long",
     "tags": [],
     "damage": "ballistic",
@@ -4241,13 +4256,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Opens cover the way a key opens a door.",
    "type": "Anti-Materiel",
    "worth": {
-    "edge": 1.185,
-    "of": "1g8v2rm"
+    "role": 1.041,
+    "of": "lcoqoc"
    }
   },
   {
@@ -4257,7 +4272,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 1130,
+   "cost": 1160,
    "bulk": 4,
    "effects": {
     "power": 6,
@@ -4272,20 +4287,20 @@
     "reach": 5,
     "near": 0,
     "falloff": 6,
-    "handling": -6,
+    "handling": -21,
     "snap": 7,
     "pen": 0,
     "suppress": 0,
     "spread": 1,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "For the last three metres of any argument.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.426,
-    "of": "p2i4lz"
+    "role": 0.956,
+    "of": "ezm1uq"
    }
   },
   {
@@ -4295,7 +4310,7 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 2,
-   "cost": 1900,
+   "cost": 1740,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -4317,12 +4332,12 @@
     "spread": 1,
     "noise": 3
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Short barrel. Short conversation.",
    "type": "Close-Quarters",
    "worth": {
-    "edge": 0.519,
+    "role": 0.986,
     "of": "z717hy"
    }
   },
@@ -4333,10 +4348,10 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 5,
-   "cost": 9900,
+   "cost": 10270,
    "bulk": 4,
    "effects": {
-    "power": 12,
+    "power": 13,
     "range": "short",
     "tags": [
      "cover_shred"
@@ -4348,21 +4363,21 @@
     "reach": 5,
     "near": 0,
     "falloff": 6,
-    "handling": 2,
+    "handling": 13,
     "snap": 3,
     "pen": 2,
     "suppress": 0,
     "spread": 1,
     "noise": 3
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The door is the wall now.",
    "type": "Close-Quarters",
    "exotic": true,
    "worth": {
-    "edge": 1.176,
-    "of": "mok6ni"
+    "role": 1.231,
+    "of": "ifyhb3"
    }
   },
   {
@@ -4490,10 +4505,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 1610,
+   "cost": 1430,
    "bulk": 3,
    "effects": {
-    "power": 5,
+    "power": 4,
     "range": "medium",
     "tags": [
      "burst"
@@ -4506,20 +4521,20 @@
     "reach": 12,
     "near": 1,
     "falloff": 2,
-    "handling": -1,
+    "handling": -8,
     "snap": 3,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 1
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "A training beam somebody turned up past the stop.",
    "type": "Assault Rifles",
    "worth": {
-    "edge": 0.968,
-    "of": "16a9y22"
+    "role": 0.94,
+    "of": "17ckrfm"
    }
   },
   {
@@ -4529,10 +4544,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 1820,
+   "cost": 1530,
    "bulk": 2,
    "effects": {
-    "power": 4,
+    "power": 5,
     "range": "short",
     "tags": [
      "burst"
@@ -4544,20 +4559,20 @@
     "reach": 8,
     "near": 0,
     "falloff": 3.5,
-    "handling": 2,
+    "handling": -8,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 0
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
-    "edge": 0.774,
-    "of": "64us6b"
+    "role": 0.956,
+    "of": "iwod2d"
    }
   },
   {
@@ -4567,7 +4582,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 3,
-   "cost": 2230,
+   "cost": 2300,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -4581,20 +4596,20 @@
     "reach": 18,
     "near": 4,
     "falloff": 1.5,
-    "handling": 5,
+    "handling": -4,
     "snap": 7,
     "pen": 0,
     "suppress": 0,
     "spread": 0,
     "noise": 0
    },
-   "price_model": "formula",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "The first thing they see is the last thing they see.",
    "type": "Marksman Rifles",
    "worth": {
-    "edge": 1.85,
-    "of": "230tgm"
+    "role": 1.02,
+    "of": "gn3ubu"
    }
   },
   {
@@ -4604,10 +4619,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 5,
-   "cost": 10200,
+   "cost": 10880,
    "bulk": 4,
    "effects": {
-    "power": 6,
+    "power": 8,
     "range": "medium",
     "tags": [
      "chill"
@@ -4627,14 +4642,14 @@
     "spread": 0,
     "noise": 1
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Every shot a little sunrise.",
    "type": "Carbines",
    "exotic": true,
    "worth": {
-    "edge": 1.667,
-    "of": "1sdmksq"
+    "role": 1.249,
+    "of": "1eraw3o"
    }
   },
   {
@@ -4644,10 +4659,10 @@
    "slot": "primary",
    "family": "energy",
    "tier": 5,
-   "cost": 10400,
+   "cost": 14410,
    "bulk": 4,
    "effects": {
-    "power": 10,
+    "power": 8,
     "range": "long",
     "tags": [],
     "damage": "energy",
@@ -4658,21 +4673,21 @@
     "reach": 18,
     "near": 5,
     "falloff": 1.5,
-    "handling": 5,
+    "handling": 15,
     "snap": 5,
     "pen": 2,
     "suppress": 0,
     "spread": 0,
     "noise": 1
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Reaches the ridge line before the sound does.",
    "type": "Long Rifles",
    "exotic": true,
    "worth": {
-    "edge": 4.336,
-    "of": "1cludkk"
+    "role": 1.34,
+    "of": "16pz6cc"
    }
   },
   {
@@ -4682,7 +4697,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 5,
-   "cost": 10600,
+   "cost": 10850,
    "bulk": 4,
    "effects": {
     "power": 7,
@@ -4705,13 +4720,13 @@
     "spread": 0,
     "noise": 2
    },
-   "price_model": "scarcity",
+   "price_model": "worth",
    "legality": "legal",
    "identity": "Holds a line of light across the whole field.",
    "type": "Support Guns",
    "exotic": true,
    "worth": {
-    "edge": 1.848,
+    "role": 1.248,
     "of": "h45xes"
    }
   },

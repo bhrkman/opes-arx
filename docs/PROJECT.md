@@ -158,9 +158,12 @@ lean one pleases.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
 - Every seat sees only what it knows, in the year and on the ground.
 - Outside the ring is death, and there are no truces.
-- A gun is chosen for what it does (ruled): every gun carries its edge, measured in the grid against
-  one reference rifle (sim/gunworth.cjs), and the engine's quartermaster arms each fighter by that
-  edge and how well they shoot its kind, the doctrine's taste leaning it. A stun gun is a poor gun —
+- A gun is chosen, and priced, for what it does in its role (ruled): every lethal gun carries its worth, measured in
+  the grid in the slot its kind fills in a balanced squad (sim/roleworth.cjs). Its price is its tier's price moved by
+  that worth against the tier's; a tier is a better gun in every kind (the suite holds the ladder). The quartermaster
+  builds every squad with its roles first — a long gun, a support gun and a close gun in a squad of a few, the line
+  the rest — gives each role to the hand who shoots it best, and arms him from its guns; the hands whose guns eat
+  rounds carry a pack of them. A stun gun is a poor gun —
   by its own low power, priced where it stood — for the Dividend and for a manager who builds to
   take captives; the engine never stocks or issues one.
 - Suppressing fire is an action every gun has (ruled): a fighter lays a lane on a mark that stands

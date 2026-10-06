@@ -152,6 +152,9 @@
           /* nor through ground that goes before it is through it: a squad stands in a zone till its next step is walked, so a
              zone on the way must last till then (it stepped onto a zone with three ticks left and a longer step out of it) */
           if (u !== q.zone && zoneEnds(st, u) !== Infinity && (zoneEnds(st, u) - st.day) * CONST.TICKS_A_DAY - st.tick <= c + slack) continue;
+          /* and the way out of dying ground goes through ground that lasts longer than it, not shorter: a squad routed from
+             its zone through one that went first, and from that one back to its own, and walked the two till dawn */
+          if (!ok(v) && zoneEnds(st, v) < mine) continue;
           if (cost[v] == null || c < cost[v]) { cost[v] = c; prev[v] = u; } }
       }
       if (best) { best.path = []; for (let z = best.zone; z !== q.zone; z = prev[z]) best.path.unshift(z); best.left = left; break; }
@@ -397,7 +400,8 @@
         /* the last ground closing on it and nothing it can take: the nearest zone that lasts longer, whoever stands in it */
         let to = null, dT = Infinity; const mine = zoneGoes(st, q.zone);
         for (const zid of G.regions[rid].zones) { if (zoneGoes(st, zid) <= mine || deadZone(st, zid)) continue;
-          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) }); if (p && p.ticks < dT) { dT = p.ticks; to = { zid, path: p }; } }
+          /* through ground that lasts at least as long as its own (as the wall's walk goes) */
+          const p = GROUND.ticksBetween(G, q.zone, zid, { avoid: v => deadZone(st, v) || (v !== zid && zoneGoes(st, v) < mine) }); if (p && p.ticks < dT) { dT = p.ticks; to = { zid, path: p }; } }
         if (to) { best = to; bestV = 0; }
       }
       if (!best && pressed && goesOn(st, rid) !== Infinity) {
@@ -528,6 +532,10 @@
     const toEnd = (ends - st.day) * CONST.TICKS_A_DAY - st.tick;
     if (ends !== Infinity && ends < zoneEnds(st, q.zone) && toEnd <= cost + CONST.WALL_CROSS_SLACK && q.intent.why !== 'the wall') {
       q.path = null; q.intent = { type: 'hold', zone: q.zone, why: 'the wall ahead' }; st.audit.wallAhead = (st.audit.wallAhead || 0) + 1; return; }
+    /* and not even the wall's own walk steps onto ground that goes sooner than its own before it can be through it and out
+       the far side: a squad on ground that stood four more days walked into a zone with one tick left */
+    if (ends !== Infinity && ends < zoneEnds(st, q.zone) && toEnd <= 3 * cost && stp.to !== target) {   /* in, out, and a step in hand */
+      q.path = null; st.audit.wallAhead = (st.audit.wallAhead || 0) + 1; return; }
     q.moving = { to: stp.to, paid: 1, cost, kind: stp.kind, pace };
     if (stp.kind === 'route') st.events.push({ t: 'road', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: stp.to });   /* on the road: in neither zone till it arrives */
   }
@@ -680,7 +688,8 @@
     st.audit.harassed++;
     h.know[q.zone] = { at: absTick(st), oa: q.oa, n: q.n, how: 'fired on' };
     /* the squad under fire: by its dial it rushes the rifles or holds; a rush is a contact at the harasser's zone */
-    if (h.alive && !h.moving && !(h.intent && h.intent.type === 'fight')) {
+    /* (never a squad walking out ahead of the wall: it was rushed off its way out and the wall took it) */
+    if (h.alive && !h.moving && !(h.intent && (h.intent.type === 'fight' || h.intent.why === 'the wall'))) {
       const dial = STANCE[h.stance] || STANCE.standard;
       if (q.n <= strOf(st, h) * dial.accept * 1.3 && r01(st) < dial.seek + 0.3) { q.harass.rushed = true; h.intent = { type: 'take', zone: q.zone, why: 'rushing' }; h.path = [q.zone]; }
     }

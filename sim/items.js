@@ -80,14 +80,14 @@
     KIT_GUN_SHARE: 0.62,            // [C] of a body's share of the OA's kit outlay, what the gun may take; the armour the rest
     KIT_SHARE_SLACK: 1.35,          // [C] and how far past an even share one body's piece may go
     KIT_TASTE_SWING: 12,            // [C] §QUARTERMASTER the doctrine's favourite gun is worth this much Aim in the choosing
-    KIT_AIM_EDGE: 0.01,             // [C] §QUARTERMASTER a point of Aim with a gun, against its measured edge (log): ten points ≈ a tenth more
-    KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a locker holds, and a nameless body rotates through
+    KIT_AIM_EDGE: 0.01,             // [C] §QUARTERMASTER a point of Aim with a gun, against its measured worth (log): ten points ≈ a tenth more
+    KIT_SPREAD: 5,                  // [C] the doctrine's favourite guns a nameless body rotates through
     KIT_GOOD: 5,                    // [C] the guns a fighter shoots best, that the quartermaster will buy them
-    KIT_BUY_MARGIN: 4,
-    KIT_MUSTER_SLACK: 1.35,
-    KIT_BAND_MIN_FORCE: 9,
+    KIT_BUY_MARGIN: 4,              // [C] how much better they must shoot a gun to be bought it
+    KIT_MUSTER_SLACK: 1.35,         // [C] the cheap end of the rack a named fighter chooses from at the muster
+    KIT_GROUP: 6,                   // [C] §QUARTERMASTER bodies a role template is laid over, when the squads are not known
     ESSENTIAL_MAX_COST: 300,        // [C] the most the essential consumable everyone gets first may cost
-    KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster          // [C] a force this size carries a gun of every band         // [C] the cheap end of the rack a named fighter chooses from at the muster              // [C] how much better they must shoot it to be bought it
+    KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster
     MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
     MOD_SLOTS: 2,                   // [S] §3
@@ -171,6 +171,13 @@
     /* §ARMOUR what it covers moves the price, softly: a torso vest is not worth half a full weave */
     else if (item.slot === "armor") raw = (P.ARMOR_BASE + P.PROTECTION_COST * (e.protection || 0)) * (0.6 + 0.4 * coverageShare(e.covers))
                                        + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
+    /* §PRICING (ruled) A GUN IS PRICED BY ITS TIER AND WHAT IT DOES IN ITS ROLE: the tier's price, moved by how its measured
+       worth stands against the tier's (roleworth.cjs). The stat sum it replaced counted power and tags and not rate, reach,
+       magazine or hand, which are most of what a gun now is. */
+    else if (item.price_model === 'worth') {
+      const w = (item.worth && item.worth.role) || P.WORTH_TIER[String(item.tier)];
+      return Math.round(P.WORTH_TIER_PRICE[String(item.tier)] * Math.pow(w / P.WORTH_TIER[String(item.tier)], P.WORTH_ELASTICITY) / P.ROUND_TO) * P.ROUND_TO;
+    }
     else raw = P.WEAPON_BASE + P.POWER_COST * (e.power || 0)
              + P.QUIRK_COST * qp - P.BULK_REBATE * (item.bulk || 0);
     const r = P.ROUND_TO;
@@ -384,17 +391,25 @@
      With no fighters named (the suite, the founding), bodies take the doctrine's favourite guns in turn.
      The phases and the economics are the old planner's, unchanged: the Aleas' cap, the reserve kept for
      sidearms and consumables, sponsor discounts, the muster before any upgrade, upgrades from the locker. */
-  /* §QUARTERMASTER (ruled: a gun is chosen for what it does) a gun's measured EDGE in a fight — what it takes out against
-     what it loses, beside one reference rifle (gunworth.cjs, written onto the catalog) — and the stats it was measured on */
+  /* §QUARTERMASTER (ruled: a gun is chosen for what it does) a gun's measured WORTH IN ITS ROLE — what a balanced squad
+     carrying it in its kind's slot takes out against what it loses (roleworth.cjs, written onto the catalog; ruled: not
+     one number beside one rifle) — and the stats it was measured on */
   function statPrint(it) {
     const str = JSON.stringify({ t: it.tier, e: it.effects });
     let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
     return h.toString(36);
   }
-  function edgeOf(g) { return (g && g.worth && g.worth.edge) || 1; }
+  const ROLE_OF_TYPE = { 'Assault Rifles': 'line', 'Carbines': 'line', 'Launchers': 'line', 'Marksman Rifles': 'long', 'Long Rifles': 'long',
+                         'Anti-Materiel': 'long', 'Support Guns': 'support', 'Submachine Guns': 'close', 'Scatterguns': 'close', 'Close-Quarters': 'close' };
+  const ROLE_SHARE = { line: 0.5, long: 1 / 6, support: 1 / 6, close: 1 / 6 };   /* a squad of six: two specialists' worth of line */
+  function worthOf(g) { return (g && g.worth && g.worth.role) || 1; }
+  /* §PRICING the balanced squad a gun is measured in, and the slot each kind of gun fills in it (sim/roleworth.cjs) */
+  const ROLE_REFERENCE = ['itm_vanguard_rifle', 'itm_vanguard_rifle', 'itm_marksman_rifle', 'itm_machine_gun', 'itm_whipcord_smg', 'itm_drum_shotgun'];
+  const ROLE_SLOT = { 'Assault Rifles': 1, 'Carbines': 1, 'Launchers': 1, 'Marksman Rifles': 2, 'Long Rifles': 2, 'Anti-Materiel': 2,
+                      'Support Guns': 3, 'Submachine Guns': 4, 'Scatterguns': 5, 'Close-Quarters': 5 };
   /* what a gun is worth in this fighter's hands: its edge, and how well they shoot its kind (and the doctrine's taste) in
      Aim points, on one scale */
-  function gunScore(g, aim) { return Math.log(edgeOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }
+  function gunScore(g, aim) { return Math.log(worthOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }
   /* the engine does not arm anybody with a stun gun (ruled): that is a manager's own choice, at the Armoury, by hand */
   const engineIssues = (it) => !(it.slot === 'primary' && ((it.effects || {}).tags || []).indexOf('nonlethal') >= 0);
   /* §ARMOUR (fixed) what a piece of armour stops: its protection on the share of hits it covers, against the field's
@@ -409,7 +424,7 @@
     .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (armourWorth(b) - armourWorth(a)));
   /* the guns in a doctrine's order of taste, the better gun first where taste does not choose */
   const rankGuns = (ids, taste) => ids.map(byId).filter(Boolean)
-    .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (edgeOf(b) - edgeOf(a)));
+    .sort((a, b) => (tasteScore(b, taste) - tasteScore(a, taste)) || (worthOf(b) - worthOf(a)));
   function shotOf(f, g) {
     const a = (f && f.stats && f.stats.aim) || 100, sk = (f && f.skills) || {};
     const c = sk[skillClassOf(g)], t = sk[skillTypeOf(g)];
@@ -452,12 +467,46 @@
     const gunTaste = rankGuns(ofSlot('primary').map(g => g.id), taste);
     const tasteBonus = {};
     gunTaste.forEach((g, k) => { tasteBonus[g.id] = CONST.KIT_TASTE_SWING * (1 - k / Math.max(1, gunTaste.length - 1)); });
+    /* §QUARTERMASTER (ruled: a squad is built, not a list of guns) EVERY SQUAD IS GIVEN ITS ROLES FIRST: a long gun, a
+       support gun and a close gun in every squad of a few (a second of the long and close guns, and of the support gun, as
+       it grows), the line the rest — measured, one or two of each specialist is where each pays, and a squad of one kind
+       is worse than a mix. Each role goes to the hand who shoots its guns best, and a hand is then armed from its role's
+       guns first, the doctrine's taste and his own shooting choosing among them. */
+    const roleOfGun = g => ROLE_OF_TYPE[g && g.type] || 'line';
+    /* what the doctrine's taste makes of each specialist role: how much it likes the role's guns, on average */
+    const LEAN = (() => { const aff = {};
+      for (const role of ['long', 'support', 'close']) { const gs = gunTaste.filter(g => roleOfGun(g) === role);
+        aff[role] = gs.length ? gs.reduce((t, g) => t + tasteScore(g, taste), 0) / gs.length : 0; }
+      const r = Object.keys(aff).filter(k => aff[k] > 0).sort((a, b) => aff[b] - aff[a]);
+      /* a taste that runs to one role takes both leans for it; one that likes two nearly as well splits them */
+      return !r.length ? [] : r.length > 1 && aff[r[1]] >= 0.6 * aff[r[0]] ? r.slice(0, 2) : [r[0], r[0]]; })();
+    {
+      const groups = {};
+      for (const b of bodies) { const q = (b.f && typeof opts.squadOf === 'function') ? opts.squadOf(b.f) : null;
+        const key = q != null ? 'q' + q : 'g' + Math.floor(b.i / CONST.KIT_GROUP); (groups[key] = groups[key] || []).push(b); }
+      const aptitude = (b, role) => { const gs = gunTaste.filter(g => roleOfGun(g) === role); if (!gs.length) return -Infinity;
+        return b.f && b.f.skills ? Math.max(...gs.map(g => shotOf(b.f, g))) : -b.i; };
+      for (const key in groups) {
+        const G = groups[key], n = G.length, open = new Set(G);
+        const want = [['support', n >= 4 ? 1 + (n >= 10 ? 1 : 0) : 0], ['long', n >= 3 ? 1 + (n >= 8 ? 1 : 0) : 0], ['close', n >= 3 ? 1 + (n >= 7 ? 1 : 0) : 0]];
+        /* and the doctrine leans: a squad of five or more gives one of its line to the specialist its taste likes best, and
+           a squad of six a second — to the next it likes nearly as well, or again to the first */
+        for (let k = 0; k < LEAN.length && n >= 5 + k; k++) for (const w of want) if (w[0] === LEAN[k]) w[1]++;
+        for (const [role, k] of want) for (let j = 0; j < k && open.size; j++) {
+          const pick = [...open].sort((x, y) => aptitude(y, role) - aptitude(x, role))[0];
+          pick.role = role; open.delete(pick);
+        }
+        for (const b of open) b.role = 'line';
+      }
+    }
+    const inRole = (b, g) => roleOfGun(g) === b.role;
+    const roleFirst = (b, list) => list.filter(g => inRole(b, g)).concat(list.filter(g => !inRole(b, g)));
     const gunsFor = (b) => {
       if (!b.f || !b.f.skills) {                  /* no fighter named: the doctrine's favourites in turn */
         const top = gunTaste.slice(0, Math.min(CONST.KIT_SPREAD, gunTaste.length)), k = b.i % Math.max(1, top.length);
-        return top.slice(k).concat(top.slice(0, k)).concat(gunTaste.slice(top.length));
+        return roleFirst(b, top.slice(k).concat(top.slice(0, k)).concat(gunTaste.slice(top.length)));
       }
-      return gunTaste.slice().sort((x, y) => gunScore(y, shotOf(b.f, y) + tasteBonus[y.id]) - gunScore(x, shotOf(b.f, x) + tasteBonus[x.id]));
+      return roleFirst(b, gunTaste.slice().sort((x, y) => gunScore(y, shotOf(b.f, y) + tasteBonus[y.id]) - gunScore(x, shotOf(b.f, x) + tasteBonus[x.id])));
     };
     const armours = rankArmour(ofSlot('armor').map(a => a.id), taste);
     const sidearms = rankBy(ofSlot('sidearm').map(a => a.id), taste);
@@ -495,7 +544,7 @@
       /* and nobody takes a rack piece worth more than a fair share of the allowance until everyone is kitted: a rack of
          favourite armour, handed to two-thirds of a force at the muster, spent the whole cap before a gun was chosen */
       const fairShare = mustAllow / bodies.length * CONST.KIT_MUSTER_BODY_SHARE;
-      let order2 = cheapFirst(listFor(b, slot)).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
+      let order2 = (slot === 'primary' ? roleFirst(b, cheapFirst(listFor(b, slot))) : cheapFirst(listFor(b, slot))).filter(c => stock[c.id] > 0 && priceOf(c) <= fairShare && spent + priceOf(c) + floorLeft + bareFloor <= mustAllow);
       /* and the cheap end of the armour rack is chosen from by what it stops, not by price alone */
       if (slot === 'armor' && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
@@ -503,8 +552,9 @@
       }
       if (slot === 'primary' && b.f && b.f.skills && order2.length) {
         const floor = order2[0].cost * CONST.KIT_MUSTER_SLACK;
-        const cheapEnd = order2.filter(c => c.cost <= floor).sort((x, y) => gunScore(y, shotOf(b.f, y)) - gunScore(x, shotOf(b.f, x)));
-        order2 = cheapEnd.concat(order2.filter(c => c.cost > floor));
+        const roleHas = order2.some(c => inRole(b, c));
+        const cheapEnd = order2.filter(c => c.cost <= floor && (!roleHas || inRole(b, c))).sort((x, y) => gunScore(y, shotOf(b.f, y)) - gunScore(x, shotOf(b.f, x)));
+        order2 = cheapEnd.concat(order2.filter(c => cheapEnd.indexOf(c) < 0));
       }
       const got = order2.find(c => spent + priceOf(c) <= mustAllow && take(c.id));
       if (got) { b.loadout[slot] = got.id; spent += priceOf(got); }
@@ -536,7 +586,7 @@
           const onRack = cheapFirst(q.slot === 'primary' ? gunTaste : armours)
             .find(c => stock[c.id] > 0 && spent + priceOf(c) <= allow - essentials && take(c.id));
           if (onRack) { q.b.loadout[q.slot] = onRack.id; spent += priceOf(onRack); continue; }
-          pick = cheapFirst(fits)[0] || cheapFirst(ranked).find(c => spent + c.cost <= allow - essentials) || cheapFirst(ranked)[0];
+          pick = (q.slot === 'primary' ? roleFirst(q.b, cheapFirst(fits)) : cheapFirst(fits))[0] || cheapFirst(ranked).find(c => spent + c.cost <= allow - essentials) || cheapFirst(ranked)[0];
         }
         money -= pick.cost; cash += pick.cost; spent += pick.cost;
         q.b.loadout[q.slot] = pick.id;
@@ -573,7 +623,9 @@
     const essentialOrder = firstMedics.map(i => bodies[i]).concat(bodies.filter(b => !medics.has(b.i)));
     for (const b of essentialOrder) {
       if (b.loadout.consumables.length) continue;
-      const c = medics.has(b.i) ? byId('itm_medkit') : firstOther;
+      /* §ROUNDS the hands whose guns eat rounds (support and close) carry a pack of rounds for their gun before anything else */
+      const pr = byId(b.loadout.primary), packId = pr && (pr.family === 'energy' || (pr.effects || {}).damage === 'energy') ? 'itm_power_cell' : 'itm_ammo_satchel';
+      const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
       if (!c || spent + c.cost > allow) continue;
       if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
       else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [c.id]; spent += c.cost; }
@@ -591,28 +643,6 @@
       }
     }
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
-    /* ---- phase 3c: EVERY BAND ANSWERED ---- */
-    /* A force of nine or more carries at least one gun of each band — somebody for close work, somebody who reaches —
-       whatever its doctrine's tastes: the fighter who shoots that band's types best takes the cheapest gun of the band,
-       from the rack or bought, within the money and the gun allowance. (A cap-bound doctrine bought no short gun at
-       all once its cheap ones grew dearer — and running this after the upgrades found the cap already spent.) */
-    if (bodies.length >= CONST.KIT_BAND_MIN_FORCE) {
-      for (const band of ['short', 'medium', 'long']) {
-        if (bodies.some(b => { const g = byId(b.loadout.primary); return g && (g.effects || {}).range === band; })) continue;
-        const guns = cheapFirst(gunTaste.filter(g => (g.effects || {}).range === band));
-        if (!guns.length) continue;
-        /* of the four best hands for the band, the one holding the costliest gun — the swap must free cap, not spend it */
-        const costOf = (b) => { const g = byId(b.loadout.primary); return g ? (g.cost || 0) : 0; };
-        const hands = bodies.filter(b => b.f && b.f.skills).sort((x, y) => shotOf(y.f, guns[0]) - shotOf(x.f, guns[0])).slice(0, 4);
-        const pickBody = (hands.length ? hands : bodies.slice(0, 4)).sort((x, y) => costOf(y) - costOf(x))[0];
-        for (const g of guns) {
-          const cur = byId(pickBody.loadout.primary), curCost = cur ? (cur.cost || 0) : 0;
-          if (spent - curCost + g.cost > gunAllow) continue;
-          if (take(g.id)) { give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; break; }
-          if (!pickBody.boughtPrimary && priceOf(g) <= money) { money -= priceOf(g); cash += priceOf(g); give(pickBody.loadout.primary); pickBody.loadout.primary = g.id; spent += g.cost - curCost; pickBody.boughtPrimary = true; break; }
-        }
-      }
-    }
     /* ---- phase 4: upgrade, from the locker only (a corp does not buy one body two guns) ---- */
     const swap = (b, slot, next) => {
       const prev = b.loadout[slot] ? byId(b.loadout[slot]) : null;
@@ -729,11 +759,16 @@
     /* §QUARTERMASTER a locker a force of specialists can be armed from: the doctrine's favourite guns,
        SPREAD across several of them rather than two per role, so there is a type on the rack for more than
        one kind of hand — and, as ever, the old cheap kit that arms a body when the good ones are spoken for */
-    const guns = rankGuns(ofSlot('primary'), taste), top = guns.slice(0, Math.min(CONST.KIT_SPREAD, guns.length));
-    for (const g of top) add(g.id, Math.ceil(n / top.length * depth));
+    const guns = rankGuns(ofSlot('primary'), taste);
+    /* §QUARTERMASTER (ruled: a squad is built) and for every role the squads will ask for, in the share they ask: the
+       doctrine's two favourites of each kind */
+    for (const role in ROLE_SHARE) {
+      const mine = guns.filter(g => (ROLE_OF_TYPE[g.type] || 'line') === role).slice(0, 2);
+      for (const g of mine) add(g.id, Math.ceil(n * ROLE_SHARE[role] / mine.length * depth));
+    }
     /* the cheap spares are the best gun at the cheap end of the rack, not merely the cheapest */
     if (guns.length) { const lo = cheapest(guns).cost * CONST.KIT_MUSTER_SLACK;
-      add(guns.filter(g => g.cost <= lo).sort((a, b) => edgeOf(b) / b.cost - edgeOf(a) / a.cost)[0].id, Math.ceil(n * CONST.FOUNDING_SPARES)); }
+      add(guns.filter(g => g.cost <= lo).sort((a, b) => worthOf(b) / b.cost - worthOf(a) / a.cost)[0].id, Math.ceil(n * CONST.FOUNDING_SPARES)); }
     for (const slot of ['armor', 'sidearm']) {
       const ranked = slot === 'armor' ? rankArmour(ofSlot(slot), taste) : rankBy(ofSlot(slot), taste);
       if (!ranked.length) continue;
@@ -824,7 +859,7 @@
   const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, edgeOf, armourWorth,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, worthOf, ROLE_REFERENCE, ROLE_SLOT, armourWorth,
     squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },

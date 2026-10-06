@@ -713,7 +713,7 @@ function facilityRules() {
   const st = SEASONMOD.beginSeason(rng, corps, oa, { human: ids[0] });
   const f0 = c.roster.find(x => x.status === 'active' && !x.mirror_of && !x.bond_partner);
   ok('a post needs its facility', !SEASONMOD.appoint(st, ids[0], f0.id, 'surgeon').ok, '');
-  const t3 = cat.find(i => i.slot === 'primary' && i.tier === 3 && i.price_model === 'formula');
+  const t3 = cat.find(i => i.slot === 'primary' && i.tier === 3 && i.price_model === 'worth');
   c.account.treasury = 600000;
   ok('the market will not sell what the Armoury cannot issue', !SEASONMOD.buyItems(st, ids[0], { [t3.id]: 1 }).ok, '');
   const t0 = c.account.treasury;
@@ -2418,16 +2418,21 @@ function catalogIntegrity() {
      point: 88 items is far past the size where a person can hold the price list. */
   const drift = [];
   for (const it of cat) {
-    if (it.price_model !== 'formula') continue;
+    if (it.price_model !== 'formula' && it.price_model !== 'worth') continue;
     const want = ITEMS.formulaCost(it);
     if (want !== it.cost) drift.push(it.id + ' ' + it.cost + '\u2260' + want);
   }
   ok('catalog: formula prices regenerate exactly', drift.length === 0, drift.slice(0, 4).join(', '));
 
-  /* §QUARTERMASTER (ruled: a gun is chosen for what it does) every gun carries its measured edge, taken on the stats it
-     has now: a gun changed since its measure fails here — run sim/gunworth.cjs */
-  const unmeasured = cat.filter(it => it.slot === 'primary' && !(it.worth && it.worth.edge > 0 && it.worth.of === ITEMS.statPrint(it))).map(it => it.id);
-  ok('catalog: every gun carries the edge measured on its own stats', unmeasured.length === 0, unmeasured.slice(0, 4).join(', ') || 'all');
+  /* §PRICING (ruled: a gun is chosen, and priced, for what it does in its role) every lethal gun carries its measured
+     worth, taken on the stats it has now: a gun changed since its measure fails here — run sim/roleworth.cjs */
+  const unmeasured = cat.filter(it => it.slot === 'primary' && ITEMS.ROLE_SLOT[it.type] != null && !(it.worth && it.worth.role > 0 && it.worth.of === ITEMS.statPrint(it))).map(it => it.id);
+  ok('catalog: every gun carries the worth measured in its role on its own stats', unmeasured.length === 0, unmeasured.slice(0, 4).join(', ') || 'all');
+  /* and a tier is a better gun (ruled): within each kind, no gun is worth less than one a tier below it, beyond the measure's grain */
+  const ladder = [];
+  for (const a of cat) for (const b of cat) if (a.slot === 'primary' && b.slot === 'primary' && a.type === b.type && ITEMS.ROLE_SLOT[a.type] != null
+      && a.tier === b.tier + 1 && a.worth && b.worth && a.worth.role < b.worth.role - 0.04) ladder.push(a.name + ' (t' + a.tier + ') under ' + b.name);
+  ok('catalog: in every kind of gun a tier is a better gun', ladder.length === 0, ladder.slice(0, 3).join(' | ') || 'all');
   /* and the engine arms nobody with a stun gun (ruled): that is a manager's own choice */
   const stunPlanned = [];
   for (const d of (ITEMS.doctrines || [])) {
@@ -2629,10 +2634,13 @@ function doctrineRules() {
   }
   ok('procurement: more money never fields less kit', mono);
 
-  const sig = ds.map(d => { const p = ITEMS.planForce(d.id, 24);
-    return p.mustered ? [p.bands.short || 0, p.bands.medium || 0, p.bands.long || 0].join('/') : 'x'; });
+  /* §QUARTERMASTER (ruled: a squad is built) every force carries every band now, its roles first; what tells the corps
+     apart is the kinds of gun their tastes fill those roles with */
+  const sig = ds.map(d => { const p = ITEMS.planForce(d.id, 24); if (!p.mustered) return 'x'; const c = {};
+    for (const b of p.bodies) { const g = ITEMS.byId(b.loadout.primary); if (g) c[g.type] = (c[g.type] || 0) + 1; }
+    return Object.keys(c).sort().map(k => k + ':' + c[k]).join(','); });
   ok('doctrines: the corps field visibly different forces', new Set(sig).size >= 5,
-     new Set(sig).size + ' distinct band spreads across ' + ds.length + ' corps');
+     new Set(sig).size + ' distinct mixes of gun across ' + ds.length + ' corps');
 }
 
 /* =========================================================================
