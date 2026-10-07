@@ -70,7 +70,6 @@
     KIT_FLOOR_PER_BODY: 1000,       // [S] the cheapest force that can actually muster is
                                     //     919/body, so this is the real floor, not a guess
     WILL_RICHNESS_PULL: 0.13,       // [C] how much a fat planet opens the purse
-    WILL_THRIFT_PULL: 0.11,         // [C] and how much a thrifty board closes it
     WILL_FLOOR: 0.72,               // [C] appetite MODULATES; wealth decides. Set wider and a
                                     //     poor planet drags the whole fleet to the floor
                                     //     together, which re-flattens the field it is meant
@@ -859,7 +858,7 @@
   const api = { SKILL_CLASSES, SKILL_TYPES, skillClassOf, skillTypeOf,
     CONST, DEFAULT_LOADOUT, UNARMED, init, autoInit,
     byId, all, bySlot, quirkPoints, formulaCost,
-    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, worthOf, ROLE_REFERENCE, ROLE_SLOT, armourWorth,
+    normalise, itemsOf, value, bulk, resolve, validate, planForce, foundingArmoury, statPrint, worthOf, ROLE_REFERENCE, ROLE_SLOT, armourWorth, PRICING: () => PRICING,
     squadBulk, equip, equipForce,
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },

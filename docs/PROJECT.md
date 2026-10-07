@@ -182,6 +182,12 @@ lean one pleases.
   more), so a fighter needs resupply about when a squad has fought most of its Divide. A squad with nothing left to
   shoot with leaves the fight. Carrying more rounds for more
   bulk (an extended magazine, a satchel) is for the quartermaster to weigh when it is rebuilt.
+- The economy is balanced as eight players under one set of rules (ruled). An OA's free money is one reckoning: cash
+  in hand and what the rest of the year brings (the month's gate, the grant), less what it will certainly take (the
+  months' retainers, staff and upkeep, the entry, the drop's purses, and the families of the share of the drop the
+  design expects to lose). An engine seat spends it in one order of need — people to field its drop, kit for the drop,
+  then building — and a person spends it as he likes. Nothing is held back beyond that: no reserve floor, no year of
+  wages paid in advance.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

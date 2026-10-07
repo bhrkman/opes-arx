@@ -1511,7 +1511,7 @@ function seasonRules() {
   poor.treasury = 0; poor.grant = 0;
   const bodies = new Array(24).fill(null).map(() => ({ contract: { salary: 300 } }));
   ok('S5 a poorer treasury buys less kit',
-     LEDG.procurementBudget(rich, bodies) > LEDG.procurementBudget(poor, bodies), '');
+     LEDG.plan(rich, { gearTarget: 1e9 }).gear > LEDG.plan(poor, { gearTarget: 1e9 }).gear, '');
 
   /* ---- the board's patience actually moves over a career ---- */
   const car = sharedCareer(oa);
@@ -2521,7 +2521,7 @@ function ledgerRules() {
     for (let i = 0; i < 4; i++) roster.push.apply(roster, gen.generateSquad(rng, 8, { corpId: p.id }).bodies);
     const acct = LEDGER.open(p);
     const start = acct.treasury;
-    const budget = LEDGER.procurementBudget(acct, roster);
+    const budget = LEDGER.plan(acct, { gearTarget: Infinity }).gear;   /* §MONEY the one reckoning */
     if (budget < 0) bad.push(p.id + ': negative kit budget');
     if (!(acct.grant > 0)) bad.push(p.id + ': no board grant');
 
@@ -3507,7 +3507,7 @@ function negotiationRules() {
 
   /* --- CROSS-STEP: one source of truth per quantity ----------------------------------
      Two quantities were being computed twice by different steps, with different answers.
-     Kit money: `ledger.js` produced `procurementBudget` and the day loop ignored it, deriving
+     Kit money: `ledger.js` produced a kit budget and the day loop ignored it, deriving
      its own wealth scale from the treasury bands. Reputation: Step 6 charged `crowdHit` for
      quitting and Step 4's `standing` — the number that actually decides who gets hunted —
      never moved for any of it. These assert the seams stay closed. */
@@ -3519,7 +3519,8 @@ function negotiationRules() {
       if (typeof c.kitBudget !== 'number') continue;
       budgetSeen++;
       const acct = LEDGER.open(c.profile);
-      if (c.kitBudget === LEDGER.procurementBudget(acct, c.allBodies)) budgetSane++;
+      /* §MONEY a one-off Divide spends what its books hold (the season's reckoning is handed in through persist) */
+      if (c.kitBudget === Math.max(0, acct.treasury)) budgetSane++;
     }
   }
   ok('cross-step: kit money comes from the ledger, not a second wealth scale',

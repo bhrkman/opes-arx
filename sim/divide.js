@@ -288,9 +288,8 @@
   /* §2.2 WHAT AN OA MEANS TO SPEND ON KIT (ruled at the money pass: no ceiling). It read an Aleas allowance —
      2,500 a body, up 6% a year — as the cap every OA fielded under, and the fleet bought surplus rifles under it
      (₡200–700 a body, tier 1) while a person buying tier 3 took +13 points of win rate off every fight. The
-     allowance is gone. An OA spends from its procurement budget (`ledger.procurementBudget`: what is free after
-     wages, the entry and the reserve, at KIT_SHARE), tempered by its WILL — a fat planet opens the purse, a thrifty
-     board closes it — and the money is laid out evenly across the force (`planForce` shares it), because the
+     allowance is gone. An OA spends what its reckoning leaves for kit at the drop (season.js planFor, ledger.plan),
+     tempered by its WILL — a fat planet opens the purse — and the money is laid out evenly across the force (`planForce` shares it), because the
      measured worth of kit is in the tier everyone carries, not in one railgun: each tier step is worth about
      ten points of win rate and half the casualties. Wealth, for the locker's depth, is budget per body against
      KIT_BUDGET_REFERENCE, the point at which a corp is rich enough to field tier 4 for all. */
@@ -301,10 +300,8 @@
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
     const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
-    const thrift = ((profile.dials && profile.dials.thrift) || 50) / 100;
     let will = 0.90
-             + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2
-             - ITEMS.CONST.WILL_THRIFT_PULL * (thrift - 0.5) * 2;
+             + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2;   /* (ruled: one judgement, no house's thrift) */
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
     const target = Math.round(perBodyAfford * will);
     return {
@@ -329,7 +326,9 @@
        money that decided kit was the band midpoint no matter what last season did. A
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
-    corp.kitBudget = LED.procurementBudget(acct, corp.allBodies) * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
+    /* §MONEY what the seat's reckoning leaves for kit at the drop (season.js planFor); a one-off Divide spends what it holds */
+    corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury)
+                   * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the

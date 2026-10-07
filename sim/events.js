@@ -140,7 +140,8 @@
     f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
     f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
   };
-  const spare = c => c.account.treasury - LED.CONST.RESERVE_FLOOR;
+  /* §MONEY what the seat has free by its reckoning (season.js planFor, set as the month opens) */
+  const spare = c => (c._free != null ? c._free : c.account.treasury);
   /* §CENSUS AN ENGINE OA ANSWERS AS ITSELF. Measured: ten dispatches were answered one way by every house, every
      time — a brawl always punished, an offer always refused, every quirk moment the first option. Each policy now
      weighs its options by the house's dials and its situation; the best-scoring option is the answer. */

@@ -42,10 +42,10 @@
        crowd; standing decides whether they come back. */
     /* §MONEY cut a quarter at the first money pass: with the grant the gate was a second
        income of the same order, and pay sat at a quarter of what came in */
-    GATE_BASE: 5800,                 // [C] a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
-    GATE_PER_STANDING: 41,           // [C] per point of standing with your own people
+    GATE_BASE: 7540,                 // [C] (×1.3 at the economic pass: everything was too poor) a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
+    GATE_PER_STANDING: 53,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
-    GATE_PER_FAME: 16,               // [C] per point of roster fame (the draw)
+    GATE_PER_FAME: 21,               // [C] per point of roster fame (the draw)
     GATE_FLOOR: 0,                   // [C] a hated OA sells nothing; it does not pay to play
     ALEAS_WINDOW_FEE: 1200,          // [C] per unscheduled comms window
     /* S15 — what a fighter is paid for being on the books rather than for going down the
@@ -55,9 +55,9 @@
     /* `REPAIR_COST_FRAC` was declared here AND in items.js — one of the three constants the
        Step 8b-2 audit found declared twice, of which only one copy was doc-parity checked.
        Both copies are gone with the gear-damage cut; nothing ever read either. */
-    /* How much of what is left a corp is willing to put into kit rather than hold back */
-    KIT_SHARE: 0.55,                 // [H]
-    RESERVE_FLOOR: 15000,            // [C] nobody spends the last credit on rifles
+    /* §MONEY (ruled) what an OA's books expect of a drop's dead: the share of a drop the reckoning holds the families'
+       money back for (the design's fatality, not this year's measure) */
+    FAMILIES_SHARE: 0.30,            // [C]
 
     /* SEASONS.md S13 — THE PLANET IS WON FOR THE OA, NOT FOR THE SQUAD.
      *
@@ -215,14 +215,24 @@
   }
 
   /**
-   * §14 — what a corp can put into kit this season. Not the whole treasury: wages come
-   * first, the Aleas takes its entry fee, and nobody spends the last credit on rifles.
+   * §MONEY (ruled: eight players, one set of rules) WHAT AN OA HAS FREE, AND WHAT ITS SEAT DOES WITH IT. One reckoning
+   * for every seat: the cash in hand and what the rest of the year will bring (a month's gate for each month left, the
+   * grant if it has not landed), less what the year will certainly take (the months' retainers, staff and upkeep, the
+   * entry fee, the purses of the drop, and what the families of those the drop is expected to lose will be owed).
+   * What is left is free. An engine seat spends it in one order of need — people to field its drop, then kit for the
+   * drop, then building — and a person spends it as he likes. It replaced three separate rules that each held back a
+   * year of full wages (ignoring the gate and the grant), a reserve floor nobody chose, and then spent half the rest:
+   * kit was left with about one credit in twenty of what an OA spent.
+   *   o: { monthsLeft, monthNet, grantDue, entryDue, purses, families, hold, peopleNeed, gearTarget }
    */
-  function procurementBudget(acct, roster) {
-    const wages = wageBill(roster);
-    const committed = wages + CONST.ALEAS_ENTRY;
-    const free = acct.treasury + acct.grant - committed - CONST.RESERVE_FLOOR;
-    return Math.max(0, Math.round(free * CONST.KIT_SHARE));
+  function plan(acct, o) {
+    o = o || {};
+    const free = Math.round(acct.treasury + (o.monthsLeft || 0) * (o.monthNet || 0) + (o.grantDue ? acct.grant : 0)
+               - (o.entryDue ? CONST.ALEAS_ENTRY : 0) - (o.purses || 0) - (o.families || 0) - (o.hold || 0));
+    const left = Math.max(0, free);
+    const people = Math.min(left, Math.max(0, o.peopleNeed || 0));
+    const gear = Math.min(left - people, Math.max(0, o.gearTarget || 0));
+    return { free, people, gear, build: Math.max(0, left - people - gear) };
   }
 
   /**
@@ -298,7 +308,7 @@
              short: Math.max(0, plan.shortfall - canRaise) };
   }
 
-  const api = { CONST, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, procurementBudget, settleSeason,
+  const api = { CONST, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
                 musterCheck, bookDivide, callOnBoard, squadBonus };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;

@@ -153,7 +153,8 @@
 
   /* --------------------------------------------------------------------- the engine builds */
   /** what an engine OA wants to build next, by its temperament and what it can afford to leave in the bank */
-  function aiChoose(corp, reserve) {
+  /* §MONEY (ruled) from what the seat's reckoning leaves for building (season.js planFor), not a reserve of its own */
+  function aiChoose(corp, budget) {
     const g = grounds(corp); if (g.build) return null;
     const d = (corp.profile && corp.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
@@ -167,7 +168,7 @@
     };
     const purse = (corp.account && corp.account.treasury) || 0;
     const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
-      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && purse - o.nx.cost >= reserve)
+      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && o.nx.cost <= budget && o.nx.cost <= purse)
       /* §CENSUS A HOUSE CLIMBS WHAT IT CARES FOR. Measured: with a flat penalty on every level above one, all eight
          houses built all six first levels before any second, so a militarist had its Listening Post before a better
          Armoury. Want is squared: a strong taste outbids a cheap level of a thing the house barely wants. */

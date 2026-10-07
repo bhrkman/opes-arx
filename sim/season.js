@@ -220,7 +220,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
        where "liked at home" reads, the grant came back down.) The kit pass to come will eat
        into that first year; it is measured then, not guessed now. */
-    LEAN_GRANT: 75000,        // [C] an OA nobody has heard of is not underwritten like one
+    LEAN_GRANT: 97500,        // [C] an OA nobody has heard of is not underwritten like one (×1.3 at the economic pass)
                               //     that has been paying out for a century
     GRANT_PER_DIFFICULTY: 0.25, // [C] an established OA's grant is LEAN_GRANT × (2 − this × its
                               //     difficulty rating): a 1 gets ₡131k a year, a 5 gets ₡56k
@@ -274,7 +274,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     DIVIDEND_FAME_WIN: 3,        // [C] and for winning in front of them
 
     ROSTER_MIN: 16, ROSTER_MAX: 40, ROSTER_TARGET: 28,
-    SIGNING_SHARE: 0.5,          // [H] of free cash a corp will put into new contracts
     DROP_MIN: 16,
     /* [H] S3 — how far a corp's own taste for economy amplifies the board's funding demand when
        sizing a drop. At 0.5 a thrift-neutral corp answers the board at roughly face value, a
@@ -1065,12 +1064,37 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return Math.round(flat * mult);
   }
 
-  /** What a corp can put into new contracts right now. */
-  function signingBudget(c) {
+  /* §MONEY (ruled: eight players, one set of rules) THE SEAT'S RECKONING (ledger.plan), from where its year stands: the
+     months still to come and what each brings and takes, whether the grant and the entry are still ahead, the drop's
+     purses and its families, and what its seat needs of people and of kit */
+  const KIT_ESSENTIALS = 300;   /* a medkit or a satchel, and a sidearm's share, a body */
+  function kitPerBody(c) {
+    const tier = Math.max(1, FAC.maxTier(c) || 1), P = ITEMS.PRICING ? ITEMS.PRICING() : null;
+    const gun = P && P.WORTH_TIER_PRICE ? P.WORTH_TIER_PRICE[String(tier)] : 1000 * tier;
+    const arm = ITEMS.bySlot('armor').filter(a => a.tier === tier && !a.exotic && a.cost > 0);
+    return gun + (arm.length ? arm.reduce((t, a) => t + a.cost, 0) / arm.length : 0) + KIT_ESSENTIALS;
+  }
+  function planFor(state, c) {
     const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
-    const spare = c.account.treasury + c.account.grant - LED.CONST.ALEAS_ENTRY
-                - LED.wageBill(alive) - LED.CONST.RESERVE_FLOOR;
-    return Math.max(0, spare * CONST.SIGNING_SHARE);
+    const m = state && !state.done ? state.month : CONST.PREP_MONTHS + 1;
+    const monthsLeft = Math.max(0, CONST.PREP_MONTHS - m + 1);
+    const ahead = !(state && state.done);   /* the grant, the entry and the purses land at the lock */
+    const staff = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
+    const gate = c._lastGate != null ? c._lastGate : LED.CONST.GATE_BASE;
+    const monthNet = gate - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c);
+    const dropN = Math.min(alive.length, CONST.DROP_MAX);
+    const drop = alive.slice(0, dropN);
+    const benefit = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.death_benefit) || 0), 0) / alive.length : 0;
+    const want = Math.max(0, CONST.ROSTER_TARGET - alive.length);
+    const perBody = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.salary) || 0), 0) / alive.length * LED.CONST.SALARY_MONTHS : 20000;
+    return LED.plan(c.account, { monthsLeft, monthNet, grantDue: ahead, entryDue: ahead, purses: ahead ? LED.purseBill(drop) : 0,
+      families: LED.CONST.FAMILIES_SHARE * Math.min(CONST.DROP_MAX, Math.max(dropN, CONST.ROSTER_MIN)) * benefit,
+      peopleNeed: want * perBody, gearTarget: Math.max(dropN, CONST.ROSTER_MIN) * kitPerBody(c) });
+  }
+  /** What a corp can put into new contracts right now: an engine seat what its reckoning gives people, a person all he has free. */
+  function signingBudget(c) {
+    const pl = planFor(STATE_REF, c);
+    return Math.max(0, isHuman(STATE_REF, c.id) ? pl.free : pl.people);
   }
 
   /**
@@ -2335,10 +2359,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const target = person ? CONST.ROSTER_MIN : Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
-    /* what this corp can actually afford to sign and then pay for a year */
-    const spare = corp.account.treasury + corp.account.grant - LED.CONST.ALEAS_ENTRY
-                - LED.wageBill(alive) - LED.CONST.RESERVE_FLOOR;
-    let budget = Math.max(0, spare * CONST.SIGNING_SHARE);
+    /* what this corp can actually afford to sign and then pay for a year: its reckoning (§MONEY) */
+    let budget = signingBudget(corp);
     /* THE FLOOR (S2, S12). Reaching the muster minimum is not optional and is not means-tested:
        a corp that cannot afford sixteen bodies signs them anyway and goes overdrawn, and the
        overdraft is what the board is asked to cover. Without this a roster could fall to zero
@@ -2473,10 +2495,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (expiring && expiring.length) {
       const staying = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired'
                                            && expiring.indexOf(f) < 0 && gone.indexOf(f) < 0);
-      /* the same free-cash expression `recruit` uses — one copy of the arithmetic */
-      let budget = Math.max(0, corp.account.treasury + corp.account.grant
-                             - LED.CONST.ALEAS_ENTRY - LED.CONST.RESERVE_FLOOR
-                             - LED.wageBill(staying));
+      /* the same reckoning `recruit` uses — one copy of the arithmetic (§MONEY); the leavers' own wages are not in it */
+      let budget = Math.max(0, planFor(STATE_REF, Object.assign({}, corp, { roster: staying })).free);
       const worth = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.fieldcraft) / 40
                        + Math.min(3, f.divides || 0) * 0.4;
       /* A corp cannot release its way below the muster minimum. If letting somebody go would
@@ -3741,12 +3761,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (state.done) return { ok: false, why: 'The Year Is Over' };
     return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
   }
-  /** the engine keeps a reserve for its year, then builds what it wants most that it can pay for */
+  /** the engine builds what it wants most from what its reckoning leaves for building, once its people and kit are seen to (§MONEY) */
   function aiBuild(c, state) {
-    const d = (c.profile && c.profile.dials) || {};
-    const thrift = (typeof d.thrift === 'number' ? d.thrift : 50) / 100;
-    const reserve = 60000 + 80000 * thrift;
-    const pick = FAC.aiChoose(c, reserve);
+    const pick = FAC.aiChoose(c, planFor(state, c).build);
     if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
   }
   /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
@@ -3986,6 +4003,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const stood = {};
     /* a build of N months started in month M stands as month M+N opens: it finishes at this month's end */
     for (const id of state.ids) { const b = FAC.tick(state.corps[id], state.season, m + 1); if (b) stood[id] = b; }
+    for (const id of state.ids) state.corps[id]._free = planFor(state, state.corps[id]).free;   /* §MONEY the month's reckoning */
     for (const id of state.ids) {
       landed[id] = [];
       /* THE MONTH'S EVENTS SETTLE FIRST. A corp's answers came through choices[id].events (a
@@ -4137,7 +4155,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       landed[id].push({ kind: 'gate', text: 'Gate and Merchandise', amount: gate2 });
       gatesThisMonth.push({ c: c, gate: gate2 });
       /* §MONEY THE WAGES WERE NEVER PAID. `wageBill` has existed since the ledger did, is
-         reserved against in `procurementBudget`, and is printed on the Roster as THE WAGE BILL
+         reserved against in the kit budget of the day, and is printed on the Roster as THE WAGE BILL
          — and no line was ever posted for it. The single largest cost of running a corporation
          was computed, displayed, and not charged, so a prep year cleared +162,000 on average
          before the Divide was fought and every scarcity the Market, the Paper and the kit cap
@@ -4163,7 +4181,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* a renewal nobody answered by the first month's end is signed at what was asked */
       if (m === 1) for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && st.asking) STAFF.renew(c, p, true); }
       /* the books balanced and nobody went short: worth something to the people who work here */
-      if (m === 11 && c.account.treasury > LED.CONST.RESERVE_FLOOR && c.rep) REP.act(c.rep, 'paid_the_wages', {});
+      if (m === 11 && c.account.treasury > 0 && c.rep) REP.act(c.rep, 'paid_the_wages', {});
     }
     /* §HALF-BUILT THE MONTH'S BEST GATE is one the fleet notices: `the_gate_was_good`, written and never raised.
        The whole fleet takes a gate every month, so "above the average" handed half of it a little standing
@@ -4362,6 +4380,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
+           held for, and the next year's months held for where its gate does not cover them */
+        kitMoney: (function () { const pl = planFor(state, c), net = (() => { const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
+            const staff = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
+            return (c._lastGate != null ? c._lastGate : LED.CONST.GATE_BASE) - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c); })();
+          return Math.max(0, pl.free - CONST.PREP_MONTHS * Math.max(0, -net)); })(),
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
@@ -4417,7 +4441,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const ids = state.ids, season = state.season, rec = state.rec;
     state.done = true;
     /* §MONEY AND THE ENTRY FEE WAS NEVER TAKEN EITHER. `ALEAS_ENTRY` is what it costs to be in
-       the Divide at all — reserved against in `procurementBudget` beside the wages, named in
+       the Divide at all — reserved against in the kit budget of the day beside the wages, named in
        the ledger's own constants, and charged to nobody. An OA entered the Divide free. It
        is taken at the lock, from every OA that is going. */
     for (const id of ids) {
