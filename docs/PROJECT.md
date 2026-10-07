@@ -188,10 +188,17 @@ lean one pleases.
   carry them.
 - The economy is balanced as eight players under one set of rules (ruled). An OA's free money is one reckoning: cash
   in hand and what the rest of the year brings (the month's gate, the grant), less what it will certainly take (the
-  months' retainers, staff and upkeep, the entry, the drop's purses, and the families of the share of the drop the
-  design expects to lose). An engine seat spends it in one order of need — people to field its drop, kit for the drop,
-  then building — and a person spends it as he likes. Nothing is held back beyond that: no reserve floor, no year of
-  wages paid in advance.
+  months' retainers, staff and upkeep, the entry, the drop's purses and Divide bonuses, and the families of a bad
+  Divide's losses — near half the drop), and less a cushion of two months of the house's keep that is never laid out.
+  An engine seat spends the rest in one order of need — people to field its drop, kit for the drop, then building —
+  and a person spends it as he likes. No year of wages is paid in advance.
+- The founding fund builds the squad (ruled): ₡40k, with the year's grant and gate, fields a full drop in mostly tier
+  two with some tier one and ends the year with about the cushion. A house cannot afford a good squad and the Armoury
+  in its first year; building is a year-two choice. Kit then climbs about a tier every two seasons — tier three the
+  norm by the fourth — and placement shows in what a house can invest: the bottom two keep going on a small loss.
+- The quartermaster counts what a house owns: its own rack is part of what it fields, not a charge against the cash it
+  means to spend, and a founder's issue goes back on the rack for the first drop. What is bought is shared evenly over
+  the bodies still waiting, so a force is armed to one tier rather than the first eighteen high and the rest bare.
 - An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
   to lose priced whole (his family's benefit, a year's wage to replace him, the Divides of training he carries, his
   kit), at its rate of loss over the Divide so far beside the field's — and most likely earns a share of the pot, the

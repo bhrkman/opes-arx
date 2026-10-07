@@ -57,7 +57,7 @@
        Both copies are gone with the gear-damage cut; nothing ever read either. */
     /* §MONEY (ruled) what an OA's books expect of a drop's dead: the share of a drop the reckoning holds the families'
        money back for (the design's fatality, not this year's measure) */
-    FAMILIES_SHARE: 0.30,            // [C]
+    FAMILIES_SHARE: 0.45,            // [C]
 
     /* SEASONS.md S13 — THE PLANET IS WON FOR THE OA, NOT FOR THE SQUAD.
      *

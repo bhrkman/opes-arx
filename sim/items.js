@@ -572,12 +572,17 @@
     let shortfall = 0;
     if (reserve > money) shortfall = reserve - money;
     if (!shortfall) {
-      for (const q of queue) {
+      for (let qi = 0; qi < queue.length; qi++) {
+        const q = queue[qi];
         reserve -= floorCost(q.slot);
+        /* §QUARTERMASTER (fixed) THE OUTLAY IS SHARED EVENLY: each body's share is of what is left, over the bodies still
+           waiting. A fixed share of the whole, with its slack, summed past the outlay: the first eighteen bought tier three
+           and the last eight the cheapest gun there was — and tier two, between them, almost never came up. */
+        const waiting = new Set(queue.slice(qi).map(x => x.b)).size;
         /* THE OUTLAY IS SHARED: a body buys within its share of what the OA means to spend (a gun most of it), a
            little past it for a piece worth having — the first body in the queue does not buy the railgun and leave
            the rest surplus rifles. Measured, the tier everyone carries is what wins fights. */
-        const share = (allow / bodies.length) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
+        const share = (Math.max(0, mustAllow - spent) / Math.max(1, waiting)) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
         const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve, share);
         const ranked = listFor(q.b, q.slot);
         const fits = ranked.filter(c => spent + c.cost <= mustAllow);

@@ -12089,12 +12089,17 @@
     let shortfall = 0;
     if (reserve > money) shortfall = reserve - money;
     if (!shortfall) {
-      for (const q of queue) {
+      for (let qi = 0; qi < queue.length; qi++) {
+        const q = queue[qi];
         reserve -= floorCost(q.slot);
+        /* §QUARTERMASTER (fixed) THE OUTLAY IS SHARED EVENLY: each body's share is of what is left, over the bodies still
+           waiting. A fixed share of the whole, with its slack, summed past the outlay: the first eighteen bought tier three
+           and the last eight the cheapest gun there was — and tier two, between them, almost never came up. */
+        const waiting = new Set(queue.slice(qi).map(x => x.b)).size;
         /* THE OUTLAY IS SHARED: a body buys within its share of what the OA means to spend (a gun most of it), a
            little past it for a piece worth having — the first body in the queue does not buy the railgun and leave
            the rest surplus rifles. Measured, the tier everyone carries is what wins fights. */
-        const share = (allow / bodies.length) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
+        const share = (Math.max(0, mustAllow - spent) / Math.max(1, waiting)) * (q.slot === 'primary' ? CONST.KIT_GUN_SHARE : 1 - CONST.KIT_GUN_SHARE) * CONST.KIT_SHARE_SLACK;
         const ceilingHere = Math.min(money - reserve, mustAllow - spent - reserve, share);
         const ranked = listFor(q.b, q.slot);
         const fits = ranked.filter(c => spent + c.cost <= mustAllow);
@@ -13862,7 +13867,7 @@
        Both copies are gone with the gear-damage cut; nothing ever read either. */
     /* §MONEY (ruled) what an OA's books expect of a drop's dead: the share of a drop the reckoning holds the families'
        money back for (the design's fatality, not this year's measure) */
-    FAMILIES_SHARE: 0.30,            // [C]
+    FAMILIES_SHARE: 0.45,            // [C]
 
     /* SEASONS.md S13 — THE PLANET IS WON FOR THE OA, NOT FOR THE SQUAD.
      *
@@ -22944,6 +22949,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth, maxTier: (corp.persist && corp.persist.maxTier) || 5 }).stock;
     const handStock = {};
     for (const k in baseArmoury) handStock[k] = baseArmoury[k];
+    /* §QUARTERMASTER (fixed) a founder's issue goes back on the rack before the plan: it is owned kit */
+    for (const f of corp.allBodies) if (f._issued) { for (const id of f._issued) handStock[id] = (handStock[id] || 0) + 1; f._issued = null; }
+    /* §QUARTERMASTER (fixed) WHAT IT OWNS IS IN THE OUTLAY. The allowance is the kit the force fields, owned kit counted at its
+       price — and it was set from cash alone, so a corp holding a rack of tier-three rifles could not afford to carry them and
+       bought tier-one guns instead. What the force can use of its own rack (a gun and an armour a body, within the Armoury)
+       is added to what it means to spend. */
+    {
+      const capT = Math.min((ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5, (corp.persist && corp.persist.maxTier) || 5);
+      let owned = 0;
+      for (const slot of ['primary', 'armor']) {
+        const prices = [];
+        for (const id in handStock) { const it = ITEMS.byId(id); if (!it || it.slot !== slot || (it.tier || 1) > capT) continue;
+          for (let k = 0; k < handStock[id]; k++) prices.push(it.cost || 0); }
+        prices.sort((a, b) => b - a);
+        owned += prices.slice(0, total).reduce((t, v) => t + v, 0);
+      }
+      intent.allowance += owned; intent.owned = owned;
+    }
     let handSpend = 0, handValue = 0, handed = 0;
     corp.handRefused = 0;
     /* §FACILITIES A MERCENARY'S OWN GEAR IS THEIRS: carried whatever the Armoury allows, and not drawn from the rack */
@@ -26519,7 +26542,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
-    LEAN_TREASURY: 180000,    // [H] and the money to become something (ruled 210k → 180k at the money pass) — measured against a
+    LEAN_TREASURY: 40000,     // [H] and the money to become something: a squad (ruled 180k → 40k at the economy pass — the founding fund builds the squad; building is a year-two choice)
                               //     year: the entry, the wages, and a market worth entering
     /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
        he founds at the desk, so its year is the year the game is tuned to, and the eight are
@@ -26532,6 +26555,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
        where "liked at home" reads, the grant came back down.) The kit pass to come will eat
        into that first year; it is measured then, not guessed now. */
+    CUSHION_MONTHS: 2,        // [R] §MONEY months of a house's keep its reckoning never lays out (ruled: a cushion)
     FLEET_ALIGNED: true,      // [R] §FLEET every seat the same OA for now (ruled)
     LEAN_GRANT: 97500,        // [C] an OA nobody has heard of is not underwritten like one (×1.3 at the economic pass)
                               //     that has been paying out for a century
@@ -26895,6 +26919,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const primary = pick('primary'), armor = pick('armor'), sidearm = pick('sidearm');
       if (!primary && !armor) continue;                          /* an empty shelf dresses nobody */
       ITEMS.equip(f, { primary: primary, armor: armor, sidearm: sidearm, mods: [], consumables: [] });
+      /* §QUARTERMASTER (fixed) what a founder was issued is still the corp's: it goes back on the rack when the Divide plans
+         its kit (divide.js equipCorp), or the whole founding issue — the corp's only tier-two kit — vanished at the first drop */
+      f._issued = [primary, armor, sidearm].filter(Boolean);
     }
   }
 
@@ -27413,7 +27440,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const benefit = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.death_benefit) || 0), 0) / alive.length : 0;
     const want = Math.max(0, CONST.ROSTER_TARGET - alive.length);
     const perBody = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.salary) || 0), 0) / alive.length * LED.CONST.SALARY_MONTHS : 20000;
+    /* §MONEY (ruled) A CUSHION IS KEPT: two months of what the house costs to keep (its retainers, its staff, its upkeep) are
+       never laid out — a death benefit or a lean month after the drop is paid from it, not from a treasury in the red */
+    const cushion = CONST.CUSHION_MONTHS * (LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS + staff + FAC.upkeep(c));
     return LED.plan(c.account, { monthsLeft, monthNet, grantDue: ahead, entryDue: ahead, purses: ahead ? LED.purseBill(drop) : 0,
+      /* §MONEY (fixed) and the drop's Divide bonuses, which its contracts pay at the settlement — the reckoning held for
+         purses and families and not these, and they were the line that most often took a house into the red */
+      hold: cushion + (ahead ? drop.reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0) : 0),
       families: LED.CONST.FAMILIES_SHARE * Math.min(CONST.DROP_MAX, Math.max(dropN, CONST.ROSTER_MIN)) * benefit,
       peopleNeed: want * perBody, gearTarget: Math.max(dropN, CONST.ROSTER_MIN) * kitPerBody(c) });
   }

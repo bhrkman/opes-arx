@@ -347,6 +347,24 @@
           || ITEMS.foundingArmoury(doc.id, total, { depth: intent.depth, maxTier: (corp.persist && corp.persist.maxTier) || 5 }).stock;
     const handStock = {};
     for (const k in baseArmoury) handStock[k] = baseArmoury[k];
+    /* §QUARTERMASTER (fixed) a founder's issue goes back on the rack before the plan: it is owned kit */
+    for (const f of corp.allBodies) if (f._issued) { for (const id of f._issued) handStock[id] = (handStock[id] || 0) + 1; f._issued = null; }
+    /* §QUARTERMASTER (fixed) WHAT IT OWNS IS IN THE OUTLAY. The allowance is the kit the force fields, owned kit counted at its
+       price — and it was set from cash alone, so a corp holding a rack of tier-three rifles could not afford to carry them and
+       bought tier-one guns instead. What the force can use of its own rack (a gun and an armour a body, within the Armoury)
+       is added to what it means to spend. */
+    {
+      const capT = Math.min((ITEMS.doctrine(doc.id) || {}).armoury_max_tier || 5, (corp.persist && corp.persist.maxTier) || 5);
+      let owned = 0;
+      for (const slot of ['primary', 'armor']) {
+        const prices = [];
+        for (const id in handStock) { const it = ITEMS.byId(id); if (!it || it.slot !== slot || (it.tier || 1) > capT) continue;
+          for (let k = 0; k < handStock[id]; k++) prices.push(it.cost || 0); }
+        prices.sort((a, b) => b - a);
+        owned += prices.slice(0, total).reduce((t, v) => t + v, 0);
+      }
+      intent.allowance += owned; intent.owned = owned;
+    }
     let handSpend = 0, handValue = 0, handed = 0;
     corp.handRefused = 0;
     /* §FACILITIES A MERCENARY'S OWN GEAR IS THEIRS: carried whatever the Armoury allows, and not drawn from the rack */

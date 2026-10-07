@@ -208,7 +208,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
-    LEAN_TREASURY: 180000,    // [H] and the money to become something (ruled 210k → 180k at the money pass) — measured against a
+    LEAN_TREASURY: 40000,     // [H] and the money to become something: a squad (ruled 180k → 40k at the economy pass — the founding fund builds the squad; building is a year-two choice)
                               //     year: the entry, the wages, and a market worth entering
     /* §MONEY THE FOUNDED OA IS THE YARDSTICK. The only OA a manager can play is the one
        he founds at the desk, so its year is the year the game is tuned to, and the eight are
@@ -221,6 +221,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
        where "liked at home" reads, the grant came back down.) The kit pass to come will eat
        into that first year; it is measured then, not guessed now. */
+    CUSHION_MONTHS: 2,        // [R] §MONEY months of a house's keep its reckoning never lays out (ruled: a cushion)
     FLEET_ALIGNED: true,      // [R] §FLEET every seat the same OA for now (ruled)
     LEAN_GRANT: 97500,        // [C] an OA nobody has heard of is not underwritten like one (×1.3 at the economic pass)
                               //     that has been paying out for a century
@@ -584,6 +585,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const primary = pick('primary'), armor = pick('armor'), sidearm = pick('sidearm');
       if (!primary && !armor) continue;                          /* an empty shelf dresses nobody */
       ITEMS.equip(f, { primary: primary, armor: armor, sidearm: sidearm, mods: [], consumables: [] });
+      /* §QUARTERMASTER (fixed) what a founder was issued is still the corp's: it goes back on the rack when the Divide plans
+         its kit (divide.js equipCorp), or the whole founding issue — the corp's only tier-two kit — vanished at the first drop */
+      f._issued = [primary, armor, sidearm].filter(Boolean);
     }
   }
 
@@ -1102,7 +1106,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const benefit = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.death_benefit) || 0), 0) / alive.length : 0;
     const want = Math.max(0, CONST.ROSTER_TARGET - alive.length);
     const perBody = alive.length ? alive.reduce((t, f) => t + ((f.contract && f.contract.salary) || 0), 0) / alive.length * LED.CONST.SALARY_MONTHS : 20000;
+    /* §MONEY (ruled) A CUSHION IS KEPT: two months of what the house costs to keep (its retainers, its staff, its upkeep) are
+       never laid out — a death benefit or a lean month after the drop is paid from it, not from a treasury in the red */
+    const cushion = CONST.CUSHION_MONTHS * (LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS + staff + FAC.upkeep(c));
     return LED.plan(c.account, { monthsLeft, monthNet, grantDue: ahead, entryDue: ahead, purses: ahead ? LED.purseBill(drop) : 0,
+      /* §MONEY (fixed) and the drop's Divide bonuses, which its contracts pay at the settlement — the reckoning held for
+         purses and families and not these, and they were the line that most often took a house into the red */
+      hold: cushion + (ahead ? drop.reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0) : 0),
       families: LED.CONST.FAMILIES_SHARE * Math.min(CONST.DROP_MAX, Math.max(dropN, CONST.ROSTER_MIN)) * benefit,
       peopleNeed: want * perBody, gearTarget: Math.max(dropN, CONST.ROSTER_MIN) * kitPerBody(c) });
   }
