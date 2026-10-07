@@ -837,6 +837,32 @@
          later. They come in from outside, so they come in AT the outside: the two bordering
          rows and columns and nowhere else. */
       const band = opts.edgeOnly ? CONST.ARRIVE_EDGE_BAND : 0;
+      /* §DEPLOY A SIDE ON A BEARING STANDS OFF BY THE OPENING GAP. This took anything within nine tiles of its edge
+         point and never read the gap, so every Divide fight (all of them come on by bearing) opened where it fell: a
+         long opening at sixteen tiles, a medium one at eight, three banners within two of each other, and contact on
+         turn one nearly always. A side now deploys in the old band — half the gap out from the middle, the deployment's
+         depth deep and its span wide — laid along its bearing. */
+      if (!band && !opts.reach && gap != null) {
+        const c = Math.cos(opts.bearing), s = Math.sin(opts.bearing);
+        const proj = (x, y) => (x - cx) * c + (y - cy) * s, lat = (x, y) => Math.abs(-(x - cx) * s + (y - cy) * c);
+        const maxP = Math.max(proj(0, 0), proj(map.w - 1, 0), proj(0, map.h - 1), proj(map.w - 1, map.h - 1));
+        const lo = Math.max(0, Math.min(gap / 2, maxP - CONST.DEPLOY_DEPTH));
+        const need = units.length * 2;
+        for (let span = CONST.DEPLOY_SPAN / 2; ; span += 2) {
+          spots.length = 0;
+          for (let x = 0; x < map.w; x++) for (let y = 0; y < map.h; y++) {
+            if (blocked(map, x, y)) continue;
+            const p = proj(x, y);
+            if (p < lo || p > lo + CONST.DEPLOY_DEPTH || lat(x, y) > span) continue;
+            let adj = 0;
+            for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1]]) adj = Math.max(adj, at(map, x + ox, y + oy));
+            spots.push({ x, y, cover: adj, d: p });
+          }
+          if (spots.length >= need || span > Math.max(map.w, map.h)) break;
+        }
+        spots.sort((a, b) => b.d - a.d);
+        return place(rng, map, units, prep, spots, taken, opts);
+      }
       for (let x = 0; x < map.w; x++) {
         for (let y = 0; y < map.h; y++) {
           if (blocked(map, x, y)) continue;
@@ -1723,11 +1749,32 @@
    * by who is closest and most dangerous rather than by being the other array.
    */
   let STUN_GRADE = false;   /* the Aleas' edict for the year, set per fight from ctx */
+  /* §DEPLOY THE BOARD IS TURNED TO THE FIGHT. Bearings are compass directions off the world map and the board is
+     wider than it is deep, so two squads meeting north and south were set down across its short side and a long
+     opening could not be laid out at all. The whole compass is turned so the first two sides' line of approach runs
+     along the long side; every angle between squads is kept, which is all the ground ever reads. */
+  function turnBoard(sides, ctx) {
+    const b = ctx.bearings;
+    if (!b || b[0] == null || b[1] == null || !(sides.length > 2 || ctx.forceBearings)) return ctx;
+    const ax = Math.atan2(Math.sin(b[0]) - Math.sin(b[1]), Math.cos(b[0]) - Math.cos(b[1]));
+    const rot = Math.PI - ax;
+    if (Math.abs(rot) < 1e-9) return ctx;
+    const turn = a => a == null ? a : Math.atan2(Math.sin(a + rot), Math.cos(a + rot));
+    const done = new Set(), turnU = u => { if (u._bearing != null && !done.has(u)) { u._bearing = turn(u._bearing); done.add(u); } };
+    for (const S of sides) for (const u of S.units || []) turnU(u);
+    const reinforce = (ctx.reinforce || []).map(R => {
+      for (const u of (R.side && R.side.units) || []) turnU(u);
+      return Object.assign({}, R, { bearing: turn(R.bearing) });
+    });
+    return Object.assign({}, ctx, { bearings: b.map(turn), reinforce: ctx.reinforce ? reinforce : ctx.reinforce });
+  }
+
   function resolve(rng, A, B, ctx) {
     let sides;
     if (Array.isArray(A)) { sides = A.slice(); ctx = B; }
     else { sides = [A, B]; }
     ctx = ctx || {};
+    ctx = turnBoard(sides, ctx);
     STUN_GRADE = !!ctx.stunGrade;
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
     const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */

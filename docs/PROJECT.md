@@ -200,6 +200,8 @@ lean one pleases.
 - A fight is broken off sooner than it was: a standard squad pulls back once it has lost about a sixth of its strength
   to the other side, and a man who falls back goes the way his squad came in, never across the field to whichever
   side his number in the fight happened to point to.
+- A fight opens at its band's distance whichever way the squads came in: the board is turned to the line they met on,
+  and every angle between them is kept.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
