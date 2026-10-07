@@ -407,7 +407,9 @@
   /* §PRICING the balanced squad a gun is measured in, and the slot each kind of gun fills in it (sim/roleworth.cjs) */
   const ROLE_REFERENCE = ['itm_vanguard_rifle', 'itm_vanguard_rifle', 'itm_marksman_rifle', 'itm_machine_gun', 'itm_whipcord_smg', 'itm_drum_shotgun'];
   const ROLE_SLOT = { 'Assault Rifles': 1, 'Carbines': 1, 'Launchers': 1, 'Marksman Rifles': 2, 'Long Rifles': 2, 'Anti-Materiel': 2,
-                      'Support Guns': 3, 'Submachine Guns': 4, 'Scatterguns': 5, 'Close-Quarters': 5 };
+                      'Support Guns': 3, 'Submachine Guns': 4, 'Scatterguns': 5, 'Close-Quarters': 5,
+                      /* §STUN a stun gun is measured where it would be scattered in: a line slot */
+                      'Stun-Grade': 1 };
   /* what a gun is worth in this fighter's hands: its edge, and how well they shoot its kind (and the doctrine's taste) in
      Aim points, on one scale */
   function gunScore(g, aim) { return Math.log(worthOf(g)) + CONST.KIT_AIM_EDGE * (aim - 100); }

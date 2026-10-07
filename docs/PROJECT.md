@@ -218,6 +218,8 @@ lean one pleases.
 - The engine arms nobody with stun while stun is not worth it scattered into a squad (ruled): a stun gun among lethal
   ones measures about 0.8-0.9 of the lethal gun it replaces, with a trickle of captives. When it measures worth its
   place, the engine may issue it.
+- Stun guns are measured and priced like any gun (ruled): in a line slot of the reference squad, a man taken counting
+  as a man out. Every gun was re-measured on the deeper pools and each tier's reference is its lethal guns' median.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

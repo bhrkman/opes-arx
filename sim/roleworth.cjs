@@ -29,7 +29,7 @@ function side(seed, kit, tag) {
   return { tag, corpId: tag, policy: 'standard', policyName: 'standard', hasMedkit: true,
            units: sq.map((f, i) => C.makeCombatant(f, { traitIndex: R.traitById, isCaptain: i === 0, day: 1 })) };
 }
-const out = u => u.dead + u.down + u.stable;
+const out = u => u.dead + u.down + u.stable + (u.captured || 0);   /* §STUN a man taken is a man out */
 function measure(kit) {
   let took = 0, lost = 0, F = 0;
   for (let ti = 0; ti < TERRAINS.length; ti++) for (let b = 0; b < 3; b++) for (const opp of FIELD) for (let k = 1; k <= N; k++) for (const flip of [0, 1]) {
