@@ -22476,6 +22476,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
     SHOWDOWN_HORIZON: 12,               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full
     LEAVE_RATE_HORIZON: 4,              // [C] §WITHDRAWAL days the loss rate since the last window is projected over: the next two windows
+    LEAVE_TRAINING_PER_DIVIDE: 3000,    // [C] §WITHDRAWAL the training a Divide survived puts into a man, that a replacement does not have
+    LEAVE_TRAINING_CAP: 4,              // [C] and the Divides it counts, at most
     LEAVE_OWN_RATE: 0.5,                // [C] §WITHDRAWAL how much an OA's own rate of loss so far (against the field's) shapes what it expects staying to cost
     /* §STANDING what the crowd does on the ground (ruled at the standing pass) */
     CROWD_DROP_MORALE: 12,              // [C] morale a crowd of 100 (or 0, the other way) sends down with every fighter
@@ -23269,26 +23271,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const kitWorth = (lo) => !lo ? 0 : [lo.primary, lo.armor, lo.sidearm].concat(lo.mods || [], lo.consumables || [])
       .reduce((t, id) => { const it = id && ITEMS.byId(id); return t + (it ? (it.cost || 0) : 0); }, 0);
     /* its rate of loss is its own blended with the whole field's — one man lost on day one does not say an OA
-       will lose everyone — and nobody reads it before the third day */
-    /* §GROUND THE RATE IS THE LAST WINDOW'S, NOT THE DROP'S. On the rebuilt ground the drop is contested from the
-       first day and quiet after, so a rate read since day one — written for a ring where nobody met before day
-       five — priced the whole month at the drop's pace and sent six banners home at the second window. What an OA
-       reads now is what the last window cost it, and the field, over the days the wall leaves. */
-    const since = (j) => { const a2 = j.allBodies || [], was = j._aliveAtWindow != null ? j._aliveAtWindow : a2.length; return Math.max(0, was - a2.filter(b => b.status === 'active').length); };
-    const cadenceDays = Math.max(1, day - (stats._lastWindowDay || 1));
-    const fieldRate = (() => {
-      let lostAll = 0, bodiesAll = 0;
-      for (const j of corps) { const a2 = j.allBodies || []; bodiesAll += a2.length; lostAll += since(j); }
-      return bodiesAll ? lostAll / bodiesAll / cadenceDays : 0;
-    })();
+       will lose everyone — and nobody reads it before LEAVE_EARLIEST_DAY */
     const lastGroundDay = (() => { const w = planet.ground && planet.ground.wall; if (!w) return GROUND.CONST.DAYS; return Math.max(w.takeAt.reduce((m, t) => Math.max(m, t.day), 0), (w.zoneAt || []).reduce((m, t) => Math.max(m, t.day), 0)); })();
     const aliveOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
+    /* §WITHDRAWAL (ruled: an OA weighs what it keeps by going) THE RATE IS THE DIVIDE'S SO FAR. Read off the last window
+       alone, a quiet window priced staying at nothing and a bad one at a fortune, and a house stayed through the quiet
+       ones until half its people were gone: its own losses since the drop, beside the field's, over the days it has
+       fought (the first window still reads only the drop). */
+    const fought = Math.max(1, day - 1);
+    const lostOf = (j) => { const a2 = j.allBodies || []; return a2.length - a2.filter(b => b.status === 'active').length; };
+    const fieldRateAll = (() => { let lost = 0, all = 0; for (const j of corps) { lost += lostOf(j); all += (j.allBodies || []).length; } return all ? lost / all / fought : 0; })();
     const stayCost = (c) => {
       if (day < CONST.LEAVE_EARLIEST_DAY) return 0;
       const all = c.allBodies || [], alive = all.filter(b => b.status === 'active');
-      const lost = since(c);
       const daysLeft = Math.max(1, lastGroundDay + CONST.LEAVE_OVERTIME_GUESS - day);
-      const rate = CONST.LEAVE_OWN_RATE * (lost / Math.max(1, all.length) / cadenceDays) + (1 - CONST.LEAVE_OWN_RATE) * fieldRate;
+      const rate = CONST.LEAVE_OWN_RATE * (lostOf(c) / Math.max(1, all.length) / fought) + (1 - CONST.LEAVE_OWN_RATE) * fieldRateAll;
       /* §ENDGAME AND THE END IS CERTAIN. The last ground closes to one zone at the month's end, so whoever is still on
          the ground then fights it out: what that costs is the share of its people an OA loses against everyone else
          still standing — little to a strong house, nearly all to a spent one. Read as the days run out, beside the
@@ -23299,8 +23296,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* the rate it has been losing at, over the days until it next decides — it reconsiders every window, so the rate
          is not a month's sentence — beside the showdown the end will cost it */
       const expect = Math.min(alive.length, Math.max(rate * all.length * Math.min(daysLeft, CONST.LEAVE_RATE_HORIZON), showdown * near));
-      const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.salary) || 0) *
-                    LED.CONST.SALARY_MONTHS + kitWorth(b.loadout), 0) / alive.length : 0;
+      /* §WITHDRAWAL (ruled) WHAT A MAN LOST COSTS, ALL OF IT: his family's benefit, a year's wage to put somebody in his
+         place, the Divides he has been through (the training that does not come back with the replacement), and the kit
+         he carries. It was the wage and the kit, so the families — real money in the books — were never weighed. */
+      const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.death_benefit) || 0)
+                    + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS
+                    + Math.min(CONST.LEAVE_TRAINING_CAP, ((b.experience || {}).divides || 0) + ((b.divides) || 0)) * CONST.LEAVE_TRAINING_PER_DIVIDE
+                    + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
     };
     /* §WITHDRAWAL THE FIELD ANSWERS. An offer posted last window is read by every OA still on
@@ -23485,9 +23487,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
 
-    /* what this window leaves standing, for the next window's reckoning */
-    for (const j of corps) j._aliveAtWindow = (j.allBodies || []).filter(b => b.status === 'active').length;
-    stats._lastWindowDay = day;
   }
 
   function squadCaptain(sq) {

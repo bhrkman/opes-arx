@@ -192,6 +192,11 @@ lean one pleases.
   design expects to lose). An engine seat spends it in one order of need — people to field its drop, kit for the drop,
   then building — and a person spends it as he likes. Nothing is held back beyond that: no reserve floor, no year of
   wages paid in advance.
+- An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
+  to lose priced whole (his family's benefit, a year's wage to replace him, the Divides of training he carries, his
+  kit), at its rate of loss over the Divide so far beside the field's — and most likely earns a share of the pot, the
+  more for the more it still fields, since its going is worth that much more to the rest. The target is the middle
+  ground between leaving too early and too late.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
