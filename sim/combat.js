@@ -1094,7 +1094,8 @@ function active(sq) { return sq.units.filter(u => u.state === 'ok' || u.state ==
  * `overrunOf` lets each resolver say what "this side came apart" means in its own terms:
  * the abstract model counts routed fighters, the grid counts withdrawals and panic.
  */
-function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
+function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
+  opts = opts || {};
   for (let si = 0; si < sides.length; si++) {
     const S = sides[si];
     const E = sides.filter(o => o !== S).sort((a, b) => active(b).length - active(a).length)[0] || S;
@@ -1111,7 +1112,9 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf) {
        by an injector, cannot walk off with a withdrawal; when nobody of his is left standing on the field and the other
        side is, they have him. Only an overrun took anyone — and a side that called its retreat was never overrun, so a
        stun build could not take a prisoner, and its victims woke and were carried off by nobody. */
-    const abandoned = !active(S).length && active(E).length > 0 && E !== S;
+    /* §STUN (measured) a side that walked off leaves its stunned to be taken: only taking them from a side wiped out took
+       nobody, at any tier — a squad calls it long before it is wiped */
+    const abandoned = !opts.exhibition && !active(S).length && active(E).length > 0 && E !== S;   /* §STUN nobody is taken at an exhibition */
     for (const u of S.units) {
       if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter)) {
         u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
@@ -1239,17 +1242,13 @@ function rollInjury(rng, u, worst) {
 
   let severity = worst === 'critical' ? 'critical' : 'serious';
   let permanent = false;
-  /* §9.3 — a stun round leaves you on the ground, not in a chair. A weapon tagged `nonlethal`
-     cannot end a career or take a wing: the wound heals. Without this the Dividend would still
-     be permanently maiming people in a show-match, which is the same fault as killing them. */
-  const stunned = u._killedBy && hasQuirk(u._killedBy, 'nonlethal');
-  if (!stunned && type === 'inj_spinal' && rng() < CONST.SPINAL_PERMANENT_P) { severity = 'permanent'; permanent = true; }
+  if (type === 'inj_spinal' && rng() < CONST.SPINAL_PERMANENT_P) { severity = 'permanent'; permanent = true; }
   /* §RACES a hurt wing does not fly: the injury table already knew where a Ththyn is hit,
      and now the grid does too */
   if (String(type).indexOf('inj_wing') === 0) u.wingHurt = true;
-  if (!stunned && type === 'inj_wing_loss') { severity = 'permanent'; permanent = true; }
+  if (type === 'inj_wing_loss') { severity = 'permanent'; permanent = true; }
   if (type === 'inj_wing_strut') severity = 'serious';
-  if (type === 'inj_wing_spar') { severity = 'critical'; if (!stunned && rng() < CONST.WING_SPAR_PERMANENT_P) { severity = 'permanent'; permanent = true; } }
+  if (type === 'inj_wing_spar') { severity = 'critical'; if (rng() < CONST.WING_SPAR_PERMANENT_P) { severity = 'permanent'; permanent = true; } }
   if (type === 'inj_wing_tear') severity = 'minor';
 
   const band = RECOVERY[severity] || RECOVERY.serious;

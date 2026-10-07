@@ -2026,9 +2026,9 @@
         f._capturedBy = captorId || null;
       }
       else if (u._stunnedDown || u._upAfter) {
-        /* §WOUNDS (ruled) put down by a stun round, or held at a breath by a stasis injector: up again at the fight's
-           end, at the lowest band */
-        f._hpFrac = CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to; downed++;
+        /* §WOUNDS (ruled) held at a breath by a stasis injector: up again at the fight's end, at the lowest band. §STUN put
+           down by stun: up again with the health he had, for a stun round does no harm */
+        f._hpFrac = u._upAfter ? CONST.HP_BANDS[CONST.HP_BANDS.length - 1].to : hpBand((u.hp != null ? u.hp : u.hpMax) / Math.max(1, u.hpMax)); downed++;
         stats.audit.stunnedUp = (stats.audit.stunnedUp || 0) + 1;
       }
       else if (u.injury) {

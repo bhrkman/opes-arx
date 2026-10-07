@@ -264,7 +264,9 @@
                 /* §GUNS stage 2: its own precision and the cost of a snap shot; what armour it goes through; how hard it pins */
                 handling: pe.handling, snap: pe.snap, pen: pe.pen, suppress: pe.suppress,
                 /* §GUNS stage 3: how many more it catches beside the one it hits, and how far a shot of it carries */
-                spread: pe.spread, noise: pe.noise },
+                spread: pe.spread, noise: pe.noise,
+                /* §STUN the stacks a hit lands (a stun weapon's; none on a lethal gun) */
+                stun: pe.stun || 0 },
       armor: { id: a ? a.id : null, name: a ? a.name : null, tags: (ae.tags || []).slice(),
                protection: ae.protection || 0, mobility: ae.mobility || 0,
                resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },

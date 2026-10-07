@@ -206,6 +206,11 @@ lean one pleases.
   turns rather than three or four.
 - A fighter weighing where to stand counts each rival's fire at him by how good a shot he offers against the others
   that rival can see: the man in the open is the mark, not one target in six.
+- Stun is its own lane (ruled): a stun weapon's hit lands stacks and no wound, and ten stacks put a man down — out of the
+  fight, nothing to treat, up again when it is over. His stacks count against his squad's call as health spent. A side
+  that leaves the field leaves its stunned to be taken (taking them only from a side wiped out took nobody: squads call
+  it long before). Three families — Repeater, Rifle, Area — each a little under a lethal gun of its tier, a squad of
+  them as of one; the payoff is the captives. Stacks clear when the fight ends.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

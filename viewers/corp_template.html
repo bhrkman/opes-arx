@@ -3779,7 +3779,7 @@
         var fate = f ? (f.status === 'dead' ? ' <span class="bad">Died</span>' : f.status === 'injured' ? ' <span class="warn">Hurt</span>' : ' <span class="good">Standing</span>') : ' <span class="bad">Died</span>';
         return '<span>' + cSpan(t.corp) + ' \u00b7 ' + (f ? nameSpan(f) : esc(t.name)) + fate + '</span>'; }).join('') + '</div>'; };
     return '<div class="eightcard" style="margin:0"><div class="teams">' + team('A') + '<span class="vs">vs</span>' + team('B') + '</div>' +
-      '<div class="bar" style="margin-top:8px"><button class="tiny" id="eightwatch">Watch</button>' + (R.stun ? '<span class="ktag">Stun-Grade</span>' : '') + '</div></div>';
+      '<div class="bar" style="margin-top:8px"><button class="tiny" id="eightwatch">Watch</button></div></div>';
   }
   /* the Dividend's own account in the recap: the card, your match, and a Watch */
   function dividendRecapHtml() {
@@ -6958,14 +6958,16 @@
                  grenade: 'throws at', smoke: 'throws smoke', drone: 'sends up a drone',
                  turret: 'sets a turret', turret_shot: 'turret fires at',
                  /* §CONSUMABLES §BACKROOM the stim, the banned, and kit that fails when it is asked for */
-                 stim: 'steadies', scramble: 'scrambles the tether of' };
+                 stim: 'steadies', scramble: 'scrambles the tether of',
+                 /* §STUN stacks landed, and the stack that puts him down */
+                 stun: 'stuns', stunned: 'stuns out' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
       var v2 = lg[e];
       if (v2.t > F.turn) break;
       if (v2.t < F.turn - 1) continue;
-      var cls = v2.type === 'killed' || v2.type === 'down' ? 'down'
+      var cls = v2.type === 'killed' || v2.type === 'down' || v2.type === 'stunned' ? 'down'
               : v2.type === 'miss' ? '' : 'hit';
       var who = nameOf[v2.by] || v2.by || '?';
       var whom = nameOf[v2.at] || v2.at || '';
@@ -6975,6 +6977,7 @@
       if (v2.type === 'turret_shot') tail += v2.hit ? ' \u00b7 Hit' : ' \u00b7 Miss';
       if (v2.react) tail += ' \u00b7 On Overwatch';
       if (v2.sev) tail += ' \u00b7 ' + esc(v2.sev);
+      if (v2.type === 'stun') tail += ' \u00b7 ' + v2.stacks + ' Of ' + v2.of;
       if (v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '%';
       if (v2.why && v2.why.length) tail += ' <span class="m">\u00b7 ' + v2.why.map(esc).join(' \u00b7 ') + '</span>';
       var col2 = colFor(fCid(sideOf[v2.by] || 0));

@@ -144,6 +144,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        you cannot pay to sign two of one recruit. */
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
+    DIVIDEND_STACKS: 5,          // [C] §STUN stun stacks landed a point is scored for at the Dividend
     DIVIDEND_STRESS: 8,          // [C] the lights are pressure, stun-grade or not
     /* THE EIGHT (M8): one name per OA, two teams of four seeded by standing, one fight,
        no retreat, no surrender, real deaths. A pot every entrant pays into, split by the
@@ -673,8 +674,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function dividendLoadout(f, i) {
     /* REAL STUN WEAPONS, not cheap lethal ones. The first build handed both sides the cheapest
        rifles on the shelf and hoped — which is not non-lethality, it is a worse gun, and it was
-       still killing 0.36 people a match. These carry `nonlethal` (COMBAT.md §9.3): a fatal hit
-       puts the target down instead and nothing they do leaves a permanent wound. No sidearm,
+       still killing 0.36 people a match. These carry `nonlethal`: a hit lands stun stacks and
+       no wound, and ten stacks put a man down (§STUN). No sidearm,
        because a service pistol is a live round and would undo the whole format. */
     ITEMS.equip(f, { primary: DIVIDEND_ARMS[i % DIVIDEND_ARMS.length], armor: 'itm_flak_vest',
                      sidearm: null, mods: [], consumables: [] });
@@ -785,7 +786,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const sA = side(A, bodiesA), sB = side(B, bodiesB);
       const res = TAC.resolve(rngOf(corps, 'dividend' + season + A.id),
                               sA, sB,
-                              { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5] });
+                              { terrain: 'ruins', openingBand: 1, prep: [0.5, 0.5], exhibition: true });
 
       /* --- what the crowd saw, and what it cost ---
          SCORED ON POINTS, because it is an exhibition. The first version totalled dead and
@@ -801,10 +802,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          twenty matches scored 0-0. The same shape as the scoring bug it was hiding behind:
          a value read by a name nothing writes, failing silently into a plausible number. */
       const casA = (res.casualties[A.id] || {}), casB = (res.casualties[B.id] || {});
-      const points = c => (c.light || 0) + 2 * (c.down || 0) + 2 * (c.dead || 0) +
+      /* §STUN the lights are stun: the hits the crowd sees are the stacks landed (a point for every DIVIDEND_STACKS), and a
+         man stunned out is a man put down — he is `stable` when it is over, up again and walking off */
+      const stacksOn = sd => sd.units.reduce((t, u) => t + Math.min(u._stun || 0, TAC.CONST.STUN_AT), 0);
+      const points = (c, sd) => Math.floor(stacksOn(sd) / CONST.DIVIDEND_STACKS) + (c.light || 0) +
+                          2 * ((c.down || 0) + (c.stable || 0) + (c.dead || 0)) +
                           ((c.fled || 0) + (c.panicked || 0)) +
                           (c.calledWithdrawal ? CONST.DIVIDEND_WITHDRAWAL_POINTS : 0);
-      const scoreA = points(casB), scoreB = points(casA);   /* what each side did to the other */
+      const scoreA = points(casB, sB), scoreB = points(casA, sA);   /* what each side did to the other */
       const winner = scoreA === scoreB ? null : (scoreA > scoreB ? A : B);
       for (const f of bodiesA.concat(bodiesB))
         if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP,
@@ -908,11 +913,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
       units: team.map((e, i) => C.makeCombatant(e.f, { traitIndex: ROSTER.traitById, isCaptain: i === 0, day: 1 })) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
-    const stun = false;   /* §ALEAS the stun-grade ruling is cut: The Eight is fought to the end */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
     const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
-      { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], stunGrade: stun, toTheEnd: !stun });
+      { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], toTheEnd: true });
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
     const land = (S, team) => S.units.forEach((u, i) => {
@@ -941,7 +945,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       for (const e of (win === A ? B : A)) if (e.corp.rep) REP.act(e.corp.rep, 'lost_the_eight', {});
     }
     E.result = { held: true, season, teams: { A: A.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })), B: B.map(e => ({ corp: e.corp.id, fighter: e.f.id, name: e.f.name })) },
-                 winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy, stun,
+                 winner, pot, share: win ? Math.round(pot / win.length) : 0, deadBy, hurtBy,
                  watch: { corps: entrants.map(e => e.corp.id), sides: [sA, sB], res, teamsOf: { eightA: A.map(e => e.corp.id), eightB: B.map(e => e.corp.id) } } };
     return E.result;
   }

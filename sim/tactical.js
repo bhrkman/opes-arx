@@ -165,6 +165,11 @@
     FOLLOWUP_HIT: 0.6,               // [C] §GUNS each follow-up round of a burst hits at this share of the round before it
     FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
     HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
+    /* §STUN (ruled) a stun weapon lands stacks, not wounds: at STUN_AT a man is out of the fight, and taken if his side
+       leaves nobody standing. Stacks clear when the fight ends. */
+    STUN_AT: 10,                     // [C] stacks that put a man down
+    STUN_AREA_RADIUS: 2,             // [C] tiles about the mark an area stun weapon catches everyone within
+    STUN_FOCUS: 0.15,                // [C] what a man's stacks toward the line are worth to a stun shooter choosing his mark
     TARGET_SHARPNESS: 4,             // [C] §AI how surely a rival takes his best shot: 0 is an even split, high is always the best
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
                                      //     Not 1.0 on purpose: a dash that is as cautious as a
@@ -579,7 +584,7 @@
      same as a body carrying nothing, and the withdrawal check counts it for what it is. */
   function canHurt(c) {
     const w = c.weapon;
-    if (!w || (w.power || 0) <= 0) return false;
+    if (!w || ((w.power || 0) <= 0 && !stunOf(c))) return false;   /* §STUN stacks are a gun's harm too */
     const sideLeft = !!(c.sidearm && !c.onSidearm && (!c._sideRounds || c._sideRounds.mag + c._sideRounds.spare > 0));   /* §ROUNDS a sidearm with rounds in it */
     return C.primaryReady ? (C.primaryReady(c) || sideLeft) : true;
   }
@@ -1335,8 +1340,10 @@
     /* §GUNS `area` — "resolves against up to 3 enemies in band": the blast is resolved against up to two more in the
        same band near the mark, each on its own chance (it only chipped cover before) */
     if (C.hasQuirk(shooter, 'area')) {
-      const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && bandOf(dist(shooter, f)) === band && dist(f, target) <= CONST.AREA_RADIUS)
-        .sort((a, b) => dist(a, target) - dist(b, target)).slice(0, 2);
+      /* §STUN an area stun weapon catches everyone about the mark, each on his own chance; a blast catches two */
+      const stunArea = stunOf(shooter) > 0;
+      const near = E.units.filter(f => f !== target && (f.state === 'ok' || f.state === 'light') && (stunArea || bandOf(dist(shooter, f)) === band) && dist(f, target) <= (stunArea ? CONST.STUN_AREA_RADIUS : CONST.AREA_RADIUS))
+        .sort((a, b) => dist(a, target) - dist(b, target)).slice(0, stunArea ? 99 : 2);
       for (const f of near) {
         const pf = C.hitChance(shooter, f, band, { side: shooter._side, night: !!_night, dist: dist(shooter, f) }, false) * CONST.SHOT_HIT_MULT;
         if (rng() >= pf) continue;
@@ -1573,7 +1580,8 @@
        a squad that came in hurt has less to give: it calls it sooner by as much. */
     let came = 0, left = 0, full = 0;
     for (const u of S.units) { const max = u.hpMax || 1, start = u._hpStart != null ? u._hpStart : max;
-      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start)); }
+      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start)) * Math.max(0, 1 - (u._stun || 0) / CONST.STUN_AT); }
+    /* §STUN (ruled) a man's stacks are health spent to the call: one six stacks in is six-tenths gone, as a wound would be */
     const lost = came > 0 ? 1 - left / came : 1;
     /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
        holds a bad order longer */
@@ -1634,6 +1642,21 @@
   function finished(S) { return stillFighting(S) === 0; }
 
   /** Canon severity bands, canon injury table; only the bookkeeping is local. */
+  /* §STUN the stacks a hit from this body lands: a stun primary's, never a sidearm's */
+  function stunOf(by) { const w = by && by.weapon; return w && !by.onSidearm && (w.stun || 0) > 0 && C.hasQuirk(by, 'nonlethal') ? w.stun : 0; }
+  function landStun(rng, t, n, tel, log, by, side) {
+    t._stun = (t._stun || 0) + n;
+    tel.stunStacks = (tel.stunStacks || 0) + n;
+    if (t._stun < CONST.STUN_AT) {
+      comp(rng, t, C.CONST.COMP.graze);
+      if (log) log.push({ t: tel.turn, type: 'stun', by: by.id, at: t.id, n: n, stacks: t._stun, of: CONST.STUN_AT, w: (by.weapon || {}).name, react: !!by._reacting });
+      return;
+    }
+    t.state = 'down'; t._stunnedDown = true; t._killedBy = by;
+    tel.down++; tel.stunned = (tel.stunned || 0) + 1;
+    if (side) moraleShock(rng, side, t, 'down');
+    if (log) log.push({ t: tel.turn, type: 'stunned', by: by.id, at: t.id, n: n, w: (by.weapon || {}).name, react: !!by._reacting });
+  }
   function applyHit(rng, t, sev, tel, log, by, side) {
     const K = C.CONST.COMP;
     /* THE WOUND POOL DECIDES. It was built alongside the bands first and proved bit-identical
@@ -1648,6 +1671,9 @@
        read in twenty-one places across three modules, and nothing downstream of the grid needs
        to know the model changed. */
     if (t.hp == null) t.hp = C.hpFor(t.ref || t);
+    /* §STUN a stun round lands its stacks and does no harm */
+    const stacks = stunOf(by);
+    if (stacks > 0) { landStun(rng, t, stacks, tel, log, by, side); return; }
     /* §ARMOUR (fixed) A GRAZE THE ARMOUR TOOK IS NOTHING. Every hit cost at least a point of the pool and nearly half cost
        exactly one, so a light vest could not lower them and the armour most of the field wore did nothing at all: a
        round that met armour and only grazed is stopped by it */
@@ -1689,23 +1715,7 @@
       return;
     }
     /* §WOUNDS (ruled) THE POOL IS OUT. A real gun that empties it has killed them: a bloodsport has no "down" for a live
-       round. Only a stun round — a stun gun, or the Aleas' stun grade for a match — puts a body on the ground, and it is
-       up again when the fight is over. (The pool once decided only whether a body was DOWN, and a roll at the fight's
-       end decided whether the down died: most did not, and walked on.) */
-    if (C.hasQuirk(by, 'nonlethal') || STUN_GRADE) {
-      if (sev === 'killed') { sev = 'critical'; tel.stunned = (tel.stunned || 0) + 1; }
-      t._stunnedDown = true;
-      t.hp = Math.max(t.hp, -C.CONST.HP_OVERKILL + 1);   /* stunned, not overkilled */
-      t.state = 'down';
-      t._killedBy = by;
-      t._downSev = sev;
-      t.injury = C.rollInjury(rng, t, sev);
-      tel.down++;
-      if (side) moraleShock(rng, side, t, 'down');
-      if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, dmg: dmg,
-                          react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
-      return;
-    }
+       round. (A stun round never reaches here: it lands stacks — §STUN.) */
     /* §CONSUMABLES (ruled) A STASIS INJECTOR: the round that would have killed its carrier leaves him down at a breath,
        out of the fight and up when it is over at the lowest band — taken, if his side loses the field */
     if (t.carried && t.carried.indexOf('itm_stasis_injector') >= 0) {
@@ -1749,7 +1759,6 @@
    * step exists to correct, so it takes N sides: `E` becomes "everyone who is not us", chosen
    * by who is closest and most dangerous rather than by being the other array.
    */
-  let STUN_GRADE = false;   /* the Aleas' edict for the year, set per fight from ctx */
   /* §DEPLOY THE BOARD IS TURNED TO THE FIGHT. Bearings are compass directions off the world map and the board is
      wider than it is deep, so two squads meeting north and south were set down across its short side and a long
      opening could not be laid out at all. The whole compass is turned so the first two sides' line of approach runs
@@ -1776,7 +1785,6 @@
     else { sides = [A, B]; }
     ctx = ctx || {};
     ctx = turnBoard(sides, ctx);
-    STUN_GRADE = !!ctx.stunGrade;
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
     const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */
     /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
@@ -2291,7 +2299,7 @@
              so it costs the action, strips cover for the turn, and draws overwatch — the same
              ruling that stopped a death-or-glory squad saving more of its wounded than a
              careful one, because treating used to be free. */
-          const hurt = S.units.filter(m => m.state === 'down' && !m._beingTreated);
+          const hurt = S.units.filter(m => m.state === 'down' && !m._beingTreated && !m._stunnedDown);   /* §STUN a stunned man has nothing to treat */
           if (u.ap > 0 && hurt.length && !u.suppressed) {
             const patient = hurt.reduce((a2, b2) => dist(u, a2) < dist(u, b2) ? a2 : b2);
             const reach = dist(u, patient) <= CONST.TREAT_REACH;
@@ -2559,7 +2567,9 @@
           const pickRows = tap ? [] : null;
           for (const f of seen) {
             const raw = shotAt(u, f);
-            const p = raw + (f.state === 'light' ? CONST.FINISH_WOUNDED : 0);
+            /* §STUN a stun shooter works on the man nearest the line, as a rifleman finishes the hurt one */
+            const p = raw + (stunOf(u) > 0 ? CONST.STUN_FOCUS * Math.min(1, (f._stun || 0) / CONST.STUN_AT)
+                                          : (f.state === 'light' ? CONST.FINISH_WOUNDED : 0));
             if (pickRows) pickRows.push({ id: f.id, raw: raw, light: f.state === 'light' });
             if (p > pNow) { pNow = p; target = f; }
           }
@@ -2950,7 +2960,7 @@
          where they fell. Without this the loser walked away hurt from a death match. */
       if (ctx.toTheEnd) return !live;
       return (!live && !away) || gone / S.units.length >= C.CONST.ROUT_SQUAD_FRACTION;
-    });
+    }, { exhibition: !!ctx.exhibition });
 
     /* §6 — hand the cells back to the people who carry them, and roll up the energy counters.
        The grid never called this: charge was spent correctly during a fight and then thrown

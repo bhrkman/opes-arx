@@ -630,6 +630,43 @@ function worldSeeding() {
 }
 
 /* =========================================================================
+   STUN — stun weapons land stacks, not wounds (ruled).
+   ========================================================================= */
+function stunRules() {
+  const T = TACMOD, AT = T.CONST.STUN_AT;
+  const sideOf = (seed, gun, tag) => {
+    const sq = gen.generateSquad(makeRng('stun' + seed), 6, { corpId: tag, poolMix: [['nattie', 1]] }).bodies.filter(f => !f.mirror_of).slice(0, 6);
+    sq.forEach(f => { f.status = 'active'; f.condition = f.condition || { health: 100, fatigue: 0, morale: 60, injuries: [], stress: 0 };
+      ITEMS.equip(f, { primary: gun, armor: 'itm_plate_carrier', sidearm: null, mods: [], consumables: [] }); });
+    return { tag, corpId: tag, policy: 'standard', policyName: 'standard', hasMedkit: true,
+             units: sq.map((f, i) => C.makeCombatant(f, { traitIndex: gen.traitById, isCaptain: i === 0, day: 1 })) };
+  };
+  let wounds = 0, stacks = 0, outs = 0, earlyOut = 0, taken = 0, takenNotStunned = 0, cleanCalls = 0, shown = 0;
+  for (let k = 0; k < 40; k++) for (const exhibition of [false, true]) {
+    const X = sideOf(k, 'itm_tether_stunner', 'X'), Y = sideOf(k + 500, 'itm_pattern_auto', 'Y');
+    const r = T.resolve(makeRng('stunfight' + k), X, Y, { terrain: ['open_plain', 'broken_ground', 'urban_ruin', 'forest'][k % 4], openingBand: k % 3, prep: [0.5, 0.5], exhibition });
+    const stunIds = new Set(X.units.map(u => u.id));
+    for (const e of r.log || []) {
+      if (!stunIds.has(e.by)) continue;
+      if (e.type === 'graze' || e.type === 'light' || e.type === 'killed') wounds++;
+      if (e.type === 'stun') stacks++;
+      if (e.type === 'stunned') outs++;
+    }
+    for (const u of Y.units) {
+      if (u._stunnedDown && (u._stun || 0) < AT) earlyOut++;
+      if (u.state === 'captured') { if (exhibition) shown++; else { taken++; if (!u._stunnedDown) takenNotStunned++; } }
+    }
+    /* a squad that called it with every man's health whole was called by stacks */
+    if (Y.withdrawing && Y.units.every(u => u.hp >= (u._hpStart || u.hpMax))) cleanCalls++;
+  }
+  ok('a stun round lands stacks and never a wound', stacks > 0 && wounds === 0, stacks + ' stack hits, ' + wounds + ' wounds');
+  ok('ten stacks put a man down, and nothing short of them does', outs > 0 && earlyOut === 0, outs + ' stunned out, ' + earlyOut + ' short of the line');
+  ok('a man\'s stacks count against his squad\'s call as health spent', cleanCalls > 0, cleanCalls + ' calls with no health lost');
+  ok('the stunned a side leaves on the field are taken, and only they are', taken > 0 && takenNotStunned === 0, taken + ' taken, ' + takenNotStunned + ' not stunned');
+  ok('nobody is taken at an exhibition', shown === 0, shown + ' taken');
+}
+
+/* =========================================================================
    SEAT RULES — nothing is decided for a seat a person holds (ruled).
    ========================================================================= */
 function seatRules() {
@@ -2868,9 +2905,10 @@ function contestRules() {
   ok('the same ground, seed and drop are the same contest', ev(sA) === ev(sB));
 }
 
-/** a corp whose people carry stun carbines of their own — the only way a body is taken alive (ruled) */
+/** a corp whose people carry stun arms of their own — the only way a body is taken alive (ruled). §STUN a tier-four
+    stunner and real armour: a squad of padded jackets and stun carbines is a cheap build, and loses every fight it is in */
 function armToTake(c) {
-  for (const f of ((c && (c.roster || c.allBodies)) || [])) f.ownKit = { primary: 'itm_stun_carbine', armor: 'itm_padded_jacket', sidearm: null };
+  for (const f of ((c && (c.roster || c.allBodies)) || [])) f.ownKit = { primary: 'itm_tether_stunner', armor: 'itm_plate_carrier', sidearm: null };
 }
 function divideRules() {
   /* §GROUND THE RULES OF THE CONTEST, HELD ON REAL DIVIDES. contestRules holds the contest on squads alone; this holds
@@ -3818,6 +3856,7 @@ function runRegression() {
   phase('structure', structureRules);
   phase('groundRules', groundRules);
   phase('contestRules', contestRules);
+  phase('stunRules', stunRules);
   phase('divideRules', divideRules);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
