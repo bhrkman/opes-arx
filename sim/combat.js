@@ -175,8 +175,11 @@ const CONST = {
      did not have. It also pulls on the loss rate, which is sitting at 42.6% of everyone who
      drops against a ruling of about a quarter; the two are the same problem and are tuned
      together rather than one at a time. */
-  HP_BASE: 7,                     // [H] a body's wound pool before grit
-  HP_PER_GRIT: 0.035,              // [H] what being hard to put down is worth
+  /* §WOUNDS (ruled) THE POOL IS DEEPER: ×1.75. A man died on his third hit or so and a fight was over in under four
+     turns — a squad called it at a sixth of its health lost, but by then somebody had usually emptied. Measured over
+     24 Divides each: the old pool 38.9% fatality and 3.9-turn fights, ×1.5 28.8% and 5.0, ×2 22.2% and 5.9. */
+  HP_BASE: 12.25,                 // [H] a body's wound pool before grit
+  HP_PER_GRIT: 0.06125,            // [H] what being hard to put down is worth
   DMG_PER_POINT: 6,               // [H] severity points above a graze per point of damage
   DMG_MIN: 1,                     // [S] a hit that lands does something
   POWER_REF: 5,                   // [C] §GUNS the power whose round does the severity roll's damage as it stands; others scale from it

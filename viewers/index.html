@@ -17151,8 +17151,11 @@ const CONST = {
      did not have. It also pulls on the loss rate, which is sitting at 42.6% of everyone who
      drops against a ruling of about a quarter; the two are the same problem and are tuned
      together rather than one at a time. */
-  HP_BASE: 7,                     // [H] a body's wound pool before grit
-  HP_PER_GRIT: 0.035,              // [H] what being hard to put down is worth
+  /* §WOUNDS (ruled) THE POOL IS DEEPER: ×1.75. A man died on his third hit or so and a fight was over in under four
+     turns — a squad called it at a sixth of its health lost, but by then somebody had usually emptied. Measured over
+     24 Divides each: the old pool 38.9% fatality and 3.9-turn fights, ×1.5 28.8% and 5.0, ×2 22.2% and 5.9. */
+  HP_BASE: 12.25,                 // [H] a body's wound pool before grit
+  HP_PER_GRIT: 0.06125,            // [H] what being hard to put down is worth
   DMG_PER_POINT: 6,               // [H] severity points above a graze per point of damage
   DMG_MIN: 1,                     // [S] a hit that lands does something
   POWER_REF: 5,                   // [C] §GUNS the power whose round does the severity roll's damage as it stands; others scale from it
@@ -18426,6 +18429,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     FOLLOWUP_HIT: 0.6,               // [C] §GUNS each follow-up round of a burst hits at this share of the round before it
     FLANK_LOOK: 2,                   // [C] §AI how many of the nearest covered rivals a fighter looks for a way round
     HOPELESS_SHOT: 0.06,             // [C] §AI a shot this unlikely is not taken: the fighter moves, or watches, instead
+    TARGET_SHARPNESS: 4,             // [C] §AI how surely a rival takes his best shot: 0 is an even split, high is always the best
     DASH_THREAT_SHARE: 0.45,         // [C] how much of the ordinary threat weight a dash feels.
                                      //     Not 1.0 on purpose: a dash that is as cautious as a
                                      //     walk is not a dash, and the mechanism exists to get
@@ -20518,11 +20522,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              picks him out of everyone of his it can see — the threat summed every enemy's shot as if all six would fire at
              this one man, against a gain that counted only his own one shot, so closing in never paid. And a rival on
              overwatch fires again at anyone who moves into his view — unless he is pinned, when he is not watching. */
-          const shareOf = new Map();
-          for (const f of foes) { let others = 0; for (const m of S.units) if (m !== u && (m.state === 'ok' || m.state === 'light') && hasLOS(map, f, m)) others++; shareOf.set(f, 1 / (1 + others)); }
+          /* §AI (fixed) AND THE CHANCE HE PICKS HIM FOLLOWS HOW GOOD A SHOT HE IS. The share was even — one in however
+             many he could see — but a rival takes his best shot, and the best shot is the man in the open: a fighter who
+             stepped out of cover beside five squadmates behind it counted a sixth of every rival's fire when he was every
+             rival's mark. Measured, a quarter of moves took ground clearly worse than the safest on offer for that reason,
+             and 65% of aimed shots were at men with no cover facing the shooter. Each rival's choice is weighed by how
+             good a shot every man he can see offers (sharpened: even exposure still splits evenly). */
+          const otherPull = new Map();
+          for (const f of foes) { let t = 0; for (const m of S.units) if (m !== u && (m.state === 'ok' || m.state === 'light') && hasLOS(map, f, m)) t += Math.pow(incoming(f, m, m, map), CONST.TARGET_SHARPNESS); otherPull.set(f, t); }
           const threatAt = (spot, moving, dashW) => { let t = 0;
-            for (const f of foes) { if (!hasLOS(map, f, spot)) continue; const w = shareOf.get(f) || 1;
-              t += incoming(f, u, spot, map) * w * (moving && f.overwatch && !f.suppressed ? 2 : 1); }
+            for (const f of foes) { if (!hasLOS(map, f, spot)) continue;
+              const p = incoming(f, u, spot, map), mine = Math.pow(p, CONST.TARGET_SHARPNESS), rest = otherPull.get(f) || 0;
+              const w = mine + rest > 0 ? mine / (mine + rest) : 1;
+              t += p * w * (moving && f.overwatch && !f.suppressed ? 2 : 1); }
             return t * (dashW || 1); };
           /* Between shots: a half-rate weapon spends this turn cycling the action. They can
              still move and still watch — they simply have nothing to fire. */

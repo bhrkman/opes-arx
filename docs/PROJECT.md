@@ -202,6 +202,10 @@ lean one pleases.
   side his number in the fight happened to point to.
 - A fight opens at its band's distance whichever way the squads came in: the board is turned to the line they met on,
   and every angle between them is kept.
+- A man's health is deeper than it was (×1.75): it takes several solid hits to kill him, and a fight runs five or six
+  turns rather than three or four.
+- A fighter weighing where to stand counts each rival's fire at him by how good a shot he offers against the others
+  that rival can see: the man in the open is the mark, not one target in six.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
