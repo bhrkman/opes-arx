@@ -863,6 +863,8 @@
     get catalog() { return CATALOG; },
     get quirks() { return QUIRKS; },
     doctrineForCorp(corpId) { return DOCTRINES.find(d => d.corp_id === corpId) || api.doctrine('std_issue'); },
+    /* §FLEET (ruled: for now every seat is the same OA) an aligned house keeps no doctrine of its own */
+    doctrineFor(profile) { return profile && profile.aligned ? api.doctrine('std_issue') : api.doctrineForCorp(profile && profile.id); },
     get doctrines() { return DOCTRINES; },
     tasteScore, shotOf, coverageShare,
     doctrine(id) { return DOCTRINES.find(d => d.id === id) || null; }

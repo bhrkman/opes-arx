@@ -220,6 +220,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        90k for a week, against a home crowd that read Mutinous at 29; when the crowd was put
        where "liked at home" reads, the grant came back down.) The kit pass to come will eat
        into that first year; it is measured then, not guessed now. */
+    FLEET_ALIGNED: true,      // [R] §FLEET every seat the same OA for now (ruled)
     LEAN_GRANT: 97500,        // [C] an OA nobody has heard of is not underwritten like one (×1.3 at the economic pass)
                               //     that has been paying out for a century
     GRANT_PER_DIFFICULTY: 0.25, // [C] an established OA's grant is LEAN_GRANT × (2 − this × its
@@ -460,11 +461,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return p;
   }
 
+  /* §FLEET (ruled: every seat the same OA under its own banner, for now — the houses' own characters come back in a
+     later phase, on a balance that can carry them) each house opens as a founded OA: the fleet's average in every number,
+     its own name, tag, motto and colours, and nothing of its own besides */
+  function alignFleet(profiles) {
+    if (!CONST.FLEET_ALIGNED || !profiles) return profiles;
+    const raw = profiles.filter(p => !p.aligned);
+    return profiles.map(p => p.aligned ? p : Object.assign(founderProfile(raw.length ? raw : profiles, p.name, p.id),
+      { tag: p.tag, motto: p.motto, colors: p.colors, rigidity: 50, aligned: true }));
+  }
   function openFleet(rng, profiles, opts) {
     opts = opts || {};
+    profiles = alignFleet(profiles);
     const corps = {};
     for (const profile of profiles) {
-      const doc = ITEMS.doctrineForCorp(profile.id);
+      const doc = ITEMS.doctrineFor(profile);
       /* §FOUNDING A OA FOUNDED BY A MANAGER STARTS WITH NOTHING BUT MONEY AND A FEW OLD
          HANDS. The eight are old OAs and open like old OAs — twenty-one under contract,
          an armoury of thirty-nine lines, six hundred thousand between treasury and grant. A
@@ -3044,6 +3055,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return R;
   }
   function beginSeason(rng, corps, profiles, opts) {
+    profiles = alignFleet(profiles);
     /* §AUTHORITY a board question left unanswered when the year turns was silence, and silence costs */
     for (const id in corps) {
       const c = corps[id];
@@ -3179,7 +3191,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §FACILITIES a build ordered last year's end stands as this one opens; the engine starts its own */
     for (const id of state.ids) {
       const c = state.corps[id]; FAC.grounds(c); FAC.tick(c, state.season, 1);
-      c._doctrineCap = (ITEMS.doctrineForCorp(id) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
+      c._doctrineCap = (ITEMS.doctrineFor(c.profile) || {}).armoury_max_tier || 5;   /* the Armoury rises no higher than the doctrine */
       if (!isHuman(state, id)) aiBuild(c, state);
     }
     for (const id of state.ids) { applySpin(state.corps[id]); if (!isHuman(state, id)) aiStaff(state, id, { renew: true }); }
@@ -5268,7 +5280,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      captainsOf, promisable, talkNow, talkPreview, TALKS,
      FAC, buildFacility, mercKit, STAFF, shelfPrice, backroomFor, staffPoolOf, appoint, hireSpecialist, poach, letStaffGo, renewStaff, sergeantNow, sergeantPreview, operate, setMole, woundBand,
            renewalsFor, renewalTerm, answerRenewal, signNow, lotPeek,
-           openFleet, founderProfile, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
+           openFleet, founderProfile, alignFleet, grantFor, offseason, selectDrop, muster, grieve, renewRoster,
            renewalSalary, runSeason, runCareer, runMercMarket,
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,

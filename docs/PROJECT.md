@@ -182,6 +182,10 @@ lean one pleases.
   more), so a fighter needs resupply about when a squad has fought most of its Divide. A squad with nothing left to
   shoot with leaves the fight. Carrying more rounds for more
   bulk (an extended magazine, a satchel) is for the quartermaster to weigh when it is rebuilt.
+- For now every seat is the same OA under its own banner (ruled): each house opens as a founded OA — the fleet's
+  average in every number, the standard doctrine, its own name, tag, motto and colours, nothing of its own besides
+  (season.js alignFleet, FLEET_ALIGNED). The houses' own characters come back in a later phase, on a balance that can
+  carry them.
 - The economy is balanced as eight players under one set of rules (ruled). An OA's free money is one reckoning: cash
   in hand and what the rest of the year brings (the month's gate, the grant), less what it will certainly take (the
   months' retainers, staff and upkeep, the entry, the drop's purses, and the families of the share of the drop the

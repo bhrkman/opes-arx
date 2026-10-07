@@ -319,7 +319,7 @@
   let _manager = null;
   function equipCorp(corp, profile, loadoutOverride, planet, season) {
     if (loadoutOverride) { ITEMS.equipForce(corp.allBodies, loadoutOverride); return corp; }
-    const doc = ITEMS.doctrineForCorp(profile.id);
+    const doc = ITEMS.doctrineFor(profile);
     const total = corp.allBodies.length;
     /* What the ledger says this corp can actually put into kit this season. */
     /* SEASONS.md — ONE treasury. This used to call LED.open(profile) every Divide, so the

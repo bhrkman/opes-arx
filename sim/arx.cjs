@@ -451,8 +451,9 @@ function theSeam() {
   const meanSpread = regionSpread.reduce((a, b) => a + b, 0) / regionSpread.length;
   ok('the draft deals one squad a zone and one squad a region for each OA', oneAZone && oneARegion);
   ok('the fleet does not all pile into one region', meanSpread >= 4, meanSpread.toFixed(1) + ' distinct regions landed in a season');
+  /* (the houses' own characters are parked while the fleet is aligned — §FLEET, ruled — so only that it runs is asked) */
   ok('media day is fronted differently across the fleet',
-     performed > 0 && fronts.size >= 2,
+     performed > 0 && (SEASONMOD.CONST.FLEET_ALIGNED || fronts.size >= 2),
      performed + ' of ' + corpSeasons + ' corp-seasons performed, ' + fronts.size + ' kinds of front');
 
   /* --- a survey has to buy VISION, or it is still a flat number nobody can point at --- */
@@ -825,7 +826,7 @@ function sponsorship() {
     if (best) attracted[best.house] = (attracted[best.house] || 0) + 1;
   }
   ok('different corps are drawn to different sponsors',
-     Object.keys(attracted).length >= 3,
+     Object.keys(attracted).length >= (SEASONMOD.CONST.FLEET_ALIGNED ? 1 : 3),   /* aligned fleet: one taste, one draw (§FLEET) */
      Object.keys(attracted).length + ' distinct OAs lead the field');
 
   /* --- play six seasons and read what the new board produces --- */
