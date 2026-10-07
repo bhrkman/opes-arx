@@ -188,6 +188,9 @@ lean one pleases.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
+- One system at a time (ruled): the system being worked is brought to a good state on its own terms, and the others are
+  let be unstable meanwhile — a number another system moves is not a reason to stop, wait, or tune across. Nobody is
+  playing this yet; nothing has to keep working while something else is fixed.
 - The Divide's ground is regions of twelve to twenty-four zones cut from a relief (sim/ground.js); a step costs the terrain's going scaled to how near the zones stand. The
   planet is the dossier — what it is made of and worth, its hazards, its light — and its
   objectives are the ground's sites. A zone is where one squad stands, but the final zone holds whoever is left, friends together; a region has one terrain and one pace;
