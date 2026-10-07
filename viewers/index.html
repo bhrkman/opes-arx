@@ -18551,7 +18551,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
        falls back by bounds — half moving while the other half fires to cover them.
        PANIC is rare and individual: one fighter's nerve goes and they run. */
-    WITHDRAW_AT: 0.35,               // [C] share of the squad lost before the order is given
+    WITHDRAW_AT: 0.175,              // [C] share of the squad's health lost before the order is given (the standard stance's)
     PANIC_RESOLVE_DIV: 260,           // [C] high resolve almost never breaks
     PANIC_FLOOR: 0.04,               // [C] anyone can break, rarely
     BOUND_SHARE: 0.5,                // [S] how much of a withdrawing squad moves each turn
@@ -19833,6 +19833,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     }
     return true;
   }
+  /* §RETREAT (fixed) A SIDE FALLS BACK THE WAY IT CAME. It fell back to the map's left edge (side 0) or right edge
+     (every other side) whatever edge it had come on at — and in the Divide every side comes on at its own bearing, so a
+     side on the right edge with index 0 retreated across the field through the people it was retreating from. Each man
+     now makes for the point on the perimeter he came in at (his squad's bearing, or his side's). */
+  function homePoint(u, si, map, bearings) {
+    const b = u._bearing != null ? u._bearing : (bearings && bearings[si] != null ? bearings[si] : (si === 0 ? Math.PI : 0));
+    const cx = (map.w - 1) / 2, cy = (map.h - 1) / 2;
+    return { x: cx + Math.cos(b) * cx, y: cy + Math.sin(b) * cy };
+  }
+  function stepHome(u, home, sides, map, steps) {
+    let moved = 0;
+    for (let s = 0; s < steps; s++) {
+      const occ = occupancy(sides), here = Math.hypot(u.x - home.x, u.y - home.y);
+      let best = null, bd = here;
+      for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) {
+        const nx = u.x + ox, ny = u.y + oy;
+        if (nx < 0 || ny < 0 || nx >= map.w || ny >= map.h || blocked(map, nx, ny) || !freeTile(occ, u, nx, ny)) continue;
+        const d = Math.hypot(nx - home.x, ny - home.y);
+        if (d < bd - 1e-9) { bd = d; best = [nx, ny]; }
+      }
+      if (!best) break;
+      u.x = best[0]; u.y = best[1]; moved++;
+    }
+    return moved;
+  }
+  /* off the field at the edge he came in by: on the border, on his own side of the map */
+  function atHome(u, home, map) {
+    const E = CONST.EXIT_COLS, onEdge = u.x <= E || u.y <= E || u.x >= map.w - 1 - E || u.y >= map.h - 1 - E;
+    return onEdge && Math.hypot(u.x - home.x, u.y - home.y) <= Math.min(map.w, map.h) / 2;
+  }
   const stillFighting = (S) => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
   /** Nobody left on the field: dead, down, panicked away or withdrawn off the edge. */
   function finished(S) { return stillFighting(S) === 0; }
@@ -20352,21 +20382,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const foes = fog ? knownFoes(S, allFoes) : allFoes;
           if (fog && !foes.length) tel.blindBodyTurns++;
 
-          const homeX = si === 0 ? 0 : map.w - 1;
+          const home = homePoint(u, si, map, ctx.bearings && (sides.length > 2 || ctx.forceBearings) ? ctx.bearings : null);
           /* Panicked: no shooting, no thinking, straight for the edge and off the field. */
           if (u.state === 'panicked') {
             /* NOWHERE TO RUN. In a fight with no way out a panicking fighter cannot leave the
                field: they gather themselves and fight on, badly, rather than walking off it. */
             if (ctx.toTheEnd) { u.state = 'ok'; u.comp = Math.max(u.comp, C.CONST.COMP_BANDS.rattled + 1); }
             else {
-            const dir = si === 0 ? -1 : 1;
-            for (let s = 0; s < CONST.MOVE_TILES + 2; s++) {
-              const nx = u.x + dir;
-              if (blocked(map, nx, u.y) || !freeTile(occupancy(sides), u, nx, u.y)) break;
-              u.x = nx;
-            }
+            stepHome(u, home, sides, map, CONST.MOVE_TILES + 2);
             triggerOverwatch(rng, u, sides, map, tel, log);
-            if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'fled'; tel.fled++; }
+            if (atHome(u, home, map)) { u.state = 'fled'; tel.fled++; }
             continue;
             }
           }
@@ -20389,32 +20414,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                does not belong in the tree looking like a feature. */
             const bounding = (idx % 2) === (tel.turn % 2);
             if (bounding) {
-              const dir = si === 0 ? -1 : 1;
-              /* GOING BACKWARDS STILL MEANS GOING ROUND THINGS. This stepped strictly along x
-                 and broke at the first obstruction, with no lateral option at all — so a
-                 fighter with a wall or a squadmate directly behind them was stuck on that tile
-                 for the rest of the fight, and on a map that is 11% cover with twelve bodies on
-                 it that is most of them. Measured: 0.93 fighters a fight ever reached their own
-                 edge, 6.1 of 12 were still standing when the clock stopped it, and 31 of 80
-                 fights ran to the turn cap.
-                 A step aside costs the same as a step back, which is why it is tried in the
-                 same budget rather than given its own. */
-              for (let s = 0; s < CONST.MOVE_TILES; s++) {
-                const occ = occupancy(sides);
-                const nx = u.x + dir;
-                let moved = false;
-                for (const dy of [0, -1, 1]) {
-                  const ny = u.y + dy;
-                  if (ny < 0 || ny >= map.h) continue;
-                  if (blocked(map, nx, ny) || !freeTile(occ, u, nx, ny)) continue;
-                  u.x = nx; u.y = ny; tel.moves++; moved = true; break;
-                }
-                if (!moved) break;
-              }
+              /* GOING BACKWARDS STILL MEANS GOING ROUND THINGS: toward home by whichever free tile closes on it, a step aside
+                 included (a strict step along x was stuck behind the first wall or squadmate for the rest of the fight) */
+              const moved = stepHome(u, home, sides, map, CONST.MOVE_TILES); tel.moves += moved;
               if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
               triggerOverwatch(rng, u, sides, map, tel, log);
               if (u.state !== 'ok' && u.state !== 'light') continue;
-              if (Math.abs(u.x - homeX) <= CONST.EXIT_COLS) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
+              if (atHome(u, home, map)) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
               if (fog) ensureSpot(S);
               if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
               u.ap--;
@@ -22471,7 +22477,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   const CONST = {
     /* [C] §STANCE share of a side down before it pulls out, by stance (standard is the grid's own 35%) */
-    STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
+    /* §FIGHTS (ruled: fights end sooner) halved at the fatality pass: a standard squad breaks off a sixth down */
+    STANCE_WITHDRAW_AT: { preservationist: 0.05, measured: 0.10, standard: 0.175, unyielding: 0.25, death_or_glory: 0.325 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
     SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
     SHOWDOWN_HORIZON: 12,               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full

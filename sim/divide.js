@@ -120,7 +120,8 @@
 
   const CONST = {
     /* [C] §STANCE share of a side down before it pulls out, by stance (standard is the grid's own 35%) */
-    STANCE_WITHDRAW_AT: { preservationist: 0.10, measured: 0.20, standard: 0.35, unyielding: 0.50, death_or_glory: 0.65 },
+    /* §FIGHTS (ruled: fights end sooner) halved at the fatality pass: a standard squad breaks off a sixth down */
+    STANCE_WITHDRAW_AT: { preservationist: 0.05, measured: 0.10, standard: 0.175, unyielding: 0.25, death_or_glory: 0.325 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
     SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
     SHOWDOWN_HORIZON: 12,               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full

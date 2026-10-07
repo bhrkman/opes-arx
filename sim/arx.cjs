@@ -96,39 +96,39 @@ function corpusOf(n) { return corpus().slice(0, Math.min(n, CORPUS_N)); }
 const BASELINE_DEFAULT = {
   "medium band, mixed policies": {
     "result": "disengage_A",
-    "exchanges": 10,
-    "band": "medium",
-    "aDead": 2,
-    "aDown": 0,
-    "bDead": 1,
-    "bDown": 0,
-    "shots": 85,
-    "hits": 26,
-    "downs": 3
-  },
-  "short band, both aggressive": {
-    "result": "disengage_A",
     "exchanges": 5,
     "band": "medium",
-    "aDead": 2,
+    "aDead": 1,
+    "aDown": 0,
+    "bDead": 0,
+    "bDown": 0,
+    "shots": 62,
+    "hits": 24,
+    "downs": 1
+  },
+  "short band, both aggressive": {
+    "result": "disengage_both",
+    "exchanges": 2,
+    "band": "medium",
+    "aDead": 0,
     "aDown": 0,
     "bDead": 2,
     "bDown": 0,
-    "shots": 47,
-    "hits": 20,
-    "downs": 4
+    "shots": 22,
+    "hits": 9,
+    "downs": 2
   },
   "long band, both cautious": {
-    "result": "disengage_A",
-    "exchanges": 8,
+    "result": "disengage_both",
+    "exchanges": 3,
     "band": "medium",
-    "aDead": 3,
+    "aDead": 1,
     "aDown": 0,
     "bDead": 1,
     "bDown": 0,
-    "shots": 50,
-    "hits": 20,
-    "downs": 4
+    "shots": 27,
+    "hits": 16,
+    "downs": 2
   },
   "forest, standard v unyielding": {
     "result": "disengage_B",
@@ -136,22 +136,22 @@ const BASELINE_DEFAULT = {
     "band": "medium",
     "aDead": 0,
     "aDown": 0,
-    "bDead": 4,
+    "bDead": 3,
     "bDown": 0,
-    "shots": 44,
-    "hits": 18,
-    "downs": 4
+    "shots": 36,
+    "hits": 14,
+    "downs": 3
   },
   "entrenched, cautious v hunter": {
-    "result": "disengage_B",
-    "exchanges": 4,
+    "result": "disengage_both",
+    "exchanges": 2,
     "band": "medium",
     "aDead": 0,
     "aDown": 0,
     "bDead": 2,
     "bDown": 0,
-    "shots": 32,
-    "hits": 15,
+    "shots": 21,
+    "hits": 13,
     "downs": 2
   }
 };
@@ -2974,6 +2974,7 @@ function divideRules() {
     /* 10 a ransomed captive leaves the captor's squad and is never then released (unless taken again after) */
     const lastRansom = {};
     for (const c of (r.captiveLog || [])) {
+      A.captives = (A.captives || 0) + 1;
       if (c.out === 'ransomed') { A.ransomed++; lastRansom[c.fighter] = c.day != null ? c.day : 0; continue; }
       if (c.out === 'released' && lastRansom[c.fighter] != null && !cst.events.some(e => e.t === 'captive' && e.body === c.fighter && e.day >= lastRansom[c.fighter])) A.ransomBack.push(seed + ' ' + c.name + ' ransomed then released');
     }
@@ -3045,7 +3046,8 @@ function divideRules() {
   ok('an OA with a reserve lands some of it', A.landed > 0 && A.landedSome * 3 >= A.withReserve,
      A.landedSome + ' of ' + A.withReserve + ' OAs with a reserve landed some of it, ' + A.landed + ' fighters over three Divides');
   ok('a squad carrying long rifles counts them', A.longCarriers > 0 && A.longBad === 0, A.longBad + ' of ' + A.longCarriers + ' squads with long rifles counted none');
-  ok('a ransomed captive leaves his captor\'s hold and is never then released', A.ransomed > 0 && A.ransomBack.length === 0, A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
+  /* (captives are rare (ruled), so three Divides may ransom nobody: the rule is that a ransomed man is never then released) */
+  ok('a ransomed captive leaves his captor\'s hold and is never then released', A.ransomBack.length === 0, (A.captives || 0) + ' captive outcomes, ' + A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
   /* (captives are rare (ruled), so three Divides may refuse nobody: the rule is that a refused man is never then bought) */
   ok('a ransom refused sends him back to his captor, who may end him, and he is never then bought (ruled)', A.refusedBad.length === 0,
      A.refused + ' refused, ' + A.refusedKilled + ' then killed; ' + A.refusedBad.slice(0, 3).join(' | '));
