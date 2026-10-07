@@ -168,6 +168,7 @@
     /* §STUN (ruled) a stun weapon lands stacks, not wounds: at STUN_AT a man is out of the fight, and taken if his side
        leaves nobody standing. Stacks clear when the fight ends. */
     STUN_AT: 10,                     // [C] stacks that put a man down
+    STUN_RESIST_STEP: 0.15,          // [C] the share of a hit's stacks each grade of an armour's stun resistance takes off
     STUN_AREA_RADIUS: 2,             // [C] tiles about the mark an area stun weapon catches everyone within
     STUN_FOCUS: 0.15,                // [C] what a man's stacks toward the line are worth to a stun shooter choosing his mark
     TARGET_SHARPNESS: 4,             // [C] §AI how surely a rival takes his best shot: 0 is an even split, high is always the best
@@ -1580,8 +1581,8 @@
        a squad that came in hurt has less to give: it calls it sooner by as much. */
     let came = 0, left = 0, full = 0;
     for (const u of S.units) { const max = u.hpMax || 1, start = u._hpStart != null ? u._hpStart : max;
-      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start)) * Math.max(0, 1 - (u._stun || 0) / CONST.STUN_AT); }
-    /* §STUN (ruled) a man's stacks are health spent to the call: one six stacks in is six-tenths gone, as a wound would be */
+      full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start) - stunSpent(u)); }
+    /* §STUN (ruled) a man's stacks are health spent to the call, a tenth of his whole pool each, as wounds are */
     const lost = came > 0 ? 1 - left / came : 1;
     /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
        holds a bad order longer */
@@ -1644,12 +1645,20 @@
   /** Canon severity bands, canon injury table; only the bookkeeping is local. */
   /* §STUN the stacks a hit from this body lands: a stun primary's, never a sidearm's */
   function stunOf(by) { const w = by && by.weapon; return w && !by.onSidearm && (w.stun || 0) > 0 && C.hasQuirk(by, 'nonlethal') ? w.stun : 0; }
+  function stunSpent(u) { const max = u.hpMax || C.hpFor(u.ref || u); return (u._stun || 0) * max / CONST.STUN_AT; }
+  function stunnedOut(u) { const max = u.hpMax || C.hpFor(u.ref || u), hp = u.hp != null ? u.hp : max; return stunSpent(u) >= hp - 1e-9; }
   function landStun(rng, t, n, tel, log, by, side) {
+    /* §STUN armour's stun grade: each grade takes a share of the stacks off every hit (riot gear is made for it; metal
+       and foil carry it) — what is left over stands as part of a stack */
+    const grade = (t.armor && t.armor.resist && t.armor.resist.stun) || 0;
+    n = Math.max(0, n * (1 - CONST.STUN_RESIST_STEP * grade));
     t._stun = (t._stun || 0) + n;
     tel.stunStacks = (tel.stunStacks || 0) + n;
-    if (t._stun < CONST.STUN_AT) {
+    /* §STUN (ruled) a stack is a tenth of a man's whole pool, and stacks and wounds add up: he goes down when what he has
+       taken of both reaches it — a man shot to half goes down at five */
+    if (!stunnedOut(t)) {
       comp(rng, t, C.CONST.COMP.graze);
-      if (log) log.push({ t: tel.turn, type: 'stun', by: by.id, at: t.id, n: n, stacks: t._stun, of: CONST.STUN_AT, w: (by.weapon || {}).name, react: !!by._reacting });
+      if (log) log.push({ t: tel.turn, type: 'stun', by: by.id, at: t.id, n: Math.round(n * 10) / 10, stacks: Math.round(t._stun * 10) / 10, of: CONST.STUN_AT, w: (by.weapon || {}).name, react: !!by._reacting });
       return;
     }
     t.state = 'down'; t._stunnedDown = true; t._killedBy = by;
@@ -2567,8 +2576,8 @@
           const pickRows = tap ? [] : null;
           for (const f of seen) {
             const raw = shotAt(u, f);
-            /* §STUN a stun shooter works on the man nearest the line, as a rifleman finishes the hurt one */
-            const p = raw + (stunOf(u) > 0 ? CONST.STUN_FOCUS * Math.min(1, (f._stun || 0) / CONST.STUN_AT)
+            /* §STUN a stun shooter works on the man nearest the line — his stacks and his wounds both — as a rifleman finishes the hurt one */
+            const p = raw + (stunOf(u) > 0 ? CONST.STUN_FOCUS * Math.min(1, (stunSpent(f) + Math.max(0, (f.hpMax || 1) - (f.hp != null ? f.hp : f.hpMax))) / Math.max(1, f.hpMax || 1))
                                           : (f.state === 'light' ? CONST.FINISH_WOUNDED : 0));
             if (pickRows) pickRows.push({ id: f.id, raw: raw, light: f.state === 'light' });
             if (p > pNow) { pNow = p; target = f; }

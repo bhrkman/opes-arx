@@ -211,6 +211,13 @@ lean one pleases.
   that leaves the field leaves its stunned to be taken (taking them only from a side wiped out took nobody: squads call
   it long before). Three families — Repeater, Rifle, Area — each a little under a lethal gun of its tier, a squad of
   them as of one; the payoff is the captives. Stacks clear when the fight ends.
+- A stack is a tenth of a man's whole pool, and stacks and wounds add up (ruled): he goes down to stun when what he has
+  taken of both reaches it, and a stun shooter works on the man nearest that line. A lethal round still kills only by
+  wounds. Armour carries a stun grade, -1 to 3, each grade taking 15% off every hit's stacks: riot gear is made for it,
+  sealed suits and insulators turn some, metal and foil carry it.
+- The engine arms nobody with stun while stun is not worth it scattered into a squad (ruled): a stun gun among lethal
+  ones measures about 0.8-0.9 of the lethal gun it replaces, with a trickle of captives. When it measures worth its
+  place, the engine may issue it.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.

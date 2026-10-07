@@ -653,17 +653,29 @@ function stunRules() {
       if (e.type === 'stunned') outs++;
     }
     for (const u of Y.units) {
-      if (u._stunnedDown && (u._stun || 0) < AT) earlyOut++;
+      if (u._stunnedDown && (u._stun || 0) * u.hpMax / AT < u.hp - 1e-9) earlyOut++;
       if (u.state === 'captured') { if (exhibition) shown++; else { taken++; if (!u._stunnedDown) takenNotStunned++; } }
     }
     /* a squad that called it with every man's health whole was called by stacks */
     if (Y.withdrawing && Y.units.every(u => u.hp >= (u._hpStart || u.hpMax))) cleanCalls++;
   }
   ok('a stun round lands stacks and never a wound', stacks > 0 && wounds === 0, stacks + ' stack hits, ' + wounds + ' wounds');
-  ok('ten stacks put a man down, and nothing short of them does', outs > 0 && earlyOut === 0, outs + ' stunned out, ' + earlyOut + ' short of the line');
+  ok('a man goes down when his stacks and wounds reach his pool, a stack a tenth of it, and not before', outs > 0 && earlyOut === 0, outs + ' stunned out, ' + earlyOut + ' short of the line');
   ok('a man\'s stacks count against his squad\'s call as health spent', cleanCalls > 0, cleanCalls + ' calls with no health lost');
   ok('the stunned a side leaves on the field are taken, and only they are', taken > 0 && takenNotStunned === 0, taken + ' taken, ' + takenNotStunned + ' not stunned');
   ok('nobody is taken at an exhibition', shown === 0, shown + ' taken');
+  /* §STUN armour's stun grade takes its share off every hit: riot gear (3) takes less than a carrier (0), foil (-1) more */
+  const perHit = armor => { let n = 0, k = 0;
+    for (let j = 0; j < 12; j++) {
+      const X = sideOf(j, 'itm_tether_stunner', 'X'), Y = sideOf(j + 900, 'itm_pattern_auto', 'Y');
+      for (const u of Y.units) u.armor = ITEMS.byId(armor) ? Object.assign({}, u.armor, { resist: ITEMS.byId(armor).effects.resist }) : u.armor;
+      const r = T.resolve(makeRng('stunarmour' + j), X, Y, { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5] });
+      for (const e of r.log || []) if (e.type === 'stun') { n += e.n; k++; }
+    }
+    return k ? n / k : 0; };
+  const riot = perHit('itm_riot_suit'), plain = perHit('itm_plate_carrier'), foil = perHit('itm_foil_poncho');
+  ok('an armour\'s stun resistance takes stacks off every hit, and a conductive one adds them', riot > 0 && riot < plain && plain < foil,
+     'riot ' + riot.toFixed(2) + ', carrier ' + plain.toFixed(2) + ', foil ' + foil.toFixed(2) + ' a hit');
 }
 
 /* =========================================================================

@@ -1877,7 +1877,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 0,
-     "explosive": -1
+     "explosive": -1,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -1906,7 +1907,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 0,
-     "explosive": 2
+     "explosive": 2,
+     "stun": 0
     },
     "covers": [
      "torso"
@@ -1933,7 +1935,8 @@
     "resist": {
      "ballistic": 1,
      "energy": 1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 0
     },
     "covers": [
      "torso"
@@ -1960,7 +1963,8 @@
     "resist": {
      "ballistic": -1,
      "energy": 3,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -1990,7 +1994,8 @@
     "resist": {
      "ballistic": 2,
      "energy": 2,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 2
     },
     "covers": null
    },
@@ -2715,7 +2720,8 @@
     "resist": {
      "ballistic": 1,
      "energy": 1,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 2
     },
     "covers": null
    },
@@ -3291,7 +3297,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 0,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 1
     },
     "covers": [
      "torso",
@@ -3319,7 +3326,8 @@
     "resist": {
      "ballistic": 1,
      "energy": -1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": -1
     },
     "covers": [
      "torso"
@@ -3346,7 +3354,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 0,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 3
     },
     "covers": [
      "torso",
@@ -3375,7 +3384,8 @@
     "resist": {
      "ballistic": -1,
      "energy": 2,
-     "explosive": -1
+     "explosive": -1,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -3403,7 +3413,8 @@
     "resist": {
      "ballistic": -1,
      "energy": -1,
-     "explosive": 3
+     "explosive": 3,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -3431,7 +3442,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 0,
-     "explosive": 2
+     "explosive": 2,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -3459,7 +3471,8 @@
     "resist": {
      "ballistic": 2,
      "energy": 0,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 1
     },
     "covers": [
      "torso"
@@ -3486,7 +3499,8 @@
     "resist": {
      "ballistic": 1,
      "energy": 1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 1
     },
     "covers": [
      "torso",
@@ -3515,7 +3529,8 @@
     "resist": {
      "ballistic": 3,
      "energy": 0,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -3543,7 +3558,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 3,
-     "explosive": -1
+     "explosive": -1,
+     "stun": -1
     },
     "covers": null
    },
@@ -3568,7 +3584,8 @@
     "resist": {
      "ballistic": 2,
      "energy": 2,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 1
     },
     "covers": [
      "torso",
@@ -3599,7 +3616,8 @@
     "resist": {
      "ballistic": 2,
      "energy": 1,
-     "explosive": 2
+     "explosive": 2,
+     "stun": 1
     },
     "covers": null
    },
@@ -3626,7 +3644,8 @@
     "resist": {
      "ballistic": 1,
      "energy": 1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -4867,7 +4886,8 @@
     "resist": {
      "ballistic": -1,
      "energy": 1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": -1
     },
     "covers": [
      "torso",
@@ -4893,7 +4913,8 @@
     "resist": {
      "ballistic": 0,
      "energy": -1,
-     "explosive": 2
+     "explosive": 2,
+     "stun": 0
     },
     "covers": [
      "torso"
@@ -4918,7 +4939,8 @@
     "resist": {
      "ballistic": 2,
      "energy": -1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 0
     },
     "covers": [
      "torso"
@@ -4943,7 +4965,8 @@
     "resist": {
      "ballistic": 1,
      "energy": 1,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 1
     },
     "covers": [
      "torso",
@@ -4969,7 +4992,8 @@
     "resist": {
      "ballistic": 0,
      "energy": 3,
-     "explosive": 0
+     "explosive": 0,
+     "stun": 0
     },
     "covers": [
      "torso",
@@ -4996,7 +5020,8 @@
     "resist": {
      "ballistic": 3,
      "energy": 0,
-     "explosive": 1
+     "explosive": 1,
+     "stun": 1
     },
     "covers": [
      "torso",

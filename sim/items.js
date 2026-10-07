@@ -269,7 +269,7 @@
                 stun: pe.stun || 0 },
       armor: { id: a ? a.id : null, name: a ? a.name : null, tags: (ae.tags || []).slice(),
                protection: ae.protection || 0, mobility: ae.mobility || 0,
-               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0 },
+               resist: ae.resist || { ballistic: 0, energy: 0, explosive: 0, stun: 0 },
                /* §ARMOUR what it covers, and the share of hits that land on it — from the injury table's own odds
                   (arm 18, leg 18, torso and chest 26, head 10, the rest 28 — the internal, burns, spinal and
                   catastrophic, which any armour is reckoned to stand between). Nothing listed means full. */

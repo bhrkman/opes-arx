@@ -8009,13 +8009,15 @@
   function itemMax(slot, key) {
     var m = 0;
     ITEMS.all().forEach(function (x) { if (x.slot !== slot) return; var e = x.effects || {}; var v = key === 'ballistic' || key === 'energy' || key === 'explosive'
-      ? (e.protection != null ? e.protection + ((e.resist || {})[key] || 0) : 0) : (e[key] || 0); if (v > m) m = v; });
+      ? (e.protection != null ? e.protection + ((e.resist || {})[key] || 0) : 0) : key === 'stunres' ? ((e.resist || {}).stun || 0) : (e[key] || 0); if (v > m) m = v; });
     return m || 1;
   }
   function itemFigures(i) {
     var e = i.effects || {}, f = [];
     if (e.power != null && (i.slot === 'primary' || i.slot === 'sidearm')) {
-      f.push({ k: 'Damage', v: e.power, max: itemMax(i.slot, 'power'), kind: 'damage' });
+      /* §STUN a stun gun's figure is the stacks a hit lands, not a damage it does not do */
+      if (e.stun) f.push({ k: 'Stun', v: e.stun, max: itemMax(i.slot, 'stun'), kind: 'damage' });
+      else f.push({ k: 'Damage', v: e.power, max: itemMax(i.slot, 'power'), kind: 'damage' });
       if (e.rof != null) f.push({ k: 'Rate', v: e.rof, max: itemMax(i.slot, 'rof'), kind: 'rate' });
       if (e.mag != null) f.push({ k: 'Magazine', v: e.mag, max: itemMax(i.slot, 'mag'), kind: 'mag' });
       if (e.reach != null) f.push({ k: 'Reach', v: e.reach, max: itemMax(i.slot, 'reach'), kind: 'reach' });
@@ -8024,6 +8026,7 @@
       f.push({ k: 'Ballistic', v: pr + (rs.ballistic || 0), max: itemMax('armor', 'ballistic'), kind: 'ballistic' });
       f.push({ k: 'Energy', v: pr + (rs.energy || 0), max: itemMax('armor', 'energy'), kind: 'energy' });
       f.push({ k: 'Explosive', v: pr + (rs.explosive || 0), max: itemMax('armor', 'explosive'), kind: 'explosive' });
+      f.push({ k: 'Stun Resist', v: rs.stun || 0, max: itemMax('armor', 'stunres'), kind: 'energy' });
       var cov = ITEMS.coverageShare ? ITEMS.coverageShare(e.covers) : 1;
       f.push({ k: 'Cover', v: cov, max: 1, kind: 'cover', shown: Math.round(cov * 100) + '%' });
     }
@@ -8134,8 +8137,10 @@
           (e.protection != null ? '<span class="st">Ballistic <b>' + (e.protection + ((e.resist || {}).ballistic || 0)) + '</b></span>' +
                                    '<span class="st">Energy <b>' + (e.protection + ((e.resist || {}).energy || 0)) + '</b></span>' +
                                    '<span class="st">Explosive <b>' + (e.protection + ((e.resist || {}).explosive || 0)) + '</b></span>' +
+                                   '<span class="st">Stun Resist <b>' + ((e.resist || {}).stun || 0) + '</b></span>' +
                                    '<span class="st">Covers <b>' + (e.covers && e.covers.length ? e.covers.map(function (c) { return capWords(c); }).join(', ') : 'All') + '</b></span>' : '') +
           (e.power ? '<span class="st">Damage <b>' + e.power + '</b></span>' : '') +
+          (e.stun ? '<span class="st">Stun <b>' + e.stun + '</b></span>' : '') +
           (e.rof != null ? '<span class="st">Rate <b>' + e.rof + '</b></span>' : '') +
           (e.mag != null ? '<span class="st">Magazine <b>' + e.mag + '</b></span>' : '') +
           (e.reload != null ? '<span class="st">Reload <b>' + e.reload + '</b></span>' : '') +
