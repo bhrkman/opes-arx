@@ -36,7 +36,7 @@
     ODDS_SHARPNESS: 1.6,                // [H] above 1, a lead is worth more than its size
     ODDS_QUIET_BONUS: 0.22,             // [C] a corp nobody has seen fighting is overrated
     ODDS_KIT_WEIGHT: 0.38,              // [C] how much visible gear moves the board
-    KIT_REFERENCE_PER_BODY: 1750,       // [C] the fleet's middling loadout, the board's yardstick
+    KIT_REFERENCE_PER_BODY: 3600,       // [C] the fleet's middling loadout, the board's yardstick (re-measured on the repriced guns: median ₡3,625 a body)
     INJURED_WEIGHT: 0.45,               // [C] a body in the camp tent is worth something
 
     BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for an OA moves its price
@@ -307,7 +307,8 @@
     if (bodies.length) {
       const standing = active.length / bodies.length;
       const cond = active.length
-        ? active.reduce((t, b) => t + (((b.condition || {}).health != null) ? b.condition.health : 100), 0) / active.length / 100 : 0;
+        /* the harm each carries on the ground (`_hpFrac`) as well as the year's wound: walking wounded are not whole */
+        ? active.reduce((t, b) => t + Math.min(((b.condition || {}).health != null) ? b.condition.health : 100, b._hpFrac != null ? b._hpFrac * 100 : 100), 0) / active.length / 100 : 0;
       const h = standing * 0.7 + cond * 0.3;                /* 1 = everybody up and whole */
       why.health = -CONST.APPETITE_HEALTH * Math.max(0, Math.min(1, (1 - h) / 0.4));
       a += why.health;
@@ -372,7 +373,10 @@
     if (price > ceiling) return false;
     /* the Divide's corp carries its season account under `persist` (one treasury, SEASONS.md) */
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
-    return !(acct && acct.treasury < price);
+    /* what it has already committed and not yet been charged: the drop's kit (posted at the settlement) and the ransoms
+       it has agreed this Divide — the same cash cannot buy two men back */
+    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0);
+    return !(acct && acct.treasury - committed < price);
   }
   /* ------------------------------------------------------------------ */
   /* §10.3 settlement                                                    */
@@ -421,6 +425,8 @@
             f.contract.divides_served = Math.max(f.contract.divides_served || 0,
                                                  f.contract.divides_required);
           bonuses.freed++;
+        } else if (f.contract && f.contract.mirrored) {
+          continue;   /* §MON-WA a pair's one contract is paid its bonus once, on its Mon */
         } else if (origin === 'mercenary') {
           const b = Math.round(((f.contract && f.contract.salary) || 0) * CONST.WIN_BONUS_MERC);
           bonuses.mercs += b; bonuses.total += b;

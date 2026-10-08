@@ -387,10 +387,6 @@
    "special": {
     "paired": true,
     "roster_slots": 1,
-    "tether_miles": {
-     "untrained": 2,
-     "trained": 5
-    },
     "tether_note": "Canon: cannot be split-tasked beyond miles; forced separation risks collapse. MODEL DELIVERED (COMBAT.md 8.1): day-loop tether enforced at squad assignment; in-engagement the halves must share an engagement and adjacent bands, and separation costs -25 composure/exchange to both plus aim_eff -4.",
     "partner_death_roll": {
      "death": 0.6,

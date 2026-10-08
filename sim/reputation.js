@@ -51,6 +51,7 @@
     /* §4 fame — attention, not approval (R11) */
     FAME_FLOOR: 0,                      // [S]
     FAME_CEIL: 100,                     // [S]
+    FAMOUS_AT: 55,                      // [S] (unified) a name the fleet knows: one bar for every reader of "famous"
     FAME_DECAY: 0.88,                   // [C] per season; the fleet forgets a person faster
     PRESENCE_FAME: 1.5,                 // [C] §PRESENCE fame earned, across the stat's spread (was 0.5, kills only)
     PRESENCE_FAME_MIN: 0.25,            // [C] the least visible hand earns this share

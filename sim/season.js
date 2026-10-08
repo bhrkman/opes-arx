@@ -501,7 +501,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          that did not exist last year, and none of them are mercenaries — that market opens at
          the year's end, which is the first real choice a founder makes */
       if (lean) for (const f of roster) {
-        if (f.contract) { f.contract.seasons = 1; f.contract.kind = f.contract.kind === 'mercenary' ? 'nattie' : f.contract.kind; }
+        if (f.contract) { f.contract.seasons = 1; f.contract.seasons_remaining = 1; f.contract.seasons_total = 1; f.contract.kind = f.contract.kind === 'mercenary' ? 'nattie' : f.contract.kind; }
       }
       corps[profile.id] = {
         id: profile.id, profile,
@@ -826,7 +826,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         return { tag: corp.id, corpId: corp.id, policy: 'standard', policyName: 'standard',
                  hasMedkit: true,
                  units: TAC.wirePairs(bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
-                                                             isCaptain: f.id === cap.id, day: 1 }))) };
+                                                             isCaptain: f.id === cap.id, day: 1,
+                                                             health: woundOf(f), stress: (f.condition || {}).stress }))) };   /* the situations read them */
       };
       /* THE DIVIDEND IS TELEVISION. Every match is kept whole — sides, frames, and now the
          log the old `log: false` threw away — riding the season's own dividend tally, so
@@ -939,6 +940,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function runEight(rng, corps, ids, season, state) {
     const E = state.eight = state.eight || { names: {} };
+    for (const id of ids) corps[id]._eightDead = 0;   /* this year's Eight's dead (it counted across every year) */
     /* every OA sends someone; unnamed, its best goes */
     const entrants = [];
     for (const id of ids) {
@@ -968,7 +970,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const bodiesOf = e => { const w = wholePairs(e.corp, [e.f], 1); return w.length ? w : [e.f]; };
     const entryOf = new Map();
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
-      units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1 }); entryOf.set(u, e); return u; })))) });
+      units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1, health: woundOf(f), stress: (f.condition || {}).stress }); entryOf.set(u, e); return u; })))) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
     for (const e of entrants) chargeWounded(e.corp, bodiesOf(e), 'eight' + season);   /* §WOUNDS a mending entrant holds it against the house */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
@@ -979,8 +981,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const deadBy = {}, hurtBy = {};
     const land = (S) => S.units.forEach(u => {
       const e = entryOf.get(u), f = u.ref;
-      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
-        if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); }
+      if (u.state === 'dead') { f.status = 'dead';
+        /* §MON-WA an entrant is one person: a pair that dies in both bodies is one loss */
+        if (!e._lost) { e._lost = true; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
+          if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); } }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
         f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
@@ -1174,6 +1178,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const ids = new Set(list.map(f => f.id));
     return ones.reduce((t, f) => t + (f.bond_partner && ids.has(f.bond_partner) ? 2 : 1), 0);
   }
+  function bonusesOf(list) { return list.filter(f => LED.paid(f)).reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0); }
   function planFor(state, c) {
     const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
     const ones = beings(alive);
@@ -1182,7 +1187,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const ahead = !(state && state.done);   /* the grant, the entry and the purses land at the lock */
     const staff = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
     const gate = c._lastGate != null ? c._lastGate : LED.CONST.GATE_BASE;
-    const monthNet = gate - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c);
+    /* (fixed) a standing's monthly stipend is income the months bring, as the gate is */
+    const stipend = (SPON && SPON.standingValue) ? SPON.standingValue(c, 'stipend') : 0;
+    const monthNet = gate + stipend - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c);
     const dropN = Math.min(ones.length, CONST.DROP_MAX);
     const drop = ones.slice(0, dropN);
     const dropBodies = bodiesOf(drop, alive);
@@ -1195,7 +1202,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return LED.plan(c.account, { monthsLeft, monthNet, grantDue: ahead, entryDue: ahead, purses: ahead ? LED.purseBill(drop) : 0,
       /* §MONEY (fixed) and the drop's Divide bonuses, which its contracts pay at the settlement — the reckoning held for
          purses and families and not these, and they were the line that most often took a house into the red */
-      hold: cushion + (ahead ? drop.reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0) : 0),
+      /* (fixed) held until the settlement pays them — after the lock too, when the drop is known and its kit is bought;
+         a pair's one contract once (LED.paid) */
+      hold: cushion + bonusesOf(ahead ? drop : (state && state.done && !state._settled ? (c._drop || []) : []))
+            /* and the Divide month's twelfth of the retainers, charged at the lock beside the purses */
+            + (ahead ? LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS : 0),
       families: LED.CONST.FAMILIES_SHARE * Math.min(CONST.DROP_MAX, Math.max(dropN, CONST.ROSTER_MIN)) * benefit,
       peopleNeed: want * perBody, gearTarget: Math.max(dropBodies, CONST.ROSTER_MIN) * kitPerBody(c) });
   }
@@ -3041,9 +3052,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          a field off an object that is not there, so it defaulted to 50 and frenzy could never
          fire. Aggression in this project is carried by TRAITS, which do exist. */
       const hot = (f.traits || []).some(t => CONST.FRENZY_TRAITS.indexOf(t) >= 0);
-      if (hot) { f.condition.morale = Math.min(100, (f.condition.morale || 60) + hit * 0.5); f._grief = 'frenzy'; }
-      else if (res < CONST.BREAK_RESOLVE_AT) { f.condition.morale = Math.max(0, (f.condition.morale || 60) - hit * 1.6); f._grief = 'break'; }
-      else { f.condition.morale = Math.max(0, (f.condition.morale || 60) - hit); f._grief = 'mourning'; }
+      if (hot) { f.condition.morale = Math.min(100, (f.condition.morale != null ? f.condition.morale : 60) + hit * 0.5); f._grief = 'frenzy'; }
+      else if (res < CONST.BREAK_RESOLVE_AT) { f.condition.morale = Math.max(0, (f.condition.morale != null ? f.condition.morale : 60) - hit * 1.6); f._grief = 'break'; }
+      else { f.condition.morale = Math.max(0, (f.condition.morale != null ? f.condition.morale : 60) - hit); f._grief = 'mourning'; }
       f._griefUntil = f._grief === 'break' ? CONST.GRIEF_CLOSE_DIVIDES : CONST.GRIEF_DIVIDES;
       touched++;
     }
@@ -3534,7 +3545,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     f.contract = f.contract || {};
     f.contract.salary = Math.round(askingPrice(f, c) / LED.CONST.SALARY_MONTHS);
     f.contract.kind = f.contract.kind || 'nattie';
-    f.contract.seasons_remaining = f.seasons || CONST.RENEWAL_SEASONS;
+    f.contract.seasons_remaining = f.contract.seasons_remaining || f.seasons || CONST.RENEWAL_SEASONS;   /* the term the sheet showed (it fell back to two) */
     f.contract.seasons_total = f.contract.seasons_remaining;
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
@@ -3773,7 +3784,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     ensureIntel(c, state.season || 0);
     gatherIntel(c, 'rival', fromId, STAFF.CONST.POACH_INTEL_LEVELS, state.season * 100 + state.month,
                 (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
-    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: state.season * 100 + state.month + STAFF.CONST.POACH_INTEL_MONTHS });
+    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: (state.season || 0) * LED.CONST.SEASON_MONTHS + (state.month || 0) + STAFF.CONST.POACH_INTEL_MONTHS });   /* §UNITS a running month count: season*100+month skipped the year's turn, so twelve months ran out at the new year */
     applySpin(c); applySpin(them);
     return { ok: true, staffer: st, fee };
   }
@@ -3828,7 +3839,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
       sg.record.whole = (sg.record.whole || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
     if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
-      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
+      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 });
       sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
     return { outcome: 'none', line: sg.name + ' Could Do Nothing for ' + f.name };
   }
@@ -3886,7 +3897,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         corp._operated = abs;
         const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.whole = (sg.record.whole || 0) + 1; }
-        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
+        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
     }
     const lp = FAC.listenLevels(corp);
@@ -3895,7 +3906,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       gatherIntel(corp, 'planet', null, lp, abs, null);
     }
     if (corp._poachIntel && corp._poachIntel.length) {
-      corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
+      corp._poachIntel = corp._poachIntel.filter(x => x.until > (season || 0) * LED.CONST.SEASON_MONTHS + month && corps[x.from]);
       for (const x of corp._poachIntel) {
         ensureIntel(corp, season || 0);
         gatherIntel(corp, 'rival', x.from, STAFF.CONST.POACH_INTEL_MONTHLY, abs, (rowKey, depth) => snapshotRival(corps[x.from], rowKey, depth, season || 0));
@@ -3970,7 +3981,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /** the engine builds what it wants most from what its reckoning leaves for building, once its people and kit are seen to (§MONEY) */
   function aiBuild(c, state) {
-    const pick = FAC.aiChoose(c, planFor(state, c).build);
+    const pick = FAC.aiChoose(c, planFor(state, c).build, priceMult(state));
     if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
   }
   /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
@@ -4087,7 +4098,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
-    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);
+    return q / 100 * Math.min(1, beings(alive).length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);   /* seats */
   }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
@@ -4429,7 +4440,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /** §STAFF one item's price on the shelf to one OA: the fleet's month, less what its quartermaster haggles */
   function shelfPrice(state, corpId, it) {
     const c = state.corps[corpId];
-    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)));
+    /* §SPONSORS a standing's yard discount by the item's family (as the quartermaster pays it) */
+    const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
+    const spon = c && SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? SPON.standingDiscount(c, fam) : 0;
+    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)) * (1 - spon));
   }
   /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
       market, so it lives once rather than three times. */
@@ -4600,6 +4614,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
            held for, and the next year's months held for where its gate does not cover them */
         kitMoney: kitMoneyFor(state, c),
+        priceMult: priceMult(state),   /* §MARKET the year's price swing reaches the yard the drop is bought at */
         /* §SPONSORS the family of guns a signed contract asks for, which the quartermaster issues */
         kitFamily: (SPON && SPON.steerFor) ? SPON.steerFor(c).family : null,
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
@@ -4950,7 +4965,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return {
       won: res.winner === id, placement: mine.placement != null ? mine.placement : null,
       ceded: !!mine.ceded, cededDay: mine.cededDay || 99,
-      permanentLosses: mine.dead != null ? mine.dead : (mine.permanentLosses || 0),
+      permanentLosses: (mine.dead != null ? mine.dead : (mine.permanentLosses || 0)) + ((STATE_REF && STATE_REF.corps && STATE_REF.corps[id] && STATE_REF.corps[id]._eightDead) || 0),
       famousLosses: mine.famousLosses || 0, payout: mine.payout || 0,
       banked: (res.banked || {})[id] || {},
       promises: (res.promises || []).slice()
@@ -5052,7 +5067,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const dropped = c._drop;
       const deadBodies = dropped.filter(f => f.status === 'dead');
       /* §MON-WA losses and the record count people: a pair that died is one (bodies are still each paid off below) */
-      const dead = beings(deadBodies);
+      const dead = beings(deadBodies.filter(f => !f._carriedOn));   /* a being that lives on in a survivor has not died */
+      /* the board's one count of people lost for good: the dead and the careers ended, and the Eight's dead (the page
+         reads the same figure through boardOutcomeFor) */
+      const lostForGood = beings(dropped.filter(f => (f.status === 'dead' || f.status === 'retired') && !f._carriedOn)).length + (c._eightDead || 0);
       let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
@@ -5076,7 +5094,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            (negotiate.js N14, "the winner pays its own people") — one rule, one home */
         /* a nattie's contract pays a bonus for every Divide actually dropped into — the
            participation clause a merc's flat price conspicuously lacks */
-        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus)
+        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus && LED.paid(f))   /* a pair is paid once */
           bonuses += f.contract.divide_bonus;
       }
       if (bonuses) LED.post(c.account, 'expense', 'Divide Bonuses', -bonuses);
@@ -5139,7 +5157,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         placement: res.placement ? res.placement[id] : null,
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
-        permanentLosses: dead.length + (c._eightDead || 0),
+        permanentLosses: lostForGood,
         /* R25 — the two standing demands. `spendRatio` is what this corp laid out on kit,
            wages and the backroom as a share of its own stipend, read against the fleet's
            going rate this season (§THRIFT above): 1.0 is an ordinary year for the economy as
@@ -5161,7 +5179,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           c._starsLast = stars;
           return 0;
         })(),
-        famousLosses: dead.filter(f => (f.fame || 0) >= 55).length
+        famousLosses: dead.filter(f => (f.fame || 0) >= REP.CONST.FAMOUS_AT).length
       });
       /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
          the one place a haul becomes credits, and only for what spilled over */
@@ -5266,7 +5284,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
         /* taken and not given back: a captive the other side kept to the end */
-        captured: drop.filter(f => f._transferredTo && f.status !== 'dead').length,
+        captured: beings(drop.filter(f => f._transferredTo && f.status !== 'dead')).length,
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
@@ -5330,6 +5348,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
     keepPairsWhole(state);   /* §MON-WA after the settlement: a kept captive's other half goes with him */
+    state._settled = true;   /* the bonuses are paid: the reckoning stops holding them */
     return rec;
   }
 

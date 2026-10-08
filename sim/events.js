@@ -250,7 +250,7 @@
   const POOL = [
     {
       id: 'raise', weight: 1.4,
-      when: (c) => { const cand = alive(c).filter(f => (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked); return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
+      when: (c) => { const cand = alive(c).filter(f => !f.mirror_of && (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked);   /* a pair asks on its Mon's paper */ return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
       make: (f, c, ctx) => {
         /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the OA asks louder */
         let raiseMult = CONST.RAISE_FRAC;
@@ -531,8 +531,8 @@
     },
     {
       id: 'strike', weight: 0.9,
-      when: (c, ctx) => coldOf(c, ['families']) && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
-      make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
+      when: (c, ctx) => coldOf(c, ['families']) && alive(c).filter(f => !f.mirror_of).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      make: (x, c) => { const bill = alive(c).filter(f => !f.mirror_of).length * CONST.STRIKE_PER_HEAD;   /* a pair draws one wage */
         return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
           text: 'Your people have heard what their Families think of the OA, and have stopped drilling until somebody pays them to start.',
           options: [

@@ -338,7 +338,7 @@ function seedComposure(f, hooks, opts) {
     CONST.XP_DIVIDE * (xp.divides || 0) + CONST.XP_BATTLE * (xp.battles || 0) + CONST.XP_DIVIDEND * (xp.dividends || 0)
   );
   let c = CONST.COMP_BASE
-    + CONST.COMP_MORALE * ((f.condition && f.condition.morale) || 50)
+    + CONST.COMP_MORALE * ((f.condition && f.condition.morale != null) ? f.condition.morale : 50)   /* a broken man's 0 is 0 */
     + CONST.COMP_RESOLVE * f.stats.resolve
     + experienceBonus
     /* the third reader of the one store: what a career of Divides has left in a person

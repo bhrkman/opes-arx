@@ -353,7 +353,7 @@
     const last = hist[hist.length - 1] || {};
     const sent = last.dropped || 0, lost = last.dead || 0;
     const came = sent > 0 ? 1 - lost / sent : 0.75;
-    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of);   /* people */
     switch (style.wants) {
       case 'aggression': return Math.min(1, (dials.aggression || 50) / 90);
       case 'clean':      return came;

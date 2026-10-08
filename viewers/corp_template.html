@@ -2656,7 +2656,9 @@
     var STAT = [['aim','Aim'],['grit','Grit'],['reflex','Reflex'],['fieldcraft','Fieldcraft'],
                 ['tactics','Tactics'],['presence','Presence'],['resolve','Resolve']];
     var statCells = STAT.map(function (p) { return statCell(p[0], p[1], s[p[0]]); }).join('') +
-      '<span class="st health"><span class="k">Hit Points</span><span class="v" style="color:' + gradeColour(health, hpSpread()) + '">' + Math.round(health) + '</span></span>';
+      /* a man mending starts a fight at his health's share of the pool (combat startFrac): what he has, of what he could */
+      '<span class="st health"><span class="k">Hit Points</span><span class="v" style="color:' + gradeColour(health, hpSpread()) + '">' +
+        (b.condition && b.condition.health != null && b.condition.health < 100 ? Math.max(1, Math.round(health * b.condition.health / 100)) + ' / ' : '') + Math.round(health) + '</span></span>';
 
     /* weapon skill: the six families the engine trains (long/medium/close x ballistic/energy) */
     /* §SKILLS AIM, A DAMAGE CLASS, A WEAPON TYPE: the two classes, the types this hand stands out at (best three,
@@ -2864,11 +2866,7 @@
        was still reading the old field. Flat points first, then what it is worth and WHEN, then
        any machinery a hook carries. */
     var e = tr.effects || {}, lines = [];
-    for (var k in (e.stat_mods || {})) {          /* the old field, in tenths */
-      var v = e.stat_mods[k];
-      lines.push((v > 0 ? '+' : '') + (v * 10) + ' ' + (STATNAME[k] || capWords(k)));
-    }
-    for (var k2 in (e.stats || {})) {             /* and the new one, in real points */
+    for (var k2 in (e.stats || {})) {             /* flat points */
       var v2 = e.stats[k2];
       lines.push((v2 > 0 ? '+' : '') + v2 + ' ' + (STATNAME[k2] || capWords(k2)));
     }
@@ -2968,14 +2966,14 @@
     var gear = (prim ? prim.tier : 0) * 3 + (arm ? arm.tier : 0) * 2;      /* armed and plated */
     var qk = (f.traits || []).reduce(function (n, t) {
       var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects) return n;
-      var sm = tr.effects.stat_mods || {}, sum = 0;
+      var sm = tr.effects.stats || {}, sum = 0;   /* §UNITS real points (the old field was tenths) */
       for (var k in sm) sum += sm[k];
-      return n + sum * 2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
+      return n + sum * 0.2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
                - ((tr.tags || []).indexOf('negative') >= 0 ? 2 : 0);
     }, 0);
     var cond = 1 - Math.min(0.35, ((f.condition && f.condition.fatigue || 0) * 0.003 +
                                    (f.condition && f.condition.stress || 0) * 0.002));
-    var hurt = (f.condition && (f.condition.injuries || []).length) ? 0.82 : 1;
+    var hurt = riskOf(f) ? 0.82 : 1;   /* mending (health), not a list that keeps its scars */
     return Math.max(1, Math.round((base + gear + qk) * cond * hurt));
   }
   function ratingBand(r) { return r >= 120 ? 'good' : r >= 95 ? '' : r >= 75 ? 'warn' : 'bad'; }
@@ -3179,7 +3177,7 @@
             '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
             '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
-            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs(r.called.offer || low) + ' \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs((r.called.offer || low) * 12) + '/yr \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
             /* a man whose sentence this Divide completes is freed at the year's end and decides for himself */
             : r.freed ? '<div class="rsdone">Freed at Year\u2019s End \u00b7 His Own Choice</div>'
@@ -3207,8 +3205,8 @@
         }
         SEASON.answerRenewal(G.state, G.me, id, how, typed);
         dlog(how === 'release' ? '<span class="m">' + esc(row.name) + ' Will Not Be Kept</span>'
-           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs(Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) + '</span>'
-           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks) + '</span>');
+           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs((typed || Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) * 12) + '/yr</span>'
+           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks * 12) + '/yr</span>');   /* the stored figures are a month's */
         renderRoster();
       };
     });
@@ -5914,7 +5912,8 @@
       return '<span><span class="k" style="color:' + STATCOL[k] + '">' + STAT_ABBR[k] + '</span> <b style="color:' +
              gradeColour(s[k]) + '">' + fmtStat(s[k]) + '</b></span>';
     }).join('') +
-    '<span><span class="k" style="color:var(--s-health)">HP</span> <b style="color:' + gradeColour(hp, hpSpread()) + '">' + Math.round(hp) + '</b></span></div>';
+    '<span><span class="k" style="color:var(--s-health)">HP</span> <b style="color:' + gradeColour(hp, hpSpread()) + '">' +
+      (b.condition && b.condition.health != null && b.condition.health < 100 ? Math.max(1, Math.round(hp * b.condition.health / 100)) + '/' : '') + Math.round(hp) + '</b></span></div>';
   }
   /* THE FIGHTER CARD, the same on the bench and in a squad; a squad's card adds the star and
      the cross */
@@ -6068,7 +6067,8 @@
     var wrap = $('sqboxes'), h = '', total = 0, used = 0;
     for (var si = 0; si < 6; si++) {
       /* a squad is counted in SEATS: a Mon-Wa pair is one place and two bodies */
-      var mem = squadMembers(fit, si), n = squadSeats(fit, si), bodies = mem.length;
+      var mem = squadMembers(fit, si), n = squadSeats(fit, si);
+      var bodies = mem.length + mem.filter(function (b) { return partnerIn(b, G.corps[G.me].roster); }).length;   /* a pair's second body */
       total += n; if (n) used++;
       var bad = n > 0 && (n < MIN || n > MAX);
       var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX;
@@ -6310,13 +6310,9 @@
     if (base === 'consumable') return (kit.consumables || [])[slotIdx(key)] || null;
     return kit[base] || null;
   }
-  function kitBulk(kit) {
-    var v = 0;
-    [kit.primary, kit.sidearm, kit.armor].concat(kit.mods || [], kit.consumables || []).forEach(function (id) {
-      var it = id && ITEM_BY_ID[id]; if (it) v += it.bulk || 0;
-    });
-    return v;
-  }
+  function kitBulk(kit) { return ITEMS.bulk(kit); }   /* the engine's own sum: mods that weigh, and rounds */
+  function bulkCap(b) { return ITEMS.CONST.SQUAD_BULK_PER_HEAD + ((((ROSTER.raceById || {})[b && b.race] || {}).special || {}).carry_bonus || 0); }
+
 
   /* catalog value of a kit — the same sum the Divide charges against the cap */
   function kitValueOf(k) {
@@ -6386,7 +6382,7 @@
                 : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span>' +
           /* §ROUNDS what he carries is weighed at his squad: past eight a head, the squad hauls it in fatigue */
-          '<span class="ktag' + (kitBulk(kit) > ITEMS.CONST.SQUAD_BULK_PER_HEAD ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + ITEMS.CONST.SQUAD_BULK_PER_HEAD + '</span></div>' +
+          '<span class="ktag' + (kitBulk(kit) > bulkCap(b) ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + bulkCap(b) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && handProblem(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">Refused \u00b7 ' + handProblem(b) + '</div>' : '') +
           '<div id="pickerhost"></div></div>' +
@@ -7775,6 +7771,8 @@
   var WASK = null;
   var WCATS = [['credits', 'Credits'], ['minerals', 'Minerals'], ['fuels', 'Fuels'],
                ['luxuries', 'Luxuries'], ['foods', 'Foods']];
+  /* what a share of the pot is worth on a house's own books (LED.squadBonus: the squad's share; the rest is the OA's) */
+  var BOOKED = (window.CDLEDGER && CDLEDGER.CONST && CDLEDGER.CONST.SQUAD_BONUS_SHARE) || 1;
   function renderWithdraw(w, you, others) {
     var host = $('withdraw'); if (!host) return;
     if (!w || (you && you.withdrawn)) {
@@ -7801,7 +7799,7 @@
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
-         '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;of the Pot</span></div>';
+         '<span class="is cr">' + crs(Math.round(pot * BOOKED * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
     WCATS.slice(1).forEach(function (c) {
       var pc = Math.round((cur[c[0]] || 0) * 100), has = planetHolds(c[0]);
@@ -7815,7 +7813,8 @@
     h += '<div class="wreps"><div class="hrow"><span>OA</span><span>How They Stand</span>' +
          '<span>Their Word</span><span class="last">Answer</span></div>';
     live.forEach(function (id) {
-      var tr = trustOf(id, cur.credits || 0), ans = replies[id];
+      var askAll = (cur.credits || 0) + ['minerals', 'fuels', 'luxuries', 'foods'].reduce(function (t, k) { return t + Math.max(0, Math.min(1, cur[k] || 0)) / 4; }, 0);   /* stores at a quarter, as the engine weighs them */
+      var tr = trustOf(id, askAll), ans = replies[id];
       var cls = ans === true ? 'yes' : ans === false ? 'no' : 'wait';
 
       var word = ans === true ? 'Yes' : ans === false ? 'No' : offer ? 'Waiting' : '\u2014';
@@ -7871,7 +7870,7 @@
         if (!tile) return;
         tile.classList.toggle('on', v > 0);
         var pct = tile.querySelector('.pct'); if (pct) pct.textContent = Math.round(v * 100) + '%';
-        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * v)) + '&nbsp;of the Pot'; }
+        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * BOOKED * v)) + '&nbsp;to Your Books'; }
       };
     });
     var send = host.querySelector('[data-wsend]');
@@ -9129,7 +9128,7 @@
         var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per);
         var wasV = was && was[c] != null ? Math.max(0, Math.min(1, was[c])) : v;
         var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
-        var came = Math.round((banked[c] || 0) * SC);
+        var came = unitsOf(banked[c]);
         return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
                (came ? '<div class="m">Came Home This Year: ' + came.toLocaleString('en-US') + '</div>' : '') + '</span>' +
                '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i>' +

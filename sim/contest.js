@@ -502,7 +502,7 @@
         }
         return;
       }
-      st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: q.moving.kind });
+      st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: q.moving.kind, cost: q.moving.cost });
       q.zone = to; q.moving = null; q.visited.push(to); st.audit.steps++;
       if (q.harass) q.harass = null;
       /* out of a dying region and at its door: it thinks again within the day, so the door is not held against the friends behind it */

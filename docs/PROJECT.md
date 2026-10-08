@@ -329,3 +329,9 @@ lean one pleases.
 - A game is one world seed, drawn fresh when it is founded and saved with it. Every roll is that
   seed and a name; nothing reads a clock or unseeded dice; the seats' decisions are the only
   other input. Two machines holding the seed and the decisions hold the same game.
+- One quantity, one unit, everywhere it is read. A seat is a being (a Mon-Wa pair is one): counts of
+  the dead, the lost, the taken, a squad's strength and a strike are counted in beings. Health is
+  0–100 on the books and a fraction on the ground; harm carried into the Divide is the fighter's
+  start, and only harm taken there is booked. Money on paper is yearly (a month's wage ×12); the pot is
+  weighed at the share that reaches the books. One famous bar (55) for every reader. A loss is counted
+  once per being, at the Divide or the Eight. Months are counted straight through the year's turn.

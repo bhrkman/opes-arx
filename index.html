@@ -2707,10 +2707,6 @@
    "special": {
     "paired": true,
     "roster_slots": 1,
-    "tether_miles": {
-     "untrained": 2,
-     "trained": 5
-    },
     "tether_note": "Canon: cannot be split-tasked beyond miles; forced separation risks collapse. MODEL DELIVERED (COMBAT.md 8.1): day-loop tether enforced at squad assignment; in-engagement the halves must share an engagement and adjacent bands, and separation costs -25 composure/exchange to both plus aim_eff -4.",
     "partner_death_roll": {
      "death": 0.6,
@@ -11142,7 +11138,6 @@
         qualityShift: mon.meta.qualityShift,
         scout: mon.meta.scout,
         scoutWa: wa.meta.scout,
-        tether: race.special.tether_miles,
         contractNote: "one roster slot · one salary line · contract mirrored on both halves"
       }
     };
@@ -11244,13 +11239,13 @@
       when: c => c.f.stats.aim >= 150,
       text: c => `AIM ${c.f.stats.aim}! You don't coach that — you just point it at whatever the corp wants gone!` },
     { key: "spike_reflex", tier: 3, register: "hype",
-      when: c => c.f.stats.reflex >= 15,
+      when: c => c.f.stats.reflex >= 150,
       text: c => `Blink and ${c.name} is already behind different cover. Reflex ${c.f.stats.reflex} moves odds boards.` },
     { key: "spike_tactics", tier: 3, register: "dry",
       when: c => c.f.stats.tactics >= 150,
       text: c => `Tactics ${c.f.stats.tactics}. Somebody will hand ${c.name} a captaincy and look clever for a decade.` },
     { key: "spike_presence", tier: 3, register: "hype",
-      when: c => c.f.stats.presence >= 15,
+      when: c => c.f.stats.presence >= 150,
       text: c => `Rooms reorganize when ${c.name} walks in. Presence ${c.f.stats.presence} — and yes, the cameras have noticed.` },
     { key: "spike_grit", tier: 3, register: "hype",
       when: c => c.f.stats.grit >= 150,
@@ -12075,7 +12070,7 @@
                 : (item.damage === 'energy' || item.family === 'energy') ? 'energy' : 'ballistic';
       return Math.max(0, Math.min(0.6, opts.discount(fam) || 0));
     };
-    const priceOf = (item) => Math.round((item.cost || 0) * (1 - disc(item)));
+    const priceOf = (item) => Math.round((item.cost || 0) * (opts.priceMult || 1) * (1 - disc(item)));   /* the year's swing, less a standing */
     const cheapFirst = (items) => items.slice().sort((x, y) => x.cost - y.cost);
     let spent = 0, money = budget, cash = 0;
 
@@ -12209,7 +12204,7 @@
           if (onRack) { q.b.loadout[q.slot] = onRack.id; spent += priceOf(onRack); continue; }
           pick = (q.slot === 'primary' ? roleFirst(q.b, cheapFirst(fits)) : cheapFirst(fits))[0] || cheapFirst(ranked).find(c => spent + c.cost <= allow - essentials) || cheapFirst(ranked)[0];
         }
-        money -= pick.cost; cash += pick.cost; spent += pick.cost;
+        money -= priceOf(pick); cash += priceOf(pick); spent += pick.cost;   /* §SPONSORS the yard's discount is in the cash */
         q.b.loadout[q.slot] = pick.id;
         if (q.slot === 'primary') q.b.boughtPrimary = true;   /* a corp does not buy one body two guns */
       }
@@ -12249,7 +12244,7 @@
       const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
       if (!c || spent + c.cost > allow) continue;
       if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
-      else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [c.id]; spent += c.cost; }
+      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
     }
     /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
     {
@@ -12260,7 +12255,7 @@
       for (const b of needsSide) for (const c of list) {
         if (spent + c.cost > allow) continue;
         if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
-        if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
+        if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.sidearm = c.id; spent += c.cost; break; }
       }
     }
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
@@ -12328,7 +12323,7 @@
         const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
         if (validate(next).length || spent + m.cost > allow) continue;
         if (take(modId)) { b.loadout = next; spent += m.cost; carryIt(b, m); }
-        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; carryIt(b, m); }
+        else if (priceOf(m) <= money) { money -= priceOf(m); cash += priceOf(m); b.loadout = next; spent += m.cost; carryIt(b, m); }
       }
       for (const c of consRanked) {
         if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
@@ -12337,7 +12332,7 @@
         const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([c.id]) });
         if (validate(next).length) continue;
         if (take(c.id)) { b.loadout = next; spent += c.cost; carryIt(b, c); }
-        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; carryIt(b, c); }
+        else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout = next; spent += c.cost; carryIt(b, c); }
       }
     }
     /* §DEVICES an OA whose money runs to it fits devices, spread through the force (ruled) */
@@ -12358,7 +12353,7 @@
         const next = Object.assign({}, b.loadout, { consumables: cons.concat([dId]) });
         if (validate(next).length) continue;
         if (take(dId)) b.loadout = next;
-        else if (dv.cost <= money) { money -= dv.cost; cash += dv.cost; b.loadout = next; }
+        else if (priceOf(dv) <= money) { money -= priceOf(dv); cash += priceOf(dv); b.loadout = next; }
       }
     }
     const prim = {}, band = {};
@@ -13611,7 +13606,7 @@
         }
         return;
       }
-      st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: q.moving.kind });
+      st.events.push({ t: 'move', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to, kind: q.moving.kind, cost: q.moving.cost });
       q.zone = to; q.moving = null; q.visited.push(to); st.audit.steps++;
       if (q.harass) q.harass = null;
       /* out of a dying region and at its door: it thinks again within the day, so the door is not held against the friends behind it */
@@ -14290,6 +14285,7 @@
     /* §4 fame — attention, not approval (R11) */
     FAME_FLOOR: 0,                      // [S]
     FAME_CEIL: 100,                     // [S]
+    FAMOUS_AT: 55,                      // [S] (unified) a name the fleet knows: one bar for every reader of "famous"
     FAME_DECAY: 0.88,                   // [C] per season; the fleet forgets a person faster
     PRESENCE_FAME: 1.5,                 // [C] §PRESENCE fame earned, across the stat's spread (was 0.5, kills only)
     PRESENCE_FAME_MIN: 0.25,            // [C] the least visible hand earns this share
@@ -15871,7 +15867,8 @@
   /* --------------------------------------------------------------------- the engine builds */
   /** what an engine OA wants to build next, by its temperament and what it can afford to leave in the bank */
   /* §MONEY (ruled) from what the seat's reckoning leaves for building (season.js planFor), not a reserve of its own */
-  function aiChoose(corp, budget) {
+  function aiChoose(corp, budget, mult) {
+    mult = mult || 1;   /* the year's price swing, as startBuild charges it */
     const g = grounds(corp); if (g.build) return null;
     const d = (corp.profile && corp.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
@@ -15885,7 +15882,7 @@
     };
     const purse = (corp.account && corp.account.treasury) || 0;
     const opts = IDS.map(id => ({ id, nx: nextLevel(corp, id) }))
-      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && o.nx.cost <= budget && o.nx.cost <= purse)
+      .filter(o => o.nx && o.nx.cost > 0 && !capped(corp, o.id) && o.nx.cost * mult <= budget && o.nx.cost * mult <= purse)
       /* §CENSUS A HOUSE CLIMBS WHAT IT CARES FOR. Measured: with a flat penalty on every level above one, all eight
          houses built all six first levels before any second, so a militarist had its Listening Post before a better
          Armoury. Want is squared: a strong taste outbids a cheap level of a thing the house barely wants. */
@@ -16470,7 +16467,7 @@
   const POOL = [
     {
       id: 'raise', weight: 1.4,
-      when: (c) => { const cand = alive(c).filter(f => (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked); return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
+      when: (c) => { const cand = alive(c).filter(f => !f.mirror_of && (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked);   /* a pair asks on its Mon's paper */ return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
       make: (f, c, ctx) => {
         /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the OA asks louder */
         let raiseMult = CONST.RAISE_FRAC;
@@ -16751,8 +16748,8 @@
     },
     {
       id: 'strike', weight: 0.9,
-      when: (c, ctx) => coldOf(c, ['families']) && alive(c).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
-      make: (x, c) => { const bill = alive(c).length * CONST.STRIKE_PER_HEAD;
+      when: (c, ctx) => coldOf(c, ['families']) && alive(c).filter(f => !f.mirror_of).length >= 6 && !ctx.corpFlags(c)['strike' + ctx.season] ? true : null,
+      make: (x, c) => { const bill = alive(c).filter(f => !f.mirror_of).length * CONST.STRIKE_PER_HEAD;   /* a pair draws one wage */
         return { kind: 'strike', amount: bill, title: 'The Barracks Downs Tools',
           text: 'Your people have heard what their Families think of the OA, and have stopped drilling until somebody pays them to start.',
           options: [
@@ -17597,7 +17594,7 @@ function seedComposure(f, hooks, opts) {
     CONST.XP_DIVIDE * (xp.divides || 0) + CONST.XP_BATTLE * (xp.battles || 0) + CONST.XP_DIVIDEND * (xp.dividends || 0)
   );
   let c = CONST.COMP_BASE
-    + CONST.COMP_MORALE * ((f.condition && f.condition.morale) || 50)
+    + CONST.COMP_MORALE * ((f.condition && f.condition.morale != null) ? f.condition.morale : 50)   /* a broken man's 0 is 0 */
     + CONST.COMP_RESOLVE * f.stats.resolve
     + experienceBonus
     /* the third reader of the one store: what a career of Divides has left in a person
@@ -21671,7 +21668,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     ODDS_SHARPNESS: 1.6,                // [H] above 1, a lead is worth more than its size
     ODDS_QUIET_BONUS: 0.22,             // [C] a corp nobody has seen fighting is overrated
     ODDS_KIT_WEIGHT: 0.38,              // [C] how much visible gear moves the board
-    KIT_REFERENCE_PER_BODY: 1750,       // [C] the fleet's middling loadout, the board's yardstick
+    KIT_REFERENCE_PER_BODY: 3600,       // [C] the fleet's middling loadout, the board's yardstick (re-measured on the repriced guns: median ₡3,625 a body)
     INJURED_WEIGHT: 0.45,               // [C] a body in the camp tent is worth something
 
     BANNER_SHAME: 0.22,                 // [C] §5.3b what the fleet's regard for an OA moves its price
@@ -21942,7 +21939,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (bodies.length) {
       const standing = active.length / bodies.length;
       const cond = active.length
-        ? active.reduce((t, b) => t + (((b.condition || {}).health != null) ? b.condition.health : 100), 0) / active.length / 100 : 0;
+        /* the harm each carries on the ground (`_hpFrac`) as well as the year's wound: walking wounded are not whole */
+        ? active.reduce((t, b) => t + Math.min(((b.condition || {}).health != null) ? b.condition.health : 100, b._hpFrac != null ? b._hpFrac * 100 : 100), 0) / active.length / 100 : 0;
       const h = standing * 0.7 + cond * 0.3;                /* 1 = everybody up and whole */
       why.health = -CONST.APPETITE_HEALTH * Math.max(0, Math.min(1, (1 - h) / 0.4));
       a += why.health;
@@ -22007,7 +22005,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (price > ceiling) return false;
     /* the Divide's corp carries its season account under `persist` (one treasury, SEASONS.md) */
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
-    return !(acct && acct.treasury < price);
+    /* what it has already committed and not yet been charged: the drop's kit (posted at the settlement) and the ransoms
+       it has agreed this Divide — the same cash cannot buy two men back */
+    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0);
+    return !(acct && acct.treasury - committed < price);
   }
   /* ------------------------------------------------------------------ */
   /* §10.3 settlement                                                    */
@@ -22056,6 +22057,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             f.contract.divides_served = Math.max(f.contract.divides_served || 0,
                                                  f.contract.divides_required);
           bonuses.freed++;
+        } else if (f.contract && f.contract.mirrored) {
+          continue;   /* §MON-WA a pair's one contract is paid its bonus once, on its Mon */
         } else if (origin === 'mercenary') {
           const b = Math.round(((f.contract && f.contract.salary) || 0) * CONST.WIN_BONUS_MERC);
           bonuses.mercs += b; bonuses.total += b;
@@ -22437,7 +22440,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const last = hist[hist.length - 1] || {};
     const sent = last.dropped || 0, lost = last.dead || 0;
     const came = sent > 0 ? 1 - lost / sent : 0.75;
-    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of);   /* people */
     switch (style.wants) {
       case 'aggression': return Math.min(1, (dials.aggression || 50) / 90);
       case 'clean':      return came;
@@ -23141,9 +23144,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
     /* §MONEY what the seat's reckoning leaves for kit at the drop (season.js planFor); a one-off Divide spends what it holds */
-    corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury)
-                   * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
+    corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury);
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
+    /* §STAFF an Armourer stretches what the house means to field, not the cash: the cash is all the reckoning leaves
+       (boosting it spent the families' hold and the cushion) */
+    intent.allowance *= ((corp.persist && corp.persist.kitBoost) || 1);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the
        hand OUTRANKS the quartermaster: it draws from the rack first, buys what the rack
@@ -23229,6 +23234,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     let plan = ITEMS.planForce(doc.id, total - handed, {
       maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
       family: (corp.persist && corp.persist.kitFamily) || null,   /* §SPONSORS the guns a contract asks for */
+      priceMult: (corp.persist && corp.persist.priceMult) || 1,
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -23261,6 +23267,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         plan = ITEMS.planForce(doc.id, total - handed, {
           maxTier: (corp.persist && corp.persist.maxTier) || 5,
           family: (corp.persist && corp.persist.kitFamily) || null,
+          priceMult: (corp.persist && corp.persist.priceMult) || 1,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -23743,7 +23750,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     stats._settleRansom = settleRansom;
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
-    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;
+    /* §WITHDRAWAL (fixed) THE POT IS WEIGHED AS IT REACHES THE BOOKS. A house banks only its squad's share of what it wins
+       (LED.squadBonus — the rest is the OA's), and a promise kept to a leaver is cut the same way; the losses it weighs
+       against them (benefits, wages, kit) are book credits. Weighed whole, the pot outweighed a lost man about three times
+       over and houses fought on past what staying was worth. */
+    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = ((planet.pot && planet.pot.value) || 0) * LED.CONST.SQUAD_BONUS_SHARE;
     const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
@@ -23801,8 +23812,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       /* §WITHDRAWAL (ruled) WHAT A MAN LOST COSTS, ALL OF IT: his family's benefit, a year's wage to put somebody in his
          place, the Divides he has been through (the training that does not come back with the replacement), and the kit
          he carries. It was the wage and the kit, so the families — real money in the books — were never weighed. */
-      const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.death_benefit) || 0)
-                    + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS
+      /* (a pair's one contract is paid once: the Wa's mirrored copy carries no benefit and no wage — LED.paid) */
+      const worth = alive.length ? alive.reduce((t, b) => t + (LED.paid(b) ? ((b.contract && b.contract.death_benefit) || 0)
+                    + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS : 0)
                     + Math.min(CONST.LEAVE_TRAINING_CAP, ((b.experience || {}).divides || 0) + ((b.divides) || 0)) * CONST.LEAVE_TRAINING_PER_DIVIDE
                     + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
@@ -24888,11 +24900,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         f.status = 'dead'; stats.dead++; killed++;
         /* §3.1 / §4.2 — who did it, whose they were, and how well known they were. Without
            this the `their_dead` act and every fame transfer are unreachable. */
-        if (victors && victors.corp && victors.corp.rep) {
+        /* §MON-WA a pair killed in both bodies is one death to the crowds and one fame to take: its Wa is not counted */
+        const halfOfDead = f.mirror_of && u.pair && u.pair.halves.every(h => h.state === 'dead');
+        if (victors && victors.corp && victors.corp.rep && !halfOfDead) {
           const bag = (victors.corp._killsBy = victors.corp._killsBy || {});
           const e = (bag[f._oaId || sq.corpId] = bag[f._oaId || sq.corpId] || { n: 0, famous: 0 });
           e.n++;
-          if ((f.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++;
+          if ((f.fame || 0) >= REP.CONST.FAMOUS_AT) e.famous++;
           /* the victim's OA: a combined side hands each fighter back to the squad they marched in with */
           const vsq = owner[u.id] || sq;
           transferFame(f, victors.bodies || [], vsq && vsq.corp, victors.corp);
@@ -25019,7 +25033,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
       corps.push(corp);
     }
-    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; delete b._rounds; delete b._sideRounds; delete b._charge; } }   /* last year's captivity is over, and every body lands whole, on a full load */
+    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; delete b._hpIn; delete b._rounds; delete b._sideRounds; delete b._charge;
+      /* §WOUNDS (ruled) a man sent while mending lands carrying it: his harm on the ground starts at his health's band, so
+         every reader of `_hpFrac` (his worth in a fight, the medkit, the weather, the withdrawal) sees it — and what he
+         brought is remembered, so only what the Divide adds comes home as a new wound */
+      const h = b.condition && b.condition.health;
+      if (h != null && h < 100) { b._hpFrac = hpBand(h / 100); b._hpIn = b._hpFrac; } } }   /* last year's captivity is over, and every body lands on a full load */
     for (const c of corps) { const m = (opts.mediaRevealed || {})[c.id]; if (m) c._mediaReveal = m.reveal || 0; }
 
     /* §DROP WHERE EVERYBODY COMES DOWN. The draft dealt zones (`opts.dropZones = { corpId: [zone a squad] }`): one
@@ -25859,7 +25878,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         CONTEST.tick(cst);
         mirror();
         for (const e of cst.events.slice(before)) {
-          if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
+          if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.cost != null ? e.cost : ground.regions[Z[e.to].region].ticks)   /* §UNITS the ticks the step actually took (a route's own length, not a flat four) */; stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
           if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) {
               /* §HARASS a long round across a zone: a wound short of going down, on whoever it finds; it keeps walking and
@@ -25953,11 +25972,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (f.status !== 'captured') continue;
         const captor = corps.find(c => c.id === f._capturedBy) || null;
         const out = captor ? 'kept' : 'released';
-        stats.captiveOutcomes[out]++;
+        const once = !hasLead(corps, f);   /* §MON-WA a pair is one captive: counted and answered for once, on its Mon */
+        if (once) stats.captiveOutcomes[out]++;
         if (!hasLead(corps, f)) stats.captiveLog.push({ fighter: f.id, name: f.pair_name || f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
         if (out === 'released') comeHome(f);
         else { f.status = 'active'; f._transferredTo = captor.id; }
-        if (captor && captor.rep) REP.act(captor.rep, 'kept_captive', { targetId: owner.id, rivalIds: corpIds });
+        if (captor && captor.rep && once) REP.act(captor.rep, 'kept_captive', { targetId: owner.id, rivalIds: corpIds });
       }
     }
 
@@ -25968,9 +25988,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!c.rep) continue;
       let ourDead = 0, ourFamous = 0, loudest = 1;
       for (const b of c.allBodies) {
-        if (b.status !== 'dead') continue;
+        if (b.status !== 'dead' || b._carriedOn) continue;
+        if (b.mirror_of && c.allBodies.some(x => x.id === b.mirror_of && x.status === 'dead')) continue;   /* §MON-WA one person */
         ourDead++;
-        if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) ourFamous++;
+        if ((b.fame || 0) >= REP.CONST.FAMOUS_AT) ourFamous++;
         /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
            magnet is who the fleet decides it was about — the loudest name among the fallen
            carries the whole notice, which is how a fleet reads a casualty list. Read through
@@ -26066,8 +26087,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* (after the standing and the placings are read: a walking wound stood to the end) */
     /* §WOUNDS (ruled) what the Divide left on a body comes home as a wound, by its band, and mends there */
     for (const c of corps) for (const b of (c.allBodies || [])) {
-      const frac = b._hpFrac; delete b._hpFrac;
-      if (frac == null || frac >= 1 || b.status !== 'active') continue;
+      const frac = b._hpFrac, came = b._hpIn != null ? b._hpIn : 1; delete b._hpFrac; delete b._hpIn;
+      if (frac == null || frac >= came || b.status !== 'active') continue;   /* only harm the Divide did */
       const sev = frac >= 0.8 ? 'minor' : frac >= 0.5 ? 'serious' : 'critical';
       const inj = sev === 'minor' ? { type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 5, 15), untreated: false }
                 : C.rollInjury(rng, { race: b.race && b.race.id ? b.race.id : b.race, hooks: C.hooksOf(b, ROSTER.traitById) }, sev);
@@ -26216,11 +26237,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          with the rest), and how many of them the fleet knew by name */
       pc.placement = stats.placement ? stats.placement[c.id] : null;
       pc.ceded = !!c.withdrawn; pc.cededDay = c.withdrawn ? c.withdrawn.day : null;
-      const lostBodies = (c.allBodies || []).filter(b => b.status === 'dead' || b.status === 'retired');
+      /* a body whose being lives on in a severed survivor (`_carriedOn`) is not a person lost */
+      const lostBodies = (c.allBodies || []).filter(b => (b.status === 'dead' || b.status === 'retired') && !b._carriedOn);
       /* §MON-WA a board counts the people it lost: a pair that died is one */
       const lostHere = lostBodies.filter(b => !(b.mirror_of && lostBodies.some(x => x.id === b.mirror_of)));
       pc.permanent = lostHere.length; pc.dead = lostHere.length;
-      pc.famousLosses = lostHere.filter(b => (b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35).length;
+      pc.famousLosses = lostHere.filter(b => (b.fame || 0) >= REP.CONST.FAMOUS_AT).length;
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;
     }
@@ -26298,9 +26320,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     LETTER_REGARD: 0.15,        // [C] §STANDING how far a house's regard moves what it opens a letter at, either way
     /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
        fleet's own wage bill pays about this much for a point of quality (median salary ×
-       12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
-       break-even instead of every body being a bargain or a burden. */
-    CREDITS_PER_QUALITY: 33,
+       12 ÷ median quality — re-measured on today's wages: ₡4,800 ÷ 105.6 = 45). Anchoring here is what makes a median
+       contract trade near break-even instead of every body being a bargain or a burden. */
+    CREDITS_PER_QUALITY: 45,
     FAME_LIFT: 0.01,              // [H] per point of fame, on worth
     SALARY_MONTHS: 12,            // [S] a season of wages, matching the ledger
     INTEL_PREMIUM: 1.35,          // [H] over the raw focus price, for the edge it carries
@@ -26620,7 +26642,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!tradingOpen(month)) return [];
     const done = [];
     const attempts = opts.attempts || 2;
-    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of);   /* people: a pair is one */
     for (let n = 0; n < attempts; n++) {
       if (rng() > (opts.chance != null ? opts.chance : CONST.FLEET_TRADE_CHANCE)) continue;
       /* the thinnest roster shops; the deepest sells — AMONG THE OTHER SEVEN. The manager's
@@ -27165,7 +27187,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          that did not exist last year, and none of them are mercenaries — that market opens at
          the year's end, which is the first real choice a founder makes */
       if (lean) for (const f of roster) {
-        if (f.contract) { f.contract.seasons = 1; f.contract.kind = f.contract.kind === 'mercenary' ? 'nattie' : f.contract.kind; }
+        if (f.contract) { f.contract.seasons = 1; f.contract.seasons_remaining = 1; f.contract.seasons_total = 1; f.contract.kind = f.contract.kind === 'mercenary' ? 'nattie' : f.contract.kind; }
       }
       corps[profile.id] = {
         id: profile.id, profile,
@@ -27490,7 +27512,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         return { tag: corp.id, corpId: corp.id, policy: 'standard', policyName: 'standard',
                  hasMedkit: true,
                  units: TAC.wirePairs(bodies.map(f => C.makeCombatant(f, { traitIndex: ROSTER.traitById,
-                                                             isCaptain: f.id === cap.id, day: 1 }))) };
+                                                             isCaptain: f.id === cap.id, day: 1,
+                                                             health: woundOf(f), stress: (f.condition || {}).stress }))) };   /* the situations read them */
       };
       /* THE DIVIDEND IS TELEVISION. Every match is kept whole — sides, frames, and now the
          log the old `log: false` threw away — riding the season's own dividend tally, so
@@ -27603,6 +27626,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function runEight(rng, corps, ids, season, state) {
     const E = state.eight = state.eight || { names: {} };
+    for (const id of ids) corps[id]._eightDead = 0;   /* this year's Eight's dead (it counted across every year) */
     /* every OA sends someone; unnamed, its best goes */
     const entrants = [];
     for (const id of ids) {
@@ -27632,7 +27656,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const bodiesOf = e => { const w = wholePairs(e.corp, [e.f], 1); return w.length ? w : [e.f]; };
     const entryOf = new Map();
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
-      units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1 }); entryOf.set(u, e); return u; })))) });
+      units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1, health: woundOf(f), stress: (f.condition || {}).stress }); entryOf.set(u, e); return u; })))) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
     for (const e of entrants) chargeWounded(e.corp, bodiesOf(e), 'eight' + season);   /* §WOUNDS a mending entrant holds it against the house */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
@@ -27643,8 +27667,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const deadBy = {}, hurtBy = {};
     const land = (S) => S.units.forEach(u => {
       const e = entryOf.get(u), f = u.ref;
-      if (u.state === 'dead') { f.status = 'dead'; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
-        if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); }
+      if (u.state === 'dead') { f.status = 'dead';
+        /* §MON-WA an entrant is one person: a pair that dies in both bodies is one loss */
+        if (!e._lost) { e._lost = true; deadBy[e.corp.id] = (deadBy[e.corp.id] || 0) + 1; e.corp._eightDead = (e.corp._eightDead || 0) + 1;
+          if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); } }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
         f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
@@ -27838,6 +27864,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const ids = new Set(list.map(f => f.id));
     return ones.reduce((t, f) => t + (f.bond_partner && ids.has(f.bond_partner) ? 2 : 1), 0);
   }
+  function bonusesOf(list) { return list.filter(f => LED.paid(f)).reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0); }
   function planFor(state, c) {
     const alive = c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired');
     const ones = beings(alive);
@@ -27846,7 +27873,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const ahead = !(state && state.done);   /* the grant, the entry and the purses land at the lock */
     const staff = STAFF.allStaff(c).reduce((a, st) => a + (st.wage || 0), 0);
     const gate = c._lastGate != null ? c._lastGate : LED.CONST.GATE_BASE;
-    const monthNet = gate - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c);
+    /* (fixed) a standing's monthly stipend is income the months bring, as the gate is */
+    const stipend = (SPON && SPON.standingValue) ? SPON.standingValue(c, 'stipend') : 0;
+    const monthNet = gate + stipend - LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS - staff - FAC.upkeep(c);
     const dropN = Math.min(ones.length, CONST.DROP_MAX);
     const drop = ones.slice(0, dropN);
     const dropBodies = bodiesOf(drop, alive);
@@ -27859,7 +27888,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return LED.plan(c.account, { monthsLeft, monthNet, grantDue: ahead, entryDue: ahead, purses: ahead ? LED.purseBill(drop) : 0,
       /* §MONEY (fixed) and the drop's Divide bonuses, which its contracts pay at the settlement — the reckoning held for
          purses and families and not these, and they were the line that most often took a house into the red */
-      hold: cushion + (ahead ? drop.reduce((t, f) => t + ((f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus) || 0), 0) : 0),
+      /* (fixed) held until the settlement pays them — after the lock too, when the drop is known and its kit is bought;
+         a pair's one contract once (LED.paid) */
+      hold: cushion + bonusesOf(ahead ? drop : (state && state.done && !state._settled ? (c._drop || []) : []))
+            /* and the Divide month's twelfth of the retainers, charged at the lock beside the purses */
+            + (ahead ? LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS : 0),
       families: LED.CONST.FAMILIES_SHARE * Math.min(CONST.DROP_MAX, Math.max(dropN, CONST.ROSTER_MIN)) * benefit,
       peopleNeed: want * perBody, gearTarget: Math.max(dropBodies, CONST.ROSTER_MIN) * kitPerBody(c) });
   }
@@ -29705,9 +29738,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          a field off an object that is not there, so it defaulted to 50 and frenzy could never
          fire. Aggression in this project is carried by TRAITS, which do exist. */
       const hot = (f.traits || []).some(t => CONST.FRENZY_TRAITS.indexOf(t) >= 0);
-      if (hot) { f.condition.morale = Math.min(100, (f.condition.morale || 60) + hit * 0.5); f._grief = 'frenzy'; }
-      else if (res < CONST.BREAK_RESOLVE_AT) { f.condition.morale = Math.max(0, (f.condition.morale || 60) - hit * 1.6); f._grief = 'break'; }
-      else { f.condition.morale = Math.max(0, (f.condition.morale || 60) - hit); f._grief = 'mourning'; }
+      if (hot) { f.condition.morale = Math.min(100, (f.condition.morale != null ? f.condition.morale : 60) + hit * 0.5); f._grief = 'frenzy'; }
+      else if (res < CONST.BREAK_RESOLVE_AT) { f.condition.morale = Math.max(0, (f.condition.morale != null ? f.condition.morale : 60) - hit * 1.6); f._grief = 'break'; }
+      else { f.condition.morale = Math.max(0, (f.condition.morale != null ? f.condition.morale : 60) - hit); f._grief = 'mourning'; }
       f._griefUntil = f._grief === 'break' ? CONST.GRIEF_CLOSE_DIVIDES : CONST.GRIEF_DIVIDES;
       touched++;
     }
@@ -30198,7 +30231,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     f.contract = f.contract || {};
     f.contract.salary = Math.round(askingPrice(f, c) / LED.CONST.SALARY_MONTHS);
     f.contract.kind = f.contract.kind || 'nattie';
-    f.contract.seasons_remaining = f.seasons || CONST.RENEWAL_SEASONS;
+    f.contract.seasons_remaining = f.contract.seasons_remaining || f.seasons || CONST.RENEWAL_SEASONS;   /* the term the sheet showed (it fell back to two) */
     f.contract.seasons_total = f.contract.seasons_remaining;
     f._fameAtSigning = f.fame || 0;
     f.status = 'active';
@@ -30437,7 +30470,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     ensureIntel(c, state.season || 0);
     gatherIntel(c, 'rival', fromId, STAFF.CONST.POACH_INTEL_LEVELS, state.season * 100 + state.month,
                 (rowKey, depth) => snapshotRival(them, rowKey, depth, state.season || 0));
-    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: state.season * 100 + state.month + STAFF.CONST.POACH_INTEL_MONTHS });
+    (c._poachIntel = c._poachIntel || []).push({ from: fromId, until: (state.season || 0) * LED.CONST.SEASON_MONTHS + (state.month || 0) + STAFF.CONST.POACH_INTEL_MONTHS });   /* §UNITS a running month count: season*100+month skipped the year's turn, so twelve months ran out at the new year */
     applySpin(c); applySpin(them);
     return { ok: true, staffer: st, fee };
   }
@@ -30492,7 +30525,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
       sg.record.whole = (sg.record.whole || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
     if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
-      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
+      if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 });
       sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
     return { outcome: 'none', line: sg.name + ' Could Do Nothing for ' + f.name };
   }
@@ -30550,7 +30583,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         corp._operated = abs;
         const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
         if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.whole = (sg.record.whole || 0) + 1; }
-        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
+        else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
     }
     const lp = FAC.listenLevels(corp);
@@ -30559,7 +30592,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       gatherIntel(corp, 'planet', null, lp, abs, null);
     }
     if (corp._poachIntel && corp._poachIntel.length) {
-      corp._poachIntel = corp._poachIntel.filter(x => x.until > abs && corps[x.from]);
+      corp._poachIntel = corp._poachIntel.filter(x => x.until > (season || 0) * LED.CONST.SEASON_MONTHS + month && corps[x.from]);
       for (const x of corp._poachIntel) {
         ensureIntel(corp, season || 0);
         gatherIntel(corp, 'rival', x.from, STAFF.CONST.POACH_INTEL_MONTHLY, abs, (rowKey, depth) => snapshotRival(corps[x.from], rowKey, depth, season || 0));
@@ -30634,7 +30667,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /** the engine builds what it wants most from what its reckoning leaves for building, once its people and kit are seen to (§MONEY) */
   function aiBuild(c, state) {
-    const pick = FAC.aiChoose(c, planFor(state, c).build);
+    const pick = FAC.aiChoose(c, planFor(state, c).build, priceMult(state));
     if (pick) FAC.startBuild(c, pick, state.season, state.month, LED.post, priceMult(state));
   }
   /* §FACILITIES A MERCENARY COMES WITH THEIR OWN GEAR, and the price says so: a gun from the family they shoot
@@ -30751,7 +30784,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const alive = c.roster.filter(f => f.status === 'active');
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
-    return q / 100 * Math.min(1, alive.length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);
+    return q / 100 * Math.min(1, beings(alive).length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);   /* seats */
   }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
@@ -31093,7 +31126,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /** §STAFF one item's price on the shelf to one OA: the fleet's month, less what its quartermaster haggles */
   function shelfPrice(state, corpId, it) {
     const c = state.corps[corpId];
-    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)));
+    /* §SPONSORS a standing's yard discount by the item's family (as the quartermaster pays it) */
+    const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
+    const spon = c && SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? SPON.standingDiscount(c, fam) : 0;
+    return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)) * (1 - spon));
   }
   /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
       market, so it lives once rather than three times. */
@@ -31264,6 +31300,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
            held for, and the next year's months held for where its gate does not cover them */
         kitMoney: kitMoneyFor(state, c),
+        priceMult: priceMult(state),   /* §MARKET the year's price swing reaches the yard the drop is bought at */
         /* §SPONSORS the family of guns a signed contract asks for, which the quartermaster issues */
         kitFamily: (SPON && SPON.steerFor) ? SPON.steerFor(c).family : null,
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
@@ -31614,7 +31651,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return {
       won: res.winner === id, placement: mine.placement != null ? mine.placement : null,
       ceded: !!mine.ceded, cededDay: mine.cededDay || 99,
-      permanentLosses: mine.dead != null ? mine.dead : (mine.permanentLosses || 0),
+      permanentLosses: (mine.dead != null ? mine.dead : (mine.permanentLosses || 0)) + ((STATE_REF && STATE_REF.corps && STATE_REF.corps[id] && STATE_REF.corps[id]._eightDead) || 0),
       famousLosses: mine.famousLosses || 0, payout: mine.payout || 0,
       banked: (res.banked || {})[id] || {},
       promises: (res.promises || []).slice()
@@ -31716,7 +31753,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const dropped = c._drop;
       const deadBodies = dropped.filter(f => f.status === 'dead');
       /* §MON-WA losses and the record count people: a pair that died is one (bodies are still each paid off below) */
-      const dead = beings(deadBodies);
+      const dead = beings(deadBodies.filter(f => !f._carriedOn));   /* a being that lives on in a survivor has not died */
+      /* the board's one count of people lost for good: the dead and the careers ended, and the Eight's dead (the page
+         reads the same figure through boardOutcomeFor) */
+      const lostForGood = beings(dropped.filter(f => (f.status === 'dead' || f.status === 'retired') && !f._carriedOn)).length + (c._eightDead || 0);
       let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
@@ -31740,7 +31780,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            (negotiate.js N14, "the winner pays its own people") — one rule, one home */
         /* a nattie's contract pays a bonus for every Divide actually dropped into — the
            participation clause a merc's flat price conspicuously lacks */
-        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus)
+        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus && LED.paid(f))   /* a pair is paid once */
           bonuses += f.contract.divide_bonus;
       }
       if (bonuses) LED.post(c.account, 'expense', 'Divide Bonuses', -bonuses);
@@ -31803,7 +31843,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         placement: res.placement ? res.placement[id] : null,
         won: res.winner === id,
         banked: (res.banked && res.banked[id]) || {},
-        permanentLosses: dead.length + (c._eightDead || 0),
+        permanentLosses: lostForGood,
         /* R25 — the two standing demands. `spendRatio` is what this corp laid out on kit,
            wages and the backroom as a share of its own stipend, read against the fleet's
            going rate this season (§THRIFT above): 1.0 is an ordinary year for the economy as
@@ -31825,7 +31865,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           c._starsLast = stars;
           return 0;
         })(),
-        famousLosses: dead.filter(f => (f.fame || 0) >= 55).length
+        famousLosses: dead.filter(f => (f.fame || 0) >= REP.CONST.FAMOUS_AT).length
       });
       /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
          the one place a haul becomes credits, and only for what spilled over */
@@ -31930,7 +31970,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
         /* taken and not given back: a captive the other side kept to the end */
-        captured: drop.filter(f => f._transferredTo && f.status !== 'dead').length,
+        captured: beings(drop.filter(f => f._transferredTo && f.status !== 'dead')).length,
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
@@ -31994,6 +32034,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
     keepPairsWhole(state);   /* §MON-WA after the settlement: a kept captive's other half goes with him */
+    state._settled = true;   /* the bonuses are paid: the reckoning stops holding them */
     return rec;
   }
 
@@ -32615,7 +32656,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var STAT = [['aim','Aim'],['grit','Grit'],['reflex','Reflex'],['fieldcraft','Fieldcraft'],
                 ['tactics','Tactics'],['presence','Presence'],['resolve','Resolve']];
     var statCells = STAT.map(function (p) { return statCell(p[0], p[1], s[p[0]]); }).join('') +
-      '<span class="st health"><span class="k">Hit Points</span><span class="v" style="color:' + gradeColour(health, hpSpread()) + '">' + Math.round(health) + '</span></span>';
+      /* a man mending starts a fight at his health's share of the pool (combat startFrac): what he has, of what he could */
+      '<span class="st health"><span class="k">Hit Points</span><span class="v" style="color:' + gradeColour(health, hpSpread()) + '">' +
+        (b.condition && b.condition.health != null && b.condition.health < 100 ? Math.max(1, Math.round(health * b.condition.health / 100)) + ' / ' : '') + Math.round(health) + '</span></span>';
 
     /* weapon skill: the six families the engine trains (long/medium/close x ballistic/energy) */
     /* §SKILLS AIM, A DAMAGE CLASS, A WEAPON TYPE: the two classes, the types this hand stands out at (best three,
@@ -32823,11 +32866,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        was still reading the old field. Flat points first, then what it is worth and WHEN, then
        any machinery a hook carries. */
     var e = tr.effects || {}, lines = [];
-    for (var k in (e.stat_mods || {})) {          /* the old field, in tenths */
-      var v = e.stat_mods[k];
-      lines.push((v > 0 ? '+' : '') + (v * 10) + ' ' + (STATNAME[k] || capWords(k)));
-    }
-    for (var k2 in (e.stats || {})) {             /* and the new one, in real points */
+    for (var k2 in (e.stats || {})) {             /* flat points */
       var v2 = e.stats[k2];
       lines.push((v2 > 0 ? '+' : '') + v2 + ' ' + (STATNAME[k2] || capWords(k2)));
     }
@@ -32927,14 +32966,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var gear = (prim ? prim.tier : 0) * 3 + (arm ? arm.tier : 0) * 2;      /* armed and plated */
     var qk = (f.traits || []).reduce(function (n, t) {
       var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects) return n;
-      var sm = tr.effects.stat_mods || {}, sum = 0;
+      var sm = tr.effects.stats || {}, sum = 0;   /* §UNITS real points (the old field was tenths) */
       for (var k in sm) sum += sm[k];
-      return n + sum * 2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
+      return n + sum * 0.2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
                - ((tr.tags || []).indexOf('negative') >= 0 ? 2 : 0);
     }, 0);
     var cond = 1 - Math.min(0.35, ((f.condition && f.condition.fatigue || 0) * 0.003 +
                                    (f.condition && f.condition.stress || 0) * 0.002));
-    var hurt = (f.condition && (f.condition.injuries || []).length) ? 0.82 : 1;
+    var hurt = riskOf(f) ? 0.82 : 1;   /* mending (health), not a list that keeps its scars */
     return Math.max(1, Math.round((base + gear + qk) * cond * hurt));
   }
   function ratingBand(r) { return r >= 120 ? 'good' : r >= 95 ? '' : r >= 75 ? 'warn' : 'bad'; }
@@ -33138,7 +33177,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
             '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
-            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs(r.called.offer || low) + ' \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs((r.called.offer || low) * 12) + '/yr \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
             /* a man whose sentence this Divide completes is freed at the year's end and decides for himself */
             : r.freed ? '<div class="rsdone">Freed at Year\u2019s End \u00b7 His Own Choice</div>'
@@ -33166,8 +33205,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         }
         SEASON.answerRenewal(G.state, G.me, id, how, typed);
         dlog(how === 'release' ? '<span class="m">' + esc(row.name) + ' Will Not Be Kept</span>'
-           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs(Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) + '</span>'
-           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks) + '</span>');
+           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs((typed || Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) * 12) + '/yr</span>'
+           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks * 12) + '/yr</span>');   /* the stored figures are a month's */
         renderRoster();
       };
     });
@@ -35873,7 +35912,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       return '<span><span class="k" style="color:' + STATCOL[k] + '">' + STAT_ABBR[k] + '</span> <b style="color:' +
              gradeColour(s[k]) + '">' + fmtStat(s[k]) + '</b></span>';
     }).join('') +
-    '<span><span class="k" style="color:var(--s-health)">HP</span> <b style="color:' + gradeColour(hp, hpSpread()) + '">' + Math.round(hp) + '</b></span></div>';
+    '<span><span class="k" style="color:var(--s-health)">HP</span> <b style="color:' + gradeColour(hp, hpSpread()) + '">' +
+      (b.condition && b.condition.health != null && b.condition.health < 100 ? Math.max(1, Math.round(hp * b.condition.health / 100)) + '/' : '') + Math.round(hp) + '</b></span></div>';
   }
   /* THE FIGHTER CARD, the same on the bench and in a squad; a squad's card adds the star and
      the cross */
@@ -36027,7 +36067,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var wrap = $('sqboxes'), h = '', total = 0, used = 0;
     for (var si = 0; si < 6; si++) {
       /* a squad is counted in SEATS: a Mon-Wa pair is one place and two bodies */
-      var mem = squadMembers(fit, si), n = squadSeats(fit, si), bodies = mem.length;
+      var mem = squadMembers(fit, si), n = squadSeats(fit, si);
+      var bodies = mem.length + mem.filter(function (b) { return partnerIn(b, G.corps[G.me].roster); }).length;   /* a pair's second body */
       total += n; if (n) used++;
       var bad = n > 0 && (n < MIN || n > MAX);
       var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX;
@@ -36269,13 +36310,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (base === 'consumable') return (kit.consumables || [])[slotIdx(key)] || null;
     return kit[base] || null;
   }
-  function kitBulk(kit) {
-    var v = 0;
-    [kit.primary, kit.sidearm, kit.armor].concat(kit.mods || [], kit.consumables || []).forEach(function (id) {
-      var it = id && ITEM_BY_ID[id]; if (it) v += it.bulk || 0;
-    });
-    return v;
-  }
+  function kitBulk(kit) { return ITEMS.bulk(kit); }   /* the engine's own sum: mods that weigh, and rounds */
+  function bulkCap(b) { return ITEMS.CONST.SQUAD_BULK_PER_HEAD + ((((ROSTER.raceById || {})[b && b.race] || {}).special || {}).carry_bonus || 0); }
+
 
   /* catalog value of a kit — the same sum the Divide charges against the cap */
   function kitValueOf(k) {
@@ -36345,7 +36382,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                 : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span>' +
           /* §ROUNDS what he carries is weighed at his squad: past eight a head, the squad hauls it in fatigue */
-          '<span class="ktag' + (kitBulk(kit) > ITEMS.CONST.SQUAD_BULK_PER_HEAD ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + ITEMS.CONST.SQUAD_BULK_PER_HEAD + '</span></div>' +
+          '<span class="ktag' + (kitBulk(kit) > bulkCap(b) ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + bulkCap(b) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && handProblem(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">Refused \u00b7 ' + handProblem(b) + '</div>' : '') +
           '<div id="pickerhost"></div></div>' +
@@ -37734,6 +37771,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var WASK = null;
   var WCATS = [['credits', 'Credits'], ['minerals', 'Minerals'], ['fuels', 'Fuels'],
                ['luxuries', 'Luxuries'], ['foods', 'Foods']];
+  /* what a share of the pot is worth on a house's own books (LED.squadBonus: the squad's share; the rest is the OA's) */
+  var BOOKED = (window.CDLEDGER && CDLEDGER.CONST && CDLEDGER.CONST.SQUAD_BONUS_SHARE) || 1;
   function renderWithdraw(w, you, others) {
     var host = $('withdraw'); if (!host) return;
     if (!w || (you && you.withdrawn)) {
@@ -37760,7 +37799,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
-         '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;of the Pot</span></div>';
+         '<span class="is cr">' + crs(Math.round(pot * BOOKED * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
     WCATS.slice(1).forEach(function (c) {
       var pc = Math.round((cur[c[0]] || 0) * 100), has = planetHolds(c[0]);
@@ -37774,7 +37813,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     h += '<div class="wreps"><div class="hrow"><span>OA</span><span>How They Stand</span>' +
          '<span>Their Word</span><span class="last">Answer</span></div>';
     live.forEach(function (id) {
-      var tr = trustOf(id, cur.credits || 0), ans = replies[id];
+      var askAll = (cur.credits || 0) + ['minerals', 'fuels', 'luxuries', 'foods'].reduce(function (t, k) { return t + Math.max(0, Math.min(1, cur[k] || 0)) / 4; }, 0);   /* stores at a quarter, as the engine weighs them */
+      var tr = trustOf(id, askAll), ans = replies[id];
       var cls = ans === true ? 'yes' : ans === false ? 'no' : 'wait';
 
       var word = ans === true ? 'Yes' : ans === false ? 'No' : offer ? 'Waiting' : '\u2014';
@@ -37830,7 +37870,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         if (!tile) return;
         tile.classList.toggle('on', v > 0);
         var pct = tile.querySelector('.pct'); if (pct) pct.textContent = Math.round(v * 100) + '%';
-        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * v)) + '&nbsp;of the Pot'; }
+        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * BOOKED * v)) + '&nbsp;to Your Books'; }
       };
     });
     var send = host.querySelector('[data-wsend]');
@@ -39088,7 +39128,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         var v = Math.max(0, Math.min(1, holds[c] || 0)), units = Math.round(v * per);
         var wasV = was && was[c] != null ? Math.max(0, Math.min(1, was[c])) : v;
         var col = v < 0.25 ? 'var(--bad)' : v < 0.5 ? 'var(--cred)' : 'var(--hit)';
-        var came = Math.round((banked[c] || 0) * SC);
+        var came = unitsOf(banked[c]);
         return '<div class="holdrow"><span class="hn">' + CAT_NAME[c] + (asked[c] ? ' <span class="ktag hand">Asked</span>' : '') +
                (came ? '<div class="m">Came Home This Year: ' + came.toLocaleString('en-US') + '</div>' : '') + '</span>' +
                '<span class="hbar"><i style="width:' + Math.round(v * 100) + '%;background:' + col + '"></i>' +

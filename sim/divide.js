@@ -336,9 +336,11 @@
        persistent Corp hands its actual account in; a one-off Divide still opens one. */
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
     /* §MONEY what the seat's reckoning leaves for kit at the drop (season.js planFor); a one-off Divide spends what it holds */
-    corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury)
-                   * ((corp.persist && corp.persist.kitBoost) || 1);   /* §STAFF an Armourer */
+    corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury);
     const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
+    /* §STAFF an Armourer stretches what the house means to field, not the cash: the cash is all the reckoning leaves
+       (boosting it spent the families' hold and the cushion) */
+    intent.allowance *= ((corp.persist && corp.persist.kitBoost) || 1);
     corp.kitIntent = intent;
     /* THE MANAGER'S HAND. `persist.hand` maps a body's id to a named loadout, and the
        hand OUTRANKS the quartermaster: it draws from the rack first, buys what the rack
@@ -424,6 +426,7 @@
     let plan = ITEMS.planForce(doc.id, total - handed, {
       maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
       family: (corp.persist && corp.persist.kitFamily) || null,   /* §SPONSORS the guns a contract asks for */
+      priceMult: (corp.persist && corp.persist.priceMult) || 1,
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -456,6 +459,7 @@
         plan = ITEMS.planForce(doc.id, total - handed, {
           maxTier: (corp.persist && corp.persist.maxTier) || 5,
           family: (corp.persist && corp.persist.kitFamily) || null,
+          priceMult: (corp.persist && corp.persist.priceMult) || 1,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -938,7 +942,11 @@
     stats._settleRansom = settleRansom;
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
-    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;
+    /* §WITHDRAWAL (fixed) THE POT IS WEIGHED AS IT REACHES THE BOOKS. A house banks only its squad's share of what it wins
+       (LED.squadBonus — the rest is the OA's), and a promise kept to a leaver is cut the same way; the losses it weighs
+       against them (benefits, wages, kit) are book credits. Weighed whole, the pot outweighed a lost man about three times
+       over and houses fought on past what staying was worth. */
+    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = ((planet.pot && planet.pot.value) || 0) * LED.CONST.SQUAD_BONUS_SHARE;
     const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
@@ -996,8 +1004,9 @@
       /* §WITHDRAWAL (ruled) WHAT A MAN LOST COSTS, ALL OF IT: his family's benefit, a year's wage to put somebody in his
          place, the Divides he has been through (the training that does not come back with the replacement), and the kit
          he carries. It was the wage and the kit, so the families — real money in the books — were never weighed. */
-      const worth = alive.length ? alive.reduce((t, b) => t + ((b.contract && b.contract.death_benefit) || 0)
-                    + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS
+      /* (a pair's one contract is paid once: the Wa's mirrored copy carries no benefit and no wage — LED.paid) */
+      const worth = alive.length ? alive.reduce((t, b) => t + (LED.paid(b) ? ((b.contract && b.contract.death_benefit) || 0)
+                    + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS : 0)
                     + Math.min(CONST.LEAVE_TRAINING_CAP, ((b.experience || {}).divides || 0) + ((b.divides) || 0)) * CONST.LEAVE_TRAINING_PER_DIVIDE
                     + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
@@ -2083,11 +2092,13 @@
         f.status = 'dead'; stats.dead++; killed++;
         /* §3.1 / §4.2 — who did it, whose they were, and how well known they were. Without
            this the `their_dead` act and every fame transfer are unreachable. */
-        if (victors && victors.corp && victors.corp.rep) {
+        /* §MON-WA a pair killed in both bodies is one death to the crowds and one fame to take: its Wa is not counted */
+        const halfOfDead = f.mirror_of && u.pair && u.pair.halves.every(h => h.state === 'dead');
+        if (victors && victors.corp && victors.corp.rep && !halfOfDead) {
           const bag = (victors.corp._killsBy = victors.corp._killsBy || {});
           const e = (bag[f._oaId || sq.corpId] = bag[f._oaId || sq.corpId] || { n: 0, famous: 0 });
           e.n++;
-          if ((f.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) e.famous++;
+          if ((f.fame || 0) >= REP.CONST.FAMOUS_AT) e.famous++;
           /* the victim's OA: a combined side hands each fighter back to the squad they marched in with */
           const vsq = owner[u.id] || sq;
           transferFame(f, victors.bodies || [], vsq && vsq.corp, victors.corp);
@@ -2214,7 +2225,12 @@
       }
       corps.push(corp);
     }
-    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; delete b._rounds; delete b._sideRounds; delete b._charge; } }   /* last year's captivity is over, and every body lands whole, on a full load */
+    for (const c of corps) { c._corps = corps; c._ground = ground; for (const b of (c.allBodies || [])) { delete b._transferredTo; delete b._capturedBy; delete b._hpFrac; delete b._hpIn; delete b._rounds; delete b._sideRounds; delete b._charge;
+      /* §WOUNDS (ruled) a man sent while mending lands carrying it: his harm on the ground starts at his health's band, so
+         every reader of `_hpFrac` (his worth in a fight, the medkit, the weather, the withdrawal) sees it — and what he
+         brought is remembered, so only what the Divide adds comes home as a new wound */
+      const h = b.condition && b.condition.health;
+      if (h != null && h < 100) { b._hpFrac = hpBand(h / 100); b._hpIn = b._hpFrac; } } }   /* last year's captivity is over, and every body lands on a full load */
     for (const c of corps) { const m = (opts.mediaRevealed || {})[c.id]; if (m) c._mediaReveal = m.reveal || 0; }
 
     /* §DROP WHERE EVERYBODY COMES DOWN. The draft dealt zones (`opts.dropZones = { corpId: [zone a squad] }`): one
@@ -3054,7 +3070,7 @@
         CONTEST.tick(cst);
         mirror();
         for (const e of cst.events.slice(before)) {
-          if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.kind === 'route' ? 4 : ground.regions[Z[e.to].region].ticks); stats.audit.steps++; }
+          if (e.t === 'move') { const cq0 = cst.squads[e.squad]; cq0.track.push(e.to); cq0.ref.movedToday = true; cq0.ref._marched = (cq0.ref._marched || 0) + (e.cost != null ? e.cost : ground.regions[Z[e.to].region].ticks)   /* §UNITS the ticks the step actually took (a route's own length, not a flat four) */; stats.audit.steps++; }
           if (e.t === 'contact') stats.audit.contacts++;
           if (e.t === 'harass') { const h = cst.squads[e.on].ref; for (let i = 0; i < e.hits; i++) {
               /* §HARASS a long round across a zone: a wound short of going down, on whoever it finds; it keeps walking and
@@ -3148,11 +3164,12 @@
         if (f.status !== 'captured') continue;
         const captor = corps.find(c => c.id === f._capturedBy) || null;
         const out = captor ? 'kept' : 'released';
-        stats.captiveOutcomes[out]++;
+        const once = !hasLead(corps, f);   /* §MON-WA a pair is one captive: counted and answered for once, on its Mon */
+        if (once) stats.captiveOutcomes[out]++;
         if (!hasLead(corps, f)) stats.captiveLog.push({ fighter: f.id, name: f.pair_name || f.name, owner: owner.id, captor: captor ? captor.id : null, out: out });
         if (out === 'released') comeHome(f);
         else { f.status = 'active'; f._transferredTo = captor.id; }
-        if (captor && captor.rep) REP.act(captor.rep, 'kept_captive', { targetId: owner.id, rivalIds: corpIds });
+        if (captor && captor.rep && once) REP.act(captor.rep, 'kept_captive', { targetId: owner.id, rivalIds: corpIds });
       }
     }
 
@@ -3163,9 +3180,10 @@
       if (!c.rep) continue;
       let ourDead = 0, ourFamous = 0, loudest = 1;
       for (const b of c.allBodies) {
-        if (b.status !== 'dead') continue;
+        if (b.status !== 'dead' || b._carriedOn) continue;
+        if (b.mirror_of && c.allBodies.some(x => x.id === b.mirror_of && x.status === 'dead')) continue;   /* §MON-WA one person */
         ourDead++;
-        if ((b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35) ourFamous++;
+        if ((b.fame || 0) >= REP.CONST.FAMOUS_AT) ourFamous++;
         /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
            magnet is who the fleet decides it was about — the loudest name among the fallen
            carries the whole notice, which is how a fleet reads a casualty list. Read through
@@ -3261,8 +3279,8 @@
     /* (after the standing and the placings are read: a walking wound stood to the end) */
     /* §WOUNDS (ruled) what the Divide left on a body comes home as a wound, by its band, and mends there */
     for (const c of corps) for (const b of (c.allBodies || [])) {
-      const frac = b._hpFrac; delete b._hpFrac;
-      if (frac == null || frac >= 1 || b.status !== 'active') continue;
+      const frac = b._hpFrac, came = b._hpIn != null ? b._hpIn : 1; delete b._hpFrac; delete b._hpIn;
+      if (frac == null || frac >= came || b.status !== 'active') continue;   /* only harm the Divide did */
       const sev = frac >= 0.8 ? 'minor' : frac >= 0.5 ? 'serious' : 'critical';
       const inj = sev === 'minor' ? { type: 'inj_torso', severity: 'minor', days_remaining: P.int(rng, 5, 15), untreated: false }
                 : C.rollInjury(rng, { race: b.race && b.race.id ? b.race.id : b.race, hooks: C.hooksOf(b, ROSTER.traitById) }, sev);
@@ -3411,11 +3429,12 @@
          with the rest), and how many of them the fleet knew by name */
       pc.placement = stats.placement ? stats.placement[c.id] : null;
       pc.ceded = !!c.withdrawn; pc.cededDay = c.withdrawn ? c.withdrawn.day : null;
-      const lostBodies = (c.allBodies || []).filter(b => b.status === 'dead' || b.status === 'retired');
+      /* a body whose being lives on in a severed survivor (`_carriedOn`) is not a person lost */
+      const lostBodies = (c.allBodies || []).filter(b => (b.status === 'dead' || b.status === 'retired') && !b._carriedOn);
       /* §MON-WA a board counts the people it lost: a pair that died is one */
       const lostHere = lostBodies.filter(b => !(b.mirror_of && lostBodies.some(x => x.id === b.mirror_of)));
       pc.permanent = lostHere.length; pc.dead = lostHere.length;
-      pc.famousLosses = lostHere.filter(b => (b.fame || 0) >= REP.CONST.FAME_CEIL * 0.35).length;
+      pc.famousLosses = lostHere.filter(b => (b.fame || 0) >= REP.CONST.FAMOUS_AT).length;
       pc.ransomPaid = c.ransomPaid || 0;
       pc.ransomTaken = c.ransomTaken || 0;
     }

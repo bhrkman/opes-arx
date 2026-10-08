@@ -751,7 +751,6 @@
         qualityShift: mon.meta.qualityShift,
         scout: mon.meta.scout,
         scoutWa: wa.meta.scout,
-        tether: race.special.tether_miles,
         contractNote: "one roster slot · one salary line · contract mirrored on both halves"
       }
     };
@@ -853,13 +852,13 @@
       when: c => c.f.stats.aim >= 150,
       text: c => `AIM ${c.f.stats.aim}! You don't coach that — you just point it at whatever the corp wants gone!` },
     { key: "spike_reflex", tier: 3, register: "hype",
-      when: c => c.f.stats.reflex >= 15,
+      when: c => c.f.stats.reflex >= 150,
       text: c => `Blink and ${c.name} is already behind different cover. Reflex ${c.f.stats.reflex} moves odds boards.` },
     { key: "spike_tactics", tier: 3, register: "dry",
       when: c => c.f.stats.tactics >= 150,
       text: c => `Tactics ${c.f.stats.tactics}. Somebody will hand ${c.name} a captaincy and look clever for a decade.` },
     { key: "spike_presence", tier: 3, register: "hype",
-      when: c => c.f.stats.presence >= 15,
+      when: c => c.f.stats.presence >= 150,
       text: c => `Rooms reorganize when ${c.name} walks in. Presence ${c.f.stats.presence} — and yes, the cameras have noticed.` },
     { key: "spike_grit", tier: 3, register: "hype",
       when: c => c.f.stats.grit >= 150,

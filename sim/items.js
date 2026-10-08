@@ -472,7 +472,7 @@
                 : (item.damage === 'energy' || item.family === 'energy') ? 'energy' : 'ballistic';
       return Math.max(0, Math.min(0.6, opts.discount(fam) || 0));
     };
-    const priceOf = (item) => Math.round((item.cost || 0) * (1 - disc(item)));
+    const priceOf = (item) => Math.round((item.cost || 0) * (opts.priceMult || 1) * (1 - disc(item)));   /* the year's swing, less a standing */
     const cheapFirst = (items) => items.slice().sort((x, y) => x.cost - y.cost);
     let spent = 0, money = budget, cash = 0;
 
@@ -606,7 +606,7 @@
           if (onRack) { q.b.loadout[q.slot] = onRack.id; spent += priceOf(onRack); continue; }
           pick = (q.slot === 'primary' ? roleFirst(q.b, cheapFirst(fits)) : cheapFirst(fits))[0] || cheapFirst(ranked).find(c => spent + c.cost <= allow - essentials) || cheapFirst(ranked)[0];
         }
-        money -= pick.cost; cash += pick.cost; spent += pick.cost;
+        money -= priceOf(pick); cash += priceOf(pick); spent += pick.cost;   /* §SPONSORS the yard's discount is in the cash */
         q.b.loadout[q.slot] = pick.id;
         if (q.slot === 'primary') q.b.boughtPrimary = true;   /* a corp does not buy one body two guns */
       }
@@ -646,7 +646,7 @@
       const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
       if (!c || spent + c.cost > allow) continue;
       if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
-      else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.consumables = [c.id]; spent += c.cost; }
+      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
     }
     /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
     {
@@ -657,7 +657,7 @@
       for (const b of needsSide) for (const c of list) {
         if (spent + c.cost > allow) continue;
         if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
-        if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout.sidearm = c.id; spent += c.cost; break; }
+        if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.sidearm = c.id; spent += c.cost; break; }
       }
     }
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
@@ -725,7 +725,7 @@
         const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
         if (validate(next).length || spent + m.cost > allow) continue;
         if (take(modId)) { b.loadout = next; spent += m.cost; carryIt(b, m); }
-        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; carryIt(b, m); }
+        else if (priceOf(m) <= money) { money -= priceOf(m); cash += priceOf(m); b.loadout = next; spent += m.cost; carryIt(b, m); }
       }
       for (const c of consRanked) {
         if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
@@ -734,7 +734,7 @@
         const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([c.id]) });
         if (validate(next).length) continue;
         if (take(c.id)) { b.loadout = next; spent += c.cost; carryIt(b, c); }
-        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; carryIt(b, c); }
+        else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout = next; spent += c.cost; carryIt(b, c); }
       }
     }
     /* §DEVICES an OA whose money runs to it fits devices, spread through the force (ruled) */
@@ -755,7 +755,7 @@
         const next = Object.assign({}, b.loadout, { consumables: cons.concat([dId]) });
         if (validate(next).length) continue;
         if (take(dId)) b.loadout = next;
-        else if (dv.cost <= money) { money -= dv.cost; cash += dv.cost; b.loadout = next; }
+        else if (priceOf(dv) <= money) { money -= priceOf(dv); cash += priceOf(dv); b.loadout = next; }
       }
     }
     const prim = {}, band = {};

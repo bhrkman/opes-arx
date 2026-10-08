@@ -43,9 +43,9 @@
     LETTER_REGARD: 0.15,        // [C] §STANDING how far a house's regard moves what it opens a letter at, either way
     /* [H] credits per point of quality, per remaining season. DERIVED, not chosen: the
        fleet's own wage bill pays about this much for a point of quality (median salary ×
-       12 ÷ median quality = 33). Anchoring here is what makes a median contract trade near
-       break-even instead of every body being a bargain or a burden. */
-    CREDITS_PER_QUALITY: 33,
+       12 ÷ median quality — re-measured on today's wages: ₡4,800 ÷ 105.6 = 45). Anchoring here is what makes a median
+       contract trade near break-even instead of every body being a bargain or a burden. */
+    CREDITS_PER_QUALITY: 45,
     FAME_LIFT: 0.01,              // [H] per point of fame, on worth
     SALARY_MONTHS: 12,            // [S] a season of wages, matching the ledger
     INTEL_PREMIUM: 1.35,          // [H] over the raw focus price, for the edge it carries
@@ -365,7 +365,7 @@
     if (!tradingOpen(month)) return [];
     const done = [];
     const attempts = opts.attempts || 2;
-    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired');
+    const alive = c => (c.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of);   /* people: a pair is one */
     for (let n = 0; n < attempts; n++) {
       if (rng() > (opts.chance != null ? opts.chance : CONST.FLEET_TRADE_CHANCE)) continue;
       /* the thinnest roster shops; the deepest sells — AMONG THE OTHER SEVEN. The manager's
