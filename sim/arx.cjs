@@ -630,6 +630,43 @@ function worldSeeding() {
 }
 
 /* =========================================================================
+   LIVE INVARIANTS — a career walked through two seasons, held to the states that cannot happen: no squad past eight
+   at the drop, nobody in two squads, nobody dead fielded, a kept captive on his captor's roster, a Mon-Wa pair on one
+   roster (a widow excepted), nobody on two rosters, the books a number.
+   ========================================================================= */
+function liveInvariants() {
+  const CT = req('contest.js'), oa = readJSON('oa_profiles.json').oa_profiles;
+  const V = {}; const bad = (k, x) => { (V[k] = V[k] || []).push(x); };
+  const open0 = CT.open;
+  CT.open = function (rng0, g0, squads) {
+    const seen = new Set();
+    for (const q of squads || []) { const b = (q.bodies || []);
+      if (b.filter(x => !x.mirror_of).length > DIV.CONST.SQUAD_MAX) bad('squad past eight', q.oa + ' ' + b.filter(x => !x.mirror_of).length);
+      for (const x of b) { if (seen.has(x)) bad('one body in two squads', x.name); seen.add(x); if (x.status === 'dead' || x.status === 'retired') bad('the dead fielded', x.name); } }
+    return open0.apply(this, arguments);
+  };
+  const check = st => { const owner = new Map();
+    for (const id of st.ids) { const c = st.corps[id];
+      if (!isFinite(c.account.treasury)) bad('books not a number', id);
+      for (const f of c.roster) { if (owner.has(f)) bad('one man on two rosters', f.name); owner.set(f, id);
+        if (f._transferredTo && f._transferredTo !== id && f.status === 'active') bad('a kept captive on his old roster', f.name);
+        if (f.mirror_of && !f._widowed && !c.roster.some(x => x.id === f.mirror_of)) bad('a Mon-Wa half without its lead', f.name); } } };
+  try {
+    for (const human of [false, true]) {
+      const rng = makeRng('live-' + human), corps = SEASONMOD.openFleet(rng, oa, {}), first = Object.keys(corps)[0];
+      for (let s = 1; s <= 2; s++) {
+        const st = SEASONMOD.beginSeason(rng, corps, oa, human ? { human: first } : {});
+        while (st.month <= SEASONMOD.CONST.PREP_MONTHS) { SEASONMOD.stepMonth(st, human ? { [first]: {} } : undefined); check(st); }
+        SEASONMOD.closeSeasonToDrop(st); check(st);
+        const d = SEASONMOD.prepareDivide(st); const r = DIV.runDivide(d.rng, d.opts); SEASONMOD.finishSeason(st, r); check(st);
+      }
+    }
+  } finally { CT.open = open0; }
+  const keys = ['squad past eight', 'one body in two squads', 'the dead fielded', 'one man on two rosters', 'a kept captive on his old roster', 'a Mon-Wa half without its lead', 'books not a number'];
+  for (const k of keys) ok('live: no ' + k, !(V[k] || []).length, (V[k] || []).length + ' — ' + (V[k] || []).slice(0, 3).join(' | '));
+}
+
+/* =========================================================================
    A RANSOM REFUSED (ruled), BUILT TO ORDER: the captor always names its price and the owner always refuses it, so every
    man taken is a refusal — the rule is held every run, not only when a refusal happens to come up.
    ========================================================================= */
@@ -3901,6 +3938,7 @@ function runRegression() {
   phase('stunRules', stunRules);
   phase('divideRules', divideRules);
   phase('refusedRansomRule', refusedRansomRule);
+  phase('liveInvariants', liveInvariants);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);

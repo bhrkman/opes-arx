@@ -206,6 +206,9 @@ lean one pleases.
 - A squad holds eight (ruled bound, now held): an engine seat drops only what its drafted landings hold at eight a squad,
   and the rest wait in reserve; a reform sends survivors only where there are seats. A beacon is worth going to for a
   squad with seats open, and a man lands into whichever of its squads on that ground has room. A map carries five.
+- A man kept as a captive is the captor's: he moves to its roster on his own contract when the Divide is settled.
+- A Mon-Wa pair follows its lead, on every path (ruled: hired, seated and lost as one): to the roster he is on, into
+  retirement, out with him when he is released or sold. A half whose other half has died stands alone.
 - An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
   to lose priced whole (his family's benefit, a year's wage to replace him, the Divides of training he carries, his
   kit), at its rate of loss over the Divide so far beside the field's — and most likely earns a share of the pot, the

@@ -367,7 +367,7 @@
     },
     {
       id: 'poach', weight: 1.1,
-      when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
+      when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached && !f.mirror_of); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
       /* §QUIRKS a hand who does not listen to other OAs costs more to tempt: poach_resistant
          was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
       make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
@@ -389,7 +389,10 @@
            read in two places, and that is the whole of it. */
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
-          const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
+          /* §MONEY (fixed) the OA that bought the paper pays for it — it was paid to the seller out of nothing — and the man
+             is theirs (§MON-WA his other half goes with him, keepPairsWhole) */
+          const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); f.corpId = them.id; c.roster = c.roster.filter(x => x !== f);
+            if (them.account) LED.post(them.account, 'expense', f.name + '\u2019s Paper Bought', -price); }
           if (c.rep) REP.act(c.rep, 'sold_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Went for ' + fmtCr(price); };
         if (opt === 'accept') return sell(e.price);
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }

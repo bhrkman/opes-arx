@@ -16492,7 +16492,7 @@
     },
     {
       id: 'poach', weight: 1.1,
-      when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
+      when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached && !f.mirror_of); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
       /* §QUIRKS a hand who does not listen to other OAs costs more to tempt: poach_resistant
          was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
       make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
@@ -16514,7 +16514,10 @@
            read in two places, and that is the whole of it. */
         if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
-          const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); c.roster = c.roster.filter(x => x !== f); }
+          /* §MONEY (fixed) the OA that bought the paper pays for it — it was paid to the seller out of nothing — and the man
+             is theirs (§MON-WA his other half goes with him, keepPairsWhole) */
+          const them = ctx.corps[e.from]; if (them) { f.status = 'active'; delete f._released; them.roster.push(f); f.corpId = them.id; c.roster = c.roster.filter(x => x !== f);
+            if (them.account) LED.post(them.account, 'expense', f.name + '\u2019s Paper Bought', -price); }
           if (c.rep) REP.act(c.rep, 'sold_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Went for ' + fmtCr(price); };
         if (opt === 'accept') return sell(e.price);
         if (opt === 'counter') { if (ctx.rng() < 0.45) return sell(e.price * 2); if (c.rep) REP.act(c.rep, 'refused_an_offer', { targetId: e.from }); return 'They Walked Away From the Counter'; }
@@ -23128,7 +23131,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function squadCountFor(n, profile, want) {
     const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
     const most = Math.max(2, Math.min(CONST.SQUADS_MAX, Math.floor(n / CONST.SQUAD_MIN)));
-    if (want && want >= 2) return Math.max(2, Math.min(most, want));  /* a manager's own call */
+    /* a manager's own call, or the landings drafted — never fewer squads than eight a squad needs */
+    if (want && want >= 2) return Math.max(packed, Math.min(most, want));
     const d = (profile && profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* what an OA wants: ground-hunger and appetite for contact push it wider */
@@ -23153,6 +23157,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const groups = drop && persist.groups && persist.groups.length
                  ? persist.groups.filter(g => g && g.length) : null;
     const leaders = (groups && persist.leaders) || null;
+    /* §SQUADS (fixed, at the root) NO PATH FIELDS A SQUAD PAST EIGHT. The squads asked for (one a drafted landing) are
+       held to eight apiece whatever chose the drop: what they cannot hold — the lowest of the drop, a pair together — goes
+       to the front of the reserve, its purse already paid, to land at a beacon as seats open. The season caps an engine
+       seat's drop at its landings, but not where the draft was still open at the muster, nor for a person who never set
+       a board; twenty went down in two squads of ten. */
+    if (persist && persist.reserve) for (const b of persist.reserve) b._pursePaid = false;   /* last year's mark does not carry */
+    if (drop && !groups && persist && persist._wantSquads >= 2 && seatsOf(drop) > persist._wantSquads * CONST.SQUAD_MAX) {
+      const room = persist._wantSquads * CONST.SQUAD_MAX, keep = [], over = [];
+      let seats = 0;
+      for (const b of drop) { if (b.mirror_of) continue;
+        const mate = drop.find(x => x.mirror_of === b.id);
+        if (seats < room) { keep.push(b); if (mate) keep.push(mate); seats++; } else { over.push(b); if (mate) over.push(mate); } }
+      for (const b of drop) if (keep.indexOf(b) < 0 && over.indexOf(b) < 0) keep.push(b);   /* a half with no lead in the drop */
+      for (const b of over) b._pursePaid = true;
+      persist.reserve = over.concat(persist.reserve || []);
+      if (persist.drop) for (const b of over) { const k = persist.drop.indexOf(b); if (k >= 0) persist.drop.splice(k, 1); }
+      drop = keep;
+    }
     const dropById = {};
     if (groups) for (const b of drop) dropById[b.id] = b;
     const sizes = groups ? groups.map(g => g.length)
@@ -23776,7 +23798,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (b.id === heir.id) {
           if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
         } else if (hk.has('captaincy_snub_morale_risk')) {
-          b.condition.stress = (b.condition.stress || 0) + CONST.RANK_SNUB;
+          b.condition.stress = Math.min(CONST.STRESS_MAX, (b.condition.stress || 0) + CONST.RANK_SNUB);   /* held to the ceiling, as every other stress is */
         }
       }
       sq.captainId = heir.id;
@@ -23918,6 +23940,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       let best = null, gain = 0;
       for (const s of standing) {
         const lo = s.b.loadout || {}; if (!lo.primary) continue;
+        /* §STUN (fixed) the engine arms nobody with stun (ruled) — off a corpse no more than off its rack */
+        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0 && !isHumanOA(s.q.corpId)) continue;
         const mine = ITEMS.byId(lo.primary);
         const up = costOf(g.id) - costOf(lo.primary);
         if (up <= 0) continue;
@@ -25249,7 +25273,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
       for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; fb._landedDay = day; into.bodies.push(fb); corp.allBodies.push(fb);
         if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(fb) < 0) corp.persist.drop.push(fb); }
-      if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);
+      /* a man moved off the drop into orbit (§SQUADS) has his purse paid already */
+      if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group.filter(fb => !fb._pursePaid));
+      for (const fb of group) fb._pursePaid = false;
       into.rations += CONST.RATION_DROP_DAYS * group.length;
       into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
       corp.landed += group.length; stats.audit.landed += group.length;
@@ -29036,7 +29062,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                                      && !(f.condition && (f.condition.injuries || []).length));
     if (opts.manual && opts.manual.length) {
       const byId = {}; for (const f of fit) byId[f.id] = f;
-      return opts.manual.map(id => byId[id]).filter(Boolean).slice(0, CONST.DROP_MAX);
+      /* §MON-WA (fixed) a named drop goes down with each pair whole, and is cut by beings, not bodies */
+      const out = [], seen = new Set(); let seats = 0;
+      for (const id of opts.manual) { const f = byId[id]; if (!f || seen.has(f.id)) continue;
+        const lead = f.mirror_of ? byId[f.mirror_of] : f; if (!lead || seen.has(lead.id)) continue;
+        if (seats >= CONST.DROP_MAX) break;
+        const mate = fit.find(x => x.mirror_of === lead.id);
+        out.push(lead); seen.add(lead.id); if (mate) { out.push(mate); seen.add(mate.id); } seats++; }
+      return out;
     }
     /* `[OPEN-S2]` — THE LEAN. This was a single sort by quality and is now the three-way call
        the ruling describes, made by culture through `lockLean`. */
@@ -29573,6 +29606,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (EVENTS) for (const id of state.ids) EVENTS.draw(state, id);
     for (const id of ids) delete corps[id]._eightDead;
     openRecruitDraft(state);            /* §DRAFT Month 1 opens with the Aleas’ draft */
+    keepPairsWhole(state);   /* §MON-WA after the off-season: retirements, renewals and expiries took a half alone */
     return state;
   }
 
@@ -29899,6 +29933,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (!FAC.postOpen(c, post)) return { ok: false, why: 'Needs the ' + FAC.FACILITIES[FAC.FOR_POST[post]].name };
     const f = ownCandidates(c).find(x => x.id === fighterId);
     if (!f) return { ok: false, why: 'Not One of Yours' };
+    /* §ROSTER (fixed) an appointment at the Lock's month took a roster under sixteen to a muster with no market left to
+       fill it; earlier in the year the markets are still to come, and a founding roster starts well under the floor */
+    if (state.month >= CONST.PREP_MONTHS && c.roster.indexOf(f) >= 0 && c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired' && !x.mirror_of).length - 1 < CONST.ROSTER_MIN)
+      return { ok: false, why: 'The Roster Would Fall Below ' + CONST.ROSTER_MIN };
     const st = STAFF.fromFighter(f, post);
     o.posts[post] = st;
     const i = c.roster.indexOf(f);
@@ -30599,6 +30637,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     ensureLot(state);
     /* the next month draws its events for every corp */
     if (EVENTS && state.month <= CONST.PREP_MONTHS) for (const id of state.ids) EVENTS.draw(state, id);
+    keepPairsWhole(state);   /* §MON-WA after the month's signings, sales and departures */
     return { month: m, name: win.name, event: win.event || null, spent, landed, events: eventsOut };
   }
   /** the manager's window onto the month's events, and the answer */
@@ -30983,11 +31022,26 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
     const own = new Set(c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').map(f => f.id));
-    const groups = ((plan && plan.groups) || []).slice(0, 6).map(g => (g || []).filter(id => own.has(id)));
+    /* §SQUADS (fixed) THE LOCK IS CHECKED, not taken as given: a man stands in one squad; a Mon-Wa half stands with its
+       lead; and a squad holds eight seats — what is past it goes to the front of the reserve. (The board enforces these
+       as it is filled; the engine no longer assumes it did.) */
+    const byId = {}; for (const f of c.roster) byId[f.id] = f;
+    const placed = new Set(), spill = [];
+    const groups = ((plan && plan.groups) || []).slice(0, 6).map(g => {
+      const out = []; let seats = 0;
+      for (const id of (g || [])) {
+        const f = byId[id]; if (!f || !own.has(id) || placed.has(id) || f.mirror_of) continue;
+        const mate = c.roster.find(x => x.mirror_of === id && own.has(x.id));
+        if (seats >= DIVIDE.CONST.SQUAD_MAX) { spill.push(id); placed.add(id); if (mate) placed.add(mate.id); continue; }
+        out.push(id); placed.add(id); seats++;
+        if (mate) { out.push(mate.id); placed.add(mate.id); }
+      }
+      return out;
+    });
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
-    const reserve = ((plan && plan.reserve) || []).filter(id => own.has(id));
+    const reserve = spill.concat(((plan && plan.reserve) || []).filter(id => own.has(id) && spill.indexOf(id) < 0));
     c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve };
     return { ok: true, lock: c._lock };
   }
@@ -31121,6 +31175,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     askBoards(state, res);
     /* §DRAFT where each OA finished is next year's draft order, last place first */
     for (const id of state.ids) if (res.placement && res.placement[id] != null) state.corps[id]._lastPlace = res.placement[id];
+    /* §CAPTIVES (fixed) A MAN KEPT IS THE CAPTOR'S. The Divide marked him `_transferredTo` and nothing moved him: he stayed
+       on his owner's roster, fielded by them the next year, and the captor kept nobody. He goes to the captor's roster on
+       the contract he has. */
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      for (const f of c.roster.slice()) {
+        const to = f._transferredTo && state.corps[f._transferredTo];
+        if (!to || to === c || f.status === 'dead') continue;
+        c.roster.splice(c.roster.indexOf(f), 1);
+        if (to.roster.indexOf(f) < 0) to.roster.push(f);
+        f.corpId = to.id; f._capturedBy = null; f._keptFrom = id;
+      }
+    }
     /* THE EDGE IS SPENT. Conditioning bought in the prep year lasts exactly one Divide —
        it walks onto the ground, does its work, and is gone at the settlement. Cleared here
        rather than at the drop so a replayed or halted contest still sees it. */
@@ -31296,6 +31363,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death Benefits', -pensions);
+      /* §MON-WA a half whose other half died stands alone from now on: the pair rule (keepPairsWhole) leaves the widowed be */
+      for (const f of c.roster) if (f.status === 'dead') for (const g of c.roster)
+        if (g.status !== 'dead' && (g.mirror_of === f.id || f.mirror_of === g.id)) g._widowed = true;
       c.roster = c.roster.filter(f => f.status !== 'dead');
       for (const f of c.roster) { bringWoundHome(f); settleWounds(f); }   /* §WOUNDS the ground's wounds become the year's; a body whole again carries none */
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
@@ -31428,7 +31498,32 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         rec.corps[id].dismissed = true;
       }
     }
+    keepPairsWhole(state);   /* §MON-WA after the settlement: a kept captive's other half goes with him */
     return rec;
+  }
+
+  /* §MON-WA (fixed, once for every path) ONE BEING IN TWO BODIES IS HIRED, SEATED AND LOST AS ONE (ruled). The pair was
+     kept whole in trade, the draft and the drop, and split everywhere else: each signing market, a retirement roll, a
+     contract running out, a release, a sale, a captive kept — each took one body alone, and halves turned up on rosters
+     without their lead and in two OAs at once. The half follows its lead: to the roster he is on, into retirement, out
+     with him when he is released or sold. (A half whose lead has DIED stays — that is canon: the widow.) */
+  function keepPairsWhole(state) {
+    const where = new Map();
+    for (const id of state.ids) for (const f of state.corps[id].roster) where.set(f.id, { c: state.corps[id], f });
+    for (const id of state.ids) {
+      const c = state.corps[id];
+      for (const half of c.roster.slice()) {
+        if (!half.mirror_of || half.status === 'dead' || half._widowed) continue;
+        const at = where.get(half.mirror_of), lead = at && at.f;
+        if (lead && lead.status === 'dead') continue;                               /* the widow stays */
+        if (lead && at.c !== c) {                                                   /* he is on another roster: she goes */
+          c.roster.splice(c.roster.indexOf(half), 1); at.c.roster.push(half); half.corpId = at.c.id;
+          where.set(half.id, { c: at.c, f: half }); continue;
+        }
+        if (lead && lead.status === 'retired' && half.status !== 'retired') { half.status = 'retired'; half.retired = true; continue; }
+        if (!lead) { c.roster.splice(c.roster.indexOf(half), 1); where.delete(half.id); }   /* he left: so does she */
+      }
+    }
   }
 
   /**

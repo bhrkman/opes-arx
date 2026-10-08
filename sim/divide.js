@@ -537,7 +537,8 @@
   function squadCountFor(n, profile, want) {
     const packed = Math.max(2, Math.ceil(n / CONST.SQUAD_MAX));       /* what packing gives */
     const most = Math.max(2, Math.min(CONST.SQUADS_MAX, Math.floor(n / CONST.SQUAD_MIN)));
-    if (want && want >= 2) return Math.max(2, Math.min(most, want));  /* a manager's own call */
+    /* a manager's own call, or the landings drafted — never fewer squads than eight a squad needs */
+    if (want && want >= 2) return Math.max(packed, Math.min(most, want));
     const d = (profile && profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* what an OA wants: ground-hunger and appetite for contact push it wider */
@@ -562,6 +563,24 @@
     const groups = drop && persist.groups && persist.groups.length
                  ? persist.groups.filter(g => g && g.length) : null;
     const leaders = (groups && persist.leaders) || null;
+    /* §SQUADS (fixed, at the root) NO PATH FIELDS A SQUAD PAST EIGHT. The squads asked for (one a drafted landing) are
+       held to eight apiece whatever chose the drop: what they cannot hold — the lowest of the drop, a pair together — goes
+       to the front of the reserve, its purse already paid, to land at a beacon as seats open. The season caps an engine
+       seat's drop at its landings, but not where the draft was still open at the muster, nor for a person who never set
+       a board; twenty went down in two squads of ten. */
+    if (persist && persist.reserve) for (const b of persist.reserve) b._pursePaid = false;   /* last year's mark does not carry */
+    if (drop && !groups && persist && persist._wantSquads >= 2 && seatsOf(drop) > persist._wantSquads * CONST.SQUAD_MAX) {
+      const room = persist._wantSquads * CONST.SQUAD_MAX, keep = [], over = [];
+      let seats = 0;
+      for (const b of drop) { if (b.mirror_of) continue;
+        const mate = drop.find(x => x.mirror_of === b.id);
+        if (seats < room) { keep.push(b); if (mate) keep.push(mate); seats++; } else { over.push(b); if (mate) over.push(mate); } }
+      for (const b of drop) if (keep.indexOf(b) < 0 && over.indexOf(b) < 0) keep.push(b);   /* a half with no lead in the drop */
+      for (const b of over) b._pursePaid = true;
+      persist.reserve = over.concat(persist.reserve || []);
+      if (persist.drop) for (const b of over) { const k = persist.drop.indexOf(b); if (k >= 0) persist.drop.splice(k, 1); }
+      drop = keep;
+    }
     const dropById = {};
     if (groups) for (const b of drop) dropById[b.id] = b;
     const sizes = groups ? groups.map(g => g.length)
@@ -1185,7 +1204,7 @@
         if (b.id === heir.id) {
           if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
         } else if (hk.has('captaincy_snub_morale_risk')) {
-          b.condition.stress = (b.condition.stress || 0) + CONST.RANK_SNUB;
+          b.condition.stress = Math.min(CONST.STRESS_MAX, (b.condition.stress || 0) + CONST.RANK_SNUB);   /* held to the ceiling, as every other stress is */
         }
       }
       sq.captainId = heir.id;
@@ -1327,6 +1346,8 @@
       let best = null, gain = 0;
       for (const s of standing) {
         const lo = s.b.loadout || {}; if (!lo.primary) continue;
+        /* §STUN (fixed) the engine arms nobody with stun (ruled) — off a corpse no more than off its rack */
+        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0 && !isHumanOA(s.q.corpId)) continue;
         const mine = ITEMS.byId(lo.primary);
         const up = costOf(g.id) - costOf(lo.primary);
         if (up <= 0) continue;
@@ -2658,7 +2679,9 @@
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
       for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; fb._landedDay = day; into.bodies.push(fb); corp.allBodies.push(fb);
         if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(fb) < 0) corp.persist.drop.push(fb); }
-      if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);
+      /* a man moved off the drop into orbit (§SQUADS) has his purse paid already */
+      if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group.filter(fb => !fb._pursePaid));
+      for (const fb of group) fb._pursePaid = false;
       into.rations += CONST.RATION_DROP_DAYS * group.length;
       into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
       corp.landed += group.length; stats.audit.landed += group.length;
