@@ -656,19 +656,9 @@
       store. It was a count of "crates" read here as though it were already a share, so one
       crate filled a warehouse that takes eight years to drain; the crate is gone and the sites
       yield the share directly (see `divide.js yieldOf`). */
-  /* §PRIZE and what a store cannot hold is SOLD. The haul goes to the OA's own stores; only
-     what spills over a full hold is sold on to the fleet — which is what the settlement's own
-     comment always said, and not what it did: every dug unit was stored AND sold in full, so a
-     site paid twice for the same haul. `fillHolds` returns the overflow, by store, and the
-     season sells it. */
+  /* §PRIZE (ruled) a hold takes what it can; what a full one cannot take is lost (the overflow sale is cut) */
   function fillHolds(rep, banked) {
-    const spilled = {};
-    for (const c of CATEGORIES) {
-      const want = (rep.holds[c] || 0) + ((banked && banked[c]) || 0);
-      rep.holds[c] = clamp(want, 0, CONST.HOLDS_CEIL);
-      if (want > CONST.HOLDS_CEIL) spilled[c] = want - CONST.HOLDS_CEIL;
-    }
-    rep._spilled = spilled;
+    for (const c of CATEGORIES) rep.holds[c] = clamp((rep.holds[c] || 0) + ((banked && banked[c]) || 0), 0, CONST.HOLDS_CEIL);
     return rep.holds;
   }
 

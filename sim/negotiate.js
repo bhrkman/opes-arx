@@ -23,9 +23,6 @@
        and ten for a poor one. */
     POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, and the Withdrawal's promises are paid out of it
     HAUL_VALUE: 22000,
-    /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
-       surplus of a store already full. Sized so a won planet's overflow is worth having. */
-    SURPLUS_VALUE: 30000,                  // [H] §2.2 what the fleet pays for a unit an OA sells on (ruled 220k → 30k: the overflow was a second pot)
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary

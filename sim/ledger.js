@@ -159,6 +159,12 @@
     return Math.round(m * CONST.SALARY_MONTHS);
   }
 
+  /* §MONEY (ruled) what one contract pays: a retainer every month, and the rest of the year's pay as a purse at the drop,
+     only to those who drop. The page shows a contract as these two figures. */
+  function retainerOf(salary) { return Math.round((salary || 0) * CONST.WAGE_RETAINER_SHARE); }
+  function purseOf(salary) { return Math.round((salary || 0) * (1 - CONST.WAGE_RETAINER_SHARE) * CONST.SALARY_MONTHS); }
+  /* and back: the monthly salary a retainer stands for */
+  function salaryForRetainer(r) { return (r || 0) / CONST.WAGE_RETAINER_SHARE; }
   function retainerBill(roster) {
     let m = 0;
     for (const f of roster) if (paid(f)) m += ((f.contract && f.contract.salary) || 0) * CONST.WAGE_RETAINER_SHARE;
@@ -275,7 +281,7 @@
   }
 
   const api = { CONST, paid, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
-                musterCheck, bookDivide, callOnBoard };
+                musterCheck, bookDivide, callOnBoard, retainerOf, purseOf, salaryForRetainer };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;
 })(typeof window !== "undefined" ? window : globalThis);

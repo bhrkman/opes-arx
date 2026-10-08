@@ -14082,6 +14082,12 @@
     return Math.round(m * CONST.SALARY_MONTHS);
   }
 
+  /* §MONEY (ruled) what one contract pays: a retainer every month, and the rest of the year's pay as a purse at the drop,
+     only to those who drop. The page shows a contract as these two figures. */
+  function retainerOf(salary) { return Math.round((salary || 0) * CONST.WAGE_RETAINER_SHARE); }
+  function purseOf(salary) { return Math.round((salary || 0) * (1 - CONST.WAGE_RETAINER_SHARE) * CONST.SALARY_MONTHS); }
+  /* and back: the monthly salary a retainer stands for */
+  function salaryForRetainer(r) { return (r || 0) / CONST.WAGE_RETAINER_SHARE; }
   function retainerBill(roster) {
     let m = 0;
     for (const f of roster) if (paid(f)) m += ((f.contract && f.contract.salary) || 0) * CONST.WAGE_RETAINER_SHARE;
@@ -14198,7 +14204,7 @@
   }
 
   const api = { CONST, paid, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
-                musterCheck, bookDivide, callOnBoard };
+                musterCheck, bookDivide, callOnBoard, retainerOf, purseOf, salaryForRetainer };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -14862,19 +14868,9 @@
       store. It was a count of "crates" read here as though it were already a share, so one
       crate filled a warehouse that takes eight years to drain; the crate is gone and the sites
       yield the share directly (see `divide.js yieldOf`). */
-  /* §PRIZE and what a store cannot hold is SOLD. The haul goes to the OA's own stores; only
-     what spills over a full hold is sold on to the fleet — which is what the settlement's own
-     comment always said, and not what it did: every dug unit was stored AND sold in full, so a
-     site paid twice for the same haul. `fillHolds` returns the overflow, by store, and the
-     season sells it. */
+  /* §PRIZE (ruled) a hold takes what it can; what a full one cannot take is lost (the overflow sale is cut) */
   function fillHolds(rep, banked) {
-    const spilled = {};
-    for (const c of CATEGORIES) {
-      const want = (rep.holds[c] || 0) + ((banked && banked[c]) || 0);
-      rep.holds[c] = clamp(want, 0, CONST.HOLDS_CEIL);
-      if (want > CONST.HOLDS_CEIL) spilled[c] = want - CONST.HOLDS_CEIL;
-    }
-    rep._spilled = spilled;
+    for (const c of CATEGORIES) rep.holds[c] = clamp((rep.holds[c] || 0) + ((banked && banked[c]) || 0), 0, CONST.HOLDS_CEIL);
     return rep.holds;
   }
 
@@ -16286,7 +16282,7 @@
   const fmtCr = n => '\u20a1' + Math.round(n).toLocaleString('en-US');
   /* §POTENTIAL a fighter's worth is their wage over a season; the hidden potential that scaled
      it is struck (ruled: no unit ceilings) */
-  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11));
+  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
   /* §STORY AN EVENT ASKS FOR A TIE, NOT A TRAIT ID. Five events cast their subject by naming a
      trait — `hasQuirk(f, 'hot_headed')` — and the moment those traits were retired all five
      went quiet with no error anywhere: the event stayed in the pool, drew its turn, found
@@ -16453,9 +16449,9 @@
         if (fighterHas(st0, f, 'salary_demand_pressure')) raiseMult *= 1.20;
         const ask = Math.round((f.contract.salary || 0) * raiseMult);
         return { kind: 'raise', subject: f.id, title: f.name + ' Wants a Raise',
-                 text: f.name + ' has a following now, and a following has a price: ' + fmtCr(ask) + ' more a month.',
+                 text: f.name + ' has a following now, and a following has a price: ' + fmtCr(LED.retainerOf(ask)) + ' more a month, and ' + fmtCr(LED.purseOf(ask)) + ' more a drop.',
                  options: [
-                   { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(ask) + ' a Month' },
+                   { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(LED.retainerOf(ask)) + ' a Month' },   /* §MONEY (ruled) what a raise adds to the retainer each month */
                    { id: 'refuse', label: 'Refuse', cost: 'They Sour' },
                    { id: 'release', label: 'Release Them', cost: 'They Walk' }
                  ], def: 'refuse', ask: ask };
@@ -17099,7 +17095,7 @@
     const stood = ((corp.facilities && corp.facilities.history) || []).filter(h => h.season === state.season);
     if (!gone.length && !due.length && !stood.length) return null;
     const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
-      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'))
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking) + ' a month.'))
       .concat(stood.map(h => 'The ' + FNAME[h.id] + ' stands at level ' + h.level + '.'));
     return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'Over the Winter',
              text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };
@@ -21632,9 +21628,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        and ten for a poor one. */
     POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, and the Withdrawal's promises are paid out of it
     HAUL_VALUE: 22000,
-    /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
-       surplus of a store already full. Sized so a won planet's overflow is worth having. */
-    SURPLUS_VALUE: 30000,                  // [H] §2.2 what the fleet pays for a unit an OA sells on (ruled 220k → 30k: the overflow was a second pot)
 
     /* §2.3 the winner's bonuses — winner's own roster only (N14) */
     WIN_BONUS_MERC: 8,                  // [C] x monthly salary
@@ -28596,12 +28589,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       case 'finances': {
         const t = acct.treasury || 0;
-        const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
+        const wage = Math.round(LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS);   /* §MONEY what leaves a month */
         const money = { fmt: nf, min: 0, floor: 1000 };
         if (vague) return band('finances', t, money);
         if (!full) return band('finances', t, money) +
-                          ' \u00b7 Wage ' + band('finances_wage', wage, money);
-        return nf(t) + ' \u00b7 Wage ' + nf(wage) + ' \u00b7 Grant ' + nf(acct.grant || 0);
+                          ' \u00b7 Retainers ' + band('finances_wage', wage, money) + ' a Month';
+        return nf(t) + ' \u00b7 Retainers ' + nf(wage) + ' a Month \u00b7 Grant ' + nf(acct.grant || 0) + ' a Year';
       }
       case 'kit': {
         const arm = them.armoury || {};
@@ -31820,15 +31813,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         })(),
         famousLosses: dead.filter(f => (f.fame || 0) >= REP.CONST.FAMOUS_AT).length
       });
-      /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
-         the one place a haul becomes credits, and only for what spilled over */
-      {
-        const spilled = (c.rep && c.rep._spilled) || {};
-        let units = 0;
-        for (const cat in spilled) units += spilled[cat];
-        const sale = Math.round(units * NEG.CONST.SURPLUS_VALUE);
-        if (sale > 0) LED.post(c.account, 'income', 'Surplus Sold to the Fleet', sale);
-      }
       c._close = close;
       /* THE FAMILIES ARE PAID. Every contract has carried a death benefit since the pools
          were ratified, and the negotiation layer has been pricing RANSOMS off that number
@@ -32340,6 +32324,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var cr = function (x) { return '\u20a1' + Math.round(x).toLocaleString(); };
   /* CREDITS ARE GOLD, everywhere they are a plain figure (the trade beam keeps its
      good/bad signing, which is about direction, not currency) */
+  /* §MONEY (ruled) a contract reads as what it pays: a retainer a month, and a purse at each drop */
+  function retOf(sal) { return LED.retainerOf(sal); }
+  function purseOf(sal) { return LED.purseOf(sal); }
+  function payLine(sal) { return crs(retOf(sal)) + '<span class="m">/mo</span> \u00b7 ' + crs(purseOf(sal)) + '<span class="m">/drop</span>'; }
   var crs = function (x) { return x < 0 ? '<span class="cr bad">\u2212\u20a1' + Math.round(-x).toLocaleString() + '</span>' : '<span class="cr">' + cr(x) + '</span>'; };
   /* THE STAT CONVENTION, one for every page: the label in the stat's own colour (STATCOL),
      the number on the grade scale — green high, red low, against the roster's spread */
@@ -32643,7 +32631,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       : '\u2014';
     var paper = '<span class="k">Origin</span><span class="v" style="color:var(--o-' + org.cls +
       ')">' + org.label + '</span>' +
-      '<span class="k">Salary</span><span class="v">' + crs((ct.salary || 0) * 12) + ' / yr</span>' +   /* §PAPER a contract's figures are a year's, everywhere */
+      '<span class="k">Retainer</span><span class="v">' + crs(retOf(ct.salary)) + ' /mo</span>' +
+      '<span class="k">Purse</span><span class="v">' + crs(purseOf(ct.salary)) + ' /drop</span>' +
       '<span class="k">Term</span><span class="v">' + termTxt + '</span>' +
       /* §SHOWN morale steadies a fighter in every grid fight, loyalty moves what re-signing them
          costs — both were simulated and never shown (audit 1) */
@@ -32942,7 +32931,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var SQCLASS = ['sqA', 'sqB', 'sqC', 'sqD', 'sqE', 'sqF'];
   var ROSTER_SORTS = [
     { k: 'squad',  lbl: 'Squad' },
-    { k: 'salary', lbl: 'Salary' },
+    { k: 'salary', lbl: 'Pay' },
     { k: 'origin', lbl: 'Origin' },
     { k: 'term',   lbl: 'Term' },
     { k: 'stats',  lbl: 'Rating' },
@@ -32979,7 +32968,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §MON-WA one row per BEING: a pair is one hire with two bodies, and listing both halves put
        the same person on the sheet twice */
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of; });
-    var wage = alive.reduce(function (a, f) { return a + ((f.contract || {}).salary || 0); }, 0);
+    /* §MONEY (ruled) what actually leaves each month: the retainers (the purses go at the drop) */
+    var wage = Math.round(LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS);
     /* §STAFF the backroom is on the bill too */
     var staffWage = SEASON.STAFF.allStaff(me).reduce(function (a, st) { return a + (st.wage || 0); }, 0);
     wage += staffWage;
@@ -33036,8 +33026,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           '<span class="rc-sq ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) : '\u2014') + '</span></div>' +
         '<div class="rc-orig ' + org.cls + '">' + org.label +
           ' <span class="who">\u00b7 ' + capRace(f.race) + ', ' + (f.age || '?') + '</span></div>' +
-        '<div class="rc-line"><span><span class="lab">Salary </span><span class="val">' +
-          crs(((f.contract || {}).salary || 0) * 12) + '<span class="m">/yr</span></span></span>' +   /* §PAPER a year's figure, as the Paper and the market give it */
+        '<div class="rc-line"><span><span class="lab">Pay </span><span class="val">' +
+          payLine((f.contract || {}).salary) + '</span></span>' +
           '<span><span class="lab">Fame </span><span class="val">' + Math.round(f.fame || 0) + '</span></span></div>' +
         '<div class="rc-tags">' +
           '<span class="rc-tag term' + (term.ending ? ' end' : '') + '">' + term.txt + '</span>' +
@@ -33112,9 +33102,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           '<div class="rsn">' + fighterMark(f || r, 18, colFor(G.me)) +
             '<span class="nm" data-sheet="' + r.id + '" style="color:' + raceColour(f || r) + '">' + esc(r.name) + '</span>' +
             (r.freed ? ' <span class="ktag hand">Sentence Served</span>' : '') + '</div>' +
-          /* §PAPER A CONTRACT IS FOR A YEAR, so the figures are a year's. Was / Asks / A Year
-             showed the same wage twice — once a month and once times twelve — and a manager had
-             to know which was which. And the window is called NATURAL-BORN everywhere else on
+          /* the window is called NATURAL-BORN everywhere else on
              the page; "Nattie" is what the fleet says, not what a screen should. */
           /* the page has said "Natural-Born" since the origins were named; the Paper was the
              one screen still saying "Nattie", which is what the fleet says, not what a screen
@@ -33124,24 +33112,23 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             Math.round(r.fame) + ' \u00b7 Age ' + r.age + '</div>' +
           /* §TALKS what the manager's own words added to the ask */
           ((f && (f._grudge || f._talkedUp)) ? '<div class="m">' + (f._grudge ? '<span class="warn">Holds a Grudge</span> ' : '') + (f._talkedUp ? '<span class="warn">Talked Up' + (f._talkedUp > 1 ? ' \u00d7' + f._talkedUp : '') + '</span>' : '') + '</div>' : '') +
-          /* the wage bill above and every salary below are MONTHLY; these are a year's, and
-             the only way a manager knows which is if the figure says so */
-          '<div class="rsf"><span class="k">Was</span><span class="v">' + crs(r.was * 12) + '<span class="per">/year</span></span>' +
-            '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
+          /* §MONEY (ruled) a contract reads as its retainer a month and its purse a drop, everywhere */
+          '<div class="rsf"><span class="k">Was</span><span class="v">' + payLine(r.was) + '</span>' +
+            '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + payLine(r.asks) + '</span>' +
             '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
-            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs((r.called.offer || low) * 12) + '/yr \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs(retOf(r.called.offer || low)) + '/mo \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
             /* a man whose sentence this Divide completes is freed at the year's end and decides for himself */
             : r.freed ? '<div class="rsdone">Freed at Year\u2019s End \u00b7 His Own Choice</div>'
             : '<div class="rsways">' +
-              '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.year) + '</button>' +
+              '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(retOf(r.asks)) + '/mo</button>' +
               /* §PAPER AN OFFER IS A NUMBER A MANAGER CHOOSES. It was a single fixed step
-                 below the ask, so haggling was one button with one answer. He types a year's
-                 figure; a man weighs it against what he thinks of the OA, and one paid over
-                 his ask remembers it. */
+                 below the ask, so haggling was one button with one answer. He types a retainer a
+                 month (the purse follows from it); a man weighs it against what he thinks of the OA,
+                 and one paid over his ask remembers it. */
               '<span class="rsoffer"><input class="rsin" type="text" inputmode="numeric" ' +
-                'data-rsoff="' + r.id + '" value="' + Math.round(r.year * SEASON.CONST.HAGGLE_FLOOR) + '">' +
+                'data-rsoff="' + r.id + '" value="' + retOf(low) + '"><span class="per">/mo</span>' +
                 '<button class="pcbtn" data-rs="haggle" data-rsid="' + r.id + '">Offer This</button></span>' +
               '<button class="pcbtn x" data-rs="release" data-rsid="' + r.id + '">Let Them Go</button></div>') +
           '</div>'; }).join('') + '</div>';
@@ -33152,14 +33139,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         var typed = null;
         if (how === 'haggle') {
           var box = host.querySelector('[data-rsoff="' + id + '"]');
-          var yr = box ? parseInt(String(box.value).replace(/[^0-9]/g, ''), 10) : NaN;
-          /* the manager types a YEAR; the contract is carried monthly */
-          typed = isFinite(yr) && yr > 0 ? Math.max(1, Math.round(yr / 12)) : Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR);
+          var mo = box ? parseInt(String(box.value).replace(/[^0-9]/g, ''), 10) : NaN;
+          /* the manager types a retainer a month; the contract is carried as the salary it stands for */
+          typed = isFinite(mo) && mo > 0 ? Math.max(1, Math.round(LED.salaryForRetainer(mo))) : Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR);
         }
         SEASON.answerRenewal(G.state, G.me, id, how, typed);
         dlog(how === 'release' ? '<span class="m">' + esc(row.name) + ' Will Not Be Kept</span>'
-           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs((typed || Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR)) * 12) + '/yr</span>'
-           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(row.asks * 12) + '/yr</span>');   /* the stored figures are a month's */
+           : how === 'haggle' ? '<span class="m">' + esc(row.name) + ' Offered ' + crs(retOf(typed || Math.round(row.asks * SEASON.CONST.HAGGLE_FLOOR))) + '/mo</span>'
+           : '<span class="good">' + esc(row.name) + ' Re-Signed \u00b7 ' + crs(retOf(row.asks)) + '/mo</span>');
         renderRoster();
       };
     });
@@ -33237,7 +33224,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-signnow]'), function (b) {
       b.onclick = function () {
         var r = SEASON.signNow(G.state, G.me, b.getAttribute('data-signnow'));
-        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(r.year) + '/yr</span>'
+        dlog(r.ok ? '<span class="good">' + esc(r.name) + ' Signed \u00b7 ' + crs(retOf(r.year / 12)) + '/mo</span>'
                   : '<span class="bad">' + esc(r.why) + '</span>');
         renderRoster();
       };
@@ -33249,7 +33236,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     Array.prototype.forEach.call(document.querySelectorAll('#rostmarket [data-bidslide]'), function (r) {
       r.oninput = function () {
         var cell = r.parentNode.querySelector('.bidnum');
-        if (cell) cell.textContent = crs(Math.round(+r.value || 0));
+        if (cell) cell.innerHTML = crs(retOf((+r.value || 0) / 12)) + '/mo';   /* (crs is markup: textContent printed its tags) */
       };
       r.onchange = function () {
         SEASON.placeBid(G.state, G.me, r.getAttribute('data-bidslide'), Math.round(+r.value || 0));
@@ -33335,15 +33322,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* §DRAFT a draftee's paper is the Aleas': a rookie term at ordinary wages, no fee, no bid — one Pick, when it is yours */
       var RD = G.state.recruitDraft, myPick = RD && !RD.done && RD.order[RD.i] === G.me;
       var rookie = (SEASON.DRAFT && SEASON.DRAFT.SEASONS) || 2;
-      terms = rookie + ' Seasons \u00b7 Rookie \u00b7 ' + crs(((f.contract || {}).salary || 0) * 12) + '/yr \u00b7 Fame ' + Math.round(f.fame || 0);
+      terms = rookie + ' Seasons \u00b7 Rookie \u00b7 ' + payLine((f.contract || {}).salary) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       foot = myPick ? '<button class="pcbtn" data-rdpick="' + f.id + '">Pick</button>' : '';
     } else if (signing === 'tryouts') {
-      terms = (f.seasons || '?') + ' Seasons \u00b7 ' + crs(f.ask) + '/yr' +
+      terms = (f.seasons || '?') + ' Seasons \u00b7 ' + payLine(f.ask / 12) +
               (f.pension ? ' \u00b7 Pension ' + crs(f.pension) : '') + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §SIGNING no marking and waiting: the sheet is your own ship's, so signing signs them */
-      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(f.ask) + '/yr</button>';   /* the wage, paid monthly; no fee */
+      foot = '<button class="pcbtn" data-signnow="' + f.id + '">Sign \u00b7 ' + crs(retOf(f.ask / 12)) + '/mo</button>';   /* no fee */
     } else if (signing === 'mercs') {
-      terms = 'One Divide \u00b7 Ask ' + crs(f.ask) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
+      terms = 'One Divide \u00b7 Asks ' + payLine(f.ask / 12) + ' \u00b7 Fame ' + Math.round(f.fame || 0);
       /* §ACQ THE ONLY WINDOW WHERE WAITING IS THE MECHANIC — seven OAs bid and the fighter
          chooses — so it keeps its bidding, but not its moving buttons. The bid is a slider set
          against what the field is putting up, and the reading answers the thing a manager
@@ -33352,8 +33339,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var bid = f.yourBid || f.ask;
       var lo = Math.round(f.ask * 0.8), hi = Math.round(f.ask * 1.6);
       foot = '<div class="bidrow"><input type="range" min="' + lo + '" max="' + hi + '" step="25" value="' + bid +
-               '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(bid) + '</span></div>' +
-             '<div class="bidscale"><span>Low</span><span>Ask \u00b7 ' + crs(f.ask) + '</span><span>High</span></div>' +
+               '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(retOf(bid / 12)) + '/mo</span></div>' +
+             '<div class="bidscale"><span>Low</span><span>Ask \u00b7 ' + crs(retOf(f.ask / 12)) + '/mo</span><span>High</span></div>' +
              '<div class="bidbtns">' +
                '<button class="pcbtn" data-bid="' + f.id + '">' + (f.yourBid ? 'Hold' : 'Place') + '</button>' +
                '<button class="pcbtn" data-bidup="' + f.id + '">Raise</button>' +
@@ -33368,7 +33355,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var sent = f.sentence || f.freedomReq || 0;
       var mine = f.yourBid || 0;
       terms = 'Sentence ' + sent + ' Divide' + (sent === 1 ? '' : 's') + ' to Earn Release' +
-              ' \u00b7 Kier Wage ' + crs(f.wage || 0) + '/yr \u00b7 Fee ' + crs(f.fee || 0);
+              ' \u00b7 Kier Wage ' + crs(retOf((f.wage || 0) / 12)) + '/mo \u00b7 Fee ' + crs(f.fee || 0);
       var opts = [];
       for (var k = 0; k <= 2 && sent - k >= 1; k++) {
         var term = sent - k;
@@ -33382,7 +33369,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     return '<div class="pc' + (f.yourBid ? ' taken' : '') + '"' + (signing === 'draft' ? ' data-drfid="' + f.id + '"' : '') + '>' +
       (f.yourBid ? '<div class="pc-flag">' + (signing === 'tryouts' ? 'Signing' : signing === 'bastille'
-                     ? 'Offered ' + f.yourBid + ' Divide' + (f.yourBid === 1 ? '' : 's') : 'Bid ' + crs(f.yourBid)) + '</div>' : '') +
+                     ? 'Offered ' + f.yourBid + ' Divide' + (f.yourBid === 1 ? '' : 's') : 'Bid ' + crs(retOf(f.yourBid / 12)) + '/mo') + '</div>' : '') +
       /* a prospect has a mark before they have an OA: the ring is neutral until they sign */
       '<div class="pc-top">' + fighterMark(f, 20, 'var(--line2)') +
         /* §MARKET A RECRUIT'S NAME OPENS THEIR SHEET, as a hand's does everywhere else: this
@@ -35830,7 +35817,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* the bench sorts the Roster's ways, minus squad; Stats first because that is what the
      placing is about */
   var BENCH_SORT = { key: 'stats', asc: false };
-  var BENCH_SORTS = [{ k: 'stats', lbl: 'Stats' }, { k: 'salary', lbl: 'Salary' }, { k: 'origin', lbl: 'Origin' },
+  var BENCH_SORTS = [{ k: 'stats', lbl: 'Stats' }, { k: 'salary', lbl: 'Pay' }, { k: 'origin', lbl: 'Origin' },
                      { k: 'term', lbl: 'Term' }, { k: 'name', lbl: 'Name' }];
   /* §MON-WA the bench and the squad screens deal in BEINGS: a pair is one card that a manager
      picks up and puts down, and its second body travels with it (`placeBoth`). */
@@ -36438,7 +36425,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      a range until they are yours. Appointing one of your own takes them off the line for good. */
   var BK_POSTS = ['drill', 'sergeant', 'quartermaster', 'fixer', 'surgeon', 'spymaster'];
   function bkSel() { if (!G._bk) G._bk = { tab: 'own' }; return G._bk; }
-  function crY(monthly) { return crs(Math.round((monthly || 0) * 12)) + '/yr'; }
+  function crM(monthly) { return crs(Math.round(monthly || 0)) + '/mo'; }   /* §MONEY (ruled) staff wages read by the month */
   function bkRange(r) { return r.lo === r.hi ? String(r.lo) : r.lo + '–' + r.hi; }
   var RECORD_WORDS = { gains: ['Stats Drilled', 0], talks: ['Talks', 0], saved: ['Credits Saved', 1], whole: ['Put Back Together', 0], mended: ['Wounds Mended', 0], reports: ['Reports', 0], lost: ['Lost on the Table', 0] };
   function bkRecord(st) {
@@ -36471,12 +36458,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           '<span class="craft">' + craft + '<small>Craft</small></span></div>' +
         '<div class="bkbar"><i style="width:' + craft + '%"></i></div>' +
         '<div class="kv"><span class="k">' + origin + '</span><span class="v">Age ' + (st.age || '?') + ' · ' + ((st.years || {})[p] || 0) + ' Yr in Post</span>' +
-          '<span class="k">Wage</span><span class="v">' + crY(st.wage) + '</span>' +
+          '<span class="k">Wage</span><span class="v">' + crM(st.wage) + '</span>' +
           '<span class="k">Release Fee</span><span class="v">' + crs(S.feeOf(st)) + '</span>' +
           (bkRecord(st) ? '<span class="k">Record</span><span class="v">' + esc(bkRecord(st)) + '</span>' : '') +
           (p === 'spymaster' && st.school === 'mole' ? '<span class="k">Mole</span><span class="v">' + ((mole && mole.season === G.state.season) ? 'In ' + cSpan(mole.target) : 'Not Planted') + '</span>' : '') +
         '</div>' +
-        (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crY(st.asking) + '</span></div>' : '') +
+        (st.asking ? '<div class="kv"><span class="k warn">Contract Up</span><span class="v">Asks ' + crM(st.asking) + '</span></div>' : '') +
         '<div class="acts">' +
           (st.asking ? '<button class="tiny" data-bkrenew="' + p + '">Renew</button>' : '') +
           (p === 'spymaster' && st.school === 'mole' && open ? (SEASON.FAC.moleAllowed(me) ? '<button class="tiny" data-bkmole="1">Plant the Mole</button>' : '<button class="tiny" disabled>Listening Post 2</button>') : '') +
@@ -36498,7 +36485,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (sel.pick) {
         var pr = V.own.filter(function (r) { return r.id === sel.pick.id; })[0];
         if (pr) h += '<div class="bkconfirm"><span>' + nameHtml(pr.f) + ' as ' + S.POST_NAME[sel.pick.post] + ' · Craft ' + pr.craft[sel.pick.post] +
-          ' · ' + crY(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">' + (pr.f.bond_partner ? 'Both Off the Line for Good' : 'Off the Line for Good') + '</span>' +
+          ' · ' + crM(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">' + (pr.f.bond_partner ? 'Both Off the Line for Good' : 'Off the Line for Good') + '</span>' +
           '<button class="tiny" data-bkappoint="1">Appoint</button><button class="tiny" data-bkkeep="1">Cancel</button></div>';
       }
       h += '<table class="bktbl"><tr><th>Name</th><th>Age</th>' + BK_POSTS.map(function (p) { return '<th>' + S.POST_NAME[p] + '</th>'; }).join('') + '</tr>' +
@@ -36513,14 +36500,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         V.spec.map(function (x) {
           var st = x.st, p = st.specialty, sch = S.SCHOOLS[p][st.school] || { name: '' };
           return '<tr><td style="color:' + raceColour(st) + '">' + esc(st.name) + '</td><td>' + S.POST_NAME[p] + '</td><td>' + bkRange(x.est[p]) + '</td><td>' +
-            esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crY(x.wage) + '</td><td>' +
+            esc(p === 'sergeant' ? 'By Temper' : sch.name) + '</td><td>' + st.age + '</td><td>' + crM(x.wage) + '</td><td>' +
             '<button class="tiny" data-bkhire="' + st.id + '"' + (held(p) || !open ? ' disabled' : '') + '>' + (!SEASON.FAC.postOpen(me, p) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[p]].name : held(p) ? 'Post Held' : 'Hire') + '</button></td></tr>'; }).join('') +
         (V.spec.length ? '' : '<tr><td colspan="7" class="m">All Taken</td></tr>') + '</table>';
     } else {
       h += '<table class="bktbl"><tr><th>House</th><th>Post</th><th>Name</th><th>Craft</th><th>Fee</th><th>Would Ask</th><th></th></tr>' +
         V.rivals.map(function (x) {
           var can = open && !held(x.post) && x.willing && (me.account.treasury || 0) >= x.fee;
-          return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crY(x.wage) + '</td><td>' +
+          return '<tr><td>' + cSpan(x.from) + '</td><td>' + S.POST_NAME[x.post] + '</td><td style="color:' + raceColour(x.st) + '">' + esc(x.st.name) + '</td><td>' + bkRange(x.est) + '</td><td>' + crs(x.fee) + '</td><td>' + crM(x.wage) + '</td><td>' +
             '<button class="tiny" data-bkpoach="' + x.from + '|' + x.post + '"' + (can ? '' : ' disabled') + '>' +
             (!SEASON.FAC.postOpen(me, x.post) ? 'Needs the ' + SEASON.FAC.FACILITIES[SEASON.FAC.FOR_POST[x.post]].name : held(x.post) ? 'Post Held' : !x.willing ? 'Unwilling' : 'Poach') + '</button></td></tr>'; }).join('') +
         (V.rivals.length ? '' : '<tr><td colspan="7" class="m">None Held</td></tr>') + '</table>';
@@ -38446,7 +38433,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     oneEach(aliveOf(c)).forEach(function (f) {   /* §MON-WA a pair is one person on the table, and both bodies go */
       /* a fighter on the table is a person, and carries what they are drawn as */
       out.push({ k: 'unit', id: f.id, label: displayName(f), race: f.race, mark: f.mark, corpId: c.id,
-                 sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr(((f.contract || {}).salary || 0) * 12) + '/yr \u00b7 ' +
+                 sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr(retOf((f.contract || {}).salary)) + '/mo \u00b7 ' +
                       ((f.contract || {}).seasons_remaining || 1) + ' Seasons' + (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
                  worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) });
     });
@@ -38800,7 +38787,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         '<span class="pbar"><em style="left:25%"></em><em style="left:50%"></em><i style="left:' + pat + '%"></i></span>' +
         '<span class="pv ' + patCls + '">' + pat + '</span><span class="pw">' + patWord + '</span></span>' : '') +
       (g.interest != null ? '<span class="bkv">Interest<b>' + Math.round(g.interest * 100) + '%</b></span>' : '') +
-      '<span class="bkv">Grant<b>' + crs(me.account.grant || 0) + '</b></span>' +
+      '<span class="bkv">Grant<b>' + crs(me.account.grant || 0) + '<span class="m">/yr</span></b></span>' +   /* (ruled) a year's sum, paid once */
       (verdict ? '<span class="bkv">Their Verdict<b>' + esc(verdict) + '</b></span>' : '');
 
     if ($('cardhead')) $('cardhead').textContent = 'The Card \u00b7 Year ' + G.state.season;

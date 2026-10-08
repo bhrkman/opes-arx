@@ -92,7 +92,7 @@
   const fmtCr = n => '\u20a1' + Math.round(n).toLocaleString('en-US');
   /* §POTENTIAL a fighter's worth is their wage over a season; the hidden potential that scaled
      it is struck (ruled: no unit ceilings) */
-  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * (LED.CONST.SALARY_MONTHS || 11));
+  const worthOf = f => Math.round(((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS);
   /* §STORY AN EVENT ASKS FOR A TIE, NOT A TRAIT ID. Five events cast their subject by naming a
      trait — `hasQuirk(f, 'hot_headed')` — and the moment those traits were retired all five
      went quiet with no error anywhere: the event stayed in the pool, drew its turn, found
@@ -259,9 +259,9 @@
         if (fighterHas(st0, f, 'salary_demand_pressure')) raiseMult *= 1.20;
         const ask = Math.round((f.contract.salary || 0) * raiseMult);
         return { kind: 'raise', subject: f.id, title: f.name + ' Wants a Raise',
-                 text: f.name + ' has a following now, and a following has a price: ' + fmtCr(ask) + ' more a month.',
+                 text: f.name + ' has a following now, and a following has a price: ' + fmtCr(LED.retainerOf(ask)) + ' more a month, and ' + fmtCr(LED.purseOf(ask)) + ' more a drop.',
                  options: [
-                   { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(ask) + ' a Month' },
+                   { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(LED.retainerOf(ask)) + ' a Month' },   /* §MONEY (ruled) what a raise adds to the retainer each month */
                    { id: 'refuse', label: 'Refuse', cost: 'They Sour' },
                    { id: 'release', label: 'Release Them', cost: 'They Walk' }
                  ], def: 'refuse', ask: ask };
@@ -905,7 +905,7 @@
     const stood = ((corp.facilities && corp.facilities.history) || []).filter(h => h.season === state.season);
     if (!gone.length && !due.length && !stood.length) return null;
     const lines = gone.map(g => g.name + ', ' + POST_NAME[g.post] + (g.why === 'retired' ? ', has retired.' : ', was poached by ' + ((state.corps[g.by] && state.corps[g.by].profile && state.corps[g.by].profile.name) || 'another house') + '.'))
-      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking * 12) + ' a year.'))
+      .concat(due.map(st => st.name + '’s contract as ' + POST_NAME[st.post] + ' is up; they ask ' + fmtCr(st.asking) + ' a month.'))
       .concat(stood.map(h => 'The ' + FNAME[h.id] + ' stands at level ' + h.level + '.'));
     return { id: 'backroom-' + state.season, pool: 'backroom', kind: 'backroom', title: 'Over the Winter',
              text: lines.join(' '), options: [{ id: 'accept', label: 'Noted', cost: due.length ? 'Unanswered Contracts Renew at Month’s End' : '' }], def: 'accept', resolved: null };

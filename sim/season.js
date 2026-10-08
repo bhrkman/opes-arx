@@ -1952,12 +1952,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       case 'finances': {
         const t = acct.treasury || 0;
-        const wage = alive.reduce((s, f) => s + ((f.contract || {}).salary || 0), 0);
+        const wage = Math.round(LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS);   /* §MONEY what leaves a month */
         const money = { fmt: nf, min: 0, floor: 1000 };
         if (vague) return band('finances', t, money);
         if (!full) return band('finances', t, money) +
-                          ' \u00b7 Wage ' + band('finances_wage', wage, money);
-        return nf(t) + ' \u00b7 Wage ' + nf(wage) + ' \u00b7 Grant ' + nf(acct.grant || 0);
+                          ' \u00b7 Retainers ' + band('finances_wage', wage, money) + ' a Month';
+        return nf(t) + ' \u00b7 Retainers ' + nf(wage) + ' a Month \u00b7 Grant ' + nf(acct.grant || 0) + ' a Year';
       }
       case 'kit': {
         const arm = them.armoury || {};
@@ -5176,15 +5176,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         })(),
         famousLosses: dead.filter(f => (f.fame || 0) >= REP.CONST.FAMOUS_AT).length
       });
-      /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
-         the one place a haul becomes credits, and only for what spilled over */
-      {
-        const spilled = (c.rep && c.rep._spilled) || {};
-        let units = 0;
-        for (const cat in spilled) units += spilled[cat];
-        const sale = Math.round(units * NEG.CONST.SURPLUS_VALUE);
-        if (sale > 0) LED.post(c.account, 'income', 'Surplus Sold to the Fleet', sale);
-      }
       c._close = close;
       /* THE FAMILIES ARE PAID. Every contract has carried a death benefit since the pools
          were ratified, and the negotiation layer has been pricing RANSOMS off that number
