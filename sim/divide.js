@@ -319,6 +319,11 @@
      `opts.humans` lists them; `opts.human`, one id, still works. */
   let _humans = new Set();
   function isHumanOA(id) { return _humans.has(id); }
+  /* §WITHDRAWAL (ruled) A PERSON'S HOUSE STILL LEAVES WHEN STAYING COSTS MORE THAN GOING, when nobody is deciding for it:
+     a seat whose window passes unanswered (a simulated house), or whose person has left the call to the books, weighs
+     leaving — and answers others' offers to leave — by the same reckoning every engine seat uses. A person who wants
+     the call keeps it. */
+  function decidesItself(c) { return !isHumanOA(c.id) || c._autoLeave !== false; }
   /* STEP 6 is not built: the comms window still serves ONE manager, asked for here and marked where used */
   let _manager = null;
   function equipCorp(corp, profile, loadoutOverride, planet, season) {
@@ -1011,7 +1016,7 @@
       const leaver = corps.filter(c => c.id === off.from)[0];
       for (const c of corps) {
         if (!leaver || c.id === off.from || c.withdrawn) continue;
-        if (isHumanOA(c.id)) continue;        /* a person answers at their own window */
+        if (!decidesItself(c)) continue;        /* a person answers at their own window */
         if (sealed(c)) { off.replies[c.id] = false; continue; }   /* N11 no deals, of any size */
         if (!(c.squads || []).some(q => squadHead(q).length)) continue;
         if (off.replies[c.id] != null) continue;
@@ -1045,7 +1050,7 @@
        oversimplification, and chosen for keeping a fatality rate steady, which the standing instruction says
        is not to be considered at all.) */
     for (const c of corps) {
-      if (isHumanOA(c.id) || !onGround(c)) continue;
+      if (!decidesItself(c) || !onGround(c)) continue;
       if (sealed(c)) continue;   /* N11 the OA that does not deal does not retreat either: it is on the ground to the end */
       /* §WITHDRAWAL THE LAST ONE STANDING HAS WON, AND DOES NOT LEAVE. Every OA in this pass weighs the field as it
          stood at dawn, so three could each find staying worthless and all three walk in one pass, the third off an
@@ -2977,6 +2982,8 @@
           }
           const applyAnswer = (seatId, answer) => {
             const you = corps.filter(c => c.id === seatId)[0];
+            /* a window passed with no answer is a house nobody is running: the books decide whether it leaves */
+            if (you) you._autoLeave = answer == null ? true : answer.autoLeave === true;
             if (answer && answer.stance && you) {
               const idx = NOTCHES.indexOf(answer.stance);
               if (idx >= 0) { if (you.policy !== answer.stance) you.stanceChanges++; you.policy = answer.stance; for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */

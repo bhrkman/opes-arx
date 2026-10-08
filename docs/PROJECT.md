@@ -222,6 +222,9 @@ lean one pleases.
   the Dividend. A man still mending goes down carrying his wound (his pool starts where his health stands) and loses
   loyalty for being sent (8); he is marked orange wherever he can be picked. A scar — a wound carried for good — costs
   only the stats it already took. The engine's own picks take the whole first and the mending only to make sixteen.
+- A person's house still leaves when staying costs more than going, when nobody is deciding for it (ruled): a seat whose
+  window passes unanswered weighs leaving, and answers others' offers to leave, by the engine's own reckoning. A
+  person can hand the call to the books on the Withdraw panel (The Books Call It); otherwise the call is theirs.
 - An engine seat courts the sponsor whose condition it can keep, and keeps it: it issues the family of guns a contract
   asks for, holds its drop to twenty for the freight house, and makes a third of it unproven for the Almsdesk. The
   fleet spreads its courting across the houses.

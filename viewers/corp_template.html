@@ -7474,10 +7474,15 @@
   function advanceDivide() {
     if (!G.div || G.div.done) return;
     var word = G.div.answer || undefined;   /* the Table's composed word rides the advance */
+    /* §WITHDRAWAL a person may leave the call to leave to the books (the engine's own reckoning); it rides every word */
+    if (G.autoLeave) { word = word || {}; word.autoLeave = true; G.div.answer = word; }
     /* §SUPER in hotseat, every seat's pending answer rides the one advance, each on its own OA */
     if (G.super && G.super.on && G.div.win) {
       G.div.answers = G.div.answers || {};
       G.div.answers[G.me] = G.div.answer || {};
+      /* every seat a person holds answers, if only with silence: an unanswered seat is a house nobody runs (the books
+         would decide whether it leaves) */
+      G.super.seats.forEach(function (sid) { G.div.answers[sid] = G.div.answers[sid] || (G.autoLeave ? { autoLeave: true } : {}); });
       word = { bySeat: G.div.answers };
       G.div.answers = {};
     }
@@ -7790,7 +7795,8 @@
     var h = '<div class="wbody"><div class="whd"><span class="t">Withdraw</span>' +
       /* §WITHDRAWAL what staying is expected to cost: the people (benefit, a year's wage, training, kit) at the rate this
          house and the field have been losing them — the figure every engine seat leaves on */
-      (w.stayCost ? '<span class="m" style="margin-left:auto">Staying Costs About ' + crs(w.stayCost) + '</span>' : '') + '</div>';
+      (w.stayCost ? '<span class="m" style="margin-left:auto">Staying Costs About ' + crs(w.stayCost) + '</span>' : '') +
+      '<button class="tiny' + (G.autoLeave ? ' on' : '') + '" id="wauto" style="margin-left:8px">The Books Call It \u00b7 ' + (G.autoLeave ? 'On' : 'Off') + '</button>' + '</div>';
     var pcW = Math.round((cur.credits || 0) * 100);
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
@@ -7840,6 +7846,7 @@
       h += '</div>';
     }
     host.innerHTML = h;
+    var wa = $('wauto'); if (wa) wa.onclick = function () { G.autoLeave = !G.autoLeave; renderWithdraw(w, you, others); };
     /* data-wout, not data-wask: the offer's own five term tiles already answer to that name */
     Array.prototype.forEach.call(host.querySelectorAll('[data-wout]'), function (b) {
       b.onclick = function () {
