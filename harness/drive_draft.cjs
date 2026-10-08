@@ -22,11 +22,12 @@ setTimeout(() => { d.getElementById('mNew').click();
       const host = d.getElementById('bizwin');
       if (!host.classList.contains('on') || !/The Draft/.test(host.textContent)) fails.push('the Draft does not open as a window');
       if (host.querySelectorAll('.drfpk').length !== 16) fails.push('the board does not show all sixteen picks');
-      /* weakest first: the founder took the weakest berth, so the first pick is yours, not a draw */
-      if (R.order[0] !== G.me) fails.push('the first pick is not the weakest OA (you)');
-      const SE = w.CDSEASON, reads = G.state.ids.map(id => SE.strengthRead ? SE.strengthRead(G.state, id) : 0);
-      const ordered = R.order.slice(0, G.state.ids.length).map(id => reads[G.state.ids.indexOf(id)]);
-      if (SE.strengthRead && ordered.some((v, i) => i && v < ordered[i - 1])) fails.push('the order does not run weakest to strongest');
+      /* weakest first, by the reads the order was set on when the Draft opened (the fleet is aligned — every seat the same
+         founded OA — so who is weakest is a standing's width, not the founder's berth; and the picks made before yours
+         move the reads after) */
+      const SE = w.CDSEASON;
+      const ordered = R.order.slice(0, G.state.ids.length).map(id => (R.reads || {})[id]);
+      if (!R.byPlacement && ordered.some((v, i) => v == null || (i && v < ordered[i - 1]))) fails.push('the order does not run weakest to strongest');
       const rows = host.querySelectorAll('.pc');
       if (!rows.length || rows[0].querySelectorAll('.pc-stats .st').length !== 7) fails.push('the pool does not show seven stats a fighter');
       if (!rows[0].querySelector('[data-sheet]')) fails.push('a prospect\'s name does not open their sheet');

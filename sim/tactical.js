@@ -2034,7 +2034,7 @@
       id: u.id, s: si, x: u.x, y: u.y, st: u.state, ow: !!u.overwatch, sup: !!u.suppressed,
       mv: u._crossed ? 2 : u.repositioning ? 1 : 0, race: u.race || 'human',
       comp: Math.round(u.comp || 0), ammo: u.ammo || 0, sid: !!u.onSidearm,
-      hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si),
+      hp: u.hp, hpMax: u.hpMax, kn: knownOf(u, si), stun: u._stun ? Math.round(u._stun * 10) / 10 : 0,
       name: u.ref && u.ref.name
     });
     const snap = () => frames.push({

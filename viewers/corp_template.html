@@ -682,6 +682,7 @@
      smudge. It sits at the darkest slate that still carries against the panel, with a pale
      rim to lift it off — the two halves stay plainly different without either going illegible. */
   .mw .mww{color:#8aa0bd;text-shadow:0 0 2px rgba(10,14,22,.9)}
+  .mw .mwoff{opacity:.35}
   .mw .mwm{text-shadow:0 0 2px rgba(10,14,22,.6)}
   /* §REST the two things rest mends, in their own colours: a wound is blood, stress is nerve.
      They were both the same grey label over two different griefs. */
@@ -2332,7 +2333,7 @@
     /* §GROUND the six squad colours (the same as --sqA..F in the stylesheet) and the mark of a
        munitions drop, so the map draws from the one table everything else does */
     sqA: '#e0a848', sqB: '#4fd6a0', sqC: '#3ad8e0', sqD: '#e84393', sqE: '#b47ce0', sqF: '#e0704a',
-    shell: '#b8c4d4',
+    shell: '#b8c4d4', stun: '#7fb4ff',   /* §STUN the stacks a man carries, on his bar */
     /* §GROUND the rebuilt ground: a hue a terrain, and its page's own greys */
     tOpen: '#4fd6a0', tSalt: '#f2d98a', tBroken: '#c8a86a', tRuins: '#b899cc', tForest: '#6fb4d8', tCanopy: '#3d82a6',
     tEntrenched: '#e0a848', tLava: '#e0704a', tCrevasse: '#9fb8ff', tMarsh: '#7fd4c1',
@@ -2501,8 +2502,13 @@
        nowhere else, so the Desk — where a manager spends credits doubling focus — never showed
        him what he had. It stands in the top line beside the clock, on every surface. */
     if ($('purse')) {
+      /* §CONNECT and what the reckoning leaves FREE (SEASON.planFor): the one figure every engine seat signs, builds and
+         kits by, and a person's Sign, Build and kit were weighed against without ever seeing it */
+      var freeNow = null;
+      try { if (G && G.state && !G.state.done && SEASON.planFor) freeNow = SEASON.planFor(G.state, G.corps[G.me]).free; } catch (e) { freeNow = null; }
       $('purse').innerHTML = (G && G.corps && G.corps[G.me])
-        ? '<span class="cr">' + crs(G.corps[G.me].account.treasury) + '</span>' : '';
+        ? '<span class="cr">' + crs(G.corps[G.me].account.treasury) + '</span>' +
+          (freeNow != null ? ' <span class="m">\u00b7 Free</span> <span class="cr">' + crs(Math.round(freeNow)) + '</span>' : '') : '';
     }
     /* the clock wears the month's own colour, the one the year line uses for that stop */
     if (G && G.state) { var mk2 = monthKind(m); $('clock').style.color = mk2.c; }
@@ -3025,7 +3031,7 @@
           '<span class="sub">' + (canField ? 'Enough to Drop' : 'Short of ' + SEASON.CONST.DROP_MIN) + '</span></span>' +
       '</div>';
 
-    var rows = me.roster.slice().sort(function (a, b) {
+    var rows = oneEach(me.roster).sort(function (a, b) {
       var x = rosterSortVal(a, ROSTER_SORT.key), y = rosterSortVal(b, ROSTER_SORT.key);
       var c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
       return ROSTER_SORT.asc ? c : -c;
@@ -3048,7 +3054,7 @@
           fighterMark(f, 22, colFor(G.me)) + '</span><span class="rc-name" style="color:' + raceColour(f) + '">' +
           (lead ? '<span class="lead">\u2605</span> ' : '') +
           /* §NAMES a war-priest is called one, on the row where a manager reads his people */
-          esc(SEASON.EVENTS.honorific(G.state, f) + f.name) + '</span>' +
+          (f.race === 'mon_wa' ? nameHtml(f) : esc(SEASON.EVENTS.honorific(G.state, f) + f.name)) + '</span>' +
           '<span class="rc-sq ' + (sq ? sq.cls : 'none') + '">' + (sq ? esc(sq.name) : '\u2014') + '</span></div>' +
         '<div class="rc-orig ' + org.cls + '">' + org.label +
           ' <span class="who">\u00b7 ' + capRace(f.race) + ', ' + (f.age || '?') + '</span></div>' +
@@ -3747,7 +3753,10 @@
     if (m !== SEASON.CONST.EIGHT_MONTH || (E.result && E.result.season === G.state.season)) { host.innerHTML = ''; return; }
     /* THE NAMING MONTH. One of yours goes, chosen from the fit as fighter cards; unnamed, your
        best goes. The seeding as it stands beside them. */
-    var fit = me.roster.filter(function (f) { return f.status === 'active' && !f.mirror_of && !(f.condition && (f.condition.injuries || []).length); });
+    var hurt = function (f) { return !!(f.condition && (f.condition.injuries || []).length); };
+    /* §MON-WA a pair goes as one entrant, so both bodies must be fit (the engine refuses otherwise) */
+    var fit = me.roster.filter(function (f) { var p = partnerIn(f, me.roster);
+      return f.status === 'active' && !f.mirror_of && !hurt(f) && !(p && (p.status !== 'active' || hurt(p))); });
     var def = SEASON.eightPick(me, true), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
     var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
@@ -3898,7 +3907,7 @@
            side panel every other name on every other screen opens. */
         (subj ? '<div class="subj">' + fighterMark(subj, 20, colFor(G.me)) +
                 '<span class="nm" data-sheet="' + subj.id + '" style="color:' + raceColour(subj) + '">' +
-                esc(subj.name) + '</span>' +
+                nameHtml(subj) + '</span>' +
                 '<span class="m">' + esc(titleWords(String(subj.race || '').replace(/_/g, ' '))) +
                 '</span>' + ratingHtml(subj) + '</div>' : '') +
         (e.resolved ? '<div class="chosen">' + esc(e.resolved.line) + '</div>'
@@ -3985,7 +3994,7 @@
      on in the months ahead: the hands he has against the drop floor, who is hurt, how worn they
      are, what the rack holds that nobody is carrying, and what is in the bank. */
   function takingStock(me) {
-    var able = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; });
+    var able = oneEach(me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'; }));   /* §MON-WA a pair counts once toward the sixteen */
     var floor = SEASON.CONST.DROP_MIN;
     var hurt = able.filter(function (f) { return ((f.condition || {}).injuries || []).length; }).length;
     var worn = able.filter(function (f) { return ((f.condition || {}).stress || 0) >= 25; }).length;
@@ -4159,10 +4168,29 @@
            '<span class="mww">' + esc(wa) + '</span></span>';
   }
   function displayName(b) { return (b && b.pair_name) || (b && b.name) || ''; }
+  /* §MON-WA ONE ROW A BEING. A list of bodies carries both halves of a pair; every list a person reads shows the pair
+     once, on its Mon (the Wa is marked `mirror_of`), unless the Mon is not in the list */
+  function oneEach(list) {
+    var ids = {}; (list || []).forEach(function (f) { if (f) ids[f.id] = true; });
+    return (list || []).filter(function (f) { return f && !(f.mirror_of && ids[f.mirror_of]); });
+  }
+  /* the other body of a pair, from a list (or the seat's roster) */
+  function partnerIn(f, list) {
+    if (!f || !f.bond_partner) return null;
+    return (list || []).filter(function (x) { return x && x.id === f.bond_partner && x.bond_partner === f.id; })[0] || null;
+  }
   /* THE NAME AS MARKUP, for every screen that prints one. `displayName` is the plain string
      (titles, tooltips); this is what goes on the page, so a Mon-Wa pair reads in two tones
      wherever it is written rather than only where `nameSpan` happened to be used. */
   function nameHtml(b) { return (b && b.race === 'mon_wa' && monWaName(b)) || esc(displayName(b)); }
+  /* §MON-WA one BODY of a pair, where a row is a body (its own stats, its own rest): the pair's name with the other
+     half dimmed, so the two rows read as the Mon and the Wa of one being rather than the same person twice */
+  function bodyNameHtml(b) {
+    var h = b && b.pair_halves; if (!h || !h.mon || !h.wa || !b.half) return nameHtml(b);
+    return '<span class="mw" title="' + esc(b.pair_name || '') + '">' +
+           '<span class="mwm' + (b.half === 'mon' ? '' : ' mwoff') + '">' + esc(h.mon) + '</span><span class="mwh">\u2011</span>' +
+           '<span class="mww' + (b.half === 'wa' ? '' : ' mwoff') + '">' + esc(h.wa) + '</span></span>';
+  }
   function nameSpan(b) {
     var mw = b.race === 'mon_wa' ? monWaName(b) : null;
     if (mw) return mw;
@@ -4338,7 +4366,7 @@
            '<span class="tgchev" data-tgopen="' + f.id + '">' + (open ? '\u25be' : '\u25b8') + '</span>' +
            fighterMark(f, 18, colFor(G.me)) +
            '<span class="tgname" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' +
-           (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + nameHtml(f) + '</span>' +
+           (G.plan.leaderOf[f.id] ? '<span class="lead">\u2605</span> ' : '') + bodyNameHtml(f) + '</span>' +
            (painted ? '<span class="tgcount">' + painted + '</span>' : '') +
            '<span class="tgguard"></span>' +
            '<span class="tgpips">' + tgTrack('row', f.id, rn) + '</span></div>';
@@ -4476,7 +4504,7 @@
               things rest answers; they are the two things a manager paints. */
            /* §DESK a name opens a sheet on every screen: the recovery grid's names were the
               one list on the Desk that did not, and they read the same as the drill's */
-           '<span class="tgnum tgname' + (rn > 0 ? ' on' : '') + '" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + nameHtml(f) + '</span>' +
+           '<span class="tgnum tgname' + (rn > 0 ? ' on' : '') + '" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + bodyNameHtml(f) + '</span>' +
            '</td>';
       RTRACKS.forEach(function (tr) {
         var key = f.id + '|' + tr.id, cn = rgGet('cell', key);
@@ -5114,7 +5142,7 @@
     ((res.landed || {})[G.me] || []).forEach(function (x) {
       lines.push('<span class="gold">Landed:</span> ' + esc(typeof x === 'string' ? x : (x && x.text) || JSON.stringify(x)));
     });
-    var joined = me.roster.filter(function (b) { return !before[b.id]; });
+    var joined = oneEach(me.roster.filter(function (b) { return !before[b.id]; }));
     if (joined.length)
       lines.push('<span class="good">Signed:</span> ' + joined.map(nameSpan).join(', '));
     if (res.event === 'eight' && G.state.eight && G.state.eight.result) {
@@ -5194,10 +5222,11 @@
   };
   /* ============================ THE RECAP ============================ */
   function monthSnapshot(me) {
-    var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: b.name, race: b.race,
+    var st = {}; me.roster.forEach(function (b) { st[b.id] = { s: Object.assign({}, b.stats), status: b.status, name: displayName(b), race: b.race, mirror_of: b.mirror_of || null,
       health: b.condition ? (b.condition.health == null ? 100 : b.condition.health) : 100, stress: b.condition ? (b.condition.stress || 0) : 0 }; });
     var read = me.rep ? REP.readAll(me.rep) : { factions: {} };
     return { treasury: me.account.treasury, ledgerN: (me.account.ledger || []).length, stats: st, promiseN: (me._promiseNews || []).length,
+             bondN: (me._bondLog || []).length,
              crowd: read.crowd, houses: read.housesMean, factions: Object.assign({}, read.factions), patience: me.rep ? me.rep.patience : null };
   }
   window.__showRecap = function () { return showRecap(); };
@@ -5216,7 +5245,7 @@
     var gone = [], changed = [];
     Object.keys(snap.stats).forEach(function (id) {
       var b = me.roster.filter(function (x) { return x.id === id; })[0], was = snap.stats[id];
-      if (!b) { gone.push(esc(was.name)); return; }
+      if (!b) { if (!(was.mirror_of && snap.stats[was.mirror_of])) gone.push(esc(was.name)); return; }   /* §MON-WA a pair leaves once */
       if (b.status !== was.status) changed.push('<span style="color:' + raceColour(b) + '">' + nameHtml(b) + '</span> <span class="m">' + capWords(was.status) + ' \u2192 ' + capWords(b.status) + '</span>');
     });
     /* training: the biggest gains */
@@ -5292,9 +5321,19 @@
     /* PEOPLE: who came, who went, who changed, what was arranged, who was drilled */
     var peopleCol = '<h3>People</h3>';
     R.joined.forEach(function (id) { var b = me.roster.filter(function (x) { return x.id === id; })[0]; if (!b) return;
+      if (b.mirror_of && R.joined.indexOf(b.mirror_of) >= 0) return;   /* §MON-WA a pair comes once */
       var ct = b.contract || {};
+      /* §CAPTIVES a man kept from a rival's drop arrives on his own paper: he was taken, not signed */
+      if (b._keptFrom) { peopleCol += ln('Kept', nameSpan(b) + ' <span class="m">\u00b7 From ' + cSpan(b._keptFrom) + '</span>', '<span class="good">+1</span>'); return; }
       peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
     gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
+    /* §MON-WA what the partner-death roll did this month: the being, and what became of the half left */
+    var BOND_WORDS = { dead: ['Died With the Other Half', 'bad'], braindead: ['Lost to the Bond \u00b7 Retired', 'bad'], traumatized: ['Survived \u00b7 Severed', 'warn'] };
+    (me._bondLog || []).slice(snap.bondN || 0).forEach(function (e) {
+      var wd = BOND_WORDS[e.fate] || [capWords(e.fate), 'm'];
+      peopleCol += ln('Bond', esc(e.was || e.name) + (e.fate === 'traumatized' ? ' <span class="m">\u00b7 Now ' + esc(e.name) + '</span>' : ''),
+                      '<span class="' + wd[1] + '">' + wd[0] + '</span>');
+    });
     changed.forEach(function (c) { peopleCol += ln('Changed', c + (/Injured/.test(c) ? stamp('Mending', 'amber') : ''), ''); });
     /* §TALKS the month's word, and any promise that came due */
     if (R.talk) {
@@ -5435,7 +5474,7 @@
       members.sort(function (a, b) { return ((b.stats.tactics || 0) + (b.stats.presence || 0)) - ((a.stats.tactics || 0) + (a.stats.presence || 0)); });
       if (members[0]) G.plan.leaderOf[members[0].id] = true;   /* leadership follows the person */
     }
-    var doc = ITEMS.doctrineForCorp(G.me) || {};
+    var doc = ITEMS.doctrineFor(G.corps[G.me].profile) || {};
     var cap = Math.min(doc.armoury_max_tier || 5, 3);          /* decent, not the best the yard sells */
     var best = function (slot, tier, key) {
       var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= tier; });
@@ -5522,14 +5561,23 @@
     var rng = SEASON.rngOf(G.corps, 'gvdrop' + G.state.season);
     var taken = {}, squads = [];
     var order = G.state.ids.slice().sort(function (a, b) { return SEASON.strengthRead(G.state, a) - SEASON.strengthRead(G.state, b); });
-    for (var round = 0; round < 4; round++) order.forEach(function (id) {
+    /* §SQUADS the preview drops each OA as it would go down: the squads it plans, eight seats at most, its people over them */
+    var plan = {};
+    order.forEach(function (id) {
+      var k = Math.max(1, SEASON.squadPlanFor(G.state, id) || 3), c = G.corps[id];
+      var ones = SEASON.beings(c.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired'; })).length;
+      var drop = Math.max(SEASON.CONST.DROP_MIN, Math.min(SEASON.CONST.DROP_MAX, ones));
+      plan[id] = { k: k, n: Math.min(DIVIDE.CONST.SQUAD_MAX, Math.ceil(drop / k)) };
+    });
+    for (var round = 0; round < 6; round++) order.forEach(function (id) {
+      if (round >= plan[id].k) return;
       var mine = squads.filter(function (q) { return q.oa === id; }).map(function (q) { return g.zones[q.zone].region; });
       var free = g.zones.filter(function (z) { return !taken[z.id] && mine.indexOf(z.region) < 0 && z.region !== g.wall.last; });
       if (!free.length) free = g.zones.filter(function (z) { return !taken[z.id]; });
       if (!free.length) return;
       free.sort(function (a, b) { return (b.site ? 1 : 0) + (b.height >= 1 ? .5 : 0) - (a.site ? 1 : 0) - (a.height >= 1 ? .5 : 0) + (rng() - .5) * 1.4; });
       var z = free[0]; taken[z.id] = true;
-      squads.push({ oa: id, s: round, zone: z.id, n: 5 });
+      squads.push({ oa: id, s: round, zone: z.id, n: plan[id].n });
     });
     return { ground: g, day: 1, squads: squads, fights: [], me: G.me, preview: true };
   }
@@ -5669,7 +5717,7 @@
   }
   function renderGroundRegion(view) {
     var host = $('gvregion'), g = view.ground;
-    if (GV.open == null || !g.regions[GV.open]) { host.innerHTML = '<span class="m">Open a Region on the Map</span>'; return; }
+    if (GV.open == null || !g.regions[GV.open]) { host.innerHTML = '<span class="m">No Region Open</span>'; return; }
     var r = g.regions[GV.open], zs = r.zones.map(function (id) { return g.zones[id]; });
     var col = gvTerrainCol(r.terrain), t = g.wall.takeAt.filter(function (x) { return x.region === r.id; })[0];
     var h = '<div class="gvsub"><b style="color:' + col + '">' + esc(r.name) + '</b><span class="m">' + r.zones.length + ' Zones · ' + esc(r.terrainName) + ' · ' + r.ticks + ' Tick' + (r.ticks === 1 ? '' : 's') + ' a Step' + (r.id === g.wall.last ? ' · The Last Ground' : t ? ' · Goes Day ' + t.day : '') + '</span></div>';
@@ -5779,7 +5827,8 @@
   function normPlan(p) {
     p = p || {};
     var np = { at: p.at || {}, leaderOf: p.leaderOf || {},
-               names: p.names || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: p.hand || {} };
+               names: p.names || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: p.hand || {},
+               reserve: (p.reserve || []).slice() };   /* §RESERVE the landing order is part of the plan */
     /* migrate a legacy leaders[] array (index -> id) into the person-keyed map */
     if (!p.leaderOf && Array.isArray(p.leaders))
       p.leaders.forEach(function (id) { if (id) np.leaderOf[id] = true; });
@@ -5804,9 +5853,12 @@
      picks up and puts down, and its second body travels with it (`placeBoth`). */
   function fitBodies() {
     var me = G.corps[G.me];
+    var hurt = function (x) { return !!(x.condition && (x.condition.injuries || []).length); };
     return me.roster.filter(function (b) {
+      /* a pair is fit as one: the engine keeps it off the drop and out of orbit when either body is hurt */
+      var p = partnerIn(b, me.roster);
       return b.status !== 'dead' && b.status !== 'retired' && !b.mirror_of
-          && !(b.condition && (b.condition.injuries || []).length);
+          && !hurt(b) && !(p && p.status !== 'dead' && hurt(p));
     });
   }
   /* placing or moving a being carries its other half with it */
@@ -6057,22 +6109,27 @@
 
     /* ---- the plan line: what the fielded kit is worth (catalog value, hand and quartermaster together), and the
        drop cap when it is broken. The Aleas' kit ceiling is gone (ruled): the treasury is the limit. ---- */
-    var fieldedKit = 0, hands = 0, refused = 0;
+    /* §CONNECT the kit is carried body by body (a pair's two bodies carry two), the reserve is kitted inside the same
+       money, and what the reckoning leaves for kit is the limit a hand is refused past (divide.js kitBudget) */
+    var fieldedKit = 0, hands = 0, refused = 0, rosterAll = G.corps[G.me].roster;
+    var inOrbit = (G.plan.reserve || []);
     fit.forEach(function (b) {
-      if (G.plan.at[b.id] == null) return;
-      /* §MON-WA a pair is one hand: the mirrored half carries the same kit and is not a
-         second purchase, so it is counted once here as it is charged once at the yard */
-      if (b.mirror_of) return;
-      fieldedKit += kitValueOf(currentKit(b));
+      if (G.plan.at[b.id] == null && inOrbit.indexOf(b.id) < 0) return;
+      var bodies = 1 + (partnerIn(b, rosterAll) ? 1 : 0);
+      fieldedKit += kitValueOf(currentKit(b)) * bodies;
       if (G.plan.hand[b.id]) { hands++; if (!handStands(b)) refused++; }
     });
+    var kitMoney = SEASON.kitMoneyFor ? SEASON.kitMoneyFor(G.state, G.corps[G.me]) : null;
     var kitLine = total
-      ? '<span title="Catalog Value Carried by the ' + total + ' Fielding">Kit ' + crs(fieldedKit) + '</span>'
+      ? '<span>Kit ' + crs(fieldedKit) + '</span>' + (kitMoney != null ? '<span>Kit Money ' + crs(Math.round(kitMoney)) + '</span>' : '')
       : '';
     $('planstate').innerHTML = kitLine +
       (refused ? '<span class="over" title="Needs a Primary and Armor">' + refused + ' Hand' + (refused === 1 ? '' : 's') + ' Incomplete</span>' : '') +
       (total > SEASON.CONST.DROP_MAX
-        ? '<span class="over">' + total + ' Fielding \u2014 Over the Drop Cap of ' + SEASON.CONST.DROP_MAX + '</span>' : '');
+        ? '<span class="over">' + total + ' Fielding \u2014 Over the Drop Cap of ' + SEASON.CONST.DROP_MAX + '</span>'
+        /* §CONNECT the Aleas' sixteen (ruled): a named drop short of it is filled by the Aleas from the roster at the lock */
+        : total < SEASON.CONST.DROP_MIN
+        ? '<span class="over">' + total + ' Fielding \u2014 The Aleas Fill to ' + SEASON.CONST.DROP_MIN + '</span>' : '');
     if (G._clearAsk) { G._clearAsk = false; renderClearButton(); }
 
     if (G._inspect && !fitIds[G._inspect]) G._inspect = null;
@@ -6132,8 +6189,8 @@
     }
     /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
     h += '<h3>The OA</h3>';
-    var alive = (c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; });
-    h += row('Bodies on the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
+    var alive = oneEach((c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; }));
+    h += row('On the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
     if (p.archetype) h += row('Archetype', capWords(p.archetype));
     if (p.difficulty != null && !mine) h += row('Standing in the Fleet', 'Tier ' + p.difficulty);
     if (p.engagement_lean) h += row('How They Fight', capWords(String(p.engagement_lean).replace(/_/g, ' ')));
@@ -6202,16 +6259,34 @@
   function currentKit(b) {
     var h = G.plan.hand[b.id];
     if (h) return { primary: h.primary || null, armor: h.armor || null,
-                    sidearm: h.sidearm || null, consumables: (h.consumables || []).slice() };
+                    sidearm: h.sidearm || null, mods: (h.mods || []).slice(), consumables: (h.consumables || []).slice() };
     var lo = b.loadout || {};
     return { primary: lo.primary || null, armor: lo.armor || null,
-             sidearm: lo.sidearm || null, consumables: (lo.consumables || []).slice() };
+             sidearm: lo.sidearm || null, mods: (lo.mods || []).slice(), consumables: (lo.consumables || []).slice() };
+  }
+  /* §CONNECT A HAND IS THE WHOLE LOADOUT. The sheet had a primary, a sidearm, armour and one store, so a hand-kitted man
+     carried no mod (an Extended Magazine among them) and one store where the engine allows two (ITEMS MOD_SLOTS,
+     CONSUMABLE_SLOTS). A slot key is the catalogue slot, with its place for the two that hold more than one. */
+  function slotBase(key) { return String(key).split(':')[0]; }
+  function slotIdx(key) { var p = String(key).split(':'); return p.length > 1 ? +p[1] : 0; }
+  function kitIn(kit, key) {
+    var base = slotBase(key);
+    if (base === 'mod') return (kit.mods || [])[slotIdx(key)] || null;
+    if (base === 'consumable') return (kit.consumables || [])[slotIdx(key)] || null;
+    return kit[base] || null;
+  }
+  function kitBulk(kit) {
+    var v = 0;
+    [kit.primary, kit.sidearm, kit.armor].concat(kit.mods || [], kit.consumables || []).forEach(function (id) {
+      var it = id && ITEM_BY_ID[id]; if (it) v += it.bulk || 0;
+    });
+    return v;
   }
 
   /* catalog value of a kit — the same sum the Divide charges against the cap */
   function kitValueOf(k) {
     var v = 0;
-    [k.primary, k.sidearm, k.armor].concat(k.consumables || []).forEach(function (id) {
+    [k.primary, k.sidearm, k.armor].concat(k.mods || [], k.consumables || []).forEach(function (id) {
       var it = id && ITEM_BY_ID[id]; if (it) v += it.cost || 0;
     });
     return v;
@@ -6219,7 +6294,8 @@
   /* a hand stands only with a primary AND armor; otherwise the Divide refuses it whole */
   function handStands(b) { var h = G.plan.hand[b.id]; return !!(h && h.primary && h.armor); }
   /* one line about an item, capitalised the way the page speaks */
-  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'], ['consumable', 'Store']];
+  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'],
+                   ['mod:0', 'Mod'], ['mod:1', 'Mod'], ['consumable:0', 'Store'], ['consumable:1', 'Store']];
 
   function renderPanel() {
     var panel = $('unitpanel'), scrim = $('sqscrim');
@@ -6235,7 +6311,7 @@
     var fit = fitBodies();
 
     var kitRows = KIT_SLOTS.map(function (p) {
-      var id = p[0] === 'consumable' ? (kit.consumables || [])[0] : kit[p[0]];
+      var id = kitIn(kit, p[0]);
       var it = ITEM_BY_ID[id];
       return '<div class="slot' + (it ? '' : ' empty') + (G._pickSlot === p[0] ? ' open' : '') + '" data-slot="' + p[0] + '">' +
              '<span class="sl">' + p[1] + '</span>' + tierHtml(id) +
@@ -6261,7 +6337,9 @@
         '<div class="colblk"><div class="clab">Loadout' +
           (hand ? '<span class="ktag hand">Hand-Kitted</span><span class="ktag rel" id="pclear" title="Hand the Kit Back">Release</span>'
                 : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
-          '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span></div>' +
+          '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span>' +
+          /* §ROUNDS what he carries is weighed at his squad: past eight a head, the squad hauls it in fatigue */
+          '<span class="ktag' + (kitBulk(kit) > ITEMS.CONST.SQUAD_BULK_PER_HEAD ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + ITEMS.CONST.SQUAD_BULK_PER_HEAD + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && !handStands(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">No Primary or Armor</div>' : '') +
           '<div id="pickerhost"></div></div>' +
@@ -6424,7 +6502,7 @@
       if (sel.pick) {
         var pr = V.own.filter(function (r) { return r.id === sel.pick.id; })[0];
         if (pr) h += '<div class="bkconfirm"><span>' + nameHtml(pr.f) + ' as ' + S.POST_NAME[sel.pick.post] + ' · Craft ' + pr.craft[sel.pick.post] +
-          ' · ' + crY(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">Off the Line for Good</span>' +
+          ' · ' + crY(Math.max(((pr.f.contract || {}).salary || 0), S.wageFor(pr.craft[sel.pick.post], 'veteran'))) + '</span><span class="warn">' + (pr.f.bond_partner ? 'Both Off the Line for Good' : 'Off the Line for Good') + '</span>' +
           '<button class="tiny" data-bkappoint="1">Appoint</button><button class="tiny" data-bkkeep="1">Cancel</button></div>';
       }
       h += '<table class="bktbl"><tr><th>Name</th><th>Age</th>' + BK_POSTS.map(function (p) { return '<th>' + S.POST_NAME[p] + '</th>'; }).join('') + '</tr>' +
@@ -6605,17 +6683,17 @@
     if (!b || !ctx.host) return;
     var host = ctx.host;
     var rack = G.corps[G.me].armoury || {};
-    var doc = ITEMS.doctrineForCorp(G.me) || {};
+    var doc = ITEMS.doctrineFor(G.corps[G.me].profile) || {};   /* §CONNECT the doctrine the engine kits by */
     var maxTier = doc.armoury_max_tier || 5;
     var kit = currentKit(b);
-    var chosen = slot === 'consumable' ? (kit.consumables || [])[0] : kit[slot];
+    var chosen = kitIn(kit, slot);
     var label = (KIT_SLOTS.filter(function (p) { return p[0] === slot; })[0] || [slot, capWords(slot)])[1];
 
     /* §FACILITIES the Armoury decides what can be issued; what sits above it is stored, and shown as stored */
     var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
     var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
     var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
-    var items = ITEMS.bySlot(slot).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
+    var items = ITEMS.bySlot(slotBase(slot)).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -6634,7 +6712,7 @@
       var lk = locked(it), mine = own.indexOf(it.id) >= 0;
       rows += '<div class="prow' + (chosen === it.id ? ' on' : '') + (lk ? ' locked' : '') + '"' + (lk ? '' : ' data-pick="' + it.id + '"') + '>' + tierHtml(it.id) +
               '<span class="pn">' + esc(it.name) + (desc ? '<div class="pd">' + desc + '</div>' : '') +
-              '<div class="pspec">' + itemBars(it) + itemChips(it) + '</div></span>' +
+              '<div class="pspec">' + itemBars(it) + itemChips(it) + (it.bulk ? '<div class="mchips"><span class="effect">Bulk ' + it.bulk + '</span></div>' : '') + '</div></span>' +
               (lk ? '<span class="rack">Stored \u00b7 Armoury ' + (it.tier - SEASON.FAC.CONST.TIER_OFFSET) + '</span>'
                   : mine ? '<span class="rack">Their Own</span>'
                   : have ? '<span class="rack">Rack ' + rack[it.id] + '</span>' : '<span class="rack">Selected</span>') + '</div>';
@@ -6665,14 +6743,17 @@
     var h = G.plan.hand[b.id] ? G.plan.hand[b.id] : (function () {
       var k = currentKit(b);
       return { primary: k.primary, armor: k.armor, sidearm: k.sidearm,
-               mods: [], consumables: (k.consumables || []).slice() };
+               mods: (k.mods || []).slice(), consumables: (k.consumables || []).slice() };   /* the quartermaster's mods stay */
     })();
-    if (slot === 'consumable') h.consumables = id ? [id] : [];
-    else h[slot] = id || null;
+    var base = slotBase(slot), ix = slotIdx(slot);
+    if (base === 'mod' || base === 'consumable') {
+      var arr = (base === 'mod' ? (h.mods = h.mods || []) : (h.consumables = h.consumables || []));
+      arr[ix] = id || null;
+      var packed = arr.filter(Boolean); arr.length = 0; packed.forEach(function (x) { arr.push(x); });
+    } else h[slot] = id || null;
     G.plan.hand[b.id] = h;
-    /* §MON-WA ONE HAND FOR THE PAIR. A pair is one being: it is kitted once and the rack is
-       charged once. The mirror travels to the other half so both bodies carry what was chosen
-       — two guns in the fight, one purchase at the yard. */
+    /* §MON-WA ONE HAND FOR THE PAIR: chosen once, carried by both bodies — two guns in the fight, so two drawn from the
+       rack (or bought), and both counted against the allowance */
     if (b.bond_partner) G.plan.hand[b.bond_partner] = JSON.parse(JSON.stringify(h));
     G._pickSlot = null;
     renderSquads(); if (typeof renderRoster === 'function') renderRoster();
@@ -6865,6 +6946,11 @@
             g.fillStyle = rgba(TOK.black, .55); g.fillRect(bx, by, bw, s * 0.13);
             g.fillStyle = frac > 0.6 ? TOK.leaf : frac > 0.3 ? TOK.a : TOK.blood2;
             g.fillRect(bx, by, bw * frac, s * 0.13);
+            /* §STUN the stacks he carries are health spent toward going down: the end of the bar they have taken */
+            if (u.stun) {
+              var sf = Math.min(frac, u.stun / ((TAC && TAC.CONST && TAC.CONST.STUN_AT) || 10));
+              g.fillStyle = TOK.stun; g.fillRect(bx + bw * (frac - sf), by, bw * sf, s * 0.13);
+            }
           }
           g.fillStyle = rgba(TOK.paper, .45);
           g.font = Math.round(s * 0.28) + 'px ui-monospace,monospace';
@@ -6963,7 +7049,11 @@
                  stun: 'stuns', stunned: 'stuns out',
                  /* §MON-WA one being in two bodies: the fall, the roll, the stretch */
                  pair_down: 'goes down with', tether_strained: 'strains the tether to',
-                 bond_shock_death: 'dies with', bond_shock_braindead: 'is lost with', bond_shock_traumatized: 'outlives' };
+                 bond_shock_death: 'dies with', bond_shock_braindead: 'is lost with', bond_shock_traumatized: 'outlives',
+                 /* §CONNECT the rest of what the grid writes down, which printed as raw type names */
+                 absorbed: 'glances off', ricochet: 'ricochets into', blast: 'catches in the blast', lane_hit: 'fires down the lane at',
+                 covering: 'lays covering fire on', spread: 'catches with the spread', stabilized: 'stabilises',
+                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
@@ -6981,6 +7071,7 @@
       if (v2.react) tail += ' \u00b7 On Overwatch';
       if (v2.sev) tail += ' \u00b7 ' + esc(v2.sev);
       if (v2.type === 'stun') tail += ' \u00b7 ' + v2.stacks + ' Of ' + v2.of;
+      if (v2.type === 'down' && v2.stasis) tail += ' \u00b7 Held by Stasis';
       if (v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '%';
       if (v2.why && v2.why.length) tail += ' <span class="m">\u00b7 ' + v2.why.map(esc).join(' \u00b7 ') + '</span>';
       var col2 = colFor(fCid(sideOf[v2.by] || 0));
@@ -7641,7 +7732,10 @@
     var pot = (G.div.planet && G.div.planet.pot && G.div.planet.pot.value) || 0;
     /* §WITHDRAWAL always open, in its own panel: it is the largest decision a manager makes in
        a contest and it should not hide behind a fold */
-    var h = '<div class="wbody"><div class="whd"><span class="t">Withdraw</span></div>';
+    var h = '<div class="wbody"><div class="whd"><span class="t">Withdraw</span>' +
+      /* §WITHDRAWAL what staying is expected to cost: the people (benefit, a year's wage, training, kit) at the rate this
+         house and the field have been losing them — the figure every engine seat leaves on */
+      (w.stayCost ? '<span class="m" style="margin-left:auto">Staying Costs About ' + crs(w.stayCost) + '</span>' : '') + '</div>';
     var pcW = Math.round((cur.credits || 0) * 100);
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
@@ -7808,6 +7902,7 @@
     if (e.overwatch_mult) bits.push('Aim on Overwatch <b>+' + (ITEMS.CONST.MOD_OVERWATCH_AIM || 20) + '</b>');
     if (e.band_mismatch_mult) bits.push('Wrong-Range Penalty <b>\u00d7' + e.band_mismatch_mult + '</b>');
     if (e.ammo) bits.push('Rounds <b>' + sg(e.ammo) + '</b>');
+    if (e.mags) bits.push('Magazines <b>' + sg(e.mags) + '</b>');   /* §ROUNDS one more of the gun's own magazines */
     if (e.charge) bits.push('Charge <b>' + sg(e.charge) + '</b>');
     if (e.suppress_drain) bits.push('Suppressing Fire <b>\u22121 Round</b>');
     if (e.grants) bits.push('Grants <b>' + titleWords(e.grants) + '</b>');
@@ -8061,6 +8156,7 @@
     if (e.mobility) c.push([e.mobility > 0 ? 'effect' : 'loud', 'Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility]);
     if (e.ration_days) c.push(['effect', '+' + e.ration_days + ' Days of Rations']);
     if (i.charges) c.push(['charges', i.charges + ' Charges']);
+    if (e.mags) c.push(['effect', '+' + e.mags + ' Magazine' + (e.mags > 1 ? 's' : '')]);
     (e.tags || []).forEach(function (t) { c.push(['trait', titleWords(t)]); });
     return c;
   }
@@ -8182,20 +8278,9 @@
      greenest fit bodies; a manager may put their names in front of the crowd instead), the
      card is drawn, and afterwards every match is watchable on the same grid the Divide
      uses — because it is the same grid, and always was. --- */
-  function dvEligible() {
-    var me = G.corps[G.me];
-    return me.roster.filter(function (f) {
-      /* §WOUNDS FIT ENOUGH TO PERFORM IS A CONDITION, NOT AN EMPTY LIST. This asked whether
-         the injuries list was empty — and the list is what a wound IS now, not how bad it is,
-         so it never empties and anybody ever hurt was barred from the Dividend for ever. A man
-         below Serious is not put in front of a crowd. */
-      return f.status !== 'dead' && f.status !== 'retired' &&
-             ((f.condition || {}).health == null ||
-              f.condition.health >= SEASON.CONST.WOUND_SERIOUS) &&
-             !(f.contract && f.contract.divides_required != null &&
-               (f.contract.divides_served || 0) < f.contract.divides_required);
-    });
-  }
+  /* §CONNECT the engine's own list of who may take the floor: a page with its own copy of the rule offered people the
+     card then dropped (a wound the page let through, half of a pair) — one seat a being, a pair on its Mon */
+  function dvEligible() { return SEASON.dividendEligible(G.corps[G.me]); }
   function dvPick() {
     if (!G._dvPick) G._dvPick = null;
     return G._dvPick;
@@ -8330,9 +8415,9 @@
     var c = side === 'give' ? tradeMe() : (TSEL ? G.corps[TSEL] : null);
     if (!c) return [];
     var out = [];
-    aliveOf(c).forEach(function (f) {
+    oneEach(aliveOf(c)).forEach(function (f) {   /* §MON-WA a pair is one person on the table, and both bodies go */
       /* a fighter on the table is a person, and carries what they are drawn as */
-      out.push({ k: 'unit', id: f.id, label: f.name, race: f.race, mark: f.mark, corpId: c.id,
+      out.push({ k: 'unit', id: f.id, label: displayName(f), race: f.race, mark: f.mark, corpId: c.id,
                  sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr((f.contract || {}).salary || 0) + '/mo \u00b7 ' +
                       ((f.contract || {}).seasons_remaining || 1) + ' Seasons' + (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
                  worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) });
@@ -8523,7 +8608,7 @@
       $('tradeinbox').innerHTML = '<b style="color:' + colFor(off.from) + '">' +
         markFor(off.from, 14) + ' ' + cSpan(off.from) + '</b> ' +
         '<span class="m">Has Written</span>' +
-        '<div style="margin-top:6px">They Want <b>' + esc(f.name || 'Somebody of Yours') +
+        '<div style="margin-top:6px">They Want <b>' + esc(displayName(f) || 'Somebody of Yours') +
         '</b>, and Offer ' + offerWords(off.offer) + '.</div>' +
         '<div class="bar"><button id="toffyes">Accept</button>' +
         '<button id="toffno" class="tiny">Decline</button></div>';
@@ -9135,7 +9220,7 @@
       var si = side[e.by]; if (si == null || !st[si]) return;
       var S = st[si];
       if (e.type === 'hit' || e.type === 'miss') { S.shots++; if (e.type === 'hit') S.hits++; if (e.react) S.over++; }
-      if (e.type === 'down') S.downs++;
+      if (e.type === 'down' || e.type === 'stunned') S.downs++;   /* a stun take-out is a man put down */
       if (e.type === 'killed') S.kills++;
       (e.why || []).forEach(function (wm) { S.why[wm] = (S.why[wm] || 0) + 1; });
     });
@@ -9251,7 +9336,7 @@
       '<div class="legendside"><div><h2 style="margin-top:0">Your Landings</h2><div class="ring">' +
         (mine.length ? mine.map(function (z, i) { return '<div class="sector yours"><div class="sn">' + zoneName(z) + '<span class="you">Squad ' + squadLetter(i) + '</span></div><div class="m" style="margin-top:4px">' + read(byZone[z]) + '</div></div>'; }).join('')
                      : '<div class="sector"><div class="m">None Yet</div></div>') +
-      '</div><h2>' + (LAND.open != null ? esc(g.regions[LAND.open].name) : 'Open a Region on the Map') + '</h2><div class="dzones">' +
+      '</div><h2>' + (LAND.open != null ? esc(g.regions[LAND.open].name) : 'No Region Open') + '</h2><div class="dzones">' +
         (LAND.open != null ? (function () {
           var rz = g.regions[LAND.open].zones, l0 = byZone[rz[0]];
           var pick = { can: function (zid) { var l = byZone[zid]; return myTurn && !D.done && !!l && CDPREDIVIDE.allowed(l, D.taken, mine, all); }, owner: function (zid) { return D.taken[zid] || null; } };
@@ -9381,6 +9466,10 @@
 
         '<span class="dkv">Standing<b>' + up + '</b><small>' +
           (hurt ? hurt + ' Hurt' : 'None Hurt') + (dead ? ' \u00b7 ' + dead + ' Lost' : '') + '</small></span>' +
+        /* §RESERVE who waits in orbit, and who has come down at a beacon (the window carries both; nothing read them) */
+        ((w.reserveLeft || (w.landings || []).length)
+          ? '<span class="dkv" title="' + esc((w.reserveNames || []).join(', ')) + '">In Orbit<b>' + (w.reserveLeft || 0) + '</b><small>' +
+            ((w.landings || []).length ? (w.landings || []).length + ' Landed' : 'None Landed') + '</small></span>' : '') +
         lightCell(w) +
         '<span class="dwx">' + weatherWords(w.weather) + '</span>' +
       '</div>' +

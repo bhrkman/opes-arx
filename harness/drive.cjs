@@ -756,8 +756,11 @@ setTimeout(() => {
     /* ---- the scalpel: one hand's one cell moves that hand most, beyond the column's reach ---- */
     resetGrid();
     const alive = aliveOf();
-    const subject = alive.find(f => typeof f.potential === 'number' &&
-                                    f.stats.tactics < f.potential - 40) || alive[0];
+    /* a hand with room to learn tactics (a drill reaches only those off the ceiling by the green gap) and not crippled:
+       `potential` is gone from fighters, so the old pick fell through to whoever stood first, often at the ceiling */
+    const SC = window.CDSEASON.CONST;
+    const subject = alive.find(f => f.stats.tactics < SC.STAT_CEIL - SC.TRAIN_GREEN_GAP - 10 &&
+                                    window.CDSEASON.woundBand(f) !== 'crippled') || alive[0];
     const subjIdx = alive.indexOf(subject);
     /* A HAND'S STATS FOLD NOW. The corner and the columns are always there — they are what
        a manager reaches for most — but the narrow work lives behind a chevron, so open the
@@ -1417,8 +1420,8 @@ setTimeout(() => {
     /* the name opens the sheet as a drawer: four loadout slots, the moves, the actions */
     alpha().querySelector('.port-card[data-id="' + leadId + '"] [data-sheet]').click();
     check(doc.getElementById('unitpanel').classList.contains('on') &&
-          doc.querySelectorAll('#unitpanel .slot').length === 4,
-          'the sheet opens as a drawer with the four loadout slots');
+          doc.querySelectorAll('#unitpanel .slot').length === 7,
+          'the sheet opens as a drawer with the whole loadout: primary, sidearm, armour, two mods, two stores');
     check(doc.querySelectorAll('#unitpanel .mv').length === 6 &&
           doc.querySelector('#unitpanel .mv[data-mv="0"]').disabled,
           'the sheet offers a move to every squad but the one they stand in');
