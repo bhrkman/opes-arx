@@ -2770,7 +2770,10 @@
           for (const q of alive) {
             const n = squadHead(q).length;
             if (n === 0 || n >= CONST.REFORM_AT) continue;
-            const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && Z[o.zone].region === Z[q.zone].region).sort((a, b) => squadHead(a).length - squadHead(b).length);
+            /* §SQUADS (ruled) survivors join a squad on their own ground or the next zone over, and not one on the march: across
+               a region it was a walk of several zones in no time at all */
+            const near = o => o.zone === q.zone || (Z[q.zone].nb || []).indexOf(o.zone) >= 0;
+            const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && near(o) && !(o._cq && o._cq.moving)).sort((a, b) => squadHead(a).length - squadHead(b).length);
             if (!hosts.length) continue;
             /* §SQUADS (fixed) A REFORM KEEPS INSIDE THE BOUNDS. The survivors were dealt round the hosts whatever their size,
                so squads of nine, ten and eleven walked the Divide — past the ruled eight — and a host that had lost a man was

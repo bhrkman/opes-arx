@@ -276,7 +276,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     DIVIDEND_FAME: 2,            // [C] crowd standing for showing up and being seen
     DIVIDEND_FAME_WIN: 3,        // [C] and for winning in front of them
 
-    ROSTER_MIN: 16, ROSTER_MAX: 40, ROSTER_TARGET: 28,
+    ROSTER_MIN: 16, ROSTER_TARGET: 28,   /* no ceiling (ruled): what a big roster costs in wages is its own check */
     DROP_MIN: 16,
     /* [H] S3 — how far a corp's own taste for economy amplifies the board's funding demand when
        sizing a drop. At 0.5 a thrift-neutral corp answers the board at roughly face value, a
@@ -2381,7 +2381,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const alive = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
     /* §SEATS (ruled) THE FLOOR IS A RULE; THE REST OF A ROSTER IS A CHOICE. This filled every seat to the engine's
        target with strangers and the seat's own money; a person's roster is filled only to the muster minimum. */
-    const target = person ? CONST.ROSTER_MIN : Math.min(CONST.ROSTER_MAX, CONST.ROSTER_TARGET);
+    const target = person ? CONST.ROSTER_MIN : CONST.ROSTER_TARGET;
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
     /* what this corp can actually afford to sign and then pay for a year: its reckoning (§MONEY) */
@@ -4719,9 +4719,31 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const f of old) f._droppedLastSeason = false;
         for (const f of drop) f._droppedLastSeason = true;
       }
-      c._drop = drop;
-      p.drop = drop; p.groups = []; p.leaders = [];
+      p.groups = []; p.leaders = [];
       L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
+      /* §DROP (ruled) SIXTEEN IS THE ALEAS' REQUIREMENT, not a preference of the engine's: a person's named drop short of
+         it is filled by the Aleas from the roster — the fit first, then the walking wounded; the best first; a pair whole —
+         into the squads with room (a new one only if none has any) */
+      { const seatsNow = () => drop.filter(f => !f.mirror_of).length;
+        if (seatsNow() < CONST.DROP_MIN) {
+          const inDrop = new Set(drop.map(f => f.id)), q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+          const able = c.roster.filter(f => !f.mirror_of && !inDrop.has(f.id) && f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured');
+          const hurt = f => !!(f.condition && (f.condition.injuries || []).length);
+          able.sort((a, b) => (hurt(a) - hurt(b)) || (q(b) - q(a)));
+          for (const f of able) {
+            if (seatsNow() >= CONST.DROP_MIN) break;
+            const mate = c.roster.find(x => x.mirror_of === f.id && x.status !== 'dead');
+            const add = mate ? [f, mate] : [f];
+            for (const x of add) { drop.push(x); x._droppedLastSeason = true; }
+            const seats = g => g.filter(id => { const x = c.roster.find(y => y.id === id); return x && !x.mirror_of; }).length;
+            let g = p.groups.filter(gg => seats(gg) < DIVIDE.CONST.SQUAD_MAX).sort((a, b) => seats(a) - seats(b))[0];
+            if (!g) { g = []; p.groups.push(g); p.leaders.push(null); }
+            for (const x of add) g.push(x.id);
+            const paid = LED.purseBill(add); if (paid) { LED.post(c.account, 'expense', 'Purses', -paid); c._purses = (c._purses || 0) + paid; c._wages = (c._retainers || 0) + c._purses; }
+          }
+        } }
+      c._drop = drop;
+      p.drop = drop;
     }
   }
   function prepareDivide(state) {

@@ -207,6 +207,9 @@ lean one pleases.
   and the rest wait in reserve; a reform sends survivors only where there are seats. A beacon is worth going to for a
   squad with seats open, and a man lands into whichever of its squads on that ground has room. A map carries five.
 - A man kept as a captive is the captor's: he moves to its roster on his own contract when the Divide is settled.
+- Sixteen on the drop is the Aleas' requirement (ruled), not an engine preference: a person's named drop short of it is
+  filled by the Aleas from the roster. A roster has no ceiling: its wages are the check on it. A spent squad's survivors
+  join a squad on their own ground or the next zone, not one on the march.
 - A Mon-Wa pair follows its lead, on every path (ruled: hired, seated and lost as one): to the roster he is on, into
   retirement, out with him when he is released or sold. A half whose other half has died stands alone.
 - An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
