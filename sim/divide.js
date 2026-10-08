@@ -256,6 +256,7 @@
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    GREED_SPAN: 0.5,                    // [C] §WITHDRAWAL (ruled: an element of greed) a house weighs its shot at the prize up by as much as half again, by its aggression
     PLAN_ASKED: 2.2,                    // [C] §BOARD a deposit of the resource the OA's board demanded, against 1 for any other (the old CMD_W_ASKED)
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
     CAPTIVE_RANSOM_P: 0.5,              // [C] the chance a held captive is bought back, as an engine seat reckons it
@@ -942,11 +943,7 @@
     stats._settleRansom = settleRansom;
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
-    /* §WITHDRAWAL (fixed) THE POT IS WEIGHED AS IT REACHES THE BOOKS. A house banks only its squad's share of what it wins
-       (LED.squadBonus — the rest is the OA's), and a promise kept to a leaver is cut the same way; the losses it weighs
-       against them (benefits, wages, kit) are book credits. Weighed whole, the pot outweighed a lost man about three times
-       over and houses fought on past what staying was worth. */
-    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = ((planet.pot && planet.pot.value) || 0) * LED.CONST.SQUAD_BONUS_SHARE;
+    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;   /* the pot reaches the winner's books whole (ruled) */
     const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
@@ -1086,7 +1083,11 @@
       const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
       const cost = standingCost(c);
-      const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
+      /* §WITHDRAWAL (ruled) GREED. A house judges the prize honestly and then wants it more than the sums say: the pot
+         and the open ground are weighed up by its aggression (the cost of staying and of losing are not) */
+      const dl = (c.profile && c.profile.dials) || {};
+      const greed = 1 + CONST.GREED_SPAN * (dl.aggression != null ? dl.aggression : 50) / 100;
+      const rows = leaveRows(c), stay = greed * (POT * myOdds + digWorth) - stayCost(c) - (1 - myOdds) * cost;
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;
@@ -2835,12 +2836,12 @@
           const alive = c.squads.filter(q => squadHead(q).length > 0);
           if (alive.length < 2) continue;
           for (const q of alive) {
-            const n = squadHead(q).length;
+            const n = seatsOf(squadHead(q));   /* §UNITS (ruled) counted in beings: a pair is one */
             if (n === 0 || n >= CONST.REFORM_AT) continue;
             /* §SQUADS (ruled) survivors join a squad on their own ground or the next zone over, and not one on the march: across
                a region it was a walk of several zones in no time at all */
             const near = o => o.zone === q.zone || (Z[q.zone].nb || []).indexOf(o.zone) >= 0;
-            const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && near(o) && !(o._cq && o._cq.moving)).sort((a, b) => squadHead(a).length - squadHead(b).length);
+            const hosts = alive.filter(o => o !== q && seatsOf(squadHead(o)) >= CONST.REFORM_AT && near(o) && !(o._cq && o._cq.moving)).sort((a, b) => squadHead(a).length - squadHead(b).length);
             if (!hosts.length) continue;
             /* §SQUADS (fixed) A REFORM KEEPS INSIDE THE BOUNDS. The survivors were dealt round the hosts whatever their size,
                so squads of nine, ten and eleven walked the Divide — past the ruled eight — and a host that had lost a man was

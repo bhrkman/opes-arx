@@ -58,52 +58,18 @@
     /* §MONEY (ruled) what an OA's books expect of a drop's dead: the share of a drop the reckoning holds the families'
        money back for (the design's fatality, not this year's measure) */
     FAMILIES_SHARE: 0.45,            // [C]
-
-    /* SEASONS.md S13 — THE PLANET IS WON FOR THE OA, NOT FOR THE SQUAD.
-     *
-     * Mineral rights on a whole planet are worth more than a fighting corp will ever spend,
-     * and for a whole step that was invisible because the settlement never reached an
-     * account at all. Banked in full it inverted the difficulty ladder inside three seasons:
-     * the hardest start in the fleet finished a career the richest corp in it.
-     *
-     * The fix is not a smaller planet — that is ruled out and stays ruled out. The planet is
-     * worth what it is worth. What reaches the manager's operating account is a **bonus on
-     * the win**, and the rest belongs to the arkship that sent them.
-     */
-    SQUAD_BONUS_SHARE: 0.34          // [C] the share of a settlement that reaches the squad
+    /* (ruled) THE POT IS THE DESK'S SHARE AND REACHES THE BOOKS WHOLE. The planet's rights are the OA's; the pot
+       (NEG.POT_BASE) is already the manager's part of them. A second cut, SQUAD_BONUS_SHARE 0.34, was left from when
+       the pot was the whole planet and took two-thirds of the desk's share again. Deleted. */
   };
 
-  /**
-   * Step 6 — book one Divide's outcome into the account. This is the SMALL version of the
-   * management wrapper, deliberately: the full season cycle (budget → recruit → kit → drop
-   * → payout → repeat) belongs with the step that builds the macro layers and is not this.
-   * What this does is make the money real — settlement income, the winner's bonuses, and
-   * the bill for the dead and wounded — so that the question of whether a careful corp can
-   * survive on money rather than blood finally has an answer.
-   */
-  /**
-   * Step 6 — book one Divide's outcome into the account.
-   *
-   * The settlement figure is what the corp WON. `squadBonus` is what reaches its own books:
-   * the rest is the OA's, because the OA is who the planet was taken for. (It rose with the
-   * season on the kit allowance's escalator; the allowance is gone and nothing else inflates.)
-   *
-   * Ransoms are NOT cut. A ransom is one corp paying another for a body; the arkship has no
-   * claim on it and both sides book it whole.
-   */
-  function squadBonus(payout) {
-    if (!(payout > 0)) return 0;
-    return Math.round(payout * CONST.SQUAD_BONUS_SHARE);   /* it rode the kit allowance's escalator; the allowance is gone */
-  }
-
+  /* Step 6 — book one Divide's outcome: the settlement (whole), the winner's bonuses, ransoms both ways. */
   function bookDivide(acct, result) {
     result = result || {};
     if (result.payout) {
-      const share = result.squadShare != null ? result.squadShare
-                  : squadBonus(result.payout);
-      post(acct, 'income', 'Divide Bonus', share);
+      post(acct, 'income', 'The Pot', result.payout);
       acct.lastSettlement = result.payout;
-      acct.lastBonus = share;
+      acct.lastBonus = result.payout;
     }
     if (result.bonuses) post(acct, 'expense', 'Winner Bonuses', -result.bonuses);
     if (result.ransomPaid) post(acct, 'expense', 'Ransoms Paid', -result.ransomPaid);
@@ -309,7 +275,7 @@
   }
 
   const api = { CONST, paid, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
-                musterCheck, bookDivide, callOnBoard, squadBonus };
+                musterCheck, bookDivide, callOnBoard };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;
 })(typeof window !== "undefined" ? window : globalThis);

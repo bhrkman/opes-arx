@@ -332,6 +332,8 @@ lean one pleases.
 - One quantity, one unit, everywhere it is read. A seat is a being (a Mon-Wa pair is one): counts of
   the dead, the lost, the taken, a squad's strength and a strike are counted in beings. Health is
   0–100 on the books and a fraction on the ground; harm carried into the Divide is the fighter's
-  start, and only harm taken there is booked. Money on paper is yearly (a month's wage ×12); the pot is
-  weighed at the share that reaches the books. One famous bar (55) for every reader. A loss is counted
+  start, and only harm taken there is booked. Money on paper is yearly (a month's wage ×12). One famous bar (55) for every reader. A loss is counted
   once per being, at the Divide or the Eight. Months are counted straight through the year's turn.
+- The pot is the desk's share of a planet and reaches the winner's books whole, less what it promised
+  to houses that left. An engine seat judges its shot at the pot honestly and then wants it more than
+  the sums say, by its aggression (up to half again); leaving costs it standing.

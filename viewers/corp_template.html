@@ -7771,8 +7771,6 @@
   var WASK = null;
   var WCATS = [['credits', 'Credits'], ['minerals', 'Minerals'], ['fuels', 'Fuels'],
                ['luxuries', 'Luxuries'], ['foods', 'Foods']];
-  /* what a share of the pot is worth on a house's own books (LED.squadBonus: the squad's share; the rest is the OA's) */
-  var BOOKED = (window.CDLEDGER && CDLEDGER.CONST && CDLEDGER.CONST.SQUAD_BONUS_SHARE) || 1;
   function renderWithdraw(w, you, others) {
     var host = $('withdraw'); if (!host) return;
     if (!w || (you && you.withdrawn)) {
@@ -7799,7 +7797,7 @@
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
-         '<span class="is cr">' + crs(Math.round(pot * BOOKED * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
+         '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
     WCATS.slice(1).forEach(function (c) {
       var pc = Math.round((cur[c[0]] || 0) * 100), has = planetHolds(c[0]);
@@ -7870,7 +7868,7 @@
         if (!tile) return;
         tile.classList.toggle('on', v > 0);
         var pct = tile.querySelector('.pct'); if (pct) pct.textContent = Math.round(v * 100) + '%';
-        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * BOOKED * v)) + '&nbsp;to Your Books'; }
+        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * v)) + '&nbsp;to Your Books'; }
       };
     });
     var send = host.querySelector('[data-wsend]');

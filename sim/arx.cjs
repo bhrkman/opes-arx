@@ -1890,14 +1890,13 @@ function seasonRules() {
      one: it graded the payout ledger's wrong side and called a healthy mechanic broken
      (+4.5M banked against −537k paid out, and the check read the −537k). The exact
      income label, nothing else. */
-  const bonusLabel = 'Divide Bonus';
+  const bonusLabel = 'The Pot';
   ok('G19 winning a Divide actually pays a corp',
      lines[bonusLabel] > 0,
      'win bonuses banked over the career: ' + Math.round((lines[bonusLabel] || 0)) +
      ' · bonuses paid out: ' + Math.round(lines['Divide Bonuses'] || 0));
 
-  /* (G27/G28 are cut: they restated the ledger's own constants — the win bonus is SQUAD_BONUS_SHARE of the payout, and that
-     share is derived from the anchor it was checked against.) */
+  /* (G27/G28 are cut: they restated the ledger's own constants.) */
 
   /* R25's FUNDING SPECTRUM MUST HAVE BOTH HALVES. A board is annoyed by an expensive year, not
      merely un-delighted by one. Neutral was a spend ratio of 1.0 and a corp cannot spend more

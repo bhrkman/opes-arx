@@ -13975,52 +13975,18 @@
     /* §MONEY (ruled) what an OA's books expect of a drop's dead: the share of a drop the reckoning holds the families'
        money back for (the design's fatality, not this year's measure) */
     FAMILIES_SHARE: 0.45,            // [C]
-
-    /* SEASONS.md S13 — THE PLANET IS WON FOR THE OA, NOT FOR THE SQUAD.
-     *
-     * Mineral rights on a whole planet are worth more than a fighting corp will ever spend,
-     * and for a whole step that was invisible because the settlement never reached an
-     * account at all. Banked in full it inverted the difficulty ladder inside three seasons:
-     * the hardest start in the fleet finished a career the richest corp in it.
-     *
-     * The fix is not a smaller planet — that is ruled out and stays ruled out. The planet is
-     * worth what it is worth. What reaches the manager's operating account is a **bonus on
-     * the win**, and the rest belongs to the arkship that sent them.
-     */
-    SQUAD_BONUS_SHARE: 0.34          // [C] the share of a settlement that reaches the squad
+    /* (ruled) THE POT IS THE DESK'S SHARE AND REACHES THE BOOKS WHOLE. The planet's rights are the OA's; the pot
+       (NEG.POT_BASE) is already the manager's part of them. A second cut, SQUAD_BONUS_SHARE 0.34, was left from when
+       the pot was the whole planet and took two-thirds of the desk's share again. Deleted. */
   };
 
-  /**
-   * Step 6 — book one Divide's outcome into the account. This is the SMALL version of the
-   * management wrapper, deliberately: the full season cycle (budget → recruit → kit → drop
-   * → payout → repeat) belongs with the step that builds the macro layers and is not this.
-   * What this does is make the money real — settlement income, the winner's bonuses, and
-   * the bill for the dead and wounded — so that the question of whether a careful corp can
-   * survive on money rather than blood finally has an answer.
-   */
-  /**
-   * Step 6 — book one Divide's outcome into the account.
-   *
-   * The settlement figure is what the corp WON. `squadBonus` is what reaches its own books:
-   * the rest is the OA's, because the OA is who the planet was taken for. (It rose with the
-   * season on the kit allowance's escalator; the allowance is gone and nothing else inflates.)
-   *
-   * Ransoms are NOT cut. A ransom is one corp paying another for a body; the arkship has no
-   * claim on it and both sides book it whole.
-   */
-  function squadBonus(payout) {
-    if (!(payout > 0)) return 0;
-    return Math.round(payout * CONST.SQUAD_BONUS_SHARE);   /* it rode the kit allowance's escalator; the allowance is gone */
-  }
-
+  /* Step 6 — book one Divide's outcome: the settlement (whole), the winner's bonuses, ransoms both ways. */
   function bookDivide(acct, result) {
     result = result || {};
     if (result.payout) {
-      const share = result.squadShare != null ? result.squadShare
-                  : squadBonus(result.payout);
-      post(acct, 'income', 'Divide Bonus', share);
+      post(acct, 'income', 'The Pot', result.payout);
       acct.lastSettlement = result.payout;
-      acct.lastBonus = share;
+      acct.lastBonus = result.payout;
     }
     if (result.bonuses) post(acct, 'expense', 'Winner Bonuses', -result.bonuses);
     if (result.ransomPaid) post(acct, 'expense', 'Ransoms Paid', -result.ransomPaid);
@@ -14226,7 +14192,7 @@
   }
 
   const api = { CONST, paid, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
-                musterCheck, bookDivide, callOnBoard, squadBonus };
+                musterCheck, bookDivide, callOnBoard };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -23064,6 +23030,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    GREED_SPAN: 0.5,                    // [C] §WITHDRAWAL (ruled: an element of greed) a house weighs its shot at the prize up by as much as half again, by its aggression
     PLAN_ASKED: 2.2,                    // [C] §BOARD a deposit of the resource the OA's board demanded, against 1 for any other (the old CMD_W_ASKED)
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
     CAPTIVE_RANSOM_P: 0.5,              // [C] the chance a held captive is bought back, as an engine seat reckons it
@@ -23750,11 +23717,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     stats._settleRansom = settleRansom;
 
     /* §WITHDRAWAL one reckoning of what a departure is worth, for the leaver and the field alike */
-    /* §WITHDRAWAL (fixed) THE POT IS WEIGHED AS IT REACHES THE BOOKS. A house banks only its squad's share of what it wins
-       (LED.squadBonus — the rest is the OA's), and a promise kept to a leaver is cut the same way; the losses it weighs
-       against them (benefits, wages, kit) are book credits. Weighed whole, the pot outweighed a lost man about three times
-       over and houses fought on past what staying was worth. */
-    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = ((planet.pot && planet.pot.value) || 0) * LED.CONST.SQUAD_BONUS_SHARE;
+    const W8 = NEG.CONST.CONCESSION_ASK_WEIGHT, POT = (planet.pot && planet.pot.value) || 0;   /* the pot reaches the winner's books whole (ruled) */
     const keepOf = (j, share) => keepChance(j, share);
     const onGround = (j) => !j.withdrawn && (j.squads || []).some(q => squadHead(q).length);
     /* a rival gains two things when an OA leaves: better odds, and the losses it is spared — the leaver's share of
@@ -23894,7 +23857,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
       const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
       const cost = standingCost(c);
-      const rows = leaveRows(c), stay = POT * myOdds + digWorth - stayCost(c) - (1 - myOdds) * cost;
+      /* §WITHDRAWAL (ruled) GREED. A house judges the prize honestly and then wants it more than the sums say: the pot
+         and the open ground are weighed up by its aggression (the cost of staying and of losing are not) */
+      const dl = (c.profile && c.profile.dials) || {};
+      const greed = 1 + CONST.GREED_SPAN * (dl.aggression != null ? dl.aggression : 50) / 100;
+      const rows = leaveRows(c), stay = greed * (POT * myOdds + digWorth) - stayCost(c) - (1 - myOdds) * cost;
       const off = (stats.withdrawOffers || {})[c.id];
       if (off && off.sentDay < day) {
         let ask = (off.terms && off.terms.credits) || 0;
@@ -25643,12 +25610,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const alive = c.squads.filter(q => squadHead(q).length > 0);
           if (alive.length < 2) continue;
           for (const q of alive) {
-            const n = squadHead(q).length;
+            const n = seatsOf(squadHead(q));   /* §UNITS (ruled) counted in beings: a pair is one */
             if (n === 0 || n >= CONST.REFORM_AT) continue;
             /* §SQUADS (ruled) survivors join a squad on their own ground or the next zone over, and not one on the march: across
                a region it was a walk of several zones in no time at all */
             const near = o => o.zone === q.zone || (Z[q.zone].nb || []).indexOf(o.zone) >= 0;
-            const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && near(o) && !(o._cq && o._cq.moving)).sort((a, b) => squadHead(a).length - squadHead(b).length);
+            const hosts = alive.filter(o => o !== q && seatsOf(squadHead(o)) >= CONST.REFORM_AT && near(o) && !(o._cq && o._cq.moving)).sort((a, b) => squadHead(a).length - squadHead(b).length);
             if (!hosts.length) continue;
             /* §SQUADS (fixed) A REFORM KEEPS INSIDE THE BOUNDS. The survivors were dealt round the hosts whatever their size,
                so squads of nine, ten and eleven walked the Divide — past the ruled eight — and a host that had lost a man was
@@ -37771,8 +37738,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var WASK = null;
   var WCATS = [['credits', 'Credits'], ['minerals', 'Minerals'], ['fuels', 'Fuels'],
                ['luxuries', 'Luxuries'], ['foods', 'Foods']];
-  /* what a share of the pot is worth on a house's own books (LED.squadBonus: the squad's share; the rest is the OA's) */
-  var BOOKED = (window.CDLEDGER && CDLEDGER.CONST && CDLEDGER.CONST.SQUAD_BONUS_SHARE) || 1;
   function renderWithdraw(w, you, others) {
     var host = $('withdraw'); if (!host) return;
     if (!w || (you && you.withdrawn)) {
@@ -37799,7 +37764,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
          '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
-         '<span class="is cr">' + crs(Math.round(pot * BOOKED * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
+         '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
     WCATS.slice(1).forEach(function (c) {
       var pc = Math.round((cur[c[0]] || 0) * 100), has = planetHolds(c[0]);
@@ -37870,7 +37835,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         if (!tile) return;
         tile.classList.toggle('on', v > 0);
         var pct = tile.querySelector('.pct'); if (pct) pct.textContent = Math.round(v * 100) + '%';
-        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * BOOKED * v)) + '&nbsp;to Your Books'; }
+        if (k === 'credits') { var is = tile.querySelector('.is'); if (is) is.innerHTML = crs(Math.round(pot * v)) + '&nbsp;to Your Books'; }
       };
     });
     var send = host.querySelector('[data-wsend]');
