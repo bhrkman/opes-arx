@@ -33,6 +33,7 @@
     /* §2.3 bulk */
     SQUAD_BULK_PER_HEAD: 8,         // [C] a standard kit is exactly 8
     OVER_BULK_FATIGUE: 3,           // [C] per point over, per day
+    AMMO_OVER_BULK: 2,              // [C] §ROUNDS how far past its haul a squad carries rounds for a hand whose gun eats them
 
     /* §6 energy weapons — declared here, read from 5b-3 */
 
@@ -224,7 +225,7 @@
        ₡3,190 of kit at list price (audit 2), and two more lost their power penalty. Every effect a
        mod declares is now folded into the kit, and combat reads `kit.mod`. (The heat sink and the field kit went with the
        systems they acted on, heat and gear damage.) */
-    const mod = { power: 0, charge: 0, ammo: 0, aim: 0, aimHolding: 0, aimMoving: 0,
+    const mod = { power: 0, charge: 0, ammo: 0, mags: 0, aim: 0, aimHolding: 0, aimMoving: 0,
                   overwatchAim: 0, bandMult: 1, suppressCost: 0 };
     const cancels = [];
     for (const id of lo.mods) {
@@ -236,6 +237,7 @@
       mod.power += e.power || 0;
       mod.charge += e.charge || 0;
       mod.ammo += e.ammo || 0;
+      mod.mags += e.mags || 0;   /* §ROUNDS more of the gun's own magazines carried, for the bulk */
       mod.aim += e.gear_accuracy || 0;
       mod.aimHolding += e.aim_holding || 0;
       mod.aimMoving += e.aim_moving || 0;
@@ -692,23 +694,39 @@
       }
     }
     /* mods are durable, consumables are bought fresh for the drop */
+    /* §ROUNDS (ruled: more rounds for more bulk) WHAT IS EXTRA IS CARRIED WITHIN THE SQUAD'S BULK. Past the essentials, a mod
+       or a second consumable goes on only while its squad stays within what it can haul — over it, every man pays in
+       fatigue every day — and the hands whose guns eat rounds (support, then close) are offered the extra magazines first. */
+    const sqKey = b => { const q = (b.f && typeof opts.squadOf === 'function') ? opts.squadOf(b.f) : null; return q != null ? 'q' + q : 'g' + Math.floor(b.i / CONST.KIT_GROUP); };
+    const sqLoad = {}, sqCap = {};
+    for (const b of bodies) { const k = sqKey(b); sqLoad[k] = (sqLoad[k] || 0) + bulk(b.loadout); sqCap[k] = (sqCap[k] || 0) + CONST.SQUAD_BULK_PER_HEAD; }
+    const hungry = b => b.role === 'support' || b.role === 'close';
+    /* ...and rounds for a hand who eats them are worth a little fatigue: ammunition alone may take his squad a couple
+       of points past what it hauls, and it pays for that every day it marches */
+    const isAmmo = it => !!(it && (((it.effects || {}).mags) || it.id === 'itm_ammo_satchel' || it.id === 'itm_power_cell'));
+    const roomFor = (b, it) => sqLoad[sqKey(b)] + ((it && it.bulk) || 0) <= sqCap[sqKey(b)] + (isAmmo(it) && hungry(b) ? CONST.AMMO_OVER_BULK : 0);
+    const carryIt = (b, it) => { sqLoad[sqKey(b)] += (it && it.bulk) || 0; };
     for (const b of bodies) {
-      for (const modId of (d.mod_wishlist || [])) {
+      const wish = (d.mod_wishlist || []).slice();
+      if (hungry(b)) wish.sort((x, y) => ((byId(y) || {}).effects || {}).mags ? 1 : ((byId(x) || {}).effects || {}).mags ? -1 : 0);
+      for (const modId of wish) {
         if (b.loadout.mods.length >= CONST.MOD_SLOTS) break;
         const m = byId(modId);
         if (!m || m.tier > maxTier || b.loadout.mods.includes(modId)) continue;
+        if (!roomFor(b, m)) continue;
         const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
         if (validate(next).length || spent + m.cost > allow) continue;
-        if (take(modId)) { b.loadout = next; spent += m.cost; }
-        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; }
+        if (take(modId)) { b.loadout = next; spent += m.cost; carryIt(b, m); }
+        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; carryIt(b, m); }
       }
       for (const c of consRanked) {
         if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
         if (spent + c.cost > allow) continue;
+        if (!roomFor(b, c)) continue;
         const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([c.id]) });
         if (validate(next).length) continue;
-        if (take(c.id)) { b.loadout = next; spent += c.cost; }
-        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; }
+        if (take(c.id)) { b.loadout = next; spent += c.cost; carryIt(b, c); }
+        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; carryIt(b, c); }
       }
     }
     /* §DEVICES an OA whose money runs to it fits devices, spread through the force (ruled) */

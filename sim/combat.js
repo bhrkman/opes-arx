@@ -375,7 +375,10 @@ function chargedCarry(fighter, kit) {
 /* §ROUNDS a full issue for a gun: the first magazine (or cell) loaded, and the spares beyond it — magazines for a
    ballistic gun, cells for a cell-fed one, a bulk hand's extra and a mod's */
 function fullRounds(weapon, hooks, kit) {
-  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0);
+  /* §ROUNDS (ruled: more rounds for more bulk) an Extended Magazine is one more of THIS gun's magazines — a flat six was
+     nothing to a belt-fed gun — and a cell-fed gun's is one more cell */
+  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0)
+              + ((kit && kit.mod && kit.mod.mags) || 0) * (weapon.mag || loadoutFor(weapon));
   if (!weapon.mag) return { mag: loadoutFor(weapon), spare: loadoutFor(weapon) + extra };
   /* a cell-fed gun carries its cell and a spare, and renews them at camp; a magazine gun carries its fights' worth */
   if (weapon.damage === 'energy') return { mag: weapon.mag, spare: weapon.mag * CONST.LOADOUT_CELLS + extra };

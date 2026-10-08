@@ -2523,7 +2523,9 @@
             const low = u.onSidearm ? true : cellGun ? (u.ammo <= 0 && u.charge <= CONST.RESUPPLY_AT) : u.ammo <= CONST.RESUPPLY_AT;
             if (low && u.carried.indexOf(pack) >= 0) {
               u.carried.splice(u.carried.indexOf(pack), 1);
-              const add = cellGun ? CONST.RESUPPLY_CHARGE : CONST.RESUPPLY_ROUNDS;
+              /* §ROUNDS (ruled: more rounds for more bulk) a satchel is a magazine for the gun it is opened for, not a flat twelve */
+              const gun = u.onSidearm ? u.primary : u.weapon;
+              const add = cellGun ? CONST.RESUPPLY_CHARGE : Math.max(CONST.RESUPPLY_ROUNDS, (gun && gun.mag) || 0);
               if (u.onSidearm) { u._primaryRounds = u._primaryRounds || { magLeft: 0, ammo: 0, reloading: 0 }; u._primaryRounds.ammo += add; C.backToPrimary(u); }
               else u.ammo += add;
               u.ap--;

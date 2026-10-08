@@ -2142,12 +2142,12 @@
    "cost": 520,
    "bulk": 1,
    "effects": {
-    "ammo": 6,
-    "tags": []
+    "tags": [],
+    "mags": 1
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Six more chances.",
+   "identity": "One more magazine than the next man, and the weight of it.",
    "type": "Mods"
   },
   {
