@@ -114,8 +114,8 @@ const BASELINE_DEFAULT = {
     "aDown": 0,
     "bDead": 1,
     "bDown": 0,
-    "shots": 30,
-    "hits": 10,
+    "shots": 40,
+    "hits": 9,
     "downs": 1
   },
   "long band, both cautious": {
@@ -195,14 +195,7 @@ function squad(rng, prof, policy, opts) {
     if (opts.armor) c.armor = opts.armor;
     return c;
   });
-  const byId = {}; units.forEach(u => byId[u.id] = u);
-  units.forEach(u => {
-    if (u.ref.bond_partner && byId[u.ref.bond_partner] && !u.pair) {
-      const o = byId[u.ref.bond_partner];
-      const pair = { comp: Math.round((u.comp + o.comp) / 2), halves: [u, o], downed: false, strained: false };
-      u.pair = pair; o.pair = pair; u.comp = o.comp = pair.comp;
-    }
-  });
+  TACMOD.wirePairs(units);
   return { corpId: prof.id, policy, units, hasMedkit: true,
            fidelity: C.captainFidelity(cap, gen.traitById) };
 }
@@ -632,7 +625,7 @@ function worldSeeding() {
 /* =========================================================================
    LIVE INVARIANTS — a career walked through two seasons, held to the states that cannot happen: no squad past eight
    at the drop, nobody in two squads, nobody dead fielded, a kept captive on his captor's roster, a Mon-Wa pair on one
-   roster (a widow excepted), nobody on two rosters, the books a number.
+   roster and in one standing, a half whose other half died rolled for, nobody on two rosters, the books a number.
    ========================================================================= */
 function liveInvariants() {
   const CT = req('contest.js'), oa = readJSON('oa_profiles.json').oa_profiles;
@@ -650,7 +643,9 @@ function liveInvariants() {
       if (!isFinite(c.account.treasury)) bad('books not a number', id);
       for (const f of c.roster) { if (owner.has(f)) bad('one man on two rosters', f.name); owner.set(f, id);
         if (f._transferredTo && f._transferredTo !== id && f.status === 'active') bad('a kept captive on his old roster', f.name);
-        if (f.mirror_of && !f._widowed && !c.roster.some(x => x.id === f.mirror_of)) bad('a Mon-Wa half without its lead', f.name); } } };
+        if (f.bond_partner && f.status !== 'dead' && !c.roster.some(x => x.id === f.bond_partner && x.bond_partner === f.id)) bad('a Mon-Wa half without its other half', f.name);
+        if (f.status !== 'dead' && f.bond_partner && c.roster.some(x => x.id === f.bond_partner && x.status === 'dead' && x._bereaved !== f.id) && !f._bereaved) bad('a half whose other half died, never rolled for', f.name);
+        if (f.mirror_of && f.status !== 'dead' && f.status !== 'retired' && (c.roster.find(x => x.id === f.mirror_of) || {}).status === 'retired') bad('a Mon-Wa half without its other half', f.name); } } };
   try {
     for (const human of [false, true]) {
       const rng = makeRng('live-' + human), corps = SEASONMOD.openFleet(rng, oa, {}), first = Object.keys(corps)[0];
@@ -662,7 +657,7 @@ function liveInvariants() {
       }
     }
   } finally { CT.open = open0; }
-  const keys = ['squad past eight', 'one body in two squads', 'the dead fielded', 'one man on two rosters', 'a kept captive on his old roster', 'a Mon-Wa half without its lead', 'books not a number'];
+  const keys = ['squad past eight', 'one body in two squads', 'the dead fielded', 'one man on two rosters', 'a kept captive on his old roster', 'a Mon-Wa half without its other half', 'a half whose other half died, never rolled for', 'books not a number'];
   for (const k of keys) ok('live: no ' + k, !(V[k] || []).length, (V[k] || []).length + ' — ' + (V[k] || []).slice(0, 3).join(' | '));
 }
 
@@ -709,6 +704,67 @@ function refusedRansomRule() {
 /* =========================================================================
    STUN — stun weapons land stacks, not wounds (ruled).
    ========================================================================= */
+/* =========================================================================
+   MON-WA (ruled): one being in two bodies. Separate pools and a shared fall; one composure; the partner-death roll on
+   races.json's odds wherever a half dies; a traumatized survivor is one renamed, scarred being on the pair's paper; a
+   pair is one seat, one signing, one benefit, and moves between rosters as one.
+   ========================================================================= */
+function monWaRules() {
+  const RO = gen, races = readJSON('races.json').races, odds = races.find(r => r.id === 'mon_wa').special.partner_death_roll;
+  ok('mon-wa: the roll reads races.json', RO.bondFate(odds.death - 1e-6) === 'dead' && RO.bondFate(odds.death + 1e-6) === 'braindead'
+     && RO.bondFate(odds.death + odds.braindead_retired + 1e-6) === 'traumatized', JSON.stringify(odds));
+  const pairOf = seed => { const b = RO.generateSquad(makeRng(seed), 1, { corpId: 'x', race: 'mon_wa' }).bodies; b.forEach(f => f.status = 'active'); return b; };
+  /* a traumatized Wa: one being, renamed, scarred, on the Mon's paper and paid */
+  { const [mon, wa] = pairOf('mw1'); const ownName = wa.name;
+    mon.contract.salary = 777; mon.status = 'dead';
+    const out = RO.settleBonds([mon, wa], () => 0, () => 'traumatized');
+    ok('mon-wa: a dead half rolls the other once', out.length === 1 && RO.settleBonds([mon, wa], () => 0).length === 0, out.length);
+    ok('mon-wa: a traumatized Wa takes the widow particle after', wa.name === ownName + '-Em', wa.name);
+    ok('mon-wa: the survivor is one being on the pair\'s paper', !wa.bond_partner && !wa.mirror_of && !wa.pair_name && wa.contract.salary === 777
+       && !wa.contract.mirrored && LEDGER.paid(wa) && (wa.traits || []).indexOf('severed') >= 0 && mon._carriedOn, JSON.stringify(wa.contract).slice(0, 80)); }
+  { const [mon, wa] = pairOf('mw2'); const ownName = mon.name; wa.status = 'dead';
+    RO.settleBonds([mon, wa], () => 0, () => 'traumatized');
+    ok('mon-wa: a traumatized Mon takes the widow particle before', mon.name === 'Em-' + ownName, mon.name); }
+  { const [mon, wa] = pairOf('mw3'); mon.status = 'dead';
+    RO.settleBonds([mon, wa], () => odds.death + 0.01);
+    ok('mon-wa: braindead is retired', wa.status === 'retired' && wa._braindead, wa.status); }
+  /* on the field: the shared fall and the roll's share, over fights of pairs */
+  const fates = {}; let falls = 0;
+  for (let k = 0; k < 70; k++) {
+    const side = (seed, tag) => { const b = RO.generateSquad(makeRng(seed), 3, { corpId: tag, race: 'mon_wa' }).bodies;
+      b.forEach(f => { f.status = 'active'; f.condition = f.condition || { health: 100, fatigue: 0, morale: 60, injuries: [], stress: 0 }; });
+      const units = b.map((f, i) => C.makeCombatant(f, { traitIndex: gen.traitById, isCaptain: i === 0, day: 1 }));
+      TACMOD.wirePairs(units);
+      return { tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', hasMedkit: false, units }; };
+    const r = TACMOD.resolve(makeRng('mwfight' + k), side('mwa' + k, 'A'), side('mwb' + k, 'B'), { terrain: 'broken_ground', openingBand: 0, prep: [0.5, 0.5], toTheEnd: true });
+    for (const f in (r.telemetry.bondFates || {})) fates[f] = (fates[f] || 0) + r.telemetry.bondFates[f];
+    falls += r.telemetry.pairFalls || 0;
+  }
+  const n = (fates.dead || 0) + (fates.braindead || 0) + (fates.traumatized || 0);
+  ok('mon-wa: a half killed on the field rolls the other, on the odds', n >= 40 && Math.abs((fates.dead || 0) / n - odds.death) < 0.15
+     && (fates.braindead || 0) > 0, JSON.stringify(fates));
+  /* a pair is one seat on the drop */
+  { const st = SEASONMOD.openFleet(makeRng('mwfleet'), readJSON('oa_profiles.json').oa_profiles, {}); const c = st[Object.keys(st)[0]];
+    const pr = pairOf('mw4'); c.roster = RO.generateSquad(makeRng('mw4s'), 20, { corpId: c.id, race: 'human' }).bodies.concat(pr);
+    c.roster.forEach(f => { f.status = 'active'; if (f.condition) f.condition.injuries = []; });
+    const pick = SEASONMOD.selectDrop(c, { want: 21 });
+    ok('mon-wa: a pair is one seat on the drop', SEASONMOD.beings(pick).length === 21 && pick.length === 22, pick.length + ' bodies');
+    pr[1].condition = pr[1].condition || { injuries: [] }; pr[1].condition.injuries = [{ type: 'inj_arm' }];
+    const pick2 = SEASONMOD.selectDrop(c, { want: 18 });
+    ok('mon-wa: a pair is fit or unfit as one', pick2.indexOf(pr[0]) < 0 && pick2.indexOf(pr[1]) < 0, pick2.indexOf(pr[0])); }
+  /* a pair moves between rosters as one, whichever half moved */
+  { const fleet = SEASONMOD.openFleet(makeRng('mwmove'), readJSON('oa_profiles.json').oa_profiles, {}), ids = Object.keys(fleet);
+    const state = { ids, corps: fleet, season: 1, month: 1 };
+    const [mon, wa] = pairOf('mw5'); fleet[ids[0]].roster.push(mon, wa);
+    SEASONMOD.keepPairsWhole(state);
+    fleet[ids[0]].roster.splice(fleet[ids[0]].roster.indexOf(wa), 1); fleet[ids[1]].roster.push(wa);   /* the Wa was sold */
+    SEASONMOD.keepPairsWhole(state);
+    ok('mon-wa: the Mon follows a Wa that moved', fleet[ids[1]].roster.indexOf(mon) >= 0 && fleet[ids[0]].roster.indexOf(mon) < 0, '');
+    fleet[ids[1]].roster.splice(fleet[ids[1]].roster.indexOf(mon), 1); fleet[ids[2]].roster.push(mon);   /* and now the Mon */
+    SEASONMOD.keepPairsWhole(state);
+    ok('mon-wa: the Wa follows a Mon that moved', fleet[ids[2]].roster.indexOf(wa) >= 0, ''); }
+}
+
 function stunRules() {
   const T = TACMOD, AT = T.CONST.STUN_AT;
   const sideOf = (seed, gun, tag) => {
@@ -1053,7 +1109,7 @@ function laterConsequences() {
       const them = stW.corps[id];
       const arm = them.armoury || {};
       const truth = {
-        roster: them.roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length,
+        roster: SEASONMOD.beings(them.roster.filter(f => f.status !== 'dead' && f.status !== 'retired')).length,   /* §MON-WA a pair is one */
         kit: Object.keys(arm).reduce((s2, k) => s2 + (arm[k] || 0), 0),
         finances: Math.round((them.account || {}).treasury || 0)
       };
@@ -1265,7 +1321,7 @@ function energyInvariants(n) {
 function invariants(n, label) {
   const rng = makeRng('inv-' + label);
   let checked = 0;
-  const bad = { state:0, comp:0, ammo:0, cover:0, cell:0, pair:0, tally:0, report:0, nan:0 };
+  const bad = { state:0, comp:0, ammo:0, cover:0, cell:0, pair:0, tally:0, report:0, nan:0 }; let pairsSeen = 0;
 
   for (let i = 0; i < n; i++) {
     const a = squad(rng, OA[i % 8], 'standard');
@@ -1292,12 +1348,17 @@ function invariants(n, label) {
       const standing = side.units.filter(u => u.state === 'ok' || u.state === 'light');
       const cells = standing.map(u => u.x + ',' + u.y);
       if (new Set(cells).size !== cells.length) bad.cell++;
-      /* Mon-Wa: one shared wound track means halves never disagree about being up */
+      /* §MON-WA (ruled: separate pools, shared fall; one composure) a pair never ends with one body fallen and the other
+         standing; a half whose other half died has rolled; the two bodies keep one composure */
       for (const u of side.units) {
-        if (!u.pair) continue;
+        if (!u.pair || u !== u.pair.halves[0]) continue;
         const up = h => h.state === 'ok' || h.state === 'light';
+        const fell = h => h.state === 'dead' || h.state === 'down' || h.state === 'stable' || h.state === 'captured';
         const [x, y] = u.pair.halves;
-        if (up(x) !== up(y)) bad.pair++;
+        if ((fell(x) && up(y)) || (fell(y) && up(x))) bad.pair++;
+        if ((x.state === 'dead') !== (y.state === 'dead') && !(x._bondShock || y._bondShock)) bad.pair++;
+        if (x.state !== 'dead' && y.state !== 'dead' && x.comp !== y.comp) bad.pair++;
+        pairsSeen++;
       }
       /* the reported tally accounts for every body exactly once, and agrees with the units */
       const t = r.casualties[side.tag];
@@ -1317,7 +1378,7 @@ function invariants(n, label) {
   ok(label + ': ammunition never negative', bad.ammo === 0, bad.ammo + ' violations');
   ok(label + ': cover grade in range', bad.cover === 0, bad.cover + ' violations');
   ok(label + ': no two fighters on one cell', bad.cell === 0, bad.cell + ' violations');
-  ok(label + ': Mon-Wa halves share a wound track', bad.pair === 0, bad.pair + ' violations');
+  ok(label + ': Mon-Wa pairs fall together, roll, and keep one composure', bad.pair === 0 && pairsSeen > 0, bad.pair + ' violations over ' + pairsSeen + ' pairs');
   ok(label + ': casualty tally accounts for every body', bad.tally === 0, bad.tally + ' violations');
   ok(label + ': the reported tally agrees with the units', bad.report === 0, bad.report + ' violations');
   ok(label + ': no NaN or impossible telemetry', bad.nan === 0, bad.nan + ' violations');
@@ -3936,6 +3997,7 @@ function runRegression() {
   phase('groundRules', groundRules);
   phase('contestRules', contestRules);
   phase('stunRules', stunRules);
+  phase('monWaRules', monWaRules);
   phase('divideRules', divideRules);
   phase('refusedRansomRule', refusedRansomRule);
   phase('liveInvariants', liveInvariants);

@@ -1141,7 +1141,58 @@
                         recruitment: J("recruitment.json"), oa: J("oa_profiles.json") });
   }
 
+  /* §MON-WA (ruled) THE PARTNER-DEATH ROLL. A pair is one being in two bodies; when either body dies the other rolls,
+     wherever the death happened — on the field, in a captor's hold, on a surgeon's table, at the wall:
+     death (common), braindead and retired (uncommon), a traumatized survivor (rare). The survivor is then ONE ordinary
+     being: renamed with the widow particle (Em- before a Mon's half, -Em after a Wa's), scarred (Severed), and carrying
+     the pair's contract and wage alone. Every number is races.json's (mon_wa.special.partner_death_roll). */
+  function bondOdds() {
+    const r = raceById.mon_wa, o = r && r.special && r.special.partner_death_roll;
+    return o || { death: 0.6, braindead_retired: 0.25, traumatized_survivor: 0.15 };
+  }
+  function bondFate(roll) {
+    const o = bondOdds();
+    return roll < o.death ? 'dead' : roll < o.death + o.braindead_retired ? 'braindead' : 'traumatized';
+  }
+  /** apply a decided fate to the survivor `f` of the dead half `g` */
+  function bereave(f, g, fate) {
+    f._bereaved = g.id; g._bereaved = f.id; f.widow_of = g.id;
+    if (fate === 'dead') { f.status = 'dead'; f._bondDeath = true; return fate; }
+    const lead = f.contract && f.contract.mirrored ? g : f;
+    delete f.bond_partner; delete f.mirror_of;
+    if (fate === 'braindead') { f.status = 'retired'; f.retired = true; f._braindead = true; return fate; }
+    const NG = (typeof window !== "undefined" ? window : globalThis).CDNAMEGEN;
+    const own = (f.pair_halves && f.pair_halves[f.half]) || f.name;
+    const naming = raceById.mon_wa && raceById.mon_wa.naming;
+    f.name = NG ? NG.widowName(own, f.half, naming) : (f.half === 'mon' ? 'Em-' + own : own + '-Em');
+    delete f.pair_name; delete f.pair_halves;
+    if (lead !== f && lead.contract) f.contract = JSON.parse(JSON.stringify(lead.contract));
+    if (f.contract) delete f.contract.mirrored;
+    f.traits = (f.traits || []).filter(t => t !== 'severed').concat(['severed']);
+    f._severed = true;
+    g._carriedOn = true;   /* the being lives on in the survivor: its death benefit is paid when the survivor's is */
+    return fate;
+  }
+  /** every pair in `list` with one body dead and the other not yet rolled for: roll, and apply. `fateOf(f)` may name a
+      fate already decided (the field rolls the moment the half falls); otherwise `rngFor(f)` rolls it. */
+  function settleBonds(list, rngFor, fateOf) {
+    const byId = new Map();
+    for (const f of list) byId.set(f.id, f);
+    const out = [];
+    for (const g of list) {
+      if (g.status !== 'dead' || !g.bond_partner || g._bereaved) continue;
+      const f = byId.get(g.bond_partner);
+      if (!f || f.bond_partner !== g.id) continue;
+      if (f.status === 'dead') { f._bereaved = g.id; g._bereaved = f.id; continue; }   /* both bodies died: nobody is left to roll */
+      const fate = (fateOf && fateOf(f)) || bondFate(rngFor(f));
+      bereave(f, g, fate);
+      out.push({ survivor: f, dead: g, fate });
+    }
+    return out;
+  }
+
   const api = { initRoster, autoInit, generateSquad, generateDropForce, DEFAULT_POOL_MIX, seasonsRange,
+                bondOdds, bondFate, bereave, settleBonds,
                 get raceById() { return raceById; },
                 get traitById() { return traitById; },
                 get generator() { return gen; } };

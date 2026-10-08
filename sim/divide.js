@@ -913,9 +913,11 @@
 
     /* a ransom paid: he comes home hurt, the money moves at the books, both crowds notice */
     function settleRansom(deal, f, owner, captor) {
-      comeHome(f);                              /* they come home, and they come home hurt */
+      /* §MON-WA a pair bought back comes home in both bodies */
+      const both = [f].concat(owner.allBodies.filter(b => b.id === f.bond_partner && b.bond_partner === f.id && b.status === 'captured' && b._capturedBy === captor.id));
+      for (const b of both) comeHome(b);        /* they come home, and they come home hurt */
       /* and the captor's squad no longer walks him */
-      if (stats._cst) for (const oa in stats._cst.held) stats._cst.held[oa] = stats._cst.held[oa].filter(k => k.body !== f);
+      if (stats._cst) for (const oa in stats._cst.held) stats._cst.held[oa] = stats._cst.held[oa].filter(k => both.indexOf(k.body) < 0);
       owner.ransomPaid = (owner.ransomPaid || 0) + deal.price;
       captor.ransomTaken = (captor.ransomTaken || 0) + deal.price;
       /* §3.1 — buying your people back is the thing your own ships care about most, and
@@ -1151,6 +1153,7 @@
         if (f.status !== 'captured' || !f._capturedBy) continue;
         const captor = corps.find(c => c.id === f._capturedBy);
         if (!captor) continue;
+        { const lead = leadAmong(corps, f); if (lead !== f && lead.status === 'captured' && lead._capturedBy === f._capturedBy) continue; }   /* §MON-WA one price, for the being */
         if (stats.ransomCases.some(k => k.fighter === f.id && !k.done)) continue;   /* already open */
         if (f._ransomRefused) continue;                                /* refused once: his captor has had its answer */
         const aiCaptor = !isHumanOA(captor.id), aiOwner = !isHumanOA(owner.id);
@@ -1175,6 +1178,13 @@
       }
     }
 
+  }
+
+  /* §MON-WA a captive pair's lead: the Mon, wherever its body is held */
+  function leadAmong(corps, b) {
+    if (!b || !b.mirror_of) return b;
+    for (const c of corps) for (const x of (c.allBodies || [])) if (x.id === b.mirror_of && x.bond_partner === b.id && x.status !== 'dead') return x;
+    return b;
   }
 
   function squadCaptain(sq) {
@@ -1264,15 +1274,7 @@
        86 real items exist. PROCUREMENT.md §13 has said "that scalar is deleted" since Step 5
        and described the bundle that replaces it; this is that bundle, landed at last.
        (A crate once upgraded kit from the catalogue; a cache is a Landing Beacon now.) */
-    const byId = {};
-    for (const u of units) byId[u.id] = u;
-    for (const u of units) {
-      if (u.ref.bond_partner && byId[u.ref.bond_partner] && !u.pair) {
-        const o = byId[u.ref.bond_partner];
-        const pair = { comp: Math.round((u.comp + o.comp) / 2), halves: [u, o], downed: false, strained: false };
-        u.pair = pair; o.pair = pair; u.comp = o.comp = pair.comp;
-      }
-    }
+    TACTICAL.wirePairs(units);
     /* §CAPTIVES RULED: CAPTIVES COST NOTHING IN A FIGHT. A readiness and composure charge per captive was measured on
        the grid (equal squads of six, 2000 fights a count: 0, 1, 2 and 4 held lost 1.87, 1.87, 1.83, 1.76 of their own)
        and did nothing a fight could see; a cost is noticeable or it is not there. What holding costs is food, the
@@ -2045,6 +2047,15 @@
       if (u._fameEarned && f && REP.addFame) { REP.addFame(f, u._fameEarned * CONST.CROWD_PLEASER_FAME); stats.audit.crowdFame = (stats.audit.crowdFame || 0) + u._fameEarned; }
       /* §XP a fight fought is a battle on the career */
       if (u.state !== 'dead' && f) { f.experience = f.experience || {}; f.experience.battles = (f.experience.battles || 0) + 1; }
+      /* §MON-WA (ruled) the partner-death roll's rare outcome: a traumatized survivor, one being from now on — renamed,
+         scarred, on the pair's contract (roster.bereave). He is otherwise booked as any body that walked off hurt. */
+      if (u._bondShock === 'traumatized' && f) {
+        const g = u.pair && u.pair.halves.find(h => h !== u);
+        ROSTER.bereave(f, g ? g.ref : { id: f.bond_partner }, 'traumatized');
+        stats.audit.bondFates = stats.audit.bondFates || {}; stats.audit.bondFates.traumatized = (stats.audit.bondFates.traumatized || 0) + 1;
+        (stats.severed = stats.severed || []).push({ id: f.id, name: f.name, corp: f.corpId || sq.corpId });
+      }
+      if (u._bondShock === 'dead') { stats.audit.bondFates = stats.audit.bondFates || {}; stats.audit.bondFates.dead = (stats.audit.bondFates.dead || 0) + 1; }
       if (u.state === 'dead') {
         f.status = 'dead'; stats.dead++; killed++;
         /* §3.1 / §4.2 — who did it, whose they were, and how well known they were. Without
@@ -2065,6 +2076,12 @@
            end. Recording it was missing: they were taken by nobody and resolved by nobody. */
         f._capturedBy = captorId || null;
       }
+      else if (u._bondShock === 'braindead') {
+        /* §MON-WA (ruled) the partner-death roll's uncommon outcome: the mind went with the other body */
+        const g = u.pair && u.pair.halves.find(h => h !== u);
+        ROSTER.bereave(f, g ? g.ref : { id: f.bond_partner }, 'braindead'); stats.careerEnded++;
+        stats.audit.bondFates = stats.audit.bondFates || {}; stats.audit.bondFates.braindead = (stats.audit.bondFates.braindead || 0) + 1;
+      }
       else if (u._stunnedDown || u._upAfter) {
         /* §WOUNDS (ruled) held at a breath by a stasis injector: up again at the fight's end, at the lowest band. §STUN put
            down by stun: up again with the health he had, for a stun round does no harm */
@@ -2082,7 +2099,7 @@
         downed++;
         if (u.injury.permanent) { f.status = 'retired'; stats.careerEnded++; }
         else { f.status = 'injured'; f._recovery = u.injury.days_remaining; f._untreatedDays = 0; stats.injured++; }
-      } else if (u._braindead || u._traumatized) { f.status = 'retired'; stats.careerEnded++; }
+      }
       else {
         f.condition.morale = Math.max(5, Math.min(95, Math.round(0.7 * f.condition.morale + 0.3 * u.comp)));
         f.condition.fatigue = Math.min(100, f.condition.fatigue + 12
@@ -2355,6 +2372,13 @@
        does to its standing, read through its own crowd's taste. What it thinks of the owner leans it, and the capturing
        squad's stance how hard a grudge pulls. No fate is fixed to a stance. */
     function heldOf(oa) { return (cst.held[oa] = cst.held[oa] || []); }
+    /* §MON-WA (ruled) A PAIR IS ONE CAPTIVE. Both bodies are taken together (combat.js), and what is decided about one —
+       killed, kept, let go, bought back — is decided about the being: on its lead, the Mon, and done to both. */
+    const leadBody = b => leadAmong(corps, b);
+    function heldPartner(oa, body) {
+      if (!body || !body.bond_partner) return null;
+      return heldOf(oa).find(x => x.body && x.body.id === body.bond_partner && x.body.bond_partner === body.id) || null;
+    }
     function captiveWorths(captorOa, stance, body, ownerId, refused) {
       const c = corpById[captorOa], owner = corpById[ownerId];
       const worthOf = b => Math.max(300, NEG.bodyWorth(b));
@@ -2381,7 +2405,7 @@
     function captiveFate(captor, from, body) {
       if (isHumanOA(captor.oa)) return 'pending';
       if (!body) return 'keep';
-      return bestFate(captiveWorths(captor.oa, captor.stance, body, from.oa));
+      return bestFate(captiveWorths(captor.oa, captor.stance, leadBody(body), from.oa));
     }
     function applyFate(body, fate, captorId, ownerId) {
       const captor = corpById[captorId], owner = corpById[ownerId];
@@ -2407,8 +2431,9 @@
       const k = heldOf(captorId).find(x => x.body && x.body.id === fighterId); if (!k) return;
       k.refused = day; k.body._ransomRefused = true;
       stats.audit.ransomRefused = (stats.audit.ransomRefused || 0) + 1;
-      if (isHumanOA(captorId)) { k.fate = 'pending'; return; }
-      k.fate = bestFate(captiveWorths(captorId, k.stance, k.body, k.oa, true));
+      if (isHumanOA(captorId)) { k.fate = 'pending'; const kp = heldPartner(captorId, k.body); if (kp) { kp.fate = 'pending'; kp.body._ransomRefused = true; } return; }
+      k.fate = bestFate(captiveWorths(captorId, k.stance, leadBody(k.body), k.oa, true));
+      { const kp = heldPartner(captorId, k.body); if (kp) { kp.refused = day; kp.body._ransomRefused = true; kp.fate = k.fate; } }
       (stats.refusedLog = stats.refusedLog || []).push({ fighter: k.body.id, captor: captorId, day, fate: k.fate });
       if (k.fate === 'kill') stats.audit.killedRefused = (stats.audit.killedRefused || 0) + 1;
       settleHeld(captorId);
@@ -2942,7 +2967,7 @@
               if (o && (o.hold || (o.zone != null && Z[o.zone]))) q._cq.order = Object.assign({}, q._cq.intent);
             }
             /* §CAPTIVES the seat decides each captive it holds: kill, keep or release; the undecided stay pending */
-            if (answer && answer.captiveFate && you) { for (const k of heldOf(seatId)) { const f = k.body && answer.captiveFate[k.body.id]; if (f === 'kill' || f === 'release' || f === 'keep') k.fate = f; }
+            if (answer && answer.captiveFate && you) { for (const k of heldOf(seatId)) { const f = k.body && (answer.captiveFate[leadBody(k.body).id] || answer.captiveFate[k.body.id]); if (f === 'kill' || f === 'release' || f === 'keep') k.fate = f; }
               settleHeld(seatId); }
             if (answer && answer.withdrawOffer && you && !you.withdrawn) postWithdrawOffer(you, answer.withdrawOffer, day, stats);
             if (answer && answer.withdrawReplies && you && !you.withdrawn) for (const fromId in answer.withdrawReplies) { const o = (stats.withdrawOffers || {})[fromId]; if (o && o.from !== you.id) o.replies[you.id] = !!answer.withdrawReplies[fromId]; }
@@ -3063,6 +3088,13 @@
 
       /* ONE ending: a Divide is over when one banner is left standing, and a banner stands while any one of its
          people is on their feet. The wall does the rest. */
+      /* §MON-WA (ruled) a half that died off the field today — a captive killed, a body at the wall — and left the other
+         alive: the other rolls now, as it would have where it fell */
+      for (const x of ROSTER.settleBonds([].concat.apply([], corps.map(c => c.allBodies || [])), () => rng())) {
+        stats.audit.bondFates = stats.audit.bondFates || {}; stats.audit.bondFates[x.fate] = (stats.audit.bondFates[x.fate] || 0) + 1;
+        if (x.fate === 'dead') stats.dead++;
+        if (x.fate === 'traumatized') (stats.severed = stats.severed || []).push({ id: x.survivor.id, name: x.survivor.name, corp: x.survivor.corpId });
+      }
       const bannersLeft = bannersStanding(corps);
       stats.bannersStanding = bannersLeft.size;
       if (bannersLeft.size <= 1) { stats.winner = bannersLeft.size ? Array.from(bannersLeft)[0] : null; break; }

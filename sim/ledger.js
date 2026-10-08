@@ -308,7 +308,7 @@
              short: Math.max(0, plan.shortfall - canRaise) };
   }
 
-  const api = { CONST, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
+  const api = { CONST, paid, open, bandMid, wealthOf, post, wageBill, gateFor, retainerBill, purseBill, payPurse, plan, settleSeason,
                 musterCheck, bookDivide, callOnBoard, squadBonus };
   if (isNode) module.exports = api;
   global.CDLEDGER = api;

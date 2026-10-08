@@ -1105,7 +1105,9 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
        nobody, at any tier — a squad calls it long before it is wiped */
     const abandoned = !opts.exhibition && !active(S).length && active(E).length > 0 && E !== S;   /* §STUN nobody is taken at an exhibition */
     for (const u of S.units) {
-      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter)) {
+      /* §MON-WA a half the partner-death roll left alive has had its outcome: carried off by its own, and not rolled again */
+      if (u._bondShock && u.state !== 'dead') { u.state = 'stable'; continue; }
+      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter || u._sharedDown)) {
         u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
         if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
         continue;
@@ -1137,20 +1139,21 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
         else if (u._stunnedDown || u._upAfter) { u.state = 'stable'; }   /* a stun round, or a stasis injector */
         else if (u._sharedDown && u.bleed == null) { u.state = 'stable'; }
         else if (rng() < recoverP) { u.state = 'stable'; }
-        else { u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; onDeath(rng, u, S, log || [], tel); }
+        else { u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; const b = onDeath(rng, u, S, log || [], tel); if (b && b.fate !== 'dead') b.other.state = 'stable'; }
       } else if (u.state === 'stable' && lost && rng() < captureP) {
         u.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
       } else if (u.state === 'routed') {
         u.state = 'ok';   // routers regroup after the fight
       }
     }
-    /* §8.1 reconcile pairs: a surviving half whose partner is gone cannot simply stand up */
+    /* §MON-WA (ruled) A PAIR IS TAKEN AS ONE. Capture is rolled body by body above; a pair whose one living half was
+       taken has its other living half taken with it — one being is not held by two OAs. (A survivor of the partner
+       roll is not a pair any more and stays out of this.) */
     for (const u of S.units) {
-      if (!u.pair) continue;
-      const up = h => h.state === 'ok' || h.state === 'light';
-      const halves = u.pair.halves;
-      if (halves.some(up) && halves.some(h => !up(h))) {
-        for (const h of halves) if (up(h)) h.state = 'stable';
+      if (!u.pair || u.state !== 'captured') continue;
+      for (const h of u.pair.halves) {
+        if (h === u || h.state === 'dead' || h.state === 'captured' || h._bondShock) continue;
+        h.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [h.id], significance: 4 });
       }
     }
   }
@@ -1168,21 +1171,27 @@ function onDeath(rng, unit, side, log, tel) {
     unit._killedBy._fameEarned = (unit._killedBy._fameEarned || 0) + 1;
     if (tel) tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
   }
-  if (!unit.pair) return;
+  if (!unit.pair) return null;
   const other = unit.pair.halves.find(h => h !== unit);
-  if (!other || other.state === 'dead') return;
+  if (!other || other.state === 'dead' || other._bondShock) return null;
+  /* §MON-WA (ruled) the other half rolls the moment this one dies, on races.json's odds (roster.bondFate). What it
+     rolls is final: a survivor is out of the fight and is neither rolled for again at the fight's end nor taken. */
+  const R = (typeof window !== 'undefined' ? window : globalThis).CDROSTER;
   const r = rng();
-  if (r < 0.60) {
+  const fate = R && R.bondFate ? R.bondFate(r) : (r < 0.60 ? 'dead' : r < 0.85 ? 'braindead' : 'traumatized');
+  other._bondShock = fate; other.bleed = null;
+  if (fate === 'dead') {
     other.state = 'dead';
-    log.push({ type: 'bond_shock_death', actors: [other.id], significance: 4 });
-  } else if (r < 0.85) {
-    other.state = 'down'; other.bleed = null; other._braindead = true;
-    log.push({ type: 'bond_shock_braindead', actors: [other.id], significance: 4 });
+    log.push({ t: tel && tel.turn, type: 'bond_shock_death', by: other.id, at: unit.id, actors: [other.id], significance: 4 });
+  } else if (fate === 'braindead') {
+    other.state = 'down'; other._braindead = true;
+    log.push({ t: tel && tel.turn, type: 'bond_shock_braindead', by: other.id, at: unit.id, actors: [other.id], significance: 4 });
   } else {
-    other.state = 'down'; other.bleed = null; other._traumatized = true;
-    log.push({ type: 'bond_shock_traumatized', actors: [other.id], significance: 4 });
+    other.state = 'down'; other._traumatized = true;
+    log.push({ t: tel && tel.turn, type: 'bond_shock_traumatized', by: other.id, at: unit.id, actors: [other.id], significance: 4 });
   }
-  tel.monwaPairLoss = (tel.monwaPairLoss || 0) + 1;
+  if (tel) { tel.monwaPairLoss = (tel.monwaPairLoss || 0) + 1; (tel.bondFates = tel.bondFates || {})[fate] = ((tel.bondFates || {})[fate] || 0) + 1; }
+  return { other, fate };
 }
 
 /* roll injuries for everyone who took a serious+ wound and survived */

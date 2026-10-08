@@ -210,8 +210,20 @@ lean one pleases.
 - Sixteen on the drop is the Aleas' requirement (ruled), not an engine preference: a person's named drop short of it is
   filled by the Aleas from the roster. A roster has no ceiling: its wages are the check on it. A spent squad's survivors
   join a squad on their own ground or the next zone, not one on the march.
-- A Mon-Wa pair follows its lead, on every path (ruled: hired, seated and lost as one): to the roster he is on, into
-  retirement, out with him when he is released or sold. A half whose other half has died stands alone.
+- A Mon-Wa pair is one being in two bodies (ruled), and is hired, seated, counted and lost as one until it is on a
+  field. It is one seat on a drop, a squad, a card and the Eight; one count toward a roster's size and every target and
+  shortfall; one signing, one fee, one wage, one paper renewed or let go, one pension; one staff post. A market lists
+  both bodies and deals with the Mon. It is fit or unfit as one: a wound on either body keeps the pair off a drop, out
+  of orbit and off a card. It moves between rosters as one, whichever half moved, and is one captive: taken together,
+  one price, one fate. Age retires it once.
+- On a field a pair is two bodies with separate wound pools, one composure and a shared fall (ruled): whatever moves one
+  half's nerve moves both, and one mind breaks in both bodies; a body stunned out or held at a breath takes the other
+  down with it, up again after; the stretch of the tether, and a Cortical Scrambler, are paid once a turn by the one mind.
+- When either body dies — on a field, in a captor's hold, on a surgeon's table, at the wall, in the Eight — the other
+  rolls at once (ruled, races.json): death 60%, braindead and retired 25%, a traumatized survivor 15%. What it rolls
+  is final: no recovery or capture roll after it. A traumatized survivor is out of that fight, then one ordinary being:
+  renamed with the widow particle (Em- before a Mon's own half name, -Em after a Wa's), Severed (Resolve -20, swings
+  harder), on the pair's contract and wage, counted and paid as one. The being's benefit is paid once, when it ends.
 - An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
   to lose priced whole (his family's benefit, a year's wage to replace him, the Divides of training he carries, his
   kit), at its rate of loss over the Divide so far beside the field's — and most likely earns a share of the pot, the

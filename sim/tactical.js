@@ -273,7 +273,6 @@
     THERMO_RADIUS: 3,                // [C] §CONTRABAND the thermobaric blast's reach, a tile wider than a frag
     THERMO_POWER: 2,                 // [C] and how much harder it hits
     SCRAMBLE_TURNS: 3,               // [C] turns a scrambled Mon-Wa pair pays the tether's price
-    TETHER_STRAIN: 25,               // [C] composure a turn: the ratified cost of separation
     SOLAR_TURN_GAIN: 2,              // [C] §LIGHT charge a sun-fed weapon takes back each turn in daylight
     NIGHT_SIGHT: 0.55,               // [C] §LIGHT how far a fighter sees in the dark, as a share (ruled: greatly cut)
     EYE_NEAR: 7, EYE_FAR: 15,                   // [C] tiles: a poor scout, and a superb one
@@ -1528,6 +1527,7 @@
       if (u.hooks.has('composure_up_as_intensity_rises') && u.comp < C.CONST.COMP_BANDS.rattled + 15) delta *= 0.5;
     }
     u.comp = Math.max(0, Math.min(100, (u.comp || 60) + delta));
+    pairComp(u);
     /* Composure bottoms out around 7 in a hard fight and only touches 0 in the worst of
        them, so gating panic on exactly zero made it a dead mechanism rather than a rare one.
        It is checked from the `rattled` band down, and resolve still decides it. */
@@ -1538,13 +1538,27 @@
       /* how far past rattled they are, times how badly their resolve is failing them */
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
       const p = Math.max(CONST.PANIC_FLOOR, 1 - res / CONST.PANIC_RESOLVE_DIV) * depth * 0.5;
-      if (rng() < p) { u.state = 'panicked'; u._panic = true; }
+      if (rng() < p) {
+        u.state = 'panicked'; u._panic = true;
+        /* §MON-WA one mind breaks in both bodies */
+        if (u.pair) for (const h of u.pair.halves) if (h !== u && (h.state === 'ok' || h.state === 'light')) { h.state = 'panicked'; h._panic = true; }
+      }
     }
+  }
+  /* §MON-WA (ruled) ONE COMPOSURE POOL. Two bodies, one mind: whatever moves one half's nerve moves the pair's, and the
+     value is kept on both bodies so every reader sees the same number. (It was averaged once at the start and then
+     let drift apart, so a pair could be calm in one body and broken in the other.) */
+  function pairComp(u) {
+    if (!u.pair) return;
+    u.pair.comp = u.comp;
+    for (const h of u.pair.halves) if (h !== u && h.state !== 'dead') h.comp = u.comp;
   }
   function moraleShock(rng, side, unit, kind) {
     const K = C.CONST.COMP;
+    const minds = new Set();   /* §MON-WA a pair hears a loss once: one mind, not two */
     for (const m of side.units) {
       if (m === unit || (m.state !== 'ok' && m.state !== 'light')) continue;
+      if (m.pair) { if (minds.has(m.pair) || m.pair.halves.indexOf(unit) >= 0) continue; minds.add(m.pair); }
       /* §QUIRKS the mark the composure hooks read: this loss is a body going down, and these
          are the mates standing near enough to draw comfort from each other */
       m._fromDeath = true;
@@ -1663,6 +1677,7 @@
     }
     t.state = 'down'; t._stunnedDown = true; t._killedBy = by;
     tel.down++; tel.stunned = (tel.stunned || 0) + 1;
+    pairFalls(rng, t, side, tel, log);
     if (side) moraleShock(rng, side, t, 'down');
     if (log) log.push({ t: tel.turn, type: 'stunned', by: by.id, at: t.id, n: n, w: (by.weapon || {}).name, react: !!by._reacting });
   }
@@ -1731,6 +1746,7 @@
       t.carried.splice(t.carried.indexOf('itm_stasis_injector'), 1);
       t.hp = 1; t.state = 'down'; t._upAfter = true; t._killedBy = by; t._downSev = sev;
       tel.down++; tel.consumables = (tel.consumables || 0) + 1; tel.stasis = (tel.stasis || 0) + 1;
+      pairFalls(rng, t, side, tel, log);
       if (side) moraleShock(rng, side, t, 'down');
       if (log) log.push({ t: tel.turn, type: 'down', by: by.id, at: t.id, sev, dmg: dmg, stasis: true,
                           react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
@@ -1743,7 +1759,25 @@
                         react: !!by._reacting, w: (by.weapon||{}).name, ammo: by.ammo });
     /* what a death sets off — a Mon-Wa half's bond, a showman's fame — ran only for the old down-then-died path, so
        once a live round killed outright neither ever fired */
-    C.onDeath(rng, t, side, log || [], tel);
+    const b = C.onDeath(rng, t, side, log || [], tel);
+    /* §MON-WA (ruled: separate pools, shared fall) the other body's roll lands now: dead is a death on this field like
+       any other; braindead or traumatized is a body out of the fight for good */
+    if (b) {
+      if (b.fate === 'dead') { tel.dead++; tel._deathsThisTurn.push({ x: b.other.x, y: b.other.y }); if (side) moraleShock(rng, side, b.other, 'dead'); }
+      else { tel.down++; if (side) moraleShock(rng, side, b.other, 'down'); }
+    }
+  }
+  /* §MON-WA (ruled: separate pools, shared fall) A BODY OF A PAIR THAT GOES DOWN TAKES THE OTHER DOWN WITH IT. Each body
+     keeps its own pool; when one is emptied — stunned out, or held at a breath by an injector — the being is out of the
+     fight in both. The other is up when it is over with the health it had, and is taken if the one beside it is. */
+  function pairFalls(rng, t, side, tel, log) {
+    if (!t.pair) return;
+    for (const h of t.pair.halves) {
+      if (h === t || (h.state !== 'ok' && h.state !== 'light' && h.state !== 'panicked')) continue;
+      h.state = 'down'; h._sharedDown = true; h.bleed = null;
+      tel.down++; tel.pairFalls = (tel.pairFalls || 0) + 1;
+      if (log) log.push({ t: tel.turn, type: 'pair_down', by: h.id, at: t.id });
+    }
   }
 
   /* Removed at this step: stepToward — defined here and called from nowhere in the tree.
@@ -2023,8 +2057,13 @@
     const MAXT = ctx.toTheEnd ? CONST.MAX_TURNS * 3 : CONST.MAX_TURNS;
     for (const S of sides) for (const u of S.units) u._dark = _night;
     for (tel.turn = 1; tel.turn <= MAXT; tel.turn++) {
+      /* §MON-WA (fixed) A SCRAMBLED PAIR PAYS WHAT SEPARATION COSTS, once, to its one mind. It drained 25 a turn from each
+         half raw — twice the separation's price, past every nerve hook and the panic check — so the item was a harsher
+         separation than separation itself. */
       for (const S of sides) for (const u of S.units) if (u._scrambled > 0) {
-        u.comp = Math.max(0, (u.comp || 0) - CONST.TETHER_STRAIN); u._scrambled--;
+        if (u.pair && u.pair.halves[0] !== u && u.pair.halves[0]._scrambled > 0) { u._scrambled--; continue; }
+        if (u.state === 'ok' || u.state === 'light') comp(rng, u, C.CONST.MONWA_TETHER_COMP * CONST.TETHER_PER_TURN);
+        u._scrambled--;
       }
       /* §LIGHT a sun-fed weapon DRINKS THE DAY: in the planet's light it takes back charge every turn */
       if (!_night) for (const S of sides) for (const u of S.units) {
@@ -2191,7 +2230,7 @@
           if (u.state === 'panicked') {
             /* NOWHERE TO RUN. In a fight with no way out a panicking fighter cannot leave the
                field: they gather themselves and fight on, badly, rather than walking off it. */
-            if (ctx.toTheEnd) { u.state = 'ok'; u.comp = Math.max(u.comp, C.CONST.COMP_BANDS.rattled + 1); }
+            if (ctx.toTheEnd) { u.state = 'ok'; u.comp = Math.max(u.comp, C.CONST.COMP_BANDS.rattled + 1); pairComp(u); }
             else {
             stepHome(u, home, sides, map, CONST.MOVE_TILES + 2);
             triggerOverwatch(rng, u, sides, map, tel, log);
@@ -2441,7 +2480,7 @@
               }
               if (m) {
                 u.carried.splice(u.carried.indexOf('itm_stim_shot'), 1);
-                m.comp = Math.min(100, (m.comp || 0) + CONST.STIM_COMP);
+                m.comp = Math.min(100, (m.comp || 0) + CONST.STIM_COMP); pairComp(m);
                 if (m.ref) m.ref._stimmed = true;
                 u.ap--;
                 tel.consumables = (tel.consumables || 0) + 1; tel.stims = (tel.stims || 0) + 1;
@@ -2866,6 +2905,9 @@
         const reach = CONST.TETHER_TILES + ((u.hooks && u.hooks.has('tether_range_extended')) ||
                                             (o.hooks && o.hooks.has('tether_range_extended')) ? CONST.TETHER_DRILLED : 0);
         u._tetherStrained = d > reach;
+        /* §MON-WA one mind pays the stretch, or takes the steadying, once a turn — not once a body */
+        if (u.pair._turn === tel.turn) continue;
+        u.pair._turn = tel.turn;
         if (u._tetherStrained) {
           comp(rng, u, C.CONST.MONWA_TETHER_COMP * CONST.TETHER_PER_TURN);
           if (!wasStrained && log) log.push({ t: tel.turn, type: 'tether_strained', by: u.id, at: o.id });
@@ -3020,7 +3062,20 @@
              casualties: casualties };
   }
 
-  const api = { CONST, makeMap, resolve, hasLOS, coverAgainst, bandOf, at };
+  /* §MON-WA the two bodies of a pair on one field are one being: one composure, a shared fall, the partner roll. Every
+     builder of a fight wires them here (the Divide's, the Dividend's, the Eight's, the suite's). */
+  function wirePairs(units) {
+    const byId = {};
+    for (const u of units) byId[u.id] = u;
+    for (const u of units) {
+      const o = u.ref && u.ref.bond_partner && byId[u.ref.bond_partner];
+      if (!o || u.pair || o.ref.bond_partner !== u.id) continue;
+      const pair = { comp: Math.round((u.comp + o.comp) / 2), halves: u.ref.half === 'wa' ? [o, u] : [u, o] };   /* the Mon first */
+      u.pair = pair; o.pair = pair; u.comp = o.comp = pair.comp;
+    }
+    return units;
+  }
+  const api = { CONST, makeMap, resolve, hasLOS, coverAgainst, bandOf, at, wirePairs };
   if (isNode) module.exports = api;
   global.CDTACTICAL = api;
 })(typeof window !== "undefined" ? window : globalThis);

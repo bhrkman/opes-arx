@@ -445,6 +445,30 @@
     ]
    },
    "notes": "Ratified spice from RACES.md — friction with the other Keshu race, or the long road to an unlikely friendship. Rates in recruitment.json."
+  },
+  {
+   "id": "severed",
+   "name": "Severed",
+   "draw": "special",
+   "rarity": "special",
+   "description": "Lived through the death of the other half.",
+   "tags": [
+    "racial",
+    "negative",
+    "morale"
+   ],
+   "race_locked": [
+    "mon_wa"
+   ],
+   "effects": {
+    "stats": {
+     "resolve": -20
+    },
+    "hooks": [
+     "morale_swings_amplified"
+    ]
+   },
+   "notes": "RULED (Mon-Wa pass): the scar a traumatized survivor carries out of the partner-death roll (races.json mon_wa.special.partner_death_roll). Never drawn; given by the roll alone."
   }
  ]
 }

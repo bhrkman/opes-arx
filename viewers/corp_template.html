@@ -6960,14 +6960,17 @@
                  /* §CONSUMABLES §BACKROOM the stim, the banned, and kit that fails when it is asked for */
                  stim: 'steadies', scramble: 'scrambles the tether of',
                  /* §STUN stacks landed, and the stack that puts him down */
-                 stun: 'stuns', stunned: 'stuns out' };
+                 stun: 'stuns', stunned: 'stuns out',
+                 /* §MON-WA one being in two bodies: the fall, the roll, the stretch */
+                 pair_down: 'goes down with', tether_strained: 'strains the tether to',
+                 bond_shock_death: 'dies with', bond_shock_braindead: 'is lost with', bond_shock_traumatized: 'outlives' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
       var v2 = lg[e];
       if (v2.t > F.turn) break;
       if (v2.t < F.turn - 1) continue;
-      var cls = v2.type === 'killed' || v2.type === 'down' || v2.type === 'stunned' ? 'down'
+      var cls = v2.type === 'killed' || v2.type === 'down' || v2.type === 'stunned' || v2.type === 'pair_down' || /^bond_shock/.test(v2.type) ? 'down'
               : v2.type === 'miss' ? '' : 'hit';
       var who = nameOf[v2.by] || v2.by || '?';
       var whom = nameOf[v2.at] || v2.at || '';
