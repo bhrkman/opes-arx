@@ -38,7 +38,7 @@
     ROUTE_WATER_MULT: 2.0,          // [C] a route that crosses water is the long way round
     ROUTE_WATER_CUT: 0.6,           // [C] a route more than this share water does not exist, unless nothing else joins the region
     HEIGHT_LEVELS: [-1, 0, 1, 2],   // [C] a zone's height against its region: low, flat, high, commanding
-    SITES: { beacon: 3, rest: 3, strongpoint: 2, munitions: 2, mast: 2 },   // [C] and deposits from the composition
+    SITES: { beacon: 5, rest: 3, strongpoint: 2, munitions: 2, mast: 2 },   // [C] and deposits from the composition
     DEPOSITS: [4, 6],               // [C]
     SITES_PER_REGION: 3,            // [C] at most
     DEPOSIT_OPENS: [2, 16],         // [C] the first and last day a deposit opens

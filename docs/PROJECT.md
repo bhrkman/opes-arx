@@ -199,6 +199,13 @@ lean one pleases.
 - The quartermaster counts what a house owns: its own rack is part of what it fields, not a charge against the cash it
   means to spend, and a founder's issue goes back on the rack for the first drop. What is bought is shared evenly over
   the bodies still waiting, so a force is armed to one tier rather than the first eighteen high and the rest bare.
+- More rounds cost bulk (ruled): an Extended Magazine is one more of the gun's own magazines and a satchel a magazine's
+  worth for the gun it is opened for. The quartermaster fits extras only within what a squad can haul, offers the extra
+  magazines first to the hands whose guns eat rounds, and lets rounds alone take such a squad a couple of points over,
+  paid in fatigue.
+- A squad holds eight (ruled bound, now held): an engine seat drops only what its drafted landings hold at eight a squad,
+  and the rest wait in reserve; a reform sends survivors only where there are seats. A beacon is worth going to for a
+  squad with seats open, and a man lands into whichever of its squads on that ground has room. A map carries five.
 - An OA weighs leaving as more than all or nothing (ruled): going keeps what staying would spend — each man it expects
   to lose priced whole (his family's benefit, a year's wage to replace him, the Divides of training he carries, his
   kit), at its rate of loss over the Divide so far beside the field's — and most likely earns a share of the pot, the

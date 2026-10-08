@@ -7029,12 +7029,12 @@
    "cost": 520,
    "bulk": 1,
    "effects": {
-    "ammo": 6,
-    "tags": []
+    "tags": [],
+    "mags": 1
    },
    "price_model": "fixed",
    "legality": "legal",
-   "identity": "Six more chances.",
+   "identity": "One more magazine than the next man, and the weight of it.",
    "type": "Mods"
   },
   {
@@ -11549,6 +11549,7 @@
     /* §2.3 bulk */
     SQUAD_BULK_PER_HEAD: 8,         // [C] a standard kit is exactly 8
     OVER_BULK_FATIGUE: 3,           // [C] per point over, per day
+    AMMO_OVER_BULK: 2,              // [C] §ROUNDS how far past its haul a squad carries rounds for a hand whose gun eats them
 
     /* §6 energy weapons — declared here, read from 5b-3 */
 
@@ -11740,7 +11741,7 @@
        ₡3,190 of kit at list price (audit 2), and two more lost their power penalty. Every effect a
        mod declares is now folded into the kit, and combat reads `kit.mod`. (The heat sink and the field kit went with the
        systems they acted on, heat and gear damage.) */
-    const mod = { power: 0, charge: 0, ammo: 0, aim: 0, aimHolding: 0, aimMoving: 0,
+    const mod = { power: 0, charge: 0, ammo: 0, mags: 0, aim: 0, aimHolding: 0, aimMoving: 0,
                   overwatchAim: 0, bandMult: 1, suppressCost: 0 };
     const cancels = [];
     for (const id of lo.mods) {
@@ -11752,6 +11753,7 @@
       mod.power += e.power || 0;
       mod.charge += e.charge || 0;
       mod.ammo += e.ammo || 0;
+      mod.mags += e.mags || 0;   /* §ROUNDS more of the gun's own magazines carried, for the bulk */
       mod.aim += e.gear_accuracy || 0;
       mod.aimHolding += e.aim_holding || 0;
       mod.aimMoving += e.aim_moving || 0;
@@ -12208,23 +12210,39 @@
       }
     }
     /* mods are durable, consumables are bought fresh for the drop */
+    /* §ROUNDS (ruled: more rounds for more bulk) WHAT IS EXTRA IS CARRIED WITHIN THE SQUAD'S BULK. Past the essentials, a mod
+       or a second consumable goes on only while its squad stays within what it can haul — over it, every man pays in
+       fatigue every day — and the hands whose guns eat rounds (support, then close) are offered the extra magazines first. */
+    const sqKey = b => { const q = (b.f && typeof opts.squadOf === 'function') ? opts.squadOf(b.f) : null; return q != null ? 'q' + q : 'g' + Math.floor(b.i / CONST.KIT_GROUP); };
+    const sqLoad = {}, sqCap = {};
+    for (const b of bodies) { const k = sqKey(b); sqLoad[k] = (sqLoad[k] || 0) + bulk(b.loadout); sqCap[k] = (sqCap[k] || 0) + CONST.SQUAD_BULK_PER_HEAD; }
+    const hungry = b => b.role === 'support' || b.role === 'close';
+    /* ...and rounds for a hand who eats them are worth a little fatigue: ammunition alone may take his squad a couple
+       of points past what it hauls, and it pays for that every day it marches */
+    const isAmmo = it => !!(it && (((it.effects || {}).mags) || it.id === 'itm_ammo_satchel' || it.id === 'itm_power_cell'));
+    const roomFor = (b, it) => sqLoad[sqKey(b)] + ((it && it.bulk) || 0) <= sqCap[sqKey(b)] + (isAmmo(it) && hungry(b) ? CONST.AMMO_OVER_BULK : 0);
+    const carryIt = (b, it) => { sqLoad[sqKey(b)] += (it && it.bulk) || 0; };
     for (const b of bodies) {
-      for (const modId of (d.mod_wishlist || [])) {
+      const wish = (d.mod_wishlist || []).slice();
+      if (hungry(b)) wish.sort((x, y) => ((byId(y) || {}).effects || {}).mags ? 1 : ((byId(x) || {}).effects || {}).mags ? -1 : 0);
+      for (const modId of wish) {
         if (b.loadout.mods.length >= CONST.MOD_SLOTS) break;
         const m = byId(modId);
         if (!m || m.tier > maxTier || b.loadout.mods.includes(modId)) continue;
+        if (!roomFor(b, m)) continue;
         const next = Object.assign({}, b.loadout, { mods: b.loadout.mods.concat([modId]) });
         if (validate(next).length || spent + m.cost > allow) continue;
-        if (take(modId)) { b.loadout = next; spent += m.cost; }
-        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; }
+        if (take(modId)) { b.loadout = next; spent += m.cost; carryIt(b, m); }
+        else if (m.cost <= money) { money -= m.cost; cash += m.cost; b.loadout = next; spent += m.cost; carryIt(b, m); }
       }
       for (const c of consRanked) {
         if (b.loadout.consumables.length >= CONST.CONSUMABLE_SLOTS) break;
         if (spent + c.cost > allow) continue;
+        if (!roomFor(b, c)) continue;
         const next = Object.assign({}, b.loadout, { consumables: b.loadout.consumables.concat([c.id]) });
         if (validate(next).length) continue;
-        if (take(c.id)) { b.loadout = next; spent += c.cost; }
-        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; }
+        if (take(c.id)) { b.loadout = next; spent += c.cost; carryIt(b, c); }
+        else if (c.cost <= money) { money -= c.cost; cash += c.cost; b.loadout = next; spent += c.cost; carryIt(b, c); }
       }
     }
     /* §DEVICES an OA whose money runs to it fits devices, spread through the force (ruled) */
@@ -12668,7 +12686,7 @@
     ROUTE_WATER_MULT: 2.0,          // [C] a route that crosses water is the long way round
     ROUTE_WATER_CUT: 0.6,           // [C] a route more than this share water does not exist, unless nothing else joins the region
     HEIGHT_LEVELS: [-1, 0, 1, 2],   // [C] a zone's height against its region: low, flat, high, commanding
-    SITES: { beacon: 3, rest: 3, strongpoint: 2, munitions: 2, mast: 2 },   // [C] and deposits from the composition
+    SITES: { beacon: 5, rest: 3, strongpoint: 2, munitions: 2, mast: 2 },   // [C] and deposits from the composition
     DEPOSITS: [4, 6],               // [C]
     SITES_PER_REGION: 3,            // [C] at most
     DEPOSIT_OPENS: [2, 16],         // [C] the first and last day a deposit opens
@@ -17518,7 +17536,10 @@ function chargedCarry(fighter, kit) {
 /* §ROUNDS a full issue for a gun: the first magazine (or cell) loaded, and the spares beyond it — magazines for a
    ballistic gun, cells for a cell-fed one, a bulk hand's extra and a mod's */
 function fullRounds(weapon, hooks, kit) {
-  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0);
+  /* §ROUNDS (ruled: more rounds for more bulk) an Extended Magazine is one more of THIS gun's magazines — a flat six was
+     nothing to a belt-fed gun — and a cell-fed gun's is one more cell */
+  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0)
+              + ((kit && kit.mod && kit.mod.mags) || 0) * (weapon.mag || loadoutFor(weapon));
   if (!weapon.mag) return { mag: loadoutFor(weapon), spare: loadoutFor(weapon) + extra };
   /* a cell-fed gun carries its cell and a spare, and renews them at camp; a magazine gun carries its fights' worth */
   if (weapon.damage === 'energy') return { mag: weapon.mag, spare: weapon.mag * CONST.LOADOUT_CELLS + extra };
@@ -20938,7 +20959,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             const low = u.onSidearm ? true : cellGun ? (u.ammo <= 0 && u.charge <= CONST.RESUPPLY_AT) : u.ammo <= CONST.RESUPPLY_AT;
             if (low && u.carried.indexOf(pack) >= 0) {
               u.carried.splice(u.carried.indexOf(pack), 1);
-              const add = cellGun ? CONST.RESUPPLY_CHARGE : CONST.RESUPPLY_ROUNDS;
+              /* §ROUNDS (ruled: more rounds for more bulk) a satchel is a magazine for the gun it is opened for, not a flat twelve */
+              const gun = u.onSidearm ? u.primary : u.weapon;
+              const add = cellGun ? CONST.RESUPPLY_CHARGE : Math.max(CONST.RESUPPLY_ROUNDS, (gun && gun.mag) || 0);
               if (u.onSidearm) { u._primaryRounds = u._primaryRounds || { magLeft: 0, ammo: 0, reloading: 0 }; u._primaryRounds.ammo += add; C.backToPrimary(u); }
               else u.ammo += add;
               u.ap--;
@@ -22798,6 +22821,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STRESS_MAX: 100,
     /* §9 objectives */
     INTEL_CAP: 0.18,                    // [S] most readiness a season of scouting can buy
+    BEACON_SEAT_PULL: 3,                // [C] §RESERVE what a beacon is worth to a squad, by its open seats: half empty, two and a half
     BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
     /* §RESERVE only an enemy ON the beacon stops a landing — the same radius as standing on a site — and any two enemy
        squads on one lit beacon are in contact (below). The first cut blocked from 0.04 against an engage range of 0.02,
@@ -24859,8 +24883,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         else if (o.type === 'relay_mast') { if (day < (o.dark || 0)) return null; }
         else if (o.type === 'strongpoint') { if (o.heldBy === oa && !staying) return null; }
         else if (o.type === 'sponsor_cache') { const left = corp && corp.reserve ? corp.reserve.filter(fb => !fb.mirror_of).length : 0; if (!left) return null;
-          const bodies = group.reduce((t, q) => t.concat(q.ref ? q.ref.bodies : []), []);
-          need = 1 + bodies.filter(b => b.status !== 'active').length / Math.max(1, bodies.length); }
+          /* §RESERVE (fixed) A BEACON IS FOR A SQUAD WITH ROOM. A man lands into the squad standing on it, and only if it has a
+             seat; the beacon was worth going to for any group, so the intact squads took it and were turned away — measured,
+             392 of 393 beacon hours refused for a full squad and nobody landed. It is worth nothing to a full group, and more
+             the more seats it has open. */
+          const open = group.reduce((t, q) => t + (q.ref ? Math.max(0, CONST.SQUAD_MAX - squadHead(q.ref).filter(b => !b.mirror_of).length) : 0), 0);
+          if (open <= 0) return null;
+          need = 1 + CONST.BEACON_SEAT_PULL * Math.min(open, left) / CONST.SQUAD_MAX; }
         else if (o.looted) return null;
         else if (o.type === 'munitions_drop') { const bodies = group.reduce((t, q) => t.concat(q.ref ? squadHead(q.ref) : []), []);
           const dry = bodies.length ? bodies.reduce((t, b) => t + (1 - C.roundsShare(b)), 0) / bodies.length : 0;
@@ -25203,20 +25232,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const rival = Z[o.zone].nb.some(v => { const h = CONTEST.holder(cst, v); return h && h.oa !== corp.id; });
       if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
       const seats = s => squadHead(s).filter(b => !b.mirror_of).length;
-      if (seats(sq) >= CONST.SQUAD_MAX) return;
+      stats.audit.beaconTicks = (stats.audit.beaconTicks || 0) + 1;
+      /* §RESERVE (fixed) the man lands into whichever of the OA's squads on this ground has a seat: the one holding the beacon
+         was often the group's intact squad, with the hurt one standing beside it */
+      let into = sq;
+      if (seats(sq) >= CONST.SQUAD_MAX) {
+        into = (corp.squads || []).filter(q => q !== sq && q._cq && q._cq.zone === cq.zone && !q._cq.moving && seats(q) > 0 && seats(q) < CONST.SQUAD_MAX)
+                 .sort((a, b) => seats(a) - seats(b))[0] || null;
+        if (!into) { stats.audit.beaconFull = (stats.audit.beaconFull || 0) + 1; return; }
+      }
       const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
       o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
       if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
       o.draw[corp.id] = 0;
       const lead = corp.reserve.shift(), group = [lead];
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
-      for (const fb of group) { fb.status = 'active'; fb._squadIdx = sq.sIdx; fb._landedDay = day; sq.bodies.push(fb); corp.allBodies.push(fb);
+      for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; fb._landedDay = day; into.bodies.push(fb); corp.allBodies.push(fb);
         if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(fb) < 0) corp.persist.drop.push(fb); }
       if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);
-      sq.rations += CONST.RATION_DROP_DAYS * group.length;
-      sq.medkits = medkitCharges(sq.bodies); sq.hasMedkit = sq.medkits > 0;
+      into.rations += CONST.RATION_DROP_DAYS * group.length;
+      into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
       corp.landed += group.length; stats.audit.landed += group.length;
-      (stats.landings = stats.landings || []).push({ day, corp: corp.id, squad: sq.sIdx, fighter: lead.id, name: lead.name, pair: group.length > 1, seats: seats(sq), site: o.label, place: o.place, left: corp.reserve.filter(fb => !fb.mirror_of).length });
+      (stats.landings = stats.landings || []).push({ day, corp: corp.id, squad: into.sIdx, fighter: lead.id, name: lead.name, pair: group.length > 1, seats: seats(into), site: o.label, place: o.place, left: corp.reserve.filter(fb => !fb.mirror_of).length });
       rec({ t: 'landed', zone: o.zone, x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
       CONTEST.syncHeads(cst);
     };
@@ -25303,8 +25340,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (n === 0 || n >= CONST.REFORM_AT) continue;
             const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && Z[o.zone].region === Z[q.zone].region).sort((a, b) => squadHead(a).length - squadHead(b).length);
             if (!hosts.length) continue;
+            /* §SQUADS (fixed) A REFORM KEEPS INSIDE THE BOUNDS. The survivors were dealt round the hosts whatever their size,
+               so squads of nine, ten and eleven walked the Divide — past the ruled eight — and a host that had lost a man was
+               refilled to the brim, leaving no seat for a reserve to land into. They go only where there is a seat (a pair's
+               two bodies together), and if the hosts cannot take them all, the squad stands as it is. */
+            const seatsIn = h => seatsOf(squadHead(h)), room = {};
+            for (const h of hosts) room[h.id != null ? h.id : hosts.indexOf(h)] = CONST.SQUAD_MAX - seatsIn(h);
+            const keyOf = h => h.id != null ? h.id : hosts.indexOf(h);
+            const need = seatsOf(squadHead(q));
+            if (hosts.reduce((t, h) => t + Math.max(0, room[keyOf(h)]), 0) < need) continue;
             const movers = q.bodies.slice(), share = q.rations / Math.max(1, hosts.length);
-            movers.forEach((b, i) => { hosts[i % hosts.length].bodies.push(b); });
+            const placed = new Map();
+            for (const b of movers) {
+              const lead = b.mirror_of ? movers.find(x => x.id === b.mirror_of) : null;
+              let h = lead && placed.get(lead);
+              if (!h) {
+                const counts = b.status === 'active' && !b.mirror_of;
+                h = hosts.filter(x => !counts || room[keyOf(x)] > 0).sort((x, y) => room[keyOf(y)] - room[keyOf(x)])[0] || hosts[0];
+                if (counts) room[keyOf(h)]--;
+              }
+              placed.set(b, h); h.bodies.push(b);
+            }
             for (const h of hosts) h.rations += share;
             q.bodies = []; q.rations = 0; q.intent = null; q._reformed = day; q._downAt = { zone: q.zone };
             stats.audit.reforms = (stats.audit.reforms || 0) + 1;
@@ -29027,6 +29083,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
+    /* §SQUADS (fixed) AN ENGINE SEAT DROPS WHAT ITS LANDINGS HOLD. It fields a squad for every landing it drafted, and a
+       squad holds eight — but the draft often gives it two where its roster asked for three, and twenty were packed into
+       two squads of ten, past the ruled bound and with no seat for a reserve ever to land into. What two landings cannot
+       hold stays in orbit as reserve, to come down at a beacon as seats open. */
+    if (opts.want == null && opts.landings >= 2) want = Math.max(CONST.DROP_MIN, Math.min(want, opts.landings * DIVIDE.CONST.SQUAD_MAX));
     /* §MON-WA one being in two bodies goes down as one: picked as a pair on its lead's merit, or not at all (sorted
        body by body, half a pair could drop and the other half stay in orbit or on the bench) */
     const mateOf = f => f.mirror_of ? fit.find(x => x.id === f.mirror_of) : fit.find(x => x.mirror_of === f.id);
@@ -30842,9 +30903,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          the only thing a caller could set, so an interface could say how many but not who,
          which is the half of the ruling that carries the culture. All three now come through:
          how many, which lean, or a named list that overrides both. */
+      const draftD = state.drop && state.drop.draft && state.drop.draft.done ? state.drop.draft : null;
       c._drop = selectDrop(c, { want:   opts.want   && opts.want[id],
                                 lean:   opts.lean   && opts.lean[id],
-                                manual: opts.manual && opts.manual[id] });
+                                manual: opts.manual && opts.manual[id],
+                                landings: draftD && !isHuman(state, id) ? (draftD.picks[id] || []).length : 0 });
       for (const f of c._drop) f._droppedLastSeason = true;
       /* S15 — THE PURSE, and this is the first moment it can be charged honestly: the drop
          exists now and did not a few lines ago. A manager who fields sixteen pays sixteen

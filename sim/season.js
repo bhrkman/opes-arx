@@ -2727,6 +2727,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
+    /* §SQUADS (fixed) AN ENGINE SEAT DROPS WHAT ITS LANDINGS HOLD. It fields a squad for every landing it drafted, and a
+       squad holds eight — but the draft often gives it two where its roster asked for three, and twenty were packed into
+       two squads of ten, past the ruled bound and with no seat for a reserve ever to land into. What two landings cannot
+       hold stays in orbit as reserve, to come down at a beacon as seats open. */
+    if (opts.want == null && opts.landings >= 2) want = Math.max(CONST.DROP_MIN, Math.min(want, opts.landings * DIVIDE.CONST.SQUAD_MAX));
     /* §MON-WA one being in two bodies goes down as one: picked as a pair on its lead's merit, or not at all (sorted
        body by body, half a pair could drop and the other half stay in orbit or on the bench) */
     const mateOf = f => f.mirror_of ? fit.find(x => x.id === f.mirror_of) : fit.find(x => x.mirror_of === f.id);
@@ -4542,9 +4547,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          the only thing a caller could set, so an interface could say how many but not who,
          which is the half of the ruling that carries the culture. All three now come through:
          how many, which lean, or a named list that overrides both. */
+      const draftD = state.drop && state.drop.draft && state.drop.draft.done ? state.drop.draft : null;
       c._drop = selectDrop(c, { want:   opts.want   && opts.want[id],
                                 lean:   opts.lean   && opts.lean[id],
-                                manual: opts.manual && opts.manual[id] });
+                                manual: opts.manual && opts.manual[id],
+                                landings: draftD && !isHuman(state, id) ? (draftD.picks[id] || []).length : 0 });
       for (const f of c._drop) f._droppedLastSeason = true;
       /* S15 — THE PURSE, and this is the first moment it can be charged honestly: the drop
          exists now and did not a few lines ago. A manager who fields sixteen pays sixteen

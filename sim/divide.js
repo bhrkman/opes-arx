@@ -230,6 +230,7 @@
     STRESS_MAX: 100,
     /* §9 objectives */
     INTEL_CAP: 0.18,                    // [S] most readiness a season of scouting can buy
+    BEACON_SEAT_PULL: 3,                // [C] §RESERVE what a beacon is worth to a squad, by its open seats: half empty, two and a half
     BEACON_TICKS: 2,                    // [C] §RESERVE two-hour blocks a beacon must be held, uncontested, for one landing
     /* §RESERVE only an enemy ON the beacon stops a landing — the same radius as standing on a site — and any two enemy
        squads on one lit beacon are in contact (below). The first cut blocked from 0.04 against an engage range of 0.02,
@@ -2291,8 +2292,13 @@
         else if (o.type === 'relay_mast') { if (day < (o.dark || 0)) return null; }
         else if (o.type === 'strongpoint') { if (o.heldBy === oa && !staying) return null; }
         else if (o.type === 'sponsor_cache') { const left = corp && corp.reserve ? corp.reserve.filter(fb => !fb.mirror_of).length : 0; if (!left) return null;
-          const bodies = group.reduce((t, q) => t.concat(q.ref ? q.ref.bodies : []), []);
-          need = 1 + bodies.filter(b => b.status !== 'active').length / Math.max(1, bodies.length); }
+          /* §RESERVE (fixed) A BEACON IS FOR A SQUAD WITH ROOM. A man lands into the squad standing on it, and only if it has a
+             seat; the beacon was worth going to for any group, so the intact squads took it and were turned away — measured,
+             392 of 393 beacon hours refused for a full squad and nobody landed. It is worth nothing to a full group, and more
+             the more seats it has open. */
+          const open = group.reduce((t, q) => t + (q.ref ? Math.max(0, CONST.SQUAD_MAX - squadHead(q.ref).filter(b => !b.mirror_of).length) : 0), 0);
+          if (open <= 0) return null;
+          need = 1 + CONST.BEACON_SEAT_PULL * Math.min(open, left) / CONST.SQUAD_MAX; }
         else if (o.looted) return null;
         else if (o.type === 'munitions_drop') { const bodies = group.reduce((t, q) => t.concat(q.ref ? squadHead(q.ref) : []), []);
           const dry = bodies.length ? bodies.reduce((t, b) => t + (1 - C.roundsShare(b)), 0) / bodies.length : 0;
@@ -2635,20 +2641,28 @@
       const rival = Z[o.zone].nb.some(v => { const h = CONTEST.holder(cst, v); return h && h.oa !== corp.id; });
       if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
       const seats = s => squadHead(s).filter(b => !b.mirror_of).length;
-      if (seats(sq) >= CONST.SQUAD_MAX) return;
+      stats.audit.beaconTicks = (stats.audit.beaconTicks || 0) + 1;
+      /* §RESERVE (fixed) the man lands into whichever of the OA's squads on this ground has a seat: the one holding the beacon
+         was often the group's intact squad, with the hurt one standing beside it */
+      let into = sq;
+      if (seats(sq) >= CONST.SQUAD_MAX) {
+        into = (corp.squads || []).filter(q => q !== sq && q._cq && q._cq.zone === cq.zone && !q._cq.moving && seats(q) > 0 && seats(q) < CONST.SQUAD_MAX)
+                 .sort((a, b) => seats(a) - seats(b))[0] || null;
+        if (!into) { stats.audit.beaconFull = (stats.audit.beaconFull || 0) + 1; return; }
+      }
       const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
       o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
       if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
       o.draw[corp.id] = 0;
       const lead = corp.reserve.shift(), group = [lead];
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
-      for (const fb of group) { fb.status = 'active'; fb._squadIdx = sq.sIdx; fb._landedDay = day; sq.bodies.push(fb); corp.allBodies.push(fb);
+      for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; fb._landedDay = day; into.bodies.push(fb); corp.allBodies.push(fb);
         if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(fb) < 0) corp.persist.drop.push(fb); }
       if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group);
-      sq.rations += CONST.RATION_DROP_DAYS * group.length;
-      sq.medkits = medkitCharges(sq.bodies); sq.hasMedkit = sq.medkits > 0;
+      into.rations += CONST.RATION_DROP_DAYS * group.length;
+      into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
       corp.landed += group.length; stats.audit.landed += group.length;
-      (stats.landings = stats.landings || []).push({ day, corp: corp.id, squad: sq.sIdx, fighter: lead.id, name: lead.name, pair: group.length > 1, seats: seats(sq), site: o.label, place: o.place, left: corp.reserve.filter(fb => !fb.mirror_of).length });
+      (stats.landings = stats.landings || []).push({ day, corp: corp.id, squad: into.sIdx, fighter: lead.id, name: lead.name, pair: group.length > 1, seats: seats(into), site: o.label, place: o.place, left: corp.reserve.filter(fb => !fb.mirror_of).length });
       rec({ t: 'landed', zone: o.zone, x: o.x, y: o.y, c: corp.id, name: lead.name, place: o.place });
       CONTEST.syncHeads(cst);
     };
@@ -2735,8 +2749,27 @@
             if (n === 0 || n >= CONST.REFORM_AT) continue;
             const hosts = alive.filter(o => o !== q && squadHead(o).length >= CONST.REFORM_AT && Z[o.zone].region === Z[q.zone].region).sort((a, b) => squadHead(a).length - squadHead(b).length);
             if (!hosts.length) continue;
+            /* §SQUADS (fixed) A REFORM KEEPS INSIDE THE BOUNDS. The survivors were dealt round the hosts whatever their size,
+               so squads of nine, ten and eleven walked the Divide — past the ruled eight — and a host that had lost a man was
+               refilled to the brim, leaving no seat for a reserve to land into. They go only where there is a seat (a pair's
+               two bodies together), and if the hosts cannot take them all, the squad stands as it is. */
+            const seatsIn = h => seatsOf(squadHead(h)), room = {};
+            for (const h of hosts) room[h.id != null ? h.id : hosts.indexOf(h)] = CONST.SQUAD_MAX - seatsIn(h);
+            const keyOf = h => h.id != null ? h.id : hosts.indexOf(h);
+            const need = seatsOf(squadHead(q));
+            if (hosts.reduce((t, h) => t + Math.max(0, room[keyOf(h)]), 0) < need) continue;
             const movers = q.bodies.slice(), share = q.rations / Math.max(1, hosts.length);
-            movers.forEach((b, i) => { hosts[i % hosts.length].bodies.push(b); });
+            const placed = new Map();
+            for (const b of movers) {
+              const lead = b.mirror_of ? movers.find(x => x.id === b.mirror_of) : null;
+              let h = lead && placed.get(lead);
+              if (!h) {
+                const counts = b.status === 'active' && !b.mirror_of;
+                h = hosts.filter(x => !counts || room[keyOf(x)] > 0).sort((x, y) => room[keyOf(y)] - room[keyOf(x)])[0] || hosts[0];
+                if (counts) room[keyOf(h)]--;
+              }
+              placed.set(b, h); h.bodies.push(b);
+            }
             for (const h of hosts) h.rations += share;
             q.bodies = []; q.rations = 0; q.intent = null; q._reformed = day; q._downAt = { zone: q.zone };
             stats.audit.reforms = (stats.audit.reforms || 0) + 1;
