@@ -1931,7 +1931,7 @@
                      the suite check for it read "0 vents in 120 engagements" as though the
                      weapons were inert. A counter that is never initialised does not announce
                      itself; it launders itself through the first `|| 0` it meets. */
-                  vents: 0, chargeOut: 0, energyShots: 0,
+                  chargeOut: 0, energyShots: 0,
                   /* FOG COUNTERS, INITIALISED HERE AND NOT LATER. Every one of these is raised
                      with `+= 1` somewhere below, and this project has lost five counters to
                      `undefined += n` laundering itself through the first `|| 0` downstream into
@@ -2871,12 +2871,9 @@
         } else if (u.comp < 100 && u.comp < CONST.TETHER_STEADY_CAP) comp(rng, u, CONST.TETHER_CLOSE_COMP);
       }
       tel._deathsThisTurn = [];
-      /* Between rounds: heat bleeds off, vents tick down, hands go back to the rifle, and every
-         weapon banks another turn's worth of its rate of fire.
-         `coolWeapons` was described in this comment and never called — so on the grid an energy
-         weapon's heat never shed, a vent never ticked down, and nobody ever came off the sidearm
-         once they were on it. Prose describing work that was not done. */
-      for (const S of sides) C.coolWeapons(S);
+      /* Between rounds: hands with a cell back to it, every fired-flag cleared, and every weapon banks another turn's
+         worth of its rate of fire. (A heat model lived here once; it was cut, and its machinery with it.) */
+      for (const S of sides) C.betweenExchanges(S);
       /* `mobile_cover` — "grants mobile_cover_provider to same-band squadmates while stationary": a gun or a frame heavy
          enough to be a wall shields the squadmates beside it, a grade of cover, for as long as it stands still. It added
          a hook nothing read. */
@@ -2893,21 +2890,6 @@
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
         /* (a pin comes off when its man has had a turn under it: at his activation, above) */
-      }
-      /* THIS WAS A SECOND COPY OF `coolWeapons`, RUNNING RIGHT AFTER IT. The line above was
-         added to fix cooling never happening at all; the inline workaround it replaced was left
-         behind, so every exchange cooled TWICE. Worse than twice: `coolWeapons` clears
-         `_firedThisExchange` on its way out, so the second pass saw every weapon as idle and
-         shed heat from guns that had just fired. Vents ticked down at double rate for the same
-         reason.
-         The effect was that heat could not reach a cap — 6 against a cap of 12 was the highest
-         any fighter reached in 3,102 shots — so no weapon ever vented on the grid, and the
-         sidearm-swap that hangs off venting never fired either. A whole mechanism, live in the
-         catalog and dead in the game.
-         What is kept is the one thing `coolWeapons` does NOT do: it returns early on
-         non-energy units, so their fired-flag needs clearing here or it stays set for ever. */
-      for (const S of sides) for (const u of S.units) {
-        if (!C.isEnergy(u)) u._firedThisExchange = false;
       }
       for (const S of sides) checkWithdraw(S);
       if (A.withdrawing && !tel.endedBy0) { tel.endedBy0 = 1; tel.withdrawCalled = (tel.withdrawCalled||0)+1; }

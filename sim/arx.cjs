@@ -630,6 +630,46 @@ function worldSeeding() {
 }
 
 /* =========================================================================
+   A RANSOM REFUSED (ruled), BUILT TO ORDER: the captor always names its price and the owner always refuses it, so every
+   man taken is a refusal — the rule is held every run, not only when a refusal happens to come up.
+   ========================================================================= */
+function refusedRansomRule() {
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  const offer0 = NEG.ransomOffer, pay0 = NEG.ransomWorthPaying;
+  const R = { refused: 0, fates: {}, bought: [], wrong: [], tries: 0 };
+  try {
+    NEG.ransomOffer = function (rng0, captor, owner, f, ctx) {
+      return offer0.apply(this, arguments) || { price: NEG.ransomPrice(f), worth: Math.round(Math.max(300, NEG.bodyWorth(f))) };
+    };
+    NEG.ransomWorthPaying = () => false;
+    for (const seed of ['rr1', 'rr2', 'rr3', 'rr4', 'rr5', 'rr6']) {
+      R.tries++;
+      const rr = makeRng('refused-' + seed), fleet = SEASONMOD.openFleet(rr, oa, {}), st = SEASONMOD.beginSeason(rr, fleet, oa, {});
+      while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
+      SEASONMOD.closeSeasonToDrop(st);
+      armToTake(st.corps[st.ids[0]]);
+      const d = SEASONMOD.prepareDivide(st);
+      const r = DIV.runDivide(d.rng, d.opts), cst = r._cst || { held: {} };
+      const bodies = {}; for (const c of (r._corps || [])) for (const b of (c.allBodies || [])) bodies[b.id] = b;
+      for (const x of (r.refusedLog || [])) {
+        R.refused++; R.fates[x.fate] = (R.fates[x.fate] || 0) + 1;
+        if ((r.captiveLog || []).some(c => c.fighter === x.fighter && c.out === 'ransomed')) R.bought.push(seed + ' ' + x.fighter);
+        const b = bodies[x.fighter], held = Object.keys(cst.held).some(o => (cst.held[o] || []).some(k => k.body && k.body.id === x.fighter));
+        const ok0 = x.fate === 'kill' ? b && b.status === 'dead'
+                  : x.fate === 'release' ? b && b.status !== 'captured' && b.status !== 'dead'
+                  : x.fate === 'keep' ? held || (b && b.status === 'captured') : false;
+        if (!ok0) R.wrong.push(seed + ' ' + x.fighter + ' ' + x.fate + ' ' + (b ? b.status : 'no body'));
+      }
+      if (R.refused >= 3) break;
+    }
+  } finally { NEG.ransomOffer = offer0; NEG.ransomWorthPaying = pay0; }
+  ok('a ransom refused, built to order: refusals happen', R.refused > 0, R.refused + ' refused in ' + R.tries + ' Divides');
+  ok('a refused man goes back before his captor, who kills, keeps or frees him, and it is done', R.wrong.length === 0,
+     JSON.stringify(R.fates) + (R.wrong.length ? ' | ' + R.wrong.slice(0, 3).join(' | ') : ''));
+  ok('and a refused man is never then bought', R.bought.length === 0, R.bought.slice(0, 3).join(' | ') || 'none');
+}
+
+/* =========================================================================
    STUN — stun weapons land stacks, not wounds (ruled).
    ========================================================================= */
 function stunRules() {
@@ -1144,8 +1184,8 @@ function energyInvariants(n) {
     { primary: 'itm_plasma_caster', armor: 'itm_scout_weave', sidearm: 'itm_service_pistol', mods: [], consumables: [] },
     { primary: 'itm_las_repeater', armor: 'itm_plate_carrier', sidearm: 'itm_holdout', mods: [], consumables: [] }
   ];
-  const bad = { heat: 0, charge: 0, vent: 0, swap: 0 };
-  let vents = 0, draws = 0, checked = 0;
+  const bad = { charge: 0, swap: 0 };
+  let draws = 0, checked = 0;
   /* §GUNS a gun with a magazine and spares does not run dry in one fight — that is the point of it — so the fallback is
      tested on fighters carrying NO spares: the end of a long day, when the sidearm is what is left */
   const keepCells = C.CONST.LOADOUT_CELLS;
@@ -1157,27 +1197,17 @@ function energyInvariants(n) {
     /* and nearly dry already: fights end in a handful of exchanges now, before a full magazine runs out */
     for (const u of A.units) { u.ammo = 0; if (u.magLeft != null) u.magLeft = Math.min(u.magLeft, 2); if (u.charge != null && u.chargeMax > 0) u.charge = Math.min(u.charge, 2); }
     const r = TACMOD.resolve(rng, A, B, { day: 1, openingBand: 1, terrain: 'broken_ground' });
-    vents += r.telemetry.vents || 0; draws += r.telemetry.sidearmDraws || 0;
+    draws += r.telemetry.sidearmDraws || 0;
     for (const u of A.units) {
       checked++;
-      if (u.heat < 0 || (u.heatCap > 0 && u.heat > u.heatCap)) bad.heat++;
       if (u.charge < 0 || (u.chargeMax > 0 && u.charge > u.chargeMax)) bad.charge++;
-      if (u.venting < 0) bad.vent++;
       /* a fighter must never end the fight holding a sidearm while the primary is ready */
-      if (u.onSidearm && u.venting === 0 && u.charge > 0) bad.swap++;
+      if (u.onSidearm && u.charge > 0) bad.swap++;
     }
   }
   C.CONST.LOADOUT_CELLS = keepCells;
-  ok('energy: heat never negative and never above the cap', bad.heat === 0, bad.heat + ' of ' + checked);
   ok('energy: charge never negative and never above the cell', bad.charge === 0, bad.charge + ' of ' + checked);
-  ok('energy: vent counter never negative', bad.vent === 0, bad.vent + ' of ' + checked);
   ok('sidearm: nobody finishes on a sidearm with a working primary', bad.swap === 0, bad.swap + ' of ' + checked);
-  /* §ENERGY THE OVERHEAT IS GONE FROM THE CATALOGUE, deliberately: it throttled a cell-fed
-     weapon to two shots between coolings and cost the family a third of its output for nothing
-     it was paid for. The venting MACHINERY stays — a mod or a quirk may still put heat in a
-     weapon — so what is asserted is that it behaves, not that it fires. */
-  ok('energy: nothing vents, because nothing in the catalogue runs hot', vents === 0,
-     vents + ' vents in ' + n + ' engagements');
   ok('sidearm: fallbacks are actually drawn', draws > 0, draws + ' draws in ' + n + ' engagements');
 }
 
@@ -3870,6 +3900,7 @@ function runRegression() {
   phase('contestRules', contestRules);
   phase('stunRules', stunRules);
   phase('divideRules', divideRules);
+  phase('refusedRansomRule', refusedRansomRule);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);

@@ -222,8 +222,8 @@
     /* §MODS A MOD DOES WHAT IT SAYS. This read exactly one field from a mod — `grants`, a tag — and
        dropped every other effect on the floor: eleven of eighteen mods did nothing when fitted,
        ₡3,190 of kit at list price (audit 2), and two more lost their power penalty. Every effect a
-       mod declares is now folded into the kit, and combat reads `kit.mod`. Two remain inert because
-       the system they act on is gone: the heat sink (heat) and the field kit (gear damage). */
+       mod declares is now folded into the kit, and combat reads `kit.mod`. (The heat sink and the field kit went with the
+       systems they acted on, heat and gear damage.) */
     const mod = { power: 0, charge: 0, ammo: 0, aim: 0, aimHolding: 0, aimMoving: 0,
                   overwatchAim: 0, bandMult: 1, suppressCost: 0 };
     const cancels = [];
@@ -291,7 +291,7 @@
                      spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
-      heat: pe.heat || 0, heatCap: pe.heat_cap || 0,
+      
       charge: (pe.charge || 0) + ((pe.charge || 0) > 0 ? mod.charge : 0),
       mod: mod,
       /* §10 — what this fighter is carrying to spend. Single use, each with an action. */
@@ -641,7 +641,7 @@
     /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
     {
       const needsSide = bodies.filter(b => !b.loadout.sidearm);
-      const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && (pr.effects.heat_cap || pr.effects.charge)); };
+      const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && pr.effects.charge); };
       needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
       const list = cheapFirst(sidearms);
       for (const b of needsSide) for (const c of list) {

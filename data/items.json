@@ -2271,7 +2271,6 @@
    "bulk": 0,
    "effects": {
     "power": 1,
-    "heat": 1,
     "tags": []
    },
    "price_model": "fixed",

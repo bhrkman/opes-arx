@@ -2189,7 +2189,7 @@
       dead: 0, captured: 0, injured: 0, careerEnded: 0, lightWounds: 0, monwaShock: 0,
       engagements: 0, exchanges: 0, shots: 0, hits: 0, downs: 0, killedOutright: 0, downDeaths: 0,
       zeroCasualtyEngagements: 0, routEngagements: 0, brokenEngagements: 0, squadsBroken: 0,
-      sidesEngaged: 0, sidearmDraws: 0, vents: 0, capExits: 0, days: 0,
+      sidesEngaged: 0, sidearmDraws: 0, capExits: 0, days: 0,
       wingInjuries: 0, ththynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
       _corps: corps,
       claims: 0, relayFirings: 0, stanceChanges: 0, windows: 0,
@@ -2533,7 +2533,7 @@
       if (t.routs > 0) stats.routEngagements++;
       if (t.squadsBroken > 0) stats.brokenEngagements++;
       stats.squadsBroken += t.squadsBroken || 0; stats.sidesEngaged += t.sidesEngaged || 0;
-      stats.sidearmDraws += t.sidearmDraws || 0; stats.vents += t.vents || 0;
+      stats.sidearmDraws += t.sidearmDraws || 0;
       stats.audit.coverChipped = (stats.audit.coverChipped || 0) + (t.coverChipped || 0);
       stats.audit.coverFlattened = (stats.audit.coverFlattened || 0) + (t.coverFlattened || 0);
       if (res.result === 'cap') stats.capExits++;

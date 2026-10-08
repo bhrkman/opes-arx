@@ -7158,7 +7158,6 @@
    "bulk": 0,
    "effects": {
     "power": 1,
-    "heat": 1,
     "tags": []
    },
    "price_model": "fixed",
@@ -11739,8 +11738,8 @@
     /* §MODS A MOD DOES WHAT IT SAYS. This read exactly one field from a mod — `grants`, a tag — and
        dropped every other effect on the floor: eleven of eighteen mods did nothing when fitted,
        ₡3,190 of kit at list price (audit 2), and two more lost their power penalty. Every effect a
-       mod declares is now folded into the kit, and combat reads `kit.mod`. Two remain inert because
-       the system they act on is gone: the heat sink (heat) and the field kit (gear damage). */
+       mod declares is now folded into the kit, and combat reads `kit.mod`. (The heat sink and the field kit went with the
+       systems they acted on, heat and gear damage.) */
     const mod = { power: 0, charge: 0, ammo: 0, aim: 0, aimHolding: 0, aimMoving: 0,
                   overwatchAim: 0, bandMult: 1, suppressCost: 0 };
     const cancels = [];
@@ -11808,7 +11807,7 @@
                      spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
       family: p ? p.family : "none", tags,
-      heat: pe.heat || 0, heatCap: pe.heat_cap || 0,
+      
       charge: (pe.charge || 0) + ((pe.charge || 0) > 0 ? mod.charge : 0),
       mod: mod,
       /* §10 — what this fighter is carrying to spend. Single use, each with an action. */
@@ -12158,7 +12157,7 @@
     /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
     {
       const needsSide = bodies.filter(b => !b.loadout.sidearm);
-      const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && (pr.effects.heat_cap || pr.effects.charge)); };
+      const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && pr.effects.charge); };
       needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
       const list = cheapFirst(sidearms);
       for (const b of needsSide) for (const c of list) {
@@ -17352,9 +17351,6 @@ const CONST = {
   },
   COMP_BANDS: { steady: 70, shaken: 45, rattled: 25 },           // [S]
   AIM_PENALTY_BY_BAND: { steady: 0, shaken: 10, rattled: 30, broken: 50 },  // [S]
-  /* §6 energy weapons: heat inside the fight, charge across the day. A ballistic weapon
-     is limited by supply; an energy weapon is limited by tempo. */
-  HEAT_SHED: 2,                           // [S] per exchange the weapon does not fire
   /* §10 consumables — single use, each a real action in the exchange, not a modifier. */
   GRENADE_POWER: 7,                       // [C] frag; incendiary adds its quirk on top
   GRENADE_WEIGHT: 0.22,                   // [H] how readily a fighter reaches for one
@@ -17617,8 +17613,6 @@ function makeCombatant(fighter, opts) {
     reloading: 0,
     /* §MODS what the fitted mods add to the shot (items.js resolve) */
     mod: (kit && kit.mod) || null,
-    /* §6 — an energy weapon carries its own resources; a ballistic one leaves these at 0
-       and the whole heat path is skipped. */
     /* §10 — carried consumables, spent once each. */
     /* §CHARGES A CONSUMABLE HAS CHARGES FOR THE DIVIDE, AT MOST ONE A FIGHT (ruled). This was a
        fresh copy of the kit every fight and nothing ever came off the fighter: measured, 169 uses
@@ -17635,8 +17629,7 @@ function makeCombatant(fighter, opts) {
     cellFed: !!(kit && kit.charge > 0),
     /* §GRUDGE the one OA this man remembers, carried onto the ground with him */
     _grudge: fighter._grudge || null,
-    heat: 0, heatCap: (kit && kit.heatCap) || 0, heatPerShot: (kit && kit.heat) || 0,
-    _heatShed: CONST.HEAT_SHED, _firedThisExchange: false,
+    _firedThisExchange: false,
     /* §6 — charge is the fighter's, not the engagement's: it persists across every fight and comes back at camp.
        Ammunition persists too (§ROUNDS) and comes back only from a munitions drop or a satchel: the cell is small and
        renews itself overnight, the magazine is deep and does not — that is the contrast between the families. */
@@ -17647,7 +17640,7 @@ function makeCombatant(fighter, opts) {
        cells were all much of a size; visible the moment they were not. */
     charge: Math.min((fighter._charge != null ? fighter._charge : (kit && kit.charge) || 0),
                      (kit && kit.charge) || 0),
-    chargeMax: (kit && kit.charge) || 0, venting: 0,
+    chargeMax: (kit && kit.charge) || 0,
     sidearm: (kit && kit.sidearm) || null, primary: null, onSidearm: false,
     _sideRounds: kit && kit.sidearm ? carriedSide(fighter, kit.sidearm) : null,
     fatigue: (fighter.condition && fighter.condition.fatigue) || 0,
@@ -17662,11 +17655,10 @@ function makeCombatant(fighter, opts) {
 /* §6 energy resources · §7 the sidearm fallback                       */
 /* ------------------------------------------------------------------ */
 
-function isEnergy(u) { return !!u.cellFed || u.heatCap > 0; }
+function isEnergy(u) { return !!u.cellFed; }
 
 /** Can this fighter fire their PRIMARY this exchange? */
 function primaryReady(u) {
-  if (u.venting > 0) return false;
   /* §GUNS a gun with a magazine going in, or rounds still carried for it, is not dry — dry is what the sidearm is for */
   if (u.reloading > 0) return true;
   if (isEnergy(u)) return u.charge > 0 || u.ammo > 0;
@@ -17674,9 +17666,7 @@ function primaryReady(u) {
 }
 
 /**
- * §7 — the sidearm answers exactly two failures now: dry and damaged. (It answered venting
- * too, until the overheat was retired; `venting` stays at zero and the guards below are left
- * standing rather than unpicked, so a future heat rule has somewhere to land.) Never otherwise.
+ * §7 — the sidearm answers a primary that cannot fire: dry, or a cell spent. Never otherwise.
  * Swapping is not free: it costs the exchange's aim, which is why a sidearm is a hedge
  * rather than a second primary.
  */
@@ -17740,8 +17730,7 @@ function spendShot(u, kind) {
       return false;
     }
     u.charge -= draw;
-    /* §ENERGY THE OVERHEAT IS GONE, AND `heatCap` IS NOW ONLY THE MARK OF A CELL-FED WEAPON.
-       Every one of the fifteen cell-fed primaries fired two or three shots and then lost an
+    /* §ENERGY THE OVERHEAT IS GONE (and its machinery with it — cut systems are deleted). Every one of the fifteen cell-fed primaries fired two or three shots and then lost an
        exchange cooling — the tier-5 Phase Lance and the tier-1 Surplus Las-Carbine alike, so
        it was the family and not the bad weapons. Measured, the family cost about the same
        money as ballistic, hit slightly SOFTER at every tier a fleet actually fields, and put
@@ -17773,14 +17762,10 @@ function spendShot(u, kind) {
   return true;
 }
 
-/** Between exchanges: bleed heat off, tick the vent down, come off the sidearm. */
-function coolWeapons(side) {
+/** Between exchanges: a cell-fed hand whose cell holds a shot again goes back to it, and every weapon's fired-flag clears. */
+function betweenExchanges(side) {
   for (const u of side.units) {
-    if (!isEnergy(u)) continue;
-    if (u._ventJustSet) u._ventJustSet = false;         /* it begins now; it costs next exchange */
-    else if (u.venting > 0) u.venting--;
-    else if (!u._firedThisExchange) u.heat = Math.max(0, u.heat - (u._heatShed || CONST.HEAT_SHED));
-    if (u.onSidearm && primaryReady(u)) backToPrimary(u);
+    if (isEnergy(u) && u.onSidearm && primaryReady(u)) backToPrimary(u);
     u._firedThisExchange = false;
   }
 }
@@ -18347,7 +18332,6 @@ function onDeath(rng, unit, side, log, tel) {
    reloads, so the magazine is topped up from the spares. */
 function persistCharge(S, tel) {
   for (const u of S.units) {
-    if (tel) tel.vents += (u._vented || 0);
     const f = u.ref; if (!f) continue;
     if (u.chargeMax > 0) f._charge = u.charge;
     const prim = u.onSidearm ? u.primary : u.weapon, pr = u.onSidearm ? (u._primaryRounds || {}) : { magLeft: u.magLeft, ammo: u.ammo };
@@ -18420,7 +18404,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, onDeath, persistCharge, roundsShare, fullRounds, coolWeapons, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, onDeath, persistCharge, roundsShare, fullRounds, betweenExchanges, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed
@@ -20362,7 +20346,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                      the suite check for it read "0 vents in 120 engagements" as though the
                      weapons were inert. A counter that is never initialised does not announce
                      itself; it launders itself through the first `|| 0` it meets. */
-                  vents: 0, chargeOut: 0, energyShots: 0,
+                  chargeOut: 0, energyShots: 0,
                   /* FOG COUNTERS, INITIALISED HERE AND NOT LATER. Every one of these is raised
                      with `+= 1` somewhere below, and this project has lost five counters to
                      `undefined += n` laundering itself through the first `|| 0` downstream into
@@ -21302,12 +21286,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         } else if (u.comp < 100 && u.comp < CONST.TETHER_STEADY_CAP) comp(rng, u, CONST.TETHER_CLOSE_COMP);
       }
       tel._deathsThisTurn = [];
-      /* Between rounds: heat bleeds off, vents tick down, hands go back to the rifle, and every
-         weapon banks another turn's worth of its rate of fire.
-         `coolWeapons` was described in this comment and never called — so on the grid an energy
-         weapon's heat never shed, a vent never ticked down, and nobody ever came off the sidearm
-         once they were on it. Prose describing work that was not done. */
-      for (const S of sides) C.coolWeapons(S);
+      /* Between rounds: hands with a cell back to it, every fired-flag cleared, and every weapon banks another turn's
+         worth of its rate of fire. (A heat model lived here once; it was cut, and its machinery with it.) */
+      for (const S of sides) C.betweenExchanges(S);
       /* `mobile_cover` — "grants mobile_cover_provider to same-band squadmates while stationary": a gun or a frame heavy
          enough to be a wall shields the squadmates beside it, a grade of cover, for as long as it stands still. It added
          a hook nothing read. */
@@ -21324,21 +21305,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         u._rateBank = (u._rateBank || 0) + (C.tempoOf(u) - 1);
         if (u._rateBank < 0) { u._skipNext = true; u._rateBank += 1; } else u._skipNext = false;
         /* (a pin comes off when its man has had a turn under it: at his activation, above) */
-      }
-      /* THIS WAS A SECOND COPY OF `coolWeapons`, RUNNING RIGHT AFTER IT. The line above was
-         added to fix cooling never happening at all; the inline workaround it replaced was left
-         behind, so every exchange cooled TWICE. Worse than twice: `coolWeapons` clears
-         `_firedThisExchange` on its way out, so the second pass saw every weapon as idle and
-         shed heat from guns that had just fired. Vents ticked down at double rate for the same
-         reason.
-         The effect was that heat could not reach a cap — 6 against a cap of 12 was the highest
-         any fighter reached in 3,102 shots — so no weapon ever vented on the grid, and the
-         sidearm-swap that hangs off venting never fired either. A whole mechanism, live in the
-         catalog and dead in the game.
-         What is kept is the one thing `coolWeapons` does NOT do: it returns early on
-         non-energy units, so their fired-flag needs clearing here or it stays set for ever. */
-      for (const S of sides) for (const u of S.units) {
-        if (!C.isEnergy(u)) u._firedThisExchange = false;
       }
       for (const S of sides) checkWithdraw(S);
       if (A.withdrawing && !tel.endedBy0) { tel.endedBy0 = 1; tel.withdrawCalled = (tel.withdrawCalled||0)+1; }
@@ -24791,7 +24757,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       dead: 0, captured: 0, injured: 0, careerEnded: 0, lightWounds: 0, monwaShock: 0,
       engagements: 0, exchanges: 0, shots: 0, hits: 0, downs: 0, killedOutright: 0, downDeaths: 0,
       zeroCasualtyEngagements: 0, routEngagements: 0, brokenEngagements: 0, squadsBroken: 0,
-      sidesEngaged: 0, sidearmDraws: 0, vents: 0, capExits: 0, days: 0,
+      sidesEngaged: 0, sidearmDraws: 0, capExits: 0, days: 0,
       wingInjuries: 0, ththynSerious: 0, hazards: 0, hazardInjuries: 0, degradations: 0,
       _corps: corps,
       claims: 0, relayFirings: 0, stanceChanges: 0, windows: 0,
@@ -25135,7 +25101,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (t.routs > 0) stats.routEngagements++;
       if (t.squadsBroken > 0) stats.brokenEngagements++;
       stats.squadsBroken += t.squadsBroken || 0; stats.sidesEngaged += t.sidesEngaged || 0;
-      stats.sidearmDraws += t.sidearmDraws || 0; stats.vents += t.vents || 0;
+      stats.sidearmDraws += t.sidearmDraws || 0;
       stats.audit.coverChipped = (stats.audit.coverChipped || 0) + (t.coverChipped || 0);
       stats.audit.coverFlattened = (stats.audit.coverFlattened || 0) + (t.coverFlattened || 0);
       if (res.result === 'cap') stats.capExits++;
