@@ -345,3 +345,5 @@ lean one pleases.
   share of what the planet is worth: ₡400k on an average world, more on a rich one. The winner takes the
   pot and the planet's amount of every store. A hold takes what it can; nothing buys the overflow. A board asks for the store its holds are lowest in,
   leaned toward what the planet is rich in, and asks more the emptier the hold.
+- A Mon-Wa's halves more than six tiles apart (nine drilled) each lose 25 composure a grid turn (a turn is an
+  exchange) and shoot worse; within it they steady each other.

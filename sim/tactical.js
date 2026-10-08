@@ -37,11 +37,7 @@
        outside it, both of them come apart — the canon's own numbers, per exchange. */
     TETHER_TILES: 6,                 // [C] how far apart the halves may work
     TETHER_DRILLED: 3,               // [C] §QUIRKS what drilling to work apart is worth to a pair
-    /* THE NUMBER WAS ALREADY WRITTEN. `MONWA_TETHER_COMP` has sat in combat.js since the canon
-       was ratified — "separation costs −25 composure an exchange to both" — and the tether was
-       built with a fresh −12 beside it, because nobody looked. The housekeeping audit found
-       three of these in one pass. The canon's figure is per EXCHANGE; a turn takes a share. */
-    TETHER_PER_TURN: 0.48,           // [C] a turn's share of the exchange the canon priced
+    /* (ruled) separation costs both halves the canon's MONWA_TETHER_COMP (combat.js, −25) every turn: a turn is an exchange */
     TETHER_CLOSE_COMP: 3,            // [C] what being within it is worth, a turn
     TETHER_STEADY_CAP: 55,           // [C] and the composure past which it steadies nobody:
                                      //     a pair that could top itself up every turn never
@@ -2064,7 +2060,7 @@
          separation than separation itself. */
       for (const S of sides) for (const u of S.units) if (u._scrambled > 0) {
         if (u.pair && u.pair.halves[0] !== u && u.pair.halves[0]._scrambled > 0) { u._scrambled--; continue; }
-        if (u.state === 'ok' || u.state === 'light') comp(rng, u, C.CONST.MONWA_TETHER_COMP * CONST.TETHER_PER_TURN);
+        if (u.state === 'ok' || u.state === 'light') comp(rng, u, C.CONST.MONWA_TETHER_COMP);
         u._scrambled--;
       }
       /* §LIGHT a sun-fed weapon DRINKS THE DAY: in the planet's light it takes back charge every turn */
@@ -2911,7 +2907,7 @@
         if (u.pair._turn === tel.turn) continue;
         u.pair._turn = tel.turn;
         if (u._tetherStrained) {
-          comp(rng, u, C.CONST.MONWA_TETHER_COMP * CONST.TETHER_PER_TURN);
+          comp(rng, u, C.CONST.MONWA_TETHER_COMP);
           if (!wasStrained && log) log.push({ t: tel.turn, type: 'tether_strained', by: u.id, at: o.id });
           tel.tetherStrain = (tel.tetherStrain || 0) + 1;
         } else if (u.comp < 100 && u.comp < CONST.TETHER_STEADY_CAP) comp(rng, u, CONST.TETHER_CLOSE_COMP);

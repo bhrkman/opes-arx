@@ -387,7 +387,7 @@
    "special": {
     "paired": true,
     "roster_slots": 1,
-    "tether_note": "Canon: cannot be split-tasked beyond miles; forced separation risks collapse. MODEL DELIVERED (COMBAT.md 8.1): day-loop tether enforced at squad assignment; in-engagement the halves must share an engagement and adjacent bands, and separation costs -25 composure/exchange to both plus aim_eff -4.",
+    "tether_note": "The halves fight as one being: one seat, one squad. On the grid, halves more than six tiles apart (nine if drilled to work apart) each lose 25 composure a turn and shoot worse; within it they steady each other.",
     "partner_death_roll": {
      "death": 0.6,
      "braindead_retired": 0.25,
