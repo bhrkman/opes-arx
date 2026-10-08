@@ -555,7 +555,7 @@ setTimeout(() => {
       check(doc.querySelector('#mktledger .mwall-title').classList.contains('shut') && doc.querySelectorAll('#mktledger .mtile').length < tiles,
             'a title folds its section');
       doc.querySelector('#mktledger .mwall-title').click();
-      check(secs.length >= 5 && secs[0] === 'Carbines',
+      check(secs.length >= 5 && secs[0] === 'Assault Rifles',
             'the shelf opens on what most hands carry: ' + secs.slice(0, 4).join(', '));
       check(secs.indexOf('Anti-Materiel') > secs.indexOf('Carbines'),
             'and the exotica sit at the bottom, not the top');
@@ -635,7 +635,7 @@ setTimeout(() => {
       const giveCol = () => doc.querySelectorAll('#negwrap .negcol')[0];
       const getCol = () => doc.querySelectorAll('#negwrap .negcol')[1];
       check(giveCol().querySelectorAll('tr.pick').length > 5, 'your side lists what you can put up, with a price each');
-      check(/Worth/.test(giveCol().textContent) && /Wage/.test(giveCol().textContent),
+      check(/Worth/.test(giveCol().textContent) && /Owed/.test(giveCol().textContent),
             'a body\'s price is its worth less its wage, said on the row');
       giveCol().querySelector('[data-tcat="intel"]').click();
       check(!new RegExp(GT.corps[themId].profile.name).test(giveCol().textContent),
@@ -1189,8 +1189,10 @@ setTimeout(() => {
       /* §3.9 the fight says what decided it, and every shot says why it was that likely */
       check(/What Decided It/.test(text('#result')) && /Shots/.test(text('#result')) && /Shot Against/.test(text('#result')),
             'the result reads what decided the fight: ' + (text('#result').match(/Shot Against[^|]{0,40}/) || ['—'])[0].replace(/\s+/g, ' '));
-      doc.getElementById('fwd').click(); doc.getElementById('fwd').click();
-      check(/%/.test(text('#events')), 'the feed prints each shot\'s chance and what it was taken against');
+      /* step until a shot has been missed (a miss carries its chance): which turn that is depends on the fight */
+      /* the fight's feed is #fevents (the Desk's event cards are #events: one id was on both) */
+      for (let k = 0; k < 12 && !/%/.test(text('#fevents')); k++) doc.getElementById('fwd').click();
+      check(/%/.test(text('#fevents')), 'the feed prints each shot\'s chance and what it was taken against');
       doc.getElementById('fightback').click();
       check(doc.querySelector('.page[data-tab="recap"]').classList.contains('on'), 'Back returns to the recap');
       doc.getElementById('recapgo').click();

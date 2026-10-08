@@ -219,6 +219,8 @@ lean one pleases.
 - On a field a pair is two bodies with separate wound pools, one composure and a shared fall (ruled): whatever moves one
   half's nerve moves both, and one mind breaks in both bodies; a body stunned out or held at a breath takes the other
   down with it, up again after; the stretch of the tether, and a Cortical Scrambler, are paid once a turn by the one mind.
+- A renewal answered on the Paper holds at the ask it was answered at; a conscript whose term this Divide completes is
+  freed at the year's end and chooses for himself, so the Paper does not offer him.
 - When either body dies — on a field, in a captor's hold, on a surgeon's table, at the wall, in the Eight — the other
   rolls at once (ruled, races.json): death 60%, braindead and retired 25%, a traumatized survivor 15%. What it rolls
   is final: no recovery or capture roll after it. A traumatized survivor is out of that fight, then one ordinary being:

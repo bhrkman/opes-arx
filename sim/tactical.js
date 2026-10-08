@@ -754,10 +754,13 @@
     /* §GUNS NOISE: a shot carries as far as the gun is loud — so many tiles a point; a silenced gun barely past the
        muzzle. The gun's number decides; the `silent` tag keeps its old rule only for a gun that names none. */
     const w = u.weapon || {};
-    if (w.noise == null && C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
+    /* §MODS (fixed) A SUPPRESSOR SILENCES THE GUN IT IS ON. `silent` was honoured only for a gun with no noise figure, and
+       every gun in the catalogue has one, so the Suppressor's "Grants Silent" did nothing in a fight: it is noise 0 now */
+    const silent = C.hasQuirk(u, 'silent');
+    if (w.noise == null && silent && !u._firedOnce) { u._firedOnce = true; return false; }
     u._firedOnce = true;
     u._revealedUntil = turn + CONST.REVEAL_TURNS;
-    u._revealRange = w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
+    u._revealRange = silent ? 0 : w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
     return true;
   }
 

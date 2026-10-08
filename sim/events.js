@@ -328,7 +328,7 @@
         text: pair[0].name + ' put ' + pair[1].name + ' through a bulkhead over a card game. ' + pair[1].name + ' will be a week mending.',
         options: [
           { id: 'punish', label: 'Punish ' + shortName(pair[0]), cost: 'They Sour \u00b7 the Rest Settle' },
-          { id: 'fine', label: 'Fine Them Both', cost: '−' + fmtCr(CONST.FINE * 2) + ' from Wages \u00b7 Both Sour a Little' },
+          { id: 'fine', label: 'Fine Them Both', cost: '+' + fmtCr(CONST.FINE * 2) + ' in Fines \u00b7 Both Sour a Little' },
           { id: 'lie', label: 'Let It Lie', cost: 'The Barracks Simmer' }
         ], def: 'lie' }),
       resolve: (c, e, opt, ctx) => {
@@ -440,7 +440,7 @@
         return { kind: 'dealer', subject: it.id, price: price, title: 'A Dealer at the Airlock',
           text: 'Somebody with a case and no paperwork is offering a ' + it.name + ' for ' + fmtCr(price) + '. Tonight only.',
           options: [
-            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + ((it.tier || 1) - 1) : '') },
+            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + Math.max(1, (it.tier || 1) - 2) : '') },
             { id: 'pass', label: 'Pass', cost: 'Nothing' }
           ], def: 'pass' }; },
       resolve: (c, e, opt) => {

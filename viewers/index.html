@@ -2141,7 +2141,7 @@
         <button id="play">Play</button>
         <label class="m"><input type="checkbox" id="noanim"> No Movement</label>
       </div>
-      <div class="box evbox" id="events"><span class="m">No Engagement Yet</span></div>
+      <div class="box evbox" id="fevents"><span class="m">No Engagement Yet</span></div>
       
     </div>
     <div>
@@ -2716,7 +2716,7 @@
     },
     "partner_death_note": "Canon outcomes common/uncommon/rare; numbers ratified V13. Roll fires immediately mid-engagement; a traumatized survivor is auto-downed for the remainder, takes scar traits, and is renamed (Em- prefix for a widowed Mon, -Em suffix for a widowed Wa).",
     "notes": "Disproportionate value in camp, logistics, and intel roles (ratified).",
-    "combat_model": "Two bodies, two shots, ONE composure pool, ONE shared wound track: a serious wound to either body downs the pair (COMBAT.md 8.1, C14a ratified)."
+    "combat_model": "RULED (Mon-Wa pass): two bodies, two shots, two wound pools, ONE composure and a shared fall — a body stunned out or held at a breath takes the other down with it, and a body killed sets off partner_death_roll for the other at once."
    },
    "naming": {
     "style": "paired_halves",
@@ -4890,7 +4890,7 @@
   "nattie": 8,
   "mercenary": 8,
   "prisoner": 8,
-  "note": "One squad per batch (COMBAT.md 2.1). A full drop force is three batches; a roster is 28-34."
+  "note": "One squad per batch. A drop is 16-24 seats in squads of 3-8 (a Mon-Wa pair is one seat); a roster has no ceiling."
  },
  "origin_type_leans": {
   "_note": "Where a hand learned its trade, in sheet points on a weapon TYPE (the shop's sections). Keys are the pools. Prisoners learned close and dirty; mercs carry long guns for pay; natties are ship-schooled, no lean.",
@@ -11555,6 +11555,12 @@
     delete f.pair_name; delete f.pair_halves;
     if (lead !== f && lead.contract) f.contract = JSON.parse(JSON.stringify(lead.contract));
     if (f.contract) delete f.contract.mirrored;
+    /* the scar is a trait like any other: its stats are written into his own, as a trait's are at birth (they were not,
+       so the sheet promised a −20 Resolve that never landed) */
+    if ((f.traits || []).indexOf('severed') < 0) {
+      const st = ((traitById.severed || {}).effects || {}).stats || {};
+      for (const k in st) if (f.stats && f.stats[k] != null) f.stats[k] = Math.max(10, Math.min(200, f.stats[k] + st[k]));
+    }
     f.traits = (f.traits || []).filter(t => t !== 'severed').concat(['severed']);
     f._severed = true;
     g._carriedOn = true;   /* the being lives on in the survivor: its death benefit is paid when the survivor's is */
@@ -11803,7 +11809,8 @@
   }
 
   function value(lo) { return itemsOf(normalise(lo)).reduce((s, i) => s + (i.cost || 0), 0); }
-  function bulk(lo) { return itemsOf(normalise(lo)).reduce((s, i) => s + (i.bulk || 0), 0); }
+  /* a mod's `effects.bulk` lightens (or loads) what it is fitted to: the Lightweight Frame's −1 was declared and read by nothing */
+  function bulk(lo) { return Math.max(0, itemsOf(normalise(lo)).reduce((s, i) => s + (i.bulk || 0) + (i.slot === 'mod' ? ((i.effects && i.effects.bulk) || 0) : 0), 0)); }
 
   /** The flat shapes combat.js already consumes, plus what 5b-3 will need. */
   function resolve(lo) {
@@ -13074,7 +13081,7 @@
       its zone, placed in its region; a deposit's potency is its units; every site is known from the drop (the ground is
       scouted) and a deposit is worked from the day it opens */
   const OBJ_TYPE = { deposit: 'resource_site', rest: 'ration_site', strongpoint: 'strongpoint', munitions: 'munitions_drop', mast: 'relay_mast', beacon: 'sponsor_cache' };
-  const OBJ_LABEL = { rest: 'Rest Site', strongpoint: 'Strongpoint', munitions: 'Munitions Drop', mast: 'Relay Mast', beacon: 'Landing Beacon' };
+  const OBJ_LABEL = { rest: 'Ration Site', strongpoint: 'Strongpoint', munitions: 'Munitions Drop', mast: 'Relay Mast', beacon: 'Landing Beacon' };
   function objectivesOf(ground) {
     return ground.sites.map((s, i) => { const z = ground.zones[s.zone], r = ground.regions[z.region];
       return { id: 'obj_' + i, type: OBJ_TYPE[s.kind] || s.kind, kind: s.kind, zone: s.zone, region: z.region,
@@ -16530,7 +16537,7 @@
         text: pair[0].name + ' put ' + pair[1].name + ' through a bulkhead over a card game. ' + pair[1].name + ' will be a week mending.',
         options: [
           { id: 'punish', label: 'Punish ' + shortName(pair[0]), cost: 'They Sour \u00b7 the Rest Settle' },
-          { id: 'fine', label: 'Fine Them Both', cost: '−' + fmtCr(CONST.FINE * 2) + ' from Wages \u00b7 Both Sour a Little' },
+          { id: 'fine', label: 'Fine Them Both', cost: '+' + fmtCr(CONST.FINE * 2) + ' in Fines \u00b7 Both Sour a Little' },
           { id: 'lie', label: 'Let It Lie', cost: 'The Barracks Simmer' }
         ], def: 'lie' }),
       resolve: (c, e, opt, ctx) => {
@@ -16642,7 +16649,7 @@
         return { kind: 'dealer', subject: it.id, price: price, title: 'A Dealer at the Airlock',
           text: 'Somebody with a case and no paperwork is offering a ' + it.name + ' for ' + fmtCr(price) + '. Tonight only.',
           options: [
-            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + ((it.tier || 1) - 1) : '') },
+            { id: 'buy', label: 'Buy It', cost: '−' + fmtCr(price) + (stored ? ' · Stored Until the Armoury Reaches Level ' + Math.max(1, (it.tier || 1) - 2) : '') },
             { id: 'pass', label: 'Pass', cost: 'Nothing' }
           ], def: 'pass' }; },
       resolve: (c, e, opt) => {
@@ -19279,10 +19286,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §GUNS NOISE: a shot carries as far as the gun is loud — so many tiles a point; a silenced gun barely past the
        muzzle. The gun's number decides; the `silent` tag keeps its old rule only for a gun that names none. */
     const w = u.weapon || {};
-    if (w.noise == null && C.hasQuirk(u, 'silent') && !u._firedOnce) { u._firedOnce = true; return false; }
+    /* §MODS (fixed) A SUPPRESSOR SILENCES THE GUN IT IS ON. `silent` was honoured only for a gun with no noise figure, and
+       every gun in the catalogue has one, so the Suppressor's "Grants Silent" did nothing in a fight: it is noise 0 now */
+    const silent = C.hasQuirk(u, 'silent');
+    if (w.noise == null && silent && !u._firedOnce) { u._firedOnce = true; return false; }
     u._firedOnce = true;
     u._revealedUntil = turn + CONST.REVEAL_TURNS;
-    u._revealRange = w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
+    u._revealRange = silent ? 0 : w.noise != null ? w.noise * CONST.NOISE_TILES_PER_POINT : null;
     return true;
   }
 
@@ -23906,7 +23916,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
         const ownerYes = aiOwner ? (!sealed(owner) && NEG.ransomWorthPaying(owner, f, price, ctx)) : null;   /* N11 a sealed OA buys nobody back */
         if (ownerYes === false) { if (stats._refusedRansom) stats._refusedRansom(captor.id, f.id); continue; }   /* the owner will not pay that */
-        const k = { fighter: f.id, name: f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
+        const k = { fighter: f.id, name: f.pair_name || f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
                     day: day, captorYes: aiCaptor ? true : null, ownerYes: ownerYes, done: false };
         if (k.captorYes && k.ownerYes) {
           settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: price, day: day, worth: worth }, f, owner, captor);
@@ -24000,7 +24010,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       squadSize: avail.length, withConscript: withConscript,
       onlyOfRace: raceCount[f.race] === 1,
       divides: (f.experience && f.experience.divides) || 0, age: f.age,
-      health: (f.condition || {}).health, stress: (f.condition || {}).stress,
+      /* "while carrying a wound" reads the harm he carries on the ground (_hpFrac) as well as the year's (fixed: a man
+         hurt in his first fight was whole to his quirks in his second) */
+      health: Math.min((f.condition || {}).health == null ? 100 : f.condition.health, f._hpFrac != null ? Math.round(f._hpFrac * 100) : 100),
+      stress: (f.condition || {}).stress,
       captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
@@ -25408,7 +25421,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         sq.bodies.splice(bi, 1); stats.audit.wentHome = (stats.audit.wentHome || 0) + 1;
       }
       rec({ t: 'fight', zone, x: Z[zone].x, y: Z[zone].y, corps: groups.map(g => g[0].corpId), squads: sidesSq.reduce((n, g) => n + g.length, 0), night, ex: t.exchanges, band: res.band, res: res.result, terrain,
-            lost: (stats.dead - recBefore.d) + (stats.careerEnded - recBefore.c), obj: objectiveValue > 0, flank: !!(res.telemetry && res.telemetry.flankFight) });
+            lost: (stats.dead - recBefore.d) + (stats.careerEnded - recBefore.c), obj: objectiveValue > 0, flank: !!(res.telemetry && res.telemetry.flankFight),
+            /* which squads stood in it, so a squad's record names its own fights and not every fight beside it */
+            who: [].concat.apply([], sidesSq).filter(Boolean).map(q => q.corpId + ':' + q.sIdx) });
       if (stats.dead === before.d && stats.injured === before.i && stats.careerEnded === before.c) stats.zeroCasualtyEngagements++;
       return { turns: res.turns || 1, winner: winnerGi >= 0 ? f.sides[winnerGi].tag : null, result: res.result, squads };
     }
@@ -26161,7 +26176,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   /* `applyOutcome` is exported for the unified viewer: a fight it stages settles back to the
      roster through the same function the Divide uses, because a second settler would drift the
      way the replay's two frame builders drifted. */
-  const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
+  const api = { CONST, keepChance, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
                 NOTCH_WORDS, squadStance, standing, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, bannersStanding, umbrellasOf, sealedCorp: sealed,
     squadStress, WEATHER };
   if (isNode) module.exports = api;
@@ -27688,7 +27703,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
        what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
        keeps its people alive hires cheaper. `mercPriceMult` was written for this and never called. */
-    if (f.pool === 'mercenary' && STATE_REF && STATE_REF.ids) {
+    /* (fixed) a fighter carries his origin on his contract — `f.pool` is set on nobody, so this never ran */
+    if (((f.contract && f.contract.kind) === 'mercenary' || f.pool === 'mercenary') && STATE_REF && STATE_REF.ids) {
       const idx = STATE_REF.ids.map(id => STATE_REF.corps[id]).filter(x => x && x.rep).map(x => REP.mercIndex(x.rep));
       const fleetMean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : 0;
       if (fleetMean > 0) mult *= REP.mercPriceMult(corp.rep, fleetMean);
@@ -29144,7 +29160,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const ct = f.contract || {};
       const endingNow = (ct.seasons_remaining != null ? ct.seasons_remaining : ct.seasons || 0) <= 1;
       if (!endingNow) continue;
-      const freed = ct.kind === 'prisoner' && (ct.sentence_remaining == null || ct.sentence_remaining <= 1);
+      /* the freedom clause served: the Divides the paper asked for are done (nothing sets a `sentence_remaining`) */
+      /* §PAPER a conscript whose term this Divide completes is freed at the year's end and chooses for himself
+         (offseason frees him; renewRoster lets the freed decide on their own) — the Paper is not his to answer */
+      const freed = ct.kind === 'prisoner' && ct.divides_required != null && (ct.divides_served || 0) + 1 >= ct.divides_required;
       out.push({
         id: f.id, name: f.pair_name || f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
@@ -29162,7 +29181,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const f = c.roster.find(x => x.id === fighterId); if (!f) return { ok: false };
     c._renewalCalls = c._renewalCalls || {};
-    c._renewalCalls[fighterId] = { how: how, offer: offer || null };
+    /* §PAPER the ask he named is the ask he holds to: answered now, it is the figure paid at the year's end */
+    c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: renewalSalary(f, state) };
     return { ok: true };
   }
   function renewRoster(rng, corp, expiring, freed, state) {
@@ -29227,7 +29247,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
-          const asked = renewalSalary(f, state);
+          const asked = call.asked || renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
           /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE OA. The further
              under his ask, the likelier he walks — and a hand who likes it here will swallow a
@@ -30362,7 +30382,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const r = rngOf(state, 'operate' + abs + f.id)();
     const sg = STAFF.holder(c, 'surgeon');
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
-      sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
+      sg.record.whole = (sg.record.whole || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
     if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
       if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
       sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
@@ -30421,7 +30441,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (f) {
         corp._operated = abs;
         const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
-        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
+        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.whole = (sg.record.whole || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
     }
@@ -31427,8 +31447,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const f of old) f._droppedLastSeason = false;
         for (const f of drop) f._droppedLastSeason = true;
       }
-      p.groups = []; p.leaders = [];
-      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
+      p.groups = []; p.leaders = []; p.boardOf = []; L.boardOf = p.boardOf; L.boardSeason = state.season;
+      /* §SQUADS the board square each squad came from, so the page names a squad by the board's name when an empty one
+         drops out of the order (Charlie read "Beta" on the landings and the Table) */
+      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); p.boardOf.push(i); } });
       /* §DROP (ruled) SIXTEEN IS THE ALEAS' REQUIREMENT, not a preference of the engine's: a person's named drop short of
          it is filled by the Aleas from the roster — the fit first, then the walking wounded; the best first; a pair whole —
          into the squads with room (a new one only if none has any) */
@@ -31445,7 +31467,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             for (const x of add) { drop.push(x); x._droppedLastSeason = true; }
             const seats = g => g.filter(id => { const x = c.roster.find(y => y.id === id); return x && !x.mirror_of; }).length;
             let g = p.groups.filter(gg => seats(gg) < DIVIDE.CONST.SQUAD_MAX).sort((a, b) => seats(a) - seats(b))[0];
-            if (!g) { g = []; p.groups.push(g); p.leaders.push(null); }
+            if (!g) { g = []; p.groups.push(g); p.leaders.push(null);
+              let free = 0; while (p.boardOf.indexOf(free) >= 0) free++; p.boardOf.push(free); }
             for (const x of add) g.push(x.id);
             const paid = LED.purseBill(add); if (paid) { LED.post(c.account, 'expense', 'Purses', -paid); c._purses = (c._purses || 0) + paid; c._wages = (c._retainers || 0) + c._purses; }
           }
@@ -32129,7 +32152,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
-           foundingRoster, openLot, ensureLot, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, saveCareer, loadCareer, SAVE_VERSION,
+           foundingRoster, openLot, ensureLot, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
            ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
@@ -32514,10 +32537,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* §SHOWN morale steadies a fighter in every grid fight, loyalty moves what re-signing them
          costs — both were simulated and never shown (audit 1) */
       '<span class="k">Morale</span><span class="v">' + gaugeWord(moraleOf(b), ['Broken', 'Shaken', 'Steady', 'High']) + '</span>' +
-      '<span class="k">Loyalty</span><span class="v">' + gaugeWord(b.loyalty == null ? 50 : b.loyalty, ['Restless', 'Wavering', 'Loyal', 'Devoted']) + '</span>';
+      '<span class="k">Loyalty</span><span class="v">' + gaugeWord(loyaltyShown(b), ['Restless', 'Wavering', 'Loyal', 'Devoted']) + '</span>';
     if (ct.divides_required != null)
-      paper += '<span class="k">Release</span><span class="v" style="color:var(--o-con)">serves ' +
-               ct.divides_required + ', ' + (ct.divides_served || 0) + ' done</span>';
+      paper += '<span class="k">Freedom</span><span class="v" style="color:var(--o-con)">' +
+               (ct.divides_served || 0) + '/' + ct.divides_required + '</span>';   /* as the Roster card says it */
     else if (ct.kind === 'mercenary')
       paper += '<span class="k">Deal</span><span class="v">One Divide</span>';
     else {
@@ -32605,61 +32628,76 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        Et-y-Bellum faiths and the Pressure-Read psion — carried no stat change and no hook this
        table knew, so their tooltip said "Character, Not Mechanics" over machinery that is
        wired, sized and firing. Every figure below is read off the engine, not invented. */
+    /* one line a hook, the last word on each kept (duplicates removed); a hook nothing reads has no line */
     divide_start_morale_surge: '+4 Morale at the Drop',
     divide_start_morale_surge_major: '+8 Morale at the Drop',
     cede_loyalty_morale_penalty: '\u22123 Morale on a Sold Claim',
     cede_loyalty_morale_penalty_major: '\u22125 Morale on a Sold Claim',
     death_or_glory_affinity: '+3 Morale Under Death or Glory, \u22122 Under a Cautious Policy',
-    resists_medical_evac: 'Refuses the Evac',
-    negotiation_bluff_detection: 'Reads a Bluff at the Table',
+    resists_medical_evac: 'Refuses Treatment When Down',
+    negotiation_bluff_detection: 'Hears a Bluff',
     friction_with_keshu_rival_race: '\u22123 Morale Beside the Other Side of the Keshu War',
     ankoth_sympathy_chemistry: '+2 Morale Beside an Ankoth',
-    evasion_surge: 'Slips the Odd Certain Shot',
-    squad_coordination_bonus: '+1 Aim for the Squad Around Them',
-    psionic_broadcast_sensation: 'The Crowd Pays for a Psion',
+    evasion_surge: 'One More Step When Shot At',
+    squad_coordination_bonus: 'The Whole Squad Aims Better',
     loyalty_cap_reduced: 'Never Fully Loyal to an OA',
     succession_candidate_priority: 'First in Line for a Captaincy',
     injury_severity_risk_up: 'Wounds Run a Grade Worse',
     early_divide_penalty: 'Poor in a First Engagement',
     late_divide_bonus: 'Better Once Blooded',
     captain_fidelity_up: 'Follows a Captain Further',
-    field_treatment_bonus: 'Treats a Wound Better in the Field',
+    field_treatment_bonus: 'Treats Wounds Better',
     seen_worse_composure: 'Steadier for Having Seen Worse',
-    composure_up_as_intensity_rises: 'Steadies as a Fight Worsens',
+    composure_up_as_intensity_rises: 'Steadier the Worse It Gets',
     volunteers_for_risk: 'Volunteers for the Bad Jobs',
-    unlikely_friendship_arc_seed: 'Draws the Odd Friendship',
-    accuracy_bonus: 'Better Aim', field_treatment_bonus: 'Treats Wounds Better',
-    evac_stabilize_bonus: 'Steadier Hands on the Wounded', development_rate_up: 'Trains 30% Faster',
+    unlikely_friendship_arc_seed: 'Draws Old Enemies',
+    accuracy_bonus: 'Better Aim',
+    evac_stabilize_bonus: 'Steadier Hands on the Wounded',
+    development_rate_up: 'Trains 30% Faster',
     young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
-    unspotted_movement_bonus: 'Moves Further Unseen', reposition_speed_up: 'One More Step a Turn',
-    evasion_surge: 'One More Step When Shot At', rout_immune: 'Never Routs',
-    morale_swings_damped: 'Loses 40% Less Composure', morale_swings_amplified: 'Loses 45% More Composure',
-    wounded_composure_bonus: 'Steadier When Hurt', composure_up_as_intensity_rises: 'Steadier the Worse It Gets',
-    suppression_output_up: 'Suppresses a Wider Field', suppression_output_down_slight: 'Suppresses a Narrower Field',
-    night_ambush_warning_bonus: 'Warns the Squad at Night', ambush_avoidance_slight: 'Harder to Ambush',
-    navigation_bonus: 'Does Not Get Lost', hazard_forecast_bonus: 'Reads the Weather Coming',
+    unspotted_movement_bonus: 'Moves Further Unseen',
+    reposition_speed_up: 'One More Step a Turn',
+    rout_immune: 'Never Routs',
+    morale_swings_damped: 'Loses 40% Less Composure',
+    morale_swings_amplified: 'Loses 45% More Composure',
+    wounded_composure_bonus: 'Steadier When Hurt',
+    suppression_output_up: 'Suppresses a Wider Field',
+    suppression_output_down_slight: 'Suppresses a Narrower Field',
+    night_ambush_warning_bonus: 'Warns the Squad at Night',
+    ambush_avoidance_slight: 'Harder to Ambush',
+    navigation_bonus: 'Does Not Get Lost',
+    hazard_forecast_bonus: 'Reads the Weather Coming',
     forage_bonus: 'Finds More on the Ground',
-    injury_exposure_up: 'Hurt More Easily', death_morale_immune: 'Unmoved by the Dead',
-    gore_morale_immune: 'Unmoved by the Sight of It', cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
-    presence_aura: 'Steadies Those Around Them', squad_coordination_bonus: 'The Squad Works Better Together',
-    overwatch_bonus: 'Better on Overwatch', tether_range_extended: 'Ranges Further From the Pair',
-    presence_aura: 'Steadies Anyone Beside Them', cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
-    death_morale_immune: 'Unshaken by a Fallen Mate', gore_morale_immune: 'Unshaken by the Sight of It',
-    injury_exposure_up: 'Easier to Hurt', squad_coordination_bonus: 'The Whole Squad Aims Better',
-    psionic_broadcast_sensation: 'The Crowd Feels It Too', negotiation_bluff_detection: 'Hears a Bluff',
-    salary_anchoring_up: 'Asks 35% More at the Table', salary_demand_pressure: 'Asks 20% More at the Table',
+    injury_exposure_up: 'Easier to Hurt',
+    death_morale_immune: 'Unshaken by a Fallen Mate',
+    gore_morale_immune: 'Unshaken by the Sight of It',
+    cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
+    presence_aura: 'Steadies Anyone Beside Them',
+    overwatch_bonus: 'Better on Overwatch',
+    tether_range_extended: 'The Pair Works 3 Tiles Further Apart',
+    salary_anchoring_up: 'Asks 35% More at the Table',
+    salary_demand_pressure: 'Asks 20% More at the Table',
     poach_resistant: 'Costs 60% More to Tempt Away',
-    aggression_event_seed: 'Starts Things', renegotiation_demand_seed: 'Reopens the Paper',
-    syndicate_contact_seed: 'Draws Creditors', rivalry_event_seed: 'Draws Rivals',
-    squad_envy_event_seed: 'Draws Envy', pride_event_seed: 'Draws Slights',
-    unlikely_friendship_arc_seed: 'Draws Old Enemies', omen_event_seed: 'Draws Omens',
-    ritual_event_seed: 'Draws Omens', squad_superstition_event_seed: 'Draws Omens',
-    collective_demand_event_seed: 'Draws the Board\u2019s Notice', abolitionist_event_seed: 'Draws the Board\u2019s Notice',
-    cradle_camp_event_seed: 'Draws the Board\u2019s Notice', desperation_event_seed_final_divide: 'Draws a Reckoning',
-    scandal_seed_step9: 'Draws a Reckoning', status_coupling_amplified: 'Reopens the Paper',
-    short_band_composure_bonus: 'Steadier Up Close', early_disengage_bias: 'Calls It Sooner',
-    follows_bad_orders: 'Holds a Bad Order Too Long', tether_range_extended: 'The Pair Works 3 Tiles Further Apart',
-    sponsor_income_up: 'The Gate Takes 12% More', rare_quote_fame_spike: 'The Gate Takes 12% More'
+    aggression_event_seed: 'Starts Things',
+    renegotiation_demand_seed: 'Reopens the Paper',
+    syndicate_contact_seed: 'Draws Creditors',
+    rivalry_event_seed: 'Draws Rivals',
+    squad_envy_event_seed: 'Draws Envy',
+    pride_event_seed: 'Draws Slights',
+    omen_event_seed: 'Draws Omens',
+    ritual_event_seed: 'Draws Omens',
+    squad_superstition_event_seed: 'Draws Omens',
+    collective_demand_event_seed: 'Draws the Board\u2019s Notice',
+    abolitionist_event_seed: 'Draws the Board\u2019s Notice',
+    cradle_camp_event_seed: 'Draws the Board\u2019s Notice',
+    desperation_event_seed_final_divide: 'Draws a Reckoning',
+    scandal_seed_step9: 'Draws a Reckoning',
+    status_coupling_amplified: 'Reopens the Paper',
+    short_band_composure_bonus: 'Steadier Up Close',
+    early_disengage_bias: 'Calls It Sooner',
+    follows_bad_orders: 'Holds a Bad Order Too Long',
+    sponsor_income_up: 'The Gate Takes 12% More',
+    rare_quote_fame_spike: 'The Gate Takes 12% More'
   };
   function quirkText(id) {
     var tr = ROSTER.traitById && ROSTER.traitById[id];
@@ -32722,16 +32760,23 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (s == null) return { txt: '\u2014', ending: false, ord: 99 };
     return { txt: s + ' Season' + (s === 1 ? '' : 's'), ending: s <= 1, ord: s };
   }
+  /* §SHOWN loyalty as the engine reads it (season loyaltyOf: a Cradleborn hand's is capped) */
+  function loyaltyShown(b) { try { return SEASON.loyaltyOf ? SEASON.loyaltyOf(G.state, b) : (b.loyalty == null ? 50 : b.loyalty); } catch (e) { return b.loyalty == null ? 50 : b.loyalty; } }
   function statusOf(f) {
     if (f.status === 'dead') return { txt: 'Lost', warn: false, gone: true };
     if (f.status === 'retired') return { txt: 'Retired', warn: false, gone: true };
     var st = '', warn = false;
-    if (f.status === 'injured' && f._recovery > 0) { st = 'Injured ' + Math.ceil(f._recovery) + 'd'; warn = true; }
-    var hurtDays = 0;
-    ((f.condition && f.condition.injuries) || []).forEach(function (w) {
-      if (!w.careerEnding && !w.permanent) hurtDays = Math.max(hurtDays, w.days_remaining || 0);
-    });
-    if (hurtDays) { st = 'Mending ' + Math.ceil(hurtDays) + 'd'; warn = true; }
+    if (f.status === 'captured') { st = 'Held'; warn = true; }
+    /* §WOUNDS the body as it stands, in the engine's bands (woundBand): the day counts this read were never counted down */
+    /* §MON-WA a pair's card is the being: the worse of its two bodies (a wound on either keeps it off a drop) */
+    var RANK = { whole: 0, hurt: 1, serious: 2, crippled: 3 }, worst = f;
+    var mate = G && G.corps && G.corps[G.me] ? partnerIn(f, G.corps[G.me].roster) : null;
+    if (mate && RANK[SEASON.woundBand(mate)] > RANK[SEASON.woundBand(f)]) worst = mate;
+    var band = SEASON.woundBand(worst);
+    if (band !== 'whole') {
+      var hp = Math.round((worst.condition && worst.condition.health != null) ? worst.condition.health : 100);
+      st = (st ? st + ' \u00b7 ' : '') + hp + '% \u00b7 ' + ({ hurt: 'Hurt', serious: 'Serious', crippled: 'Crippled' })[band]; warn = true;
+    }
     var strj = (f.condition && f.condition.stress) || 0;
     if (strj >= 30) { st = (st ? st + ' \u00b7 ' : '') + 'Stress ' + Math.round(strj); warn = true; }
     return { txt: st || 'Active', warn: warn, gone: false };
@@ -32839,7 +32884,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        the two facts this page is actually about: WHAT THE ROSTER COSTS and HOW MANY ARE ON IT,
        said plainly, the wage in red because it is money going out, the count in green when a
        OA can field a drop and red when it cannot. */
-    var canField = alive.length >= SEASON.CONST.DROP_MIN;
+    /* the same count the Brief keeps: who could go down — a man held by a rival cannot */
+    var books = alive.filter(function (f) { return f.status !== 'captured'; }).length;
+    var canField = books >= SEASON.CONST.DROP_MIN;
     $('money').innerHTML =
       '<div class="rostsum">' +
         '<span class="rsfig"><span class="lab">The Wage Bill</span>' +
@@ -32851,7 +32898,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           '<b>' + crs(-wage) + '</b>' +
           '<span class="sub">A Month</span></span>' +
         '<span class="rsfig"><span class="lab">On the Books</span>' +
-          '<b class="' + (canField ? 'good' : 'bad') + '">' + alive.length + '</b>' +
+          '<b class="' + (canField ? 'good' : 'bad') + '">' + books + '</b>' +
           '<span class="sub">' + (canField ? 'Enough to Drop' : 'Short of ' + SEASON.CONST.DROP_MIN) + '</span></span>' +
       '</div>';
 
@@ -32938,7 +32985,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var host = $('resigning'); if (!host || !G || !G.state) return;
     var list = paperList();
     if (!list.length) { host.innerHTML = ''; return; }
-    var open = list.filter(function (r) { return !r.called; }).length;
+    var open = list.filter(function (r) { return !r.called && !r.freed; }).length;
     host.innerHTML = docketHtml('paper', 'The Paper', list.length + ' Expiring \u00b7 ' + (open ? open + ' Unanswered' : 'All Answered'));
     wireDocket(host);
     if (BIZ.kind === 'paper') renderBiz();
@@ -32946,10 +32993,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* §WINDOWS the Paper's cards, in the window */
   function renderPaperWin(host) {
     var list = paperList(), me = G.corps[G.me];
-    var open = list.filter(function (r) { return !r.called; }).length;
+    var open = list.filter(function (r) { return !r.called && !r.freed; }).length;
     $('bhead').innerHTML = '<span class="dot"></span>Month 1 \u00b7 <b>The Paper</b>';
     $('bcount').textContent = list.length + ' Expiring \u00b7 ' + (open ? open + ' Unanswered' : 'All Answered');
-    $('bfoot').textContent = open ? 'Unanswered at the Turn: Settled by the Books' : '';
+    $('bfoot').textContent = open ? 'Unanswered at Year\u2019s End: Settled by the Books' : '';
     $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (open ? 'Later' : 'Done') + '</span><small>To the Page</small></button>';
     host.innerHTML = '<div class="rsgrid">' + list.map(function (r) {
         var f = me.roster.filter(function (x) { return x.id === r.id; })[0];
@@ -32976,8 +33023,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             '<span class="k">Asks</span><span class="v ' + (up ? 'warn' : 'good') + '">' + crs(r.year) + '<span class="per">/year</span></span>' +
             '<span class="k">Term</span><span class="v">' + (r.years || 1) + (r.years === 1 ? ' Year' : ' Years') + '</span></div>' +
           (r.called
-            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at the Turn', haggle: 'Offered ' + crs(r.called.offer || low) + ' \u00b7 Answered at the Turn', release: 'Let Go \u00b7 Walks at the Turn' })[r.called.how] +
+            ? '<div class="rsdone">' + ({ sign: 'Re-Signed \u00b7 Stands at Year\u2019s End', haggle: 'Offered ' + crs(r.called.offer || low) + ' \u00b7 Answered at Year\u2019s End', release: 'Let Go \u00b7 Walks at Year\u2019s End' })[r.called.how] +
               ' <span class="x" data-rsclear="' + r.id + '">\u2715</span></div>'
+            /* a man whose sentence this Divide completes is freed at the year's end and decides for himself */
+            : r.freed ? '<div class="rsdone">Freed at Year\u2019s End \u00b7 His Own Choice</div>'
             : '<div class="rsways">' +
               '<button class="pcbtn" data-rs="sign" data-rsid="' + r.id + '">Re-Sign \u00b7 ' + crs(r.year) + '</button>' +
               /* §PAPER AN OFFER IS A NUMBER A MANAGER CHOOSES. It was a single fixed step
@@ -33588,7 +33637,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var pot = G.state.ids.length * SEASON.CONST.EIGHT_ENTRY + SEASON.CONST.EIGHT_PURSE;
     var sideOf = A.indexOf(G.me) >= 0 ? 'A' : 'B';
     host.innerHTML = '<div class="eightcard"><div class="eighthead"><div><div class="et">The Eight</div>' +
-        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 Fought to the Death \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
+        '<div class="m" style="font-size:11px">One From Each OA \u00b7 One Fight \u00b7 To the Last One Standing \u00b7 Pot ' + crs(pot) + ' \u00b7 ' + crs(Math.round(pot / 4)) + ' Each to the Winning Four</div></div>' +
         '<div class="teams"><div class="tm' + (sideOf === 'A' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'A' ? 'Your Four' : 'The First Four') + '</span>' + A.map(cSpan).join('') + '</div><span class="vs">vs</span>' +
           '<div class="tm' + (sideOf === 'B' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'B' ? 'Your Four' : 'The Second Four') + '</span>' + B.map(cSpan).join('') + '</div></div></div>' +
       '<div class="m" style="margin:8px 0 6px">' + (named ? 'Named' : 'Unnamed \u00b7 Your Best Goes') + '</div>' +
@@ -33820,7 +33869,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function takingStock(me) {
     var able = oneEach(me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'; }));   /* §MON-WA a pair counts once toward the sixteen */
     var floor = SEASON.CONST.DROP_MIN;
-    var hurt = able.filter(function (f) { return ((f.condition || {}).injuries || []).length; }).length;
+    /* mending: a wound that will heal; a permanent one is carried for good (and still keeps a man off the drop) */
+    var injOf = function (f) { return ((f.condition || {}).injuries || []); };
+    var hurt = able.filter(function (f) { return injOf(f).some(function (w) { return !w.permanent && !w.careerEnding; }); }).length;
+    var scarred = able.filter(function (f) { var w = injOf(f); return w.length && w.every(function (x) { return x.permanent; }); }).length;
     var worn = able.filter(function (f) { return ((f.condition || {}).stress || 0) >= 25; }).length;
     var rack = 0;
     for (var k in (me.armoury || {})) rack += me.armoury[k];
@@ -33834,6 +33886,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       bit('<span class="' + (able.length >= floor ? 'good' : 'bad') + '">' + able.length + '</span>' +
           '<span class="of"> of ' + floor + '</span>', 'On the Books', '') +
       bit(hurt, 'Mending', hurt ? 'bad' : 'good') +
+      (scarred ? bit(scarred, 'Scarred for Good', 'bad') : '') +
       bit(worn, 'Worn Down', worn > able.length / 2 ? 'bad' : '') +
       bit(rack, 'Spare Kit', rack ? '' : 'bad') +
       bit(crs(me.account.treasury), 'In the Bank', 'cr') +
@@ -33963,7 +34016,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var STATCOL = { aim:'#e0a848', tactics:'#7aa2f7', presence:'#c792ea', resolve:'#4fd6be',
                   fieldcraft:'#9ece6a', grit:'#e06c75', reflex:'#56b6c2' };
   var TG_SPREAD = null;
-  /* HIT POINTS ARE NOT A STAT. hpFor() runs about 8-13 (base plus grit/10), so the stat
+  /* HIT POINTS ARE NOT A STAT. hpFor() runs about 14-24 (HP_BASE plus a share of grit), so the stat
      spread would paint every fighter red; health grades on its own spread instead. */
   var HP_SPREAD = null;
   function hpOf(b) {
@@ -34286,7 +34339,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var perm = ((f.condition && f.condition.injuries) || []).some(function (w) { return w.careerEnding || w.permanent; });
       if (h >= 100) return { word: perm ? 'Scarred' : 'Healthy', cls: perm ? 'warn' : 'good', spare: !perm };
       var C = SEASON.CONST;
-      var word = h < C.WOUND_CRIPPLED ? 'Crippling' : h < C.WOUND_SERIOUS ? 'Serious' : 'Hurt';
+      var word = h < C.WOUND_CRIPPLED ? 'Crippled' : h < C.WOUND_SERIOUS ? 'Serious' : 'Hurt';
       return { word: h + '% \u00b7 ' + word, cls: bandCls(h, false), spare: false };
     }
     var st = Math.round((f.condition && f.condition.stress) || 0);
@@ -34653,6 +34706,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var paidWord = rw.kind === 'kit'
         ? '<span class="kit">' + (rw.count || 1) + '&times; ' + (rw.tag === 'energy' ? 'Energy Kit'
             : rw.tag === 'medical' ? 'Medical Kit' : capWords(rw.tag) + ' Kit') + '</span> Delivered'
+        /* §SPONSORS a standing reward is granted, not paid (sponsors.js grantStanding posts no ledger line) */
+        : rw.kind === 'standing'
+        ? '<span class="kit">' + esc((((SEASON.SPON.STANDINGS || {})[rw.standing] || {}).what) || (((SEASON.SPON.STANDINGS || {})[rw.standing] || {}).name) || 'A Standing') + '</span> Granted'
         : crs(SEASON.SPON.CONST.SPONSOR_REWARD) + ' Paid';
       h += '<tr><td><span class="cname">' + esc(SEASON.SPON.houseName(r.house)) + '</span>' +
            '<span class="csigned you">&mdash; Kept</span>' +
@@ -34796,7 +34852,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         var pct = Math.round((st - 1) * 100);
         var h2 = word + ' \u00b7 Rations Burn ' + (pct >= 0 ? '+' : '') + pct + '%';
         if (depth >= 3) { var rs = (pl.objectives || []).filter(function (o) { return o.type === 'ration_site'; }).length;
-          h2 += ' \u00b7 ' + rs + ' Rest Site' + (rs === 1 ? '' : 's') + ' on the Ground'; }
+          h2 += ' \u00b7 ' + rs + ' Ration Site' + (rs === 1 ? '' : 's') + ' on the Ground'; }
         return h2;
       }
     }
@@ -35324,7 +35380,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   var GV = { open: null };
   var GV_TCOL = { open_basin: TOK.tOpen, salt_flats: TOK.tSalt, broken_ground: TOK.tBroken, ruins: TOK.tRuins, forest: TOK.tForest, deep_canopy: TOK.tCanopy,
                   entrenched: TOK.tEntrenched, lava_field: TOK.tLava, crevasse_field: TOK.tCrevasse, tidal_marsh: TOK.tMarsh };
-  var GV_SITE = { deposit: ['\u25C6', TOK.wall, 'Deposit'], rest: ['\u271A', TOK.hit, 'Rest Site'], strongpoint: ['\u2B22', TOK.warn, 'Strongpoint'],
+  var GV_SITE = { deposit: ['\u25C6', TOK.wall, 'Deposit'], rest: ['\u25A4', TOK.hit, 'Ration Site'], strongpoint: ['\u2B22', TOK.warn, 'Strongpoint'],
                   beacon: ['\u25B3', TOK.cred, 'Landing Beacon'], munitions: ['\u25AE', TOK.tBroken, 'Munitions'], mast: ['\u25C9', TOK.a, 'Relay Mast'] };
   var GV_HEIGHT = { '-1': 'Low Ground', '0': '', '1': 'High Ground', '2': 'Commanding' };
   var GV_HGLYPH = { '-1': '\u25BD', '0': '', '1': '\u25B2', '2': '\u25B2\u25B2' };
@@ -35406,7 +35462,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return { ground: g, day: 1, squads: squads, fights: [], me: G.me, preview: true };
   }
   function gvSquadsAt(view, zid) { return view.squads.filter(function (q) { return q.zone === zid; }); }
-  function gvSquadName(view, q) { var mine = q.oa === view.me; return mine ? ((G.plan && G.plan.names && G.plan.names[q.s]) || ('Squad ' + squadLetter(q.s))) : 'Squad ' + (q.s + 1); }
+  function gvSquadName(view, q) { var mine = q.oa === view.me; return mine ? groundName(q.s) : 'Squad ' + (q.s + 1); }
   function gvMark(view, q, x, y, big) {
     var mine = q.oa === view.me, r = big ? (mine ? 10 : 8) : (mine ? 7 : 5.5);
     return '<g data-gvsq="' + esc(q.oa) + '|' + q.s + '"><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + colFor(q.oa) + '" stroke="' + (mine ? 'var(--a)' : TOK.gBg) + '" stroke-width="' + (mine ? 2 : 1.2) + '"/>' +
@@ -35478,7 +35534,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var rows = '<tr><th>OA</th><th>Up</th><th>Squads</th><th>Sites</th></tr>';
     var ids = view.preview ? G.state.ids : gvCorpIds();
     ids.forEach(function (id, ci) { var mine = view.squads.filter(function (q) { return q.oa === id; }), cr = view.corp ? view.corp[ci] : null;
-      rows += '<tr' + (id === view.me ? ' class="merow"' : '') + '><td><span class="sw" style="background:' + colFor(id) + '"></span><span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>' + (id === view.me ? ' <span class="youtag">You</span>' : '') + '</td><td>' + (cr ? (cr.a == null ? '\u2014' : cr.a) + (cr.w ? ' <span class="m">+' + cr.w + ' Hurt</span>' : '') + (cr.h ? ' <span class="m">' + cr.h + ' Held</span>' : '') : mine.reduce(function (t, q) { return t + q.n; }, 0)) + '</td><td>' + (id === view.me || !view.partial ? mine.length : '\u2014') + '</td><td>' + (cr && cr.si != null ? cr.si : id === view.me || !view.partial ? mine.filter(function (q) { var st = g.zones[q.zone].site; return st && st.kind !== 'beacon'; }).length : '\u2014') + '</td></tr>'; });
+      rows += '<tr' + (id === view.me ? ' class="merow"' : '') + '><td><span class="sw" style="background:' + colFor(id) + '"></span><span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>' + (id === view.me ? ' <span class="youtag">You</span>' : '') + '</td><td>' + (cr ? (cr.a == null ? '\u2014' : cr.a) + (cr.w ? ' <span class="m">+' + cr.w + ' Home Hurt</span>' : '') + (cr.h ? ' <span class="m">' + cr.h + ' Held</span>' : '') : mine.reduce(function (t, q) { return t + q.n; }, 0)) + '</td><td>' + (id === view.me || !view.partial ? mine.length : '\u2014') + '</td><td>' + (cr && cr.si != null ? cr.si : id === view.me || !view.partial ? mine.filter(function (q) { var st = g.zones[q.zone].site; return st && st.kind !== 'beacon'; }).length : '\u2014') + '</td></tr>'; });
     $('gvboard').innerHTML = rows;
     if (!view.preview) renderRecord(view);
     $('gvsince').innerHTML = (view.since && view.since.length) ? view.since.map(function (l) { return '<div class="gvev">' + l + '</div>'; }).join('') : '<div class="gvev m">' + (view.preview ? 'Every Squad Posted to Its Drop Zone' : 'Quiet Since the Last Window') + '</div>';
@@ -35869,7 +35925,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="Rename">' + esc(G.plan.names[si]) + '</span>' +
 
         '<span class="ct' + (bad ? ' bad' : '') + '">' + n + ' of ' + MAX +
-        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 Needs ' + MIN : '') + '</span></div>';
+        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 Under ' + MIN : '') + '</span></div>';
       /* §SQUADS A SQUAD IS EIGHT PORTRAITS. The first cut of "make it less like a list" made
          the list TALLER — eight full-width rows, each with a wall of stats, and every empty slot
          shouting for a fighter the moment one was picked up. A squad is eight portrait tiles:
@@ -35936,19 +35992,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §CONNECT the kit is carried body by body (a pair's two bodies carry two), the reserve is kitted inside the same
        money, and what the reckoning leaves for kit is the limit a hand is refused past (divide.js kitBudget) */
     var fieldedKit = 0, hands = 0, refused = 0, rosterAll = G.corps[G.me].roster;
-    var inOrbit = (G.plan.reserve || []);
+    var inOrbit = (G.plan.reserve || []).filter(function (id) { return G.plan.at[id] == null; }).slice(0, SEASON.CONST.RESERVE_MAX);   /* the engine kits the first ten */
     fit.forEach(function (b) {
       if (G.plan.at[b.id] == null && inOrbit.indexOf(b.id) < 0) return;
       var bodies = 1 + (partnerIn(b, rosterAll) ? 1 : 0);
       fieldedKit += kitValueOf(currentKit(b)) * bodies;
-      if (G.plan.hand[b.id]) { hands++; if (!handStands(b)) refused++; }
+      if (G.plan.hand[b.id]) { hands++; if (handProblem(b)) refused++; }
     });
     var kitMoney = SEASON.kitMoneyFor ? SEASON.kitMoneyFor(G.state, G.corps[G.me]) : null;
     var kitLine = total
-      ? '<span>Kit ' + crs(fieldedKit) + '</span>' + (kitMoney != null ? '<span>Kit Money ' + crs(Math.round(kitMoney)) + '</span>' : '')
+      ? '<span>Kit Carried ' + crs(fieldedKit) + '</span>' + (kitMoney != null ? '<span>Cash for Kit ' + crs(Math.round(kitMoney)) + '</span>' : '')
       : '';
     $('planstate').innerHTML = kitLine +
-      (refused ? '<span class="over" title="Needs a Primary and Armor">' + refused + ' Hand' + (refused === 1 ? '' : 's') + ' Incomplete</span>' : '') +
+      (refused ? '<span class="over">' + refused + ' Hand' + (refused === 1 ? '' : 's') + ' Refused</span>' : '') +
       (total > SEASON.CONST.DROP_MAX
         ? '<span class="over">' + total + ' Fielding \u2014 Over the Drop Cap of ' + SEASON.CONST.DROP_MAX + '</span>'
         /* §CONNECT the Aleas' sixteen (ruled): a named drop short of it is filled by the Aleas from the roster at the lock */
@@ -36015,9 +36071,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     h += '<h3>The OA</h3>';
     var alive = oneEach((c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; }));
     h += row('On the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
-    if (p.archetype) h += row('Archetype', capWords(p.archetype));
-    if (p.difficulty != null && !mine) h += row('Standing in the Fleet', 'Tier ' + p.difficulty);
-    if (p.engagement_lean) h += row('How They Fight', capWords(String(p.engagement_lean).replace(/_/g, ' ')));
+    /* §FLEET (ruled: aligned) every seat is the same founded OA under its own banner: its archetype, tier and lean are
+       the founder's for everybody, and a row saying so says nothing (and printed an averaged tier as "Tier 2.375") */
+    if (!p.aligned) {
+      if (p.archetype) h += row('Archetype', capWords(p.archetype));
+      if (p.difficulty != null && !mine) h += row('Standing in the Fleet', 'Tier ' + Math.round(p.difficulty));
+      if (p.engagement_lean) h += row('How They Fight', capWords(String(p.engagement_lean).replace(/_/g, ' ')));
+    }
     /* WHAT YOU PAID FOR: the dossier, exactly as the Desk reads it */
     /* §STAFF who works in their backroom is no secret; how well they do it is a guess */
     var theirStaff = SEASON.STAFF.POSTS.map(function (p) { var st = SEASON.STAFF.holder(c, p); return st ? SEASON.STAFF.POST_NAME[p] + ' ' + esc(st.name) : null; }).filter(Boolean);
@@ -36117,6 +36177,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /* a hand stands only with a primary AND armor; otherwise the Divide refuses it whole */
   function handStands(b) { var h = G.plan.hand[b.id]; return !!(h && h.primary && h.armor); }
+  /* §CONNECT what the engine refuses a hand for, short of money: no primary or armour, a loadout that does not fit (a mod
+     of the wrong family, two satchels), or a piece above what the Armoury and the doctrine issue (divide.js equipCorp) */
+  function handProblem(b) {
+    var h = G.plan.hand[b.id]; if (!h) return null;
+    if (!h.primary || !h.armor) return 'Incomplete';
+    if (ITEMS.validate({ primary: h.primary, armor: h.armor, sidearm: h.sidearm || null, mods: h.mods || [], consumables: h.consumables || [] }).length) return 'Does Not Fit';
+    var cap = Math.min((ITEMS.doctrineFor(G.corps[G.me].profile) || {}).armoury_max_tier || 5, SEASON.FAC.maxTier(G.corps[G.me]) || 5);
+    var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
+    var over = [h.primary, h.armor, h.sidearm].concat(h.mods || [], h.consumables || []).some(function (id) {
+      var it = id && ITEM_BY_ID[id]; return it && it.tier > cap && own.indexOf(id) < 0; });
+    return over ? 'Above the Armoury' : null;
+  }
   /* one line about an item, capitalised the way the page speaks */
   var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'],
                    ['mod:0', 'Mod'], ['mod:1', 'Mod'], ['consumable:0', 'Store'], ['consumable:1', 'Store']];
@@ -36165,7 +36237,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           /* §ROUNDS what he carries is weighed at his squad: past eight a head, the squad hauls it in fatigue */
           '<span class="ktag' + (kitBulk(kit) > ITEMS.CONST.SQUAD_BULK_PER_HEAD ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + ITEMS.CONST.SQUAD_BULK_PER_HEAD + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
-          (hand && !handStands(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">No Primary or Armor</div>' : '') +
+          (hand && handProblem(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">Refused \u00b7 ' + handProblem(b) + '</div>' : '') +
           '<div id="pickerhost"></div></div>' +
         '<div class="colblk"><div class="clab">' + (inSquad ? 'Move to' : 'Place in') + '</div>' + moves + '</div>' +
         actions +
@@ -36268,7 +36340,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function bkSel() { if (!G._bk) G._bk = { tab: 'own' }; return G._bk; }
   function crY(monthly) { return crs(Math.round((monthly || 0) * 12)) + '/yr'; }
   function bkRange(r) { return r.lo === r.hi ? String(r.lo) : r.lo + '–' + r.hi; }
-  var RECORD_WORDS = { gains: ['Stats Drilled', 0], talks: ['Talks', 0], saved: ['Credits Saved', 1], mended: ['Wounds Mended', 0], reports: ['Reports', 0], lost: ['Lost on the Table', 0] };
+  var RECORD_WORDS = { gains: ['Stats Drilled', 0], talks: ['Talks', 0], saved: ['Credits Saved', 1], whole: ['Put Back Together', 0], mended: ['Wounds Mended', 0], reports: ['Reports', 0], lost: ['Lost on the Table', 0] };
   function bkRecord(st) {
     var r = st.record || {}, out = [];
     for (var k in RECORD_WORDS) if (r[k]) out.push(RECORD_WORDS[k][0] + ' ' + (RECORD_WORDS[k][1] ? crs(Math.round(r[k])) : Math.round(r[k])));
@@ -36401,7 +36473,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var done = talkedNow(), sel = talkSel(), short = shortNameOf(b);
     $('bhead').innerHTML = '<span class="dot"></span>Month ' + G.state.month + ' \u00b7 <b>A Word With ' + esc(short) + '</b>';
     $('bcount').textContent = done ? 'Spoken' : 'One a Month';
-    var mor = gaugeWord(moraleOf(b), ['Broken', 'Shaken', 'Steady', 'High']), loy = gaugeWord(b.loyalty == null ? 50 : b.loyalty, ['Restless', 'Wavering', 'Loyal', 'Devoted']);
+    var mor = gaugeWord(moraleOf(b), ['Broken', 'Shaken', 'Steady', 'High']), loy = gaugeWord(loyaltyShown(b), ['Restless', 'Wavering', 'Loyal', 'Devoted']);
     var head = '<div class="whead">' + fighterMark(b, 40, colFor(G.me)) +
       '<div><div class="nm" style="color:' + raceColour(b) + '">' + esc(SEASON.EVENTS.honorific(G.state, b) + b.name) + '</div>' +
       '<div class="sub">' + originOf(b).label + ' \u00b7 ' + capRace(b.race) + ', ' + (b.age || '?') +
@@ -36517,7 +36589,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
     var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
     var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
-    var items = ITEMS.bySlot(slotBase(slot)).filter(function (it) { return it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
+    /* a mod fits its gun's family, and a satchel or a cell is one a body (ITEMS.validate): the picker offers what will stand */
+    var prim = kit.primary && ITEM_BY_ID[kit.primary], otherStore = slotBase(slot) === 'consumable' ? (kit.consumables || [])[slotIdx(slot) ? 0 : 1] : null;
+    var fits = function (it) {
+      if (it.slot === 'mod' && it.family && it.family !== 'any' && prim && it.family !== prim.family) return false;
+      if (it.slot === 'consumable' && otherStore === it.id && (it.id === 'itm_ammo_satchel' || it.id === 'itm_power_cell')) return false;
+      return true; };
+    var items = ITEMS.bySlot(slotBase(slot)).filter(function (it) { return fits(it) && it.tier <= maxTier && ((rack[it.id] || 0) > 0 || it.id === chosen || own.indexOf(it.id) >= 0); });
     var pow = function (it) { return (it.effects && it.effects.power) || 0; };
     items.sort(function (x, y) {
       var rx = (rack[x.id] || 0) > 0, ry = (rack[y.id] || 0) > 0;
@@ -36613,7 +36691,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (g) g.clearRect(0, 0, cv.width, cv.height);
     $('fr').max = '0'; $('fr').value = '0';
     $('frLbl').textContent = '\u2014';
-    $('events').innerHTML = '<span class="m">No Engagement Yet</span>';
+    $('fevents').innerHTML = '<span class="m">No Engagement Yet</span>';
     $('result').innerHTML = '<span class="m">&mdash;</span>';
     $('settle').innerHTML = '<span class="m">&mdash;</span>';
     $('rosterA').innerHTML = ''; $('rosterB').innerHTML = '';
@@ -36849,7 +36927,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var h = '<h2 style="color:' + colFor(fCid(row[1])) + '">' + markFor(fCid(row[1]), 14) + ' ' + esc(row[2]) + '</h2>';
       F.units.filter(function (u) { return u.s === row[1]; }).forEach(function (u) {
         var out = u.st === 'dead' || u.st === 'fled' || u.st === 'down' ||
-                  u.st === 'stable' || u.st === 'captured';
+                  u.st === 'stable' || u.st === 'captured' || u.st === 'withdrawn' || u.st === 'panicked';
         h += '<div class="unit' + (out ? ' gone' : '') + (u.id === F.actor ? ' act' : '') +
              '"><span style="color:' + raceColour(u) + '">' + nameHtml(u) + '</span><span class="m">' +
              esc((F0.weap[u.id] || '').slice(0, 15)) + ' \u00b7 ' + u.ammo + 'r \u00b7 ' +
@@ -36894,7 +36972,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (v2.type === 'turret_shot') tail += v2.hit ? ' \u00b7 Hit' : ' \u00b7 Miss';
       if (v2.react) tail += ' \u00b7 On Overwatch';
       if (v2.sev) tail += ' \u00b7 ' + esc(v2.sev);
-      if (v2.type === 'stun') tail += ' \u00b7 ' + v2.stacks + ' Of ' + v2.of;
+      if (v2.type === 'stun') tail += ' \u00b7 ' + v2.stacks + ' Stacks';   /* he goes down when stacks and wounds together reach his pool, not at a fixed count */
       if (v2.type === 'down' && v2.stasis) tail += ' \u00b7 Held by Stasis';
       if (v2.p != null) tail += ' \u00b7 ' + Math.round(v2.p * 100) + '%';
       if (v2.why && v2.why.length) tail += ' <span class="m">\u00b7 ' + v2.why.map(esc).join(' \u00b7 ') + '</span>';
@@ -36903,7 +36981,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
               '<span style="color:' + col2 + '">' + esc(who) + '</span> ' + esc(verb) +
               (whom ? ' ' + esc(whom) : '') + tail + '</div>';
     }
-    $('events').innerHTML = out2 || '<div class="ev">Nothing Yet This Turn</div>';
+    /* the fight's own feed box (it shared an id with the dispatch shell, so the play-by-play was written into the hidden
+       dispatch and a captive window open beside it was overwritten) */
+    $('fevents').innerHTML = out2 || '<div class="ev">Nothing Yet This Turn</div>';
   }
 
   /* one projectile per trigger pull, read off the entries the frame already carries: a
@@ -37077,7 +37157,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (fx.rations) bits.push('Rations \u00d7' + fx.rations.toFixed(2));
     if (fx.fatigue) bits.push('Fatigue +' + fx.fatigue);
     if (fx.lost) bits.push('Bearings Unreliable');
-    if (fx.hurt) bits.push((fx.hurt.terrain ? 'Injuries on ' + terrainName(fx.hurt.terrain) : 'Injuries Anywhere') + ' (' + Math.round(fx.hurt.p * 100) + '%)');
+    if (fx.hurt) bits.push((fx.hurt.terrain ? 'Wounds on ' + terrainName(fx.hurt.terrain) : 'Wounds Anywhere') + ' (' + Math.round(fx.hurt.p * 100) + '%)');
     return '<span class="warn">' + (WEATHER_NAME[w.kind] || capWords(w.kind)) + '</span>' + (bits.length ? ' <span class="m">\u00b7 ' + bits.join(' \u00b7 ') + '</span>' : '');
   }
   var bannerName = function (ci) {
@@ -37171,12 +37251,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   window.syncWindowBtns = syncWindowBtns; window.renderWordWindow = renderWordWindow;
   function syncWindowBtns() {}
 
-  /* §SEATS the captives a seat holds when the shooting stops: release, keep or kill, each; unanswered, released */
+  /* §SEATS the captives a seat holds when the shooting stops: release, keep or kill, each; unanswered, kept (pending, then kept at the end) */
   var CAPTIVE_FATE = [['release', 'Release', 'Home, Hurt \u00b7 Their House Remembers It'],
                       ['keep', 'Keep Them', 'To Your Hold \u00b7 A Ransom, or Your Roster at the End'],
                       ['kill', 'Kill Them', 'The Stands Split \u00b7 Their House Never Forgets']];
   /* §CAPTIVES decided at the capture: the window carries the ones taken since the last one, each to be killed, kept
-     or let go; what is kept walks with the squad and costs it */
+     or let go; what is kept goes to the hold and costs nothing in a fight (ruled) */
   function renderCaptiveWindow(v) {
     var list = (v.captives && v.captives.toDecide) || [];
     var fate = {}; list.forEach(function (c) { fate[c.fighter] = 'keep'; });
@@ -37189,7 +37269,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         return '<div class="evcard ev-word"><div class="evk"><span>' + (c.refused ? 'Ransom Refused' : 'A Captive') + '</span><span>From ' + cSpan(c.from) + '</span></div>' +
           '<div class="et">' + esc(c.name) + (c.fame ? ' \u00b7 Fame ' + c.fame : '') + '</div>' +
           '<div class="evopts">' + CAPTIVE_FATE.map(function (o) {
-            return '<button class="evopt' + (fate[c.fighter] === o[0] ? ' sel' : '') + '" data-cap="' + esc(c.fighter) + '" data-fate="' + o[0] + '"><span class="ol">' + o[1] + '</span><span class="oc">' + o[2] + '</span></button>';
+            return '<button class="evopt' + (fate[c.fighter] === o[0] ? ' sel' : '') + '" data-cap="' + esc(c.fighter) + '" data-fate="' + o[0] + '"><span class="ol">' + o[1] + '</span><span class="oc">' + (c.refused && o[0] === 'keep' ? 'To Your Hold \u00b7 Your Roster at the End' : o[2]) + '</span></button>';
           }).join('') + '</div></div>';
       }).join('') + '</div>';
       Array.prototype.forEach.call($('events').querySelectorAll('[data-cap]'), function (b) {
@@ -37360,7 +37440,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function gvEventLine(e, ids) {
     var name = function (c) { return cSpan(typeof c === 'string' ? c : ids[c]); };
     var g = gvGround(), at = e.zone != null && g ? g.regions[g.zones[e.zone].region].name : '';
-    if (e.t === 'fight') return (e.corps || []).map(name).join(' v ') + ' at ' + esc(at) + ' · ' + (e.res && /^disengage/.test(e.res) ? 'Broken Off' : e.res === 'cleared' ? 'Cleared' : 'Fought to Dark') + (e.lost ? ' · ' + e.lost + ' Lost' : '') + (e.flank ? ' · Flanked' : '');
+    if (e.t === 'fight') return (e.corps || []).map(name).join(' v ') + ' at ' + esc(at) + ' · ' + shortResult(e.res) + (e.lost ? ' · ' + e.lost + ' Lost' : '') + (e.flank ? ' · Flanked' : '');
     if (e.t === 'wall') return 'The Wall Took ' + name(e.c) + ' at ' + esc(e.region || at) + ' · ' + e.n + ' Lost';
     if (e.t === 'region_gone') return 'The Wall Took ' + esc(e.name);
     if (e.t === 'zone_gone') return 'The Wall Took a Zone of ' + esc(e.name);
@@ -37440,6 +37520,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   window.__gDay = function () { return G && G.div ? gvViewFor(gvDayIdx()) : null; };
   /* THE RECORD: every squad of yours, day by day — what it did, whom it met, what it carried */
   var REC_CACHE = { key: null };
+  /* §SHOWN the record's day codes (divide.js sqRec.w) in the words the Table uses for the same states */
+  var SQUAD_DAY_WORDS = { fighting: 'Fighting', picking: 'Picking at Them', wall: 'Ahead of the Wall', ordered: 'Under Orders',
+                       rushing: 'Rushing Them', evading: 'Stepping Away', walking: 'Moving', beaten: 'Fell Back',
+                       won: 'Holding the Ground', holding: 'Holding' };
   function renderRecord(view) {
     var box = $('grecord'); if (!box || !G || !G.div) return;
     var days = gvDays(); if (!days || !days.length) { box.innerHTML = '<div class="m">—</div>'; return; }
@@ -37451,18 +37535,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         var fights = (D.ev || []).filter(function (v) { return v.t === 'fight'; });
         D.sq.forEach(function (q) {
           if (q.c !== meIdx || q.w == null) return;   /* the day still being played has no line yet */
-          var mine = q.n ? fights.filter(function (v) { return (q.tr || []).indexOf(v.zone) >= 0 || g.zones[v.zone].nb.indexOf(q.z) >= 0 || v.zone === q.z; }) : [];
+          var mine = q.n ? fights.filter(function (v) { return v.who ? v.who.indexOf(G.me + ':' + q.s) >= 0 : ((q.tr || []).indexOf(v.zone) >= 0 || v.zone === q.z); }) : [];
           (squads[q.s] = squads[q.s] || []).push({ d: D.d, why: q.w, steps: Math.max(0, (q.tr || []).length - 1), fights: mine, n: q.n, st: q.st, rat: q.rat, di: di, where: g.regions[g.zones[q.z].region].name });
         });
       });
       var h = '';
       Object.keys(squads).sort(function (a, b) { return +a - +b; }).forEach(function (si) {
-        h += '<div class="rq">' + esc((G.plan && G.plan.names && G.plan.names[+si]) || ('Squad ' + squadLetter(+si))) + '</div>';
+        h += '<div class="rq">' + esc(groundName(+si)) + '</div>';
         squads[si].forEach(function (r) {
-          var what = r.n ? capWords(r.why) + ' · ' + esc(r.where) + (r.steps ? ' · ' + r.steps + ' Step' + (r.steps > 1 ? 's' : '') : '') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
+          var what = r.n ? (SQUAD_DAY_WORDS[r.why] || capWords(r.why)) + ' · ' + esc(r.where) + (r.steps ? ' · ' + r.steps + ' Step' + (r.steps > 1 ? 's' : '') : '') : (r.why === 'folded' ? 'Folded Into the Others' : 'Down');
           var f = r.fights.map(function (v) {
             var others = (v.corps || []).filter(function (id) { return id !== G.me; }).map(cSpan).join(', ');
-            return '<span class="f' + (v.lost ? '' : ' ok') + '">Met ' + (others || 'the Enemy') + ' · ' + (/^disengage/.test(String(v.res)) ? 'Broken Off' : 'Fought to Dark') + '</span>';
+            return '<span class="f' + (v.lost ? '' : ' ok') + '">Met ' + (others || 'the Enemy') + ' · ' + shortResult(v.res) + '</span>';
           }).join(' ');
           h += '<div class="rl" data-recday="' + r.di + '"><span class="d">D' + r.d + '</span><span>' + what + (f ? ' · ' + f : '') + '</span>' +
                '<span class="v">' + (r.n ? 'Stress ' + r.st + ' · ' + r.rat + 'd Food' : '') + '</span></div>';
@@ -37489,15 +37573,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* §WITHDRAWAL an OA's WORD. These are rivals of long standing, so a manager knows roughly how
      each of them deals before a single promise has been tested in front of him: its reputation
      is its character (`treachery`), and what the fleet has actually seen it do moves that. */
-  function trustOf(id) {
+  /* §CONNECT how likely a house is to keep a promise of this size: the engine's own chance (divide.js keepChance), read
+     off the house as it now is (the fleet is aligned: its own profile, not the catalogue's) and the share asked */
+  function trustOf(id, ask) {
     var c = G.corps[id] || {};
-    var prof = (G.oa || OA || []).filter(function (p) { return p.id === id; })[0] || c.profile || {};
-    var treach = (prof.dials && prof.dials.treachery != null) ? prof.dials.treachery : 50;
-    var base = 1 - treach / 100;
-    var rec = c._wordRecord || (c.persist && c.persist.wordRecord) || null;   /* the season corp's, carried across years */
-    var seen = rec ? (rec.kept || 0) + (rec.broken || 0) : 0;
-    /* what it has been seen to do counts for more the more it has been seen to do it */
-    var share = seen ? (base * 3 + (rec.kept || 0)) / (3 + seen) : base;
+    var share = DIVIDE.keepChance ? DIVIDE.keepChance(c, ask || 0) : 0.7;
     if (share >= 0.8) return { cls: 't5', word: 'Good for It' };
     if (share >= 0.62) return { cls: 't4', word: 'Mostly Good' };
     if (share >= 0.45) return { cls: 't3', word: 'Even Odds' };
@@ -37578,7 +37658,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     h += '<div class="wreps"><div class="hrow"><span>OA</span><span>How They Stand</span>' +
          '<span>Their Word</span><span class="last">Answer</span></div>';
     live.forEach(function (id) {
-      var tr = trustOf(id), ans = replies[id];
+      var tr = trustOf(id, cur.credits || 0), ans = replies[id];
       var cls = ans === true ? 'yes' : ans === false ? 'no' : 'wait';
 
       var word = ans === true ? 'Yes' : ans === false ? 'No' : offer ? 'Waiting' : '\u2014';
@@ -37717,7 +37797,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return '<div class="sqorder"><span class="lab">Orders</span><select data-sqorder="' + i + '">' + opts + '</select></div>';
   }
   var SQCOL = [TOK.sqA, TOK.sqB, TOK.sqC, TOK.sqD, TOK.sqE, TOK.sqF];
-  function squadLetter(i) { var nm = (G.plan && G.plan.names && G.plan.names[i]) || ''; return (nm.charAt(0) || String.fromCharCode(65 + i)).toUpperCase(); }
+  /* §SQUADS a squad on the ground is named for the board square it came from: an empty square drops out of the order at
+     the lock, so the ground's squad i is the lock's boardOf[i] (the engine records it), not board square i */
+  function boardIdx(i) { var L = G && G.corps && G.corps[G.me] && G.corps[G.me]._lock; if (L && L.boardOf && L.boardSeason === G.state.season && L.boardOf[i] != null) return L.boardOf[i];
+    /* before the lock: the squads the board has people in, in order — the order the lock will keep */
+    var used = [], at = (G.plan && G.plan.at) || {};
+    /* only squares someone fit stands in: the lock drops a square that holds only the hurt or the gone (season lockSquads) */
+    var fitIds = {}; fitBodies().forEach(function (b) { fitIds[b.id] = true; });
+    for (var id in at) if (at[id] != null && fitIds[id] && used.indexOf(at[id]) < 0) used.push(at[id]);
+    used.sort(function (a, b) { return a - b; });
+    return used[i] != null ? used[i] : i; }
+  function groundName(i) { var b = boardIdx(i); return (G.plan && G.plan.names && G.plan.names[b]) || ('Squad ' + String.fromCharCode(65 + b)); }
+  function squadLetter(i) { var b = boardIdx(i), nm = (G.plan && G.plan.names && G.plan.names[b]) || ''; return (nm.charAt(0) || String.fromCharCode(65 + b)).toUpperCase(); }
   function modEffects(e) {
     var sg = function (v) { return (v > 0 ? '+' : '\u2212') + Math.abs(v); };
     var bits = [];
@@ -37729,7 +37820,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (e.mags) bits.push('Magazines <b>' + sg(e.mags) + '</b>');   /* §ROUNDS one more of the gun's own magazines */
     if (e.charge) bits.push('Charge <b>' + sg(e.charge) + '</b>');
     if (e.suppress_drain) bits.push('Suppressing Fire <b>\u22121 Round</b>');
-    if (e.grants) bits.push('Grants <b>' + titleWords(e.grants) + '</b>');
+    if (e.power) bits.push('Power <b>' + sg(e.power) + '</b>');   /* the round's harm follows its gun's power */
+    if (e.bulk) bits.push('Bulk <b>' + sg(e.bulk) + '</b>');
+    if (e.grants) bits.push('Grants <b>' + ((TAG_WORDS[e.grants] || titleWords(e.grants))) + '</b>');
     if (e.cancels) bits.push('Cancels <b>' + titleWords(e.cancels) + '</b>');
     /* §LIGHT a sun-fed weapon's bargain, in its two halves */
     if ((e.tags || []).indexOf('daylight') >= 0) {
@@ -37893,7 +37986,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
      The kit cap is a number on the summary, not a lecture: it is what any OA may FIELD at
      the drop, the same for everyone, and owning more than that is allowed. --- */
-  var MSEC = ['Carbines', 'Close-Quarters', 'Scatterguns', 'Support Guns', 'Long Rifles',
+  var MSEC = ['Assault Rifles', 'Carbines', 'Submachine Guns', 'Close-Quarters', 'Scatterguns', 'Support Guns', 'Long Rifles',
               'Marksman Rifles', 'Launchers', 'Anti-Materiel', 'Stun-Grade',
               'Sidearms', 'Armour', 'Mods', 'Consumables', 'Other'];
   var MSLOTS = ['primary', 'sidearm', 'armor', 'mod', 'consumable'];
@@ -37967,13 +38060,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (!f.length) { var c = itemChipList(i)[0]; return c ? '<span class="fig ' + c[0] + '">' + c[1] + '</span>' : ''; }
     return f.map(function (x) { return '<span class="fig ' + x.kind + '">' + x.k + ' ' + (x.shown != null ? x.shown : x.v) + '</span>'; }).join(' ');
   }
+  /* §SHOWN tag names in the page's words: rate is the gun's own figure (burst and single shot decide nothing for a gun
+     that has one), and the pattern tag is not the spread number */
+  var TAG_WORDS = { burst: null, single_shot: null, spread: 'Shot Pattern', emp: 'EMP', min_band_medium: 'No Short Range',
+                    mob_up: 'Quicker Afoot', mob_down: 'Slower Afoot' };
   function itemChipList(i) {
     var e = i.effects || {}, c = [];
     if (e.range) c.push(['range', titleWords(e.range) + ' Range']);
     if (e.damage && i.slot !== 'armor') c.push([e.damage, titleWords(e.damage)]);
     if (e.pen) c.push(['effect', 'Pierces ' + e.pen]);
-    if (e.suppress) c.push(['effect', e.suppress >= 2 ? 'Pins All Near' : 'Pins']);
-    if (e.spread) c.push(['effect', 'Spread ' + e.spread]);
+    /* §SUPPRESSION every gun can lay a lane on its mark; a support gun holds an arc to its reach (tactical laneOf) */
+    if (e.suppress) c.push(['effect', e.suppress >= 2 ? 'Holds a Wide Arc' : 'Holds an Arc']);
+    /* the spread NUMBER: up to N more beside the man hit are caught (tactical spread); the `spread` TAG is the pattern */
+    if (e.spread) c.push(['effect', 'Catches ' + e.spread + ' More']);
     if (e.noise === 0) c.push(['quiet', 'Silenced']); else if (e.noise >= 3) c.push(['loud', 'Loud']);
     if (e.snap >= 10) c.push(['loud', 'Slow to Snap']);
     if (e.covers && e.covers.length) c.push(['cover', e.covers.map(capWords).join(', ')]);
@@ -37981,7 +38080,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (e.ration_days) c.push(['effect', '+' + e.ration_days + ' Days of Rations']);
     if (i.charges) c.push(['charges', i.charges + ' Charges']);
     if (e.mags) c.push(['effect', '+' + e.mags + ' Magazine' + (e.mags > 1 ? 's' : '')]);
-    (e.tags || []).forEach(function (t) { c.push(['trait', titleWords(t)]); });
+    (e.tags || []).forEach(function (t) {
+      if (TAG_WORDS[t] === null) return;          /* a tag that decides nothing the figures do not already say */
+      c.push(['trait', TAG_WORDS[t] || titleWords(t)]); });
     return c;
   }
   function itemChips(i) {
@@ -38242,7 +38343,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     oneEach(aliveOf(c)).forEach(function (f) {   /* §MON-WA a pair is one person on the table, and both bodies go */
       /* a fighter on the table is a person, and carries what they are drawn as */
       out.push({ k: 'unit', id: f.id, label: displayName(f), race: f.race, mark: f.mark, corpId: c.id,
-                 sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr((f.contract || {}).salary || 0) + '/mo \u00b7 ' +
+                 sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr(((f.contract || {}).salary || 0) * 12) + '/yr \u00b7 ' +
                       ((f.contract || {}).seasons_remaining || 1) + ' Seasons' + (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
                  worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) });
     });
@@ -38340,7 +38441,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         var name = it.k === 'gear' ? tierHtml(it.id) + esc(it.label) : it.k === 'unit' ? fighterMark(it, 18, colFor(it.corpId || G.me)) + '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>' : esc(it.label);
         var qty = it.k === 'gear' && !on ? ' <input class="qty" data-tqty="' + side + ':' + i + '" value="1" min="1" max="' + it.n + '" title="How Many of ' + it.n + '">' : '';
         h += '<tr class="pick' + (on ? ' on' : '') + '" data-tadd="' + side + '" data-i="' + i + '" data-tid="' + it.k + ':' + it.id + '"><td class="t" title="' + TKINDNAME[it.k] + '">' + TGLYPH[it.k] + '</td>' +
-             '<td>' + name + qty + '<div class="sub">' + esc(it.sub) + (it.k === 'unit' ? ' \u00b7 Worth ' + crs(it.worth) + ' \u2212 Wage ' + crs(it.wage) : '') + '</div></td>' +
+             '<td>' + name + qty + '<div class="sub">' + esc(it.sub) + (it.k === 'unit' ? ' \u00b7 Worth ' + crs(it.worth) + ' \u2212 Owed ' + crs(it.wage) : '')   /* TRADE.wageOf: the wage for every season left on his paper */ + '</div></td>' +
              '<td class="r"><b>' + crs(it.v) + '</b>' + (on ? '<div class="sub">On the Table</div>' : '') + '</td></tr>';
       });
       if (!rows.length) h += '<tr><td colspan="3" class="sub" style="text-align:center;padding:12px">Nothing Here</td></tr>';
@@ -38679,7 +38780,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         return { txt: (up >= 0 ? '+' : '\u2212') + cr(Math.abs(up)) + ' So Far', good: up >= d.amount, bad: up < 0 };
       }
       case 'losses': {
-        var dead = out ? out.permanentLosses : me.roster.filter(function (f) { return f.status === 'dead'; }).length;
+        var dead = out ? out.permanentLosses : oneEach(me.roster.filter(function (f) { return f.status === 'dead'; })).length;   /* people lost: a pair is one */
         return { txt: dead + ' Lost' + (out ? '' : ' So Far'), good: dead <= d.max, bad: dead > d.max };
       }
       case 'stipend': { var c = rep.calls || 0; return { txt: c ? c + ' Call' + (c === 1 ? '' : 's') + ' Made' : 'No Calls Made', good: !c, bad: !!c }; }
@@ -38825,7 +38926,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (d.kind === 'losses') {
       var out2 = G._boardOutcome;
-      var dead = out2 ? out2.permanentLosses : me.roster.filter(function (f) { return f.status === 'dead'; }).length;
+      var dead = out2 ? out2.permanentLosses : oneEach(me.roster.filter(function (f) { return f.status === 'dead'; })).length;
       var w2 = Math.max(0, Math.min(100, dead / Math.max(1, d.max) * 100));
       return '<span class="obar"><i class="' + (dead <= d.max ? 'met' : 'short') + '" style="width:' + w2.toFixed(0) + '%"></i><em style="left:100%"></em></span>' +
              '<div class="scale"><span class="l">None Lost</span><span class="r">' + d.max + ' Is the Most</span></div>';
@@ -38931,6 +39032,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      been carrying the summer's exhibition into it, so the Divide opened with a list of
      fights that had nothing to do with the ground. ---- */
   /* the tactical result code, as a sentence: disengage_A means the first side broke off */
+  /* one fight's end, one name on every page: broken off, cleared, or fought to a standstill (the turn limit) */
+  function shortResult(r) { r = String(r || ''); return /^disengage/.test(r) ? 'Broken Off' : r === 'cleared' ? 'Cleared' : 'Fought to a Standstill'; }
   function resultWords(b) {
     var r = (b.res && b.res.result) || '';
     var m = /^disengage_(.+)$/.exec(r);
@@ -38940,7 +39043,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       return who.join(' and ') + ' Broke Off';
     }
     if (r === 'cleared') return 'The Field Was Cleared';
-    if (r === 'cap') return 'Fought to the Cap';
+    if (r === 'cap') return 'Fought to a Standstill';
     return capWords(r);
   }
   /* §SEATS who of yours was taken, whom you took, and what became of each */
@@ -39090,10 +39193,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var x = (b.res.casualties || {})[tag] || {};
       return (x.dead || 0) + (x.down || 0) + (x.stable || 0) + (x.captured || 0);
     };
-    $('result').innerHTML = '<b>' + esc(capWords(String(b.res.result).replace(/_/g, ' '))) + '</b><div class="m">Day ' + b.day +
+    $('result').innerHTML = '<b>' + resultWords(b) + '</b><div class="m">Day ' + b.day +
       ' on ' + terrainName(b.terrain) + ' \u00b7 ' + b.res.turns + ' Turns<br>' +
-      cSpan(b.corps[0]) + ' Lost ' + cas(b.sides[0].tag) + ' \u00b7 ' +
-      (b.corps[1] != null ? cSpan(b.corps[1]) : '') + ' Lost ' + cas((b.sides[1] || {}).tag) + '</div>' +
+      /* out of the fight (dead, down, taken): "Lost" is the dead on every other page */
+      cSpan(b.corps[0]) + ' ' + cas(b.sides[0].tag) + ' Out \u00b7 ' +
+      (b.corps[1] != null ? cSpan(b.corps[1]) : '') + ' ' + cas((b.sides[1] || {}).tag) + ' Out</div>' +
       whatDecided(G.fight);
     $('settle').innerHTML = '<b>Settled Where It Happened</b><div class="m">The Ground\u2019s Own ' +
       '</div>';
@@ -39289,7 +39393,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             : 'The Wall Holds') + '</span></span>' +
 
         '<span class="dkv">Standing<b>' + up + '</b><small>' +
-          (hurt ? hurt + ' Hurt' : 'None Hurt') + (dead ? ' \u00b7 ' + dead + ' Lost' : '') + '</small></span>' +
+          (hurt ? hurt + ' Home Hurt' : 'None Home Hurt') + (dead ? ' \u00b7 ' + dead + ' Lost' : '') + '</small></span>' +
         /* §RESERVE who waits in orbit, and who has come down at a beacon (the window carries both; nothing read them) */
         ((w.reserveLeft || (w.landings || []).length)
           ? '<span class="dkv" title="' + esc((w.reserveNames || []).join(', ')) + '">In Orbit<b>' + (w.reserveLeft || 0) + '</b><small>' +
@@ -39313,8 +39417,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var it = x.intent || {};
       if (x.fight != null || it.type === 'fight') return 'Fighting';
       if (it.type === 'harass') return 'Picking at Them';
-      if (it.type === 'take') return it.why === 'order' ? 'Under Orders' : /wall/.test(it.why || '') ? 'Ahead of the Wall' : it.why === 'rushing' ? 'Rushing Them' : 'Moving';
-      if (it.why === 'evade') return 'Stepping Away';
+      if (it.type === 'take') return it.why === 'order' ? 'Under Orders' : /wall/.test(it.why || '') ? 'Ahead of the Wall' : it.why === 'rushing' ? 'Rushing Them'
+                                     : it.why === 'evade' ? 'Stepping Away' : 'Moving';   /* an evade is a take (contest.js) */
       if (it.why === 'order') return 'Holding on Orders';
       if (x.working) return 'Working the Site';
       return it.why === 'beaten' ? 'Fell Back' : it.why === 'won' ? 'Holding the Ground' : 'Holding';
@@ -39329,8 +39433,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var alive = q.bodies.filter(function (b) { return b.status === 'active'; }).length;
       /* §WOUNDS the harm a squad carries from fight to fight: each standing body's band */
       var hurtN = q.bodies.filter(function (b) { return b.status === 'active' && b._hpFrac != null && b._hpFrac < 1; }).length;
-      var gone = q.bodies.length - alive;
-      var nm = (G.plan.names && G.plan.names[i]) || ('Squad ' + (i + 1));
+      var dead = q.bodies.filter(function (b) { return b.status === 'dead'; }).length;
+      var gone = q.bodies.length - alive - dead;   /* sent home hurt, or taken */
+      /* §ROUNDS what the squad still carries of a full load, its standing people's average (combat.roundsShare); a
+         man under AMMO_READY_SHARE counts as running dry */
+      var upB = q.bodies.filter(function (b) { return b.status === 'active'; });
+      var rounds = upB.length && window.CDCOMBAT && CDCOMBAT.roundsShare
+        ? upB.reduce(function (t, b) { return t + CDCOMBAT.roundsShare(b); }, 0) / upB.length : null;
+      var nm = groundName(i);
       var wq = (w.squads || []).filter(function (x) { return x.s === (q.sIdx != null ? q.sIdx : i); })[0];
       var days = alive ? (wq && wq.food != null ? wq.food : Math.floor((q.rations || 0) / Math.max(1, alive))) : 0;
       var rcol = days >= 8 ? 'var(--hit)' : days >= 4 ? 'var(--cred)' : 'var(--red)';
@@ -39343,10 +39453,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       var stress = Math.round(q._stress || (q.bodies.reduce(function (t, b) { return t + ((b.condition && b.condition.stress) || 0); }, 0) / Math.max(1, q.bodies.length)));
       var pips = q.bodies.map(function (b) {
         var h = b._hpFrac == null ? 1 : b._hpFrac;
-        return '<i class="' + (b.status !== 'active' ? 'out' : h >= 1 ? '' : h >= 0.8 ? 'light' : h >= 0.5 ? 'wound' : 'crit') + '" title="' + Math.round(h * 100) + '%"></i>';
+        /* the band names the roster uses (SEASON.woundBand): Whole, Hurt, Serious, Crippled */
+        return '<i class="' + (b.status !== 'active' ? 'out' : h >= 1 ? '' : h >= 0.8 ? 'light' : h >= 0.5 ? 'wound' : 'crit') + '" title="' + (b.status !== 'active' ? 'Out' : h >= 1 ? 'Whole' : h >= 0.8 ? 'Hurt' : h >= 0.5 ? 'Serious' : 'Crippled') + '"></i>';   /* the band, not a false percentage */
       }).join('');
       var state = !alive ? ' down' : hurtN >= alive ? ' hurt' : '';
-      sqh += '<div class="tsq ' + SQCLASS[i % 6] + state + '">' +
+      sqh += '<div class="tsq ' + SQCLASS[boardIdx(i) % 6] + state + '">' +
         '<div class="head"><span class="nm">' + esc(nm) +
           '<small>' + (alive ? leadCell(q) : 'Nobody Left') + '</small></span>' +
           '<span class="doing ' + dcls + '">' + esc(doing) + '</span></div>' +
@@ -39356,8 +39467,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             '<span class="v" style="color:' + rcol + '">' + days + ' Day' + (days === 1 ? '' : 's') + '</span></span>' +
           '</div>' +
           '<div class="foot"><span>Stress <b class="' + (stress >= 55 ? 'warn' : '') + '">' + stress + '</b>' +
-            (gone ? ' \u00b7 <span class="bad">' + gone + ' Lost</span>' : '') +
-            (hurtN ? ' \u00b7 <span class="warn">' + hurtN + ' Hurt</span>' : '') +
+            (dead ? ' \u00b7 <span class="bad">' + dead + ' Lost</span>' : '') +
+            (gone ? ' \u00b7 <span class="m">' + gone + ' Out</span>' : '') +
+            (hurtN ? ' \u00b7 <span class="warn">' + hurtN + ' Carrying Harm</span>' : '') +
+            (rounds != null ? ' \u00b7 Rounds <b class="' + (rounds < ((DIVIDE.CONST && DIVIDE.CONST.AMMO_READY_SHARE) || 0.35) ? 'bad' : rounds < 0.6 ? 'warn' : '') + '">' + Math.round(rounds * 100) + '%</b>' : '') +
             /* §SHOWN the medkits the squad carries (the sum of its fighters' stores) and whether
                it has run dry of food — both simulated, neither shown (audit 1) */
             /* §CHARGES what the squad carries for the rest of the Divide, item by item — only the

@@ -1171,7 +1171,7 @@
         }
         const ownerYes = aiOwner ? (!sealed(owner) && NEG.ransomWorthPaying(owner, f, price, ctx)) : null;   /* N11 a sealed OA buys nobody back */
         if (ownerYes === false) { if (stats._refusedRansom) stats._refusedRansom(captor.id, f.id); continue; }   /* the owner will not pay that */
-        const k = { fighter: f.id, name: f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
+        const k = { fighter: f.id, name: f.pair_name || f.name, captor: captor.id, owner: owner.id, price: price, worth: worth,
                     day: day, captorYes: aiCaptor ? true : null, ownerYes: ownerYes, done: false };
         if (k.captorYes && k.ownerYes) {
           settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: price, day: day, worth: worth }, f, owner, captor);
@@ -1265,7 +1265,10 @@
       squadSize: avail.length, withConscript: withConscript,
       onlyOfRace: raceCount[f.race] === 1,
       divides: (f.experience && f.experience.divides) || 0, age: f.age,
-      health: (f.condition || {}).health, stress: (f.condition || {}).stress,
+      /* "while carrying a wound" reads the harm he carries on the ground (_hpFrac) as well as the year's (fixed: a man
+         hurt in his first fight was whole to his quirks in his second) */
+      health: Math.min((f.condition || {}).health == null ? 100 : f.condition.health, f._hpFrac != null ? Math.round(f._hpFrac * 100) : 100),
+      stress: (f.condition || {}).stress,
       captainPresent: !!cap, origin: (f.contract || {}).kind
     }));
     /* §9: a claimed sponsor cache is carried into the fight — as the REAL ITEMS it contained.
@@ -2673,7 +2676,9 @@
         sq.bodies.splice(bi, 1); stats.audit.wentHome = (stats.audit.wentHome || 0) + 1;
       }
       rec({ t: 'fight', zone, x: Z[zone].x, y: Z[zone].y, corps: groups.map(g => g[0].corpId), squads: sidesSq.reduce((n, g) => n + g.length, 0), night, ex: t.exchanges, band: res.band, res: res.result, terrain,
-            lost: (stats.dead - recBefore.d) + (stats.careerEnded - recBefore.c), obj: objectiveValue > 0, flank: !!(res.telemetry && res.telemetry.flankFight) });
+            lost: (stats.dead - recBefore.d) + (stats.careerEnded - recBefore.c), obj: objectiveValue > 0, flank: !!(res.telemetry && res.telemetry.flankFight),
+            /* which squads stood in it, so a squad's record names its own fights and not every fight beside it */
+            who: [].concat.apply([], sidesSq).filter(Boolean).map(q => q.corpId + ':' + q.sIdx) });
       if (stats.dead === before.d && stats.injured === before.i && stats.careerEnded === before.c) stats.zeroCasualtyEngagements++;
       return { turns: res.turns || 1, winner: winnerGi >= 0 ? f.sides[winnerGi].tag : null, result: res.result, squads };
     }
@@ -3426,7 +3431,7 @@
   /* `applyOutcome` is exported for the unified viewer: a fight it stages settles back to the
      roster through the same function the Divide uses, because a second settler would drift the
      way the replay's two frame builders drifted. */
-  const api = { CONST, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
+  const api = { CONST, keepChance, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
                 NOTCH_WORDS, squadStance, standing, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, bannersStanding, umbrellasOf, sealedCorp: sealed,
     squadStress, WEATHER };
   if (isNode) module.exports = api;

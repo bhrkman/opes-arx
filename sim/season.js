@@ -1108,7 +1108,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §HALF-BUILT A CORP THAT SPENDS PEOPLE PAYS MORE FOR THE NEXT ONES (REPUTATION.md §11). A hired gun asks
        what an OA's recent permanent losses say about his odds of coming home, against the fleet's: an OA that
        keeps its people alive hires cheaper. `mercPriceMult` was written for this and never called. */
-    if (f.pool === 'mercenary' && STATE_REF && STATE_REF.ids) {
+    /* (fixed) a fighter carries his origin on his contract — `f.pool` is set on nobody, so this never ran */
+    if (((f.contract && f.contract.kind) === 'mercenary' || f.pool === 'mercenary') && STATE_REF && STATE_REF.ids) {
       const idx = STATE_REF.ids.map(id => STATE_REF.corps[id]).filter(x => x && x.rep).map(x => REP.mercIndex(x.rep));
       const fleetMean = idx.length ? idx.reduce((a, b) => a + b, 0) / idx.length : 0;
       if (fleetMean > 0) mult *= REP.mercPriceMult(corp.rep, fleetMean);
@@ -2564,7 +2565,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const ct = f.contract || {};
       const endingNow = (ct.seasons_remaining != null ? ct.seasons_remaining : ct.seasons || 0) <= 1;
       if (!endingNow) continue;
-      const freed = ct.kind === 'prisoner' && (ct.sentence_remaining == null || ct.sentence_remaining <= 1);
+      /* the freedom clause served: the Divides the paper asked for are done (nothing sets a `sentence_remaining`) */
+      /* §PAPER a conscript whose term this Divide completes is freed at the year's end and chooses for himself
+         (offseason frees him; renewRoster lets the freed decide on their own) — the Paper is not his to answer */
+      const freed = ct.kind === 'prisoner' && ct.divides_required != null && (ct.divides_served || 0) + 1 >= ct.divides_required;
       out.push({
         id: f.id, name: f.pair_name || f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
@@ -2582,7 +2586,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const f = c.roster.find(x => x.id === fighterId); if (!f) return { ok: false };
     c._renewalCalls = c._renewalCalls || {};
-    c._renewalCalls[fighterId] = { how: how, offer: offer || null };
+    /* §PAPER the ask he named is the ask he holds to: answered now, it is the figure paid at the year's end */
+    c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: renewalSalary(f, state) };
     return { ok: true };
   }
   function renewRoster(rng, corp, expiring, freed, state) {
@@ -2647,7 +2652,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
-          const asked = renewalSalary(f, state);
+          const asked = call.asked || renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
           /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE OA. The further
              under his ask, the likelier he walks — and a hand who likes it here will swallow a
@@ -3782,7 +3787,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const r = rngOf(state, 'operate' + abs + f.id)();
     const sg = STAFF.holder(c, 'surgeon');
     if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active';
-      sg.record.saved = (sg.record.saved || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
+      sg.record.whole = (sg.record.whole || 0) + 1; return { outcome: 'whole', line: sg.name + ' Put ' + f.name + ' Back Together' }; }
     if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead';
       if (c.rep) REP.act(c.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 });
       sg.record.lost = (sg.record.lost || 0) + 1; return { outcome: 'dead', line: f.name + ' Died on ' + sg.name + '’s Table' }; }
@@ -3841,7 +3846,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (f) {
         corp._operated = abs;
         const r = rngOf(corp, 'operate' + abs + f.id)(), sg = STAFF.holder(corp, 'surgeon');
-        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.saved = (sg.record.saved || 0) + 1; }
+        if (r < odds.live) { setWound(f, 100); settleWounds(f); if (f.status === 'injured') f.status = 'active'; sg.record.whole = (sg.record.whole || 0) + 1; }
         else if (r < odds.live + odds.die * (1 - odds.live)) { f.status = 'dead'; if (corp.rep) REP.act(corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= 55 ? 1 : 0 }); sg.record.lost = (sg.record.lost || 0) + 1; }
       }
     }
@@ -4847,8 +4852,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const f of old) f._droppedLastSeason = false;
         for (const f of drop) f._droppedLastSeason = true;
       }
-      p.groups = []; p.leaders = [];
-      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); } });
+      p.groups = []; p.leaders = []; p.boardOf = []; L.boardOf = p.boardOf; L.boardSeason = state.season;
+      /* §SQUADS the board square each squad came from, so the page names a squad by the board's name when an empty one
+         drops out of the order (Charlie read "Beta" on the landings and the Table) */
+      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); p.boardOf.push(i); } });
       /* §DROP (ruled) SIXTEEN IS THE ALEAS' REQUIREMENT, not a preference of the engine's: a person's named drop short of
          it is filled by the Aleas from the roster — the fit first, then the walking wounded; the best first; a pair whole —
          into the squads with room (a new one only if none has any) */
@@ -4865,7 +4872,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             for (const x of add) { drop.push(x); x._droppedLastSeason = true; }
             const seats = g => g.filter(id => { const x = c.roster.find(y => y.id === id); return x && !x.mirror_of; }).length;
             let g = p.groups.filter(gg => seats(gg) < DIVIDE.CONST.SQUAD_MAX).sort((a, b) => seats(a) - seats(b))[0];
-            if (!g) { g = []; p.groups.push(g); p.leaders.push(null); }
+            if (!g) { g = []; p.groups.push(g); p.leaders.push(null);
+              let free = 0; while (p.boardOf.indexOf(free) >= 0) free++; p.boardOf.push(free); }
             for (const x of add) g.push(x.id);
             const paid = LED.purseBill(add); if (paid) { LED.post(c.account, 'expense', 'Purses', -paid); c._purses = (c._purses || 0) + paid; c._wages = (c._retainers || 0) + c._purses; }
           }
@@ -5549,7 +5557,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
-           foundingRoster, openLot, ensureLot, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, saveCareer, loadCareer, SAVE_VERSION,
+           foundingRoster, openLot, ensureLot, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
            ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */

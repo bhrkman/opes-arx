@@ -349,7 +349,7 @@
       its zone, placed in its region; a deposit's potency is its units; every site is known from the drop (the ground is
       scouted) and a deposit is worked from the day it opens */
   const OBJ_TYPE = { deposit: 'resource_site', rest: 'ration_site', strongpoint: 'strongpoint', munitions: 'munitions_drop', mast: 'relay_mast', beacon: 'sponsor_cache' };
-  const OBJ_LABEL = { rest: 'Rest Site', strongpoint: 'Strongpoint', munitions: 'Munitions Drop', mast: 'Relay Mast', beacon: 'Landing Beacon' };
+  const OBJ_LABEL = { rest: 'Ration Site', strongpoint: 'Strongpoint', munitions: 'Munitions Drop', mast: 'Relay Mast', beacon: 'Landing Beacon' };
   function objectivesOf(ground) {
     return ground.sites.map((s, i) => { const z = ground.zones[s.zone], r = ground.regions[z.region];
       return { id: 'obj_' + i, type: OBJ_TYPE[s.kind] || s.kind, kind: s.kind, zone: s.zone, region: z.region,

@@ -1168,6 +1168,12 @@
     delete f.pair_name; delete f.pair_halves;
     if (lead !== f && lead.contract) f.contract = JSON.parse(JSON.stringify(lead.contract));
     if (f.contract) delete f.contract.mirrored;
+    /* the scar is a trait like any other: its stats are written into his own, as a trait's are at birth (they were not,
+       so the sheet promised a −20 Resolve that never landed) */
+    if ((f.traits || []).indexOf('severed') < 0) {
+      const st = ((traitById.severed || {}).effects || {}).stats || {};
+      for (const k in st) if (f.stats && f.stats[k] != null) f.stats[k] = Math.max(10, Math.min(200, f.stats[k] + st[k]));
+    }
     f.traits = (f.traits || []).filter(t => t !== 'severed').concat(['severed']);
     f._severed = true;
     g._carriedOn = true;   /* the being lives on in the survivor: its death benefit is paid when the survivor's is */

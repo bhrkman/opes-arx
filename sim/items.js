@@ -210,7 +210,8 @@
   }
 
   function value(lo) { return itemsOf(normalise(lo)).reduce((s, i) => s + (i.cost || 0), 0); }
-  function bulk(lo) { return itemsOf(normalise(lo)).reduce((s, i) => s + (i.bulk || 0), 0); }
+  /* a mod's `effects.bulk` lightens (or loads) what it is fitted to: the Lightweight Frame's −1 was declared and read by nothing */
+  function bulk(lo) { return Math.max(0, itemsOf(normalise(lo)).reduce((s, i) => s + (i.bulk || 0) + (i.slot === 'mod' ? ((i.effects && i.effects.bulk) || 0) : 0), 0)); }
 
   /** The flat shapes combat.js already consumes, plus what 5b-3 will need. */
   function resolve(lo) {

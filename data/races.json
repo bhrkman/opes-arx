@@ -399,7 +399,7 @@
     },
     "partner_death_note": "Canon outcomes common/uncommon/rare; numbers ratified V13. Roll fires immediately mid-engagement; a traumatized survivor is auto-downed for the remainder, takes scar traits, and is renamed (Em- prefix for a widowed Mon, -Em suffix for a widowed Wa).",
     "notes": "Disproportionate value in camp, logistics, and intel roles (ratified).",
-    "combat_model": "Two bodies, two shots, ONE composure pool, ONE shared wound track: a serious wound to either body downs the pair (COMBAT.md 8.1, C14a ratified)."
+    "combat_model": "RULED (Mon-Wa pass): two bodies, two shots, two wound pools, ONE composure and a shared fall — a body stunned out or held at a breath takes the other down with it, and a body killed sets off partner_death_roll for the other at once."
    },
    "naming": {
     "style": "paired_halves",
