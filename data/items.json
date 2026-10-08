@@ -254,7 +254,7 @@
   },
   {
    "id": "itm_hunting_rifle",
-   "name": "Hollowpoint Hunting Rifle",
+   "name": "Fenwood Hunting Rifle",
    "category": "weapon",
    "slot": "primary",
    "family": "ballistic",
@@ -1421,7 +1421,7 @@
     "damage": "energy",
     "charge": 12,
     "rof": 1,
-    "mag": 18,
+    "mag": 12,
     "reload": 2,
     "reach": 5,
     "near": 0,
@@ -1439,7 +1439,7 @@
    "type": "Close-Quarters",
    "worth": {
     "role": 1.196,
-    "of": "1lchisu"
+    "of": "14wnjac"
    }
   },
   {
@@ -3056,7 +3056,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 3650,
+   "cost": 3580,
    "bulk": 3,
    "effects": {
     "power": 5,
@@ -3077,15 +3077,16 @@
     "pen": 0,
     "suppress": 0,
     "spread": 0,
-    "noise": 1
+    "noise": 1,
+    "charge": 24
    },
    "price_model": "worth",
    "legality": "legal",
    "identity": "Three flashes a second and a battery that resents it.",
    "type": "Assault Rifles",
    "worth": {
-    "role": 1.109,
-    "of": "7xaf94"
+    "role": 1.104,
+    "of": "105dmky"
    }
   },
   {
@@ -3249,7 +3250,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 4,
-   "cost": 3380,
+   "cost": 3450,
    "bulk": 2,
    "effects": {
     "power": 6,
@@ -3269,15 +3270,16 @@
     "pen": 0,
     "suppress": 0,
     "spread": 0,
-    "noise": 0
+    "noise": 0,
+    "charge": 30
    },
    "price_model": "worth",
    "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
-    "role": 1.088,
-    "of": "s7uaua"
+    "role": 1.094,
+    "of": "ybo1d9"
    }
   },
   {
@@ -3888,20 +3890,20 @@
    "slot": "primary",
    "family": "ballistic",
    "tier": 1,
-   "cost": 1180,
-   "bulk": 3,
+   "cost": 1320,
+   "bulk": 2,
    "effects": {
-    "power": 7,
+    "power": 8,
     "range": "short",
     "tags": [],
     "damage": "ballistic",
     "rof": 1,
-    "mag": 5,
-    "reload": 2,
+    "mag": 2,
+    "reload": 1,
     "reach": 6,
     "near": 0,
     "falloff": 5,
-    "handling": -17,
+    "handling": -12,
     "snap": 4,
     "pen": 0,
     "suppress": 0,
@@ -3913,8 +3915,8 @@
    "identity": "Two barrels, one decision.",
    "type": "Scatterguns",
    "worth": {
-    "role": 0.992,
-    "of": "11zgiu3"
+    "role": 1.02,
+    "of": "35ds1h"
    }
   },
   {
@@ -4696,7 +4698,7 @@
    "slot": "primary",
    "family": "energy",
    "tier": 2,
-   "cost": 1330,
+   "cost": 1460,
    "bulk": 2,
    "effects": {
     "power": 5,
@@ -4716,15 +4718,16 @@
     "pen": 0,
     "suppress": 0,
     "spread": 0,
-    "noise": 0
+    "noise": 0,
+    "charge": 23
    },
    "price_model": "worth",
    "legality": "legal",
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
-    "role": 0.923,
-    "of": "iwod2d"
+    "role": 0.944,
+    "of": "1h79fk8"
    }
   },
   {

@@ -450,7 +450,14 @@
     const taste = d.taste || [];
     /* §FACILITIES the Armoury decides what can be issued: the doctrine's ceiling, and the Armoury's below it */
     const maxTier = Math.min(d.armoury_max_tier || 5, opts.maxTier || 5);
-    const ofSlot = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0 && engineIssues(it));
+    const ofSlot0 = (slot) => CATALOG.filter(it => it.slot === slot && (it.tier || 1) <= maxTier && it.price_model !== 'none' && (it.cost || 0) > 0 && engineIssues(it));
+    /* §SPONSORS a contract that asks for a family of guns is kept by issuing that family's primaries (when there are any
+       to issue at this Armoury); the rest of the kit is chosen as ever */
+    const famOf = it => (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
+    const ofSlot = (slot) => { const all = ofSlot0(slot);
+      if (slot !== 'primary' || !opts.family) return all;
+      const only = all.filter(it => famOf(it) === opts.family);
+      return only.length >= 3 ? only : all; };
     const stock = {};
     for (const k in armoury) stock[k] = armoury[k];
     const take = (id) => { if (stock[id] > 0) { stock[id]--; return true; } return false; };

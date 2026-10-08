@@ -450,8 +450,9 @@ function makeCombatant(fighter, opts) {
              resolve: (fighter.stats.resolve + (sit.resolve || 0) +
                        ((fighter._conditioned && fighter._conditioned.resolve) || 0)) }, hooks,
     /* the wound pool — see `damageOf`; in a Divide it starts where the last fight left it (`_hpFrac`, divide.js §WOUNDS) */
-    hpMax: hpFor(fighter), hp: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
-    _hpStart: Math.max(1, Math.round(hpFor(fighter) * (fighter._hpFrac != null ? fighter._hpFrac : 1))),
+    /* §WOUNDS (ruled) and a man sent while mending starts where his health stands (the year's wound), not whole */
+    hpMax: hpFor(fighter), hp: Math.max(1, Math.round(hpFor(fighter) * startFrac(fighter))),
+    _hpStart: Math.max(1, Math.round(hpFor(fighter) * startFrac(fighter))),
     weapon, armor,
     state: 'ok',                 // ok | light | down | stable | dead | captured | routed
     comp: seedComposure(fighter, hooks, opts),
@@ -967,6 +968,12 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
 }
 
 /** How much punishment this body can take before it goes down. */
+/** where a body's pool starts: the harm it carries on the ground (`_hpFrac`), else the year's wound (condition.health) */
+function startFrac(fighter) {
+  if (fighter._hpFrac != null) return fighter._hpFrac;
+  const h = fighter.condition && fighter.condition.health;
+  return h != null && h < 100 ? Math.max(0.1, h / 100) : 1;
+}
 function hpFor(fighter) {
   /* ×10 migration: called with the ROSTER fighter, before the unit's divided copy exists,
      so grit normalizes here. This was the reader the gate's slowness named: tenfold grit

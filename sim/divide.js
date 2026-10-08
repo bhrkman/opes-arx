@@ -418,6 +418,7 @@
     const bareFighters = corp.allBodies.filter(f => !f._handKitted);
     let plan = ITEMS.planForce(doc.id, total - handed, {
       maxTier: (corp.persist && corp.persist.maxTier) || 5,   /* §FACILITIES what the Armoury can issue */
+      family: (corp.persist && corp.persist.kitFamily) || null,   /* §SPONSORS the guns a contract asks for */
       fighters: bareFighters,   /* §QUARTERMASTER planned as themselves */
       squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */
@@ -449,6 +450,7 @@
         corp.kitBudget = (corp.kitBudget || 0) + raised;
         plan = ITEMS.planForce(doc.id, total - handed, {
           maxTier: (corp.persist && corp.persist.maxTier) || 5,
+          family: (corp.persist && corp.persist.kitFamily) || null,
           fighters: bareFighters,
           squadOf: (f) => { const si = corp.squads.findIndex(q => q.bodies.indexOf(f) >= 0); return si < 0 ? null : si; },
       /* §SPONSORS what this OA's standings take off the yard's price, by family */

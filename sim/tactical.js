@@ -1839,7 +1839,7 @@
        their shooting, battle sense means the side is never caught unready, and a pressure
        reader knows when the other side is close to breaking. */
     for (const S of sides) {
-      S._psi = { link: false, sense: false, read: false };
+      S._psi = { link: false, sense: false };
       for (const u of S.units) {
         u._side = S;                              /* a body knows whose side it is on */
         u._closeBand = closeFight;
@@ -1853,7 +1853,6 @@
         if (u.hooks.has('squad_coordination_bonus')) S._psi.link = true;
         /* §LIGHT the night-ambush warning is a NIGHT sense: it worked day and night alike */
         if (u.hooks.has('ambush_avoidance_slight') || (ctx.night && u.hooks.has('night_ambush_warning_bonus'))) S._psi.sense = true;
-        if (u.hooks.has('psionic_broadcast_sensation')) S._psi.read = true;
       }
     }
     /* §FLANK the approaches of every squad on the field: units carry `_bearing` (the squad they came in with); a side
@@ -2141,7 +2140,7 @@
              walked in kept whatever index it was built with — friend to one side by accident, or to none, which
              is what the overwatch path fell over. It belongs to the side it joined. */
           for (const u of R.side.units) { u.side = si; u._side = sides[si]; }
-          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false, sense: false, read: false }; }
+          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false, sense: false }; }
           tel.arrived = (tel.arrived || 0) + R.side.units.length;
           tel.arrivals = (tel.arrivals || 0) + 1;
           /* THEY WALK IN UNSEEN, and unlike everything else about fog this needs no special

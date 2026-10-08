@@ -103,6 +103,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    WOUNDED_FIELD_LOYALTY: 8,    // [C] §WOUNDS (ruled) loyalty a mending man loses for being sent to fight
     WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
     WOUND_CRIPPLED: 33,          // [S] and below this he is Crippling: he cannot train at all
@@ -626,6 +627,29 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     f._recovery = 0;
     if (woundOf(f) >= 100) f.status = 'active';
   }
+  /* §WOUNDS (ruled) A WOUND DOES NOT BAR A MAN FROM A FIGHT. He goes down carrying it (his pool starts where his health
+     stands: combat.makeCombatant) and it costs his loyalty to be sent (WOUNDED_FIELD_LOYALTY); a wound carried for good —
+     a scar — costs neither, since it has already taken what it takes from his stats. `mending` is the first kind. */
+  function mending(f) {
+    if (!f) return false;
+    return woundOf(f) < 100 || ((f.condition && f.condition.injuries) || []).some(w => !w.permanent && !w.careerEnding);
+  }
+  /* the being: a pair is mending if either body is */
+  function mendingBeing(f, roster) {
+    if (mending(f)) return true;
+    const mate = f && f.bond_partner && (roster || []).find(x => x.id === f.bond_partner && x.bond_partner === f.id && x.status !== 'dead');
+    return !!(mate && mending(mate));
+  }
+  /* what sending a mending man costs: his regard for the house that sent him, and a pair's both bodies */
+  function chargeWounded(corp, bodies, where) {
+    let n = 0;
+    for (const f of bodies || []) if (f && mending(f) || (f && f.bond_partner && mendingBeing(f, corp.roster))) {
+      if (f._woundedSent === where) continue;
+      f._woundedSent = where;
+      f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) - CONST.WOUNDED_FIELD_LOYALTY); n++;
+    }
+    return n;
+  }
   function woundBand(f) {
     const h = woundOf(f);
     return h >= 100 ? 'whole' : h < CONST.WOUND_CRIPPLED ? 'crippled'
@@ -694,10 +718,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      wounded fighter or a conscript owed to a term onto the card. */
   /* who may take the floor: one entry a being (a pair on its Mon, and only with both bodies fit) — the page reads this */
   function dividendEligible(corp) {
-    const ok = f => f.status !== 'dead' && f.status !== 'retired' &&
+    /* §WOUNDS (ruled) the mending may take the floor too, at a cost to their loyalty (chargeWounded) */
+    const ok = f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' &&
       !(f.contract && f.contract.divides_required != null &&
-        (f.contract.divides_served || 0) < f.contract.divides_required) &&
-      !((f.condition || {}).injuries || []).length;
+        (f.contract.divides_served || 0) < f.contract.divides_required);
     const fit = corp.roster.filter(ok);
     return beings(fit).filter(f => {
       const mate = f.bond_partner && corp.roster.find(x => x.id === f.bond_partner && x.bond_partner === f.id && x.status !== 'dead');
@@ -762,13 +786,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       spare: (a, b) => (b.condition && b.condition.stress || 0) - (a.condition && a.condition.stress || 0)
     };
     corp._dividendLean = lean;
-    return eligible.slice().sort(sorters[lean]).slice(0, 8);
+    /* the engine's own card is the whole first: the mending only if there are not eight without them */
+    const whole = eligible.filter(f => !mendingBeing(f, corp.roster)), hurt = eligible.filter(f => mendingBeing(f, corp.roster));
+    return whole.sort(sorters[lean]).concat(hurt.sort(sorters[lean])).slice(0, 8);
   }
 
   /* §MON-WA (ruled) a card is seats: whoever of a pair is named, the pair takes the floor whole (both bodies fit), as
      one seat; a pair with a body unfit stays off it */
   function wholePairs(corp, list, seats) {
-    const out = [], ok = f => f && f.status === 'active' && !(f.condition && (f.condition.injuries || []).length);
+    const out = [], ok = f => f && (f.status === 'active' || f.status === 'injured');   /* §WOUNDS the mending may go, at a cost */
     let n = 0;
     for (const f of list) {
       if (n >= seats || out.indexOf(f) >= 0) continue;
@@ -785,6 +811,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const A = corps[order[i]], B = corps[order[i + 1]];
       const bodiesA = wholePairs(A, dividendSquad(A), 8), bodiesB = wholePairs(B, dividendSquad(B), 8);
       if (beings(bodiesA).length < 4 || beings(bodiesB).length < 4) continue;   /* not enough fit people to show */
+      chargeWounded(A, bodiesA, 'dividend' + season); chargeWounded(B, bodiesB, 'dividend' + season);   /* §WOUNDS */
       const saved = [];
       bodiesA.concat(bodiesB).forEach((f, i) => {
         saved.push([f, f.loadout]);
@@ -882,8 +909,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
   function eightPick(corp, asRule) {
-    const fit = corp.roster.filter(f => f.status === 'active' && !(f.condition && (f.condition.injuries || []).length)
-                                     && !f.mirror_of && wholePairs(corp, [f], 1).length);   /* §MON-WA a pair on its lead, both bodies fit */
+    /* §WOUNDS the engine sends a whole hand; a person may name a mending one (nameForEight). §MON-WA a pair on its lead */
+    const fit = corp.roster.filter(f => f.status === 'active' && !mendingBeing(f, corp.roster)
+                                     && !f.mirror_of && wholePairs(corp, [f], 1).length);
     if (!fit.length) return null;
     /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
     const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
@@ -904,7 +932,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function nameForEight(state, corpId, fighterId) {
     state.eight = state.eight || { names: {} };
     const c = state.corps[corpId];
-    let f = c && c.roster.find(x => x.id === fighterId && x.status === 'active');
+    let f = c && c.roster.find(x => x.id === fighterId && (x.status === 'active' || x.status === 'injured'));
     if (f && f.mirror_of) f = c.roster.find(x => x.id === f.mirror_of && x.bond_partner === f.id) || f;   /* §MON-WA the pair, on its lead */
     if (!f || !wholePairs(c, [f], 1).length) return false;
     state.eight.names[corpId] = f.id; return true;
@@ -914,7 +942,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* every OA sends someone; unnamed, its best goes */
     const entrants = [];
     for (const id of ids) {
-      let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && x.status === 'active') : null;
+      let f = E.names[id] ? corps[id].roster.find(x => x.id === E.names[id] && (x.status === 'active' || x.status === 'injured')) : null;
       if (!f) f = eightPick(corps[id], isHuman(state, id));
       if (f) entrants.push({ corp: corps[id], f });
     }
@@ -942,6 +970,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
       units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1 }); entryOf.set(u, e); return u; })))) });
     const sA = side(A, 'eightA'), sB = side(B, 'eightB');
+    for (const e of entrants) chargeWounded(e.corp, bodiesOf(e), 'eight' + season);   /* §WOUNDS a mending entrant holds it against the house */
     /* no retreat, no surrender: the fight runs until one side has nobody standing, and the
        field is taken from whoever loses it */
     const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
@@ -1590,7 +1619,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        best (weighted by any standing regard) — the same targeted courting a person paints on the
        desk, so the fleet and the player build sponsor standing through one path. */
     if (focus.court) {
-      const best = SPON.prospects(corp)[0];
+      const best = SPON.courtChoice ? SPON.courtChoice(corp, STATE_REF && STATE_REF.sponsorBoard) : SPON.prospects(corp)[0];
       if (best) focus.courtTarget = { [best.house]: focus.court };
       else delete focus.court;
     }
@@ -2782,20 +2811,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
   function selectDrop(corp, opts) {
     opts = opts || {};
-    /* §MON-WA (ruled) a pair is fit or unfit as one: a wound on either body keeps the being off a drop it would not
-       otherwise be pressed onto (one body passed, and a half went down alone) */
-    const up = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-    const hurtBody = f => !!(f.condition && (f.condition.injuries || []).length);
+    /* §WOUNDS (ruled) anyone standing can be sent, the mending too (at a cost: `mending`); the engine's own pick takes the
+       whole first and the mending only to make the Aleas' sixteen. §MON-WA a pair goes as one, mending if either body is. */
+    const up = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured');
     const partnerOf = f => f.bond_partner ? up.find(x => x.id === f.bond_partner && x.bond_partner === f.id) : null;
-    const fit = up.filter(f => !hurtBody(f) && !(partnerOf(f) && hurtBody(partnerOf(f))));
+    const fit = up.filter(f => !mending(f) && !(partnerOf(f) && mending(partnerOf(f))));
     if (opts.manual && opts.manual.length) {
-      const byId = {}; for (const f of fit) byId[f.id] = f;
+      const byId = {}; for (const f of up) byId[f.id] = f;
       /* §MON-WA (fixed) a named drop goes down with each pair whole, and is cut by beings, not bodies */
       const out = [], seen = new Set(); let seats = 0;
       for (const id of opts.manual) { const f = byId[id]; if (!f || seen.has(f.id)) continue;
         const lead = f.mirror_of ? byId[f.mirror_of] : f; if (!lead || seen.has(lead.id)) continue;
         if (seats >= CONST.DROP_MAX) break;
-        const mate = fit.find(x => x.mirror_of === lead.id);
+        const mate = up.find(x => x.mirror_of === lead.id);
         out.push(lead); seen.add(lead.id); if (mate) { out.push(mate); seen.add(mate.id); } seats++; }
       return out;
     }
@@ -2849,6 +2877,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        two squads of ten, past the ruled bound and with no seat for a reserve ever to land into. What two landings cannot
        hold stays in orbit as reserve, to come down at a beacon as seats open. */
     if (opts.want == null && opts.landings >= 2) want = Math.max(CONST.DROP_MIN, Math.min(want, opts.landings * DIVIDE.CONST.SQUAD_MAX));
+    /* §SPONSORS a contract it signed is kept by the drop it picks: twenty at most for the freight house, a third unproven
+       for the Almsdesk */
+    const steer = (SPON && SPON.steerFor) ? SPON.steerFor(corp) : {};
+    if (opts.want == null && steer.leanDrop) want = Math.max(CONST.DROP_MIN, Math.min(want, steer.leanDrop));
     /* §MON-WA one being in two bodies goes down as one: picked as a pair on its lead's merit, or not at all (sorted
        body by body, half a pair could drop and the other half stay in orbit or on the bench) */
     const mateOf = f => f.mirror_of ? fit.find(x => x.id === f.mirror_of) : fit.find(x => x.mirror_of === f.id);
@@ -2857,6 +2889,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (placed.has(f.id)) continue;
       const m = mateOf(f), u = m ? (f.mirror_of ? [m, f] : [f, m]) : [f];
       for (const x of u) placed.add(x.id); units.push(u);
+    }
+    if (opts.want == null && steer.green) {
+      const greenU = u => ((u[0].experience || {}).divides || 0) === 0;
+      const k = Math.ceil(Math.min(want, units.length) / 3) + 1;   /* a third, and one over for the one who falls out */
+      const first = units.filter(greenU).slice(0, k);
+      units.splice(0, units.length, ...first.concat(units.filter(u => first.indexOf(u) < 0)));
     }
     /* seats, not bodies: a pair takes one */
     const cap = Math.min(want, units.length), picked = [];
@@ -2868,7 +2906,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        go with their injuries, which is worse for them and worse for the corp, and that is the
        point: being short of bodies has to cost something on the ground, not just on paper. */
     if (seats < CONST.DROP_MIN) {
-      const hurtN = f => ((f.condition && f.condition.injuries) || []).length + (partnerOf(f) ? ((partnerOf(f).condition && partnerOf(f).condition.injuries) || []).length : 0);
+      /* the least hurt first: the being's worse body */
+      const hurtN = f => 100 - Math.min(woundOf(f), partnerOf(f) ? woundOf(partnerOf(f)) : 100);
       const hurt = up
         .filter(f => picked.indexOf(f) < 0 && !(f.mirror_of && partnerOf(f)))   /* a pair is pressed on its lead */
         .sort((a, b) => hurtN(a) - hurtN(b) || score(b) - score(a));
@@ -4561,6 +4600,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
            held for, and the next year's months held for where its gate does not cover them */
         kitMoney: kitMoneyFor(state, c),
+        /* §SPONSORS the family of guns a signed contract asks for, which the quartermaster issues */
+        kitFamily: (SPON && SPON.steerFor) ? SPON.steerFor(c).family : null,
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
@@ -4801,15 +4842,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      lives. What did not land comes home with its kit. */
   function reserveOf(c) {
     const inDrop = new Set((c._drop || []).map(f => f.id));
-    const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
-      && !inDrop.has(f.id) && !(f.condition && (f.condition.injuries || []).length));
-    /* a lead whose other half went down goes down with it, not into orbit */
-    /* §MON-WA and a pair waits in orbit whole and fit, or not at all: a lead whose other half is hurt stays aboard */
-    const leads = fit.filter(f => !f.mirror_of && !(c._drop || []).some(d => d.mirror_of === f.id)
-      && !(f.bond_partner && c.roster.some(x => x.id === f.bond_partner && x.status !== 'dead') && !fit.some(x => x.id === f.bond_partner)));
+    const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured' && !inDrop.has(f.id));
+    /* a lead whose other half went down goes down with it, not into orbit; a pair waits in orbit whole */
+    const leads = fit.filter(f => !f.mirror_of && !(c._drop || []).some(d => d.mirror_of === f.id));
     const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
+    /* §WOUNDS a person may hold a mending man in orbit; the engine's own reserve is the whole */
     const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
-    const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
+    const rest = leads.filter(f => asked.indexOf(f) < 0 && !mendingBeing(f, c.roster)).sort((a, b) => q(b) - q(a));
     /* the reserve is force ON TOP of the drop, not carved out of it (ruled): a reserve carved out of the drop's limit
        would only ever cost an OA its starting strength, and nobody would hold one */
     const out = [];
@@ -4884,12 +4923,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function prepareDivide(state) {
     if (!state._divideOpts) throw new Error('prepareDivide: call closeSeasonToDrop first');
+    const chargeDrops = () => { for (const id of state.ids) { const c = state.corps[id];
+      const sent = (c._drop || []).concat(c._reserve || []);
+      chargeWounded(c, sent, 'divide' + state.season);
+      /* a man sent down while mending stands on the ground (his wound is his health, not his status): 'injured' reads
+         as gone home to every count in the Divide */
+      for (const f of sent) if (f.status === 'injured') f.status = 'active'; } };
     /* §CONTEST the options are built from the season AS IT STANDS NOW — a draft finished after the season closed used to
        be missed (the contest ran with no drafted landings) — and so a resumed contest builds exactly what the first did */
     buildDivideOpts(state, state.rec);
     applyLocks(state);   /* §AUTHORITY each seat's lock, as the Divide is prepared */
     assignReserves(state);   /* §RESERVE and the fighters each OA holds in orbit */
     settleDropPromises(state);   /* §TALKS and what was promised of the drop comes due */
+    chargeDrops();   /* §WOUNDS and a mending man sent down holds it against the house */
     return { opts: state._divideOpts,
              rng: rngOf(state, 'divide' + state.season) };
   }
@@ -5224,10 +5270,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
-        dropSize: drop.length,
+        dropSize: beings(drop).length,   /* §MON-WA seats */
         /* how much of the drop had never seen a Divide before this one — what the Almsdesk
            is actually buying: somewhere for the unproven to be proven */
-        greenDropped: drop.filter(f => (((f.experience || {}).divides || 0) <= 1)).length
+        greenDropped: beings(drop).filter(f => (((f.experience || {}).divides || 0) <= 1)).length
       });
       rec.corps[id].sponsors = {
         advance: verdict.advance || 0, paid: verdict.paid || 0,
@@ -5557,7 +5603,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
-           foundingRoster, openLot, ensureLot, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
+           foundingRoster, openLot, ensureLot, mending, mendingBeing, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
            ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */

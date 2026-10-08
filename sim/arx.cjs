@@ -120,14 +120,14 @@ const BASELINE_DEFAULT = {
   },
   "long band, both cautious": {
     "result": "disengage_B",
-    "exchanges": 8,
+    "exchanges": 6,
     "band": "medium",
     "aDead": 1,
     "aDown": 0,
     "bDead": 0,
     "bDown": 0,
-    "shots": 57,
-    "hits": 16,
+    "shots": 41,
+    "hits": 13,
     "downs": 1
   },
   "forest, standard v unyielding": {
@@ -746,12 +746,12 @@ function monWaRules() {
   /* a pair is one seat on the drop */
   { const st = SEASONMOD.openFleet(makeRng('mwfleet'), readJSON('oa_profiles.json').oa_profiles, {}); const c = st[Object.keys(st)[0]];
     const pr = pairOf('mw4'); c.roster = RO.generateSquad(makeRng('mw4s'), 20, { corpId: c.id, race: 'human' }).bodies.concat(pr);
-    c.roster.forEach(f => { f.status = 'active'; if (f.condition) f.condition.injuries = []; });
+    c.roster.forEach(f => { f.status = 'active'; if (f.condition) { f.condition.injuries = []; f.condition.health = 100; } });
     const pick = SEASONMOD.selectDrop(c, { want: 21 });
     ok('mon-wa: a pair is one seat on the drop', SEASONMOD.beings(pick).length === 21 && pick.length === 22, pick.length + ' bodies');
     pr[1].condition = pr[1].condition || { injuries: [] }; pr[1].condition.injuries = [{ type: 'inj_arm' }];
     const pick2 = SEASONMOD.selectDrop(c, { want: 18 });
-    ok('mon-wa: a pair is fit or unfit as one', pick2.indexOf(pr[0]) < 0 && pick2.indexOf(pr[1]) < 0, pick2.indexOf(pr[0])); }
+    ok('mon-wa: the engine leaves a wounded pair home while it has the whole (a pair is wounded as one)', pick2.indexOf(pr[0]) < 0 && pick2.indexOf(pr[1]) < 0, pick2.indexOf(pr[0])); }
   /* a pair moves between rosters as one, whichever half moved */
   { const fleet = SEASONMOD.openFleet(makeRng('mwmove'), readJSON('oa_profiles.json').oa_profiles, {}), ids = Object.keys(fleet);
     const state = { ids, corps: fleet, season: 1, month: 1 };

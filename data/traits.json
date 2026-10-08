@@ -341,8 +341,7 @@
    ],
    "effects": {
     "hooks": [
-     "evasion_surge",
-     "psionic_broadcast_sensation"
+     "evasion_surge"
     ]
    },
    "conflicts": [
@@ -367,8 +366,7 @@
    ],
    "effects": {
     "hooks": [
-     "squad_coordination_bonus",
-     "psionic_broadcast_sensation"
+     "squad_coordination_bonus"
     ]
    },
    "conflicts": [

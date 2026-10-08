@@ -34,6 +34,7 @@
        and that a sponsor who likes you this year is a sponsor you can disappoint. */
     COURT_MONTHS: 2,             // [S] months between courting a house and it hearing
     REGARD_SPAN: 60,             // [S] regard runs -60..+60; it gates who will talk to you
+    COURT_SPREAD: 0.25,          // [C] an engine seat's own lean between houses it could keep about as well
     /* --- COURTING SPONSORS (the rework). A sponsor backs at most ONE house a year. You court
        with focus, which both raises regard (the slow, cross-year memory) and counts as this
        year's effort; at the season open each sponsor signs whichever courting house it favours
@@ -493,6 +494,48 @@
       .sort((a, b) => (b.fit + b.regard / CONST.REGARD_SPAN) - (a.fit + a.regard / CONST.REGARD_SPAN));
   }
 
+  /* §SPONSORS (fixed) AN ENGINE SEAT COURTS WHAT IT CAN KEEP. It courted whoever its record "fit" — a reading of style that
+     had nothing to do with the condition — so the aligned fleet courted Helion year on year, never fielded three energy
+     guns in four, and broke every contract it signed. It now weighs how likely it is to KEEP each condition, from the
+     same figures the judge reads (a constraint it can steer — the guns it issues, the size and greenness of its drop —
+     it keeps by steering: `steerFor`), with the house's regard as the tie. */
+  function keepOdds(corp, key) {
+    const hist = corp.history || [], last = hist[hist.length - 1] || {};
+    const sent = last.dropped || 0, rate = sent ? (last.dead || 0) / sent : 0.3;
+    const alive = (corp.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of);
+    switch (key) {
+      case 'accept_terms':     return ((corp.account && corp.account.treasury) || 0) > 0 ? 0.85 : 0.35;
+      case 'no_scandal':       return rate <= 0.25 ? 0.8 : rate <= 1 / 3 ? 0.6 : 0.3;
+      case 'bring_them_home':  return rate <= 0.12 ? 0.6 : rate <= 0.18 ? 0.4 : 0.15;
+      case 'field_talent':     return alive.some(f => (f.fame || 0) >= 25) ? 0.85 : alive.some(f => (f.fame || 0) >= 18) ? 0.5 : 0.15;
+      case 'stay_lean':        return 0.85;   /* steered: the drop is held to twenty */
+      case 'blood_the_green':  return alive.filter(f => ((f.experience || {}).divides || 0) === 0).length >= 6 ? 0.85 : 0.3;
+      case 'mostly_energy':    return 0.8;    /* steered: the quartermaster issues energy guns */
+      case 'mostly_ballistic': return 0.85;   /* steered: and ballistic ones */
+      default:                 return 0.5;
+    }
+  }
+  /* a house already signed this year is not courted; and eight seats with one taste (the aligned fleet) would all court
+     the same house and seven waste their year, so each house carries a small, fixed lean of each OA's own */
+  function courtChoice(corp, board) {
+    const taken = (board && board.signedBy) || {};
+    const lean = h => { let x = 2166136261; const k = (corp.id || '') + '|' + h;
+      for (let i = 0; i < k.length; i++) { x ^= k.charCodeAt(i); x = Math.imul(x, 16777619); }
+      return ((x >>> 8) % 1000) / 1000 * CONST.COURT_SPREAD; };
+    const score = r => r.keep + r.regard / (2 * CONST.REGARD_SPAN) + lean(r.house);
+    return Object.keys(CONDITIONS).filter(h => !taken[h])
+      .map(h => ({ house: h, keep: keepOdds(corp, CONDITIONS[h].key), regard: regardOf(corp, h) }))
+      .sort((a, b) => score(b) - score(a))[0] || null;
+  }
+  /* what a signed contract asks the quartermaster and the drop to do, for any seat: the guns' family, the drop's size, a
+     third of it unproven */
+  function steerFor(corp) {
+    const keys = ((corp && corp.sponsors && corp.sponsors.contracts) || []).map(c => c.key);
+    return { family: keys.indexOf('mostly_energy') >= 0 ? 'energy' : keys.indexOf('mostly_ballistic') >= 0 ? 'ballistic' : null,
+             leanDrop: keys.indexOf('stay_lean') >= 0 ? 20 : null,
+             green: keys.indexOf('blood_the_green') >= 0 };
+  }
+
   /** The suppliers on the board — the id list the season builds its board from. */
   function houseIds() { return Object.keys(CONDITIONS); }
   /** A supplier's display name. */
@@ -541,7 +584,7 @@
   return { CONST, STYLES, OBLIGATION_TEXT, CONDITIONS, STANDINGS, HOUSE_NAMES, houseIds, houseName,
            grantStanding, standingValue, standingDiscount, standingsOf,
            contractStatus,
-           fit, regardOf, bumpRegard,
+           fit, regardOf, bumpRegard, keepOdds, courtChoice, steerFor,
            openBoard, courtCost, court, courtStanding, resolveBoard, stepBoard, benchmarkFor,
            judge, prospects };
 }));

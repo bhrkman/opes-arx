@@ -213,12 +213,21 @@ lean one pleases.
 - A Mon-Wa pair is one being in two bodies (ruled), and is hired, seated, counted and lost as one until it is on a
   field. It is one seat on a drop, a squad, a card and the Eight; one count toward a roster's size and every target and
   shortfall; one signing, one fee, one wage, one paper renewed or let go, one pension; one staff post. A market lists
-  both bodies and deals with the Mon. It is fit or unfit as one: a wound on either body keeps the pair off a drop, out
-  of orbit and off a card. It moves between rosters as one, whichever half moved, and is one captive: taken together,
+  both bodies and deals with the Mon. It is wounded as one: a wound on either body marks the pair as a wounded entry. It moves between rosters as one, whichever half moved, and is one captive: taken together,
   one price, one fate. Age retires it once.
 - On a field a pair is two bodies with separate wound pools, one composure and a shared fall (ruled): whatever moves one
   half's nerve moves both, and one mind breaks in both bodies; a body stunned out or held at a breath takes the other
   down with it, up again after; the stretch of the tether, and a Cortical Scrambler, are paid once a turn by the one mind.
+- A wound does not bar a man from a fight (ruled). Anyone standing can be sent — to the drop, the reserve, the Eight or
+  the Dividend. A man still mending goes down carrying his wound (his pool starts where his health stands) and loses
+  loyalty for being sent (8); he is marked orange wherever he can be picked. A scar — a wound carried for good — costs
+  only the stats it already took. The engine's own picks take the whole first and the mending only to make sixteen.
+- An engine seat courts the sponsor whose condition it can keep, and keeps it: it issues the family of guns a contract
+  asks for, holds its drop to twenty for the freight house, and makes a third of it unproven for the Almsdesk. The
+  fleet spreads its courting across the houses.
+- Every energy rifle carries a cell (the Ardent Pulse Rifle, Seraph Las-Repeater and Spark Repeater did not). The
+  Sawn-Off Double holds its two barrels, quick to reload and harder hitting for it.
+- The merc market shows the ask and the slider, and no reading of what the field will bid: nobody can see that.
 - A renewal answered on the Paper holds at the ask it was answered at; a conscript whose term this Divide completes is
   freed at the year's end and chooses for himself, so the Paper does not offer him.
 - When either body dies — on a field, in a captor's hold, on a surgeon's table, at the wall, in the Eight — the other

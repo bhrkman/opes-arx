@@ -1591,7 +1591,10 @@
   .port-card{position:relative;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--sq,var(--faint));
     border-radius:5px;padding:5px;cursor:pointer;overflow:hidden}
   .port-card:hover{border-color:var(--a)} .port-card.sel{box-shadow:inset 0 0 0 1px var(--a)}
-  .port-card.hurt{border-left:2px solid var(--warn)}
+  /* §WOUNDS a mending hand: there is danger in picking him */
+  .port-card.hurt{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)}
+  .fcard.hurt{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)}
+  .fcard.hurt .nm::after,.port-card.hurt .pname::after{content:' \2022 Wounded';color:var(--warn);font-size:10px;font-weight:normal}
   .port-card .pface{position:relative;aspect-ratio:2/3;border-radius:4px;background:var(--a-deep);
     display:flex;align-items:center;justify-content:center;margin-bottom:5px;min-height:96px}
   .port-card .psil{width:64%;height:auto;display:block}
@@ -3347,7 +3350,6 @@
       '</div>';
   }
   /* one prospect, shown with the full picture a hiring call needs */
-  var MERC_FIELD = 1.15;      /* §ACQ what the rest of the fleet is putting up, as a share of the ask */
   function prospectCard(f, signing) {
     var s = f.stats || {};
     /* §BASTILLE A SHEET WITH NOTHING ON IT IS THE POINT. A Natural-Born grew up on your ship
@@ -3395,15 +3397,12 @@
          chooses — so it keeps its bidding, but not its moving buttons. The bid is a slider set
          against what the field is putting up, and the reading answers the thing a manager
          actually wants to know: not how much, but whether it is enough. */
+      /* (ruled) no reading of the field: nobody can see what the other OAs bid, and the guess was the page's own */
       var bid = f.yourBid || f.ask;
-      var field = Math.round(f.ask * MERC_FIELD);
-      var lo = Math.round(f.ask * 0.8), hi = Math.round(field * 1.25);
-      var conf = Math.max(0, Math.min(1, (bid - lo) / Math.max(1, hi - lo)));
-      var word = conf > 0.72 ? 'They Would Take It' : conf > 0.45 ? 'They Are Listening' : 'Not Enough';
+      var lo = Math.round(f.ask * 0.8), hi = Math.round(f.ask * 1.6);
       foot = '<div class="bidrow"><input type="range" min="' + lo + '" max="' + hi + '" step="25" value="' + bid +
                '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(bid) + '</span></div>' +
-             '<div class="bidscale"><span>Low</span><span>The Field \u00b7 ' + crs(field) + '</span><span>High</span></div>' +
-             '<div class="bidread">' + word + '<div class="bar"><i style="width:' + Math.round(conf * 100) + '%"></i></div></div>' +
+             '<div class="bidscale"><span>Low</span><span>Ask \u00b7 ' + crs(f.ask) + '</span><span>High</span></div>' +
              '<div class="bidbtns">' +
                '<button class="pcbtn" data-bid="' + f.id + '">' + (f.yourBid ? 'Hold' : 'Place') + '</button>' +
                '<button class="pcbtn" data-bidup="' + f.id + '">Raise</button>' +
@@ -3779,10 +3778,10 @@
     if (m !== SEASON.CONST.EIGHT_MONTH || (E.result && E.result.season === G.state.season)) { host.innerHTML = ''; return; }
     /* THE NAMING MONTH. One of yours goes, chosen from the fit as fighter cards; unnamed, your
        best goes. The seeding as it stands beside them. */
-    var hurt = function (f) { return !!(f.condition && (f.condition.injuries || []).length); };
-    /* §MON-WA a pair goes as one entrant, so both bodies must be fit (the engine refuses otherwise) */
+    /* §WOUNDS the mending may be named too, marked; §MON-WA a pair goes as one entrant */
+    var up = function (x) { return x.status === 'active' || x.status === 'injured'; };
     var fit = me.roster.filter(function (f) { var p = partnerIn(f, me.roster);
-      return f.status === 'active' && !f.mirror_of && !hurt(f) && !(p && (p.status !== 'active' || hurt(p))); });
+      return up(f) && !f.mirror_of && !(p && !up(p)); });
     var def = SEASON.eightPick(me, true), named = E.names[G.me];
     var cur = named || (def && def.id) || '';
     var order = G.state.ids.slice().sort(function (a, b) { return REP.standing(G.corps[b].rep, 'houses') - REP.standing(G.corps[a].rep, 'houses'); });
@@ -3795,7 +3794,7 @@
           '<div class="tm' + (sideOf === 'B' ? ' yours' : '') + '"><span class="tt">' + (sideOf === 'B' ? 'Your Four' : 'The Second Four') + '</span>' + B.map(cSpan).join('') + '</div></div></div>' +
       '<div class="m" style="margin:8px 0 6px">' + (named ? 'Named' : 'Unnamed \u00b7 Your Best Goes') + '</div>' +
       '<div class="eightpick">' + fit.map(function (f) {
-        return '<div class="fcard' + (f.id === cur ? ' sel' : '') + (f.id === cur && named ? ' named' : '') + '" data-eight="' + f.id + '">' +
+        return '<div class="fcard' + (f.id === cur ? ' sel' : '') + (f.id === cur && named ? ' named' : '') + (riskOf(f) ? ' hurt' : '') + '" data-eight="' + f.id + '">' +
           '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + f.id + '" style="color:' + raceColour(f) + '">' + nameHtml(f) + '</span></span>' +
           '<span class="kn">Fame ' + Math.round(f.fame || 0) + (f.id === cur ? (named ? ' <span class="ktag hand">Named</span>' : ' <span class="ktag">Your Best</span>') : '') +
             (openPromisesOf(f).some(function (p) { return p.kind === 'eight'; }) ? ' <span class="ktag warn">Promised</span>' : '') + '</span></div>' +
@@ -5884,16 +5883,15 @@
                      { k: 'term', lbl: 'Term' }, { k: 'name', lbl: 'Name' }];
   /* §MON-WA the bench and the squad screens deal in BEINGS: a pair is one card that a manager
      picks up and puts down, and its second body travels with it (`placeBoth`). */
+  /* §WOUNDS (ruled) everyone standing can be sent, the mending too — they go down carrying the wound, and it costs their
+     loyalty to be sent; they are marked (`riskOf`) so the choice is made with open eyes. A man held by a rival cannot go. */
   function fitBodies() {
     var me = G.corps[G.me];
-    var hurt = function (x) { return !!(x.condition && (x.condition.injuries || []).length); };
     return me.roster.filter(function (b) {
-      /* a pair is fit as one: the engine keeps it off the drop and out of orbit when either body is hurt */
-      var p = partnerIn(b, me.roster);
-      return b.status !== 'dead' && b.status !== 'retired' && !b.mirror_of
-          && !hurt(b) && !(p && p.status !== 'dead' && hurt(p));
+      return b.status !== 'dead' && b.status !== 'retired' && b.status !== 'captured' && !b.mirror_of;
     });
   }
+  function riskOf(b) { var me = G && G.corps && G.corps[G.me]; return !!(me && SEASON.mendingBeing && SEASON.mendingBeing(b, me.roster)); }
   /* placing or moving a being carries its other half with it */
   function placeBoth(b, si) {
     if (si == null) { delete G.plan.at[b.id]; delete G.plan.leaderOf[b.id]; }
@@ -5926,7 +5924,7 @@
     if (!b) return '';
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
     var lead = !!G.plan.leaderOf[b.id];
-    var hurt = (b.condition && (b.condition.injuries || []).length) ? ' hurt' : '';
+    var hurt = riskOf(b) ? ' hurt' : '';
     return '<div class="port-card' + (G._sqsel === b.id ? ' sel' : '') + hurt + '" data-id="' + b.id + '"' +
       (si != null ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
       '<div class="pface">' + fighterMark(b, 72, colFor(G.me)) +
@@ -5951,7 +5949,7 @@
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
     var lead = !!G.plan.leaderOf[b.id];
     var si = G.plan.at[b.id];
-    return '<div class="fcard' + (G._sqsel === b.id ? ' sel' : '') + '" ' +
+    return '<div class="fcard' + (G._sqsel === b.id ? ' sel' : '') + (riskOf(b) ? ' hurt' : '') + '" ' +
       (opts.pick ? 'data-' + opts.pick + '="' + b.id + '"' : opts.drop ? '' : 'data-id="' + b.id + '"') +
       (inSquad ? ' style="--sq:var(--' + SQCLASS[si] + ')"' : '') + '>' +
       '<div class="top"><span class="nmwrap"><span class="nm" data-sheet="' + b.id + '" title="Read the Sheet" style="color:' + raceColour(b) + '">' +

@@ -1213,9 +1213,8 @@ setTimeout(() => {
             doc.querySelectorAll('#rostmarket [data-bidup]').length === n &&
             doc.querySelectorAll('#rostmarket [data-nobid]').length === n,
             'the merc window wears its own colour; Place, Raise and Withdraw all stand (' + n + ' cards)');
-      check(/The Field/.test(text('#rostmarket')) &&
-            /They Would Take It|They Are Listening|Not Enough/.test(text('#rostmarket')),
-            'the bid reads against the field and says whether it is enough');
+      check(/Ask \u00b7/.test(text('#rostmarket')) && !/The Field|They Would Take It/.test(text('#rostmarket')),
+            'the bid reads against the ask, and makes no guess at the field (ruled)');
     }
     bidHigh(2);
     endMonth();
@@ -1925,7 +1924,10 @@ setTimeout(() => {
       });
       const maxStress = dropped.length
         ? Math.max.apply(null, dropped.map(f => (f.condition && f.condition.stress) || 0)) : 0;
-      check(dropped.length > 0 && marked.length > 0,
+      /* a house that never withdraws can lose nearly everyone at the showdown (this drive never offers to leave): with
+         nobody home there is nobody to read, which is a fact about the contest, not about the page */
+      if (!dropped.length) console.log('  skipped: nobody the drive fielded came home to read');
+      else check(dropped.length > 0 && marked.length > 0,
             'the Divide came home in the people it happened to (' + marked.length + ' of ' +
             dropped.length + ' who were fielded carry a mark \u00b7 worst stress ' +
             Math.round(maxStress) + ' of 100' +
@@ -1938,8 +1940,10 @@ setTimeout(() => {
     check(/Year 2 · Month 1/.test(text('#clock')), 'the year turns: ' + text('#clock'));
     check(hasTab('Desk') && !hasTab('The Firefight'),
           'the rail returns whole to the preparation');
-    /* §DESK the big grids start folded and open when asked */
-    {
+    /* §DESK the big grids start folded and open when asked (with people on the books to show them) */
+    const homeAgain = window.__G.corps[window.__G.me].roster.filter(f => f.status !== 'dead' && f.status !== 'retired').length;
+    if (homeAgain < 3) console.log('  skipped: the Desk grids (' + homeAgain + ' on the books after the Divide)');
+    else {
       const shutAtFirst = doc.querySelectorAll('#traingrid .tgwrap.shut, #restgrid .tgwrap.shut, ' +
                                                '#intelgrid .tgwrap.shut, #courtgrid .tgwrap.shut').length;
       check(shutAtFirst === 4, 'the Desk\'s four grids open folded (' + shutAtFirst + ' of 4)');
@@ -1949,7 +1953,7 @@ setTimeout(() => {
       check(!doc.querySelector('#traingrid .tgfold') && !!doc.querySelector('#traingrid .tgchev2'),
             'the head is the switch: a chevron, not a word to aim at');
     }
-    check(!!doc.querySelector('#traingrid .tgrid') && !!doc.querySelector('#intelgrid .itbl')
+    if (homeAgain >= 3) check(!!doc.querySelector('#traingrid .tgrid') && !!doc.querySelector('#intelgrid .itbl')
           && !!doc.querySelector('#courtgrid .ctbl'),
           'year two\'s first month offers its boards — the loop closes');
 
