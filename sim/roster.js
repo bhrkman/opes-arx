@@ -1116,13 +1116,6 @@
   }
 
   /** A full drop force: three squads of eight by default (COMBAT.md §2.1). */
-  function generateDropForce(rng, opts) {
-    opts = opts || {};
-    const split = opts.split || "3x8";
-    const sizes = split === "2x12" ? [12, 12] : split === "4x6" ? [6, 6, 6, 6] : [8, 8, 8];
-    const batchTally = {};
-    return sizes.map(n => generateSquad(rng, n, { corpId: opts.corpId, batchTally }));
-  }
 
   /* In node, bootstrap straight from /data so callers need no loader file.
      Layout-agnostic: works whether the project keeps folders or sits in one directory. */
@@ -1156,7 +1149,7 @@
   /** apply a decided fate to the survivor `f` of the dead half `g` */
   function bereave(f, g, fate) {
     f._bereaved = g.id; g._bereaved = f.id; f.widow_of = g.id;
-    if (fate === 'dead') { f.status = 'dead'; f._bondDeath = true; return fate; }
+    if (fate === 'dead') { f.status = 'dead'; return fate; }
     const lead = f.contract && f.contract.mirrored ? g : f;
     delete f.bond_partner; delete f.mirror_of;
     if (fate === 'braindead') { f.status = 'retired'; f.retired = true; f._braindead = true; return fate; }
@@ -1174,7 +1167,6 @@
       for (const k in st) if (f.stats && f.stats[k] != null) f.stats[k] = Math.max(10, Math.min(200, f.stats[k] + st[k]));
     }
     f.traits = (f.traits || []).filter(t => t !== 'severed').concat(['severed']);
-    f._severed = true;
     g._carriedOn = true;   /* the being lives on in the survivor: its death benefit is paid when the survivor's is */
     return fate;
   }
@@ -1196,7 +1188,7 @@
     return out;
   }
 
-  const api = { initRoster, autoInit, generateSquad, generateDropForce, DEFAULT_POOL_MIX, seasonsRange,
+  const api = { initRoster, autoInit, generateSquad, DEFAULT_POOL_MIX, seasonsRange,
                 bondOdds, bondFate, bereave, settleBonds,
                 get raceById() { return raceById; },
                 get traitById() { return traitById; },

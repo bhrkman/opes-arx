@@ -27,7 +27,7 @@ setTimeout(()=>{d.getElementById('mNew').click();
            d.getElementById('gvmap').onmousemove(ev);
            const tip=d.getElementById('gvtip').textContent.replace(/\s+/g,' ').trim();
            console.log('hover: '+tip.slice(0,140));
-           if(!(new RegExp(g.regions[rid].name)).test(tip) || !/Ticks a Step/.test(tip) || !/Alpha|Squad/.test(tip)) fails.push('the region hover does not name the region, its going and who is in it');
+           if(!(new RegExp(g.regions[rid].name)).test(tip) || !/Ticks? a Step/.test(tip) || !/Alpha|Squad/.test(tip)) fails.push('the region hover does not name the region, its going and who is in it');
            regEl.dispatchEvent(new w.Event('click'));
            const zones=d.querySelectorAll('#gvregion [data-gvzone]').length;
            console.log('zones drawn: '+zones+' of '+g.regions[rid].zones.length);

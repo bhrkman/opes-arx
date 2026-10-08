@@ -53,15 +53,7 @@ const out = { writeOnly: [], deadConst: [], undeclared: [], uncalled: [], neverT
    `_mediaReveal` was on this list for exactly one run: media day was documented as charging
    concealment and nothing read the charge, so performing was free standing. It is wired now. */
 const ACCEPTED_WRITE_ONLY = [
-  '_id',              // identity plumbing
-  '_panic',           // REDUNDANT — `u.state = 'panicked'` already says this, and is read
-  '_justSwapped',     // REDUNDANT — the sidearm swap is visible in `onSidearm`
-  '_offered',         // REDUNDANT — reset every phase, never consulted
-  '_committed',       // HALF-BUILT — the wage bill, snapshotted for a budget view nobody built
-  '_grant',           // HALF-BUILT — same, the board's grant at the season open
-  '_pressed',         // HALF-BUILT — a fighter pressed into service; nothing treats them so
-  '_role',            // HALF-BUILT — the role a body was fielded in; no reader
-  '_transferredTo'    // HALF-BUILT — a captive's new owner; the ransom half exists, this end does not
+  '_id'               // identity plumbing
 ];
 
 const writes = {};
@@ -84,11 +76,7 @@ for (const field of Object.keys(writes).sort()) {
 /* A constant nobody reads is a decision nobody is acting on. Some are deliberately declarative
    — a documented figure the code derives differently — so those are named. */
 /* Same principle for constants. A number nobody reads is a decision nobody is acting on. */
-const ACCEPTED_DEAD = [
-  'TILE_METRES',      // tactical.js; declarative — the grid works in tiles, not metres
-  'SUPPRESS_MIN_P',   // HALF-BUILT — a floor on suppression that nothing applies
-  'BOUND_SHARE'       // HALF-BUILT — bounding movement was never wired
-];
+const ACCEPTED_DEAD = [];
 for (const m of MODULES) {
   const block = /CONST\s*=\s*\{([\s\S]*?)\n\s{2}\};/m.exec(SRC[m]);
   if (!block) continue;

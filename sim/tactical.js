@@ -64,7 +64,6 @@
     FLIGHT_TILES: 4,                 // [C] how far a burst of flight adds
     FLIGHT_AT: 6,                    // [C] the gap worth taking to the air to close
     DASH_EXPOSE: true,               // [S] spending both AP on movement means no cover this turn
-    TILE_METRES: 6,                  // [C] what a tile is worth, for turning distance into a band
     BAND_TILE: [14, 6],              // [C] >14 tiles is long, >6 medium, else short
     LOS_BLOCK_COVER: 3,              // [S] hard cover blocks line of sight entirely
     COVER_BLOCKS_MOVE: true,         // [S] every object is impassable, not just the tall ones
@@ -295,7 +294,6 @@
     WITHDRAW_AT: 0.175,              // [C] share of the squad's health lost before the order is given (the standard stance's)
     PANIC_RESOLVE_DIV: 260,           // [C] high resolve almost never breaks
     PANIC_FLOOR: 0.04,               // [C] anyone can break, rarely
-    BOUND_SHARE: 0.5,                // [S] how much of a withdrawing squad moves each turn
     EXIT_COLS: 1,                    // [S] reaching your own edge takes you off the field
     BREAK_MARGIN: 3                  // [C] §RETREAT tiles past an enemy gun's reach a retreating body counts as out of it
   };
@@ -932,7 +930,6 @@
       u.x = pick.x; u.y = pick.y;
       u.ap = CONST.AP; u.side = opts.side != null ? opts.side : u.side;
       u.dashed = false; u.overwatch = false;
-      u._firedThisExchange = false;
     });
   }
 
@@ -1167,7 +1164,7 @@
       if (!shooter._drewFlag) { shooter._drewFlag = true; tel.sidearmDraws++; }
     }
     if (!C.spendShot(shooter, 'shot')) { tel.dry++; target.cover = saveCover; target.flanked = saveFlank; return false; }
-    shooter._firedThisExchange = true;
+    target._shotSince = true;   /* §QUIRKS shot at since its own last turn (evasion_surge reads it) */
     /* §4.2 `sustained` — staying on one target pays, switching resets it. The counter lives in
        `combat.js`'s exchange loop, which the grid does not run, so the tag was inert on the
        resolver that matters: four weapons carrying it, priced for it, doing nothing. On a grid
@@ -1538,9 +1535,9 @@
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
       const p = Math.max(CONST.PANIC_FLOOR, 1 - res / CONST.PANIC_RESOLVE_DIV) * depth * 0.5;
       if (rng() < p) {
-        u.state = 'panicked'; u._panic = true;
+        u.state = 'panicked';
         /* §MON-WA one mind breaks in both bodies */
-        if (u.pair) for (const h of u.pair.halves) if (h !== u && (h.state === 'ok' || h.state === 'light')) { h.state = 'panicked'; h._panic = true; }
+        if (u.pair) for (const h of u.pair.halves) if (h !== u && (h.state === 'ok' || h.state === 'light')) h.state = 'panicked';
       }
     }
   }
@@ -1605,7 +1602,7 @@
     /* §ROUNDS a squad with nothing left to shoot with goes: rounds carry now, and two dry remnants stood off till the
        clock (5% of the Divide's fights ran the full 27 turns, a hit in seven turns, three in four of them at night) */
     const up = S.units.filter(u => u.state === 'ok' || u.state === 'light');
-    if (up.length && !up.some(canHurt)) { S.withdrawing = true; S._dryOut = true; return true; }
+    if (up.length && !up.some(canHurt)) { S.withdrawing = true; return true; }
     return false;
   }
   /* §RETREAT (ruled) A RETREAT ENDS WHEN CONTACT IS BROKEN, not at the map's edge: a retreating body is off the field
@@ -2192,6 +2189,7 @@
         if (!alive(E.units).length) break;
         try {
           u.ap = CONST.AP; u.dashed = false; u.overwatch = false;
+          u._underFire = !!u._shotSince; u._shotSince = false;   /* (fixed) set at last: the surge never fired */
           /* MOTION WEARS OFF WHEN YOUR TURN COMES ROUND. Being caught mid-move only means
              anything while the other side is shooting, which is exactly the window between
              your move and your next activation. Cleared here alongside the other per-turn
@@ -2606,23 +2604,14 @@
             }
           }
 
-          /* DECLARED HERE, above the first thing that uses it. It was first declared beside the
-             movement block, which reads naturally and is forty lines too late: target selection
-             happens before movement, so the tap threw a ReferenceError on the opening shot of
-             the first fight. Caught by running it, not by reading it. */
-          const tap = ctx._scoreTap || null;
           let target = null, pNow = 0;
-          const pickRows = tap ? [] : null;
           for (const f of seen) {
             const raw = shotAt(u, f);
             /* §STUN a stun shooter works on the man nearest the line — his stacks and his wounds both — as a rifleman finishes the hurt one */
             const p = raw + (stunOf(u) > 0 ? CONST.STUN_FOCUS * Math.min(1, (stunSpent(f) + Math.max(0, (f.hpMax || 1) - (f.hp != null ? f.hp : f.hpMax))) / Math.max(1, f.hpMax || 1))
                                           : (f.state === 'light' ? CONST.FINISH_WOUNDED : 0));
-            if (pickRows) pickRows.push({ id: f.id, raw: raw, light: f.state === 'light' });
             if (p > pNow) { pNow = p; target = f; }
           }
-          if (tap && tap.pick && pickRows && pickRows.length)
-            tap.pick(pickRows, target ? target.id : null);
 
           /* What is the best shot I could have if I moved instead? Cover for me, no cover
              for them, and close enough that the band is not doing all the work. */
@@ -2636,7 +2625,6 @@
           const near = foes.length
             ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
             : searchPoint(S, map, tel.turn);
-          if (tap) tap.rows = [];
           let move = null;
           /* am I currently unseen? decides Soft Boots. Declared out here rather than inside
              the scoring block because the dash below is a second movement decision in the same
@@ -2684,18 +2672,6 @@
                  wins. A term that fires constantly and flips nothing is decorative, which is
                  what `overwatch` turned out to be. Recomputing outside the engine would mean
                  reimplementing this formula and measuring the reimplementation. */
-              if (tap) {
-                /* enough to ask the flanking question afterwards: what cover would I have
-                   standing here, and would my best shot from here be round the side of theirs? */
-                let ownCov = 0;
-                for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-                  const cc = at(map, x + ox, y + oy);
-                  if (cc > ownCov) ownCov = cc;
-                }
-                tap.rows.push({ x, y, p: bestP, threat, bandOff, ownCov: ownCov,
-                                flanks: !!(tgt && concealAt(map, tgt) > 0 &&
-                                           coverAgainst(map, tgt, { x: x, y: y }) === 0) });
-              }
               if (!move || val > move.val) move = { x, y, val, p: bestP, tgt, threat };
             }
           }
@@ -2714,11 +2690,6 @@
           const moveGate = u._noMove ? Infinity
                          : u.suppressed ? CONST.MOVE_COST + CONST.SUPPRESSED_MOVE_COST
                          : CONST.MOVE_COST;
-          if (tap) {
-            tap.emit(tap.rows, { p: pNow, threat: stayThreat, bandOff: stayBandOff },
-                     moveGate, move, u);
-            tap.rows = [];
-          }
           if (move && move.val > stayVal + moveGate && (move.x !== u.x || move.y !== u.y)) {
             const strippedCover = target ? coverAgainst(map, target, u) : 0;
             const fromX = u.x, fromY = u.y;      /* §RACES how far this step actually carried */

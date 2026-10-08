@@ -184,7 +184,6 @@ const CONST = {
   DMG_MIN: 1,                     // [S] a hit that lands does something
   POWER_REF: 5,                   // [C] §GUNS the power whose round does the severity roll's damage as it stands; others scale from it
   POWER_FLOOR: 0.2,               // [C] and the least a round does, of that (a gun of no power still lands)
-  HP_OVERKILL: 5,                 // [H] how far past empty a stun round leaves a body (a live round past empty kills)
   /* [H] the chance a downed fighter is stabilised rather than dying, by the round that dropped
      them. Worn down by grazes and they are nearly always carried out; opened up by a critical
      and it is close to even. Half the deaths in the game come through here. */
@@ -246,21 +245,6 @@ const CONST = {
   GEAR_TIER_ACCURACY: 5.0                                       // [S] per tier from 3 (1 → 0.6 → 0.50)
 };
 
-/* DIVIDE.md §7.2 — declared stance governs fight SELECTION in the day loop. What survives inside the firefight
-   is PURSUIT, here, and the point at which the captain orders the squad back, which is the day loop's
-   `STANCE_WITHDRAW_AT` (divide.js) handed to the grid as the side's `withdrawAt`. Two fields stood here that
-   nothing read: `holdNudge` (superseded by that threshold) and `recoveryUrgency` (exchanges before someone goes
-   to a downed squadmate — a mechanic never built; losing your wounded is a consequence of being overrun, §3.7).
-   Both deleted rather than left as knobs that turn nothing. */
-const STANCE = {
-  preservationist: { pursuit: 'if_free'    },
-  measured:        { pursuit: 'if_free'    },
-  standard:        { pursuit: 'yes'        },
-  unyielding:      { pursuit: 'aggressive' },
-  death_or_glory:  { pursuit: 'always'     }
-};
-/* back-compat alias: callers still say squad.policy */
-const POLICY = STANCE;
 
 const BANDS = ['long', 'medium', 'short'];
 
@@ -490,7 +474,6 @@ function makeCombatant(fighter, opts) {
     cellFed: !!(kit && kit.charge > 0),
     /* §GRUDGE the one OA this man remembers, carried onto the ground with him */
     _grudge: fighter._grudge || null,
-    _firedThisExchange: false,
     /* §6 — charge is the fighter's, not the engagement's: it persists across every fight and comes back at camp.
        Ammunition persists too (§ROUNDS) and comes back only from a munitions drop or a satchel: the cell is small and
        renews itself overnight, the magazine is deep and does not — that is the contrast between the families. */
@@ -540,7 +523,6 @@ function useSidearm(u) {
   const sr = u._sideRounds || { mag: u.weapon.mag || CONST.LOADOUT_AMMO, spare: (u.weapon.mag || CONST.LOADOUT_AMMO) * CONST.LOADOUT_MAGS_SIDEARM };
   u.magLeft = sr.mag; u.ammo = sr.spare; u.reloading = 0;   /* §ROUNDS what is left of his own, not a fresh issue */
   u.onSidearm = true;
-  u._justSwapped = true;
   return true;
 }
 function backToPrimary(u) {
@@ -627,7 +609,6 @@ function spendShot(u, kind) {
 function betweenExchanges(side) {
   for (const u of side.units) {
     if (isEnergy(u) && u.onSidearm && primaryReady(u)) backToPrimary(u);
-    u._firedThisExchange = false;
   }
 }
 
@@ -692,7 +673,7 @@ const QUIRK = {
   arc_chain: {},                                                   /* second target, at the call site */
   area: {},                                                        /* multi-target, at the call site */
 
-  /* --- declared, no effect until their system exists --- */
+  /* --- read where their system lives (hasQuirk at the call site) --- */
   suppressive: {}, suppressive_2: {}, silent: {}, crowd_pleaser: {},
   mobile_cover: {}, daylight: {}, heavy_draw: {}, nonlethal: {},
   mob_up: {}, mob_down: {}
@@ -1173,7 +1154,6 @@ function onDeath(rng, unit, side, log, tel) {
      whose whole pitch is showmanship was buying a tag with no effect. The killer is not
      tracked through the wound chain, so credit goes to whoever on the other side is carrying
      one — a showy weapon gets the story whether or not it fired the round. */
-  if (tel) tel._lastKillSide = side && side.tag;
   if (unit._killedBy && (hasQuirk(unit._killedBy, 'crowd_pleaser') || ((unit._killedBy.armor && unit._killedBy.armor.tags) || []).indexOf('crowd_pleaser') >= 0)) {
     unit._killedBy._fameEarned = (unit._killedBy._fameEarned || 0) + 1;
     if (tel) tel.crowdPleaser = (tel.crowdPleaser || 0) + 1;
@@ -1194,7 +1174,7 @@ function onDeath(rng, unit, side, log, tel) {
     other.state = 'down'; other._braindead = true;
     log.push({ t: tel && tel.turn, type: 'bond_shock_braindead', by: other.id, at: unit.id, actors: [other.id], significance: 4 });
   } else {
-    other.state = 'down'; other._traumatized = true;
+    other.state = 'down';
     log.push({ t: tel && tel.turn, type: 'bond_shock_traumatized', by: other.id, at: unit.id, actors: [other.id], significance: 4 });
   }
   if (tel) { tel.monwaPairLoss = (tel.monwaPairLoss || 0) + 1; (tel.bondFates = tel.bondFates || {})[fate] = ((tel.bondFates || {})[fate] || 0) + 1; }
@@ -1280,7 +1260,7 @@ function captainFidelity(fighter, traitIndex) {
 const API = {
   QUIRK, CONST, resolveSeverity, effectiveProtection, bandMismatch, hpFor, damageOf,
   spendShot, primaryReady, SITUATIONS, situationalStats, useSidearm, backToPrimary, isEnergy, hasQuirk, tempoOf, quirksOf,
-  settleAftermath, onDeath, persistCharge, roundsShare, fullRounds, betweenExchanges, tickReload, suppressOf, POLICY, STANCE, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
+  settleAftermath, onDeath, persistCharge, roundsShare, fullRounds, betweenExchanges, tickReload, suppressOf, BANDS, makeCombatant, captainFidelity, seedComposure, hooksOf, hitChance, aimEff, compBandOf, rollInjury, INJURY_TABLE, WING_TABLE };
 /* Node AND browser. This file exported only to Node for five steps, which meant `divide.js`
    could never run in a page — it reaches for `global.CDCOMBAT` and found nothing. Every other
    module in the sim already did both; this one was the odd one out, and nothing noticed

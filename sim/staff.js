@@ -56,9 +56,6 @@
     POACH_INTEL_MONTHS: 12,             // [S] and they go on telling you, a little, this long
     POACH_INTEL_MONTHLY: 2,             // [C]
     SERGEANT_FLOOR: 0.4,                // [C] a Craft-0 sergeant's talk lands at this share
-    UP_DRILL: 1.4,                      // [C] Talks Them Up: drill, if drilled
-    UP_LOYALTY: 6,                      // [C]
-    UP_RENEWAL: 0.10,                   // [C] and what their next renewal asks for it
     DRILL_HARD: 0.45, DRILL_PATIENT: 0.25,      // [C] drill yield at Craft 100, by school
     DRILL_BEST: 0.35,                   // [C] more again in the drillmaster's own best stats
     DRILL_HARD_STRESS: 0.5, DRILL_PATIENT_CALM: 0.4,   // [C] what the school does to the drill's strain

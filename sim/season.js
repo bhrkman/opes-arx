@@ -751,7 +751,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        and season, because a card that reshuffles on a re-run is not a decision. */
     const eligible = dividendEligible(corp);
     if (!eligible.length) return [];
-    const seasonN = (corp._season || corp.season || 0);
+    const seasonN = corp.season || 0;
     let h = 2166136261;
     const key = corp.id + '|dividend|' + seasonN;
     for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -990,7 +990,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
-      f.experience.battles = (f.experience.battles || 0) + 1; f.experience.eights = (f.experience.eights || 0) + 1;
+      f.experience.battles = (f.experience.battles || 0) + 1;
       REP.earnFame(f, CONST.EIGHT_FAME);
     });
     land(sA); land(sB);
@@ -2923,7 +2923,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         .sort((a, b) => hurtN(a) - hurtN(b) || score(b) - score(a));
       for (const f of hurt) {
         if (seats >= CONST.DROP_MIN) break;
-        for (const x of [f, partnerOf(f)]) if (x && picked.indexOf(x) < 0) { x._pressed = true; picked.push(x); }
+        for (const x of [f, partnerOf(f)]) if (x && picked.indexOf(x) < 0) picked.push(x);
         seats++;
       }
     }
@@ -4421,7 +4421,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const took = SPON.stepBoard(state.sponsorBoard, state.corps, state.ids, m);
       for (const id in took) {
         const c = state.corps[id];
-        (c._signedThisMonth = c._signedThisMonth || []).push({ month: m, OAs: took[id] });
       }
     }
     state.month++;
@@ -4703,7 +4702,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       c._openingTreasury = c.account.treasury;   /* for the surplus demand: "end the year N up" */
-      c._grant = c.account.grant;
       /* RENEW, RELEASE, RECRUIT — and all three BEFORE the wage bill.
          They used to run after it, so every contract signed this year was paid nothing for
          its first season: eight signings a corp a year, wages never charged, which is a
@@ -4719,7 +4717,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          were set — before the Divide killed anybody. The thrift spectrum scores against this,
          so it must be captured here rather than recomputed at scoring time off a roster the
          Divide has already thinned. */
-      c._committed = LED.wageBill(alive);
       LED.settleSeason(c.account, alive, {
         retainerMonths: 1,             /* eleven twelfths landed month by month; this is the Divide's */
         injuries: c._off.injured || 0
@@ -5498,6 +5495,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
         events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
         staffPool: toPlain(state.staffPool || null),   /* §STAFF who is still looking for a post this year */
+        /* (fixed) the draft in progress, the first window's unsigned (carried to the second), the Eight's nomination and
+           result, and open trade offers: a save between their writing and their reading lost all four */
+        recruitDraft: toPlain(state.recruitDraft || null), carry: toPlain(state.carry || null),
+        eight: toPlain(state.eight || null), trade: toPlain(state.trade || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
@@ -5563,6 +5564,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       drop: o.drop || { media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
       events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
+      recruitDraft: o.recruitDraft || undefined, carry: o.carry || undefined, eight: o.eight || undefined, trade: o.trade || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */

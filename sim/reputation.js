@@ -645,8 +645,12 @@
     for (const c of CATEGORIES) {
       /* the year's fall is taken monthly now (drainHolds); what remains here is the share for
          any season a caller settles without stepping its months */
-      rep.holds[c] = clamp((rep.holds[c] || 0) - CONST.HOLDS_DRAIN * s * (rep._drainedThisYear ? 0 : 1), 0, CONST.HOLDS_CEIL);
+      /* (fixed) only a year whose months were NOT stepped is drained here: the flag was never cleared, so the first
+         season took a year's drain at its open on top of the months, and no later open ever drained (an unstepped
+         year included). A fresh OA (no flag) has had no year to drain. */
+      if (rep._drainedThisYear === false) rep.holds[c] = clamp((rep.holds[c] || 0) - CONST.HOLDS_DRAIN * s, 0, CONST.HOLDS_CEIL);
     }
+    rep._drainedThisYear = false;   /* the new year: its months set it again as they drain */
     return rep.holds;
   }
 

@@ -201,7 +201,6 @@
        is what turns near-misses into contact and lets a squad be drawn into two firefights
        between dawn and dusk. */
     TICKS_PER_DAY: 12,                  // [S]
-    DAY_TICKS: 6,                       // [S] the fleet marches these; it camps for the rest
     HOURS_PER_TICK: 2,                  // [S] §LIGHT a block is two hours of the contest
     /* --- HOW LONG A FIREFIGHT TAKES ---
        A firefight used to take NO TIME AT ALL. Contact was detected on a tick, the whole
@@ -862,7 +861,7 @@
     c.withdrawn = { day: day, terms: (off && off.terms) || null, promises: promises, byChoice: true, how: how || 'withdrew' };
     for (const q of c.squads || []) {
       if (!squadHead(q).length) continue;
-      q._withdrawn = day; q.bodies = []; q.intent = null;
+      q.bodies = []; q.intent = null;
     }
     (stats.promises = stats.promises || []).push.apply(stats.promises, promises);
     if (stats.withdrawOffers) delete stats.withdrawOffers[c.id];
@@ -999,7 +998,7 @@
       /* (a pair's one contract is paid once: the Wa's mirrored copy carries no benefit and no wage — LED.paid) */
       const worth = alive.length ? alive.reduce((t, b) => t + (LED.paid(b) ? ((b.contract && b.contract.death_benefit) || 0)
                     + ((b.contract && b.contract.salary) || 0) * LED.CONST.SALARY_MONTHS : 0)
-                    + Math.min(CONST.LEAVE_TRAINING_CAP, ((b.experience || {}).divides || 0) + ((b.divides) || 0)) * CONST.LEAVE_TRAINING_PER_DIVIDE
+                    + Math.min(CONST.LEAVE_TRAINING_CAP, (b.experience || {}).divides || 0)   /* (fixed) career Divides, counted once (f.divides is the same Divides at this house) */ * CONST.LEAVE_TRAINING_PER_DIVIDE
                     + kitWorth(b.loadout), 0) / alive.length : 0;
       return expect * worth;
     };
@@ -1396,7 +1395,7 @@
         if (carrier) { carrier.b._spareKit = [g.id]; L.spares++; took = true; }
       }
     }
-    if (took) { L.fights++; if (wCorp) wCorp._lootFights = (wCorp._lootFights || 0) + 1; }
+    if (took) L.fights++;
   }
   function liveSquadGroup(rng, squads, day, engagementNo, traitIndex) {
     const parts = squads.map(sq => liveSquad(rng, sq.corp, sq, day, engagementNo, traitIndex))
@@ -2092,7 +2091,7 @@
         const halfOfDead = f.mirror_of && u.pair && u.pair.halves.every(h => h.state === 'dead');
         if (victors && victors.corp && victors.corp.rep && !halfOfDead) {
           const bag = (victors.corp._killsBy = victors.corp._killsBy || {});
-          const e = (bag[f._oaId || sq.corpId] = bag[f._oaId || sq.corpId] || { n: 0, famous: 0 });
+          const e = (bag[sq.corpId] = bag[sq.corpId] || { n: 0, famous: 0 });
           e.n++;
           if ((f.fame || 0) >= REP.CONST.FAMOUS_AT) e.famous++;
           /* the victim's OA: a combined side hands each fighter back to the squad they marched in with */
@@ -2204,7 +2203,7 @@
     const corpCount = opts.corpCount || 8;
     for (let i = 0; i < corpCount; i++) {
       const profile = oaProfiles[i % oaProfiles.length];
-      const stance = STANCE_OVERRIDE[profile.id] || profile.engagement_lean || 'standard';
+      const stance = (!profile.aligned && STANCE_OVERRIDE[profile.id]) || profile.engagement_lean || 'standard';   /* (fixed) an aligned house has no stance of its own */
       const persist = (opts.corps && opts.corps[profile.id]) || null;
       /* §DRAFT an engine OA fields as many squads as it drafted landings: the draft was sized off the roster, the
          squads off the drop, and the two disagreed in half the fleet (wasted picks, squads on undrafted ground). A
@@ -2286,7 +2285,6 @@
     stats._sitePay = sitePay;   /* the withdrawal weighs the open ground at what it pays */
     const pcOf = {};
     for (const pc of stats.perCorp) pcOf[pc.id] = pc;
-    stats._pcOf = pcOf;
 
     /* §RECORD Replay capture (opt-in). The viewer is a pure viewer: everything it needs is recorded here, on the
        ground's own terms — a squad is in a zone, a fight is on a zone, the wall takes regions. */
@@ -2744,7 +2742,7 @@
       o.draw[corp.id] = 0;
       const lead = corp.reserve.shift(), group = [lead];
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
-      for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; fb._landedDay = day; into.bodies.push(fb); corp.allBodies.push(fb);
+      for (const fb of group) { fb.status = 'active'; fb._squadIdx = into.sIdx; into.bodies.push(fb); corp.allBodies.push(fb);
         if (corp.persist && corp.persist.drop && corp.persist.drop.indexOf(fb) < 0) corp.persist.drop.push(fb); }
       /* a man moved off the drop into orbit (§SQUADS) has his purse paid already */
       if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group.filter(fb => !fb._pursePaid));

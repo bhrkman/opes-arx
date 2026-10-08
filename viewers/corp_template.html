@@ -2380,7 +2380,6 @@
 
   var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
-  var n0 = function (x) { return Math.round(x).toLocaleString(); };
   /* THE CREDIT MARK. Money should look like money everywhere — a bare number reads as a
      count. \u20a1 is a C with a stroke through it, which is what this currency wants to be,
      and it is a real glyph so it renders wherever the game does. */
@@ -2409,7 +2408,6 @@
 
   var ITEM_BY_ID = {};
   ITEMS.catalog.forEach(function (it) { ITEM_BY_ID[it.id] = it; });
-  var itemName = function (id) { return (ITEM_BY_ID[id] && ITEM_BY_ID[id].name) || id || '—'; };
 
   /* The rail is the game's two phases, and a surface lives where the manager actually
      touches it. Retired outright: The Year (it IS months one to eleven — the game, which
@@ -2607,14 +2605,11 @@
     var rng = P.mulberry32(P.seedFrom(seedStr));
     G = { rng: rng, oa: oaList, corps: SEASON.openFleet(rng, oaList, {}), me: meId,
           seedStr: seedStr, custom: customDef || null,
-          lot: null, lotNo: 1, log: [], fight: null,
+          fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           /* the manager's squad plan: body id -> squad index, and a named leader per squad */
           plan: { at: {}, leaderOf: {}, names: ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: {} },
-          div: null, gcache: null, gday: 1,
-          /* the day being watched, and how far into it: 'morning' | 'stepping' |
-             'complete'. Proven in the mock — no state is reachable by rewind. */
-          gstage: 'complete', gmi: 0, gtween: null, gtw: null, gtimer: null, gpulse: null };
+          div: null };
     bindSeat();
     /* THE YEAR OPENS. The engine's own seam: the planet is announced, the board sets its
        card, sponsors put offers on the table, and every house in the fleet — this one
@@ -3550,8 +3545,6 @@
       (spent >= SEASON.CONST.FOCUS_POINTS ? ' \u2014 Fully Committed' : '') +
       (boostCost ? ' <span class="m">\u00b7 \u26a1 ' + crs(boostCost) + '</span>' : '');
     $('apline').innerHTML = '';
-    if ($('focusline'))
-      $('focusline').innerHTML = (G && G.state && G.state.month < 12) ? line : '';
     if ($('focusdesk')) {
       var allIn = spent >= SEASON.CONST.FOCUS_POINTS;
       $('focusdesk').innerHTML = (G && G.state && G.state.month < 12)
@@ -3585,15 +3578,6 @@
   /* ============================ THE BRIEF ============================
      The month's shape, what is coming and when, and the agenda — the things waiting on the
      manager this month. The agenda is a count on End the Month too. */
-  function comingUp(m) {
-    var out = [];
-    var add = function (label, at) { if (at > m && at <= 12) out.push({ label: label, in: at - m }); };
-    for (var k = m + 1; k <= 11; k++) { var w = SEASON.MONTHS[k]; if (w && (w.signing || w.event)) add(w.name, k); }
-    add('The Divide', 12);
-    if (TRADE.tradingOpen(m) && m < TRADE.CONST.LAST_TRADE_MONTH) add('The Table Closes', TRADE.CONST.LAST_TRADE_MONTH + 1);
-    out.sort(function (a, b) { return a.in - b.in; });
-    return out.slice(0, 4);
-  }
   function agendaItems() {
     var items = [], me = G.corps[G.me], m = G.state.month;
     /* §MON-WA one row per BEING: a pair is one hire with two bodies, and listing both halves put
@@ -5358,7 +5342,7 @@
       var ct = b.contract || {};
       /* §CAPTIVES a man kept from a rival's drop arrives on his own paper: he was taken, not signed */
       if (b._keptFrom) { peopleCol += ln('Kept', nameSpan(b) + ' <span class="m">\u00b7 From ' + cSpan(b._keptFrom) + '</span>', '<span class="good">+1</span>'); return; }
-      peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons ? ' \u00b7 ' + ct.seasons + ' Year' + (ct.seasons === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
+      peopleCol += ln('Signed', nameSpan(b) + ' <span class="m">\u00b7 ' + esc(capWords(ct.kind || '')) + (ct.seasons_total ? ' \u00b7 ' + ct.seasons_total + ' Year' + (ct.seasons_total === 1 ? '' : 's') : '') + '</span>', '<span class="good">+1</span>'); });
     gone.forEach(function (n) { peopleCol += ln('Left', n, '<span class="m">\u2212 1</span>'); });
     /* §MON-WA what the partner-death roll did this month: the being, and what became of the half left */
     var BOND_WORDS = { dead: ['Died With the Other Half', 'bad'], braindead: ['Lost to the Bond \u00b7 Retired', 'bad'], traumatized: ['Survived \u00b7 Severed', 'warn'] };
@@ -5487,7 +5471,7 @@
        The shortfall is signed as Natural-Born at the yard's own generator, marked dev. */
     if (alive.length < 20) {
       var extra = ROSTER.generateSquad(G.rng, 20 - alive.length, { corpId: G.me, poolMix: [['nattie', 1]] }).bodies;
-      extra.forEach(function (b, i) { b.status = 'active'; b._dev = true; b.id = 'dev' + Date.now().toString(36) + i + '_' + b.id; me.roster.push(b); });
+      extra.forEach(function (b, i) { b.status = 'active'; b.id = 'dev' + Date.now().toString(36) + i + '_' + b.id; me.roster.push(b); });
       alive = me.roster.filter(fitFor);
       dlog('<span class="m">\\u00bb ' + extra.length + ' signed for the test drop (dev)</span>');
     }
@@ -5809,13 +5793,6 @@
   /* the settlement bag, initialised the way the contest initialises its own —
      `stressApplied` is bare-incremented in there, and an uninitialised counter
      reports NaN dressed as a confident nothing */
-  function statsBag() {
-    return { dead: 0, captured: 0, injured: 0, careerEnded: 0, lightWounds: 0,
-             audit: { capturedAlive: 0, medkitsUsed: 0, untendedWounds: 0, stressApplied: 0 } };
-  }
-  var actives = function (sq) {
-    return sq.bodies.filter(function (b) { return b.status === 'active'; });
-  };
 
   /* the dead leave their kit on the ground; everybody else hands theirs back to the
      locker before the next lock re-arms the drop — otherwise every re-lock buys the
@@ -5941,11 +5918,6 @@
   /* §SQUADS A PLACE FOR A FACE. Initials read as a spreadsheet with a haircut; a head and
      shoulders reads as "a portrait goes here", which is what the tile is for and what art will
      replace. Drawn in the fighter's own race colour, faint, so it is furniture. */
-  function silhouette(col) {
-    return '<svg class="psil" viewBox="0 0 40 40" aria-hidden="true">' +
-      '<circle cx="20" cy="14.5" r="7.5" fill="' + col + '" opacity=".40"/>' +
-      '<path d="M5.5 40c0-8.4 6.5-13.5 14.5-13.5S34.5 31.6 34.5 40z" fill="' + col + '" opacity=".28"/></svg>';
-  }
   function fighterCard(b, inSquad, opts) {
     opts = opts || {};
     var kit = currentKit(b), prim = ITEM_BY_ID[kit.primary];
@@ -6255,12 +6227,6 @@
     scrim.onclick = closeOaSheet;
   }
   /* every OA name on the page opens the sheet; called after a render, like the fighter sheets */
-  function wireOaNames(host) {
-    Array.prototype.forEach.call((host || document).querySelectorAll('[data-oa]'), function (el) {
-      el.classList.add('oaname');
-      el.onclick = function (e) { e.stopPropagation(); oaSheet(el.getAttribute('data-oa')); };
-    });
-  }
 
   /* one listener for the page: an OA name drawn by any renderer opens the sheet, so no
      renderer has to remember to wire it (the intel row's dossier keeps its own behaviour) */
@@ -6882,7 +6848,6 @@
   };
 
   /* exposed for the harness, which renders a replay frame to check what it draws */
-  window.__drawFight = function () { return draw(); };
   function draw() {
     var F0 = G && G.fight; if (!F0 || !F0.res) return;
     var F = F0.res.frames[F0.i]; if (!F) return;
@@ -7292,7 +7257,6 @@
   /* an OA's name without its article, so seven of them fit under seven circles */
   function shortOA(id) { return String(nameOfCorp(id)).replace(/^The\s+/i, ''); }
   function mSpan(id) { return '<span style="color:' + colFor(id) + '">' + markFor(id, 13) + ' ' + esc(tName(id)) + '</span>'; }
-  function oaIdOf(ci) { var L = (G && G.oa) || OA; return (L[ci % L.length] || {}).id; }
   function fCid(s) { return G.fight && G.fight.cids ? G.fight.cids[s] : null; }
   function terrainName(t) { return (window.CDMAP && CDMAP.TERRAIN_NAMES && CDMAP.TERRAIN_NAMES[t]) || capWords(t); }
   /* THE WEATHER, in words: the name, and what the day does, read off the engine's own table */
@@ -7310,10 +7274,6 @@
     if (fx.hurt) bits.push((fx.hurt.terrain ? 'Wounds on ' + terrainName(fx.hurt.terrain) : 'Wounds Anywhere') + ' (' + Math.round(fx.hurt.p * 100) + '%)');
     return '<span class="warn">' + (WEATHER_NAME[w.kind] || capWords(w.kind)) + '</span>' + (bits.length ? ' <span class="m">\u00b7 ' + bits.join(' \u00b7 ') + '</span>' : '');
   }
-  var bannerName = function (ci) {
-    var L = (G && G.oa) || OA;
-    return (L[ci % L.length] || {}).name || ('OA ' + ci);
-  };
 
   function onBattle(b) {
     G.div.battles.unshift(b);
@@ -7339,7 +7299,6 @@
     G.div = { gen: null,
               planet: pd.opts.groundTruth, win: null, windows: 0,
               battles: [], done: false, final: null, answer: null };
-    G.gcache = null;
     $('begindiv').style.display = 'none';
     advanceDivide();
     if (window.__superLabel) window.__superLabel();
@@ -7386,7 +7345,6 @@
       G.me = G.super.seats.filter(function (x) { return x !== G.me; })[0];
       G.div.answer = G.div.answers[G.me] || null;
       G.div.win = G.div.seatWins[G.me] || G.div.win;
-      G.gcache = null;
       superLabel();
       renderGround(); renderEncounters(); renderTable(); renderBench(); renderSquads();
       if (typeof renderDesk === 'function') renderDesk();
@@ -7540,8 +7498,6 @@
          whether it keeps what it said at the table; the settlement waits on the answer */
       renderWordWindow(step.value.seats && step.value.seats[G.me] ? step.value.seats[G.me] : step.value);
     } else {
-      /* the record is a LIVE array the engine keeps appending to, so its length is never
-         "how much has been watched"; where the manager actually is, is G.gday. */
       G.div.win = step.value;
       /* §SUPER each seat's own view is kept; the page shows the seat it is playing */
       if (step.value && step.value.seats) { G.div.seatWins = step.value.seats; G.div.win = step.value.seats[G.me] || step.value; }
@@ -7715,10 +7671,6 @@
     }
     var cur = gvDayIdx();
     Array.prototype.forEach.call(box.querySelectorAll('[data-recday]'), function (el) { el.classList.toggle('now', +el.getAttribute('data-recday') === cur); });
-  }
-  function planetIntelDepth(row) {
-    var me = G && G.corps && G.corps[G.me], r = me && me._intel && me._intel.planet && me._intel.planet.rows[row];
-    return r ? (r.depth || 0) : 0;
   }
   /* §WITHDRAWAL THE TAB. A withdrawal is not a trade: one public offer to the whole field —
      I stand down now, whoever wins pays me this — answered by every OA still on the ground,
@@ -8052,7 +8004,6 @@
   }
   /* §TRADE the letter waiting for you is the ENGINE's — written by an OA it runs, held in the one market */
   function myLetter() { return (SEASON.tradeLetters && SEASON.tradeLetters(G.state, G.me)[0]) || null; }
-  function tagFor(id) { var c = G && G.corps && G.corps[id]; return (c && c.profile && c.profile.tag) || String(id).slice(0, 3); }
   /* the Market's clicks: the stepper adds and removes, the row opens */
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest
@@ -9478,15 +9429,6 @@
     days.sort(function (a, b) { return a - b; });
     return days.map(function (d) { return { day: d, in: d - w.day, share: Math.max(0, total - goneBy(d)) / total, nowShare: Math.max(0, total - goneBy(w.day)) / total, last: d > lastTake }; });
   }
-  function wallWords(w) {
-    var sch = wallSched(w);
-    if (!sch.length) return '<span class="m">The Wall Holds</span>';
-    var n = sch[0];
-    var cls = n.in <= 1 ? 'bad' : n.in <= 3 ? 'warn' : '';
-    return 'The Wall Closes <b class="' + cls + '">Day ' + n.day + '</b> <span class="m">' +
-      (n.in === 1 ? 'Tomorrow' : 'in ' + n.in) + ' \u00b7 to ' + Math.round(n.share * 100) + '%' +
-      (n.last ? ' \u00b7 The Last Ground' : '') + '</span>';
-  }
   /* §HOLDS ONE MEASURE. A Divide banks a share of a hold; the page says it in the fleet's units, a full store being
      UNITS_PER_STORE thousand — the same figures the Board's holds, the ask, the haul and the deposits all use */
   function unitsOf(share) { return Math.round((share || 0) * REP.CONST.UNITS_PER_STORE * REP.CONST.UNIT_SCALE); }
@@ -9557,7 +9499,6 @@
       '<div class="dhaul">' + haulStrip(w) +
         (ans.deals && Object.keys(ans.deals).length ? ' \u00b7 <span class="gold">A Word Rides With the Advance</span>' : '') + '</div>' +
       '';
-    if ($('advmain')) $('advmain').onclick = function () { advanceDivide(); };
 
     /* §BACKROOM the case's two answers, sent with this window's answer */
 
@@ -9904,13 +9845,10 @@
     G = { rng: L.state.rng, oa: oaList, corps: L.corps, state: L.state, me: save.me,
           seedStr: save.seed,
           custom: save.custom ? { profile: save.custom, replaced: save.replaced } : null,
-          lot: null, lotNo: 1, log: [], fight: null,
+          fight: null,
           timer: null, tw: null, tween: null, fx: null, el: 0,
           plan: normPlan(save.plan),
-          div: null, gcache: null, gday: 1,
-          /* the day being watched, and how far into it: 'morning' | 'stepping' |
-             'complete'. Proven in the mock — no state is reachable by rewind. */
-          gstage: 'complete', gmi: 0, gtween: null, gtw: null, gtimer: null, gpulse: null };
+          div: null };
     G.state.opts.human = G.me;
     bindSeat();
     $('mlog').innerHTML = '<div class="m">A Loaded Year</div>';

@@ -27,7 +27,7 @@ function mkCorp(id) {
            sponsors: { regard: {}, contracts: [], offers: [], courted: {}, courting: {} } };
 }
 
-/* §SPONSORS courting is paid in FOCUS, not credits: `courtCost` is 0 by ruling and `courtStanding` is regard alone
+/* §SPONSORS courting is paid in FOCUS, not credits: `courtStanding` is regard alone
    (the effort is folded into regard at once). The checks that priced courting and summed a separate effort were
    the old system's and read against a mechanic that no longer exists. */
 /* ---- courting raises regard and records effort; standing sums them ---- */

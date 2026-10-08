@@ -97,19 +97,7 @@
                       blurb: 'a relief charter; medkits and evac to any banner, and it is paid either way' }
   };
 
-  /* Shown to a manager, so it reads like the rest of the interface: an obligation opens with
-     a capital. The CONDITIONS table beside it always did; this one was written earlier and
-     never brought into line. */
-  const OBLIGATION_TEXT = {
-    aggressive:      'Field at Least 20 Fighters and Call No Early Withdrawal',
-    no_scandal:      'Bury No More Than a Third of the Fighters You Field',
-    mostly_ballistic: 'Field a Drop of 75% Ballistic Weapons or More',
-    field_talent:    'Field a Fighter Who Ends the Year at Fame 25 or Better',
-    stay_lean:       'Field No More Than 20 Fighters',
-    accept_terms:    'End the Year With a Treasury Above Zero',
-    bring_them_home: 'Lose No More Than a Fifth to Death or Capture',
-    blood_the_green: 'Field a Drop That Is a Third Unproven Fighters'
-  };
+
 
   /* THE NEW-MODEL CONDITIONS. Each house offers one condition, in one of three flavours:
        - outcome:      judged at the season close against figures the game produces (finish,
@@ -212,7 +200,6 @@
   /* COURT_COST_BASE, _DROP, _FLOOR and COURT_REGARD_DISCOUNT went with it — four constants
      that between them computed a number nothing acted on. What they were reaching for is the
      benchmark: a bar that falls as the board empties. */
-  function courtCost() { return 0; }
 
   /* COURT. Spend focus on a house this season: it raises regard (the slow memory) and records
      this year's effort, which together decide who the sponsor signs. Courting never fails and
@@ -581,10 +568,10 @@
     }
   }
 
-  return { CONST, STYLES, OBLIGATION_TEXT, CONDITIONS, STANDINGS, HOUSE_NAMES, houseIds, houseName,
+  return { CONST, STYLES, CONDITIONS, STANDINGS, HOUSE_NAMES, houseIds, houseName,
            grantStanding, standingValue, standingDiscount, standingsOf,
            contractStatus,
            fit, regardOf, bumpRegard, keepOdds, courtChoice, steerFor,
-           openBoard, courtCost, court, courtStanding, resolveBoard, stepBoard, benchmarkFor,
+           openBoard, court, courtStanding, resolveBoard, stepBoard, benchmarkFor,
            judge, prospects };
 }));
