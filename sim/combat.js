@@ -306,6 +306,8 @@ function situationalStats(fighter, traitIndex, ctx) {
 }
 function hooksOf(fighter, traitIndex) {
   const h = new Set();
+  const rh = traitIndex && traitIndex.__raceHooks && traitIndex.__raceHooks[fighter.race && fighter.race.id ? fighter.race.id : fighter.race];
+  if (rh) for (const hook of rh) h.add(hook);   /* §RACES what a people does, beside what the man does */
   for (const tid of (fighter.traits || [])) {
     const t = traitIndex && traitIndex[tid];
     if (!t) continue;

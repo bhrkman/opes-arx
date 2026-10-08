@@ -26,6 +26,7 @@
   const CONST = {
     EVENT_P: 0.55,               // [C] chance a corp draws an event in a month at all
     SECOND_P: 0.18,              // [C] chance of a second
+    REFUSED_RAISE_LOYALTY: 10,          // [C] (ruled) what a refused raise costs his loyalty
     RAISE_FRAC: 0.20,            // [C] what a raise asks, as a share of salary
     DEBT_CALL: 6000,             // [C] what a Debtor's creditors want
     FINE: 1500,                  // [C] a barracks fine, per brawler
@@ -138,7 +139,7 @@
     f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
     f.condition.injuries.push({ type: type, severity: 'minor', days_remaining: days, untreated: false });
     f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
-    f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
+    f.status = 'injured'; f._recovery = 0;
   };
   /* §MONEY what the seat has free by its reckoning (season.js planFor, set as the month opens) */
   const spare = c => (c._free != null ? c._free : c.account.treasury);
@@ -262,7 +263,7 @@
                  text: f.name + ' has a following now, and a following has a price: ' + fmtCr(LED.retainerOf(ask)) + ' more a month, and ' + fmtCr(LED.purseOf(ask)) + ' more a drop.',
                  options: [
                    { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(LED.retainerOf(ask)) + ' a Month' },   /* §MONEY (ruled) what a raise adds to the retainer each month */
-                   { id: 'refuse', label: 'Refuse', cost: 'They Sour' },
+                   { id: 'refuse', label: 'Refuse', cost: '−' + CONST.REFUSED_RAISE_LOYALTY + ' Loyalty' },
                    { id: 'release', label: 'Release Them', cost: 'They Walk' }
                  ], def: 'refuse', ask: ask };
       },
@@ -272,7 +273,7 @@
         /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
         if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
         if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
-        stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
+        stress(f, 18); f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) - CONST.REFUSED_RAISE_LOYALTY); if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
       ai: (c, e) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';

@@ -247,10 +247,9 @@
  * Seeded via CDPRNG (mulberry32); no Math.random. Data-driven from /data.
  *
  * Step 3 note: produces fighters valid against fighter.schema.json v0.5. Arrival
- * injuries now use the COMBAT.md §7 injury ids so the Divide's degradation clock
- * (§7.1) can read them — they arrive `untreated`, which under the ratified evac
- * model (DIVIDE_POLICY.md §5) means they worsen if the Divide starts before a
- * medic sees them. `history.evacs` counts field recoveries, not departures: nothing
+ * injuries use the COMBAT.md §7 injury ids. (An `untreated` wound is one taken on the
+ * ground with no medkit charge to dress it; it comes home deeper — season.js
+ * bringWoundHome.) `history.evacs` counts field recoveries, not departures: nothing
  * leaves a Divide.
  */
 (function (global) {
@@ -619,7 +618,7 @@
       if (poolCfg.divide_bonus_mult)
         contract.divide_bonus = P.roundTo(salary * poolCfg.divide_bonus_mult, 10);
     } else if (pool === "mercenary") {
-      contract.signing_cost = P.roundTo(salary * (2 + 0.8 * seasons + 0.02 * fame), 10);
+      contract.signing_cost = P.roundTo(salary * (2 + 0.8 * seasons + 0.02 * fame) * ((race.market && race.market.cost_mult) || 1), 10);   /* §RACES (ruled) what a people costs to sign: the fee, by its own market (the Kier's fee is flat) */
     } else {
       const req = parseInt(P.weightedPick(rng, poolCfg.freedom_divides_weights), 10);
       contract.divides_served = 0;
@@ -641,7 +640,7 @@
         type: P.pick(rng, ["inj_arm", "inj_leg", "inj_torso"]),  // COMBAT.md §7.1 ids
         severity: "minor",
         days_remaining: P.int(rng, 5, 20),
-        untreated: true
+        untreated: false
       });
       condition.health = P.int(rng, 80, 95);
     }
@@ -1066,6 +1065,11 @@
     gen = RG.create(data);
     raceById = gen.raceById;
     traitById = gen.traitById;
+    /* §RACES (ruled) a people's own abilities ride the same hooks a trait carries: `special.hooks` on the race, read by
+       combat.hooksOf beside the fighter's traits (kept off the trait list, so no sheet shows them as a quirk) */
+    const rh = {};
+    for (const id in raceById) { const r = raceById[id]; if (r.special && r.special.hooks) rh[id] = r.special.hooks; }
+    Object.defineProperty(traitById, '__raceHooks', { value: rh, enumerable: false });
     /* §PAPER the ruled contract ranges live in recruitment.json and are read from there by the
        generator; season.js needs the same ranges for a RENEWAL, and copying them into a
        constant would be a second place for them to be wrong. */

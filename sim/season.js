@@ -103,6 +103,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    UNTENDED_WORSE: 1.5,         // [C] §WOUNDS (ruled) how much deeper an untended wound comes home
     WOUNDED_FIELD_LOYALTY: 8,    // [C] §WOUNDS (ruled) loyalty a mending man loses for being sent to fight
     WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
@@ -113,6 +114,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     /* §STANDING WHAT THE CROWD DOES FOR AN OA'S PEOPLE (ruled at the standing pass). The crowd's warmth runs 0..100
        about an indifferent 50; each of these reads it as −1..1 from there. */
+    TEXTURE_STEP: 1.5,           // [C] §RACES a month's move in a Ththyn's or a Gil's loyalty, by standing or by the house's finish
+    THTHYN_FAME_HIGH: 40,        // [C] the fame a Ththyn counts as standing
+    THTHYN_FAME_LOW: 15,         // [C] and below which, a season in, he counts himself passed over
     CROWD_LOYALTY: 1.2,          // [C] a month's pull on every hand's loyalty at a crowd of 100 (or 0, the other way)
     CROWD_LOT: 2,                // [C] how many more (or fewer) natural-born turn up to trial, at the ends
     CROWD_LOT_STATS: 12,         // [C] and how much better (or worse) they are, on every stat
@@ -621,7 +625,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      "injured" with a whole body, so the verb that mends had nothing to mend and the status never lifted. */
   function bringWoundHome(f) {
     if (f.status !== 'injured') return;
-    const days = Math.max(0, f._recovery || 0);
+    /* §WOUNDS (ruled) A WOUND NOBODY TENDED IS WORSE BY THE TIME IT IS HOME: a squad with no medkit charge left to dress it
+       sends it home deeper (the kit a squad carries is what keeps a wound shallow) */
+    const raw = (f.condition && f.condition.injuries) || [];
+    const untended = raw.some(w => w.untreated);
+    for (const w of raw) if (w.untreated) w.untreated = false;
+    const days = Math.max(0, f._recovery || 0) * (untended ? CONST.UNTENDED_WORSE : 1);
     if (days > 0) setWound(f, Math.min(woundOf(f), 100 - days * CONST.WOUND_PER_DAY));
     f._recovery = 0;
     if (woundOf(f) >= 100) f.status = 'active';
@@ -986,7 +995,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); } }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24);  bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
@@ -2041,6 +2050,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* §FACILITIES a Barracks worth the name: loyalty settles toward content */
       const bl = FAC.barracksLoyalty(corp);
       if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
+      /* §RACES (ruled) how some peoples' loyalty moves. A Ththyn's tracks his standing: a captain or a famous name warms
+         to the house, one passed over sours. A Gil stays while the house serves his ends: a house finishing high keeps
+         him, one finishing low loses him. */
+      const tex = ((ROSTER.raceById[f.race] || {}).loyalty_texture) || null;
+      if (tex === 'status_coupled') {
+        const capt = corp.captains && (corp.captains.ids || []).indexOf(f.id) >= 0;
+        const lift = capt || (f.fame || 0) >= CONST.THTHYN_FAME_HIGH ? CONST.TEXTURE_STEP : (f.fame || 0) < CONST.THTHYN_FAME_LOW && (f.seasonsHere || 0) >= 1 ? -CONST.TEXTURE_STEP : 0;
+        f.loyalty = Math.max(0, Math.min(100, f.loyalty + lift));
+      } else if (tex === 'motive_driven' && corp._lastPlace && STATE_REF && STATE_REF.ids) {
+        const n = STATE_REF.ids.length, top = (n - corp._lastPlace) / Math.max(1, n - 1);   /* 1 the champion, 0 last */
+        f.loyalty = Math.max(0, Math.min(100, f.loyalty + (top - 0.5) * 2 * CONST.TEXTURE_STEP));
+      }
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */

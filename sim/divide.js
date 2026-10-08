@@ -250,6 +250,9 @@
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    WORD_RECORD_WEIGHT: 3,              // [C] §WITHDRAWAL promises on the record before it counts as much as character
+    KELLIS_PACT_SHARE: 0.25,            // [C] §RACES the share of a house's people that makes it a Kellis house to the fleet
+    KELLIS_PACT_TRUST: 0.08,            // [C] and what that adds to the trust in its word
     GREED_SPAN: 0.5,                    // [C] §WITHDRAWAL (ruled: an element of greed) a house weighs its shot at the prize up by as much as half again, by its aggression
     PLAN_ASKED: 2.2,                    // [C] §BOARD a deposit of the resource the OA's board demanded, against 1 for any other (the old CMD_W_ASKED)
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
@@ -848,9 +851,25 @@
      promise, on a stage the whole fleet watches, so keeping it is the ordinary course and character bends that: an
      honest OA keeps ~90%, an average one ~70%, a treacherous one ~50%, a little less for a larger promise. One formula,
      for what a leaver expects and for what the winner does. */
-  function keepChance(j, share) {
+  /* how likely an OA is to keep a promise of this size, out of its own character (its `treachery`) */
+  function wordOf(j, share) {
     const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
     return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
+  }
+  /* §WITHDRAWAL (ruled) HOW FAR THE FLEET TRUSTS AN OA'S WORD: what its character promises, moved by its record of promises
+     to leavers kept and broken (the more of them, the more the record counts), and a little more for a house whose people
+     are Kellis, whose word the fleet takes. This is what a leaver prices and what the page shows; an OA keeps or breaks
+     its word out of its character (wordOf). */
+  function keepChance(j, share) {
+    const base = wordOf(j, share);
+    const rec = (j && (j._wordRecord || (j.persist && j.persist.wordRecord))) || {};
+    const kept = rec.kept || 0, broken = rec.broken || 0, n = kept + broken;
+    const seen = n ? (kept + 1) / (n + 2) - 0.25 * (share || 0) : base;
+    const w = n / (n + CONST.WORD_RECORD_WEIGHT);
+    const people = (j && (j.allBodies || j.roster)) || [];
+    const kellis = people.filter(b => b.status !== 'dead' && b.status !== 'retired' && (((ROSTER.raceById[b.race && b.race.id ? b.race.id : b.race] || {}).special || {}).pact_reputation)).length;   /* the race's own `pact_reputation` */
+    const pact = people.length && kellis / people.length >= CONST.KELLIS_PACT_SHARE ? CONST.KELLIS_PACT_TRUST : 0;
+    return Math.max(0.05, Math.min(0.97, base * (1 - w) + seen * w + pact));
   }
   function standDown(c, day, stats, corps, how) {
     if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
@@ -2127,7 +2146,7 @@
         f.condition.injuries.push(u.injury);
         downed++;
         if (u.injury.permanent) { f.status = 'retired'; stats.careerEnded++; }
-        else { f.status = 'injured'; f._recovery = u.injury.days_remaining; f._untreatedDays = 0; stats.injured++; }
+        else { f.status = 'injured'; f._recovery = u.injury.days_remaining; stats.injured++; }
       }
       else {
         f.condition.morale = Math.max(5, Math.min(95, Math.round(0.7 * f.condition.morale + 0.3 * u.comp)));
@@ -3373,7 +3392,7 @@
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
         const keep = isHumanOA(w.id)
           ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
-          : rng() < keepChance(w, share + storesAsked / 4);            /* §MARKET the same trust the leaver priced */
+          : rng() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});

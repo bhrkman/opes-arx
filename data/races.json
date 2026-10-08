@@ -528,6 +528,7 @@
    "oa_lean_note": "Everywhere (canon).",
    "resentment_rate": 0.1,
    "special": {
+    "hooks": ["media_statements_flat"],
     "carry_bonus": 2,
     "media_flat": true,
     "media_note": "Barely speaks — spends words like they cost blood (canon language ruling). Media statements flat; broadcast novelty when one DOES speak.",
@@ -805,6 +806,7 @@
    ],
    "resentment_rate": 0.1,
    "special": {
+    "hooks": ["doctrine_change_resistance"],
     "carry_bonus": 2,
     "tradition_bound": true,
     "tradition_note": "Resistant to doctrine changes and mid-Divide policy whiplash — they signed for a banner, not a mood (ratified).",

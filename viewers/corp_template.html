@@ -2646,7 +2646,8 @@
   function sheetBlocks(b) {
     var s = b.stats, skills = b.skills || {}, ct = b.contract || {};
     var org = originOf(b);
-    var quirks = (b.traits || []).map(function (t) { return t; });
+    /* (ruled) a trait tagged `hidden` is not shown: it is the man's own, and the sheet does not know it */
+    var quirks = (b.traits || []).filter(function (t) { var tr = ROSTER.traitById && ROSTER.traitById[t]; return !(tr && (tr.tags || []).indexOf('hidden') >= 0); });
     /* HEALTH IS THE REAL WOUND POOL, not the inert condition meter. hpFor is the same reader
        the grid uses to size how many hits put a body down; grit sizes it, so a hand's toughness
        shows here honestly. Falls back gracefully if the combat module is somehow absent. */
@@ -2965,7 +2966,7 @@
     var kit = currentKit(f), prim = ITEM_BY_ID[kit.primary], arm = ITEM_BY_ID[kit.armor];
     var gear = (prim ? prim.tier : 0) * 3 + (arm ? arm.tier : 0) * 2;      /* armed and plated */
     var qk = (f.traits || []).reduce(function (n, t) {
-      var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects) return n;
+      var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects || (tr.tags || []).indexOf('hidden') >= 0) return n;
       var sm = tr.effects.stats || {}, sum = 0;   /* §UNITS real points (the old field was tenths) */
       for (var k in sm) sum += sm[k];
       return n + sum * 0.2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
