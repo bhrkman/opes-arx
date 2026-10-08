@@ -10226,7 +10226,7 @@
 }
 ,
   "planets": {
-  "_note": "REPUTATION.md §7 — what a planet is made of. `value` is per unit banked, relative to a middling mineral at 1.0, which is what ledger.js and negotiate.js price against so the money does not move. `leans` weight which categories appear at all; a category absent from an archetype's leans cannot appear there.",
+  "_note": "REPUTATION.md §7 — what a planet is made of. `value` prices a unit banked: value × map.js CREDITS_PER_UNIT credits. Every planet carries every category; `leans` say which it is rich in (the heaviest lean, a full hold; the lightest, about a fifth).",
   "categories": ["minerals", "fuels", "luxuries", "foods"],
   "resources": [
     { "id": "ferrite",           "name": "Ferrite",           "category": "minerals", "value": 0.70 },
@@ -10266,12 +10266,12 @@
     { "id": "nectar_sap",        "name": "Nectar Sap",        "category": "foods", "value": 1.20 }
   ],
   "leans": {
-    "ice_shelf":       { "depth": 0.30, "minerals": 0.60, "fuels": 3.00, "luxuries": 0.40, "foods": 1.00 },
-    "jungle_cradle":   { "depth": 0.58, "minerals": 0.40, "fuels": 0.50, "luxuries": 2.00, "foods": 3.00 },
-    "desert_pan":      { "depth": 0.24, "minerals": 2.00, "fuels": 0.80, "luxuries": 0.60, "foods": 0.20 },
-    "volcanic_waste":  { "depth": 0.66, "minerals": 3.00, "fuels": 2.00, "luxuries": 0.70, "foods": 0.15 },
-    "drowned_world":   { "depth": 0.48, "minerals": 0.50, "fuels": 1.60, "luxuries": 0.80, "foods": 2.50 },
-    "dead_industrial": { "depth": 0.72, "minerals": 3.00, "fuels": 1.20, "luxuries": 0.50, "foods": 0.30 }
+    "ice_shelf":       { "minerals": 0.60, "fuels": 3.00, "luxuries": 0.40, "foods": 1.00 },
+    "jungle_cradle":   { "minerals": 0.40, "fuels": 0.50, "luxuries": 2.00, "foods": 3.00 },
+    "desert_pan":      { "minerals": 2.00, "fuels": 0.80, "luxuries": 0.60, "foods": 0.20 },
+    "volcanic_waste":  { "minerals": 3.00, "fuels": 2.00, "luxuries": 0.70, "foods": 0.15 },
+    "drowned_world":   { "minerals": 0.50, "fuels": 1.60, "luxuries": 0.80, "foods": 2.50 },
+    "dead_industrial": { "minerals": 3.00, "fuels": 1.20, "luxuries": 0.50, "foods": 0.30 }
   }
 }
 ,
@@ -11668,7 +11668,7 @@
     LOCKER_DEPTH_RICH: 1.30,        // [C] the deepest
     KIT_FLOOR_PER_BODY: 1000,       // [S] the cheapest force that can actually muster is
                                     //     919/body, so this is the real floor, not a guess
-    WILL_RICHNESS_PULL: 0.13,       // [C] how much a fat planet opens the purse
+    WILL_WORTH_PULL: 0.13,          // [C] how much a rich planet opens the purse
     WILL_FLOOR: 0.72,               // [C] appetite MODULATES; wealth decides. Set wider and a
                                     //     poor planet drags the whole fleet to the floor
                                     //     together, which re-flattens the field it is meant
@@ -12609,23 +12609,23 @@
   const DEPOSIT_LABEL = { minerals: 'Seam', fuels: 'Well', foods: 'Bloom', luxuries: 'Bed' };
 
   /* §7 what a planet is made of. Loaded from planets.json in node; a viewer injects it with
-     `setResourcePool`. Absent, a planet generates with no composition and richness falls back
-     to the archetype lean, which is what the pre-Step-7 code did. */
+     `setResourcePool`. Absent, a planet generates with no composition and an average worth. */
   let POOL = null;
   function setResourcePool(pool) { POOL = pool || null; return POOL; }
 
   const CONST = {
     PCD_MAX: 4,                         // [S] §LIGHT cycles per day at the fast end (and 1/4 at the slow end)
-    /* §7.2 how deep a world runs. A poor one carries two or three things worth having and a
-       rich one five or six, leaned by archetype. */
-    COMPOSITION_COUNT: [2, 6],           // [S] R23
-    COMPOSITION_DENSITY: [0.20, 1.00],   // [C]
-    /* §7.3 richness is DERIVED from the composition and is not rolled beside it. Two
-       independent numbers both saying how good a planet is will drift apart, and this
-       project has a written record of what that costs. These two map the summed value of
-       what is down there onto the 0.70–1.40 the pot already uses. */
-    RICHNESS_RAW: [0.55, 5.00],          // [C] the summed value×density this maps from
-    RICHNESS_OUT: [0.70, 1.40],          // [S] and what negotiate.js multiplies the pot by
+    /* §7.2 (ruled) EVERY PLANET CARRIES SOME OF EVERYTHING, AND MUCH MORE OF SOME. Each of the four stores is on every
+       world, in an amount measured as what it would put in a fleet hold: a planet rich in a store fills one from empty,
+       a slim one a fifth of one. The archetype's lean says which it is rich in. */
+    STORE_SLIM: 0.20,                    // [R] a hold's share of a store a planet is slim in
+    STORE_RICH: 1.00,                    // [R] and one it is rich in: a full hold
+    STORE_SWING: 0.30,                   // [C] how far a world strays from its archetype's lean
+    /* §7.3 (ruled) A RESOURCE HAS A PRICE. A unit of a resource is worth its `value` times this, in credits: what a dug
+       site pays its digger for what it brought home, and what a planet is worth. */
+    CREDITS_PER_UNIT: 12.5,              // [C] calibrated: the average dug site pays about ₡15k (the ruled quick buck), from ₡5k to ₡27k
+    /* the pot is the desk's share of what a planet is worth: NEG.POT_BASE on a world of average worth */
+    WORTH_MEAN: 2.66,                    // [C] calibrated: Σ amount×value of the average world (most pots fall ₡335k–₡475k)
     RELAY_COOLDOWN: 3,                   // [C] days a fired mast stays dark
     LOOT_TICKS: 2,                       // [S] long enough to be interrupted, not an occupation
   };
@@ -12639,14 +12639,14 @@
     const archKey = opts.archetype && ARCHETYPES[opts.archetype] ? opts.archetype : P.pick(rng, keys);
     const arch = ARCHETYPES[archKey];
     const composition = rollComposition(rng, archKey);
-    const richness = richnessOf(composition, archKey);
+    const worth = worthOf(composition);
     /* §LIGHT TERMS (ruled). A DAY is the fleet's: twenty-four Earth hours, the unit of its calendar and
        of the Divide. A CYCLE is the planet's: one full turn, light and then dark. A planet's stat is its
        PCD — planetary CYCLES PER DAY — from 0.25 (one cycle every four days: two days of light, two of
        dark) to 4 (four cycles in a day), any value between, and likeliest near one. It has nothing to do
        with the fleet's clock. Drawn as a triangle in log space, so PCD 4 is exactly as rare as PCD 0.25;
        derived from the planet's own make-up rather than the generation stream. */
-    const lightRng = P.mulberry32(P.seedFrom('light:' + archKey + ':' + JSON.stringify(composition) + ':' + richness));
+    const lightRng = P.mulberry32(P.seedFrom('light:' + archKey + ':' + JSON.stringify(composition) + ':' + worth));
     const lnPcd = Math.log(CONST.PCD_MAX) * (lightRng() + lightRng() - 1);
     const pcd = Math.round(Math.exp(lnPcd) * 100) / 100;
     const hours = 24 / pcd;
@@ -12654,7 +12654,7 @@
     return {
       cycle,
       archetype: archKey, archetypeName: arch.name,
-      composition, richness,             // §7.2, §7.3 — one source for how good this world is
+      composition, worth,                // §7.2, §7.3 — one source for how good this world is
       supplyStrain: arch.supplyStrain, forageMult: arch.forageMult, salvage: !!arch.salvage,
       hazards: arch.hazards
     };
@@ -12672,41 +12672,41 @@
   function rollComposition(rng, archKey) {
     if (!POOL) return [];
     const lean = (POOL.leans || {})[archKey] || {};
-    const eligible = (POOL.resources || []).filter(r => {
-      if (r.salvage && archKey !== 'dead_industrial') return false;
-      return (lean[r.category] || 0) > 0;
-    });
-    if (!eligible.length) return [];
-    const lo = CONST.COMPOSITION_COUNT[0], hi = CONST.COMPOSITION_COUNT[1];
-    const depth = P.clamp((lean.depth != null ? lean.depth : 0.5) * 0.60
-                          + rng() * 0.85 - 0.16, 0, 1);
-    const want = Math.min(eligible.length, lo + Math.round(depth * (hi - lo)));
-    const bag = eligible.slice(), out = [];
-    while (out.length < want && bag.length) {
-      const r = P.weightedPick(rng, bag.map(x => [x, lean[x.category] || 0.01]));
-      bag.splice(bag.indexOf(r), 1);
-      const dlo = CONST.COMPOSITION_DENSITY[0], dhi = CONST.COMPOSITION_DENSITY[1];
-      out.push({ id: r.id, name: r.name, category: r.category, value: r.value,
-                 density: P.roundTo(dlo + (dhi - dlo) * (0.35 + 0.65 * depth) * rng(), 0.01) });
+    const cats = POOL.categories || [];
+    const top = Math.max(0.0001, ...cats.map(c => lean[c] || 0));
+    const out = [];
+    for (const cat of cats) {
+      const eligible = (POOL.resources || []).filter(r => r.category === cat && (!r.salvage || archKey === 'dead_industrial'));
+      if (!eligible.length) continue;
+      const rel = P.clamp((lean[cat] || 0) / top + (rng() - 0.5) * CONST.STORE_SWING, 0, 1);
+      const amount = CONST.STORE_SLIM + (CONST.STORE_RICH - CONST.STORE_SLIM) * rel;
+      /* a store a planet is rich in runs in more than one kind of ground */
+      const n = Math.min(eligible.length, 1 + (amount >= 0.45 ? 1 : 0) + (amount >= 0.80 ? 1 : 0));
+      const bag = eligible.slice(), picks = [];
+      while (picks.length < n && bag.length) { const r = P.pick(rng, bag); bag.splice(bag.indexOf(r), 1); picks.push({ r, w: 0.5 + rng() }); }
+      const wSum = picks.reduce((t, x) => t + x.w, 0);
+      for (const x of picks) out.push({ id: x.r.id, name: x.r.name, category: cat, value: x.r.value, density: P.roundTo(amount * x.w / wSum, 0.01) });
     }
     return out.sort((a, b) => b.density * b.value - a.density * a.value);
   }
 
-  /**
-   * §7.3 — richness comes OUT of the composition rather than being rolled beside it. One
-   * source: changing what is down there changes what the planet is worth, automatically.
-   */
-  function richnessOf(composition, archKey) {
-    const out = CONST.RICHNESS_OUT;
-    if (!composition || !composition.length) {
-      const lean = ((POOL || {}).leans || {})[archKey];
-      return lean ? out[0] + (out[1] - out[0]) * lean.depth : 1.00;
-    }
+  /* how much of each store a planet carries, as a share of a hold (ruled: slim a fifth, rich a full hold) */
+  function storesOf(composition) {
+    const out = {};
+    for (const r of composition || []) out[r.category] = (out[r.category] || 0) + (r.density || 0);
+    for (const k in out) out[k] = P.roundTo(Math.min(CONST.STORE_RICH, out[k]), 0.01);
+    return out;
+  }
+  /* what a unit of a resource is worth, in credits */
+  function unitPrice(resourceId) {
+    const r = POOL && (POOL.resources || []).find(x => x.id === resourceId);
+    return (r ? r.value : 1) * CONST.CREDITS_PER_UNIT;
+  }
+  /* a planet's worth against the average world's: 1 is average, and the pot is NEG.POT_BASE times it */
+  function worthOf(composition) {
     let raw = 0;
-    for (const r of composition) raw += r.value * r.density;
-    const lo = CONST.RICHNESS_RAW[0], hi = CONST.RICHNESS_RAW[1];
-    const t = P.clamp((raw - lo) / (hi - lo), 0, 1);
-    return P.roundTo(out[0] + (out[1] - out[0]) * t, 0.001);
+    for (const r of composition || []) raw += (r.value || 1) * (r.density || 0);
+    return raw > 0 ? P.roundTo(raw / CONST.WORTH_MEAN, 0.001) : 1;
   }
 
   function resourceCategory(id) {
@@ -12718,7 +12718,7 @@
   const api = {
     CONST, ARCHETYPES, DEPOSIT_LABEL, TERRAIN, TERRAIN_NAMES,
     generatePlanet, lightAt,
-    setResourcePool, rollComposition, richnessOf, resourceCategory,
+    setResourcePool, rollComposition, storesOf, unitPrice, worthOf, resourceCategory,
     get pool() { return POOL; }
   };
   if (isNode) {
@@ -12967,8 +12967,14 @@
       z.site = Object.assign({ kind, zone: z.id }, extra || {}); siteCount[z.region]++; sites.push(z.site); return z.site;
     };
     const nDep = P.int(rng, CONST.DEPOSITS[0], CONST.DEPOSITS[1]);
+    /* §7.2 (ruled) every store has ground to dig: one deposit of each store first, the one it runs deepest in, then
+       the rest to the stores the planet is richest in, through their other kinds */
+    const stores = MAP.storesOf ? MAP.storesOf(composition) : {};
+    const byStore = Object.keys(stores).sort((a, b) => stores[b] - stores[a]).map(cat => composition.filter(r => r.category === cat).sort((a, b) => b.density - a.density));
+    const depRes = [];
+    for (let k = 0; depRes.length < nDep && byStore.length && k < 3; k++) for (const list of byStore) if (depRes.length < nDep) depRes.push(list[k % list.length]);
     for (let i = 0; i < nDep; i++) {
-      const res = composition.length ? composition[i % composition.length] : null;
+      const res = depRes[i] || (composition.length ? composition[i % composition.length] : null);
       const opens = Math.round(CONST.DEPOSIT_OPENS[0] + (CONST.DEPOSIT_OPENS[1] - CONST.DEPOSIT_OPENS[0]) * i / Math.max(1, nDep - 1));
       /* §SITES a deposit is placed where its region stands long enough after it opens to be reached and worked: a seam
          the planner must leave the day it opens is no seam (40% of them were) */
@@ -12991,7 +12997,7 @@
                                    cx: round3(r.cx), cy: round3(r.cy), area: r.cells.length / totalCells, zones: r.zones, links: r.links })),
       zones: zones.map(z => ({ id: z.id, region: z.region, x: round3(z.x), y: round3(z.y), height: z.height, cover: z.cover, hiding: round3(z.hiding), site: z.site, nb: z.nb })),
       sites, wall, windows: { every: CONST.WINDOW_EVERY, dailyWhenLeft: CONST.DAILY_WHEN_LEFT },
-      composition, pot: MAP.richnessOf ? { richness: MAP.richnessOf(composition) } : null,
+      composition, worth: MAP.worthOf ? MAP.worthOf(composition) : 1,
       seaLevel, water: cells.filter(c => c.water).length / cells.length,
       /* §GROUND the relief as it was cut, for the page to draw: every sample of the disc, its region (-1 water) and its height
          in tenths, row by row; off the disc is left out */
@@ -14320,7 +14326,12 @@
     HOLDS_DRAIN: 0.12,                  // [H] §6.1 of a full store, per YEAR. [OPEN-R1]
     HOLDS_DRAIN_MONTHS: 11,             // [C] spread across the preparation's months
     HOLDS_CEIL: 1.0,                    // [S]
-    RESOURCE_ASK: 0.33,                 // [C] the share of a store a board asks for, in units
+    /* §7.4 (ruled) a board's resource ask, as a share of the planet's amount of the store: a tenth with the hold full,
+       a fifth with it empty. A planet's sites of one store carry a quarter of its amount (divide.js SITE_SHARE), so the
+       ask is two to four fifths of what digging can bring home of it. */
+    RESOURCE_ASK_LO: 0.10,              // [C]
+    RESOURCE_ASK_SPAN: 0.10,            // [C]
+    RESOURCE_ASK_LEAN: 0.35,            // [C] how much the planet's richness in a store leans the board's choice
     UNITS_PER_STORE: 9,                 // [H] assay units that fill a store. RE-DERIVED: the
                                         //     first pass took 40, and a corp digs two to six
                                         //     out of a Divide, so every resource demand on
@@ -14885,21 +14896,21 @@
        time and eight boards sacked eight managers inside three seasons.
        A board asks for ONE thing out of the ground, for the thing it is shortest of that the
        planet actually carries, and one measure of it satisfies. */
-    const shortages = CATEGORIES.slice().sort((a, b) => (rep.holds[a] || 0) - (rep.holds[b] || 0));
-    for (const cat of shortages) {
-      const there = (planet && planet.composition || []).filter(r => r.category === cat);
-      if (!there.length) continue;
-      const pick = there.slice().sort((a, b) => b.density - a.density)[0];
-      /* THE DEMAND IS IN UNITS, and it was in stores. `amount` was a fraction of a store
-         (1/9) while `banked` counts assay units, so the test compared 3 units against 0.11
-         and every resource demand on every card passed the moment a corp dug anything. The
-         board asks for a share of a store IN THE UNITS THAT FILL IT. */
-      /* §HOLDS the ask is a share of a store, in the measure a Divide banks: what comes home is a share of a hold
-         (a dug site's part of the planet's endowment, or the winner's whole of it), so the board asks in the same */
-      pool.push({ weight: 2.2 * (1 - (rep.holds[cat] || 0)), demand: {
-        kind: 'resource', category: cat, resource: pick.id, share: CONST.RESOURCE_ASK
-      } });
-      break;                                    /* one, not one per shortage */
+    /* §7.4 (ruled) THE BOARD ASKS FOR WHAT THE FLEET IS SHORT OF, LEANED BY WHAT THE PLANET CARRIES. Every planet has
+       some of every store; the board picks the one its holds are lowest in, weighed a little toward the stores this
+       world is rich in, and asks more the emptier its hold. Finding where it lies is the manager's scouting. */
+    const amt = {};
+    for (const r of (planet && planet.composition) || []) amt[r.category] = (amt[r.category] || 0) + (r.density || 0);
+    const topAmt = Math.max(0.0001, ...CATEGORIES.map(c => amt[c] || 0));
+    const scored = CATEGORIES.filter(c => amt[c] > 0).map(c => ({ cat: c, short: 1 - (rep.holds[c] || 0),
+      score: (1 - (rep.holds[c] || 0)) * (1 - CONST.RESOURCE_ASK_LEAN + CONST.RESOURCE_ASK_LEAN * amt[c] / topAmt) }))
+      .sort((a, b) => b.score - a.score);
+    if (scored.length) {
+      const { cat, short } = scored[0];
+      const pick = ((planet && planet.composition) || []).filter(r => r.category === cat).sort((a, b) => b.density - a.density)[0];
+      /* a share of a hold, in the measure a Divide banks: a part of the planet's amount of it, more the emptier the hold */
+      const share = Math.round(amt[cat] * (CONST.RESOURCE_ASK_LO + CONST.RESOURCE_ASK_SPAN * short) * 1000) / 1000;
+      pool.push({ weight: 2.2 * short, demand: { kind: 'resource', category: cat, resource: pick.id, share: share } });
     }
     const standingNow = standing(rep, 'houses');
     /* THE CARD SCALES WITH WHERE THE CORP STANDS NOW, not only with what it was born as.
@@ -14974,7 +14985,7 @@
      * It works identically for a human manager and a computer one — nobody needs a special
      * "field small" behaviour bolted on, they are both just answering the same board.
      */
-    const interest = planet && planet.pot ? clamp01((planet.pot.richness - 0.7) / 0.7) : 0.5;
+    const interest = planet && planet.pot && planet.pot.worth != null ? clamp01(planet.pot.worth - 0.5) : 0.5;   /* an average world is the middle */
     /* §5.3 POPULARITY IS A STANDING DEMAND. The gate is the board's money too, and an OA
        the fleet will not watch is an OA the board cannot sell: what the crowd thinks is
        graded every year beside the spending and the casualties. */
@@ -21620,7 +21631,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one. */
     POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, and the Withdrawal's promises are paid out of it
-    POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
        surplus of a store already full. Sized so a won planet's overflow is worth having. */
@@ -21685,28 +21695,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
   /* Archetype leans. A rich planet draws more desperate deals, which is the only reason
      rolling it is worth doing at all. */
-  const RICHNESS_LEAN = {
-    dead_industrial: 1.18, volcanic_waste: 1.12, jungle_cradle: 1.06,
-    drowned_world: 1.00, ice_shelf: 0.90, desert_pan: 0.86
-  };
-
-  /**
-   * REPUTATION.md §7.3 — the pot reads the planet's richness, it does not roll its own.
-   * Before Step 7 this rolled a number beside the composition, and two independent numbers
-   * both saying how good a world is are two numbers that drift apart. `richness` now comes
-   * out of what is actually down there (`map.js richnessOf`), and this multiplies it.
-   * The lean table is kept ONLY for the fallback: a caller with no planet.
-   */
-  function rollPot(rng, archetypeId, planetRichness) {
-    const lo = CONST.POT_RICHNESS[0], hi = CONST.POT_RICHNESS[1];
-    let richness;
-    if (planetRichness != null) {
-      richness = Math.max(lo, Math.min(hi, planetRichness));
-    } else {
-      const lean = RICHNESS_LEAN[archetypeId] != null ? RICHNESS_LEAN[archetypeId] : 1.00;
-      richness = Math.max(lo, Math.min(hi, (lo + rng() * (hi - lo)) * lean));
-    }
-    return { value: Math.round(CONST.POT_BASE * richness), richness: richness };
+  /* §7.3 (ruled) THE POT IS THE DESK'S SHARE OF WHAT THE PLANET IS WORTH: POT_BASE on a world of average worth, more
+     on a rich one, less on a poor one. `worth` is the planet's own (map.js worthOf, from what is down there). */
+  function potOf(worth) {
+    const w = worth != null && worth > 0 ? worth : 1;
+    return { value: Math.round(CONST.POT_BASE * w), worth: w };
   }
 
   /* ------------------------------------------------------------------ */
@@ -22041,7 +22034,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   }
 
   const api = {
-    CONST, rollPot,
+    CONST, potOf,
     oddsBoard, priceModifier, livingRegard, appetite, bodyWorth,
     ransomPrice, ransomOffer, ransomWorthPaying,
     settle
@@ -22897,7 +22890,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* §FIGHTS (ruled: fights end sooner) halved at the fatality pass: a standard squad breaks off a sixth down */
     STANCE_WITHDRAW_AT: { preservationist: 0.05, measured: 0.10, standard: 0.175, unyielding: 0.25, death_or_glory: 0.325 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
-    SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
     SHOWDOWN_HORIZON: 12,               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full
     LEAVE_RATE_HORIZON: 4,              // [C] §WITHDRAWAL days the loss rate since the last window is projected over: the next two windows
     LEAVE_TRAINING_PER_DIVIDE: 3000,    // [C] §WITHDRAWAL the training a Divide survived puts into a man, that a replacement does not have
@@ -22952,12 +22944,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     JUDGE_MIN: 1.1, JUDGE_MAX: 3.4,     // [C] the sharpness the worst and best captains bring
     SIGHT_NEAR: 0.10,                   // [C] the ground a captain of 0 can weigh at all
     SIGHT_FAR: 0.55,                    // [C] and what a captain of 100 weighs
-    /* §UNITS §7.3 what a planet's whole endowment in ONE category is worth, as a share of a
-       hold: a planet RICH in it can fill one from empty. A moderate planet lands near 0.40 and
-       a slim one near 0.20 by its own `richness`, which map.js derives from the composition. */
-    HOLD_RICH: 1.0,
-    SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites together carry of its
-                                 endowment: the grab, beside the prize the winner takes */
+    SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites of one store together carry of the planet's
+                                 amount of it: the grab, beside the prize the winner takes */
     STRONGPOINT_PREP: 0.25,   /* [H] §SITES the ground a held strongpoint gives the one on it */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
@@ -23078,9 +23066,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const w = Math.max(0, Math.min(1, perBodyAfford / ITEMS.CONST.KIT_BUDGET_REFERENCE));
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
-    const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
+    const rich = planet.pot && planet.pot.worth != null ? planet.pot.worth - 0.5 : 0.5;   /* an average world (worth 1) is the middle */
     let will = 0.90
-             + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2;   /* (ruled: one judgement, no house's thrift) */
+             + ITEMS.CONST.WILL_WORTH_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2;   /* (ruled: one judgement, no house's thrift) */
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
     const target = Math.round(perBodyAfford * will);
     return {
@@ -23112,7 +23100,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
     /* §MONEY what the seat's reckoning leaves for kit at the drop (season.js planFor); a one-off Divide spends what it holds */
     corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury);
-    const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
+    const intent = kitIntent(profile, planet || { pot: { worth: 1 } }, total, corp.kitBudget, season);
     /* §STAFF an Armourer stretches what the house means to field, not the cash: the cash is all the reckoning leaves
        (boosting it spent the families' hold and the cushion) */
     intent.allowance *= ((corp.persist && corp.persist.kitBoost) || 1);
@@ -23841,7 +23829,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
-      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
+      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
          and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
@@ -23855,7 +23843,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
       /* a site pays whoever digs it, win or lose: the open deposits are worth its share of the field that will reach them */
       const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
-      const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
+      const digWorth = openLeft.reduce((t, o) => t + (stats._sitePay ? stats._sitePay(o) : 0), 0) * Math.min(1, trueF / Math.max(1, fieldUp));   /* (ruled) the open sites at what they pay */
       const cost = standingCost(c);
       /* §WITHDRAWAL (ruled) GREED. A house judges the prize honestly and then wants it more than the sums say: the pot
          and the open ground are weighed up by its aggression (the cost of staying and of losing are not) */
@@ -24957,18 +24945,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        already told its corps which rock this is passes that rock in as `opts.groundTruth`, and
        the Divide fights on the same object the board wrote its card against. */
     const planet = opts.groundTruth || MAP.generatePlanet(rng, opts.planet || {});
-    if (!planet.pot) planet.pot = NEG.rollPot(rng, planet.archetype, planet.richness);
+    if (!planet.pot) planet.pot = NEG.potOf(planet.worth);
     /* §GROUND THE GROUND IS REGIONS OF ZONES (sim/ground.js), generated with the season from the world seed; a
        caller running a single Divide gets one rolled here. The planet dossier's objectives are the ground's sites. */
     const ground = opts.ground || planet.ground || GROUND.generate(rng, { archetype: planet.archetype });
     if (planet.ground !== ground) { planet.ground = ground; planet.objectives = GROUND.objectivesOf(ground); }
     const objAt = {}; for (const o of planet.objectives) if (o.zone != null) objAt[o.zone] = o;
-    /* §PRIZE what a dug deposit banks, as a share of a hold: its part of SITE_SHARE of the planet's endowment, by its
-       depth against the other deposits of its kind (the settlement banks exactly this; the window shows it) */
+    /* §PRIZE what a dug deposit banks, as a share of a hold: its part of SITE_SHARE of the planet's amount of that store
+       (ruled: slim a fifth of a hold, rich a full one), by its depth against the other deposits of its kind (the
+       settlement banks exactly this; the window shows it), and what it pays its digger: those units at their price */
     const siteTotals = {};
     for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || !o.resource) continue; const c0 = MAP.resourceCategory(o.resource); if (c0) siteTotals[c0] = (siteTotals[c0] || 0) + (o.potency || 1); }
-    const endowment = CONST.HOLD_RICH * Math.max(0.2, Math.min(1, planet.richness != null ? planet.richness : 1));
-    const holdShareOf = (o) => { const cat = o.resource && MAP.resourceCategory(o.resource); return cat ? endowment * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1)) : 0; };
+    const storeAmt = MAP.storesOf(planet.composition);
+    const holdShareOf = (o) => { const cat = o.resource && MAP.resourceCategory(o.resource); return cat ? (storeAmt[cat] || 0) * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1)) : 0; };
+    const UNITS_PER_HOLD = REP.CONST.UNITS_PER_STORE * REP.CONST.UNIT_SCALE;
+    const sitePay = (o) => Math.round(holdShareOf(o) * UNITS_PER_HOLD * MAP.unitPrice(o.resource));
     const LAST_DAY = ground.days;
     const Z = ground.zones, RG = ground.regions;
     /* §SITES whether a site is worth standing on today */
@@ -25059,6 +25050,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         steps: 0, contacts: 0, joined: 0, harassed: 0, wallFree: 0
       }
     };
+    stats._sitePay = sitePay;   /* the withdrawal weighs the open ground at what it pays */
     const pcOf = {};
     for (const pc of stats.perCorp) pcOf[pc.id] = pc;
     stats._pcOf = pcOf;
@@ -26025,9 +26017,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        already a share of a store, so one crate filled a warehouse that takes eight years to
        drain. The middle unit meant nothing at either end and is gone: a site yields the thing a
        manager actually receives. The RULING that sizes it: a planet RICH in a resource can fill
-       a hold from empty, a moderate one about 40%, a slim one about 20% — which is `richness`,
-       already derived in map.js from the composition, spread across the sites that carry the
-       category and weighted by how deep each one is. */
+       a hold from empty, a slim one about a fifth — the planet's amount of that store (map.js storesOf),
+       spread across the sites that carry it and weighted by how deep each one is. */
 
     /* §PRIZE THE SITES ARE THE QUICK GRAB, THE PLANET IS THE PRIZE (ruled). The fight is for a
        planet's mineral rights, and the circle the squads fight on is a sliver of it: the dug
@@ -26082,13 +26073,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* --- §10.3 settlement --------------------------------------------------------------
        The pot lands on the last banner standing and the winner pays its own people. Nothing
        here decides anything: the winner was decided by the last fighter left standing. */
-    /* §PRIZE THE POT IS CREDITS AND RESOURCES. The winner takes the planet's mineral rights: the
-       rolled credits, and the planet's endowment in every store it carries, into its holds. A
-       rich planet fills a hold from empty (ruled); a moderate one about 40%, a slim one 20% —
-       which is `richness`, derived in map.js from the composition. This is the thing a
-       withdrawal bargains for a share of. */
+    /* §PRIZE THE POT IS CREDITS AND RESOURCES. The winner takes the desk's share of the planet's worth in credits,
+       and the planet's amount of every store into its holds: a full hold of one it is rich in, a fifth of one it is
+       slim in (ruled). This is the thing a withdrawal bargains for a share of. */
     stats.potResources = {};
-    for (const cat of REP.CATEGORIES) if (siteTotals[cat]) stats.potResources[cat] = endowment;
+    for (const cat of REP.CATEGORIES) if (storeAmt[cat]) stats.potResources[cat] = storeAmt[cat];
     if (stats.winner && stats.banked[stats.winner]) {
       const wb = stats.banked[stats.winner];
       for (const cat in stats.potResources) wb[cat] = (wb[cat] || 0) + stats.potResources[cat];
@@ -26196,8 +26185,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       pc.captured = c.allBodies.filter(b => b.status === 'captured').length;
       /* Step 6 — what the Divide was worth to them. */
       pc.payout = stats.settlement.take[c.id] || 0;
-      /* §PRIZE the sites this OA dug, for the quick buck each one pays beside its stores */
-      pc.sitesDug = (planet.objectives || []).filter(o => o.type === 'resource_site' && o.looted && o.lootedBy === c.id).length;
+      /* §PRIZE (ruled) the sites this OA dug, and what they pay: what each brought home, at its price */
+      const dug = (planet.objectives || []).filter(o => o.type === 'resource_site' && o.looted && o.lootedBy === c.id);
+      pc.sitesDug = dug.length;
+      pc.sitePay = dug.reduce((t, o) => t + sitePay(o), 0);
       pc.won = stats.winner === c.id;
       pc.withdrawn = c.withdrawn ? { day: c.withdrawn.day } : null;
       /* §BOARD what the board asks about: where it placed, whether and when it walked, whom it lost (the wall's dead
@@ -26693,16 +26684,16 @@ function useCensus(fn) { CENSUS = fn || null; }
 function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
   /* §GROUND THE YEAR'S WORLD. The ground (regions and zones, the wall's order, the sites) is generated from the world
      seed and the season — the page draws the same one from the same key — and the planet dossier is drawn around it:
-     the same archetype, the ground's composition and richness, and its sites as the objectives the board, the
+     the same archetype, the ground's composition and worth, and its sites as the objectives the board, the
      scouting and the settlement read. One world, two readings of it. */
   function worldFor(corps, season) {
     const ground = GROUND.generate(rngOf(corps, 'ground' + season), {});
     ground.season = season;
     const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), { archetype: ground.archetype });
     planet.ground = ground;
-    planet.composition = ground.composition; planet.richness = ground.pot ? ground.pot.richness : planet.richness;
+    planet.composition = ground.composition; planet.worth = ground.worth != null ? ground.worth : planet.worth;
     planet.objectives = GROUND.objectivesOf(ground);
-    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    planet.pot = NEG.potOf(planet.worth);
     return { ground, planet };
   }
 
@@ -26940,7 +26931,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 15000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled ₡5k → ₡20k → ₡15k with the pot at 400k: 4% of it a site) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is
@@ -29973,7 +29963,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
     for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
-    /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
+    /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.worth`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
@@ -31308,7 +31298,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
          second card over the one the manager spent the year working against, which is the same
          bug in the other direction. */
-      openSeason: false, groundTruth: state.planet, siteCash: CONST.SITE_CASH,
+      openSeason: false, groundTruth: state.planet,
       /* the edict's own share, from where the edict is written, rather than a number typed
          again in the Divide where nobody would think to change it */
       /* §GROUND the ground itself, and where the draft put everybody: zone ids a squad */
@@ -31782,12 +31772,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         ransomTaken: pc.ransomTaken || 0
       });
       c._payout = pc.payout || 0;
-      /* §PRIZE A SITE PAYS A QUICK BUCK (ruled). The main reward of a dug site is its stores;
-         beside them it pays a small flat sum, guaranteed, win or lose — the grab a squad runs
-         for. Removing the haul's double payment had taken this away entirely, and measured it
-         cost every losing OA about fifteen thousand a year. Paid straight to the books: it is
-         the squad's, not the parent organisation's share of a settlement. */
-      if (pc.sitesDug) LED.post(c.account, 'income', 'Sites Dug', pc.sitesDug * CONST.SITE_CASH);
+      /* §PRIZE (ruled) A SITE PAYS WHAT IT BROUGHT HOME: its units at their price, win or lose, straight to the books */
+      if (pc.sitePay) LED.post(c.account, 'income', 'Sites Dug', pc.sitePay);
       c._bonus = c.account.lastBonus || 0;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
@@ -34903,9 +34889,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var sites = (pl.objectives || []).filter(function (o) { return o.type === 'resource_site'; });
     switch (k) {
       case 'ground': {
-        var rich = pl.richness >= 1 ? 'Rich' : pl.richness >= 0.7 ? 'Fair' : 'Lean';
+        var wv = pl.worth != null ? pl.worth : 1, rich = wv >= 1.1 ? 'Rich' : wv >= 0.9 ? 'Fair' : 'Lean';
         var h = '<b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 ' + rich;
-        if (depth >= 2) h += ' \u00b7 Richness ' + Math.round((pl.richness || 0) * 100) + '%';
+        if (depth >= 2 && pl.pot) h += ' \u00b7 Pot ' + crs(pl.pot.value);
         if (depth >= 3) h += ' \u00b7 ' + (pl.objectives || []).length + ' Sites in All' + (pl.salvage ? ' \u00b7 Salvage Ground' : '');
         return h;
       }
@@ -34915,7 +34901,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           return Object.keys(cats).map(function (c) { return CAT_NAME[c] || capWords(c); }).join(', '); }
         return comp.map(function (r) {
           return '<b>' + esc(r.name || RES_NAME[r.id] || capWords(r.id)) + '</b> <span class="m">' + (CAT_NAME[r.category] || '') +
-                 (depth >= 3 ? ' \u00b7 ' + Math.round((r.density || 0) * 100) + '% of the Ground \u00b7 Value \u00d7' + (r.value || 1).toFixed(2) : '') + '</span>';
+                 (depth >= 3 ? ' \u00b7 ' + Math.round((r.density || 0) * 100) + '% of a Hold \u00b7 ' + crs(Math.round(CDMAP.unitPrice(r.id))) + ' a Unit' : '') + '</span>';
         }).join('<br>');
       }
       case 'sites': {
@@ -37705,15 +37691,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   /* what the WHOLE PLANET holds in a category, as a share of a hold. A withdrawal bargains for
      what the winner eventually takes off this ground, not for what has been dug so far — so the
-     tile says what is there to be won. `richness` is the planet's own (map.js), spread across
-     the categories its sites carry. */
+     tile says what is there to be won: the planet's amount of that store (map.js storesOf). */
   function planetHolds(cat) {
-    var pl = G.div && G.div.planet; if (!pl) return 0;
-    var has = (pl.objectives || []).some(function (o) {
-      return o.type === 'resource_site' && o.resource && window.CDMAP && CDMAP.resourceCategory(o.resource) === cat;
-    });
-    if (!has) return 0;
-    return Math.max(0.2, Math.min(1, pl.richness != null ? pl.richness : 1));
+    var pl = G.div && G.div.planet; if (!pl || !window.CDMAP) return 0;
+    return Math.min(1, CDMAP.storesOf(pl.composition)[cat] || 0);
   }
   function holdWords(v) {
     if (!v) return 'None';

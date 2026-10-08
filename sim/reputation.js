@@ -120,7 +120,12 @@
     HOLDS_DRAIN: 0.12,                  // [H] §6.1 of a full store, per YEAR. [OPEN-R1]
     HOLDS_DRAIN_MONTHS: 11,             // [C] spread across the preparation's months
     HOLDS_CEIL: 1.0,                    // [S]
-    RESOURCE_ASK: 0.33,                 // [C] the share of a store a board asks for, in units
+    /* §7.4 (ruled) a board's resource ask, as a share of the planet's amount of the store: a tenth with the hold full,
+       a fifth with it empty. A planet's sites of one store carry a quarter of its amount (divide.js SITE_SHARE), so the
+       ask is two to four fifths of what digging can bring home of it. */
+    RESOURCE_ASK_LO: 0.10,              // [C]
+    RESOURCE_ASK_SPAN: 0.10,            // [C]
+    RESOURCE_ASK_LEAN: 0.35,            // [C] how much the planet's richness in a store leans the board's choice
     UNITS_PER_STORE: 9,                 // [H] assay units that fill a store. RE-DERIVED: the
                                         //     first pass took 40, and a corp digs two to six
                                         //     out of a Divide, so every resource demand on
@@ -685,21 +690,21 @@
        time and eight boards sacked eight managers inside three seasons.
        A board asks for ONE thing out of the ground, for the thing it is shortest of that the
        planet actually carries, and one measure of it satisfies. */
-    const shortages = CATEGORIES.slice().sort((a, b) => (rep.holds[a] || 0) - (rep.holds[b] || 0));
-    for (const cat of shortages) {
-      const there = (planet && planet.composition || []).filter(r => r.category === cat);
-      if (!there.length) continue;
-      const pick = there.slice().sort((a, b) => b.density - a.density)[0];
-      /* THE DEMAND IS IN UNITS, and it was in stores. `amount` was a fraction of a store
-         (1/9) while `banked` counts assay units, so the test compared 3 units against 0.11
-         and every resource demand on every card passed the moment a corp dug anything. The
-         board asks for a share of a store IN THE UNITS THAT FILL IT. */
-      /* §HOLDS the ask is a share of a store, in the measure a Divide banks: what comes home is a share of a hold
-         (a dug site's part of the planet's endowment, or the winner's whole of it), so the board asks in the same */
-      pool.push({ weight: 2.2 * (1 - (rep.holds[cat] || 0)), demand: {
-        kind: 'resource', category: cat, resource: pick.id, share: CONST.RESOURCE_ASK
-      } });
-      break;                                    /* one, not one per shortage */
+    /* §7.4 (ruled) THE BOARD ASKS FOR WHAT THE FLEET IS SHORT OF, LEANED BY WHAT THE PLANET CARRIES. Every planet has
+       some of every store; the board picks the one its holds are lowest in, weighed a little toward the stores this
+       world is rich in, and asks more the emptier its hold. Finding where it lies is the manager's scouting. */
+    const amt = {};
+    for (const r of (planet && planet.composition) || []) amt[r.category] = (amt[r.category] || 0) + (r.density || 0);
+    const topAmt = Math.max(0.0001, ...CATEGORIES.map(c => amt[c] || 0));
+    const scored = CATEGORIES.filter(c => amt[c] > 0).map(c => ({ cat: c, short: 1 - (rep.holds[c] || 0),
+      score: (1 - (rep.holds[c] || 0)) * (1 - CONST.RESOURCE_ASK_LEAN + CONST.RESOURCE_ASK_LEAN * amt[c] / topAmt) }))
+      .sort((a, b) => b.score - a.score);
+    if (scored.length) {
+      const { cat, short } = scored[0];
+      const pick = ((planet && planet.composition) || []).filter(r => r.category === cat).sort((a, b) => b.density - a.density)[0];
+      /* a share of a hold, in the measure a Divide banks: a part of the planet's amount of it, more the emptier the hold */
+      const share = Math.round(amt[cat] * (CONST.RESOURCE_ASK_LO + CONST.RESOURCE_ASK_SPAN * short) * 1000) / 1000;
+      pool.push({ weight: 2.2 * short, demand: { kind: 'resource', category: cat, resource: pick.id, share: share } });
     }
     const standingNow = standing(rep, 'houses');
     /* THE CARD SCALES WITH WHERE THE CORP STANDS NOW, not only with what it was born as.
@@ -774,7 +779,7 @@
      * It works identically for a human manager and a computer one — nobody needs a special
      * "field small" behaviour bolted on, they are both just answering the same board.
      */
-    const interest = planet && planet.pot ? clamp01((planet.pot.richness - 0.7) / 0.7) : 0.5;
+    const interest = planet && planet.pot && planet.pot.worth != null ? clamp01(planet.pot.worth - 0.5) : 0.5;   /* an average world is the middle */
     /* §5.3 POPULARITY IS A STANDING DEMAND. The gate is the board's money too, and an OA
        the fleet will not watch is an OA the board cannot sell: what the crowd thinks is
        graded every year beside the spending and the casualties. */

@@ -100,23 +100,23 @@
   const DEPOSIT_LABEL = { minerals: 'Seam', fuels: 'Well', foods: 'Bloom', luxuries: 'Bed' };
 
   /* §7 what a planet is made of. Loaded from planets.json in node; a viewer injects it with
-     `setResourcePool`. Absent, a planet generates with no composition and richness falls back
-     to the archetype lean, which is what the pre-Step-7 code did. */
+     `setResourcePool`. Absent, a planet generates with no composition and an average worth. */
   let POOL = null;
   function setResourcePool(pool) { POOL = pool || null; return POOL; }
 
   const CONST = {
     PCD_MAX: 4,                         // [S] §LIGHT cycles per day at the fast end (and 1/4 at the slow end)
-    /* §7.2 how deep a world runs. A poor one carries two or three things worth having and a
-       rich one five or six, leaned by archetype. */
-    COMPOSITION_COUNT: [2, 6],           // [S] R23
-    COMPOSITION_DENSITY: [0.20, 1.00],   // [C]
-    /* §7.3 richness is DERIVED from the composition and is not rolled beside it. Two
-       independent numbers both saying how good a planet is will drift apart, and this
-       project has a written record of what that costs. These two map the summed value of
-       what is down there onto the 0.70–1.40 the pot already uses. */
-    RICHNESS_RAW: [0.55, 5.00],          // [C] the summed value×density this maps from
-    RICHNESS_OUT: [0.70, 1.40],          // [S] and what negotiate.js multiplies the pot by
+    /* §7.2 (ruled) EVERY PLANET CARRIES SOME OF EVERYTHING, AND MUCH MORE OF SOME. Each of the four stores is on every
+       world, in an amount measured as what it would put in a fleet hold: a planet rich in a store fills one from empty,
+       a slim one a fifth of one. The archetype's lean says which it is rich in. */
+    STORE_SLIM: 0.20,                    // [R] a hold's share of a store a planet is slim in
+    STORE_RICH: 1.00,                    // [R] and one it is rich in: a full hold
+    STORE_SWING: 0.30,                   // [C] how far a world strays from its archetype's lean
+    /* §7.3 (ruled) A RESOURCE HAS A PRICE. A unit of a resource is worth its `value` times this, in credits: what a dug
+       site pays its digger for what it brought home, and what a planet is worth. */
+    CREDITS_PER_UNIT: 12.5,              // [C] calibrated: the average dug site pays about ₡15k (the ruled quick buck), from ₡5k to ₡27k
+    /* the pot is the desk's share of what a planet is worth: NEG.POT_BASE on a world of average worth */
+    WORTH_MEAN: 2.66,                    // [C] calibrated: Σ amount×value of the average world (most pots fall ₡335k–₡475k)
     RELAY_COOLDOWN: 3,                   // [C] days a fired mast stays dark
     LOOT_TICKS: 2,                       // [S] long enough to be interrupted, not an occupation
   };
@@ -130,14 +130,14 @@
     const archKey = opts.archetype && ARCHETYPES[opts.archetype] ? opts.archetype : P.pick(rng, keys);
     const arch = ARCHETYPES[archKey];
     const composition = rollComposition(rng, archKey);
-    const richness = richnessOf(composition, archKey);
+    const worth = worthOf(composition);
     /* §LIGHT TERMS (ruled). A DAY is the fleet's: twenty-four Earth hours, the unit of its calendar and
        of the Divide. A CYCLE is the planet's: one full turn, light and then dark. A planet's stat is its
        PCD — planetary CYCLES PER DAY — from 0.25 (one cycle every four days: two days of light, two of
        dark) to 4 (four cycles in a day), any value between, and likeliest near one. It has nothing to do
        with the fleet's clock. Drawn as a triangle in log space, so PCD 4 is exactly as rare as PCD 0.25;
        derived from the planet's own make-up rather than the generation stream. */
-    const lightRng = P.mulberry32(P.seedFrom('light:' + archKey + ':' + JSON.stringify(composition) + ':' + richness));
+    const lightRng = P.mulberry32(P.seedFrom('light:' + archKey + ':' + JSON.stringify(composition) + ':' + worth));
     const lnPcd = Math.log(CONST.PCD_MAX) * (lightRng() + lightRng() - 1);
     const pcd = Math.round(Math.exp(lnPcd) * 100) / 100;
     const hours = 24 / pcd;
@@ -145,7 +145,7 @@
     return {
       cycle,
       archetype: archKey, archetypeName: arch.name,
-      composition, richness,             // §7.2, §7.3 — one source for how good this world is
+      composition, worth,                // §7.2, §7.3 — one source for how good this world is
       supplyStrain: arch.supplyStrain, forageMult: arch.forageMult, salvage: !!arch.salvage,
       hazards: arch.hazards
     };
@@ -163,41 +163,41 @@
   function rollComposition(rng, archKey) {
     if (!POOL) return [];
     const lean = (POOL.leans || {})[archKey] || {};
-    const eligible = (POOL.resources || []).filter(r => {
-      if (r.salvage && archKey !== 'dead_industrial') return false;
-      return (lean[r.category] || 0) > 0;
-    });
-    if (!eligible.length) return [];
-    const lo = CONST.COMPOSITION_COUNT[0], hi = CONST.COMPOSITION_COUNT[1];
-    const depth = P.clamp((lean.depth != null ? lean.depth : 0.5) * 0.60
-                          + rng() * 0.85 - 0.16, 0, 1);
-    const want = Math.min(eligible.length, lo + Math.round(depth * (hi - lo)));
-    const bag = eligible.slice(), out = [];
-    while (out.length < want && bag.length) {
-      const r = P.weightedPick(rng, bag.map(x => [x, lean[x.category] || 0.01]));
-      bag.splice(bag.indexOf(r), 1);
-      const dlo = CONST.COMPOSITION_DENSITY[0], dhi = CONST.COMPOSITION_DENSITY[1];
-      out.push({ id: r.id, name: r.name, category: r.category, value: r.value,
-                 density: P.roundTo(dlo + (dhi - dlo) * (0.35 + 0.65 * depth) * rng(), 0.01) });
+    const cats = POOL.categories || [];
+    const top = Math.max(0.0001, ...cats.map(c => lean[c] || 0));
+    const out = [];
+    for (const cat of cats) {
+      const eligible = (POOL.resources || []).filter(r => r.category === cat && (!r.salvage || archKey === 'dead_industrial'));
+      if (!eligible.length) continue;
+      const rel = P.clamp((lean[cat] || 0) / top + (rng() - 0.5) * CONST.STORE_SWING, 0, 1);
+      const amount = CONST.STORE_SLIM + (CONST.STORE_RICH - CONST.STORE_SLIM) * rel;
+      /* a store a planet is rich in runs in more than one kind of ground */
+      const n = Math.min(eligible.length, 1 + (amount >= 0.45 ? 1 : 0) + (amount >= 0.80 ? 1 : 0));
+      const bag = eligible.slice(), picks = [];
+      while (picks.length < n && bag.length) { const r = P.pick(rng, bag); bag.splice(bag.indexOf(r), 1); picks.push({ r, w: 0.5 + rng() }); }
+      const wSum = picks.reduce((t, x) => t + x.w, 0);
+      for (const x of picks) out.push({ id: x.r.id, name: x.r.name, category: cat, value: x.r.value, density: P.roundTo(amount * x.w / wSum, 0.01) });
     }
     return out.sort((a, b) => b.density * b.value - a.density * a.value);
   }
 
-  /**
-   * §7.3 — richness comes OUT of the composition rather than being rolled beside it. One
-   * source: changing what is down there changes what the planet is worth, automatically.
-   */
-  function richnessOf(composition, archKey) {
-    const out = CONST.RICHNESS_OUT;
-    if (!composition || !composition.length) {
-      const lean = ((POOL || {}).leans || {})[archKey];
-      return lean ? out[0] + (out[1] - out[0]) * lean.depth : 1.00;
-    }
+  /* how much of each store a planet carries, as a share of a hold (ruled: slim a fifth, rich a full hold) */
+  function storesOf(composition) {
+    const out = {};
+    for (const r of composition || []) out[r.category] = (out[r.category] || 0) + (r.density || 0);
+    for (const k in out) out[k] = P.roundTo(Math.min(CONST.STORE_RICH, out[k]), 0.01);
+    return out;
+  }
+  /* what a unit of a resource is worth, in credits */
+  function unitPrice(resourceId) {
+    const r = POOL && (POOL.resources || []).find(x => x.id === resourceId);
+    return (r ? r.value : 1) * CONST.CREDITS_PER_UNIT;
+  }
+  /* a planet's worth against the average world's: 1 is average, and the pot is NEG.POT_BASE times it */
+  function worthOf(composition) {
     let raw = 0;
-    for (const r of composition) raw += r.value * r.density;
-    const lo = CONST.RICHNESS_RAW[0], hi = CONST.RICHNESS_RAW[1];
-    const t = P.clamp((raw - lo) / (hi - lo), 0, 1);
-    return P.roundTo(out[0] + (out[1] - out[0]) * t, 0.001);
+    for (const r of composition || []) raw += (r.value || 1) * (r.density || 0);
+    return raw > 0 ? P.roundTo(raw / CONST.WORTH_MEAN, 0.001) : 1;
   }
 
   function resourceCategory(id) {
@@ -209,7 +209,7 @@
   const api = {
     CONST, ARCHETYPES, DEPOSIT_LABEL, TERRAIN, TERRAIN_NAMES,
     generatePlanet, lightAt,
-    setResourcePool, rollComposition, richnessOf, resourceCategory,
+    setResourcePool, rollComposition, storesOf, unitPrice, worthOf, resourceCategory,
     get pool() { return POOL; }
   };
   if (isNode) {

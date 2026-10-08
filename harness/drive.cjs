@@ -1096,8 +1096,8 @@ setTimeout(() => {
         plink.click();
         const dt = text('#dossier').replace(/\s+/g, ' ');
         /* (one measure since d5ee7c6: the veins read as Deep, Fair or Thin seams, not a sum of units) */
-        check(/(Deep|Fair|Thin) Seams/.test(dt) && /Rations Burn/.test(dt) && /Each Landing.s Ground/.test(dt) && /Richness \d+%/.test(dt),
-              'the planet dossier reads as figures: the seams, ration burn, richness, what the ring unlocks');
+        check(/(Deep|Fair|Thin) Seams/.test(dt) && /Rations Burn/.test(dt) && /Each Landing.s Ground/.test(dt) && /Pot \u20a1/.test(dt),
+              'the planet dossier reads as figures: the seams, ration burn, the pot, what the ring unlocks');
         check(!/_/.test(dt) && !/Partial|partial/.test(dt) && /Full/.test(dt),
               'the planet dossier has no snake_case and grades Blank / Sparse / Read / Full');
         GI._dossier = null;

@@ -4936,9 +4936,9 @@
     var sites = (pl.objectives || []).filter(function (o) { return o.type === 'resource_site'; });
     switch (k) {
       case 'ground': {
-        var rich = pl.richness >= 1 ? 'Rich' : pl.richness >= 0.7 ? 'Fair' : 'Lean';
+        var wv = pl.worth != null ? pl.worth : 1, rich = wv >= 1.1 ? 'Rich' : wv >= 0.9 ? 'Fair' : 'Lean';
         var h = '<b>' + esc(pl.archetypeName || capWords(pl.archetype)) + '</b> \u00b7 ' + rich;
-        if (depth >= 2) h += ' \u00b7 Richness ' + Math.round((pl.richness || 0) * 100) + '%';
+        if (depth >= 2 && pl.pot) h += ' \u00b7 Pot ' + crs(pl.pot.value);
         if (depth >= 3) h += ' \u00b7 ' + (pl.objectives || []).length + ' Sites in All' + (pl.salvage ? ' \u00b7 Salvage Ground' : '');
         return h;
       }
@@ -4948,7 +4948,7 @@
           return Object.keys(cats).map(function (c) { return CAT_NAME[c] || capWords(c); }).join(', '); }
         return comp.map(function (r) {
           return '<b>' + esc(r.name || RES_NAME[r.id] || capWords(r.id)) + '</b> <span class="m">' + (CAT_NAME[r.category] || '') +
-                 (depth >= 3 ? ' \u00b7 ' + Math.round((r.density || 0) * 100) + '% of the Ground \u00b7 Value \u00d7' + (r.value || 1).toFixed(2) : '') + '</span>';
+                 (depth >= 3 ? ' \u00b7 ' + Math.round((r.density || 0) * 100) + '% of a Hold \u00b7 ' + crs(Math.round(CDMAP.unitPrice(r.id))) + ' a Unit' : '') + '</span>';
         }).join('<br>');
       }
       case 'sites': {
@@ -7738,15 +7738,10 @@
   }
   /* what the WHOLE PLANET holds in a category, as a share of a hold. A withdrawal bargains for
      what the winner eventually takes off this ground, not for what has been dug so far — so the
-     tile says what is there to be won. `richness` is the planet's own (map.js), spread across
-     the categories its sites carry. */
+     tile says what is there to be won: the planet's amount of that store (map.js storesOf). */
   function planetHolds(cat) {
-    var pl = G.div && G.div.planet; if (!pl) return 0;
-    var has = (pl.objectives || []).some(function (o) {
-      return o.type === 'resource_site' && o.resource && window.CDMAP && CDMAP.resourceCategory(o.resource) === cat;
-    });
-    if (!has) return 0;
-    return Math.max(0.2, Math.min(1, pl.richness != null ? pl.richness : 1));
+    var pl = G.div && G.div.planet; if (!pl || !window.CDMAP) return 0;
+    return Math.min(1, CDMAP.storesOf(pl.composition)[cat] || 0);
   }
   function holdWords(v) {
     if (!v) return 'None';

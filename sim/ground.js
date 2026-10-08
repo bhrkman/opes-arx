@@ -229,8 +229,14 @@
       z.site = Object.assign({ kind, zone: z.id }, extra || {}); siteCount[z.region]++; sites.push(z.site); return z.site;
     };
     const nDep = P.int(rng, CONST.DEPOSITS[0], CONST.DEPOSITS[1]);
+    /* §7.2 (ruled) every store has ground to dig: one deposit of each store first, the one it runs deepest in, then
+       the rest to the stores the planet is richest in, through their other kinds */
+    const stores = MAP.storesOf ? MAP.storesOf(composition) : {};
+    const byStore = Object.keys(stores).sort((a, b) => stores[b] - stores[a]).map(cat => composition.filter(r => r.category === cat).sort((a, b) => b.density - a.density));
+    const depRes = [];
+    for (let k = 0; depRes.length < nDep && byStore.length && k < 3; k++) for (const list of byStore) if (depRes.length < nDep) depRes.push(list[k % list.length]);
     for (let i = 0; i < nDep; i++) {
-      const res = composition.length ? composition[i % composition.length] : null;
+      const res = depRes[i] || (composition.length ? composition[i % composition.length] : null);
       const opens = Math.round(CONST.DEPOSIT_OPENS[0] + (CONST.DEPOSIT_OPENS[1] - CONST.DEPOSIT_OPENS[0]) * i / Math.max(1, nDep - 1));
       /* §SITES a deposit is placed where its region stands long enough after it opens to be reached and worked: a seam
          the planner must leave the day it opens is no seam (40% of them were) */
@@ -253,7 +259,7 @@
                                    cx: round3(r.cx), cy: round3(r.cy), area: r.cells.length / totalCells, zones: r.zones, links: r.links })),
       zones: zones.map(z => ({ id: z.id, region: z.region, x: round3(z.x), y: round3(z.y), height: z.height, cover: z.cover, hiding: round3(z.hiding), site: z.site, nb: z.nb })),
       sites, wall, windows: { every: CONST.WINDOW_EVERY, dailyWhenLeft: CONST.DAILY_WHEN_LEFT },
-      composition, pot: MAP.richnessOf ? { richness: MAP.richnessOf(composition) } : null,
+      composition, worth: MAP.worthOf ? MAP.worthOf(composition) : 1,
       seaLevel, water: cells.filter(c => c.water).length / cells.length,
       /* §GROUND the relief as it was cut, for the page to draw: every sample of the disc, its region (-1 water) and its height
          in tenths, row by row; off the disc is left out */

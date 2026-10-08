@@ -1,5 +1,5 @@
 {
-  "_note": "REPUTATION.md §7 — what a planet is made of. `value` is per unit banked, relative to a middling mineral at 1.0, which is what ledger.js and negotiate.js price against so the money does not move. `leans` weight which categories appear at all; a category absent from an archetype's leans cannot appear there.",
+  "_note": "REPUTATION.md §7 — what a planet is made of. `value` prices a unit banked: value × map.js CREDITS_PER_UNIT credits. Every planet carries every category; `leans` say which it is rich in (the heaviest lean, a full hold; the lightest, about a fifth).",
   "categories": ["minerals", "fuels", "luxuries", "foods"],
   "resources": [
     { "id": "ferrite",           "name": "Ferrite",           "category": "minerals", "value": 0.70 },
@@ -39,11 +39,11 @@
     { "id": "nectar_sap",        "name": "Nectar Sap",        "category": "foods", "value": 1.20 }
   ],
   "leans": {
-    "ice_shelf":       { "depth": 0.30, "minerals": 0.60, "fuels": 3.00, "luxuries": 0.40, "foods": 1.00 },
-    "jungle_cradle":   { "depth": 0.58, "minerals": 0.40, "fuels": 0.50, "luxuries": 2.00, "foods": 3.00 },
-    "desert_pan":      { "depth": 0.24, "minerals": 2.00, "fuels": 0.80, "luxuries": 0.60, "foods": 0.20 },
-    "volcanic_waste":  { "depth": 0.66, "minerals": 3.00, "fuels": 2.00, "luxuries": 0.70, "foods": 0.15 },
-    "drowned_world":   { "depth": 0.48, "minerals": 0.50, "fuels": 1.60, "luxuries": 0.80, "foods": 2.50 },
-    "dead_industrial": { "depth": 0.72, "minerals": 3.00, "fuels": 1.20, "luxuries": 0.50, "foods": 0.30 }
+    "ice_shelf":       { "minerals": 0.60, "fuels": 3.00, "luxuries": 0.40, "foods": 1.00 },
+    "jungle_cradle":   { "minerals": 0.40, "fuels": 0.50, "luxuries": 2.00, "foods": 3.00 },
+    "desert_pan":      { "minerals": 2.00, "fuels": 0.80, "luxuries": 0.60, "foods": 0.20 },
+    "volcanic_waste":  { "minerals": 3.00, "fuels": 2.00, "luxuries": 0.70, "foods": 0.15 },
+    "drowned_world":   { "minerals": 0.50, "fuels": 1.60, "luxuries": 0.80, "foods": 2.50 },
+    "dead_industrial": { "minerals": 3.00, "fuels": 1.20, "luxuries": 0.50, "foods": 0.30 }
   }
 }

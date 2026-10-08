@@ -70,7 +70,7 @@
     LOCKER_DEPTH_RICH: 1.30,        // [C] the deepest
     KIT_FLOOR_PER_BODY: 1000,       // [S] the cheapest force that can actually muster is
                                     //     919/body, so this is the real floor, not a guess
-    WILL_RICHNESS_PULL: 0.13,       // [C] how much a fat planet opens the purse
+    WILL_WORTH_PULL: 0.13,          // [C] how much a rich planet opens the purse
     WILL_FLOOR: 0.72,               // [C] appetite MODULATES; wealth decides. Set wider and a
                                     //     poor planet drags the whole fleet to the floor
                                     //     together, which re-flattens the field it is meant

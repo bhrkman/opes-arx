@@ -123,7 +123,6 @@
     /* §FIGHTS (ruled: fights end sooner) halved at the fatality pass: a standard squad breaks off a sixth down */
     STANCE_WITHDRAW_AT: { preservationist: 0.05, measured: 0.10, standard: 0.175, unyielding: 0.25, death_or_glory: 0.325 },
     STIM_NIGHT_COST: 5,                 // [C] §CONSUMABLES fatigue recovery a stim costs that night (its line)
-    SITE_CASH_GUESS: 15000,             // [C] §WITHDRAWAL what a dug site pays, for pricing the ground left (the season passes its own SITE_CASH)
     SHOWDOWN_HORIZON: 12,               // [C] §ENDGAME days before the last ground closes that an OA starts to price the showdown in full
     LEAVE_RATE_HORIZON: 4,              // [C] §WITHDRAWAL days the loss rate since the last window is projected over: the next two windows
     LEAVE_TRAINING_PER_DIVIDE: 3000,    // [C] §WITHDRAWAL the training a Divide survived puts into a man, that a replacement does not have
@@ -178,12 +177,8 @@
     JUDGE_MIN: 1.1, JUDGE_MAX: 3.4,     // [C] the sharpness the worst and best captains bring
     SIGHT_NEAR: 0.10,                   // [C] the ground a captain of 0 can weigh at all
     SIGHT_FAR: 0.55,                    // [C] and what a captain of 100 weighs
-    /* §UNITS §7.3 what a planet's whole endowment in ONE category is worth, as a share of a
-       hold: a planet RICH in it can fill one from empty. A moderate planet lands near 0.40 and
-       a slim one near 0.20 by its own `richness`, which map.js derives from the composition. */
-    HOLD_RICH: 1.0,
-    SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites together carry of its
-                                 endowment: the grab, beside the prize the winner takes */
+    SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites of one store together carry of the planet's
+                                 amount of it: the grab, beside the prize the winner takes */
     STRONGPOINT_PREP: 0.25,   /* [H] §SITES the ground a held strongpoint gives the one on it */
     RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
     RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
@@ -304,9 +299,9 @@
     const w = Math.max(0, Math.min(1, perBodyAfford / ITEMS.CONST.KIT_BUDGET_REFERENCE));
     const depth = ITEMS.CONST.LOCKER_DEPTH_POOR
                 + (ITEMS.CONST.LOCKER_DEPTH_RICH - ITEMS.CONST.LOCKER_DEPTH_POOR) * w;
-    const rich = planet.pot ? (planet.pot.richness - 0.70) / 0.70 : 0.5;
+    const rich = planet.pot && planet.pot.worth != null ? planet.pot.worth - 0.5 : 0.5;   /* an average world (worth 1) is the middle */
     let will = 0.90
-             + ITEMS.CONST.WILL_RICHNESS_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2;   /* (ruled: one judgement, no house's thrift) */
+             + ITEMS.CONST.WILL_WORTH_PULL * (Math.max(0, Math.min(1, rich)) - 0.5) * 2;   /* (ruled: one judgement, no house's thrift) */
     will = Math.max(ITEMS.CONST.WILL_FLOOR, Math.min(1, will));
     const target = Math.round(perBodyAfford * will);
     return {
@@ -338,7 +333,7 @@
     const acct = (corp.persist && corp.persist.account) || LED.open(profile);
     /* §MONEY what the seat's reckoning leaves for kit at the drop (season.js planFor); a one-off Divide spends what it holds */
     corp.kitBudget = Math.max(0, (corp.persist && corp.persist.kitMoney != null) ? corp.persist.kitMoney : acct.treasury);
-    const intent = kitIntent(profile, planet || { pot: { richness: 1.0 } }, total, corp.kitBudget, season);
+    const intent = kitIntent(profile, planet || { pot: { worth: 1 } }, total, corp.kitBudget, season);
     /* §STAFF an Armourer stretches what the house means to field, not the cash: the cash is all the reckoning leaves
        (boosting it spent the families' hold and the cushion) */
     intent.allowance *= ((corp.persist && corp.persist.kitBoost) || 1);
@@ -1067,7 +1062,7 @@
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
-      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day)))).length;
+      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
          and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
@@ -1081,7 +1076,7 @@
       const myOdds = o0 > 0 ? o0 * tilt / (o0 * tilt + (1 - o0)) : 0;
       /* a site pays whoever digs it, win or lose: the open deposits are worth its share of the field that will reach them */
       const fieldUp = corps.filter(j => !j.withdrawn).reduce((t, j) => t + (j.allBodies || []).filter(b => b.status === 'active').length, 0);
-      const digWorth = (opts.siteCash != null ? opts.siteCash : CONST.SITE_CASH_GUESS) * openLeft * Math.min(1, trueF / Math.max(1, fieldUp));
+      const digWorth = openLeft.reduce((t, o) => t + (stats._sitePay ? stats._sitePay(o) : 0), 0) * Math.min(1, trueF / Math.max(1, fieldUp));   /* (ruled) the open sites at what they pay */
       const cost = standingCost(c);
       /* §WITHDRAWAL (ruled) GREED. A house judges the prize honestly and then wants it more than the sums say: the pot
          and the open ground are weighed up by its aggression (the cost of staying and of losing are not) */
@@ -2183,18 +2178,21 @@
        already told its corps which rock this is passes that rock in as `opts.groundTruth`, and
        the Divide fights on the same object the board wrote its card against. */
     const planet = opts.groundTruth || MAP.generatePlanet(rng, opts.planet || {});
-    if (!planet.pot) planet.pot = NEG.rollPot(rng, planet.archetype, planet.richness);
+    if (!planet.pot) planet.pot = NEG.potOf(planet.worth);
     /* §GROUND THE GROUND IS REGIONS OF ZONES (sim/ground.js), generated with the season from the world seed; a
        caller running a single Divide gets one rolled here. The planet dossier's objectives are the ground's sites. */
     const ground = opts.ground || planet.ground || GROUND.generate(rng, { archetype: planet.archetype });
     if (planet.ground !== ground) { planet.ground = ground; planet.objectives = GROUND.objectivesOf(ground); }
     const objAt = {}; for (const o of planet.objectives) if (o.zone != null) objAt[o.zone] = o;
-    /* §PRIZE what a dug deposit banks, as a share of a hold: its part of SITE_SHARE of the planet's endowment, by its
-       depth against the other deposits of its kind (the settlement banks exactly this; the window shows it) */
+    /* §PRIZE what a dug deposit banks, as a share of a hold: its part of SITE_SHARE of the planet's amount of that store
+       (ruled: slim a fifth of a hold, rich a full one), by its depth against the other deposits of its kind (the
+       settlement banks exactly this; the window shows it), and what it pays its digger: those units at their price */
     const siteTotals = {};
     for (const o of planet.objectives || []) { if (o.type !== 'resource_site' || !o.resource) continue; const c0 = MAP.resourceCategory(o.resource); if (c0) siteTotals[c0] = (siteTotals[c0] || 0) + (o.potency || 1); }
-    const endowment = CONST.HOLD_RICH * Math.max(0.2, Math.min(1, planet.richness != null ? planet.richness : 1));
-    const holdShareOf = (o) => { const cat = o.resource && MAP.resourceCategory(o.resource); return cat ? endowment * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1)) : 0; };
+    const storeAmt = MAP.storesOf(planet.composition);
+    const holdShareOf = (o) => { const cat = o.resource && MAP.resourceCategory(o.resource); return cat ? (storeAmt[cat] || 0) * CONST.SITE_SHARE * ((o.potency || 1) / (siteTotals[cat] || 1)) : 0; };
+    const UNITS_PER_HOLD = REP.CONST.UNITS_PER_STORE * REP.CONST.UNIT_SCALE;
+    const sitePay = (o) => Math.round(holdShareOf(o) * UNITS_PER_HOLD * MAP.unitPrice(o.resource));
     const LAST_DAY = ground.days;
     const Z = ground.zones, RG = ground.regions;
     /* §SITES whether a site is worth standing on today */
@@ -2285,6 +2283,7 @@
         steps: 0, contacts: 0, joined: 0, harassed: 0, wallFree: 0
       }
     };
+    stats._sitePay = sitePay;   /* the withdrawal weighs the open ground at what it pays */
     const pcOf = {};
     for (const pc of stats.perCorp) pcOf[pc.id] = pc;
     stats._pcOf = pcOf;
@@ -3251,9 +3250,8 @@
        already a share of a store, so one crate filled a warehouse that takes eight years to
        drain. The middle unit meant nothing at either end and is gone: a site yields the thing a
        manager actually receives. The RULING that sizes it: a planet RICH in a resource can fill
-       a hold from empty, a moderate one about 40%, a slim one about 20% — which is `richness`,
-       already derived in map.js from the composition, spread across the sites that carry the
-       category and weighted by how deep each one is. */
+       a hold from empty, a slim one about a fifth — the planet's amount of that store (map.js storesOf),
+       spread across the sites that carry it and weighted by how deep each one is. */
 
     /* §PRIZE THE SITES ARE THE QUICK GRAB, THE PLANET IS THE PRIZE (ruled). The fight is for a
        planet's mineral rights, and the circle the squads fight on is a sliver of it: the dug
@@ -3308,13 +3306,11 @@
     /* --- §10.3 settlement --------------------------------------------------------------
        The pot lands on the last banner standing and the winner pays its own people. Nothing
        here decides anything: the winner was decided by the last fighter left standing. */
-    /* §PRIZE THE POT IS CREDITS AND RESOURCES. The winner takes the planet's mineral rights: the
-       rolled credits, and the planet's endowment in every store it carries, into its holds. A
-       rich planet fills a hold from empty (ruled); a moderate one about 40%, a slim one 20% —
-       which is `richness`, derived in map.js from the composition. This is the thing a
-       withdrawal bargains for a share of. */
+    /* §PRIZE THE POT IS CREDITS AND RESOURCES. The winner takes the desk's share of the planet's worth in credits,
+       and the planet's amount of every store into its holds: a full hold of one it is rich in, a fifth of one it is
+       slim in (ruled). This is the thing a withdrawal bargains for a share of. */
     stats.potResources = {};
-    for (const cat of REP.CATEGORIES) if (siteTotals[cat]) stats.potResources[cat] = endowment;
+    for (const cat of REP.CATEGORIES) if (storeAmt[cat]) stats.potResources[cat] = storeAmt[cat];
     if (stats.winner && stats.banked[stats.winner]) {
       const wb = stats.banked[stats.winner];
       for (const cat in stats.potResources) wb[cat] = (wb[cat] || 0) + stats.potResources[cat];
@@ -3422,8 +3418,10 @@
       pc.captured = c.allBodies.filter(b => b.status === 'captured').length;
       /* Step 6 — what the Divide was worth to them. */
       pc.payout = stats.settlement.take[c.id] || 0;
-      /* §PRIZE the sites this OA dug, for the quick buck each one pays beside its stores */
-      pc.sitesDug = (planet.objectives || []).filter(o => o.type === 'resource_site' && o.looted && o.lootedBy === c.id).length;
+      /* §PRIZE (ruled) the sites this OA dug, and what they pay: what each brought home, at its price */
+      const dug = (planet.objectives || []).filter(o => o.type === 'resource_site' && o.looted && o.lootedBy === c.id);
+      pc.sitesDug = dug.length;
+      pc.sitePay = dug.reduce((t, o) => t + sitePay(o), 0);
       pc.won = stats.winner === c.id;
       pc.withdrawn = c.withdrawn ? { day: c.withdrawn.day } : null;
       /* §BOARD what the board asks about: where it placed, whether and when it walked, whom it lost (the wall's dead

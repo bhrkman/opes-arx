@@ -22,7 +22,6 @@
        an Aleas entry fee of 40k. A solo win is roughly five years of funding for a rich corp
        and ten for a poor one. */
     POT_BASE: 400000,                   // [H] credits: the desk's share of a planet (ruled 1.2M → 400k). The OA's cut of the rights is billions and none of the manager's; this is the Divide's purse, and the Withdrawal's promises are paid out of it
-    POT_RICHNESS: [0.70, 1.40],         // [C] rolled with the planet
     HAUL_VALUE: 22000,
     /* [H] §PRIZE what the fleet pays for one FULL HOLD of a store an OA cannot keep — the
        surplus of a store already full. Sized so a won planet's overflow is worth having. */
@@ -87,28 +86,11 @@
 
   /* Archetype leans. A rich planet draws more desperate deals, which is the only reason
      rolling it is worth doing at all. */
-  const RICHNESS_LEAN = {
-    dead_industrial: 1.18, volcanic_waste: 1.12, jungle_cradle: 1.06,
-    drowned_world: 1.00, ice_shelf: 0.90, desert_pan: 0.86
-  };
-
-  /**
-   * REPUTATION.md §7.3 — the pot reads the planet's richness, it does not roll its own.
-   * Before Step 7 this rolled a number beside the composition, and two independent numbers
-   * both saying how good a world is are two numbers that drift apart. `richness` now comes
-   * out of what is actually down there (`map.js richnessOf`), and this multiplies it.
-   * The lean table is kept ONLY for the fallback: a caller with no planet.
-   */
-  function rollPot(rng, archetypeId, planetRichness) {
-    const lo = CONST.POT_RICHNESS[0], hi = CONST.POT_RICHNESS[1];
-    let richness;
-    if (planetRichness != null) {
-      richness = Math.max(lo, Math.min(hi, planetRichness));
-    } else {
-      const lean = RICHNESS_LEAN[archetypeId] != null ? RICHNESS_LEAN[archetypeId] : 1.00;
-      richness = Math.max(lo, Math.min(hi, (lo + rng() * (hi - lo)) * lean));
-    }
-    return { value: Math.round(CONST.POT_BASE * richness), richness: richness };
+  /* §7.3 (ruled) THE POT IS THE DESK'S SHARE OF WHAT THE PLANET IS WORTH: POT_BASE on a world of average worth, more
+     on a rich one, less on a poor one. `worth` is the planet's own (map.js worthOf, from what is down there). */
+  function potOf(worth) {
+    const w = worth != null && worth > 0 ? worth : 1;
+    return { value: Math.round(CONST.POT_BASE * w), worth: w };
   }
 
   /* ------------------------------------------------------------------ */
@@ -443,7 +425,7 @@
   }
 
   const api = {
-    CONST, rollPot,
+    CONST, potOf,
     oddsBoard, priceModifier, livingRegard, appetite, bodyWorth,
     ransomPrice, ransomOffer, ransomWorthPaying,
     settle

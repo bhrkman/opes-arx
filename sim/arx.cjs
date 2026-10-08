@@ -593,7 +593,7 @@ function worldSeeding() {
     const st = SEASONMOD.beginSeason(rng, corps, oa, {});
     const draft = (st.recruitDraft ? st.recruitDraft.pool.concat(st.recruitDraft.picks.map(p => ({ name: p.name }))) : []).map(f => f.name).sort().join('|');
     const staff = (SEASONMOD.staffPoolOf(st) || []).map(x => x.name).join('|');
-    const planet = st.planet ? (st.planet.archetype + ':' + st.planet.richness + ':' + (st.planet.pot && st.planet.pot.total)) : '';
+    const planet = st.planet ? (st.planet.archetype + ':' + st.planet.worth + ':' + (st.planet.pot && st.planet.pot.total)) : '';
     for (let m = 0; m < (months || 0) && st.month <= SEASONMOD.CONST.PREP_MONTHS; m++) SEASONMOD.stepMonth(st);
     const shape = st.ids.map(id => { const c = st.corps[id]; return id + ':' + c.roster.map(f => f.id).join(',') + ':' + Math.round((c.account && c.account.treasury) || 0); }).join(';');
     return { draft, staff, planet, shape, world: corps[st.ids[0]]._worldSeed };

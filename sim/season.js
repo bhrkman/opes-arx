@@ -40,16 +40,16 @@ function useCensus(fn) { CENSUS = fn || null; }
 function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
   /* §GROUND THE YEAR'S WORLD. The ground (regions and zones, the wall's order, the sites) is generated from the world
      seed and the season — the page draws the same one from the same key — and the planet dossier is drawn around it:
-     the same archetype, the ground's composition and richness, and its sites as the objectives the board, the
+     the same archetype, the ground's composition and worth, and its sites as the objectives the board, the
      scouting and the settlement read. One world, two readings of it. */
   function worldFor(corps, season) {
     const ground = GROUND.generate(rngOf(corps, 'ground' + season), {});
     ground.season = season;
     const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), { archetype: ground.archetype });
     planet.ground = ground;
-    planet.composition = ground.composition; planet.richness = ground.pot ? ground.pot.richness : planet.richness;
+    planet.composition = ground.composition; planet.worth = ground.worth != null ? ground.worth : planet.worth;
     planet.objectives = GROUND.objectivesOf(ground);
-    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    planet.pot = NEG.potOf(planet.worth);
     return { ground, planet };
   }
 
@@ -287,7 +287,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        in `items.js` beside the allowance it defines, and a second copy here is how a constant
        drifts. */
     DROP_MAX: ITEMS.CONST.DROP_MAX,
-    SITE_CASH: 15000,        /* [H] §PRIZE the flat sum a dug site pays beside its stores (ruled ₡5k → ₡20k → ₡15k with the pot at 400k: 4% of it a site) */
     /* [H] §FOUNDING what share of an AI's founding band is still cash; the rest arrived as its
        people and its kit (ruled). NOT to be balanced against how rosters hold up over years:
        that turns on fatality, which is deliberately untouched, and a reason drawn from it is
@@ -3320,7 +3319,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
     for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
-    /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
+    /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.worth`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
@@ -4655,7 +4654,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
          second card over the one the manager spent the year working against, which is the same
          bug in the other direction. */
-      openSeason: false, groundTruth: state.planet, siteCash: CONST.SITE_CASH,
+      openSeason: false, groundTruth: state.planet,
       /* the edict's own share, from where the edict is written, rather than a number typed
          again in the Divide where nobody would think to change it */
       /* §GROUND the ground itself, and where the draft put everybody: zone ids a squad */
@@ -5129,12 +5128,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         ransomTaken: pc.ransomTaken || 0
       });
       c._payout = pc.payout || 0;
-      /* §PRIZE A SITE PAYS A QUICK BUCK (ruled). The main reward of a dug site is its stores;
-         beside them it pays a small flat sum, guaranteed, win or lose — the grab a squad runs
-         for. Removing the haul's double payment had taken this away entirely, and measured it
-         cost every losing OA about fifteen thousand a year. Paid straight to the books: it is
-         the squad's, not the parent organisation's share of a settlement. */
-      if (pc.sitesDug) LED.post(c.account, 'income', 'Sites Dug', pc.sitesDug * CONST.SITE_CASH);
+      /* §PRIZE (ruled) A SITE PAYS WHAT IT BROUGHT HOME: its units at their price, win or lose, straight to the books */
+      if (pc.sitePay) LED.post(c.account, 'income', 'Sites Dug', pc.sitePay);
       c._bonus = c.account.lastBonus || 0;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;

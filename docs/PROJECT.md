@@ -337,3 +337,10 @@ lean one pleases.
 - The pot is the desk's share of a planet and reaches the winner's books whole, less what it promised
   to houses that left. An engine seat judges its shot at the pot honestly and then wants it more than
   the sums say, by its aggression (up to half again); leaving costs it standing.
+- Every planet carries all four stores, in amounts read as a fleet hold: a store it is rich in fills one
+  from empty, one it is slim in about a fifth; the archetype says which. Every store has ground to dig.
+  A resource has a price (its value × ₡12.5 a unit). A dug site pays its digger what it brought home at
+  that price, win or lose (about ₡15k on average), and fills the holds with it. The pot is the desk's
+  share of what the planet is worth: ₡400k on an average world, more on a rich one. The winner takes the
+  pot and the planet's amount of every store. A board asks for the store its holds are lowest in,
+  leaned toward what the planet is rich in, and asks more the emptier the hold.
