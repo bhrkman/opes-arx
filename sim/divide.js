@@ -2784,8 +2784,13 @@
       if (o.work[key] >= MAP.CONST.LOOT_TICKS) { awardObjective(rng, sq, o, stats); o.work = {}; sq.claiming = null; }
     };
 
+    /* (ruled) THERE IS ALWAYS A WINNER: the fight each banner had left this morning settles a day that ends with nobody
+       standing, and the fight left settles a contest overtime runs out on */
+    const fightLeft = (c) => c.withdrawn ? 0 : (c.squads || []).reduce((t, q) => t + squadHead(q).reduce((u, b) => u + (b.status === 'active' ? fightWorth(b) : 0), 0), 0);
+    let morning = {};
     while (true) {
       day++;
+      morning = {}; for (const c of corps) if (!c.withdrawn && (c.squads || []).some(q => squadHead(q).length)) morning[c.id] = fightLeft(c);
       for (const c of corps) if (c._downedOn == null && (c.withdrawn || !(c.squads || []).some(q => squadHead(q).length))) c._downedOn = day - 1;
       stats.days = day;
       rollWeather(rng, planet, stats, day);
@@ -3165,8 +3170,18 @@
       }
       const bannersLeft = bannersStanding(corps);
       stats.bannersStanding = bannersLeft.size;
-      if (bannersLeft.size <= 1) { stats.winner = bannersLeft.size ? Array.from(bannersLeft)[0] : null; break; }
-      if (day >= LAST_DAY + OVERTIME_MAX) { stats.overtimeExhausted = true; stats.winner = null; break; }
+      const best = (ids) => ids.slice().sort((a, b) => (b[1] - a[1]) || (corps.findIndex(c => c.id === a[0]) - corps.findIndex(c => c.id === b[0])))[0];
+      if (bannersLeft.size <= 1) {
+        if (bannersLeft.size) stats.winner = Array.from(bannersLeft)[0];
+        else { const m = best(Object.keys(morning).map(id => [id, morning[id]])); stats.winner = m ? m[0] : null; stats.wonOnTheMorning = true; }
+        break;
+      }
+      if (day >= LAST_DAY + OVERTIME_MAX) {
+        stats.overtimeExhausted = true;
+        const m = best(Array.from(bannersLeft).map(id => [id, fightLeft(corps.find(c => c.id === id))]));
+        stats.winner = m ? m[0] : null;
+        break;
+      }
     }
     stats._cst = cst;   /* the contest's own state, for the harnesses that read its events */
     stats.contest = { steps: cst.audit.steps, contacts: cst.audit.contacts, fights: cst.audit.fights, joined: cst.audit.joined, harassed: cst.audit.harassed, heard: cst.audit.heard, wall: cst.audit.wall, wallFree: cst.audit.wallFree, captured: cst.audit.captured, wiped: cst.audit.wiped };
@@ -3283,6 +3298,11 @@
     /* earliest off the ground places lowest; on the same day, the one with fewer people still standing */
     const upOf = (id) => { const c = corps.find(x => x.id === id); return c ? c.allBodies.filter(b => b.status === 'active').length : 0; };
     const fellIds = (stats.fallen || []).slice().sort((a, b) => (a.day - b.day) || (upOf(a.id) - upOf(b.id))).map(f => f.id);
+    /* (fixed) a contest overtime ran out on places the banners still standing above the fallen, by the fight they had left */
+    if (stats.overtimeExhausted) {
+      const still = corps.filter(c => c.id !== stats.winner && fellIds.indexOf(c.id) < 0).sort((a, b) => fightLeft(a) - fightLeft(b));
+      for (const c of still) fellIds.push(c.id);
+    }
     stats.placement = REP.placements(fellIds, stats.winner, [], corps.length);
     /* (after the standing and the placings are read: a walking wound stood to the end) */
     /* §WOUNDS (ruled) what the Divide left on a body comes home as a wound, by its band, and mends there */

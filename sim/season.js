@@ -925,8 +925,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /** who an OA would send: its best standing body, by what the crowd and the fight both read */
   function eightPick(corp, asRule) {
     /* §WOUNDS the engine sends a whole hand; a person may name a mending one (nameForEight). §MON-WA a pair on its lead */
-    const fit = corp.roster.filter(f => f.status === 'active' && !mendingBeing(f, corp.roster)
-                                     && !f.mirror_of && wholePairs(corp, [f], 1).length);
+    const able = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
+                                      && !f.mirror_of && wholePairs(corp, [f], 1).length);
+    /* (ruled) a wound does not bar a man from a fight: a house with nobody whole sends a mending hand (and he holds it
+       against the house, as at the Divide) — every house sends someone */
+    const whole = able.filter(f => f.status === 'active' && !mendingBeing(f, corp.roster));
+    const fit = whole.length ? whole : able;
     if (!fit.length) return null;
     /* §TALKS a promise of the Eight is kept by whoever made it, when the one promised can go */
     const owed = TALKS.promisesOf(corp).filter(p => p.kind === 'eight' && p.status === 'open')
@@ -3414,6 +3418,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       c._renewalCalls = {};   /* answered: they were last year's */
       for (const f of c.roster) delete f._renewAsk;
+      /* (ruled) A HOUSE ALWAYS HAS SOMEONE TO SEND: one the year turned with nobody left who could fight is filled to the
+         floor by the board at once, on the scrape's terms — the fees, and the board's patience */
+      const able = beings(c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'));
+      if (!able.length) {
+        const filled = ROSTER.generateSquad(rngOf(corps, 'refill' + season + id), CONST.ROSTER_MIN, { corpId: id }).bodies;
+        let bill = 0;
+        for (const f of filled) { if (LED.paid(f)) bill += (f.contract && f.contract.signing_cost) || 0; f.divides = 0; f.seasonsHere = 0; f.retired = false; c.roster.push(f); }
+        if (bill) LED.post(c.account, 'expense', 'The Board Fills Your Roster', -bill);
+        if (c.rep) c.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR, (c.rep.patience != null ? c.rep.patience : 50) - CONST.SCRAPE_PATIENCE);
+      }
     }
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */

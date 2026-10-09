@@ -379,3 +379,7 @@ lean one pleases.
   bonus go with him to his captor. A drop holds twenty-four seats; past them, the later squads wait in orbit. A house with
   nobody to drop fields nobody. An owner with no window to answer a ransom has not refused it. Letters carry something
   and nothing below nothing. The Dividend pairs by standing, and a house that cannot field four forfeits the purse.
+- There is always a winner: a day that ends with nobody standing goes to the banner with the most fight left that morning,
+  and a contest overtime runs out on to the one with the most fight left. Every house always has someone to send: the
+  Eight takes a mending hand when nobody is whole, and a house the year turns with nobody able to fight is filled by the
+  board to the floor at once, on the scrape's terms.
