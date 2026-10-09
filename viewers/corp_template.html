@@ -6899,14 +6899,14 @@
                  /* §CONNECT the rest of what the grid writes down, which printed as raw type names */
                  absorbed: 'glances off', ricochet: 'ricochets into', blast: 'catches in the blast', lane_hit: 'fires down the lane at',
                  covering: 'lays covering fire on', spread: 'catches with the spread', stabilized: 'stabilises',
-                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover' };
+                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover', taken: 'finishes' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
       var v2 = lg[e];
       if (v2.t > F.turn) break;
       if (v2.t < F.turn - 1) continue;
-      var cls = v2.type === 'killed' || v2.type === 'down' || v2.type === 'stunned' || v2.type === 'pair_down' || /^bond_shock/.test(v2.type) ? 'down'
+      var cls = v2.type === 'killed' || v2.type === 'taken' || v2.type === 'down' || v2.type === 'stunned' || v2.type === 'pair_down' || /^bond_shock/.test(v2.type) ? 'down'
               : v2.type === 'miss' ? '' : 'hit';
       var who = nameOf[v2.by] || v2.by || '?';
       var whom = nameOf[v2.at] || v2.at || '';

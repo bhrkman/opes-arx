@@ -404,3 +404,9 @@ lean one pleases.
   day. An engine seat's rations count the Divide's length and how seldom a marching squad forages. An exit offer the
   field let fall is not posted again unchanged within three days. A trade buyer must need the hand and afford it from its
   people money, and a refused letter is not sent again unchanged. The dealer sells an engine house only what it can issue.
+- The Eight always has a winner (more standing, then more harm dealt, then more left in them, then the seed), and the
+  side that loses dies: the winners take the field and everyone on it. Measured, about 54% of entrants die.
+- Only a rival standing on a lit beacon stops a landing there (ruled; measured, no spike in fighting or deaths).
+- Engine answers read the situation, with character leaning only on close calls: the dispatches weigh the fighter at
+  issue, the money, the stands and the board; an engine seat opens the Divide on the notch its culture, its read of
+  its strength against the field (as far as its dossiers reach) and its board's asks point at.

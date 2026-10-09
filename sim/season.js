@@ -1007,6 +1007,26 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        field is taken from whoever loses it */
     const res = TAC.resolve(rngOf(corps, 'eight' + season), sA, sB,
       { terrain: 'broken_ground', openingBand: 1, prep: [0.5, 0.5], toTheEnd: true });
+    /* (ruled) THE SIDE THAT LOSES DIES. The fight ran to the end of its clock and then scored, and the losers' wounded
+       took the overrun roll like any field's — four in ten of them walked home, and a side that ran dry of rounds left
+       the field standing. Whoever loses the Eight does not leave it: the winners take the field and everyone on it. */
+    const standingN = S => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
+    const hpLeft = S => S.units.filter(u => u.state === 'ok' || u.state === 'light').reduce((t, u) => t + Math.max(0, u.hp || 0), 0);
+    const casOf = t => (res.casualties && res.casualties[t]) || {};
+    const pointsOf = c => ((c || {}).light || 0) + 2 * ((c || {}).down || 0) + 3 * ((c || {}).dead || 0);
+    /* always a winner: who has more standing, then who dealt more harm, then who has more left in them, then the seed */
+    const winner = standingN(sA) !== standingN(sB) ? (standingN(sA) > standingN(sB) ? 'A' : 'B')
+                 : pointsOf(casOf('eightB')) !== pointsOf(casOf('eightA')) ? (pointsOf(casOf('eightB')) > pointsOf(casOf('eightA')) ? 'A' : 'B')
+                 : hpLeft(sA) !== hpLeft(sB) ? (hpLeft(sA) > hpLeft(sB) ? 'A' : 'B') : 'A';
+    {
+      const lost = (winner === 'A' ? sB : sA).units.filter(u => u.state !== 'dead');
+      const by = ((winner === 'A' ? sA : sB).units.find(u => u.state === 'ok' || u.state === 'light') || (winner === 'A' ? sA : sB).units[0]);
+      const fr = res.frames || [], last = fr[fr.length - 1], t = ((last && last.turn) || res.turns || 0) + 1;
+      for (const u of lost) { u.state = 'dead'; (res.log = res.log || []).push({ t, type: 'taken', by: by && by.id, at: u.id }); }
+      /* the replay's last picture shows it */
+      if (last && lost.length) fr.push(Object.assign({}, last, { turn: t, actor: null, did: [],
+        units: (last.units || []).map(x => lost.some(u => u.id === x.id) ? Object.assign({}, x, { st: 'dead', hp: 0 }) : x) }));
+    }
     /* the outcome lands on the bodies: the dead are dead, the hurt are hurt */
     const deadBy = {}, hurtBy = {};
     const land = (S) => S.units.forEach(u => {
@@ -1025,12 +1045,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       REP.earnFame(f, CONST.EIGHT_FAME);
     });
     land(sA); land(sB);
-    const standing = S => S.units.filter(u => u.state === 'ok' || u.state === 'light').length;
-    const cas = t => (res.casualties && res.casualties[t]) || {};
-    const points = c => ((c || {}).light || 0) + 2 * ((c || {}).down || 0) + 3 * ((c || {}).dead || 0);
-    let winner = standing(sA) !== standing(sB) ? (standing(sA) > standing(sB) ? 'A' : 'B')
-               : points(cas('eightB')) !== points(cas('eightA')) ? (points(cas('eightB')) > points(cas('eightA')) ? 'A' : 'B') : null;
-    const win = winner === 'A' ? A : winner === 'B' ? B : null;
+    const win = winner === 'A' ? A : B;
     if (win) {
       const share = Math.round(pot / win.length);
       for (const e of win) { LED.post(e.corp.account, 'income', 'The Eight\u2019s Purse', share); REP.earnFame(e.f, CONST.EIGHT_FAME_WIN); if (e.corp.rep) REP.act(e.corp.rep, 'won_the_eight', {}); }
@@ -4728,6 +4743,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* §SPONSORS the family of guns a signed contract asks for, which the quartermaster issues */
         kitFamily: (SPON && SPON.steerFor) ? SPON.steerFor(c).family : null,
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
+        /* (fixed, sweep 5) how strong it reads itself against the field as its dossiers see it, for its opening stance */
+        fieldRead: (function () {
+          const others = ids.filter(o => o !== id);
+          const mid = others.reduce((t, o) => t + strengthSeen(state, id, o), 0) / Math.max(1, others.length);
+          return mid > 0 ? strengthRead(state, id) / mid : 1;
+        })(),
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
         wordRecord: (c._wordRecord = c._wordRecord || {}),

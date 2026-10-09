@@ -245,7 +245,11 @@
     STANDING_MIN: 0.12, STANDING_MAX: 1.0,
     STANCE_PULL_HURT: 2.6,              // [C] notches toward care, at total loss
     STANCE_PULL_PENNED: 1.1,            // [C] and toward aggression once the wall pens it in
-    STANCE_PULL_AHEAD: 0.7,             // [C] an opening is worth taking
+    STANCE_PULL_AHEAD: 0.7,
+    STANCE_PULL_STRENGTH: 1.0,          // [C] §STANCE notches bolder (or more careful) an engine seat opens, at its full read of the field
+    STANCE_STRENGTH_SPAN: 0.3,          // [C] how far above (below) the field's middle that full read is
+    STANCE_PULL_WIN: 0.4,               // [C] bolder when the board asks for the win
+    STANCE_PULL_PLACE: 0.4,             // [C] bolder (more careful) by how high (low) the board asks it to place             // [C] an opening is worth taking
     RANSOM_ANSWER_WINDOWS: 2,           // [C] §TIME the windows a person has to answer a ransom before it lapses
     LEAVE_OVERTIME_GUESS: 6,            // [C] the days past the last ground an OA expects a contest to run
     UNDERDOG_FAME_PER_PLACE: 0.12,      // [C] §SNOWBALL fame for a kill, per place the victim's OA finished above the killer's
@@ -1968,6 +1972,21 @@
     stats.stanceChanges++;
     if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
   }
+  /* (fixed, sweep 5) AN ENGINE SEAT LANDS ON THE NOTCH ITS SITUATION POINTS AT: its culture, moved by how strong it reads
+     itself against the field (as far as its dossiers see) and by what its board asks. Every seat landed on standard and
+     only the wall ever moved it. A person sets theirs at the first window. */
+  function openingStance(corp, rep, persist) {
+    const home = culturalHome(corp);
+    const r = persist && persist.fieldRead ? persist.fieldRead : 1;
+    let pull = CONST.STANCE_PULL_STRENGTH * Math.max(-1, Math.min(1, (r - 1) / CONST.STANCE_STRENGTH_SPAN));
+    const dem = (rep && rep.goal && rep.goal.demands) || [];
+    if (dem.some(g => g.kind === 'win')) pull += CONST.STANCE_PULL_WIN;
+    const pl = dem.find(g => g.kind === 'placement');
+    if (pl && pl.at != null) pull += CONST.STANCE_PULL_PLACE * Math.max(-1, Math.min(1, (4.5 - pl.at) / 3.5));
+    const w = (corp.rigidity || 0) / 100;
+    const pick = Math.max(0, Math.min(NOTCHES.length - 1, Math.round(home + pull * (1 - w * 0.65))));
+    if (NOTCHES[pick] !== corp.policy) { corp.policy = NOTCHES[pick]; corp._openedAt = corp.policy; }
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -2288,7 +2307,7 @@
     if (REP && opts.reputations) for (const c of corps) {
       const rp = opts.reputations[c.id];
       if (rp) c._fleetStanding = REP.standing(rp, 'houses');
-      if (!isHumanOA(c.id)) seatSquadStances(c);
+      if (!isHumanOA(c.id)) { openingStance(c, rp, opts.corps && opts.corps[c.id]); seatSquadStances(c); }
     }
     if (opts.captureDrop) opts.captureDrop(corps.map(c => c.squads.map(q => ({ corpId: c.id, zone: q.zone, x: q.x, y: q.y }))));
 
@@ -2751,7 +2770,9 @@
       sq.claiming = o.id; cq.beacon = true;
       o.litBy = corp.id; o.litDay = day; o.heldBy = corp.id;
       o.draw = o.draw || {};
-      const rival = Z[o.zone].nb.some(v => { const h = CONTEST.holder(cst, v); return h && h.oa !== corp.id; });
+      /* (ruled, sweep 5) only a rival ON the beacon stops a landing, as the rule always said: the code blocked on any rival
+         in a neighbouring zone, which on the zone ground is most of a region */
+      const rival = cst.squads.some(q => q.alive && q.zone === o.zone && q.oa !== corp.id && !CONTEST.onRoad(q));
       if (rival) { o.draw[corp.id] = 0; stats.audit.beaconContested++; return; }
       const seats = s => squadHead(s).filter(b => !b.mirror_of).length;
       stats.audit.beaconTicks = (stats.audit.beaconTicks || 0) + 1;

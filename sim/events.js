@@ -68,7 +68,23 @@
     WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
     WORD_SOUR: 45,               // [C] loyalty under which a hand has something to say
     WORD_STRAINED: 55,           // [C] stress over which a hand has something to say
-    TURN_AWAY_LOYALTY: -8        // [C] what being turned away costs
+    TURN_AWAY_LOYALTY: -8,       // [C] what being turned away costs
+    /* (fixed, sweep 5) THE ENGINE'S ANSWERS READ THE MOMENT. What the facts weigh against each other when a house answers
+       a dispatch; the character's lean is scaled by AI_LEAN so the facts decide and the dials only tip a close call. */
+    AI_LEAN: 0.5,                // [C] how far a house's dials lean an answer, against the facts of the month
+    AI_CASH_CUSHION: 12000,      // [C] a sum is weighed against spare money plus this: dear to an empty purse, small to a full one
+    AI_STRAIN: 1.5,              // [C] what a point of stress on a hand weighs, before who they are and what they carry
+    AI_STANDS_SCALE: 4,          // [C] standing points (shares-weighted) to one unit of an answer's score
+    AI_COLD_MULT: 1.5,           // [C] a faction already cold counts this much more: the stands a house is losing it minds
+    AI_HOUSES_W: 0.5,            // [C] the houses' mean against the crowd's, in what an answer is worth
+    AI_REGARD_W: 0.35,           // [C] what a rival's regard is worth keeping: a slight answered or papers read cost a friend more
+    AI_FAME_W: 0.012,            // [C] a point of fame on a hand, by how much the house needs them seen
+    AI_HEALTH_W: 0.02,           // [C] a point of health back on a hand who is down it
+    AI_INTEL_W: 0.45,            // [C] a rival's drill, read or lost, by how much that rival is to fear and how late the year is
+    AI_REVEAL_W: 4,              // [C] media day: what rivals learning a share of your strength costs, in stand points
+    AI_BOARD_W: 6,               // [C] a point of the board's patience, against how much of it is left
+    AI_DRILL_W: 0.5,             // [C] a month without drill, by how late the year is
+    AI_PRIORITY_W: 1.0           // [C] a board memo: the house's better chance at the card's new priority, against the patience
   };
   /* §ALEAS THE ALEAS' RULINGS ARE CUT (ruled). Four of this pool were the Aleas changing the year's rules —
      the wall closed early, a stun-grade Divide, no truces, a levy — invasive, rarely noticed and not much
@@ -143,14 +159,12 @@
   /* what a house's character makes of an act's qualities, beside what its stands make of them */
   const CHARACTER = { blood: ['aggression', 1], grit: ['aggression', 0.5], glory: ['showmanship', 1], care: ['patience', 1],
                       word: ['tradition', 1], craft: ['tradition', 0.5] };
-  function appealOf(c, q) {
+  /* (fixed, sweep 5) the character's half only: what the stands make of it is standsOf's, read against the stands as
+     they are this month rather than the static taste of their shares */
+  function characterOf(c, q) {
     if (!q) return 0;
-    const taste = c.rep && REP.tasteOf ? REP.tasteOf(c.rep) : null;
     let v = 0;
-    for (const k in q) {
-      if (taste && taste[k] != null) v += q[k] * taste[k];
-      const ch = CHARACTER[k]; if (ch) v += q[k] * (dialOf(c, ch[0]) - 0.5) * ch[1];
-    }
+    for (const k in q) { const ch = CHARACTER[k]; if (ch) v += q[k] * (dialOf(c, ch[0]) - 0.5) * ch[1]; }
     if (q.word) v -= q.word * (dialOf(c, 'treachery') - 0.5);   /* a schemer sets less store by a word kept */
     return v;
   }
@@ -161,6 +175,62 @@
     const a = alive(c).filter(x => !x.mirror_of).sort((x, y) => q(y) - q(x));
     return a.length ? (a.indexOf(f) + 1) / a.length : 1;
   }
+  /* (fixed, sweep 5) THE ENGINE READS THE MOMENT, NOT ONLY ITSELF. Measured: the fleet's dials sit together, so an
+     answer read off the dials alone came out the same for every house every time — a brawl always fined, a slight
+     always laughed off, every profile granted, every media day fronted by the steadiest, every quirk moment the same
+     side. (Ruled: those are situational.) Character still leans; the facts decide: who the hand is to the house and
+     what they are carrying, what the money will bear, which stands are warm and which the house is losing, how the
+     board's patience holds, who sent it, and how the year is going. */
+  const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+  const lean = (c, k) => dialOf(c, k) * CONST.AI_LEAN;
+  /* what a hand is to the house: near 1 its best, near 0 its last */
+  const needOf = (c, f) => f ? 1 - rankOf(c, f) : 0;
+  /* what a sum is to this house this month: small to a full purse, dear to an empty one */
+  const cashOf = (c, amt) => amt / (Math.max(0, spare(c)) + CONST.AI_CASH_CUSHION) * (0.6 + 0.8 * dialOf(c, 'thrift'));
+  /* what stress does to a hand: dearer on one near breaking, on one the house needs, and on one already hurt; relief
+     only counts as far as there is stress to relieve */
+  function strainOf(c, f, d) {
+    if (!f || !d) return 0;
+    const cond = f.condition || {}, s = cond.stress || 0;
+    if (d < 0) d = -Math.min(-d, s);
+    const hurt = f.status === 'injured' || (cond.injuries || []).length ? 1.25 : 1;
+    /* the last points before breaking are the dear ones: everyone breathes a little each month, so a few points on a calm
+       hand wash out by themselves, and the same few on one near the mark do not */
+    const near = s / CONST.WORD_STRAINED;
+    return d / 100 * (0.3 + needOf(c, f)) * (0.15 + near * near) * hurt * CONST.AI_STRAIN;
+  }
+  /* what an act would do for this house now: the factions by their share of the stands, a cold one counting more and
+     one the card asks after more still, the whole scaled by how far the crowd sits under the board's bar; the houses
+     beside it */
+  function standsOf(c, type, ctx) {
+    if (!c.rep || !REP.impact) return 0;
+    const im = REP.impact(c.rep, type, ctx || {}), rep = c.rep;
+    const pop = ((rep.goal && rep.goal.standing) || []).find(d => d.kind === 'popularity');
+    const bar = pop && pop.expected != null ? pop.expected : 50;
+    const need = 1 + Math.max(-0.5, Math.min(1, (bar - REP.standing(rep, 'crowd')) / 25));
+    const asked = {};
+    for (const d of ((rep.goal && rep.goal.demands) || [])) if (d && d.kind === 'standing' && d.audience && REP.standing(rep, d.audience) < d.above) asked[d.audience] = true;
+    let v = 0;
+    for (const f in im.fx) v += (rep.shares[f] || 0) * im.fx[f] * (REP.standing(rep, f) <= CONST.CROWD_COLD ? CONST.AI_COLD_MULT : 1) * (asked[f] ? 1.5 : 1);
+    let h = 0; const ids = Object.keys(rep.base.houses || {});
+    for (const id in im.hx) h += im.hx[id];
+    if (ids.length) h /= ids.length;
+    return (v * need + h * (asked.houses ? 1.5 : 1) * CONST.AI_HOUSES_W) / CONST.AI_STANDS_SCALE;
+  }
+  /* how a rival regards the house, 0..100, 50 indifferent */
+  const regardOf = (c, id) => (c.rep && id && c.rep.base.houses[id] != null ? REP.standing(c.rep, 'house', id) : 50);
+  /* how much a rival is to fear: one that finished above the house most, one far below least */
+  function threatOf(state, c, id) {
+    const o = state && state.corps && state.corps[id];
+    if (!o || !o._lastPlace || !c._lastPlace) return 0.5;
+    return clamp01(0.5 + (c._lastPlace - o._lastPlace) / Math.max(1, state.ids.length - 1));
+  }
+  /* how late in the prep year: the drop is close at 1 */
+  const lateOf = state => clamp01(((state && state.month) || 6) / 11);
+  /* a point of the board's patience: dear to a board near the end of it */
+  const boardOf = (c, d) => c.rep ? d * CONST.AI_BOARD_W / Math.max(10, c.rep.patience || 0) : 0;
+  /* a point of fame on a hand: worth more on one the house needs seen, and less the more they already have */
+  const fameOf = (c, f, d) => f ? d * CONST.AI_FAME_W * (0.5 + needOf(c, f)) * (1 - Math.min(90, f.fame || 0) / 100) : 0;
 
   /* --------------------------------------------------------------------------- the pool ---- */
   /* each entry: id, weight, when(corp, ctx) -> subject or null, make(subject, corp, ctx) -> event,
@@ -232,12 +302,24 @@
         if (c.rep && pick[4]) REP.act(c.rep, 'a_hand_handled', { q: pick[4] });   /* §STANDING the stands hear how you handled it */
         return pick[3](shortName(f));
       },
-      /* §CENSUS the option its stands and its character like better */
-      ai: (c) => {
-        /* what it costs weighs too: a careful house minds the money, a hard one minds the strain less */
-        const cost = o => (o[1] === 'credits' && o[2] < 0 ? o[2] / 10000 * (0.5 + dialOf(c, 'thrift')) : 0)
-                        - (o[1] === 'stress' && o[2] > 0 ? o[2] / 40 * (1 - dialOf(c, 'aggression')) : 0);
-        return appealOf(c, m.b[4]) + cost(m.b) > appealOf(c, m.a[4]) + cost(m.a) ? 'b' : 'a';
+      /* §CENSUS the option its stands and its character like better.
+         (fixed, sweep 5) and what each side does to THIS hand now: strain on one near breaking or one the house needs,
+         health back on one who is down it (and none on one who is not), fame on one the house wants seen, money against
+         what the purse will bear, and the stands as they stand this month. It read the stands' static taste and the
+         dials, and every house took the same side of every moment. */
+      ai: (c, e) => {
+        const f = alive(c).find(x => x.id === e.subject);
+        const worth = o => {
+          const kind = o[1], amt = o[2];
+          let v = standsOf(c, 'a_hand_handled', { q: o[4] }) + characterOf(c, o[4]) * CONST.AI_LEAN;
+          if (kind === 'stress') v -= strainOf(c, f, amt) * (1.5 - dialOf(c, 'aggression'));   /* a hard house minds the strain less */
+          else if (kind === 'health' && f) { const cond = f.condition || {}, h = cond.health == null ? 100 : cond.health;
+            v += Math.min(amt, 100 - h) * CONST.AI_HEALTH_W * (0.3 + needOf(c, f)) * ((cond.injuries || []).length ? 1.5 : 1); }
+          else if (kind === 'fame') v += fameOf(c, f, amt);
+          else if (kind === 'credits') v -= cashOf(c, -amt);
+          return v;
+        };
+        return bestOf({ a: worth(m.a), b: worth(m.b) });
       }
     };
   }
@@ -329,11 +411,21 @@
         if (opt === 'fine') { [hot, oth].forEach(f => { if (f) { stress(f, 6); LED.post(c.account, 'income', 'A Barracks Fine', CONST.FINE); } }); if (c.rep) REP.act(c.rep, 'fined_both', {}); return 'Both Were Fined'; }
         alive(c).forEach(f => stress(f, 5)); if (c.rep) REP.act(c.rep, 'let_it_lie', {}); return 'It Was Let Lie';
       },
-      ai: (c) => bestOf({
-        punish: dialOf(c, 'tradition') * 0.7 + dialOf(c, 'aggression') * 0.4,
-        fine: dialOf(c, 'thrift') * 0.8 + 0.15,
-        lie: dialOf(c, 'patience') * 0.6 + (1 - dialOf(c, 'tradition')) * 0.4
-      })
+      /* (fixed, sweep 5) WHO THREW THE PUNCH, AND WHAT THE BARRACKS IS CARRYING. Punishing lands twenty on the brawler and
+         settles everyone else; a fine is two small strains and money in; letting it lie strains the whole barracks. So a
+         house punishes when the rest are wound tight and the brawler can carry it, fines when the brawler is one it needs
+         near breaking or the purse is thin, and lets it lie when the barracks is calm and the stands like blood. It read
+         three dials. */
+      ai: (c, e) => {
+        const a = alive(c), hot = a.find(x => x.id === e.subject), oth = a.find(x => x.id === e.other);
+        let settle = 0, simmer = 0;
+        for (const f of a) { if (f !== hot) settle += strainOf(c, f, -4); simmer += strainOf(c, f, 5); }
+        return bestOf({
+          punish: lean(c, 'tradition') * 0.7 + lean(c, 'aggression') * 0.4 - strainOf(c, hot, 20) - settle + standsOf(c, 'disciplined'),
+          fine: lean(c, 'thrift') * 0.8 - strainOf(c, hot, 6) - strainOf(c, oth, 6) + cashOf(c, CONST.FINE * 2) + standsOf(c, 'fined_both'),
+          lie: lean(c, 'patience') * 0.6 + (1 - dialOf(c, 'tradition')) * 0.4 * CONST.AI_LEAN - simmer + standsOf(c, 'let_it_lie')
+        });
+      }
     },
     {
       id: 'memo', weight: 0.9,
@@ -353,7 +445,26 @@
         if (opt === 'accept') { c.rep.goal.priority = e.subject; c.rep.patience = Math.min(100, (c.rep.patience || 0) + 2); return 'The Card\u2019s Priority Moved'; }
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3); return 'The Card Held as It Stood';
       },
-      ai: (c) => (c.rep && c.rep.patience < 35 + 35 * (1 - dialOf(c, 'tradition'))) ? 'accept' : 'push'
+      /* (fixed, sweep 5) WHICH LINE OF THE CARD THE HOUSE CAN MEET. The priority counts twice at the year's end, so moving it
+         is worth what the house's chance at the new line beats its chance at the old one; the patience either way is dearer
+         to a board near the end of it. It read one patience line against a dial, and with the fleet's boards all sitting
+         above that line, every house held its card. */
+      ai: (c, e, state) => {
+        const g = c.rep && c.rep.goal; if (!g) return 'accept';
+        const like = d => {
+          if (!d) return 0.5;
+          if (d.kind === 'standing') return clamp01(0.5 + (REP.standing(c.rep, d.audience) - d.above) / 20);
+          if (d.kind === 'placement') return c._lastPlace ? clamp01(0.5 + (d.at - c._lastPlace) / 4) : 0.5;
+          if (d.kind === 'win') return c._lastPlace === 1 ? 0.4 : 1 / Math.max(2, ((state && state.ids) || []).length);
+          if (d.kind === 'stipend') return c.rep.calls ? 0 : 0.7;
+          if (d.kind === 'surplus') return clamp01(c.account.treasury / Math.max(1, d.amount) * 0.5);
+          return 0.5;
+        };
+        return bestOf({
+          accept: boardOf(c, 2) + (like(g.demands[e.subject]) - like(g.demands[g.priority])) * CONST.AI_PRIORITY_W,
+          push: lean(c, 'tradition') * 0.3 - boardOf(c, 3)
+        });
+      }
     },
     {
       id: 'poach', weight: 1.1,
@@ -406,11 +517,19 @@
         if (opt === 'ignore') { REP.act(c.rep, 'ignored_a_slight', {}); return 'The Slight Was Ignored'; }
         REP.act(c.rep, 'laughed_off_a_slight', {}); return 'The Slight Was Laughed Off';
       },
-      ai: (c) => bestOf({
-        answer: dialOf(c, 'aggression') * 0.8 + (c.rep && REP.standing(c.rep, 'crowd') < 50 ? 0.3 : 0),
-        laugh: dialOf(c, 'showmanship') * 0.5 + dialOf(c, 'patience') * 0.4,
-        ignore: dialOf(c, 'tradition') * 0.3 + (1 - dialOf(c, 'showmanship')) * 0.3
-      })
+      /* (fixed, sweep 5) WHO SAID IT. Answering warms the stands that like a fight and cools the house that said it;
+         laughing moves little; silence cools your own. So a house answers a rival that already thinks little of it, or one
+         it has to fear this year, when its stands want blood — and laughs off a friend it would rather keep. It read the
+         dials and laughed every slight off. */
+      ai: (c, e, state) => {
+        const regard = regardOf(c, e.from), threat = threatOf(state, c, e.from);
+        return bestOf({
+          answer: lean(c, 'aggression') * 0.8 + standsOf(c, 'answered_a_slight', { targetId: e.from })
+                  + CONST.AI_REGARD_W * ((50 - regard) / 25 + (threat - 0.5)),
+          laugh: lean(c, 'showmanship') * 0.5 + lean(c, 'patience') * 0.4 + standsOf(c, 'laughed_off_a_slight'),
+          ignore: lean(c, 'tradition') * 0.3 + (1 - dialOf(c, 'showmanship')) * 0.3 * CONST.AI_LEAN + standsOf(c, 'ignored_a_slight')
+        });
+      }
     },
     {
       id: 'dealer', weight: 0.9,
@@ -463,9 +582,10 @@
         if (c.rep) REP.act(c.rep, 'took_the_collection', {});
         return 'The Collection Was Taken';
       },
+      /* (fixed, sweep 5) the collection against the purse, smoothly; giving it away against what these stands make of it */
       ai: (c, e) => bestOf({
-        families: (c.rep ? ((c.rep.shares.families || 0) + (c.rep.shares.diehards || 0) * 0.5) * 1.5 : 0) + dialOf(c, 'tradition') * 0.3 + dialOf(c, 'patience') * 0.3,
-        take: 0.15 + dialOf(c, 'thrift') * 0.5 + (spare(c) < e.amount * 20 ? 0.3 : 0)
+        families: lean(c, 'tradition') * 0.3 + lean(c, 'patience') * 0.3 + standsOf(c, 'gave_it_away'),
+        take: lean(c, 'thrift') * 0.5 + cashOf(c, e.amount) + standsOf(c, 'took_the_collection')
       })
     },
     {
@@ -484,10 +604,17 @@
         if (c.rep) REP.act(c.rep, 'read_the_papers', { targetId: e.from });
         return 'The Papers Were Read';
       },
-      ai: (c) => bestOf({
-        read: 0.35 + dialOf(c, 'treachery') * 0.6 + dialOf(c, 'aggression') * 0.1,
-        return: dialOf(c, 'tradition') * 0.5 + (1 - dialOf(c, 'treachery')) * 0.3
-      })
+      /* (fixed, sweep 5) WHOSE PAPERS. Reading them is worth most on a rival to fear late in the year, and costs a house that
+         regards you well; sending them back buys that house's regard and the Diehards' word. It read the dials and read
+         every set. */
+      ai: (c, e, state) => {
+        const regard = regardOf(c, e.from), intel = CONST.AI_INTEL_W * (0.5 + threatOf(state, c, e.from)) * (0.5 + lateOf(state));
+        return bestOf({
+          read: lean(c, 'treachery') * 0.6 + lean(c, 'aggression') * 0.1 + intel + standsOf(c, 'read_the_papers', { targetId: e.from })
+                - CONST.AI_REGARD_W * Math.max(0, regard - 50) / 25,
+          return: lean(c, 'tradition') * 0.5 + (1 - dialOf(c, 'treachery')) * 0.3 * CONST.AI_LEAN + standsOf(c, 'sent_the_papers_back', { targetId: e.from })
+        });
+      }
     },
     {
       id: 'protest', weight: 1.1,
@@ -505,10 +632,12 @@
         if (opt === 'shut') { c._gateShut = ctx.state.season * 100 + ctx.state.month; if (c.rep) REP.act(c.rep, 'shut_the_gate', {}); return 'The Gate Was Shut'; }
         if (c.rep) c.rep.patience = Math.max(0, c.rep.patience - 4); return 'It Was Waited Out';
       },
+      /* (fixed, sweep 5) what each costs this house: going out costs the board two and warms the stands; shutting the gate
+         costs a month's gate, as last month's was; waiting costs the board four. Read smoothly against the patience left. */
       ai: (c) => bestOf({
-        meet: 0.3 + dialOf(c, 'showmanship') * 0.5 + (c.rep && c.rep.patience > 40 ? 0.1 : -0.2),
-        shut: dialOf(c, 'aggression') * 0.5 + (1 - dialOf(c, 'tradition')) * 0.3,
-        ignore: dialOf(c, 'patience') * 0.4 + (c.rep && c.rep.patience > 60 ? 0.2 : -0.3)
+        meet: lean(c, 'showmanship') * 0.5 - boardOf(c, 2) + standsOf(c, 'went_out_to_them'),
+        shut: lean(c, 'aggression') * 0.5 + (1 - dialOf(c, 'tradition')) * 0.3 * CONST.AI_LEAN - cashOf(c, c._lastGate || 0) + standsOf(c, 'shut_the_gate'),
+        ignore: lean(c, 'patience') * 0.4 - boardOf(c, 4)
       })
     },
     {
@@ -527,7 +656,15 @@
         c._noDrill = ctx.state.season * 100 + ctx.state.month;
         return 'The Drill Stood Idle';
       },
-      ai: (c, e) => spare(c) > e.amount * (2 + 4 * dialOf(c, 'thrift')) && dialOf(c, 'patience') < 0.75 ? 'pay' : 'wait'
+      /* (fixed, sweep 5) the bill against the purse, and a month's drill against how near the drop is and how much the
+         house leans on its people */
+      ai: (c, e, state) => {
+        const a = alive(c).filter(f => !f.mirror_of), top = a.length ? a.reduce((n, f) => n + needOf(c, f), 0) / a.length : 0.5;
+        return bestOf({
+          pay: -cashOf(c, e.amount) + standsOf(c, 'settled_a_strike'),
+          wait: lean(c, 'patience') * 0.3 - CONST.AI_DRILL_W * (0.5 + lateOf(state)) * (0.5 + top)
+        });
+      }
     },
     {
       id: 'leak', weight: 0.8,
@@ -544,7 +681,12 @@
         c._leakTo = e.to;                            /* the season reads it into that OA's dossier this month */
         return 'The Leak Ran';
       },
-      ai: (c) => spare(c) > CONST.LEAK_HUNT * (2 + 5 * (1 - dialOf(c, 'treachery')) + 2 * dialOf(c, 'thrift')) ? 'find' : 'let'
+      /* (fixed, sweep 5) the hunt's price against the purse, and what the drill is worth to the rival it goes to: one to
+         fear, late in the year, most */
+      ai: (c, e, state) => bestOf({
+        find: (1 - dialOf(c, 'treachery')) * 0.3 * CONST.AI_LEAN - cashOf(c, CONST.LEAK_HUNT),
+        let: -CONST.AI_INTEL_W * (0.5 + threatOf(state, c, e.to)) * (0.5 + lateOf(state))
+      })
     }
   );
   /* §MEDIA THE PRESS: what a columnist wants between media days */
@@ -564,7 +706,16 @@
         if (c.rep) REP.act(c.rep, 'profiled', {}); return 'The Piece Ran on ' + f.name; }
       REP.addFame(f, CONST.PROFILE_DECLINED_FAME); return 'The Piece Ran Anyway, Thinner';
     },
-    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
+    /* (fixed, sweep 5) WHO THEY WANT, AND HOW THEY ARE. A week under the lens is strain on the standout, dearer the closer
+       the drop and the more they carry; the fame and the stands' glory are worth what the crowd needs. It read one dial
+       across a line the whole fleet stood over, and granted every week. */
+    ai: (c, e, state) => {
+      const f = alive(c).find(x => x.id === e.subject);
+      return bestOf({
+        grant: lean(c, 'showmanship') * 0.4 + standsOf(c, 'profiled') + fameOf(c, f, CONST.PROFILE_FAME) - strainOf(c, f, CONST.PROFILE_STRESS) * (1 + lateOf(state)),
+        decline: (1 - dialOf(c, 'showmanship')) * 0.4 * CONST.AI_LEAN + fameOf(c, f, CONST.PROFILE_DECLINED_FAME)
+      });
+    }
   });
   POOL.push({
     id: 'coverage', weight: 0.8,
@@ -578,7 +729,13 @@
       if (opt === 'sit') { if (c.rep) REP.act(c.rep, e.place <= 3 ? 'spoke_well' : 'owned_it', {}); return 'You Went on the Record'; }
       if (c.rep && e.place > 3) REP.act(c.rep, 'no_comment', {}); return 'They Wrote It Without You';
     },
-    ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 35 ? 'sit' : 'none'
+    /* (fixed, sweep 5) what going on the record does for these stands now, against what silence does: a podium speaks
+       well to the glory and the houses, a poor year owned speaks to the word; no comment on a poor year costs the word.
+       Sitting costs nothing on the books, so a house declines only when its stands care little for either. */
+    ai: (c, e) => bestOf({
+      sit: lean(c, 'showmanship') * 0.4 + standsOf(c, e.place <= 3 ? 'spoke_well' : 'owned_it'),
+      none: (1 - dialOf(c, 'showmanship')) * 0.4 * CONST.AI_LEAN + (e.place > 3 ? standsOf(c, 'no_comment') : 0)
+    })
   });
   function ordinal(n) { return n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'); }
 
@@ -891,13 +1048,24 @@
       if (c.rep) REP.act(c.rep, 'media_day', { mult });
       return 'The Fleet Heard ' + f.name;
     },
+    /* (fixed, sweep 5) WHO IS FIT TO FRONT IT, AND WHAT THE HOUSE NEEDS FROM THE DAY. Each front is weighed by what the
+       stands make of the day at that front's volume (a famous standout is the loudest), the fame it gives a hand the house
+       wants seen, the cameras' strain on whoever goes the week of the drop, what rivals learn by watching, and — for the
+       manager — the board's patience, dearer the less is left. It read showmanship across bands the whole fleet stood
+       inside, and every house sent its steadiest. */
     ai: (c, e) => {
-      const show = ((c.profile || {}).dials || {}).showmanship || 50;
-      const has = id => e.options.some(o => o.id === id);
-      if (show < 20) return 'regrets';
-      if (show >= 65 && has('standout')) return 'standout';
-      if (show >= 40 && has('steady')) return 'steady';
-      return 'manager';
+      const secrecy = CONST.AI_REVEAL_W / CONST.AI_STANDS_SCALE * (0.75 + dialOf(c, 'treachery') * CONST.AI_LEAN);
+      const sc = {};
+      for (const o of e.options) {
+        if (o.id === 'regrets') { sc.regrets = lean(c, 'patience') * 0.2 + standsOf(c, 'sent_regrets'); continue; }
+        if (o.id === 'manager') { sc.manager = lean(c, 'tradition') * 0.2 + standsOf(c, 'media_day', { mult: CONST.MEDIA_MULT.manager })
+                                    + boardOf(c, CONST.MEDIA_PATIENCE) - CONST.MEDIA_REVEAL.manager * secrecy; continue; }
+        const f = alive(c).find(x => x.id === o.fighter); if (!f) continue;
+        const mult = o.id === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady;
+        sc[o.id] = (o.id === 'standout' ? lean(c, 'showmanship') * 0.4 : 0) + standsOf(c, 'media_day', { mult })
+                 + fameOf(c, f, CONST.MEDIA_FAME[o.id]) - strainOf(c, f, CONST.MEDIA_STRESS) * 2 - CONST.MEDIA_REVEAL[o.id] * secrecy;
+      }
+      return bestOf(sc) || e.def;
     }
   };
 
