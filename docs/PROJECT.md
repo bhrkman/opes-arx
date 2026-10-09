@@ -383,3 +383,13 @@ lean one pleases.
   and a contest overtime runs out on to the one with the most fight left. Every house always has someone to send: the
   Eight takes a mending hand when nobody is whole, and a house the year turns with nobody able to fight is filled by the
   board to the floor at once, on the scrape's terms.
+- The snowball is held back by many small pulls (ruled: pull every lever a little): a crowd past 70 fills the stands at
+  three quarters the rate and none reads past 100; only the best-known dozen draw a crowd; the Press Office lifts the
+  gate by three quarters of a level's lift; the board hears a warm crowd at half and a sour one in full; the card asks a
+  pleased board's house for a little crowd growth, raises the popularity bar a quarter of the way with patience, and drops
+  the stipend demand past 80; a bad verdict costs a quarter more, the crowd's cushion is halved past 70 patience, and a
+  finish below the middle of the table is felt a quarter more.
+- Dismissal is set when the game is founded ('takeover', the standard, or 'end'; not yet offered on the page). A takeover:
+  for the next year the board halves the grant, lets the backroom go, names the captains, and holds the purse (no
+  building, buying at the yard or hiring); the crowd hears of it; patience restarts at 35. The board's year cannot
+  dismiss the manager again or leave patience under 20, and what it underwrote that year is not his to repay.

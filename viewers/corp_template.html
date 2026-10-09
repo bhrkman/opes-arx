@@ -3358,6 +3358,8 @@
     /* §MON-WA one row per BEING: a pair is one hire with two bodies, and listing both halves put
        the same person on the sheet twice */
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of; });
+    /* (ruled) the takeover year is said every month it lasts */
+    if (SEASON.underTakeover(me, G.state.season)) items.push({ txt: 'Board Takeover \u00b7 Half Grant \u00b7 No Building, Buying or Hiring \u00b7 Board Captains', tab: 'board', kind: 'Board', urgent: true, cost: 'Until the Year\u2019s End' });
     if (myLetter() && TRADE.tradingOpen(m)) items.push({ txt: cSpan(myLetter().from) + ' Has Written', tab: 'talks', kind: 'Letter', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
     var RD = G.state.recruitDraft;
     if (RD && !RD.done && m === 1 && SEASON.recruitDraftWhose(G.state) === G.me) items.push({ txt: 'The Draft \u00b7 Your Pick', tab: 'roster', kind: 'Draft', open: 'draft', urgent: true, cost: 'Best Remaining Assigned for You' });
@@ -7309,7 +7311,8 @@
         (step.value.placement && step.value.placement[G.me] ? ' \u00b7 You Placed ' + ordinal(step.value.placement[G.me]) : '') +
         (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'withdrew' ? ' \u00b7 Withdrew Day ' + fell.day : '') +
         (mine.payout ? ' \u00b7 Your Take ' + crs(mine.payout) : '') +
-        ' \u00b7 Settled to the Books';
+        ' \u00b7 Settled to the Books' +
+        (G.corps[G.me]._takeover && G.corps[G.me]._takeover.from === G.state.season ? ' \u00b7 <span class="bad">Dismissed \u00b7 Board Takeover Next Year</span>' : '');
       $('divstate').innerHTML = G.div.endLine;
       renderSponsorVerdict(seasonRec);
       applyPhase();     /* the contest is over: Begin the Next Year may show */
@@ -8581,7 +8584,7 @@
     killed_captives: 'Killed Captives', kept_captive: 'Kept a Captive', a_star_rose: 'A Star Rose',
     took_the_purse: 'Took the Purse', the_gate_was_good: 'A Good Gate', won_the_eight: 'Won the Eight',
     paid_the_wages: 'Paid the Wages', granted_a_raise: 'Granted a Raise', kept_a_debtor: 'Kept a Debtor',
-    silent_before_board: 'Silent Before the Board', snubbed_letter: 'Snubbed a Letter', media_day: 'Media Day',
+    silent_before_board: 'Silent Before the Board', board_took_over: 'The Board Took Over', snubbed_letter: 'Snubbed a Letter', media_day: 'Media Day',
     sold_away: 'Sold Away', sold_anyone: 'Made a Sale', said_gracious: 'Spoke Graciously', said_defiant: 'Spoke Defiantly',
     said_humble: 'Spoke Humbly', said_deflecting: 'Deflected', said_candid: 'Spoke Candidly', said_evasive: 'Spoke Evasively',
     sold_a_fighter: 'Sold a Fighter', refused_an_offer: 'Refused an Offer', answered_a_slight: 'Answered a Slight',

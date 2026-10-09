@@ -51,6 +51,7 @@
        typical house's gate the Press Office pays back its first level in about eighteen months and its second in
        about three and a half years; the third is capped here rather than doubling the gate, and is the long one. */
     LEVEL_PCT: [0, 0.18, 0.40, 0.60],
+    PRESS_GATE_SHARE: 0.75,           // [C] (ruled) the Press Office lifts the gate by three quarters of a level's lift (+45% at the top)
     BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
     LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
     TIER_OFFSET: 2               // [S] the Armoury issues up to level + this: tiers one and two unbuilt
@@ -133,7 +134,7 @@
       case 'yard': return opens.concat(['Drills +' + pct() + '%'], staff);
       case 'barracks': return opens.concat(['Strain Eases +' + pct() + '%'],
                                            L >= 2 ? ['Loyalty +' + (CONST.BARRACKS_LOYALTY * (L - 1)).toFixed(1) + ' a Month, to 60'] : [], staff);
-      case 'press': return opens.concat(['Gate +' + pct() + '%'], staff);
+      case 'press': return opens.concat(['Gate +' + Math.round(CONST.LEVEL_PCT[L] * CONST.PRESS_GATE_SHARE * 100) + '%'], staff);
       case 'listening': return opens.concat(L === 2 ? ['A Mole May Be Planted'] : [], L === 3 ? [CONST.LISTEN_LEVELS + ' Reports a Month, Unstaffed'] : [], staff);
     }
     return staff;
@@ -146,7 +147,7 @@
   /** how much more of a month's strain eases: the natural easing times this */
   function barracksEase(corp) { return 1 + pctAt(corp, 'barracks'); }
   function barracksLoyalty(corp) { return CONST.BARRACKS_LOYALTY * Math.max(0, level(corp, 'barracks') - 1); }
-  function gateMult(corp) { return 1 + pctAt(corp, 'press'); }
+  function gateMult(corp) { return 1 + pctAt(corp, 'press') * CONST.PRESS_GATE_SHARE; }   /* (ruled: gently) the Press Office's share of a level's lift */
   function listenLevels(corp) { return level(corp, 'listening') >= 3 ? CONST.LISTEN_LEVELS : 0; }
   function cutterAllowed(corp) { return level(corp, 'infirmary') >= 2; }
   function moleAllowed(corp) { return level(corp, 'listening') >= 2; }

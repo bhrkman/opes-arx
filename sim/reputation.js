@@ -108,6 +108,8 @@
        delights, the top quarter pleases, the bottom quarter disappoints, the bottom tenth is a
        sacking offence. `measure_board.cjs` is the instrument. */
     BOARD_CUTS: { delighted: 0.78, pleased: 0.66, disappointed: 0.44, unhappy: 0.33 },
+    BAD_YEAR_COST: 1.25,                // [C] (ruled) how much more a disappointing verdict costs than its band
+    CUSHION_HALVED_AT: 70,              // [C] (ruled) the patience past which the crowd's cushion is halved
     HOME_CUSHION: 0.40,                 // [C] §6.4 how much popular support blunts a bad year
     /* §6.1 THE STORES ARE SHIPS' HOLDS, not shelves. "The ship has 4 food" is a silly
        sentence: a store is measured in UNITS OF A THOUSAND, so a full hold of grain is nine
@@ -123,6 +125,9 @@
     /* §7.4 (ruled) a board's resource ask, as a share of the planet's amount of the store: a tenth with the hold full,
        a fifth with it empty. A planet's sites of one store carry a quarter of its amount (divide.js SITE_SHARE), so the
        ask is two to four fifths of what digging can bring home of it. */
+    POPULARITY_BAR_PATIENCE: 0.25,      // [C] (ruled) how far the popularity bar rises per point of patience past 50
+    STIPEND_ASK_UNDER: 80,              // [C] (ruled) the patience past which the board stops asking for the stipend
+    CROWD_ASK_GAIN: 1,                  // [C] (ruled) the crowd demand asks for this much growth (it asked to hold within two)
     RESOURCE_ASK_LO: 0.10,              // [C]
     RESOURCE_ASK_SPAN: 0.10,            // [C]
     RESOURCE_ASK_LEAN: 0.35,            // [C] how much the planet's richness in a store leans the board's choice
@@ -204,6 +209,7 @@
     granted_a_raise:    { q: { care: 1.0 }, mag: 3, residue: 0.25 },
     kept_a_debtor:      { q: { care: 0.8, word: 0.6 }, mag: 4, residue: 0.25 },
     silent_before_board:{ q: { word: -1.0 }, mag: 3, residue: 0.20 },
+    board_took_over:    { q: { word: -1.0, glory: -1.0 }, mag: 6, residue: 0.30 },   /* (ruled) the board takes the house over: the crowd hears it */
     snubbed_letter:     { target: -4, residue: 0.25 },
     media_day:          { q: { glory: 1.0 }, mag: 4, houses: -1, residue: 0.15 },
     /* --- the market, seen from the stands: ctx.count is the fighter's fame --- */
@@ -726,14 +732,15 @@
        number is not a spread of asks. The bag is smaller, so a seed's card draws differently
        than it did; the verdict cuts below are anchored to a score distribution that this
        moves, and want re-measuring. */
-    pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
+    /* (ruled: gently) a board that is pleased stops asking for the easy things: the stipend leaves the card past 80 */
+    if (rep.patience < CONST.STIPEND_ASK_UNDER) pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
     pool.push({ weight: standingNow < 50 ? 1.6 : 0.8,
                 demand: { kind: 'standing', audience: 'houses',
                           above: Math.round(Math.min(90, standingNow + 3)) } });
     /* two more that a corp of any size can actually satisfy, so a card is a spread of
        achievable asks rather than a list of long shots */
     pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'crowd',
-                                       above: Math.round(Math.min(90, standing(rep, 'crowd') - 2)) } });
+                                       above: Math.round(Math.min(90, standing(rep, 'crowd') + CONST.CROWD_ASK_GAIN)) } });   /* (ruled: gently) a little growth, not holding steady */
 
     /* One demand per KIND. The first version padded a thin card with a second `losses` and a
        second `standing` entry, and boards duly asked for "no more than 13 of ours" and "no
@@ -781,7 +788,8 @@
       { kind: 'thrift', weight: CONST.STANDING_THRIFT_W * (1 - interest) + 0.35,
         expected: 1.0 },
       { kind: 'care', weight: CONST.STANDING_CARE_W },
-      { kind: 'popularity', weight: CONST.STANDING_POPULARITY_W, expected: CONST.POPULARITY_NEUTRAL }
+      /* (ruled: gently) a pleased board takes more of a crowd for granted: the bar rises a quarter of the way with patience */
+      { kind: 'popularity', weight: CONST.STANDING_POPULARITY_W, expected: CONST.POPULARITY_NEUTRAL + Math.max(0, (rep.patience || 0) - 50) * CONST.POPULARITY_BAR_PATIENCE }
     ];
     rep.goal.interest = interest;
     return rep.goal;
@@ -915,8 +923,11 @@
       delta *= (1 - CONST.EASY_CARD_DISCOUNT * ease);
     }
     if (delta < 0) {
-      /* a manager the crowd loves is hard to sack for the same result */
-      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
+      /* (ruled: gently) a bad year costs a quarter more than its name */
+      delta *= CONST.BAD_YEAR_COST;
+      /* a manager the crowd loves is hard to sack for the same result — (ruled: gently) and half as hard once the board is
+         already pleased with him: past 70 patience the cushion is halved */
+      delta *= (1 - CONST.HOME_CUSHION * (rep.patience > CONST.CUSHION_HALVED_AT ? 0.5 : 1) * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
     }
     rep.patience = clamp(rep.patience + delta, CONST.PATIENCE_FLOOR, CONST.PATIENCE_CEIL);
     return { delta: Math.round(delta * 10) / 10, band: band, patience: rep.patience };

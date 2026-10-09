@@ -125,6 +125,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     FAME_WATCHED: 0.5,           // [C] and a loved OA is written about: a rival scouting it gets this much more, at a crowd of 100
     FAIRWEATHER_GATE: 1.5,
     CROWD_INTEL_LEVELS: 4,       // [C] what a supporter's papers, or a leak, is worth in intel levels       // [C] how much harder the Fairweathers swing the gate than the rest of the crowd
+    FIRED_DEFAULT: 'takeover',   // [R] (ruled) what dismissal does unless the game was founded otherwise: 'takeover' or 'end'
+    TAKEOVER_PATIENCE: 35,       // [R] where the board's patience restarts after it takes over
+    TAKEOVER_GRANT: 0.5,
+    TAKEOVER_FLOOR: 20,          // [C] the patience the board's own year cannot leave a house below         // [R] the share of its grant a house under the board receives
+    BOARD_HEARS_WARM: 0.5,       // [C] (ruled) a warm crowd's share of that pull
     BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off indifference
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
@@ -2119,7 +2124,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
-    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
+    /* (ruled: gently) the board hears a sour crowd in full and a warm one at half: patience is earned by results */
+    if (corp.rep) { const lean = REP.standing(corp.rep, 'crowd') - 50;
+      corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + lean * CONST.BOARD_HEARS * (lean > 0 ? CONST.BOARD_HEARS_WARM : 1))); }
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
        block toward their ceiling whether or not anybody watches. Green-gated like the
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
@@ -3285,6 +3292,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (c) delete c._board;
       if (c) delete c._dividendPick;   /* (fixed) last year's Dividend card is not this year's */
+      /* (ruled) the board's takeover year: its share of the grant (it is the season about to open) */
+      if (c && c.account) c.account.grantShare = c._takeover && c._takeover.season === (c.season || 0) + 1 ? CONST.TAKEOVER_GRANT : 1;
       /* (fixed) THE BOOKS KEEP TWO YEARS LINE BY LINE; older years fold to one line a label (the sums unchanged) — a
          sixteen-year ledger ran past a thousand lines a house and a save past what a browser keeps */
       if (c && c.account && c.account.ledger && c.account.ledger.length > 400) {
@@ -3307,6 +3316,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       c.season = season;
+      if (c.account) c.account.season = season;   /* (fixed) the books' year: every line was written as year one */
       ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
                                       if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
@@ -3691,7 +3701,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function openCaptains(state) {
     for (const id of state.ids) {
       const c = state.corps[id];
-      c._ownSquads = isHuman(state, id);
+      c._ownSquads = isHuman(state, id) && !underTakeover(c, state.season);   /* (ruled) in the takeover year the board names the captains */
       c.captains = { season: state.season, ids: c._ownSquads ? [] : pickCaptains(c, Math.min(6, squadPlanFor(state, id))), promised: false };
       if (c._ownSquads) c.captains.ids = captainsOf(c, state.season);
     }
@@ -3801,6 +3811,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function hireSpecialist(state, corpId, specId, post) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const pool = staffPoolOf(state), st = pool.find(x => x.id === specId);
     if (!st) return { ok: false, why: 'Already Taken' };
@@ -3819,6 +3830,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function poach(state, corpId, fromId, post) {
     const c = state.corps[corpId], them = state.corps[fromId];
     if (!c || !them || corpId === fromId) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const st = STAFF.holder(them, post);
     if (!st) return { ok: false, why: 'Nobody in That Post' };
@@ -4039,6 +4051,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function buildFacility(state, corpId, facId) {
     const c = state.corps[corpId];
     if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (state.done) return { ok: false, why: 'The Year Is Over' };
     return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
   }
@@ -4428,7 +4441,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const c = state.corps[id];
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-      const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
+      const fame = alive.map(f => f.fame || 0).sort((a, b) => b - a).slice(0, LED.CONST.GATE_FAME_HANDS).reduce((n, v) => n + v, 0);   /* (ruled) the best-known dozen draw the crowd */
       /* §STANDING the Fairweathers are the gate's swing — a warm lot fill the stands, a sour lot empty them — and the
          Diehards its floor: they buy a ticket whatever the year was */
       const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
@@ -4857,6 +4870,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function buyItems(state, corpId, cart) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     let total = 0, full = 0, lines = 0, pieces = 0;
     const clean = {};
     for (const id in (cart || {})) {
@@ -5085,6 +5099,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
   }
+  /* (ruled) DISMISSAL. How a career answers it is set when the game is founded (`state.opts.fired`, saved with the
+     career): 'takeover' — the standard — or 'end'. The choice is not offered on the page yet; 'takeover' is the default.
+       TAKEOVER: the board runs the house for the next year. Its grant is halved; it lets the backroom go; it names the
+       captains; it holds the purse (no building, no buying at the yard, no signing past the floor the board fills);
+       the crowd hears of it; patience restarts at 35. The page says so, all year.
+       END: the career is over for that seat; the house is the engine's from then on. */
+  function dismiss(state, c, season) {
+    c.dismissed = (c.dismissed || 0) + 1;
+    const mode = (state.opts && state.opts.fired) || CONST.FIRED_DEFAULT;
+    if (mode === 'end' && isHuman(state, c.id)) { c._careerOver = { season: season }; setController(state, c.id, 'ai'); }
+    c._takeover = { season: season + 1, from: season };
+    for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && STAFF.office(c).posts[p] === st) STAFF.office(c).posts[p] = null; }
+    if (c.rep) { REP.act(c.rep, 'board_took_over', {}); c.rep.patience = CONST.TAKEOVER_PATIENCE; }
+  }
+  function underTakeover(c, season) { return !!(c && c._takeover && c._takeover.season === season); }
   function finishSeason(state, res) {
     settleLeadPromises(state);   /* §TALKS a squad to lead, now that the squads were dealt */
     askBoards(state, res);
@@ -5382,23 +5411,28 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          unreachable — a corp on the floor gets the easiest card, clears it by turning up, and
          survives forever. So the fail state has two routes and both are now live: spend all
          the goodwill, or be carried and then fail to repay it. */
-      const owed = c._owedYear;
-      c._owedYear = c._muster.underwritten;          /* next season is the one that must pay */
+      /* (ruled) THE TAKEOVER YEAR IS THE BOARD'S: a manager is not dismissed for the year the board ran his house, and what
+         it underwrote that year is not his to repay */
+      const boards = underTakeover(c, season);
+      if (boards && c.rep) c.rep.patience = Math.max(c.rep.patience, CONST.TAKEOVER_FLOOR);
+      const owed = boards ? false : c._owedYear;
+      c._owedYear = boards ? false : c._muster.underwritten;          /* next season is the one that must pay */
       if (owed) {
         const frac = close && close.score ? close.score.fraction : 0;
         if (frac < CONST.UNDERWRITE_DEMANDS / 6) {
-          c.dismissed++; c.underwritten = false; c._owedYear = false;
-          if (c.rep) c.rep.patience = 35;
+          c.underwritten = false; c._owedYear = false;
+          dismiss(state, c, season);
           rec.log.push(c.id + ': carried last year and did not deliver — manager dismissed');
           c.history[c.history.length - 1].dismissed = true;
+          rec.corps[id].dismissed = true;
           continue;
         }
         rec.log.push(c.id + ': repaid the underwrite and keeps the job');
         c.underwritten = false;
       }
       if (c.rep && c.rep.patience <= 0) {
-        c.dismissed++; c.underwritten = false;
-        c.rep.patience = 35;
+        c.underwritten = false;
+        dismiss(state, c, season);
         rec.log.push(c.id + ': manager dismissed at the end of season ' + season);
         rec.corps[id].dismissed = true;
       }
@@ -5585,7 +5619,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         eight: toPlain(state.eight ? Object.assign({}, state.eight, { result: state.eight.result ? Object.assign({}, state.eight.result, { watch: undefined }) : state.eight.result }) : null), trade: toPlain(state.trade || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
-                manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
+                manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts), fired: (state.opts || {}).fired },
         lotSpent: !state.lots[(MONTHS[state.month] || {}).signing]
       };
     }
@@ -5677,7 +5711,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead, strengthSeen,
+  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead, strengthSeen, underTakeover,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,

@@ -45,6 +45,9 @@
     GATE_BASE: 7540,                 // [C] (×1.3 at the economic pass: everything was too poor) a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
     GATE_PER_STANDING: 53,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
+    GATE_TAPER_AT: 70,               // [C] (ruled) the crowd past which the stands fill slower
+    GATE_TAPER: 0.75,                // [C] and at what rate
+    GATE_FAME_HANDS: 12,             // [C] (ruled) the famous names that draw a crowd: the best dozen, not the whole roster
     GATE_PER_FAME: 21,               // [C] per point of roster fame (the draw)
     GATE_FLOOR: 0,                   // [C] a hated OA sells nothing; it does not pay to play
     ALEAS_WINDOW_FEE: 1200,          // [C] per unscheduled comms window
@@ -142,7 +145,11 @@
       0..100, read as −100..100 around indifference. */
   function gateFor(crowd, houses, rosterFame) {
     const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
-    const good = ((crowd == null ? 50 : crowd) - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
+    /* (ruled: the snowball, pulled gently) a crowd past 70 fills the stands at three quarters the rate, and no crowd reads
+       past 100 (the Fairweathers' lean could carry it there) */
+    const cr0 = Math.min(100, crowd == null ? 50 : crowd);
+    const crowdAt = cr0 > CONST.GATE_TAPER_AT ? CONST.GATE_TAPER_AT + (cr0 - CONST.GATE_TAPER_AT) * CONST.GATE_TAPER : cr0;
+    const good = (crowdAt - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }
@@ -199,7 +206,7 @@
    */
   function plan(acct, o) {
     o = o || {};
-    const free = Math.round(acct.treasury + (o.monthsLeft || 0) * (o.monthNet || 0) + (o.grantDue ? acct.grant : 0)
+    const free = Math.round(acct.treasury + (o.monthsLeft || 0) * (o.monthNet || 0) + (o.grantDue ? acct.grant * (acct.grantShare != null ? acct.grantShare : 1) : 0)
                - (o.entryDue ? CONST.ALEAS_ENTRY : 0) - (o.purses || 0) - (o.families || 0) - (o.hold || 0));
     const left = Math.max(0, free);
     const people = Math.min(left, Math.max(0, o.peopleNeed || 0));
@@ -239,7 +246,7 @@
       has been picked for is a number invented ahead of its answer. */
   function settleSeason(acct, roster, spend) {
     spend = spend || {};
-    post(acct, 'income', 'Board Grant', acct.grant);
+    post(acct, 'income', 'Board Grant', Math.round(acct.grant * (acct.grantShare != null ? acct.grantShare : 1)));   /* (ruled) a house under the board's takeover is paid a share */
     /* the season loop lands the retainer month by month through the prep year and passes
        `retainerMonths: 1` for the Divide month; a caller that has not is charged the year */
     const months = spend.retainerMonths != null ? spend.retainerMonths : CONST.SALARY_MONTHS;

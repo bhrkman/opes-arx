@@ -3322,7 +3322,8 @@
       if (!c.rep) continue;
       const place = stats.placement[c.id];
       if (place != null) {
-        REP.act(c.rep, 'finished', { count: (corps.length + 1) / 2 - place });   /* above the middle of the table glory, below it the reverse */
+        { const above = (corps.length + 1) / 2 - place;   /* (ruled: gently) a finish below the middle is felt a quarter more than one above it */
+          REP.act(c.rep, 'finished', { count: above < 0 ? above * REP.CONST.BAD_YEAR_COST : above }); }   /* above the middle of the table glory, below it the reverse */
       }
       if (stats.winner === c.id) REP.act(c.rep, 'won_planet', { rivalIds: corpIds });
       /* §3.1a held out: never sold, odds fell under the floor, and fought on from there */

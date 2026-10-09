@@ -13539,6 +13539,9 @@
     GATE_BASE: 7540,                 // [C] (×1.3 at the economic pass: everything was too poor) a month's gate for an OA its crowd is indifferent to (0..100 standing: re-anchored at the standing pass so an indifferent crowd pays what a warm one did)
     GATE_PER_STANDING: 53,           // [C] per point of standing with your own people
     GATE_FLEET_SHARE: 0.26,          // [C] fans on other ships, per point of fleet standing
+    GATE_TAPER_AT: 70,               // [C] (ruled) the crowd past which the stands fill slower
+    GATE_TAPER: 0.75,                // [C] and at what rate
+    GATE_FAME_HANDS: 12,             // [C] (ruled) the famous names that draw a crowd: the best dozen, not the whole roster
     GATE_PER_FAME: 21,               // [C] per point of roster fame (the draw)
     GATE_FLOOR: 0,                   // [C] a hated OA sells nothing; it does not pay to play
     ALEAS_WINDOW_FEE: 1200,          // [C] per unscheduled comms window
@@ -13636,7 +13639,11 @@
       0..100, read as −100..100 around indifference. */
   function gateFor(crowd, houses, rosterFame) {
     const draw = CONST.GATE_BASE + (rosterFame || 0) * CONST.GATE_PER_FAME;
-    const good = ((crowd == null ? 50 : crowd) - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
+    /* (ruled: the snowball, pulled gently) a crowd past 70 fills the stands at three quarters the rate, and no crowd reads
+       past 100 (the Fairweathers' lean could carry it there) */
+    const cr0 = Math.min(100, crowd == null ? 50 : crowd);
+    const crowdAt = cr0 > CONST.GATE_TAPER_AT ? CONST.GATE_TAPER_AT + (cr0 - CONST.GATE_TAPER_AT) * CONST.GATE_TAPER : cr0;
+    const good = (crowdAt - 50) * 2 + ((houses == null ? 50 : houses) - 50) * 2 * CONST.GATE_FLEET_SHARE;
     const v = draw * (1 + good / 100) + good * CONST.GATE_PER_STANDING;
     return Math.max(CONST.GATE_FLOOR, Math.round(v));
   }
@@ -13693,7 +13700,7 @@
    */
   function plan(acct, o) {
     o = o || {};
-    const free = Math.round(acct.treasury + (o.monthsLeft || 0) * (o.monthNet || 0) + (o.grantDue ? acct.grant : 0)
+    const free = Math.round(acct.treasury + (o.monthsLeft || 0) * (o.monthNet || 0) + (o.grantDue ? acct.grant * (acct.grantShare != null ? acct.grantShare : 1) : 0)
                - (o.entryDue ? CONST.ALEAS_ENTRY : 0) - (o.purses || 0) - (o.families || 0) - (o.hold || 0));
     const left = Math.max(0, free);
     const people = Math.min(left, Math.max(0, o.peopleNeed || 0));
@@ -13733,7 +13740,7 @@
       has been picked for is a number invented ahead of its answer. */
   function settleSeason(acct, roster, spend) {
     spend = spend || {};
-    post(acct, 'income', 'Board Grant', acct.grant);
+    post(acct, 'income', 'Board Grant', Math.round(acct.grant * (acct.grantShare != null ? acct.grantShare : 1)));   /* (ruled) a house under the board's takeover is paid a share */
     /* the season loop lands the retainer month by month through the prep year and passes
        `retainerMonths: 1` for the Divide month; a caller that has not is charged the year */
     const months = spend.retainerMonths != null ? spend.retainerMonths : CONST.SALARY_MONTHS;
@@ -13891,6 +13898,8 @@
        delights, the top quarter pleases, the bottom quarter disappoints, the bottom tenth is a
        sacking offence. `measure_board.cjs` is the instrument. */
     BOARD_CUTS: { delighted: 0.78, pleased: 0.66, disappointed: 0.44, unhappy: 0.33 },
+    BAD_YEAR_COST: 1.25,                // [C] (ruled) how much more a disappointing verdict costs than its band
+    CUSHION_HALVED_AT: 70,              // [C] (ruled) the patience past which the crowd's cushion is halved
     HOME_CUSHION: 0.40,                 // [C] §6.4 how much popular support blunts a bad year
     /* §6.1 THE STORES ARE SHIPS' HOLDS, not shelves. "The ship has 4 food" is a silly
        sentence: a store is measured in UNITS OF A THOUSAND, so a full hold of grain is nine
@@ -13906,6 +13915,9 @@
     /* §7.4 (ruled) a board's resource ask, as a share of the planet's amount of the store: a tenth with the hold full,
        a fifth with it empty. A planet's sites of one store carry a quarter of its amount (divide.js SITE_SHARE), so the
        ask is two to four fifths of what digging can bring home of it. */
+    POPULARITY_BAR_PATIENCE: 0.25,      // [C] (ruled) how far the popularity bar rises per point of patience past 50
+    STIPEND_ASK_UNDER: 80,              // [C] (ruled) the patience past which the board stops asking for the stipend
+    CROWD_ASK_GAIN: 1,                  // [C] (ruled) the crowd demand asks for this much growth (it asked to hold within two)
     RESOURCE_ASK_LO: 0.10,              // [C]
     RESOURCE_ASK_SPAN: 0.10,            // [C]
     RESOURCE_ASK_LEAN: 0.35,            // [C] how much the planet's richness in a store leans the board's choice
@@ -13987,6 +13999,7 @@
     granted_a_raise:    { q: { care: 1.0 }, mag: 3, residue: 0.25 },
     kept_a_debtor:      { q: { care: 0.8, word: 0.6 }, mag: 4, residue: 0.25 },
     silent_before_board:{ q: { word: -1.0 }, mag: 3, residue: 0.20 },
+    board_took_over:    { q: { word: -1.0, glory: -1.0 }, mag: 6, residue: 0.30 },   /* (ruled) the board takes the house over: the crowd hears it */
     snubbed_letter:     { target: -4, residue: 0.25 },
     media_day:          { q: { glory: 1.0 }, mag: 4, houses: -1, residue: 0.15 },
     /* --- the market, seen from the stands: ctx.count is the fighter's fame --- */
@@ -14509,14 +14522,15 @@
        number is not a spread of asks. The bag is smaller, so a seed's card draws differently
        than it did; the verdict cuts below are anchored to a score distribution that this
        moves, and want re-measuring. */
-    pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
+    /* (ruled: gently) a board that is pleased stops asking for the easy things: the stipend leaves the card past 80 */
+    if (rep.patience < CONST.STIPEND_ASK_UNDER) pool.push({ weight: rep.patience < 45 ? 2.0 : 1.0, demand: { kind: 'stipend' } });
     pool.push({ weight: standingNow < 50 ? 1.6 : 0.8,
                 demand: { kind: 'standing', audience: 'houses',
                           above: Math.round(Math.min(90, standingNow + 3)) } });
     /* two more that a corp of any size can actually satisfy, so a card is a spread of
        achievable asks rather than a list of long shots */
     pool.push({ weight: 1.2, demand: { kind: 'standing', audience: 'crowd',
-                                       above: Math.round(Math.min(90, standing(rep, 'crowd') - 2)) } });
+                                       above: Math.round(Math.min(90, standing(rep, 'crowd') + CONST.CROWD_ASK_GAIN)) } });   /* (ruled: gently) a little growth, not holding steady */
 
     /* One demand per KIND. The first version padded a thin card with a second `losses` and a
        second `standing` entry, and boards duly asked for "no more than 13 of ours" and "no
@@ -14564,7 +14578,8 @@
       { kind: 'thrift', weight: CONST.STANDING_THRIFT_W * (1 - interest) + 0.35,
         expected: 1.0 },
       { kind: 'care', weight: CONST.STANDING_CARE_W },
-      { kind: 'popularity', weight: CONST.STANDING_POPULARITY_W, expected: CONST.POPULARITY_NEUTRAL }
+      /* (ruled: gently) a pleased board takes more of a crowd for granted: the bar rises a quarter of the way with patience */
+      { kind: 'popularity', weight: CONST.STANDING_POPULARITY_W, expected: CONST.POPULARITY_NEUTRAL + Math.max(0, (rep.patience || 0) - 50) * CONST.POPULARITY_BAR_PATIENCE }
     ];
     rep.goal.interest = interest;
     return rep.goal;
@@ -14698,8 +14713,11 @@
       delta *= (1 - CONST.EASY_CARD_DISCOUNT * ease);
     }
     if (delta < 0) {
-      /* a manager the crowd loves is hard to sack for the same result */
-      delta *= (1 - CONST.HOME_CUSHION * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
+      /* (ruled: gently) a bad year costs a quarter more than its name */
+      delta *= CONST.BAD_YEAR_COST;
+      /* a manager the crowd loves is hard to sack for the same result — (ruled: gently) and half as hard once the board is
+         already pleased with him: past 70 patience the cushion is halved */
+      delta *= (1 - CONST.HOME_CUSHION * (rep.patience > CONST.CUSHION_HALVED_AT ? 0.5 : 1) * Math.max(0, standing(rep, 'crowd') - CONST.STANDING_MID) / CONST.STANDING_MID);
     }
     rep.patience = clamp(rep.patience + delta, CONST.PATIENCE_FLOOR, CONST.PATIENCE_CEIL);
     return { delta: Math.round(delta * 10) / 10, band: band, patience: rep.patience };
@@ -15308,6 +15326,7 @@
        typical house's gate the Press Office pays back its first level in about eighteen months and its second in
        about three and a half years; the third is capped here rather than doubling the gate, and is the long one. */
     LEVEL_PCT: [0, 0.18, 0.40, 0.60],
+    PRESS_GATE_SHARE: 0.75,           // [C] (ruled) the Press Office lifts the gate by three quarters of a level's lift (+45% at the top)
     BARRACKS_LOYALTY: 0.3,       // [C] loyalty a month toward sixty, per level above one
     LISTEN_LEVELS: 2,            // [C] reports a month at level three, staffed or not
     TIER_OFFSET: 2               // [S] the Armoury issues up to level + this: tiers one and two unbuilt
@@ -15390,7 +15409,7 @@
       case 'yard': return opens.concat(['Drills +' + pct() + '%'], staff);
       case 'barracks': return opens.concat(['Strain Eases +' + pct() + '%'],
                                            L >= 2 ? ['Loyalty +' + (CONST.BARRACKS_LOYALTY * (L - 1)).toFixed(1) + ' a Month, to 60'] : [], staff);
-      case 'press': return opens.concat(['Gate +' + pct() + '%'], staff);
+      case 'press': return opens.concat(['Gate +' + Math.round(CONST.LEVEL_PCT[L] * CONST.PRESS_GATE_SHARE * 100) + '%'], staff);
       case 'listening': return opens.concat(L === 2 ? ['A Mole May Be Planted'] : [], L === 3 ? [CONST.LISTEN_LEVELS + ' Reports a Month, Unstaffed'] : [], staff);
     }
     return staff;
@@ -15403,7 +15422,7 @@
   /** how much more of a month's strain eases: the natural easing times this */
   function barracksEase(corp) { return 1 + pctAt(corp, 'barracks'); }
   function barracksLoyalty(corp) { return CONST.BARRACKS_LOYALTY * Math.max(0, level(corp, 'barracks') - 1); }
-  function gateMult(corp) { return 1 + pctAt(corp, 'press'); }
+  function gateMult(corp) { return 1 + pctAt(corp, 'press') * CONST.PRESS_GATE_SHARE; }   /* (ruled: gently) the Press Office's share of a level's lift */
   function listenLevels(corp) { return level(corp, 'listening') >= 3 ? CONST.LISTEN_LEVELS : 0; }
   function cutterAllowed(corp) { return level(corp, 'infirmary') >= 2; }
   function moleAllowed(corp) { return level(corp, 'listening') >= 2; }
@@ -25381,7 +25400,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!c.rep) continue;
       const place = stats.placement[c.id];
       if (place != null) {
-        REP.act(c.rep, 'finished', { count: (corps.length + 1) / 2 - place });   /* above the middle of the table glory, below it the reverse */
+        { const above = (corps.length + 1) / 2 - place;   /* (ruled: gently) a finish below the middle is felt a quarter more than one above it */
+          REP.act(c.rep, 'finished', { count: above < 0 ? above * REP.CONST.BAD_YEAR_COST : above }); }   /* above the middle of the table glory, below it the reverse */
       }
       if (stats.winner === c.id) REP.act(c.rep, 'won_planet', { rivalIds: corpIds });
       /* §3.1a held out: never sold, odds fell under the floor, and fought on from there */
@@ -26112,6 +26132,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     FAME_WATCHED: 0.5,           // [C] and a loved OA is written about: a rival scouting it gets this much more, at a crowd of 100
     FAIRWEATHER_GATE: 1.5,
     CROWD_INTEL_LEVELS: 4,       // [C] what a supporter's papers, or a leak, is worth in intel levels       // [C] how much harder the Fairweathers swing the gate than the rest of the crowd
+    FIRED_DEFAULT: 'takeover',   // [R] (ruled) what dismissal does unless the game was founded otherwise: 'takeover' or 'end'
+    TAKEOVER_PATIENCE: 35,       // [R] where the board's patience restarts after it takes over
+    TAKEOVER_GRANT: 0.5,
+    TAKEOVER_FLOOR: 20,          // [C] the patience the board's own year cannot leave a house below         // [R] the share of its grant a house under the board receives
+    BOARD_HEARS_WARM: 0.5,       // [C] (ruled) a warm crowd's share of that pull
     BOARD_HEARS: 0.03,           // [C] patience drifts toward the crowd, per month, per point the crowd sits off indifference
     REST_STRESS_FOCUS: 12,       // [C] a fully-focused rest month on top, scaled by thirds
     /* --- REST AND RECOVERY, painted (ruled). A body has two sides that mend: WOUNDS and
@@ -28106,7 +28131,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (corp.rep) REP.fade(corp.rep);   /* §STANDING a crowd has to be fed: a month's feeling fades a little */
     /* §STANDING THE BOARD LISTENS TO THE CROWD: a beloved manager's board warms month by month, a jeered one's cools */
-    if (corp.rep) corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + (REP.standing(corp.rep, 'crowd') - 50) * CONST.BOARD_HEARS));
+    /* (ruled: gently) the board hears a sour crowd in full and a warm one at half: patience is earned by results */
+    if (corp.rep) { const lean = REP.standing(corp.rep, 'crowd') - 50;
+      corp.rep.patience = Math.max(0, Math.min(100, corp.rep.patience + lean * CONST.BOARD_HEARS * (lean > 0 ? CONST.BOARD_HEARS_WARM : 1))); }
     /* RULED — everyone trains every month, slowly: the green drift a fraction of a drill
        block toward their ceiling whether or not anybody watches. Green-gated like the
        drill itself, so S-T5 holds: the last yards to a ceiling are never free. */
@@ -29272,6 +29299,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (c) delete c._board;
       if (c) delete c._dividendPick;   /* (fixed) last year's Dividend card is not this year's */
+      /* (ruled) the board's takeover year: its share of the grant (it is the season about to open) */
+      if (c && c.account) c.account.grantShare = c._takeover && c._takeover.season === (c.season || 0) + 1 ? CONST.TAKEOVER_GRANT : 1;
       /* (fixed) THE BOOKS KEEP TWO YEARS LINE BY LINE; older years fold to one line a label (the sums unchanged) — a
          sixteen-year ledger ran past a thousand lines a house and a save past what a browser keeps */
       if (c && c.account && c.account.ledger && c.account.ledger.length > 400) {
@@ -29294,6 +29323,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       c.season = season;
+      if (c.account) c.account.season = season;   /* (fixed) the books' year: every line was written as year one */
       ensureIntel(c, season);      /* the planet dossier resets with the new year's planet, even
                                       if this corp never gathers again — rivals persist and decay */
       const off = season === 1 ? { retired: [], expired: [], freed: [], developed: 0, declined: 0 }
@@ -29678,7 +29708,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function openCaptains(state) {
     for (const id of state.ids) {
       const c = state.corps[id];
-      c._ownSquads = isHuman(state, id);
+      c._ownSquads = isHuman(state, id) && !underTakeover(c, state.season);   /* (ruled) in the takeover year the board names the captains */
       c.captains = { season: state.season, ids: c._ownSquads ? [] : pickCaptains(c, Math.min(6, squadPlanFor(state, id))), promised: false };
       if (c._ownSquads) c.captains.ids = captainsOf(c, state.season);
     }
@@ -29788,6 +29818,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function hireSpecialist(state, corpId, specId, post) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const pool = staffPoolOf(state), st = pool.find(x => x.id === specId);
     if (!st) return { ok: false, why: 'Already Taken' };
@@ -29806,6 +29837,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function poach(state, corpId, fromId, post) {
     const c = state.corps[corpId], them = state.corps[fromId];
     if (!c || !them || corpId === fromId) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (!prepOpen(state)) return { ok: false, why: 'The Year Is Over' };
     const st = STAFF.holder(them, post);
     if (!st) return { ok: false, why: 'Nobody in That Post' };
@@ -30026,6 +30058,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function buildFacility(state, corpId, facId) {
     const c = state.corps[corpId];
     if (!c || !FAC.FACILITIES[facId]) return { ok: false, why: 'No Such Facility' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     if (state.done) return { ok: false, why: 'The Year Is Over' };
     return FAC.startBuild(c, facId, state.season, state.month, LED.post, priceMult(state));
   }
@@ -30415,7 +30448,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const c = state.corps[id];
       if (c.rep && REP.drainHolds) REP.drainHolds(c.rep);   /* §6.1 the stores fall every month */
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
-      const fame = alive.reduce((n, f) => n + (f.fame || 0), 0);
+      const fame = alive.map(f => f.fame || 0).sort((a, b) => b - a).slice(0, LED.CONST.GATE_FAME_HANDS).reduce((n, v) => n + v, 0);   /* (ruled) the best-known dozen draw the crowd */
       /* §STANDING the Fairweathers are the gate's swing — a warm lot fill the stands, a sour lot empty them — and the
          Diehards its floor: they buy a ticket whatever the year was */
       const crowdForGate = c.rep ? REP.standing(c.rep, 'crowd') + factionLean(c, 'fairweathers') * 50 * CONST.FAIRWEATHER_GATE : 50;
@@ -30844,6 +30877,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function buyItems(state, corpId, cart) {
     const c = state.corps[corpId];
     if (!c) return { ok: false, why: 'No Such OA' };
+    if (underTakeover(c, state.season)) return { ok: false, why: 'The Board Holds the Purse' };   /* (ruled) the takeover year */
     let total = 0, full = 0, lines = 0, pieces = 0;
     const clean = {};
     for (const id in (cart || {})) {
@@ -31072,6 +31106,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
   }
+  /* (ruled) DISMISSAL. How a career answers it is set when the game is founded (`state.opts.fired`, saved with the
+     career): 'takeover' — the standard — or 'end'. The choice is not offered on the page yet; 'takeover' is the default.
+       TAKEOVER: the board runs the house for the next year. Its grant is halved; it lets the backroom go; it names the
+       captains; it holds the purse (no building, no buying at the yard, no signing past the floor the board fills);
+       the crowd hears of it; patience restarts at 35. The page says so, all year.
+       END: the career is over for that seat; the house is the engine's from then on. */
+  function dismiss(state, c, season) {
+    c.dismissed = (c.dismissed || 0) + 1;
+    const mode = (state.opts && state.opts.fired) || CONST.FIRED_DEFAULT;
+    if (mode === 'end' && isHuman(state, c.id)) { c._careerOver = { season: season }; setController(state, c.id, 'ai'); }
+    c._takeover = { season: season + 1, from: season };
+    for (const p of STAFF.POSTS) { const st = STAFF.holder(c, p); if (st && STAFF.office(c).posts[p] === st) STAFF.office(c).posts[p] = null; }
+    if (c.rep) { REP.act(c.rep, 'board_took_over', {}); c.rep.patience = CONST.TAKEOVER_PATIENCE; }
+  }
+  function underTakeover(c, season) { return !!(c && c._takeover && c._takeover.season === season); }
   function finishSeason(state, res) {
     settleLeadPromises(state);   /* §TALKS a squad to lead, now that the squads were dealt */
     askBoards(state, res);
@@ -31369,23 +31418,28 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          unreachable — a corp on the floor gets the easiest card, clears it by turning up, and
          survives forever. So the fail state has two routes and both are now live: spend all
          the goodwill, or be carried and then fail to repay it. */
-      const owed = c._owedYear;
-      c._owedYear = c._muster.underwritten;          /* next season is the one that must pay */
+      /* (ruled) THE TAKEOVER YEAR IS THE BOARD'S: a manager is not dismissed for the year the board ran his house, and what
+         it underwrote that year is not his to repay */
+      const boards = underTakeover(c, season);
+      if (boards && c.rep) c.rep.patience = Math.max(c.rep.patience, CONST.TAKEOVER_FLOOR);
+      const owed = boards ? false : c._owedYear;
+      c._owedYear = boards ? false : c._muster.underwritten;          /* next season is the one that must pay */
       if (owed) {
         const frac = close && close.score ? close.score.fraction : 0;
         if (frac < CONST.UNDERWRITE_DEMANDS / 6) {
-          c.dismissed++; c.underwritten = false; c._owedYear = false;
-          if (c.rep) c.rep.patience = 35;
+          c.underwritten = false; c._owedYear = false;
+          dismiss(state, c, season);
           rec.log.push(c.id + ': carried last year and did not deliver — manager dismissed');
           c.history[c.history.length - 1].dismissed = true;
+          rec.corps[id].dismissed = true;
           continue;
         }
         rec.log.push(c.id + ': repaid the underwrite and keeps the job');
         c.underwritten = false;
       }
       if (c.rep && c.rep.patience <= 0) {
-        c.dismissed++; c.underwritten = false;
-        c.rep.patience = 35;
+        c.underwritten = false;
+        dismiss(state, c, season);
         rec.log.push(c.id + ': manager dismissed at the end of season ' + season);
         rec.corps[id].dismissed = true;
       }
@@ -31572,7 +31626,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         eight: toPlain(state.eight ? Object.assign({}, state.eight, { result: state.eight.result ? Object.assign({}, state.eight.result, { watch: undefined }) : state.eight.result }) : null), trade: toPlain(state.trade || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
-                manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },
+                manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts), fired: (state.opts || {}).fired },
         lotSpent: !state.lots[(MONTHS[state.month] || {}).signing]
       };
     }
@@ -31664,7 +31718,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead, strengthSeen,
+  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead, strengthSeen, underTakeover,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
@@ -32894,6 +32948,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §MON-WA one row per BEING: a pair is one hire with two bodies, and listing both halves put
        the same person on the sheet twice */
     var alive = me.roster.filter(function (f) { return f.status !== 'dead' && f.status !== 'retired' && !f.mirror_of; });
+    /* (ruled) the takeover year is said every month it lasts */
+    if (SEASON.underTakeover(me, G.state.season)) items.push({ txt: 'Board Takeover \u00b7 Half Grant \u00b7 No Building, Buying or Hiring \u00b7 Board Captains', tab: 'board', kind: 'Board', urgent: true, cost: 'Until the Year\u2019s End' });
     if (myLetter() && TRADE.tradingOpen(m)) items.push({ txt: cSpan(myLetter().from) + ' Has Written', tab: 'talks', kind: 'Letter', urgent: true, cost: 'The Letter Lapses \u2014 They Notice' });
     var RD = G.state.recruitDraft;
     if (RD && !RD.done && m === 1 && SEASON.recruitDraftWhose(G.state) === G.me) items.push({ txt: 'The Draft \u00b7 Your Pick', tab: 'roster', kind: 'Draft', open: 'draft', urgent: true, cost: 'Best Remaining Assigned for You' });
@@ -36845,7 +36901,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         (step.value.placement && step.value.placement[G.me] ? ' \u00b7 You Placed ' + ordinal(step.value.placement[G.me]) : '') +
         (fell && fell.how === 'wiped' ? ' \u00b7 Your Last Squad Fell on Day ' + fell.day : fell && fell.how === 'withdrew' ? ' \u00b7 Withdrew Day ' + fell.day : '') +
         (mine.payout ? ' \u00b7 Your Take ' + crs(mine.payout) : '') +
-        ' \u00b7 Settled to the Books';
+        ' \u00b7 Settled to the Books' +
+        (G.corps[G.me]._takeover && G.corps[G.me]._takeover.from === G.state.season ? ' \u00b7 <span class="bad">Dismissed \u00b7 Board Takeover Next Year</span>' : '');
       $('divstate').innerHTML = G.div.endLine;
       renderSponsorVerdict(seasonRec);
       applyPhase();     /* the contest is over: Begin the Next Year may show */
@@ -38117,7 +38174,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     killed_captives: 'Killed Captives', kept_captive: 'Kept a Captive', a_star_rose: 'A Star Rose',
     took_the_purse: 'Took the Purse', the_gate_was_good: 'A Good Gate', won_the_eight: 'Won the Eight',
     paid_the_wages: 'Paid the Wages', granted_a_raise: 'Granted a Raise', kept_a_debtor: 'Kept a Debtor',
-    silent_before_board: 'Silent Before the Board', snubbed_letter: 'Snubbed a Letter', media_day: 'Media Day',
+    silent_before_board: 'Silent Before the Board', board_took_over: 'The Board Took Over', snubbed_letter: 'Snubbed a Letter', media_day: 'Media Day',
     sold_away: 'Sold Away', sold_anyone: 'Made a Sale', said_gracious: 'Spoke Graciously', said_defiant: 'Spoke Defiantly',
     said_humble: 'Spoke Humbly', said_deflecting: 'Deflected', said_candid: 'Spoke Candidly', said_evasive: 'Spoke Evasively',
     sold_a_fighter: 'Sold a Fighter', refused_an_offer: 'Refused an Offer', answered_a_slight: 'Answered a Slight',
