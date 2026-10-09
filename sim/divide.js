@@ -181,6 +181,10 @@
     RATION_BULK_PER_DAY: 0.2,           // [R] a day's food for one fighter, in Bulk
     RATION_PRICE: 25,                   // [C] credits a fighter-day of food
     RATION_ENGINE_PULL: 8,              // [C] days an engine seat adds per unit of forage the ground lacks (below the middle)
+    OFFER_REPOST_DAYS: 3,               // [C] an exit offer taken back is not posted again within this many days...
+    OFFER_REPOST_MOVE: 0.05,            // [C] ...unless its ask has moved this much of the pot
+    RATION_ENGINE_STAY: 0.8,            // [C] the share of the Divide's days an engine seat provisions for
+    RATION_ENGINE_REST: 0.15,           // [C] the share of days it expects to stand and forage (measured: about one in seven)
     RATION_FORAGE_MID: 0.5,             // [C] the forage yield the default load is sized for
     STARVE_AFTER: 3,                    // [R] dry days before hunger takes health
     STARVE_HARM: 0.05,                  // [C] a day's hunger, as a share of a body's health
@@ -1140,7 +1144,7 @@
         const leaving = j => !!(stats.withdrawOffers || {})[j.id] || !onGround(j);
         const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true && !leaving(r.j));
         if (got - cost > stay) standDown(c, day, stats, corps);
-        else { delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
+        else { c._offerBack = { day: day, ask: (off.terms && off.terms.credits) || 0 }; delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
       } else if (!off) {
         let best = { ask: 0, ev: 0 };
         for (const r of rows) {
@@ -1160,7 +1164,10 @@
           standDown(c, day, stats, corps);
           continue;
         }
-        if (best.ask > 0 && best.ev - cost > stay) {
+        /* (fixed, sweep 5) an offer the field just let fall is not posted again unchanged: a house re-posted the same ask
+           the next window off the same sums, and took it back again */
+        const back = c._offerBack, stale = back && day - back.day < CONST.OFFER_REPOST_DAYS && Math.abs(best.ask - back.ask) < CONST.OFFER_REPOST_MOVE;
+        if (best.ask > 0 && best.ev - cost > stay && !stale) {
           /* §CENSUS a house whose board wants a store takes part of its price in that store, at the same worth */
           const terms = { credits: best.ask };
           const dem = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(g => g.kind === 'resource' && g.category);
@@ -1507,7 +1514,13 @@
       for (const r of g.regions) { const cls = Math.max(0, Math.min(3, Math.round((r.forage != null ? r.forage : 1) * (planet.forageMult || 1)))); s += CONST.FORAGE_YIELD[cls] * (r.area || 1); a += (r.area || 1); }
       y = a ? s / a : y;
     }
-    const d = CONST.RATION_DEFAULT_DAYS * (planet && planet.supplyStrain || 1) + (CONST.RATION_FORAGE_MID - y) * CONST.RATION_ENGINE_PULL;
+    const strain = planet && planet.supplyStrain || 1;
+    let d = CONST.RATION_DEFAULT_DAYS * strain + (CONST.RATION_FORAGE_MID - y) * CONST.RATION_ENGINE_PULL;
+    /* (fixed, sweep 5) AND FOR HOW LONG IT MEANS TO STAY: the load read the forage and never the Divide's length, and a
+       squad forages only on a day it does not march — most days it marches. Rich ground sent squads down with five days'
+       food, and they starved there more often than on ice. */
+    const days = (g && g.days || 0) * CONST.RATION_ENGINE_STAY;
+    if (days) d = Math.max(d, days * strain - days * CONST.RATION_ENGINE_REST * y);
     return Math.max(CONST.RATION_DAYS_RANGE[0], Math.min(CONST.RATION_DAYS_RANGE[1], Math.round(d)));
   }
   function forage(rng, sq, planet, hooksOfSquad, stats) {

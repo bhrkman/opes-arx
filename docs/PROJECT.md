@@ -393,3 +393,14 @@ lean one pleases.
   for the next year the board halves the grant, lets the backroom go, names the captains, and holds the purse (no
   building, buying at the yard or hiring); the crowd hears of it; patience restarts at 35. The board's year cannot
   dismiss the manager again or leave patience under 20, and what it underwrote that year is not his to repay.
+- Sweep 5 (engine decisions read the situation, not a fixed number): an engine house plans its landings, its hiring
+  (signings, mercenaries, the Bastille, trades) and its people money for the drop it means to field and the reserve it
+  keeps, not a fixed twenty-eight, and plans its landings from that, not from the roster at the year's opening. Every
+  engine house reaches a little down its ranking for the Eight. The Dividend's "spare" lean rests the strained. A post
+  nobody else will fill takes a veteran from any roster above the floor, from outside the drop the house means to field.
+  The verbs the aligned fleet never reached are weighed on the situation: a renewal ask well over the present pay is
+  haggled, a boost is bought when the money is there, a poach is a yearly chance by temper, and a kit-price edict is
+  petitioned by a house with enough still to buy. A squad that slips a fight is shut out of the ground it left for the
+  day. An engine seat's rations count the Divide's length and how seldom a marching squad forages. An exit offer the
+  field let fall is not posted again unchanged within three days. A trade buyer must need the hand and afford it from its
+  people money, and a refused letter is not sent again unchanged. The dealer sells an engine house only what it can issue.

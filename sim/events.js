@@ -61,6 +61,8 @@
     PROFILE_STRESS: 6,           // [C] a week under the lens
     PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
+    PETITION_KIT_SHARE: 0.3,     // [C] the share of its treasury an engine house reckons it has still to spend on kit
+    PETITION_WORTH: 2,           // [C] how many times the fee the edict must cost a house before it petitions
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35,  // [C] the shelf's prices for the year
     WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
@@ -430,8 +432,9 @@
         if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
-      /* the engine buys what it can issue soon, not what it will store for years */
-      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
+      /* the engine buys what it can issue now, not what it will store for years (fixed, sweep 5: a tier over, with no
+         Armoury coming) */
+      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) ? 'buy' : 'pass'
     }
   ];
   function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
@@ -793,13 +796,19 @@
       }
       return 'You Accepted It';
     },
-    ai: (c, e) => {
+    ai: (c, e, state) => {
       const d = k => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
       /* the dials a profile actually has: aggression, treachery, thrift, showmanship, tradition, patience */
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
-      /* a petition is a stance, not a reflex: only an OA the edict cuts against by
-         temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'boom') return (d('thrift') + d('aggression')) / 2 > 0.55 || d('thrift') > 0.6 ? 'petition' : 'accept';   /* dear kit hurts the careful and the warlike */
+      /* (fixed, sweep 5) A PETITION IS WEIGHED AGAINST WHAT THE EDICT COSTS THIS HOUSE: the kit it has still to buy this
+         year at a third over the price, against the fee. It read a dial line the whole fleet sat just under, so no house
+         ever petitioned and a person's petition could never carry. A rich house early in the year has the most at stake;
+         the careful and the warlike feel it more. */
+      if (e.fleet === 'boom') {
+        const left = state && state.month ? Math.max(0, 11 - state.month) / 11 : 1;
+        const stake = c.account.treasury * CONST.PETITION_KIT_SHARE * (CONST.PRICE_BOOM - 1) * left;
+        return stake * (0.5 + (d('thrift') + d('aggression')) / 2) > CONST.PETITION_COST * CONST.PETITION_WORTH ? 'petition' : 'accept';
+      }
       return 'accept';
     }
   };
@@ -951,7 +960,7 @@
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
       const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool];
-      const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
+      const pick = isAI && spec ? spec.ai(state.corps[corpId], ev, state) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
     }

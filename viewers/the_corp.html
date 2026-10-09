@@ -12733,6 +12733,7 @@
     SEEN_ENEMY_W: 1.5,
     /* §CAPTAIN the squad's captain reads the ground for it (divide.js captainMind: judge 1.1–3.4, sight 0.10–0.55, nerve 0–1) */
     NERVE_SWING: 0.45,               // [C] how far nerve bends the count of what is out there: a shaken captain sees more of them
+    EVADE_HOLD: 0.5,                 // [C] §FIGHTS how far from its stance's acceptance toward an even fight a squad holds before it slips away
     JUDGE_NOISE: 0.6,                // [C] how far a captain misweighs what a zone is worth, divided by his judgement
     SIGHT_FAR_AT: 0.45,              // [C] a captain who reads ground this well sees a ring further than the ground alone gives
     SIGHT_SHORT_AT: 0.2,             // [C] and one below this sees no further than the zones next to him, whatever the height
@@ -12914,13 +12915,20 @@
       const coming = o.moving && o.moving.to === q.zone, beside = Z[q.zone].nb.indexOf(o.zone) >= 0;
       if (coming || beside) { them += o.n; near.add(o.zone); }
     }
-    if (!them || feared(q, them) <= strOf(st, q) * (STANCE[q.stance] || STANCE.standard).accept) return;
+    /* (fixed, sweep 5) a squad holds ground it would not walk into: it slips what is past halfway from its stance's
+       acceptance to an even fight. On acceptance alone two fresh squads of eight each stepped away from the other, and
+       nearly half of all squad-days ended in an evasion */
+    const acc = (STANCE[q.stance] || STANCE.standard).accept;
+    if (!them || feared(q, them) <= strOf(st, q) * (acc + (1 - acc) * CONST.EVADE_HOLD)) return;
     const walking = new Set(alive(st).filter(o => !st.allied(o.oa, q.oa) && o.moving).map(o => o.moving.to));
     const pressedBy = v => Z[v].nb.filter(x => near.has(x)).length;
     const opts = Z[q.zone].nb.filter(v => !near.has(v) && !walking.has(v) && !holder(st, v) && !deadZone(st, v) && zoneEnds(st, v) > st.day + CONST.PLAN_MARGIN_DAYS && stepOf(st, q, v))
       .sort((a, b) => pressedBy(a) - pressedBy(b));
     if (!opts.length) return;
     q.intent = { type: 'take', zone: opts[0], why: 'evade' }; q.path = [opts[0]]; q.moving = null; q.wait = 0;
+    /* (fixed, sweep 5) the ground it slipped is shut to it for the day, as ground it was turned back from is: the planner
+       walked it straight back, and squads shuttled between two zones for days */
+    q.shut = q.shut || {}; q.shut[q.zone] = st.day;
     st.audit.evaded = (st.audit.evaded || 0) + 1;
     st.events.push({ t: 'evade', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: opts[0], n: them });
   }
@@ -15838,6 +15846,8 @@
     PROFILE_STRESS: 6,           // [C] a week under the lens
     PROFILE_DECLINED_FAME: 3,    // [C] written anyway, from the postings
     PETITION_COST: 4000,         // [C]
+    PETITION_KIT_SHARE: 0.3,     // [C] the share of its treasury an engine house reckons it has still to spend on kit
+    PETITION_WORTH: 2,           // [C] how many times the fee the edict must cost a house before it petitions
     PETITION_SHARE: 0.5,         // [C] the share of OAs that must petition to turn an edict back
     PRICE_CRASH: 0.75, PRICE_BOOM: 1.35,  // [C] the shelf's prices for the year
     WORD_WEIGHT: 1.3,            // [H] how often somebody asks for a word, against the rest of the pool
@@ -16207,8 +16217,9 @@
         if (c.rep) REP.act(c.rep, 'bought_rare_kit', {});
         return 'A ' + (ITEMS.byId(e.subject) || {}).name + ' Was Bought';
       },
-      /* the engine buys what it can issue soon, not what it will store for years */
-      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) + 1 ? 'buy' : 'pass'
+      /* the engine buys what it can issue now, not what it will store for years (fixed, sweep 5: a tier over, with no
+         Armoury coming) */
+      ai: (c, e) => spare(c) > e.price * (2 + 5 * dialOf(c, 'thrift') - 2 * dialOf(c, 'aggression')) && ((ITEMS.byId(e.subject) || {}).tier || 1) <= armouryTier(c) ? 'buy' : 'pass'
     }
   ];
   function armouryTier(c) { return Math.min(5, ((c && c.facilities && c.facilities.levels && c.facilities.levels.armoury) || 0) + 2); }   /* tiers one and two with no Armoury built */
@@ -16570,13 +16581,19 @@
       }
       return 'You Accepted It';
     },
-    ai: (c, e) => {
+    ai: (c, e, state) => {
       const d = k => ((c.profile && c.profile.dials && c.profile.dials[k]) || 50) / 100;
       /* the dials a profile actually has: aggression, treachery, thrift, showmanship, tradition, patience */
       if (c.account.treasury < CONST.PETITION_COST * 4) return 'accept';
-      /* a petition is a stance, not a reflex: only an OA the edict cuts against by
-         temperament pays to say so, so an edict usually stands and sometimes falls */
-      if (e.fleet === 'boom') return (d('thrift') + d('aggression')) / 2 > 0.55 || d('thrift') > 0.6 ? 'petition' : 'accept';   /* dear kit hurts the careful and the warlike */
+      /* (fixed, sweep 5) A PETITION IS WEIGHED AGAINST WHAT THE EDICT COSTS THIS HOUSE: the kit it has still to buy this
+         year at a third over the price, against the fee. It read a dial line the whole fleet sat just under, so no house
+         ever petitioned and a person's petition could never carry. A rich house early in the year has the most at stake;
+         the careful and the warlike feel it more. */
+      if (e.fleet === 'boom') {
+        const left = state && state.month ? Math.max(0, 11 - state.month) / 11 : 1;
+        const stake = c.account.treasury * CONST.PETITION_KIT_SHARE * (CONST.PRICE_BOOM - 1) * left;
+        return stake * (0.5 + (d('thrift') + d('aggression')) / 2) > CONST.PETITION_COST * CONST.PETITION_WORTH ? 'petition' : 'accept';
+      }
       return 'accept';
     }
   };
@@ -16728,7 +16745,7 @@
     for (const ev of box.list) {
       if (ev.resolved) { out.push(ev.resolved); continue; }
       const spec = ev.pool === 'fleet' ? FLEET_SPEC : ev.pool === 'media' ? MEDIA_SPEC : ev.pool === 'short' ? SHORT_SPEC : ev.pool === 'backroom' ? BACKROOM_SPEC : BY_ID[ev.pool];
-      const pick = isAI && spec ? spec.ai(state.corps[corpId], ev) : '__default';
+      const pick = isAI && spec ? spec.ai(state.corps[corpId], ev, state) : '__default';
       answer(state, corpId, ev.id, pick);
       out.push(ev.resolved);
     }
@@ -22259,6 +22276,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     RATION_BULK_PER_DAY: 0.2,           // [R] a day's food for one fighter, in Bulk
     RATION_PRICE: 25,                   // [C] credits a fighter-day of food
     RATION_ENGINE_PULL: 8,              // [C] days an engine seat adds per unit of forage the ground lacks (below the middle)
+    OFFER_REPOST_DAYS: 3,               // [C] an exit offer taken back is not posted again within this many days...
+    OFFER_REPOST_MOVE: 0.05,            // [C] ...unless its ask has moved this much of the pot
+    RATION_ENGINE_STAY: 0.8,            // [C] the share of the Divide's days an engine seat provisions for
+    RATION_ENGINE_REST: 0.15,           // [C] the share of days it expects to stand and forage (measured: about one in seven)
     RATION_FORAGE_MID: 0.5,             // [C] the forage yield the default load is sized for
     STARVE_AFTER: 3,                    // [R] dry days before hunger takes health
     STARVE_HARM: 0.05,                  // [C] a day's hunger, as a share of a body's health
@@ -23218,7 +23239,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const leaving = j => !!(stats.withdrawOffers || {})[j.id] || !onGround(j);
         const got = promisesWorth(rows, ask, r => off.replies[r.j.id] === true && !leaving(r.j));
         if (got - cost > stay) standDown(c, day, stats, corps);
-        else { delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
+        else { c._offerBack = { day: day, ask: (off.terms && off.terms.credits) || 0 }; delete stats.withdrawOffers[c.id]; stats.audit.withdrawTakenBack = (stats.audit.withdrawTakenBack || 0) + 1; }
       } else if (!off) {
         let best = { ask: 0, ev: 0 };
         for (const r of rows) {
@@ -23238,7 +23259,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           standDown(c, day, stats, corps);
           continue;
         }
-        if (best.ask > 0 && best.ev - cost > stay) {
+        /* (fixed, sweep 5) an offer the field just let fall is not posted again unchanged: a house re-posted the same ask
+           the next window off the same sums, and took it back again */
+        const back = c._offerBack, stale = back && day - back.day < CONST.OFFER_REPOST_DAYS && Math.abs(best.ask - back.ask) < CONST.OFFER_REPOST_MOVE;
+        if (best.ask > 0 && best.ev - cost > stay && !stale) {
           /* §CENSUS a house whose board wants a store takes part of its price in that store, at the same worth */
           const terms = { credits: best.ask };
           const dem = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(g => g.kind === 'resource' && g.category);
@@ -23585,7 +23609,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       for (const r of g.regions) { const cls = Math.max(0, Math.min(3, Math.round((r.forage != null ? r.forage : 1) * (planet.forageMult || 1)))); s += CONST.FORAGE_YIELD[cls] * (r.area || 1); a += (r.area || 1); }
       y = a ? s / a : y;
     }
-    const d = CONST.RATION_DEFAULT_DAYS * (planet && planet.supplyStrain || 1) + (CONST.RATION_FORAGE_MID - y) * CONST.RATION_ENGINE_PULL;
+    const strain = planet && planet.supplyStrain || 1;
+    let d = CONST.RATION_DEFAULT_DAYS * strain + (CONST.RATION_FORAGE_MID - y) * CONST.RATION_ENGINE_PULL;
+    /* (fixed, sweep 5) AND FOR HOW LONG IT MEANS TO STAY: the load read the forage and never the Divide's length, and a
+       squad forages only on a day it does not march — most days it marches. Rich ground sent squads down with five days'
+       food, and they starved there more often than on ice. */
+    const days = (g && g.days || 0) * CONST.RATION_ENGINE_STAY;
+    if (days) d = Math.max(d, days * strain - days * CONST.RATION_ENGINE_REST * y);
     return Math.max(CONST.RATION_DAYS_RANGE[0], Math.min(CONST.RATION_DAYS_RANGE[1], Math.round(d)));
   }
   function forage(rng, sq, planet, hooksOfSquad, stats) {
@@ -25989,6 +26019,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (!spare) continue;
       const price = netOf(spare);
       if (buyer.account.treasury < price) continue;
+      /* (fixed, sweep 5) a house buys a hand it needs with money its reckoning gives people — it bought with a roster
+         already past its drop, on the treasury alone, and ended years in the red; and a letter refused is not sent again
+         unchanged the next month */
+      if (typeof opts.wants === 'function' && opts.wants(thin) <= 0) continue;
+      if (typeof opts.budget === 'function' && opts.budget(thin) < price) continue;
+      buyer._tradeAsked = buyer._tradeAsked || {};
+      if (buyer._tradeAsked[spare.id] === Math.round(price)) continue;
+      buyer._tradeAsked[spare.id] = Math.round(price);
       const offer = { credits: Math.round(price) }, ask = { units: [spare.id] };
       const r = typeof opts.postTrade === 'function' ? opts.postTrade(buyer.id, seller.id, offer, ask) : null;
       if (r && r.offer) done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price), status: r.offer.status });
@@ -26159,6 +26197,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        so a three-point hammer costs three times a one-point tap — wealth cannot buy a sixth
        effective point cheaply. The purchase tracks are their own economy and take no boost:
        you cannot pay to sign two of one recruit. */
+    BOOST_FREE_AT: 40000,        // [C] the free money (past the Lock's bills) an engine house wants left after a boost, by its thrift
     BOOST_PER_POINT: 4000,       // [H] credits to double one focus point's effect for a month
     TRAIN_STRESS_BASE: 1,        // [C] even the baseline drift costs a little
     DIVIDEND_STACKS: 5,          // [C] §STUN stun stacks landed a point is scored for at the Dividend
@@ -26289,6 +26328,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     DIVIDEND_FAME: 2,            // [C] crowd standing for showing up and being seen
     DIVIDEND_FAME_WIN: 3,        // [C] and for winning in front of them
 
+    EIGHT_CARE_BASE: 0.3,
+    HAGGLE_RAISE_AT: 1.15,        // [C] an engine house haggles a renewal asking this much over the hand's present pay
+    POACH_CHANCE: 0.5,            // [C] × (aggression + treachery) / 2: an engine house's yearly chance to poach a rival's staff         // [C] §EIGHT how far down its ranking every engine house reaches before its dials (×0.5 of the roster)
     ROSTER_MIN: 16, ROSTER_TARGET: 28,   /* no ceiling (ruled): what a big roster costs in wages is its own check */
     DROP_MIN: 16,
     /* [H] S3 — how far a corp's own taste for economy amplifies the board's funding demand when
@@ -26799,7 +26841,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       blood: (a, b) => divides(a) - divides(b),
       show:  (a, b) => (b.fame || 0) - (a.fame || 0),
       drill: (a, b) => (divides(a) - divides(b)) || (quality(b) - quality(a)),
-      spare: (a, b) => (b.condition && b.condition.stress || 0) - (a.condition && a.condition.stress || 0)
+      /* (fixed, sweep 5) the least strained fight, so the strained rest — this sent the most stressed first */
+      spare: (a, b) => (a.condition && a.condition.stress || 0) - (b.condition && b.condition.stress || 0)
     };
     corp._dividendLean = lean;
     /* the engine's own card is the whole first: the mending only if there are not eight without them */
@@ -26955,7 +26998,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const score = f => (f.fame || 0) * (0.2 + 0.8 * dial('showmanship')) + ['aim', 'grit', 'reflex', 'tactics', 'resolve'].reduce((a, k) => a + (f.stats[k] || 0), 0) / 5;
     const ranked = fit.slice().sort((a, b) => score(b) - score(a));
     /* an unnamed person's seat is the rule's, not a character's: its best goes (ruled) */
-    const care = asRule ? 0 : Math.max(0, dial('patience') - dial('aggression'));   /* 0 for the bold, up to about a half for the careful */
+    /* (fixed, sweep 5) every house keeps a little back: the bold-careful difference alone sat at a tenth for the aligned
+       fleet, so every house sent its best and two in five died — a best fighter for a small purse, most years */
+    const care = asRule ? 0 : Math.max(0, Math.min(1, CONST.EIGHT_CARE_BASE + dial('patience') - dial('aggression')));
     return ranked[Math.min(ranked.length - 1, Math.floor(ranked.length * care * 0.5))];
   }
   /** a manager names a fighter — a choice for the month's end. RULED: every OA sends
@@ -27218,7 +27263,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const drop = ones.slice(0, dropN);
     const dropBodies = bodiesOf(drop, alive);
     const benefit = ones.length ? ones.reduce((t, f) => t + ((f.contract && f.contract.death_benefit) || 0), 0) / ones.length : 0;
-    const want = Math.max(0, CONST.ROSTER_TARGET - ones.length);
+    const want = Math.max(0, rosterWant(c) - ones.length);
     const perBody = ones.length ? ones.reduce((t, f) => t + ((f.contract && f.contract.salary) || 0), 0) / ones.length * LED.CONST.SALARY_MONTHS : 20000;
     /* §MONEY (ruled) A CUSHION IS KEPT: two months of what the house costs to keep (its retainers, its staff, its upkeep) are
        never laid out — a death benefit or a lean month after the drop is paid from it, not from a treasury in the red */
@@ -27313,8 +27358,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function aiMercBid(c, f) {
     const alive = beings(c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired'));
     const ask = askingPrice(f, c);   /* (fixed) the house's own ask — its standing, its losses, the champion's premium — as a person's bid reads it */
-    if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
-    const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
+    const goal = rosterWant(c);
+    if (alive.length >= goal || signingBudget(c) < ask) return null;
+    const hunger = (goal - alive.length) / goal;
     /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
     const beyond = f.ownKit && f.ownKit.tier > FAC.maxTier(c) ? 1.15 : 1;
     return Math.round(ask * (1 + hunger * CONST.MERC_HUNGER) * beyond);
@@ -27327,8 +27373,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      the sheet shows, never a stat, a ceiling or a trait — and only as far as the money reaches */
   function aiBastilleTerm(rng, c, f, sentence, budget, costOf) {
     const roster = beings(c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired'));
-    if (roster.length >= CONST.ROSTER_TARGET || budget < costOf(sentence)) return null;
-    const hunger = (CONST.ROSTER_TARGET - roster.length) / CONST.ROSTER_TARGET;
+    const goal = rosterWant(c);
+    if (roster.length >= goal || budget < costOf(sentence)) return null;
+    const hunger = (goal - roster.length) / goal;
     const race = ROSTER.raceById[f.race];
     const young = race && f.age <= race.age.prime[0] + 4;
     const hurt = !!((f.condition || {}).injuries || []).length;
@@ -27630,10 +27677,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §CENSUS A BOOST IS A LUXURY: the last two months before the Lock, a flush and eager house doubles the track that
        matters most for the drop — rest if it has hurt to mend, else the drill — and pays for it */
     if (month >= 9 && month <= 10) {
-      const purse = (corp.account && corp.account.treasury) || 0;
+      /* (fixed, sweep 5) the money decides, the character leans: a dial line the whole fleet sat under meant no house ever
+         boosted. And out of what is FREE once the Lock's bills and the drop's kit are held, not the treasury, which holds
+         the purses' money (ruled order: people to field the drop, then kit, then the rest) */
+      const pl = STATE_REF ? planFor(STATE_REF, corp) : null;
+      const purse = pl ? Math.max(0, (pl.free || 0) - (pl.gear || 0)) : 0;
       const want = hurt.length >= 3 ? 'rest' : 'train';
       const bill = (focus[want] || 0) * CONST.BOOST_PER_POINT;
-      if (focus[want] && purse - bill > 80000 + 80000 * dial('thrift') && dial('aggression') + dial('showmanship') > 1.0)
+      if (focus[want] && purse - bill > CONST.BOOST_FREE_AT * (0.5 + dial('thrift')) * (1.5 - (dial('aggression') + dial('showmanship')) / 2))
         focus._boost = { [want]: true };
     }
     /* §CENSUS WHERE THE EYES GO: the planet until it is known, then the rivals — the one it is most wary of first
@@ -28546,7 +28597,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const alive = beings(corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired'));
     /* §SEATS (ruled) THE FLOOR IS A RULE; THE REST OF A ROSTER IS A CHOICE. This filled every seat to the engine's
        target with strangers and the seat's own money; a person's roster is filled only to the muster minimum. */
-    const target = person ? CONST.ROSTER_MIN : CONST.ROSTER_TARGET;
+    const target = person ? CONST.ROSTER_MIN : rosterWant(corp);
     let need = target - alive.length;
     if (need <= 0) return { signed: 0, cost: 0 };
     /* what this corp can actually afford to sign and then pay for a year: its reckoning (§MONEY) */
@@ -28732,7 +28783,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (calls[f.id]) continue;
           const r = order.length ? (order.indexOf(f) + 1) / order.length : 0;
           if (spareHeads > 2 && r > 0.8 && dial('tradition') < 0.6) { engineCalls[f.id] = { how: 'release' }; spareHeads--; continue; }
-          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round((f._renewAsk || renewalSalary(f, state)) * (1 - 0.3 * (dial('thrift') - 0.4))) };
+          /* (fixed, sweep 5) a house haggles an ask well over what the hand is paid now, whatever its temper; a careful one
+             haggles any. The thrift line alone sat just over the whole fleet. */
+          const nowPaid = (f.contract && f.contract.salary) || 0, ask = f._renewAsk || renewalSalary(f, state);
+          if (r > 0.3 && (dial('thrift') >= 0.55 || (nowPaid > 0 && ask > nowPaid * CONST.HAGGLE_RAISE_AT))) engineCalls[f.id] = { how: 'haggle', offer: Math.round((f._renewAsk || renewalSalary(f, state)) * (1 - 0.3 * (dial('thrift') - 0.4))) };
         }
       }
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
@@ -28827,6 +28881,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
    *
    * It cannot go below `DROP_MIN`, and it never overrides an explicit `opts.want`.
    */
+  /* §RESERVE what an engine seat keeps in orbit: the less aggressive, the more (ruled: about five cautious, one aggressive) */
+  function reserveKeep(corp) {
+    const agg = ((corp.profile && corp.profile.dials && corp.profile.dials.aggression) != null ? corp.profile.dials.aggression : 50) / 100;
+    return Math.round(CONST.RESERVE_AI_MAX * (1 - agg));
+  }
+  /* §SQUADS (fixed, sweep 5) THE ROSTER AN ENGINE SEAT MEANS TO CARRY: the drop it wants and the reserve it keeps. Every
+     hunger read the fixed target, so a house whose board asked for a lean drop still hired to twenty-eight. */
+  function rosterWant(corp) {
+    return Math.max(CONST.ROSTER_MIN, Math.min(CONST.ROSTER_TARGET, wantedDropSize(corp) + reserveKeep(corp)));
+  }
   function wantedDropSize(corp) {
     const goal = corp.rep && corp.rep.goal;
     const th = goal && goal.standing && goal.standing.filter(s => s.kind === 'thrift')[0];
@@ -28926,8 +28990,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* §RESERVE AN ENGINE SEAT HOLDS SOME BACK (ruled): the less aggressive, the more it keeps in orbit to land at a beacon
        later — a cautious OA about five, an aggressive one about one — never dropping below the floor to do it */
     if (opts.want == null && !opts.noReserve) {
-      const agg = ((corp.profile && corp.profile.dials && corp.profile.dials.aggression) != null ? corp.profile.dials.aggression : 50) / 100;
-      const keep = Math.round(CONST.RESERVE_AI_MAX * (1 - agg));
+      const keep = reserveKeep(corp);
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
@@ -29655,8 +29718,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (used.size >= 2) return Math.min(DIVIDE.CONST.SQUADS_MAX || 6, used.size);
     }
     if (c._squadPlan && c._squadPlan.season === state.season) return c._squadPlan.n;
-    const alive = c.roster.filter(f => f.status === 'active').length;
-    const n = DIVIDE.squadCountFor(alive, c.profile || {}, 0);
+    /* §SQUADS (fixed, sweep 5) AN ENGINE SEAT PLANS ITS LANDINGS FOR THE DROP IT MEANS TO FIELD. This counted the roster
+       at the year's opening — nine or ten before a single signing — and the plan held all year: every house drafted two
+       landings, the drop was capped at sixteen, and a third of the roster it then hired sat in orbit. */
+    const alive = beings(c.roster.filter(f => f.status === 'active')).length;
+    const fielded = Math.min(wantedDropSize(c), Math.max(alive, rosterWant(c)) - reserveKeep(c));
+    const n = DIVIDE.squadCountFor(Math.max(CONST.DROP_MIN, fielded), c.profile || {}, 0);
     c._squadPlan = { season: state.season, n };
     return n;
   }
@@ -30025,18 +30092,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* who the line can spare: the retiring, and anyone outside the best the OA would drop */
       const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
       const standing = aliveOf(c).filter(f => !f.mirror_of).sort((a, b) => q(b) - q(a));
-      const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
+      const keep = new Set(standing.slice(0, wantedDropSize(c)).map(f => f.id));   /* (fixed, sweep 5) the drop it means to field, not the most it could */
       const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
         .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
       const specSeen = s => seen(s, p, STAFF.CONST.ESTIMATE_SPEC);
       const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => specSeen(b) - specSeen(a))[0];
       const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
-      const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
+      /* (fixed, sweep 5) a post nobody else will fill takes a veteran from any roster above the floor; posts stood empty
+         with their upkeep paid in half the months a facility stood */
+      const vet = vets.find(x => x.f.status === 'retired' || spare() > (canSpec ? 2 : 0));
       if (vet && (!canSpec || vet.v >= specSeen(spec) - 15)) appoint(state, id, vet.f.id, p);
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
-    if (c._poachedIn !== state.season && (dial('aggression') + dial('treachery')) / 2 > 0.55 && purse > 100000) {
+    /* (fixed, sweep 5) a chance a year by its temper, not a line the aligned fleet never crossed */
+    if (c._poachedIn !== state.season && purse > 100000 && rngOf(state, 'poach' + state.season + id)() < (dial('aggression') + dial('treachery')) / 2 * CONST.POACH_CHANCE) {
       let best = null;
       for (const oid of state.ids) {
         if (oid === id) continue;
@@ -30505,7 +30575,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (TRADE && TRADE.tradingOpen(m))
       TRADE.fleetTrades(rngOf(state, 'fleettrade' + state.season + m),
                         state.corps, state.ids, m, { post: LED.post, isHuman: (id) => isHuman(state, id),
-                          postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask) });
+                          postTrade: (a, b, offer, ask) => postTrade(state, a, b, offer, ask),
+                          wants: (id) => rosterWant(state.corps[id]) - beings(aliveOf(state.corps[id])).length,
+                          budget: (id) => signingBudget(state.corps[id]) });
     /* §SPONSORS THE BOARD SIGNS AS THE YEAR RUNS. A supplier convinced this month commits this
        month, and every supplier still open lowers what it wants — which is the discount the
        system always described and never delivered, because everything used to resolve at the

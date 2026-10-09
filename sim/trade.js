@@ -413,6 +413,14 @@
       if (!spare) continue;
       const price = netOf(spare);
       if (buyer.account.treasury < price) continue;
+      /* (fixed, sweep 5) a house buys a hand it needs with money its reckoning gives people — it bought with a roster
+         already past its drop, on the treasury alone, and ended years in the red; and a letter refused is not sent again
+         unchanged the next month */
+      if (typeof opts.wants === 'function' && opts.wants(thin) <= 0) continue;
+      if (typeof opts.budget === 'function' && opts.budget(thin) < price) continue;
+      buyer._tradeAsked = buyer._tradeAsked || {};
+      if (buyer._tradeAsked[spare.id] === Math.round(price)) continue;
+      buyer._tradeAsked[spare.id] = Math.round(price);
       const offer = { credits: Math.round(price) }, ask = { units: [spare.id] };
       const r = typeof opts.postTrade === 'function' ? opts.postTrade(buyer.id, seller.id, offer, ask) : null;
       if (r && r.offer) done.push({ from: seller.id, to: buyer.id, who: spare.id, price: Math.round(price), status: r.offer.status });

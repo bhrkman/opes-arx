@@ -52,6 +52,7 @@
     SEEN_ENEMY_W: 1.5,
     /* §CAPTAIN the squad's captain reads the ground for it (divide.js captainMind: judge 1.1–3.4, sight 0.10–0.55, nerve 0–1) */
     NERVE_SWING: 0.45,               // [C] how far nerve bends the count of what is out there: a shaken captain sees more of them
+    EVADE_HOLD: 0.5,                 // [C] §FIGHTS how far from its stance's acceptance toward an even fight a squad holds before it slips away
     JUDGE_NOISE: 0.6,                // [C] how far a captain misweighs what a zone is worth, divided by his judgement
     SIGHT_FAR_AT: 0.45,              // [C] a captain who reads ground this well sees a ring further than the ground alone gives
     SIGHT_SHORT_AT: 0.2,             // [C] and one below this sees no further than the zones next to him, whatever the height
@@ -233,13 +234,20 @@
       const coming = o.moving && o.moving.to === q.zone, beside = Z[q.zone].nb.indexOf(o.zone) >= 0;
       if (coming || beside) { them += o.n; near.add(o.zone); }
     }
-    if (!them || feared(q, them) <= strOf(st, q) * (STANCE[q.stance] || STANCE.standard).accept) return;
+    /* (fixed, sweep 5) a squad holds ground it would not walk into: it slips what is past halfway from its stance's
+       acceptance to an even fight. On acceptance alone two fresh squads of eight each stepped away from the other, and
+       nearly half of all squad-days ended in an evasion */
+    const acc = (STANCE[q.stance] || STANCE.standard).accept;
+    if (!them || feared(q, them) <= strOf(st, q) * (acc + (1 - acc) * CONST.EVADE_HOLD)) return;
     const walking = new Set(alive(st).filter(o => !st.allied(o.oa, q.oa) && o.moving).map(o => o.moving.to));
     const pressedBy = v => Z[v].nb.filter(x => near.has(x)).length;
     const opts = Z[q.zone].nb.filter(v => !near.has(v) && !walking.has(v) && !holder(st, v) && !deadZone(st, v) && zoneEnds(st, v) > st.day + CONST.PLAN_MARGIN_DAYS && stepOf(st, q, v))
       .sort((a, b) => pressedBy(a) - pressedBy(b));
     if (!opts.length) return;
     q.intent = { type: 'take', zone: opts[0], why: 'evade' }; q.path = [opts[0]]; q.moving = null; q.wait = 0;
+    /* (fixed, sweep 5) the ground it slipped is shut to it for the day, as ground it was turned back from is: the planner
+       walked it straight back, and squads shuttled between two zones for days */
+    q.shut = q.shut || {}; q.shut[q.zone] = st.day;
     st.audit.evaded = (st.audit.evaded || 0) + 1;
     st.events.push({ t: 'evade', day: st.day, tick: st.tick, squad: q.id, oa: q.oa, from: q.zone, to: opts[0], n: them });
   }
