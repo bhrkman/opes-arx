@@ -410,3 +410,6 @@ lean one pleases.
 - Engine answers read the situation, with character leaning only on close calls: the dispatches weigh the fighter at
   issue, the money, the stands and the board; an engine seat opens the Divide on the notch its culture, its read of
   its strength against the field (as far as its dossiers reach) and its board's asks point at.
+- Combat (fixed): a panicked fighter takes his turn — runs for his edge, or in a fight with no way out gathers himself
+  and fights on; a last sighting is walked to for three turns and then goes stale; after eight turns of hunting a side
+  finds whoever is still on the field. Open: what a fighter with no rounds left does.

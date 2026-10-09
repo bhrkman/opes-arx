@@ -18427,7 +18427,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     CONCEAL_PER_COVER: 0.22,         // [C] per grade of cover the body is lying in
     CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
     CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
-    SEARCH_DRIFT: 0.55,              // [C] §SEARCH how fast the sweep's aim point walks the flank
+    SEARCH_DRIFT: 0.55,
+    SEARCH_STALE_TURNS: 3,           // [C] §SEARCH turns a last sighting is still worth walking to
+    SEARCH_FIND_TURNS: 8,            // [C] §SEARCH turns of hunting before a side finds whoever is still on a small field              // [C] §SEARCH how fast the sweep's aim point walks the flank
     /* Two ways a side stops fighting, and they should not look the same.
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
        falls back by bounds — half moving while the other half fires to cover them.
@@ -18835,7 +18837,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             sx += f.x; sy += f.y; n++;
           }
         }
-        if (n) side._lastContact = { x: sx / n, y: sy / n };
+        if (n) { side._lastContact = { x: sx / n, y: sy / n }; side._contactTurn = turn; }
       }
     }
   }
@@ -18876,8 +18878,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      each other is a forest full of people standing still.
      A squad with nothing to go on sweeps ACROSS the ground the enemy came from, and the aim
      point drifts as the fight runs so the sweep covers ground rather than orbiting one spot. */
-  function searchPoint(side, map, turn) {
-    if (side._lastContact) return side._lastContact;
+  function searchPoint(side, map, turn, sides) {
+    /* (fixed, sweep 5) A LAST SIGHTING GOES STALE. It was walked to for ever: a side whose enemy had moved on (or had
+       stopped firing because it had nothing left to fire) stood on the spot where it last saw them, and a fight to the
+       end ran its whole clock with both sides armed and four tiles of cover between them. */
+    const quiet = (turn || 0) - (side._contactTurn != null ? side._contactTurn : 0);
+    if (side._lastContact && quiet <= CONST.SEARCH_STALE_TURNS) return side._lastContact;
+    /* and on a field this small a side that has hunted that long finds them: the trail, the noise, the bodies moving */
+    if (sides && quiet > CONST.SEARCH_FIND_TURNS) {
+      let best = null, bd = Infinity;
+      const mine = side.units.filter(m => m.state === 'ok' || m.state === 'light');
+      for (const o of sides) if (o !== side) for (const f of o.units) {
+        if (f.state !== 'ok' && f.state !== 'light' && f.state !== 'panicked') continue;
+        const d = mine.reduce((t, m) => Math.min(t, Math.hypot(m.x - f.x, m.y - f.y)), Infinity);
+        if (d < bd) { bd = d; best = f; }
+      }
+      if (best) return { x: best.x, y: best.y };
+    }
     const home = side.sIdx === 0 ? map.w - 1 : 0;          /* the ground THEY came from */
     const t = (turn || 0) * CONST.SEARCH_DRIFT;
     const y = (map.h - 1) * (0.5 + 0.42 * Math.sin(t + (side.sIdx || 0) * 2.1));
@@ -20262,7 +20279,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         }
       }
 
-      const order = sides.flatMap((S, si) => alive(S.units).map(u => ({ u, si })))
+      /* (fixed, sweep 5) THE PANICKED TAKE THEIR TURN TOO. The order held only the standing, so the panicked branch below
+         — run for the edge, or in a fight with no way out gather yourself and fight on — never ran: a panicked fighter
+         froze where he broke for the rest of the fight, and a fight to the end stalled on people who could neither act
+         nor be counted out */
+      const order = sides.flatMap((S, si) => S.units.filter(u => u.state === 'ok' || u.state === 'light' || u.state === 'panicked').map(u => ({ u, si })))
         .sort((a, b) => (initiative(b.u) - initiative(a.u)) || (a.u.id < b.u.id ? -1 : 1));
 
       for (const { u, si } of order) {
@@ -20278,7 +20299,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            enemy this turn, so a three-cornered fight is fought against whoever is on you */
         const E = pickEnemy(sides, si, u);
         if (!E) continue;
-        if (u.state !== 'ok' && u.state !== 'light') continue;
+        if (u.state !== 'ok' && u.state !== 'light' && u.state !== 'panicked') continue;
         if (!alive(E.units).length) break;
         try {
           u.ap = CONST.AP; u.dashed = false; u.overwatch = false;
@@ -20601,7 +20622,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               const out = allFoes.some(f => f.state === 'ok' || f.state === 'light');
               if (blind && out && rng() < CONST.DRONE_WEIGHT) {
                 u.carried.splice(u.carried.indexOf('itm_spotter_drone'), 1);
-                const at = S._lastContact || searchPoint(S, map, tel.turn) || { x: u.x, y: u.y };
+                const at = searchPoint(S, map, tel.turn, sides) || { x: u.x, y: u.y };
                 drones.push({ x: at.x, y: at.y, left: CONST.DRONE_TURNS, side: S.tag, si: sides.indexOf(S) });
                 sides[0]._fog.dirty = true; ensureSpot(sides[0]);
                 u.ap--;
@@ -20716,7 +20737,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              machinery that is already there rather than a second search behaviour. */
           const near = foes.length
             ? foes.reduce((x, y) => dist(u, x) < dist(u, y) ? x : y)
-            : searchPoint(S, map, tel.turn);
+            : searchPoint(S, map, tel.turn, sides);
           let move = null;
           /* am I currently unseen? decides Soft Boots. Declared out here rather than inside
              the scoring block because the dash below is a second movement decision in the same

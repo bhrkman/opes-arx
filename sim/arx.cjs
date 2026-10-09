@@ -711,7 +711,7 @@ function monWaRules() {
     ok('mon-wa: braindead is retired', wa.status === 'retired' && wa._braindead, wa.status); }
   /* on the field: the shared fall and the roll's share, over fights of pairs */
   const fates = {}; let falls = 0;
-  for (let k = 0; k < 70; k++) {
+  for (let k = 0; k < 110; k++) {
     const side = (seed, tag) => { const b = RO.generateSquad(makeRng(seed), 3, { corpId: tag, race: 'mon_wa' }).bodies;
       b.forEach(f => { f.status = 'active'; f.condition = f.condition || { health: 100, fatigue: 0, morale: 60, injuries: [], stress: 0 }; });
       const units = b.map((f, i) => C.makeCombatant(f, { traitIndex: gen.traitById, isCaptain: i === 0, day: 1 }));
