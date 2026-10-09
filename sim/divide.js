@@ -250,6 +250,7 @@
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    WITHDRAW_ASK_MAX: 0.9,              // [C] the most of the pot any seat may ask for its exit
     WORD_RECORD_WEIGHT: 3,              // [C] §WITHDRAWAL promises on the record before it counts as much as character
     KELLIS_PACT_SHARE: 0.25,            // [C] §RACES the share of a house's people that makes it a Kellis house to the fleet
     KELLIS_PACT_TRUST: 0.08,            // [C] and what that adds to the trust in its word
@@ -405,11 +406,16 @@
            item moves, so a refusal leaves no half-drawn kit behind */
         let buy = 0, val = 0;
         const trial = {};
+        /* (fixed) bought at the quartermaster's price: the year's swing, less a standing's discount by family — it was the
+           list price, so a hand-kitted gun was cheaper than the quartermaster's in a dear year and dearer in a cheap one */
+        const handPrice = (it) => { const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
+          const d = SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? Math.max(0, Math.min(0.6, SPON.standingDiscount(corp, fam) || 0)) : 0;
+          return Math.round((it.cost || 0) * ((corp.persist && corp.persist.priceMult) || 1) * (1 - d)); };
         for (const it of items) {
           val += it.cost;
           if ((handStock[it.id] || 0) - (trial[it.id] || 0) > 0)
             trial[it.id] = (trial[it.id] || 0) + 1;
-          else buy += it.cost;
+          else buy += handPrice(it);
         }
         if (buy > (corp.kitBudget || 0) - handSpend ||
             handValue + val > intent.allowance) { corp.handRefused++; continue; }
@@ -890,7 +896,10 @@
     REP.act(c.rep, 'ceded', { rivalIds: corps.map(x => x.id) });
   }
   function postWithdrawOffer(c, terms, day, stats) {
-    (stats.withdrawOffers = stats.withdrawOffers || {})[c.id] = { from: c.id, terms: terms, sentDay: day, replies: {} };
+    /* (fixed) one bound on every seat's ask: credits to nine tenths of the pot (the engine's cap), each store to a whole */
+    const t = {};
+    for (const k in (terms || {})) { const v = Math.max(0, Math.min(1, +terms[k] || 0)); t[k] = k === 'credits' ? Math.min(CONST.WITHDRAW_ASK_MAX, v) : v; }
+    (stats.withdrawOffers = stats.withdrawOffers || {})[c.id] = { from: c.id, terms: t, sentDay: day, replies: {} };
     stats.audit.withdrawOffers = (stats.audit.withdrawOffers || 0) + 1;
   }
   function runCorpChannel(rng, corps, planet, day, stats, opts) {
@@ -965,16 +974,24 @@
        the strength on the ground, of what fighting on would have cost it. A BIG THREAT GOING spares a lot, which
        is why a strong OA can ask a hefty share and still be promised it. */
     const livingOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
-    const spared = (leaver, j) => {
+    /* `seenBy`: the OA doing the reckoning. A rival knows its own cost of staying; a leaver guessing at a rival's does
+       not see its books (wages, families, kit) and reckons it as its own per head, by the rival's people standing.
+       (fixed: the leaver read every rival's true cost, so an engine leaver knew each one's exact yes) */
+    const stayAsSeen = (j, seenBy) => {
+      if (!seenBy || seenBy === j) return stayCost(j);
+      const mine = livingOf(seenBy);
+      return mine ? stayCost(seenBy) / mine * livingOf(j) : 0;
+    };
+    const spared = (leaver, j, seenBy) => {
       const total = corps.filter(onGround).reduce((t, x) => t + livingOf(x), 0);
-      return total ? stayCost(j) * livingOf(leaver) / total : 0;
+      return total ? stayAsSeen(j, seenBy) * livingOf(leaver) / total : 0;
     };
-    const maxAskFor = (leaver, j) => {
+    const maxAskFor = (leaver, j, seenBy) => {
       const mine = odds[j.id] || 0, withGone = Math.max(mine, ctx.oddsWithout(leaver, j) || 0);
-      const value = (withGone - mine) * POT + spared(leaver, j);
-      return { withGone: withGone, maxAsk: withGone > 0 && POT > 0 ? Math.min(0.9, value / (withGone * POT * W8)) : 0 };
+      const value = (withGone - mine) * POT + spared(leaver, j, seenBy);
+      return { withGone: withGone, maxAsk: withGone > 0 && POT > 0 ? Math.min(CONST.WITHDRAW_ASK_MAX, value / (withGone * POT * W8)) : 0 };
     };
-    const leaveRows = (c) => corps.filter(j => j.id !== c.id && onGround(j)).map(j => Object.assign({ j: j }, maxAskFor(c, j)));
+    const leaveRows = (c) => corps.filter(j => j.id !== c.id && onGround(j)).map(j => Object.assign({ j: j }, maxAskFor(c, j, c)));
     const promisesWorth = (rows, ask, who) => POT * rows.filter(r => who(r)).reduce((t, r) => t + r.withGone * ask * keepOf(r.j, ask), 0);
     const standingCost = (c) => {
       const dl = (c.profile && c.profile.dials) || {};
@@ -1082,7 +1099,7 @@
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
-      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
+      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day)   /* (fixed) only what is known: it counted deposits four days before anyone could see them */ && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
          and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
@@ -1194,7 +1211,7 @@
         const aiCaptor = !isHumanOA(captor.id), aiOwner = !isHumanOA(owner.id);
         let price, worth;
         if (aiCaptor) {
-          const offer = NEG.ransomOffer(rng, captor, owner, f, ctx);
+          const offer = NEG.ransomOffer(stats._choiceRng('ransom:' + f.id + ':' + day), captor, owner, f, ctx);
           if (!offer) continue;                                        /* it will not sell him, this time */
           price = offer.price; worth = offer.worth;
         } else {
@@ -1382,8 +1399,9 @@
       let best = null, gain = 0;
       for (const s of standing) {
         const lo = s.b.loadout || {}; if (!lo.primary) continue;
-        /* §STUN (fixed) the engine arms nobody with stun (ruled) — off a corpse no more than off its rack */
-        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0 && !isHumanOA(s.q.corpId)) continue;
+        /* §STUN (fixed) a stun gun is a manager's choice, never the engine's (ruled) — and picking one up off a corpse is
+           the engine's doing, for a person's people as for its own */
+        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0) continue;
         const mine = ITEMS.byId(lo.primary);
         const up = costOf(g.id) - costOf(lo.primary);
         if (up <= 0) continue;
@@ -1903,6 +1921,27 @@
    * Pick the notch for the next couple of days. Called at every corp window, for every corp,
    * and it is free. Returns true if the notch actually moved.
    */
+  /* (fixed) A CHANGE OF STANCE COSTS THE SAME WHOEVER MAKES IT: the whiplash on a tradition keeper's people, and the count
+     and the record. A person's change at the window set the notch and paid nothing. */
+  function changeStance(corp, next, stats) {
+    if (next === corp.policy) return;
+    /* A tradition keeper's people dislike being redirected every other day. The hook was
+       written for the old once-a-season model and never read; under a turn-by-turn dial it
+       finally has something to resist. It does not BLOCK the change — the manager decides —
+       it charges morale for the whiplash. */
+    if (corpHasHook(corp, 'doctrine_change_resistance')) {
+      const bite = 1;
+      for (const q of corp.squads) for (const b of squadHead(q)) {
+        b.condition.morale = Math.max(5, b.condition.morale - bite);
+      }
+      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
+    }
+    const from = corp.policy;
+    corp.policy = next;
+    corp.stanceChanges++;
+    stats.stanceChanges++;
+    if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -1937,22 +1976,7 @@
 
     const next = NOTCHES[pick];
     if (next === corp.policy) return false;
-    /* A tradition keeper's people dislike being redirected every other day. The hook was
-       written for the old once-a-season model and never read; under a turn-by-turn dial it
-       finally has something to resist. It does not BLOCK the change — the manager decides —
-       it charges morale for the whiplash. */
-    if (corpHasHook(corp, 'doctrine_change_resistance')) {
-      const bite = 1;
-      for (const q of corp.squads) for (const b of squadHead(q)) {
-        b.condition.morale = Math.max(5, b.condition.morale - bite);
-      }
-      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
-    }
-    const from = corp.policy;
-    corp.policy = next;
-    corp.stanceChanges++;
-    stats.stanceChanges++;
-    if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
+    changeStance(corp, next, stats);
     /* No stress. Changing your mind about how to approach the next two days is not an injury. */
     /* §STANCE THE NEW NOTCH REACHES THE SQUADS. An AI OA seats each squad's own notch at the drop, and a squad's own
        notch is what its behaviour reads — so every window's reconsidering changed the OA's word and none of its squads:
@@ -2264,6 +2288,11 @@
       }
     };
     stats._sitePay = sitePay;   /* the withdrawal weighs the open ground at what it pays */
+    /* (fixed) A SEAT'S CHOICES DRAW THEIR OWN DICE. An engine seat's ransom ask and its keeping of its word drew from the
+       Divide's one stream, so handing a seat to a person (who draws nothing there) shifted every roll after it. One draw
+       here for every Divide, whoever sits where; each choice is seeded off it by name. */
+    const CHOICE_SEED = Math.floor(rng() * 1e9);
+    stats._choiceRng = (key) => P.mulberry32(P.seedFrom(CHOICE_SEED + ':' + key));
     const pcOf = {};
     for (const pc of stats.perCorp) pcOf[pc.id] = pc;
 
@@ -2973,7 +3002,7 @@
             if (you) you._autoLeave = answer == null ? true : answer.autoLeave === true;
             if (answer && answer.stance && you) {
               const idx = NOTCHES.indexOf(answer.stance);
-              if (idx >= 0) { if (you.policy !== answer.stance) you.stanceChanges++; you.policy = answer.stance; for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
+              if (idx >= 0) { changeStance(you, answer.stance, stats); for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
             }
             if (answer && answer.squadStance && you) for (const k in answer.squadStance) { const q = you.squads[+k], n = answer.squadStance[k]; if (q && STANCE_DIALS[n]) q.stance = n; }
             /* §ORDERS a seat may send a squad somewhere: an order stands until it is carried out */
@@ -2996,6 +3025,11 @@
             for (const d of dealsIn) if (d && /^ransom_/.test(d.kind || '')) {
               const yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
               const k = (stats.ransomCases || []).find(x => !x.done && x.fighter === d.fighter);
+              /* (fixed) a person pays only from money it has, as an engine owner does: the treasury less the drop's kit and the
+                 ransoms already agreed (NEG.ransomWorthPaying's cash test) */
+              const cashOk = (o, price) => { const acct = (o.persist && o.persist.account) || o.account || null;
+                return !(acct && acct.treasury - ((o.kitSpend || 0) + (o.ransomPaid || 0) + ((o.persist && o.persist.rationSpend) || 0)) < price); };
+              if (k && k.owner === you.id && d.kind === 'ransom_pay' && !cashOk(you, k.price)) { stats._echo[seatId] = { kind: 'ransom_short', corp: d.corp, name: k.name, price: k.price }; continue; }
               if (k && k.owner === you.id && (d.kind === 'ransom_pay' || d.kind === 'ransom_decline')) k.ownerYes = yes;
               if (k && k.captor === you.id && (d.kind === 'ransom_sell' || d.kind === 'ransom_keep')) k.captorYes = yes;
               if (k && k.ownerYes && k.captorYes) {
@@ -3337,7 +3371,7 @@
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
         const keep = isHumanOA(w.id)
           ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
-          : rng() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
+          : stats._choiceRng('word:' + w.id + ':' + pr.to)() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});

@@ -2983,7 +2983,7 @@
       };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-rsclear]'), function (b) {
-      b.onclick = function () { delete (G.corps[G.me]._renewalCalls || {})[b.getAttribute('data-rsclear')]; renderRoster(); };
+      b.onclick = function () { SEASON.answerRenewal(G.state, G.me, b.getAttribute('data-rsclear'), 'clear'); renderRoster(); };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-sheet]'), function (el) {
       el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
@@ -3169,7 +3169,7 @@
          actually wants to know: not how much, but whether it is enough. */
       /* (ruled) no reading of the field: nobody can see what the other OAs bid, and the guess was the page's own */
       var bid = f.yourBid || f.ask;
-      var lo = Math.round(f.ask * 0.8), hi = Math.round(f.ask * 1.6);
+      var lo = Math.round(f.ask * 0.8), hi = Math.max(Math.round(f.ask * 2), bid);   /* (fixed) a raised bid is not pulled back to the slider's end */
       foot = '<div class="bidrow"><input type="range" min="' + lo + '" max="' + hi + '" step="25" value="' + bid +
                '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(retOf(bid / 12)) + '/mo</span></div>' +
              '<div class="bidscale"><span>Low</span><span>Ask \u00b7 ' + crs(retOf(f.ask / 12)) + '/mo</span><span>High</span></div>' +
@@ -3189,7 +3189,7 @@
       terms = 'Sentence ' + sent + ' Divide' + (sent === 1 ? '' : 's') + ' to Earn Release' +
               ' \u00b7 Kier Wage ' + crs(retOf((f.wage || 0) / 12)) + '/mo \u00b7 Fee ' + crs(f.fee || 0);
       var opts = [];
-      for (var k = 0; k <= 2 && sent - k >= 1; k++) {
+      for (var k = 0; sent - k >= 1; k++) {   /* (fixed) every road down to one Divide, as an engine seat may offer */
         var term = sent - k;
         var label = k === 0 ? 'Honour the Sentence' : 'Release After ' + term +
                     ' \u00b7 ' + crs(k * (f.remission || 0));
@@ -5997,7 +5997,10 @@
     /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
     h += '<h3>The OA</h3>';
     var alive = oneEach((c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; }));
-    h += row('On the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
+    /* (fixed) a rival's count is what the dossier's roster row read, as banded as it was gathered — any dossier at all
+       printed the live count exactly */
+    var rosRow = !mine && me._intel && me._intel.rivals && me._intel.rivals[id] && me._intel.rivals[id].rows.roster;
+    h += row('On the Books', mine ? alive.length : rosRow && rosRow.snapshot ? esc(String(rosRow.snapshot)) : '<span class="m">Not Yet Scouted</span>');
     /* §FLEET (ruled: aligned) every seat is the same founded OA under its own banner: its archetype, tier and lean are
        the founder's for everybody, and a row saying so says nothing (and printed an averaged tier as "Tier 2.375") */
     if (!p.aligned) {
@@ -7546,7 +7549,7 @@
       '<button class="tiny' + (G.autoLeave ? ' on' : '') + '" id="wauto" style="margin-left:8px">The Books Call It \u00b7 ' + (G.autoLeave ? 'On' : 'Off') + '</button>' + '</div>';
     var pcW = Math.round((cur.credits || 0) * 100);
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
-         '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
+         '<input type="range" min="0" max="' + Math.round(DIVIDE.CONST.WITHDRAW_ASK_MAX * 100) + '" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
          '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
@@ -8115,12 +8118,11 @@
     return G._dvPick;
   }
   function dvDefaultPick() {
-    /* the fleet's rule, shown as the starting card so the manager sees what happens if
-       they touch nothing: the greenest fit bodies, blooded where nobody can die */
-    return dvEligible().slice().sort(function (a, b) {
-      return ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0);
-    }).slice(0, 8).map(function (f) { return f.id; });
+    /* (fixed) the card the engine sends for a seat that sends none — the fleet's own rule, its taste included — so a
+       manager who touches nothing fields what an engine seat would (the page had its own "greenest eight") */
+    return SEASON.dividendSquad(G.corps[G.me]).map(function (f) { return f.id; });
   }
+
   var DV_MIN = 4, DV_MAX = 8;
   var DV_SORT = { key: 'stats', asc: false };
   function renderDividend() {
@@ -9520,6 +9522,8 @@
       ? '<span class="good">The Deal Was Struck</span> <span class="m">With ' + cSpan(e.corp) + '</span>'
       : e.kind === 'ransom_pay' || e.kind === 'ransom_sell'
       ? '<span class="good">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">' + (e.kind === 'ransom_pay' ? 'Ransomed' : 'Sold Back') + '</span>'
+      : e.kind === 'ransom_short'
+      ? '<span class="warn">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">Unaffordable</span>'
       : e.kind === 'ransom_decline' || e.kind === 'ransom_keep'
       ? '<span class="warn">' + esc(e.name || '') + '</span> <span class="m">' + (e.kind === 'ransom_decline' ? 'Left With Them' : 'Kept') + '</span>'
       : '<span class="warn">Refused</span> <span class="m">By ' + cSpan(e.corp) +
@@ -9649,7 +9653,7 @@
           timer: null, tw: null, tween: null, fx: null, el: 0,
           plan: normPlan(save.plan),
           div: null };
-    G.state.opts.human = G.me;
+    SEASON.setController(G.state, G.me, 'human');
     bindSeat();
     $('mlog').innerHTML = '<div class="m">A Loaded Year</div>';
     /* desk log panel removed */

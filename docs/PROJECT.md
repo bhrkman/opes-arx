@@ -361,3 +361,8 @@ lean one pleases.
   Bulk limit is 8 for kit plus the default 3 for food, so only food past fifteen days tires a squad. Foraging fills to
   what was landed with (or the default, if less). After three dry days hunger takes a twentieth of a body's health a
   day, never below three tenths.
+- Every seat plays under one set of rules (sweep 3): an engine seat's Bastille, mercenary, tryout, staff and Sergeant
+  choices meet the same terms, prices and limits a person's do; it reads a stranger's Craft as the same range a person
+  sees, and a rival's cost of staying as its own per head; a person's hand-kit is priced as the quartermaster's, its
+  ransom paid only from money it has, its stance changed at the same cost, its withdrawal ask bounded the same (nine
+  tenths of the pot). A seat's choices draw their own dice, so who holds a seat moves no other roll.

@@ -1286,7 +1286,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* a mercenary: bid if short of the roster target and the year is covered — more, the thinner the roster */
   function aiMercBid(c, f) {
     const alive = beings(c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired'));
-    const ask = askingPrice(f, null);
+    const ask = askingPrice(f, c);   /* (fixed) the house's own ask — its standing, its losses, the champion's premium — as a person's bid reads it */
     if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
     const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
     /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
@@ -1363,7 +1363,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const want = marked ? lot.filter(f => !trailingHalf(lot, f) && (marked.indexOf(f.id) >= 0 || (lotHalf(lot, f) && marked.indexOf(lotHalf(lot, f).id) >= 0))) : [];
       let took = 0;
       for (const f of want) {
-        if (signingBudget(corp) < askingPrice(f, corp)) { tally.refused++; continue; }
+        const year = askingPrice(f, corp);
+        if (signingBudget(corp) < year) { tally.refused++; continue; }
+        f.contract = f.contract || {};
+        f.contract.salary = Math.round(year / LED.CONST.SALARY_MONTHS);   /* (fixed) the ask the sheet listed, as a person signing pays it */
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         corp.roster.push(f);
@@ -1439,7 +1442,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            seat a person holds.) */
         const human = isHuman(state, id);
         const h0 = lotHalf(lot, f);
-        const named = human ? (bids[id] && (bids[id][f.id] != null ? bids[id][f.id] : h0 && bids[id][h0.id])) : aiBastilleTerm(rng, c, f, sentence, budget, costOf);
+        const named = human ? (bids[id] && (bids[id][f.id] != null ? bids[id][f.id] : h0 && bids[id][h0.id])) : aiBastilleTerm(rngOf(state, 'bastille:' + state.season + ':' + id + ':' + f.id), c, f, sentence, budget, costOf);   /* (fixed) its own dice: a seat held by a person draws none, and shifted everyone else's */
         if (named == null) continue;
         const term = Math.round(named);
         if (term >= 1 && term <= sentence && budget >= costOf(term)) offers.push({ corp: c, term: term, human: human });
@@ -1741,11 +1744,20 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
     if (wanted && wanted.restTarget) focus.restTarget = wanted.restTarget;
-    if (wanted && wanted.intelTarget) focus.intelTarget = wanted.intelTarget;
-    /* courting's per-OA map is a rider like trainTarget — carried through so the player's
-       painted OAs reach the spend, and clamped to nothing exotic (it is read as data). */
+    /* (fixed) a painted map spends no more than the track it rides on was given: the engine trusted the page to keep
+       the scout and court maps inside the month's focus, and spent whatever they said */
+    const capMap = (m, total) => {
+      if (!m || typeof m !== 'object' || m.target) return m;
+      const out = {}; let left2 = Math.max(0, total || 0);
+      for (const k of Object.keys(m).sort((a, b) => (m[b] || 0) - (m[a] || 0))) {
+        const v = Math.max(0, Math.floor(m[k] || 0)), take = Math.min(v, left2);
+        if (take > 0) { out[k] = take; left2 -= take; }
+      }
+      return out;
+    };
+    if (wanted && wanted.intelTarget) focus.intelTarget = capMap(wanted.intelTarget, focus.scout);
     if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
-      focus.courtTarget = wanted.courtTarget;
+      focus.courtTarget = capMap(wanted.courtTarget, focus.court);
     return focus;
   }
 
@@ -2324,7 +2336,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            Absent a map, a bare scout falls to the planet with all its focus. */
         const perPip = (focus._boost && focus._boost.scout)
           ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
-        const asked = wanted ? wanted.intelTarget : focus.intelTarget;   /* §CENSUS the engine paints its own map */
+        const asked = focus.intelTarget || (wanted ? wanted.intelTarget : null);   /* §CENSUS the engine paints its own map (the validated one first) */
         const map = (asked && typeof asked === 'object' && !asked.target)
           ? asked : { planet: fpts };   /* legacy/bare scout → all on the planet */
         const intelNow = ensureIntel(corp, season || 0);
@@ -2629,6 +2641,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const f = c.roster.find(x => x.id === fighterId); if (!f) return { ok: false };
     c._renewalCalls = c._renewalCalls || {};
+    if (how === 'clear') { delete c._renewalCalls[fighterId]; return { ok: true }; }   /* the call taken back */
     /* §PAPER the ask he named is the ask he holds to: answered now, it is the figure paid at the year's end */
     c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: renewalSalary(f, state) };
     return { ok: true };
@@ -3246,6 +3259,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3);
       }
       if (c) delete c._board;
+      if (c) delete c._dividendPick;   /* (fixed) last year's Dividend card is not this year's */
     }
     opts = opts || {};
     const ids = Object.keys(corps);
@@ -3912,6 +3926,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function aiSergeant(corp, month, season) {
     const sg = STAFF.sergeantTalk(corp); if (!sg) return null;
     const abs = (season || 0) * 100 + month;
+    if (corp._sgtTalked && corp._sgtTalked.abs === abs) return null;   /* (fixed) one word a month, as a person's Sergeant has */
     const alive = aliveOf(corp).filter(f => !f.mirror_of);
     const loy = f => (f.loyalty == null ? 50 : f.loyalty), str = f => ((f.condition && f.condition.stress) || 0);
     const ok = f => { TALKS.temperOf(f); const how = TALKS.landing(f, sg.kind, abs, !!f.temperKnown); return how !== 'backfired' && how !== 'faded'; };
@@ -3928,6 +3943,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       for the rest when it can pay them, and a rival's best when it is bold and rich enough */
   function aiStaff(state, id, opts) {
     const c = state.corps[id], o = STAFF.office(c);
+    /* (fixed) a stranger's Craft is a range to an engine seat as to a person (staff.js §15): it reads the middle of the
+       same estimate the Backroom shows, never the number */
+    const seen = (st, p, width) => { const e = STAFF.estimate(st, p, width); return (e.lo + e.hi) / 2; };
     const d = (c.profile && c.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* the year's renewals: keep whoever is worth what they ask */
@@ -3943,10 +3961,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
       const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
         .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
-      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => b.craft[p] - a.craft[p])[0];
+      const specSeen = s => seen(s, p, STAFF.CONST.ESTIMATE_SPEC);
+      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => specSeen(b) - specSeen(a))[0];
       const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
       const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
-      if (vet && (!canSpec || vet.v >= spec.craft[p] - 15)) appoint(state, id, vet.f.id, p);
+      if (vet && (!canSpec || vet.v >= specSeen(spec) - 15)) appoint(state, id, vet.f.id, p);
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
@@ -3958,7 +3977,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           const st = STAFF.holder(state.corps[oid], p); if (!st) continue;
           if (o.posts[p]) continue;                 /* it poaches into an empty post, never over its own */
           if (!STAFF.willing(st, regardOf(c, oid))) continue;
-          if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
+          const v = seen(st, p, STAFF.CONST.ESTIMATE_RIVAL);
+          if (!best || v > best.v) best = { oid, p, st, v };
         }
       }
       if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.25) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
@@ -4917,6 +4937,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         } }
       c._drop = drop;
       p.drop = drop;
+      p.kitMoney = kitMoneyFor(state, c);   /* (fixed) the kit money reads the purses of the drop the lock sent, as an engine seat's does */
     }
   }
   function prepareDivide(state) {
@@ -5588,7 +5609,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
-           foundingRoster, openLot, ensureLot, mending, mendingBeing, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
+           foundingRoster, openLot, ensureLot, dividendSquad, mending, mendingBeing, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
            ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */

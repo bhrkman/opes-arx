@@ -21275,7 +21275,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
     /* what it has already committed and not yet been charged: the drop's kit (posted at the settlement) and the ransoms
        it has agreed this Divide — the same cash cannot buy two men back */
-    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0);
+    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0) + ((owner.persist && owner.persist.rationSpend) || 0);   /* and the food it landed with */
     return !(acct && acct.treasury - committed < price);
   }
   /* ------------------------------------------------------------------ */
@@ -22309,6 +22309,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    WITHDRAW_ASK_MAX: 0.9,              // [C] the most of the pot any seat may ask for its exit
     WORD_RECORD_WEIGHT: 3,              // [C] §WITHDRAWAL promises on the record before it counts as much as character
     KELLIS_PACT_SHARE: 0.25,            // [C] §RACES the share of a house's people that makes it a Kellis house to the fleet
     KELLIS_PACT_TRUST: 0.08,            // [C] and what that adds to the trust in its word
@@ -22464,11 +22465,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            item moves, so a refusal leaves no half-drawn kit behind */
         let buy = 0, val = 0;
         const trial = {};
+        /* (fixed) bought at the quartermaster's price: the year's swing, less a standing's discount by family — it was the
+           list price, so a hand-kitted gun was cheaper than the quartermaster's in a dear year and dearer in a cheap one */
+        const handPrice = (it) => { const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
+          const d = SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? Math.max(0, Math.min(0.6, SPON.standingDiscount(corp, fam) || 0)) : 0;
+          return Math.round((it.cost || 0) * ((corp.persist && corp.persist.priceMult) || 1) * (1 - d)); };
         for (const it of items) {
           val += it.cost;
           if ((handStock[it.id] || 0) - (trial[it.id] || 0) > 0)
             trial[it.id] = (trial[it.id] || 0) + 1;
-          else buy += it.cost;
+          else buy += handPrice(it);
         }
         if (buy > (corp.kitBudget || 0) - handSpend ||
             handValue + val > intent.allowance) { corp.handRefused++; continue; }
@@ -22949,7 +22955,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     REP.act(c.rep, 'ceded', { rivalIds: corps.map(x => x.id) });
   }
   function postWithdrawOffer(c, terms, day, stats) {
-    (stats.withdrawOffers = stats.withdrawOffers || {})[c.id] = { from: c.id, terms: terms, sentDay: day, replies: {} };
+    /* (fixed) one bound on every seat's ask: credits to nine tenths of the pot (the engine's cap), each store to a whole */
+    const t = {};
+    for (const k in (terms || {})) { const v = Math.max(0, Math.min(1, +terms[k] || 0)); t[k] = k === 'credits' ? Math.min(CONST.WITHDRAW_ASK_MAX, v) : v; }
+    (stats.withdrawOffers = stats.withdrawOffers || {})[c.id] = { from: c.id, terms: t, sentDay: day, replies: {} };
     stats.audit.withdrawOffers = (stats.audit.withdrawOffers || 0) + 1;
   }
   function runCorpChannel(rng, corps, planet, day, stats, opts) {
@@ -23024,16 +23033,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the strength on the ground, of what fighting on would have cost it. A BIG THREAT GOING spares a lot, which
        is why a strong OA can ask a hefty share and still be promised it. */
     const livingOf = (j) => (j.allBodies || []).filter(b => b.status === 'active').length;
-    const spared = (leaver, j) => {
+    /* `seenBy`: the OA doing the reckoning. A rival knows its own cost of staying; a leaver guessing at a rival's does
+       not see its books (wages, families, kit) and reckons it as its own per head, by the rival's people standing.
+       (fixed: the leaver read every rival's true cost, so an engine leaver knew each one's exact yes) */
+    const stayAsSeen = (j, seenBy) => {
+      if (!seenBy || seenBy === j) return stayCost(j);
+      const mine = livingOf(seenBy);
+      return mine ? stayCost(seenBy) / mine * livingOf(j) : 0;
+    };
+    const spared = (leaver, j, seenBy) => {
       const total = corps.filter(onGround).reduce((t, x) => t + livingOf(x), 0);
-      return total ? stayCost(j) * livingOf(leaver) / total : 0;
+      return total ? stayAsSeen(j, seenBy) * livingOf(leaver) / total : 0;
     };
-    const maxAskFor = (leaver, j) => {
+    const maxAskFor = (leaver, j, seenBy) => {
       const mine = odds[j.id] || 0, withGone = Math.max(mine, ctx.oddsWithout(leaver, j) || 0);
-      const value = (withGone - mine) * POT + spared(leaver, j);
-      return { withGone: withGone, maxAsk: withGone > 0 && POT > 0 ? Math.min(0.9, value / (withGone * POT * W8)) : 0 };
+      const value = (withGone - mine) * POT + spared(leaver, j, seenBy);
+      return { withGone: withGone, maxAsk: withGone > 0 && POT > 0 ? Math.min(CONST.WITHDRAW_ASK_MAX, value / (withGone * POT * W8)) : 0 };
     };
-    const leaveRows = (c) => corps.filter(j => j.id !== c.id && onGround(j)).map(j => Object.assign({ j: j }, maxAskFor(c, j)));
+    const leaveRows = (c) => corps.filter(j => j.id !== c.id && onGround(j)).map(j => Object.assign({ j: j }, maxAskFor(c, j, c)));
     const promisesWorth = (rows, ask, who) => POT * rows.filter(r => who(r)).reduce((t, r) => t + r.withGone * ask * keepOf(r.j, ask), 0);
     const standingCost = (c) => {
       const dl = (c.profile && c.profile.dials) || {};
@@ -23141,7 +23158,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          losses — on the rebuilt ground, where the drop is fought over from day one, every banner priced itself off
          the field by the second window. The deposits are where the money is: an OA weighs its share of what is
          still open on standing ground, at what a dug site pays, beside its chance at the pot. */
-      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day + 4) && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
+      const openLeft = (planet.objectives || []).filter(o => o.type === 'resource_site' && !o.looted && (o.revealed || o.revealDay == null || o.revealDay <= day)   /* (fixed) only what is known: it counted deposits four days before anyone could see them */ && (!planet.ground || (GROUND.standingOn(planet.ground, day).some(r => r.id === o.region) && !GROUND.zoneGone(planet.ground, o.zone, day))));
       /* §WITHDRAWAL AN OA READS ITSELF TRUE. The board is public — it cannot see wounds, so a house walking twenty hurt
          reads as twenty — and an OA that read its own chances off it believed a spent force could still win, stayed,
          and was wiped to the last man. It knows its own tent: a body counts for the health it has left (ruled: health, not
@@ -23253,7 +23270,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const aiCaptor = !isHumanOA(captor.id), aiOwner = !isHumanOA(owner.id);
         let price, worth;
         if (aiCaptor) {
-          const offer = NEG.ransomOffer(rng, captor, owner, f, ctx);
+          const offer = NEG.ransomOffer(stats._choiceRng('ransom:' + f.id + ':' + day), captor, owner, f, ctx);
           if (!offer) continue;                                        /* it will not sell him, this time */
           price = offer.price; worth = offer.worth;
         } else {
@@ -23441,8 +23458,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       let best = null, gain = 0;
       for (const s of standing) {
         const lo = s.b.loadout || {}; if (!lo.primary) continue;
-        /* §STUN (fixed) the engine arms nobody with stun (ruled) — off a corpse no more than off its rack */
-        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0 && !isHumanOA(s.q.corpId)) continue;
+        /* §STUN (fixed) a stun gun is a manager's choice, never the engine's (ruled) — and picking one up off a corpse is
+           the engine's doing, for a person's people as for its own */
+        if (((it.effects || {}).tags || []).indexOf('nonlethal') >= 0) continue;
         const mine = ITEMS.byId(lo.primary);
         const up = costOf(g.id) - costOf(lo.primary);
         if (up <= 0) continue;
@@ -23962,6 +23980,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * Pick the notch for the next couple of days. Called at every corp window, for every corp,
    * and it is free. Returns true if the notch actually moved.
    */
+  /* (fixed) A CHANGE OF STANCE COSTS THE SAME WHOEVER MAKES IT: the whiplash on a tradition keeper's people, and the count
+     and the record. A person's change at the window set the notch and paid nothing. */
+  function changeStance(corp, next, stats) {
+    if (next === corp.policy) return;
+    /* A tradition keeper's people dislike being redirected every other day. The hook was
+       written for the old once-a-season model and never read; under a turn-by-turn dial it
+       finally has something to resist. It does not BLOCK the change — the manager decides —
+       it charges morale for the whiplash. */
+    if (corpHasHook(corp, 'doctrine_change_resistance')) {
+      const bite = 1;
+      for (const q of corp.squads) for (const b of squadHead(q)) {
+        b.condition.morale = Math.max(5, b.condition.morale - bite);
+      }
+      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
+    }
+    const from = corp.policy;
+    corp.policy = next;
+    corp.stanceChanges++;
+    stats.stanceChanges++;
+    if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
+  }
   function reconsiderStance(rng, corp, stats, ctx) {
     ctx = ctx || {};
     const home = culturalHome(corp);
@@ -23996,22 +24035,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     const next = NOTCHES[pick];
     if (next === corp.policy) return false;
-    /* A tradition keeper's people dislike being redirected every other day. The hook was
-       written for the old once-a-season model and never read; under a turn-by-turn dial it
-       finally has something to resist. It does not BLOCK the change — the manager decides —
-       it charges morale for the whiplash. */
-    if (corpHasHook(corp, 'doctrine_change_resistance')) {
-      const bite = 1;
-      for (const q of corp.squads) for (const b of squadHead(q)) {
-        b.condition.morale = Math.max(5, b.condition.morale - bite);
-      }
-      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
-    }
-    const from = corp.policy;
-    corp.policy = next;
-    corp.stanceChanges++;
-    stats.stanceChanges++;
-    if (stats._rec) stats._rec({ t: 'stance', c: corp.id, from: from, to: next });
+    changeStance(corp, next, stats);
     /* No stress. Changing your mind about how to approach the next two days is not an injury. */
     /* §STANCE THE NEW NOTCH REACHES THE SQUADS. An AI OA seats each squad's own notch at the drop, and a squad's own
        notch is what its behaviour reads — so every window's reconsidering changed the OA's word and none of its squads:
@@ -24323,6 +24347,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     };
     stats._sitePay = sitePay;   /* the withdrawal weighs the open ground at what it pays */
+    /* (fixed) A SEAT'S CHOICES DRAW THEIR OWN DICE. An engine seat's ransom ask and its keeping of its word drew from the
+       Divide's one stream, so handing a seat to a person (who draws nothing there) shifted every roll after it. One draw
+       here for every Divide, whoever sits where; each choice is seeded off it by name. */
+    const CHOICE_SEED = Math.floor(rng() * 1e9);
+    stats._choiceRng = (key) => P.mulberry32(P.seedFrom(CHOICE_SEED + ':' + key));
     const pcOf = {};
     for (const pc of stats.perCorp) pcOf[pc.id] = pc;
 
@@ -25032,7 +25061,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             if (you) you._autoLeave = answer == null ? true : answer.autoLeave === true;
             if (answer && answer.stance && you) {
               const idx = NOTCHES.indexOf(answer.stance);
-              if (idx >= 0) { if (you.policy !== answer.stance) you.stanceChanges++; you.policy = answer.stance; for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
+              if (idx >= 0) { changeStance(you, answer.stance, stats); for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
             }
             if (answer && answer.squadStance && you) for (const k in answer.squadStance) { const q = you.squads[+k], n = answer.squadStance[k]; if (q && STANCE_DIALS[n]) q.stance = n; }
             /* §ORDERS a seat may send a squad somewhere: an order stands until it is carried out */
@@ -25055,6 +25084,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             for (const d of dealsIn) if (d && /^ransom_/.test(d.kind || '')) {
               const yes = d.kind === 'ransom_pay' || d.kind === 'ransom_sell';
               const k = (stats.ransomCases || []).find(x => !x.done && x.fighter === d.fighter);
+              /* (fixed) a person pays only from money it has, as an engine owner does: the treasury less the drop's kit and the
+                 ransoms already agreed (NEG.ransomWorthPaying's cash test) */
+              const cashOk = (o, price) => { const acct = (o.persist && o.persist.account) || o.account || null;
+                return !(acct && acct.treasury - ((o.kitSpend || 0) + (o.ransomPaid || 0) + ((o.persist && o.persist.rationSpend) || 0)) < price); };
+              if (k && k.owner === you.id && d.kind === 'ransom_pay' && !cashOk(you, k.price)) { stats._echo[seatId] = { kind: 'ransom_short', corp: d.corp, name: k.name, price: k.price }; continue; }
               if (k && k.owner === you.id && (d.kind === 'ransom_pay' || d.kind === 'ransom_decline')) k.ownerYes = yes;
               if (k && k.captor === you.id && (d.kind === 'ransom_sell' || d.kind === 'ransom_keep')) k.captorYes = yes;
               if (k && k.ownerYes && k.captorYes) {
@@ -25396,7 +25430,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
         const keep = isHumanOA(w.id)
           ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
-          : rng() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
+          : stats._choiceRng('word:' + w.id + ':' + pr.to)() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
@@ -27184,7 +27218,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* a mercenary: bid if short of the roster target and the year is covered — more, the thinner the roster */
   function aiMercBid(c, f) {
     const alive = beings(c.roster.filter(x => x.status !== 'dead' && x.status !== 'retired'));
-    const ask = askingPrice(f, null);
+    const ask = askingPrice(f, c);   /* (fixed) the house's own ask — its standing, its losses, the champion's premium — as a person's bid reads it */
     if (alive.length >= CONST.ROSTER_TARGET || signingBudget(c) < ask) return null;
     const hunger = (CONST.ROSTER_TARGET - alive.length) / CONST.ROSTER_TARGET;
     /* §FACILITIES a mercenary carrying a tier the house cannot issue is worth reaching for */
@@ -27261,7 +27295,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const want = marked ? lot.filter(f => !trailingHalf(lot, f) && (marked.indexOf(f.id) >= 0 || (lotHalf(lot, f) && marked.indexOf(lotHalf(lot, f).id) >= 0))) : [];
       let took = 0;
       for (const f of want) {
-        if (signingBudget(corp) < askingPrice(f, corp)) { tally.refused++; continue; }
+        const year = askingPrice(f, corp);
+        if (signingBudget(corp) < year) { tally.refused++; continue; }
+        f.contract = f.contract || {};
+        f.contract.salary = Math.round(year / LED.CONST.SALARY_MONTHS);   /* (fixed) the ask the sheet listed, as a person signing pays it */
         f.divides = 0; f.seasonsHere = 0; f.retired = false;
         f._fameAtSigning = f.fame || 0;
         corp.roster.push(f);
@@ -27337,7 +27374,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            seat a person holds.) */
         const human = isHuman(state, id);
         const h0 = lotHalf(lot, f);
-        const named = human ? (bids[id] && (bids[id][f.id] != null ? bids[id][f.id] : h0 && bids[id][h0.id])) : aiBastilleTerm(rng, c, f, sentence, budget, costOf);
+        const named = human ? (bids[id] && (bids[id][f.id] != null ? bids[id][f.id] : h0 && bids[id][h0.id])) : aiBastilleTerm(rngOf(state, 'bastille:' + state.season + ':' + id + ':' + f.id), c, f, sentence, budget, costOf);   /* (fixed) its own dice: a seat held by a person draws none, and shifted everyone else's */
         if (named == null) continue;
         const term = Math.round(named);
         if (term >= 1 && term <= sentence && budget >= costOf(term)) offers.push({ corp: c, term: term, human: human });
@@ -27639,11 +27676,20 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (wanted && wanted.trainTarget) focus.trainTarget = wanted.trainTarget;
     if (wanted && wanted.restTarget) focus.restTarget = wanted.restTarget;
-    if (wanted && wanted.intelTarget) focus.intelTarget = wanted.intelTarget;
-    /* courting's per-OA map is a rider like trainTarget — carried through so the player's
-       painted OAs reach the spend, and clamped to nothing exotic (it is read as data). */
+    /* (fixed) a painted map spends no more than the track it rides on was given: the engine trusted the page to keep
+       the scout and court maps inside the month's focus, and spent whatever they said */
+    const capMap = (m, total) => {
+      if (!m || typeof m !== 'object' || m.target) return m;
+      const out = {}; let left2 = Math.max(0, total || 0);
+      for (const k of Object.keys(m).sort((a, b) => (m[b] || 0) - (m[a] || 0))) {
+        const v = Math.max(0, Math.floor(m[k] || 0)), take = Math.min(v, left2);
+        if (take > 0) { out[k] = take; left2 -= take; }
+      }
+      return out;
+    };
+    if (wanted && wanted.intelTarget) focus.intelTarget = capMap(wanted.intelTarget, focus.scout);
     if (wanted && wanted.courtTarget && typeof wanted.courtTarget === 'object')
-      focus.courtTarget = wanted.courtTarget;
+      focus.courtTarget = capMap(wanted.courtTarget, focus.court);
     return focus;
   }
 
@@ -28222,7 +28268,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            Absent a map, a bare scout falls to the planet with all its focus. */
         const perPip = (focus._boost && focus._boost.scout)
           ? CONST.INTEL_PER_PIP_BOOST : CONST.INTEL_PER_PIP;
-        const asked = wanted ? wanted.intelTarget : focus.intelTarget;   /* §CENSUS the engine paints its own map */
+        const asked = focus.intelTarget || (wanted ? wanted.intelTarget : null);   /* §CENSUS the engine paints its own map (the validated one first) */
         const map = (asked && typeof asked === 'object' && !asked.target)
           ? asked : { planet: fpts };   /* legacy/bare scout → all on the planet */
         const intelNow = ensureIntel(corp, season || 0);
@@ -28527,6 +28573,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const c = state.corps[corpId];
     const f = c.roster.find(x => x.id === fighterId); if (!f) return { ok: false };
     c._renewalCalls = c._renewalCalls || {};
+    if (how === 'clear') { delete c._renewalCalls[fighterId]; return { ok: true }; }   /* the call taken back */
     /* §PAPER the ask he named is the ask he holds to: answered now, it is the figure paid at the year's end */
     c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: renewalSalary(f, state) };
     return { ok: true };
@@ -29144,6 +29191,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         c.rep.patience = Math.max(0, (c.rep.patience || 0) - 3);
       }
       if (c) delete c._board;
+      if (c) delete c._dividendPick;   /* (fixed) last year's Dividend card is not this year's */
     }
     opts = opts || {};
     const ids = Object.keys(corps);
@@ -29810,6 +29858,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function aiSergeant(corp, month, season) {
     const sg = STAFF.sergeantTalk(corp); if (!sg) return null;
     const abs = (season || 0) * 100 + month;
+    if (corp._sgtTalked && corp._sgtTalked.abs === abs) return null;   /* (fixed) one word a month, as a person's Sergeant has */
     const alive = aliveOf(corp).filter(f => !f.mirror_of);
     const loy = f => (f.loyalty == null ? 50 : f.loyalty), str = f => ((f.condition && f.condition.stress) || 0);
     const ok = f => { TALKS.temperOf(f); const how = TALKS.landing(f, sg.kind, abs, !!f.temperKnown); return how !== 'backfired' && how !== 'faded'; };
@@ -29826,6 +29875,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       for the rest when it can pay them, and a rival's best when it is bold and rich enough */
   function aiStaff(state, id, opts) {
     const c = state.corps[id], o = STAFF.office(c);
+    /* (fixed) a stranger's Craft is a range to an engine seat as to a person (staff.js §15): it reads the middle of the
+       same estimate the Backroom shows, never the number */
+    const seen = (st, p, width) => { const e = STAFF.estimate(st, p, width); return (e.lo + e.hi) / 2; };
     const d = (c.profile && c.profile.dials) || {};
     const dial = k => (typeof d[k] === 'number' ? d[k] : 50) / 100;
     /* the year's renewals: keep whoever is worth what they ask */
@@ -29841,10 +29893,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const keep = new Set(standing.slice(0, CONST.DROP_MAX).map(f => f.id));
       const vets = ownCandidates(c).filter(f => f.status === 'retired' || !keep.has(f.id) || (f.age || 0) >= 34)
         .map(f => ({ f, v: STAFF.veteranCraft(f)[p] })).filter(x => x.v >= 40).sort((a, b) => b.v - a.v);
-      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => b.craft[p] - a.craft[p])[0];
+      const specSeen = s => seen(s, p, STAFF.CONST.ESTIMATE_SPEC);
+      const spec = staffPoolOf(state).filter(s => s.specialty === p).sort((a, b) => specSeen(b) - specSeen(a))[0];
       const canSpec = spec && purse > 120000 * (0.5 + dial('thrift')) && spec.wage * 12 < purse * 0.2;
       const vet = vets.find(x => x.f.status === 'retired' || spare() > 2);
-      if (vet && (!canSpec || vet.v >= spec.craft[p] - 15)) appoint(state, id, vet.f.id, p);
+      if (vet && (!canSpec || vet.v >= specSeen(spec) - 15)) appoint(state, id, vet.f.id, p);
       else if (canSpec) hireSpecialist(state, id, spec.id, p);
     }
     /* one poach a year, for a bold house with money to spare */
@@ -29856,7 +29909,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           const st = STAFF.holder(state.corps[oid], p); if (!st) continue;
           if (o.posts[p]) continue;                 /* it poaches into an empty post, never over its own */
           if (!STAFF.willing(st, regardOf(c, oid))) continue;
-          if (!best || st.craft[p] > best.st.craft[p]) best = { oid, p, st };
+          const v = seen(st, p, STAFF.CONST.ESTIMATE_RIVAL);
+          if (!best || v > best.v) best = { oid, p, st, v };
         }
       }
       if (best && !o.posts[best.p] && STAFF.feeOf(best.st) < purse * 0.25) { c._poachedIn = state.season; poach(state, id, best.oid, best.p); }
@@ -30815,6 +30869,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         } }
       c._drop = drop;
       p.drop = drop;
+      p.kitMoney = kitMoneyFor(state, c);   /* (fixed) the kit money reads the purses of the drop the lock sent, as an engine seat's does */
     }
   }
   function prepareDivide(state) {
@@ -31486,7 +31541,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            /* the seam a manager sits in: open a year, look at a month, spend it, close the year */
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
-           foundingRoster, openLot, ensureLot, mending, mendingBeing, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
+           foundingRoster, openLot, ensureLot, dividendSquad, mending, mendingBeing, keepPairsWhole, beings, dividendEligible, planFor, kitMoneyFor, loyaltyOf, saveCareer, loadCareer, SAVE_VERSION,
            ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
@@ -32324,7 +32379,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-rsclear]'), function (b) {
-      b.onclick = function () { delete (G.corps[G.me]._renewalCalls || {})[b.getAttribute('data-rsclear')]; renderRoster(); };
+      b.onclick = function () { SEASON.answerRenewal(G.state, G.me, b.getAttribute('data-rsclear'), 'clear'); renderRoster(); };
     });
     Array.prototype.forEach.call(host.querySelectorAll('[data-sheet]'), function (el) {
       el.onclick = function () { inspect(el.getAttribute('data-sheet')); };
@@ -32510,7 +32565,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          actually wants to know: not how much, but whether it is enough. */
       /* (ruled) no reading of the field: nobody can see what the other OAs bid, and the guess was the page's own */
       var bid = f.yourBid || f.ask;
-      var lo = Math.round(f.ask * 0.8), hi = Math.round(f.ask * 1.6);
+      var lo = Math.round(f.ask * 0.8), hi = Math.max(Math.round(f.ask * 2), bid);   /* (fixed) a raised bid is not pulled back to the slider's end */
       foot = '<div class="bidrow"><input type="range" min="' + lo + '" max="' + hi + '" step="25" value="' + bid +
                '" data-bidslide="' + f.id + '"><span class="bidnum">' + crs(retOf(bid / 12)) + '/mo</span></div>' +
              '<div class="bidscale"><span>Low</span><span>Ask \u00b7 ' + crs(retOf(f.ask / 12)) + '/mo</span><span>High</span></div>' +
@@ -32530,7 +32585,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       terms = 'Sentence ' + sent + ' Divide' + (sent === 1 ? '' : 's') + ' to Earn Release' +
               ' \u00b7 Kier Wage ' + crs(retOf((f.wage || 0) / 12)) + '/mo \u00b7 Fee ' + crs(f.fee || 0);
       var opts = [];
-      for (var k = 0; k <= 2 && sent - k >= 1; k++) {
+      for (var k = 0; sent - k >= 1; k++) {   /* (fixed) every road down to one Divide, as an engine seat may offer */
         var term = sent - k;
         var label = k === 0 ? 'Honour the Sentence' : 'Release After ' + term +
                     ' \u00b7 ' + crs(k * (f.remission || 0));
@@ -35338,7 +35393,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* WHAT IS PUBLIC: the shape of the OA, as the fleet sees it */
     h += '<h3>The OA</h3>';
     var alive = oneEach((c.roster || []).filter(function (b) { return b.status !== 'dead' && b.status !== 'retired'; }));
-    h += row('On the Books', mine || (me._intel && me._intel.rivals && me._intel.rivals[id]) ? alive.length : '<span class="m">Not Yet Scouted</span>');
+    /* (fixed) a rival's count is what the dossier's roster row read, as banded as it was gathered — any dossier at all
+       printed the live count exactly */
+    var rosRow = !mine && me._intel && me._intel.rivals && me._intel.rivals[id] && me._intel.rivals[id].rows.roster;
+    h += row('On the Books', mine ? alive.length : rosRow && rosRow.snapshot ? esc(String(rosRow.snapshot)) : '<span class="m">Not Yet Scouted</span>');
     /* §FLEET (ruled: aligned) every seat is the same founded OA under its own banner: its archetype, tier and lean are
        the founder's for everybody, and a row saying so says nothing (and printed an averaged tier as "Tier 2.375") */
     if (!p.aligned) {
@@ -36887,7 +36945,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       '<button class="tiny' + (G.autoLeave ? ' on' : '') + '" id="wauto" style="margin-left:8px">The Books Call It \u00b7 ' + (G.autoLeave ? 'On' : 'Off') + '</button>' + '</div>';
     var pcW = Math.round((cur.credits || 0) * 100);
     h += '<div class="wterm wide' + (pcW ? ' on' : '') + '" data-wtile="credits"><span class="nm">Credits</span>' +
-         '<input type="range" min="0" max="100" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
+         '<input type="range" min="0" max="' + Math.round(DIVIDE.CONST.WITHDRAW_ASK_MAX * 100) + '" step="1" value="' + pcW + '" data-wask="credits"' + (offer ? ' disabled' : '') + '>' +
          '<span class="pct">' + pcW + '%</span>' +
          '<span class="is cr">' + crs(Math.round(pot * (cur.credits || 0))) + '&nbsp;to Your Books</span></div>';
     h += '<div class="wterms">';
@@ -37456,12 +37514,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return G._dvPick;
   }
   function dvDefaultPick() {
-    /* the fleet's rule, shown as the starting card so the manager sees what happens if
-       they touch nothing: the greenest fit bodies, blooded where nobody can die */
-    return dvEligible().slice().sort(function (a, b) {
-      return ((a.experience || {}).divides || 0) - ((b.experience || {}).divides || 0);
-    }).slice(0, 8).map(function (f) { return f.id; });
+    /* (fixed) the card the engine sends for a seat that sends none — the fleet's own rule, its taste included — so a
+       manager who touches nothing fields what an engine seat would (the page had its own "greenest eight") */
+    return SEASON.dividendSquad(G.corps[G.me]).map(function (f) { return f.id; });
   }
+
   var DV_MIN = 4, DV_MAX = 8;
   var DV_SORT = { key: 'stats', asc: false };
   function renderDividend() {
@@ -38861,6 +38918,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       ? '<span class="good">The Deal Was Struck</span> <span class="m">With ' + cSpan(e.corp) + '</span>'
       : e.kind === 'ransom_pay' || e.kind === 'ransom_sell'
       ? '<span class="good">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">' + (e.kind === 'ransom_pay' ? 'Ransomed' : 'Sold Back') + '</span>'
+      : e.kind === 'ransom_short'
+      ? '<span class="warn">' + esc(e.name || '') + ' \u00b7 ' + crs(e.price || 0) + '</span> <span class="m">Unaffordable</span>'
       : e.kind === 'ransom_decline' || e.kind === 'ransom_keep'
       ? '<span class="warn">' + esc(e.name || '') + '</span> <span class="m">' + (e.kind === 'ransom_decline' ? 'Left With Them' : 'Kept') + '</span>'
       : '<span class="warn">Refused</span> <span class="m">By ' + cSpan(e.corp) +
@@ -38990,7 +39049,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           timer: null, tw: null, tween: null, fx: null, el: 0,
           plan: normPlan(save.plan),
           div: null };
-    G.state.opts.human = G.me;
+    SEASON.setController(G.state, G.me, 'human');
     bindSeat();
     $('mlog').innerHTML = '<div class="m">A Loaded Year</div>';
     /* desk log panel removed */

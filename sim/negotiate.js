@@ -354,7 +354,7 @@
     const acct = (owner.persist && owner.persist.account) || owner.account || null;
     /* what it has already committed and not yet been charged: the drop's kit (posted at the settlement) and the ransoms
        it has agreed this Divide — the same cash cannot buy two men back */
-    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0);
+    const committed = (owner.kitSpend || 0) + (owner.ransomPaid || 0) + ((owner.persist && owner.persist.rationSpend) || 0);   /* and the food it landed with */
     return !(acct && acct.treasury - committed < price);
   }
   /* ------------------------------------------------------------------ */
