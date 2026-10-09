@@ -85,14 +85,12 @@
      is backwards. A viewport-sized picture plus a text block of its own height can add up to
      more than the screen, so the buttons and the marks fell off the bottom — and every fix that
      scaled the pictures better only changed WHERE it broke.
-
      The words come first now. The stage is exactly the height of the window and cannot scroll;
      the title, the buttons and the fleet marks take the height they need; and the portraits
      take WHAT IS LEFT — `flex:1` with `min-height:0`, which is the line that lets a flex child
      shrink below its content. Each oval is `height:100%` of that leftover with a fixed aspect,
      so its width follows its height, and a `max-width` in vw catches the other case: a tall
      narrow window, where height is generous and width is not.
-
      There is no breakpoint anywhere in this. Nothing is positioned into anything. The only way
      the bottom of this screen can be cut off is if a row that should be `flex:0 0 auto` is
      allowed to grow, and there is one such row. */
@@ -101,7 +99,6 @@
     height:100vh;max-height:100vh;height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
   .menustage::before{content:"";position:absolute;inset:0;
     background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
-
   /* THE ONE ROW THAT TAKES WHAT IS LEFT */
   .menuovals{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;
     gap:clamp(4px,1.2vw,30px);position:relative;z-index:1;max-width:100%}
@@ -117,14 +114,12 @@
     height:86%;aspect-ratio:2 / 3;max-width:26vw}
   .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);
     height:100%;aspect-ratio:2 / 3;max-width:30vw}
-
   /* AND THE ROWS THAT TAKE ONLY WHAT THEY NEED */
   .menustage .menucol{flex:0 0 auto;position:relative;z-index:2;align-items:center;
     min-width:0;width:min(300px,80vw);gap:clamp(4px,0.9vh,10px)}
   .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
     text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
     padding:clamp(5px,1.1vh,11px) 14px}
-  
   #errband{display:none;position:fixed;left:0;right:0;top:0;z-index:90;background:var(--red);color:var(--bg);font-size:11px;padding:6px 12px;text-align:center;cursor:pointer}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
@@ -281,7 +276,6 @@
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
   .foundgo:hover{background:var(--a);color:var(--bg)}
-  
   .berth{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line2);background:transparent;
     border-radius:12px;padding:2px 9px;font:inherit;font-size:10px;cursor:pointer}
   /* §PICKER the mark large, the name under it */
@@ -289,29 +283,6 @@
      page's with them, so the Backroom rendered as unspaced white text — "Price₡15,000Goes Off
      Clean88%" — which is what a card looks like with no stylesheet at all. Written back, and
      the price grid given room to breathe: label left, figure right, a line between them. */
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   /* (the constellation's rules stood here and were struck with it; their CONTINUATION lines
      were left behind by a line-by-line deletion and were read as a selector, which swallowed
      `.hpick` — the OA ring on Negotiation and the Deal — and threw the wheel off the screen.) */
@@ -332,28 +303,11 @@
   .hnode .hn-sub{font-size:9px;color:var(--faint)}
   .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
-  
-  
-  
-  
-  
   /* the Board: a standing is a position between two directions, so it reads as a bar with
      a centre, not a bare number */
   /* the card and the holds */
   .cardhead{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px;font-size:11.5px}
   .cardhead b{color:var(--ink)}
-  
-  
-  
-  
-   .cardrow .dw b{color:var(--ink)}
-  
-  
-  
-  
-  .sbar{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),#4a4f58 50%,var(--hit))}
-  .sbar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
-  
   .holdrow{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
   .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .holdrow.hh .hv{color:var(--faint)}
@@ -377,7 +331,6 @@
   .dpick .dn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dpick .ds{display:flex;gap:3px;align-items:center;margin-top:4px;min-height:16px;flex-wrap:wrap}
   .slotchip{display:inline-block;min-width:18px;padding:0 4px;border-radius:9px;font-size:9px;font-weight:700;color:var(--bg);text-align:center;line-height:16px}
-  .dall{display:flex;flex-wrap:wrap;gap:3px}
   .landhead .primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .ring{display:grid;grid-template-columns:1fr;gap:8px}
   .sector{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:9px 11px;cursor:pointer}
@@ -385,9 +338,6 @@
   .sector.yours{border-color:var(--a);background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a)}
   .sector .sn{font-size:12.5px;color:var(--ink);font-weight:bold;display:flex;justify-content:space-between}
   .sector .sn .you{color:var(--a);font-size:10px;font-weight:normal}
-  
-   .sector .sr .v{color:var(--ink)}
-  
   .landhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .landhead .m b{color:var(--ink)}
   /* THE BRIEF: the month at the head of the Desk — its shape, what is coming, what waits */
@@ -398,13 +348,8 @@
   .brief .shape .what{font-size:11.5px;color:var(--dim);margin-top:3px}
   .brief .coming{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
   .cd{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line2);border-radius:12px;font-size:10.5px;color:var(--dim);background:var(--a-deep)}
-  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)}  .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
+  .cd b{color:var(--ink)}   .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
   .agenda{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 12px}
-  
-  
-  
-  
-   .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
   .agenda .clear{color:var(--hit);font-size:11px;padding:6px 0}
   #endmonth.waiting{border-color:var(--cred);color:var(--cred)}
   /* THE EVENTS: cards with a situation and two or three options, each with its cost */
@@ -690,9 +635,6 @@
   .tglabel.rt-stress{color:var(--wall)} .tglabel.rt-stress.on{color:#c3a9ee}
   /* §STANCE the notch a manager sets at each OA: five even steps from keeping clear to
      bleeding them, cool through hot, wide enough that All In sits on one line with the rest */
-  
-  
-  
   #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
   #tstance .stancehd span:last-child{text-align:right}
   #tstance .stancerow{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -705,7 +647,6 @@
   .notch5 .nb.on{color:var(--bg);font-weight:700;border-color:transparent}
   .notch5 .nb.n1.on{background:#5b8fd0} .notch5 .nb.n2.on{background:#3ab8c9} .notch5 .nb.n3.on{background:#4fd6a0}
   .notch5 .nb.n4.on{background:#e0a848} .notch5 .nb.n5.on{background:#e05a5a}
-  
   @media (max-width:900px){ #tstance .stancerow,#tstance .stancehd{grid-template-columns:22px 1fr;grid-template-areas:"mk nm" "nc nc"} 
     #tstance .stancerow .mk{grid-area:mk} #tstance .stancerow .nm{grid-area:nm} #tstance .notch5{grid-area:nc;justify-self:start} }
   /* §DESK the squad card */
@@ -762,9 +703,6 @@
   @media (max-width:900px){ #dayhead .dstrip{grid-template-columns:1fr 1fr;gap:12px} #dayhead .dwall{grid-column:1/-1} }
   /* §WITHDRAWAL the tab: what you ask above, who would pay below */
   #withdraw{margin-bottom:12px}
-  
-  
-  
   .wbody{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px;background:var(--panel)}
   .whd{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:10px}
   .whd .t{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.04em}
@@ -825,26 +763,18 @@
   /* §ADVANCE ONE BUTTON, THE SAME ON EVERY PAGE. The Desk carried two — the plain one in the bar
      that every page shares, and a better one in the day strip — so the good look moves to the
      one that is everywhere, and the duplicate goes. It is sized to its words, not to the page. */
-  .advwin2,#advwin{padding:8px 22px;font-size:12px;letter-spacing:.06em;border:1px solid var(--a);
+  #advwin{padding:8px 22px;font-size:12px;letter-spacing:.06em;border:1px solid var(--a);
     color:var(--a);background:var(--panel2);border-radius:5px;width:auto;max-width:260px;flex:0 0 auto;cursor:pointer}
-  .advwin2:hover,#advwin:hover{background:var(--a);color:var(--bg)}
+  #advwin:hover{background:var(--a);color:var(--bg)}
   .modfx{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 10px}
   .standfill{position:relative;display:block;width:100%;height:8px;border-radius:4px;background:var(--line)}
   .standfill i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--b)}
   .standfill .ago{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
   .standfill .bt{position:absolute;top:-3px;width:1px;height:14px;background:var(--faint)}
-  .standfill .btw{position:absolute;top:12px;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
-  .standfill .btw.lo{transform:translateX(calc(-100% - 4px))}
-  .standfill .btw.hi{transform:translateX(4px)}
-  .sbar .bt{position:absolute;top:-2px;width:1px;height:12px;background:var(--faint)}
-  .sbar .btw{position:absolute;top:13px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);transform:translateX(-50%);white-space:nowrap}
-  .sbar .ago{position:absolute;top:-2px;width:1px;height:12px;background:var(--ink)}
   .holdfoot{font-size:10.5px;color:var(--dim);margin-top:8px}
   .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.85}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
-  
-  
   .rcp{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:11.5px}
   .rcp .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #16233a}
   .rcp .row:first-child{border-top:none}
@@ -854,19 +784,8 @@
   .dayhead{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 14px;margin-bottom:12px;background:var(--panel);border:1px solid var(--line2);border-radius:8px}
   .dayhead .dl{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}
   .dayhead .dl b{color:var(--ink);font-size:14px}
-  .dayhead .dl .wx{color:var(--ink)}
   .dayhead button.primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .dayhead button.primary:hover{background:var(--a);color:var(--bg)}
-  
-  
-  
-  
-  
-  
-  
-  
-  
-   .sqtbl .ordwrap .x:hover{color:var(--bad)}
   /* the stance: five notches, each with its three figures */
   .notch{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;margin-bottom:4px;cursor:pointer;background:var(--a-deep)}
   .notch:hover{border-color:var(--a)}
@@ -874,18 +793,7 @@
   .notch.declared{border-style:dashed;border-color:var(--cred)}
   .notch .dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--dim)}
   .notch .nn{font-size:11.5px;color:var(--ink)}
-  
-  
   /* the leanings: a five-point thumb on the scale, per OA */
-  
-  
-  
-  
-  
-  
-  
-  
-  
   /* the Table's composer and the ground's assay */
   .dealhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:11.5px;color:var(--dim)}
   .dealhead b{color:var(--ink)}
@@ -900,37 +808,12 @@
   .way.off{opacity:.4;cursor:default;background:transparent} .way.off:hover{border-color:var(--line2)}
   .way .wn{font-size:11.5px;color:var(--ink)} .way .wn .m{font-size:10px}
   /* a pool row: what it is on the first line, the numbers on the second */
-  .trow2{padding:7px 9px;border-bottom:1px solid #16233a}
-  .trow2:last-child{border-bottom:none}
-  .trow2.dead{opacity:.4}
-  .trow2 .r1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-  .trow2 .r1 .nm{color:var(--ink);font-size:11.5px}
-  .trow2 .r1 .tiny{padding:1px 9px}
-  .trow2 .r1 .tiny:disabled{opacity:.5;cursor:default;color:var(--hit);border-color:var(--hit)}
-  .trow2 .r2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:3px;font-size:10px;color:var(--dim)}
-  .trow2 .r2 .ctl{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-  .trow2 input.bid{width:56px;text-align:right;padding:1px 4px}
-  .tog{font-size:9.5px;padding:1px 7px;border:1px solid var(--line2);border-radius:10px;color:var(--dim);cursor:pointer;user-select:none}
-  .tog.on{border-color:var(--a);color:var(--a)}
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;min-height:20px}
   .chips:empty::before{content:'Nothing Added';color:var(--faint);font-size:10px}
-  .beamcol .word{font-size:13px;line-height:1.4;min-height:34px;text-align:center;color:var(--ink)}
-  .beamcol .word.good{color:var(--hit)} .beamcol .word.bad{color:var(--bad)}
   .facts{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:8px;font-size:10.5px;border-top:1px solid var(--line);padding-top:8px}
-  .facts .fk{color:var(--dim);white-space:nowrap} .facts .fv{color:var(--ink);text-align:right}
-  .facts .fv.good{color:var(--hit)} .facts .fv.bad{color:var(--bad)} .facts .fv.m{color:var(--faint)}
-  #tdeal .tcols{margin-top:0;grid-template-columns:1fr 280px 1fr} #tdeal .tpool{max-height:340px}
-  #tdeal .tcols .box{padding:10px 12px}
   .tkinds .pcbtn.on{border-color:var(--a);color:var(--a)}
-  
-  
-   .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
-  
-  
   .assay{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:baseline;font-size:11px}
   .assay .an{white-space:nowrap} .assay .ac{color:var(--dim);font-size:10px} .assay .ah{text-align:right;white-space:nowrap}
-  
-  
   .legend{width:100%;border-collapse:collapse;font-size:10.5px}
   .legend th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 6px}
   .legend td{padding:3px 6px;border-top:1px solid #16233a}
@@ -958,24 +841,13 @@
   @media (max-width:900px){ .audrow2{grid-template-columns:1fr auto;grid-template-areas:"an rd" "ab ab"} 
     .audrow2 .an{grid-area:an} .audrow2 .ab{grid-area:ab} .audrow2 .ard{grid-area:rd} .amem{padding-left:2px} }
   .rivals{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 11px}
-  
-  
-  
-  
-  .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
-    background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
   /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
-  .sbar.onesided{background:linear-gradient(90deg,#5a2f2a,#2c5a3a)}
-  .sbar i{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);
-    transform:translateX(-1px)}
-  .swrd{font-size:11px;min-width:120px;text-align:right}
   .audhead{margin-top:12px;margin-bottom:2px;font-size:10.5px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--dim)}
   .regs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-top:8px}
   .regbtn{text-align:left;padding:7px 9px;line-height:1.35}
   .regbtn .m{display:block;font-size:10.5px;margin-top:2px}
   /* the negotiation table: two pans and a beam */
-  .tcols{display:grid;grid-template-columns:1fr 210px 1fr;gap:10px;align-items:start;margin-top:10px}
   /* THE NEGOTIATION, in two facing columns: the terms each side can put up, the contract
      as it stands, the pressure bar across the top, the offer at the foot */
   .neghead{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:8px 0 6px}
@@ -1016,21 +888,11 @@
   .negact button.primary{padding:8px 26px;font-size:12.5px;border-color:var(--a);color:var(--a);background:var(--a-deep);font-weight:600}
   .negact button.primary:hover:not(:disabled){background:var(--a);color:var(--bg)}
   .negact button:disabled{opacity:.35;cursor:default}
-  .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
-  
-  
-  
-  
-  
-  
   .tscale{height:8px;border-radius:4px;position:relative;margin:8px 0;
     background:linear-gradient(90deg,#8f4a3e,#1c2c44 50%,#3f7a55)}
   .tscale i{position:absolute;top:-4px;width:2px;height:16px;background:var(--fg);transform:translateX(-1px)}
   /* §PICKER the ring sits in the middle of the page, not against its left edge */
   .oastrip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
-  
-  
-  
   /* a tab with something waiting on the manager says so */
   .tab.urgent{color:var(--warn);font-weight:600}
   .tab.urgent:after{content:' \2022'}
@@ -1046,7 +908,6 @@
   .bbtn{border-color:var(--cred);color:var(--cred)}
   .bbtn.on{background:var(--cred);border-color:var(--cred);color:var(--bg)}
   .fbtn.on{background:var(--a);color:#0a0e16;border-color:var(--a)}
-
   /* ---- the Training grid: paint focus onto stats, four tiers, star-rating pips ---- */
   .tgwrap{border:1px solid var(--line2);border-radius:8px;padding:10px;margin-top:10px;background:var(--panel)}
   /* THE TIER COLOURS, one standard wherever a tier is named: 1 grey, 2 green, 3 blue,
@@ -1074,16 +935,10 @@
      with one rack open put everything in the first column and left the second empty. A rack's
      rows are a two-column GRID: each row is a cell, the head is its own full-width line, and
      the shelf is half as tall as it was. */
-  
-  
   /* §MARKET THE COLUMNS ARE THE RACKS. Two columns held ONE rack's rows split down the
      middle — carbines above, carbines beside carbines — where what the width was for is two
      racks side by side: carbines here, close quarters there, each whole. */
-  
-  
-  @media (max-width:900px){ #mktledger .mracks{grid-template-columns:1fr} }
-  
-  
+
   /* §STATS the stat's hover card: a few words, in a small panel above the cell */
   .talrow .st.shootline{grid-column:1/-1;display:block;text-align:center;padding:2px 0 5px;margin-bottom:2px;
     border-bottom:1px solid var(--line,#1c2c44);color:var(--dim,#7d95b4)}
@@ -1223,7 +1078,6 @@
   .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a);border-color:var(--a)}
   .tghead .tgchev,.tghead .tgchev2{border-color:var(--line2);color:var(--a)}
   .tghead .tgchev2{margin-left:auto}
-  
   .tgcount{color:var(--gold);font-size:10.5px}
   .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
   .tgpanel table{border-collapse:collapse}
@@ -1233,7 +1087,6 @@
   #dvpick .sqbody{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:start}
   #dvcard .ev.you{box-shadow:inset 3px 0 0 var(--a);padding-left:6px}
   .tgchev:hover{color:var(--a)}
-  
   /* §UI (ruled: centred) ONE SECTION TITLE, on every page: the name centred in capitals with a rule running out either side,
      and the word that folds it at the right edge — the Desk's sections and the Market's type titles alike */
   .tghead,.mwall-title{display:flex;align-items:center;justify-content:center;gap:14px;position:relative;
@@ -1263,7 +1116,6 @@
   .pip i{display:inline-block;width:12px;height:16px;border-radius:2px;background:var(--a-deep);border:1px solid var(--line2);transition:background .08s}
   .pip i.f{background:var(--a);border-color:var(--a)}
   .pip:hover i{border-color:var(--a)}
-  
   .itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
   .itbl tr{border-bottom:1px solid #131f30}
   .itbl tr.lit{background:var(--a-deep)}
@@ -1272,7 +1124,6 @@
   .itbl .iname{white-space:nowrap;text-align:center}
   .itbl .iname .tgname{display:inline-block;flex:none}
   .itbl .iname span.on{color:var(--a)}
-  
   .itbl .ipips{width:70px}
   .itbl .istat{text-align:right;font-size:10.5px;white-space:nowrap}
   .itbl .idossrow td{padding:6px 10px 10px 22px;background:#0b111c}
@@ -1352,7 +1203,6 @@
   .wopt.on{border-color:var(--a);background:var(--a-deep)}
   .wopt.bad .oc{color:var(--red)}
   .wprom{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-  .wdone{padding:8px 4px;font-size:11.5px}
   .chatbar{display:flex;gap:6px;align-items:center;margin:8px 0 2px}
   .chatbar .m{font-size:10px}
   .ctbl tr{border-bottom:1px solid #131f30}
@@ -1361,19 +1211,14 @@
   .ctbl td{padding:6px 6px;vertical-align:top}
   .ctbl .cname{color:var(--b);font-weight:bold;white-space:nowrap}
   .ctbl .cflavor{display:inline-block;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
-  
-  
   .ctbl .cflavor.outcome{color:var(--hit);border:1px solid var(--hit)}
   .ctbl .ccond{color:var(--dim);font-size:10px;margin-top:3px}
   .ctbl .cpay{color:var(--dim);font-size:9.5px;margin-top:3px}
   .ctbl .cpay b{color:var(--ink)} .ctbl .cpay .kit{color:var(--mag)}
   .ctbl .cpips{width:70px;white-space:nowrap;text-align:right}
   .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
-   .ctbl .ccost b{color:var(--ink)} 
   .ctbl .cregard{font-size:10px;margin-top:2px}
   /* §SPONSORS the bar the board judges by, and each supplier's distance from it */
-  
-  
   .ctbl .cgap{font-size:10.5px;color:var(--dim)}
   .ctbl .cgap b{color:var(--ink);font-size:13px}
   .ctbl .cgap b.good{color:var(--hit)}
@@ -1381,9 +1226,7 @@
   .ctbl .csigned{color:var(--warn);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;margin-left:6px}
   .ctbl .csigned.you{color:var(--hit)}
   .ctbl .cstatus{font-size:10px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line2)}
-  
   .ctbl .cstatus.met{color:var(--hit);border-color:var(--hit)}
-  
   .ctbl .cstatus.pending{color:var(--dim);border-color:var(--line2)}
   .dtbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
   .dtbl tr{border-bottom:1px solid #131f30}
@@ -1475,7 +1318,6 @@
   .ystop.past{opacity:.38}
   .ystop .yn{font-size:9px;color:var(--faint);letter-spacing:.06em} .ystop.now .yn{color:var(--a)}
   .ystop .yt{font-size:11.5px;color:var(--k);line-height:1.3} .ystop.now .yt{color:var(--a)}
-  
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
@@ -1528,12 +1370,9 @@
   .unit.act{background:#111c2e;margin:0 -6px;padding:3px 6px;border-radius:2px}
   .log{max-height:180px;overflow:auto}
   .log div{padding:2px 0;border-bottom:1px solid #16233a}
-  
-  
   .tiny{padding:1px 5px;font-size:10px;margin-left:3px}
   .poolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
            padding:2px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-
   /* ---- THE SQUADS BOARD: select, then place. The bench is a column of cards on the left;
      six squads stand right, each a list of rows with ONE open row waiting until it is
      full. A selected fighter turns every other squad into a target. No dragging. ---- */
@@ -1597,7 +1436,6 @@
   .fcard.hurt .nm::after,.port-card.hurt .pname::after{content:' \2022 Wounded';color:var(--warn);font-size:10px;font-weight:normal}
   .port-card .pface{position:relative;aspect-ratio:2/3;border-radius:4px;background:var(--a-deep);
     display:flex;align-items:center;justify-content:center;margin-bottom:5px;min-height:96px}
-  .port-card .psil{width:64%;height:auto;display:block}
   .port-card .plead{position:absolute;top:2px;left:3px;font-size:9px;color:var(--cred)}
   .port-card .prate{position:absolute;bottom:3px;right:5px;font-size:12px;font-weight:700;color:var(--ink)}
   .port-card .prate.good{color:var(--hit)} .port-card .prate.warn{color:var(--cred)} .port-card .prate.bad{color:var(--red)}
@@ -1647,7 +1485,6 @@
   .confirm{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:var(--ink);margin-right:6px}
   .confirm .m{color:var(--dim);font-size:11px}
   button.danger:disabled{opacity:.35;cursor:default} button.danger:disabled:hover{background:transparent;color:var(--red)}
-
   /* ---- THE FIGHTER SHEET, as a drawer over the right edge: the Roster's blocks, then the
      loadout as four rows (tier badge, item, one word), the picker beneath, and the moves. ---- */
   .drawer{position:fixed;top:0;right:0;bottom:0;width:340px;background:var(--bg);border-left:1px solid var(--line2);padding:14px;
@@ -1710,7 +1547,6 @@
   .mv:hover{background:var(--sq);color:var(--bg)}
   .mv:disabled{opacity:.3;cursor:default} .mv:disabled:hover{background:transparent;color:var(--sq)}
   .mv.sqA{--sq:var(--sqA)} .mv.sqB{--sq:var(--sqB)} .mv.sqC{--sq:var(--sqC)} .mv.sqD{--sq:var(--sqD)} .mv.sqE{--sq:var(--sqE)} .mv.sqF{--sq:var(--sqF)}
-
   /* ---- the unified Roster: a card grid left, a two-panel rail right ---- */
   .rostcols{display:flex;gap:14px;align-items:flex-start}
   .rostbooks{flex:1;min-width:0}
@@ -1783,9 +1619,6 @@
   .acq .bidrow input[type=range]{width:100%;accent-color:var(--o)}
   .acq .bidnum{font-size:14px;font-weight:700;color:var(--o);font-variant-numeric:tabular-nums;min-width:82px;text-align:right}
   .acq .bidscale{display:flex;justify-content:space-between;font-size:9px;color:var(--faint)}
-  .acq .bidread{font-size:10px;margin-top:6px;color:var(--dim)}
-  .acq .bidread .bar{height:5px;border-radius:3px;background:#16233a;overflow:hidden;margin-top:3px}
-  .acq .bidread .bar i{display:block;height:100%;background:var(--o)}
   .acq .bidbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:9px}
   .acq .bidbtns .pcbtn{padding:6px 4px;font-size:11px}
   .sortbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -1879,7 +1712,6 @@
   .pcbtn:hover{border-color:var(--a);color:var(--a)}
   .pcbtn.on{border-color:var(--hit);color:var(--hit)}
   .pcbtn.x{padding:3px 7px;color:var(--dim);margin-left:3px}
-  
   /* a prospect you have marked wears it: the card takes the signing colour and says so, and
      the button keeps its place and its word */
   .acq .pc.taken{background:#12332b;border-color:var(--hit);position:relative}
@@ -1909,7 +1741,6 @@
     #setup .foundgo{position:sticky;bottom:8px}
     .page{padding:10px 12px}
     .grid2,.grid3,.negcols,.landcols,.ring{grid-template-columns:1fr}
-    .tcols,#tdeal .tcols{grid-template-columns:1fr}
     .sqcols,.rostcols{flex-direction:column}
     .benchcol{width:100%}
     .bcards{max-height:none}
@@ -2763,23 +2594,9 @@
      own keys — a screen that prints `squad_at_most_4` is a screen written for its author */
   var WHEN_WORDS = {
     squad_at_most_4: 'In a Squad of Four or Fewer',
-    squad_at_most_6: 'In a Squad of Six or Fewer',
-    squad_at_least_7: 'In a Squad of Seven or More',
     is_captain: 'While Leading a Squad',
-    not_captain: 'While Not Leading',
-    first_divide: 'In a First Engagement',
-    alongside_conscript: 'Beside a Conscript',
-    alone_of_their_race: 'As the Only One of Their People',
-    veteran: 'After Two Divides',
-    green: 'Before Their First Divide',
-    young: 'While Young',
-    old_hand: 'Thirty-Four and Older',
     hurt: 'While Carrying a Wound',
-    settled: 'While Settled',
-    rattled: 'While Rattled',
-    with_their_captain: 'With Their Captain on the Ground',
-    is_conscript: 'As a Conscript',
-    is_mercenary: 'As a Mercenary'
+    with_their_captain: 'With Their Captain on the Ground'
   };
   function WHEN_TEXT(w) { return WHEN_WORDS[w] || capWords(String(w).replace(/_/g, ' ')); }
   var HOOK_TEXT = {
@@ -2794,69 +2611,19 @@
     cede_loyalty_morale_penalty_major: '\u22125 Morale on a Sold Claim',
     death_or_glory_affinity: '+3 Morale Under Death or Glory, \u22122 Under a Cautious Policy',
     resists_medical_evac: 'Refuses Treatment When Down',
-    negotiation_bluff_detection: 'Hears a Bluff',
     friction_with_keshu_rival_race: '\u22123 Morale Beside the Other Side of the Keshu War',
-    ankoth_sympathy_chemistry: '+2 Morale Beside an Ankoth',
     evasion_surge: 'One More Step When Shot At',
     squad_coordination_bonus: 'The Whole Squad Aims Better',
     loyalty_cap_reduced: 'Never Fully Loyal to an OA',
     succession_candidate_priority: 'First in Line for a Captaincy',
     injury_severity_risk_up: 'Wounds Run a Grade Worse',
-    early_divide_penalty: 'Poor in a First Engagement',
-    late_divide_bonus: 'Better Once Blooded',
-    captain_fidelity_up: 'Follows a Captain Further',
-    field_treatment_bonus: 'Treats Wounds Better',
-    seen_worse_composure: 'Steadier for Having Seen Worse',
-    composure_up_as_intensity_rises: 'Steadier the Worse It Gets',
-    volunteers_for_risk: 'Volunteers for the Bad Jobs',
     unlikely_friendship_arc_seed: 'Draws Old Enemies',
-    accuracy_bonus: 'Better Aim',
-    evac_stabilize_bonus: 'Steadier Hands on the Wounded',
-    development_rate_up: 'Trains 30% Faster',
-    young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
-    unspotted_movement_bonus: 'Moves Further Unseen',
-    reposition_speed_up: 'One More Step a Turn',
-    rout_immune: 'Never Routs',
-    morale_swings_damped: 'Loses 40% Less Composure',
     morale_swings_amplified: 'Loses 45% More Composure',
-    wounded_composure_bonus: 'Steadier When Hurt',
-    suppression_output_up: 'Suppresses a Wider Field',
-    suppression_output_down_slight: 'Suppresses a Narrower Field',
-    night_ambush_warning_bonus: 'Warns the Squad at Night',
-    ambush_avoidance_slight: 'Harder to Ambush',
-    navigation_bonus: 'Does Not Get Lost',
-    hazard_forecast_bonus: 'Reads the Weather Coming',
-    forage_bonus: 'Finds More on the Ground',
     injury_exposure_up: 'Easier to Hurt',
-    death_morale_immune: 'Unshaken by a Fallen Mate',
-    gore_morale_immune: 'Unshaken by the Sight of It',
     cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
-    presence_aura: 'Steadies Anyone Beside Them',
-    overwatch_bonus: 'Better on Overwatch',
-    tether_range_extended: 'The Pair Works 3 Tiles Further Apart',
-    salary_anchoring_up: 'Asks 35% More at the Table',
-    salary_demand_pressure: 'Asks 20% More at the Table',
-    poach_resistant: 'Costs 60% More to Tempt Away',
-    aggression_event_seed: 'Starts Things',
-    renegotiation_demand_seed: 'Reopens the Paper',
-    syndicate_contact_seed: 'Draws Creditors',
-    rivalry_event_seed: 'Draws Rivals',
-    squad_envy_event_seed: 'Draws Envy',
-    pride_event_seed: 'Draws Slights',
-    omen_event_seed: 'Draws Omens',
-    ritual_event_seed: 'Draws Omens',
-    squad_superstition_event_seed: 'Draws Omens',
-    collective_demand_event_seed: 'Draws the Board\u2019s Notice',
     abolitionist_event_seed: 'Draws the Board\u2019s Notice',
     cradle_camp_event_seed: 'Draws the Board\u2019s Notice',
-    desperation_event_seed_final_divide: 'Draws a Reckoning',
-    scandal_seed_step9: 'Draws a Reckoning',
-    status_coupling_amplified: 'Reopens the Paper',
-    short_band_composure_bonus: 'Steadier Up Close',
-    early_disengage_bias: 'Calls It Sooner',
-    follows_bad_orders: 'Holds a Bad Order Too Long',
-    sponsor_income_up: 'The Gate Takes 12% More',
-    rare_quote_fame_spike: 'The Gate Takes 12% More'
+    scandal_seed_step9: 'Draws a Reckoning'
   };
   function quirkText(id) {
     var tr = ROSTER.traitById && ROSTER.traitById[id];
@@ -7920,12 +7687,12 @@
     var bits = [];
     if (e.gear_accuracy) bits.push('Aim <b>' + sg(e.gear_accuracy) + '</b>');
     if (e.aim_holding || e.aim_moving) bits.push('Aim Holding <b>' + sg(e.aim_holding || 0) + '</b> \u00b7 Moving <b>' + sg(e.aim_moving || 0) + '</b>');
-    if (e.overwatch_mult) bits.push('Aim on Overwatch <b>+' + (ITEMS.CONST.MOD_OVERWATCH_AIM || 20) + '</b>');
+    if (e.overwatch_aim) bits.push('Aim on Overwatch <b>+' + e.overwatch_aim + '</b>');
     if (e.band_mismatch_mult) bits.push('Wrong-Range Penalty <b>\u00d7' + e.band_mismatch_mult + '</b>');
     if (e.ammo) bits.push('Rounds <b>' + sg(e.ammo) + '</b>');
     if (e.mags) bits.push('Magazines <b>' + sg(e.mags) + '</b>');   /* §ROUNDS one more of the gun's own magazines */
     if (e.charge) bits.push('Charge <b>' + sg(e.charge) + '</b>');
-    if (e.suppress_drain) bits.push('Suppressing Fire <b>\u22121 Round</b>');
+    if (e.suppress_rounds) bits.push('Suppressing Fire <b>\u2212' + e.suppress_rounds + (e.suppress_rounds === 1 ? ' Round' : ' Rounds') + '</b>');
     if (e.power) bits.push('Power <b>' + sg(e.power) + '</b>');   /* the round's harm follows its gun's power */
     if (e.bulk) bits.push('Bulk <b>' + sg(e.bulk) + '</b>');
     if (e.grants) bits.push('Grants <b>' + ((TAG_WORDS[e.grants] || titleWords(e.grants))) + '</b>');

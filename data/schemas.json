@@ -474,35 +474,8 @@
         "type": "string"
        },
        "description": "Quirks, from the PROCUREMENT.md 4.2 vocabulary. Every tag here must exist in items.json's quirks block and be read by the resolver; arx.cjs regress guards both directions."
-      },
-      "heat": {
-       "type": "integer",
-       "description": "Energy weapons: heat per shot."
-      },
-      "heat_cap": {
-       "type": "integer",
-       "description": "Energy weapons: heat at which the weapon vents."
-      },
-      "charge": {
-       "type": "integer",
-       "description": "Energy weapons: shots held by the cell before a night's recharge."
       }
      }
-    },
-    "legality": {
-     "type": "string",
-     "enum": [
-      "legal",
-      "restricted",
-      "contraband"
-     ],
-     "default": "legal",
-     "description": "Restricted items need Aleas paperwork (bribable). Contraband enters via smuggling and risks scandal if caught on broadcast."
-    },
-    "uses": {
-     "type": "integer",
-     "minimum": 1,
-     "description": "Consumables only (medical, supply). Omit for durable gear."
     },
     "slot": {
      "type": "string",
@@ -576,7 +549,6 @@
       ]
      },
      "price_model": "formula",
-     "legality": "legal",
      "identity": "Doesn't shoot around cover. Shoots the cover."
     },
     {
@@ -599,7 +571,6 @@
       "charge": 28
      },
      "price_model": "formula",
-     "legality": "legal",
      "identity": "A line drawn through the argument."
     }
    ]

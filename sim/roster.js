@@ -303,7 +303,7 @@
   /** Race selection: pool base weights × (nattie only) corp ship demographics. */
   Generator.prototype.pickRace = function (rng, pool, corpId, raceFilter) {
     if (raceFilter) return this.raceById[raceFilter];
-    const corp = pool === "nattie" && corpId ? this.corpById[corpId] : null;
+    const corp = this.rec.pools[pool] && this.rec.pools[pool].corp_weighted && corpId ? this.corpById[corpId] : null;   /* the pool data says whose ship it draws from */
     const entries = [];
     for (const r of this.races) {
       let w = r.pool_weights[pool === "mercenary" ? "merc" : pool] || 0;
@@ -576,7 +576,7 @@
     // Name (Et- honorific for etu clergy/zealots — ratified).
     let named = opts.named || NG.generateName(rng, race, opts.taken);
     let displayName = named.name;
-    if (race.id === "etu" && (traitIds.includes("et_y_bellum_zealot") || traitIds.includes("war_priest"))) {
+    if (race.id === "etu" && traitIds.includes("et_y_bellum_zealot")) {
       displayName = NG.applyEtHonorific(displayName, race.naming);
     }
 
@@ -886,26 +886,8 @@
     /* ---- tier 2: trait-specific ---- */
     { key: "t_bleeder", tier: 2, register: "dry", when: c => c.has("bleeder"),
       text: c => `Medical flagged the file: wounds run a grade worse on ${c.name}. Budget for the evac retainer.` },
-    { key: "t_gallows", tier: 2, register: "hype", when: c => c.has("gallows_humor"),
-      text: c => `Cracked a joke during their own tryout shelling, we're told. Ten seconds late. Landed anyway.` },
     { key: "t_born_captain", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads a battlefield the way an auditor reads a ledger. Captain material — the market will figure it out eventually.` },
-    { key: "t_kier", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
-      text: c => `Kier alumni. The Divide's worst day is the Bastille's Tuesday, and ${c.name} did years of Tuesdays.` },
-    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
-      text: c => `Keeps the clause tally scratched inside the armor, the guards say. That's not a habit. That's fuel.` },
-    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_blooded"),
-      text: c => `Burns HOT! Point the burn at the other banners and everyone goes home happy. Point it wrong and — well. Ratings.` },
-    { key: "t_superstitious", tier: 2, register: "hype", when: c => c.has("superstitious"),
-      text: c => `Won't drop without the dawn ritual. Three camps ago, the ritual squad lived. Make of that what the crowd will!` },
-    { key: "t_odds_watcher", tier: 2, register: "dry", when: c => c.has("odds_watcher"),
-      text: c => `Checks the board before breakfast. Undervalue ${c.name} at your own expense — the board is listening.` },
-    { key: "t_mimic", tier: 2, register: "hype", when: c => c.has("mimic_call"),
-      text: c => `Fifty meters of somebody else's voice, thrown into the wrong ravine. Comms crews hate it. The crowd emphatically does not.` },
-    { key: "t_battle_joy", tier: 2, register: "hype", when: c => c.has("battle_joy"),
-      text: c => `The grin gets wider as the fight gets worse. The intensity graphs and that smile track one-to-one.` },
-    { key: "t_war_priest", tier: 2, register: "dry", when: c => c.has("war_priest"),
-      text: c => `Every bandage a blessing. Squads with an Et- on the roster evac calmer and grieve shorter. The numbers back the faith.` },
     { key: "t_zealot", tier: 2, register: "dry", when: c => c.has("et_y_bellum_zealot"),
       text: c => `The Et- on the name is fair warning: the evac team should expect a theological argument.` },
     { key: "t_devout", tier: 2, register: "dry", when: c => c.has("et_y_bellum_devout") && !c.has("et_y_bellum_zealot"),
@@ -919,46 +901,10 @@
       text: c => `Serves the fleet. Hasn't forgiven it. The loyalty line prices that in — the camp chemistry is your problem.` },
     { key: "t_keshu", tier: 2, register: "dry", when: c => c.has("keshu_grudge"),
       text: c => `Some households never signed the Keshu peace. Check your roster for the other half of that war before you sign this one.` },
-    { key: "t_few_words", tier: 2, register: "hype", when: c => c.has("few_words"),
-      text: c => `Has spoken on broadcast twice in a career. Both clips are legendary. We live in hope of a third.` },
-    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
-      text: c => `Fights like the cameras are family. The cameras, for the record, agree.` },
-    { key: "t_darling", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
-      text: c => `The drones find ${c.name} on their own. Nobody programs that. The crowd just knows.` },
     { key: "t_climber", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads every roster posting twice: once for the squad, once for their own name's position in it.` },
-    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("company_man"),
-      text: c => `Signed for a banner, not a mood. Change doctrine mid-Divide and you'll meet granite with a contract.` },
     { key: "t_cull", tier: 2, register: "dry", when: c => c.has("hard_to_kill"),
       text: c => `Survived the training years. Panic was culled out of ${c.name} before adulthood — the pride kept receipts.` },
-    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("quick_off_the_mark"),
-      text: c => `Every reposition a step, every shot a beat — the old dueling forms, live on your feed!` },
-    { key: "t_mentor", tier: 2, register: "dry", when: c => c.has("mentor"),
-      text: c => `Rookies orbit ${c.name}. The nerves settle. The habits stick. Cheap at twice the salary.` },
-    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
-      text: c => `A deal signed is a deal kept — even the ones the manager comes to regret. Negotiators, take note.` },
-    { key: "t_clause", tier: 2, register: "dry", when: c => c.has("clause_reader"),
-      text: c => `Knows the contract, your precedent, and the fleet's going rate to the credit. Renewal season will be an education.` },
-    { key: "t_union", tier: 2, register: "dry", when: c => c.has("union_tongue"),
-      text: c => `Knows every grievance in camp and how to say it out loud. A morale engine — pointed wherever ${c.name} decides.` },
-    { key: "t_villain", tier: 2, register: "hype", when: c => c.has("villain_edit"),
-      text: c => `The crowd LOVES to hate this one — and tunes in, every time, to do it properly!` },
-    { key: "t_thrill", tier: 2, register: "hype", when: c => c.has("thrill_seeker"),
-      text: c => `First hand up for the bad jobs! The medics keep the file open, and the crowd keeps the volume up.` },
-    { key: "t_lucky", tier: 2, register: "hype", when: c => c.has("aleas_favorite"),
-      text: c => `Closures miss them. Drops land beside them. Nobody can prove a thing, and the syndicates have STOPPED trying.` },
-    { key: "t_omen", tier: 2, register: "dry", when: c => c.has("bad_omen"),
-      text: c => `When things go wrong, camps remember who they went wrong near. Superstition isn't fair. It is, however, contagious.` },
-    { key: "t_cook", tier: 2, register: "dry", when: c => c.has("camp_cook"),
-      text: c => `Turns ration paste into something a squad queues for. Morale-per-credit, there's no better signing on this sheet.` },
-    { key: "t_quotable", tier: 2, register: "hype", when: c => c.has("quotable"),
-      text: c => `Everything ${c.name} says fits a chyron. We checked. It's uncanny. It occasionally gets people fined.` },
-    { key: "t_loyal_fault", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
-      text: c => `Will follow the banner anywhere. Including, the tape suggests, the places it should not have gone.` },
-    { key: "t_slow_start", tier: 2, register: "dry", when: c => c.has("slow_starter"),
-      text: c => `A terrible first week, every recorded Divide. Then something clicks shut. Plan the schedule accordingly.` },
-    { key: "t_homesick", tier: 2, register: "dry", when: c => c.has("homesick"),
-      text: c => `Carries the ship in their chest. Long campaigns wear a hole in it — watch the morale line after week three.` },
 
     /* ---- tier 1: race color ---- */
     { key: "r_human", tier: 1, register: "dry", when: c => c.f.race === "human",

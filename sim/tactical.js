@@ -36,7 +36,6 @@
        them cost nothing at all. Inside the tether they are steadier than either would be alone;
        outside it, both of them come apart — the canon's own numbers, per exchange. */
     TETHER_TILES: 6,                 // [C] how far apart the halves may work
-    TETHER_DRILLED: 3,               // [C] §QUIRKS what drilling to work apart is worth to a pair
     /* (ruled) separation costs both halves the canon's MONWA_TETHER_COMP (combat.js, −25) every turn: a turn is an exchange */
     TETHER_CLOSE_COMP: 3,            // [C] what being within it is worth, a turn
     TETHER_STEADY_CAP: 55,           // [C] and the composure past which it steadies nobody:
@@ -44,11 +43,7 @@
                                      //     broke, and neither did the fight
     TETHER_PULL: 0.075,              // [C] per tile beyond the tether, when choosing a tile
     SVALBARD_TILES: 2,               // [C] §RACES what four legs are worth on a move
-    EARLY_OUT: 0.06,                 // [C] §QUIRKS how much sooner a squad with a bolter calls it
-    OBEDIENT: 0.04,                  // [C] and how much longer one that does as it is told holds
     AURA_TILES: 4,                   // [C] §QUIRKS how near a steadying presence must stand
-    AURA_COMP: 2,                    // [C] and what it is worth a turn, capped by the band below
-    AURA_CAP: 62,                    // [C] the composure past which nobody needs steadying
     /* §RACES THE DANCE. A Kellis treats the moment of battle as a dance — mantis-featured,
        precise, drilled in duelling arts that are never fielded but are exactly what the drill
        was for. They fight in MEASURE: a Kellis who holds their ground rather than crossing it
@@ -100,15 +95,6 @@
     SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
     NOISE_TILES_PER_POINT: 8,        // [C] how far a shot carries, a point of noise
     SUPPRESSED_MOVE_COST: 0.32,      // [C] what leaving cover is worth while under fire
-    /* §5.1 — THE TRAIT VOCABULARY OF SUPPRESSION, wired at Step 8.10. Three hooks named a
-       system that had existed since Step 5 and never read them, so Trigger Itch, Ammo Miser and
-       Smothering Fire were flavour text on a stat block. These are the widths of their effect,
-       not fitted to anything: nobody has played this, and what is being built is the
-       relationship. A shooter's output scales the RADIUS its fire catches people in; a
-       defender's resistance is a flat chance to keep their head up and not go to ground. */
-    SUPPRESS_OUT_UP: 1,              // [H] extra tiles of arc for a shooter who hoses
-    SUPPRESS_OUT_DOWN: 1,            // [H] tiles lost by a shooter counting every round
-    SUPPRESS_RESIST_P: 0.45,         // [H] chance Smothering Fire's target refuses the pin
     /* Cover is SCARCE and structural: discrete blocks and walls you can name, not a haze
        of noise across every tile. Something to be fought for. */
     /* Cover is an OBJECT, not a floor you stand on: a crate, a wall, a burnt-out gantry.
@@ -286,7 +272,6 @@
     CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
     CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
     SEARCH_DRIFT: 0.55,              // [C] §SEARCH how fast the sweep's aim point walks the flank
-    SOFT_BOOTS_TILES: 1.5,           // [H] extra ground covered while nobody has eyes on you
     /* Two ways a side stops fighting, and they should not look the same.
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
        falls back by bounds — half moving while the other half fires to cover them.
@@ -612,7 +597,7 @@
     const fc = (u.stats && u.stats.fieldcraft) || 100;
     const t = Math.max(0, Math.min(1, (fc - CONST.SIGHT_STAT_LOW) / (CONST.SIGHT_STAT_HIGH - CONST.SIGHT_STAT_LOW)));
     /* §LIGHT in the planet's dark a fighter sees a good deal less far — unless at home in the dark */
-    const nightCut = _night && !(u.hooks && u.hooks.has('night_encounter_bonus')) ? CONST.NIGHT_SIGHT : 1;
+    const nightCut = _night ? CONST.NIGHT_SIGHT : 1;
     /* §SIGHT (ruled) A LONG GUN'S SCOPE: its bearer sees out to the gun's reach. Eyes alone ran seven to fifteen tiles and
        the long band starts past fourteen, so a marksman almost never had a target at the range his rifle was made for */
     const eye = CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR);
@@ -1057,12 +1042,6 @@
     if (C.hasQuirk(u, 'mob_up')) mp += CONST.MOB_TILES;
     if (at.indexOf('mob_down') >= 0) mp -= CONST.MOB_TILES;
     if (at.indexOf('mob_up') >= 0) mp += CONST.MOB_TILES;
-    /* SOFT BOOTS — "arrives places without the courtesy of being heard first". Named on the
-       suite's own list of hooks read by no system at all, waiting for a spotting model. It
-       pays while nobody has eyes on you, which is the only time moving quietly is worth
-       anything: once you are seen, the ground you cover is ground people watch you cross. */
-    if (unseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) mp += CONST.SOFT_BOOTS_TILES;
-    if (u.hooks && u.hooks.has('reposition_speed_up')) mp += 1;              /* §QUIRKS quick on their feet */
     if (u.race === 'svalbard') mp += CONST.SVALBARD_TILES;                  /* §RACES four legs cover ground */
     /* §RACES a flier with ground to cross takes to the air: further, over cover, and seen */
     /* §RACES A FLIER HAS THE AIR AVAILABLE TO IT, once a fight, never on a hurt wing. The
@@ -1187,7 +1166,7 @@
        Set around the call and restored after, which is the idiom this function already uses
        for cover and flanking rather than a second convention. */
     const fogOn = !!(S && S._seen);
-    const saveSpotted = target.spotted, saveUnseen = shooter._unseen;
+    const saveSpotted = target.spotted;
     let unseen = false;
     if (fogOn) {
       const eyesOn = sideSees(S, target);
@@ -1197,10 +1176,8 @@
       if (eyesOn && dist(shooter, target) > sightRange(shooter)) tel.squadSightShots++;
       /* am I concealed from the people I am shooting at? */
       unseen = !!(E && E._seen) && !sideKnows(E, shooter);
-      shooter._unseen = unseen;
       if (unseen) {
         tel.unseenShots++;
-        if (shooter.hooks && shooter.hooks.has('unspotted_open_fire_bonus')) tel.ambushInstinct++;
       }
     }
     /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
@@ -1362,7 +1339,7 @@
       if (S._fog) S._fog.dirty = true;
     }
     target.cover = saveCover; target.flanked = saveFlank;
-    target.spotted = saveSpotted; shooter._unseen = saveUnseen;
+    target.spotted = saveSpotted;
     return hit;
   }
 
@@ -1428,10 +1405,7 @@
      a man): laying the lane rolls a light hit at each body in it, and a man who gets up and leaves it draws a burst. */
   function laneOf(u) {
     const sup = C.suppressOf(u);
-    /* `suppression_output_up` / `_down_slight` widen and narrow the lane; they are read here and nowhere else */
     let t = 0;
-    if (u.hooks && u.hooks.has('suppression_output_up'))   t += CONST.SUPPRESS_OUT_UP;
-    if (u.hooks && u.hooks.has('suppression_output_down_slight')) t -= CONST.SUPPRESS_OUT_DOWN;
     if (sup < 1) return { r: Math.max(0, CONST.LANE_RADIUS + t), pen: CONST.LANE_PEN, arc: null };
     const deg = CONST.LANE_ARC + (sup >= 2 ? CONST.LANE_ARC_2 : 0) + t * CONST.LANE_ARC_TRAIT;
     return { r: 0, pen: CONST.LANE_PEN_SUPPORT, arc: Math.max(1, deg) * Math.PI / 180 };
@@ -1452,17 +1426,13 @@
     for (let i = lanes.length - 1; i >= 0; i--) if (!upright(lanes[i].by)) lanes.splice(i, 1);
     for (const S of sides) for (const u of S.units) {
       let pen = 0;
-      for (const L of lanes) if (L.by.side !== u.side && upright(u) && inLane(L, u) && !L.refused.has(u.id)) pen = Math.max(pen, L.pen);
+      for (const L of lanes) if (L.by.side !== u.side && upright(u) && inLane(L, u)) pen = Math.max(pen, L.pen);
       u.suppressed = pen > 0; u._supPen = pen;
     }
   }
-  /* a man the lane catches: Smothering Fire may refuse it, and being pinned shakes him */
+  /* a man the lane catches: being pinned shakes him */
   function pin(u, L, tel, rng) {
-    if (!upright(u) || L.refused.has(u.id)) return;
-    /* `suppression_bonus` — Smothering Fire: hosed before, he knows fire at him from fire at where he might be */
-    if (rng && u.hooks && u.hooks.has('suppression_bonus') && rng() < CONST.SUPPRESS_RESIST_P) {
-      L.refused.add(u.id); tel.pinsRefused = (tel.pinsRefused || 0) + 1; return;
-    }
+    if (!upright(u)) return;
     if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
     tel.pins = (tel.pins || 0) + 1;
   }
@@ -1478,7 +1448,7 @@
     applyHit(rng, f, C.resolveSeverity(rng, round, f, S.policy, band, null, tel.turn), tel, log, by, E);
   }
   function laneAt(u, mark) {
-    const lo = laneOf(u), L = { by: u, side: u.side, x: mark.x, y: mark.y, r: lo.r, pen: lo.pen, refused: new Set(), left: new Set() };
+    const lo = laneOf(u), L = { by: u, side: u.side, x: mark.x, y: mark.y, r: lo.r, pen: lo.pen, left: new Set() };
     if (lo.arc != null) { L.arc = lo.arc; L.ox = u.x; L.oy = u.y; L.ang = Math.atan2(mark.y - u.y, mark.x - u.x); L.reach = Math.max(dist(u, mark), (u.weapon && u.weapon.reach) || 0); }
     return L;
   }
@@ -1511,16 +1481,8 @@
        a fighter carried "nothing shakes him" and nothing in the engine knew. These are the
        composure ones, doing what their names always said. */
     if (delta < 0 && u.hooks) {
-      /* §QUIRKS the ones who do not mind what they are looking at */
-      if (u._fromDeath && (u.hooks.has('death_morale_immune') || u.hooks.has('gore_morale_immune'))) delta = 0;
       if (u.hooks.has('cohesion_morale_bonus_near_squadmates') && u._nearMates) delta *= 0.7;
-      /* §QUIRKS a fighter who is steadier the closer it gets: short_band_composure_bonus was
-         carried and never asked for */
-      if (u.hooks.has('short_band_composure_bonus') && u._closeBand) delta *= 0.65;
-      if (u.hooks.has('morale_swings_damped')) delta *= 0.6;
       if (u.hooks.has('morale_swings_amplified')) delta *= 1.45;
-      if (u.hooks.has('wounded_composure_bonus') && (u.state === 'light' || (u.hp != null && u.maxHp && u.hp < u.maxHp * 0.6))) delta *= 0.55;
-      if (u.hooks.has('composure_up_as_intensity_rises') && u.comp < C.CONST.COMP_BANDS.rattled + 15) delta *= 0.5;
     }
     u.comp = Math.max(0, Math.min(100, (u.comp || 60) + delta));
     pairComp(u);
@@ -1528,8 +1490,6 @@
        them, so gating panic on exactly zero made it a dead mechanism rather than a rare one.
        It is checked from the `rattled` band down, and resolve still decides it. */
     if (u.comp <= C.CONST.COMP_BANDS.rattled && u.state !== 'panicked' && rng) {
-      /* a fighter who does not rout, does not rout */
-      if (u.hooks && u.hooks.has('rout_immune')) return;
       const res = (u.stats && u.stats.resolve) || 100;
       /* how far past rattled they are, times how badly their resolve is failing them */
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
@@ -1557,26 +1517,11 @@
       if (m.pair) { if (minds.has(m.pair) || m.pair.halves.indexOf(unit) >= 0) continue; minds.add(m.pair); }
       /* §QUIRKS the mark the composure hooks read: this loss is a body going down, and these
          are the mates standing near enough to draw comfort from each other */
-      m._fromDeath = true;
       m._nearMates = side.units.some(o => o !== m && (o.state === 'ok' || o.state === 'light') &&
                                      Math.max(Math.abs(o.x - m.x), Math.abs(o.y - m.y)) <= CONST.AURA_TILES);
       comp(rng, m, kind === 'dead' ? K.mateDown : K.mateDown * 0.6);
       if (unit.isCaptain) comp(rng, m, K.captainDown);
-      m._fromDeath = false;
     }
-  }
-  /* §QUIRKS WHO WANTS OUT EARLY, AND WHO WILL NOT ARGUE. `early_disengage_bias` and
-     `follows_bad_orders` were carried by people and read by nothing: a squad with a body who
-     wants out calls it sooner, and one full of people who do as they are told holds a bad
-     order longer than it should. */
-  function withdrawShift(S) {
-    let shift = 0;
-    for (const u of S.units) {
-      if (!u.hooks || (u.state !== 'ok' && u.state !== 'light')) continue;
-      if (u.hooks.has('early_disengage_bias')) shift += CONST.EARLY_OUT;
-      if (u.hooks.has('follows_bad_orders')) shift -= CONST.OBEDIENT;
-    }
-    return shift;
   }
   /**
    * The captain calls it. Past a threshold of loss the squad is ordered back — and an ordered
@@ -1594,11 +1539,9 @@
       full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start) - stunSpent(u)); }
     /* §STUN (ruled) a man's stacks are health spent to the call, a tenth of his whole pool each, as wounds are */
     const lost = came > 0 ? 1 - left / came : 1;
-    /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
-       holds a bad order longer */
     /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
     const at = (S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT) * (full > 0 ? came / full : 1);
-    if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
+    if (lost >= at) { S.withdrawing = true; return true; }
     /* §ROUNDS a squad with nothing left to shoot with goes: rounds carry now, and two dry remnants stood off till the
        clock (5% of the Divide's fights ran the full 27 turns, a hit in seven turns, three in four of them at night) */
     const up = S.units.filter(u => u.state === 'ok' || u.state === 'light');
@@ -1825,17 +1768,15 @@
     ctx = ctx || {};
     ctx = turnBoard(sides, ctx);
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
-    const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */
     /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
        and in nothing that fought: `squadLink` was read in the aim path and set by NOBODY. A
        latent Gil standing with a squad is worth something to everyone in it — the link steadies
        their shooting, battle sense means the side is never caught unready, and a pressure
        reader knows when the other side is close to breaking. */
     for (const S of sides) {
-      S._psi = { link: false, sense: false };
+      S._psi = { link: false };
       for (const u of S.units) {
         u._side = S;                              /* a body knows whose side it is on */
-        u._closeBand = closeFight;
         if (!u.hooks) continue;
         /* THE HOOKS THE TRAITS ACTUALLY GRANT. The first cut read `psion_squad_link` and its
            siblings as hook names — those are TRAIT ids, and no trait grants a hook so called,
@@ -1844,8 +1785,6 @@
            sense grants `evasion_surge` and the broadcast; the pressure reader's own hooks are
            manager-facing, so the fight reads its broadcast instead. */
         if (u.hooks.has('squad_coordination_bonus')) S._psi.link = true;
-        /* §LIGHT the night-ambush warning is a NIGHT sense: it worked day and night alike */
-        if (u.hooks.has('ambush_avoidance_slight') || (ctx.night && u.hooks.has('night_ambush_warning_bonus'))) S._psi.sense = true;
       }
     }
     /* §FLANK the approaches of every squad on the field: units carry `_bearing` (the squad they came in with); a side
@@ -1974,8 +1913,6 @@
                   squadSightShots: 0,   /* fired at a body the shooter could not personally see */
                   reveals: 0,           /* shots that gave the shooter's position away */
                   silentShots: 0,       /* shots that did not, because the weapon is quiet */
-                  softBootsMoves: 0,    /* Soft Boots crossing ground unseen */
-                  ambushInstinct: 0,    /* Ambush Instinct opening fire unseen */
                   endedBy: 'clock' };
     if (flankFight) tel.flankFight = true;
     /* FOG IS ON UNLESS THE CALLER TURNS IT OFF. `ctx.fog === false` exists so the same tree
@@ -2133,7 +2070,7 @@
              walked in kept whatever index it was built with — friend to one side by accident, or to none, which
              is what the overwatch path fell over. It belongs to the side it joined. */
           for (const u of R.side.units) { u.side = si; u._side = sides[si]; }
-          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false, sense: false }; }
+          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false }; }
           tel.arrived = (tel.arrived || 0) + R.side.units.length;
           tel.arrivals = (tel.arrivals || 0) + 1;
           /* THEY WALK IN UNSEEN, and unlike everything else about fog this needs no special
@@ -2347,7 +2284,7 @@
           if (u.ap > 0 && hurt.length && !u.suppressed) {
             const patient = hurt.reduce((a2, b2) => dist(u, a2) < dist(u, b2) ? a2 : b2);
             const reach = dist(u, patient) <= CONST.TREAT_REACH;
-            const eager = C.CONST.TREAT_BASE + (u.hooks.has('volunteers_for_risk') ? 0.15 : 0);
+            const eager = C.CONST.TREAT_BASE;
             if (reach && !patient.hooks.has('resists_medical_evac') && rng() < eager) {
               patient._beingTreated = true;
               u.ap--; u.cover = 0;
@@ -2355,7 +2292,6 @@
               triggerOverwatch(rng, u, sides, map, tel, log);
               let pr = C.CONST.TREAT_BASE
                      + (S.hasMedkit ? C.CONST.TREAT_MEDKIT : 0)
-                     + (u.hooks.has('field_treatment_bonus') ? C.CONST.TREAT_TRAIT : 0)
                      + C.CONST.TREAT_FIELDCRAFT * (u.stats.fieldcraft - 100);
               pr = Math.max(0.05, Math.min(0.95, pr));
               if ((u.state === 'ok' || u.state === 'light') && rng() < pr) {
@@ -2631,7 +2567,6 @@
              turn and needs the same answer — scoped tight, it threw a ReferenceError at the
              dash on the first fight run, which is the cheap version of this mistake. */
           const meUnseen = fog && !!(E._seen) && !sideKnows(E, u);
-          if (meUnseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) tel.softBootsMoves++;
           {
             const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near, seen);
             tel.candidates = (tel.candidates || 0) + spots.length;
@@ -2828,21 +2763,6 @@
         if (u.race !== 'kellis' || (u.state !== 'ok' && u.state !== 'light')) continue;
         u._measure = Math.min(CONST.KELLIS_MEASURE_CAP, (u._measure || 0) + 1);
       }
-      /* §QUIRKS WHAT THE ONES BESIDE YOU ARE WORTH. `presence_aura`, `cohesion_morale_bonus_
-         near_squadmates`, `death_morale_immune` and `gore_morale_immune` were carried by
-         fighters and read by nothing at all. A body who steadies people steadies the people
-         near them; a body who does not mind the dead does not mind them. */
-      for (const S of sides) {
-        const auras = S.units.filter(u => u.hooks && u.hooks.has('presence_aura') &&
-                                      (u.state === 'ok' || u.state === 'light'));
-        if (!auras.length) continue;
-        for (const u of S.units) {
-          if (u.state !== 'ok' && u.state !== 'light') continue;
-          if (u.comp >= CONST.AURA_CAP) continue;      /* steadying a steady body does nothing */
-          if (auras.some(a => a !== u && Math.max(Math.abs(a.x - u.x), Math.abs(a.y - u.y)) <= CONST.AURA_TILES))
-            comp(rng, u, CONST.AURA_COMP);
-        }
-      }
       /* §RACES WHAT A DEATH DOES TO THE ONES WATCHING, and THE TETHER — one pass over the
          standing, because two passes over the same units every turn is how the last cut of
          this ground the engine to a halt. A gnoll comes UP at the sight of blood; the
@@ -2869,10 +2789,7 @@
         if (!o || o.state === 'dead') continue;
         const d = Math.max(Math.abs(u.x - o.x), Math.abs(u.y - o.y));
         const wasStrained = !!u._tetherStrained;
-        /* §QUIRKS a pair drilled to work apart works further apart: tether_range_extended was
-           written for exactly this and read by nothing */
-        const reach = CONST.TETHER_TILES + ((u.hooks && u.hooks.has('tether_range_extended')) ||
-                                            (o.hooks && o.hooks.has('tether_range_extended')) ? CONST.TETHER_DRILLED : 0);
+        const reach = CONST.TETHER_TILES;
         u._tetherStrained = d > reach;
         /* §MON-WA one mind pays the stretch, or takes the steadying, once a turn — not once a body */
         if (u.pair._turn === tel.turn) continue;

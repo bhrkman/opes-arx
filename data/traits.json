@@ -388,13 +388,8 @@
     "loyalty_mod": -8,
     "hooks": [
      "loyalty_cap_reduced",
-     "delicacy_harvest_friction",
-     "cradle_camp_event_seed",
-     "ankoth_sympathy_chemistry"
-    ],
-    "decoration": {
-     "delicacy_harvest_friction": "no delicacy or harvest economy exists to have friction with"
-    }
+     "cradle_camp_event_seed"
+    ]
    },
    "notes": "Canon thread (DESIGN.md §2.18, §3.3). Never rolls on humans — the Spent Cradles are not theirs to mourn. Rates per races.json resentment_rate."
   },
@@ -412,12 +407,8 @@
    "effects": {
     "hooks": [
      "abolitionist_event_seed",
-     "scandal_seed_step9",
-     "hidden_leaning"
-    ],
-    "decoration": {
-     "hidden_leaning": "its events fire; concealing a conviction wants a discovery path"
-    }
+     "scandal_seed_step9"
+    ]
    },
    "notes": "Quiet undercurrent per §3.5 — any race, humans included; far likelier alongside cradleborn_resentment. Rates in recruitment.json. Scandal system lands at Step 9."
   },

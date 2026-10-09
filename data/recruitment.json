@@ -26,9 +26,6 @@
  },
  "pools": {
   "nattie": {
-   "label": "Nattie Tryouts",
-   "window": "T2 (M3–4)",
-   "age_band": "recruit_min .. recruit_min+8, skewed young",
    "quality_shift": {
     "mean": -5.0,
     "sd": 12.0
@@ -53,9 +50,6 @@
    "divide_bonus_note": "Months of salary paid as a bonus for each Divide actually dropped into — the participation clause a merc's flat price conspicuously lacks. (proposed dial)"
   },
   "mercenary": {
-   "label": "Merc Market",
-   "window": "T5 deadline (M9–10)",
-   "age_band": "prime-centered, wide",
    "quality_shift": {
     "mean": 13.0,
     "sd": 12.0
@@ -77,9 +71,6 @@
    "seasons_note": "RULED: a merc contract is ONE Divide. Extension is a fresh agreement at next year's market, by mutual consent — never a multi-year term. They are paid in full whether or not they drop; that is what the price buys."
   },
   "prisoner": {
-   "label": "Kier Bastille Auction",
-   "window": "T4 (M7–8)",
-   "age_band": "recruit_min+3 .. decline+4, wide",
    "quality_shift": {
     "mean": 3.0,
     "sd": 20.0
@@ -193,12 +184,6 @@
    "Backdraft",
    "Evenkeel"
   ]
- },
- "batch_defaults": {
-  "nattie": 8,
-  "mercenary": 8,
-  "prisoner": 8,
-  "note": "One squad per batch. A drop is 16-24 seats in squads of 3-8 (a Mon-Wa pair is one seat); a roster has no ceiling."
  },
  "origin_type_leans": {
   "_note": "Where a hand learned its trade, in sheet points on a weapon TYPE (the shop's sections). Keys are the pools. Prisoners learned close and dirty; mercs carry long guns for pay; natties are ship-schooled, no lean.",

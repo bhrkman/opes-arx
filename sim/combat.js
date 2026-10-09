@@ -53,7 +53,7 @@ const CONST = {
   /* §ONE AIM what a trait adds to a shot, in AIM ON THE SHEET — the same points a manager reads on
      a fighter, and the same yardstick as the quirks ("+15 is where a person starts to feel it").
      These were bare numbers in aimEff, written on the invisible copy's scale. */
-  TRAIT_AIM: { accuracy: 20, squadLink: 10, overwatch: 20, firstStrike: 30, firstShotLong: 40, optics: 10 },
+  TRAIT_AIM: { squadLink: 10 },
   FATIGUE_AIM_STEP: 10,                   // [C] aim lost per 25 fatigue, three steps at most
   LIGHT_WOUND_AIM: 10,                    // [C] aim a light wound costs                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
@@ -190,7 +190,7 @@ const CONST = {
   RECOVER_BY_SEV: { graze: 0.94, light: 0.90, serious: 0.78, critical: 0.60, killed: 0.45 },
 
   /* §3.7 downed */
-  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
+  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
   /* MEDKIT_RATE deleted at Step 5b-2: whether a squad has medical kit is no longer a
      coin flip, it is whether somebody bought one and is carrying it (PROCUREMENT.md §10). */
 
@@ -270,24 +270,9 @@ const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], perma
    quirk that names one this list does not have. */
 const SITUATIONS = {
   squad_at_most_4:   ctx => (ctx.squadSize || 99) <= 4,
-  squad_at_most_6:   ctx => (ctx.squadSize || 99) <= 6,
-  squad_at_least_7:  ctx => (ctx.squadSize || 0) >= 7,
   is_captain:        ctx => !!ctx.isCaptain,
-  not_captain:       ctx => !ctx.isCaptain,
-  first_divide:      ctx => !!ctx.firstEngagement,
-  alongside_conscript: ctx => !!ctx.withConscript,
-  alone_of_their_race: ctx => !!ctx.onlyOfRace,
-  /* the rest of the closed vocabulary, each answerable where a body is built */
-  veteran:             ctx => (ctx.divides || 0) >= 2,
-  green:               ctx => (ctx.divides || 0) === 0,
-  young:               ctx => (ctx.age || 30) <= 24,
-  old_hand:            ctx => (ctx.age || 30) >= 34,
   hurt:                ctx => (ctx.health == null ? 100 : ctx.health) < 100,
-  settled:             ctx => (ctx.stress || 0) <= 20,
-  rattled:             ctx => (ctx.stress || 0) >= 50,
-  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain,
-  is_conscript:        ctx => ctx.origin === 'prisoner',
-  is_mercenary:        ctx => ctx.origin === 'mercenary'
+  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain
 };
 function situationalStats(fighter, traitIndex, ctx) {
   const out = {};
@@ -332,12 +317,6 @@ function seedComposure(f, hooks, opts) {
     - CONST.COMP_STRESS * ((f.condition && f.condition.stress) || 0);
 
   /* §11.1 composure hooks */
-  if (hooks.has('composure_bonus')) c += 10;
-  if (hooks.has('seen_worse_composure')) c += 12;
-  if (hooks.has('first_engagement_surge') && opts.firstEngagement) c += 15;
-  if (hooks.has('early_divide_penalty') && opts.day <= 7) c -= 8;
-  if (hooks.has('late_divide_bonus') && opts.day >= 15) c += 8;
-  if (opts.rookieSupport && (xp.divides || 0) < 1) c += 8;   // mentor's rookie_composure_support
   if (f.race === 'etu') {
     if ((f.traits || []).includes('et_y_bellum_zealot')) c += CONST.ETU_ZEALOT_COMP;
     else if ((f.traits || []).includes('et_y_bellum_devout')) c += CONST.ETU_DEVOUT_COMP;
@@ -363,7 +342,7 @@ function chargedCarry(fighter, kit) {
 function fullRounds(weapon, hooks, kit) {
   /* §ROUNDS (ruled: more rounds for more bulk) an Extended Magazine is one more of THIS gun's magazines — a flat six was
      nothing to a belt-fed gun — and a cell-fed gun's is one more cell */
-  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0)
+  const extra = ((kit && kit.mod && kit.mod.ammo) || 0)
               + ((kit && kit.mod && kit.mod.mags) || 0) * (weapon.mag || loadoutFor(weapon));
   if (!weapon.mag) return { mag: loadoutFor(weapon), spare: loadoutFor(weapon) + extra };
   /* a cell-fed gun carries its cell and a spare, and renews them at camp; a magazine gun carries its fights' worth */
@@ -796,8 +775,6 @@ function pierceSev(shooter, met) {
 /* §11.1 ammo_consumption_down / _up */
 function ammoCost(u, base) {
   let m = 1;
-  if (u.hooks.has('ammo_consumption_down')) m *= 0.75;
-  if (u.hooks.has('ammo_consumption_up')) m *= 1.35;
   return Math.max(1, Math.round(base * m));
 }
 
@@ -821,19 +798,13 @@ function bandMismatch(c, bandIdx) {
 
 function aimEff(c, bandIdx, ctx) {
   let a = c.stats.aim;
-  if (c.hooks.has('accuracy_bonus')) a += CONST.TRAIT_AIM.accuracy;
   if (ctx.squadLink || (ctx.side && ctx.side._psi && ctx.side._psi.link)) a += CONST.TRAIT_AIM.squadLink;   // Gil psion_squad_link
-  /* §QUIRKS a fighter who shoots better waiting than moving, when the shot is a reaction */
-  if (ctx.overwatch && c.hooks.has('overwatch_bonus')) a += CONST.TRAIT_AIM.overwatch;
-  if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += CONST.TRAIT_AIM.firstStrike;
   /* Shooting before they know where you are. The grid sets this when the target's side has
      neither eyes on the shooter nor a recent shot to look toward; nothing else passes it, so
      an abstract-model caller is unaffected. Sized against `first_strike_bonus` above, which
      is +3 for a closely related reason, rather than picked to hit a casualty figure. */
   if (ctx.unseen) a += CONST.UNSPOTTED_AIM;
-  if (c.hooks.has('first_shot_long_range_bonus') && ctx.exchange === 1 && bandIdx === 0) a += CONST.TRAIT_AIM.firstShotLong;
   a += Math.round(CONST.GEAR_TIER_ACCURACY * ((c.weapon.tier || 3) - 3) * 10) / 10;
-  if (c.hooks.has('optics_gear_synergy')) a += CONST.TRAIT_AIM.optics;
   /* §MODS an optic steadies every shot; a bipod steadies a held shot and fouls a moving one;
      a target link steadies a reaction; a rangefinder halves the cost of the wrong distance */
   const md = c.mod;
@@ -876,20 +847,18 @@ function aimEff(c, bandIdx, ctx) {
   if (c.suppressed) a -= c._supPen || 0;                 /* §SUPPRESSION the weight of the lane he is under */
 
   const cb = compBandOf(c);
-  const kellisNerve = c.hooks.has('aim_bonus_under_pressure') && cb !== 'broken';
-  if (!kellisNerve) a -= CONST.AIM_PENALTY_BY_BAND[cb];
+  a -= CONST.AIM_PENALTY_BY_BAND[cb];
 
   a -= CONST.FATIGUE_AIM_STEP * Math.min(3, Math.floor(c.fatigue / 25));
   if (c.state === 'light') a -= CONST.LIGHT_WOUND_AIM;
   if (c.gogglesBroken) a -= CONST.GIL_GOGGLE_AIM_PENALTY;
-  if (ctx.night && !c.hooks.has('night_encounter_bonus')) a -= CONST.NIGHT_AIM_PENALTY;
+  if (ctx.night) a -= CONST.NIGHT_AIM_PENALTY;
   return a;
 }
 
 function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - CONST.HIT_PIVOT) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
   let coverIdx = target.cover;
-  if (target._bulwarked) coverIdx = Math.min(3, coverIdx + 1);        // Olmac walking_bulwark
   if (target._shielded) coverIdx = Math.min(3, coverIdx + 1);         // §GUNS a squadmate's `mobile_cover`
   if (target.hovering) coverIdx = Math.max(0, coverIdx - 1);            // hover ignores a step of cover
   if (target.exposed) coverIdx = Math.max(0, coverIdx - 1);             // §3.4: you have to lean out to shoot
@@ -902,10 +871,6 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
      : (target.repositioning ? CONST.MOTION_REPOS : CONST.MOTION_HOLD);
   if (!target.spotted) m *= CONST.SPOT_UNSPOTTED;
   if (overwatch) m *= CONST.SPOT_OVERWATCH;
-  /* `overwatch_fatigue_immune` — a long-watch sentry does not lose their edge holding it.
-     Declared in traits.json since Step 2 and read by nothing until the Step 6 audit. */
-  if (overwatch && shooter.hooks.has('overwatch_fatigue_immune')) m *= 1.12;
-  if (target.hooks.has('bombardment_evasion_bonus') && overwatch) m *= 0.70;
   /* the long band is hard shooting for a gun not built for it; a long gun is (fixed: it took the penalty too) */
   m *= (bandIdx === 0 && shooter.weapon && shooter.weapon.range === 'long') ? 1 : CONST.BAND_HIT_MULT[bandIdx];
   /* §3.7 Going to a downed man is the most dangerous thing in a firefight — WORSE than
@@ -997,15 +962,6 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
-  /* AMBUSH INSTINCT — "The first volley is theirs. It usually decides the rest."
-     This read `!target.spotted`, which is a fact about whether the SHOOTER has found the
-     target — so as written it paid out for firing blindly at somebody whose position you did
-     not have, which is the opposite of what the trait says and the worse shot of the two. It
-     never paid out at all, because nothing wrote `spotted`; but had the flag ever started
-     moving it would have rewarded the wrong thing. The same miswiring already recorded against
-     Trigger Itch, which was hooked to widen a spread that the guns carrying it do not have.
-     `_unseen` is set by the grid around the shot: the shooter is the one nobody has placed. */
-  if (shooter.hooks.has('unspotted_open_fire_bonus') && shooter._unseen) roll += 12;
   const qs = quirkSev(shooter, target, bandIdx)                         /* §4.2 */
            + pierceSev(shooter, effProt);                              /* COMPOSITION.md §4, §GUNS */
   roll += qs;
@@ -1215,8 +1171,6 @@ function rollInjury(rng, u, worst) {
   let roll = 1 + Math.floor(rng() * 100);
   const isThthyn = u.race === 'ththyn';
   let wingRange = 35;
-  if (u.hooks.has('wing_injury_susceptibility_up')) wingRange = 46;
-  if (u.hooks.has('flight_mobility_bonus')) wingRange = 28;
 
   let type;
   if (isThthyn && roll <= wingRange) {
@@ -1239,7 +1193,6 @@ function rollInjury(rng, u, worst) {
 
   const band = RECOVERY[severity] || RECOVERY.serious;
   let days = band[0] + Math.floor(rng() * (band[1] - band[0] + 1));
-  if (u.hooks.has('injury_recovery_time_down')) days = Math.round(days * 0.7);
 
   /* Gil goggles (§8.3) */
   if (type === 'inj_head' && u.race === 'gil' && rng() < CONST.GIL_GOGGLE_DAMAGE_P) u.gogglesBroken = true;
@@ -1253,7 +1206,6 @@ function captainFidelity(fighter, traitIndex) {
   const hooks = hooksOf(fighter, traitIndex);
   /* ×10 migration: roster-called (the captain is a roster body), so tactics normalizes */
   let f = 0.003 * fighter.stats.tactics + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
-  if (hooks.has('captain_fidelity_up')) f += 0.15;
   if (fighter.race === 'human') f += 0.05;
   f -= 0.006 * (fighter._stress || 0);
   return clamp(f, 0.15, 0.98);

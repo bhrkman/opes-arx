@@ -85,14 +85,12 @@
      is backwards. A viewport-sized picture plus a text block of its own height can add up to
      more than the screen, so the buttons and the marks fell off the bottom — and every fix that
      scaled the pictures better only changed WHERE it broke.
-
      The words come first now. The stage is exactly the height of the window and cannot scroll;
      the title, the buttons and the fleet marks take the height they need; and the portraits
      take WHAT IS LEFT — `flex:1` with `min-height:0`, which is the line that lets a flex child
      shrink below its content. Each oval is `height:100%` of that leftover with a fixed aspect,
      so its width follows its height, and a `max-width` in vw catches the other case: a tall
      narrow window, where height is generous and width is not.
-
      There is no breakpoint anywhere in this. Nothing is positioned into anything. The only way
      the bottom of this screen can be cut off is if a row that should be `flex:0 0 auto` is
      allowed to grow, and there is one such row. */
@@ -101,7 +99,6 @@
     height:100vh;max-height:100vh;height:100dvh;max-height:100dvh;overflow:hidden;padding:clamp(8px,2vh,28px) 12px}
   .menustage::before{content:"";position:absolute;inset:0;
     background:radial-gradient(ellipse 55% 45% at 50% 38%,rgba(58,216,224,.07),transparent 70%);pointer-events:none}
-
   /* THE ONE ROW THAT TAKES WHAT IS LEFT */
   .menuovals{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;
     gap:clamp(4px,1.2vw,30px);position:relative;z-index:1;max-width:100%}
@@ -117,14 +114,12 @@
     height:86%;aspect-ratio:2 / 3;max-width:26vw}
   .moval.mid{--c:#ff5ab8;--glow:rgba(255,90,184,.46);
     height:100%;aspect-ratio:2 / 3;max-width:30vw}
-
   /* AND THE ROWS THAT TAKE ONLY WHAT THEY NEED */
   .menustage .menucol{flex:0 0 auto;position:relative;z-index:2;align-items:center;
     min-width:0;width:min(300px,80vw);gap:clamp(4px,0.9vh,10px)}
   .menustage .menubtn{width:100%;background:rgba(13,20,32,.7);letter-spacing:.16em;
     text-transform:uppercase;font-size:clamp(9px,1.5vh,13px);
     padding:clamp(5px,1.1vh,11px) 14px}
-  
   #errband{display:none;position:fixed;left:0;right:0;top:0;z-index:90;background:var(--red);color:var(--bg);font-size:11px;padding:6px 12px;text-align:center;cursor:pointer}
   /* §MONEY the purse in the top line: quiet, always there, never a headline */
   #purse{font-size:12.5px;color:var(--cred);letter-spacing:.04em}
@@ -281,7 +276,6 @@
   .foundgo{padding:11px 30px;border-radius:7px;border:1px solid var(--a);background:var(--a-deep);color:var(--a);
     font-size:13px;letter-spacing:.06em;cursor:pointer}
   .foundgo:hover{background:var(--a);color:var(--bg)}
-  
   .berth{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line2);background:transparent;
     border-radius:12px;padding:2px 9px;font:inherit;font-size:10px;cursor:pointer}
   /* §PICKER the mark large, the name under it */
@@ -289,29 +283,6 @@
      page's with them, so the Backroom rendered as unspaced white text — "Price₡15,000Goes Off
      Clean88%" — which is what a card looks like with no stylesheet at all. Written back, and
      the price grid given room to breathe: label left, figure right, a line between them. */
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   /* (the constellation's rules stood here and were struck with it; their CONTINUATION lines
      were left behind by a line-by-line deletion and were read as a selector, which swallowed
      `.hpick` — the OA ring on Negotiation and the Deal — and threw the wheel off the screen.) */
@@ -332,28 +303,11 @@
   .hnode .hn-sub{font-size:9px;color:var(--faint)}
   .fleetrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .fleetchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line2);border-radius:12px;padding:2px 9px;font-size:10.5px}
-  
-  
-  
-  
-  
   /* the Board: a standing is a position between two directions, so it reads as a bar with
      a centre, not a bare number */
   /* the card and the holds */
   .cardhead{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px;font-size:11.5px}
   .cardhead b{color:var(--ink)}
-  
-  
-  
-  
-   .cardrow .dw b{color:var(--ink)}
-  
-  
-  
-  
-  .sbar{position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),#4a4f58 50%,var(--hit))}
-  .sbar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--ink);border-radius:1px;transform:translateX(-50%)}
-  
   .holdrow{display:grid;grid-template-columns:150px 1fr 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #16233a;font-size:11.5px}
   .holdrow.hh{border-bottom-color:var(--line);padding-bottom:3px;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .holdrow.hh .hv{color:var(--faint)}
@@ -377,7 +331,6 @@
   .dpick .dn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dpick .ds{display:flex;gap:3px;align-items:center;margin-top:4px;min-height:16px;flex-wrap:wrap}
   .slotchip{display:inline-block;min-width:18px;padding:0 4px;border-radius:9px;font-size:9px;font-weight:700;color:var(--bg);text-align:center;line-height:16px}
-  .dall{display:flex;flex-wrap:wrap;gap:3px}
   .landhead .primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .ring{display:grid;grid-template-columns:1fr;gap:8px}
   .sector{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:9px 11px;cursor:pointer}
@@ -385,9 +338,6 @@
   .sector.yours{border-color:var(--a);background:var(--a-deep);box-shadow:inset 0 0 0 1px var(--a)}
   .sector .sn{font-size:12.5px;color:var(--ink);font-weight:bold;display:flex;justify-content:space-between}
   .sector .sn .you{color:var(--a);font-size:10px;font-weight:normal}
-  
-   .sector .sr .v{color:var(--ink)}
-  
   .landhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .landhead .m b{color:var(--ink)}
   /* THE BRIEF: the month at the head of the Desk — its shape, what is coming, what waits */
@@ -398,13 +348,8 @@
   .brief .shape .what{font-size:11.5px;color:var(--dim);margin-top:3px}
   .brief .coming{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
   .cd{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--line2);border-radius:12px;font-size:10.5px;color:var(--dim);background:var(--a-deep)}
-  .cd b{color:var(--ink)} .cd.soon{border-color:var(--cred)}  .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
+  .cd b{color:var(--ink)}   .cd.now{border-color:var(--a)} .cd.now b{color:var(--a)}
   .agenda{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:10px 12px}
-  
-  
-  
-  
-   .agi .go{color:var(--dim);font-size:10px;white-space:nowrap}
   .agenda .clear{color:var(--hit);font-size:11px;padding:6px 0}
   #endmonth.waiting{border-color:var(--cred);color:var(--cred)}
   /* THE EVENTS: cards with a situation and two or three options, each with its cost */
@@ -690,9 +635,6 @@
   .tglabel.rt-stress{color:var(--wall)} .tglabel.rt-stress.on{color:#c3a9ee}
   /* §STANCE the notch a manager sets at each OA: five even steps from keeping clear to
      bleeding them, cool through hot, wide enough that All In sits on one line with the rest */
-  
-  
-  
   #tstance .stancehd{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:0 0 6px}
   #tstance .stancehd span:last-child{text-align:right}
   #tstance .stancerow{display:grid;grid-template-columns:22px 1fr 214px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -705,7 +647,6 @@
   .notch5 .nb.on{color:var(--bg);font-weight:700;border-color:transparent}
   .notch5 .nb.n1.on{background:#5b8fd0} .notch5 .nb.n2.on{background:#3ab8c9} .notch5 .nb.n3.on{background:#4fd6a0}
   .notch5 .nb.n4.on{background:#e0a848} .notch5 .nb.n5.on{background:#e05a5a}
-  
   @media (max-width:900px){ #tstance .stancerow,#tstance .stancehd{grid-template-columns:22px 1fr;grid-template-areas:"mk nm" "nc nc"} 
     #tstance .stancerow .mk{grid-area:mk} #tstance .stancerow .nm{grid-area:nm} #tstance .notch5{grid-area:nc;justify-self:start} }
   /* §DESK the squad card */
@@ -762,9 +703,6 @@
   @media (max-width:900px){ #dayhead .dstrip{grid-template-columns:1fr 1fr;gap:12px} #dayhead .dwall{grid-column:1/-1} }
   /* §WITHDRAWAL the tab: what you ask above, who would pay below */
   #withdraw{margin-bottom:12px}
-  
-  
-  
   .wbody{border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px;background:var(--panel)}
   .whd{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:10px}
   .whd .t{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.04em}
@@ -825,26 +763,18 @@
   /* §ADVANCE ONE BUTTON, THE SAME ON EVERY PAGE. The Desk carried two — the plain one in the bar
      that every page shares, and a better one in the day strip — so the good look moves to the
      one that is everywhere, and the duplicate goes. It is sized to its words, not to the page. */
-  .advwin2,#advwin{padding:8px 22px;font-size:12px;letter-spacing:.06em;border:1px solid var(--a);
+  #advwin{padding:8px 22px;font-size:12px;letter-spacing:.06em;border:1px solid var(--a);
     color:var(--a);background:var(--panel2);border-radius:5px;width:auto;max-width:260px;flex:0 0 auto;cursor:pointer}
-  .advwin2:hover,#advwin:hover{background:var(--a);color:var(--bg)}
+  #advwin:hover{background:var(--a);color:var(--bg)}
   .modfx{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 10px}
   .standfill{position:relative;display:block;width:100%;height:8px;border-radius:4px;background:var(--line)}
   .standfill i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--b)}
   .standfill .ago{position:absolute;top:-3px;width:2px;height:14px;background:var(--ink)}
   .standfill .bt{position:absolute;top:-3px;width:1px;height:14px;background:var(--faint)}
-  .standfill .btw{position:absolute;top:12px;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
-  .standfill .btw.lo{transform:translateX(calc(-100% - 4px))}
-  .standfill .btw.hi{transform:translateX(4px)}
-  .sbar .bt{position:absolute;top:-2px;width:1px;height:12px;background:var(--faint)}
-  .sbar .btw{position:absolute;top:13px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);transform:translateX(-50%);white-space:nowrap}
-  .sbar .ago{position:absolute;top:-2px;width:1px;height:12px;background:var(--ink)}
   .holdfoot{font-size:10.5px;color:var(--dim);margin-top:8px}
   .holdrow .hbar .lost{position:absolute;top:0;bottom:0;background:var(--red);opacity:.85}
   .recap h2{margin:0 0 6px}
   /* §RECAP a total belongs at the foot of what it totals */
-  
-  
   .rcp{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:11.5px}
   .rcp .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid #16233a}
   .rcp .row:first-child{border-top:none}
@@ -854,19 +784,8 @@
   .dayhead{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 14px;margin-bottom:12px;background:var(--panel);border:1px solid var(--line2);border-radius:8px}
   .dayhead .dl{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}
   .dayhead .dl b{color:var(--ink);font-size:14px}
-  .dayhead .dl .wx{color:var(--ink)}
   .dayhead button.primary{padding:8px 18px;font-size:12px;border-color:var(--a);color:var(--a)}
   .dayhead button.primary:hover{background:var(--a);color:var(--bg)}
-  
-  
-  
-  
-  
-  
-  
-  
-  
-   .sqtbl .ordwrap .x:hover{color:var(--bad)}
   /* the stance: five notches, each with its three figures */
   .notch{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;margin-bottom:4px;cursor:pointer;background:var(--a-deep)}
   .notch:hover{border-color:var(--a)}
@@ -874,18 +793,7 @@
   .notch.declared{border-style:dashed;border-color:var(--cred)}
   .notch .dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--dim)}
   .notch .nn{font-size:11.5px;color:var(--ink)}
-  
-  
   /* the leanings: a five-point thumb on the scale, per OA */
-  
-  
-  
-  
-  
-  
-  
-  
-  
   /* the Table's composer and the ground's assay */
   .dealhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:11.5px;color:var(--dim)}
   .dealhead b{color:var(--ink)}
@@ -900,37 +808,12 @@
   .way.off{opacity:.4;cursor:default;background:transparent} .way.off:hover{border-color:var(--line2)}
   .way .wn{font-size:11.5px;color:var(--ink)} .way .wn .m{font-size:10px}
   /* a pool row: what it is on the first line, the numbers on the second */
-  .trow2{padding:7px 9px;border-bottom:1px solid #16233a}
-  .trow2:last-child{border-bottom:none}
-  .trow2.dead{opacity:.4}
-  .trow2 .r1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-  .trow2 .r1 .nm{color:var(--ink);font-size:11.5px}
-  .trow2 .r1 .tiny{padding:1px 9px}
-  .trow2 .r1 .tiny:disabled{opacity:.5;cursor:default;color:var(--hit);border-color:var(--hit)}
-  .trow2 .r2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:3px;font-size:10px;color:var(--dim)}
-  .trow2 .r2 .ctl{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-  .trow2 input.bid{width:56px;text-align:right;padding:1px 4px}
-  .tog{font-size:9.5px;padding:1px 7px;border:1px solid var(--line2);border-radius:10px;color:var(--dim);cursor:pointer;user-select:none}
-  .tog.on{border-color:var(--a);color:var(--a)}
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;min-height:20px}
   .chips:empty::before{content:'Nothing Added';color:var(--faint);font-size:10px}
-  .beamcol .word{font-size:13px;line-height:1.4;min-height:34px;text-align:center;color:var(--ink)}
-  .beamcol .word.good{color:var(--hit)} .beamcol .word.bad{color:var(--bad)}
   .facts{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:8px;font-size:10.5px;border-top:1px solid var(--line);padding-top:8px}
-  .facts .fk{color:var(--dim);white-space:nowrap} .facts .fv{color:var(--ink);text-align:right}
-  .facts .fv.good{color:var(--hit)} .facts .fv.bad{color:var(--bad)} .facts .fv.m{color:var(--faint)}
-  #tdeal .tcols{margin-top:0;grid-template-columns:1fr 280px 1fr} #tdeal .tpool{max-height:340px}
-  #tdeal .tcols .box{padding:10px 12px}
   .tkinds .pcbtn.on{border-color:var(--a);color:var(--a)}
-  
-  
-   .tterm .tv{color:var(--dim);font-size:10.5px;text-align:right;white-space:nowrap}
-  
-  
   .assay{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:baseline;font-size:11px}
   .assay .an{white-space:nowrap} .assay .ac{color:var(--dim);font-size:10px} .assay .ah{text-align:right;white-space:nowrap}
-  
-  
   .legend{width:100%;border-collapse:collapse;font-size:10.5px}
   .legend th{text-align:left;color:var(--faint);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;padding:2px 6px}
   .legend td{padding:3px 6px;border-top:1px solid #16233a}
@@ -958,24 +841,13 @@
   @media (max-width:900px){ .audrow2{grid-template-columns:1fr auto;grid-template-areas:"an rd" "ab ab"} 
     .audrow2 .an{grid-area:an} .audrow2 .ab{grid-area:ab} .audrow2 .ard{grid-area:rd} .amem{padding-left:2px} }
   .rivals{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 11px}
-  
-  
-  
-  
-  .sbar{position:relative;display:inline-block;width:110px;height:6px;border-radius:3px;
-    background:linear-gradient(90deg,#5a2f2a,#1c2c44 50%,#2c5a3a)}
   /* a one-sided audience has no neutral middle: it runs from bad to good across the whole bar */
-  .sbar.onesided{background:linear-gradient(90deg,#5a2f2a,#2c5a3a)}
-  .sbar i{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);
-    transform:translateX(-1px)}
-  .swrd{font-size:11px;min-width:120px;text-align:right}
   .audhead{margin-top:12px;margin-bottom:2px;font-size:10.5px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--dim)}
   .regs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-top:8px}
   .regbtn{text-align:left;padding:7px 9px;line-height:1.35}
   .regbtn .m{display:block;font-size:10.5px;margin-top:2px}
   /* the negotiation table: two pans and a beam */
-  .tcols{display:grid;grid-template-columns:1fr 210px 1fr;gap:10px;align-items:start;margin-top:10px}
   /* THE NEGOTIATION, in two facing columns: the terms each side can put up, the contract
      as it stands, the pressure bar across the top, the offer at the foot */
   .neghead{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:8px 0 6px}
@@ -1016,21 +888,11 @@
   .negact button.primary{padding:8px 26px;font-size:12.5px;border-color:var(--a);color:var(--a);background:var(--a-deep);font-weight:600}
   .negact button.primary:hover:not(:disabled){background:var(--a);color:var(--bg)}
   .negact button:disabled{opacity:.35;cursor:default}
-  .tpool{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:#0b111b}
-  
-  
-  
-  
-  
-  
   .tscale{height:8px;border-radius:4px;position:relative;margin:8px 0;
     background:linear-gradient(90deg,#8f4a3e,#1c2c44 50%,#3f7a55)}
   .tscale i{position:absolute;top:-4px;width:2px;height:16px;background:var(--fg);transform:translateX(-1px)}
   /* §PICKER the ring sits in the middle of the page, not against its left edge */
   .oastrip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
-  
-  
-  
   /* a tab with something waiting on the manager says so */
   .tab.urgent{color:var(--warn);font-weight:600}
   .tab.urgent:after{content:' \2022'}
@@ -1046,7 +908,6 @@
   .bbtn{border-color:var(--cred);color:var(--cred)}
   .bbtn.on{background:var(--cred);border-color:var(--cred);color:var(--bg)}
   .fbtn.on{background:var(--a);color:#0a0e16;border-color:var(--a)}
-
   /* ---- the Training grid: paint focus onto stats, four tiers, star-rating pips ---- */
   .tgwrap{border:1px solid var(--line2);border-radius:8px;padding:10px;margin-top:10px;background:var(--panel)}
   /* THE TIER COLOURS, one standard wherever a tier is named: 1 grey, 2 green, 3 blue,
@@ -1074,16 +935,10 @@
      with one rack open put everything in the first column and left the second empty. A rack's
      rows are a two-column GRID: each row is a cell, the head is its own full-width line, and
      the shelf is half as tall as it was. */
-  
-  
   /* §MARKET THE COLUMNS ARE THE RACKS. Two columns held ONE rack's rows split down the
      middle — carbines above, carbines beside carbines — where what the width was for is two
      racks side by side: carbines here, close quarters there, each whole. */
-  
-  
-  @media (max-width:900px){ #mktledger .mracks{grid-template-columns:1fr} }
-  
-  
+
   /* §STATS the stat's hover card: a few words, in a small panel above the cell */
   .talrow .st.shootline{grid-column:1/-1;display:block;text-align:center;padding:2px 0 5px;margin-bottom:2px;
     border-bottom:1px solid var(--line,#1c2c44);color:var(--dim,#7d95b4)}
@@ -1223,7 +1078,6 @@
   .tgchev:hover,.tgchev2:hover{background:var(--a-deep);color:var(--a);border-color:var(--a)}
   .tghead .tgchev,.tghead .tgchev2{border-color:var(--line2);color:var(--a)}
   .tghead .tgchev2{margin-left:auto}
-  
   .tgcount{color:var(--gold);font-size:10.5px}
   .tgpanel{padding:4px 6px 8px 26px;background:#0b111b;border-bottom:1px solid #16233a}
   .tgpanel table{border-collapse:collapse}
@@ -1233,7 +1087,6 @@
   #dvpick .sqbody{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:start}
   #dvcard .ev.you{box-shadow:inset 3px 0 0 var(--a);padding-left:6px}
   .tgchev:hover{color:var(--a)}
-  
   /* §UI (ruled: centred) ONE SECTION TITLE, on every page: the name centred in capitals with a rule running out either side,
      and the word that folds it at the right edge — the Desk's sections and the Market's type titles alike */
   .tghead,.mwall-title{display:flex;align-items:center;justify-content:center;gap:14px;position:relative;
@@ -1263,7 +1116,6 @@
   .pip i{display:inline-block;width:12px;height:16px;border-radius:2px;background:var(--a-deep);border:1px solid var(--line2);transition:background .08s}
   .pip i.f{background:var(--a);border-color:var(--a)}
   .pip:hover i{border-color:var(--a)}
-  
   .itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px}
   .itbl tr{border-bottom:1px solid #131f30}
   .itbl tr.lit{background:var(--a-deep)}
@@ -1272,7 +1124,6 @@
   .itbl .iname{white-space:nowrap;text-align:center}
   .itbl .iname .tgname{display:inline-block;flex:none}
   .itbl .iname span.on{color:var(--a)}
-  
   .itbl .ipips{width:70px}
   .itbl .istat{text-align:right;font-size:10.5px;white-space:nowrap}
   .itbl .idossrow td{padding:6px 10px 10px 22px;background:#0b111c}
@@ -1352,7 +1203,6 @@
   .wopt.on{border-color:var(--a);background:var(--a-deep)}
   .wopt.bad .oc{color:var(--red)}
   .wprom{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-  .wdone{padding:8px 4px;font-size:11.5px}
   .chatbar{display:flex;gap:6px;align-items:center;margin:8px 0 2px}
   .chatbar .m{font-size:10px}
   .ctbl tr{border-bottom:1px solid #131f30}
@@ -1361,19 +1211,14 @@
   .ctbl td{padding:6px 6px;vertical-align:top}
   .ctbl .cname{color:var(--b);font-weight:bold;white-space:nowrap}
   .ctbl .cflavor{display:inline-block;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
-  
-  
   .ctbl .cflavor.outcome{color:var(--hit);border:1px solid var(--hit)}
   .ctbl .ccond{color:var(--dim);font-size:10px;margin-top:3px}
   .ctbl .cpay{color:var(--dim);font-size:9.5px;margin-top:3px}
   .ctbl .cpay b{color:var(--ink)} .ctbl .cpay .kit{color:var(--mag)}
   .ctbl .cpips{width:70px;white-space:nowrap;text-align:right}
   .ctbl .cright{text-align:right;white-space:nowrap;width:96px}
-   .ctbl .ccost b{color:var(--ink)} 
   .ctbl .cregard{font-size:10px;margin-top:2px}
   /* §SPONSORS the bar the board judges by, and each supplier's distance from it */
-  
-  
   .ctbl .cgap{font-size:10.5px;color:var(--dim)}
   .ctbl .cgap b{color:var(--ink);font-size:13px}
   .ctbl .cgap b.good{color:var(--hit)}
@@ -1381,9 +1226,7 @@
   .ctbl .csigned{color:var(--warn);font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;margin-left:6px}
   .ctbl .csigned.you{color:var(--hit)}
   .ctbl .cstatus{font-size:10px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line2)}
-  
   .ctbl .cstatus.met{color:var(--hit);border-color:var(--hit)}
-  
   .ctbl .cstatus.pending{color:var(--dim);border-color:var(--line2)}
   .dtbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
   .dtbl tr{border-bottom:1px solid #131f30}
@@ -1475,7 +1318,6 @@
   .ystop.past{opacity:.38}
   .ystop .yn{font-size:9px;color:var(--faint);letter-spacing:.06em} .ystop.now .yn{color:var(--a)}
   .ystop .yt{font-size:11.5px;color:var(--k);line-height:1.3} .ystop.now .yt{color:var(--a)}
-  
   .ystop:hover .yt{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
   #yearline .yhead{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
   #yearline .yhead b{color:var(--ink);display:block;font-size:12px;letter-spacing:0;text-transform:none;margin-top:2px}
@@ -1528,12 +1370,9 @@
   .unit.act{background:#111c2e;margin:0 -6px;padding:3px 6px;border-radius:2px}
   .log{max-height:180px;overflow:auto}
   .log div{padding:2px 0;border-bottom:1px solid #16233a}
-  
-  
   .tiny{padding:1px 5px;font-size:10px;margin-left:3px}
   .poolrow{display:flex;justify-content:space-between;align-items:center;gap:6px;
            padding:2px 0;border-bottom:1px solid #16233a;font-size:11.5px}
-
   /* ---- THE SQUADS BOARD: select, then place. The bench is a column of cards on the left;
      six squads stand right, each a list of rows with ONE open row waiting until it is
      full. A selected fighter turns every other squad into a target. No dragging. ---- */
@@ -1597,7 +1436,6 @@
   .fcard.hurt .nm::after,.port-card.hurt .pname::after{content:' \2022 Wounded';color:var(--warn);font-size:10px;font-weight:normal}
   .port-card .pface{position:relative;aspect-ratio:2/3;border-radius:4px;background:var(--a-deep);
     display:flex;align-items:center;justify-content:center;margin-bottom:5px;min-height:96px}
-  .port-card .psil{width:64%;height:auto;display:block}
   .port-card .plead{position:absolute;top:2px;left:3px;font-size:9px;color:var(--cred)}
   .port-card .prate{position:absolute;bottom:3px;right:5px;font-size:12px;font-weight:700;color:var(--ink)}
   .port-card .prate.good{color:var(--hit)} .port-card .prate.warn{color:var(--cred)} .port-card .prate.bad{color:var(--red)}
@@ -1647,7 +1485,6 @@
   .confirm{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:var(--ink);margin-right:6px}
   .confirm .m{color:var(--dim);font-size:11px}
   button.danger:disabled{opacity:.35;cursor:default} button.danger:disabled:hover{background:transparent;color:var(--red)}
-
   /* ---- THE FIGHTER SHEET, as a drawer over the right edge: the Roster's blocks, then the
      loadout as four rows (tier badge, item, one word), the picker beneath, and the moves. ---- */
   .drawer{position:fixed;top:0;right:0;bottom:0;width:340px;background:var(--bg);border-left:1px solid var(--line2);padding:14px;
@@ -1710,7 +1547,6 @@
   .mv:hover{background:var(--sq);color:var(--bg)}
   .mv:disabled{opacity:.3;cursor:default} .mv:disabled:hover{background:transparent;color:var(--sq)}
   .mv.sqA{--sq:var(--sqA)} .mv.sqB{--sq:var(--sqB)} .mv.sqC{--sq:var(--sqC)} .mv.sqD{--sq:var(--sqD)} .mv.sqE{--sq:var(--sqE)} .mv.sqF{--sq:var(--sqF)}
-
   /* ---- the unified Roster: a card grid left, a two-panel rail right ---- */
   .rostcols{display:flex;gap:14px;align-items:flex-start}
   .rostbooks{flex:1;min-width:0}
@@ -1783,9 +1619,6 @@
   .acq .bidrow input[type=range]{width:100%;accent-color:var(--o)}
   .acq .bidnum{font-size:14px;font-weight:700;color:var(--o);font-variant-numeric:tabular-nums;min-width:82px;text-align:right}
   .acq .bidscale{display:flex;justify-content:space-between;font-size:9px;color:var(--faint)}
-  .acq .bidread{font-size:10px;margin-top:6px;color:var(--dim)}
-  .acq .bidread .bar{height:5px;border-radius:3px;background:#16233a;overflow:hidden;margin-top:3px}
-  .acq .bidread .bar i{display:block;height:100%;background:var(--o)}
   .acq .bidbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:9px}
   .acq .bidbtns .pcbtn{padding:6px 4px;font-size:11px}
   .sortbar{display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
@@ -1879,7 +1712,6 @@
   .pcbtn:hover{border-color:var(--a);color:var(--a)}
   .pcbtn.on{border-color:var(--hit);color:var(--hit)}
   .pcbtn.x{padding:3px 7px;color:var(--dim);margin-left:3px}
-  
   /* a prospect you have marked wears it: the card takes the signing colour and says so, and
      the button keeps its place and its word */
   .acq .pc.taken{background:#12332b;border-color:var(--hit);position:relative}
@@ -1909,7 +1741,6 @@
     #setup .foundgo{position:sticky;bottom:8px}
     .page{padding:10px 12px}
     .grid2,.grid3,.negcols,.landcols,.ring{grid-template-columns:1fr}
-    .tcols,#tdeal .tcols{grid-template-columns:1fr}
     .sqcols,.rostcols{flex-direction:column}
     .benchcol{width:100%}
     .bcards{max-height:none}
@@ -2848,6 +2679,7 @@
    "oa_lean_note": "Everywhere (canon).",
    "resentment_rate": 0.1,
    "special": {
+    "hooks": ["media_statements_flat"],
     "carry_bonus": 2,
     "media_flat": true,
     "media_note": "Barely speaks — spends words like they cost blood (canon language ruling). Media statements flat; broadcast novelty when one DOES speak.",
@@ -3125,6 +2957,7 @@
    ],
    "resentment_rate": 0.1,
    "special": {
+    "hooks": ["doctrine_change_resistance"],
     "carry_bonus": 2,
     "tradition_bound": true,
     "tradition_note": "Resistant to doctrine changes and mid-Divide policy whiplash — they signed for a banner, not a mood (ratified).",
@@ -4009,13 +3842,8 @@
     "loyalty_mod": -8,
     "hooks": [
      "loyalty_cap_reduced",
-     "delicacy_harvest_friction",
-     "cradle_camp_event_seed",
-     "ankoth_sympathy_chemistry"
-    ],
-    "decoration": {
-     "delicacy_harvest_friction": "no delicacy or harvest economy exists to have friction with"
-    }
+     "cradle_camp_event_seed"
+    ]
    },
    "notes": "Canon thread (DESIGN.md §2.18, §3.3). Never rolls on humans — the Spent Cradles are not theirs to mourn. Rates per races.json resentment_rate."
   },
@@ -4033,12 +3861,8 @@
    "effects": {
     "hooks": [
      "abolitionist_event_seed",
-     "scandal_seed_step9",
-     "hidden_leaning"
-    ],
-    "decoration": {
-     "hidden_leaning": "its events fire; concealing a conviction wants a discovery path"
-    }
+     "scandal_seed_step9"
+    ]
    },
    "notes": "Quiet undercurrent per §3.5 — any race, humans included; far likelier alongside cradleborn_resentment. Rates in recruitment.json. Scandal system lands at Step 9."
   },
@@ -4160,10 +3984,7 @@
           "note": "Nevlon settles at the muzzle; Vantis settles in the fine print."
         }
       ],
-      "sponsor_style": "Sponsors aggression: drops favor ammunition and armor; withdraws visibly from preservationist banners.",
       "reputation": {
-        "aleas": -15,
-        "fleet": 45,
         "own": 80
       },
       "holds": {
@@ -4220,10 +4041,7 @@
           "note": "Two old codes nodding across the table."
         }
       ],
-      "sponsor_style": "Sponsors precision: optics, marksman rifles, and fighters with clean records; allergic to scandal.",
       "reputation": {
-        "aleas": 50,
-        "fleet": 60,
         "own": 45
       },
       "holds": {
@@ -4281,10 +4099,7 @@
           "note": "Codes recognize codes."
         }
       ],
-      "sponsor_style": "Sponsors tradition: long retainers, heirloom-grade gear, and corps that keep their declared policy.",
       "reputation": {
-        "aleas": 70,
-        "fleet": 20,
         "own": 55
       },
       "holds": {
@@ -4341,10 +4156,7 @@
           "note": "The OA keeps offering New Line captains triple. The captains keep declining. The OA keeps offering."
         }
       ],
-      "sponsor_style": "Sponsors talent wherever it is; exclusivity costs extra and expires quickly.",
       "reputation": {
-        "aleas": 5,
-        "fleet": 35,
         "own": 10
       },
       "holds": {
@@ -4407,11 +4219,8 @@
           "note": "The Concern underwrites the Line's famous pensions — and knows to the credit what its restraint costs."
         }
       ],
-      "sponsor_style": "When not competing, sponsors underdogs and clean fights; its bulk-freight drops are the most efficient in the Divide.",
       "design_note": "RATIFIED. Fills the niches the other seven leave open: the preservationist pole made economically real (DESIGN.md 5.2 requires both poles viable), a logistics/attrition playstyle, a crowd-sympathy underdog, and the labor-populist voice that gives Cradleborn Resentment somewhere to live openly. COMBAT.md 6.3 and acceptance target T14 exist to keep the preservationist pole solvent.",
       "reputation": {
-        "aleas": -20,
-        "fleet": 75,
         "own": 65
       },
       "holds": {
@@ -4468,11 +4277,8 @@
           "note": "Mutual, professional, occasionally profitable."
         }
       ],
-      "sponsor_style": "Sponsors leverage: drops arrive with conditions, and the conditions have conditions.",
       "design_note": "Playstyle niche: the negotiation-engine villain — high treachery AI personality that makes Step 6 sing. Difficulty 4 as a manager start: your board expects treachery dividends and your leverage carries a trust discount.",
       "reputation": {
-        "aleas": -25,
-        "fleet": -40,
         "own": 35
       },
       "holds": {
@@ -4530,11 +4336,8 @@
           "note": "The decks and the growers understand each other — though the Line's people mutter about the delicacy harvests too."
         }
       ],
-      "sponsor_style": "Sponsors survival: ration drops, water kit, medical basics — unglamorous and always welcome.",
       "design_note": "The hardest start by design: thinnest treasury, modest goals, patient board. The delicacy-harvest friction gives the cradleborn_resentment trait its sharpest in-fiction target (RACES.md cross-note).",
       "reputation": {
-        "aleas": 10,
-        "fleet": -5,
         "own": 20
       },
       "holds": {
@@ -4591,11 +4394,8 @@
           "note": "Holds the Line's pension book — a warm relationship with a cold clause in it."
         }
       ],
-      "sponsor_style": "Sponsors everyone: medkits and evac retainers flow to all eight banners, because the Concern gets paid either way.",
       "design_note": "The soft-treachery counterpart to Vantis: never breaks a deal, always knows more than you. Its actuarial knowledge is a Step 6/7 information-game hook.",
       "reputation": {
-        "aleas": 30,
-        "fleet": 25,
         "own": 30
       },
       "holds": {
@@ -4715,9 +4515,6 @@
  },
  "pools": {
   "nattie": {
-   "label": "Nattie Tryouts",
-   "window": "T2 (M3–4)",
-   "age_band": "recruit_min .. recruit_min+8, skewed young",
    "quality_shift": {
     "mean": -5.0,
     "sd": 12.0
@@ -4742,9 +4539,6 @@
    "divide_bonus_note": "Months of salary paid as a bonus for each Divide actually dropped into — the participation clause a merc's flat price conspicuously lacks. (proposed dial)"
   },
   "mercenary": {
-   "label": "Merc Market",
-   "window": "T5 deadline (M9–10)",
-   "age_band": "prime-centered, wide",
    "quality_shift": {
     "mean": 13.0,
     "sd": 12.0
@@ -4766,9 +4560,6 @@
    "seasons_note": "RULED: a merc contract is ONE Divide. Extension is a fresh agreement at next year's market, by mutual consent — never a multi-year term. They are paid in full whether or not they drop; that is what the price buys."
   },
   "prisoner": {
-   "label": "Kier Bastille Auction",
-   "window": "T4 (M7–8)",
-   "age_band": "recruit_min+3 .. decline+4, wide",
    "quality_shift": {
     "mean": 3.0,
     "sd": 20.0
@@ -4883,12 +4674,6 @@
    "Evenkeel"
   ]
  },
- "batch_defaults": {
-  "nattie": 8,
-  "mercenary": 8,
-  "prisoner": 8,
-  "note": "One squad per batch. A drop is 16-24 seats in squads of 3-8 (a Mon-Wa pair is one seat); a roster has no ceiling."
- },
  "origin_type_leans": {
   "_note": "Where a hand learned its trade, in sheet points on a weapon TYPE (the shop's sections). Keys are the pools. Prisoners learned close and dirty; mercs carry long guns for pay; natties are ship-schooled, no lean.",
   "prisoner": {
@@ -4907,7 +4692,8 @@
    "scatterguns": -10
   }
  }
-},
+}
+,
   "items": {
  "_meta": {
   "file": "items.json",
@@ -5154,7 +4940,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Someone's grandfather carried it. Still works.",
    "type": "Long Rifles",
    "worth": {
@@ -5192,7 +4977,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
    "type": "Marksman Rifles",
    "worth": {
@@ -5230,7 +5014,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two rounds where one was asked for.",
    "type": "Submachine Guns",
    "worth": {
@@ -5268,7 +5051,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Crowd-control kit that found a war.",
    "type": "Support Guns",
    "worth": {
@@ -5306,7 +5088,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Ends rooms.",
    "type": "Scatterguns",
    "worth": {
@@ -5344,7 +5125,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The standard. Everything else is measured against it.",
    "type": "Assault Rifles",
    "worth": {
@@ -5383,7 +5163,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short enough to fight while moving.",
    "type": "Assault Rifles",
    "worth": {
@@ -5422,7 +5201,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Full power, full weight. You will feel every metre you carry it.",
    "type": "Support Guns",
    "worth": {
@@ -5460,7 +5238,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
    "type": "Marksman Rifles",
    "worth": {
@@ -5496,7 +5273,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
    "type": "Support Guns",
    "worth": {
@@ -5535,7 +5311,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
    "type": "Scatterguns",
    "worth": {
@@ -5573,7 +5348,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Devastating on the unarmoured, a rumour against plate.",
    "type": "Scatterguns",
    "worth": {
@@ -5612,7 +5386,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Rounds that accelerate - useless until they have flown.",
    "type": "Carbines",
    "worth": {
@@ -5650,7 +5423,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fired at the wall, on purpose.",
    "type": "Carbines",
    "worth": {
@@ -5686,7 +5458,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The shot nobody attributes.",
    "type": "Marksman Rifles",
    "worth": {
@@ -5725,7 +5496,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A machine gun that stopped apologising.",
    "type": "Support Guns",
    "worth": {
@@ -5763,7 +5533,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two weapons, one awkward weight.",
    "type": "Launchers",
    "worth": {
@@ -5801,7 +5570,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Magnetic acceleration. Wait for it.",
    "type": "Anti-Materiel",
    "worth": {
@@ -5839,7 +5607,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Built for vehicles. Fielded against people.",
    "type": "Anti-Materiel",
    "worth": {
@@ -5877,7 +5644,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Doesn't shoot around cover. Shoots the cover.",
    "type": "Close-Quarters",
    "worth": {
@@ -5916,7 +5682,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Cheap, patient, and slow to answer.",
    "type": "Assault Rifles",
    "worth": {
@@ -5956,7 +5721,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
    "type": "Assault Rifles",
    "worth": {
@@ -5995,7 +5759,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
    "type": "Support Guns",
    "worth": {
@@ -6035,7 +5798,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Terrible against people. Ruinous against machines.",
    "type": "Carbines",
    "worth": {
@@ -6074,7 +5836,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Drinks the day. Dreads the night.",
    "type": "Long Rifles",
    "worth": {
@@ -6113,7 +5874,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Finds the second man without being asked.",
    "type": "Close-Quarters",
    "worth": {
@@ -6152,7 +5912,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Doesn't kill them. Stops them.",
    "type": "Carbines",
    "worth": {
@@ -6191,7 +5950,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Gets hotter and better at once.",
    "type": "Support Guns",
    "worth": {
@@ -6228,7 +5986,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "No report, no flash, no witness.",
    "type": "Marksman Rifles",
    "worth": {
@@ -6268,7 +6025,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Sound goes where the bullet won't.",
    "type": "Carbines",
    "worth": {
@@ -6305,7 +6061,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A line drawn through the argument. Once, then twice, then nothing.",
    "type": "Long Rifles",
    "worth": {
@@ -6344,7 +6099,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Removes the argument and the furniture.",
    "type": "Close-Quarters",
    "worth": {
@@ -6384,7 +6138,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The crowd's favourite, the Aleas' paperwork.",
    "type": "Launchers",
    "worth": {
@@ -6424,7 +6177,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short range, long memory.",
    "type": "Scatterguns",
    "worth": {
@@ -6460,7 +6212,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Better than a harsh word.",
    "type": "Sidearms"
   },
@@ -6495,7 +6246,6 @@
     "noise": 2
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Signal kit. Used badly, on camera.",
    "type": "Sidearms"
   },
@@ -6527,7 +6277,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Issued, forgotten, occasionally decisive.",
    "type": "Sidearms"
   },
@@ -6559,7 +6308,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Fails on a different resource than your rifle.",
    "type": "Sidearms"
   },
@@ -6594,7 +6342,6 @@
     "noise": 2
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Six chances to be right.",
    "type": "Sidearms"
   },
@@ -6628,7 +6375,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Empties fast, which is the point.",
    "type": "Sidearms"
   },
@@ -6663,7 +6409,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "A sidearm with opinions about distance.",
    "type": "Sidearms"
   },
@@ -6697,7 +6442,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Leaves them standing and useless.",
    "type": "Sidearms"
   },
@@ -6731,7 +6475,6 @@
     "noise": 0
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Two shots, no noise, nothing that troubles plate.",
    "type": "Sidearms"
   },
@@ -6765,7 +6508,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Feels wildly illegal. Entirely legal.",
    "type": "Sidearms"
   },
@@ -6797,7 +6539,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Trades the plate for the ground.",
    "type": "Armour"
   },
@@ -6825,7 +6566,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Built for fragments, ordinary against everything else.",
    "type": "Armour"
   },
@@ -6853,7 +6593,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "The honest answer to most of what gets shot at you.",
    "type": "Armour"
   },
@@ -6882,7 +6621,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Boils a beam away and cracks under a rifle.",
    "type": "Armour"
   },
@@ -6910,7 +6648,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Slow, sealed, and hard to finish by any means.",
    "type": "Armour"
   },
@@ -6928,7 +6665,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Lights optics_gear_synergy.",
    "type": "Mods"
   },
@@ -6947,7 +6683,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Steady, and only steady.",
    "type": "Mods"
   },
@@ -6961,11 +6696,10 @@
    "cost": 640,
    "bulk": 0,
    "effects": {
-    "overwatch_mult": 1.6,
+    "overwatch_aim": 20,
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Waits better than you do.",
    "type": "Mods"
   },
@@ -6984,7 +6718,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Lighter, and it shows.",
    "type": "Mods"
   },
@@ -7002,7 +6735,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Fire and move.",
    "type": "Mods"
   },
@@ -7020,7 +6752,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Halves the argument about distance.",
    "type": "Mods"
   },
@@ -7038,7 +6769,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Purely for the cameras.",
    "type": "Mods"
   },
@@ -7056,7 +6786,6 @@
     "mags": 1
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "One more magazine than the next man, and the weight of it.",
    "type": "Mods"
   },
@@ -7070,12 +6799,11 @@
    "cost": 480,
    "bulk": 0,
    "effects": {
-    "suppress_drain": -8,
+    "suppress_rounds": 1,
     "cancels": "recoil_heavy",
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Holds the line down.",
    "type": "Mods"
   },
@@ -7093,7 +6821,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Nobody attributes the first one.",
    "type": "Mods"
   },
@@ -7112,7 +6839,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Through, not into.",
    "type": "Mods"
   },
@@ -7130,7 +6856,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "The crowd notices.",
    "type": "Mods"
   },
@@ -7148,7 +6873,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Terrible against plate.",
    "type": "Mods"
   },
@@ -7166,7 +6890,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A longer day.",
    "type": "Mods"
   },
@@ -7184,7 +6907,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Hotter, harder.",
    "type": "Mods"
   },
@@ -7203,7 +6925,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Wider, weaker, closer.",
    "type": "Mods"
   },
@@ -7216,7 +6937,6 @@
    "tier": 2,
    "cost": 240,
    "bulk": 1,
-   "uses": 1,
    "action": "throw",
    "effects": {
     "tags": [
@@ -7224,7 +6944,6 @@
     ]
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
    "type": "Consumables",
    "charges": 6
@@ -7238,13 +6957,11 @@
    "tier": 1,
    "cost": 180,
    "bulk": 1,
-   "uses": 1,
    "action": "screen",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Own side a step more cover for three turns; blocks overwatch both ways.",
    "type": "Consumables",
    "charges": 8
@@ -7258,7 +6975,6 @@
    "tier": 3,
    "cost": 360,
    "bulk": 1,
-   "uses": 1,
    "action": "throw",
    "effects": {
     "tags": [
@@ -7267,7 +6983,6 @@
     ]
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
    "type": "Consumables",
    "charges": 4
@@ -7281,13 +6996,11 @@
    "tier": 1,
    "cost": 280,
    "bulk": 1,
-   "uses": 1,
    "action": "treat",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A downed fighter gets back up more often (+15%).",
    "type": "Consumables",
    "charges": 5
@@ -7301,13 +7014,11 @@
    "tier": 2,
    "cost": 220,
    "bulk": 1,
-   "uses": 1,
    "action": "dose",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
    "type": "Consumables",
    "charges": 4
@@ -7321,13 +7032,11 @@
    "tier": 3,
    "cost": 1200,
    "bulk": 1,
-   "uses": 1,
    "action": "dose",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A round that would kill its carrier leaves him down at a breath instead; up when the fight is over, as hurt as a body can be.",
    "type": "Consumables",
    "charges": 1
@@ -7341,13 +7050,11 @@
    "tier": 3,
    "cost": 520,
    "bulk": 1,
-   "uses": 1,
    "action": "deploy",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Goes up when the enemy is lost; everything within seven tiles of it is seen for four turns.",
    "type": "Consumables",
    "charges": 2
@@ -7361,13 +7068,11 @@
    "tier": 4,
    "cost": 760,
    "bulk": 2,
-   "uses": 1,
    "action": "deploy",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Set down where you stand; fires once a turn for four turns at Aim 130. A machine: it does not flinch.",
    "type": "Consumables",
    "charges": 2
@@ -7381,13 +7086,11 @@
    "tier": 1,
    "cost": 200,
    "bulk": 2,
-   "uses": 1,
    "action": "carry",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+12 rounds when he runs low. Quota: 1 per body.",
    "type": "Consumables",
    "charges": 6
@@ -7401,13 +7104,11 @@
    "tier": 2,
    "cost": 260,
    "bulk": 1,
-   "uses": 1,
    "action": "carry",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+20 charge. Quota: 1 per body.",
    "type": "Consumables",
    "charges": 6
@@ -7443,7 +7144,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Sponsor theatre with a blast radius.",
    "type": "Launchers",
@@ -7482,7 +7182,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Ammunition x3. Nothing about it is reasonable.",
    "type": "Support Guns",
@@ -7521,7 +7220,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "One hole, all the way through.",
    "type": "Anti-Materiel",
@@ -7561,7 +7259,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Removes the position and the argument.",
    "type": "Launchers",
@@ -7601,7 +7298,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "One shot per three exchanges. It is enough.",
    "type": "Anti-Materiel",
@@ -7635,7 +7331,6 @@
     "covers": null
    },
    "price_model": "scarcity",
-   "legality": "legal",
    "exotic": true,
    "identity": "A walking cover position that eats an allowance.",
    "type": "Armour"
@@ -7656,8 +7351,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
-   "acquisition": "step9",
    "identity": "Takes every scrap of cover in reach down to the bare ground.",
    "type": "Consumables",
    "charges": 1
@@ -7677,8 +7370,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
-   "acquisition": "step9",
    "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
    "type": "Consumables",
    "charges": 1
@@ -7689,7 +7380,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_stun_carbine",
    "name": "Kestrel Stun-Carbine",
@@ -7730,7 +7420,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_shock_lance",
    "name": "Arclight Shock Lance",
@@ -7771,7 +7460,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_dazzler",
    "name": "Halo Dazzler",
@@ -7836,7 +7524,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
    "type": "Assault Rifles",
    "worth": {
@@ -7874,7 +7561,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
    "type": "Assault Rifles",
    "worth": {
@@ -7913,7 +7599,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Holds its line while you walk. The rest is practice.",
    "type": "Assault Rifles",
    "worth": {
@@ -7951,7 +7636,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Heavier than it looks, and it goes through more than it should.",
    "type": "Assault Rifles",
    "worth": {
@@ -7991,7 +7675,6 @@
     "charge": 24
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Three flashes a second and a battery that resents it.",
    "type": "Assault Rifles",
    "worth": {
@@ -8030,7 +7713,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "What an OA buys when it has stopped counting.",
    "type": "Assault Rifles",
    "worth": {
@@ -8068,7 +7750,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Loud, light, and honest about what it is.",
    "type": "Submachine Guns",
    "worth": {
@@ -8106,7 +7787,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Made for corridors and the people who fight in them.",
    "type": "Submachine Guns",
    "worth": {
@@ -8145,7 +7825,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Points where you are already looking.",
    "type": "Submachine Guns",
    "worth": {
@@ -8184,7 +7863,6 @@
     "charge": 30
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
@@ -8217,7 +7895,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8245,7 +7922,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8275,7 +7951,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8304,7 +7979,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8333,7 +8007,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8362,7 +8035,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8390,7 +8062,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8420,7 +8091,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8449,7 +8119,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8475,7 +8144,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8505,7 +8173,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8533,7 +8200,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8565,7 +8231,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -8597,7 +8262,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Bought for deer. Kept for the long walk across open ground.",
    "type": "Long Rifles",
    "worth": {
@@ -8633,7 +8297,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Nobody hears it. Nobody who needs to.",
    "type": "Long Rifles",
    "exotic": true,
@@ -8672,7 +8335,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A glass sight bolted on by somebody who meant well.",
    "type": "Marksman Rifles",
    "worth": {
@@ -8708,7 +8370,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Every round an argument won at the first word.",
    "type": "Marksman Rifles",
    "exotic": true,
@@ -8748,7 +8409,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A wall of small certainties.",
    "type": "Submachine Guns",
    "exotic": true,
@@ -8785,7 +8445,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Heavy, loud, and older than the man carrying it.",
    "type": "Support Guns",
    "worth": {
@@ -8821,7 +8480,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two barrels, one decision.",
    "type": "Scatterguns",
    "worth": {
@@ -8860,7 +8518,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Empties a room without opening the door.",
    "type": "Scatterguns",
    "exotic": true,
@@ -8897,7 +8554,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short, light, and forgiving of cold hands.",
    "type": "Carbines",
    "worth": {
@@ -8933,7 +8589,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fits in a pack. Unfolds into a problem.",
    "type": "Carbines",
    "worth": {
@@ -8971,7 +8626,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Built for the first squad down and the last one out.",
    "type": "Carbines",
    "exotic": true,
@@ -9010,7 +8664,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Pipe, fuse, and faith.",
    "type": "Launchers",
    "worth": {
@@ -9048,7 +8701,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Lobs a problem over the wall they are hiding behind.",
    "type": "Launchers",
    "worth": {
@@ -9086,7 +8738,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Six rounds of bad news, one after another.",
    "type": "Launchers",
    "worth": {
@@ -9122,7 +8773,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Kicks like the thing it was made for.",
    "type": "Anti-Materiel",
    "worth": {
@@ -9158,7 +8808,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Pulled off a wreck. Still finds armour through the smoke.",
    "type": "Anti-Materiel",
    "worth": {
@@ -9194,7 +8843,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Opens cover the way a key opens a door.",
    "type": "Anti-Materiel",
    "worth": {
@@ -9232,7 +8880,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "For the last three metres of any argument.",
    "type": "Close-Quarters",
    "worth": {
@@ -9270,7 +8917,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short barrel. Short conversation.",
    "type": "Close-Quarters",
    "worth": {
@@ -9308,7 +8954,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The door is the wall now.",
    "type": "Close-Quarters",
    "exotic": true,
@@ -9323,7 +8968,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_prod_gun",
    "name": "Prod Gun",
@@ -9364,7 +9008,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_tether_stunner",
    "name": "Tether Stunner",
@@ -9404,7 +9047,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_swarm_repeater",
    "name": "Swarm Stun-Repeater",
@@ -9445,7 +9087,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_lull_rifle",
    "name": "Lull Rifle",
@@ -9485,7 +9126,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_hush_launcher",
    "name": "Hush Launcher",
@@ -9526,7 +9166,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "scarcity",
    "id": "itm_quietus_projector",
    "name": "Quietus Projector",
@@ -9593,7 +9232,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A training beam somebody turned up past the stop.",
    "type": "Assault Rifles",
    "worth": {
@@ -9632,7 +9270,6 @@
     "charge": 23
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
@@ -9669,7 +9306,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The first thing they see is the last thing they see.",
    "type": "Marksman Rifles",
    "worth": {
@@ -9708,7 +9344,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Every shot a little sunrise.",
    "type": "Carbines",
    "exotic": true,
@@ -9746,7 +9381,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Reaches the ridge line before the sound does.",
    "type": "Long Rifles",
    "exotic": true,
@@ -9786,7 +9420,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Holds a line of light across the whole field.",
    "type": "Support Guns",
    "exotic": true,
@@ -9819,7 +9452,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Crinkles when you run. Turns a beam, sometimes."
   },
   {
@@ -9845,7 +9477,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Exactly what it sounds like."
   },
   {
@@ -9871,7 +9502,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Stops the round. Not the bruise."
   },
   {
@@ -9898,7 +9528,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Good at nothing in particular, which is often enough."
   },
   {
@@ -9926,7 +9555,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Light goes in. Light comes out somewhere else."
   },
   {
@@ -9954,7 +9582,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Walks through small-arms fire like weather."
   },
   {
@@ -9985,7 +9612,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "A torch that bites.",
    "type": "Sidearms"
   },
@@ -10017,7 +9643,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "The last word, repeated.",
    "type": "Sidearms"
   },
@@ -10049,7 +9674,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Made for one person, and for one moment.",
    "type": "Sidearms"
   }
@@ -10634,10 +10258,9 @@
  * Seeded via CDPRNG (mulberry32); no Math.random. Data-driven from /data.
  *
  * Step 3 note: produces fighters valid against fighter.schema.json v0.5. Arrival
- * injuries now use the COMBAT.md §7 injury ids so the Divide's degradation clock
- * (§7.1) can read them — they arrive `untreated`, which under the ratified evac
- * model (DIVIDE_POLICY.md §5) means they worsen if the Divide starts before a
- * medic sees them. `history.evacs` counts field recoveries, not departures: nothing
+ * injuries use the COMBAT.md §7 injury ids. (An `untreated` wound is one taken on the
+ * ground with no medkit charge to dress it; it comes home deeper — season.js
+ * bringWoundHome.) `history.evacs` counts field recoveries, not departures: nothing
  * leaves a Divide.
  */
 (function (global) {
@@ -10691,7 +10314,7 @@
   /** Race selection: pool base weights × (nattie only) corp ship demographics. */
   Generator.prototype.pickRace = function (rng, pool, corpId, raceFilter) {
     if (raceFilter) return this.raceById[raceFilter];
-    const corp = pool === "nattie" && corpId ? this.corpById[corpId] : null;
+    const corp = this.rec.pools[pool] && this.rec.pools[pool].corp_weighted && corpId ? this.corpById[corpId] : null;   /* the pool data says whose ship it draws from */
     const entries = [];
     for (const r of this.races) {
       let w = r.pool_weights[pool === "mercenary" ? "merc" : pool] || 0;
@@ -10964,7 +10587,7 @@
     // Name (Et- honorific for etu clergy/zealots — ratified).
     let named = opts.named || NG.generateName(rng, race, opts.taken);
     let displayName = named.name;
-    if (race.id === "etu" && (traitIds.includes("et_y_bellum_zealot") || traitIds.includes("war_priest"))) {
+    if (race.id === "etu" && traitIds.includes("et_y_bellum_zealot")) {
       displayName = NG.applyEtHonorific(displayName, race.naming);
     }
 
@@ -11006,7 +10629,7 @@
       if (poolCfg.divide_bonus_mult)
         contract.divide_bonus = P.roundTo(salary * poolCfg.divide_bonus_mult, 10);
     } else if (pool === "mercenary") {
-      contract.signing_cost = P.roundTo(salary * (2 + 0.8 * seasons + 0.02 * fame), 10);
+      contract.signing_cost = P.roundTo(salary * (2 + 0.8 * seasons + 0.02 * fame) * ((race.market && race.market.cost_mult) || 1), 10);   /* §RACES (ruled) what a people costs to sign: the fee, by its own market (the Kier's fee is flat) */
     } else {
       const req = parseInt(P.weightedPick(rng, poolCfg.freedom_divides_weights), 10);
       contract.divides_served = 0;
@@ -11028,7 +10651,7 @@
         type: P.pick(rng, ["inj_arm", "inj_leg", "inj_torso"]),  // COMBAT.md §7.1 ids
         severity: "minor",
         days_remaining: P.int(rng, 5, 20),
-        untreated: true
+        untreated: false
       });
       condition.health = P.int(rng, 80, 95);
     }
@@ -11274,26 +10897,8 @@
     /* ---- tier 2: trait-specific ---- */
     { key: "t_bleeder", tier: 2, register: "dry", when: c => c.has("bleeder"),
       text: c => `Medical flagged the file: wounds run a grade worse on ${c.name}. Budget for the evac retainer.` },
-    { key: "t_gallows", tier: 2, register: "hype", when: c => c.has("gallows_humor"),
-      text: c => `Cracked a joke during their own tryout shelling, we're told. Ten seconds late. Landed anyway.` },
     { key: "t_born_captain", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads a battlefield the way an auditor reads a ledger. Captain material — the market will figure it out eventually.` },
-    { key: "t_kier", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
-      text: c => `Kier alumni. The Divide's worst day is the Bastille's Tuesday, and ${c.name} did years of Tuesdays.` },
-    { key: "t_freedom_counter", tier: 2, register: "dry", when: c => c.has("kier_hardened"),
-      text: c => `Keeps the clause tally scratched inside the armor, the guards say. That's not a habit. That's fuel.` },
-    { key: "t_hot_headed", tier: 2, register: "hype", when: c => c.has("hot_blooded"),
-      text: c => `Burns HOT! Point the burn at the other banners and everyone goes home happy. Point it wrong and — well. Ratings.` },
-    { key: "t_superstitious", tier: 2, register: "hype", when: c => c.has("superstitious"),
-      text: c => `Won't drop without the dawn ritual. Three camps ago, the ritual squad lived. Make of that what the crowd will!` },
-    { key: "t_odds_watcher", tier: 2, register: "dry", when: c => c.has("odds_watcher"),
-      text: c => `Checks the board before breakfast. Undervalue ${c.name} at your own expense — the board is listening.` },
-    { key: "t_mimic", tier: 2, register: "hype", when: c => c.has("mimic_call"),
-      text: c => `Fifty meters of somebody else's voice, thrown into the wrong ravine. Comms crews hate it. The crowd emphatically does not.` },
-    { key: "t_battle_joy", tier: 2, register: "hype", when: c => c.has("battle_joy"),
-      text: c => `The grin gets wider as the fight gets worse. The intensity graphs and that smile track one-to-one.` },
-    { key: "t_war_priest", tier: 2, register: "dry", when: c => c.has("war_priest"),
-      text: c => `Every bandage a blessing. Squads with an Et- on the roster evac calmer and grieve shorter. The numbers back the faith.` },
     { key: "t_zealot", tier: 2, register: "dry", when: c => c.has("et_y_bellum_zealot"),
       text: c => `The Et- on the name is fair warning: the evac team should expect a theological argument.` },
     { key: "t_devout", tier: 2, register: "dry", when: c => c.has("et_y_bellum_devout") && !c.has("et_y_bellum_zealot"),
@@ -11307,46 +10912,10 @@
       text: c => `Serves the fleet. Hasn't forgiven it. The loyalty line prices that in — the camp chemistry is your problem.` },
     { key: "t_keshu", tier: 2, register: "dry", when: c => c.has("keshu_grudge"),
       text: c => `Some households never signed the Keshu peace. Check your roster for the other half of that war before you sign this one.` },
-    { key: "t_few_words", tier: 2, register: "hype", when: c => c.has("few_words"),
-      text: c => `Has spoken on broadcast twice in a career. Both clips are legendary. We live in hope of a third.` },
-    { key: "t_savage", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
-      text: c => `Fights like the cameras are family. The cameras, for the record, agree.` },
-    { key: "t_darling", tier: 2, register: "hype", when: c => c.has("crowd_darling"),
-      text: c => `The drones find ${c.name} on their own. Nobody programs that. The crowd just knows.` },
     { key: "t_climber", tier: 2, register: "dry", when: c => c.has("born_captain"),
       text: c => `Reads every roster posting twice: once for the squad, once for their own name's position in it.` },
-    { key: "t_tradition", tier: 2, register: "dry", when: c => c.has("company_man"),
-      text: c => `Signed for a banner, not a mood. Change doctrine mid-Divide and you'll meet granite with a contract.` },
     { key: "t_cull", tier: 2, register: "dry", when: c => c.has("hard_to_kill"),
       text: c => `Survived the training years. Panic was culled out of ${c.name} before adulthood — the pride kept receipts.` },
-    { key: "t_dancer", tier: 2, register: "hype", when: c => c.has("quick_off_the_mark"),
-      text: c => `Every reposition a step, every shot a beat — the old dueling forms, live on your feed!` },
-    { key: "t_mentor", tier: 2, register: "dry", when: c => c.has("mentor"),
-      text: c => `Rookies orbit ${c.name}. The nerves settle. The habits stick. Cheap at twice the salary.` },
-    { key: "t_pact", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
-      text: c => `A deal signed is a deal kept — even the ones the manager comes to regret. Negotiators, take note.` },
-    { key: "t_clause", tier: 2, register: "dry", when: c => c.has("clause_reader"),
-      text: c => `Knows the contract, your precedent, and the fleet's going rate to the credit. Renewal season will be an education.` },
-    { key: "t_union", tier: 2, register: "dry", when: c => c.has("union_tongue"),
-      text: c => `Knows every grievance in camp and how to say it out loud. A morale engine — pointed wherever ${c.name} decides.` },
-    { key: "t_villain", tier: 2, register: "hype", when: c => c.has("villain_edit"),
-      text: c => `The crowd LOVES to hate this one — and tunes in, every time, to do it properly!` },
-    { key: "t_thrill", tier: 2, register: "hype", when: c => c.has("thrill_seeker"),
-      text: c => `First hand up for the bad jobs! The medics keep the file open, and the crowd keeps the volume up.` },
-    { key: "t_lucky", tier: 2, register: "hype", when: c => c.has("aleas_favorite"),
-      text: c => `Closures miss them. Drops land beside them. Nobody can prove a thing, and the syndicates have STOPPED trying.` },
-    { key: "t_omen", tier: 2, register: "dry", when: c => c.has("bad_omen"),
-      text: c => `When things go wrong, camps remember who they went wrong near. Superstition isn't fair. It is, however, contagious.` },
-    { key: "t_cook", tier: 2, register: "dry", when: c => c.has("camp_cook"),
-      text: c => `Turns ration paste into something a squad queues for. Morale-per-credit, there's no better signing on this sheet.` },
-    { key: "t_quotable", tier: 2, register: "hype", when: c => c.has("quotable"),
-      text: c => `Everything ${c.name} says fits a chyron. We checked. It's uncanny. It occasionally gets people fined.` },
-    { key: "t_loyal_fault", tier: 2, register: "dry", when: c => c.has("loyal_to_a_fault"),
-      text: c => `Will follow the banner anywhere. Including, the tape suggests, the places it should not have gone.` },
-    { key: "t_slow_start", tier: 2, register: "dry", when: c => c.has("slow_starter"),
-      text: c => `A terrible first week, every recorded Divide. Then something clicks shut. Plan the schedule accordingly.` },
-    { key: "t_homesick", tier: 2, register: "dry", when: c => c.has("homesick"),
-      text: c => `Carries the ship in their chest. Long campaigns wear a hole in it — watch the morale line after week three.` },
 
     /* ---- tier 1: race color ---- */
     { key: "r_human", tier: 1, register: "dry", when: c => c.f.race === "human",
@@ -11453,6 +11022,11 @@
     gen = RG.create(data);
     raceById = gen.raceById;
     traitById = gen.traitById;
+    /* §RACES (ruled) a people's own abilities ride the same hooks a trait carries: `special.hooks` on the race, read by
+       combat.hooksOf beside the fighter's traits (kept off the trait list, so no sheet shows them as a quirk) */
+    const rh = {};
+    for (const id in raceById) { const r = raceById[id]; if (r.special && r.special.hooks) rh[id] = r.special.hooks; }
+    Object.defineProperty(traitById, '__raceHooks', { value: rh, enumerable: false });
     /* §PAPER the ruled contract ranges live in recruitment.json and are read from there by the
        generator; season.js needs the same ranges for a RENEWAL, and copying them into a
        constant would be a second place for them to be wrong. */
@@ -11639,7 +11213,6 @@
     QUOTA_CELL_PER_BODY: 1,         // [S]
 
     DEVICE_SHARE: 0.34,             // [C] §DEVICES share of a force the richest OA fits with a device
-    MOD_OVERWATCH_AIM: 20,          // [C] a target link's reaction-shot steadiness, in sheet Aim (the overwatch trait's size)
     FOUNDING_DEPTH: 1.25,           // [H] spares a corp arrives with, over one force's worth
     FOUNDING_SPARES: 0.35,          // [H] cheap spares per body per slot (ruled smaller)
     /* §14a — HOW MUCH A CORP ACTUALLY FIELDS (Step 6b).
@@ -11832,11 +11405,11 @@
       mod.aim += e.gear_accuracy || 0;
       mod.aimHolding += e.aim_holding || 0;
       mod.aimMoving += e.aim_moving || 0;
-      /* "waits better than you do": sized as the overwatch trait is (+2 on a reaction shot) */
-      if (e.overwatch_mult) mod.overwatchAim += CONST.MOD_OVERWATCH_AIM;
+      /* "waits better than you do": sheet Aim on a reaction shot (the data says how much) */
+      mod.overwatchAim += e.overwatch_aim || 0;
       if (e.band_mismatch_mult) mod.bandMult *= e.band_mismatch_mult;
-      /* "holds the line down": suppressing fire costs a round less */
-      if (e.suppress_drain) mod.suppressCost += 1;
+      /* "holds the line down": suppressing fire costs this many rounds less */
+      mod.suppressCost += e.suppress_rounds || 0;
       if (e.cancels) cancels.push(e.cancels);
     }
     if (cancels.length) tags = tags.filter(t => cancels.indexOf(t) < 0);
@@ -14376,7 +13949,7 @@
         buyer    felt by the house that bought from you (ctx.buyerId)
         grave    the Diehards feel it in full; ctx.grave marks one case of an act as grave
         residue  the share never forgotten (R8)
-     ctx.mult (and the older ctx.storyMult) scales the whole act: who it happened to changes how loudly it lands. */
+     ctx.mult scales the whole act: who it happened to changes how loudly it lands. */
   const ACTS = {
     /* --- the Divide, and its settlement --- */
     won_planet:         { q: { glory: 1.0 }, mag: 14, houses: -5, residue: 0.55 },       /* ctx.scale adds grit: how unlikely it was */
@@ -14657,7 +14230,7 @@
     const spec = ACTS[type];
     if (!spec) throw new Error('reputation: unknown act ' + type);
     const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
-    const loud = (ctx.storyMult || 1) * (ctx.mult || 1);
+    const loud = ctx.mult || 1;
     const mag = resolve(spec.mag, c) * loud;
     const q = Object.assign({}, spec.q || {}, ctx.q || {});
     /* a win against the odds is grit as well as glory (ctx.scale: how unlikely it was) */
@@ -14694,7 +14267,7 @@
   /**
    * §3 — a corp is seen doing something. Remembers what each audience made of it and returns what moved, so the
    * day loop and the viewer can show the reason beside the number.
-   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, storyMult, season }
+   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, season }
    */
   function act(rep, type, ctx) {
     ctx = ctx || {};
@@ -15218,11 +14791,7 @@
        this module deliberately does not load traits.json. */
     const h = ctx.hooks || new Set();
     let amp = 1;
-    if (h.has('media_statement_impact_amplified')) amp *= 1.6;   // every line fits a chyron
     if (h.has('media_statements_flat')) amp *= 0.45;             // and both clips are famous
-    if (h.has('rare_quote_fame_spike')) amp *= 1.3;
-    if (h.has('fame_volatility_up')) amp *= 1.4;
-    if (h.has('fame_gain_down')) amp *= 0.6;
     /* fame carries a statement further: the fleet hears a name it knows */
     if (sp) amp *= 1 + 0.5 * ((sp.fame || 0) / CONST.FAME_CEIL);
     const moved = act(rep, type, { mult: amp, targetId: ctx.targetId, season: ctx.season });
@@ -16209,20 +15778,13 @@
   const CONST = {
     EVENT_P: 0.55,               // [C] chance a corp draws an event in a month at all
     SECOND_P: 0.18,              // [C] chance of a second
+    REFUSED_RAISE_LOYALTY: 10,          // [C] (ruled) what a refused raise costs his loyalty
     RAISE_FRAC: 0.20,            // [C] what a raise asks, as a share of salary
     DEBT_CALL: 6000,             // [C] what a Debtor's creditors want
     FINE: 1500,                  // [C] a barracks fine, per brawler
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
     SEEDED: 2.6,                 // [C] §QUIRKS what an OA with the people for it draws instead
     UNSEEDED: 0.7,               // [C] and what an OA with nobody who could cause it draws
-    /* §STORY what a hand does to the loudness of a story told about him */
-    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts an OA's draw
-    LUCK_CAP: 1.8,               // [C] and the furthest a roster of them can tilt it
-    STORY_LOUD: 1.35,            // [C] a soundbite machine is quoted
-    STORY_VILLAIN: 1.40,         // [C] a villain edit is cut against him
-    STORY_BLAME: 1.30,           // [C] a blame magnet wears it
-    STORY_MOURNED: 1.50,         // [C] a company family's dead are mourned louder
-    POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
@@ -16245,7 +15807,6 @@
     MEDIA_MULT: { steady: 0.75, manager: 0.55 },                   // [H] a quieter front, a quieter day
     MEDIA_FAME: { standout: 6, steady: 3 },                        // [C] what the front gains for being seen
     MEDIA_STRESS: 8,             // [C] the pressure of the cameras
-    MEDIA_CUT_P: 0.35,           // [H] a villain edit's chance of the piece being cut against you
     MEDIA_PATIENCE: 1,           // [C] the board likes a manager who fronts the OA himself
     /* §MEDIA THE PRESS between media days: a profile before the drop, and last year reviewed */
     PROFILE_FAME: 8,             // [C] a long piece on your standout
@@ -16321,7 +15882,7 @@
     f.condition = f.condition || { health: 100, fatigue: 0, morale: 55, injuries: [], stress: 0 };
     f.condition.injuries.push({ type: type, severity: 'minor', days_remaining: days, untreated: false });
     f.condition.health = Math.max(0, Math.min(f.condition.health == null ? 100 : f.condition.health, 100 - days));
-    f.status = 'injured'; f._recovery = 0; f._untreatedDays = 0;
+    f.status = 'injured'; f._recovery = 0;
   };
   /* §MONEY what the seat has free by its reckoning (season.js planFor, set as the month opens) */
   const spare = c => (c._free != null ? c._free : c.account.treasury);
@@ -16435,17 +15996,13 @@
       id: 'raise', weight: 1.4,
       when: (c) => { const cand = alive(c).filter(f => !f.mirror_of && (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked);   /* a pair asks on its Mon's paper */ return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
       make: (f, c, ctx) => {
-        /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the OA asks louder */
         let raiseMult = CONST.RAISE_FRAC;
-        const st0 = ctx && ctx.state;
-        if (fighterHas(st0, f, 'salary_anchoring_up')) raiseMult *= 1.35;
-        if (fighterHas(st0, f, 'salary_demand_pressure')) raiseMult *= 1.20;
         const ask = Math.round((f.contract.salary || 0) * raiseMult);
         return { kind: 'raise', subject: f.id, title: f.name + ' Wants a Raise',
                  text: f.name + ' has a following now, and a following has a price: ' + fmtCr(LED.retainerOf(ask)) + ' more a month, and ' + fmtCr(LED.purseOf(ask)) + ' more a drop.',
                  options: [
                    { id: 'grant', label: 'Grant It', cost: '−' + fmtCr(LED.retainerOf(ask)) + ' a Month' },   /* §MONEY (ruled) what a raise adds to the retainer each month */
-                   { id: 'refuse', label: 'Refuse', cost: 'They Sour' },
+                   { id: 'refuse', label: 'Refuse', cost: '−' + CONST.REFUSED_RAISE_LOYALTY + ' Loyalty' },
                    { id: 'release', label: 'Release Them', cost: 'They Walk' }
                  ], def: 'refuse', ask: ask };
       },
@@ -16455,7 +16012,7 @@
         /* §HALF-BUILT your own people see it: `granted_a_raise` was written and never raised */
         if (opt === 'grant') { f.contract.salary += e.ask; stress(f, -10); if (c.rep) REP.act(c.rep, 'granted_a_raise', {}); return f.name + ' Got the Raise'; }
         if (opt === 'release') { f.status = 'retired'; f._released = true; if (c.rep) REP.act(c.rep, 'released_a_fighter', { grave: (f.fame || 0) >= 60 }); return f.name + ' Was Released'; }
-        stress(f, 18); f._discontent = (f._discontent || 0) + 1; if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
+        stress(f, 18); f.loyalty = Math.max(0, (f.loyalty == null ? 50 : f.loyalty) - CONST.REFUSED_RAISE_LOYALTY); if (c.rep) REP.act(c.rep, 'refused_a_raise', {}); return f.name + ' Was Refused, and Soured';
       },
       ai: (c, e) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'refuse';
@@ -16551,10 +16108,7 @@
     {
       id: 'poach', weight: 1.1,
       when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached && !f.mirror_of); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
-      /* §QUIRKS a hand who does not listen to other OAs costs more to tempt: poach_resistant
-         was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
-      make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
-                                 * (ctx && ctx.state && fighterHas(ctx.state, s.f, 'poach_resistant') ? CONST.POACH_LOYAL : 1));
+      make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT);
         return { kind: 'poach', subject: s.f.id, from: s.from, price: price, title: 'An Offer for ' + s.f.name,
           text: 'An OA across the fleet wants ' + s.f.name + ', and has put ' + fmtCr(price) + ' on the table for the paper.',
           options: [
@@ -16565,12 +16119,6 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._poached = true;
-        /* §GRUDGE ONE FIELD, NOT A LEDGER. Grudge Holder's three hooks wanted a fighter's memory
-           of other OAs, and the first design for it was a relationship matrix — far more
-           machinery than a trait that is mostly texture is worth. A man remembers ONE OA: the
-           last one that did something to him. It is set where something memorable happens and
-           read in two places, and that is the whole of it. */
-        if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           /* §MONEY (fixed) the OA that bought the paper pays for it — it was paid to the seller out of nothing — and the man
              is theirs (§MON-WA his other half goes with him, keepPairsWhole) */
@@ -16761,9 +16309,8 @@
                   { id: 'decline', label: 'Decline', cost: 'Written Anyway, From the Postings' }], def: 'decline' }; },
     resolve: (c, e, opt, ctx) => {
       const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
-      const loud = storyMult(ctx.state, f, true);
-      if (opt === 'grant') { REP.addFame(f, Math.round(CONST.PROFILE_FAME * loud)); stress(f, CONST.PROFILE_STRESS);
-        if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
+      if (opt === 'grant') { REP.addFame(f, CONST.PROFILE_FAME); stress(f, CONST.PROFILE_STRESS);
+        if (c.rep) REP.act(c.rep, 'profiled', {}); return 'The Piece Ran on ' + f.name; }
       REP.addFame(f, CONST.PROFILE_DECLINED_FAME); return 'The Piece Ran Anyway, Thinner';
     },
     ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
@@ -16889,14 +16436,9 @@
      one flat pool whoever was aboard. An OA with the seed for an event draws it far oftener,
      and an OA with nobody who could cause it draws it a little less. */
   const SEED_FOR = {
-    brawl:  ['aggression_event_seed'],
-    raise:  ['renegotiation_demand_seed', 'status_coupling_amplified'],
-    debt:   ['syndicate_contact_seed'],
-    poach:  ['rivalry_event_seed', 'squad_envy_event_seed'],
-    insult: ['pride_event_seed', 'unlikely_friendship_arc_seed'],
-    dealer: ['omen_event_seed', 'ritual_event_seed', 'squad_superstition_event_seed'],
-    memo:   ['collective_demand_event_seed', 'abolitionist_event_seed', 'cradle_camp_event_seed'],
-    role:   ['desperation_event_seed_final_divide', 'scandal_seed_step9']
+    insult: ['unlikely_friendship_arc_seed'],
+    memo:   ['abolitionist_event_seed', 'cradle_camp_event_seed'],
+    role:   ['scandal_seed_step9']
   };
   /* THE CACHE LIVES OFF THE CORP. The first cut hung a Set on each corporation and a whole
      trait index on the state — and the save keeps everything on those objects, so a career
@@ -16925,29 +16467,7 @@
     const want = SEED_FOR[specId]; if (!want) return 1;
     const have = corpSeeds(state, corp);
     let w = want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
-    /* §LUCK A OA WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
-       system and does not need one — the draw is already weighted by who an OA is carrying,
-       and this is one more term in it. A favoured hand tilts the good events toward the OA
-       and the sour ones away; a bad omen does the reverse. No dice anywhere else change. */
-    const luck = luckOf(state, corp);
-    if (luck !== 1) w *= GOOD_EVENTS.has(specId) ? luck : 1 / luck;
     return w;
-  }
-  /* the events an OA would rather draw than not */
-  const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
-  const LUCK_CACHE = new WeakMap();
-  function luckOf(state, corp) {
-    const c = LUCK_CACHE.get(corp), key = rosterKey(corp);
-    if (c && c.n === key) return c.v;
-    let v = 1;
-    for (const f of corp.roster) {
-      if (f.status === 'dead' || f.status === 'retired') continue;
-      if (fighterHas(state, f, 'luck_event_bias_positive')) v *= CONST.LUCKY;
-      if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
-    }
-    v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
-    LUCK_CACHE.set(corp, { n: key, v });
-    return v;
   }
   let TRAIT_INDEX = null;
   /** the catalogue's index, handed in once by the season rather than saved with the career */
@@ -16987,20 +16507,6 @@
     if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
     if (/-/.test(n) && n.indexOf(' ') < 0) return n;     /* a Mon-Wa half is one word with a hyphen */
     return n.split(' ')[0];
-  }
-  /* §STORY WHAT THIS HAND DOES TO A STORY. One reader, consulted wherever an act is raised
-     about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
-     one worse, a blame magnet wears whatever went wrong, and a company family's dead are
-     mourned louder. These were six hooks wanting a press office; they are one multiplier. */
-  /* §MEDIA read by media day and the press: a soundbite machine is heard louder, a villain edit cut against */
-  function storyMult(state, f, good) {
-    if (!f) return 1;
-    let m = 1;
-    if (fighterHas(state, f, 'media_statement_impact_amplified')) m *= CONST.STORY_LOUD;
-    if (!good && fighterHas(state, f, 'sportsmanship_penalty_amplified')) m *= CONST.STORY_VILLAIN;
-    if (!good && fighterHas(state, f, 'blame_magnet')) m *= CONST.STORY_BLAME;
-    if (!good && fighterHas(state, f, 'death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
-    return m;
   }
   function fighterHas(state, f, hook) {
     const idx = traitIndexOf(state);
@@ -17099,15 +16605,13 @@
     /* §STAFF a Fixer's hand on how the day is heard, in the figures the card quotes */
     const spinGood = (corp.rep && corp.rep._spin && corp.rep._spin.good) || 1;
     const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
-    const loudOf = f => storyMult(state, f, true);
     const options = [];
     const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
     if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
-            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
-            (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' });
     if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
             ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
     options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager * spinGood) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
     options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
@@ -17124,14 +16628,9 @@
         rec(CONST.MEDIA_REVEAL.manager, CONST.MEDIA_BASE * mult); return 'You Fronted Media Day Yourself'; }
       const o = e.options.find(x => x.id === opt), f = o && alive(c).find(x => x.id === o.fighter);
       if (!f) { rec(0, 0); return 'Nobody Went'; }
-      const loud = storyMult(state, f, true);
-      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
+      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady);
       REP.addFame(f, CONST.MEDIA_FAME[opt]); stress(f, CONST.MEDIA_STRESS);   /* fame is 0 to 100, like every standing */
       rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
-      if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
-        if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });
-        return 'The Piece Was Cut Against ' + f.name;
-      }
       if (c.rep) REP.act(c.rep, 'media_day', { mult });
       return 'The Fleet Heard ' + f.name;
     },
@@ -17214,7 +16713,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });
@@ -17275,7 +16774,7 @@ const CONST = {
   /* §ONE AIM what a trait adds to a shot, in AIM ON THE SHEET — the same points a manager reads on
      a fighter, and the same yardstick as the quirks ("+15 is where a person starts to feel it").
      These were bare numbers in aimEff, written on the invisible copy's scale. */
-  TRAIT_AIM: { accuracy: 20, squadLink: 10, overwatch: 20, firstStrike: 30, firstShotLong: 40, optics: 10 },
+  TRAIT_AIM: { squadLink: 10 },
   FATIGUE_AIM_STEP: 10,                   // [C] aim lost per 25 fatigue, three steps at most
   LIGHT_WOUND_AIM: 10,                    // [C] aim a light wound costs                        // [C]
   HIT_BASE: 0.38,                         // [C] at aim_eff 10 — raised from 0.30 in Step 3b (see report)
@@ -17412,7 +16911,7 @@ const CONST = {
   RECOVER_BY_SEV: { graze: 0.94, light: 0.90, serious: 0.78, critical: 0.60, killed: 0.45 },
 
   /* §3.7 downed */
-  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_TRAIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
+  TREAT_BASE: 0.35, TREAT_MEDKIT: 0.15, TREAT_FIELDCRAFT: 0.002,  // [C]
   /* MEDKIT_RATE deleted at Step 5b-2: whether a squad has medical kit is no longer a
      coin flip, it is whether somebody bought one and is carrying it (PROCUREMENT.md §10). */
 
@@ -17492,24 +16991,9 @@ const RECOVERY = { minor: [5, 15], serious: [20, 60], critical: [45, 120], perma
    quirk that names one this list does not have. */
 const SITUATIONS = {
   squad_at_most_4:   ctx => (ctx.squadSize || 99) <= 4,
-  squad_at_most_6:   ctx => (ctx.squadSize || 99) <= 6,
-  squad_at_least_7:  ctx => (ctx.squadSize || 0) >= 7,
   is_captain:        ctx => !!ctx.isCaptain,
-  not_captain:       ctx => !ctx.isCaptain,
-  first_divide:      ctx => !!ctx.firstEngagement,
-  alongside_conscript: ctx => !!ctx.withConscript,
-  alone_of_their_race: ctx => !!ctx.onlyOfRace,
-  /* the rest of the closed vocabulary, each answerable where a body is built */
-  veteran:             ctx => (ctx.divides || 0) >= 2,
-  green:               ctx => (ctx.divides || 0) === 0,
-  young:               ctx => (ctx.age || 30) <= 24,
-  old_hand:            ctx => (ctx.age || 30) >= 34,
   hurt:                ctx => (ctx.health == null ? 100 : ctx.health) < 100,
-  settled:             ctx => (ctx.stress || 0) <= 20,
-  rattled:             ctx => (ctx.stress || 0) >= 50,
-  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain,
-  is_conscript:        ctx => ctx.origin === 'prisoner',
-  is_mercenary:        ctx => ctx.origin === 'mercenary'
+  with_their_captain:  ctx => !!ctx.captainPresent && !ctx.isCaptain
 };
 function situationalStats(fighter, traitIndex, ctx) {
   const out = {};
@@ -17528,6 +17012,8 @@ function situationalStats(fighter, traitIndex, ctx) {
 }
 function hooksOf(fighter, traitIndex) {
   const h = new Set();
+  const rh = traitIndex && traitIndex.__raceHooks && traitIndex.__raceHooks[fighter.race && fighter.race.id ? fighter.race.id : fighter.race];
+  if (rh) for (const hook of rh) h.add(hook);   /* §RACES what a people does, beside what the man does */
   for (const tid of (fighter.traits || [])) {
     const t = traitIndex && traitIndex[tid];
     if (!t) continue;
@@ -17552,12 +17038,6 @@ function seedComposure(f, hooks, opts) {
     - CONST.COMP_STRESS * ((f.condition && f.condition.stress) || 0);
 
   /* §11.1 composure hooks */
-  if (hooks.has('composure_bonus')) c += 10;
-  if (hooks.has('seen_worse_composure')) c += 12;
-  if (hooks.has('first_engagement_surge') && opts.firstEngagement) c += 15;
-  if (hooks.has('early_divide_penalty') && opts.day <= 7) c -= 8;
-  if (hooks.has('late_divide_bonus') && opts.day >= 15) c += 8;
-  if (opts.rookieSupport && (xp.divides || 0) < 1) c += 8;   // mentor's rookie_composure_support
   if (f.race === 'etu') {
     if ((f.traits || []).includes('et_y_bellum_zealot')) c += CONST.ETU_ZEALOT_COMP;
     else if ((f.traits || []).includes('et_y_bellum_devout')) c += CONST.ETU_DEVOUT_COMP;
@@ -17583,7 +17063,7 @@ function chargedCarry(fighter, kit) {
 function fullRounds(weapon, hooks, kit) {
   /* §ROUNDS (ruled: more rounds for more bulk) an Extended Magazine is one more of THIS gun's magazines — a flat six was
      nothing to a belt-fed gun — and a cell-fed gun's is one more cell */
-  const extra = (hooks && hooks.has('carry_bulk_up_2') ? 6 : 0) + ((kit && kit.mod && kit.mod.ammo) || 0)
+  const extra = ((kit && kit.mod && kit.mod.ammo) || 0)
               + ((kit && kit.mod && kit.mod.mags) || 0) * (weapon.mag || loadoutFor(weapon));
   if (!weapon.mag) return { mag: loadoutFor(weapon), spare: loadoutFor(weapon) + extra };
   /* a cell-fed gun carries its cell and a spare, and renews them at camp; a magazine gun carries its fights' worth */
@@ -18016,8 +17496,6 @@ function pierceSev(shooter, met) {
 /* §11.1 ammo_consumption_down / _up */
 function ammoCost(u, base) {
   let m = 1;
-  if (u.hooks.has('ammo_consumption_down')) m *= 0.75;
-  if (u.hooks.has('ammo_consumption_up')) m *= 1.35;
   return Math.max(1, Math.round(base * m));
 }
 
@@ -18041,19 +17519,13 @@ function bandMismatch(c, bandIdx) {
 
 function aimEff(c, bandIdx, ctx) {
   let a = c.stats.aim;
-  if (c.hooks.has('accuracy_bonus')) a += CONST.TRAIT_AIM.accuracy;
   if (ctx.squadLink || (ctx.side && ctx.side._psi && ctx.side._psi.link)) a += CONST.TRAIT_AIM.squadLink;   // Gil psion_squad_link
-  /* §QUIRKS a fighter who shoots better waiting than moving, when the shot is a reaction */
-  if (ctx.overwatch && c.hooks.has('overwatch_bonus')) a += CONST.TRAIT_AIM.overwatch;
-  if (c.hooks.has('first_strike_bonus') && ctx.exchange === 1) a += CONST.TRAIT_AIM.firstStrike;
   /* Shooting before they know where you are. The grid sets this when the target's side has
      neither eyes on the shooter nor a recent shot to look toward; nothing else passes it, so
      an abstract-model caller is unaffected. Sized against `first_strike_bonus` above, which
      is +3 for a closely related reason, rather than picked to hit a casualty figure. */
   if (ctx.unseen) a += CONST.UNSPOTTED_AIM;
-  if (c.hooks.has('first_shot_long_range_bonus') && ctx.exchange === 1 && bandIdx === 0) a += CONST.TRAIT_AIM.firstShotLong;
   a += Math.round(CONST.GEAR_TIER_ACCURACY * ((c.weapon.tier || 3) - 3) * 10) / 10;
-  if (c.hooks.has('optics_gear_synergy')) a += CONST.TRAIT_AIM.optics;
   /* §MODS an optic steadies every shot; a bipod steadies a held shot and fouls a moving one;
      a target link steadies a reaction; a rangefinder halves the cost of the wrong distance */
   const md = c.mod;
@@ -18096,20 +17568,18 @@ function aimEff(c, bandIdx, ctx) {
   if (c.suppressed) a -= c._supPen || 0;                 /* §SUPPRESSION the weight of the lane he is under */
 
   const cb = compBandOf(c);
-  const kellisNerve = c.hooks.has('aim_bonus_under_pressure') && cb !== 'broken';
-  if (!kellisNerve) a -= CONST.AIM_PENALTY_BY_BAND[cb];
+  a -= CONST.AIM_PENALTY_BY_BAND[cb];
 
   a -= CONST.FATIGUE_AIM_STEP * Math.min(3, Math.floor(c.fatigue / 25));
   if (c.state === 'light') a -= CONST.LIGHT_WOUND_AIM;
   if (c.gogglesBroken) a -= CONST.GIL_GOGGLE_AIM_PENALTY;
-  if (ctx.night && !c.hooks.has('night_encounter_bonus')) a -= CONST.NIGHT_AIM_PENALTY;
+  if (ctx.night) a -= CONST.NIGHT_AIM_PENALTY;
   return a;
 }
 
 function hitChance(shooter, target, bandIdx, ctx, overwatch) {
   const base = clamp(CONST.HIT_SLOPE * (aimEff(shooter, bandIdx, ctx) - CONST.HIT_PIVOT) + CONST.HIT_BASE, CONST.HIT_MIN, CONST.HIT_MAX);
   let coverIdx = target.cover;
-  if (target._bulwarked) coverIdx = Math.min(3, coverIdx + 1);        // Olmac walking_bulwark
   if (target._shielded) coverIdx = Math.min(3, coverIdx + 1);         // §GUNS a squadmate's `mobile_cover`
   if (target.hovering) coverIdx = Math.max(0, coverIdx - 1);            // hover ignores a step of cover
   if (target.exposed) coverIdx = Math.max(0, coverIdx - 1);             // §3.4: you have to lean out to shoot
@@ -18122,10 +17592,6 @@ function hitChance(shooter, target, bandIdx, ctx, overwatch) {
      : (target.repositioning ? CONST.MOTION_REPOS : CONST.MOTION_HOLD);
   if (!target.spotted) m *= CONST.SPOT_UNSPOTTED;
   if (overwatch) m *= CONST.SPOT_OVERWATCH;
-  /* `overwatch_fatigue_immune` — a long-watch sentry does not lose their edge holding it.
-     Declared in traits.json since Step 2 and read by nothing until the Step 6 audit. */
-  if (overwatch && shooter.hooks.has('overwatch_fatigue_immune')) m *= 1.12;
-  if (target.hooks.has('bombardment_evasion_bonus') && overwatch) m *= 0.70;
   /* the long band is hard shooting for a gun not built for it; a long gun is (fixed: it took the penalty too) */
   m *= (bandIdx === 0 && shooter.weapon && shooter.weapon.range === 'long') ? 1 : CONST.BAND_HIT_MULT[bandIdx];
   /* §3.7 Going to a downed man is the most dangerous thing in a firefight — WORSE than
@@ -18217,15 +17683,6 @@ function resolveSeverity(rng, shooter, target, policy, bandIdx, vlog, exchange) 
   roll -= Math.round(CONST.SEV_PROTECTION_MULT * effProt);
   roll -= Math.floor(target.stats.grit / CONST.SEV_GRIT_DIVISOR);
   if (target.hooks.has('injury_severity_risk_up')) roll += 10;
-  /* AMBUSH INSTINCT — "The first volley is theirs. It usually decides the rest."
-     This read `!target.spotted`, which is a fact about whether the SHOOTER has found the
-     target — so as written it paid out for firing blindly at somebody whose position you did
-     not have, which is the opposite of what the trait says and the worse shot of the two. It
-     never paid out at all, because nothing wrote `spotted`; but had the flag ever started
-     moving it would have rewarded the wrong thing. The same miswiring already recorded against
-     Trigger Itch, which was hooked to widen a spread that the guns carrying it do not have.
-     `_unseen` is set by the grid around the shot: the shooter is the one nobody has placed. */
-  if (shooter.hooks.has('unspotted_open_fire_bonus') && shooter._unseen) roll += 12;
   const qs = quirkSev(shooter, target, bandIdx)                         /* §4.2 */
            + pierceSev(shooter, effProt);                              /* COMPOSITION.md §4, §GUNS */
   roll += qs;
@@ -18435,8 +17892,6 @@ function rollInjury(rng, u, worst) {
   let roll = 1 + Math.floor(rng() * 100);
   const isThthyn = u.race === 'ththyn';
   let wingRange = 35;
-  if (u.hooks.has('wing_injury_susceptibility_up')) wingRange = 46;
-  if (u.hooks.has('flight_mobility_bonus')) wingRange = 28;
 
   let type;
   if (isThthyn && roll <= wingRange) {
@@ -18459,7 +17914,6 @@ function rollInjury(rng, u, worst) {
 
   const band = RECOVERY[severity] || RECOVERY.serious;
   let days = band[0] + Math.floor(rng() * (band[1] - band[0] + 1));
-  if (u.hooks.has('injury_recovery_time_down')) days = Math.round(days * 0.7);
 
   /* Gil goggles (§8.3) */
   if (type === 'inj_head' && u.race === 'gil' && rng() < CONST.GIL_GOGGLE_DAMAGE_P) u.gogglesBroken = true;
@@ -18473,7 +17927,6 @@ function captainFidelity(fighter, traitIndex) {
   const hooks = hooksOf(fighter, traitIndex);
   /* ×10 migration: roster-called (the captain is a roster body), so tactics normalizes */
   let f = 0.003 * fighter.stats.tactics + 0.004 * (fighter.loyalty == null ? 50 : fighter.loyalty);
-  if (hooks.has('captain_fidelity_up')) f += 0.15;
   if (fighter.race === 'human') f += 0.05;
   f -= 0.006 * (fighter._stress || 0);
   return clamp(f, 0.15, 0.98);
@@ -18529,7 +17982,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        them cost nothing at all. Inside the tether they are steadier than either would be alone;
        outside it, both of them come apart — the canon's own numbers, per exchange. */
     TETHER_TILES: 6,                 // [C] how far apart the halves may work
-    TETHER_DRILLED: 3,               // [C] §QUIRKS what drilling to work apart is worth to a pair
     /* (ruled) separation costs both halves the canon's MONWA_TETHER_COMP (combat.js, −25) every turn: a turn is an exchange */
     TETHER_CLOSE_COMP: 3,            // [C] what being within it is worth, a turn
     TETHER_STEADY_CAP: 55,           // [C] and the composure past which it steadies nobody:
@@ -18537,11 +17989,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                                      //     broke, and neither did the fight
     TETHER_PULL: 0.075,              // [C] per tile beyond the tether, when choosing a tile
     SVALBARD_TILES: 2,               // [C] §RACES what four legs are worth on a move
-    EARLY_OUT: 0.06,                 // [C] §QUIRKS how much sooner a squad with a bolter calls it
-    OBEDIENT: 0.04,                  // [C] and how much longer one that does as it is told holds
     AURA_TILES: 4,                   // [C] §QUIRKS how near a steadying presence must stand
-    AURA_COMP: 2,                    // [C] and what it is worth a turn, capped by the band below
-    AURA_CAP: 62,                    // [C] the composure past which nobody needs steadying
     /* §RACES THE DANCE. A Kellis treats the moment of battle as a dance — mantis-featured,
        precise, drilled in duelling arts that are never fielded but are exactly what the drill
        was for. They fight in MEASURE: a Kellis who holds their ground rather than crossing it
@@ -18593,15 +18041,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     SPREAD_POWER_MULT: 0.6,          // [C] and the power the edge carries
     NOISE_TILES_PER_POINT: 8,        // [C] how far a shot carries, a point of noise
     SUPPRESSED_MOVE_COST: 0.32,      // [C] what leaving cover is worth while under fire
-    /* §5.1 — THE TRAIT VOCABULARY OF SUPPRESSION, wired at Step 8.10. Three hooks named a
-       system that had existed since Step 5 and never read them, so Trigger Itch, Ammo Miser and
-       Smothering Fire were flavour text on a stat block. These are the widths of their effect,
-       not fitted to anything: nobody has played this, and what is being built is the
-       relationship. A shooter's output scales the RADIUS its fire catches people in; a
-       defender's resistance is a flat chance to keep their head up and not go to ground. */
-    SUPPRESS_OUT_UP: 1,              // [H] extra tiles of arc for a shooter who hoses
-    SUPPRESS_OUT_DOWN: 1,            // [H] tiles lost by a shooter counting every round
-    SUPPRESS_RESIST_P: 0.45,         // [H] chance Smothering Fire's target refuses the pin
     /* Cover is SCARCE and structural: discrete blocks and walls you can name, not a haze
        of noise across every tile. Something to be fought for. */
     /* Cover is an OBJECT, not a floor you stand on: a crate, a wall, a burnt-out gantry.
@@ -18779,7 +18218,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
     CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
     SEARCH_DRIFT: 0.55,              // [C] §SEARCH how fast the sweep's aim point walks the flank
-    SOFT_BOOTS_TILES: 1.5,           // [H] extra ground covered while nobody has eyes on you
     /* Two ways a side stops fighting, and they should not look the same.
        A CALLED WITHDRAWAL is the normal one: the captain judges it lost, and the squad
        falls back by bounds — half moving while the other half fires to cover them.
@@ -19105,7 +18543,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const fc = (u.stats && u.stats.fieldcraft) || 100;
     const t = Math.max(0, Math.min(1, (fc - CONST.SIGHT_STAT_LOW) / (CONST.SIGHT_STAT_HIGH - CONST.SIGHT_STAT_LOW)));
     /* §LIGHT in the planet's dark a fighter sees a good deal less far — unless at home in the dark */
-    const nightCut = _night && !(u.hooks && u.hooks.has('night_encounter_bonus')) ? CONST.NIGHT_SIGHT : 1;
+    const nightCut = _night ? CONST.NIGHT_SIGHT : 1;
     /* §SIGHT (ruled) A LONG GUN'S SCOPE: its bearer sees out to the gun's reach. Eyes alone ran seven to fifteen tiles and
        the long band starts past fourteen, so a marksman almost never had a target at the range his rifle was made for */
     const eye = CONST.EYE_NEAR + t * (CONST.EYE_FAR - CONST.EYE_NEAR);
@@ -19550,12 +18988,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (C.hasQuirk(u, 'mob_up')) mp += CONST.MOB_TILES;
     if (at.indexOf('mob_down') >= 0) mp -= CONST.MOB_TILES;
     if (at.indexOf('mob_up') >= 0) mp += CONST.MOB_TILES;
-    /* SOFT BOOTS — "arrives places without the courtesy of being heard first". Named on the
-       suite's own list of hooks read by no system at all, waiting for a spotting model. It
-       pays while nobody has eyes on you, which is the only time moving quietly is worth
-       anything: once you are seen, the ground you cover is ground people watch you cross. */
-    if (unseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) mp += CONST.SOFT_BOOTS_TILES;
-    if (u.hooks && u.hooks.has('reposition_speed_up')) mp += 1;              /* §QUIRKS quick on their feet */
     if (u.race === 'svalbard') mp += CONST.SVALBARD_TILES;                  /* §RACES four legs cover ground */
     /* §RACES a flier with ground to cross takes to the air: further, over cover, and seen */
     /* §RACES A FLIER HAS THE AIR AVAILABLE TO IT, once a fight, never on a hurt wing. The
@@ -19680,7 +19112,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        Set around the call and restored after, which is the idiom this function already uses
        for cover and flanking rather than a second convention. */
     const fogOn = !!(S && S._seen);
-    const saveSpotted = target.spotted, saveUnseen = shooter._unseen;
+    const saveSpotted = target.spotted;
     let unseen = false;
     if (fogOn) {
       const eyesOn = sideSees(S, target);
@@ -19690,10 +19122,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (eyesOn && dist(shooter, target) > sightRange(shooter)) tel.squadSightShots++;
       /* am I concealed from the people I am shooting at? */
       unseen = !!(E && E._seen) && !sideKnows(E, shooter);
-      shooter._unseen = unseen;
       if (unseen) {
         tel.unseenShots++;
-        if (shooter.hooks && shooter.hooks.has('unspotted_open_fire_bonus')) tel.ambushInstinct++;
       }
     }
     /* §QUIRKS the shot's own context: who is shooting for which side, and whether this is a
@@ -19855,7 +19285,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (S._fog) S._fog.dirty = true;
     }
     target.cover = saveCover; target.flanked = saveFlank;
-    target.spotted = saveSpotted; shooter._unseen = saveUnseen;
+    target.spotted = saveSpotted;
     return hit;
   }
 
@@ -19921,10 +19351,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      a man): laying the lane rolls a light hit at each body in it, and a man who gets up and leaves it draws a burst. */
   function laneOf(u) {
     const sup = C.suppressOf(u);
-    /* `suppression_output_up` / `_down_slight` widen and narrow the lane; they are read here and nowhere else */
     let t = 0;
-    if (u.hooks && u.hooks.has('suppression_output_up'))   t += CONST.SUPPRESS_OUT_UP;
-    if (u.hooks && u.hooks.has('suppression_output_down_slight')) t -= CONST.SUPPRESS_OUT_DOWN;
     if (sup < 1) return { r: Math.max(0, CONST.LANE_RADIUS + t), pen: CONST.LANE_PEN, arc: null };
     const deg = CONST.LANE_ARC + (sup >= 2 ? CONST.LANE_ARC_2 : 0) + t * CONST.LANE_ARC_TRAIT;
     return { r: 0, pen: CONST.LANE_PEN_SUPPORT, arc: Math.max(1, deg) * Math.PI / 180 };
@@ -19945,17 +19372,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (let i = lanes.length - 1; i >= 0; i--) if (!upright(lanes[i].by)) lanes.splice(i, 1);
     for (const S of sides) for (const u of S.units) {
       let pen = 0;
-      for (const L of lanes) if (L.by.side !== u.side && upright(u) && inLane(L, u) && !L.refused.has(u.id)) pen = Math.max(pen, L.pen);
+      for (const L of lanes) if (L.by.side !== u.side && upright(u) && inLane(L, u)) pen = Math.max(pen, L.pen);
       u.suppressed = pen > 0; u._supPen = pen;
     }
   }
-  /* a man the lane catches: Smothering Fire may refuse it, and being pinned shakes him */
+  /* a man the lane catches: being pinned shakes him */
   function pin(u, L, tel, rng) {
-    if (!upright(u) || L.refused.has(u.id)) return;
-    /* `suppression_bonus` — Smothering Fire: hosed before, he knows fire at him from fire at where he might be */
-    if (rng && u.hooks && u.hooks.has('suppression_bonus') && rng() < CONST.SUPPRESS_RESIST_P) {
-      L.refused.add(u.id); tel.pinsRefused = (tel.pinsRefused || 0) + 1; return;
-    }
+    if (!upright(u)) return;
     if (!u.suppressed) comp(rng, u, C.CONST.COMP.suppressed);
     tel.pins = (tel.pins || 0) + 1;
   }
@@ -19971,7 +19394,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     applyHit(rng, f, C.resolveSeverity(rng, round, f, S.policy, band, null, tel.turn), tel, log, by, E);
   }
   function laneAt(u, mark) {
-    const lo = laneOf(u), L = { by: u, side: u.side, x: mark.x, y: mark.y, r: lo.r, pen: lo.pen, refused: new Set(), left: new Set() };
+    const lo = laneOf(u), L = { by: u, side: u.side, x: mark.x, y: mark.y, r: lo.r, pen: lo.pen, left: new Set() };
     if (lo.arc != null) { L.arc = lo.arc; L.ox = u.x; L.oy = u.y; L.ang = Math.atan2(mark.y - u.y, mark.x - u.x); L.reach = Math.max(dist(u, mark), (u.weapon && u.weapon.reach) || 0); }
     return L;
   }
@@ -20004,16 +19427,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        a fighter carried "nothing shakes him" and nothing in the engine knew. These are the
        composure ones, doing what their names always said. */
     if (delta < 0 && u.hooks) {
-      /* §QUIRKS the ones who do not mind what they are looking at */
-      if (u._fromDeath && (u.hooks.has('death_morale_immune') || u.hooks.has('gore_morale_immune'))) delta = 0;
       if (u.hooks.has('cohesion_morale_bonus_near_squadmates') && u._nearMates) delta *= 0.7;
-      /* §QUIRKS a fighter who is steadier the closer it gets: short_band_composure_bonus was
-         carried and never asked for */
-      if (u.hooks.has('short_band_composure_bonus') && u._closeBand) delta *= 0.65;
-      if (u.hooks.has('morale_swings_damped')) delta *= 0.6;
       if (u.hooks.has('morale_swings_amplified')) delta *= 1.45;
-      if (u.hooks.has('wounded_composure_bonus') && (u.state === 'light' || (u.hp != null && u.maxHp && u.hp < u.maxHp * 0.6))) delta *= 0.55;
-      if (u.hooks.has('composure_up_as_intensity_rises') && u.comp < C.CONST.COMP_BANDS.rattled + 15) delta *= 0.5;
     }
     u.comp = Math.max(0, Math.min(100, (u.comp || 60) + delta));
     pairComp(u);
@@ -20021,8 +19436,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        them, so gating panic on exactly zero made it a dead mechanism rather than a rare one.
        It is checked from the `rattled` band down, and resolve still decides it. */
     if (u.comp <= C.CONST.COMP_BANDS.rattled && u.state !== 'panicked' && rng) {
-      /* a fighter who does not rout, does not rout */
-      if (u.hooks && u.hooks.has('rout_immune')) return;
       const res = (u.stats && u.stats.resolve) || 100;
       /* how far past rattled they are, times how badly their resolve is failing them */
       const depth = (C.CONST.COMP_BANDS.rattled - u.comp) / C.CONST.COMP_BANDS.rattled;
@@ -20050,26 +19463,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       if (m.pair) { if (minds.has(m.pair) || m.pair.halves.indexOf(unit) >= 0) continue; minds.add(m.pair); }
       /* §QUIRKS the mark the composure hooks read: this loss is a body going down, and these
          are the mates standing near enough to draw comfort from each other */
-      m._fromDeath = true;
       m._nearMates = side.units.some(o => o !== m && (o.state === 'ok' || o.state === 'light') &&
                                      Math.max(Math.abs(o.x - m.x), Math.abs(o.y - m.y)) <= CONST.AURA_TILES);
       comp(rng, m, kind === 'dead' ? K.mateDown : K.mateDown * 0.6);
       if (unit.isCaptain) comp(rng, m, K.captainDown);
-      m._fromDeath = false;
     }
-  }
-  /* §QUIRKS WHO WANTS OUT EARLY, AND WHO WILL NOT ARGUE. `early_disengage_bias` and
-     `follows_bad_orders` were carried by people and read by nothing: a squad with a body who
-     wants out calls it sooner, and one full of people who do as they are told holds a bad
-     order longer than it should. */
-  function withdrawShift(S) {
-    let shift = 0;
-    for (const u of S.units) {
-      if (!u.hooks || (u.state !== 'ok' && u.state !== 'light')) continue;
-      if (u.hooks.has('early_disengage_bias')) shift += CONST.EARLY_OUT;
-      if (u.hooks.has('follows_bad_orders')) shift -= CONST.OBEDIENT;
-    }
-    return shift;
   }
   /**
    * The captain calls it. Past a threshold of loss the squad is ordered back — and an ordered
@@ -20087,11 +19485,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       full += max; came += start; if (u.state === 'ok' || u.state === 'light') left += Math.max(0, Math.min(start, u.hp != null ? u.hp : start) - stunSpent(u)); }
     /* §STUN (ruled) a man's stacks are health spent to the call, a tenth of his whole pool each, as wounds are */
     const lost = came > 0 ? 1 - left / came : 1;
-    /* §QUIRKS a squad with a body who wants out calls it sooner; one that does as it is told
-       holds a bad order longer */
     /* §STANCE the side's own threshold, set by its squads' stance (divide.js); the grid's default otherwise */
     const at = (S.withdrawAt != null ? S.withdrawAt : CONST.WITHDRAW_AT) * (full > 0 ? came / full : 1);
-    if (lost >= at - withdrawShift(S)) { S.withdrawing = true; return true; }
+    if (lost >= at) { S.withdrawing = true; return true; }
     /* §ROUNDS a squad with nothing left to shoot with goes: rounds carry now, and two dry remnants stood off till the
        clock (5% of the Divide's fights ran the full 27 turns, a hit in seven turns, three in four of them at night) */
     const up = S.units.filter(u => u.state === 'ok' || u.state === 'light');
@@ -20318,17 +19714,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     ctx = ctx || {};
     ctx = turnBoard(sides, ctx);
     /* §QUIRKS the band this fight is being fought at, so the ones who like it close can say so */
-    const closeFight = ctx.openingBand === 2;   /* bands run 0 long, 1 medium, 2 short (it read `|| 1 === 0`: never) */
     /* §RACES THE GIL'S PSIONS. Three expressions were in the data, in the roster's talk lines
        and in nothing that fought: `squadLink` was read in the aim path and set by NOBODY. A
        latent Gil standing with a squad is worth something to everyone in it — the link steadies
        their shooting, battle sense means the side is never caught unready, and a pressure
        reader knows when the other side is close to breaking. */
     for (const S of sides) {
-      S._psi = { link: false, sense: false };
+      S._psi = { link: false };
       for (const u of S.units) {
         u._side = S;                              /* a body knows whose side it is on */
-        u._closeBand = closeFight;
         if (!u.hooks) continue;
         /* THE HOOKS THE TRAITS ACTUALLY GRANT. The first cut read `psion_squad_link` and its
            siblings as hook names — those are TRAIT ids, and no trait grants a hook so called,
@@ -20337,8 +19731,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
            sense grants `evasion_surge` and the broadcast; the pressure reader's own hooks are
            manager-facing, so the fight reads its broadcast instead. */
         if (u.hooks.has('squad_coordination_bonus')) S._psi.link = true;
-        /* §LIGHT the night-ambush warning is a NIGHT sense: it worked day and night alike */
-        if (u.hooks.has('ambush_avoidance_slight') || (ctx.night && u.hooks.has('night_ambush_warning_bonus'))) S._psi.sense = true;
       }
     }
     /* §FLANK the approaches of every squad on the field: units carry `_bearing` (the squad they came in with); a side
@@ -20467,8 +19859,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                   squadSightShots: 0,   /* fired at a body the shooter could not personally see */
                   reveals: 0,           /* shots that gave the shooter's position away */
                   silentShots: 0,       /* shots that did not, because the weapon is quiet */
-                  softBootsMoves: 0,    /* Soft Boots crossing ground unseen */
-                  ambushInstinct: 0,    /* Ambush Instinct opening fire unseen */
                   endedBy: 'clock' };
     if (flankFight) tel.flankFight = true;
     /* FOG IS ON UNLESS THE CALLER TURNS IT OFF. `ctx.fog === false` exists so the same tree
@@ -20626,7 +20016,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              walked in kept whatever index it was built with — friend to one side by accident, or to none, which
              is what the overwatch path fell over. It belongs to the side it joined. */
           for (const u of R.side.units) { u.side = si; u._side = sides[si]; }
-          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false, sense: false }; }
+          if (sides[si] === R.side) { R.side.sIdx = si; R.side._psi = R.side._psi || { link: false }; }
           tel.arrived = (tel.arrived || 0) + R.side.units.length;
           tel.arrivals = (tel.arrivals || 0) + 1;
           /* THEY WALK IN UNSEEN, and unlike everything else about fog this needs no special
@@ -20840,7 +20230,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           if (u.ap > 0 && hurt.length && !u.suppressed) {
             const patient = hurt.reduce((a2, b2) => dist(u, a2) < dist(u, b2) ? a2 : b2);
             const reach = dist(u, patient) <= CONST.TREAT_REACH;
-            const eager = C.CONST.TREAT_BASE + (u.hooks.has('volunteers_for_risk') ? 0.15 : 0);
+            const eager = C.CONST.TREAT_BASE;
             if (reach && !patient.hooks.has('resists_medical_evac') && rng() < eager) {
               patient._beingTreated = true;
               u.ap--; u.cover = 0;
@@ -20848,7 +20238,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               triggerOverwatch(rng, u, sides, map, tel, log);
               let pr = C.CONST.TREAT_BASE
                      + (S.hasMedkit ? C.CONST.TREAT_MEDKIT : 0)
-                     + (u.hooks.has('field_treatment_bonus') ? C.CONST.TREAT_TRAIT : 0)
                      + C.CONST.TREAT_FIELDCRAFT * (u.stats.fieldcraft - 100);
               pr = Math.max(0.05, Math.min(0.95, pr));
               if ((u.state === 'ok' || u.state === 'light') && rng() < pr) {
@@ -21124,7 +20513,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              turn and needs the same answer — scoped tight, it threw a ReferenceError at the
              dash on the first fight run, which is the cheap version of this mistake. */
           const meUnseen = fog && !!(E._seen) && !sideKnows(E, u);
-          if (meUnseen && u.hooks && u.hooks.has('unspotted_movement_bonus')) tel.softBootsMoves++;
           {
             const spots = candidates(map, taken, u, moveTilesFor(u, meUnseen), near, seen);
             tel.candidates = (tel.candidates || 0) + spots.length;
@@ -21321,21 +20709,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (u.race !== 'kellis' || (u.state !== 'ok' && u.state !== 'light')) continue;
         u._measure = Math.min(CONST.KELLIS_MEASURE_CAP, (u._measure || 0) + 1);
       }
-      /* §QUIRKS WHAT THE ONES BESIDE YOU ARE WORTH. `presence_aura`, `cohesion_morale_bonus_
-         near_squadmates`, `death_morale_immune` and `gore_morale_immune` were carried by
-         fighters and read by nothing at all. A body who steadies people steadies the people
-         near them; a body who does not mind the dead does not mind them. */
-      for (const S of sides) {
-        const auras = S.units.filter(u => u.hooks && u.hooks.has('presence_aura') &&
-                                      (u.state === 'ok' || u.state === 'light'));
-        if (!auras.length) continue;
-        for (const u of S.units) {
-          if (u.state !== 'ok' && u.state !== 'light') continue;
-          if (u.comp >= CONST.AURA_CAP) continue;      /* steadying a steady body does nothing */
-          if (auras.some(a => a !== u && Math.max(Math.abs(a.x - u.x), Math.abs(a.y - u.y)) <= CONST.AURA_TILES))
-            comp(rng, u, CONST.AURA_COMP);
-        }
-      }
       /* §RACES WHAT A DEATH DOES TO THE ONES WATCHING, and THE TETHER — one pass over the
          standing, because two passes over the same units every turn is how the last cut of
          this ground the engine to a halt. A gnoll comes UP at the sight of blood; the
@@ -21362,10 +20735,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         if (!o || o.state === 'dead') continue;
         const d = Math.max(Math.abs(u.x - o.x), Math.abs(u.y - o.y));
         const wasStrained = !!u._tetherStrained;
-        /* §QUIRKS a pair drilled to work apart works further apart: tether_range_extended was
-           written for exactly this and read by nothing */
-        const reach = CONST.TETHER_TILES + ((u.hooks && u.hooks.has('tether_range_extended')) ||
-                                            (o.hooks && o.hooks.has('tether_range_extended')) ? CONST.TETHER_DRILLED : 0);
+        const reach = CONST.TETHER_TILES;
         u._tetherStrained = d > reach;
         /* §MON-WA one mind pays the stretch, or takes the steadying, once a turn — not once a body */
         if (u.pair._turn === tel.turn) continue;
@@ -21984,12 +21354,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
  * have nothing to decide. The deferral named four things that had to arrive together: motives,
  * exclusivity, contracts, and the allocation verb. All four are here.
  *
- * WHO THE SPONSORS ARE. The same eight houses. Every profile already carried a written
- * `sponsor_style` — Nevlon sponsors aggression, the Knights' Star sponsors precision and is
- * allergic to scandal, Vantis sponsors leverage and its conditions have conditions — so the
- * motives were sitting in the data waiting for a reader. A house backs rivals it approves of,
- * which is a sharper relationship than an anonymous cheque: the money comes from somebody who
- * is also trying to beat you, and who will pull it if you stop being the thing they liked.
+ * WHO THE SPONSORS ARE. Sponsor houses of their own (HOUSE_NAMES), apart from the OAs: each
+ * backs the OAs it approves of, and pulls the money when it stops approving.
  *
  * WHAT A CONTRACT IS. A retainer per season, a term in seasons, and an obligation you can fail.
  * The obligation is the whole point — a contract you cannot break is a subsidy. Failing one
@@ -22820,17 +22186,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     UNDERDOG_MORALE: 6,                 // [C] a day's morale a warm, full-share Underdogs faction lends an OA past hope
     BLOODHOUND_FAME: 1.0,               // [C] how much further a kill's fame travels with a warm, full-share Bloodhounds faction
     LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
-    /* §RANK what a captaincy changing hands is worth to a man who wanted it */
-    RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
-    RANK_SNUB: 6,                       // [C] onto the stress of one passed over
-    STORY_MOURNED: 1.50,                // [C] a company family's dead
-    STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
     /* §PRESENCE what being a man the room looks at is worth */
     PRESENCE_STEADIES: 0.12,            // [C] and what the squad's steadiest hand lends a captain
     KESHU_FRICTION: 3,                  // [C] §KESHU what an old war costs a squad that holds
                                         //     both sides of it
-    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the OA that
-                                        //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,         // [S] squads live inside these bounds. RULED: the floor is THREE —
                                         //     it binds the manager's own squad page, which reads it from here
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
@@ -22924,8 +22283,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     STANDING_PER_ENGAGEMENT: 0.015,     // [C] fighting in public builds your reputation
     STANDING_PER_SITE: 0.050,           // [C] holding ground the crowd can see
     STANDING_MIN: 0.12, STANDING_MAX: 1.0,
-    FORAGE_POOR: 0.18,                  // [C] ground the trait counts as poor
-    FORAGE_IMMUNE_FLOOR: 0.25,          // [C] and what its carrier gets anyway
     STANCE_PULL_HURT: 2.6,              // [C] notches toward care, at total loss
     STANCE_PULL_PENNED: 1.1,            // [C] and toward aggression once the wall pens it in
     STANCE_PULL_AHEAD: 0.7,             // [C] an opening is worth taking
@@ -22937,6 +22294,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     LEAVE_EARLIEST_DAY: 5,              // [C] before this an OA has seen too little of its own losses to price them: on the rebuilt ground the drop itself is the first two days' fighting, so the first window reads only the drop
     CEDE_STANDING_POINTS: 20,           // [C] §WITHDRAWAL the standing ceding costs, own and fleet together (4–14 + 5–18)
     STANDING_CREDIT: 2000,
+    WORD_RECORD_WEIGHT: 3,              // [C] §WITHDRAWAL promises on the record before it counts as much as character
+    KELLIS_PACT_SHARE: 0.25,            // [C] §RACES the share of a house's people that makes it a Kellis house to the fleet
+    KELLIS_PACT_TRUST: 0.08,            // [C] and what that adds to the trust in its word
     GREED_SPAN: 0.5,                    // [C] §WITHDRAWAL (ruled: an element of greed) a house weighs its shot at the prize up by as much as half again, by its aggression
     PLAN_ASKED: 2.2,                    // [C] §BOARD a deposit of the resource the OA's board demanded, against 1 for any other (the old CMD_W_ASKED)
     /* §CAPTIVES what holding people costs, and what an engine seat weighs when it decides */
@@ -23535,9 +22895,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      promise, on a stage the whole fleet watches, so keeping it is the ordinary course and character bends that: an
      honest OA keeps ~90%, an average one ~70%, a treacherous one ~50%, a little less for a larger promise. One formula,
      for what a leaver expects and for what the winner does. */
-  function keepChance(j, share) {
+  /* how likely an OA is to keep a promise of this size, out of its own character (its `treachery`) */
+  function wordOf(j, share) {
     const t = (j && j.profile && j.profile.dials && j.profile.dials.treachery != null) ? j.profile.dials.treachery : 50;
     return Math.max(0.05, Math.min(0.97, 0.97 - 0.55 * t / 100 - 0.25 * (share || 0)));
+  }
+  /* §WITHDRAWAL (ruled) HOW FAR THE FLEET TRUSTS AN OA'S WORD: what its character promises, moved by its record of promises
+     to leavers kept and broken (the more of them, the more the record counts), and a little more for a house whose people
+     are Kellis, whose word the fleet takes. This is what a leaver prices and what the page shows; an OA keeps or breaks
+     its word out of its character (wordOf). */
+  function keepChance(j, share) {
+    const base = wordOf(j, share);
+    const rec = (j && (j._wordRecord || (j.persist && j.persist.wordRecord))) || {};
+    const kept = rec.kept || 0, broken = rec.broken || 0, n = kept + broken;
+    const seen = n ? (kept + 1) / (n + 2) - 0.25 * (share || 0) : base;
+    const w = n / (n + CONST.WORD_RECORD_WEIGHT);
+    const people = (j && (j.allBodies || j.roster)) || [];
+    const kellis = people.filter(b => b.status !== 'dead' && b.status !== 'retired' && (((ROSTER.raceById[b.race && b.race.id ? b.race.id : b.race] || {}).special || {}).pact_reputation)).length;   /* the race's own `pact_reputation` */
+    const pact = people.length && kellis / people.length >= CONST.KELLIS_PACT_SHARE ? CONST.KELLIS_PACT_TRUST : 0;
+    return Math.max(0.05, Math.min(0.97, base * (1 - w) + seen * w + pact));
   }
   function standDown(c, day, stats, corps, how) {
     if (c._downedOn == null) c._downedOn = day;          /* §PLACEMENT the day it left the ground */
@@ -23915,19 +23291,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       return b.stats.tactics - a.stats.tactics;
     })[0];
     if (heir && sq.captainId !== heir.id) {
-      /* §RANK SOMEBODY WANTED THAT JOB. Rank Climber's two hooks asked for promotion to be an
-         event a fighter notices, and the first design for it was an ambition system. It is not
-         needed: a captaincy already CHANGES HANDS here, on the day, when the last one falls.
-         The man who takes it and is hungry for it steadies; the men passed over who wanted it
-         take it badly. Nothing new happens — the same moment simply lands on people. */
-      for (const b of avail) {
-        const hk = C.hooksOf(b, ROSTER.traitById);
-        if (b.id === heir.id) {
-          if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
-        } else if (hk.has('captaincy_snub_morale_risk')) {
-          b.condition.stress = Math.min(CONST.STRESS_MAX, (b.condition.stress || 0) + CONST.RANK_SNUB);   /* held to the ceiling, as every other stress is */
-        }
-      }
       sq.captainId = heir.id;
       addStress(sq, CONST.STRESS.succession);
       heir._stress = squadStress(sq);
@@ -23950,7 +23313,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const avail = squadHead(sq);
     if (!avail.length) return null;
     const cap = squadCaptain(sq);
-    const mentorPresent = avail.some(b => (b.traits || []).includes('mentor'));
     /* §QUIRKS THE SITUATION A BODY IS IN, handed to the body as it is built — without it every
        situational condition answers false and a quirk written against one does nothing, which
        is the exact failure this catalogue is being rebuilt to escape. */
@@ -23959,7 +23321,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const b of avail) raceCount[b.race] = (raceCount[b.race] || 0) + 1;
     const units = avail.map(f => C.makeCombatant(f, {
       traitIndex, isCaptain: f.id === cap.id, day,
-      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0,
+      firstEngagement: engagementNo === 0, captainBonus: 0,
       squadSize: avail.length, withConscript: withConscript,
       onlyOfRace: raceCount[f.race] === 1,
       divides: (f.experience && f.experience.divides) || 0, age: f.age,
@@ -24055,7 +23417,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     for (const q of winners) { q.medkits = medkitCharges(q.bodies); q.hasMedkit = q.medkits > 0; }
     /* guns: the best pieces first, each to the fighter it upgrades most */
     const costOf = id => { const it = id && ITEMS.byId(id); return it ? (it.cost || 0) : 0; };
-    const guns = fallen.filter(f => f.loadout && f.loadout.primary && !C.hooksOf(f, ROSTER.traitById).has('never_drops_gear'))
+    const guns = fallen.filter(f => f.loadout && f.loadout.primary)
       .map(f => ({ f, id: f.loadout.primary })).sort((a, b) => costOf(b.id) - costOf(a.id));
     for (const g of guns) {
       const it = ITEMS.byId(g.id); if (!it) continue;
@@ -24150,18 +23512,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const reg = planet.ground && sq.zone != null ? planet.ground.regions[planet.ground.zones[sq.zone].region] : null;
     /* the ground's forage class, thinned or thickened by the world it is on (an ice shelf yields a quarter of a cradle) */
     let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round((reg ? reg.forage : 1) * (planet.forageMult || 1))))] || 0;
-    /* A forager whose people can eat what the rest cannot. The guard used to require
-       `yieldPer === 0` — an exactly-barren tile — which never occurred on any archetype, so
-       the trait was inert. It now applies wherever the ground is poor, which is what the
-       trait is for. */
-    if (yieldPer <= CONST.FORAGE_POOR && hooksOfSquad.has('forage_penalty_immune')) {
-      yieldPer = Math.max(yieldPer, CONST.FORAGE_IMMUNE_FLOOR);
-      if (stats) stats.audit.forageImmune = (stats.audit.forageImmune || 0) + 1;
-    }
     if (planet.salvage) yieldPer += 0.15;
     yieldPer *= 1 + CONST.FORAGE_FIELDCRAFT * (squadStat(sq, 'fieldcraft') - 100);
-    if (hooksOfSquad.has('forage_bonus')) yieldPer *= 1.4;
-    if (hooksOfSquad.has('forage_value_up')) yieldPer *= 1.25;
     const got = Math.min(cap - sq.rations, Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng())));
     sq.rations += got;
     if (stats) { stats.audit.forageEvents++; stats.audit.forageYield += got; }
@@ -24220,9 +23572,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
   function weatherCheck(rng, sq, planet, hooksOfSquad, stats) {
     const w = stats.weatherToday; if (!w || !w.kind) return null;
     const fx = w.fx, bodies = squadHead(sq);
-    if (hooksOfSquad.has('hazard_forecast_bonus') && rng() < 0.60) return null;   // warned, and sheltered
     if (fx.fatigue) for (const b of bodies) b.condition.fatigue = Math.min(100, b.condition.fatigue + fx.fatigue);
-    if (fx.lost && rng() < fx.lost && !hooksOfSquad.has('navigation_bonus')) sq._lostDay = true;
+    if (fx.lost && rng() < fx.lost) sq._lostDay = true;
     if (fx.hurt && bodies.length) {
       const onIt = fx.hurt.terrain ? (planet.ground && sq.zone != null && planet.ground.regions[planet.ground.zones[sq.zone].region].terrain === fx.hurt.terrain) : true;
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
@@ -24234,12 +23585,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
       }
     }
     return w.kind;
-  }
-
-  /** Does anyone still standing in this squad carry the hook? Module-scope, uncached. */
-  function squadHasHook(sq, hook) {
-    for (const b of squadHead(sq)) if (C.hooksOf(b, ROSTER.traitById).has(hook)) return true;
-    return false;
   }
 
   /** Does anyone in this corp carry the hook? Cached per Divide-day, since it is asked a lot. */
@@ -24289,8 +23634,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     {
       const heads = squadHead(sq);
       /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
-      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0)
-                  + heads.filter(b => C.hooksOf(b, ROSTER.traitById).has('carry_bulk_up_2')).length * 2;
+      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0);
       const load = ITEMS.squadBulk(heads, bonus);
       sq.overBulk = load.over;
       if (load.over > 0) {
@@ -24302,10 +23646,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 
     let recovery = CONST.FATIGUE_RECOVERY;
     if (sq._resting || sq.foughtToday) recovery *= CONST.REST_RECOVERY_MULT;   /* a squad that fought today rests tonight */
-    /* §13.1 stakeout_fatigue_reduced: holding position costs a squad far less */
-    if (!sq.movedToday && hooksOfSquad.has('stakeout_fatigue_reduced')) recovery *= 1.5;
-    if (hooksOfSquad.has('fatigue_recovery_down')) recovery *= 0.6;
-    else if (hooksOfSquad.has('fatigue_recovery_down_slight')) recovery *= 0.85;
 
     let moraleDelta = 0;
     /* §HALF-BUILT STRUCK (ruled): the same — `camp_morale_aura` (+2 morale in camp) and
@@ -24317,25 +23657,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     /* --- Step 6 audit: hooks declared in traits.json that no code had ever read ---------
        Every one of these belongs to a system that already runs, so their being inert was a
        gap rather than a deferral. Grouped here because they are all camp morale. */
-    const day = sq._day || 1;
-    const late = Math.min(1, day / GROUND.CONST.DAYS);
-    /* a war priest steadies everyone around them */
-    if (hooksOfSquad.has('faith_morale_aura')) { moraleDelta += 2; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
-    /* gallows humour is worth most after a bad day */
-    if (hooksOfSquad.has('squad_morale_support_after_losses') && sq._lostSomeone) { moraleDelta += 3; stats.audit.traitHooks++; }
-    /* homesickness bites as the month drags */
-    if (hooksOfSquad.has('morale_decay_long_divide')) { moraleDelta -= 1 + 2 * late; stats.audit.traitHooks++; }
-    /* a prisoner counting down to freedom pulls the other way */
-    if (hooksOfSquad.has('morale_up_as_freedom_nears')) { moraleDelta += 1 + 2 * late; stats.audit.traitHooks++; }
     /* the devout want a fight, and are told what the corp declared this turn */
     if (hooksOfSquad.has('death_or_glory_affinity')) {
       moraleDelta += (corp.policy === 'death_or_glory' ? 3 : corp.policy === 'unyielding' ? 1 : -2);
-      stats.audit.traitHooks++;
+      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
     }
     /* ...and they take a corp selling its claim personally (N2 — ceding IS the deal) */
     if (corp.withdrawn) {
-      if (hooksOfSquad.has('cede_loyalty_morale_penalty_major')) { moraleDelta -= 5; stats.audit.traitHooks++; }
-      else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks++; }
+      if (hooksOfSquad.has('cede_loyalty_morale_penalty_major')) { moraleDelta -= 5; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
+      else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
     }
     /* squad chemistry: who is standing next to whom */
     /* §KESHU THE GRUDGE TESTED FOR A RACE THAT DOES NOT EXIST. It looked for somebody of race
@@ -24345,13 +23675,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        the peace standing beside a Gil, or the other way round. As written it could never once
        have fired. */
     if (hooksOfSquad.has('friction_with_keshu_rival_race')) {
-      const hasAttorak = bodies.some(b => b.race && b.race.id === 'attorak');
-      const hasGil = bodies.some(b => b.race && b.race.id === 'gil');
-      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks++; }
+      const hasAttorak = bodies.some(b => b.race === 'attorak')   /* (fixed) a fighter's race is its id: `.race.id` never matched */;
+      const hasGil = bodies.some(b => b.race === 'gil');
+      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
     }
-    if (hooksOfSquad.has('ankoth_sympathy_chemistry')
-        && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
-    if (hooksOfSquad.has('camp_morale_contagion_both_ways')) moraleDelta *= 1.5;
 
     for (const b of bodies) {
       /* §CONSUMABLES a stimmed fighter pays for it that night: less rest out of the same camp */
@@ -24638,8 +23965,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        written for the old once-a-season model and never read; under a turn-by-turn dial it
        finally has something to resist. It does not BLOCK the change — the manager decides —
        it charges morale for the whiplash. */
-    if (corpHasHook(corp, 'doctrine_change_resistance') || corpHasHook(corp, 'policy_whiplash_morale_penalty_up')) {
-      const bite = corpHasHook(corp, 'policy_whiplash_morale_penalty_up') ? 2 : 1;
+    if (corpHasHook(corp, 'doctrine_change_resistance')) {
+      const bite = 1;
       for (const q of corp.squads) for (const b of squadHead(q)) {
         b.condition.morale = Math.max(5, b.condition.morale - bite);
       }
@@ -24724,16 +24051,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
          scale (90); multiplying it by ten again put a missing Presence at 900 */
       g *= REP.presenceFameMult(t);    /* §PRESENCE the one rule for every fame a fighter earns */
       const h = C.hooksOf(t, ROSTER.traitById);
-      if (h.has('fame_gain_up')) g *= 1.5;
-      if (h.has('heel_fame_gain')) g *= 1.4;
-      if (h.has('fame_gain_up_on_aggression')) g *= 1.35;
-      if (h.has('fame_volatility_up')) g *= 1.8;
-      if (h.has('crowd_pleaser_movement')) g *= 1.25;
-      /* the broadcast reads some fighters better than others: one whose brutality cuts
-         cleanly, one whose voice the relay keeps for colour */
-      if (h.has('crowd_legible_savagery')) g *= 1.3;
-      if (h.has('broadcast_color')) g *= 1.15;
-      if (h.has('fame_gain_down')) g *= 0.4;
       if (h.has('media_statements_flat')) g *= 0.7;
       REP.addFame(t, g);
     }
@@ -24814,12 +24131,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         f.condition.injuries.push(u.injury);
         downed++;
         if (u.injury.permanent) { f.status = 'retired'; stats.careerEnded++; }
-        else { f.status = 'injured'; f._recovery = u.injury.days_remaining; f._untreatedDays = 0; stats.injured++; }
+        else { f.status = 'injured'; f._recovery = u.injury.days_remaining; stats.injured++; }
       }
       else {
         f.condition.morale = Math.max(5, Math.min(95, Math.round(0.7 * f.condition.morale + 0.3 * u.comp)));
-        f.condition.fatigue = Math.min(100, f.condition.fatigue + 12
-          + (u.hooks.has('post_engagement_fatigue_spike') ? 8 : 0));
+        f.condition.fatigue = Math.min(100, f.condition.fatigue + 12);
         if (u.wounds.length) stats.lightWounds++;
         /* §WOUNDS (ruled) the harm a fight did stays for the next one, in four bands */
         f._hpFrac = hpBand((u.hp != null ? u.hp : u.hpMax) / Math.max(1, u.hpMax));
@@ -25260,15 +24576,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
           const b = edgeOf(xs); for (const u of part.units) u._bearing = b; } });
       for (const R of (ctx.reinforce || [])) for (const u of (R.side.units || [])) u._bearing = R.bearing;
       ctx.forceBearings = true;
-      /* §GRUDGE a man fighting the OA he remembers */
-      for (const side of built) {
-        const foes = built.filter(o => o !== side).map(o => o.corpId);
-        for (const u of side.units) {
-          if (!u._grudge || foes.indexOf(u._grudge) < 0) continue;
-          if (!u.hooks || !u.hooks.has('morale_up_vs_grudge_target')) continue;
-          u.comp = Math.min(100, u.comp + CONST.GRUDGE_COMP); stats.audit.traitHooks++;
-        }
-      }
       for (const sd of built) for (const u of (sd.units || [])) u._carriedIn = (u.carried || []).slice();
       const deadBefore = new Set();
       for (const g of sidesSq) for (const q of g) for (const b of q.bodies) if (b.status === 'dead') deadBefore.add(b);
@@ -25423,9 +24730,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                  .sort((a, b) => seats(a) - seats(b))[0] || null;
         if (!into) { stats.audit.beaconFull = (stats.audit.beaconFull || 0) + 1; return; }
       }
-      const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
       o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
-      if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
+      if (o.draw[corp.id] < CONST.BEACON_TICKS) return;
       o.draw[corp.id] = 0;
       const lead = corp.reserve.shift(), group = [lead];
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
@@ -25863,23 +25169,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        swings an audience at triple weight, and until now fame had no reader but ransom. */
     for (const c of corps) {
       if (!c.rep) continue;
-      let ourDead = 0, ourFamous = 0, loudest = 1;
+      let ourDead = 0, ourFamous = 0;
       for (const b of c.allBodies) {
         if (b.status !== 'dead' || b._carriedOn) continue;
         if (b.mirror_of && c.allBodies.some(x => x.id === b.mirror_of && x.status === 'dead')) continue;   /* §MON-WA one person */
         ourDead++;
         if ((b.fame || 0) >= REP.CONST.FAMOUS_AT) ourFamous++;
-        /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
-           magnet is who the fleet decides it was about — the loudest name among the fallen
-           carries the whole notice, which is how a fleet reads a casualty list. Read through
-           `C.hooksOf`, the reader this module already uses, rather than reaching into events. */
-        const hk = C.hooksOf(b, ROSTER.traitById);
-        let m = 1;
-        if (hk.has('death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
-        if (hk.has('blame_magnet')) m *= CONST.STORY_BLAME;
-        if (m > loudest) loudest = m;
       }
-      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous, storyMult: loudest });
+      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous });
       /* their dead, by your hand — attributed per victim's corp so the right fanbase reacts */
       const bag = c._killsBy || {};
       for (const victimCorp in bag) {
@@ -26060,7 +25357,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         /* the larger the whole promise, the harder it is to keep: credits and stores alike */
         const keep = isHumanOA(w.id)
           ? !(stats._keepWord && stats._keepWord[pr.to] === false)     /* a person's own call; unanswered is kept */
-          : rng() < keepChance(w, share + storesAsked / 4);            /* §MARKET the same trust the leaver priced */
+          : rng() < wordOf(w, share + storesAsked / 4);                /* its character keeps it; its record is what others read */
         pr.kept = keep; pr.owed = owed; pr.stores = stores;
         if (keep) {
           const wb = stats.banked[w.id] || {}, lb = stats.banked[pr.to] || (stats.banked[pr.to] = {});
@@ -26665,6 +25962,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        to 100. It mends barely at all on its own (WOUND_DRIFT), and focus is what moves it. */
     WOUND_DRIFT: 1.6,            // [C] what a month of no attention is worth, per month
     WOUND_FOCUS: 14,             // [C] and what a full block of rest focus is worth
+    UNTENDED_WORSE: 1.5,         // [C] §WOUNDS (ruled) how much deeper an untended wound comes home
     WOUNDED_FIELD_LOYALTY: 8,    // [C] §WOUNDS (ruled) loyalty a mending man loses for being sent to fight
     WOUND_PER_DAY: 1,            // [C] §WOUNDS a wound that would keep a body down N more days costs it N points of health when it comes home
     WOUND_SERIOUS: 66,           // [S] below this a hand is Serious: everything costs him more
@@ -26675,6 +25973,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     REST_STRESS_BASE: 6,         // [C] everyone breathes a little each month regardless
     /* §STANDING WHAT THE CROWD DOES FOR AN OA'S PEOPLE (ruled at the standing pass). The crowd's warmth runs 0..100
        about an indifferent 50; each of these reads it as −1..1 from there. */
+    TEXTURE_STEP: 1.5,           // [C] §RACES a month's move in a Ththyn's or a Gil's loyalty, by standing or by the house's finish
+    THTHYN_FAME_HIGH: 40,        // [C] the fame a Ththyn counts as standing
+    THTHYN_FAME_LOW: 15,         // [C] and below which, a season in, he counts himself passed over
     CROWD_LOYALTY: 1.2,          // [C] a month's pull on every hand's loyalty at a crowd of 100 (or 0, the other way)
     CROWD_LOT: 2,                // [C] how many more (or fewer) natural-born turn up to trial, at the ends
     CROWD_LOT_STATS: 12,         // [C] and how much better (or worse) they are, on every stat
@@ -26767,7 +26068,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     TRYOUT_LOT: 6,            // [S] Natties who turn up to trial each Natural-Born month — more of them than
                               //     mercs, cheaper, and further from what they might become
     MERC_HUNGER: 0.45,        // [H] how much harder a corp short of bodies bids
-    SPONSORED_GATE: 1.12,     // [C] §QUIRKS what a marketable face is worth at the gate
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
@@ -26809,9 +26109,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                                  //     little to do as the physical side had.
     RENEWAL_LOYALTY_PULL: 0.22,  // [C] how far loyalty moves a re-signing ask, either way
     LOYALTY_CAP_LOW: 35,         // [C] the ceiling on a hand who cannot be fully loyal
-    QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
-    MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
-    YOUNG_AT: 26,             // [C] who counts as young for that
     MARKET_SWING: 0.25,       // [C] §MARKET the most an OA's name moves what it is asked for
     MARKET_FLEET_SHARE: 0.4,  // [C] how much the fleet's regard counts beside its own people's
     /* the two pools of a window */
@@ -26897,7 +26194,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     GRIEF_DIVIDES: 1, GRIEF_CLOSE_DIVIDES: 2,
     GRIEF_MORALE: 5, GRIEF_CLOSE_MULT: 2.4,
     BREAK_RESOLVE_AT: 8,
-    FRENZY_TRAITS: ['hot_headed', 'grudge_holder', 'keshu_grudge'],
+    FRENZY_TRAITS: ['keshu_grudge'],
 
     /* --- the board (S5, S12) --- */
     UNDERWRITE_PATIENCE_FLOOR: 8,
@@ -27000,7 +26297,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       return best !== undefined ? JSON.parse(best) : null;
     };
     const p = {};
-    ['dials', 'engagement_lean', 'finance', 'reputation', 'sponsor_style', 'difficulty', 'holds']
+    ['dials', 'engagement_lean', 'finance', 'reputation', 'difficulty', 'holds']
       .forEach(k => { p[k] = avg(profiles.map(o => o[k])); });
     const races = {};
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
@@ -27183,7 +26480,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      "injured" with a whole body, so the verb that mends had nothing to mend and the status never lifted. */
   function bringWoundHome(f) {
     if (f.status !== 'injured') return;
-    const days = Math.max(0, f._recovery || 0);
+    /* §WOUNDS (ruled) A WOUND NOBODY TENDED IS WORSE BY THE TIME IT IS HOME: a squad with no medkit charge left to dress it
+       sends it home deeper (the kit a squad carries is what keeps a wound shallow) */
+    const raw = (f.condition && f.condition.injuries) || [];
+    const untended = raw.some(w => w.untreated);
+    for (const w of raw) if (w.untreated) w.untreated = false;
+    const days = Math.max(0, f._recovery || 0) * (untended ? CONST.UNTENDED_WORSE : 1);
     if (days > 0) setWound(f, Math.min(woundOf(f), 100 - days * CONST.WOUND_PER_DAY));
     f._recovery = 0;
     if (woundOf(f) >= 100) f.status = 'active';
@@ -27548,7 +26850,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (e.corp.rep) REP.act(e.corp.rep, 'our_dead', { count: 1, famous: (f.fame || 0) >= REP.CONST.FAMOUS_AT ? 1 : 0 }); } }
       else if (u.injury || u.state === 'down' || u.state === 'stable') {
         f.condition.injuries.push(u.injury || { type: 'inj_torso', severity: 'serious', days_remaining: P.int(rng, 10, 24), untreated: false });
-        f.status = 'injured'; f._recovery = P.int(rng, 10, 24); f._untreatedDays = 0; bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
+        f.status = 'injured'; f._recovery = P.int(rng, 10, 24);  bringWoundHome(f); hurtBy[e.corp.id] = (hurtBy[e.corp.id] || 0) + 1;
       }
       if (f.condition) f.condition.stress = Math.min(CONST.STRESS_CAP, (f.condition.stress || 0) + CONST.EIGHT_STRESS);
       f.experience = f.experience || { divides: 0, battles: 0, dividends: 0 };
@@ -27603,12 +26905,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
   /** What one fighter thinks of one offer. Higher is better; below zero they would rather not. */
   function weighOffer(f, corp, offer, best, state) {
-    /* §GRUDGE A MAN WILL NOT SIGN FOR THE OA HE REMEMBERS. `refuses_grudged_corps` is the
-       third of Grudge Holder's hooks and the only one a manager meets across a table: whatever
-       is on offer, this name comes off that OA's sheet. No ledger — one remembered OA,
-       set when they tried to buy him. */
-    if (f._grudge && corp.id === f._grudge && state && EVENTS.fighterHas(state, f, 'refuses_grudged_corps'))
-      return -1;
     const money = best > 0 ? offer / best : 1;                       /* 0..1 against the top bid */
     const safety = survivalRecord(corp);                             /* 0..1, share who came home */
     /* THE CROWD. This read `rep.base.public`, and there is no `public` audience — the four are
@@ -28603,6 +27899,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* §FACILITIES a Barracks worth the name: loyalty settles toward content */
       const bl = FAC.barracksLoyalty(corp);
       if (bl && f.loyalty < 60) f.loyalty = Math.min(60, f.loyalty + bl);
+      /* §RACES (ruled) how some peoples' loyalty moves. A Ththyn's tracks his standing: a captain or a famous name warms
+         to the house, one passed over sours. A Gil stays while the house serves his ends: a house finishing high keeps
+         him, one finishing low loses him. */
+      const tex = ((ROSTER.raceById[f.race] || {}).loyalty_texture) || null;
+      if (tex === 'status_coupled') {
+        const capt = corp.captains && (corp.captains.ids || []).indexOf(f.id) >= 0;
+        const lift = capt || (f.fame || 0) >= CONST.THTHYN_FAME_HIGH ? CONST.TEXTURE_STEP : (f.fame || 0) < CONST.THTHYN_FAME_LOW && (f.seasonsHere || 0) >= 1 ? -CONST.TEXTURE_STEP : 0;
+        f.loyalty = Math.max(0, Math.min(100, f.loyalty + lift));
+      } else if (tex === 'motive_driven' && corp._lastPlace && STATE_REF && STATE_REF.ids) {
+        const n = STATE_REF.ids.length, top = (n - corp._lastPlace) / Math.max(1, n - 1);   /* 1 the champion, 0 last */
+        f.loyalty = Math.max(0, Math.min(100, f.loyalty + (top - 0.5) * 2 * CONST.TEXTURE_STEP));
+      }
       /* THE OLD FREE HEAL: thirty points of health a month, unconditionally, on the very field
          a wound now lives in — it would have wiped any injury inside a single turn and made the
          whole verb ornamental. The drift above is what a body does on its own now. */
@@ -28823,19 +28131,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const STATS = ['aim'].concat(CONST.MIND, CONST.BODY || ['grit', 'reflex']);
         /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
-        /* §QUIRKS A QUICK STUDY LEARNS QUICKER, and a mentor's presence lifts the young.
-           `development_rate_up` and `young_squadmate_development_up` were carried by fighters
-           and read by nothing. */
-        /* the reader is module-level now: the gate wants it too */
-        const mentors = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && hasHookF(f, 'young_squadmate_development_up')).length;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
           /* §WOUNDS A CRIPPLED MAN DOES NOT DRILL. Focus painted on him is not lost — it is
              simply not learning, which is the cost of fielding a broken hand. */
           if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
-          const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
-                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1)
-                      * TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
+          const learn = TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -29573,14 +28874,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (f.ownKit && f.status !== 'dead') { const own = [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm]; ids = ids.filter(id => own.indexOf(id) < 0); }
       const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
       if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
-      /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
-         recovered whether or not their side held the ground. The hook was declared at Step 2,
-         repurposed in writing at Step 5, and read by nothing until the gear-damage cut went
-         looking for what still depended on it. */
-      if (C.hooksOf(f, ROSTER.traitById).has('never_drops_gear')) {
-        for (const id of ids) if (id) { stock[id] = (stock[id] || 0) + 1; kept++; }
-        continue;
-      }
       /* left on the ground. The side that held it picks some of it up. */
       for (const id of ids) {
         if (!id) continue;
@@ -30920,11 +30213,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
       const shut = c._gateShut === state.season * 100 + m;
       const gate = shut ? 0 : Math.round(Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame)) * FAC.gateMult(c));   /* §FACILITIES the Press Office */
-      /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
-         were carried by people and read by nothing at all: an OA with a marketable hand
-         aboard takes more at the gate, and the crowd repeats what they say. */
-      const marketable = alive.some(f => hasHookF(f, 'sponsor_income_up') || hasHookF(f, 'rare_quote_fame_spike'));
-      const gate2 = marketable ? Math.round(gate * CONST.SPONSORED_GATE) : gate;
+      const gate2 = gate;
       if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
       /* §SPONSORS a lender's stipend is a STANDING line, not a lump: it arrives every month of
          every year the OA holds it, which is what makes it comparable to a permanent discount */
@@ -31004,14 +30293,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
     const spon = c && SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? SPON.standingDiscount(c, fam) : 0;
     return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)) * (1 - spon));
-  }
-  /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
-      market, so it lives once rather than three times. */
-  function hasHookF(f, h) {
-    return (f.traits || []).some(t => {
-      const tr = ROSTER.traitById && ROSTER.traitById[t];
-      return tr && tr.effects && (tr.effects.hooks || []).indexOf(h) >= 0;
-    });
   }
   function answerEvent(state, corpId, eventId, optionId) { return EVENTS ? EVENTS.answer(state, corpId, eventId, optionId) : null; }
 
@@ -31748,17 +31029,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const benefitDue = f => f.status === 'dead' && !f._carriedOn && !(f.contract && f.contract.mirrored && f.mirror_of && deadIds.has(f.mirror_of));
       const pensions = c.roster.filter(benefitDue)
                         .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
-      /* §STORY A OA THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
-         system and needs a sentence: when a Company Family man is buried, what his OA pays
-         his people is noticed, and the fleet thinks a little better of it. The money was
-         already leaving; nothing was ever made of it. */
-      let told = 0;
-      for (const f of c.roster) {
-        if (!benefitDue(f)) continue;
-        if (!EVENTS.fighterHas(state, f, 'pension_story')) continue;
-        told += (f.contract && f.contract.death_benefit) || 0;
-      }
-      if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death Benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
       for (const f of c.roster) { bringWoundHome(f); settleWounds(f); }   /* §WOUNDS the ground's wounds become the year's; a body whole again carries none */
@@ -32510,7 +31780,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function sheetBlocks(b) {
     var s = b.stats, skills = b.skills || {}, ct = b.contract || {};
     var org = originOf(b);
-    var quirks = (b.traits || []).map(function (t) { return t; });
+    /* (ruled) a trait tagged `hidden` is not shown: it is the man's own, and the sheet does not know it */
+    var quirks = (b.traits || []).filter(function (t) { var tr = ROSTER.traitById && ROSTER.traitById[t]; return !(tr && (tr.tags || []).indexOf('hidden') >= 0); });
     /* HEALTH IS THE REAL WOUND POOL, not the inert condition meter. hpFor is the same reader
        the grid uses to size how many hits put a body down; grit sizes it, so a hand's toughness
        shows here honestly. Falls back gracefully if the combat module is somehow absent. */
@@ -32626,23 +31897,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      own keys — a screen that prints `squad_at_most_4` is a screen written for its author */
   var WHEN_WORDS = {
     squad_at_most_4: 'In a Squad of Four or Fewer',
-    squad_at_most_6: 'In a Squad of Six or Fewer',
-    squad_at_least_7: 'In a Squad of Seven or More',
     is_captain: 'While Leading a Squad',
-    not_captain: 'While Not Leading',
-    first_divide: 'In a First Engagement',
-    alongside_conscript: 'Beside a Conscript',
-    alone_of_their_race: 'As the Only One of Their People',
-    veteran: 'After Two Divides',
-    green: 'Before Their First Divide',
-    young: 'While Young',
-    old_hand: 'Thirty-Four and Older',
     hurt: 'While Carrying a Wound',
-    settled: 'While Settled',
-    rattled: 'While Rattled',
-    with_their_captain: 'With Their Captain on the Ground',
-    is_conscript: 'As a Conscript',
-    is_mercenary: 'As a Mercenary'
+    with_their_captain: 'With Their Captain on the Ground'
   };
   function WHEN_TEXT(w) { return WHEN_WORDS[w] || capWords(String(w).replace(/_/g, ' ')); }
   var HOOK_TEXT = {
@@ -32657,69 +31914,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     cede_loyalty_morale_penalty_major: '\u22125 Morale on a Sold Claim',
     death_or_glory_affinity: '+3 Morale Under Death or Glory, \u22122 Under a Cautious Policy',
     resists_medical_evac: 'Refuses Treatment When Down',
-    negotiation_bluff_detection: 'Hears a Bluff',
     friction_with_keshu_rival_race: '\u22123 Morale Beside the Other Side of the Keshu War',
-    ankoth_sympathy_chemistry: '+2 Morale Beside an Ankoth',
     evasion_surge: 'One More Step When Shot At',
     squad_coordination_bonus: 'The Whole Squad Aims Better',
     loyalty_cap_reduced: 'Never Fully Loyal to an OA',
     succession_candidate_priority: 'First in Line for a Captaincy',
     injury_severity_risk_up: 'Wounds Run a Grade Worse',
-    early_divide_penalty: 'Poor in a First Engagement',
-    late_divide_bonus: 'Better Once Blooded',
-    captain_fidelity_up: 'Follows a Captain Further',
-    field_treatment_bonus: 'Treats Wounds Better',
-    seen_worse_composure: 'Steadier for Having Seen Worse',
-    composure_up_as_intensity_rises: 'Steadier the Worse It Gets',
-    volunteers_for_risk: 'Volunteers for the Bad Jobs',
     unlikely_friendship_arc_seed: 'Draws Old Enemies',
-    accuracy_bonus: 'Better Aim',
-    evac_stabilize_bonus: 'Steadier Hands on the Wounded',
-    development_rate_up: 'Trains 30% Faster',
-    young_squadmate_development_up: 'The Young Aboard Train 15% Faster',
-    unspotted_movement_bonus: 'Moves Further Unseen',
-    reposition_speed_up: 'One More Step a Turn',
-    rout_immune: 'Never Routs',
-    morale_swings_damped: 'Loses 40% Less Composure',
     morale_swings_amplified: 'Loses 45% More Composure',
-    wounded_composure_bonus: 'Steadier When Hurt',
-    suppression_output_up: 'Suppresses a Wider Field',
-    suppression_output_down_slight: 'Suppresses a Narrower Field',
-    night_ambush_warning_bonus: 'Warns the Squad at Night',
-    ambush_avoidance_slight: 'Harder to Ambush',
-    navigation_bonus: 'Does Not Get Lost',
-    hazard_forecast_bonus: 'Reads the Weather Coming',
-    forage_bonus: 'Finds More on the Ground',
     injury_exposure_up: 'Easier to Hurt',
-    death_morale_immune: 'Unshaken by a Fallen Mate',
-    gore_morale_immune: 'Unshaken by the Sight of It',
     cohesion_morale_bonus_near_squadmates: 'Steadier Beside the Squad',
-    presence_aura: 'Steadies Anyone Beside Them',
-    overwatch_bonus: 'Better on Overwatch',
-    tether_range_extended: 'The Pair Works 3 Tiles Further Apart',
-    salary_anchoring_up: 'Asks 35% More at the Table',
-    salary_demand_pressure: 'Asks 20% More at the Table',
-    poach_resistant: 'Costs 60% More to Tempt Away',
-    aggression_event_seed: 'Starts Things',
-    renegotiation_demand_seed: 'Reopens the Paper',
-    syndicate_contact_seed: 'Draws Creditors',
-    rivalry_event_seed: 'Draws Rivals',
-    squad_envy_event_seed: 'Draws Envy',
-    pride_event_seed: 'Draws Slights',
-    omen_event_seed: 'Draws Omens',
-    ritual_event_seed: 'Draws Omens',
-    squad_superstition_event_seed: 'Draws Omens',
-    collective_demand_event_seed: 'Draws the Board\u2019s Notice',
     abolitionist_event_seed: 'Draws the Board\u2019s Notice',
     cradle_camp_event_seed: 'Draws the Board\u2019s Notice',
-    desperation_event_seed_final_divide: 'Draws a Reckoning',
-    scandal_seed_step9: 'Draws a Reckoning',
-    status_coupling_amplified: 'Reopens the Paper',
-    short_band_composure_bonus: 'Steadier Up Close',
-    early_disengage_bias: 'Calls It Sooner',
-    follows_bad_orders: 'Holds a Bad Order Too Long',
-    sponsor_income_up: 'The Gate Takes 12% More',
-    rare_quote_fame_spike: 'The Gate Takes 12% More'
+    scandal_seed_step9: 'Draws a Reckoning'
   };
   function quirkText(id) {
     var tr = ROSTER.traitById && ROSTER.traitById[id];
@@ -32829,7 +32036,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var kit = currentKit(f), prim = ITEM_BY_ID[kit.primary], arm = ITEM_BY_ID[kit.armor];
     var gear = (prim ? prim.tier : 0) * 3 + (arm ? arm.tier : 0) * 2;      /* armed and plated */
     var qk = (f.traits || []).reduce(function (n, t) {
-      var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects) return n;
+      var tr = ROSTER.traitById && ROSTER.traitById[t]; if (!tr || !tr.effects || (tr.tags || []).indexOf('hidden') >= 0) return n;
       var sm = tr.effects.stats || {}, sum = 0;   /* §UNITS real points (the old field was tenths) */
       for (var k in sm) sum += sm[k];
       return n + sum * 0.2 + ((tr.tags || []).indexOf('positive') >= 0 ? 2 : 0)
@@ -37783,12 +36990,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     var bits = [];
     if (e.gear_accuracy) bits.push('Aim <b>' + sg(e.gear_accuracy) + '</b>');
     if (e.aim_holding || e.aim_moving) bits.push('Aim Holding <b>' + sg(e.aim_holding || 0) + '</b> \u00b7 Moving <b>' + sg(e.aim_moving || 0) + '</b>');
-    if (e.overwatch_mult) bits.push('Aim on Overwatch <b>+' + (ITEMS.CONST.MOD_OVERWATCH_AIM || 20) + '</b>');
+    if (e.overwatch_aim) bits.push('Aim on Overwatch <b>+' + e.overwatch_aim + '</b>');
     if (e.band_mismatch_mult) bits.push('Wrong-Range Penalty <b>\u00d7' + e.band_mismatch_mult + '</b>');
     if (e.ammo) bits.push('Rounds <b>' + sg(e.ammo) + '</b>');
     if (e.mags) bits.push('Magazines <b>' + sg(e.mags) + '</b>');   /* §ROUNDS one more of the gun's own magazines */
     if (e.charge) bits.push('Charge <b>' + sg(e.charge) + '</b>');
-    if (e.suppress_drain) bits.push('Suppressing Fire <b>\u22121 Round</b>');
+    if (e.suppress_rounds) bits.push('Suppressing Fire <b>\u2212' + e.suppress_rounds + (e.suppress_rounds === 1 ? ' Round' : ' Rounds') + '</b>');
     if (e.power) bits.push('Power <b>' + sg(e.power) + '</b>');   /* the round's harm follows its gun's power */
     if (e.bulk) bits.push('Bulk <b>' + sg(e.bulk) + '</b>');
     if (e.grants) bits.push('Grants <b>' + ((TAG_WORDS[e.grants] || titleWords(e.grants))) + '</b>');

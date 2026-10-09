@@ -66,10 +66,7 @@
           "note": "Nevlon settles at the muzzle; Vantis settles in the fine print."
         }
       ],
-      "sponsor_style": "Sponsors aggression: drops favor ammunition and armor; withdraws visibly from preservationist banners.",
       "reputation": {
-        "aleas": -15,
-        "fleet": 45,
         "own": 80
       },
       "holds": {
@@ -126,10 +123,7 @@
           "note": "Two old codes nodding across the table."
         }
       ],
-      "sponsor_style": "Sponsors precision: optics, marksman rifles, and fighters with clean records; allergic to scandal.",
       "reputation": {
-        "aleas": 50,
-        "fleet": 60,
         "own": 45
       },
       "holds": {
@@ -187,10 +181,7 @@
           "note": "Codes recognize codes."
         }
       ],
-      "sponsor_style": "Sponsors tradition: long retainers, heirloom-grade gear, and corps that keep their declared policy.",
       "reputation": {
-        "aleas": 70,
-        "fleet": 20,
         "own": 55
       },
       "holds": {
@@ -247,10 +238,7 @@
           "note": "The OA keeps offering New Line captains triple. The captains keep declining. The OA keeps offering."
         }
       ],
-      "sponsor_style": "Sponsors talent wherever it is; exclusivity costs extra and expires quickly.",
       "reputation": {
-        "aleas": 5,
-        "fleet": 35,
         "own": 10
       },
       "holds": {
@@ -313,11 +301,8 @@
           "note": "The Concern underwrites the Line's famous pensions — and knows to the credit what its restraint costs."
         }
       ],
-      "sponsor_style": "When not competing, sponsors underdogs and clean fights; its bulk-freight drops are the most efficient in the Divide.",
       "design_note": "RATIFIED. Fills the niches the other seven leave open: the preservationist pole made economically real (DESIGN.md 5.2 requires both poles viable), a logistics/attrition playstyle, a crowd-sympathy underdog, and the labor-populist voice that gives Cradleborn Resentment somewhere to live openly. COMBAT.md 6.3 and acceptance target T14 exist to keep the preservationist pole solvent.",
       "reputation": {
-        "aleas": -20,
-        "fleet": 75,
         "own": 65
       },
       "holds": {
@@ -374,11 +359,8 @@
           "note": "Mutual, professional, occasionally profitable."
         }
       ],
-      "sponsor_style": "Sponsors leverage: drops arrive with conditions, and the conditions have conditions.",
       "design_note": "Playstyle niche: the negotiation-engine villain — high treachery AI personality that makes Step 6 sing. Difficulty 4 as a manager start: your board expects treachery dividends and your leverage carries a trust discount.",
       "reputation": {
-        "aleas": -25,
-        "fleet": -40,
         "own": 35
       },
       "holds": {
@@ -436,11 +418,8 @@
           "note": "The decks and the growers understand each other — though the Line's people mutter about the delicacy harvests too."
         }
       ],
-      "sponsor_style": "Sponsors survival: ration drops, water kit, medical basics — unglamorous and always welcome.",
       "design_note": "The hardest start by design: thinnest treasury, modest goals, patient board. The delicacy-harvest friction gives the cradleborn_resentment trait its sharpest in-fiction target (RACES.md cross-note).",
       "reputation": {
-        "aleas": 10,
-        "fleet": -5,
         "own": 20
       },
       "holds": {
@@ -497,11 +476,8 @@
           "note": "Holds the Line's pension book — a warm relationship with a cold clause in it."
         }
       ],
-      "sponsor_style": "Sponsors everyone: medkits and evac retainers flow to all eight banners, because the Concern gets paid either way.",
       "design_note": "The soft-treachery counterpart to Vantis: never breaks a deal, always knows more than you. Its actuarial knowledge is a Step 6/7 information-game hook.",
       "reputation": {
-        "aleas": 30,
-        "fleet": 25,
         "own": 30
       },
       "holds": {

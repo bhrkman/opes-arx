@@ -5,12 +5,8 @@
  * have nothing to decide. The deferral named four things that had to arrive together: motives,
  * exclusivity, contracts, and the allocation verb. All four are here.
  *
- * WHO THE SPONSORS ARE. The same eight houses. Every profile already carried a written
- * `sponsor_style` — Nevlon sponsors aggression, the Knights' Star sponsors precision and is
- * allergic to scandal, Vantis sponsors leverage and its conditions have conditions — so the
- * motives were sitting in the data waiting for a reader. A house backs rivals it approves of,
- * which is a sharper relationship than an anonymous cheque: the money comes from somebody who
- * is also trying to beat you, and who will pull it if you stop being the thing they liked.
+ * WHO THE SPONSORS ARE. Sponsor houses of their own (HOUSE_NAMES), apart from the OAs: each
+ * backs the OAs it approves of, and pulls the money when it stops approving.
  *
  * WHAT A CONTRACT IS. A retainer per season, a term in seasons, and an obligation you can fail.
  * The obligation is the whole point — a contract you cannot break is a subsidy. Failing one

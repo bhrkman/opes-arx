@@ -33,14 +33,6 @@
     POACH_MULT: 1.6,             // [C] a rival's offer for your fighter, × their worth
     SEEDED: 2.6,                 // [C] §QUIRKS what an OA with the people for it draws instead
     UNSEEDED: 0.7,               // [C] and what an OA with nobody who could cause it draws
-    /* §STORY what a hand does to the loudness of a story told about him */
-    LUCKY: 1.25,                 // [C] §LUCK how far one favoured hand tilts an OA's draw
-    LUCK_CAP: 1.8,               // [C] and the furthest a roster of them can tilt it
-    STORY_LOUD: 1.35,            // [C] a soundbite machine is quoted
-    STORY_VILLAIN: 1.40,         // [C] a villain edit is cut against him
-    STORY_BLAME: 1.30,           // [C] a blame magnet wears it
-    STORY_MOURNED: 1.50,         // [C] a company family's dead are mourned louder
-    POACH_LOYAL: 1.6,            // [C] §QUIRKS and what it costs to tempt one who does not listen
     RARE_PIECE_TIERS: [3, 4],    // [C] what a dealer brings
     RARE_MARKUP: 1.35,           // [C] over catalog
     /* THE FLEET'S MONTH (M7): one thing with fleet-reaching scope, every year. Every corp gets
@@ -63,7 +55,6 @@
     MEDIA_MULT: { steady: 0.75, manager: 0.55 },                   // [H] a quieter front, a quieter day
     MEDIA_FAME: { standout: 6, steady: 3 },                        // [C] what the front gains for being seen
     MEDIA_STRESS: 8,             // [C] the pressure of the cameras
-    MEDIA_CUT_P: 0.35,           // [H] a villain edit's chance of the piece being cut against you
     MEDIA_PATIENCE: 1,           // [C] the board likes a manager who fronts the OA himself
     /* §MEDIA THE PRESS between media days: a profile before the drop, and last year reviewed */
     PROFILE_FAME: 8,             // [C] a long piece on your standout
@@ -253,11 +244,7 @@
       id: 'raise', weight: 1.4,
       when: (c) => { const cand = alive(c).filter(f => !f.mirror_of && (f.fame || 0) >= 20 && f.contract && f.contract.salary && !f._raiseAsked);   /* a pair asks on its Mon's paper */ return cand.length ? cand.sort((a, b) => (b.fame || 0) - (a.fame || 0))[0] : null; },
       make: (f, c, ctx) => {
-        /* §QUIRKS a fighter who anchors hard asks for more; one who leans on the OA asks louder */
         let raiseMult = CONST.RAISE_FRAC;
-        const st0 = ctx && ctx.state;
-        if (fighterHas(st0, f, 'salary_anchoring_up')) raiseMult *= 1.35;
-        if (fighterHas(st0, f, 'salary_demand_pressure')) raiseMult *= 1.20;
         const ask = Math.round((f.contract.salary || 0) * raiseMult);
         return { kind: 'raise', subject: f.id, title: f.name + ' Wants a Raise',
                  text: f.name + ' has a following now, and a following has a price: ' + fmtCr(LED.retainerOf(ask)) + ' more a month, and ' + fmtCr(LED.purseOf(ask)) + ' more a drop.',
@@ -369,10 +356,7 @@
     {
       id: 'poach', weight: 1.1,
       when: (c, ctx) => { const a = alive(c).filter(f => (f.fame || 0) >= 15 && !f._poached && !f.mirror_of); if (!a.length || !ctx.rivals.length) return null; return { f: a.sort((x, y) => (y.fame || 0) - (x.fame || 0))[0], from: ctx.rivals[Math.floor(ctx.rng() * ctx.rivals.length)] }; },
-      /* §QUIRKS a hand who does not listen to other OAs costs more to tempt: poach_resistant
-         was carried by people and read by nobody, so a loyal fighter was as easy to buy as any */
-      make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT
-                                 * (ctx && ctx.state && fighterHas(ctx.state, s.f, 'poach_resistant') ? CONST.POACH_LOYAL : 1));
+      make: (s, corp, ctx) => { const price = Math.round(worthOf(s.f) * CONST.POACH_MULT);
         return { kind: 'poach', subject: s.f.id, from: s.from, price: price, title: 'An Offer for ' + s.f.name,
           text: 'An OA across the fleet wants ' + s.f.name + ', and has put ' + fmtCr(price) + ' on the table for the paper.',
           options: [
@@ -383,12 +367,6 @@
       resolve: (c, e, opt, ctx) => {
         const f = alive(c).find(x => x.id === e.subject); if (!f) return 'They Had Already Gone';
         f._poached = true;
-        /* §GRUDGE ONE FIELD, NOT A LEDGER. Grudge Holder's three hooks wanted a fighter's memory
-           of other OAs, and the first design for it was a relationship matrix — far more
-           machinery than a trait that is mostly texture is worth. A man remembers ONE OA: the
-           last one that did something to him. It is set where something memorable happens and
-           read in two places, and that is the whole of it. */
-        if (e.from && ctx && ctx.state && fighterHas(ctx.state, f, 'remembers_grudges')) f._grudge = e.from;
         const sell = (price) => { f.status = 'retired'; f._released = true; LED.post(c.account, 'income', f.name + '\u2019s Paper Sold', price);
           /* §MONEY (fixed) the OA that bought the paper pays for it — it was paid to the seller out of nothing — and the man
              is theirs (§MON-WA his other half goes with him, keepPairsWhole) */
@@ -579,9 +557,8 @@
                   { id: 'decline', label: 'Decline', cost: 'Written Anyway, From the Postings' }], def: 'decline' }; },
     resolve: (c, e, opt, ctx) => {
       const f = alive(c).find(x => x.id === e.subject); if (!f) return 'The Piece Was Never Written';
-      const loud = storyMult(ctx.state, f, true);
-      if (opt === 'grant') { REP.addFame(f, Math.round(CONST.PROFILE_FAME * loud)); stress(f, CONST.PROFILE_STRESS);
-        if (c.rep) REP.act(c.rep, 'profiled', { mult: loud }); return 'The Piece Ran on ' + f.name; }
+      if (opt === 'grant') { REP.addFame(f, CONST.PROFILE_FAME); stress(f, CONST.PROFILE_STRESS);
+        if (c.rep) REP.act(c.rep, 'profiled', {}); return 'The Piece Ran on ' + f.name; }
       REP.addFame(f, CONST.PROFILE_DECLINED_FAME); return 'The Piece Ran Anyway, Thinner';
     },
     ai: (c) => (((c.profile || {}).dials || {}).showmanship || 50) >= 45 ? 'grant' : 'decline'
@@ -707,14 +684,9 @@
      one flat pool whoever was aboard. An OA with the seed for an event draws it far oftener,
      and an OA with nobody who could cause it draws it a little less. */
   const SEED_FOR = {
-    brawl:  ['aggression_event_seed'],
-    raise:  ['renegotiation_demand_seed', 'status_coupling_amplified'],
-    debt:   ['syndicate_contact_seed'],
-    poach:  ['rivalry_event_seed', 'squad_envy_event_seed'],
-    insult: ['pride_event_seed', 'unlikely_friendship_arc_seed'],
-    dealer: ['omen_event_seed', 'ritual_event_seed', 'squad_superstition_event_seed'],
-    memo:   ['collective_demand_event_seed', 'abolitionist_event_seed', 'cradle_camp_event_seed'],
-    role:   ['desperation_event_seed_final_divide', 'scandal_seed_step9']
+    insult: ['unlikely_friendship_arc_seed'],
+    memo:   ['abolitionist_event_seed', 'cradle_camp_event_seed'],
+    role:   ['scandal_seed_step9']
   };
   /* THE CACHE LIVES OFF THE CORP. The first cut hung a Set on each corporation and a whole
      trait index on the state — and the save keeps everything on those objects, so a career
@@ -743,29 +715,7 @@
     const want = SEED_FOR[specId]; if (!want) return 1;
     const have = corpSeeds(state, corp);
     let w = want.some(h => have.has(h)) ? CONST.SEEDED : CONST.UNSEEDED;
-    /* §LUCK A OA WITH A LUCKY MAN IN IT DRAWS DIFFERENTLY. Aleas' Favorite wanted a luck
-       system and does not need one — the draw is already weighted by who an OA is carrying,
-       and this is one more term in it. A favoured hand tilts the good events toward the OA
-       and the sour ones away; a bad omen does the reverse. No dice anywhere else change. */
-    const luck = luckOf(state, corp);
-    if (luck !== 1) w *= GOOD_EVENTS.has(specId) ? luck : 1 / luck;
     return w;
-  }
-  /* the events an OA would rather draw than not */
-  const GOOD_EVENTS = new Set(['unlikely_friendship_arc_seed', 'insult', 'dealer']);
-  const LUCK_CACHE = new WeakMap();
-  function luckOf(state, corp) {
-    const c = LUCK_CACHE.get(corp), key = rosterKey(corp);
-    if (c && c.n === key) return c.v;
-    let v = 1;
-    for (const f of corp.roster) {
-      if (f.status === 'dead' || f.status === 'retired') continue;
-      if (fighterHas(state, f, 'luck_event_bias_positive')) v *= CONST.LUCKY;
-      if (fighterHas(state, f, 'blame_magnet')) v /= CONST.LUCKY;
-    }
-    v = Math.max(1 / CONST.LUCK_CAP, Math.min(CONST.LUCK_CAP, v));
-    LUCK_CACHE.set(corp, { n: key, v });
-    return v;
   }
   let TRAIT_INDEX = null;
   /** the catalogue's index, handed in once by the season rather than saved with the career */
@@ -805,20 +755,6 @@
     if (/^(The|An?)\s/i.test(n) || n.indexOf(' ') < 0) return n;
     if (/-/.test(n) && n.indexOf(' ') < 0) return n;     /* a Mon-Wa half is one word with a hyphen */
     return n.split(' ')[0];
-  }
-  /* §STORY WHAT THIS HAND DOES TO A STORY. One reader, consulted wherever an act is raised
-     about somebody: a soundbite machine makes a good line better, a villain edit makes a bad
-     one worse, a blame magnet wears whatever went wrong, and a company family's dead are
-     mourned louder. These were six hooks wanting a press office; they are one multiplier. */
-  /* §MEDIA read by media day and the press: a soundbite machine is heard louder, a villain edit cut against */
-  function storyMult(state, f, good) {
-    if (!f) return 1;
-    let m = 1;
-    if (fighterHas(state, f, 'media_statement_impact_amplified')) m *= CONST.STORY_LOUD;
-    if (!good && fighterHas(state, f, 'sportsmanship_penalty_amplified')) m *= CONST.STORY_VILLAIN;
-    if (!good && fighterHas(state, f, 'blame_magnet')) m *= CONST.STORY_BLAME;
-    if (!good && fighterHas(state, f, 'death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
-    return m;
   }
   function fighterHas(state, f, hook) {
     const idx = traitIndexOf(state);
@@ -917,15 +853,13 @@
     /* §STAFF a Fixer's hand on how the day is heard, in the figures the card quotes */
     const spinGood = (corp.rep && corp.rep._spin && corp.rep._spin.good) || 1;
     const steady = alive(corp).filter(f => !f.mirror_of && f !== so).sort((a, b) => ((b.stats || {}).presence || 0) - ((a.stats || {}).presence || 0))[0] || null;
-    const loudOf = f => storyMult(state, f, true);
     const options = [];
     const share = v => v >= 0.3 ? 'a Third' : v >= 0.18 ? 'a Fifth' : 'a Tenth';
     if (so) options.push({ id: 'standout', label: 'Your Standout \u00b7 ' + so.name, fighter: so.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * loudOf(so) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
-            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' +
-            (fighterHas(state, so, 'sportsmanship_penalty_amplified') ? ' \u00b7 Risk of a Villain Edit' : '') });
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * (1 + (so.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.standout +
+            ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.standout) + ' of Your Strength' });
     if (steady) options.push({ id: 'steady', label: 'Your Steadiest \u00b7 ' + steady.name, fighter: steady.id,
-      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * loudOf(steady) * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
+      cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.steady * spinGood) + ' \u00b7 Fame +' + CONST.MEDIA_FAME.steady +
             ' \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.steady) });
     options.push({ id: 'manager', label: 'Yourself', cost: 'Standing +' + Math.round(CONST.MEDIA_BASE * CONST.MEDIA_MULT.manager * spinGood) + ' \u00b7 The Board Warms \u00b7 Rivals Learn ' + share(CONST.MEDIA_REVEAL.manager) });
     options.push({ id: 'regrets', label: 'Send Regrets', cost: 'Nothing Moves \u00b7 the Fleet Notes Who Did Not Come' });
@@ -942,14 +876,9 @@
         rec(CONST.MEDIA_REVEAL.manager, CONST.MEDIA_BASE * mult); return 'You Fronted Media Day Yourself'; }
       const o = e.options.find(x => x.id === opt), f = o && alive(c).find(x => x.id === o.fighter);
       if (!f) { rec(0, 0); return 'Nobody Went'; }
-      const loud = storyMult(state, f, true);
-      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady) * loud;
+      const mult = (opt === 'standout' ? 1 + (f.fame || 0) * CONST.MEDIA_FAME_SCALE / CONST.MEDIA_BASE : CONST.MEDIA_MULT.steady);
       REP.addFame(f, CONST.MEDIA_FAME[opt]); stress(f, CONST.MEDIA_STRESS);   /* fame is 0 to 100, like every standing */
       rec(CONST.MEDIA_REVEAL[opt], CONST.MEDIA_BASE * mult);
-      if (fighterHas(state, f, 'sportsmanship_penalty_amplified') && ctx.rng() < CONST.MEDIA_CUT_P) {
-        if (c.rep) REP.act(c.rep, 'media_cut_against', { mult: storyMult(state, f, false) });
-        return 'The Piece Was Cut Against ' + f.name;
-      }
       if (c.rep) REP.act(c.rep, 'media_day', { mult });
       return 'The Fleet Heard ' + f.name;
     },
@@ -1032,7 +961,7 @@
   /* fighterHas is the one reader for "does this hand carry this hook" — season.js and the page
      ask it too now, rather than each growing a convention of its own */
   const api = { CONST, POOL, FLEET_POOL, draw, answer, settle, settleFleet,
-                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, storyMult, honorific, tiesOf, castFor,
+                fleetEventFor, useTraitIndex, useTalker, useSergeant, fighterHas, honorific, tiesOf, castFor,
                 BY_ID, MOMENTS };
   return api;
 });

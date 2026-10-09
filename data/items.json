@@ -244,7 +244,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Someone's grandfather carried it. Still works.",
    "type": "Long Rifles",
    "worth": {
@@ -282,7 +281,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A civilian gun that reaches. Everything else about it is a compromise.",
    "type": "Marksman Rifles",
    "worth": {
@@ -320,7 +318,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two rounds where one was asked for.",
    "type": "Submachine Guns",
    "worth": {
@@ -358,7 +355,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Crowd-control kit that found a war.",
    "type": "Support Guns",
    "worth": {
@@ -396,7 +392,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Ends rooms.",
    "type": "Scatterguns",
    "worth": {
@@ -434,7 +429,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The standard. Everything else is measured against it.",
    "type": "Assault Rifles",
    "worth": {
@@ -473,7 +467,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short enough to fight while moving.",
    "type": "Assault Rifles",
    "worth": {
@@ -512,7 +505,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Full power, full weight. You will feel every metre you carry it.",
    "type": "Support Guns",
    "worth": {
@@ -550,7 +542,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "One shot, carefully. It finds the gap in the plate, which is what you paid for.",
    "type": "Marksman Rifles",
    "worth": {
@@ -586,7 +577,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "It does not kill people. It stops them going anywhere, and somebody else kills them.",
    "type": "Support Guns",
    "worth": {
@@ -625,7 +615,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fed from a drum, and it empties like one. Someone else has to pin them first.",
    "type": "Scatterguns",
    "worth": {
@@ -663,7 +652,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Devastating on the unarmoured, a rumour against plate.",
    "type": "Scatterguns",
    "worth": {
@@ -702,7 +690,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Rounds that accelerate - useless until they have flown.",
    "type": "Carbines",
    "worth": {
@@ -740,7 +727,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fired at the wall, on purpose.",
    "type": "Carbines",
    "worth": {
@@ -776,7 +762,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The shot nobody attributes.",
    "type": "Marksman Rifles",
    "worth": {
@@ -815,7 +800,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A machine gun that stopped apologising.",
    "type": "Support Guns",
    "worth": {
@@ -853,7 +837,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two weapons, one awkward weight.",
    "type": "Launchers",
    "worth": {
@@ -891,7 +874,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Magnetic acceleration. Wait for it.",
    "type": "Anti-Materiel",
    "worth": {
@@ -929,7 +911,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Built for vehicles. Fielded against people.",
    "type": "Anti-Materiel",
    "worth": {
@@ -967,7 +948,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Doesn't shoot around cover. Shoots the cover.",
    "type": "Close-Quarters",
    "worth": {
@@ -1006,7 +986,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Cheap, patient, and slow to answer.",
    "type": "Assault Rifles",
    "worth": {
@@ -1046,7 +1025,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Empties a cell in a hurry. Ask the quartermaster how she feels about it.",
    "type": "Assault Rifles",
    "worth": {
@@ -1085,7 +1063,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The only energy weapon that can hold an arc, and it hates doing it.",
    "type": "Support Guns",
    "worth": {
@@ -1125,7 +1102,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Terrible against people. Ruinous against machines.",
    "type": "Carbines",
    "worth": {
@@ -1164,7 +1140,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Drinks the day. Dreads the night.",
    "type": "Long Rifles",
    "worth": {
@@ -1203,7 +1178,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Finds the second man without being asked.",
    "type": "Close-Quarters",
    "worth": {
@@ -1242,7 +1216,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Doesn't kill them. Stops them.",
    "type": "Carbines",
    "worth": {
@@ -1281,7 +1254,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Gets hotter and better at once.",
    "type": "Support Guns",
    "worth": {
@@ -1318,7 +1290,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "No report, no flash, no witness.",
    "type": "Marksman Rifles",
    "worth": {
@@ -1358,7 +1329,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Sound goes where the bullet won't.",
    "type": "Carbines",
    "worth": {
@@ -1395,7 +1365,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A line drawn through the argument. Once, then twice, then nothing.",
    "type": "Long Rifles",
    "worth": {
@@ -1434,7 +1403,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Removes the argument and the furniture.",
    "type": "Close-Quarters",
    "worth": {
@@ -1474,7 +1442,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The crowd's favourite, the Aleas' paperwork.",
    "type": "Launchers",
    "worth": {
@@ -1514,7 +1481,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short range, long memory.",
    "type": "Scatterguns",
    "worth": {
@@ -1550,7 +1516,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Better than a harsh word.",
    "type": "Sidearms"
   },
@@ -1585,7 +1550,6 @@
     "noise": 2
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Signal kit. Used badly, on camera.",
    "type": "Sidearms"
   },
@@ -1617,7 +1581,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Issued, forgotten, occasionally decisive.",
    "type": "Sidearms"
   },
@@ -1649,7 +1612,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Fails on a different resource than your rifle.",
    "type": "Sidearms"
   },
@@ -1684,7 +1646,6 @@
     "noise": 2
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Six chances to be right.",
    "type": "Sidearms"
   },
@@ -1718,7 +1679,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Empties fast, which is the point.",
    "type": "Sidearms"
   },
@@ -1753,7 +1713,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "A sidearm with opinions about distance.",
    "type": "Sidearms"
   },
@@ -1787,7 +1746,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Leaves them standing and useless.",
    "type": "Sidearms"
   },
@@ -1821,7 +1779,6 @@
     "noise": 0
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Two shots, no noise, nothing that troubles plate.",
    "type": "Sidearms"
   },
@@ -1855,7 +1812,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Feels wildly illegal. Entirely legal.",
    "type": "Sidearms"
   },
@@ -1887,7 +1843,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Trades the plate for the ground.",
    "type": "Armour"
   },
@@ -1915,7 +1870,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Built for fragments, ordinary against everything else.",
    "type": "Armour"
   },
@@ -1943,7 +1897,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "The honest answer to most of what gets shot at you.",
    "type": "Armour"
   },
@@ -1972,7 +1925,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Boils a beam away and cracks under a rifle.",
    "type": "Armour"
   },
@@ -2000,7 +1952,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Slow, sealed, and hard to finish by any means.",
    "type": "Armour"
   },
@@ -2018,7 +1969,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Lights optics_gear_synergy.",
    "type": "Mods"
   },
@@ -2037,7 +1987,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Steady, and only steady.",
    "type": "Mods"
   },
@@ -2051,11 +2000,10 @@
    "cost": 640,
    "bulk": 0,
    "effects": {
-    "overwatch_mult": 1.6,
+    "overwatch_aim": 20,
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Waits better than you do.",
    "type": "Mods"
   },
@@ -2074,7 +2022,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Lighter, and it shows.",
    "type": "Mods"
   },
@@ -2092,7 +2039,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Fire and move.",
    "type": "Mods"
   },
@@ -2110,7 +2056,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Halves the argument about distance.",
    "type": "Mods"
   },
@@ -2128,7 +2073,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Purely for the cameras.",
    "type": "Mods"
   },
@@ -2146,7 +2090,6 @@
     "mags": 1
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "One more magazine than the next man, and the weight of it.",
    "type": "Mods"
   },
@@ -2160,12 +2103,11 @@
    "cost": 480,
    "bulk": 0,
    "effects": {
-    "suppress_drain": -8,
+    "suppress_rounds": 1,
     "cancels": "recoil_heavy",
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Holds the line down.",
    "type": "Mods"
   },
@@ -2183,7 +2125,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Nobody attributes the first one.",
    "type": "Mods"
   },
@@ -2202,7 +2143,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Through, not into.",
    "type": "Mods"
   },
@@ -2220,7 +2160,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "The crowd notices.",
    "type": "Mods"
   },
@@ -2238,7 +2177,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Terrible against plate.",
    "type": "Mods"
   },
@@ -2256,7 +2194,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A longer day.",
    "type": "Mods"
   },
@@ -2274,7 +2211,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Hotter, harder.",
    "type": "Mods"
   },
@@ -2293,7 +2229,6 @@
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Wider, weaker, closer.",
    "type": "Mods"
   },
@@ -2306,7 +2241,6 @@
    "tier": 2,
    "cost": 240,
    "bulk": 1,
-   "uses": 1,
    "action": "throw",
    "effects": {
     "tags": [
@@ -2314,7 +2248,6 @@
     ]
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Severity roll (power 7) against up to 3 in band, cover one step worse; exposes the thrower.",
    "type": "Consumables",
    "charges": 6
@@ -2328,13 +2261,11 @@
    "tier": 1,
    "cost": 180,
    "bulk": 1,
-   "uses": 1,
    "action": "screen",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Own side a step more cover for three turns; blocks overwatch both ways.",
    "type": "Consumables",
    "charges": 8
@@ -2348,7 +2279,6 @@
    "tier": 3,
    "cost": 360,
    "bulk": 1,
-   "uses": 1,
    "action": "throw",
    "effects": {
     "tags": [
@@ -2357,7 +2287,6 @@
     ]
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "As frag, incendiary, +8 severity; crowd-divisive.",
    "type": "Consumables",
    "charges": 4
@@ -2371,13 +2300,11 @@
    "tier": 1,
    "cost": 280,
    "bulk": 1,
-   "uses": 1,
    "action": "treat",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A downed fighter gets back up more often (+15%).",
    "type": "Consumables",
    "charges": 5
@@ -2391,13 +2318,11 @@
    "tier": 2,
    "cost": 220,
    "bulk": 1,
-   "uses": 1,
    "action": "dose",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+25 composure to one squadmate in band; -5 fatigue recovery that night.",
    "type": "Consumables",
    "charges": 4
@@ -2411,13 +2336,11 @@
    "tier": 3,
    "cost": 1200,
    "bulk": 1,
-   "uses": 1,
    "action": "dose",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "A round that would kill its carrier leaves him down at a breath instead; up when the fight is over, as hurt as a body can be.",
    "type": "Consumables",
    "charges": 1
@@ -2431,13 +2354,11 @@
    "tier": 3,
    "cost": 520,
    "bulk": 1,
-   "uses": 1,
    "action": "deploy",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Goes up when the enemy is lost; everything within seven tiles of it is seen for four turns.",
    "type": "Consumables",
    "charges": 2
@@ -2451,13 +2372,11 @@
    "tier": 4,
    "cost": 760,
    "bulk": 2,
-   "uses": 1,
    "action": "deploy",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "Set down where you stand; fires once a turn for four turns at Aim 130. A machine: it does not flinch.",
    "type": "Consumables",
    "charges": 2
@@ -2471,13 +2390,11 @@
    "tier": 1,
    "cost": 200,
    "bulk": 2,
-   "uses": 1,
    "action": "carry",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+12 rounds when he runs low. Quota: 1 per body.",
    "type": "Consumables",
    "charges": 6
@@ -2491,13 +2408,11 @@
    "tier": 2,
    "cost": 260,
    "bulk": 1,
-   "uses": 1,
    "action": "carry",
    "effects": {
     "tags": []
    },
    "price_model": "fixed",
-   "legality": "legal",
    "identity": "+20 charge. Quota: 1 per body.",
    "type": "Consumables",
    "charges": 6
@@ -2533,7 +2448,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Sponsor theatre with a blast radius.",
    "type": "Launchers",
@@ -2572,7 +2486,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Ammunition x3. Nothing about it is reasonable.",
    "type": "Support Guns",
@@ -2611,7 +2524,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "One hole, all the way through.",
    "type": "Anti-Materiel",
@@ -2651,7 +2563,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "Removes the position and the argument.",
    "type": "Launchers",
@@ -2691,7 +2602,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "exotic": true,
    "identity": "One shot per three exchanges. It is enough.",
    "type": "Anti-Materiel",
@@ -2725,7 +2635,6 @@
     "covers": null
    },
    "price_model": "scarcity",
-   "legality": "legal",
    "exotic": true,
    "identity": "A walking cover position that eats an allowance.",
    "type": "Armour"
@@ -2746,8 +2655,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
-   "acquisition": "step9",
    "identity": "Takes every scrap of cover in reach down to the bare ground.",
    "type": "Consumables",
    "charges": 1
@@ -2767,8 +2674,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
-   "acquisition": "step9",
    "identity": "Forces Mon-Wa tether strain at range. Built to break one species.",
    "type": "Consumables",
    "charges": 1
@@ -2779,7 +2684,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_stun_carbine",
    "name": "Kestrel Stun-Carbine",
@@ -2820,7 +2724,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_shock_lance",
    "name": "Arclight Shock Lance",
@@ -2861,7 +2764,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_dazzler",
    "name": "Halo Dazzler",
@@ -2926,7 +2828,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The gun a hundred thousand people learned on. Nothing it does is clever.",
    "type": "Assault Rifles",
    "worth": {
@@ -2964,7 +2865,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Standard issue on eleven worlds. Fires until you stop asking.",
    "type": "Assault Rifles",
    "worth": {
@@ -3003,7 +2903,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Holds its line while you walk. The rest is practice.",
    "type": "Assault Rifles",
    "worth": {
@@ -3041,7 +2940,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Heavier than it looks, and it goes through more than it should.",
    "type": "Assault Rifles",
    "worth": {
@@ -3081,7 +2979,6 @@
     "charge": 24
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Three flashes a second and a battery that resents it.",
    "type": "Assault Rifles",
    "worth": {
@@ -3120,7 +3017,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "What an OA buys when it has stopped counting.",
    "type": "Assault Rifles",
    "worth": {
@@ -3158,7 +3054,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Loud, light, and honest about what it is.",
    "type": "Submachine Guns",
    "worth": {
@@ -3196,7 +3091,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Made for corridors and the people who fight in them.",
    "type": "Submachine Guns",
    "worth": {
@@ -3235,7 +3129,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Points where you are already looking.",
    "type": "Submachine Guns",
    "worth": {
@@ -3274,7 +3167,6 @@
     "charge": 30
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "No report, no muzzle flash, no warning at all.",
    "type": "Submachine Guns",
    "worth": {
@@ -3307,7 +3199,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3335,7 +3226,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3365,7 +3255,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3394,7 +3283,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3423,7 +3311,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3452,7 +3339,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3480,7 +3366,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3510,7 +3395,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3539,7 +3423,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3565,7 +3448,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3595,7 +3477,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3623,7 +3504,6 @@
     "covers": null
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3655,7 +3535,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "",
    "type": "Armour"
   },
@@ -3687,7 +3566,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Bought for deer. Kept for the long walk across open ground.",
    "type": "Long Rifles",
    "worth": {
@@ -3723,7 +3601,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Nobody hears it. Nobody who needs to.",
    "type": "Long Rifles",
    "exotic": true,
@@ -3762,7 +3639,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A glass sight bolted on by somebody who meant well.",
    "type": "Marksman Rifles",
    "worth": {
@@ -3798,7 +3674,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Every round an argument won at the first word.",
    "type": "Marksman Rifles",
    "exotic": true,
@@ -3838,7 +3713,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A wall of small certainties.",
    "type": "Submachine Guns",
    "exotic": true,
@@ -3875,7 +3749,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Heavy, loud, and older than the man carrying it.",
    "type": "Support Guns",
    "worth": {
@@ -3911,7 +3784,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Two barrels, one decision.",
    "type": "Scatterguns",
    "worth": {
@@ -3950,7 +3822,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Empties a room without opening the door.",
    "type": "Scatterguns",
    "exotic": true,
@@ -3987,7 +3858,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short, light, and forgiving of cold hands.",
    "type": "Carbines",
    "worth": {
@@ -4023,7 +3893,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Fits in a pack. Unfolds into a problem.",
    "type": "Carbines",
    "worth": {
@@ -4061,7 +3930,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Built for the first squad down and the last one out.",
    "type": "Carbines",
    "exotic": true,
@@ -4100,7 +3968,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Pipe, fuse, and faith.",
    "type": "Launchers",
    "worth": {
@@ -4138,7 +4005,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Lobs a problem over the wall they are hiding behind.",
    "type": "Launchers",
    "worth": {
@@ -4176,7 +4042,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Six rounds of bad news, one after another.",
    "type": "Launchers",
    "worth": {
@@ -4212,7 +4077,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Kicks like the thing it was made for.",
    "type": "Anti-Materiel",
    "worth": {
@@ -4248,7 +4112,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Pulled off a wreck. Still finds armour through the smoke.",
    "type": "Anti-Materiel",
    "worth": {
@@ -4284,7 +4147,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Opens cover the way a key opens a door.",
    "type": "Anti-Materiel",
    "worth": {
@@ -4322,7 +4184,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "For the last three metres of any argument.",
    "type": "Close-Quarters",
    "worth": {
@@ -4360,7 +4221,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Short barrel. Short conversation.",
    "type": "Close-Quarters",
    "worth": {
@@ -4398,7 +4258,6 @@
     "noise": 3
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The door is the wall now.",
    "type": "Close-Quarters",
    "exotic": true,
@@ -4413,7 +4272,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_prod_gun",
    "name": "Prod Gun",
@@ -4454,7 +4312,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_tether_stunner",
    "name": "Tether Stunner",
@@ -4494,7 +4351,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_swarm_repeater",
    "name": "Swarm Stun-Repeater",
@@ -4535,7 +4391,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_lull_rifle",
    "name": "Lull Rifle",
@@ -4575,7 +4430,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "worth",
    "id": "itm_hush_launcher",
    "name": "Hush Launcher",
@@ -4616,7 +4470,6 @@
    "family": "energy",
    "damage": "energy",
    "type": "Stun-Grade",
-   "legality": "legal",
    "price_model": "scarcity",
    "id": "itm_quietus_projector",
    "name": "Quietus Projector",
@@ -4683,7 +4536,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "A training beam somebody turned up past the stop.",
    "type": "Assault Rifles",
    "worth": {
@@ -4722,7 +4574,6 @@
     "charge": 23
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Chatters, crackles, and burns through a cell in a breath.",
    "type": "Submachine Guns",
    "worth": {
@@ -4759,7 +4610,6 @@
     "noise": 0
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "The first thing they see is the last thing they see.",
    "type": "Marksman Rifles",
    "worth": {
@@ -4798,7 +4648,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Every shot a little sunrise.",
    "type": "Carbines",
    "exotic": true,
@@ -4836,7 +4685,6 @@
     "noise": 1
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Reaches the ridge line before the sound does.",
    "type": "Long Rifles",
    "exotic": true,
@@ -4876,7 +4724,6 @@
     "noise": 2
    },
    "price_model": "worth",
-   "legality": "legal",
    "identity": "Holds a line of light across the whole field.",
    "type": "Support Guns",
    "exotic": true,
@@ -4909,7 +4756,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Crinkles when you run. Turns a beam, sometimes."
   },
   {
@@ -4935,7 +4781,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Exactly what it sounds like."
   },
   {
@@ -4961,7 +4806,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Stops the round. Not the bruise."
   },
   {
@@ -4988,7 +4832,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Good at nothing in particular, which is often enough."
   },
   {
@@ -5016,7 +4859,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Light goes in. Light comes out somewhere else."
   },
   {
@@ -5044,7 +4886,6 @@
     ]
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Walks through small-arms fire like weather."
   },
   {
@@ -5075,7 +4916,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "A torch that bites.",
    "type": "Sidearms"
   },
@@ -5107,7 +4947,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "The last word, repeated.",
    "type": "Sidearms"
   },
@@ -5139,7 +4978,6 @@
     "noise": 1
    },
    "price_model": "formula",
-   "legality": "legal",
    "identity": "Made for one person, and for one moment.",
    "type": "Sidearms"
   }

@@ -49,7 +49,6 @@
     QUOTA_CELL_PER_BODY: 1,         // [S]
 
     DEVICE_SHARE: 0.34,             // [C] §DEVICES share of a force the richest OA fits with a device
-    MOD_OVERWATCH_AIM: 20,          // [C] a target link's reaction-shot steadiness, in sheet Aim (the overwatch trait's size)
     FOUNDING_DEPTH: 1.25,           // [H] spares a corp arrives with, over one force's worth
     FOUNDING_SPARES: 0.35,          // [H] cheap spares per body per slot (ruled smaller)
     /* §14a — HOW MUCH A CORP ACTUALLY FIELDS (Step 6b).
@@ -242,11 +241,11 @@
       mod.aim += e.gear_accuracy || 0;
       mod.aimHolding += e.aim_holding || 0;
       mod.aimMoving += e.aim_moving || 0;
-      /* "waits better than you do": sized as the overwatch trait is (+2 on a reaction shot) */
-      if (e.overwatch_mult) mod.overwatchAim += CONST.MOD_OVERWATCH_AIM;
+      /* "waits better than you do": sheet Aim on a reaction shot (the data says how much) */
+      mod.overwatchAim += e.overwatch_aim || 0;
       if (e.band_mismatch_mult) mod.bandMult *= e.band_mismatch_mult;
-      /* "holds the line down": suppressing fire costs a round less */
-      if (e.suppress_drain) mod.suppressCost += 1;
+      /* "holds the line down": suppressing fire costs this many rounds less */
+      mod.suppressCost += e.suppress_rounds || 0;
       if (e.cancels) cancels.push(e.cancels);
     }
     if (cancels.length) tags = tags.filter(t => cancels.indexOf(t) < 0);

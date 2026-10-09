@@ -133,17 +133,10 @@
     UNDERDOG_MORALE: 6,                 // [C] a day's morale a warm, full-share Underdogs faction lends an OA past hope
     BLOODHOUND_FAME: 1.0,               // [C] how much further a kill's fame travels with a warm, full-share Bloodhounds faction
     LOOT_AIM_SLACK: 3,                  // [C] §LOOT a taken gun may shoot this much worse (Total Aim) than his own and still be taken
-    /* §RANK what a captaincy changing hands is worth to a man who wanted it */
-    RANK_SURGE: 8,                      // [C] off the stress of the one who takes it
-    RANK_SNUB: 6,                       // [C] onto the stress of one passed over
-    STORY_MOURNED: 1.50,                // [C] a company family's dead
-    STORY_BLAME: 1.30,                  // [C] and a blame magnet wears it
     /* §PRESENCE what being a man the room looks at is worth */
     PRESENCE_STEADIES: 0.12,            // [C] and what the squad's steadiest hand lends a captain
     KESHU_FRICTION: 3,                  // [C] §KESHU what an old war costs a squad that holds
                                         //     both sides of it
-    GRUDGE_COMP: 6,                     // [C] §GRUDGE what it is worth to face the OA that
-                                        //     tried to buy you, for a man who remembers
     SQUAD_MAX: 8, SQUAD_MIN: 3,         // [S] squads live inside these bounds. RULED: the floor is THREE —
                                         //     it binds the manager's own squad page, which reads it from here
     SQUADS_MAX: 6,                      // [S] §SQUADS the most an OA may field, as ruled
@@ -237,8 +230,6 @@
     STANDING_PER_ENGAGEMENT: 0.015,     // [C] fighting in public builds your reputation
     STANDING_PER_SITE: 0.050,           // [C] holding ground the crowd can see
     STANDING_MIN: 0.12, STANDING_MAX: 1.0,
-    FORAGE_POOR: 0.18,                  // [C] ground the trait counts as poor
-    FORAGE_IMMUNE_FLOOR: 0.25,          // [C] and what its carrier gets anyway
     STANCE_PULL_HURT: 2.6,              // [C] notches toward care, at total loss
     STANCE_PULL_PENNED: 1.1,            // [C] and toward aggression once the wall pens it in
     STANCE_PULL_AHEAD: 0.7,             // [C] an opening is worth taking
@@ -1247,19 +1238,6 @@
       return b.stats.tactics - a.stats.tactics;
     })[0];
     if (heir && sq.captainId !== heir.id) {
-      /* §RANK SOMEBODY WANTED THAT JOB. Rank Climber's two hooks asked for promotion to be an
-         event a fighter notices, and the first design for it was an ambition system. It is not
-         needed: a captaincy already CHANGES HANDS here, on the day, when the last one falls.
-         The man who takes it and is hungry for it steadies; the men passed over who wanted it
-         take it badly. Nothing new happens — the same moment simply lands on people. */
-      for (const b of avail) {
-        const hk = C.hooksOf(b, ROSTER.traitById);
-        if (b.id === heir.id) {
-          if (hk.has('promotion_morale_surge')) b.condition.stress = Math.max(0, (b.condition.stress || 0) - CONST.RANK_SURGE);
-        } else if (hk.has('captaincy_snub_morale_risk')) {
-          b.condition.stress = Math.min(CONST.STRESS_MAX, (b.condition.stress || 0) + CONST.RANK_SNUB);   /* held to the ceiling, as every other stress is */
-        }
-      }
       sq.captainId = heir.id;
       addStress(sq, CONST.STRESS.succession);
       heir._stress = squadStress(sq);
@@ -1282,7 +1260,6 @@
     const avail = squadHead(sq);
     if (!avail.length) return null;
     const cap = squadCaptain(sq);
-    const mentorPresent = avail.some(b => (b.traits || []).includes('mentor'));
     /* §QUIRKS THE SITUATION A BODY IS IN, handed to the body as it is built — without it every
        situational condition answers false and a quirk written against one does nothing, which
        is the exact failure this catalogue is being rebuilt to escape. */
@@ -1291,7 +1268,7 @@
     for (const b of avail) raceCount[b.race] = (raceCount[b.race] || 0) + 1;
     const units = avail.map(f => C.makeCombatant(f, {
       traitIndex, isCaptain: f.id === cap.id, day,
-      firstEngagement: engagementNo === 0, rookieSupport: mentorPresent, captainBonus: 0,
+      firstEngagement: engagementNo === 0, captainBonus: 0,
       squadSize: avail.length, withConscript: withConscript,
       onlyOfRace: raceCount[f.race] === 1,
       divides: (f.experience && f.experience.divides) || 0, age: f.age,
@@ -1387,7 +1364,7 @@
     for (const q of winners) { q.medkits = medkitCharges(q.bodies); q.hasMedkit = q.medkits > 0; }
     /* guns: the best pieces first, each to the fighter it upgrades most */
     const costOf = id => { const it = id && ITEMS.byId(id); return it ? (it.cost || 0) : 0; };
-    const guns = fallen.filter(f => f.loadout && f.loadout.primary && !C.hooksOf(f, ROSTER.traitById).has('never_drops_gear'))
+    const guns = fallen.filter(f => f.loadout && f.loadout.primary)
       .map(f => ({ f, id: f.loadout.primary })).sort((a, b) => costOf(b.id) - costOf(a.id));
     for (const g of guns) {
       const it = ITEMS.byId(g.id); if (!it) continue;
@@ -1482,18 +1459,8 @@
     const reg = planet.ground && sq.zone != null ? planet.ground.regions[planet.ground.zones[sq.zone].region] : null;
     /* the ground's forage class, thinned or thickened by the world it is on (an ice shelf yields a quarter of a cradle) */
     let yieldPer = CONST.FORAGE_YIELD[Math.max(0, Math.min(3, Math.round((reg ? reg.forage : 1) * (planet.forageMult || 1))))] || 0;
-    /* A forager whose people can eat what the rest cannot. The guard used to require
-       `yieldPer === 0` — an exactly-barren tile — which never occurred on any archetype, so
-       the trait was inert. It now applies wherever the ground is poor, which is what the
-       trait is for. */
-    if (yieldPer <= CONST.FORAGE_POOR && hooksOfSquad.has('forage_penalty_immune')) {
-      yieldPer = Math.max(yieldPer, CONST.FORAGE_IMMUNE_FLOOR);
-      if (stats) stats.audit.forageImmune = (stats.audit.forageImmune || 0) + 1;
-    }
     if (planet.salvage) yieldPer += 0.15;
     yieldPer *= 1 + CONST.FORAGE_FIELDCRAFT * (squadStat(sq, 'fieldcraft') - 100);
-    if (hooksOfSquad.has('forage_bonus')) yieldPer *= 1.4;
-    if (hooksOfSquad.has('forage_value_up')) yieldPer *= 1.25;
     const got = Math.min(cap - sq.rations, Math.max(0, yieldPer * squadHead(sq).length * (0.6 + 0.8 * rng())));
     sq.rations += got;
     if (stats) { stats.audit.forageEvents++; stats.audit.forageYield += got; }
@@ -1552,9 +1519,8 @@
   function weatherCheck(rng, sq, planet, hooksOfSquad, stats) {
     const w = stats.weatherToday; if (!w || !w.kind) return null;
     const fx = w.fx, bodies = squadHead(sq);
-    if (hooksOfSquad.has('hazard_forecast_bonus') && rng() < 0.60) return null;   // warned, and sheltered
     if (fx.fatigue) for (const b of bodies) b.condition.fatigue = Math.min(100, b.condition.fatigue + fx.fatigue);
-    if (fx.lost && rng() < fx.lost && !hooksOfSquad.has('navigation_bonus')) sq._lostDay = true;
+    if (fx.lost && rng() < fx.lost) sq._lostDay = true;
     if (fx.hurt && bodies.length) {
       const onIt = fx.hurt.terrain ? (planet.ground && sq.zone != null && planet.ground.regions[planet.ground.zones[sq.zone].region].terrain === fx.hurt.terrain) : true;
       if (onIt && rng() < fx.hurt.p * CONST.WEATHER_HURT_MULT) {
@@ -1566,12 +1532,6 @@
       }
     }
     return w.kind;
-  }
-
-  /** Does anyone still standing in this squad carry the hook? Module-scope, uncached. */
-  function squadHasHook(sq, hook) {
-    for (const b of squadHead(sq)) if (C.hooksOf(b, ROSTER.traitById).has(hook)) return true;
-    return false;
   }
 
   /** Does anyone in this corp carry the hook? Cached per Divide-day, since it is asked a lot. */
@@ -1621,8 +1581,7 @@
     {
       const heads = squadHead(sq);
       /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
-      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0)
-                  + heads.filter(b => C.hooksOf(b, ROSTER.traitById).has('carry_bulk_up_2')).length * 2;
+      const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0);
       const load = ITEMS.squadBulk(heads, bonus);
       sq.overBulk = load.over;
       if (load.over > 0) {
@@ -1634,10 +1593,6 @@
 
     let recovery = CONST.FATIGUE_RECOVERY;
     if (sq._resting || sq.foughtToday) recovery *= CONST.REST_RECOVERY_MULT;   /* a squad that fought today rests tonight */
-    /* §13.1 stakeout_fatigue_reduced: holding position costs a squad far less */
-    if (!sq.movedToday && hooksOfSquad.has('stakeout_fatigue_reduced')) recovery *= 1.5;
-    if (hooksOfSquad.has('fatigue_recovery_down')) recovery *= 0.6;
-    else if (hooksOfSquad.has('fatigue_recovery_down_slight')) recovery *= 0.85;
 
     let moraleDelta = 0;
     /* §HALF-BUILT STRUCK (ruled): the same — `camp_morale_aura` (+2 morale in camp) and
@@ -1649,25 +1604,15 @@
     /* --- Step 6 audit: hooks declared in traits.json that no code had ever read ---------
        Every one of these belongs to a system that already runs, so their being inert was a
        gap rather than a deferral. Grouped here because they are all camp morale. */
-    const day = sq._day || 1;
-    const late = Math.min(1, day / GROUND.CONST.DAYS);
-    /* a war priest steadies everyone around them */
-    if (hooksOfSquad.has('faith_morale_aura')) { moraleDelta += 2; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
-    /* gallows humour is worth most after a bad day */
-    if (hooksOfSquad.has('squad_morale_support_after_losses') && sq._lostSomeone) { moraleDelta += 3; stats.audit.traitHooks++; }
-    /* homesickness bites as the month drags */
-    if (hooksOfSquad.has('morale_decay_long_divide')) { moraleDelta -= 1 + 2 * late; stats.audit.traitHooks++; }
-    /* a prisoner counting down to freedom pulls the other way */
-    if (hooksOfSquad.has('morale_up_as_freedom_nears')) { moraleDelta += 1 + 2 * late; stats.audit.traitHooks++; }
     /* the devout want a fight, and are told what the corp declared this turn */
     if (hooksOfSquad.has('death_or_glory_affinity')) {
       moraleDelta += (corp.policy === 'death_or_glory' ? 3 : corp.policy === 'unyielding' ? 1 : -2);
-      stats.audit.traitHooks++;
+      stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1;
     }
     /* ...and they take a corp selling its claim personally (N2 — ceding IS the deal) */
     if (corp.withdrawn) {
-      if (hooksOfSquad.has('cede_loyalty_morale_penalty_major')) { moraleDelta -= 5; stats.audit.traitHooks++; }
-      else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks++; }
+      if (hooksOfSquad.has('cede_loyalty_morale_penalty_major')) { moraleDelta -= 5; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
+      else if (hooksOfSquad.has('cede_loyalty_morale_penalty')) { moraleDelta -= 3; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
     }
     /* squad chemistry: who is standing next to whom */
     /* §KESHU THE GRUDGE TESTED FOR A RACE THAT DOES NOT EXIST. It looked for somebody of race
@@ -1677,13 +1622,10 @@
        the peace standing beside a Gil, or the other way round. As written it could never once
        have fired. */
     if (hooksOfSquad.has('friction_with_keshu_rival_race')) {
-      const hasAttorak = bodies.some(b => b.race && b.race.id === 'attorak');
-      const hasGil = bodies.some(b => b.race && b.race.id === 'gil');
-      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks++; }
+      const hasAttorak = bodies.some(b => b.race === 'attorak')   /* (fixed) a fighter's race is its id: `.race.id` never matched */;
+      const hasGil = bodies.some(b => b.race === 'gil');
+      if (hasAttorak && hasGil) { moraleDelta -= CONST.KESHU_FRICTION; stats.audit.traitHooks = (stats.audit.traitHooks || 0) + 1; }
     }
-    if (hooksOfSquad.has('ankoth_sympathy_chemistry')
-        && bodies.some(b => b.race && /ankoth/i.test(b.race.id || ''))) { moraleDelta += 2; stats.audit.traitHooks++; }
-    if (hooksOfSquad.has('camp_morale_contagion_both_ways')) moraleDelta *= 1.5;
 
     for (const b of bodies) {
       /* §CONSUMABLES a stimmed fighter pays for it that night: less rest out of the same camp */
@@ -1970,8 +1912,8 @@
        written for the old once-a-season model and never read; under a turn-by-turn dial it
        finally has something to resist. It does not BLOCK the change — the manager decides —
        it charges morale for the whiplash. */
-    if (corpHasHook(corp, 'doctrine_change_resistance') || corpHasHook(corp, 'policy_whiplash_morale_penalty_up')) {
-      const bite = corpHasHook(corp, 'policy_whiplash_morale_penalty_up') ? 2 : 1;
+    if (corpHasHook(corp, 'doctrine_change_resistance')) {
+      const bite = 1;
       for (const q of corp.squads) for (const b of squadHead(q)) {
         b.condition.morale = Math.max(5, b.condition.morale - bite);
       }
@@ -2056,16 +1998,6 @@
          scale (90); multiplying it by ten again put a missing Presence at 900 */
       g *= REP.presenceFameMult(t);    /* §PRESENCE the one rule for every fame a fighter earns */
       const h = C.hooksOf(t, ROSTER.traitById);
-      if (h.has('fame_gain_up')) g *= 1.5;
-      if (h.has('heel_fame_gain')) g *= 1.4;
-      if (h.has('fame_gain_up_on_aggression')) g *= 1.35;
-      if (h.has('fame_volatility_up')) g *= 1.8;
-      if (h.has('crowd_pleaser_movement')) g *= 1.25;
-      /* the broadcast reads some fighters better than others: one whose brutality cuts
-         cleanly, one whose voice the relay keeps for colour */
-      if (h.has('crowd_legible_savagery')) g *= 1.3;
-      if (h.has('broadcast_color')) g *= 1.15;
-      if (h.has('fame_gain_down')) g *= 0.4;
       if (h.has('media_statements_flat')) g *= 0.7;
       REP.addFame(t, g);
     }
@@ -2150,8 +2082,7 @@
       }
       else {
         f.condition.morale = Math.max(5, Math.min(95, Math.round(0.7 * f.condition.morale + 0.3 * u.comp)));
-        f.condition.fatigue = Math.min(100, f.condition.fatigue + 12
-          + (u.hooks.has('post_engagement_fatigue_spike') ? 8 : 0));
+        f.condition.fatigue = Math.min(100, f.condition.fatigue + 12);
         if (u.wounds.length) stats.lightWounds++;
         /* §WOUNDS (ruled) the harm a fight did stays for the next one, in four bands */
         f._hpFrac = hpBand((u.hp != null ? u.hp : u.hpMax) / Math.max(1, u.hpMax));
@@ -2592,15 +2523,6 @@
           const b = edgeOf(xs); for (const u of part.units) u._bearing = b; } });
       for (const R of (ctx.reinforce || [])) for (const u of (R.side.units || [])) u._bearing = R.bearing;
       ctx.forceBearings = true;
-      /* §GRUDGE a man fighting the OA he remembers */
-      for (const side of built) {
-        const foes = built.filter(o => o !== side).map(o => o.corpId);
-        for (const u of side.units) {
-          if (!u._grudge || foes.indexOf(u._grudge) < 0) continue;
-          if (!u.hooks || !u.hooks.has('morale_up_vs_grudge_target')) continue;
-          u.comp = Math.min(100, u.comp + CONST.GRUDGE_COMP); stats.audit.traitHooks++;
-        }
-      }
       for (const sd of built) for (const u of (sd.units || [])) u._carriedIn = (u.carried || []).slice();
       const deadBefore = new Set();
       for (const g of sidesSq) for (const q of g) for (const b of q.bodies) if (b.status === 'dead') deadBefore.add(b);
@@ -2755,9 +2677,8 @@
                  .sort((a, b) => seats(a) - seats(b))[0] || null;
         if (!into) { stats.audit.beaconFull = (stats.audit.beaconFull || 0) + 1; return; }
       }
-      const knack = squadHasHook(sq, 'sponsor_drop_handling_bonus');
       o.draw[corp.id] = (o.draw[corp.id] || 0) + 1;
-      if (o.draw[corp.id] < CONST.BEACON_TICKS - (knack ? 1 : 0)) return;
+      if (o.draw[corp.id] < CONST.BEACON_TICKS) return;
       o.draw[corp.id] = 0;
       const lead = corp.reserve.shift(), group = [lead];
       if (corp.reserve[0] && corp.reserve[0].mirror_of === lead.id) group.push(corp.reserve.shift());
@@ -3195,23 +3116,14 @@
        swings an audience at triple weight, and until now fame had no reader but ransom. */
     for (const c of corps) {
       if (!c.rep) continue;
-      let ourDead = 0, ourFamous = 0, loudest = 1;
+      let ourDead = 0, ourFamous = 0;
       for (const b of c.allBodies) {
         if (b.status !== 'dead' || b._carriedOn) continue;
         if (b.mirror_of && c.allBodies.some(x => x.id === b.mirror_of && x.status === 'dead')) continue;   /* §MON-WA one person */
         ourDead++;
         if ((b.fame || 0) >= REP.CONST.FAMOUS_AT) ourFamous++;
-        /* §STORY WHOSE DEATH IT WAS. A company family's dead are mourned louder and a blame
-           magnet is who the fleet decides it was about — the loudest name among the fallen
-           carries the whole notice, which is how a fleet reads a casualty list. Read through
-           `C.hooksOf`, the reader this module already uses, rather than reaching into events. */
-        const hk = C.hooksOf(b, ROSTER.traitById);
-        let m = 1;
-        if (hk.has('death_pr_event_amplified')) m *= CONST.STORY_MOURNED;
-        if (hk.has('blame_magnet')) m *= CONST.STORY_BLAME;
-        if (m > loudest) loudest = m;
       }
-      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous, storyMult: loudest });
+      if (ourDead) REP.act(c.rep, 'our_dead', { count: ourDead, famous: ourFamous });
       /* their dead, by your hand — attributed per victim's corp so the right fanbase reacts */
       const bag = c._killsBy || {};
       for (const victimCorp in bag) {

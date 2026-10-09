@@ -347,3 +347,12 @@ lean one pleases.
   leaned toward what the planet is rich in, and asks more the emptier the hold.
 - A Mon-Wa's halves more than six tiles apart (nine drilled) each lose 25 composure a grid turn (a turn is an
   exchange) and shoot worse; within it they steady each other.
+- A wound taken on the ground with no medkit charge left to dress it comes home half again as deep.
+- The fleet trusts an OA's word by its character and by its record of promises to leavers kept and broken
+  (the longer the record, the more it counts), and a little more where a quarter of its people are Kellis.
+  An OA keeps or breaks its word out of its character; its record is what others read.
+- A refused raise costs the fighter 10 loyalty.
+- Peoples' own abilities: Svalbard dislike a change of stance mid-Divide (it costs their morale), Olmac are flat
+  in the media, Kellis lend their house's word weight, a Ththyn's loyalty follows his standing (captaincy or fame;
+  passed over, he sours), a Gil's follows how the house finished, and a mercenary's signing fee is his people's.
+- A trait tagged hidden is not shown. Trait abilities no trait carries are deleted with the cut catalogue.

@@ -101,7 +101,7 @@ for (const f of simFiles) {
   const everything = SIM + PAGE + HARNESS.map(h => h.s).join('\n') +
     fs.readdirSync(path.join(ROOT, 'sim')).filter(f => f.endsWith('.cjs')).map(f => read('sim/' + f)).join('\n');
   /* PARKED by ruling, waiting for a system that is not built yet: reported as parked, not as findings */
-  const PARKED = { storyMult: 'authored stories', attention: 'the media system' };
+  const PARKED = { attention: 'the media system' };
   for (const f of simFiles) {
     const s2 = read('sim/' + f);
     const i = s2.lastIndexOf('return {');

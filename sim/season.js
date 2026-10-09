@@ -209,7 +209,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     TRYOUT_LOT: 6,            // [S] Natties who turn up to trial each Natural-Born month — more of them than
                               //     mercs, cheaper, and further from what they might become
     MERC_HUNGER: 0.45,        // [H] how much harder a corp short of bodies bids
-    SPONSORED_GATE: 1.12,     // [C] §QUIRKS what a marketable face is worth at the gate
     /* §FOUNDING what an OA founded at the desk opens with */
     LEAN_ROSTER: 7,           // [C] old hands, paper nearly up, no mercenaries among them
     LEAN_DEPTH: 1,            // [C] guns enough to arm one drop badly
@@ -251,9 +250,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                                  //     little to do as the physical side had.
     RENEWAL_LOYALTY_PULL: 0.22,  // [C] how far loyalty moves a re-signing ask, either way
     LOYALTY_CAP_LOW: 35,         // [C] the ceiling on a hand who cannot be fully loyal
-    QUICK_STUDY: 1.30,        // [C] §QUIRKS what a quick study gets out of a month's drill
-    MENTORED: 1.15,           // [C] and what the young get from an old hand aboard
-    YOUNG_AT: 26,             // [C] who counts as young for that
     MARKET_SWING: 0.25,       // [C] §MARKET the most an OA's name moves what it is asked for
     MARKET_FLEET_SHARE: 0.4,  // [C] how much the fleet's regard counts beside its own people's
     /* the two pools of a window */
@@ -339,7 +335,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     GRIEF_DIVIDES: 1, GRIEF_CLOSE_DIVIDES: 2,
     GRIEF_MORALE: 5, GRIEF_CLOSE_MULT: 2.4,
     BREAK_RESOLVE_AT: 8,
-    FRENZY_TRAITS: ['hot_headed', 'grudge_holder', 'keshu_grudge'],
+    FRENZY_TRAITS: ['keshu_grudge'],
 
     /* --- the board (S5, S12) --- */
     UNDERWRITE_PATIENCE_FLOOR: 8,
@@ -442,7 +438,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       return best !== undefined ? JSON.parse(best) : null;
     };
     const p = {};
-    ['dials', 'engagement_lean', 'finance', 'reputation', 'sponsor_style', 'difficulty', 'holds']
+    ['dials', 'engagement_lean', 'finance', 'reputation', 'difficulty', 'holds']
       .forEach(k => { p[k] = avg(profiles.map(o => o[k])); });
     const races = {};
     profiles.forEach(o => Object.keys(o.race_weights || {}).forEach(r => { races[r] = 1; }));
@@ -1050,12 +1046,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
   /** What one fighter thinks of one offer. Higher is better; below zero they would rather not. */
   function weighOffer(f, corp, offer, best, state) {
-    /* §GRUDGE A MAN WILL NOT SIGN FOR THE OA HE REMEMBERS. `refuses_grudged_corps` is the
-       third of Grudge Holder's hooks and the only one a manager meets across a table: whatever
-       is on offer, this name comes off that OA's sheet. No ledger — one remembered OA,
-       set when they tried to buy him. */
-    if (f._grudge && corp.id === f._grudge && state && EVENTS.fighterHas(state, f, 'refuses_grudged_corps'))
-      return -1;
     const money = best > 0 ? offer / best : 1;                       /* 0..1 against the top bid */
     const safety = survivalRecord(corp);                             /* 0..1, share who came home */
     /* THE CROWD. This read `rep.base.public`, and there is no `public` audience — the four are
@@ -2282,19 +2272,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const STATS = ['aim'].concat(CONST.MIND, CONST.BODY || ['grit', 'reflex']);
         /* pips of a tier become a share of a drill block: 3 pips = one full block at that weight */
         const w = (pips, tierW) => CONST.TRAIN_GAIN * tierW * (pips / 3) * mult;
-        /* §QUIRKS A QUICK STUDY LEARNS QUICKER, and a mentor's presence lifts the young.
-           `development_rate_up` and `young_squadmate_development_up` were carried by fighters
-           and read by nothing. */
-        /* the reader is module-level now: the gate wants it too */
-        const mentors = corp.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && hasHookF(f, 'young_squadmate_development_up')).length;
         for (const f of corp.roster) {
           if (f.status === 'dead' || f.status === 'retired') continue;
           /* §WOUNDS A CRIPPLED MAN DOES NOT DRILL. Focus painted on him is not lost — it is
              simply not learning, which is the cost of fielding a broken hand. */
           if (woundBand(f) === 'crippled') { tally.tooHurtToTrain = (tally.tooHurtToTrain || 0) + 1; continue; }
-          const learn = (hasHookF(f, 'development_rate_up') ? CONST.QUICK_STUDY : 1)
-                      * (mentors && (f.age || 30) <= CONST.YOUNG_AT ? CONST.MENTORED : 1)
-                      * TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
+          const learn = TALKS.drillMult(f, (season || 0) * 100 + month);   /* §TALKS driven, dressed down, or coasting */
           const cap = CONST.STAT_CEIL;
           if (cap == null) continue;
           let drilled = false;
@@ -3032,14 +3015,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (f.ownKit && f.status !== 'dead') { const own = [f.ownKit.primary, f.ownKit.armor, f.ownKit.sidearm]; ids = ids.filter(id => own.indexOf(id) < 0); }
       const spare = f._spareKit || []; f._spareKit = null; f._lootedPrimary = false; f._stripped = false;
       if (f.status !== 'dead') { carried(ids); carried(spare); continue; }      /* home, and back in the rack — with what he carried off */
-      /* PROCUREMENT.md §12 — `never_drops_gear` means what it says: this fighter's kit is
-         recovered whether or not their side held the ground. The hook was declared at Step 2,
-         repurposed in writing at Step 5, and read by nothing until the gear-damage cut went
-         looking for what still depended on it. */
-      if (C.hooksOf(f, ROSTER.traitById).has('never_drops_gear')) {
-        for (const id of ids) if (id) { stock[id] = (stock[id] || 0) + 1; kept++; }
-        continue;
-      }
       /* left on the ground. The side that held it picks some of it up. */
       for (const id of ids) {
         if (!id) continue;
@@ -4379,11 +4354,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const floor = c.rep ? Math.round(LED.CONST.GATE_BASE * (c.rep.shares.diehards || 0) * REP.standing(c.rep, 'diehards') / 50) : 0;
       const shut = c._gateShut === state.season * 100 + m;
       const gate = shut ? 0 : Math.round(Math.max(floor, LED.gateFor(crowdForGate, c.rep ? REP.standing(c.rep, 'houses') : 50, fame)) * FAC.gateMult(c));   /* §FACILITIES the Press Office */
-      /* §QUIRKS A FACE THE SPONSORS PAY FOR. `sponsor_income_up` and `rare_quote_fame_spike`
-         were carried by people and read by nothing at all: an OA with a marketable hand
-         aboard takes more at the gate, and the crowd repeats what they say. */
-      const marketable = alive.some(f => hasHookF(f, 'sponsor_income_up') || hasHookF(f, 'rare_quote_fame_spike'));
-      const gate2 = marketable ? Math.round(gate * CONST.SPONSORED_GATE) : gate;
+      const gate2 = gate;
       if (gate2 > 0) LED.post(c.account, 'income', 'Gate and Merchandise', gate2);
       /* §SPONSORS a lender's stipend is a STANDING line, not a lump: it arrives every month of
          every year the OA holds it, which is what makes it comparable to a permanent discount */
@@ -4463,14 +4434,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const fam = it.slot === 'armor' ? 'armor' : (it.damage === 'energy' || it.family === 'energy') ? 'energy' : 'ballistic';
     const spon = c && SPON && SPON.standingDiscount && (it.slot === 'primary' || it.slot === 'sidearm' || it.slot === 'armor') ? SPON.standingDiscount(c, fam) : 0;
     return Math.round((it.cost || 0) * priceMult(state) * (1 - (c ? STAFF.shelfDiscount(c) : 0)) * (1 - spon));
-  }
-  /** §QUIRKS does this fighter carry a hook? Asked from the training block, the gate and the
-      market, so it lives once rather than three times. */
-  function hasHookF(f, h) {
-    return (f.traits || []).some(t => {
-      const tr = ROSTER.traitById && ROSTER.traitById[t];
-      return tr && tr.effects && (tr.effects.hooks || []).indexOf(h) >= 0;
-    });
   }
   function answerEvent(state, corpId, eventId, optionId) { return EVENTS ? EVENTS.answer(state, corpId, eventId, optionId) : null; }
 
@@ -5207,17 +5170,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const benefitDue = f => f.status === 'dead' && !f._carriedOn && !(f.contract && f.contract.mirrored && f.mirror_of && deadIds.has(f.mirror_of));
       const pensions = c.roster.filter(benefitDue)
                         .reduce((s2, f) => s2 + ((f.contract && f.contract.death_benefit) || 0), 0);
-      /* §STORY A OA THAT PAYS ITS DEAD WELL IS SEEN TO. `pension_story` wanted a press
-         system and needs a sentence: when a Company Family man is buried, what his OA pays
-         his people is noticed, and the fleet thinks a little better of it. The money was
-         already leaving; nothing was ever made of it. */
-      let told = 0;
-      for (const f of c.roster) {
-        if (!benefitDue(f)) continue;
-        if (!EVENTS.fighterHas(state, f, 'pension_story')) continue;
-        told += (f.contract && f.contract.death_benefit) || 0;
-      }
-      if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
       if (pensions) LED.post(c.account, 'expense', 'Death Benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
       for (const f of c.roster) { bringWoundHome(f); settleWounds(f); }   /* §WOUNDS the ground's wounds become the year's; a body whole again carries none */

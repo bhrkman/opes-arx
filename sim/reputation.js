@@ -172,7 +172,7 @@
         buyer    felt by the house that bought from you (ctx.buyerId)
         grave    the Diehards feel it in full; ctx.grave marks one case of an act as grave
         residue  the share never forgotten (R8)
-     ctx.mult (and the older ctx.storyMult) scales the whole act: who it happened to changes how loudly it lands. */
+     ctx.mult scales the whole act: who it happened to changes how loudly it lands. */
   const ACTS = {
     /* --- the Divide, and its settlement --- */
     won_planet:         { q: { glory: 1.0 }, mag: 14, houses: -5, residue: 0.55 },       /* ctx.scale adds grit: how unlikely it was */
@@ -453,7 +453,7 @@
     const spec = ACTS[type];
     if (!spec) throw new Error('reputation: unknown act ' + type);
     const c = Object.assign({}, ctx, { famousMult: spec.famousMult || 1 });
-    const loud = (ctx.storyMult || 1) * (ctx.mult || 1);
+    const loud = ctx.mult || 1;
     const mag = resolve(spec.mag, c) * loud;
     const q = Object.assign({}, spec.q || {}, ctx.q || {});
     /* a win against the odds is grit as well as glory (ctx.scale: how unlikely it was) */
@@ -490,7 +490,7 @@
   /**
    * §3 — a corp is seen doing something. Remembers what each audience made of it and returns what moved, so the
    * day loop and the viewer can show the reason beside the number.
-   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, storyMult, season }
+   * ctx: { targetId, buyerId, count, famous, scale, grave, mult, season }
    */
   function act(rep, type, ctx) {
     ctx = ctx || {};
@@ -1014,11 +1014,7 @@
        this module deliberately does not load traits.json. */
     const h = ctx.hooks || new Set();
     let amp = 1;
-    if (h.has('media_statement_impact_amplified')) amp *= 1.6;   // every line fits a chyron
     if (h.has('media_statements_flat')) amp *= 0.45;             // and both clips are famous
-    if (h.has('rare_quote_fame_spike')) amp *= 1.3;
-    if (h.has('fame_volatility_up')) amp *= 1.4;
-    if (h.has('fame_gain_down')) amp *= 0.6;
     /* fame carries a statement further: the fleet hears a name it knows */
     if (sp) amp *= 1 + 0.5 * ((sp.fame || 0) / CONST.FAME_CEIL);
     const moved = act(rep, type, { mult: amp, targetId: ctx.targetId, season: ctx.season });
