@@ -366,3 +366,10 @@ lean one pleases.
   sees, and a rival's cost of staying as its own per head; a person's hand-kit is priced as the quartermaster's, its
   ransom paid only from money it has, its stance changed at the same cost, its withdrawal ask bounded the same (nine
   tenths of the pot). A seat's choices draw their own dice, so who holds a seat moves no other roll.
+- Every seat answers its Paper at the year's end, after the Divide, at the ask struck once the year's fame and losses
+  are in; unanswered, the books settle it as before.
+- Once the landings are drafted the squads are the landings: no squad is filled from empty or emptied, and a squad past
+  them waits in orbit.
+- Scouting gates what a seat knows of a rival, for every seat: its strength at the landing draft (unscouted, the fleet's
+  middle), and on the trade table its people (by the roster row's depth, the quality as a rounder figure the shallower
+  the read) and its racks (by the kit row; counts only when read deep). Unanswered choices keep their fallbacks.

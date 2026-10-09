@@ -86,10 +86,10 @@
   };
 
   /** What a body is worth over the life of the contract that travels with them. */
-  function worthOf(f) {
+  function worthOf(f, qSeen) {
     /* §POTENTIAL a body is worth what it IS, and how famous it is — a hidden ceiling no longer
        adds a premium for growth nobody can see (ruled: no unit ceilings) */
-    const q = qualityOf(f);
+    const q = qSeen != null ? qSeen : qualityOf(f);   /* `qSeen`: the quality as a rival's dossier reads it */
     const seasons = Math.max(1, (f.contract && f.contract.seasons_remaining) || 1);
     const per = q * CONST.CREDITS_PER_QUALITY * (1 + CONST.FAME_LIFT * (f.fame || 0));
     return Math.round(per * seasons);
@@ -124,7 +124,12 @@
     for (const g of (b.gear || [])) v += gearPrice(g.id) * (g.n || 1);
     for (const id of (b.units || [])) {
       const f = (corp.roster || []).find(x => x.id === id);
-      if (f) v += netOf(f);
+      if (!f) continue;
+      /* (fixed) another house's people are worth what the viewer's dossier says: unscouted, nothing it would pay for */
+      if (opts.viewer && opts.viewer !== corp) {
+        const q = qualitySeen(qualityOf(f), rosterDepth(opts.viewer, corp.id).roster);
+        v += q == null || f.mirror_of ? 0 : worthOf(f, q) - wageOf(f);
+      } else v += netOf(f);
     }
     for (const t of (b.intel || []))
       v += intelPrice(t.rows || 6, opts.focusPointPrice, opts.rowsPerPip);
@@ -138,7 +143,7 @@
    */
   function appetite(me, them, mine, theirs, opts) {
     opts = opts || {};
-    const give = valueBundle(me, mine, opts);
+    const give = valueBundle(me, mine, Object.assign({}, opts, { viewer: them }));   /* what is offered, as the answerer reads it */
     const ask = valueBundle(them, theirs, opts);
     const regard = typeof opts.regard === 'number' ? opts.regard
       : (me.rep && REP && me.rep.base.houses[them.id] != null ? (REP.standing(me.rep, 'house', them.id) - 50) * 2 : 0);   /* −100..100: how THEY regard ME */
@@ -263,6 +268,19 @@
    * how a manager learns to stop reading. Cooldown per OA, a die roll on top, and the deal
    * must be good for the proposer before they will bother asking.
    */
+  /* §INTEL (ruled) WHAT A RIVAL'S PEOPLE ARE WORTH IS KNOWN AS FAR AS ITS DOSSIER REACHES: a roster row read deep gives the
+     quality, shallower a rounder figure, and none gives nothing to trade for. The page lists a rival's people by this,
+     and an engine seat chooses whom to write for by it. */
+  function rosterDepth(viewer, ownerId) {
+    const r = viewer && viewer._intel && viewer._intel.rivals && viewer._intel.rivals[ownerId] && viewer._intel.rivals[ownerId].rows;
+    return { roster: (r && r.roster && r.roster.depth) || 0, kit: (r && r.kit && r.kit.depth) || 0 };
+  }
+  function qualitySeen(q, depth) {
+    if (!depth) return null;
+    if (depth >= 3) return q;
+    const step = depth >= 2 ? 10 : 25;
+    return Math.round(q / step) * step;
+  }
   function proposeFrom(rng, them, me, month, opts) {
     opts = opts || {};
     if (!tradingOpen(month)) return null;
@@ -272,11 +290,15 @@
     if (month - lastAny < CONST.OFFER_QUIET_MONTHS) return null;
     if (rng() > CONST.OFFER_CHANCE) return null;
 
-    /* what they want: the best body on your roster they could actually field */
+    /* what they want: the best body on your roster they could actually field — as their dossier on you reads it (fixed:
+       it read every rival's true worth, unscouted) */
+    const depth = rosterDepth(them, me.id).roster;
+    if (!depth) return null;
+    const seenQ = f => qualitySeen(qualityOf(f), depth);
     const want = (me.roster || []).filter(f => f.status !== 'dead' && f.status !== 'retired')
-      .slice().sort((x, y) => netOf(y) - netOf(x))[0];
+      .slice().sort((x, y) => (seenQ(y) - seenQ(x)) || ((y.fame || 0) - (x.fame || 0)))[0];   /* ties by the public name */
     if (!want) return null;
-    const price = netOf(want);
+    const price = want.mirror_of ? 0 : worthOf(want, seenQ(want)) - wageOf(want);   /* priced as they read him */
     if (price <= 0) return null;                    /* they do not ask for liabilities */
 
     /* WHAT THEY PUT UP. They aim a little UNDER the asking price — nobody opens a
@@ -400,7 +422,7 @@
 
   const api = {
     CONST, qualityOf, worthOf, wageOf, netOf, gearPrice, intelPrice,
-    valueBundle, appetite, tradingOpen, execute, proposeFrom, fleetTrades
+    valueBundle, appetite, tradingOpen, execute, proposeFrom, fleetTrades, rosterDepth, qualitySeen
   };
   if (isNode) module.exports = api;
   global.CDTRADE = api;

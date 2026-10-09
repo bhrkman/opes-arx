@@ -2902,7 +2902,8 @@
      renewed or dropped by the same budget arithmetic the fleet uses, so a manager never had to
      decide whether a veteran was worth what he now asks — or that a prisoner who has served his
      sentence is a free man asking for wages. */
-  function paperList() { return G && G.state && G.state.month === 1 ? (SEASON.renewalsFor(G.state, G.me) || []) : []; }
+  /* §PAPER (ruled) the Paper is answered at the year's end, after the Divide, as every seat answers it */
+  function paperList() { return G && G.state && G.state._settled ? (SEASON.renewalsFor(G.state, G.me) || []) : []; }
   function docketHtml(kind, name, state) {
     return '<div class="docket ' + kind + '"><span class="nm">' + name + '</span><span class="st">' + state + '</span>' +
            '<button class="pcbtn" data-docket="' + kind + '">Open</button></div>';
@@ -2923,7 +2924,7 @@
   function renderPaperWin(host) {
     var list = paperList(), me = G.corps[G.me];
     var open = list.filter(function (r) { return !r.called && !r.freed; }).length;
-    $('bhead').innerHTML = '<span class="dot"></span>Month 1 \u00b7 <b>The Paper</b>';
+    $('bhead').innerHTML = '<span class="dot"></span>Year\u2019s End \u00b7 <b>The Paper</b>';
     $('bcount').textContent = list.length + ' Expiring \u00b7 ' + (open ? open + ' Unanswered' : 'All Answered');
     $('bfoot').textContent = open ? 'Unanswered at Year\u2019s End: Settled by the Books' : '';
     $('bizgo').innerHTML = '<button id="bizlater" class="rbeacon"><span class="w">' + (open ? 'Later' : 'Done') + '</span><small>To the Page</small></button>';
@@ -3665,6 +3666,12 @@
      Dispatches, then the Paper, then the Draft, each once a month, each opening as the last one
      closes. Anything closed unanswered comes back through Waiting On You or its docket line. */
   function nextWindow() {
+    if (G && G.state && G.state._settled) {   /* the year's end: the Paper, once */
+      G._bizSeen = G._bizSeen || {};
+      var k2 = G.state.season + ':end';
+      if (paperList().length && G._bizSeen.paper !== k2 && !$('bizwin').classList.contains('on')) { G._bizSeen.paper = k2; openBiz('paper'); }
+      return;
+    }
     if (!G || !G.state || G.div || G.state.month >= 12) return;
     var key = G.state.season + ':' + G.state.month;
     if (G._dispatchSeen !== key && dispatchCount()) { openDispatch(); return; }
@@ -5534,6 +5541,11 @@
 
   $('nextyear').onclick = function () {
     if (!G || !G.state || G.state.month < 12) return;
+    /* §PAPER (ruled) the year's end is when the Paper is answered: shown once before the year turns; what is left
+       unanswered the books settle */
+    G._bizSeen = G._bizSeen || {};
+    var pk = G.state.season + ':end';
+    if (paperList().some(function (r) { return !r.called && !r.freed; }) && G._bizSeen.paper !== pk) { G._bizSeen.paper = pk; openBiz('paper'); return; }
     stop(); clearTween();
     /* §AUTHORITY a board question left unanswered costs as the year turns — in the engine now */
     /* the year turns: the engine's own offseason ages, heals, expires and retires; then a
@@ -5731,9 +5743,20 @@
     return it ? tierBadge(it.tier) : '<span class="tierb none"></span>';
   }
 
+  /* §DRAFT (ruled) ONCE THE LANDINGS ARE DRAFTED THE SQUADS ARE THE LANDINGS: the board's count of squads is fixed — no
+     squad filled from empty, none emptied — as an engine seat fields no more squads than it drafted landings */
+  function landingsFixed() {
+    var D = G && G.state && G.state.drop && G.state.drop.draft;
+    return D && D.season === G.state.season && D.done ? (D.picks[G.me] || []).length : null;
+  }
   function moveTo(id, si) {         /* si null = home */
     /* §MON-WA a being moves with both its bodies */
     var who = bodyById(id), mate = who && who.bond_partner ? bodyById(who.bond_partner) : null;
+    if (landingsFixed() != null) {
+      var fitL = fitBodies(), from = G.plan.at[id];
+      if (si != null && from !== si && squadSeats(fitL, si) === 0) return;   /* no new squad */
+      if (from != null && from !== si && squadSeats(fitL, from) <= 1) return;   /* none emptied */
+    }
     if (si == null) {
       delete G.plan.at[id]; delete G.plan.leaderOf[id];
       if (mate) { delete G.plan.at[mate.id]; delete G.plan.leaderOf[mate.id]; }
@@ -5836,7 +5859,7 @@
       var bodies = mem.length + mem.filter(function (b) { return partnerIn(b, G.corps[G.me].roster); }).length;   /* a pair's second body */
       total += n; if (n) used++;
       var bad = n > 0 && (n < MIN || n > MAX);
-      var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX;
+      var canPlace = sel && G.plan.at[sel.id] !== si && n < MAX && !(landingsFixed() != null && n === 0);
       h += '<div class="sqcard ' + SQCLASS[si] + (n ? ' filled' : '') + (canPlace ? ' target' : '') + (bad ? ' badct' : '') + '" data-si="' + si + '">' +
         '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="Rename">' + esc(G.plan.names[si]) + '</span>' +
 
@@ -8246,17 +8269,23 @@
     var c = side === 'give' ? tradeMe() : (TSEL ? G.corps[TSEL] : null);
     if (!c) return [];
     var out = [];
+    /* §INTEL (ruled) a rival's people and racks are on the table only as far as your dossier on them reaches: its roster
+       row for whom it has and how good (deep: the quality; shallower, a rounder figure), its kit row for what it holds */
+    var own = side === 'give', dep = own ? { roster: 3, kit: 3 } : TRADE.rosterDepth(G.corps[G.me], c.id);
     oneEach(aliveOf(c)).forEach(function (f) {   /* §MON-WA a pair is one person on the table, and both bodies go */
+      if (!dep.roster) return;
+      var q = TRADE.qualitySeen(TRADE.qualityOf(f), dep.roster);
+      var worth = TRADE.worthOf(f, q), wage = TRADE.wageOf(f);
       /* a fighter on the table is a person, and carries what they are drawn as */
       out.push({ k: 'unit', id: f.id, label: displayName(f), race: f.race, mark: f.mark, corpId: c.id,
-                 sub: 'Quality ' + Math.round(TRADE.qualityOf(f)) + ' \u00b7 ' + cr(retOf((f.contract || {}).salary)) + '/mo \u00b7 ' +
+                 sub: 'Quality ' + (dep.roster >= 3 ? Math.round(q) : '~' + q) + ' \u00b7 ' + cr(retOf((f.contract || {}).salary)) + '/mo \u00b7 ' +
                       ((f.contract || {}).seasons_remaining || 1) + ' Seasons' + (f.fame ? ' \u00b7 Fame ' + Math.round(f.fame) : ''),
-                 worth: TRADE.worthOf(f), wage: TRADE.wageOf(f), v: TRADE.netOf(f) });
+                 worth: worth, wage: wage, v: f.mirror_of ? 0 : worth - wage });
     });
-    Object.keys(c.armoury || {}).filter(function (id) { return c.armoury[id] > 0; }).forEach(function (id) {
+    Object.keys(c.armoury || {}).filter(function (id) { return dep.kit && c.armoury[id] > 0; }).forEach(function (id) {
       var it = ITEMS.byId(id);
       out.push({ k: 'gear', id: id, n: c.armoury[id], tier: it ? it.tier : 0, type: it ? (it.type || 'Other') : 'Other',
-                 label: it ? it.name : id, sub: (it ? capWords(it.slot) : '') + ' \u00b7 ' + c.armoury[id] + ' Held',
+                 label: it ? it.name : id, sub: (it ? capWords(it.slot) : '') + (dep.kit >= 3 ? ' \u00b7 ' + c.armoury[id] + ' Held' : ' \u00b7 Held'), hideN: dep.kit < 3,
                  v: TRADE.gearPrice(id) });
     });
     /* INTEL. Never about the OA across the table \u2014 they know what they are (ruled). */
@@ -8345,12 +8374,12 @@
         var on = !!onTable(side, it.k, it.id);
         if (it.k === 'gear' && it.type !== lastType) { h += '<tr><th class="t"></th><th colspan="2">' + esc(it.type) + '</th></tr>'; lastType = it.type; }
         var name = it.k === 'gear' ? tierHtml(it.id) + esc(it.label) : it.k === 'unit' ? fighterMark(it, 18, colFor(it.corpId || G.me)) + '<span style="color:' + raceColour(it) + '">' + esc(it.label) + '</span>' : esc(it.label);
-        var qty = it.k === 'gear' && !on ? ' <input class="qty" data-tqty="' + side + ':' + i + '" value="1" min="1" max="' + it.n + '" title="How Many of ' + it.n + '">' : '';
+        var qty = it.k === 'gear' && !on ? ' <input class="qty" data-tqty="' + side + ':' + i + '" value="1" min="1"' + (it.hideN ? '' : ' max="' + it.n + '"') + ' title="' + (it.hideN ? 'How Many' : 'How Many of ' + it.n) + '">' : '';
         h += '<tr class="pick' + (on ? ' on' : '') + '" data-tadd="' + side + '" data-i="' + i + '" data-tid="' + it.k + ':' + it.id + '"><td class="t" title="' + TKINDNAME[it.k] + '">' + TGLYPH[it.k] + '</td>' +
              '<td>' + name + qty + '<div class="sub">' + esc(it.sub) + (it.k === 'unit' ? ' \u00b7 Worth ' + crs(it.worth) + ' \u2212 Owed ' + crs(it.wage) : '')   /* TRADE.wageOf: the wage for every season left on his paper */ + '</div></td>' +
              '<td class="r"><b>' + crs(it.v) + '</b>' + (on ? '<div class="sub">On the Table</div>' : '') + '</td></tr>';
       });
-      if (!rows.length) h += '<tr><td colspan="3" class="sub" style="text-align:center;padding:12px">Nothing Here</td></tr>';
+      if (!rows.length) h += '<tr><td colspan="3" class="sub" style="text-align:center;padding:12px">' + (side === 'get' && !TRADE.rosterDepth(me, TSEL).roster && !TRADE.rosterDepth(me, TSEL).kit ? 'Unscouted' : 'Nothing Here') + '</td></tr>';
       h += '</table></div><div class="m" style="margin-top:4px;text-align:right">' + (side === 'give'
              ? 'You Hold ' + crs(c.account.treasury) + (creditsOn(side) ? ' \u00b7 ' + crs(left) + ' Not Yet Offered' : '')
              : 'Their Purse: ' + theirPurse(TSEL)) + '</div></div>';
@@ -9149,10 +9178,19 @@
     };
     var zoneName = function (zid) { var l = byZone[zid]; return l ? esc(l.regionName) + ' ' + (g.regions[l.region].zones.indexOf(zid) + 1) : 'Zone ' + zid; };
     /* the order strip: who picks when, with their picks so far */
+    /* §INTEL (ruled) a rival's strength as your scouting reads it — the same reading an engine seat lands by */
+    var myStr = SEASON.strengthSeen(G.state, G.me, G.me);
+    var strWord = function (id) {
+      if (id === G.me) return '';
+      var row = me._intel && me._intel.rivals && me._intel.rivals[id] && me._intel.rivals[id].rows.roster;
+      if (!row || !row.depth) return ' <span class="m">Unscouted</span>';
+      var d = SEASON.strengthSeen(G.state, G.me, id) - myStr;
+      return d > 0.05 ? ' <span class="bad">Stronger</span>' : d < -0.05 ? ' <span class="good">Weaker</span>' : ' <span class="m">Even</span>';
+    };
     var strip = D.order.map(function (id, i) {
       var on = !D.done && D.order[D.turn] === id;
       return '<div class="dpick' + (on ? ' on' : '') + (id === G.me ? ' me' : '') + '" style="border-left-color:' + colFor(id) + '">' +
-        '<div class="dn"><span class="m">' + (i + 1) + '</span> ' + markFor(id, 12) + ' ' + cSpan(id) + '</div>' +
+        '<div class="dn"><span class="m">' + (i + 1) + '</span> ' + markFor(id, 12) + ' ' + cSpan(id) + strWord(id) + '</div>' +
         '<div class="ds">' + (D.picks[id] || []).map(function (z) { return '<span class="slotchip" style="background:' + colFor(id) + '" title="' + zoneName(z) + '">' + (g.zones[z].region + 1) + '</span>'; }).join('') +
         (on ? '<span class="m">Picking</span>' : '') + '</div></div>'; }).join('');
     var mine = D.picks[G.me] || [];

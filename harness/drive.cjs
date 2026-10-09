@@ -229,32 +229,8 @@ setTimeout(() => {
       check(!/Already in Play|Table Closed/.test(text('#brief')),
             'and says it in figures rather than a sentence');
     }
-    /* §RESIGN THE PAPER: the Review is where a manager answers his own expiring contracts */
-    {
-      const GP = window.__G, S6 = window.CDSEASON;
-      const paper = S6.renewalsFor(GP.state, GP.me) || [];
-      /* a world where nothing expires in Year 1 has no Paper (about half of them): the docket must then be absent */
-      if (!paper.length) check(!doc.querySelector('#resigning [data-docket]'), 'no Paper docket in a year with nothing expiring');
-      else {
-      /* §WINDOWS the Paper is a window over the page: a docket line on the Roster opens it */
-      check(paper.length >= 1 && /The Paper/.test(text('#resigning')) && doc.querySelector('#resigning [data-docket="paper"]'),
-            'the Paper\'s docket stands on the Roster in the Review (' + paper.length + ')');
-      doc.querySelector('#resigning [data-docket="paper"]').click();
-      check(doc.getElementById('bizwin').classList.contains('on') && doc.querySelectorAll('#bizwin .rscard').length === paper.length,
-            'and opens the Paper as a window with every expiring hand in it');
-      const signBtn = doc.querySelector('#bizwin [data-rs="sign"]');
-      const who = signBtn.getAttribute('data-rsid');
-      signBtn.click();
-      check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#bizwin')),
-            'a hand is re-signed at what they ask');
-      const goBtn = doc.querySelectorAll('#bizwin [data-rs="release"]')[0];
-      if (goBtn) { const gone = goBtn.getAttribute('data-rsid'); goBtn.click();
-        check((GP.corps[GP.me]._renewalCalls || {})[gone].how === 'release', 'and another is let go'); }
-      doc.getElementById('bizlater').click();
-      check(!(doc.getElementById('bizwin').classList.contains('on') && /The Paper/.test(text('#bhead'))), 'Later closes the Paper');
-      for (let k = 0; k < 3 && doc.getElementById('bizwin').classList.contains('on'); k++) doc.getElementById('bizlater').click();   /* and whatever came in turn behind it */
-      }
-    }
+    /* §PAPER (ruled) the Paper is answered at the year's end, after the Divide: month one carries no docket */
+    check(!doc.querySelector('#resigning [data-docket]'), 'the Paper waits for the year\'s end');
     const rosterStart = doc.querySelectorAll('#roster .rcard').length;
     check(rosterStart >= 5 && rosterStart <= 10,
           'a founded OA opens with a skeleton crew, not an inheritance (' + rosterStart + ' hands)');
@@ -1944,7 +1920,24 @@ setTimeout(() => {
 
     /* ---- the year turns ---- */
     check(doc.getElementById('nextyear').style.display !== 'none', 'Begin the Next Year shows once the contest is over');
-    doc.getElementById('nextyear').click();
+    /* §PAPER the year's end: the Paper opens before the year turns, every expiring hand in it, answered at one ask */
+    {
+      const GP = window.__G, S6 = window.CDSEASON;
+      const paper = (S6.renewalsFor(GP.state, GP.me) || []).filter(r => !r.freed);
+      doc.getElementById('nextyear').click();
+      if (!paper.length) console.log('  skipped: the Paper (nothing expiring this year)');
+      else {
+        check(doc.getElementById('bizwin').classList.contains('on') && doc.querySelectorAll('#bizwin .rscard').length >= paper.length,
+              'the Paper opens at the year\'s end with every expiring hand (' + paper.length + ')');
+        const signBtn = doc.querySelector('#bizwin [data-rs="sign"]');
+        const who = signBtn.getAttribute('data-rsid');
+        signBtn.click();
+        check((GP.corps[GP.me]._renewalCalls || {})[who] && /Re-Signed/.test(text('#bizwin')), 'a hand is re-signed at what they ask');
+        doc.getElementById('bizlater').click();
+        for (let k = 0; k < 3 && doc.getElementById('bizwin').classList.contains('on'); k++) doc.getElementById('bizlater').click();
+        doc.getElementById('nextyear').click();
+      }
+    }
     check(/Year 2 · Month 1/.test(text('#clock')), 'the year turns: ' + text('#clock'));
     check(hasTab('Desk') && !hasTab('The Firefight'),
           'the rail returns whole to the preparation');

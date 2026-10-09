@@ -2628,9 +2628,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         id: f.id, name: f.pair_name || f.name, race: f.race, fame: f.fame || 0, age: f.age,
         kind: ct.kind, freed: freed,
         was: ct.salary || 0,
-        asks: renewalSalary(f, state), years: renewalTerm(f),
+        asks: f._renewAsk || renewalSalary(f, state), years: renewalTerm(f),
         /* what a season of them costs against what they were paid: the argument itself */
-        year: renewalSalary(f, state) * LED.CONST.SALARY_MONTHS,
+        year: (f._renewAsk || renewalSalary(f, state)) * LED.CONST.SALARY_MONTHS,
         called: (c._renewalCalls || {})[f.id] || null
       });
     }
@@ -2643,7 +2643,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     c._renewalCalls = c._renewalCalls || {};
     if (how === 'clear') { delete c._renewalCalls[fighterId]; return { ok: true }; }   /* the call taken back */
     /* §PAPER the ask he named is the ask he holds to: answered now, it is the figure paid at the year's end */
-    c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: renewalSalary(f, state) };
+    c._renewalCalls[fighterId] = { how: how, offer: offer || null, asked: f._renewAsk || renewalSalary(f, state) };
     return { ok: true };
   }
   function renewRoster(rng, corp, expiring, freed, state) {
@@ -2700,7 +2700,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           if (calls[f.id]) continue;
           const r = order.length ? (order.indexOf(f) + 1) / order.length : 0;
           if (spareHeads > 2 && r > 0.8 && dial('tradition') < 0.6) { engineCalls[f.id] = { how: 'release' }; spareHeads--; continue; }
-          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round(renewalSalary(f, state) * (1 - 0.3 * (dial('thrift') - 0.4))) };
+          if (dial('thrift') >= 0.55 && r > 0.3) engineCalls[f.id] = { how: 'haggle', offer: Math.round((f._renewAsk || renewalSalary(f, state)) * (1 - 0.3 * (dial('thrift') - 0.4))) };
         }
       }
       for (const f of expiring.slice().sort((a, b) => worth(b) - worth(a))) {
@@ -2708,7 +2708,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const call = calls[f.id] || engineCalls[f.id];
         if (call) {
           if (call.how === 'release') { gone.push(f); out.released++; headroom--; continue; }
-          const asked = call.asked || renewalSalary(f, state);
+          const asked = call.asked || f._renewAsk || renewalSalary(f, state);
           const paying = call.how === 'haggle' ? Math.max(1, Math.round(call.offer || asked * CONST.HAGGLE_FLOOR)) : asked;
           /* §PAPER A MAN WEIGHS AN OFFER AGAINST WHAT HE THINKS OF THE OA. The further
              under his ask, the likelier he walks — and a hand who likes it here will swallow a
@@ -3380,6 +3380,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const f of c._off.expired.concat(c._off.freed)) if (f.status !== 'dead' && f.status !== 'retired' && f.status !== 'freed' && c.roster.indexOf(f) < 0 && c._renew.gone.indexOf(f.id) < 0) { c.roster.push(f); f.seasonsHere = (f.seasonsHere || 0) + 1; }
       }
       c._renewalCalls = {};   /* answered: they were last year's */
+      for (const f of c.roster) delete f._renewAsk;
     }
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
@@ -4115,6 +4116,19 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const q = alive.reduce((s, f) => s + (f.stats ? (f.stats.aim + f.stats.grit + f.stats.tactics) / 3 : 50), 0) / Math.max(1, alive.length);
     return q / 100 * Math.min(1, beings(alive).length / CONST.DROP_MAX) + (c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0);   /* seats */
   }
+  /* §INTEL (ruled) A RIVAL'S STRENGTH AS ONE OA KNOWS IT: its standing is public; what its people are worth is known only as
+     far as this OA's dossier on that roster reaches (depth, and how fresh) — unscouted, a rival reads as the fleet's
+     middle. The engine's landing choice reads this, and the landing screen shows a person the same reading. */
+  function strengthSeen(state, viewerId, corpId) {
+    if (viewerId === corpId) return strengthRead(state, corpId);
+    const c = state.corps[corpId], v = state.corps[viewerId];
+    const pub = c.rep ? (REP.standing(c.rep, 'houses') - 50) / 200 : 0;
+    const truth = strengthRead(state, corpId) - pub;
+    const mid = state.ids.reduce((t, id) => t + strengthRead(state, id) - (state.corps[id].rep ? (REP.standing(state.corps[id].rep, 'houses') - 50) / 200 : 0), 0) / Math.max(1, state.ids.length);
+    const row = v && v._intel && v._intel.rivals && v._intel.rivals[corpId] && v._intel.rivals[corpId].rows.roster;
+    const known = row && row.depth ? (row.depth / CONST.INTEL_MAX_DEPTH) * rowFreshness(row, state.season) : 0;
+    return pub + mid + (truth - mid) * known;
+  }
   /* whose turn it is — skipping any OA that has already drafted a landing for every
      squad it means to field */
   function draftWhose(state) {
@@ -4182,7 +4196,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function draftAdvance(state, choices, opts) {
     const D = ensureDraft(state);
     const all = landingsFor(state);
-    const strengthOf = id => strengthRead(state, id);
     let guard = 0;
     while (!D.done && guard++ < 64) {
       const who = draftWhose(state);
@@ -4197,7 +4210,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
       const rng = rngOf(state, 'draft' + state.season + who + D.round);
-      let slot = PRE.chooseLanding(rng, c, all, D.taken, D.picks[who], strengthOf, PRE.intelOfDepth(depth));
+      let slot = PRE.chooseLanding(rng, c, all, D.taken, D.picks[who], id => strengthSeen(state, who, id), PRE.intelOfDepth(depth));   /* (fixed) as scouted, not the truth */
       if (slot == null) { const free = all.find(l => PRE.allowed(l, D.taken, D.picks[who], all)); slot = free ? free.index : null; }
       if (slot == null) { D.done = true; break; }
       draftPick(state, who, slot);
@@ -4843,6 +4856,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       return out;
     });
+    /* §DRAFT (ruled) the squads are the landings drafted: past them a squad's people wait in orbit, front of the reserve */
+    const D = state.drop && state.drop.draft;
+    if (D && D.season === state.season && D.done) {
+      const cap = (D.picks[corpId] || []).length;
+      let kept = 0;
+      groups.forEach((g, i) => { if (!g.length) return; if (kept < cap) { kept++; return; } spill.push.apply(spill, g.filter(x => !(byId[x] && byId[x].mirror_of))); groups[i] = []; });
+    }
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
@@ -5331,6 +5351,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     keepPairsWhole(state);   /* §MON-WA after the settlement: a kept captive's other half goes with him */
     state._settled = true;   /* the bonuses are paid: the reckoning stops holding them */
+    /* §PAPER (ruled) EVERY SEAT ANSWERS ITS PAPER AT THE YEAR'S END, after the Divide, at one ask: each expiring contract's
+       ask is struck here, once the year's fame and losses are in, and it is the ask a person answers and the ask an engine
+       seat weighs at the turn (a person used to answer in month one, before the Divide, at that month's ask) */
+    for (const id of state.ids) for (const f of state.corps[id].roster) {
+      if (f.status === 'dead' || f.status === 'retired') continue;
+      const ct = f.contract || {};
+      if ((ct.seasons_remaining != null ? ct.seasons_remaining : ct.seasons || 0) <= 1) f._renewAsk = renewalSalary(f, state);
+    }
     return rec;
   }
 
@@ -5592,7 +5620,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead, strengthSeen,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
