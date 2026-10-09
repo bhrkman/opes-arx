@@ -173,9 +173,18 @@
     SITE_SHARE: 0.25,         /* [H] §PRIZE what all of a planet's sites of one store together carry of the planet's
                                  amount of it: the grab, beside the prize the winner takes */
     STRONGPOINT_PREP: 0.25,   /* [H] §SITES the ground a held strongpoint gives the one on it */
-    RATION_DROP_DAYS: 14,               // [C] §5.2 — cannot cover 30 days; you forage or claim
-    RATION_PACK_DAYS: 6,                // [C] §5.2 — what a carried Field Rations pack adds for its bearer
-    RATION_CARRY_DAYS: 14,              // [C] §5.2 — what one body can carry: foraging fills to this and no further
+    /* §5.2 (ruled) RATIONS ARE CARRIED BY CHOICE. Every squad lands with the days of food its seat chose for it (the
+       engine's seats choose by the ground's forage); each day weighs a fifth of a Bulk and costs credits, and a fighter's
+       Bulk limit carries the default load. More food is less foraging and a squad that can sit; less is lighter. */
+    RATION_DEFAULT_DAYS: 15,            // [R] the default load, and the floor foraging fills to
+    RATION_DAYS_RANGE: [5, 30],         // [C] what a seat may choose
+    RATION_BULK_PER_DAY: 0.2,           // [R] a day's food for one fighter, in Bulk
+    RATION_PRICE: 25,                   // [C] credits a fighter-day of food
+    RATION_ENGINE_PULL: 8,              // [C] days an engine seat adds per unit of forage the ground lacks (below the middle)
+    RATION_FORAGE_MID: 0.5,             // [C] the forage yield the default load is sized for
+    STARVE_AFTER: 3,                    // [R] dry days before hunger takes health
+    STARVE_HARM: 0.05,                  // [C] a day's hunger, as a share of a body's health
+    STARVE_FLOOR: 0.30,                 // [C] hunger alone takes nobody below this
     /* §7.5 ELEVATION, read three ways */
     HIGH_GROUND_PREP: 0.25,             // [C] readiness edge for the side that came from the higher ground
     RATION_SHORT_AT: 3,                 // [S]
@@ -490,15 +499,11 @@
          empty. A squad carries 1.42 of them on average, and takes far more casualties than
          that in a month, so counting one kit as one wound made two thirds of all wounds
          untended and drove permanent losses to 40% of the field. Charges, not units. */
-      /* §5.2 FIELD RATIONS: a pack in the store slot feeds its bearer past the drop's fourteen
-         days — the one thing a kit can do about a planet that is hard to keep fed */
-      const packs = sq.bodies.reduce((s, f) => s + (f.loadout.consumables || []).filter(c => c === "itm_field_rations").length, 0);
-      if (packs) sq.rations += packs * CONST.RATION_PACK_DAYS;
       /* §SPONSORS a victualler's standing order stretches what the drop carries, for good:
-         the same fourteen days' load feeds the squad longer */
+         the same load feeds the squad longer */
       const vict = SPON && SPON.standingValue ? SPON.standingValue(corp, 'victualler') : 0;
       if (vict) sq.rations = Math.round(sq.rations * (1 + vict));
-      sq._rationPerHead = (sq.rations - packs * CONST.RATION_PACK_DAYS) / Math.max(1, sq.bodies.length);
+      sq._rationPerHead = sq.rations / Math.max(1, sq.bodies.length);
       /* §CHARGES every fighter lands with the charges its stores carry for the Divide */
       for (const f of sq.bodies) chargeUp(f);
       sq.medkits = medkitCharges(sq.bodies);
@@ -560,9 +565,15 @@
        succession still runs when the named leader goes down. Groups are the manager's
        authority and are taken as given — they are validated where the manager works, not
        re-judged here. Absent groups, the deal is exactly what it was. */
-    const groups = drop && persist.groups && persist.groups.length
-                 ? persist.groups.filter(g => g && g.length) : null;
-    const leaders = (groups && persist.leaders) || null;
+    const keepIdx = drop && persist.groups && persist.groups.length ? persist.groups.map((g, i) => (g && g.length) ? i : -1).filter(i => i >= 0) : null;
+    const groups = keepIdx ? keepIdx.map(i => persist.groups[i]) : null;
+    const leaders = (groups && persist.leaders) ? keepIdx.map(i => persist.leaders[i] || null) : null;   /* (fixed) kept in step with the groups */
+    /* §5.2 (ruled) the days of food each squad carries: its seat's choice, or the engine's by the ground */
+    const RANGE = CONST.RATION_DAYS_RANGE, engineDays = engineRationDays(planet);
+    const rationDaysOf = (i) => {
+      const asked = groups && persist.rations ? persist.rations[keepIdx[i]] : null;
+      return asked != null && isFinite(asked) ? Math.max(RANGE[0], Math.min(RANGE[1], Math.round(asked))) : engineDays;
+    };
     /* §SQUADS (fixed, at the root) NO PATH FIELDS A SQUAD PAST EIGHT. The squads asked for (one a drafted landing) are
        held to eight apiece whatever chose the drop: what they cannot hold — the lowest of the drop, a pair together — goes
        to the front of the reserve, its purse already paid, to land at a beacon as seats open. The season caps an engine
@@ -636,7 +647,7 @@
         corpId: profile.id, corp, bodies, captainId: led, sIdx: si,
         hasMedkit: false,        // set by equipCorp from what the squad actually carries (§10)
         x: 0.5, y: 0.5, hx: 0.5, hy: 0.5,           // position, and where they came from
-        rations: CONST.RATION_DROP_DAYS * bodies.length, rationDry: false,
+        rations: rationDaysOf(i) * bodies.length, rationDays: rationDaysOf(i), rationDry: false,
         crates: 0,
         /* S20 — the prep year's scouting, the same for every squad this corp drops */
         _intel: (persist && persist.intel) || 0,
@@ -1437,6 +1448,11 @@
     sq.rationDry = sq.rations <= 0;
     if (sq.rationDry) sq.rationDryDays = (sq.rationDryDays || 0) + 1;
     else sq.rationDryDays = 0;
+    /* §5.2 (ruled) HUNGER TAKES HEALTH: past a few dry days each body loses a share of its health a day, never past a floor */
+    if (sq.rationDryDays > CONST.STARVE_AFTER) for (const b of squadHead(sq)) {
+      const now = b._hpFrac != null ? b._hpFrac : 1;
+      if (now > CONST.STARVE_FLOOR) { b._hpFrac = Math.max(CONST.STARVE_FLOOR, now - CONST.STARVE_HARM); if (stats) stats.audit.starved = (stats.audit.starved || 0) + 1; }
+    }
     return demand;
   }
 
@@ -1447,9 +1463,21 @@
      packs they brought: a column on the move eats down, a squad that holds good ground eats up. The planner knows
      it: a group short of rations weighs a rest site and holding ground higher (`CMD_W_SUPPLY`). */
   function rationCap(sq) {
-    const packs = (sq.bodies || []).reduce((s, f) => s + ((f.loadout && f.loadout.consumables) || []).filter(c => c === "itm_field_rations").length, 0);
-    /* a victualler's standing order stretched the drop's load past the plain carry; what they landed with per head is the cap */
-    return Math.max(CONST.RATION_CARRY_DAYS, sq._rationPerHead || 0) * squadHead(sq).length + packs * CONST.RATION_PACK_DAYS;
+    /* what they landed with per head, or the default load if they chose less: foraging fills to it */
+    return Math.max(CONST.RATION_DEFAULT_DAYS, sq._rationPerHead || 0) * squadHead(sq).length;
+  }
+  /* §5.2 (ruled) what an engine seat carries: the default load, more on ground that feeds a squad poorly and where the
+     world eats more, less where it forages well */
+  function engineRationDays(planet) {
+    const g = planet && planet.ground;
+    let y = CONST.RATION_FORAGE_MID;
+    if (g && g.regions && g.regions.length) {
+      let s = 0, a = 0;
+      for (const r of g.regions) { const cls = Math.max(0, Math.min(3, Math.round((r.forage != null ? r.forage : 1) * (planet.forageMult || 1)))); s += CONST.FORAGE_YIELD[cls] * (r.area || 1); a += (r.area || 1); }
+      y = a ? s / a : y;
+    }
+    const d = CONST.RATION_DEFAULT_DAYS * (planet && planet.supplyStrain || 1) + (CONST.RATION_FORAGE_MID - y) * CONST.RATION_ENGINE_PULL;
+    return Math.max(CONST.RATION_DAYS_RANGE[0], Math.min(CONST.RATION_DAYS_RANGE[1], Math.round(d)));
   }
   function forage(rng, sq, planet, hooksOfSquad, stats) {
     /* a squad that fought, or marched more than half a day, had no day to forage; a short shift to better ground did */
@@ -1582,7 +1610,8 @@
       const heads = squadHead(sq);
       /* `b.race` is the race's id; the bonus is on the race record's `special` (races.json). Read off the string, it was 0 for everyone. */
       const bonus = heads.reduce((s, b) => s + (((ROSTER.raceById[b.race] || {}).special || {}).carry_bonus || 0), 0);
-      const load = ITEMS.squadBulk(heads, bonus);
+      /* §5.2 (ruled) the food is carried too, a fifth of a Bulk a day, and a fighter's limit carries the default load */
+      const load = ITEMS.squadBulk(heads, bonus + heads.length * CONST.RATION_DEFAULT_DAYS * CONST.RATION_BULK_PER_DAY, (sq.rations || 0) * CONST.RATION_BULK_PER_DAY);
       sq.overBulk = load.over;
       if (load.over > 0) {
         const cost = load.over * ITEMS.CONST.OVER_BULK_FATIGUE;
@@ -1779,7 +1808,7 @@
         stats.audit.ammoResupply++; break;
       case 'ration_site': {
         /* §5.2 a site fills the packs; it does not make them bigger (the carry cap holds here as at the forage) */
-        sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DROP_DAYS * squadHead(sq).length * 0.8 * pot);
+        sq.rations = Math.min(Math.max(sq.rations, rationCap(sq)), sq.rations + CONST.RATION_DEFAULT_DAYS * squadHead(sq).length * 0.8 * pot);
         break;
       }
       case 'strongpoint':
@@ -2161,7 +2190,9 @@
       const drafted = opts.dropZones && opts.dropZones[profile.id] ? opts.dropZones[profile.id].length : 0;
       if (persist && drafted >= 2 && !(persist.groups && persist.groups.length)) persist._wantSquads = drafted;
       const corp = buildCorp(rng, profile, stance, null, null, planet, persist, opts.season || 1);
-      if (persist) { persist.kitValue = corp.kitValue || 0; persist.kitSpend = corp.kitSpend || 0; }
+      if (persist) { persist.kitValue = corp.kitValue || 0; persist.kitSpend = corp.kitSpend || 0;
+        /* §5.2 (ruled) the food each squad was landed with, bought at the drop */
+        persist.rationSpend = corp.squads.reduce((t, q) => t + (q.rationDays || 0) * q.bodies.length * CONST.RATION_PRICE, 0); }
       /* REPUTATION.md R1 — the ONE thing that survives a Divide. */
       corp.rep = (opts.reputations && opts.reputations[profile.id])
               || REP.open(profile, oaProfiles, { season: opts.season || 1 });
@@ -2687,7 +2718,9 @@
       /* a man moved off the drop into orbit (§SQUADS) has his purse paid already */
       if (corp.persist && corp.persist.account) LED.payPurse(corp.persist.account, group.filter(fb => !fb._pursePaid));
       for (const fb of group) fb._pursePaid = false;
-      into.rations += CONST.RATION_DROP_DAYS * group.length;
+      { const days = into.rationDays || CONST.RATION_DEFAULT_DAYS;   /* §5.2 a reserve lands with its squad's load, bought as it lands */
+        into.rations += days * group.length;
+        if (corp.persist) corp.persist.rationSpend = (corp.persist.rationSpend || 0) + days * group.length * CONST.RATION_PRICE; }
       into.medkits = medkitCharges(into.bodies); into.hasMedkit = into.medkits > 0;
       corp.landed += group.length; stats.audit.landed += group.length;
       (stats.landings = stats.landings || []).push({ day, corp: corp.id, squad: into.sIdx, fighter: lead.id, name: lead.pair_name || lead.name, pair: group.length > 1, seats: seats(into), site: o.label, place: o.place, left: corp.reserve.filter(fb => !fb.mirror_of).length });
@@ -3387,7 +3420,7 @@
   /* `applyOutcome` is exported for the unified viewer: a fight it stages settles back to the
      roster through the same function the Divide uses, because a second settler would drift the
      way the replay's two frame builders drifted. */
-  const api = { CONST, keepChance, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
+  const api = { CONST, keepChance, engineRationDays, squadCountFor, STANCE_DIALS, preparedness, STANCE_STANDING, NOTCHES,
                 NOTCH_WORDS, squadStance, standing, DEFAULT_RIGIDITY, STANCE_OVERRIDE, runDivide, divideCore, buildCorp, liveSquad, applyOutcome, principalOf, bannersStanding, umbrellasOf, sealedCorp: sealed,
     squadStress, WEATHER };
   if (isNode) module.exports = api;

@@ -4827,7 +4827,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
     const reserve = spill.concat(((plan && plan.reserve) || []).filter(id => own.has(id) && spill.indexOf(id) < 0));
-    c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve };
+    /* §5.2 (ruled) the days of food each squad carries, by its board square (absent: the engine's choice by the ground) */
+    const R = DIVIDE.CONST.RATION_DAYS_RANGE;
+    const rations = groups.map((g, i) => { const d = plan && plan.rations ? plan.rations[i] : null; return d != null && isFinite(d) ? Math.max(R[0], Math.min(R[1], Math.round(d))) : null; });
+    c._lock = { groups: groups, leaders: leaders, hand: hand, reserve: reserve, rations: rations };
     return { ok: true, lock: c._lock };
   }
   /* §RESERVE (ruled) THE RESERVE: an OA's fit fighters left off the drop wait in orbit, up to ten (beings: a Mon-Wa
@@ -4886,10 +4889,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const f of old) f._droppedLastSeason = false;
         for (const f of drop) f._droppedLastSeason = true;
       }
-      p.groups = []; p.leaders = []; p.boardOf = []; L.boardOf = p.boardOf; L.boardSeason = state.season;
+      p.groups = []; p.leaders = []; p.rations = []; p.boardOf = []; L.boardOf = p.boardOf; L.boardSeason = state.season;
       /* §SQUADS the board square each squad came from, so the page names a squad by the board's name when an empty one
          drops out of the order (Charlie read "Beta" on the landings and the Table) */
-      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); p.boardOf.push(i); } });
+      L.groups.forEach((g, i) => { const gg = g.filter(x => kept[x]); if (gg.length) { p.groups.push(gg); p.leaders.push(L.leaders[i] || null); p.rations.push((L.rations || [])[i] != null ? L.rations[i] : null); p.boardOf.push(i); } });
       /* §DROP (ruled) SIXTEEN IS THE ALEAS' REQUIREMENT, not a preference of the engine's: a person's named drop short of
          it is filled by the Aleas from the roster — the fit first, then the walking wounded; the best first; a pair whole —
          into the squads with room (a new one only if none has any) */
@@ -4906,7 +4909,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
             for (const x of add) { drop.push(x); x._droppedLastSeason = true; }
             const seats = g => g.filter(id => { const x = c.roster.find(y => y.id === id); return x && !x.mirror_of; }).length;
             let g = p.groups.filter(gg => seats(gg) < DIVIDE.CONST.SQUAD_MAX).sort((a, b) => seats(a) - seats(b))[0];
-            if (!g) { g = []; p.groups.push(g); p.leaders.push(null);
+            if (!g) { g = []; p.groups.push(g); p.leaders.push(null); p.rations.push(null);
               let free = 0; while (p.boardOf.indexOf(free) >= 0) free++; p.boardOf.push(free); }
             for (const x of add) g.push(x.id);
             const paid = LED.purseBill(add); if (paid) { LED.post(c.account, 'expense', 'Purses', -paid); c._purses = (c._purses || 0) + paid; c._wages = (c._retainers || 0) + c._purses; }
@@ -5085,6 +5088,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const kit = (persist[id] && persist[id].kitValue) || 0;
       const spend = (persist[id] && persist[id].kitSpend) || 0;
       if (spend) LED.post(c.account, 'expense', 'Procurement', -spend);
+      const food = (persist[id] && persist[id].rationSpend) || 0;
+      if (food) LED.post(c.account, 'expense', 'Rations', -food);   /* §5.2 (ruled) the days of food each squad landed with */
       /* §STAFF and haggles at the drop, for a part of what they win at the market */
       const qmOff = Math.round(spend * STAFF.shelfDiscount(c) * STAFF.CONST.QM_PROCURE);
       if (qmOff > 0) { LED.post(c.account, 'income', 'The Quartermaster\u2019s Haggling', qmOff); const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + qmOff; }

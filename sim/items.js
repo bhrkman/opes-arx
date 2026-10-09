@@ -831,8 +831,8 @@
 
 
   /** §2.3 — bulk pools at the squad, so light bodies pay for the gunner. */
-  function squadBulk(bodies, carryBonus) {
-    const used = bodies.reduce((s, b) => s + bulk(b.loadout), 0);
+  function squadBulk(bodies, carryBonus, carried) {
+    const used = bodies.reduce((s, b) => s + bulk(b.loadout), 0) + (carried || 0);   /* `carried`: what is borne besides kit (food) */
     const cap = bodies.length * CONST.SQUAD_BULK_PER_HEAD + (carryBonus || 0);
     return { used, cap, over: Math.max(0, used - cap) };
   }

@@ -1420,6 +1420,12 @@
   .sqhead .ct{font-size:10px;color:var(--dim);white-space:nowrap} .sqhead .ct.bad{color:var(--bad)}
   .sqhead .place{font-size:10px;color:var(--a);border:1px solid var(--a);border-radius:4px;padding:1px 7px;cursor:pointer}
   .sqhead .place:hover{background:var(--a);color:var(--bg)}
+  .sqfood{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 10px;border-bottom:1px solid var(--line);font-size:10.5px;color:var(--dim)}
+  .sqfood .lab{text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;color:var(--faint)}
+  .sqfood b{color:var(--ink);font-variant-numeric:tabular-nums;min-width:16px;text-align:center}
+  .sqfood .fstep{cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:0 6px;color:var(--a)}
+  .sqfood .fstep:hover{border-color:var(--a)}
+  .sqfood .m{margin-left:auto}
   .sqbody{display:flex;flex-direction:column;gap:5px;padding:7px}
   /* §SQUADS the eight portraits */
   /* §SQUADS A PORTRAIT IS TALLER THAN IT IS WIDE. The tiles kept coming out wider than tall
@@ -5585,6 +5591,21 @@
       .map(function (p) { return me.roster.filter(function (f) { return f.id === p.fighterId && f.status !== 'dead' && f.status !== 'retired'; })[0]; })
       .filter(Boolean);
   }
+  /* §5.2 (ruled) a squad's days of food: the manager's, or what the engine would carry on this ground */
+  function foodDefault() {
+    var pl = G && G.state && G.state.planet;
+    return pl && DIVIDE.engineRationDays ? DIVIDE.engineRationDays(pl) : DIVIDE.CONST.RATION_DEFAULT_DAYS;
+  }
+  function foodRow(si, bodies) {
+    var K = DIVIDE.CONST, set = G.plan.rations && G.plan.rations[si] != null, days = set ? G.plan.rations[si] : foodDefault();
+    var bulk = (days * K.RATION_BULK_PER_DAY).toFixed(1), over = ((days - K.RATION_DEFAULT_DAYS) * K.RATION_BULK_PER_DAY);
+    return '<div class="sqfood"><span class="lab">Rations</span>' +
+      '<span class="fstep" data-food="' + si + '" data-step="-1">\u2212</span><b>' + days + '</b> Days' +
+      '<span class="fstep" data-food="' + si + '" data-step="1">+</span>' +
+      (set ? '' : '<span class="ktag">By the Ground</span>') +
+      '<span class="m">Bulk ' + bulk + ' a Head' + (over > 0 ? ' \u00b7 <span class="warn">+' + over.toFixed(1) + ' Over</span>' : '') +
+      ' \u00b7 ' + crs(days * bodies * K.RATION_PRICE) + '</span></div>';
+  }
   function plannedGroups() {
     if (!G || !G.plan) return null;
     var groups = [[], [], [], [], [], []];
@@ -5606,7 +5627,8 @@
     p = p || {};
     var np = { at: p.at || {}, leaderOf: p.leaderOf || {},
                names: p.names || ['Alpha', 'Beta', 'Charlie', 'Delta', 'Echo', 'Foxtrot'], hand: p.hand || {},
-               reserve: (p.reserve || []).slice() };   /* §RESERVE the landing order is part of the plan */
+               reserve: (p.reserve || []).slice(),   /* §RESERVE the landing order is part of the plan */
+               rations: (p.rations || [null, null, null, null, null, null]).slice() };   /* §5.2 days of food a squad, null: by the ground */
     /* migrate a legacy leaders[] array (index -> id) into the person-keyed map */
     if (!p.leaderOf && Array.isArray(p.leaders))
       p.leaders.forEach(function (id) { if (id) np.leaderOf[id] = true; });
@@ -5819,7 +5841,8 @@
         '<div class="sqhead"><span class="dot"></span><span class="sqname" data-rename="' + si + '" title="Rename">' + esc(G.plan.names[si]) + '</span>' +
 
         '<span class="ct' + (bad ? ' bad' : '') + '">' + n + ' of ' + MAX +
-        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 Under ' + MIN : '') + '</span></div>';
+        (bodies > n ? ' \u00b7 ' + bodies + ' Bodies' : '') + (bad ? ' \u00b7 Under ' + MIN : '') + '</span></div>' +
+        (n ? foodRow(si, bodies) : '');
       /* §SQUADS A SQUAD IS EIGHT PORTRAITS. The first cut of "make it less like a list" made
          the list TALLER — eight full-width rows, each with a wall of stats, and every empty slot
          shouting for a fighter the moment one was picked up. A squad is eight portrait tiles:
@@ -5850,6 +5873,16 @@
 
     /* ---- wiring: the name reads, the row picks up, the star leads, the cross sends home ---- */
     var page = document.querySelector('.page[data-tab="squads"]');
+    Array.prototype.forEach.call(page.querySelectorAll('[data-food]'), function (el) {
+      el.onclick = function (e) {
+        e.stopPropagation();
+        var si = +el.getAttribute('data-food'), R = DIVIDE.CONST.RATION_DAYS_RANGE;
+        G.plan.rations = G.plan.rations || [null, null, null, null, null, null];
+        var now = G.plan.rations[si] != null ? G.plan.rations[si] : foodDefault();
+        G.plan.rations[si] = Math.max(R[0], Math.min(R[1], now + (+el.getAttribute('data-step'))));
+        renderSquads();
+      };
+    });
     Array.prototype.forEach.call(page.querySelectorAll('[data-sheet]'), function (el) {
       el.onclick = function (e) { e.stopPropagation(); inspect(el.getAttribute('data-sheet')); };
     });
@@ -6119,7 +6152,7 @@
                 : b.ownKit ? '<span class="ktag hand">Their Own Kit</span>' : '<span class="ktag">Quartermaster</span>') +
           '<span class="ktag" style="margin-left:auto">' + crs(kitValueOf(kit)) + '</span>' +
           /* §ROUNDS what he carries is weighed at his squad: past eight a head, the squad hauls it in fatigue */
-          '<span class="ktag' + (kitBulk(kit) > bulkCap(b) ? ' warn' : '') + '">Bulk ' + kitBulk(kit) + ' of ' + bulkCap(b) + '</span></div>' +
+          '<span class="ktag' + (kitBulk(kit) > bulkCap(b) ? ' warn' : '') + '">Kit Bulk ' + kitBulk(kit) + ' of ' + bulkCap(b) + '</span></div>' +
           '<div class="kit">' + kitRows + '</div>' +
           (hand && handProblem(b) ? '<div class="m" style="color:var(--bad);margin-top:5px">Refused \u00b7 ' + handProblem(b) + '</div>' : '') +
           '<div id="pickerhost"></div></div>' +
@@ -7058,7 +7091,7 @@
        applies them as it prepares the Divide — the page used to write them straight into its options */
     var planned = plannedGroups();
     SEASON.lockSquads(G.state, G.me, { reserve: reserveIds(), groups: planned ? planned.groups : [], leaders: planned ? planned.leaders : [],
-                                       hand: G.plan.hand || {} });
+                                       hand: G.plan.hand || {}, rations: G.plan.rations || [] });
     /* §SUPER in hotseat both seats are people: the second is handed to a person for the contest */
     if (G.super && G.super.on) G.super.seats.forEach(function (id) { SEASON.setController(G.state, id, 'human'); });
     /* §CONTEST the engine begins and holds the contest; the page keeps only its display hooks */
@@ -7949,7 +7982,6 @@
     if (e.snap >= 10) c.push(['loud', 'Slow to Snap']);
     if (e.covers && e.covers.length) c.push(['cover', e.covers.map(capWords).join(', ')]);
     if (e.mobility) c.push([e.mobility > 0 ? 'effect' : 'loud', 'Mobility ' + (e.mobility > 0 ? '+' : '') + e.mobility]);
-    if (e.ration_days) c.push(['effect', '+' + e.ration_days + ' Days of Rations']);
     if (i.charges) c.push(['charges', i.charges + ' Charges']);
     if (e.mags) c.push(['effect', '+' + e.mags + ' Magazine' + (e.mags > 1 ? 's' : '')]);
     (e.tags || []).forEach(function (t) {

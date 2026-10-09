@@ -1270,6 +1270,14 @@ setTimeout(() => {
           alpha().querySelectorAll('.port-slot').length === 2 &&
           alpha().querySelectorAll('.port-card .prate').length === 6,
           'Alpha stands as eight portraits: six filled with their ratings, two open');
+    /* §5.2 a filled squad carries a ration load the manager can change: the row reads it, the step moves it */
+    { const row = () => alpha().querySelector('.sqfood');
+      const d0 = row() ? +row().querySelector('b').textContent : NaN;
+      if (row()) row().querySelector('[data-step="1"]').click();
+      const d1 = row() ? +row().querySelector('b').textContent : NaN;
+      console.log('food: ' + (row() ? row().textContent.replace(/\s+/g, ' ').trim() : 'none'));
+      check(isFinite(d0) && d1 === d0 + 1 && doc.defaultView.__G.plan.rations[0] === d1 && /Bulk \d+\.\d A Head/i.test(row().textContent),
+            'a squad\'s rations show their days, Bulk and price, and the step sets them'); }
     /* §SQUADS one target a squad, not every empty slot on the page */
     doc.querySelector('#bench .fcard[data-id]').click();
     const sqPage = doc.querySelector('.page[data-tab="squads"]');

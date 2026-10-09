@@ -356,3 +356,8 @@ lean one pleases.
   in the media, Kellis lend their house's word weight, a Ththyn's loyalty follows his standing (captaincy or fame;
   passed over, he sours), a Gil's follows how the house finished, and a mercenary's signing fee is his people's.
 - A trait tagged hidden is not shown. Trait abilities no trait carries are deleted with the cut catalogue.
+- Rations are carried by choice, per squad: 5 to 30 days of food (15 by default; an engine seat chooses by how well
+  the ground forages and how hungry the world is). A day weighs a fifth of a Bulk and costs ₡25 a fighter; a fighter's
+  Bulk limit is 8 for kit plus the default 3 for food, so only food past fifteen days tires a squad. Foraging fills to
+  what was landed with (or the default, if less). After three dry days hunger takes a twentieth of a body's health a
+  day, never below three tenths.
