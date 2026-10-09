@@ -373,3 +373,9 @@ lean one pleases.
 - Scouting gates what a seat knows of a rival, for every seat: its strength at the landing draft (unscouted, the fleet's
   middle), and on the trade table its people (by the roster row's depth, the quality as a rounder figure the shallower
   the read) and its racks (by the kit row; counts only when read deep). Unanswered choices keep their fallbacks.
+- No footage rides a save; each save is its own key and a full store says so; the books keep two years line by line.
+- A filled roster costs the board's patience wherever the board fills it (the scrape or the Lock), and only the fees.
+- No OA promises more than the whole pot (credits and each store) across every leaver it said yes to. A kept man's kit and
+  bonus go with him to his captor. A drop holds twenty-four seats; past them, the later squads wait in orbit. A house with
+  nobody to drop fields nobody. An owner with no window to answer a ransom has not refused it. Letters carry something
+  and nothing below nothing. The Dividend pairs by standing, and a house that cannot field four forfeits the purse.

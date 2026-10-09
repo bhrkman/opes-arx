@@ -810,11 +810,21 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function runDividend(rng, corps, ids, season, tally) {
     /* pair the fleet off: 1v2, 3v4, ... in standing order as it stands at mid-year */
-    const order = ids.slice();
+    /* (fixed) in standing order, as the comment always said: the list order paired the same houses every year */
+    const st = id => corps[id] && corps[id].rep ? REP.standing(corps[id].rep, 'houses') : 50;
+    const order = ids.slice().sort((a, b) => (st(b) - st(a)) || (ids.indexOf(a) - ids.indexOf(b)));
     for (let i = 0; i + 1 < order.length; i += 2) {
       const A = corps[order[i]], B = corps[order[i + 1]];
       const bodiesA = wholePairs(A, dividendSquad(A), 8), bodiesB = wholePairs(B, dividendSquad(B), 8);
-      if (beings(bodiesA).length < 4 || beings(bodiesB).length < 4) continue;   /* not enough fit people to show */
+      const shortA = beings(bodiesA).length < 4, shortB = beings(bodiesB).length < 4;
+      /* (fixed) A WALKOVER: a house that cannot put four on the floor forfeits, and the one that could takes the purse (it
+         was skipped, and the side that turned up lost its night) */
+      if (shortA || shortB) {
+        const w = shortA && shortB ? null : shortA ? B : A;
+        if (w) { LED.post(w.account, 'income', 'Dividend Purse', CONST.DIVIDEND_PURSE); if (w.rep) REP.act(w.rep, 'took_the_purse', {}); tally.purses++; }
+        tally.walkovers = (tally.walkovers || 0) + (w ? 1 : 0);
+        continue;
+      }
       chargeWounded(A, bodiesA, 'dividend' + season); chargeWounded(B, bodiesB, 'dividend' + season);   /* §WOUNDS */
       const saved = [];
       bodiesA.concat(bodiesB).forEach((f, i) => {
@@ -2556,6 +2566,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     let spend = 0;
     for (const f of signed) if (LED.paid(f)) spend += (f.contract && f.contract.signing_cost) || 0;
     if (spend) LED.post(corp.account, 'expense', 'Signings', -spend);
+    /* (fixed) a house filled to the floor at the Lock is filled by the board, as at the scrape, and the board feels it the
+       same: a roster sold under the floor after the scrape was refilled at the Lock for nothing but the fees */
+    if (mustSign > 0 && corp.rep) corp.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR,
+      (corp.rep.patience != null ? corp.rep.patience : 50) - CONST.SCRAPE_PATIENCE);
     corp.roster = corp.roster.concat(signed);
     return { signed: ones, cost: spend };
   }
@@ -3022,6 +3036,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
     let recovered = 0, destroyed = 0, kept = 0;
     for (const f of fielded) {
+      if (f._keptFrom === corp.id) continue;   /* (fixed) a man kept by a captor walks onto its roster in his kit: none of it comes home */
       /* §LOOT a gun taken off the ground was taken off this fighter's corpse: it is somebody else's now */
       let ids = idsOf(f).filter(id => !(f._lootedPrimary && f.status === 'dead' && id === (f.loadout || {}).primary));
       /* §FACILITIES a mercenary's own kit goes home with the mercenary, not into the rack */
@@ -3112,6 +3127,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const a = state.corps[fromId], b = state.corps[toId];
     if (!a || !b || a === b) return { ok: false, why: 'No Such Party' };
     offer = offer || {}; ask = ask || {};
+    /* (fixed) a letter puts something on the table, and nothing below nothing: negative credits slipped past the payer's
+       treasury check, and an empty letter was taken "gladly" */
+    const nonNeg = x => !(x && ((x.credits || 0) < 0 || (x.gear || []).some(g => !(g.n > 0))));
+    if (!nonNeg(offer) || !nonNeg(ask)) return { ok: false, why: 'Nothing Below Nothing' };
+    const has = x => (x.credits || 0) > 0 || (x.gear || []).length || (x.units || []).length || (x.intel || []).length;
+    if (!has(offer) && !has(ask)) return { ok: false, why: 'An Empty Letter' };
     if ((offer.credits || 0) > a.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
     if ((ask.credits || 0) > b.account.treasury) return { ok: false, why: 'They Cannot Pay That' };
     const T = tradeBook(state);
@@ -3260,6 +3281,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       if (c) delete c._board;
       if (c) delete c._dividendPick;   /* (fixed) last year's Dividend card is not this year's */
+      /* (fixed) THE BOOKS KEEP TWO YEARS LINE BY LINE; older years fold to one line a label (the sums unchanged) — a
+         sixteen-year ledger ran past a thousand lines a house and a save past what a browser keeps */
+      if (c && c.account && c.account.ledger && c.account.ledger.length > 400) {
+        const now = c.account.season || 0, keep = [], fold = {};
+        for (const l of c.account.ledger) {
+          if ((l.season || 0) >= now - 1 || l.folded) { keep.push(l); continue; }
+          const k = l.season + '|' + l.kind + '|' + l.label;
+          if (!fold[k]) fold[k] = { season: l.season, kind: l.kind, label: l.label, amount: 0, folded: true };
+          fold[k].amount += l.amount;
+        }
+        c.account.ledger = Object.keys(fold).map(k => fold[k]).concat(keep);
+      }
     }
     opts = opts || {};
     const ids = Object.keys(corps);
@@ -4349,8 +4382,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           .sort((a, b) => ((a.contract || {}).salary || 0) - ((b.contract || {}).salary || 0));
         let bill = 0;
         for (const f of filled) {
-          if (LED.paid(f)) bill += ((f.contract && f.contract.signing_cost) || 0)   /* §MON-WA a pair's one contract */
-                + ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
+          /* (fixed) the signing, as any signing is charged: their wages come month by month and at the drop, with
+             everyone's (it charged a year of wages up front besides, so a scraped hand cost his contract twice) */
+          if (LED.paid(f)) bill += ((f.contract && f.contract.signing_cost) || 0);   /* §MON-WA a pair's one contract */
           corp.roster.push(f);
         }
         LED.post(corp.account, 'expense', 'The Board Fills Your Roster', -bill);
@@ -4819,8 +4853,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     if (!lines) return { ok: false, why: 'Nothing to Buy' };
     /* §STAFF a quartermaster haggles: the price on the shelf is already theirs */
-    const q = STAFF.holder(c, 'quartermaster'); if (q && full > total) q.record.saved = (q.record.saved || 0) + (full - total);
     if (total > c.account.treasury) return { ok: false, why: 'Not Enough in the Treasury' };
+    const q = STAFF.holder(c, 'quartermaster'); if (q && full > total) q.record.saved = (q.record.saved || 0) + (full - total);   /* (fixed) only for what was bought */
     c.armoury = c.armoury || {};
     for (const id in clean) c.armoury[id] = (c.armoury[id] || 0) + clean[id];
     LED.post(c.account, 'expense', 'The Market', -total);
@@ -4863,6 +4897,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       let kept = 0;
       groups.forEach((g, i) => { if (!g.length) return; if (kept < cap) { kept++; return; } spill.push.apply(spill, g.filter(x => !(byId[x] && byId[x].mirror_of))); groups[i] = []; });
     }
+    /* (fixed) and the drop holds twenty-four seats: past them, the later squads' people go to the front of the reserve as a
+       ninth man in a squad does (the drop was cut at twenty-four further on, and the people cut went nowhere they chose) */
+    { let seatsAll = 0;
+      groups.forEach((g, i) => { groups[i] = g.filter(x => { const f = byId[x]; if (!f || f.mirror_of) return true;
+        if (seatsAll >= CONST.DROP_MAX) { spill.push(x); return false; } seatsAll++; return true; });
+        groups[i] = groups[i].filter(x => { const f = byId[x]; return !f || !f.mirror_of || groups[i].indexOf(f.mirror_of) >= 0; }); }); }
     const leaders = ((plan && plan.leaders) || []).slice(0, 6).map((id, i) => (id && (groups[i] || []).indexOf(id) >= 0) ? id : null);
     const hand = {};
     for (const id in ((plan && plan.hand) || {})) if (own.has(id) && !ITEMS.validate(plan.hand[id]).length) hand[id] = plan.hand[id];
@@ -5118,7 +5158,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            (negotiate.js N14, "the winner pays its own people") — one rule, one home */
         /* a nattie's contract pays a bonus for every Divide actually dropped into — the
            participation clause a merc's flat price conspicuously lacks */
-        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus && LED.paid(f))   /* a pair is paid once */
+        if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus && LED.paid(f) && f._keptFrom !== c.id)   /* a pair is paid once; (fixed) not a man kept by his captor */
           bonuses += f.contract.divide_bonus;
       }
       if (bonuses) LED.post(c.account, 'expense', 'Divide Bonuses', -bonuses);
@@ -5471,7 +5511,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        order — whoever sees a fighter first writes them down in full, everyone after that
        writes an id. Order is fixed so a save is reproducible. */
     const OWNER_ORDER = ['roster', '_off.retired', '_off.expired', '_off.freed', '_off.injured',
-                         '_drop', '_renew'];
+                         '_drop', '_renew', '_reserve'];   /* (fixed) the reserve too: it was saved as full copies of roster men */
     const getList = (c, path) => {
       const bits = path.split('.');
       const v = bits.length === 1 ? c[bits[0]] : (c[bits[0]] || {})[bits[1]];
@@ -5517,7 +5557,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* §CONTEST the record keeps a live reference to the Dividend, footage and all (combat sides point back at
            their units), so a save at the drop — which the page never made, and a resumable contest must — crashed on
            it; the record is history, and it rides as plain data */
-        bastille: state.bastille, bids: state.bids, rec: toPlain(state.rec), drop: state.drop,
+        /* (fixed) NO FOOTAGE RIDES A SAVE: the record held the Dividend's broadcast (frames, two megabytes) as `rec.dividend`
+           even with `state.dividend` stripped, and a year-end save outgrew the browser's store */
+        bastille: state.bastille, bids: state.bids, drop: state.drop,
+        rec: toPlain(state.rec && state.rec.dividend ? Object.assign({}, state.rec, { dividend: Object.assign({}, state.rec.dividend, { watch: undefined }) }) : state.rec),
         /* §STANDING the month's dispatches and the fleet's edict ride too: a month resumed without them settled none of
            them, and now that every answer moves the stands a resumed year drifted from the one it was saved from */
         events: toPlain(state.events || {}), fleet: toPlain(state.fleet || null), sponsorBoard: toPlain(state.sponsorBoard || null),
@@ -5525,7 +5568,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         /* (fixed) the draft in progress, the first window's unsigned (carried to the second), the Eight's nomination and
            result, and open trade offers: a save between their writing and their reading lost all four */
         recruitDraft: toPlain(state.recruitDraft || null), carry: toPlain(state.carry || null),
-        eight: toPlain(state.eight || null), trade: toPlain(state.trade || null),
+        eight: toPlain(state.eight ? Object.assign({}, state.eight, { result: state.eight.result ? Object.assign({}, state.eight.result, { watch: undefined }) : state.eight.result }) : null), trade: toPlain(state.trade || null),
         /* `human` rides too, or a loaded game never pauses at a comms window again */
         opts: { want: (state.opts || {}).want, lean: (state.opts || {}).lean,
                 manual: (state.opts || {}).manual, human: theManager(state), humans: humansOf(state.opts) },

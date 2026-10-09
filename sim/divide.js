@@ -602,6 +602,7 @@
     if (groups) for (const b of drop) dropById[b.id] = b;
     const sizes = groups ? groups.map(g => g.length)
                 : drop ? dealSizes(seatsOf(drop), profile, (persist && persist._wantSquads) || 0)
+                : persist ? []          /* (fixed) a house with nobody to drop fields nobody — it fielded twenty-four strangers */
                 : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance,
@@ -895,6 +896,16 @@
     stats.withdrawals = (stats.withdrawals || 0) + 1;
     REP.act(c.rep, 'ceded', { rivalIds: corps.map(x => x.id) });
   }
+  /* (ruled) NO OA PROMISES MORE THAN THE WHOLE POT: what it has said yes to already — to those gone and to offers still
+     standing — and this ask together stay within all of the credits and all of each store. A yes past it is a no. */
+  function promiseRoom(cid, terms, stats) {
+    const sum = { credits: 0 };
+    const add = t => { for (const k in (t || {})) sum[k] = (sum[k] || 0) + Math.max(0, +t[k] || 0); };
+    for (const p of (stats.promises || [])) if (p.from === cid) add(p.terms);
+    for (const fid in (stats.withdrawOffers || {})) { const o = stats.withdrawOffers[fid]; if (o && o.replies && o.replies[cid] === true) add(o.terms); }
+    for (const k in (terms || {})) if ((sum[k] || 0) + Math.max(0, +terms[k] || 0) > 1 + 1e-9) return false;
+    return true;
+  }
   function postWithdrawOffer(c, terms, day, stats) {
     /* (fixed) one bound on every seat's ask: credits to nine tenths of the pot (the engine's cap), each store to a whole */
     const t = {};
@@ -1070,7 +1081,7 @@
         let storeAsk = 0;
         for (const k in (off.terms || {})) if (k !== 'credits' && REP.CATEGORIES.indexOf(k) >= 0) storeAsk += Math.max(0, Math.min(1, off.terms[k] || 0));
         const asked = Math.max(0, Math.min(1, ((off.terms && off.terms.credits) || 0) + storeAsk / 4));
-        const yes = asked <= maxAskFor(leaver, c).maxAsk;
+        const yes = asked <= maxAskFor(leaver, c).maxAsk && promiseRoom(c.id, off.terms, stats);
         off.replies[c.id] = yes;
         if (!yes) c._refusedOffers = (c._refusedOffers || 0) + 1;
         stats.audit.withdrawReplies = (stats.audit.withdrawReplies || 0) + 1;
@@ -1192,8 +1203,10 @@
       if (k.ownerYes == null || k.captorYes == null) {
         k.waited = (k.waited || 0) + 1;
         if (k.waited > CONST.RANSOM_ANSWER_WINDOWS) { k.done = true; k.lapsed = true; stats.audit.ransomLapsed = (stats.audit.ransomLapsed || 0) + 1;
-          /* the owner's silence is a refusal; the captor's own is not */
-          if (k.ownerYes == null && stats._refusedRansom) stats._refusedRansom(k.captor, k.fighter); continue; }
+          /* the owner's silence is a refusal; the captor's own is not — and (fixed) an owner that had no window to answer in
+             (it left the ground, or fell, and a window is only for a seat still on it) has not been silent */
+          const ownerAsked = owner && !owner.withdrawn && (owner.squads || []).some(q => squadHead(q).length);
+          if (k.ownerYes == null && ownerAsked && stats._refusedRansom) stats._refusedRansom(k.captor, k.fighter); continue; }
       }
       if (k.ownerYes && k.captorYes) {
         settleRansom({ kind: 'ransom', captor: captor.id, owner: owner.id, fighter: f.id, price: k.price, day: day, worth: k.worth }, f, owner, captor);
@@ -3018,7 +3031,7 @@
             if (answer && answer.captiveFate && you) { for (const k of heldOf(seatId)) { const f = k.body && (answer.captiveFate[leadBody(k.body).id] || answer.captiveFate[k.body.id]); if (f === 'kill' || f === 'release' || f === 'keep') k.fate = f; }
               settleHeld(seatId); }
             if (answer && answer.withdrawOffer && you && !you.withdrawn) postWithdrawOffer(you, answer.withdrawOffer, day, stats);
-            if (answer && answer.withdrawReplies && you && !you.withdrawn) for (const fromId in answer.withdrawReplies) { const o = (stats.withdrawOffers || {})[fromId]; if (o && o.from !== you.id) o.replies[you.id] = !!answer.withdrawReplies[fromId]; }
+            if (answer && answer.withdrawReplies && you && !you.withdrawn) for (const fromId in answer.withdrawReplies) { const o = (stats.withdrawOffers || {})[fromId]; if (o && o.from !== you.id) o.replies[you.id] = !!answer.withdrawReplies[fromId] && (o.replies[you.id] === true || promiseRoom(you.id, o.terms, stats)); }
             if (answer && answer.withdrawNow && you && !you.withdrawn && corps.filter(c2 => !c2.withdrawn && (c2.squads || []).some(q => squadHead(q).length)).length > 1) standDown(you, day, stats, corps);
             /* §RANSOM every case a seat holds is answered at its window, one answer a case */
             const dealsIn = answer && you ? (answer.deals ? Object.keys(answer.deals).map(k => answer.deals[k]) : answer.deal ? [answer.deal] : []) : [];

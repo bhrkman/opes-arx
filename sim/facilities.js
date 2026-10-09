@@ -68,7 +68,7 @@
     for (const id of IDS) if (corp.facilities.levels[id] == null) corp.facilities.levels[id] = FACILITIES[id].start;
     return corp.facilities;
   }
-  function level(corp, id) { return corp ? (grounds(corp).levels[id] || 0) : 0; }
+  function level(corp, id) { return corp ? Math.max(0, Math.min(FACILITIES[id] ? FACILITIES[id].levels.length : 0, grounds(corp).levels[id] || 0)) : 0; }   /* (fixed) never past the top, whatever a save says */
   function maxTier(corp) { return Math.min(5, level(corp, 'armoury') + CONST.TIER_OFFSET); }
   /** can this post be staffed at all */
   function postOpen(corp, post) { const id = FOR_POST[post]; return !id || level(corp, id) >= 1; }

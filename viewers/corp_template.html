@@ -7676,7 +7676,7 @@
       h += '<tr><td>' + markFor(p.from, 15) + ' ' + cSpan(p.from) +
            '<span class="m"> \u00b7 Promised ' + termWords(p.terms) + ' To </span>' + cSpan(p.to) + '</td>' +
            '<td style="text-align:right">' + (p.kept
-             ? '<span class="good">Kept \u00b7 ' + crs(p.owed || 0) + storeWords(p.stores) + '</span>'
+             ? '<span class="good">Kept \u00b7 ' + crs(p.paid != null ? p.paid : (p.owed || 0)) + storeWords(p.stores) + '</span>'   /* (fixed) what was paid, not what was owed */
              : '<span class="bad">Word Broken</span>') + '</td></tr>';
     });
     if (moot.length)
@@ -9607,24 +9607,31 @@
      cannot know: the seed's name, whose OA you are, the manager's plan, and the
      blank-slate custom profile. Storage is localStorage when the browser allows it and a
      session shelf when it does not; either way a save exports as pasteable code. */
+  /* (fixed) ONE KEY A SAVE, AND A FULL STORE SAYS SO: every save sat in one key, so a few year-end saves outgrew the
+     browser's quota and every save after failed in silence */
   var STORE = (function () {
-    var mem = {}, live = false;
+    var mem = {}, live = false, PRE = 'opesarx_save:';
     try { localStorage.setItem('_t', '1'); localStorage.removeItem('_t'); live = true; } catch (e) {}
     var all = function () {
       if (!live) return mem;
-      try { return JSON.parse(localStorage.getItem('opesarx_saves') || '{}'); } catch (e) { return {}; }
+      var out = {};
+      try { var old = JSON.parse(localStorage.getItem('opesarx_saves') || '{}'); for (var k in old) out[k] = old[k]; } catch (e) {}
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf(PRE) === 0) { try { out[key.slice(PRE.length)] = JSON.parse(localStorage.getItem(key)); } catch (e) {} }
+      }
+      return out;
     };
     return {
       all: all,
       put: function (name, data) {
-        if (!live) { mem[name] = data; return; }
-        var a = all(); a[name] = data;
-        localStorage.setItem('opesarx_saves', JSON.stringify(a));
+        if (!live) { mem[name] = data; return true; }
+        try { localStorage.setItem(PRE + name, JSON.stringify(data)); return true; } catch (e) { return false; }
       },
       del: function (name) {
         if (!live) { delete mem[name]; return; }
-        var a = all(); delete a[name];
-        localStorage.setItem('opesarx_saves', JSON.stringify(a));
+        try { localStorage.removeItem(PRE + name); } catch (e) {}
+        try { var a = JSON.parse(localStorage.getItem('opesarx_saves') || '{}'); if (a[name]) { delete a[name]; localStorage.setItem('opesarx_saves', JSON.stringify(a)); } } catch (e) {}
       }
     };
   })();
@@ -9661,12 +9668,12 @@
     }
     var name = 'Y' + G.state.season + ' M' + Math.min(12, G.state.month) + ' — ' +
                (G.corps[G.me].profile.name) + ' — ' + new Date().toISOString().slice(0, 16).replace('T', ' ');
-    STORE.put(name, { v: 1, seed: G.seedStr, me: G.me,
+    var ok = STORE.put(name, { v: 1, seed: G.seedStr, me: G.me,
                       custom: G.custom ? G.custom.profile : null,
                       replaced: G.custom ? G.custom.replaced : null,
                       plan: G.plan,
                       career: SEASON.saveCareer(G.state) });
-    $('clock').textContent = 'Saved: ' + name;
+    $('clock').textContent = ok ? 'Saved: ' + name : 'Not Saved \u00b7 Storage Full \u00b7 Delete an Old Save';
     setTimeout(applyPhase, 1200);
   }
 
