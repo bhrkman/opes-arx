@@ -6091,11 +6091,12 @@
   /* what a body currently carries: prefer a set hand, else its live loadout */
   function currentKit(b) {
     var h = G.plan.hand[b.id];
-    if (h) return { primary: h.primary || null, armor: h.armor || null,
-                    sidearm: h.sidearm || null, mods: (h.mods || []).slice(), consumables: (h.consumables || []).slice() };
     var lo = b.loadout || {};
+    if (h) return { primary: h.primary || null, armor: h.armor || null,
+                    sidearm: h.sidearm || null, melee: h.melee !== undefined ? h.melee : (lo.melee || null),
+                    mods: (h.mods || []).slice(), consumables: (h.consumables || []).slice() };
     return { primary: lo.primary || null, armor: lo.armor || null,
-             sidearm: lo.sidearm || null, mods: (lo.mods || []).slice(), consumables: (lo.consumables || []).slice() };
+             sidearm: lo.sidearm || null, melee: lo.melee || null, mods: (lo.mods || []).slice(), consumables: (lo.consumables || []).slice() };
   }
   /* §CONNECT A HAND IS THE WHOLE LOADOUT. The sheet had a primary, a sidearm, armour and one store, so a hand-kitted man
      carried no mod (an Extended Magazine among them) and one store where the engine allows two (ITEMS MOD_SLOTS,
@@ -6115,7 +6116,7 @@
   /* catalog value of a kit — the same sum the Divide charges against the cap */
   function kitValueOf(k) {
     var v = 0;
-    [k.primary, k.sidearm, k.armor].concat(k.mods || [], k.consumables || []).forEach(function (id) {
+    [k.primary, k.sidearm, k.melee, k.armor].concat(k.mods || [], k.consumables || []).forEach(function (id) {
       var it = id && ITEM_BY_ID[id]; if (it) v += it.cost || 0;
     });
     return v;
@@ -6127,15 +6128,15 @@
   function handProblem(b) {
     var h = G.plan.hand[b.id]; if (!h) return null;
     if (!h.primary || !h.armor) return 'Incomplete';
-    if (ITEMS.validate({ primary: h.primary, armor: h.armor, sidearm: h.sidearm || null, mods: h.mods || [], consumables: h.consumables || [] }).length) return 'Does Not Fit';
+    if (ITEMS.validate({ primary: h.primary, armor: h.armor, sidearm: h.sidearm || null, melee: h.melee || null, mods: h.mods || [], consumables: h.consumables || [] }).length) return 'Does Not Fit';
     var cap = Math.min((ITEMS.doctrineFor(G.corps[G.me].profile) || {}).armoury_max_tier || 5, SEASON.FAC.maxTier(G.corps[G.me]) || 5);
     var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
-    var over = [h.primary, h.armor, h.sidearm].concat(h.mods || [], h.consumables || []).some(function (id) {
+    var over = [h.primary, h.armor, h.sidearm, h.melee].concat(h.mods || [], h.consumables || []).some(function (id) {
       var it = id && ITEM_BY_ID[id]; return it && it.tier > cap && own.indexOf(id) < 0; });
     return over ? 'Above the Armoury' : null;
   }
   /* one line about an item, capitalised the way the page speaks */
-  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'],
+  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['melee', 'Melee'], ['armor', 'Armor'],
                    ['mod:0', 'Mod'], ['mod:1', 'Mod'], ['consumable:0', 'Store'], ['consumable:1', 'Store']];
 
   function renderPanel() {
@@ -6532,7 +6533,7 @@
 
     /* §FACILITIES the Armoury decides what can be issued; what sits above it is stored, and shown as stored */
     var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
-    var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
+    var own = (b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : []).concat(b.loadout && b.loadout.melee ? [b.loadout.melee] : []);   /* §MELEE his blade is his own */
     var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
     /* a mod fits its gun's family, and a satchel or a cell is one a body (ITEMS.validate): the picker offers what will stand */
     var prim = kit.primary && ITEM_BY_ID[kit.primary], otherStore = slotBase(slot) === 'consumable' ? (kit.consumables || [])[slotIdx(slot) ? 0 : 1] : null;
@@ -6589,7 +6590,7 @@
     if (!b) return;
     var h = G.plan.hand[b.id] ? G.plan.hand[b.id] : (function () {
       var k = currentKit(b);
-      return { primary: k.primary, armor: k.armor, sidearm: k.sidearm,
+      return { primary: k.primary, armor: k.armor, sidearm: k.sidearm, melee: k.melee,
                mods: (k.mods || []).slice(), consumables: (k.consumables || []).slice() };   /* the quartermaster's mods stay */
     })();
     var base = slotBase(slot), ix = slotIdx(slot);
@@ -6899,7 +6900,7 @@
                  /* §CONNECT the rest of what the grid writes down, which printed as raw type names */
                  absorbed: 'glances off', ricochet: 'ricochets into', blast: 'catches in the blast', lane_hit: 'fires down the lane at',
                  covering: 'lays covering fire on', spread: 'catches with the spread', stabilized: 'stabilises',
-                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover', taken: 'finishes' };
+                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover', taken: 'finishes', strike: 'strikes', strike_miss: 'swings at and misses', close_in: 'closes in', rescue: 'goes back for' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
@@ -7922,8 +7923,8 @@
      the drop, the same for everyone, and owning more than that is allowed. --- */
   var MSEC = ['Assault Rifles', 'Carbines', 'Submachine Guns', 'Close-Quarters', 'Scatterguns', 'Support Guns', 'Long Rifles',
               'Marksman Rifles', 'Launchers', 'Anti-Materiel', 'Stun-Grade',
-              'Sidearms', 'Armour', 'Mods', 'Consumables', 'Other'];
-  var MSLOTS = ['primary', 'sidearm', 'armor', 'mod', 'consumable'];
+              'Sidearms', 'Melee', 'Armour', 'Mods', 'Consumables', 'Other'];
+  var MSLOTS = ['primary', 'sidearm', 'melee', 'armor', 'mod', 'consumable'];
   var MKT = { slot: 'primary', grp: 'type', cart: {}, open: {} };
   function titleWords(s2) {
     return String(s2).replace(/_/g, ' ')
@@ -9425,7 +9426,16 @@
         '</div>';
     });
     if (!mine.length) sqh = '<div class="box m">Nobody on the Ground</div>';
+    /* §WOUNDED (ruled) the house's standing order for a man left lying nearer the enemy when a squad pulls back */
+    var rescueNow = (G.div.answer && G.div.answer.rescue) || w.rescue || 'judge';
+    sqh = '<div class="sqorder rescue"><span class="lab">Wounded</span><span class="notch5">' +
+      [['all', 'Leave No One'], ['judge', 'Judge Each'], ['none', 'Cut Losses']].map(function (o, k) {
+        return '<button class="nb n' + (k * 2 + 1) + (rescueNow === o[0] ? ' on' : '') + '" data-rescue="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</span></div>' + sqh;
     $('tsquads').innerHTML = sqh;
+    Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-rescue]'), function (b) {
+      b.onclick = function () { G.div.answer = G.div.answer || {}; G.div.answer.rescue = b.getAttribute('data-rescue'); renderTable(); };
+    });
 
     /* §STANCE THE FLEET IS READ, NOT SET. A notch aimed at each rival bought a tenth of a fight
        between its ends, so the ladder moved onto each SQUAD (above) and this section keeps the

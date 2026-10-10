@@ -467,6 +467,7 @@ function makeCombatant(fighter, opts) {
                      (kit && kit.charge) || 0),
     chargeMax: (kit && kit.charge) || 0,
     sidearm: (kit && kit.sidearm) || null, primary: null, onSidearm: false,
+    melee: (kit && kit.melee) || null,   /* §MELEE what he strikes with at arm's length (bare hands when the slot is empty) */
     _sideRounds: kit && kit.sidearm ? carriedSide(fighter, kit.sidearm) : null,
     fatigue: (fighter.condition && fighter.condition.fatigue) || 0,
     suppressed: false, spotted: true, hovering: false, repositioning: false,
@@ -1053,7 +1054,9 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
     for (const u of S.units) {
       /* §MON-WA a half the partner-death roll left alive has had its outcome: carried off by its own, and not rolled again */
       if (u._bondShock && u.state !== 'dead') { u.state = 'stable'; continue; }
-      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter || u._sharedDown)) {
+      /* §WOUNDED a side that pulled back left only its exposed and uncarried (below); this is for a side that was not
+         pulling back when it emptied */
+      if (u.state === 'down' && abandoned && !S.withdrawing && (u._stunnedDown || u._upAfter || u._sharedDown)) {
         u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
         if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
         continue;
@@ -1075,8 +1078,19 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
            your wounded are on it, and has nothing to do with the round. */
         const bySev = CONST.RECOVER_BY_SEV[u._downSev] != null
                     ? CONST.RECOVER_BY_SEV[u._downSev] : CONST.RECOVER_BY_SEV.serious;
-        const recoverP = clamp(bySev - (lost ? 0.40 : 0), 0.15, 0.97);
-        if (lost && rng() < captureP) { u.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
+        /* §WOUNDED (ruled) A MAN HIS SQUAD LEFT LYING NEARER THE ENEMY, AND NOBODY CARRIED OUT, IS THEIRS if they are still on
+           the field: the field is taken where he lies (the overrun's roll), and if he lives he is taken */
+        const carried = u._carrier && (u._carrier.state === 'withdrawn' || u._carrier.state === 'ok' || u._carrier.state === 'light');
+        const leftBehind = !opts.exhibition && !lost && u._exposed && !carried && E !== S && active(E).length > 0;
+        if (u._exposed) tel.exposed = (tel.exposed || 0) + 1;
+        const recoverP = clamp(bySev - (lost || leftBehind ? 0.40 : 0), 0.15, 0.97);
+        if (leftBehind && !(u._stunnedDown || u._upAfter || (u._sharedDown && u.bleed == null)) && rng() >= recoverP) {
+          u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; tel.leftBehind = (tel.leftBehind || 0) + 1;
+          const b = onDeath(rng, u, S, log || [], tel); if (b && b.fate !== 'dead') b.other.state = 'stable';
+        }
+        else if (leftBehind) { u.state = 'captured'; tel.leftBehind = (tel.leftBehind || 0) + 1; tel.takenOffField = (tel.takenOffField || 0) + 1;
+          if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
+        else if (lost && rng() < captureP) { u.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
         /* SOMEBODY PUT DOWN BY A STUN ROUND GETS UP. This roll kills a downed fighter about
            one time in five whatever put them there, so the Dividend was still producing 19
            deaths across six seasons AFTER the round stopped killing and the bleed was stopped —

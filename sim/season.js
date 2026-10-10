@@ -998,6 +998,24 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const e of entrants) LED.post(e.corp.account, 'expense', 'The Eight', -CONST.EIGHT_ENTRY);
     /* §MON-WA (ruled) a pair sent to the Eight is one entrant in two bodies, as it is one seat on any field */
     const bodiesOf = e => { const w = wholePairs(e.corp, [e.f], 1); return w.length ? w : [e.f]; };
+    /* (fixed, sweep 5) NOBODY WALKS INTO THE EIGHT WITHOUT A SIDEARM. An entrant fought in whatever he was standing in —
+       three in four had no sidearm, and a fight to the end ran on until both sides' rifles were empty. The house issues
+       him its best sidearm off the rack, or buys the cheapest on the shelf; it is his kit after, as any issued piece is. */
+    for (const e of entrants) for (const f of bodiesOf(e)) {
+      const lo = f.loadout || {};
+      if (lo.sidearm || !lo.primary) continue;
+      const rack = e.corp.armoury = e.corp.armoury || {};
+      const onRack = Object.keys(rack).map(id => ITEMS.byId(id)).filter(it => it && it.slot === 'sidearm' && rack[it.id] > 0)
+        .sort((x, y) => (y.tier || 0) - (x.tier || 0) || (y.cost || 0) - (x.cost || 0))[0];
+      let pick = onRack ? onRack.id : null;
+      if (pick) { rack[pick]--; if (!rack[pick]) delete rack[pick]; }
+      else {
+        const cheap = ITEMS.catalog.filter(it => it.slot === 'sidearm' && (it.cost || 0) > 0 && it.price_model !== 'none').sort((x, y) => x.cost - y.cost)[0];
+        const price = cheap ? shelfPrice(state, e.corp.id, cheap) : 0;
+        if (cheap && e.corp.account.treasury >= price) { LED.post(e.corp.account, 'expense', 'Kit for the Eight', -price); pick = cheap.id; }
+      }
+      if (pick) ITEMS.equip(f, { primary: lo.primary, mods: lo.mods || [], sidearm: pick, armor: lo.armor, consumables: lo.consumables || [] });
+    }
     const entryOf = new Map();
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
       units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1, health: woundOf(f), stress: (f.condition || {}).stress }); entryOf.set(u, e); return u; })))) });
@@ -4736,6 +4754,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        rescue: c.rescueOrder || null,   /* §WOUNDED the house's standing order for its wounded, kept from year to year */
         /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
            held for, and the next year's months held for where its gate does not cover them */
         kitMoney: kitMoneyFor(state, c),
@@ -5170,6 +5189,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function underTakeover(c, season) { return !!(c && c._takeover && c._takeover.season === season); }
   function finishSeason(state, res) {
+    for (const id of state.ids) { const pp = state._persist && state._persist[id]; if (pp && pp.rescue) state.corps[id].rescueOrder = pp.rescue; }
     settleLeadPromises(state);   /* §TALKS a squad to lead, now that the squads were dealt */
     askBoards(state, res);
     /* §DRAFT where each OA finished is next year's draft order, last place first */

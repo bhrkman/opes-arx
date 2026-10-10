@@ -519,7 +519,7 @@ setTimeout(() => {
       /* §MARKET THE WALL (ruled): underline tabs with counts, centred titles with rules, tiles by type carrying bars
          coloured by kind and chips for the rest; a title folds its section */
       const secs = [...doc.querySelectorAll('#mktledger .mwall-title .t')].map(x => x.textContent);
-      check(doc.querySelectorAll('#mktslots .mtab').length === 5 && !!doc.querySelector('#mktslots .mtab.on .c'),
+      check(doc.querySelectorAll('#mktslots .mtab').length === 6 && !!doc.querySelector('#mktslots .mtab.on .c'),
             'the slots are underlined tabs, each with how many the shelf holds');
       const tiles = doc.querySelectorAll('#mktledger .mwall .mtile').length;
       check(tiles >= 40 && doc.querySelectorAll('#mktledger .mtile .mbar').length >= tiles * 3,
@@ -1405,8 +1405,8 @@ setTimeout(() => {
     /* the name opens the sheet as a drawer: four loadout slots, the moves, the actions */
     alpha().querySelector('.port-card[data-id="' + leadId + '"] [data-sheet]').click();
     check(doc.getElementById('unitpanel').classList.contains('on') &&
-          doc.querySelectorAll('#unitpanel .slot').length === 7,
-          'the sheet opens as a drawer with the whole loadout: primary, sidearm, armour, two mods, two stores');
+          doc.querySelectorAll('#unitpanel .slot').length === 8,
+          'the sheet opens as a drawer with the whole loadout: primary, sidearm, melee, armour, two mods, two stores');
     check(doc.querySelectorAll('#unitpanel .mv').length === 6 &&
           doc.querySelector('#unitpanel .mv[data-mv="0"]').disabled,
           'the sheet offers a move to every squad but the one they stand in');

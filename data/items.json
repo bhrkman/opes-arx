@@ -4980,6 +4980,106 @@
    "price_model": "formula",
    "identity": "Made for one person, and for one moment.",
    "type": "Sidearms"
+  },
+  {
+   "id": "itm_combat_knife",
+   "name": "Combat Knife",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 1,
+   "cost": 90,
+   "bulk": 0,
+   "effects": {
+    "power": 3,
+    "handling": 10,
+    "pen": 0,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "For when it is close enough to smell.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_machete",
+   "name": "Machete",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 1,
+   "cost": 160,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "handling": 0,
+    "pen": 0,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Clears brush. Clears other things.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_breaching_axe",
+   "name": "Breaching Axe",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 2,
+   "cost": 380,
+   "bulk": 1,
+   "effects": {
+    "power": 6,
+    "handling": -10,
+    "pen": 1,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Made for doors. Works on what is behind them.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_vibro_blade",
+   "name": "Vibro-Blade",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 3,
+   "cost": 900,
+   "bulk": 1,
+   "effects": {
+    "power": 6,
+    "handling": 15,
+    "pen": 2,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Hums. Then it does not.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_power_maul",
+   "name": "Power Maul",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 4,
+   "cost": 1600,
+   "bulk": 2,
+   "effects": {
+    "power": 9,
+    "handling": -15,
+    "pen": 2,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "The last argument, made once.",
+   "type": "Melee"
   }
  ],
  "doctrines": [

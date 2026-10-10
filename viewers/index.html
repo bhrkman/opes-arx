@@ -9682,6 +9682,106 @@
    "price_model": "formula",
    "identity": "Made for one person, and for one moment.",
    "type": "Sidearms"
+  },
+  {
+   "id": "itm_combat_knife",
+   "name": "Combat Knife",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 1,
+   "cost": 90,
+   "bulk": 0,
+   "effects": {
+    "power": 3,
+    "handling": 10,
+    "pen": 0,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "For when it is close enough to smell.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_machete",
+   "name": "Machete",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 1,
+   "cost": 160,
+   "bulk": 1,
+   "effects": {
+    "power": 4,
+    "handling": 0,
+    "pen": 0,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Clears brush. Clears other things.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_breaching_axe",
+   "name": "Breaching Axe",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 2,
+   "cost": 380,
+   "bulk": 1,
+   "effects": {
+    "power": 6,
+    "handling": -10,
+    "pen": 1,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Made for doors. Works on what is behind them.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_vibro_blade",
+   "name": "Vibro-Blade",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 3,
+   "cost": 900,
+   "bulk": 1,
+   "effects": {
+    "power": 6,
+    "handling": 15,
+    "pen": 2,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "Hums. Then it does not.",
+   "type": "Melee"
+  },
+  {
+   "id": "itm_power_maul",
+   "name": "Power Maul",
+   "category": "melee",
+   "slot": "melee",
+   "family": "any",
+   "tier": 4,
+   "cost": 1600,
+   "bulk": 2,
+   "effects": {
+    "power": 9,
+    "handling": -15,
+    "pen": 2,
+    "damage": "ballistic",
+    "tags": []
+   },
+   "price_model": "fixed",
+   "identity": "The last argument, made once.",
+   "type": "Melee"
   }
  ],
  "doctrines": [
@@ -11259,6 +11359,7 @@
     KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster
     MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
+    FISTS_POWER: 2,                 // [C] §MELEE what bare hands hit with, on a gun's power scale
     MOD_SLOTS: 2,                   // [S] §3
     CONSUMABLE_SLOTS: 2,            // [S] §3
     EXOTIC_PRICE_FLOOR_MULT: 1.5    // [C] cheapest exotic vs dearest formula item (3.0 → 1.5 at the money pass: tiers 1–4 doubled, the exotics held)
@@ -11363,6 +11464,7 @@
       primary: lo.primary || null,
       mods: (lo.mods || []).slice(),
       sidearm: lo.sidearm || null,
+      melee: lo.melee || null,              /* §MELEE (ruled) a blade or a club, in its own slot */
       armor: lo.armor || null,
       consumables: (lo.consumables || []).slice()
     };
@@ -11370,7 +11472,7 @@
 
   function itemsOf(lo) {
     const out = [];
-    for (const id of [lo.primary, lo.sidearm, lo.armor].concat(lo.mods, lo.consumables)) {
+    for (const id of [lo.primary, lo.sidearm, lo.melee, lo.armor].concat(lo.mods, lo.consumables)) {
       if (!id) continue;
       const it = byId(id);
       if (it) out.push(it);
@@ -11388,6 +11490,7 @@
     const p = byId(lo.primary);
     const a = byId(lo.armor);
     const s = lo.sidearm ? byId(lo.sidearm) : null;
+    const ml = lo.melee ? byId(lo.melee) : null;
     const pe = (p && p.effects) || {}, ae = (a && a.effects) || {};
     let tags = (pe.tags || []).slice();
     /* §MODS A MOD DOES WHAT IT SAYS. This read exactly one field from a mod — `grants`, a tag — and
@@ -11462,6 +11565,10 @@
                      handling: (s.effects || {}).handling, snap: (s.effects || {}).snap, pen: (s.effects || {}).pen, suppress: (s.effects || {}).suppress,
                      spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
+      /* §MELEE (ruled) what a fighter strikes with at arm's length: the piece in the melee slot, or his hands */
+      melee: ml ? { id: ml.id, name: ml.name, power: (ml.effects || {}).power || 0, handling: (ml.effects || {}).handling || 0,
+                    pen: (ml.effects || {}).pen || 0, damage: (ml.effects || {}).damage || 'ballistic', tags: (ml.effects || {}).tags || [] }
+                : { id: null, name: 'Bare Hands', power: CONST.FISTS_POWER, handling: 0, pen: 0, damage: 'ballistic', tags: [] },
       family: p ? p.family : "none", tags,
       
       charge: (pe.charge || 0) + ((pe.charge || 0) > 0 ? mod.charge : 0),
@@ -11486,6 +11593,11 @@
       const s = byId(lo.sidearm);
       if (!s) errs.push("unknown sidearm " + lo.sidearm);
       else if (s.slot !== "sidearm") errs.push(s.id + " is not a sidearm");
+    }
+    if (lo.melee) {
+      const ml = byId(lo.melee);
+      if (!ml) errs.push("unknown melee " + lo.melee);
+      else if (ml.slot !== "melee") errs.push(ml.id + " is not a melee piece");
     }
     if (lo.armor) {
       const a = byId(lo.armor);
@@ -11633,7 +11745,9 @@
     const give = (id) => { if (id) stock[id] = (stock[id] || 0) + 1; };
     const fighters = (opts.fighters || []).slice(0, bodyCount);
     const bodies = [];
-    for (let i = 0; i < bodyCount; i++) bodies.push({ i: i, f: fighters[i] || null, loadout: normalise(UNARMED) });
+    /* §MELEE a fighter's blade is his own: it is not drawn from the rack or given back to it, and he keeps it */
+    const ownMelee = f => (f && f.loadout && f.loadout.melee) || null;
+    for (let i = 0; i < bodyCount; i++) bodies.push({ i: i, f: fighters[i] || null, loadout: Object.assign(normalise(UNARMED), { melee: ownMelee(fighters[i]) }) });
 
     const disc = (item) => {
       if (!item || !opts || typeof opts.discount !== 'function') return 0;
@@ -11781,7 +11895,7 @@
       }
     }
     if (shortfall > 0) {
-      for (const b of bodies) { give(b.loadout.primary); give(b.loadout.armor); b.loadout = normalise(UNARMED); }
+      for (const b of bodies) { give(b.loadout.primary); give(b.loadout.armor); b.loadout = Object.assign(normalise(UNARMED), { melee: b.loadout.melee }); }
       return { doctrine: d, mustered: false, shortfall: shortfall, bodies: [], counts: {},
                allowance: allow, budget: budget, musterCash: reserve, total: 0, unarmed: bodyCount,
                bands: {}, primaries: {}, distinctPrimaries: 0, headroom: allow, spentCash: 0, boundBy: 'muster' };
@@ -11808,17 +11922,10 @@
        body order, early grenades spent the cap a later squad's medkit needed */
     const firstMedics = [...medics];
     const essentialOrder = firstMedics.map(i => bodies[i]).concat(bodies.filter(b => !medics.has(b.i)));
-    for (const b of essentialOrder) {
-      if (b.loadout.consumables.length) continue;
-      /* §ROUNDS the hands whose guns eat rounds (support and close) carry a pack of rounds for their gun before anything else */
-      const pr = byId(b.loadout.primary), packId = pr && (pr.family === 'energy' || (pr.effects || {}).damage === 'energy') ? 'itm_power_cell' : 'itm_ammo_satchel';
-      const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
-      if (!c || spent + c.cost > allow) continue;
-      if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
-      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
-    }
-    /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
-    {
+    /* (fixed, sweep 5) THE SIDEARM BEFORE THE SECOND THING IN A POCKET: the medkits first, then a sidearm for everyone, then
+       everyone else's first consumable. Bought last, the sidearm went to whoever the money still reached, and a quarter
+       of the drop went down with nothing to draw when the rifle ran dry */
+    const buySidearms = () => {
       const needsSide = bodies.filter(b => !b.loadout.sidearm);
       const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && pr.effects.charge); };
       needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
@@ -11827,6 +11934,33 @@
         if (spent + c.cost > allow) continue;
         if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
         if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.sidearm = c.id; spent += c.cost; break; }
+      }
+    };
+    let armedSide = false;
+    for (const b of essentialOrder) {
+      if (!armedSide && !medics.has(b.i)) { buySidearms(); armedSide = true; }
+      if (b.loadout.consumables.length) continue;
+      /* §ROUNDS the hands whose guns eat rounds (support and close) carry a pack of rounds for their gun before anything else */
+      const pr = byId(b.loadout.primary), packId = pr && (pr.family === 'energy' || (pr.effects || {}).damage === 'energy') ? 'itm_power_cell' : 'itm_ammo_satchel';
+      const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
+      if (!c || spent + c.cost > allow) continue;
+      if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
+      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
+    }
+    /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first (any the essentials
+       above left without one) ---- */
+    buySidearms();
+    /* ---- phase 3c: §MELEE (ruled) something for arm's length — the cheapest on the rack or the shelf, for anyone with
+       nothing of his own; a better piece is a manager's buy at the yard ---- */
+    {
+      const blades = CATALOG.filter(it => it.slot === 'melee' && (it.tier || 1) <= maxTier && (it.cost || 0) > 0).sort((a, c) => a.cost - c.cost);
+      for (const b of bodies) {
+        if (b.loadout.melee || !b.loadout.primary) continue;
+        const onRack = blades.slice().sort((a, c) => ((c.effects || {}).power || 0) - ((a.effects || {}).power || 0)).find(c => stock[c.id] > 0);
+        if (onRack && take(onRack.id)) { b.loadout.melee = onRack.id; continue; }
+        const c = blades[0];
+        if (!c || spent + c.cost > allow) continue;
+        if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.melee = c.id; spent += c.cost; }
       }
     }
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
@@ -12009,10 +12143,13 @@
 
   /** Equip a body. Draws no RNG; writes ids AND the resolved flat shapes the resolver reads. */
   function equip(fighter, lo) {
-    const norm = normalise(lo || DEFAULT_LOADOUT);
+    /* §MELEE a dressing that does not name the melee slot leaves what is in it: the blade is his own, and a dozen callers
+       that re-dress a fighter's gun and armour predate the slot */
+    const keepMelee = lo && lo.melee === undefined && fighter.loadout ? fighter.loadout.melee || null : undefined;
+    const norm = normalise(keepMelee !== undefined ? Object.assign({}, lo, { melee: keepMelee }) : (lo || DEFAULT_LOADOUT));
     const r = resolve(norm);
     fighter.loadout = {
-      primary: norm.primary, mods: norm.mods, sidearm: norm.sidearm,
+      primary: norm.primary, mods: norm.mods, sidearm: norm.sidearm, melee: norm.melee,
       armor: norm.armor, consumables: norm.consumables,
       kit: r                       /* resolved stats; the ids above stay ids */
     };
@@ -17398,6 +17535,7 @@ function makeCombatant(fighter, opts) {
                      (kit && kit.charge) || 0),
     chargeMax: (kit && kit.charge) || 0,
     sidearm: (kit && kit.sidearm) || null, primary: null, onSidearm: false,
+    melee: (kit && kit.melee) || null,   /* §MELEE what he strikes with at arm's length (bare hands when the slot is empty) */
     _sideRounds: kit && kit.sidearm ? carriedSide(fighter, kit.sidearm) : null,
     fatigue: (fighter.condition && fighter.condition.fatigue) || 0,
     suppressed: false, spotted: true, hovering: false, repositioning: false,
@@ -17984,7 +18122,9 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
     for (const u of S.units) {
       /* §MON-WA a half the partner-death roll left alive has had its outcome: carried off by its own, and not rolled again */
       if (u._bondShock && u.state !== 'dead') { u.state = 'stable'; continue; }
-      if (u.state === 'down' && abandoned && (u._stunnedDown || u._upAfter || u._sharedDown)) {
+      /* §WOUNDED a side that pulled back left only its exposed and uncarried (below); this is for a side that was not
+         pulling back when it emptied */
+      if (u.state === 'down' && abandoned && !S.withdrawing && (u._stunnedDown || u._upAfter || u._sharedDown)) {
         u.state = 'captured'; tel.takenOffField = (tel.takenOffField || 0) + 1;
         if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 });
         continue;
@@ -18006,8 +18146,19 @@ function settleAftermath(rng, sides, tel, log, exchange, overrunOf, opts) {
            your wounded are on it, and has nothing to do with the round. */
         const bySev = CONST.RECOVER_BY_SEV[u._downSev] != null
                     ? CONST.RECOVER_BY_SEV[u._downSev] : CONST.RECOVER_BY_SEV.serious;
-        const recoverP = clamp(bySev - (lost ? 0.40 : 0), 0.15, 0.97);
-        if (lost && rng() < captureP) { u.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
+        /* §WOUNDED (ruled) A MAN HIS SQUAD LEFT LYING NEARER THE ENEMY, AND NOBODY CARRIED OUT, IS THEIRS if they are still on
+           the field: the field is taken where he lies (the overrun's roll), and if he lives he is taken */
+        const carried = u._carrier && (u._carrier.state === 'withdrawn' || u._carrier.state === 'ok' || u._carrier.state === 'light');
+        const leftBehind = !opts.exhibition && !lost && u._exposed && !carried && E !== S && active(E).length > 0;
+        if (u._exposed) tel.exposed = (tel.exposed || 0) + 1;
+        const recoverP = clamp(bySev - (lost || leftBehind ? 0.40 : 0), 0.15, 0.97);
+        if (leftBehind && !(u._stunnedDown || u._upAfter || (u._sharedDown && u.bleed == null)) && rng() >= recoverP) {
+          u.state = 'dead'; tel.downDeaths = (tel.downDeaths || 0) + 1; tel.leftBehind = (tel.leftBehind || 0) + 1;
+          const b = onDeath(rng, u, S, log || [], tel); if (b && b.fate !== 'dead') b.other.state = 'stable';
+        }
+        else if (leftBehind) { u.state = 'captured'; tel.leftBehind = (tel.leftBehind || 0) + 1; tel.takenOffField = (tel.takenOffField || 0) + 1;
+          if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
+        else if (lost && rng() < captureP) { u.state = 'captured'; if (log) log.push({ exchange, type: 'captured', actors: [u.id], significance: 4 }); }
         /* SOMEBODY PUT DOWN BY A STUN ROUND GETS UP. This roll kills a downed fighter about
            one time in five whatever put them there, so the Dividend was still producing 19
            deaths across six seasons AFTER the round stopped killing and the bleed was stopped —
@@ -18428,6 +18579,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
     CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
     SEARCH_DRIFT: 0.55,
+    CARRY_SLOW: 1,                   // [C] §WOUNDED tiles fewer a man moves bearing another out
+    RESCUE_FAME: 60,                 // [C] §WOUNDED fame worth one more of a man's worth to the captain judging, up to two
+    RESCUE_REACH: 6,                 // [C] §WOUNDED tiles into the enemy that double the risk of going back
+    RESCUE_BASE: 1.5,                // [C] §WOUNDED what any man of the squad is worth going back for, before his name and rank
+    RESCUE_RISK_W: 0.75,             // [C] §WOUNDED how much risk a captain judging each will run for a man's worth
+    MELEE_REACH: 1.5,                // [C] §MELEE tiles a blow reaches: the next tile, the diagonal too
+    MELEE_CLOSE: 3,                  // [C] §MELEE how near an enemy must already be for a man with no rounds to close on him
+    MELEE_P_BASE: 0.55,              // [C] §MELEE the chance a blow lands between two equal hands
+    MELEE_P_STAT: 0.006,             // [C] §MELEE per point of reflex-and-grit (and the piece's handling) over the other man's
+    MELEE_P_MIN: 0.15, MELEE_P_MAX: 0.9,   // [C] §MELEE
+    MELEE_PANIC_GUARD: 0.5,          // [C] §MELEE a man who has broken guards himself at half
     SEARCH_STALE_TURNS: 3,           // [C] §SEARCH turns a last sighting is still worth walking to
     SEARCH_FIND_TURNS: 8,            // [C] §SEARCH turns of hunting before a side finds whoever is still on a small field              // [C] §SEARCH how fast the sweep's aim point walks the flank
     /* Two ways a side stops fighting, and they should not look the same.
@@ -18724,6 +18886,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     if (!w || ((w.power || 0) <= 0 && !stunOf(c))) return false;   /* §STUN stacks are a gun's harm too */
     const sideLeft = !!(c.sidearm && !c.onSidearm && (!c._sideRounds || c._sideRounds.mag + c._sideRounds.spare > 0));   /* §ROUNDS a sidearm with rounds in it */
     return C.primaryReady ? (C.primaryReady(c) || sideLeft) : true;
+  }
+
+  /* §MELEE (ruled) ARM'S LENGTH. A blow, from the melee slot or bare hands: it lands on reflex and grit against the other
+     man's, and does what its power does on the same wound pool a round fills. */
+  /* a combatant built without a kit strikes bare-handed, at items.js FISTS_POWER */
+  const FISTS = { id: null, name: 'Bare Hands', power: 2, handling: 0, pen: 0, damage: 'ballistic', tags: [] };
+  function meleeOf(u) { return u.melee || FISTS; }
+  function strike(rng, u, f, S, E, tel, log) {
+    const m = meleeOf(u);
+    const hand = c => (((c.stats && c.stats.reflex) || 100) + ((c.stats && c.stats.grit) || 100)) / 2;
+    const guard = (f.state === 'panicked' ? CONST.MELEE_PANIC_GUARD : 1) * hand(f);
+    const p = Math.max(CONST.MELEE_P_MIN, Math.min(CONST.MELEE_P_MAX, CONST.MELEE_P_BASE + (hand(u) + (m.handling || 0) - guard) * CONST.MELEE_P_STAT));
+    tel.strikes = (tel.strikes || 0) + 1;
+    comp(rng, f, C.CONST.COMP.nearMiss);
+    if (rng() >= p) { if (log) log.push({ t: tel.turn, type: 'strike_miss', by: u.id, at: f.id, w: m.name }); return; }
+    tel.strikeHits = (tel.strikeHits || 0) + 1;
+    const blow = Object.assign({}, u, { weapon: { power: m.power, damage: m.damage, pen: m.pen, tags: m.tags || [], name: m.name, id: m.id } });
+    if (log) log.push({ t: tel.turn, type: 'strike', by: u.id, at: f.id, w: m.name });
+    applyHit(rng, f, C.resolveSeverity(rng, blow, f, S.policy, 2, null, tel.turn), tel, log, blow, E);
   }
 
   function bandOf(d) {
@@ -19701,6 +19882,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
    * fallback is not a rout: they go by bounds, half the squad moving while the other half
    * keeps firing to cover them, and they leave the field rather than milling at the edge.
    */
+  /* §WOUNDED who lies exposed, and who goes back for him. A downed man is exposed when an enemy still standing is nearer
+     him than any of his own still standing; each is weighed once, as he is first seen lying so on the way out. */
+  function weighWounded(S, sides, E) {
+    const up = m => m.state === 'ok' || m.state === 'light';
+    const mine = S.units.filter(m => up(m) && !m._carrying && !m._rescue);
+    const foes = [];
+    for (const O of sides) if (O !== S) for (const f of O.units) if (up(f)) foes.push(f);
+    if (!foes.length) return;
+    const near = (x, list) => list.reduce((t, m) => Math.min(t, dist(m, x)), Infinity);
+    for (const D of S.units) {
+      if (D.state !== 'down' || D._weighed || D._carrier) continue;
+      const ours = S.units.filter(m => m !== D && up(m));
+      if (!ours.length) continue;
+      if (near(D, foes) >= near(D, ours)) continue;          /* lying among his own: they drag him back as they go */
+      D._weighed = true; D._exposed = true;
+      const order = S.rescue || 'judge';
+      let go = order === 'all';
+      if (order === 'judge') {
+        /* what he is worth to the house — his name, his rank as a hand, the squad's lead — against how badly the squad is
+           outmatched and how far into it he lies */
+        const r = D.ref || D, st = r.stats || D.stats || {};
+        const worth = CONST.RESCUE_BASE + Math.min(2, (r.fame || 0) / CONST.RESCUE_FAME) + ((st.aim || 100) + (st.grit || 100) + (st.tactics || 100) - 300) / 150 + (D.isCaptain ? 1 : 0);
+        const risk = (foes.length / Math.max(1, ours.length)) * (1 + near(D, ours) / CONST.RESCUE_REACH);
+        go = worth > risk * CONST.RESCUE_RISK_W;
+      }
+      if (!go) continue;
+      const free = mine.filter(m => !m._rescue).sort((a, b) => dist(a, D) - dist(b, D))[0];
+      if (free) free._rescue = D;
+    }
+  }
   function checkWithdraw(S) {
     if (S.noWithdraw) return false;          /* The Eight: nobody calls it */
     if (S.withdrawing) return true;
@@ -20354,6 +20565,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              differently from a rout — it is still a fight, just one going backwards. */
           if (S.withdrawing) {
             if (fog) ensureSpot(S);
+            /* §WOUNDED (ruled) A MAN LEFT LYING NEARER THE ENEMY THAN HIS OWN IS LEFT, UNLESS SOMEBODY GOES BACK. The squad's
+               standing order decides who goes back: everyone (Leave No One), nobody (Cut Losses), or the captain's
+               judgement of what the man is worth against how badly the squad is outmatched (Judge Each). Going back costs
+               the rescuer his turn and his shot, and he carries the man out slower than he came. */
+            weighWounded(S, sides, E);
+            if (u._rescue) {
+              const D = u._rescue;
+              if (D.state === 'dead' || D._carrier) { u._rescue = null; }
+              else if (dist(u, D) <= CONST.MELEE_REACH) {
+                u._carrying = D; D._carrier = u; u._rescue = null; u.ap = 0;
+                tel.rescues = (tel.rescues || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'rescue', by: u.id, at: D.id });
+                continue;
+              } else {
+                const moved = stepHome(u, D, sides, map, CONST.MOVE_TILES); tel.moves += moved;
+                if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+                triggerOverwatch(rng, u, sides, map, tel, log);
+                if (u.state !== 'ok' && u.state !== 'light') { u._rescue = null; continue; }
+                if (dist(u, D) <= CONST.MELEE_REACH && u.ap > 1) { u._carrying = D; D._carrier = u; u._rescue = null;
+                  tel.rescues = (tel.rescues || 0) + 1; if (log) log.push({ t: tel.turn, type: 'rescue', by: u.id, at: D.id }); }
+                u.ap = 0; continue;
+              }
+            }
+            if (u._carrying) {
+              /* bearing a man out: slower, and no hand free to shoot */
+              const moved = stepHome(u, home, sides, map, Math.max(1, CONST.MOVE_TILES - CONST.CARRY_SLOW)); tel.moves += moved;
+              if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+              triggerOverwatch(rng, u, sides, map, tel, log);
+              if (u.state !== 'ok' && u.state !== 'light') { if (u._carrying) u._carrying._carrier = null; u._carrying = null; continue; }
+              if (atHome(u, home, map) || contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
+              u.ap = 0; continue;
+            }
             if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
             const crew = alive(S.units);
             const idx = crew.indexOf(u);
@@ -20402,6 +20645,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
              of sight is not fighting, he is making noise — the first version of this did
              exactly that and produced one move in fifteen turns. */
           const seen = foes.filter(f => hasLOS(map, u, f));
+          /* §MELEE (ruled) ONLY AT ARM'S LENGTH, OR AS THE LAST THING LEFT. A man strikes an enemy already beside him when
+             his gun is empty, too long to bring round at that range, or no harder than his blade; a man with no rounds
+             anywhere closes on an enemy only when one is already close, or when there is no way out of the fight and
+             nothing left to shoot back at him — never a charge across open ground at a loaded rifle. */
+          if (u.ap > 0 && !u.suppressed && !ctx.exhibition) {   /* the lights' show-match is stun rounds and nothing else */
+            const armed = canHurt(u);
+            const upright = f => f.state === 'ok' || f.state === 'light' || f.state === 'panicked';
+            const touching = seen.filter(f => upright(f) && dist(u, f) <= CONST.MELEE_REACH);
+            const awkward = f => (u.weapon && u.weapon.near && dist(u, f) < u.weapon.near) || meleeOf(u).power > ((u.weapon && u.weapon.power) || 0);
+            let mark = touching.filter(f => !armed || awkward(f)).sort((a, b) => (a.hp || 0) - (b.hp || 0))[0] || null;
+            if (!mark && !armed && !u._noMove) {
+              const quiet = tel.turn - (S._contactTurn != null ? S._contactTurn : 0);
+              const noneShoot = foes.every(f => !upright(f) || !canHurt(f));
+              const press = ctx.toTheEnd && (noneShoot || quiet > CONST.SEARCH_FIND_TURNS);
+              const pool = (press ? foes : seen.filter(f => dist(u, f) <= CONST.MELEE_CLOSE)).filter(upright);
+              const go = pool.sort((a, b) => dist(u, a) - dist(u, b))[0];
+              if (go) {
+                const moved = stepHome(u, go, sides, map, CONST.MOVE_TILES);
+                if (moved) {
+                  u.ap--; u.cover = 0;
+                  if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+                  triggerOverwatch(rng, u, sides, map, tel, log);
+                  if (u.state !== 'ok' && u.state !== 'light') continue;
+                  tel.closedIn = (tel.closedIn || 0) + 1;
+                  if (log) log.push({ t: tel.turn, type: 'close_in', by: u.id, to: { x: u.x, y: u.y } });
+                }
+                if (u.ap > 0 && upright(go) && dist(u, go) <= CONST.MELEE_REACH) mark = go;
+                else if (moved) { u.ap = 0; continue; }
+              }
+            }
+            if (mark) { strike(rng, u, mark, S, E, tel, log); u.ap = 0; continue; }
+          }
           const shotAt = (from, f) => {
             /* A SWING THAT CANNOT HURT ANYBODY IS NOT WORTH WALKING TOWARD. `hitChance` asks how
                likely you are to connect and never asks what connecting would do, so a power-0
@@ -22387,6 +22662,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
      Consequence worth knowing when reading a per-notch table: no corp in the canon eight now
      declares death_or_glory, so the far pole appears only in homogeneous test fields. That is
      honest — it is an extreme a manager may declare, not an OA style anyone runs. */
+  const RESCUE_ORDERS = ['all', 'judge', 'none'];   /* §WOUNDED Leave No One · Judge Each · Cut Losses */
   const STANCE_OVERRIDE = {
     alliance_house: 'unyielding'
   };
@@ -22691,6 +22967,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
         const items = [prim, arm];
         const side = slotOk(h.sidearm, 'sidearm');
         if (side) items.push(side);
+        /* §MELEE a blade named for him is drawn or bought like the rest — unless it is the one he already carries */
+        const blade = h.melee ? slotOk(h.melee, 'melee') : null;
+        if (blade && blade.id !== ((f.loadout && f.loadout.melee) || null)) items.push(blade);
         const mods = (h.mods || []).map(m => slotOk(m, 'mod')).filter(Boolean);
         const cons = (h.consumables || []).map(c => slotOk(c, 'consumable')).filter(Boolean);
         items.push.apply(items, mods); items.push.apply(items, cons);
@@ -22713,8 +22992,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
             handValue + val > intent.allowance) { corp.handRefused++; continue; }
         for (const k in trial) handStock[k] -= trial[k];
         handSpend += buy; handValue += val; handed++;
-        ITEMS.equip(f, { primary: prim.id, armor: arm.id, sidearm: side ? side.id : null,
-                         mods: mods.map(it => it.id), consumables: cons.map(it => it.id) });
+        ITEMS.equip(f, Object.assign({ primary: prim.id, armor: arm.id, sidearm: side ? side.id : null,
+                         mods: mods.map(it => it.id), consumables: cons.map(it => it.id) }, blade ? { melee: blade.id } : {}));
         f._handKitted = true;
       }
     }
@@ -22898,6 +23177,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                 : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance,
+      /* §WOUNDED (ruled) what a squad does for a man left lying when it pulls back: a person's order, carried from year to
+         year; an engine seat judges each (the aligned fleet has no character to lean it yet) */
+      rescue: (persist && RESCUE_ORDERS.indexOf(persist.rescue) >= 0) ? persist.rescue : 'judge',
       rigidity: rigidity != null ? rigidity : profile.rigidity != null ? profile.rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
       squads: [], allBodies: [], stanceChanges: 0, hauled: 0, sitesClaimed: 0, engagements: 0,
       withdrawn: null,          /* { day, terms, promises, how } once it has conceded and gone */
@@ -23305,7 +23587,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        roughly the leaver's own odds, discounted by trust — so what makes leaving an economic act is what staying
        spends: the people (and the kit they carry) an OA expects to lose if it fights on, at ITS OWN rate of loss
        so far, over the days likely left, each worth what replacing them costs. An OA pricing its own assets. */
-    const kitWorth = (lo) => !lo ? 0 : [lo.primary, lo.armor, lo.sidearm].concat(lo.mods || [], lo.consumables || [])
+    const kitWorth = (lo) => !lo ? 0 : [lo.primary, lo.armor, lo.sidearm, lo.melee].concat(lo.mods || [], lo.consumables || [])
       .reduce((t, id) => { const it = id && ITEMS.byId(id); return t + (it ? (it.cost || 0) : 0); }, 0);
     /* its rate of loss is its own blended with the whole field's — one man lost on day one does not say an OA
        will lose everyone — and nobody reads it before LEAVE_EARLIEST_DAY */
@@ -23640,6 +23922,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
        march and standing. */
     return Object.assign({
       corpId: corp.id, policy: corp.policy, units, hasMedkit: sq.hasMedkit,
+      /* §WOUNDED the house's standing order for its wounded when a squad pulls back */
+      rescue: RESCUE_ORDERS.indexOf(corp.rescue) >= 0 ? corp.rescue : 'judge',
       /* §STANCE HOW MUCH A SQUAD WILL LOSE BEFORE IT PULLS OUT — the one place a squad's stance
          belongs inside a fight. The grid called every withdrawal at the same 35% down, so a careful
          squad, once caught, fought on until two of four were down and then walked off under fire:
@@ -23738,7 +24022,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
     const units = [];
     for (const p of parts) for (const u of p.units) units.push(u);
     return {
-      corpId: parts[0].corpId, policy: parts[0].policy, units,
+      corpId: parts[0].corpId, policy: parts[0].policy, units, rescue: parts[0].rescue,
       /* squads fighting as one side pull out together, at the mean of their thresholds */
       withdrawAt: parts.reduce((t, p) => t + (p.withdrawAt != null ? p.withdrawAt : CONST.STANCE_WITHDRAW_AT.standard), 0) / parts.length,
       hasMedkit: parts.some(p => p.hasMedkit),
@@ -25294,6 +25578,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
                 return { taken, held, toDecide }; })(),
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
               landings: (stats.landings || []).filter(l => l.corp === seatId),
+              rescue: (corps.find(c => c.id === seatId) || {}).rescue || 'judge',   /* §WOUNDED the house's standing order */
               stayCost: Math.round((corps.find(c => c.id === seatId) || {})._stayCost || 0),
               reserveLeft: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(fb => !fb.mirror_of).length,
               reserveNames: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(fb => !fb.mirror_of).map(fb => fb.pair_name || fb.name),
@@ -25340,6 +25625,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
               const idx = NOTCHES.indexOf(answer.stance);
               if (idx >= 0) { changeStance(you, answer.stance, stats); for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
             }
+            /* §WOUNDED the house's standing order for its wounded, set at a window, kept for the years after */
+            if (answer && answer.rescue && you && RESCUE_ORDERS.indexOf(answer.rescue) >= 0) { you.rescue = answer.rescue; if (you.persist) you.persist.rescue = answer.rescue; }
             if (answer && answer.squadStance && you) for (const k in answer.squadStance) { const q = you.squads[+k], n = answer.squadStance[k]; if (q && STANCE_DIALS[n]) q.stance = n; }
             /* §ORDERS a seat may send a squad somewhere: an order stands until it is carried out */
             if (answer && answer.orders && you) for (const k in answer.orders) {
@@ -27253,6 +27540,24 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const e of entrants) LED.post(e.corp.account, 'expense', 'The Eight', -CONST.EIGHT_ENTRY);
     /* §MON-WA (ruled) a pair sent to the Eight is one entrant in two bodies, as it is one seat on any field */
     const bodiesOf = e => { const w = wholePairs(e.corp, [e.f], 1); return w.length ? w : [e.f]; };
+    /* (fixed, sweep 5) NOBODY WALKS INTO THE EIGHT WITHOUT A SIDEARM. An entrant fought in whatever he was standing in —
+       three in four had no sidearm, and a fight to the end ran on until both sides' rifles were empty. The house issues
+       him its best sidearm off the rack, or buys the cheapest on the shelf; it is his kit after, as any issued piece is. */
+    for (const e of entrants) for (const f of bodiesOf(e)) {
+      const lo = f.loadout || {};
+      if (lo.sidearm || !lo.primary) continue;
+      const rack = e.corp.armoury = e.corp.armoury || {};
+      const onRack = Object.keys(rack).map(id => ITEMS.byId(id)).filter(it => it && it.slot === 'sidearm' && rack[it.id] > 0)
+        .sort((x, y) => (y.tier || 0) - (x.tier || 0) || (y.cost || 0) - (x.cost || 0))[0];
+      let pick = onRack ? onRack.id : null;
+      if (pick) { rack[pick]--; if (!rack[pick]) delete rack[pick]; }
+      else {
+        const cheap = ITEMS.catalog.filter(it => it.slot === 'sidearm' && (it.cost || 0) > 0 && it.price_model !== 'none').sort((x, y) => x.cost - y.cost)[0];
+        const price = cheap ? shelfPrice(state, e.corp.id, cheap) : 0;
+        if (cheap && e.corp.account.treasury >= price) { LED.post(e.corp.account, 'expense', 'Kit for the Eight', -price); pick = cheap.id; }
+      }
+      if (pick) ITEMS.equip(f, { primary: lo.primary, mods: lo.mods || [], sidearm: pick, armor: lo.armor, consumables: lo.consumables || [] });
+    }
     const entryOf = new Map();
     const side = (team, tag) => ({ tag, corpId: tag, policy: 'death_or_glory', policyName: 'death_or_glory', noWithdraw: true, hasMedkit: false,
       units: TAC.wirePairs([].concat.apply([], team.map((e, i) => bodiesOf(e).map(f => { const u = C.makeCombatant(f, { traitIndex: ROSTER.traitById, isCaptain: i === 0 && f === e.f, day: 1, health: woundOf(f), stress: (f.condition || {}).stress }); entryOf.set(u, e); return u; })))) });
@@ -30991,6 +31296,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
+        rescue: c.rescueOrder || null,   /* §WOUNDED the house's standing order for its wounded, kept from year to year */
         /* §MONEY what the reckoning leaves for kit at the drop: the grant in, the entry and the purses out, the families
            held for, and the next year's months held for where its gate does not cover them */
         kitMoney: kitMoneyFor(state, c),
@@ -31425,6 +31731,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   }
   function underTakeover(c, season) { return !!(c && c._takeover && c._takeover.season === season); }
   function finishSeason(state, res) {
+    for (const id of state.ids) { const pp = state._persist && state._persist[id]; if (pp && pp.rescue) state.corps[id].rescueOrder = pp.rescue; }
     settleLeadPromises(state);   /* §TALKS a squad to lead, now that the squads were dealt */
     askBoards(state, res);
     /* §DRAFT where each OA finished is next year's draft order, last place first */
@@ -35984,11 +36291,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* what a body currently carries: prefer a set hand, else its live loadout */
   function currentKit(b) {
     var h = G.plan.hand[b.id];
-    if (h) return { primary: h.primary || null, armor: h.armor || null,
-                    sidearm: h.sidearm || null, mods: (h.mods || []).slice(), consumables: (h.consumables || []).slice() };
     var lo = b.loadout || {};
+    if (h) return { primary: h.primary || null, armor: h.armor || null,
+                    sidearm: h.sidearm || null, melee: h.melee !== undefined ? h.melee : (lo.melee || null),
+                    mods: (h.mods || []).slice(), consumables: (h.consumables || []).slice() };
     return { primary: lo.primary || null, armor: lo.armor || null,
-             sidearm: lo.sidearm || null, mods: (lo.mods || []).slice(), consumables: (lo.consumables || []).slice() };
+             sidearm: lo.sidearm || null, melee: lo.melee || null, mods: (lo.mods || []).slice(), consumables: (lo.consumables || []).slice() };
   }
   /* §CONNECT A HAND IS THE WHOLE LOADOUT. The sheet had a primary, a sidearm, armour and one store, so a hand-kitted man
      carried no mod (an Extended Magazine among them) and one store where the engine allows two (ITEMS MOD_SLOTS,
@@ -36008,7 +36316,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* catalog value of a kit — the same sum the Divide charges against the cap */
   function kitValueOf(k) {
     var v = 0;
-    [k.primary, k.sidearm, k.armor].concat(k.mods || [], k.consumables || []).forEach(function (id) {
+    [k.primary, k.sidearm, k.melee, k.armor].concat(k.mods || [], k.consumables || []).forEach(function (id) {
       var it = id && ITEM_BY_ID[id]; if (it) v += it.cost || 0;
     });
     return v;
@@ -36020,15 +36328,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function handProblem(b) {
     var h = G.plan.hand[b.id]; if (!h) return null;
     if (!h.primary || !h.armor) return 'Incomplete';
-    if (ITEMS.validate({ primary: h.primary, armor: h.armor, sidearm: h.sidearm || null, mods: h.mods || [], consumables: h.consumables || [] }).length) return 'Does Not Fit';
+    if (ITEMS.validate({ primary: h.primary, armor: h.armor, sidearm: h.sidearm || null, melee: h.melee || null, mods: h.mods || [], consumables: h.consumables || [] }).length) return 'Does Not Fit';
     var cap = Math.min((ITEMS.doctrineFor(G.corps[G.me].profile) || {}).armoury_max_tier || 5, SEASON.FAC.maxTier(G.corps[G.me]) || 5);
     var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
-    var over = [h.primary, h.armor, h.sidearm].concat(h.mods || [], h.consumables || []).some(function (id) {
+    var over = [h.primary, h.armor, h.sidearm, h.melee].concat(h.mods || [], h.consumables || []).some(function (id) {
       var it = id && ITEM_BY_ID[id]; return it && it.tier > cap && own.indexOf(id) < 0; });
     return over ? 'Above the Armoury' : null;
   }
   /* one line about an item, capitalised the way the page speaks */
-  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['armor', 'Armor'],
+  var KIT_SLOTS = [['primary', 'Primary'], ['sidearm', 'Sidearm'], ['melee', 'Melee'], ['armor', 'Armor'],
                    ['mod:0', 'Mod'], ['mod:1', 'Mod'], ['consumable:0', 'Store'], ['consumable:1', 'Store']];
 
   function renderPanel() {
@@ -36425,7 +36733,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
     /* §FACILITIES the Armoury decides what can be issued; what sits above it is stored, and shown as stored */
     var facTier = SEASON.FAC.maxTier(G.corps[G.me]);
-    var own = b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : [];
+    var own = (b.ownKit ? [b.ownKit.primary, b.ownKit.armor, b.ownKit.sidearm] : []).concat(b.loadout && b.loadout.melee ? [b.loadout.melee] : []);   /* §MELEE his blade is his own */
     var locked = function (it) { return it.tier > facTier && own.indexOf(it.id) < 0; };
     /* a mod fits its gun's family, and a satchel or a cell is one a body (ITEMS.validate): the picker offers what will stand */
     var prim = kit.primary && ITEM_BY_ID[kit.primary], otherStore = slotBase(slot) === 'consumable' ? (kit.consumables || [])[slotIdx(slot) ? 0 : 1] : null;
@@ -36482,7 +36790,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     if (!b) return;
     var h = G.plan.hand[b.id] ? G.plan.hand[b.id] : (function () {
       var k = currentKit(b);
-      return { primary: k.primary, armor: k.armor, sidearm: k.sidearm,
+      return { primary: k.primary, armor: k.armor, sidearm: k.sidearm, melee: k.melee,
                mods: (k.mods || []).slice(), consumables: (k.consumables || []).slice() };   /* the quartermaster's mods stay */
     })();
     var base = slotBase(slot), ix = slotIdx(slot);
@@ -36792,7 +37100,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                  /* §CONNECT the rest of what the grid writes down, which printed as raw type names */
                  absorbed: 'glances off', ricochet: 'ricochets into', blast: 'catches in the blast', lane_hit: 'fires down the lane at',
                  covering: 'lays covering fire on', spread: 'catches with the spread', stabilized: 'stabilises',
-                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover', taken: 'finishes' };
+                 resupply: 'opens a satchel', flight: 'breaks and runs', dash: 'dashes', cover: 'chips the cover', taken: 'finishes', strike: 'strikes', strike_miss: 'swings at and misses', close_in: 'closes in', rescue: 'goes back for' };
     var out2 = '';
     var lg = F0.res.log || [];
     for (var e = 0; e < lg.length; e++) {
@@ -37815,8 +38123,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      the drop, the same for everyone, and owning more than that is allowed. --- */
   var MSEC = ['Assault Rifles', 'Carbines', 'Submachine Guns', 'Close-Quarters', 'Scatterguns', 'Support Guns', 'Long Rifles',
               'Marksman Rifles', 'Launchers', 'Anti-Materiel', 'Stun-Grade',
-              'Sidearms', 'Armour', 'Mods', 'Consumables', 'Other'];
-  var MSLOTS = ['primary', 'sidearm', 'armor', 'mod', 'consumable'];
+              'Sidearms', 'Melee', 'Armour', 'Mods', 'Consumables', 'Other'];
+  var MSLOTS = ['primary', 'sidearm', 'melee', 'armor', 'mod', 'consumable'];
   var MKT = { slot: 'primary', grp: 'type', cart: {}, open: {} };
   function titleWords(s2) {
     return String(s2).replace(/_/g, ' ')
@@ -39318,7 +39626,16 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         '</div>';
     });
     if (!mine.length) sqh = '<div class="box m">Nobody on the Ground</div>';
+    /* §WOUNDED (ruled) the house's standing order for a man left lying nearer the enemy when a squad pulls back */
+    var rescueNow = (G.div.answer && G.div.answer.rescue) || w.rescue || 'judge';
+    sqh = '<div class="sqorder rescue"><span class="lab">Wounded</span><span class="notch5">' +
+      [['all', 'Leave No One'], ['judge', 'Judge Each'], ['none', 'Cut Losses']].map(function (o, k) {
+        return '<button class="nb n' + (k * 2 + 1) + (rescueNow === o[0] ? ' on' : '') + '" data-rescue="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</span></div>' + sqh;
     $('tsquads').innerHTML = sqh;
+    Array.prototype.forEach.call($('tsquads').querySelectorAll('[data-rescue]'), function (b) {
+      b.onclick = function () { G.div.answer = G.div.answer || {}; G.div.answer.rescue = b.getAttribute('data-rescue'); renderTable(); };
+    });
 
     /* §STANCE THE FLEET IS READ, NOT SET. A notch aimed at each rival bought a tenth of a fight
        between its ends, so the ladder moved onto each SQUAD (above) and this section keeps the

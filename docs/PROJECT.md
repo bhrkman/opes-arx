@@ -413,3 +413,16 @@ lean one pleases.
 - Combat (fixed): a panicked fighter takes his turn — runs for his edge, or in a fight with no way out gathers himself
   and fights on; a last sighting is walked to for three turns and then goes stale; after eight turns of hunting a side
   finds whoever is still on the field. Open: what a fighter with no rounds left does.
+- Sidearms are bought before any store but the squads' medkits, and an entrant to the Eight without one is issued the
+  best on the rack or the cheapest on the shelf (measured: 89% of the drop and 94% of the Eight carry one).
+- Melee (ruled): a slot of its own — Combat Knife, Machete, Breaching Axe, Vibro-Blade, Power Maul — or bare hands. A blow
+  lands on reflex and grit against the other man's (and the piece's handling) and fills the same wound pool a round does.
+  It is the last resort: a man strikes an enemy already beside him when his gun is empty, too long to bring round, or
+  weaker than his blade; a man with no rounds closes only on an enemy already within three tiles, or, in a fight with no
+  way out, when nothing on the other side can shoot or after eight quiet turns. No blows at the Dividend. The
+  quartermaster gives the cheapest piece to anyone with none; a blade is its carrier's own and goes where he goes.
+- Wounded left behind (ruled): when a squad pulls back, a downed man lying nearer a standing enemy than any standing
+  friend is left and taken (or dies where he lies) unless someone goes back and carries him out, slower and without a
+  shot. Each house's standing order — Leave No One, Judge Each, Cut Losses — is set at a Divide window and kept; engine
+  houses judge each. (Under the wound pool a live round kills or leaves a man standing, so only a stunned man, a stasis
+  injection or a Mon-Wa partner's fall leaves one down.)

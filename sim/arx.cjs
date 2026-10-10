@@ -3245,7 +3245,7 @@ function structureRules() {
   }
   /* §QUARTERMASTER with roles gone, the quartermaster may buy ANY gun, armour, sidearm or consumable within a
      doctrine's tier — so everything priced in a slot it buys from is reachable that way */
-  for (const it of ITEMS.all()) if (['primary', 'armor', 'sidearm', 'consumable'].indexOf(it.slot) >= 0 && (it.cost || 0) > 0 &&
+  for (const it of ITEMS.all()) if (['primary', 'armor', 'sidearm', 'melee', 'consumable'].indexOf(it.slot) >= 0 && (it.cost || 0) > 0 &&
       ITEMS.doctrines.some(d => (it.tier || 1) <= (d.armoury_max_tier || 5))) referenced.add(it.id);
   /* `nonlethal` arms are reachable through the DIVIDEND, not through a role or doctrine — no
      corp buys them and no squad drops with them; `season.js` issues them for the show-match and

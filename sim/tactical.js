@@ -272,6 +272,17 @@
     CONCEAL_MOVING: 0.30,            // [C] back again for a body that is up and crossing
     CONCEAL_FLOOR: 0.34,             // [C] nobody is invisible at any range
     SEARCH_DRIFT: 0.55,
+    CARRY_SLOW: 1,                   // [C] §WOUNDED tiles fewer a man moves bearing another out
+    RESCUE_FAME: 60,                 // [C] §WOUNDED fame worth one more of a man's worth to the captain judging, up to two
+    RESCUE_REACH: 6,                 // [C] §WOUNDED tiles into the enemy that double the risk of going back
+    RESCUE_BASE: 1.5,                // [C] §WOUNDED what any man of the squad is worth going back for, before his name and rank
+    RESCUE_RISK_W: 0.75,             // [C] §WOUNDED how much risk a captain judging each will run for a man's worth
+    MELEE_REACH: 1.5,                // [C] §MELEE tiles a blow reaches: the next tile, the diagonal too
+    MELEE_CLOSE: 3,                  // [C] §MELEE how near an enemy must already be for a man with no rounds to close on him
+    MELEE_P_BASE: 0.55,              // [C] §MELEE the chance a blow lands between two equal hands
+    MELEE_P_STAT: 0.006,             // [C] §MELEE per point of reflex-and-grit (and the piece's handling) over the other man's
+    MELEE_P_MIN: 0.15, MELEE_P_MAX: 0.9,   // [C] §MELEE
+    MELEE_PANIC_GUARD: 0.5,          // [C] §MELEE a man who has broken guards himself at half
     SEARCH_STALE_TURNS: 3,           // [C] §SEARCH turns a last sighting is still worth walking to
     SEARCH_FIND_TURNS: 8,            // [C] §SEARCH turns of hunting before a side finds whoever is still on a small field              // [C] §SEARCH how fast the sweep's aim point walks the flank
     /* Two ways a side stops fighting, and they should not look the same.
@@ -568,6 +579,25 @@
     if (!w || ((w.power || 0) <= 0 && !stunOf(c))) return false;   /* §STUN stacks are a gun's harm too */
     const sideLeft = !!(c.sidearm && !c.onSidearm && (!c._sideRounds || c._sideRounds.mag + c._sideRounds.spare > 0));   /* §ROUNDS a sidearm with rounds in it */
     return C.primaryReady ? (C.primaryReady(c) || sideLeft) : true;
+  }
+
+  /* §MELEE (ruled) ARM'S LENGTH. A blow, from the melee slot or bare hands: it lands on reflex and grit against the other
+     man's, and does what its power does on the same wound pool a round fills. */
+  /* a combatant built without a kit strikes bare-handed, at items.js FISTS_POWER */
+  const FISTS = { id: null, name: 'Bare Hands', power: 2, handling: 0, pen: 0, damage: 'ballistic', tags: [] };
+  function meleeOf(u) { return u.melee || FISTS; }
+  function strike(rng, u, f, S, E, tel, log) {
+    const m = meleeOf(u);
+    const hand = c => (((c.stats && c.stats.reflex) || 100) + ((c.stats && c.stats.grit) || 100)) / 2;
+    const guard = (f.state === 'panicked' ? CONST.MELEE_PANIC_GUARD : 1) * hand(f);
+    const p = Math.max(CONST.MELEE_P_MIN, Math.min(CONST.MELEE_P_MAX, CONST.MELEE_P_BASE + (hand(u) + (m.handling || 0) - guard) * CONST.MELEE_P_STAT));
+    tel.strikes = (tel.strikes || 0) + 1;
+    comp(rng, f, C.CONST.COMP.nearMiss);
+    if (rng() >= p) { if (log) log.push({ t: tel.turn, type: 'strike_miss', by: u.id, at: f.id, w: m.name }); return; }
+    tel.strikeHits = (tel.strikeHits || 0) + 1;
+    const blow = Object.assign({}, u, { weapon: { power: m.power, damage: m.damage, pen: m.pen, tags: m.tags || [], name: m.name, id: m.id } });
+    if (log) log.push({ t: tel.turn, type: 'strike', by: u.id, at: f.id, w: m.name });
+    applyHit(rng, f, C.resolveSeverity(rng, blow, f, S.policy, 2, null, tel.turn), tel, log, blow, E);
   }
 
   function bandOf(d) {
@@ -1545,6 +1575,36 @@
    * fallback is not a rout: they go by bounds, half the squad moving while the other half
    * keeps firing to cover them, and they leave the field rather than milling at the edge.
    */
+  /* §WOUNDED who lies exposed, and who goes back for him. A downed man is exposed when an enemy still standing is nearer
+     him than any of his own still standing; each is weighed once, as he is first seen lying so on the way out. */
+  function weighWounded(S, sides, E) {
+    const up = m => m.state === 'ok' || m.state === 'light';
+    const mine = S.units.filter(m => up(m) && !m._carrying && !m._rescue);
+    const foes = [];
+    for (const O of sides) if (O !== S) for (const f of O.units) if (up(f)) foes.push(f);
+    if (!foes.length) return;
+    const near = (x, list) => list.reduce((t, m) => Math.min(t, dist(m, x)), Infinity);
+    for (const D of S.units) {
+      if (D.state !== 'down' || D._weighed || D._carrier) continue;
+      const ours = S.units.filter(m => m !== D && up(m));
+      if (!ours.length) continue;
+      if (near(D, foes) >= near(D, ours)) continue;          /* lying among his own: they drag him back as they go */
+      D._weighed = true; D._exposed = true;
+      const order = S.rescue || 'judge';
+      let go = order === 'all';
+      if (order === 'judge') {
+        /* what he is worth to the house — his name, his rank as a hand, the squad's lead — against how badly the squad is
+           outmatched and how far into it he lies */
+        const r = D.ref || D, st = r.stats || D.stats || {};
+        const worth = CONST.RESCUE_BASE + Math.min(2, (r.fame || 0) / CONST.RESCUE_FAME) + ((st.aim || 100) + (st.grit || 100) + (st.tactics || 100) - 300) / 150 + (D.isCaptain ? 1 : 0);
+        const risk = (foes.length / Math.max(1, ours.length)) * (1 + near(D, ours) / CONST.RESCUE_REACH);
+        go = worth > risk * CONST.RESCUE_RISK_W;
+      }
+      if (!go) continue;
+      const free = mine.filter(m => !m._rescue).sort((a, b) => dist(a, D) - dist(b, D))[0];
+      if (free) free._rescue = D;
+    }
+  }
   function checkWithdraw(S) {
     if (S.noWithdraw) return false;          /* The Eight: nobody calls it */
     if (S.withdrawing) return true;
@@ -2198,6 +2258,38 @@
              differently from a rout — it is still a fight, just one going backwards. */
           if (S.withdrawing) {
             if (fog) ensureSpot(S);
+            /* §WOUNDED (ruled) A MAN LEFT LYING NEARER THE ENEMY THAN HIS OWN IS LEFT, UNLESS SOMEBODY GOES BACK. The squad's
+               standing order decides who goes back: everyone (Leave No One), nobody (Cut Losses), or the captain's
+               judgement of what the man is worth against how badly the squad is outmatched (Judge Each). Going back costs
+               the rescuer his turn and his shot, and he carries the man out slower than he came. */
+            weighWounded(S, sides, E);
+            if (u._rescue) {
+              const D = u._rescue;
+              if (D.state === 'dead' || D._carrier) { u._rescue = null; }
+              else if (dist(u, D) <= CONST.MELEE_REACH) {
+                u._carrying = D; D._carrier = u; u._rescue = null; u.ap = 0;
+                tel.rescues = (tel.rescues || 0) + 1;
+                if (log) log.push({ t: tel.turn, type: 'rescue', by: u.id, at: D.id });
+                continue;
+              } else {
+                const moved = stepHome(u, D, sides, map, CONST.MOVE_TILES); tel.moves += moved;
+                if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+                triggerOverwatch(rng, u, sides, map, tel, log);
+                if (u.state !== 'ok' && u.state !== 'light') { u._rescue = null; continue; }
+                if (dist(u, D) <= CONST.MELEE_REACH && u.ap > 1) { u._carrying = D; D._carrier = u; u._rescue = null;
+                  tel.rescues = (tel.rescues || 0) + 1; if (log) log.push({ t: tel.turn, type: 'rescue', by: u.id, at: D.id }); }
+                u.ap = 0; continue;
+              }
+            }
+            if (u._carrying) {
+              /* bearing a man out: slower, and no hand free to shoot */
+              const moved = stepHome(u, home, sides, map, Math.max(1, CONST.MOVE_TILES - CONST.CARRY_SLOW)); tel.moves += moved;
+              if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+              triggerOverwatch(rng, u, sides, map, tel, log);
+              if (u.state !== 'ok' && u.state !== 'light') { if (u._carrying) u._carrying._carrier = null; u._carrying = null; continue; }
+              if (atHome(u, home, map) || contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; continue; }
+              u.ap = 0; continue;
+            }
             if (contactBroken(u, S, sides, map, fog)) { u.state = 'withdrawn'; tel.withdrawn++; tel.brokeContact = (tel.brokeContact || 0) + 1; continue; }
             const crew = alive(S.units);
             const idx = crew.indexOf(u);
@@ -2246,6 +2338,38 @@
              of sight is not fighting, he is making noise — the first version of this did
              exactly that and produced one move in fifteen turns. */
           const seen = foes.filter(f => hasLOS(map, u, f));
+          /* §MELEE (ruled) ONLY AT ARM'S LENGTH, OR AS THE LAST THING LEFT. A man strikes an enemy already beside him when
+             his gun is empty, too long to bring round at that range, or no harder than his blade; a man with no rounds
+             anywhere closes on an enemy only when one is already close, or when there is no way out of the fight and
+             nothing left to shoot back at him — never a charge across open ground at a loaded rifle. */
+          if (u.ap > 0 && !u.suppressed && !ctx.exhibition) {   /* the lights' show-match is stun rounds and nothing else */
+            const armed = canHurt(u);
+            const upright = f => f.state === 'ok' || f.state === 'light' || f.state === 'panicked';
+            const touching = seen.filter(f => upright(f) && dist(u, f) <= CONST.MELEE_REACH);
+            const awkward = f => (u.weapon && u.weapon.near && dist(u, f) < u.weapon.near) || meleeOf(u).power > ((u.weapon && u.weapon.power) || 0);
+            let mark = touching.filter(f => !armed || awkward(f)).sort((a, b) => (a.hp || 0) - (b.hp || 0))[0] || null;
+            if (!mark && !armed && !u._noMove) {
+              const quiet = tel.turn - (S._contactTurn != null ? S._contactTurn : 0);
+              const noneShoot = foes.every(f => !upright(f) || !canHurt(f));
+              const press = ctx.toTheEnd && (noneShoot || quiet > CONST.SEARCH_FIND_TURNS);
+              const pool = (press ? foes : seen.filter(f => dist(u, f) <= CONST.MELEE_CLOSE)).filter(upright);
+              const go = pool.sort((a, b) => dist(u, a) - dist(u, b))[0];
+              if (go) {
+                const moved = stepHome(u, go, sides, map, CONST.MOVE_TILES);
+                if (moved) {
+                  u.ap--; u.cover = 0;
+                  if (fog) { sides[0]._fog.dirty = true; ensureSpot(S); }
+                  triggerOverwatch(rng, u, sides, map, tel, log);
+                  if (u.state !== 'ok' && u.state !== 'light') continue;
+                  tel.closedIn = (tel.closedIn || 0) + 1;
+                  if (log) log.push({ t: tel.turn, type: 'close_in', by: u.id, to: { x: u.x, y: u.y } });
+                }
+                if (u.ap > 0 && upright(go) && dist(u, go) <= CONST.MELEE_REACH) mark = go;
+                else if (moved) { u.ap = 0; continue; }
+              }
+            }
+            if (mark) { strike(rng, u, mark, S, E, tel, log); u.ap = 0; continue; }
+          }
           const shotAt = (from, f) => {
             /* A SWING THAT CANNOT HURT ANYBODY IS NOT WORTH WALKING TOWARD. `hitChance` asks how
                likely you are to connect and never asks what connecting would do, so a power-0

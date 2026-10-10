@@ -89,6 +89,7 @@
     KIT_MUSTER_BODY_SHARE: 1.6,     // [C] the most of a body's fair share of the allowance one rack piece may take at the muster
     MEDKIT_SHARE: 0.25,             // [C] the best-Fieldcraft share of a force that carries a medkit first
     MOD_RESERVE: 0.12,              // [H] share of the allowance kept back for mods/consumables
+    FISTS_POWER: 2,                 // [C] §MELEE what bare hands hit with, on a gun's power scale
     MOD_SLOTS: 2,                   // [S] §3
     CONSUMABLE_SLOTS: 2,            // [S] §3
     EXOTIC_PRICE_FLOOR_MULT: 1.5    // [C] cheapest exotic vs dearest formula item (3.0 → 1.5 at the money pass: tiers 1–4 doubled, the exotics held)
@@ -193,6 +194,7 @@
       primary: lo.primary || null,
       mods: (lo.mods || []).slice(),
       sidearm: lo.sidearm || null,
+      melee: lo.melee || null,              /* §MELEE (ruled) a blade or a club, in its own slot */
       armor: lo.armor || null,
       consumables: (lo.consumables || []).slice()
     };
@@ -200,7 +202,7 @@
 
   function itemsOf(lo) {
     const out = [];
-    for (const id of [lo.primary, lo.sidearm, lo.armor].concat(lo.mods, lo.consumables)) {
+    for (const id of [lo.primary, lo.sidearm, lo.melee, lo.armor].concat(lo.mods, lo.consumables)) {
       if (!id) continue;
       const it = byId(id);
       if (it) out.push(it);
@@ -218,6 +220,7 @@
     const p = byId(lo.primary);
     const a = byId(lo.armor);
     const s = lo.sidearm ? byId(lo.sidearm) : null;
+    const ml = lo.melee ? byId(lo.melee) : null;
     const pe = (p && p.effects) || {}, ae = (a && a.effects) || {};
     let tags = (pe.tags || []).slice();
     /* §MODS A MOD DOES WHAT IT SAYS. This read exactly one field from a mod — `grants`, a tag — and
@@ -292,6 +295,10 @@
                      handling: (s.effects || {}).handling, snap: (s.effects || {}).snap, pen: (s.effects || {}).pen, suppress: (s.effects || {}).suppress,
                      spread: (s.effects || {}).spread, noise: (s.effects || {}).noise,
                      tags: (s.effects || {}).tags || [] } : null,
+      /* §MELEE (ruled) what a fighter strikes with at arm's length: the piece in the melee slot, or his hands */
+      melee: ml ? { id: ml.id, name: ml.name, power: (ml.effects || {}).power || 0, handling: (ml.effects || {}).handling || 0,
+                    pen: (ml.effects || {}).pen || 0, damage: (ml.effects || {}).damage || 'ballistic', tags: (ml.effects || {}).tags || [] }
+                : { id: null, name: 'Bare Hands', power: CONST.FISTS_POWER, handling: 0, pen: 0, damage: 'ballistic', tags: [] },
       family: p ? p.family : "none", tags,
       
       charge: (pe.charge || 0) + ((pe.charge || 0) > 0 ? mod.charge : 0),
@@ -316,6 +323,11 @@
       const s = byId(lo.sidearm);
       if (!s) errs.push("unknown sidearm " + lo.sidearm);
       else if (s.slot !== "sidearm") errs.push(s.id + " is not a sidearm");
+    }
+    if (lo.melee) {
+      const ml = byId(lo.melee);
+      if (!ml) errs.push("unknown melee " + lo.melee);
+      else if (ml.slot !== "melee") errs.push(ml.id + " is not a melee piece");
     }
     if (lo.armor) {
       const a = byId(lo.armor);
@@ -463,7 +475,9 @@
     const give = (id) => { if (id) stock[id] = (stock[id] || 0) + 1; };
     const fighters = (opts.fighters || []).slice(0, bodyCount);
     const bodies = [];
-    for (let i = 0; i < bodyCount; i++) bodies.push({ i: i, f: fighters[i] || null, loadout: normalise(UNARMED) });
+    /* §MELEE a fighter's blade is his own: it is not drawn from the rack or given back to it, and he keeps it */
+    const ownMelee = f => (f && f.loadout && f.loadout.melee) || null;
+    for (let i = 0; i < bodyCount; i++) bodies.push({ i: i, f: fighters[i] || null, loadout: Object.assign(normalise(UNARMED), { melee: ownMelee(fighters[i]) }) });
 
     const disc = (item) => {
       if (!item || !opts || typeof opts.discount !== 'function') return 0;
@@ -611,7 +625,7 @@
       }
     }
     if (shortfall > 0) {
-      for (const b of bodies) { give(b.loadout.primary); give(b.loadout.armor); b.loadout = normalise(UNARMED); }
+      for (const b of bodies) { give(b.loadout.primary); give(b.loadout.armor); b.loadout = Object.assign(normalise(UNARMED), { melee: b.loadout.melee }); }
       return { doctrine: d, mustered: false, shortfall: shortfall, bodies: [], counts: {},
                allowance: allow, budget: budget, musterCash: reserve, total: 0, unarmed: bodyCount,
                bands: {}, primaries: {}, distinctPrimaries: 0, headroom: allow, spentCash: 0, boundBy: 'muster' };
@@ -638,17 +652,10 @@
        body order, early grenades spent the cap a later squad's medkit needed */
     const firstMedics = [...medics];
     const essentialOrder = firstMedics.map(i => bodies[i]).concat(bodies.filter(b => !medics.has(b.i)));
-    for (const b of essentialOrder) {
-      if (b.loadout.consumables.length) continue;
-      /* §ROUNDS the hands whose guns eat rounds (support and close) carry a pack of rounds for their gun before anything else */
-      const pr = byId(b.loadout.primary), packId = pr && (pr.family === 'energy' || (pr.effects || {}).damage === 'energy') ? 'itm_power_cell' : 'itm_ammo_satchel';
-      const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
-      if (!c || spent + c.cost > allow) continue;
-      if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
-      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
-    }
-    /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first ---- */
-    {
+    /* (fixed, sweep 5) THE SIDEARM BEFORE THE SECOND THING IN A POCKET: the medkits first, then a sidearm for everyone, then
+       everyone else's first consumable. Bought last, the sidearm went to whoever the money still reached, and a quarter
+       of the drop went down with nothing to draw when the rifle ran dry */
+    const buySidearms = () => {
       const needsSide = bodies.filter(b => !b.loadout.sidearm);
       const cellFed = b => { const pr = byId(b.loadout.primary); return !!(pr && pr.effects && pr.effects.charge); };
       needsSide.sort((x, y) => (cellFed(y) ? 1 : 0) - (cellFed(x) ? 1 : 0));
@@ -657,6 +664,33 @@
         if (spent + c.cost > allow) continue;
         if (take(c.id)) { b.loadout.sidearm = c.id; spent += c.cost; break; }
         if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.sidearm = c.id; spent += c.cost; break; }
+      }
+    };
+    let armedSide = false;
+    for (const b of essentialOrder) {
+      if (!armedSide && !medics.has(b.i)) { buySidearms(); armedSide = true; }
+      if (b.loadout.consumables.length) continue;
+      /* §ROUNDS the hands whose guns eat rounds (support and close) carry a pack of rounds for their gun before anything else */
+      const pr = byId(b.loadout.primary), packId = pr && (pr.family === 'energy' || (pr.effects || {}).damage === 'energy') ? 'itm_power_cell' : 'itm_ammo_satchel';
+      const c = medics.has(b.i) ? byId('itm_medkit') : (b.role === 'support' || b.role === 'close') && byId(packId) ? byId(packId) : firstOther;
+      if (!c || spent + c.cost > allow) continue;
+      if (take(c.id)) { b.loadout.consumables = [c.id]; spent += c.cost; }
+      else if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.consumables = [c.id]; spent += c.cost; }
+    }
+    /* ---- phase 3b: a sidearm is not a luxury — the cell-fed first, then everyone, cheapest first (any the essentials
+       above left without one) ---- */
+    buySidearms();
+    /* ---- phase 3c: §MELEE (ruled) something for arm's length — the cheapest on the rack or the shelf, for anyone with
+       nothing of his own; a better piece is a manager's buy at the yard ---- */
+    {
+      const blades = CATALOG.filter(it => it.slot === 'melee' && (it.tier || 1) <= maxTier && (it.cost || 0) > 0).sort((a, c) => a.cost - c.cost);
+      for (const b of bodies) {
+        if (b.loadout.melee || !b.loadout.primary) continue;
+        const onRack = blades.slice().sort((a, c) => ((c.effects || {}).power || 0) - ((a.effects || {}).power || 0)).find(c => stock[c.id] > 0);
+        if (onRack && take(onRack.id)) { b.loadout.melee = onRack.id; continue; }
+        const c = blades[0];
+        if (!c || spent + c.cost > allow) continue;
+        if (priceOf(c) <= money) { money -= priceOf(c); cash += priceOf(c); b.loadout.melee = c.id; spent += c.cost; }
       }
     }
     const gunAllow = Math.round(allow * (1 - CONST.MOD_RESERVE));
@@ -839,10 +873,13 @@
 
   /** Equip a body. Draws no RNG; writes ids AND the resolved flat shapes the resolver reads. */
   function equip(fighter, lo) {
-    const norm = normalise(lo || DEFAULT_LOADOUT);
+    /* §MELEE a dressing that does not name the melee slot leaves what is in it: the blade is his own, and a dozen callers
+       that re-dress a fighter's gun and armour predate the slot */
+    const keepMelee = lo && lo.melee === undefined && fighter.loadout ? fighter.loadout.melee || null : undefined;
+    const norm = normalise(keepMelee !== undefined ? Object.assign({}, lo, { melee: keepMelee }) : (lo || DEFAULT_LOADOUT));
     const r = resolve(norm);
     fighter.loadout = {
-      primary: norm.primary, mods: norm.mods, sidearm: norm.sidearm,
+      primary: norm.primary, mods: norm.mods, sidearm: norm.sidearm, melee: norm.melee,
       armor: norm.armor, consumables: norm.consumables,
       kit: r                       /* resolved stats; the ids above stay ids */
     };

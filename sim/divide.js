@@ -103,6 +103,7 @@
      Consequence worth knowing when reading a per-notch table: no corp in the canon eight now
      declares death_or_glory, so the far pole appears only in homogeneous test fields. That is
      honest — it is an extreme a manager may declare, not an OA style anyone runs. */
+  const RESCUE_ORDERS = ['all', 'judge', 'none'];   /* §WOUNDED Leave No One · Judge Each · Cut Losses */
   const STANCE_OVERRIDE = {
     alliance_house: 'unyielding'
   };
@@ -407,6 +408,9 @@
         const items = [prim, arm];
         const side = slotOk(h.sidearm, 'sidearm');
         if (side) items.push(side);
+        /* §MELEE a blade named for him is drawn or bought like the rest — unless it is the one he already carries */
+        const blade = h.melee ? slotOk(h.melee, 'melee') : null;
+        if (blade && blade.id !== ((f.loadout && f.loadout.melee) || null)) items.push(blade);
         const mods = (h.mods || []).map(m => slotOk(m, 'mod')).filter(Boolean);
         const cons = (h.consumables || []).map(c => slotOk(c, 'consumable')).filter(Boolean);
         items.push.apply(items, mods); items.push.apply(items, cons);
@@ -429,8 +433,8 @@
             handValue + val > intent.allowance) { corp.handRefused++; continue; }
         for (const k in trial) handStock[k] -= trial[k];
         handSpend += buy; handValue += val; handed++;
-        ITEMS.equip(f, { primary: prim.id, armor: arm.id, sidearm: side ? side.id : null,
-                         mods: mods.map(it => it.id), consumables: cons.map(it => it.id) });
+        ITEMS.equip(f, Object.assign({ primary: prim.id, armor: arm.id, sidearm: side ? side.id : null,
+                         mods: mods.map(it => it.id), consumables: cons.map(it => it.id) }, blade ? { melee: blade.id } : {}));
         f._handKitted = true;
       }
     }
@@ -614,6 +618,9 @@
                 : [8, 8, 8];
     const corp = {
       id: profile.id, profile, policy: stance,
+      /* §WOUNDED (ruled) what a squad does for a man left lying when it pulls back: a person's order, carried from year to
+         year; an engine seat judges each (the aligned fleet has no character to lean it yet) */
+      rescue: (persist && RESCUE_ORDERS.indexOf(persist.rescue) >= 0) ? persist.rescue : 'judge',
       rigidity: rigidity != null ? rigidity : profile.rigidity != null ? profile.rigidity : (DEFAULT_RIGIDITY[profile.id] != null ? DEFAULT_RIGIDITY[profile.id] : 50),
       squads: [], allBodies: [], stanceChanges: 0, hauled: 0, sitesClaimed: 0, engagements: 0,
       withdrawn: null,          /* { day, terms, promises, how } once it has conceded and gone */
@@ -1021,7 +1028,7 @@
        roughly the leaver's own odds, discounted by trust — so what makes leaving an economic act is what staying
        spends: the people (and the kit they carry) an OA expects to lose if it fights on, at ITS OWN rate of loss
        so far, over the days likely left, each worth what replacing them costs. An OA pricing its own assets. */
-    const kitWorth = (lo) => !lo ? 0 : [lo.primary, lo.armor, lo.sidearm].concat(lo.mods || [], lo.consumables || [])
+    const kitWorth = (lo) => !lo ? 0 : [lo.primary, lo.armor, lo.sidearm, lo.melee].concat(lo.mods || [], lo.consumables || [])
       .reduce((t, id) => { const it = id && ITEMS.byId(id); return t + (it ? (it.cost || 0) : 0); }, 0);
     /* its rate of loss is its own blended with the whole field's — one man lost on day one does not say an OA
        will lose everyone — and nobody reads it before LEAVE_EARLIEST_DAY */
@@ -1356,6 +1363,8 @@
        march and standing. */
     return Object.assign({
       corpId: corp.id, policy: corp.policy, units, hasMedkit: sq.hasMedkit,
+      /* §WOUNDED the house's standing order for its wounded when a squad pulls back */
+      rescue: RESCUE_ORDERS.indexOf(corp.rescue) >= 0 ? corp.rescue : 'judge',
       /* §STANCE HOW MUCH A SQUAD WILL LOSE BEFORE IT PULLS OUT — the one place a squad's stance
          belongs inside a fight. The grid called every withdrawal at the same 35% down, so a careful
          squad, once caught, fought on until two of four were down and then walked off under fire:
@@ -1454,7 +1463,7 @@
     const units = [];
     for (const p of parts) for (const u of p.units) units.push(u);
     return {
-      corpId: parts[0].corpId, policy: parts[0].policy, units,
+      corpId: parts[0].corpId, policy: parts[0].policy, units, rescue: parts[0].rescue,
       /* squads fighting as one side pull out together, at the mean of their thresholds */
       withdrawAt: parts.reduce((t, p) => t + (p.withdrawAt != null ? p.withdrawAt : CONST.STANCE_WITHDRAW_AT.standard), 0) / parts.length,
       hasMedkit: parts.some(p => p.hasMedkit),
@@ -3010,6 +3019,7 @@
                 return { taken, held, toDecide }; })(),
               weather: stats.weatherToday ? { day: stats.weatherToday.day, kind: stats.weatherToday.kind, fx: stats.weatherToday.fx } : null,
               landings: (stats.landings || []).filter(l => l.corp === seatId),
+              rescue: (corps.find(c => c.id === seatId) || {}).rescue || 'judge',   /* §WOUNDED the house's standing order */
               stayCost: Math.round((corps.find(c => c.id === seatId) || {})._stayCost || 0),
               reserveLeft: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(fb => !fb.mirror_of).length,
               reserveNames: ((corps.find(c => c.id === seatId) || {}).reserve || []).filter(fb => !fb.mirror_of).map(fb => fb.pair_name || fb.name),
@@ -3056,6 +3066,8 @@
               const idx = NOTCHES.indexOf(answer.stance);
               if (idx >= 0) { changeStance(you, answer.stance, stats); for (const q of you.squads) { q.stance = answer.stance; if (q._cq) q._cq.stance = answer.stance; } }   /* the whole banner's notch: every squad takes it */
             }
+            /* §WOUNDED the house's standing order for its wounded, set at a window, kept for the years after */
+            if (answer && answer.rescue && you && RESCUE_ORDERS.indexOf(answer.rescue) >= 0) { you.rescue = answer.rescue; if (you.persist) you.persist.rescue = answer.rescue; }
             if (answer && answer.squadStance && you) for (const k in answer.squadStance) { const q = you.squads[+k], n = answer.squadStance[k]; if (q && STANCE_DIALS[n]) q.stance = n; }
             /* §ORDERS a seat may send a squad somewhere: an order stands until it is carried out */
             if (answer && answer.orders && you) for (const k in answer.orders) {
