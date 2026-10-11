@@ -88,20 +88,24 @@ landings are their squad board's, and they say what becomes of the captives they
 
 ## The Divide
 
-Twenty-four fighters go down the well in squads the manager has set, each with its captain,
-kit, rations and a stance. The ring closes on a schedule and stops at the last ground; a
-squad outside the ring at dawn is dead, and no OA is ever there. Sites are revealed in waves
-and worked for credits; beacons land reinforcements; rest sites mend. The contest ends when
-one OA is left standing; there is no clock and nothing is adjudicated.
+Up to twenty-four fighters go down the well in squads the manager has set (an engine OA fields a squad for each landing it drafted), each with its captain,
+kit, rations and a stance, each on the zone its OA drafted. The ground is regions of zones; the
+wall takes whole regions on a schedule timed to the month and stops at the last ground; a squad
+in a region the wall takes at dawn is dead, and no OA is ever there: a death to the wall is a failure of the AI. Every site is known from the
+drop and a deposit opens on its day; sites are worked for credits, beacons land reinforcements,
+rest sites mend. The contest ends when one OA is left standing; there is no clock and nothing
+is adjudicated.
 
-The ground is the manager's only through comms windows. Between windows the OA's own command
-plans for it: squads within reach of one another form a group, each group runs one operation
-(take a site, land the reserve, mend, strike a force it can beat, link up, advance, hold) that
-stands until the next window unless the ground overturns it, and every squad gets a role each
-dawn. The plan is drawn on the Ground as flags so a manager reads the day by what his people
-meant to do. At a window the manager sets each squad's stance toward the enemy, from Avoid to
-All In, and that is a light dial on a plan that already knows what it wants: boldness is
-fighting for contested objectives and the beacons that bring reinforcements, not hunting.
+The ground is the manager's only through comms windows. Between windows every seat's planner —
+a person's and the engine's alike — walks its squads over the regions: it takes ground worth
+having, leaves a region before the wall, and stops short of a rival, which is a fight. Each squad's
+captain reads the ground for it: his judgement weighs what a zone is worth, his sight sets how far
+the squad sees, his nerve how many of the enemy he counts. At a window the manager sets each squad's
+stance toward the enemy, from Avoid to All In, may order a squad to a zone or to hold — an order
+stands, through any fight on the way, until it is carried out or changed — and decides the captives
+his people took. The Ground page opens on the window itself: every banner's squads, whose and where
+(the broadcast), the wall's standing and its next regions, and every day since the last window as
+his own people lived it; inside the region he opens, the zones.
 
 A fight is fought on a grid with cover, line of sight and fog: a body is seen, heard, or
 neither, sight is squad-wide, and firing gives you away. Squads that come at an enemy from
@@ -110,20 +114,27 @@ the ground and what the fallen carried. The wounded are recovered or lost; the d
 A fighter taken alive is held: ransomed at the table, or, when the shooting stops, released,
 kept or killed by whoever holds them.
 
-Everything an OA knows on the ground is what its squads have seen: rival positions are last
-sightings, rival strength is the broadcast count, and a seat is never sent what it has not
-earned. The manager sees the fights his people fought and the plan they were given.
+A squad on the ground knows what it has seen and heard, what a relay mast showed it, and what its
+seat told it at the last window; a seat reads the broadcast at each window — every squad, whose and
+where — and, between windows, its own squads, the rivals its people knew of that day, and the fights
+its own people fought. A side that knew where its enemy stood before they met fights readier.
 
-Deals at the table are truces, sweetened with credits, and a truce is never broken: the Aleas
-mandate it and the drones enforce it. A manager's truce is struck at his own table or not at
-all. An OA may leave the ground: by walking, or by selling its exit to the field for promises
-against the pot, kept or broken at the settlement and remembered across years. The last OA
+There are no truces. The one deal over the wire is a ransom: a captive is priced, paid for or
+left. An OA may leave the ground: by walking, or by selling its exit to the field for promises
+against the pot, kept or broken at the settlement and remembered across years. Nobody is taken
+off the ground: an OA stays until it leaves or falls, and it decides by reading itself truly (its
+hurt count only if they will be up before the end), its real chance at the pot, the ground still
+open, the people the coming days and the certain showdown on the last zone will cost it, and the
+standing a loss costs whether it walks or is wiped. A seat goes for a rival it can beat by how far
+it outnumbers it, how much of that banner the squad is, and how few banners are left. The last OA
 standing has won and does not leave.
 
 ## The settlement
 
-The pot is paid to the winner less what was promised; sites dug pay everyone who dug them;
-purses, bonuses, death benefits and pensions are charged. Placement sets next year's draft
+The pot is paid to the winner less what was promised, a promise being a share of the pot (never
+more than the winner has left); sites dug pay everyone who dug them; purses, the winner's bonuses
+(once, on its books), death benefits and pensions are charged. A board's resource demand asks for a
+share of a store, the measure a Divide banks. Placement sets next year's draft
 order (weakest first in a first year, last place first after) and what the market charges the
 champion. Fame is earned in the fight and in the press; standing moves with the acts the year
 saw; the board judges its card and the sponsors judge their conditions.
@@ -139,13 +150,66 @@ lean one pleases.
   once from its mark.
 - A cut system is deleted, not parked; a constant nothing reads is removed.
 - Every seat sees only what it knows, in the year and on the ground.
-- Outside the ring is death, and a truce is never broken.
+- Outside the ring is death, and there are no truces.
 - There is no gear damage and there is not going to be: kit is bought, carried, looted and lost, never worn down.
 - A stat is a whole number on every screen; a contract's figure is a year's.
 - Every standing is 0 to 100, 50 is indifference, and every bar fills from the left.
 - One talk a month, and no talk is free: each buys something and costs something.
 - Every role exists at every tier; a tier is a better gun, not a different game.
 - Where a mechanism can be measured only by running the game, it is, before it is believed.
+- The Divide's ground is regions of three to eight zones cut from a relief (sim/ground.js). The
+  planet is the dossier — what it is made of and worth, its hazards, its light — and its
+  objectives are the ground's sites. A zone is where one squad stands, but the final zone holds whoever is left, friends together; a region has one terrain and one pace;
+  routes join regions at a cost in ticks; nothing is impassable, only unrouted, and every region is
+  reachable. The wall takes whole regions, outermost first, announced a window ahead, timed to a
+  month. Windows fall every other day and daily once few regions stand. The wall's order never
+  cuts the standing ground in two. Once the last region-taking is past, the wall closes the last
+  ground a zone at a time, farthest from its final zone first, so that one zone stands alone on the
+  month's last day and whoever is left is on it.
+- On that ground (sim/contest.js, driven by divide.js's day loop, which keeps the economy: kit,
+  rations, camp, forage, weather, loot, fame, stress, the table, the reserve, the awards, the
+  settlement) a squad sees the zones next to it, a ring
+  more a level up and only its own in a hollow, a ring further with a captain who reads ground well
+  and none past the next zone with one who does not, in the dark, or in weather that cuts sight; the
+  day's weather slows the march, and a squad that loses its bearings makes a third of its way; it is heard across its region by what it carries,
+  summed over its bodies, marching, firing or fighting, muffled by cover, thick ground and night;
+  the window briefs it on every rival in its own and the adjacent regions. Every seat's planner
+  reads the same map: it takes ground worth having — a site as it stands now (a spent, dug or dark
+  one is nothing, a strongpoint its OA holds or a seam it is working is worth staying on, a beacon
+  draws an OA with a reserve to land, a rest site the hurt and hungry, the deposit its board asked
+  for more) — leaves a region three days before the wall or sooner when its way out is long or its
+  captives slow it, keeps to the way it chose, waits on a friend in the road and stops short of a
+  rival. A deposit opens with days enough to reach and work it before its region goes. A squad a tick along a route stands in neither region.
+- Nobody is ever left for the wall. Every tick every squad on ground that goes weighs the walk out —
+  at storm pace, slowed by its captives and a lost bearing, a held door counted as a fight — against
+  the ticks left, and leaves with a day in hand, over any order, hold included; one carrying as many
+  hurt as it has standing leaves a day sooner. It never steps onto ground that goes sooner than its
+  own before it is through, nor goes round a friend through it. A fight on ground the wall is
+  closing is broken off in time, and one still on at dawn on dying ground ends before the wall. A
+  squad that cannot get its captives out in time lets them go; a squad guards at most two captives
+  for each of its standing. A rescue is sent the hour a squad goes down, from anywhere, standing
+  through fights on the way, and goes in wherever it can get there and back out. The overrun and the
+  field's wounded are taken by whoever stands; a beaten squad with nowhere to break and nobody to
+  take it stays on the ground and walks out like anyone; the beaten break to ground they would not
+  have to leave at once, never to ground the wall takes within two dawns. An OA that has fallen or
+  left has nobody on the ground.
+- A contact is a fight, there and then, on the holder's zone: the grid is fed the zone (terrain,
+  cover, height against the comers', night), every comer comes on from the edge facing the zone it
+  came from, the holder stands facing them, and a side whose enemies came at it from two arcs is
+  flanked; neighbours in the zones next door
+  walk in late, a turn for every tick of their step. A fight holds the zone for the ticks it ran,
+  never past the window at dawn and never longer than half a day; the beaten break off a zone back
+  together, the winner holds the ground, a beaten squad with nowhere to go is overrun. The captured
+  are decided at the capture by the captor's seat — killed, kept or let go — and a kept captive walks
+  with the squad, eats from its packs, adds a tick to its steps for every second captive, and costs it
+  nothing in a fight; a wiped holder's captives pass to the wiper. An engine seat
+  weighs each one as it is taken, and again at every window: what he is worth held (bought back, or kept
+  to the end for its roster) against what one more costs that squad (his food over the days he is held,
+  his weight on the march pressed by the wall) and what killing, sparing or keeping
+  does to its standing, leaned by what it thinks of his OA. A squad that will not close picks at the stronger rival next door with its long rifles,
+  loudly; rushed, it is caught looking the wrong way. There are no truces. The resolver is the grid,
+  handed the sides built from the squads' bodies (a stand-in of the same shape runs the contest's
+  own harness and suite).
 - What happens and is done leaves the page: the Dispatches, the Paper, the Draft and the Word open
   over whatever page is on, in one shell, and come back through Waiting On You or a docket line where
   they stood. What is always there stays on its page.

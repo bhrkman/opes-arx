@@ -134,18 +134,29 @@ function career(w) {
     const d = st.drop || {};
     for (const id in (d.media || {})) note('media', id, 'reveal ' + d.media[id].reveal);
     const res = S.closeSeason(st);
-    for (const id in (st.drop.sectors || {})) note('drop.sector', id, 'sector ' + st.drop.sectors[id]);
+    /* the landing draft: how many landings each house drafted (one a squad) */
+    const dft = st.drop && st.drop.draft;
+    if (dft) for (const id in (dft.picks || {})) note('drop.landings', id, (dft.picks[id] || []).length + ' landings');
     for (const id of ids) { const b = corps[id]._board; if (b && b.answered) note('board.answer', id, String(b.answered.register || b.answered)); }
     const ds = divideStats;
     if (ds) {
       for (const dl of ds.deals || []) note('divide.deal', dl.owner || dl.corp || dl.a || '?', dl.kind || dl.t || 'deal');
-      for (const pr of ds.promises || []) note('divide.exitSold', pr.from || '?', 'to ' + (pr.to || '?'));
-      note('divide.fleet', 'fleet', 'pacts', ds.pacts || 0); note('divide.fleet', 'fleet', 'ransoms', ds.ransoms || 0);
-      note('divide.fleet', 'fleet', 'withdrawals', ds.withdrawals || 0); note('divide.fleet', 'fleet', 'offersSent', ds.offersSent || 0);
-      note('divide.fleet', 'fleet', 'contactsDeclined', ds.contactsDeclined || 0);
+      /* a withdrawal's promises: who promised the leaver a share, and whether the word was kept, broken or moot */
+      for (const pr of ds.promises || []) note('divide.exitSold', pr.from || '?', pr.kept ? 'kept' : pr.moot ? 'moot' : pr.broken || pr.kept === false ? 'broken' : 'open');
+      /* captives: what each captor's squads did with the people they took (at the capture, or kept at the end) */
+      for (const k of ds.captiveLog || []) if (k.captor) note('divide.captive', k.captor, (k.day != null ? 'decided:' : 'at the end:') + k.out);
+      /* ransom cases: each side's answer */
+      for (const k of ds.ransomCases || []) { note('divide.ransom', k.owner, 'owner ' + (k.ownerYes == null ? 'silent' : k.ownerYes ? 'paid' : 'declined')); note('divide.ransom', k.captor, 'captor ' + (k.captorYes == null ? 'silent' : k.captorYes ? 'sold' : 'kept')); }
+      /* the reserve, landed at beacons */
+      for (const l of ds.landings || []) note('divide.landed', l.corp, 'landed');
+      const co = ds.captiveOutcomes || {};
+      note('divide.fleet', 'fleet', 'ransoms', ds.ransoms || 0); note('divide.fleet', 'fleet', 'ransomCases', (ds.ransomCases || []).length);
+      note('divide.fleet', 'fleet', 'withdrawals', ds.withdrawals || 0); note('divide.fleet', 'fleet', 'withdrawOffersOpen', Object.keys(ds.withdrawOffers || {}).length);
+      note('divide.fleet', 'fleet', 'captivesReleased', co.released || 0); note('divide.fleet', 'fleet', 'captivesKept', co.kept || 0); note('divide.fleet', 'fleet', 'captivesKilled', co.killed || 0);
+      note('divide.fleet', 'fleet', 'landings', (ds.landings || []).length);
       for (const c of ds.corps || []) {
         if (!c || !c.id) continue;
-        if (c.withdrawn) note('divide.left', c.id, String(c.withdrawn.how || c.withdrawn.kind || 'left'));
+        if (c.withdrawn) note('divide.left', c.id, (c.withdrawn.byChoice ? 'by choice' : 'forced') + ' day ' + (c.withdrawn.day <= 7 ? '1-7' : c.withdrawn.day <= 14 ? '8-14' : '15+') + ' asking ' + (function (x) { return x < 0.08 ? 'under 8%' : x <= 0.12 ? '8-12%' : 'over 12%'; })((c.withdrawn.terms || {}).credits || 0));
         if (c.policy) note('divide.policy', c.id, String(c.policy));
         note('divide.stanceChanges', c.id, 'changes', c.stanceChanges || 0);
         if (c.squads) note('divide.squads', c.id, String(c.squads.length));
@@ -184,14 +195,14 @@ for (const sys of Object.keys(tally).sort()) {
   lines.push({ sys, tot, perYear: +(tot / (years * houses.length)).toFixed(2), usedBy, share: +share.toFixed(2), spread: +tv.toFixed(2),
                top: top.slice(0, 8).map(([k, v]) => k + ' ' + Math.round(100 * v / tot) + '%') });
   if (top.length > 1 && share >= 0.95) flags.push(['SAME', sys, top[0][0] + ' ' + Math.round(100 * share) + '%']);
-  if (top.length > 2 && share < 0.95 && tv < 0.08 && usedBy >= 6 && !/^(signed|acts|drop\.sector|focus\.target)$/.test(sys)) flags.push(['BLIND', sys, 'houses differ by ' + Math.round(tv * 100) + '%']);
+  if (top.length > 2 && share < 0.95 && tv < 0.08 && usedBy >= 6 && !/^(signed|acts|drop\.landings|focus\.target)$/.test(sys)) flags.push(['BLIND', sys, 'houses differ by ' + Math.round(tv * 100) + '%']);
   if (tot / (years * houses.length) < 0.1 && !/^divide\.fleet$/.test(sys)) flags.push(['RARE', sys, tot + ' in ' + years * houses.length + ' house-years']);
 }
 /* what nobody did at all: the act vocabulary for the new systems, and the verb list */
 const expectActs = ['kept_a_promise', 'broke_a_promise', 'poached_staff', 'mole_exposed', 'raised_a_facility', 'snubbed_letter', 'ransomed_home'];
 const actsSeen = new Set(); for (const h in (tally.acts || {})) for (const k in tally.acts[h]) actsSeen.add(k);
 for (const a of expectActs) if (!actsSeen.has(a)) flags.push(['NEVER', 'act ' + a, '']);
-const expectSys = ['focus', 'focus.boost', 'focus.target', 'talk', 'staff.held', 'staff.mole', 'facility.built', 'spend.gear', 'captains', 'trade.written', 'eight.entered', 'media', 'drop.sector', 'board.answer', 'divide.deal', 'divide.left', 'divide.exitSold', 'draft.pick'];
+const expectSys = ['focus', 'focus.boost', 'focus.target', 'talk', 'staff.held', 'staff.mole', 'facility.built', 'spend.gear', 'captains', 'trade.written', 'eight.entered', 'media', 'drop.landings', 'board.answer', 'divide.left', 'divide.exitSold', 'divide.captive', 'divide.landed', 'draft.pick'];
 for (const s of expectSys) if (!tally[s]) flags.push(['NEVER', s, '']);
 
 console.log('AI USAGE CENSUS · ' + WORLDS + ' worlds × ' + SEASONS + ' years × 8 houses · ' + Math.round((Date.now() - t0) / 1000) + 's');

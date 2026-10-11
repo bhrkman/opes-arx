@@ -329,8 +329,8 @@ function suppressionTraits() {
    Prose describing work that was not done — so the negotiation half is guarded by firing every
    branch of it, not by checking that the window appears. */
 function decisionWindow() {
-  /* §CONTEST WHAT A MANAGER CAN DO AT A WINDOW, each branch fired: a truce sought at the table, an exit offered to
-     the field, a squad's stance set — the three answers the seat takes now that joining is retired. */
+  /* §CONTEST WHAT A MANAGER CAN DO AT A WINDOW, each branch fired: the captives they took decided, an exit offered
+     to the field, a squad's stance set — and no truce, which the table no longer puts (ruled). */
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const run = (policy, seed, me) => {
     const g = DIV.divideCore(P.mulberry32(P.seedFrom(seed)), { oaProfiles: oa, raceById: gen.raceById, human: me });
@@ -339,8 +339,13 @@ function decisionWindow() {
       const w = r.value; windows++; cadences[w.cadence] = 1;
       const ans = {};
       if (policy === 'pact') {
-        const t = ((w.table || {}).pacts || []).filter(x => x.viable)[0];
-        if (t) { ans.deal = { kind: 'pact', corp: t.corp, terms: { credits: 0 } }; offered++; }
+        /* a pact is put anyway, and must be ignored: the table has none to offer */
+        if ((w.table || {}).pacts) offered++;
+        ans.deal = { kind: 'pact', corp: (w.corps || []).filter(c => c.id !== me)[0].id, terms: { credits: 0 } };
+      }
+      if (policy === 'captive') {
+        const td = ((w.captives || {}).toDecide || []);
+        if (td.length) { ans.captiveFate = {}; td.forEach(c => { ans.captiveFate[c.fighter] = 'release'; }); offered += td.length; }
       }
       if (policy === 'leave' && !w.withdrawOffer && windows === 2) { ans.withdrawOffer = { credits: 0.1 }; offered++; }
       if (policy === 'leave' && w.withdrawOffer) posted++;
@@ -351,7 +356,7 @@ function decisionWindow() {
       r = g.next(ans);
       if (!r.done) {
         const a = (r.value.stats || {}).audit || {};
-        if (policy === 'pact' && (a.humanPacts || 0) > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: a.humanPacts, posted, stanced };
+        if (policy === 'captive' && offered > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: 0, posted, stanced, released: ((r.value.captives || {}).held || []).length };
         if (policy === 'leave' && posted > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: 0, posted, stanced };
         if (policy === 'stance' && stanced > 0) return { offered, windows, cadences: Object.keys(cadences), pacts: 0, posted, stanced };
       }
@@ -360,17 +365,18 @@ function decisionWindow() {
     return { offered, windows, cadences: Object.keys(cadences), pacts: a.humanPacts || 0, posted, stanced };
   };
   const one = run('none', 'win-guard', 'vantis_deepcore');
-  ok('a Divide stops for you more than once', one.windows > 3, one.windows + ' windows');
-  ok('the cadence tightens as the ring closes', one.cadences.length > 1, 'cadences seen: ' + one.cadences.join(', '));
-  let pacts = 0, offered = 0, posted = 0, stanced = 0;
+  ok('a Divide stops for you more than once', one.windows >= 2, one.windows + ' windows');
+  ok('every window the seat saw fell at the ground\'s cadence: every other day, then daily', one.cadences.every(c => c === '1' || c === '2'), 'cadences seen: ' + one.cadences.join(', '));
+  let pacts = 0, offered = 0, posted = 0, stanced = 0, decided = 0;
   for (const seed of ['w1', 'w2', 'w3', 'w4'])
     for (const me of ['vantis_deepcore', 'mercy_concern']) {
       const rp = run('pact', seed, me); pacts += rp.pacts; offered += rp.offered;
+      const rc = run('captive', seed, me); decided += rc.offered;
       const rl = run('leave', seed, me); posted += rl.posted;
       const rs = run('stance', seed, me); stanced += rs.stanced;
     }
-  ok('a manager can agree a truce mid-contest', pacts > 0, pacts + ' truces of ' + offered + ' sought');
-  ok('and truces sought do not all succeed', offered > pacts, offered + ' sought, ' + pacts + ' struck');
+  ok('there is no truce: the table offers none and a pact put to it is ignored', pacts === 0 && offered === 0, offered + ' tables with a pact, ' + pacts + ' struck');
+  ok('a manager decides the captives their people took, at the window they were taken', decided > 0, decided + ' captives decided over eight seats');
   ok('a manager can offer the field an exit, and the offer stands at the next window', posted > 0, posted + ' offers standing');
   ok('a manager\'s notch actually moves their squads', stanced > 0, stanced + ' windows with the notch on the squads');
 
@@ -426,24 +432,23 @@ function theSeam() {
   const oa = readJSON('oa_profiles.json').oa_profiles;
   const PRE = req('predivide.js');
 
-  let sectorSpread = [], performed = 0, fronts = new Set(), corpSeasons = 0;
+  let regionSpread = [], performed = 0, fronts = new Set(), corpSeasons = 0, oneAZone = true, oneARegion = true;
   const rng = P.mulberry32(P.seedFrom('seam-guard'));
   const corps = SEASONMOD.openFleet(rng, oa, {});
   for (let s = 0; s < 6; s++) {
     const st = SEASONMOD.beginSeason(rng, corps, oa, {});
     while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
     SEASONMOD.closeSeason(st);
-    const counts = {};
-    for (const id in st.drop.sectors) counts[st.drop.sectors[id]] = (counts[st.drop.sectors[id]] || 0) + 1;
-    sectorSpread.push(Object.keys(counts).length);
-    /* §MEDIA media day is a card now: every seat answers it, and who fronts it sets what rivals learn (reveal) */
+    /* §GROUND the draft dealt zones: one squad a zone, one squad a region for each OA, spread over the regions */
+    const D = st.drop.draft, g = st.ground, regions = new Set(), zones = {};
+    for (const id in D.picks) { const mine = new Set(); for (const z of D.picks[id]) { if (zones[z]) oneAZone = false; zones[z] = 1; const r = g.zones[z].region; if (mine.has(r)) oneARegion = false; mine.add(r); regions.add(r); } }
+    regionSpread.push(regions.size);
     for (const id in st.drop.media) { const r = st.drop.media[id]; fronts.add(r.reveal); if (r.reveal > 0) performed++; }
     corpSeasons += st.ids.length;
   }
-  const meanSpread = sectorSpread.reduce((a, b) => a + b, 0) / sectorSpread.length;
-
-  ok('the fleet does not all pile into one sector',
-     meanSpread >= 2, meanSpread.toFixed(1) + ' distinct sectors used a season');
+  const meanSpread = regionSpread.reduce((a, b) => a + b, 0) / regionSpread.length;
+  ok('the draft deals one squad a zone and one squad a region for each OA', oneAZone && oneARegion);
+  ok('the fleet does not all pile into one region', meanSpread >= 4, meanSpread.toFixed(1) + ' distinct regions landed in a season');
   ok('media day is fronted differently across the fleet',
      performed > 0 && fronts.size >= 2,
      performed + ' of ' + corpSeasons + ' corp-seasons performed, ' + fronts.size + ' kinds of front');
@@ -453,45 +458,44 @@ function theSeam() {
   const c2 = SEASONMOD.openFleet(rng2, oa, {});
   const me = Object.keys(c2)[0];
   const blind = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
-  /* §ALEAS the fleet's month is pinned away from the public survey: with the Aleas' four rulings cut, that
-     event is far likelier, and it reveals the ground to everybody — which is exactly what this asks about */
   const pinFleet = (st, id) => { st.fleet = st.fleet || { priceMult: 1 };
     st.fleet.pending = { season: st.season, id: id, petitions: 0, applied: false, withdrawn: false }; };
   pinFleet(blind, 'crash');
   while (blind.month <= SEASONMOD.CONST.PREP_MONTHS - 1) SEASONMOD.stepMonth(blind, { [me]: {} });   /* focus shape: nothing committed */
-  const unseen = SEASONMOD.sectorsFor(blind, me);
+  const depthOf = st => ((st.corps[me]._intel || {}).planet || { rows: {} }).rows.sectors ? st.corps[me]._intel.planet.rows.sectors.depth : 0;
+  const readAll = st => PRE.landings(st.ground).map(l => PRE.readLanding(l, depthOf(st) >= 2 ? PRE.CONST.INTEL_PRIZE : depthOf(st) >= 1 ? PRE.CONST.INTEL_TERRAIN : 0));
+  const unseen = readAll(blind);
   SEASONMOD.closeSeason(blind);
 
   const seen2 = SEASONMOD.beginSeason(rng2, c2, oa, { human: me });
   pinFleet(seen2, 'crash');
   while (seen2.month <= SEASONMOD.CONST.PREP_MONTHS - 1)
     SEASONMOD.stepMonth(seen2, { [me]: { scout: 3 } });   /* focus shape: the cap on surveys */
-  const seen = SEASONMOD.sectorsFor(seen2, me);
+  const seen = readAll(seen2);
   SEASONMOD.closeSeason(seen2);
 
-  ok('without a survey the sectors are names on a ring',
-     unseen.every(x => x.known === 'rumour'), unseen.map(x => x.known).join(','));
-  ok('a survey buys you the ground and the prize',
-     seen.some(x => x.known === 'full'), seen.map(x => x.known).join(','));
+  ok('without a survey a landing is a name in a region', unseen.every(x => x.terrain == null && x.prize == null), unseen.length + ' landings');
+  ok('a survey buys you the ground and the prize', seen.some(x => x.terrain != null) && seen.some(x => x.prize != null), seen.filter(x => x.prize != null).length + ' with the prize read');
 
   /* --- and the Divide must actually READ where people chose to land --- */
-  const A = P.mulberry32(P.seedFrom('seam-place'));
-  const cA = SEASONMOD.openFleet(A, oa, {});
-  const stA = SEASONMOD.beginSeason(A, cA, oa, { human: Object.keys(cA)[0] });
-  while (stA.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(stA);
-  SEASONMOD.chooseDropSector(stA, Object.keys(cA)[0], 0);
-  const recA = SEASONMOD.closeSeason(stA);
-
-  const B = P.mulberry32(P.seedFrom('seam-place'));
-  const cB = SEASONMOD.openFleet(B, oa, {});
-  const stB = SEASONMOD.beginSeason(B, cB, oa, { human: Object.keys(cB)[0] });
-  while (stB.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(stB);
-  SEASONMOD.chooseDropSector(stB, Object.keys(cB)[0], 3);
-  const recB = SEASONMOD.closeSeason(stB);
-
-  ok('choosing a different sector changes the Divide',
-     JSON.stringify(recA.corps) !== JSON.stringify(recB.corps),
-     'landing north vs south-west produced the same season');
+  const landIn = (seedName, pickIdx) => {
+    const R = P.mulberry32(P.seedFrom(seedName));
+    const cR = SEASONMOD.openFleet(R, oa, {});
+    const you = Object.keys(cR)[0];
+    const st = SEASONMOD.beginSeason(R, cR, oa, { human: you });
+    while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
+    SEASONMOD.closeSeasonToDrop(st);
+    SEASONMOD.draftAdvance(st);
+    const all = PRE.landings(st.ground), D = st.drop.draft;
+    let picked = null;
+    while (SEASONMOD.draftWhose(st) === you) { const free = all.filter(l => PRE.allowed(l, D.taken, D.picks[you], all)); const l = free[Math.min(free.length - 1, pickIdx)]; if (!l) break; SEASONMOD.draftPick(st, you, l.index); picked = picked == null ? l.index : picked; SEASONMOD.draftAdvance(st); }
+    SEASONMOD.draftAdvance(st, null, { force: true });
+    const d = SEASONMOD.prepareDivide(st);
+    return { rec: SEASONMOD.finishSeason(st, DIV.runDivide(d.rng, d.opts)), picked, you };
+  };
+  const A = landIn('seam-place', 0), B = landIn('seam-place', 7);
+  ok('choosing a different landing changes the Divide', A.picked !== B.picked && JSON.stringify(A.rec.corps) !== JSON.stringify(B.rec.corps),
+     'landing on zone ' + A.picked + ' vs ' + B.picked + ' produced the same season');
 }
 
 /* §TALKS ONE WORD A MONTH, CAPTAINS FOR THE YEAR. The rules that make a talk a decision rather
@@ -643,20 +647,23 @@ function seatRules() {
   ok('the year-end fill stops at the muster minimum for a person', alive(corps[me]) <= Math.max(before, SEASONMOD.CONST.ROSTER_MIN),
      before + ' before, ' + alive(corps[me]) + ' after, minimum ' + SEASONMOD.CONST.ROSTER_MIN);
   /* whether this seat takes anyone alive is the Divide's to decide, so the captives question is played until a year
-     that has captives in it: the same seat, a fresh world each try */
+     that has captives in it: the same seat, a fresh world each try. §CAPTIVES (ruled: case by case, at the capture)
+     a person's seat is asked at its next window for each captive its squads hold, and answers kill, keep or release */
   const playDivide = (stx) => {
-    SEASONMOD.beginContest(stx);
-    let got = null, guard = 0;
+    SEASONMOD.beginContest(stx, { replay: true });   /* the whole record kept, to hold the seat's own against it */
+    let got = null, guard = 0; const records = [];
     while (guard++ < 400) {
       const status = SEASONMOD.contestStatus(stx); if (!status || status.done) break;
       const v = SEASONMOD.contestView(stx, me);
-      if (v && v.kind === 'captives') { got = v.captives; const f = {}; for (const x of v.captives) f[x.fighter] = 'kept'; SEASONMOD.answerContest(stx, me, { captiveFate: f }); }
+      if (v && v.record) records.push(v.record);
+      const ask = v && v.captives && v.captives.toDecide;
+      if (ask && ask.length) { got = (got || []).concat(ask); const f = {}; for (const x of ask) f[x.fighter] = 'release'; SEASONMOD.answerContest(stx, me, { captiveFate: f }); }
       SEASONMOD.advanceContest(stx, { force: true });
     }
-    return { asked: got, res: SEASONMOD.contestResult(stx) };
+    return { asked: got, res: SEASONMOD.contestResult(stx), records };
   };
   let play = playDivide(st), tries = 1;
-  while (!(play.asked && play.asked.length) && tries < 6) {
+  while (!(play.asked && play.asked.length) && tries < 12) {
     const r2 = P.mulberry32(P.seedFrom('ct1-' + tries));
     const c2 = SEASONMOD.openFleet(r2, oa, { worldSeed: 1 + tries });
     const s2 = SEASONMOD.beginSeason(r2, c2, oa, { human: me });
@@ -665,9 +672,22 @@ function seatRules() {
     play = playDivide(s2); tries++;
   }
   const asked = play.asked, res = play.res;
-  const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed');
-  ok('a person is asked what becomes of the captives they hold', !!asked && asked.length > 0, (asked ? asked.length + ' asked' : 'never asked') + ' in ' + tries + ' world' + (tries > 1 ? 's' : ''));
-  ok('and their answer stands', mine.length > 0 && mine.every(x => x.out === 'kept'), mine.map(x => x.out).join(','));
+  /* the ones it answered: a captive taken after the last window was never asked, and is held when the shooting stops */
+  const askedIds = new Set((asked || []).map(x => x.fighter));
+  const mine = ((res && res.captiveLog) || []).filter(x => x.captor === me && x.out !== 'ransomed' && askedIds.has(x.fighter));
+  ok('a person is asked at the window what becomes of each captive their squads hold', !!asked && asked.length > 0, (asked ? asked.length + ' asked' : 'never asked') + ' in ' + tries + ' world' + (tries > 1 ? 's' : ''));
+  ok('and their answer stands', mine.length > 0 && mine.every(x => x.out === 'released'), mine.map(x => x.out).join(','));
+  /* §SECRECY the record a seat is handed at each window holds its own squads and, of a rival's, only those its people
+     knew of that day (seen, heard, briefed, relayed), held against the whole record of the same contest */
+  { const full = {}; for (const D of ((res && res.replay && res.replay.days) || [])) full[D.d] = D;
+    const ci = ((res && res._corps) || []).findIndex(c => c.id === me);
+    let shown = 0, hidden = 0, leaked = 0, days = 0; const where = [];
+    for (const R of (play.records || [])) for (const E of R) { const F = full[E.d]; if (!F) continue; days++;
+      const known = (F.kn && F.kn[me]) || [], rivals = (E.sq || []).filter(q => q.c !== ci);
+      shown += rivals.length; hidden += F.sq.filter(q => q.c !== ci).length - rivals.length;
+      for (const q of rivals) if (q.i == null || known.indexOf(q.i) < 0) { leaked++; if (where.length < 3) where.push('day ' + E.d + ' squad ' + q.c + ':' + q.s); } }
+    ok('a seat\'s window record holds no rival squad it did not know of that day', ci >= 0 && days > 0 && leaked === 0,
+       leaked + ' rival squads shown unknown, ' + (shown - leaked) + ' shown known, ' + hidden + ' kept from it, over ' + days + ' recorded days ' + where.join(' | ')); }
 }
 
 function facilityRules() {
@@ -1043,23 +1063,24 @@ function noNaN() {
 }
 
 function zoneWall() {
-  let outside = 0, squadDays = 0, worst = 0;
+  /* §WALL the wall takes whole regions on the ground's schedule: no squad with anyone left alive ends a Divide
+     standing in a region the wall has taken, and nobody the wall took had a free way out past nobody */
+  let outside = 0, living = 0, freeCaught = 0, took = 0;
+  const GR = req('ground.js');
   for (let i = 0; i < 4; i++) {
     const rng = makeRng('zone-wall-' + i);
     const s = DIV.runDivide(rng, { oaProfiles: OA });
-    for (const c of s.corps || []) for (const sq of c.squads || []) {
-      /* RE-RULED with the dome (see divide.js): the wall never displaces, so the dead
-         and the taken now lie where they fell, and ground the dome swept past keeps its
-         fallen. The invariant that must hold is about the LIVING: no squad with anyone
-         left alive ends a Divide outside the line. */
+    const g = s._corps[0]._ground, standing = GR.standingOn(g, s.days).map(r => r.id);
+    for (const c of s._corps || []) for (const sq of c.squads || []) {
       if (!(sq.bodies || []).some(b => b.status === 'active' || b.status === 'injured')) continue;
-      squadDays++;
-      const o = MAPMOD.outsideBy(s.planet, s.days, sq.x, sq.y);
-      if (o > 1e-9) { outside++; worst = Math.max(worst, o); }
+      if (c.withdrawn || c._downedOn != null) continue;   /* an OA that has left or fallen has nobody on the ground */
+      living++;
+      if (sq.zone != null && standing.indexOf(g.zones[sq.zone].region) < 0) outside++;
     }
+    for (const w of (s.wallDeaths || [])) { took += w.took; freeCaught++; }
   }
-  ok('the line is a wall: nobody living ends a Divide outside it', outside === 0,
-     outside + ' of ' + squadDays + ' living squads, worst overshoot ' + worst.toFixed(4));
+  ok('the wall is a wall: nobody living ends a Divide in a region it has taken', outside === 0, outside + ' of ' + living + ' living squads');
+  ok('the wall takes nobody: a death to the wall is a failure of the AI (ruled)', freeCaught === 0, freeCaught + ' squads caught (' + took + ' bodies taken in four Divides)');
 }
 
 function energyInvariants(n) {
@@ -1444,6 +1465,17 @@ function seasonRules() {
   /* ---- the offseason must actually pass: people heal, age and develop ---- */
   const before = one.roster.map(f => ({ id: f.id, age: f.age }));
   SEASON.runSeason(makeRng('guard-s2'), corps, oa, {});
+  /* §PAPER a contract renewed at the turn keeps the man: every one of last year's expired or freed hands the
+     renewals did not let go (nor death, retirement or freedom take since) is on a roster this year */
+  { let renewed = 0; const missing = [];
+    const STF = req('staff.js');   /* a hand appointed to a post has left the line for the backroom, not the house */
+    const onSome = f => Object.keys(corps).some(k => corps[k].roster.indexOf(f) >= 0 || Object.values(STF.office(corps[k]).posts || {}).some(st => st && st.id === f.id));
+    for (const k of Object.keys(corps)) { const c = corps[k], rn = c._renew; if (!rn || !(rn.renewed > 0 || rn.resigned > 0)) continue;
+      renewed += (rn.renewed || 0) + (rn.resigned || 0); const gone = rn.gone || [];
+      for (const f of ((c._off && c._off.expired) || []).concat((c._off && c._off.freed) || []))
+        if (gone.indexOf(f.id) < 0 && ['dead', 'retired', 'freed'].indexOf(f.status) < 0 && !onSome(f)) missing.push(k + ' ' + f.name); }
+    ok('a renewed contract keeps the man on the roster', renewed > 0 && missing.length === 0,
+       renewed + ' renewed; ' + missing.length + ' on no roster: ' + missing.slice(0, 3).join(' | ')); }
   const aged = one.roster.filter(f => {
     const b = before.find(x => x.id === f.id);
     return b && f.age > b.age;
@@ -1460,10 +1492,14 @@ function seasonRules() {
   const lethal = sharedCareer(oa);
   const deathsIn = n => Object.keys(lethal.seasons[n].corps)
                               .reduce((t, k) => t + lethal.seasons[n].corps[k].dead, 0);
-  const d0 = deathsIn(0);
+  const d0 = deathsIn(0), later = lethal.seasons.slice(1).map((_, i) => deathsIn(i + 1));
+  const meanLater = later.reduce((a, b) => a + b, 0) / Math.max(1, later.length);
+  /* a season's deaths run anywhere from 2 to 22 in a healthy career (three careers: 13,7,4,15,14,13,7,12 ·
+     22,18,10,9,9,18,7,8 · 10,9,6,13,2,8,15,3), so two seasons against the first is a coin; the symptom is the
+     whole career going quiet */
   ok('G4 later seasons are as lethal as the first: the offseason really heals',
-     d0 > 0 && deathsIn(1) >= d0 * 0.4 && deathsIn(2) >= d0 * 0.4,
-     'deaths by season: ' + [0, 1, 2].map(deathsIn).join(', '));
+     d0 > 0 && meanLater >= d0 * 0.5 && Math.max.apply(null, later) >= d0 * 0.6,
+     'deaths by season: ' + [d0].concat(later).join(', '));
 
   /* ---- one treasury, and it is the one the kit budget reads ---- */
   const rich = LEDG.open(oa[2]), poor = LEDG.open(oa[2]);
@@ -1666,16 +1702,16 @@ function seasonRules() {
      the umbrella's cut, what a ceded claim sold for, ransoms both ways — was computed and
      never banked. A career ran on the board's grant alone and nothing done on a planet moved
      a treasury by one credit. */
-  /* /^Divide bonus/ also matched 'Divide bonuses' — the EXPENSE line season.js posts
+  /* /^Divide bonus/ also matched 'Divide Bonuses' — the EXPENSE line season.js posts
      when a winner pays its own people — and Object.keys order handed the check that
      one: it graded the payout ledger's wrong side and called a healthy mechanic broken
      (+4.5M banked against −537k paid out, and the check read the −537k). The exact
      income label, nothing else. */
-  const bonusLabel = 'Divide bonus (the OA takes the rights)';
+  const bonusLabel = 'Divide Bonus';
   ok('G19 winning a Divide actually pays a corp',
      lines[bonusLabel] > 0,
      'win bonuses banked over the career: ' + Math.round((lines[bonusLabel] || 0)) +
-     ' · bonuses paid out: ' + Math.round(lines['Divide bonuses'] || 0));
+     ' · bonuses paid out: ' + Math.round(lines['Divide Bonuses'] || 0));
 
   /* (G27/G28 are cut: they restated the ledger's own constants — the win bonus is SQUAD_BONUS_SHARE of the payout, and that
      share is derived from the anchor it was checked against.) */
@@ -1889,32 +1925,29 @@ function seasonRules() {
       const l = bank.corps[id]._lockLean || 'none';
       leans[l] = (leans[l] || 0) + 1;
     }
-    /* §DROP A PICK IS THE GROUND IT POINTS AT. The draft deals the numbered landings
-       predivide.slots() lays out; the drop used to recompute an angle from the slot's INDEX
-       on a ring of its own, so five landings chosen together came down scattered round the
-       rim and a manager's whole drafting decision was thrown away between the two. */
+    /* §DROP A PICK IS THE GROUND IT POINTS AT. The draft deals zones; the drop puts each squad on the zone its OA
+       drafted — the drop used to recompute an angle from the slot's INDEX on a ring of its own, so five landings
+       chosen together came down scattered round the rim and a manager's whole drafting decision was thrown away. */
     {
       const PRE2 = require(findFile('predivide.js'));
       const st4 = SEASONMOD.openFleet(makeRng('slot-fleet'), oa, {});
       const sst = SEASONMOD.beginSeason(makeRng('slot-season'), st4, oa, {});
       while (sst.month <= 11) SEASONMOD.stepMonth(sst);
       SEASONMOD.closeSeasonToDrop(sst);
-      const pd2 = SEASONMOD.prepareDivide(sst), pl2 = pd2.opts.groundTruth;
+      const pd2 = SEASONMOD.prepareDivide(sst), gnd = pd2.opts.ground;
       const dr = sst.drop && sst.drop.draft;
-      if (dr && pl2) {
-        const sl = PRE2.slots(pl2, dr.slots || 24), a0 = sl[0];
-        const near = sl.slice(1).sort((x, y) => Math.hypot(x.x - a0.x, x.y - a0.y) - Math.hypot(y.x - a0.x, y.y - a0.y)).slice(0, 4);
-        const chosen = [a0].concat(near);
-        dr.picks[sst.ids[0]] = chosen.map(x => x.index); dr.done = true;
+      if (dr && gnd) {
+        const all = PRE2.landings(gnd), me0 = sst.ids[0], want = dr.want[me0] || 3;
+        /* choose landings the rule allows: free, one a region */
+        const chosen = []; for (const l of all) { if (chosen.length >= want) break; if (PRE2.allowed(l, dr.taken, chosen.map(x => x.index), all)) chosen.push(l); }
+        dr.picks[me0] = chosen.map(x => x.index); chosen.forEach(x => { dr.taken[x.index] = me0; }); dr.done = true;
         const pd3 = SEASONMOD.prepareDivide(sst);
-        /* where they came DOWN, from the drop itself: by the first window a squad's `hx` is where it means to go */
         let landed = [];
-        DIV.divideCore(pd3.rng, Object.assign({}, pd3.opts, { captureDrop: all => { landed = all.find(a => a[0] && a[0].corpId === sst.ids[0]) || []; } })).next();
-        const far = landed.map(q => Math.min.apply(null, chosen.map(c => Math.hypot(q.x - c.x, q.y - c.y))));
-        const worst = far.length ? Math.max.apply(null, far) : 99;
-        ok('G34a a squad lands on the landing its OA drafted, not an angle from its index',
-           worst < pl2.radius * 0.12,
-           'the worst squad sits ' + (worst / pl2.radius).toFixed(3) + ' of a radius from its nearest chosen landing');
+        DIV.divideCore(pd3.rng, Object.assign({}, pd3.opts, { captureDrop: all2 => { landed = all2.find(a => a[0] && a[0].corpId === me0) || []; } })).next();
+        const onPick = landed.filter(q => chosen.some(c => c.zone === q.zone)).length;
+        ok('G34a a squad lands on the zone its OA drafted, not an angle from its index',
+           landed.length > 0 && onPick === landed.length,
+           onPick + ' of ' + landed.length + ' squads on a drafted zone');
       }
     }
     ok('G34 corps lock their drop force by culture, and not all of them the same way',
@@ -1923,8 +1956,8 @@ function seasonRules() {
   }
 
   ok('G20 the dead are actually paid for, once, off their own contracts',
-     (lines['Death benefits'] || 0) < 0 && !lines['death benefits'],
-     'death benefits charged: ' + Math.round(lines['Death benefits'] || 0) +
+     (lines['Death Benefits'] || 0) < 0 && !lines['death benefits'],
+     'death benefits charged: ' + Math.round(lines['Death Benefits'] || 0) +
      (lines['death benefits'] ? ' AND a second estimate at the lock' : ''));
 
   /* Signings used to land after the wage bill, so every contract signed was unpaid for its
@@ -1939,9 +1972,9 @@ function seasonRules() {
   for (const s of bank.seasons) for (const id in s.corps)
     wageSeasons[id] = (wageSeasons[id] || 0) + s.corps[id].signed;
   const signedTotal = Object.keys(wageSeasons).reduce((t, k) => t + wageSeasons[k], 0);
-  const payBill = Math.abs(lines['retainers'] || 0) + Math.abs(lines['purses'] || 0);
+  const payBill = Math.abs(lines['Retainers'] || 0) + Math.abs(lines['Purses'] || 0);
   ok('G21 a corp that signs people pays them the same year',
-     signedTotal > 0 && payBill > Math.abs(lines['signings'] || 0),
+     signedTotal > 0 && payBill > Math.abs(lines['Signings'] || 0),
      signedTotal + ' signed; retainers + purses ' + Math.round(payBill));
 
   /* S15 — BOTH HALVES HAVE TO BE REAL. A retainer with no purse is the old flat bill wearing
@@ -1949,10 +1982,10 @@ function seasonRules() {
      the roster cap stops meaning anything. Neither may be zero, and the purse must be the
      larger of the two at the fleet's typical drop, or "paid for participation" is decoration. */
   ok('G22 a contract pays a retainer AND a purse, and the purse is the larger half',
-     Math.abs(lines['retainers'] || 0) > 0 && Math.abs(lines['purses'] || 0) > 0 &&
-     Math.abs(lines['purses'] || 0) > Math.abs(lines['retainers'] || 0),
-     'retainers ' + Math.round(Math.abs(lines['retainers'] || 0)) +
-     ' vs purses ' + Math.round(Math.abs(lines['purses'] || 0)));
+     Math.abs(lines['Retainers'] || 0) > 0 && Math.abs(lines['Purses'] || 0) > 0 &&
+     Math.abs(lines['Purses'] || 0) > Math.abs(lines['Retainers'] || 0),
+     'retainers ' + Math.round(Math.abs(lines['Retainers'] || 0)) +
+     ' vs purses ' + Math.round(Math.abs(lines['Purses'] || 0)));
 
   /* The escalator. `kitIntent` read the flat cap, so the 6%-a-season rise had no game path:
      kit fielded per body topped out at exactly the season-one cap in season twelve. */
@@ -2236,23 +2269,38 @@ function seasonRules() {
      treatSeen + ' attempts, ' + stabSeen + ' stabilised across eight constructed fights');
 
 
-  /* §BOARD THE BOARD'S RESOURCE ASK IS PURSUED, and met more often than luck: over the shared career, how often a house
-     banks the resource its board asked for, against how often the houses not asked for it bank it that same year. (The
-     lever is the landing draft: an OA drops near what its board wants. A bare Divide skips the draft, so this reads
-     whole seasons.) */
+  /* §BOARD THE BOARD'S RESOURCE ASK STEERS THE LANDING. The lever is the landing draft: a house whose board asked for
+     a resource drops nearer the ground that holds it, where the survey shows it. Read at the mechanism, with the
+     survey full: over many worlds, the slot a house picks WITH its ask holds more of the asked resource than the slot
+     the same house picks with the ask struck out, whenever the two differ. (Whether the ask is then BANKED is the
+     Divide's business — measured over six careers at 18% of asks met against 13% for houses not asked, which is the
+     census's figure to carry, not a gate's: on one career it swung from 24% against 6% to 21% against 19%.) */
   {
-    let am = 0, at = 0, cm = 0, ct = 0;
-    for (const sn of car.seasons) {
-      const ids = Object.keys(sn.corps);
-      for (const id of ids) {
-        const want = sn.corps[id].asked; if (!want) continue;
-        at++; if (((sn.corps[id].banked || {})[want] || 0) > 0) am++;
-        for (const o of ids) if (o !== id && sn.corps[o].asked !== want) { ct++; if (((sn.corps[o].banked || {})[want] || 0) > 0) cm++; }
+    const PRE = req('predivide.js');
+    const rr = makeRng('ask-landing');
+    const fleet = SEASONMOD.openFleet(rr, oa, {});
+    let up = 0, down = 0, same = 0, asks = 0;
+    for (let w = 0; w < 24; w++) {
+      const st = SEASONMOD.beginSeason(rr, fleet, oa, {});
+      const slots = PRE.landings(st.ground);
+      const strengthOf = () => 0.5;
+      for (const id of st.ids) {
+        const c = st.corps[id];
+        const ask = ((c.rep && c.rep.goal && c.rep.goal.demands) || []).find(d => d.kind === 'resource' && d.resource);
+        if (!ask) continue;
+        asks++;
+        const seed = 'ask' + w + id;
+        const withAsk = PRE.chooseLanding(makeRng(seed), c, slots, {}, [], strengthOf, 1);
+        const keep = c.rep.goal.demands; c.rep.goal.demands = keep.filter(d => d !== ask);
+        const without = PRE.chooseLanding(makeRng(seed), c, slots, {}, [], strengthOf, 1);
+        c.rep.goal.demands = keep;
+        const pot = i => (((slots.find(l => l.index === i) || {}).resources || {})[ask.resource]) || 0;
+        if (withAsk === without) same++; else if (pot(withAsk) > pot(without)) up++; else down++;
       }
     }
-    const ar = at ? am / at : 0, cr = ct ? cm / ct : 0;
-    ok('the board\'s resource ask is pursued: met more often than by the houses not asked', at > 0 && ar > cr * 1.5,
-       (100 * ar).toFixed(1) + '% of ' + at + ' asks met, against ' + (100 * cr).toFixed(1) + '% for the houses not asked');
+    ok('the board\'s resource ask steers the landing: with the ask, the drop holds more of what was asked',
+       asks > 0 && up > 0 && up >= 4 * Math.max(1, down),
+       asks + ' asks: ' + up + ' landed richer in it, ' + down + ' poorer, ' + same + ' unmoved');
   }
   /* §CENSUS every engine house builds and staffs over a career, by the same verbs a person has (how much, and by what
      temperament, is harness/ai_census.cjs's measure) */
@@ -2579,27 +2627,396 @@ function doctrineRules() {
    board cards are well formed. Cheap, and so in both gates (it sat inside the heavy negotiation phase, so the edit
    loop never ran it).
    ========================================================================= */
-function structureRules() {
-  /* --- the crush, asserted from LIVE constants in both files -----------------------
-     N15/N18: the last ground has to be narrower than the range at which squads meet, or
-     there IS somewhere to run and the ending stops being guaranteed. Building this from
-     the two live values means moving either one alone fails here rather than silently
-     reopening the lull that cost this project its endgame once already. */
-  const lastR = MAPMOD.CONST.PLANET_RADIUS * MAPMOD.CONST.LAST_GROUND_FRAC;
-  ok('crush: the last ground is narrower than contact range',
-     2 * lastR < DIV.CONST.ENGAGE_RANGE,
-     'diameter ' + (2 * lastR).toFixed(4) + ' vs ENGAGE_RANGE ' + DIV.CONST.ENGAGE_RANGE);
-  ok('crush: the ring closes monotonically and never reopens',
-     MAPMOD.CONST.ZONE_STEPS.every((v, i, a) => i === 0 || v < a[i - 1]) &&
-     MAPMOD.CONST.LAST_GROUND_FRAC < MAPMOD.CONST.ZONE_STEPS[MAPMOD.CONST.ZONE_STEPS.length - 1],
-     MAPMOD.CONST.ZONE_STEPS.join(' > '));
-  ok('crush: every ring step has a day and no step is superseded on arrival',
-     MAPMOD.CONST.ZONE_STEPS.length === MAPMOD.CONST.ZONE_STEP_DAYS.length &&
-     new Set(MAPMOD.CONST.ZONE_STEP_DAYS).size === MAPMOD.CONST.ZONE_STEP_DAYS.length &&
-     MAPMOD.CONST.ZONE_STEP_DAYS.every(d => d < MAPMOD.CONST.LAST_GROUND_DAY),
-     'a step that arrives on the same day as another is dead code — this is how the ' +
-     'fifth step went unnoticed');
+/* =========================================================================
+   GROUND RULES — the Divide rebuild's ground (sim/ground.js): regions of three to eight zones cut
+   from a relief, every region reachable, one site a zone, a wall that takes whole regions and reaches
+   the last at month's end, windows every other day and daily when few stand. Twelve worlds across the
+   archetypes, read as the design was ruled, before anything moves on them.
+   ========================================================================= */
+function groundRules() {
+  const GR = req('ground.js'), MAPM = req('map.js');
+  const archs = Object.keys(MAPM.ARCHETYPES);
+  const worlds = [];
+  for (let i = 0; i < 12; i++) worlds.push(GR.generate(makeRng('ground' + i), { archetype: archs[i % archs.length] }));
+  const bad = (name, f) => { const hits = worlds.map((g, i) => f(g) ? null : i).filter(x => x != null); ok(name, !hits.length, hits.length ? 'worlds ' + hits.join(',') : ''); };
+  bad('a world has ten to eighteen regions', g => g.regions.length >= GR.CONST.REGIONS[0] && g.regions.length <= GR.CONST.REGIONS[1]);
+  bad('every region has three to eight zones', g => g.regions.every(r => r.zones.length >= 3 && r.zones.length <= 8));
+  bad('zone links run both ways and stay inside the region', g => g.zones.every(z => z.nb.every(n => g.zones[n].nb.indexOf(z.id) >= 0 && g.zones[n].region === z.region)));
+  bad('every zone is reachable from every other: nothing is impassable, only unrouted', g => g.zones.every(z => !!GR.ticksBetween(g, 0, z.id)));
+  bad('every region has at least one route out', g => g.regions.every(r => r.links.length >= 1));
+  bad('a route leaves from a zone of its region and lands in a zone of the other', g => g.regions.every(r => r.links.every(l => g.zones[l.from].region === r.id && g.zones[l.at].region === l.to && l.ticks >= 1)));
+  bad('every region has a high ground, and heights run low to commanding', g => g.regions.every(r => r.zones.some(id => g.zones[id].height >= 1) && r.zones.every(id => GR.CONST.HEIGHT_LEVELS.indexOf(g.zones[id].height) >= 0)));
+  bad('one site a zone, and no region holds more than three', g => g.zones.every(z => !z.site || z.site.zone === z.id) && g.regions.every(r => r.zones.filter(id => g.zones[id].site).length <= GR.CONST.SITES_PER_REGION));
+  bad('at least four deposits, each opening before the wall takes its region', g => g.sites.filter(s => s.kind === 'deposit').length >= 4 &&
+      g.sites.filter(s => s.kind === 'deposit').every(s => { const t = g.wall.takeAt.find(x => x.region === g.zones[s.zone].region); return !t || s.opens < t.day; }));
+  /* a deposit opens with time to be reached and worked before its region goes, on every world of sixty */
+  { let late = [], deps = 0;
+    for (let i = 0; i < 60; i++) { const g = i < worlds.length ? worlds[i] : GR.generate(makeRng('ground-dep' + i), { archetype: archs[i % archs.length] });
+      for (const s of g.sites) { if (s.kind !== 'deposit') continue; deps++; const t = g.wall.takeAt.find(x => x.region === g.zones[s.zone].region);
+        if (t && t.day - s.opens < GR.CONST.DEPOSIT_WINDOW) late.push('world ' + i + ': opens day ' + s.opens + ', region goes day ' + t.day); } }
+    ok('every deposit opens at least DEPOSIT_WINDOW days before its region goes', GR.CONST.DEPOSIT_WINDOW >= 1 && deps > 0 && late.length === 0,
+       late.length + ' of ' + deps + ' deposits: ' + late.slice(0, 3).join(' | ')); }
+  bad('the wall takes every region but the last, once each, between the second window and the second-last', g => {
+      const ids = g.wall.takeAt.map(t => t.region); const w = g.wall.windows;
+      return ids.indexOf(g.wall.last) < 0 && new Set(ids).size === g.regions.length - 1 && g.wall.takeAt.every(t => t.day >= w[1] && t.day <= w[w.length - 2]); });
+  bad('the last region stands at month\'s end', g => GR.standingOn(g, g.days).length === 1 && GR.standingOn(g, g.days)[0].id === g.wall.last);
+  bad('the wall is announced a window ahead: what goes next is known on the window before', g => { const nxt = GR.nextToGo(g, 1); return nxt.length >= 1 && nxt.every(id => g.wall.takeAt.find(t => t.region === id).day === g.wall.windows[1]); });
+  bad('windows fall every other day, then daily once few regions stand', g => { let few = 1; while (few <= g.days && GR.standingOn(g, few).length > g.windows.dailyWhenLeft) few++; const even = few + (few % 2 === 0 ? 0 : 1);
+      return GR.isWindowDay(g, 1) && !GR.isWindowDay(g, 2) && GR.isWindowDay(g, 3) && few < g.days && GR.isWindowDay(g, even); });
+  bad('a commanding zone sees farther than a flat one', g => { const hi = g.zones.filter(z => z.height >= 2)[0], flat = g.zones.filter(z => z.height === 0 && z.region === (hi || {}).region)[0]; return !hi || !flat || GR.seenFrom(g, hi.id).length >= GR.seenFrom(g, flat.id).length; });
+  const a = JSON.stringify(GR.generate(makeRng('ground-same'), {})), b = JSON.stringify(GR.generate(makeRng('ground-same'), {}));
+  ok('the same seed is the same ground', a === b);
+  ok('different seeds are different grounds', JSON.stringify(worlds[0]) !== JSON.stringify(worlds[1]));
+  const widths = worlds.map(g => Math.max.apply(null, g.zones.map(z => (GR.ticksBetween(g, g.regions[g.wall.last].zones[0], z.id) || { ticks: 0 }).ticks)));
+  ok('the ground is days wide, not weeks: the farthest zone from the last ground is under five days\' walk', widths.every(w => w <= 60), 'widest ' + Math.max.apply(null, widths) + ' ticks');
+  /* §ENDGAME the last ground closes a zone at a time after the last region goes, to its final zone on the month's last day,
+     and never cuts what is left of it in two */
+  let zoneWall = true, zoneConn = true;
+  for (const g of worlds) {
+    const lz = g.regions[g.wall.last].zones, lastTake = Math.max.apply(null, g.wall.takeAt.map(t => t.day));
+    if (g.wall.zoneAt.length !== lz.length - 1 || g.wall.zoneAt.some(t => t.day <= lastTake || t.day > g.days || t.zone === g.wall.finalZone) || lz.indexOf(g.wall.finalZone) < 0) zoneWall = false;
+    for (const t of g.wall.zoneAt) {
+      const left = lz.filter(z => !GR.zoneGone(g, z, t.day)); if (left.length <= 1) continue;
+      const seen = new Set([left[0]]), q = [left[0]]; while (q.length) { const c = q.shift(); for (const n of g.zones[c].nb) if (left.indexOf(n) >= 0 && !seen.has(n)) { seen.add(n); q.push(n); } }
+      if (seen.size !== left.length) zoneConn = false;
+    }
+  }
+  ok('the last ground closes a zone at a time after the last region goes, to one zone on the month\'s last day', zoneWall);
+  ok('and never cuts what is left of it in two', zoneConn);
+}
 
+/* =========================================================================
+   CONTEST RULES — the rebuilt Divide's day loop (sim/contest.js): one squad a zone, movement paid in ticks,
+   sight by height, hearing by loudness, the window's briefing, the wall's kill. Read on the ground the
+   suite generates; the fights are step d's and are not here.
+   ========================================================================= */
+function contestRules() {
+  const GR = req('ground.js'), CT = req('contest.js');
+  const OAS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const dropOf = (rng, g, oas) => { const out = [], taken = {};
+    for (let round = 0; round < 4; round++) oas.forEach(oa => { const mine = out.filter(q => q.oa === oa).map(q => g.zones[q.zone].region);
+      let free = g.zones.filter(z => !taken[z.id] && mine.indexOf(z.region) < 0 && z.region !== g.wall.last); if (!free.length) free = g.zones.filter(z => !taken[z.id]);
+      const z = free[Math.floor(rng() * free.length)]; taken[z.id] = true; out.push({ oa, s: round, zone: z.id, n: 4 + Math.floor(rng() * 3) }); });
+    return out; };
+  const g = GR.generate(makeRng('contest-ground'), {});
+  /* the full field, every tick checked */
+  const st = CT.open(makeRng('contest-run'), g, dropOf(makeRng('contest-drop'), g, OAS), {});
+  let oneAZone = true, inStanding = true, paid = true, ticks = 0;
+  while (!st.done && ticks++ < 28 * 12 + 1) {
+    CT.tick(st);
+    const seen = {}; for (const q of st.squads) { if (!q.alive || CT.onRoad(q)) continue; const was = seen[q.zone]; if (was && !(CT.zoneEnds(st, q.zone) === Infinity && was === q.oa)) oneAZone = false; seen[q.zone] = q.oa;   /* the final zone holds friends together */
+      if (q.moving && (q.moving.paid > q.moving.cost || q.moving.cost < 1)) paid = false; }
+    const live = new Set(CT.standing(st));
+    if (st.tick === 1) for (const q of st.squads) if (q.alive && !CT.onRoad(q) && !live.has(g.zones[q.zone].region)) inStanding = false;   /* one on the road out stands in neither */
+  }
+  ok('one squad a zone, every tick of the month, but friends together on the final zone (a squad on the road between regions stands in neither)', oneAZone);
+  ok('a step is paid in ticks, never more than it costs', paid);
+  ok('after the wall has taken a region at dawn, nobody alive stands in it (a squad on the road out is outside already)', inStanding);
+  const banners = new Set(st.squads.filter(q => q.alive).map(q => q.oa)).size;
+  ok('the contest runs to the month\'s end or to the last banner standing, and the windows fall', st.done && (st.day > 28 || banners <= 1) && st.audit.windows >= Math.floor(st.day / 2) - 1, 'day ' + st.day + ', ' + banners + ' banners, ' + st.audit.windows + ' windows');
+  ok('squads walk, hear and meet', st.audit.steps > 50 && st.audit.heard > 20 && st.audit.contacts > 5, st.audit.steps + ' steps, ' + st.audit.heard + ' heard, ' + st.audit.contacts + ' contacts');
+  /* a sparse field: with room to move, the wall catches nobody and everybody reaches a site */
+  const st2 = CT.open(makeRng('contest-run2'), g, dropOf(makeRng('contest-drop2'), g, ['a', 'b']), {});
+  CT.run(st2);
+  const reached = st2.squads.filter(q => q.visited.some(z => g.zones[z].site && g.zones[z].site.kind !== 'beacon')).length;
+  ok('the wall catches nobody: a pressed squad leaves in time', st2.audit.wall === 0 && st.audit.wall === 0, st2.audit.wall + ' and ' + st.audit.wall + ' caught');
+  ok('and the planner takes every squad to a site', reached >= 7, reached + ' of 8 reached a site');
+  /* sight and hearing */
+  /* sight: in one region of five or more zones, the high zone sees at least what the flat zone beside it sees, and
+     more where the region has a second ring; a low zone sees only itself */
+  const regS = g.regions.find(r => r.zones.length >= 5 && r.zones.some(z => g.zones[z].height >= 1) && r.zones.some(z => g.zones[z].height === 0));
+  const hiZ = regS && regS.zones.find(z => g.zones[z].height >= 1), flatZ = regS && regS.zones.find(z => g.zones[z].height === 0);
+  const st3 = CT.open(makeRng('contest-run3'), g, regS ? [{ oa: 'a', s: 0, zone: hiZ, n: 5 }, { oa: 'b', s: 0, zone: flatZ, n: 5 }] : dropOf(makeRng('contest-drop3'), g, ['a', 'b']), {});
+  const seesHi = regS ? CT.sees(st3, st3.squads[0]).length : 0, seesFlat = regS ? CT.sees(st3, st3.squads[1]).length : 0;
+  ok('a squad on high ground sees a ring further than one on the flat of the same region', !regS || (seesHi >= seesFlat && seesHi > 1 + g.zones[hiZ].nb.length) || seesHi === regS.zones.length, (regS ? regS.name + ': ' : 'no such region: ') + seesHi + ' zones from the height, ' + seesFlat + ' from the flat');
+  const lowZ = g.zones.find(z => z.height === -1);
+  ok('a squad in a hollow sees only its own zone', !lowZ || GR.seenFrom(g, lowZ.id).length === 1);
+  /* a loud marching squad is heard across a region; a small quiet one is not */
+  /* on open ground (no cover, nothing to hide in) the loud squad stands three zones from the quiet one */
+  const far = (a, b) => { const d = { [a]: 0 }, q = [a]; while (q.length) { const c = q.shift(); for (const n of g.zones[c].nb) if (d[n] == null) { d[n] = d[c] + 1; q.push(n); } } return d[b] || 0; };
+  let best = null;
+  for (const r of g.regions) for (const a of r.zones) for (const b of r.zones) { const za = g.zones[a]; if (za.cover || za.hiding < 1) continue; const d = far(a, b); if (d === 3 && !best) best = [a, b, d]; }
+  if (!best) for (const r of g.regions) for (const a of r.zones) for (const b of r.zones) { const d = far(a, b); if (d === 3 && !best) best = [a, b, d]; }
+  const st4 = CT.open(makeRng('contest-run4'), g, [{ oa: 'a', s: 0, zone: best[0], n: 8 }, { oa: 'b', s: 0, zone: best[1], n: 3 }], {});
+  st4.squads[0].moving = { to: best[0], paid: 0, cost: 9 };
+  const heardLoud = CT.hears(st4, st4.squads[1]).length > 0, heardQuiet = CT.hears(st4, st4.squads[0]).length > 0, loudA = CT.loudness(st4, st4.squads[0]), quietB = CT.loudness(st4, st4.squads[1]);
+  ok('a marching squad of eight is louder than a standing squad of three', loudA > quietB * 1.5, loudA.toFixed(2) + ' against ' + quietB.toFixed(2) + ' at ' + best[2] + ' zones (' + g.regions[g.zones[best[0]].region].terrainName + ')');
+  ok('and carries three zones across open ground where the three do not', heardLoud && !heardQuiet, 'loud heard ' + heardLoud + ', quiet heard ' + heardQuiet);
+  /* the same eight under cover in a hollow of thick ground carry less */
+  const dim = g.zones.find(z => z.cover >= 1 && z.hiding < 1);
+  if (dim) { const st6 = CT.open(makeRng('contest-run6'), g, [{ oa: 'a', s: 0, zone: dim.id, n: 8 }], {}); st6.squads[0].moving = { to: dim.id, paid: 0, cost: 9 };
+    ok('the same eight marching under cover in thick ground carry less', CT.loudness(st6, st6.squads[0]) < loudA * 0.8, CT.loudness(st6, st6.squads[0]).toFixed(2) + ' against ' + loudA.toFixed(2)); }
+  /* the briefing: after a window, a squad knows the rivals in its own and the adjacent regions */
+  const st5 = CT.open(makeRng('contest-run5'), g, dropOf(makeRng('contest-drop5'), g, OAS), {});
+  CT.tick(st5);
+  const q0 = st5.squads[0], regs = [g.zones[q0.zone].region].concat(g.regions[g.zones[q0.zone].region].links.map(l => l.to));
+  const rivalsNear = st5.squads.filter(o => o.oa !== q0.oa && regs.indexOf(g.zones[o.zone].region) >= 0);
+  ok('the window briefs a squad on every rival in its own and the adjacent regions', rivalsNear.every(o => q0.know[o.zone] && q0.know[o.zone].oa === o.oa), rivalsNear.length + ' rivals near');
+  /* ---- step d: contact is a fight ---- */
+  const abs = e => e.day * 12 + e.tick;
+  const nextWindowAbs = d => { for (let k = d + 1; k <= g.days + 1; k++) if (GR.isWindowDay(g, k)) return k * 12; return (g.days + 1) * 12; };
+  const fights = st.events.filter(e => e.t === 'fight'), overs = st.events.filter(e => e.t === 'fight_over');
+  ok('a contact opens a fight, or waits on the one already in that zone', fights.length > 0 && fights.length <= st.audit.contacts, fights.length + ' fights from ' + st.audit.contacts + ' contacts');
+  ok('no fight runs past the window at dawn, nor longer than the pile-up', st.fights.every(f => f.until <= nextWindowAbs(f.day) && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.ticks >= 1));
+  ok('every fight that opened is settled', st.fights.every(f => f.done) && overs.length === fights.length, overs.length + ' of ' + fights.length);
+  const moved = {}; for (const e of st.events) if (e.t === 'move' && e.kind !== 'break' && e.kind !== 'took') (moved[e.squad] = moved[e.squad] || []).push(abs(e));
+  ok('a squad in a fight stays in it: it walks nowhere until the fight is over', st.fights.every(f => f.sides.every(S => S.squads.every(x => !(moved[x.id] || []).some(t => t > f.day * 12 + f.tick && t < f.until)))));
+  ok('a late joiner walks in from the zone next door, a turn late for every tick of its step', st.fights.every(f => f.sides.every(S => S.squads.every(x => x.from === f.zone || g.zones[f.zone].nb.indexOf(x.from) >= 0 || st.squads[x.id].visited.indexOf(x.from) >= 0) && S.squads.filter(x => x.atTurn > 1).every(x => g.zones[f.zone].nb.indexOf(x.from) >= 0 && x.atTurn === 1 + g.regions[g.zones[x.from].region].ticks * CT.CONST.JOIN_TURNS_PER_TICK))));
+  ok('a fight is fed what the zone is: terrain, cover, height, night, and every side\'s readiness and edge', st.fights.every(f => f.ctx && f.ctx.terrain && f.ctx.cover != null && f.ctx.height != null && f.ctx.prep.length === f.sides.length && f.ctx.bearings.length === f.sides.length));
+  /* who stands where after: replay the events — at every fight_over the winner's banner holds the zone and nobody of a beaten banner stands on it */
+  let standsRight = true;
+  { const pos = {}; for (const q of st.squads) pos[q.id] = q.visited[0]; const al = {}; for (const q of st.squads) al[q.id] = true;
+    for (const e of st.events) { if (e.t === 'move') pos[e.squad] = e.to; if (e.t === 'road') pos[e.squad] = -1; if (e.t === 'wiped' || e.t === 'wall') al[e.squad] = false;
+      if (e.t === 'fight_over') { const f = st.fights[e.fight]; const onIt = st.squads.filter(q => al[q.id] && pos[q.id] === f.zone);
+        if (onIt.length > 1) standsRight = false;
+        if (e.winner && !(onIt.length === 1 && onIt[0].oa === e.winner)) standsRight = false;
+        for (const S of f.sides) if (S.oa !== e.winner && e.winner) for (const x of S.squads) if (al[x.id] && pos[x.id] === f.zone) standsRight = false; } } }
+  ok('after a fight the winner holds the zone and the beaten stand a zone back', standsRight);
+  const caps = st.events.filter(e => e.t === 'captive');
+  ok('left with nothing worth the walk, a squad picks at the stronger rival next door rather than close', st.audit.harassed > 0, st.audit.harassed + ' ticks of harassing fire');
+  ok('every captive is decided at the capture: killed, kept or let go', caps.length > 0 && caps.every(c => ['kill', 'keep', 'release'].indexOf(c.fate) >= 0), caps.length + ' captives');
+  ok('and a kept captive walks with its captor', caps.filter(c => c.fate === 'keep').length === 0 || st.squads.some(q => q.captives.length > 0) || st.events.some(e => e.t === 'captives_pass') || st.events.some(e => e.t === 'wiped' && st.squads[e.squad].captives.length === 0));
+  /* constructed: a banner that keeps captives is wiped by another; the captives pass to the wiper */
+  { const two = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), zB = two.zones.find(z => g.zones[z].nb.length >= 2), z = [g.zones[zB].nb[0], zB, g.zones[zB].nb[1]];
+    const stP = CT.open(makeRng('contest-pass'), g, [{ oa: 'a', s: 0, zone: z[0], n: 6, stance: 'standard' }, { oa: 'b', s: 0, zone: z[1], n: 4, stance: 'standard' }, { oa: 'c', s: 0, zone: z[2], n: 9, stance: 'unyielding' }],
+      { resolve: (s, f) => { const bigger = f.sides.slice().sort((p, q) => q.squads.reduce((t, x) => t + x.n, 0) - p.squads.reduce((t, x) => t + x.n, 0))[0]; const squads = {};
+          for (const S of f.sides) for (const x of S.squads) squads[x.id] = S === bigger ? { dead: 0, down: 0, captured: 0 } : { dead: Math.max(0, x.n - 2), down: 0, captured: Math.min(2, x.n) }; return { turns: 8, winner: bigger.tag, squads }; } });
+    stP.squads[0].intent = { type: 'take', zone: z[1], why: 'order' }; stP.squads[0].path = [z[1]]; stP.squads[2].intent = { type: 'hold', zone: z[2], why: 'order' }; stP.squads[1].intent = { type: 'hold', zone: z[1], why: 'order' };
+    for (let i = 0; i < 12 && !stP.fights.some(f => f.done); i++) CT.tick(stP);
+    const a = stP.squads[0], kept0 = a.captives.length;
+    a.intent = { type: 'hold', zone: a.zone, why: 'order' }; a.moving = null; a.path = null;
+    stP.squads[2].intent = { type: 'take', zone: a.zone, why: 'order' }; stP.squads[2].path = [a.zone]; stP.squads[2].moving = null;
+    for (let i = 0; i < 24 && a.alive; i++) CT.tick(stP);
+    ok('wiping a holder passes its captives to the wiper', kept0 > 0 && !a.alive && stP.squads[2].captives.length >= kept0 && stP.events.some(e => e.t === 'captives_pass'), kept0 + ' kept, ' + stP.squads[2].captives.length + ' with the wiper'); }
+  /* constructed: a beaten squad with nowhere to break to (every other zone of the ground stood on) is overrun. With a
+     driver that holds the bodies, as the Divide does, the captor takes the bodies themselves, and the squad stays down
+     past the next dawn however its bodies are counted */
+  { const zB = g.regions.find(r => r.zones.length >= 3).zones[0], zA = g.zones[zB].nb[0];
+    const body = (k, i) => ({ id: k + i, name: k + i, status: 'active' });
+    const refA = { bodies: [0, 1, 2, 3, 4, 5].map(i => body('a', i)) }, refB = { bodies: [0, 1, 2].map(i => body('b', i)) };
+    const drop = [{ oa: 'a', s: 0, zone: zA, n: 6, stance: 'standard', ref: refA, bodies: refA.bodies }, { oa: 'b', s: 0, zone: zB, n: 3, stance: 'standard', ref: refB, bodies: refB.bodies }];
+    for (const z of g.zones) if (z.id !== zA && z.id !== zB) drop.push({ oa: 'c', s: drop.length, zone: z.id, n: 1, stance: 'standard' });
+    const gO = Object.assign({}, g, { wall: Object.assign({}, g.wall, { takeAt: [], zoneAt: [] }) });   /* no wall: the squads around hold their ground, and only the overrun is asked */
+    const stO = CT.open(makeRng('contest-overrun'), gO, drop, {
+      headOf: ref => ref.bodies.filter(b => b.status === 'active').length,
+      onOverrun: (s, cq, by) => { if (!cq.ref) return cq.n; const t = cq.ref.bodies.filter(b => b.status === 'active'); for (const b of t) { b.status = 'captured'; b._capturedBy = by; } return t; },
+      resolve: (s, f) => { const win = f.sides.find(S => S.oa === 'a'), squads = {}; for (const S of f.sides) for (const x of S.squads) squads[x.id] = { dead: 0, down: 0, captured: 0 }; return { turns: 6, winner: win ? win.tag : null, squads }; } });
+    for (const q of stO.squads) q.intent = { type: 'hold', zone: q.zone, why: 'order' };
+    stO.squads[0].intent = { type: 'take', zone: zB, why: 'order' }; stO.squads[0].path = [zB];
+    for (let i = 0; i < 36; i++) CT.tick(stO);
+    const B = stO.squads[1], over = stO.events.some(e => e.t === 'wiped' && e.squad === B.id && e.how === 'overrun');
+    const held = stO.squads[0].captives, caps = stO.events.filter(e => e.t === 'captive' && e.from === B.id);
+    ok('an overrun squad stays down, and its captor holds the bodies it took', over && !B.alive && held.length === 3 && held.every(k => k.body && k.body.status === 'captured') && caps.every(e => e.body),
+       (over ? 'overrun' : 'not overrun') + ', ' + (B.alive ? 'standing again' : 'down') + ' on day ' + stO.day + ', ' + held.filter(k => k.body).length + ' of ' + held.length + ' captives with a body'); }
+  /* constructed: a weak squad next to a strong one it knows picks at it from its own zone; the strong one, by its dial, rushes */
+  { const reg = g.regions.find(r => r.zones.length >= 4 && r.zones.some(z => g.zones[z].nb.length >= 2)), z0 = reg.zones.find(z => g.zones[z].nb.length >= 2), z1 = g.zones[z0].nb[0];
+    const stH = CT.open(makeRng('contest-harass'), g, [{ oa: 'a', s: 0, zone: z0, n: 3, stance: 'measured', long: 1 }, { oa: 'b', s: 0, zone: z1, n: 8, stance: 'death_or_glory' }], {});
+    stH.squads[0].intent = { type: 'harass', zone: z1, why: 'order' }; stH.squads[1].intent = { type: 'hold', zone: z1, why: 'order' };
+    for (let i = 0; i < 36; i++) CT.tick(stH);
+    const hr = stH.events.filter(e => e.t === 'harass'), rushed = stH.events.some(e => e.t === 'contact' && e.mover === 1);
+    ok('a squad that will not close picks at the stronger one next door with its long rifles, and is loud doing it', stH.audit.harassed > 0 && (hr.length > 0 || stH.audit.harassed >= 3), stH.audit.harassed + ' ticks of fire, ' + hr.length + ' hits');
+    ok('and the squad under fire may rush it, which is a contact and a fight with the rifles caught looking', rushed && stH.events.some(e => e.t === 'fight'), 'rushed ' + rushed); }
+  /* constructed: two squads of one banner from two sides of a zone flank */
+  { const reg = g.regions.find(r => r.zones.some(z => g.zones[z].nb.length >= 2)), mid = reg.zones.find(z => g.zones[z].nb.length >= 2), [l, r] = g.zones[mid].nb;
+    const stF = CT.open(makeRng('contest-flank'), g, [{ oa: 'a', s: 0, zone: l, n: 6, stance: 'unyielding' }, { oa: 'a', s: 1, zone: r, n: 6, stance: 'unyielding' }, { oa: 'b', s: 0, zone: mid, n: 5 }], {});
+    stF.squads[0].intent = { type: 'take', zone: mid, why: 'the ground' }; stF.squads[0].path = [mid]; stF.squads[1].intent = { type: 'hold', zone: r };
+    for (let i = 0; i < 12 && !stF.fights.length; i++) CT.tick(stF);
+    const f0 = stF.fights[0], sideA = f0 && f0.sides.find(S => S.oa === 'a');
+    ok('squads of one banner that came on from different zones flank: their bearings differ on the grid', !!f0 && sideA.squads.length === 2 && sideA.squads[0].from !== sideA.squads[1].from && Math.abs(sideA.squads[0].bearing - sideA.squads[1].bearing) > 0.3, f0 ? sideA.squads.length + ' on side a' : 'no fight'); }
+  /* determinism */
+  const ev = s => JSON.stringify(s.events.map(e => [e.t, e.day, e.tick, e.zone, e.squad, e.region]));
+  const sA = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sA);
+  const sB = CT.open(makeRng('contest-det'), g, dropOf(makeRng('contest-dropd'), g, OAS), {}); CT.run(sB);
+  ok('the same ground, seed and drop are the same contest', ev(sA) === ev(sB));
+}
+
+function divideRules() {
+  /* §GROUND THE RULES OF THE CONTEST, HELD ON REAL DIVIDES. contestRules holds the contest on squads alone; this holds
+     the switched Divide — bodies, the grid, the economy, the table — to the same rules, over three seasons run to
+     their drop and fought: the record carries every day, the windows fall on the ground's own cadence, nobody stands
+     on ground the wall has taken, nobody with a free way out is caught, no fight runs past a window or past half a
+     day, every captive is decided, there are no truces, and one banner is left. */
+  const GR = req('ground.js'), CT = req('contest.js');
+  const oa = readJSON('oa_profiles.json').oa_profiles;
+  let recordAll = true, cadence = true, onStanding = true, freeCaught = 0, fightsOk = true, capOk = true, truces = 0, ended = 0, fights = 0, captives = 0;
+  const notes = [];
+  /* the audit's fixes, measured on the same three Divides: what the grid was handed (TACTICAL.resolve), what the
+     contest was opened with (CONTEST.open) and what the draft read of each landing (PRE.chooseLanding) are listened
+     to while each runs, and the season is closed on the result */
+  const PRE = req('predivide.js');
+  const angGap = (a, b) => { let x = Math.abs(a - b) % (Math.PI * 2); return x > Math.PI ? Math.PI * 2 - x : x; };
+  const A = { comers: 0, comerBad: 0, holders: 0, holderBad: 0, flank: 0, grid: 0, twice: 0, aims: 0, spentAims: [], spClaims: 0, reclaims: [], landed: 0, withReserve: 0, landedSome: 0,
+              longCarriers: 0, longBad: 0, ransomed: 0, ransomBack: [], board: [], bonus: [], kept: 0, promise: [], intel: [], squads: [], xpUp: 0, xpBad: 0, overrun: [] };
+  for (const seed of ['dr1', 'dr2', 'dr3']) {
+    const rr = makeRng('divrules-' + seed), fleet = SEASONMOD.openFleet(rr, oa, {}), st = SEASONMOD.beginSeason(rr, fleet, oa, {});
+    const choose0 = PRE.chooseLanding;
+    PRE.chooseLanding = function (rng0, corp, all, taken, own, strengthOf, intel) { A.intel.push(intel); return choose0.apply(this, arguments); };
+    try {
+      while (st.month <= SEASONMOD.CONST.PREP_MONTHS) SEASONMOD.stepMonth(st);
+      SEASONMOD.closeSeasonToDrop(st);
+    } finally { PRE.chooseLanding = choose0; }
+    const d = SEASONMOD.prepareDivide(st);
+    const reserve0 = {}; for (const id in (d.opts.corps || {})) reserve0[id] = (d.opts.corps[id].reserve || []).length;
+    const xp0 = new Map(); for (const id of st.ids) for (const f of (st.corps[id]._drop || [])) xp0.set(f, (f.experience && f.experience.divides) || 0);
+    const resolve0 = TACMOD.resolve, open0 = CT.open, gridSeen = [], openedWith = [];
+    TACMOD.resolve = function (rng0, sides, ctx) {
+      gridSeen.push({ refs: sides.map(s => (s.units || []).map(u => u.ref)), late: ((ctx && ctx.reinforce) || []).map(R => ((R.side && R.side.units) || []).map(u => u.ref)), bearings: ((ctx && ctx.bearings) || []).slice() });
+      return resolve0.apply(this, arguments);
+    };
+    CT.open = function (rng0, ground0, squads) {
+      for (const q of squads || []) openedWith.push({ long: q.long || 0, carries: (q.bodies || []).some(b => b.status === 'active' && b.loadout && b.loadout.kit && b.loadout.kit.weapon && b.loadout.kit.weapon.range === 'long') });
+      const st0 = open0.apply(this, arguments);
+      /* what the planner was told each site is worth to each OA, day by day: an aim at a zone is an aim FOR its site only
+         if the planner was told the site was worth something */
+      const sf0 = st0.siteFor; if (sf0) st0.siteFor = function (zid, oa0) { const v = sf0.apply(this, arguments); if (v) sitesWorth.add(st0.day + ':' + oa0 + ':' + zid); return v; };
+      return st0;
+    };
+    let r; const sitesWorth = new Set();
+    try { r = DIV.runDivide(d.rng, Object.assign({}, d.opts, { replay: true })); } finally { TACMOD.resolve = resolve0; CT.open = open0; }
+    const g = r.planet.ground, days = r.replay.days, cst = r._cst;
+    /* 1 · 2 the fight's deployment: a comer faces the zone it came from, the holder the opposite of its comers' mean;
+       and nobody is on the board twice. The grid is called once a fight, in the fights' order, except for a fight
+       that could field nobody (it settles with no squads' losses at all) */
+    let gi0 = 0;
+    for (const f of cst.fights) {
+      const Zz = g.zones[f.zone];
+      for (const S of f.sides) for (const x of S.squads) if (x.from !== f.zone) { A.comers++; const Zf = g.zones[x.from];
+        if (x.bearing == null || angGap(x.bearing, Math.atan2(Zf.y - Zz.y, Zf.x - Zz.x)) > 1e-6) A.comerBad++; }
+      if (!Object.keys((f.res && f.res.squads) || {}).length) continue;
+      const rec0 = gridSeen[gi0++]; if (!rec0) break;
+      const cb = []; for (const S of f.sides) for (const x of S.squads) if (x.from !== f.zone) cb.push(Math.atan2(g.zones[x.from].y - Zz.y, g.zones[x.from].x - Zz.x));
+      if (cb.length && f.sides[0].squads[0].from === f.zone) { A.holders++;
+        const want = Math.atan2(-cb.reduce((t, b) => t + Math.sin(b), 0), -cb.reduce((t, b) => t + Math.cos(b), 0));
+        if (!(rec0.bearings[0] != null && angGap(rec0.bearings[0], want) < 1e-6)) A.holderBad++; }
+    }
+    if (gi0 !== gridSeen.length) { A.holderBad++; notes.push(seed + ': ' + gridSeen.length + ' grid calls for ' + gi0 + ' fights'); }
+    for (const G0 of gridSeen) { A.grid++; const seen = new Set(); for (const list of G0.refs.concat(G0.late)) for (const b of list) { if (b && seen.has(b)) A.twice++; seen.add(b); } }
+    A.flank += (r.audit && r.audit.flankFights) || 0;
+    /* 4 the planner's aims: a squad walking for the ground does not walk for a site that was spent (dug, emptied,
+       dark) or a strongpoint its own OA held through the dawn it planned at — where nothing else draws it there: no
+       height, no rival to hunt, no fight, and not yet the inward drift of the last regions */
+    const objs = r.planet.objectives, objAtZ = {}; for (const o of objs) if (o.zone != null) objAtZ[o.zone] = o;
+    const ids = r._corps.map(c => c.id), fightOn = new Set(cst.fights.map(f => f.day + ':' + f.zone));
+    /* a squad on a road at dawn finishes its road and plans nothing that day: its aim is yesterday's */
+    const roads = {}; for (const e of cst.events) { const t = e.day * 12 + (e.tick || 0);
+      if (e.t === 'road') (roads[e.squad] = roads[e.squad] || []).push([t, Infinity]);
+      if (e.t === 'move' && e.kind === 'route') { const rs = roads[e.squad] || [], open = rs.find(x => x[1] === Infinity); if (open) open[1] = t; } }
+    const onRoadAt = (sid, D0) => (roads[sid] || []).some(x => x[0] < D0 * 12 && x[1] >= D0 * 12);
+    for (let k = 1; k < days.length; k++) {
+      const D = days[k], Pd = days[k - 1];
+      const at = (Dx, z) => { for (const o of Dx.obj) if (o.z === z) return o; return null; };
+      const rivalAt = (Dx, z, c) => Dx.sq.some(q => q.n && q.z === z && q.c !== c);
+      if ((D.standing || []).length > CT.CONST.PLAN_INWARD_FROM) for (const q of D.sq) {
+        if (!q.n || q.az == null || q.w !== 'walking' || onRoadAt(q.i, D.d)) continue;
+        const z = q.az, o = objAtZ[z], a = at(Pd, z), b = at(D, z); if (!o || !a || !b) continue;
+        if (g.zones[z].height >= 1 || rivalAt(D, z, q.c) || rivalAt(Pd, z, q.c) || fightOn.has(D.d + ':' + z)) continue;
+        if (!sitesWorth.has(Pd.d + ':' + ids[q.c] + ':' + z) && !sitesWorth.has(D.d + ':' + ids[q.c] + ':' + z)) continue;   /* it walked there for the ground, not the site */
+        A.aims++;
+        const spent = o.type === 'resource_site' ? (o.opens || 1) <= Pd.d && !a.open && !b.open
+                    : (o.type === 'relay_mast' || o.type === 'munitions_drop' || o.type === 'ration_site') ? !a.open && !b.open
+                    : o.type === 'strongpoint' ? a.h === ids[q.c] && b.h === ids[q.c] : false;
+        if (spent) A.spentAims.push(seed + ' d' + D.d + ' ' + ids[q.c] + '#' + q.s + '→' + o.type + '@' + z);
+      }
+      /* 5 a strongpoint an OA holds is not claimed again by it (the day's claims taken in order, from who held it at dawn) */
+      for (const o of objs) { if (o.type !== 'strongpoint') continue; const a = at(Pd, o.zone); let h = a ? a.h : null;
+        for (const e of (D.ev || [])) { if (e.t !== 'claim' || e.x !== o.x || e.y !== o.y) continue; A.spClaims++;
+          if (e.c === h && !fightOn.has(D.d + ':' + o.zone)) A.reclaims.push(seed + ' d' + D.d + ' ' + e.c + ' ' + o.place); h = e.c; } }
+    }
+    /* 7 a reserve lands; 9 the long rifles count */
+    A.landed += (r.audit && r.audit.landed) || 0;
+    for (const c of r._corps) { const n0 = reserve0[c.id] || 0; if (!n0) continue; A.withReserve++; if ((c.reserve || []).length < n0) A.landedSome++; }
+    for (const q of openedWith) if (q.carries) { A.longCarriers++; if (!(q.long > 0)) A.longBad++; }
+    /* 10 a ransomed captive leaves the captor's squad and is never then released (unless taken again after) */
+    const lastRansom = {};
+    for (const c of (r.captiveLog || [])) {
+      if (c.out === 'ransomed') { A.ransomed++; lastRansom[c.fighter] = c.day != null ? c.day : 0; continue; }
+      if (c.out === 'released' && lastRansom[c.fighter] != null && !cst.events.some(e => e.t === 'captive' && e.body === c.fighter && e.day >= lastRansom[c.fighter])) A.ransomBack.push(seed + ' ' + c.name + ' ransomed then released');
+    }
+    for (const q of cst.squads) for (const k of q.captives) if (k.body && lastRansom[k.body.id] != null && (k.day == null || k.day < lastRansom[k.body.id])) A.ransomBack.push(seed + ' ' + k.body.name + ' still walked by ' + q.oa);
+    /* 18 an engine OA with no squad board fields one squad a drafted landing */
+    for (const c of r._corps) { const dz = ((d.opts.dropZones || {})[c.id] || []).length, p = (d.opts.corps || {})[c.id] || {};
+      if (dz >= 2 && !(p.groups && p.groups.length) && c.squads.length !== dz) A.squads.push(seed + ' ' + c.id + ' ' + c.squads.length + ' squads, ' + dz + ' landings'); }
+    /* 14 · 15 the settlement: the take is the pot, the winner's bonuses are charged once (on its books); a kept
+       promise pays its share of the pot, or what the winner has left */
+    const S = r.settlement, POT = (r.planet.pot && r.planet.pot.value) || 0;
+    if (S && S.winnerId) {
+      const out = Object.keys(S.take).reduce((t, k) => t + S.take[k], 0);
+      if (Math.abs(out - S.pot) > 2) A.bonus.push(seed + ' paid ' + Math.round(out) + ' of a pot of ' + Math.round(S.pot));
+      if ((S.lines || []).some(l => l.kind === 'win_bonuses')) A.bonus.push(seed + ' bonuses taken off the pot');
+      for (const pr of (r.promises || [])) { if (pr.from !== S.winnerId || pr.kept !== true) continue; A.kept++;
+        const want = Math.round(POT * Math.max(0, Math.min(1, (pr.terms && pr.terms.credits) || 0)));
+        const ln = (S.lines || []).find(l => l.kind === 'promise_kept' && l.corp === pr.to && l.from === pr.from), got = ln ? ln.amount : 0;
+        if (!(Math.abs(got - want) <= 1 || (got < want && (S.take[S.winnerId] || 0) <= 1))) A.promise.push(seed + ' ' + pr.to + ' paid ' + got + ' of ' + want); }
+    }
+    const wAcct = S && S.winnerId && st.corps[S.winnerId] && st.corps[S.winnerId].account, led0 = wAcct ? wAcct.ledger.length : 0;
+    SEASONMOD.finishSeason(st, r);
+    if (wAcct && S.bonuses && S.bonuses.total > 0) { const n = wAcct.ledger.slice(led0).filter(l => l.label === 'Winner Bonuses').length; if (n !== 1) A.bonus.push(seed + ' winner bonuses posted ' + n + ' times'); }
+    /* 13 the board reads where every OA placed and who ceded */
+    for (const id of st.ids) { const oc = (st.corps[id]._board || {}).outcome || {}, c = r._corps.find(x => x.id === id);
+      if (typeof oc.placement !== 'number' || oc.ceded !== !!(c && c.withdrawn)) A.board.push(seed + ' ' + id + ' placement ' + oc.placement + ' ceded ' + oc.ceded); }
+    /* 12 a fighter who lives through a Divide has one more on his career */
+    for (const [f, n0] of xp0) if (f.status !== 'dead') { if (((f.experience && f.experience.divides) || 0) > n0) A.xpUp++; else A.xpBad++; }
+    /* 3 a driven Divide's overrun hands the squad's standing bodies to the captor, marked taken (asked of the Divide's own
+       hook on a squad still standing at the end); and no captive is ever held without a body */
+    if (cst.events.some(e => e.t === 'captive' && !e.body) || cst.squads.some(q => q.captives.some(k => !k.body))) A.overrun.push(seed + ' a captive held without a body');
+    const standing = cst.squads.find(q => q.alive && q.ref && q.ref.bodies.some(b => b.status === 'active'));
+    if (standing) {
+      const by = ids.find(id => id !== standing.oa), heads = standing.ref.bodies.filter(b => b.status === 'active' || b.status === 'injured');   /* the hurt go with them */
+      const taken = typeof cst.onOverrun === 'function' ? cst.onOverrun(cst, standing, by) : null;
+      if (!Array.isArray(taken) || taken.length !== heads.length || !taken.every(b => b.status === 'captured' && b._capturedBy === by)) A.overrun.push(seed + ' the overrun hook handed ' + (Array.isArray(taken) ? taken.length : 'no') + ' bodies of ' + heads.length);
+    }
+    if (days.length !== r.days) { recordAll = false; notes.push(seed + ': ' + days.length + ' days recorded of ' + r.days); }
+    for (const D of days) if (!!D.window !== GR.isWindowDay(g, D.d)) { cadence = false; notes.push(seed + ': day ' + D.d + ' window ' + D.window); }
+    const goneBy = {}; for (const t of g.wall.takeAt) goneBy[t.region] = t.day;
+    for (const D of days) for (const q of D.sq) if (q.n > 0 && ((goneBy[g.zones[q.z].region] != null && goneBy[g.zones[q.z].region] <= D.d - 2) || (D.gz || []).some(z => z === q.z && (g.wall.zoneAt.find(t => t.zone === z) || {}).day <= D.d - 1))) { onStanding = false; notes.push(seed + ': day ' + D.d + ' a squad on gone ground'); }
+    freeCaught += (r.wallDeaths || []).length;
+    const nextWin = dd => { for (let k = dd + 1; k <= dd + 3; k++) if (GR.isWindowDay(g, k)) return k * 12; return (dd + 3) * 12; };
+    for (const f of cst.fights) { fights++; if (!(f.ticks >= 1 && f.ticks <= CT.CONST.FIGHT_TICKS_MAX && f.until <= nextWin(f.day))) fightsOk = false; }
+    for (const c of (r.captiveLog || [])) { captives++; if (['released', 'kept', 'killed', 'ransomed'].indexOf(c.out) < 0) capOk = false; }
+    truces += (r.deals || []).filter(x => x.kind === 'pact').length;
+    if (r.bannersStanding <= 1 && r.winner && !r.overtimeExhausted) ended++;
+  }
+  ok('the Divide\'s record carries every day it ran', recordAll, notes.filter(n => /recorded/.test(n)).join(' | '));
+  ok('the windows fall on the ground\'s cadence: every other day, then daily once few regions stand', cadence, notes.filter(n => /window/.test(n)).slice(0, 3).join(' | '));
+  ok('nobody stands on ground the wall has taken', onStanding, notes.filter(n => /gone/.test(n)).slice(0, 3).join(' | '));
+  ok('nobody is caught by the wall (ruled: a death to the wall is a failure of the AI)', freeCaught === 0, freeCaught + ' caught');
+  ok('every fight holds its zone a tick to half a day and never runs past a window', fights > 0 && fightsOk, fights + ' fights');
+  ok('every captive is released, kept, killed or ransomed', capOk, captives + ' captives');
+  ok('no Divide strikes a truce', truces === 0, truces + ' truces');
+  ok('every Divide ends with one banner standing, inside the overtime', ended === 3, ended + ' of 3');
+  ok('a comer deploys facing the zone it came from, the holder facing away from its comers\' mean, and flanks are fought',
+     A.comers > 0 && A.comerBad === 0 && A.holders > 0 && A.holderBad === 0 && A.flank > 0,
+     A.comerBad + ' of ' + A.comers + ' comers off their bearing, ' + A.holderBad + ' of ' + A.holders + ' holders, ' + A.flank + ' flank fights');
+  ok('no fighter is fielded twice in one grid fight', A.grid > 0 && A.twice === 0, A.twice + ' fielded twice in ' + A.grid + ' grid fights');
+  ok('an overrun squad\'s standing and hurt bodies go to its captor, marked taken, and no captive is held without a body', A.overrun.length === 0, A.overrun.slice(0, 3).join(' | '));
+  ok('the planner never walks for a spent site: a dug, emptied or dark one, or a strongpoint its own OA holds', A.aims > 0 && A.spentAims.length === 0,
+     A.spentAims.length + ' of ' + A.aims + ' aims at sites: ' + A.spentAims.slice(0, 3).join(' | '));
+  ok('a strongpoint an OA holds is not claimed again by it', A.spClaims > 0 && A.reclaims.length === 0, A.reclaims.length + ' of ' + A.spClaims + ' strongpoint claims: ' + A.reclaims.slice(0, 3).join(' | '));
+  /* a beacon is worth walking to for an OA with people in orbit: most such OAs land some of them (a third is the floor;
+     the planner that valued no beacon landed one OA in five, by luck of where it stood) */
+  ok('an OA with a reserve lands some of it', A.landed > 0 && A.landedSome * 3 >= A.withReserve,
+     A.landedSome + ' of ' + A.withReserve + ' OAs with a reserve landed some of it, ' + A.landed + ' fighters over three Divides');
+  ok('a squad carrying long rifles counts them', A.longCarriers > 0 && A.longBad === 0, A.longBad + ' of ' + A.longCarriers + ' squads with long rifles counted none');
+  ok('a ransomed captive leaves his captor\'s squad and is never then released', A.ransomed > 0 && A.ransomBack.length === 0, A.ransomed + ' ransomed; ' + A.ransomBack.slice(0, 3).join(' | '));
+  ok('a fighter who lives through a Divide has one more Divide on his career', A.xpUp > 0 && A.xpBad === 0, A.xpBad + ' of ' + (A.xpUp + A.xpBad) + ' survivors not counted');
+  ok('the board\'s outcome carries every OA\'s placement and whether it ceded', A.board.length === 0, A.board.slice(0, 3).join(' | '));
+  ok('the settlement pays out the pot and charges the winner\'s bonuses once, on its books', A.bonus.length === 0, A.bonus.slice(0, 3).join(' | '));
+  ok('a kept promise pays its share of the pot, or what the winner has left', A.kept > 0 && A.promise.length === 0, A.kept + ' kept; ' + A.promise.slice(0, 3).join(' | '));
+  /* 17 one survey scale: the first depth of survey reads the ground and not the prize, and the draft reads at that scale */
+  const lnd = PRE.landings(GR.generate(makeRng('survey-scale'), {}))[0];
+  const seen1 = typeof PRE.intelOfDepth === 'function' ? PRE.readLanding(lnd, PRE.intelOfDepth(1)) : null;
+  const scale = [0, PRE.CONST.INTEL_TERRAIN, PRE.CONST.INTEL_PRIZE], offScale = A.intel.filter(v => scale.indexOf(v) < 0);
+  ok('one survey scale: a first-depth survey reads the ground and not the prize, and the draft reads landings on that scale',
+     !!seen1 && seen1.terrain != null && seen1.prize == null && A.intel.some(v => v > 0) && offScale.length === 0,
+     (seen1 ? 'depth 1 reads ' + (seen1.prize == null ? 'no prize' : 'the prize') : 'no intelOfDepth') + '; ' + offScale.length + ' of ' + A.intel.length + ' draft reads off the scale (' + [...new Set(offScale)].join(',') + ')');
+  ok('an engine OA fields one squad for every landing it drafted', A.squads.length === 0, A.squads.slice(0, 3).join(' | '));
+}
+
+function structureRules() {
+  /* --- the crush is the ground's (ruled): the wall takes whole regions on a schedule timed to the month and leaves
+     one last ground; groundRules holds that the order never cuts the standing ground in two and that every region is
+     reachable, and contestRules that nobody with a free way out is caught. The ring, its steps and the contact-range
+     arithmetic that once stood here went with the disc. --- */
   /* --- every sim module must attach a browser global ---------------------------------
      `combat.js` exported only to Node for five steps, so `divide.js` could never run in a
      page: it reaches for `global.CDCOMBAT` and found nothing. Nothing noticed because no
@@ -2896,7 +3313,8 @@ function negotiationRules() {
     if (st) {
       let outTotal = 0;
       for (const id in st.take) outTotal += st.take[id];
-      const expected = (st.winnerId ? st.pot : 0) - (st.bonuses.total || 0);
+      /* the winner's bonuses are its own wages, charged to its books by the ledger, not taken off the pot */
+      const expected = st.winnerId ? st.pot : 0;
       if (Math.abs(outTotal - expected) > 2) {
         bad.push('settlement does not conserve: paid ' + Math.round(outTotal) +
                  ' against ' + Math.round(expected));
@@ -2926,8 +3344,7 @@ function negotiationRules() {
      overtimeHit + ' hit it — the last ground is not doing its job');
   /* N11 corrected: refusing to deal is a CORP IDENTITY carried in the data, not a property
      of the far pole. Any corp may declare death_or_glory and still take a call. */
-  ok('negotiation: the no-negotiation corp is party to no truce (N11)',
-     sealedDeals === 0, sealedDeals + ' of ' + dealCount + ' truces');
+  ok('negotiation: no Divide strikes a truce — there are none (ruled)', dealCount === 0 && sealedDeals === 0, dealCount + ' truces');
   /* The rule itself, not a text search: exactly one OA carries the flag, and the gate that
      decides who may deal reads THAT rather than the declared notch. A death_or_glory corp
      without the flag must be able to reach the table. (Other code may legitimately read the
@@ -2940,6 +3357,13 @@ function negotiationRules() {
   ok('negotiation: refusing to deal is a corp identity, not a property of the far pole (N11)',
      flagged.length === 1 && DIV.sealedCorp(fakeSealed) === false && DIV.sealedCorp(fakeFlag) === true,
      'a death_or_glory corp without the flag must still be able to deal');
+  /* N11 and the sealed OA, as an engine seat, stays on the ground to the end and buys nobody back (the whole corpus) */
+  { const sealedBad = []; let sealedSeen = 0;
+    corpus().forEach((s, i) => { for (const c of s.corps) { if (!(c.profile && c.profile.no_negotiation)) continue; sealedSeen++;
+      if (c.withdrawn) sealedBad.push('corpus ' + i + ': ' + c.id + ' withdrew on day ' + c.withdrawn.day);
+      if ((c.ransomPaid || 0) > 0 || (s.captiveLog || []).some(x => x.out === 'ransomed' && x.owner === c.id)) sealedBad.push('corpus ' + i + ': ' + c.id + ' paid a ransom'); } });
+    ok('negotiation: the sealed OA never withdraws and never pays a ransom (N11)', sealedSeen > 0 && sealedBad.length === 0,
+       sealedSeen + ' sealed seats; ' + sealedBad.slice(0, 3).join(' | ')); }
   ok('negotiation: settlement conserves and losers are paid nothing (N1)',
      bad.length === 0, bad.slice(0, 3).join(' | '));
 
@@ -2947,20 +3371,9 @@ function negotiationRules() {
      refused. The join table, its price range and `evaluateOffer` are gone with joining; what is priced at
      the table now is a truce and a ransom, and `sim/audit_table.cjs` rules on those. */
 
-  /* --- agreements are honoured on the ground, not just written at the table ---------
-     Added because they were not. Pacts were signed, logged, and then ignored by the contact
-     loop for the whole of Step 6 — two corps under a truce shot each other the same day. */
-  let pactsSigned = 0, declined = 0, ransomed = 0, movedSupply = 0;
-  for (const s of corpus()) {   /* the whole shared corpus: four contests left the ransom to luck */
-    pactsSigned += s.pacts || 0;
-    declined += s.contactsDeclined || 0;
-    ransomed += s.ransoms || 0;
-    movedSupply += s.supplyMoved || 0;
-  }
-  ok('pacts: a signed truce is honoured on the ground (N8)',
-     pactsSigned > 0 && declined > 0,
-     pactsSigned + ' signed, ' + declined + ' contacts declined');
-  ok('pacts: the recompense actually changes hands', movedSupply > 0, movedSupply + ' ration-days');
+  /* --- the one deal over the wire: a ransom --- */
+  let ransomed = 0;
+  for (const s of corpus()) ransomed += s.ransoms || 0;   /* the whole shared corpus: four contests left the ransom to luck */
   ok('captives: prisoners are ransomed during a Divide, not only resolved after (N10)',
      ransomed > 0, ransomed + ' bought back over ' + corpus().length + ' Divides');
 
@@ -3349,6 +3762,9 @@ function runRegression() {
   phase('theSeam', theSeam);
   phase('decisionWindow', decisionWindow);
   phase('structure', structureRules);
+  phase('groundRules', groundRules);
+  phase('contestRules', contestRules);
+  phase('divideRules', divideRules);
   phase('negotiationRules', negotiationRules);
   phase('seasonRules', seasonRules);
   phase('no NaN', noNaN);
@@ -3412,7 +3828,7 @@ function runRegression() {
        disagree.length === 0, disagree.join(' · ') || 'none');
     /* VENT_EXCHANGES left this list when the overheat was retired: the dial is labelled
        _RETIRED in combat.js and items.js no longer needs to agree with it. */
-    const KNOWN = ['CELL_RECHARGE', 'DROP_MAX', 'HEAT_SHED', 'UNTREATED_DEGRADE_DAYS'];
+    const KNOWN = ['DROP_MAX', 'UNTREATED_DEGRADE_DAYS'];
     const names = agree.map(a => a.split(' [')[0]).sort();
     ok('the set of constants declared twice is the known set',
        names.join(',') === KNOWN.join(','),

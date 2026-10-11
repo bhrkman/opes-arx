@@ -13,12 +13,12 @@
     require('./ledger.js'), require('./reputation.js'), require('./divide.js'),
     require('./combat.js'), require('./tactical.js'), require('./map.js'),
     require('./negotiate.js'), require('./sponsors.js'), require('./predivide.js'),
-    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'));
+    require('./trade.js'), require('./events.js'), require('./talks.js'), require('./staff.js'), require('./facilities.js'), require('./ground.js'));
   else root.CDSEASON = factory(root.CDPRNG, root.CDROSTER, root.CDITEMS,
                                root.CDLEDGER, root.CDREP, root.CDDIVIDE, root.CDCOMBAT,
                                root.CDTACTICAL, root.CDMAP, root.CDNEG, root.CDSPONSOR,
-                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC);
-}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC) {
+                               root.CDPREDIVIDE, root.CDTRADE, root.CDEVENTS, root.CDTALKS, root.CDSTAFF, root.CDFAC, root.CDGROUND);
+}(typeof self !== 'undefined' ? self : this, function (P, ROSTER, ITEMS, LED, REP, DIVIDE, C, TAC, MAP, NEG, SPON, PRE, TRADE, EVENTS, TALKS, STAFF, FAC, GROUND) {
   'use strict';
 
   /* §SEEDS ONE SEED PER CAREER, AND EVERY ROLL IS NAMED. A career's world seed is drawn once, at the founding,
@@ -38,6 +38,20 @@
 let CENSUS = null;
 function useCensus(fn) { CENSUS = fn || null; }
 function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + ':' + key)); }
+  /* §GROUND THE YEAR'S WORLD. The ground (regions and zones, the wall's order, the sites) is generated from the world
+     seed and the season — the page draws the same one from the same key — and the planet dossier is drawn around it:
+     the same archetype, the ground's composition and richness, and its sites as the objectives the board, the
+     scouting and the settlement read. One world, two readings of it. */
+  function worldFor(corps, season) {
+    const ground = GROUND.generate(rngOf(corps, 'ground' + season), {});
+    ground.season = season;
+    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), { archetype: ground.archetype });
+    planet.ground = ground;
+    planet.composition = ground.composition; planet.richness = ground.pot ? ground.pot.richness : planet.richness;
+    planet.objectives = GROUND.objectivesOf(ground);
+    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    return { ground, planet };
+  }
 
   const CONST = {
     /* --- the roster (S2, S3) --- */
@@ -61,7 +75,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        than it was (33 points against 25). Nobody has played this yet, so the figure is not
        evidence of anything; the structure is what is being changed. */
     PREP_MONTHS: 11,             // [S] M1-M11. M12 is the Divide.
-    PREP_MONTH_DAYS: 30,         // [S] healing and recovery run at this rate, per month
     /* RULED — THE FOCUS SYSTEM replaces action points. Everything happens every month;
        focus STRENGTHENS it. Eight points, at most three on any one track, and the
        calibration that kept the fleet's year recognizable: THREE FOCUS EQUALS ONE OLD
@@ -254,15 +267,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        which is what the cap is for. Not fitted to anything — nobody has played a full career
        yet — but the SHAPE is the point: preparation shows up as money at the moment of the
        signing, and a manager who ignored the window still gets to bid. */
-    MERC_FAME_SPAN: 120,      // [C] the span of fleet standing a free agent reads across, from
-                              //     loathed at -120 to famous at +120. Not fitted to anything:
-                              //     it exists so the term VARIES, which it never did.
     MERC_UNKNOWN_RECORD: 0.72,// [C] assumed survival rate for a corp with no history yet
     DIVIDEND_PURSE: 18000,       // [H] prestige money for the winning corp
     DIVIDEND_WITHDRAWAL_POINTS: 3, // [C] calling it off in front of the crowd is the knockout
     DIVIDEND_FAME: 2,            // [C] crowd standing for showing up and being seen
     DIVIDEND_FAME_WIN: 3,        // [C] and for winning in front of them
-    OFFSEASON_DAYS: 330,         // [S] eleven months between the Divide and the next lock
 
     ROSTER_MIN: 16, ROSTER_MAX: 40, ROSTER_TARGET: 28,
     SIGNING_SHARE: 0.5,          // [H] of free cash a corp will put into new contracts
@@ -806,7 +815,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         tally.fought++;
       }
       if (winner) {
-        LED.post(winner.account, 'income', 'Dividend purse', CONST.DIVIDEND_PURSE);
+        LED.post(winner.account, 'income', 'Dividend Purse', CONST.DIVIDEND_PURSE);
         /* §HALF-BUILT the Dividend taken is a thing the fleet and your own people notice (`took_the_purse`,
            written and never raised) */
         if (winner.rep) REP.act(winner.rep, 'took_the_purse', {});
@@ -1112,7 +1121,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       f._fameAtSigning = f.fame || 0;
       pick.corp.roster.push(f);
       if (pick.corp.rep) REP.act(pick.corp.rep, kind === 'mercs' ? 'hired_a_gun' : 'signed_our_own', { scale: Math.min(1, (f.fame || 0) / 60) });
-      LED.post(pick.corp.account, 'expense', kind + ' signing',
+      LED.post(pick.corp.account, 'expense', kind.charAt(0).toUpperCase() + kind.slice(1) + ' Signing',
                -((f.contract && f.contract.signing_cost) || 0));
       tally.signed++;
       /* who got them, and what everybody else offered — so a manager can be TOLD they were
@@ -1311,10 +1320,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       f._fameAtSigning = f.fame || 0;
       c.roster.push(f);
       if (c.rep) REP.act(c.rep, 'took_a_conscript', {});
-      LED.post(c.account, 'expense', 'Kier processing', -fee);
+      LED.post(c.account, 'expense', 'Kier Processing', -fee);
       const bought = sentence - win.term;
       if (bought > 0) {
-        LED.post(c.account, 'expense', 'Kier remission', -(pool.remission_per_divide * (sentence - win.term)));
+        LED.post(c.account, 'expense', 'Kier Remission', -(pool.remission_per_divide * (sentence - win.term)));
         tally.remission += bought;
       }
       tally.signed++;
@@ -1334,11 +1343,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
    *
    * `DESIGN.md` §4: the year is five two-month turns, then M11 lock, then M12 the Divide.
    * T1 season open · T2 Nattie tryouts · T3 survey drip · T4 Kier Bastille auction ·
-   * T5 merc deadline and last pacts.
+   * T5 merc deadline.
    *
    * Until Step 8.6 none of it existed. `offseason()` aged everybody, healed everybody to full,
    * signed some people and returned — eleven months in one call, with no decision anywhere in
-   * it. The healing was the tell: a flat `OFFSEASON_DAYS 330` subtracted from every wound in a
+   * it. The healing was the tell: a flat 330 days subtracted from every wound in a
    * single pass, which cures anything the game can inflict, so injuries could never persist
    * into a second season and a manager never had to choose between mending someone and doing
    * anything else.
@@ -1611,8 +1620,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   /* THE PLANET'S ROWS, RE-CUT AS NUMBERS. 'demand' left — the board says what it wants for
      free on its own tab. 'sites' is new: what is actually in the ground, in the board's own
      units, is what a manager plans against. 'sectors' stays, because it buys something real —
-     the landing ring's reading at the lock (the ground, the prize, who else is landing
-     where) — and its text now says so. */
+     the drop's reading at the lock (the ground, the prize, who else is landing where) — and
+     its text now says so. */
   const INTEL_PLANET_ROWS = ['ground', 'veins', 'sites', 'terrain', 'hazards', 'supply', 'sectors'];
   const INTEL_FAT_ROWS = { sectors: 2 };   /* sectors costs 2 level-units per level — 6 to fill,
                                               making the planet a 24-level sheet (6×3 + 6) */
@@ -1622,6 +1631,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* a new planet each year: the planet sheet resets, rival sheets persist and decay */
       const prior = corp._intel && corp._intel.rivals ? corp._intel.rivals : {};
       corp._intel = { season: season, planet: { rows: {} }, rivals: prior };
+      /* §SPONSORS a survey fee standing reads every row of the new world a step (or two) deeper before anyone looks */
+      const fee = SPON && SPON.standingValue ? Math.round(SPON.standingValue(corp, 'scoutwork')) : 0;
+      if (fee > 0) for (const k of INTEL_PLANET_ROWS) corp._intel.planet.rows[k] = { depth: Math.min(3, fee), gathered: 0 };
     }
     return corp._intel;
   }
@@ -1941,8 +1953,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
 
     /* --- and then the corp spends what it has --- */
-    /* WHAT THE LAST FEW MONTHS BOUGHT, before anybody spends this one. */
-    corp._month = month;
     /* §HALF-BUILT the delayed-intel queue (`schedule`/`resolvePending`) is gone: intel lands when it is read,
        and nothing had queued anything since — the queue was emptied every month and never filled */
     const landed = [];
@@ -1990,7 +2000,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (boosts[kind]) {
         const bill = fpts * CONST.BOOST_PER_POINT;
         if ((corp.account.treasury || 0) >= bill) {
-          LED.post(corp.account, 'expense', kind + ' boost', -bill);
+          LED.post(corp.account, 'expense', kind.charAt(0).toUpperCase() + kind.slice(1) + ' Boost', -bill);
           mult = 2;
           tally.boosted = (tally.boosted || 0) + fpts;
           tally.boostSpend = (tally.boostSpend || 0) + bill;
@@ -2233,7 +2243,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* --- development: the mind grows with what it has survived --- */
       const onGround = !!f._droppedLastSeason;
       const rate = CONST.DEVELOP_BASE * (onGround ? 1 : CONST.DEVELOP_BENCH_FRAC)
-                 * (f.age < a.prime[0] ? CONST.DEVELOP_GREEN_MULT : 1);
+                 * (f.age < a.prime[0] ? CONST.DEVELOP_GREEN_MULT : 1)
+                 /* §SPONSORS a school standing: the unproven (a Divide or none behind them) learn faster */
+                 * ((((f.experience || {}).divides || 0) <= 1 && SPON.standingValue) ? 1 + SPON.standingValue(corp, 'schooling') : 1);
       /* `potential` is a single ceiling, not a map — the highest this person could ever be
          at anything. It has been rolled and hidden since Step 2 and nothing has ever
          approached it, because nobody has ever had a second season. */
@@ -2256,16 +2268,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       if (f.status === 'retired') { out.retired.push(f); continue; }
 
       /* --- what the TURN OF THE YEAR does, which is not the same as what the year does ---
-         This used to subtract a flat `OFFSEASON_DAYS 330` from every wound in one pass, set
+         This used to subtract a flat 330 days from every wound in one pass, set
          fatigue to 0 and health to 100, and it ran before anything else could look at the
          damage. 330 days cures everything the game can inflict, so no injury had ever survived
          into a second season and no manager had ever had to decide what to do about one.
 
          The mending now happens across the eleven prep months (S16), a month at a time, and a
          corp spends action points to speed it. What is left here is the turn of the year
-         itself: the body is a year older, and grief fades. `PREP_MONTH_DAYS x 11 = 330` of
-         natural healing plus whatever treatment was bought, against 330 given free — so a bad
-         wound can now still be on the books at the lock, which is the point. */
+         itself: the body is a year older, and grief fades — so a bad wound can now still be on
+         the books at the lock, which is the point. */
       if (f.condition) {
         const inj = f.condition.injuries || [];
         let careerEnding = false, permanent = 0;
@@ -2354,7 +2365,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
     let spend = 0;
     for (const f of signed) spend += (f.contract && f.contract.signing_cost) || 0;
-    if (spend) LED.post(corp.account, 'expense', 'signings', -spend);
+    if (spend) LED.post(corp.account, 'expense', 'Signings', -spend);
     corp.roster = corp.roster.concat(signed);
     return { signed: signed.length, cost: spend };
   }
@@ -2551,6 +2562,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         REP.act(corp.rep, 'let_a_veteran_go', { scale: Math.min(1, years / 6 + (f.fame || 0) / 120), grave: (f.fame || 0) >= 60 || years >= 5 });
     }
     if (gone.length) corp.roster = corp.roster.filter(f => gone.indexOf(f) < 0);
+    out.gone = gone.map(f => f.id);   /* ids: a fighter has one owner in a save */
     return out;
   }
 
@@ -2670,7 +2682,17 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const fitLeads = fit.filter(f => !f.mirror_of).length;
       want = Math.max(CONST.DROP_MIN, Math.min(want, fitLeads - keep));
     }
-    const picked = fit.slice().sort((a, b) => score(b) - score(a)).slice(0, Math.min(want, fit.length));
+    /* §MON-WA one being in two bodies goes down as one: picked as a pair on its lead's merit, or not at all (sorted
+       body by body, half a pair could drop and the other half stay in orbit or on the bench) */
+    const mateOf = f => f.mirror_of ? fit.find(x => x.id === f.mirror_of) : fit.find(x => x.mirror_of === f.id);
+    const units = []; const placed = new Set();
+    for (const f of fit.slice().sort((a, b) => score(b) - score(a))) {
+      if (placed.has(f.id)) continue;
+      const m = mateOf(f), u = m ? (f.mirror_of ? [m, f] : [f, m]) : [f];
+      for (const x of u) placed.add(x.id); units.push(u);
+    }
+    const cap = Math.min(want, fit.length), picked = [];
+    for (const u of units) if (picked.length + u.length <= cap) picked.push(...u);
     /* THE WALKING WOUNDED. A roster can hold twenty and still not field sixteen, because the
        drop takes only the uninjured — and S14 caught a force of fifteen going down. A corp
        that is short does not send a thin squad; it sends people who should be in a bunk. They
@@ -2705,7 +2727,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       LED.callOnBoard(corp.account, corp.rep, shortfall, REPMOD);
       called = shortfall;
     } else {
-      LED.post(corp.account, 'income', 'board underwrite', shortfall);
+      LED.post(corp.account, 'income', 'Board Underwrite', shortfall);
       corp.underwritten = true;
       if (corp.rep) corp.rep.patience = CONST.UNDERWRITE_PATIENCE_FLOOR;
       underwritten = true;
@@ -2727,7 +2749,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     } else {
       /* THE UNDERWRITE (S5, S12) — the board pays the lot and expects the year of its life.
          Nobody is ever struck from a Divide for being poor; they are struck from a career. */
-      LED.post(corp.account, 'income', 'board underwrite', shortfall);
+      LED.post(corp.account, 'income', 'Board Underwrite', shortfall);
       corp.underwritten = true;
       if (corp.rep) corp.rep.patience = CONST.UNDERWRITE_PATIENCE_FLOOR;
       underwritten = true;
@@ -3026,7 +3048,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                                : offseason(rngOf(corps, 'off' + season + id), c);
       c._off = off;
       /* §STAFF the backroom's year: Craft grows in post, people age and retire, contracts come due */
-      c._staffTurn = season === 1 ? { retired: [], due: [] } : STAFF.yearTurns(c, season);
+      if (season > 1) STAFF.yearTurns(c, season);
       c._staffPaid = 0;
     }
 
@@ -3042,23 +3064,15 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       c._prep = { focus: 0, acts: {}, mended: 0, treated: 0, trained: 0, scouted: 0, windows: {} };
-      /* NO OUTCOME CROSSES THE TURN OF THE YEAR. `schedule` already refuses anything that would
-         land after M11, so this cannot normally be non-empty — it is cleared anyway, because
-         the one thing that could carry a stale outcome in is a save file written by a build
-         with different rules, and inheriting somebody else's promise is worse than losing it. */
-      c._month = 1;
       /* NOTHING FROM LAST YEAR'S DIVIDE CROSSES INTO THIS ONE. These are all scratch state a
          contest writes and the same contest reads; carried across the turn of the year they
          quietly corrupt the new season — a resource "already banked" that was last year's, kill
-         and worthy-fight tallies double-counted into reputation, last year's pacts seen as still
-         standing, a hook cache answering for last year's roster, a media reveal inflating a
-         negotiation nobody attended. Each is a "loads fine, behaves differently" fault. Cleared
-         here, beside `_pending`, for the same reason. */
+         and worthy-fight tallies double-counted into reputation, a hook cache answering for last
+         year's roster, a media reveal inflating a negotiation nobody attended. Each is a "loads
+         fine, behaves differently" fault. */
       c._banked = {};
       c._killsBy = {};
       c._worthyFights = 0;
-      c._pactsSigned = {};
-      c._pactBrokeWith = null;
       c._hookCache = {};
       c._mediaReveal = 0;
       /* SPONSORS: the year's board opens. Each house backs at most one OA; you court with focus
@@ -3087,12 +3101,11 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
        seeded from both. */
     const worldSeed = corps[ids[0]]._worldSeed != null ? corps[ids[0]]._worldSeed : Math.floor(rng() * 1e9);
     for (const id of ids) corps[id]._worldSeed = worldSeed;   /* opened by openFleet already; a hand-built fleet draws it here */
-    const planet = MAP.generatePlanet(rngOf(corps, 'planet' + season), {});
     /* THE POT IS PART OF THE ANNOUNCEMENT. Board interest reads `planet.pot.richness`, and a
        planet without one falls to a neutral 0.5 — silently, with no error and no crash, so
        every board in the fleet would have been exactly as interested in every rock for ever.
        Caught by measuring the interest figure across three seasons and finding one value. */
-    planet.pot = NEG.rollPot(rngOf(corps, 'pot' + season), planet.archetype, planet.richness);
+    const world = worldFor(corps, season), planet = world.planet, ground = world.ground;
     /* §STANDING each house watches the others with the taste of the stands it has now */
     for (const id of ids) {
       const c = corps[id];
@@ -3113,14 +3126,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
 
     const seats = humansOf(opts);
     const state = {
-      rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet,
+      rng, corps, profiles, opts, ids, season, rec, month: 1, done: false, planet, ground,
       /* the drop's floor and what the board charges in patience to fill it, for the dispatch that warns of it */
       rosterMin: CONST.ROSTER_MIN, scrapePatience: CONST.SCRAPE_PATIENCE,
       /* §CONTROLLER who holds each seat: a person, or the engine */
       controllers: ids.reduce((m, id) => { m[id] = seats.indexOf(id) >= 0 ? 'human' : 'ai'; return m; }, {}),
       lots: {}, bids: { tryouts: {}, mercs: {}, bastille: {} },
       /* the seam: everything decided at M11 that the Divide will read */
-      drop: { sectors: {}, media: {} },
+      drop: { media: {} },
       dividend: { matches: 0, fought: 0, purses: 0, conversions: 0, draws: 0 },
       mercs: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
       tryouts: { lot: 0, bids: 0, signed: 0, refused: 0, unbid: 0, tookLessForSafety: 0 },
@@ -3128,6 +3141,18 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* the year's sponsor board — one commitment per house, cost falls as it fills (Courting) */
       sponsorBoard: SPON.openBoard(SPON.houseIds())
     };
+    /* §PAPER RENEWED AT THE TURN. A contract runs out at the turn of the year, and that is when it is renewed or not —
+       on the calls the manager made over the year, and the engine's own. This ran at the Lock, eleven months later,
+       on the men the turn had already taken off the roster, and put none of them back: a renewal was paid and the
+       man was gone, so nobody ever served a fifth Divide with one OA. */
+    for (const id of ids) {
+      const c = corps[id];
+      if (season > 1) {
+        c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c, c._off.expired, c._off.freed, state);
+        for (const f of c._off.expired.concat(c._off.freed)) if (f.status !== 'dead' && f.status !== 'retired' && f.status !== 'freed' && c.roster.indexOf(f) < 0 && c._renew.gone.indexOf(f.id) < 0) { c.roster.push(f); f.seasonsHere = (f.seasonsHere || 0) + 1; }
+      }
+      c._renewalCalls = {};   /* answered: they were last year's */
+    }
     ensureLot(state);
     openCaptains(state);                /* §TALKS the year opens with its captains named */
     staffPoolOf(state);                 /* §STAFF the year's specialists looking for a post */
@@ -3306,39 +3331,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     return { ok: true, name: f.name, cost: 0, year: year };
   }
 
-  /* ------------------------------------------------------------------------- the seam ---- */
-
-  /**
-   * THE SECTORS, as this corp can see them. What you know is what your survey bought: without
-   * one they are names on a ring, and a corp that spent the year looking knows which ground is
-   * worth arguing over. This is the other half of the survey verb — until now it paid a flat
-   * readiness number nobody could point at.
-   */
-  function sectorsFor(state, corpId) {
-    const c = state.corps[corpId];
-    const secs = PRE.sectors(state.planet);
-    const taken = {};
-    for (const id of state.ids) {
-      const pick = (state.drop.sectors || {})[id];
-      if (pick != null && id !== corpId) taken[pick] = (taken[pick] || 0) + 1;
-    }
-    /* the planet dossier's `sectors` row is what buys ground detail now: its depth maps onto
-       the reader's thresholds — 1 = the ground (terrain), 2+ = the prize, and it also unlocks
-       seeing which rivals chose where. (Gather Intel replaced the old flat `_scouted` scalar.) */
-    const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
-    const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1
-                   : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE
-                   : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
-    return secs.map(sec => {
-      const seen = PRE.readSector(sec, secIntel);
-      /* who ELSE you know is going there. You only see a rival's choice if you scouted the
-         sectors — otherwise the first you know of it is on the ground. */
-      seen.rivals = secIntel >= PRE.CONST.INTEL_TERRAIN ? (taken[sec.index] || 0) : null;
-      seen.yours = (state.drop.sectors || {})[corpId] === sec.index;
-      return seen;
-    });
-  }
-
   /* ------------------------------------------------------------------------ THE DRAFT ---- */
   /** The 24 slots are drafted at the lock, strictly lowest standing first, three rounds. A
       OA picks when its turn comes — an AI by chooseSlot, a human through draftPick — and
@@ -3349,13 +3341,10 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      matched NOTHING about the rule, which allows six. An OA that split into six squads got
      three landings and the engine quietly stacked the other three onto the last one, so
      splitting was punished by a coincidence nobody had noticed. Rounds run to the largest
-     count in the fleet, and an OA with fewer simply has no pick in the later rounds. The
-     ring grows with the fleet's appetite so there is always ground to come down on. */
-  /* THE GROUND DOES NOT SHRINK TO FIT THE FLEET. The ring grew with what the fleet meant to
-     field, which made the map a function of the OAs on it; the planet has the landings it
-     has (`PRE.CONST.SLOTS`), and a light fleet simply leaves most of them unclaimed. Ground
-     going unused is the point — an OA that scouted knows which of it was worth having. */
-  const SLOT_MIN = 48;
+     count in the fleet, and an OA with fewer simply has no pick in the later rounds. */
+  /* §GROUND THE LANDINGS ARE THE GROUND'S ZONES, all but the last ground's: one squad a zone, one squad a region
+     for each OA. A light fleet leaves most of them unclaimed, which is the point — an OA that scouted knows which
+     of the unused ground was worth having. */
   function squadPlanFor(state, corpId) {
     const c = state.corps[corpId];
     /* §SEATS a person's landings are their squad board's: as many as the squads they have filled (ruled). Read
@@ -3827,6 +3816,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         const gone = !f || f.status === 'dead' || f.status === 'retired' || f.status === 'captured';
         const unfit = !gone && !!(f.condition && (f.condition.injuries || []).length);
         let out;
+        if (pr.kind !== 'drop' && pr.kind !== 'eight') continue;   /* a squad to lead is judged once the squads are dealt (settleLeadPromises) */
         if (pr.kind === 'eight') out = 'void';          /* the Eight was fought without it being settled: nobody's doing */
         else if (gone) out = 'void';
         else if (pr.kind === 'drop') out = drop.has(f.id) ? 'kept' : unfit ? 'void' : 'broken';
@@ -3836,16 +3826,35 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
     }
   }
-  function slotCountFor() { return (PRE.CONST && PRE.CONST.SLOTS) || SLOT_MIN; }
+  /** §TALKS a squad to lead, judged on who led one down: the Divide records each squad's captain at the drop. A
+      captain named who stood in another's squad led nothing (broken); one left off the drop hurt, through nobody's
+      choice, is void. */
+  function settleLeadPromises(state) {
+    const per = (state._divideOpts || {}).corps || {};
+    for (const id of state.ids) {
+      const c = state.corps[id], p = per[id] || {};
+      const led = new Set(p.ledAtDrop || []), drop = new Set(((p.drop || c._drop) || []).map(f => f.id));
+      for (const pr of TALKS.promisesOf(c)) {
+        if (pr.status !== 'open' || pr.season !== state.season || pr.kind === 'drop' || pr.kind === 'eight') continue;
+        const f = c.roster.find(x => x.id === pr.fighterId);
+        const gone = !f || f.status === 'retired' || (f.status === 'dead' && !led.has(f.id));
+        const unfit = !gone && !drop.has(f.id) && !!(f.condition && (f.condition.injuries || []).length);
+        const out = gone ? 'void' : led.has(f.id) ? 'kept' : unfit ? 'void' : 'broken';
+        TALKS.settlePromise(c, pr, out, gone ? null : f);
+        (c._promiseNews = c._promiseNews || []).push({ season: state.season, name: pr.name, kind: pr.kind, outcome: out });
+      }
+    }
+  }
+  function landingsFor(state) { return PRE.landings(state.ground); }
   function ensureDraft(state) {
-    state.drop = state.drop || { sectors: {} };
+    state.drop = state.drop || {};
     if (state.drop.draft && state.drop.draft.season === state.season) return state.drop.draft;
     const order = state.ids.slice().sort((a, b) => strengthRead(state, a) - strengthRead(state, b));   /* weakest first */
     const want = {};
     let rounds = 0;
     for (const id of state.ids) { want[id] = squadPlanFor(state, id); rounds = Math.max(rounds, want[id]); }
     state.drop.draft = { season: state.season, order, round: 0, turn: 0, picks: {}, taken: {},
-                         want, rounds, slots: slotCountFor(state), done: false, log: [] };
+                         want, rounds, slots: landingsFor(state).length, done: false, log: [] };
     for (const id of state.ids) state.drop.draft.picks[id] = [];
     return state.drop.draft;
   }
@@ -3873,7 +3882,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   function draftPick(state, corpId, slot) {
     const D = ensureDraft(state);
     if (D.done || draftWhose(state) !== corpId) return false;
-    if (slot == null || slot < 0 || slot >= D.slots || D.taken[slot] != null) return false;
+    const all = landingsFor(state), l = all.find(x => x.index === slot);
+    if (!l || !PRE.allowed(l, D.taken, D.picks[corpId], all)) return false;   /* free, and not a region it already has a squad in */
     D.taken[slot] = corpId; D.picks[corpId].push(slot); D.log.push({ round: D.round, corp: corpId, slot });
     D.turn++;
     if (D.turn >= D.order.length) { D.turn = 0; D.round++; }
@@ -3921,33 +3931,28 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
      choice made for them */
   function draftAdvance(state, choices, opts) {
     const D = ensureDraft(state);
-    const slots = PRE.slots(state.planet, D.slots);
+    const all = landingsFor(state);
     const strengthOf = id => strengthRead(state, id);
     let guard = 0;
     while (!D.done && guard++ < 64) {
       const who = draftWhose(state);
       const given = choices && choices[who] && Array.isArray(choices[who].slots) ? choices[who].slots[D.round] : undefined;
-      if (given != null && D.taken[given] == null) { draftPick(state, who, given); continue; }
+      if (given != null && draftPick(state, who, given)) continue;
       if (isHuman(state, who) && given == null) {
         if (!(opts && opts.force)) break;
-        const free = slots.find(sl => D.taken[sl.index] == null);
+        const free = all.find(l => PRE.allowed(l, D.taken, D.picks[who], all));
         if (!free) break;
         draftPick(state, who, free.index); D.assigned = (D.assigned || 0) + 1; continue;
       }
       const c = state.corps[who], intel = ((c._intel || {}).planet || { rows: {} }).rows.sectors;
       const depth = intel ? intel.depth : 0;
       const rng = rngOf(state, 'draft' + state.season + who + D.round);
-      let slot = PRE.chooseSlot(rng, c, slots, D.taken, D.picks[who], strengthOf, depth);
-      if (slot == null) slot = slots.find(sl => D.taken[sl.index] == null).index;
+      let slot = PRE.chooseLanding(rng, c, all, D.taken, D.picks[who], strengthOf, PRE.intelOfDepth(depth));
+      if (slot == null) { const free = all.find(l => PRE.allowed(l, D.taken, D.picks[who], all)); slot = free ? free.index : null; }
+      if (slot == null) { D.done = true; break; }
       draftPick(state, who, slot);
     }
     return D;
-  }
-  function chooseDropSector(state, corpId, index) {
-    if (state.month < CONST.PREP_MONTHS) return { ok: false, why: 'The Drop Is Called at the Lock' };
-    state.drop.sectors = state.drop.sectors || {};
-    state.drop.sectors[corpId] = index;
-    return { ok: true };
   }
 
 
@@ -4084,7 +4089,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
                 + ((f.contract && f.contract.salary) || 0) * LED.CONST.SALARY_MONTHS;
           corp.roster.push(f);
         }
-        LED.post(corp.account, 'expense', 'the board fills your roster', -bill);
+        LED.post(corp.account, 'expense', 'The Board Fills Your Roster', -bill);
         if (corp.rep)
           corp.rep.patience = Math.max(CONST.UNDERWRITE_PATIENCE_FLOOR,
                                        (corp.rep.patience != null ? corp.rep.patience : 50)
@@ -4146,7 +4151,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          A contract is paid once, and a rested body still costs two fifths of a fielded one. */
       const payroll = Math.round(LED.retainerBill(alive) / LED.CONST.SALARY_MONTHS);
       if (payroll > 0) {
-        LED.post(c.account, 'expense', 'retainers', -payroll);
+        LED.post(c.account, 'expense', 'Retainers', -payroll);
         landed[id].push({ kind: 'wages', text: 'Wages', amount: -payroll });
       }
       /* §STAFF the backroom is paid every month, in full: nobody on it is kept on a retainer */
@@ -4221,23 +4226,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     /* THE DRAFT opens at the seam: the AI's turns run; a human's turn waits for the page (or
        for choices[id].slots when the closing is driven without one) */
     draftAdvance(state, state._draftChoices || null);
-    const secs = PRE.sectors(state.planet);
-    for (const id of state.ids) {
-      if (isHuman(state, id)) continue;
-      const c = state.corps[id];
-      const rng = rngOf(state, 'seam' + state.season + id);
-      const taken = {};
-      for (const other of state.ids) {
-        const pick = state.drop.sectors[other];
-        if (pick != null) taken[pick] = (taken[pick] || 0) + 1;
-      }
-      /* §CENSUS with the ground it surveyed: this read a scalar nothing had written for a whole step, so every engine
-         OA was guessing at every sector however much it had scouted */
-      const secDepth = ((c._intel && c._intel.planet && c._intel.planet.rows.sectors) || { depth: 0 }).depth;
-      const secIntel = secDepth >= 3 ? PRE.CONST.INTEL_PRIZE + 0.1 : secDepth >= 2 ? PRE.CONST.INTEL_PRIZE : secDepth >= 1 ? PRE.CONST.INTEL_TERRAIN : 0;
-      state.drop.sectors[id] = PRE.chooseSector(rng, c, secs, taken, secIntel);
-      /* §TRUCE no truce is struck before the drop (ruled): a truce is made at the table, on the ground */
-    }
   }
 
   /**
@@ -4375,9 +4363,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const c = corps[id];
       persist[id] = { drop: c._drop, account: c.account, armoury: c.armoury,
         lastPlace: c._lastPlace || null,          /* §SNOWBALL where it finished last year: the champion is a mark */
-        /* §6.14 what this OA's deals with each other OA came to, carried across seasons: the
-           Divide writes into the same object, so the lesson survives the lock */
-        dealRecord: (c._dealRecord = c._dealRecord || {}),
         /* §MARKET whether this OA kept or broke the promises it made to leavers, carried across seasons the same way —
            it was written to this per-Divide object alone and lost at the season, so Their Word never read it */
         wordRecord: (c._wordRecord = c._wordRecord || {}),
@@ -4415,13 +4400,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* `openSeason` is FALSE now: the board already spoke in M1. Leaving it true would stamp a
          second card over the one the manager spent the year working against, which is the same
          bug in the other direction. */
-      openSeason: false, groundTruth: state.planet,
+      openSeason: false, groundTruth: state.planet, siteCash: CONST.SITE_CASH,
       /* the edict's own share, from where the edict is written, rather than a number typed
          again in the Divide where nobody would think to change it */
-      /* THE SEAM, HANDED OVER. Where everybody chose to land, and who agreed not to shoot at
-         whom before anyone had seen anything. */
-      dropSectors: state.drop.sectors,
-      dropSlots: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null, slotCount: (state.drop.draft && state.drop.draft.slots) || SLOT_MIN,
+      /* §GROUND the ground itself, and where the draft put everybody: zone ids a squad */
+      ground: state.ground,
+      dropZones: state.drop.draft && state.drop.draft.done ? state.drop.draft.picks : null,
       mediaRevealed: state.drop.media,
       human: theManager({ opts: opts }),
       humans: humansOf(opts)
@@ -4439,7 +4423,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     for (const id of ids) {
       const c = corps[id];
       if (!c) continue;
-      LED.post(c.account, 'expense', 'Aleas entry', -LED.CONST.ALEAS_ENTRY);
+      LED.post(c.account, 'expense', 'Aleas Entry', -LED.CONST.ALEAS_ENTRY);
     }
     /* SPONSORS COMMIT AT THE LOCK. A year of courting is over; each house signs the corp with
        the highest standing (regard plus this year's effort) and pays its advance. Conditions
@@ -4471,11 +4455,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
          its first season: eight signings a corp a year, wages never charged, which is a
          large share of the only real expense in the game arriving free. The prep order in
          SEASONS.md always said the roster settles first and the money follows it. */
-      c._renew = renewRoster(rngOf(corps, 'renew' + season + id), c,
-                             c._off.expired, c._off.freed, state);
+      /* (renewals are settled at the turn of the year, when the paper runs out: beginSeason) */
       c._recruit = recruit(rngOf(corps, 'sign' + season + id), c, isHuman(state, id));
-      /* the calls are answered: they are this year's, not a standing instruction */
-      c._renewalCalls = {};
       const alive = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired');
       /* S15 — this charges the RETAINER only. The purse is charged at the muster below, once
          there is a drop to pay it to. `c._wages` is completed there. */
@@ -4606,7 +4587,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     const inDrop = new Set((c._drop || []).map(f => f.id));
     const fit = c.roster.filter(f => f.status !== 'dead' && f.status !== 'retired' && f.status !== 'captured'
       && !inDrop.has(f.id) && !(f.condition && (f.condition.injuries || []).length));
-    const leads = fit.filter(f => !f.mirror_of);
+    /* a lead whose other half went down goes down with it, not into orbit */
+    const leads = fit.filter(f => !f.mirror_of && !(c._drop || []).some(d => d.mirror_of === f.id));
     const q = f => (f.stats.aim + f.stats.tactics + f.stats.resolve + f.stats.grit);
     const asked = ((c._lock && c._lock.reserve) || []).map(id => leads.find(f => f.id === id)).filter(Boolean);
     const rest = leads.filter(f => asked.indexOf(f) < 0).sort((a, b) => q(b) - q(a));
@@ -4647,7 +4629,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const old = c._drop || [], oldIds = old.map(f => f.id).sort().join(','), newIds = drop.map(f => f.id).sort().join(',');
       if (oldIds !== newIds) {
         const diff = LED.purseBill(drop) - LED.purseBill(old);
-        if (diff) LED.post(c.account, 'expense', 'purses', -diff);
+        if (diff) LED.post(c.account, 'expense', 'Purses', -diff);
         c._purses = (c._purses || 0) + diff; c._wages = (c._retainers || 0) + c._purses;
         for (const f of old) f._droppedLastSeason = false;
         for (const f of drop) f._droppedLastSeason = true;
@@ -4682,8 +4664,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       permanentLosses: mine.dead != null ? mine.dead : (mine.permanentLosses || 0),
       famousLosses: mine.famousLosses || 0, payout: mine.payout || 0,
       banked: (res.banked || {})[id] || {},
-      haul: (res.haulLines || []).filter(l => l.from === id || l.to === id),
-      claims: (res.claimLines || []).filter(l => l.from === id || l.to === id),
       promises: (res.promises || []).slice()
     };
   }
@@ -4724,6 +4704,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
     }
   }
   function finishSeason(state, res) {
+    settleLeadPromises(state);   /* §TALKS a squad to lead, now that the squads were dealt */
     askBoards(state, res);
     /* §DRAFT where each OA finished is next year's draft order, last place first */
     for (const id of state.ids) if (res.placement && res.placement[id] != null) state.corps[id]._lastPlace = res.placement[id];
@@ -4766,6 +4747,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       let bonuses = 0;
       for (const f of dropped) {
         f.divides = (f.divides || 0) + 1;
+        f._droppedLastSeason = true;   /* a reserve that landed fought too, and grows as the drop does */
+        /* §XP and a career's Divides, which outlast any one OA: composure, the veteran and the green read them */
+        if (f.status !== 'dead') { f.experience = f.experience || {}; f.experience.divides = (f.experience.divides || 0) + 1; }
         /* §SKILLS (ruled) A DIVIDE FOUGHT WITH A GUN teaches that gun: its type, and a little of its class */
         if (f.status !== 'dead') {
           const gun = f.loadout && ITEMS.byId(f.loadout.primary);
@@ -4786,14 +4770,14 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         if (f.contract && f.contract.kind === 'nattie' && f.contract.divide_bonus)
           bonuses += f.contract.divide_bonus;
       }
-      if (bonuses) LED.post(c.account, 'expense', 'Divide bonuses', -bonuses);
+      if (bonuses) LED.post(c.account, 'expense', 'Divide Bonuses', -bonuses);
       /* what the corp actually put into kit this year is an expense like any other */
       /* Charge what was BOUGHT, not what was carried. `plan.total` is the catalog value of
          everything fielded, most of which the corp already owned — billing it every season
          was charging rent on its own rifles. `spentCash` is the money that actually left. */
       const kit = (persist[id] && persist[id].kitValue) || 0;
       const spend = (persist[id] && persist[id].kitSpend) || 0;
-      if (spend) LED.post(c.account, 'expense', 'procurement', -spend);
+      if (spend) LED.post(c.account, 'expense', 'Procurement', -spend);
       /* §STAFF and haggles at the drop, for a part of what they win at the market */
       const qmOff = Math.round(spend * STAFF.shelfDiscount(c) * STAFF.CONST.QM_PROCURE);
       if (qmOff > 0) { LED.post(c.account, 'income', 'The Quartermaster\u2019s Haggling', qmOff); const q = STAFF.holder(c, 'quartermaster'); if (q) q.record.saved = (q.record.saved || 0) + qmOff; }
@@ -4801,8 +4785,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       /* ---- THE MONEY THE DIVIDE WAS WORTH ----
          `ledger.bookDivide` has existed since Step 6 and had no caller anywhere in the season
          loop. Every settlement figure the negotiation engine produces — the pot on the last
-         banner standing, the umbrella's cut of a cut, what a ceded claim was sold for, the
-         winner's bonuses, ransoms both ways — was computed, reported, and never reached a
+         banner standing, a promise kept to a leaver, the winner's bonuses, ransoms both
+         ways — was computed, reported, and never reached a
          treasury. A twelve-season career ran on the board's grant alone, so a corp's finances
          were grant minus wages and nothing a manager did on a planet moved them: everybody's
          treasury rose every year, nobody ever had to ask the board for anything, and the
@@ -4818,25 +4802,12 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         ransomTaken: pc.ransomTaken || 0
       });
       c._payout = pc.payout || 0;
-      /* §WITHDRAWAL the debt for ground it could not pay for: charged against the treasury at
-         the close, and paid to the OA that conceded, so a concession is never free */
       /* §PRIZE A SITE PAYS A QUICK BUCK (ruled). The main reward of a dug site is its stores;
          beside them it pays a small flat sum, guaranteed, win or lose — the grab a squad runs
          for. Removing the haul's double payment had taken this away entirely, and measured it
          cost every losing OA about fifteen thousand a year. Paid straight to the books: it is
          the squad's, not the parent organisation's share of a settlement. */
-      /* §CONTRABAND the Aleas' price for lost footage, paid at the close */
-      if (pc.bribes) LED.post(c.account, 'expense', 'The Aleas, Paid', -pc.bribes);
-      c._sitesDug = pc.sitesDug || 0;
-      if (c._sitesDug) LED.post(c.account, 'income', 'Sites Dug', c._sitesDug * CONST.SITE_CASH);
-      c._owed = pc.owed || 0;
-      c._owedTo = pc.owedTo || [];
-      for (const d of c._owedTo) {
-        const owedTo = corps[d.to];
-        if (!d.amount) continue;
-        LED.post(c.account, 'expense', 'Ground Bought on Credit', -d.amount);
-        if (owedTo) LED.post(owedTo.account, 'income', 'Ground Conceded, Paid Late', d.amount);
-      }
+      if (pc.sitesDug) LED.post(c.account, 'income', 'Sites Dug', pc.sitesDug * CONST.SITE_CASH);
       c._bonus = c.account.lastBonus || 0;
       /* ---- the locker ---- */
       c._stockLeft = persist[id] && persist[id].stockLeft;
@@ -4845,14 +4816,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       const unlanded = (c._reserve || []).filter(f => (dropped || []).indexOf(f) < 0);
       c._armoury = settleArmoury(rngOf(corps, 'arm' + season + id),
                                  c, (dropped || []).concat(unlanded), dead, heldGround);
-      const griefed = grieve(c, dead);
+      grieve(c, dead);
 
       /* ---- THE BOARD CLOSES ----
          The card is scored and patience moves. Without this the whole fail state is inert:
          the first ten-season chain ran with patience frozen at its opening value for every
          corp, so nobody was ever dismissed and the difficulty gradient had no expression
          except money. `reputation.closeSeason` has existed since Step 7 and had no caller. */
-      const dc = (res.corps || []).find(x => x.id === id) || {};
       const close = REP.closeSeason(c.rep, {
         /* what the year actually did to the books, not what is in them */
         surplus: Math.round(c.account.treasury - (c._openingTreasury || 0)),
@@ -4882,10 +4852,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
           c._starsLast = stars;
           return 0;
         })(),
-        famousLosses: dead.filter(f => (f.fame || 0) >= 55).length,
-        sitesClaimed: dc.sitesClaimed || 0,
-        oreCredit: dc.oreCredit || 0,
-        engagements: dc.engagements || 0
+        famousLosses: dead.filter(f => (f.fame || 0) >= 55).length
       });
       /* §PRIZE what a full store could not hold is sold on to the fleet at the going rate —
          the one place a haul becomes credits, and only for what spilled over */
@@ -4895,7 +4862,6 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         for (const cat in spilled) units += spilled[cat];
         const sale = Math.round(units * NEG.CONST.SURPLUS_VALUE);
         if (sale > 0) LED.post(c.account, 'income', 'Surplus Sold to the Fleet', sale);
-        c._surplusSold = sale;
       }
       c._close = close;
       /* THE FAMILIES ARE PAID. Every contract has carried a death benefit since the pools
@@ -4916,9 +4882,9 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
         told += (f.contract && f.contract.death_benefit) || 0;
       }
       if (told && c.rep) REP.act(c.rep, 'paid_the_wages', { count: 1 });
-      if (pensions) LED.post(c.account, 'expense', 'Death benefits', -pensions);
+      if (pensions) LED.post(c.account, 'expense', 'Death Benefits', -pensions);
       c.roster = c.roster.filter(f => f.status !== 'dead');
-      for (const f of c.roster) bringWoundHome(f);   /* §WOUNDS the ground's wounds become the year's */
+      for (const f of c.roster) { bringWoundHome(f); settleWounds(f); }   /* §WOUNDS the ground's wounds become the year's; a body whole again carries none */
       c.history.push({ season, dropped: dropped.length, dead: dead.length,
                        roster: c.roster.length, treasury: Math.round(c.account.treasury),
                        /* §BOARD where it finished, so the Board can show the fleet's last
@@ -4985,7 +4951,8 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       }
       const verdict = SPON.judge(c, {
         dropped: h.dropped || 0, dead: h.dead || 0,
-        calledWithdrawal: !!c._calledWithdrawal,
+        /* taken and not given back: a captive the other side kept to the end */
+        captured: drop.filter(f => f._transferredTo && f.status !== 'dead').length,
         bestFame: best,
         treasury: c.account.treasury,
         energyFraction: armedGuns ? energyGuns / armedGuns : 0,
@@ -5234,15 +5201,13 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
       ids: Object.keys(corps), season: o.season, rec: o.rec,
       month: o.month, done: o.done,
       lots: {}, bids: o.bids || { tryouts: {}, mercs: {} },
-      drop: o.drop || { sectors: {}, media: {} },
+      drop: o.drop || { media: {} },
       dividend: o.dividend, mercs: o.mercs, tryouts: o.tryouts, bastille: o.bastille,
       events: o.events || {}, fleet: o.fleet || undefined, staffPool: o.staffPool || undefined,
       planet: null
     };
     /* rebuilt, not restored — see `saveCareer` */
-    state.planet = MAP.generatePlanet(rngOf(corps, 'planet' + o.season), {});
-    state.planet.pot = NEG.rollPot(rngOf(corps, 'pot' + o.season),
-                                   state.planet.archetype, state.planet.richness);
+    { const world = worldFor(corps, o.season); state.planet = world.planet; state.ground = world.ground; }
     /* the sponsor board is derived too: the house list is fixed, and each corp's courting effort
        (which IS saved, on the corp) carries the year's progress. Rebuild an open board so the
        lock can resolve it from the restored courting. */
@@ -5267,7 +5232,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
   if (EVENTS && EVENTS.useTalker) EVENTS.useTalker(talkNow);
   /* §STAFF and a Sergeant can take the meeting instead */
   if (EVENTS && EVENTS.useSergeant) EVENTS.useSergeant({ now: sergeantNow, preview: sergeantPreview });
-  return { useCensus, isHuman, humansOf, theManager, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
+  return { useCensus, isHuman, humansOf, theManager, rngOf, worldOf, recruitDraftPick, recruitDraftAdvance, recruitDraftWhose, DRAFT, strengthRead,
      seatView,
      beginContest, contestStatus, contestView, contestResult, answerContest,
     advanceContest, resumeContest, saveContest, toPlain,
@@ -5285,7 +5250,7 @@ function rngOf(src, key) { return P.mulberry32(P.seedFrom('w' + worldOf(src) + '
            beginSeason, stepMonth, closeSeason, closeSeasonToDrop, prepareDivide,
            finishSeason, monthTracks, optionsFor, validateFocus,
            foundingRoster, openLot, ensureLot, saveCareer, loadCareer, SAVE_VERSION,
-           sectorsFor, chooseDropSector, ensureDraft, draftWhose, draftPick, draftAdvance, SLOT_MIN, slotCountFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
+           ensureDraft, draftWhose, draftPick, draftAdvance, landingsFor, squadPlanFor, askingPrice, signingBudget, lotFor, placeBid,
            chooseFocus, lockLean, wantedDropSize,
            /* Gather Intel — the dossier model, its readers, and its schema */
            ensureIntel, gatherIntel, snapshotRival, rowFreshness,

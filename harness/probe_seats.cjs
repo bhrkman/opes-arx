@@ -22,7 +22,7 @@ for (const seed of ['two6', 'two7', 'two8', 'two9', 'two10', 'two11']) {
   if (!(w.seats[B].withdrawAsks || []).some(a => a.from === A)) f.push("B does not see A's offer to answer");
   w = gen.next({ bySeat: { [A]: {}, [B]: { withdrawReplies: { [A]: true } } } }).value;
   const standing = (id) => w.seats && w.seats[id] && !((w.corps || []).find(x => x.id === id) || {}).withdrawn;
-  if (!standing(A) || !standing(B)) continue;            /* a banner pulled mid-exchange: try the next scenario */
+  if (!standing(A) || !standing(B)) continue;            /* a banner gone mid-exchange: try the next scenario */
   if (!((w.seats[A].withdrawReplies || {})[B] === true)) f.push("B's promise did not reach A");
   fails = f; break;
 }

@@ -85,8 +85,6 @@ for (const field of Object.keys(writes).sort()) {
    — a documented figure the code derives differently — so those are named. */
 /* Same principle for constants. A number nobody reads is a decision nobody is acting on. */
 const ACCEPTED_DEAD = [
-  'OFFSEASON_DAYS',   // superseded: mending runs across the prep months now
-  'FINAL_DAY',        // map.js; the ground clock reads LAST_GROUND_DAY
   'TILE_METRES',      // tactical.js; declarative — the grid works in tiles, not metres
   'SUPPRESS_MIN_P',   // HALF-BUILT — a floor on suppression that nothing applies
   'BOUND_SHARE'       // HALF-BUILT — bounding movement was never wired

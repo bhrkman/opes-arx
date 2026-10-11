@@ -262,7 +262,7 @@
     });
     board.signedBy[h] = corpId;
     board.taken++;
-    LED.post(corp.account, 'income', 'sponsor advance (' + h + ')', CONST.SPONSOR_ADVANCE);
+    LED.post(corp.account, 'income', 'Sponsor Advance (' + h + ')', CONST.SPONSOR_ADVANCE);
     return def;
   }
   function benchmarkFor(board) {
@@ -432,7 +432,7 @@
          contract that asks for it. A standing already held deepens by one step, to its cap. */
       const rw = c.reward || { kind: 'cash' };
       if (rw.kind === 'cash') {
-        LED.post(corp.account, 'income', 'sponsor reward (' + c.house + ')', CONST.SPONSOR_REWARD);
+        LED.post(corp.account, 'income', 'Sponsor Reward (' + c.house + ')', CONST.SPONSOR_REWARD);
         out.paid += CONST.SPONSOR_REWARD;
       } else if (rw.kind === 'standing') {
         const got = grantStanding(corp, rw.standing, c.house);

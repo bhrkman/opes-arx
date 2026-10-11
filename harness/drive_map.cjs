@@ -1,7 +1,6 @@
-/* §GROUND THE MAP, READ. Plays to the drop, advances a window, and reads the Ground's hover
-   for a squad of yours, for the sites and for your OA's operations — through the two functions that build it, since
-   the harness has no layout to point a mouse at. Fails if the sites are not told what they
-   are or a squad's hover does not list who is in it. `node harness/drive_map.cjs` */
+/* §GROUND THE MAP, READ. Plays to the drop, advances a window, and reads the Ground page: a squad of yours stands on
+   a region, the region's hover names it, its ground and who is in it, opening it shows its zones with their sites, and
+   the Yours panel lists your squads with where they stand. `node harness/drive_map.cjs` */
 const fs=require('fs');const {JSDOM}=require('/home/claude/opes-arx/harness/node_modules/jsdom');
 let html=fs.readFileSync('/home/claude/opes-arx/viewers/the_corp.html','utf8');
 html=html.replace('    G = { rng: rng,','    G = window.__G = { rng: rng,');
@@ -15,24 +14,31 @@ setTimeout(()=>{d.getElementById('mNew').click();
      setTimeout(()=>{
        d.getElementById('advwin').onclick();
        setTimeout(()=>{
-         const G=w.__G, D=w.__gDay();
-         const mine=(D.sq||[]).find(q=>q.s>=0 && !q.ghost && !q.met);
-         const fails=[];
-         const st=mine ? txt(w.__gtip.squadTip(mine)) : '';
-         console.log('squad: ' + st.slice(0,110));
-         if(!mine) fails.push('no squad of yours on the map');
-         else if(!/Standing|Hurt|Down/.test(st) || (st.match(/\u00b7/g)||[]).length < 2) fails.push('the squad hover does not list its fighters');
-         const kinds=new Set((D.obj||[]).map(o=>o.t));
-         if(kinds.size < 3) fails.push('the map is not told what its sites are (' + [...kinds].join(',') + ')');
-         (D.obj||[]).slice(0,3).forEach(o=>{ const t=txt(w.__gtip.siteTip(o)); console.log('site:  ' + t);
-           if(!t || /undefined/.test(t)) fails.push('a site hover says nothing: ' + o.t); });
-         /* §COMMAND your OA's plan rides the day: its operations, and none of anyone else's */
-         const rec=G.div.win.record||[], ops=(rec[rec.length-1]||{}).ops||[];   /* the drop is recorded before the first plan */
-         if(!ops.length) fails.push('the day carries no plan of yours');
-         if(ops.some(o=>o.c!==ops[0].c)) fails.push('the day shows another OA\'s plan');
-         ops.slice(0,3).forEach(o=>{ const t=txt(w.__gtip.opTip(o)); console.log('op:    ' + t);
-           if(!t || /undefined|null/.test(t)) fails.push('an operation hover says nothing: ' + o.k); });
-         console.log(fails.length ? 'FAIL ' + fails.join(' | ') : 'the map names its sites, and your squads say who is in them');
+         const G=w.__G, fails=[];
+         [...d.querySelectorAll('.tab')].filter(x=>/^The Ground$/.test(x.textContent.trim()))[0].click();
+         const D=w.__gDay();
+         const mine=(D.squads||[]).filter(q=>q.oa===G.me);
+         if(!mine.length) fails.push('no squad of yours on the map');
+         const g=D.ground, rid=mine.length?g.zones[mine[0].zone].region:0;
+         const regEl=d.querySelector('#gvmap [data-gvreg="'+rid+'"]');
+         if(!regEl) fails.push('your squad\'s region is not drawn');
+         else {
+           const ev=new w.MouseEvent('mousemove',{bubbles:true,clientX:10,clientY:10}); Object.defineProperty(ev,'target',{value:regEl});
+           d.getElementById('gvmap').onmousemove(ev);
+           const tip=d.getElementById('gvtip').textContent.replace(/\s+/g,' ').trim();
+           console.log('hover: '+tip.slice(0,140));
+           if(!(new RegExp(g.regions[rid].name)).test(tip) || !/Ticks a Step/.test(tip) || !/Alpha|Squad/.test(tip)) fails.push('the region hover does not name the region, its going and who is in it');
+           regEl.dispatchEvent(new w.Event('click'));
+           const zones=d.querySelectorAll('#gvregion [data-gvzone]').length;
+           console.log('zones drawn: '+zones+' of '+g.regions[rid].zones.length);
+           if(zones!==g.regions[rid].zones.length) fails.push('opening the region does not show every zone');
+         }
+         const kinds=new Set(g.sites.map(s=>s.kind));
+         if(kinds.size<3) fails.push('the ground has too few kinds of site ('+[...kinds].join(',')+')');
+         const yours=d.getElementById('gvorders').textContent.replace(/\s+/g,' ').trim();
+         console.log('yours: '+yours.slice(0,140));
+         if(!yours || /undefined|null/.test(yours)) fails.push('the Yours panel says nothing of your squads');
+         console.log(fails.length ? 'FAIL ' + fails.join(' | ') : 'the map names its regions and sites, and your squads say where they stand');
          process.exit(fails.length ? 1 : 0);
        },400);
      },400);

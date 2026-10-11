@@ -8,7 +8,7 @@ const D = path.join(__dirname, '..', 'sim') + '/';
 const P = require(D + 'prng.js'), S = require(D + 'season.js'), DIV = require(D + 'divide.js'), LED = require(D + 'ledger.js');
 const oa = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'oa_profiles.json'), 'utf8')).oa_profiles;
 const fails = [], say = [];
-let tried = 0, landedSeen = 0;
+let tried = 0, landedSeen = 0, kitChecked = 0;
 for (const seed of ['rsv1', 'rsv2', 'rsv3', 'rsv4', 'rsv5', 'rsv6']) {
   tried++;
   const rng = P.mulberry32(P.seedFrom(seed)); const c = S.openFleet(rng, oa, {}); const me = oa[2].id;
@@ -52,12 +52,15 @@ for (const seed of ['rsv1', 'rsv2', 'rsv3', 'rsv4', 'rsv5', 'rsv6']) {
   /* settle, and look at the armoury: every unlanded reserve fighter's primary is back in the rack */
   const unlanded = (corp._reserve || []).filter(f => order.indexOf(f.id) < 0 && !f.mirror_of);
   const rackBefore = {}; for (const f of unlanded) if (f.loadout && f.loadout.primary) rackBefore[f.loadout.primary] = (rackBefore[f.loadout.primary] || 0) + 1;
+  const rackAt = Object.assign({}, corp.armoury || {});
   S.finishSeason(st, res);
-  for (const id in rackBefore) if (!((corp.armoury || {})[id] >= rackBefore[id])) { fails.push(seed + ': reserve kit did not come home (' + id + ')'); break; }
+  for (const id in rackBefore) if (!(((corp.armoury || {})[id] || 0) - (rackAt[id] || 0) >= rackBefore[id])) { fails.push(seed + ': reserve kit did not come home (' + id + ': ' + (rackAt[id] || 0) + ' -> ' + ((corp.armoury || {})[id] || 0) + ', ' + rackBefore[id] + ' unlanded)'); break; }
+  kitChecked += Object.keys(rackBefore).reduce((t, k) => t + rackBefore[k], 0);
   say.push(seed + ' landed ' + mine.length + ' of ' + want.length);
   if (landedSeen >= 2 && tried >= 2) break;
 }
+if (!kitChecked) fails.push('no unlanded reserve fighter carried a primary, so the kit-home check never ran');
 if (!landedSeen) fails.push('no scenario saw a landing of the seat\'s own (' + tried + ' tried)');
 console.log(fails.length ? '  FAIL  ' + [...new Set(fails)].slice(0, 4).join(' | ')
-  : '  ok    the reserve: held in the order set, the locked drop paid for, landings in order, kit home (' + say.join('; ') + ')');
+  : '  ok    the reserve: held in the order set, the locked drop paid for, landings in order, kit home (' + say.join('; ') + '; ' + kitChecked + ' unlanded primaries back in the rack)');
 process.exit(fails.length ? 1 : 0);

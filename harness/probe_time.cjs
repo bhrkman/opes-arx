@@ -29,15 +29,16 @@ const gen = DIV.divideCore(d.rng, Object.assign({}, d.opts, { debugViews: true }
 let w = gen.next().value;
 const cs = w.corps, own = cs.find(x => x.id === A), cap = cs.find(x => x.id !== A && x.id !== B);
 const f = own.allBodies.find(b => b.status === 'active'); f.status = 'captured'; f._capturedBy = cap.id;
-let opened = false, lapsed = false;
-for (let k = 0; k < 10; k++) {
+let opened = false, lapsed = false, ended = false, waited = 0;
+for (let k = 0; k < 14; k++) {
   const cases = w.stats && w.stats.ransomCases || [];
   const kf = cases.find(x => x.fighter === f.id);
-  if (kf && !kf.done) opened = true;
+  if (kf && !kf.done) { opened = true; waited = kf.waited || 0; }
   if (kf && kf.lapsed) { lapsed = true; break; }
-  const step = gen.next({ bySeat: { [A]: {}, [B]: {} } }); if (step.done) break; w = step.value;
+  const step = gen.next({ bySeat: { [A]: {}, [B]: {} } }); if (step.done) { ended = true; break; } w = step.value;
 }
-if (opened && !lapsed) fails.push('an unanswered ransom case never lapsed');
-say.push(opened ? (lapsed ? 'an unanswered ransom lapsed' : 'ransom still open') : 'no case opened (the captor would not sell)');
+/* a contest that ends before the case's windows are up is not a case that failed to lapse */
+if (opened && !lapsed && !ended) fails.push('an unanswered ransom case never lapsed');
+say.push(opened ? (lapsed ? 'an unanswered ransom lapsed' : 'the contest ended with the case ' + waited + ' window(s) old, under its ' + DIV.CONST.RANSOM_ANSWER_WINDOWS) : 'no case opened (the captor would not sell)');
 console.log(fails.length ? '  FAIL  ' + fails.join(' | ') : '  ok    nobody absent stalls the game: ' + say.join('; '));
 process.exit(fails.length ? 1 : 0);
